@@ -13,7 +13,7 @@ from contextlib import contextmanager
 from samcli.local.docker.lambda_container import LambdaContainer
 from .zip import unzip
 
-from samcli.lib.telemetry.metrics import capture_parameter
+from samcli.lib.telemetry.metric import capture_parameter
 
 LOG = logging.getLogger(__name__)
 

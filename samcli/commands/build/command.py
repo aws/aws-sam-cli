@@ -13,7 +13,7 @@ from samcli.commands._utils.options import (
 )
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from samcli.lib.build.exceptions import BuildInsideContainerError
-from samcli.lib.telemetry.metrics import track_command
+from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 
 

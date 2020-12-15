@@ -8,7 +8,7 @@ import atexit
 import click
 
 from samcli import __version__
-from samcli.lib.telemetry.metrics import send_installed_metric, emit_all_metrics
+from samcli.lib.telemetry.metric import send_installed_metric, emit_all_metrics
 from samcli.lib.utils.sam_logging import (
     LAMBDA_BULDERS_LOGGER_NAME,
     SamCliLogger,

@@ -1,23 +1,26 @@
+import pathlib
 import platform
 import time
+import uuid
+import samcli
 
 from unittest import TestCase
 from unittest.mock import patch, Mock, ANY, call
 
-from samcli.lib.telemetry.metrics import send_installed_metric, track_command, track_template_warnings
+from samcli.lib.telemetry.metric import send_installed_metric, track_command, track_template_warnings, Metric
 from samcli.commands.exceptions import UserException
 
 
 class TestSendInstalledMetric(TestCase):
     def setUp(self):
         self.gc_mock = Mock()
-        self.global_config_patcher = patch("samcli.lib.telemetry.metrics.GlobalConfig", self.gc_mock)
+        self.global_config_patcher = patch("samcli.lib.telemetry.metric.GlobalConfig", self.gc_mock)
         self.global_config_patcher.start()
 
     def tearDown(self):
         self.global_config_patcher.stop()
 
-    @patch("samcli.lib.telemetry.metrics.Telemetry")
+    @patch("samcli.lib.telemetry.metric.Telemetry")
     def test_must_send_installed_metric_with_attributes(self, TelemetryClassMock):
         telemetry_mock = TelemetryClassMock.return_value = Mock()
 
@@ -36,8 +39,8 @@ class TestTrackWarning(TestCase):
         self.telemetry_instance = TelemetryClassMock.return_value = Mock()
         self.gc_instance_mock = GlobalConfigClassMock.return_value = Mock()
 
-        self.telemetry_class_patcher = patch("samcli.lib.telemetry.metrics.Telemetry", TelemetryClassMock)
-        self.gc_patcher = patch("samcli.lib.telemetry.metrics.GlobalConfig", GlobalConfigClassMock)
+        self.telemetry_class_patcher = patch("samcli.lib.telemetry.metric.Telemetry", TelemetryClassMock)
+        self.gc_patcher = patch("samcli.lib.telemetry.metric.GlobalConfig", GlobalConfigClassMock)
         self.telemetry_class_patcher.start()
         self.gc_patcher.start()
 
@@ -55,8 +58,8 @@ class TestTrackWarning(TestCase):
         self.telemetry_class_patcher.stop()
         self.gc_patcher.stop()
 
-    @patch("samcli.lib.telemetry.metrics.Context")
-    @patch("samcli.lib.telemetry.metrics.TemplateWarningsChecker")
+    @patch("samcli.lib.telemetry.metric.Context")
+    @patch("samcli.lib.telemetry.metric.TemplateWarningsChecker")
     @patch("click.secho")
     def test_must_emit_true_warning_metric(self, secho_mock, TemplateWarningsCheckerMock, ContextMock):
         ContextMock.get_current_context.return_value = self.context_mock
@@ -81,8 +84,8 @@ class TestTrackWarning(TestCase):
         self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
         secho_mock.assert_called_with("WARNING: DummyWarningMessage", fg="yellow")
 
-    @patch("samcli.lib.telemetry.metrics.Context")
-    @patch("samcli.lib.telemetry.metrics.TemplateWarningsChecker")
+    @patch("samcli.lib.telemetry.metric.Context")
+    @patch("samcli.lib.telemetry.metric.TemplateWarningsChecker")
     @patch("click.secho")
     def test_must_emit_false_warning_metric(self, secho_mock, TemplateWarningsCheckerMock, ContextMock):
         ContextMock.get_current_context.return_value = self.context_mock
@@ -107,8 +110,8 @@ class TestTrackWarning(TestCase):
         self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
         secho_mock.assert_not_called()
 
-    @patch("samcli.lib.telemetry.metrics.Context")
-    @patch("samcli.lib.telemetry.metrics.TemplateWarningsChecker")
+    @patch("samcli.lib.telemetry.metric.Context")
+    @patch("samcli.lib.telemetry.metric.TemplateWarningsChecker")
     @patch("click.secho")
     def test_must_not_emit_warning_metric_when_telemetry_disabled(
         self, secho_mock, TemplateWarningsCheckerMock, ContextMock
@@ -123,13 +126,6 @@ class TestTrackWarning(TestCase):
 
         track_template_warnings(["DummyWarningName"])(real_fn)()
 
-        expected_attrs = {
-            "awsProfileProvided": False,
-            "debugFlagProvided": False,
-            "region": "myregion",
-            "warningName": "DummyWarningName",
-            "warningCount": 0,
-        }
         self.telemetry_instance.emit.assert_not_called()
         secho_mock.assert_not_called()
 
@@ -141,8 +137,8 @@ class TestTrackCommand(TestCase):
         self.telemetry_instance = TelemetryClassMock.return_value = Mock()
         self.gc_instance_mock = GlobalConfigClassMock.return_value = Mock()
 
-        self.telemetry_class_patcher = patch("samcli.lib.telemetry.metrics.Telemetry", TelemetryClassMock)
-        self.gc_patcher = patch("samcli.lib.telemetry.metrics.GlobalConfig", GlobalConfigClassMock)
+        self.telemetry_class_patcher = patch("samcli.lib.telemetry.metric.Telemetry", TelemetryClassMock)
+        self.gc_patcher = patch("samcli.lib.telemetry.metric.GlobalConfig", GlobalConfigClassMock)
         self.telemetry_class_patcher.start()
         self.gc_patcher.start()
 
@@ -159,7 +155,7 @@ class TestTrackCommand(TestCase):
         self.telemetry_class_patcher.stop()
         self.gc_patcher.stop()
 
-    @patch("samcli.lib.telemetry.metrics.Context")
+    @patch("samcli.lib.telemetry.metric.Context")
     def test_must_emit_one_metric(self, ContextMock):
         ContextMock.get_current_context.return_value = self.context_mock
 
@@ -175,7 +171,7 @@ class TestTrackCommand(TestCase):
             self.telemetry_instance.emit.mock_calls, [call(ANY)], "The one command metric must be sent"
         )
 
-    @patch("samcli.lib.telemetry.metrics.Context")
+    @patch("samcli.lib.telemetry.metric.Context")
     def test_must_emit_command_run_metric(self, ContextMock):
         ContextMock.get_current_context.return_value = self.context_mock
 
@@ -198,7 +194,7 @@ class TestTrackCommand(TestCase):
         assert(metric.get_metric_name() == "commandRun")
         self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
 
-    @patch("samcli.lib.telemetry.metrics.Context")
+    @patch("samcli.lib.telemetry.metric.Context")
     def test_must_emit_command_run_metric_with_sanitized_profile_value(self, ContextMock):
         ContextMock.get_current_context.return_value = self.context_mock
         self.context_mock.profile = "myprofilename"
@@ -208,13 +204,13 @@ class TestTrackCommand(TestCase):
 
         track_command(real_fn)()
 
-        expected_attrs = _cmd_run_attrs({"awsProfileProvided": True})
+        expected_attrs = _ignore_common_attributes({"awsProfileProvided": True})
         args, _ = self.telemetry_instance.emit.call_args_list[0]
         metric = args[0]
         assert(metric.get_metric_name() == "commandRun")
         self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
 
-    @patch("samcli.lib.telemetry.metrics.Context")
+    @patch("samcli.lib.telemetry.metric.Context")
     def test_must_record_function_duration(self, ContextMock):
         ContextMock.get_current_context.return_value = self.context_mock
         sleep_duration = 0.01  # 10 millisecond
@@ -235,7 +231,7 @@ class TestTrackCommand(TestCase):
             "Measured duration must be in milliseconds and " "greater than equal to  the sleep duration",
         )
 
-    @patch("samcli.lib.telemetry.metrics.Context")
+    @patch("samcli.lib.telemetry.metric.Context")
     def test_must_record_user_exception(self, ContextMock):
         ContextMock.get_current_context.return_value = self.context_mock
         expected_exception = UserException("Something went wrong")
@@ -252,13 +248,13 @@ class TestTrackCommand(TestCase):
                 "Must re-raise the original exception object " "without modification",
             )
 
-        expected_attrs = _cmd_run_attrs({"exitReason": "UserException", "exitCode": 1235})
+        expected_attrs = _ignore_common_attributes({"exitReason": "UserException", "exitCode": 1235})
         args, _ = self.telemetry_instance.emit.call_args_list[0]
         metric = args[0]
         assert(metric.get_metric_name() == "commandRun")
         self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
 
-    @patch("samcli.lib.telemetry.metrics.Context")
+    @patch("samcli.lib.telemetry.metric.Context")
     def test_must_record_wrapped_user_exception(self, ContextMock):
         ContextMock.get_current_context.return_value = self.context_mock
         expected_exception = UserException("Something went wrong", wrapped_from="CustomException")
@@ -275,13 +271,13 @@ class TestTrackCommand(TestCase):
                 "Must re-raise the original exception object " "without modification",
             )
 
-        expected_attrs = _cmd_run_attrs({"exitReason": "CustomException", "exitCode": 1235})
+        expected_attrs = _ignore_common_attributes({"exitReason": "CustomException", "exitCode": 1235})
         args, _ = self.telemetry_instance.emit.call_args_list[0]
         metric = args[0]
         assert(metric.get_metric_name() == "commandRun")
         self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
 
-    @patch("samcli.lib.telemetry.metrics.Context")
+    @patch("samcli.lib.telemetry.metric.Context")
     def test_must_record_any_exceptions(self, ContextMock):
         ContextMock.get_current_context.return_value = self.context_mock
         expected_exception = KeyError("IO Error test")
@@ -297,7 +293,7 @@ class TestTrackCommand(TestCase):
                 "Must re-raise the original exception object " "without modification",
             )
 
-        expected_attrs = _cmd_run_attrs(
+        expected_attrs = _ignore_common_attributes(
             {"exitReason": "KeyError", "exitCode": 255}  # Unhandled exceptions always use exit code 255
         )
         args, _ = self.telemetry_instance.emit.call_args_list[0]
@@ -305,7 +301,7 @@ class TestTrackCommand(TestCase):
         assert(metric.get_metric_name() == "commandRun")
         self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
 
-    @patch("samcli.lib.telemetry.metrics.Context")
+    @patch("samcli.lib.telemetry.metric.Context")
     def test_must_return_value_from_decorated_function(self, ContextMock):
         expected_value = "some return value"
 
@@ -315,7 +311,7 @@ class TestTrackCommand(TestCase):
         actual = track_command(real_fn)()
         self.assertEqual(actual, "some return value")
 
-    @patch("samcli.lib.telemetry.metrics.Context")
+    @patch("samcli.lib.telemetry.metric.Context")
     def test_must_pass_all_arguments_to_wrapped_function(self, ContextMock):
         def real_fn(*args, **kwargs):
             # simply return the arguments to be able to examine & assert
@@ -325,7 +321,7 @@ class TestTrackCommand(TestCase):
         self.assertEqual(actual_args, (1, 2, 3))
         self.assertEqual(actual_kwargs, {"a": 1, "b": 2, "c": 3})
 
-    @patch("samcli.lib.telemetry.metrics.Context")
+    @patch("samcli.lib.telemetry.metric.Context")
     def test_must_decorate_functions(self, ContextMock):
         @track_command
         def real_fn(a, b=None):
@@ -355,20 +351,42 @@ class TestTrackCommand(TestCase):
         self.telemetry_instance.emit.assert_not_called()
 
 
-def _cmd_run_attrs(data):
+class TestMetric(TestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    @patch("samcli.lib.telemetry.metric.platform")
+    @patch("samcli.lib.telemetry.metric.Context")
+    @patch("samcli.lib.telemetry.metric.GlobalConfig")
+    @patch("samcli.lib.telemetry.metric.uuid")
+    def test_must_add_common_attributes(self, uuid_mock, gc_mock, context_mock, platform_mock):
+        request_id = uuid_mock.uuid4.return_value = "fake requestId"
+        installation_id = gc_mock.return_value.installation_id = "fake installation id"
+        session_id = context_mock.get_current_context.return_value.session_id = "fake installation id"
+        python_version = platform_mock.python_version.return_value = "8.8.0"
+
+        metric = Metric("metric_name")
+        print(metric.get_data())
+
+        assert(metric.get_data()["requestId"] == request_id)
+        assert(metric.get_data()["installationId"] == installation_id)
+        assert(metric.get_data()["sessionId"] == session_id)
+        assert(metric.get_data()["executionEnvironment"] == "CLI")
+        assert(metric.get_data()["pyversion"] == python_version)
+        assert(metric.get_data()["samcliVersion"] == samcli.__version__)
+
+def _ignore_common_attributes(data):
     common_attrs = [
-        "awsProfileProvided",
-        "debugFlagProvided",
-        "region",
-        "commandName",
-        "duration",
-        "exitReason",
-        "exitCode",
+        "requestId",
+        "installationId",
+        "sessionId",
+        "executionEnvironment",
+        "pyversion",
+        "samcliVersion"
     ]
-    return _ignore_other_attrs(data, common_attrs)
-
-
-def _ignore_other_attrs(data, common_attrs):
     for a in common_attrs:
         if a not in data:
             data[a] = ANY

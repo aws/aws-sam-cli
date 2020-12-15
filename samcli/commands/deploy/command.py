@@ -22,7 +22,7 @@ from samcli.commands._utils.options import (
     signing_profiles_option,
 )
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
-from samcli.lib.telemetry.metrics import track_command
+from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils import osutils
 from samcli.lib.bootstrap.bootstrap import manage_stack
 
