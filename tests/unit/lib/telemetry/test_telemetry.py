@@ -94,3 +94,19 @@ class TestTelemetry(TestCase):
         telemetry = Telemetry()
 
         self.assertEqual(telemetry._url, default_endpoint_url_mock)
+
+    @patch("samcli.lib.telemetry.telemetry.requests")
+    @patch("samcli.lib.telemetry.telemetry.GlobalConfig")
+    def test_must_not_send_when_telemetry_disabled(self, gc_mock, requests_mock):
+        telemetry = Telemetry()
+        gc_mock.return_value.telemetry_enabled = False
+        telemetry.emit(self.metric_mock)
+        requests_mock.post.assert_not_called()
+
+    @patch("samcli.lib.telemetry.telemetry.requests")
+    @patch("samcli.lib.telemetry.telemetry.GlobalConfig")
+    def test_must_send_when_telemetry_disabled_but_forced(self, gc_mock, requests_mock):
+        telemetry = Telemetry()
+        gc_mock.return_value.telemetry_enabled = False
+        telemetry.emit(self.metric_mock, force_emit=True)
+        requests_mock.post.assert_called()

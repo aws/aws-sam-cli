@@ -35,8 +35,8 @@ def send_installed_metric():
     telemetry = Telemetry()
     metric = Metric("installed")
     metric.add_data("osPlatform", platform.system())
-    metric.add_data("telemetryEnabled", _telemetry_enabled())
-    telemetry.emit(metric)
+    metric.add_data("telemetryEnabled", bool(GlobalConfig().telemetry_enabled))
+    telemetry.emit(metric, force_emit=True)
 
 
 def track_template_warnings(warning_names):
@@ -68,14 +68,13 @@ def track_template_warnings(warning_names):
                 return func(*args, **kwargs)
             for warning_name in warning_names:
                 warning_message = template_warning_checker.check_template_for_warning(warning_name, ctx.template_dict)
-                if _telemetry_enabled():
-                    metric = Metric("templateWarning")
-                    metric.add_data("awsProfileProvided", bool(ctx.profile))
-                    metric.add_data("debugFlagProvided", bool(ctx.debug))
-                    metric.add_data("region", ctx.region or "")
-                    metric.add_data("warningName", warning_name)
-                    metric.add_data("warningCount", 1 if warning_message else 0)  # 1-True or 0-False
-                    telemetry.emit(metric)
+                metric = Metric("templateWarning")
+                metric.add_data("awsProfileProvided", bool(ctx.profile))
+                metric.add_data("debugFlagProvided", bool(ctx.debug))
+                metric.add_data("region", ctx.region or "")
+                metric.add_data("warningName", warning_name)
+                metric.add_data("warningCount", 1 if warning_message else 0)  # 1-True or 0-False
+                telemetry.emit(metric)
 
                 if warning_message:
                     click.secho(WARNING_ANNOUNCEMENT.format(warning_message), fg="yellow")
@@ -104,11 +103,6 @@ def track_command(func):
     """
 
     def wrapped(*args, **kwargs):
-
-        if not _telemetry_enabled():
-            # When Telemetry is disabled, call the function immediately and return.
-            return func(*args, **kwargs)
-
         telemetry = Telemetry()
         metric = Metric("commandRun")
 
@@ -185,11 +179,6 @@ def _timer():
         return int(max(default_timer() - start, 0) * 1000)  # milliseconds
 
     return end
-
-
-def _telemetry_enabled():
-    gc = GlobalConfig()
-    return bool(gc.telemetry_enabled)
 
 
 def _parse_attr(obj, name):

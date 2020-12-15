@@ -6,6 +6,7 @@ import logging
 import requests
 
 # Get the preconfigured endpoint URL
+from samcli.cli.global_config import GlobalConfig
 from samcli.settings import telemetry_endpoint_url as DEFAULT_ENDPOINT_URL
 
 LOG = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ class Telemetry:
         self._url = url or DEFAULT_ENDPOINT_URL
         LOG.debug("Telemetry endpoint configured to be %s", self._url)
 
-    def emit(self, metric):
+    def emit(self, metric, force_emit=False):
         """
         Emits the metric with given name and the attributes and send it immediately to the HTTP backend. This method
         will return immediately without waiting for response from the backend. Before sending, this method will
@@ -38,7 +39,8 @@ class Telemetry:
         attrs : dict
             Attributes sent along with the metric
         """
-        self._send({metric.get_metric_name(): metric.get_data()})
+        if bool(GlobalConfig().telemetry_enabled) or force_emit:
+            self._send({metric.get_metric_name(): metric.get_data()})
 
     def _send(self, metric, wait_for_response=False):
         """

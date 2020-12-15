@@ -7,6 +7,7 @@ import samcli
 from unittest import TestCase
 from unittest.mock import patch, Mock, ANY, call
 
+import samcli.lib.telemetry.metric
 from samcli.lib.telemetry.metric import send_installed_metric, track_command, track_template_warnings, Metric
 from samcli.commands.exceptions import UserException
 
@@ -110,25 +111,6 @@ class TestTrackWarning(TestCase):
         metric = args[0]
         assert metric.get_metric_name() == "templateWarning"
         self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
-        secho_mock.assert_not_called()
-
-    @patch("samcli.lib.telemetry.metric.Context")
-    @patch("samcli.lib.telemetry.metric.TemplateWarningsChecker")
-    @patch("click.secho")
-    def test_must_not_emit_warning_metric_when_telemetry_disabled(
-        self, secho_mock, TemplateWarningsCheckerMock, ContextMock
-    ):
-        self.gc_instance_mock.telemetry_enabled = False
-        ContextMock.get_current_context.return_value = self.context_mock
-        template_warnings_checker_mock = TemplateWarningsCheckerMock.return_value = Mock()
-        template_warnings_checker_mock.check_template_for_warning.return_value = None
-
-        def real_fn():
-            return False, ""
-
-        track_template_warnings(["DummyWarningName"])(real_fn)()
-
-        self.telemetry_instance.emit.assert_not_called()
         secho_mock.assert_not_called()
 
 
@@ -339,17 +321,19 @@ class TestTrackCommand(TestCase):
             "The command metrics be emitted when used as a decorator",
         )
 
-    def test_must_return_immediately_if_telemetry_is_disabled(self):
-        def real_fn():
-            return "hello"
+class TestParameterCapture(TestCase):
+    def setUp(self):
+        self.mock_metrics = patch.object(
+            samcli.lib.telemetry.metric, '_METRICS', dict()
+        )
 
-        # Disable telemetry first
-        self.gc_instance_mock.telemetry_enabled = False
-        result = track_command(real_fn)()
+    def tearDown(self):
+        pass
 
-        self.assertEqual(result, "hello")
-        self.telemetry_instance.emit.assert_not_called()
-
+    def must_extract_positional_parameter(self):
+        def test_func(arg1, arg2):
+            return arg1, arg2
+    
 
 class TestMetric(TestCase):
     def setUp(self):
