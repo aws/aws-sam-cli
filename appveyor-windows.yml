@@ -50,6 +50,7 @@ install:
     - "echo %PYTHON_HOME%"
     - "echo %PATH%"
     - "python --version"
+    - "docker info"
 
     # Upgrade setuptools, wheel and virtualenv
     - "python -m pip install --upgrade setuptools wheel virtualenv"
