@@ -65,7 +65,8 @@ class PackageIntegBase(TestCase):
             cls.s3_bucket.create()
             time.sleep(SLEEP)
         if not cls.pre_created_ecr_repo:
-            cls.ecr.create_repository(repositoryName=cls.ecr_repo_name)
+            ecr_result = cls.ecr.create_repository(repositoryName=cls.ecr_repo_name)
+            cls.ecr_repo_name = ecr_result.get("repository", {}).get("repositoryUri", None)
             time.sleep(SLEEP)
 
     def setUp(self):

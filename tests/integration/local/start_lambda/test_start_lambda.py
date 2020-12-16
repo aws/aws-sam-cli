@@ -40,21 +40,20 @@ class TestParallelRequests(StartLambdaIntegBaseClass):
         """
         number_of_requests = 10
         start_time = time()
-        thread_pool = ThreadPoolExecutor(number_of_requests)
+        with ThreadPoolExecutor(number_of_requests) as thread_pool:
+            futures = [
+                thread_pool.submit(self.lambda_client.invoke, FunctionName="HelloWorldSleepFunction")
+                for _ in range(0, number_of_requests)
+            ]
+            results = [r.result() for r in as_completed(futures)]
 
-        futures = [
-            thread_pool.submit(self.lambda_client.invoke, FunctionName="HelloWorldSleepFunction")
-            for _ in range(0, number_of_requests)
-        ]
-        results = [r.result() for r in as_completed(futures)]
+            end_time = time()
 
-        end_time = time()
+            self.assertEqual(len(results), 10)
+            self.assertGreater(end_time - start_time, 10)
 
-        self.assertEqual(len(results), 10)
-        self.assertGreater(end_time - start_time, 10)
-
-        for result in results:
-            self.assertEqual(result.get("Payload").read().decode("utf-8"), '"Slept for 10s"')
+            for result in results:
+                self.assertEqual(result.get("Payload").read().decode("utf-8"), '"Slept for 10s"')
 
 
 class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
