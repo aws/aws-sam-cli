@@ -33,11 +33,11 @@ class Telemetry:
 
         Parameters
         ----------
-        metric_name : str
-            Name of the metric to publish
+        metric : Metric
+            Metric to be published
 
-        attrs : dict
-            Attributes sent along with the metric
+        force_emit : bool
+            Defaults to False. Set to True to emit even when telemetry is turned off.
         """
         if bool(GlobalConfig().telemetry_enabled) or force_emit:
             self._send({metric.get_metric_name(): metric.get_data()})

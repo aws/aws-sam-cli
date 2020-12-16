@@ -184,10 +184,25 @@ def _timer():
 
 
 def _parse_attr(obj, name):
+    """
+    Get attribute from an object.
+    @param obj Object
+    @param name Attribute name to get from the object. Can be nested with "." in between. For example: config.random_field.value
+    """
     return reduce(getattr, name.split("."), obj)
 
 
 def capture_parameter(metric_name, key, parameter_identifier, parameter_nested_identifier=None, as_list=False):
+    """
+    Decorator for capturing one parameter of the function.
+
+    :param metric_name Name of the metric
+    :param key Key for storing the captured parameter
+    :param parameter_identifier Either a string for named parameter or int for positional parameter. "self" can be accessed with 0.
+    :param parameter_nested_identifier If specified, the attribute pointed by this parameter will be stored instead. Can be in nested format such as config.random_field.value.
+    :param as_list Default to False. Setting to True will append the captured parameter into a list instead of overriding the previous one.
+    """
+
     def wrap(func):
         @wraps(func)
         def wrapped_func(*args, **kwargs):
@@ -214,6 +229,14 @@ def capture_parameter(metric_name, key, parameter_identifier, parameter_nested_i
 
 
 def capture_return_value(metric_name, key, as_list=False):
+    """
+    Decorator for capturing the reutrn value of the function.
+
+    :param metric_name Name of the metric
+    :param key Key for storing the captured parameter
+    :param as_list Default to False. Setting to True will append the captured parameter into a list instead of overriding the previous one.
+    """
+
     def wrap(func):
         @wraps(func)
         def wrapped_func(*args, **kwargs):
@@ -257,6 +280,10 @@ def emit_all_metrics():
 
 
 class Metric:
+    """
+    Metric class to store metric data and adding common attributes
+    """
+
     def __init__(self, metric_name, should_add_common_attributes=True):
         self._data = dict()
         self._metric_name = metric_name
@@ -297,6 +324,7 @@ class Metric:
     def _default_session_id(self):
         """
         Get the default SessionId from Click Context.
+        Fail silently if Context does not exist.
         """
         try:
             ctx = Context.get_current_context()
