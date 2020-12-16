@@ -62,8 +62,8 @@ class TestPackageImage(PackageIntegBase):
             raise
         process_stdout = stdout.strip()
 
-        self.assertIn(f"{self.ecr_repo_name}", process_stdout.decode("utf-8"))
         self.assertEqual(0, process.returncode)
+        self.assertIn(f"{self.ecr_repo_name}", process_stdout.decode("utf-8"))
 
     @parameterized.expand(
         [("Hello", "aws-serverless-function-image.yaml"), ("MyLambdaFunction", "aws-lambda-function-image.yaml")]

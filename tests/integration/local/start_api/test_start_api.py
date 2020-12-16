@@ -34,22 +34,21 @@ class TestParallelRequests(StartApiIntegBaseClass):
         """
         number_of_requests = 10
         start_time = time()
-        thread_pool = ThreadPoolExecutor(number_of_requests)
+        with ThreadPoolExecutor(number_of_requests) as thread_pool:
+            futures = [
+                thread_pool.submit(requests.get, self.url + "/sleepfortenseconds/function1", timeout=300)
+                for _ in range(0, number_of_requests)
+            ]
+            results = [r.result() for r in as_completed(futures)]
 
-        futures = [
-            thread_pool.submit(requests.get, self.url + "/sleepfortenseconds/function1")
-            for _ in range(0, number_of_requests)
-        ]
-        results = [r.result() for r in as_completed(futures)]
+            end_time = time()
 
-        end_time = time()
+            self.assertEqual(len(results), 10)
+            self.assertGreater(end_time - start_time, 10)
 
-        self.assertEqual(len(results), 10)
-        self.assertGreater(end_time - start_time, 10)
-
-        for result in results:
-            self.assertEqual(result.status_code, 200)
-            self.assertEqual(result.json(), {"message": "HelloWorld! I just slept and waking up."})
+            for result in results:
+                self.assertEqual(result.status_code, 200)
+                self.assertEqual(result.json(), {"message": "HelloWorld! I just slept and waking up."})
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -60,24 +59,23 @@ class TestParallelRequests(StartApiIntegBaseClass):
         """
         number_of_requests = 10
         start_time = time()
-        thread_pool = ThreadPoolExecutor(10)
+        with ThreadPoolExecutor(10) as thread_pool:
+            test_url_paths = ["/sleepfortenseconds/function0", "/sleepfortenseconds/function1"]
 
-        test_url_paths = ["/sleepfortenseconds/function0", "/sleepfortenseconds/function1"]
+            futures = [
+                thread_pool.submit(requests.get, self.url + test_url_paths[function_num % len(test_url_paths)], timeout=300)
+                for function_num in range(0, number_of_requests)
+            ]
+            results = [r.result() for r in as_completed(futures)]
 
-        futures = [
-            thread_pool.submit(requests.get, self.url + test_url_paths[function_num % len(test_url_paths)])
-            for function_num in range(0, number_of_requests)
-        ]
-        results = [r.result() for r in as_completed(futures)]
+            end_time = time()
 
-        end_time = time()
+            self.assertEqual(len(results), 10)
+            self.assertGreater(end_time - start_time, 10)
 
-        self.assertEqual(len(results), 10)
-        self.assertGreater(end_time - start_time, 10)
-
-        for result in results:
-            self.assertEqual(result.status_code, 200)
-            self.assertEqual(result.json(), {"message": "HelloWorld! I just slept and waking up."})
+            for result in results:
+                self.assertEqual(result.status_code, 200)
+                self.assertEqual(result.json(), {"message": "HelloWorld! I just slept and waking up."})
 
 
 class TestServiceErrorResponses(StartApiIntegBaseClass):
