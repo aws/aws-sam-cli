@@ -58,10 +58,7 @@ class StartApiIntegBaseClass(TestCase):
     @classmethod
     def tearDownClass(cls):
         # After all the tests run, we need to kill the start-api process.
-        if hasattr(signal, "CTRL_C_EVENT"):
-            cls.start_api_process.send_signal(signal.CTRL_C_EVENT)
-        else:
-            cls.start_api_process.send_signal(signal.SIGINT)
+        cls.start_api_process.kill()
 
     @staticmethod
     def random_port():
