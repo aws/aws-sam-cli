@@ -56,3 +56,10 @@ class TestGuidedConfig(TestCase):
             "b": {"profile_name": "profile"},
         }
         self.gc.save_config(parameter_overrides={"a": "b"}, signing_profiles=signing_profiles, port="9090")
+
+    @patch("samcli.commands.deploy.guided_config.get_cmd_names")
+    def test_save_config_image_repositories(self, patched_cmd_names):
+        patched_cmd_names.return_value = ["deploy"]
+        # Should save with no errors.
+        image_repositories = {"HelloWorldFunction": "sample-repo"}
+        self.gc.save_config(parameter_overrides={"a": "b"}, image_repositories=image_repositories)

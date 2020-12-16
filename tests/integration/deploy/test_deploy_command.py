@@ -116,7 +116,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
     @parameterized.expand(["aws-serverless-function-image.yaml"])
-    def test_no_package_and_deploy_with_s3_bucket_all_args_image(self, template_file):
+    def test_no_package_and_deploy_with_s3_bucket_all_args_image_repository(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
@@ -130,6 +130,33 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             s3_prefix="integ_deploy",
             s3_bucket=self.s3_bucket.name,
             image_repository=self.ecr_repo_name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+    @parameterized.expand([("Hello", "aws-serverless-function-image.yaml")])
+    def test_no_package_and_deploy_with_s3_bucket_all_args_image_repositories(self, resource_id, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stack_names.append(stack_name)
+
+        # Package and Deploy in one go without confirming change set.
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
+            image_repositories=f"{resource_id}={self.ecr_repo_name}",
             force_upload=True,
             notification_arns=self.sns_arn,
             parameter_overrides="Parameter=Clarity",

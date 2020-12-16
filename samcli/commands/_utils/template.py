@@ -16,6 +16,8 @@ from samcli.commands._utils.resources import (
     METADATA_WITH_LOCAL_PATHS,
     RESOURCES_WITH_LOCAL_PATHS,
     RESOURCES_WITH_IMAGE_COMPONENT,
+    AWS_SERVERLESS_FUNCTION,
+    AWS_LAMBDA_FUNCTION,
 )
 
 
@@ -261,3 +263,25 @@ def get_template_artifacts_format(template_file):
             for resource_id, resource in template_dict.get("Resources", {}).items()
         }.values()
     )
+
+
+def get_template_function_resource_ids(template_file, artifact):
+    """
+    Get a list of function logical ids from template file.
+    Function resource types include
+        AWS::Lambda::Function
+        AWS::Serverless::Function
+    :param template_file: template file location.
+    :param artifact: artifact of type IMAGE or ZIP
+    :return: list of artifact formats
+    """
+
+    template_dict = get_template_data(template_file=template_file)
+    _function_resource_ids = []
+    for resource_id, resource in template_dict.get("Resources", {}).items():
+        if resource.get("Properties", {}).get("PackageType", ZIP) == artifact and resource.get("Type") in [
+            AWS_SERVERLESS_FUNCTION,
+            AWS_LAMBDA_FUNCTION,
+        ]:
+            _function_resource_ids.append(resource_id)
+    return _function_resource_ids
