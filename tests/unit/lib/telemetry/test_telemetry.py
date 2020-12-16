@@ -10,6 +10,11 @@ from samcli import __version__ as samcli_version
 
 class TestTelemetry(TestCase):
     def setUp(self):
+        self.gc_mock = Mock()
+        self.global_config_patcher = patch("samcli.lib.telemetry.telemetry.GlobalConfig", self.gc_mock)
+        self.global_config_patcher.start()
+        self.gc_mock.return_value.telemetry_enabled = True
+
         self.test_session_id = "TestSessionId"
         self.test_installation_id = "TestInstallationId"
         self.url = "some_test_url"
@@ -19,7 +24,7 @@ class TestTelemetry(TestCase):
         self.metric_mock.get_data.return_value = {"a": "1", "b": "2"}
 
     def tearDown(self):
-        pass
+        self.global_config_patcher.stop()
 
     @patch("samcli.lib.telemetry.telemetry.requests")
     def test_must_add_metric_with_attributes_to_registry(self, requests_mock):

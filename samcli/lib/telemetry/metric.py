@@ -133,17 +133,19 @@ def track_command(func):
             exit_code = 255
             exit_reason = type(ex).__name__
 
-        ctx = Context.get_current_context()
-        metric.add_data("awsProfileProvided", bool(ctx.profile))
-        metric.add_data("debugFlagProvided", bool(ctx.debug))
-        metric.add_data("region", ctx.region or "")
-        metric.add_data("commandName", ctx.command_path)  # Full command path. ex: sam local start-api
-        # Metric about command's execution characteristics
-        metric.add_data("duration", duration_fn())
-        metric.add_data("exitReason", exit_reason)
-        metric.add_data("exitCode", exit_code)
-        telemetry.emit(metric)
-
+        try:
+            ctx = Context.get_current_context()
+            metric.add_data("awsProfileProvided", bool(ctx.profile))
+            metric.add_data("debugFlagProvided", bool(ctx.debug))
+            metric.add_data("region", ctx.region or "")
+            metric.add_data("commandName", ctx.command_path)  # Full command path. ex: sam local start-api
+            # Metric about command's execution characteristics
+            metric.add_data("duration", duration_fn())
+            metric.add_data("exitReason", exit_reason)
+            metric.add_data("exitCode", exit_code)
+            telemetry.emit(metric)
+        except RuntimeError:
+            LOG.debug("Unable to find Click Context for getting session_id.")
         if exception:
             raise exception  # pylint: disable=raising-bad-type
 
