@@ -1,11 +1,9 @@
-import platform
 import requests
 
 from unittest.mock import patch, Mock, ANY
 from unittest import TestCase
 
 from samcli.lib.telemetry.telemetry import Telemetry
-from samcli import __version__ as samcli_version
 
 
 class TestTelemetry(TestCase):
@@ -103,7 +101,7 @@ class TestTelemetry(TestCase):
     @patch("samcli.lib.telemetry.telemetry.requests")
     @patch("samcli.lib.telemetry.telemetry.GlobalConfig")
     def test_must_not_send_when_telemetry_disabled(self, gc_mock, requests_mock):
-        telemetry = Telemetry()
+        telemetry = Telemetry(url=self.url)
         gc_mock.return_value.telemetry_enabled = False
         telemetry.emit(self.metric_mock)
         requests_mock.post.assert_not_called()
@@ -111,7 +109,7 @@ class TestTelemetry(TestCase):
     @patch("samcli.lib.telemetry.telemetry.requests")
     @patch("samcli.lib.telemetry.telemetry.GlobalConfig")
     def test_must_send_when_telemetry_disabled_but_forced(self, gc_mock, requests_mock):
-        telemetry = Telemetry()
+        telemetry = Telemetry(url=self.url)
         gc_mock.return_value.telemetry_enabled = False
         telemetry.emit(self.metric_mock, force_emit=True)
         requests_mock.post.assert_called()
