@@ -63,7 +63,9 @@ class TestParallelRequests(StartApiIntegBaseClass):
             test_url_paths = ["/sleepfortenseconds/function0", "/sleepfortenseconds/function1"]
 
             futures = [
-                thread_pool.submit(requests.get, self.url + test_url_paths[function_num % len(test_url_paths)], timeout=300)
+                thread_pool.submit(
+                    requests.get, self.url + test_url_paths[function_num % len(test_url_paths)], timeout=300
+                )
                 for function_num in range(0, number_of_requests)
             ]
             results = [r.result() for r in as_completed(futures)]
