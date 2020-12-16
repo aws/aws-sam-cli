@@ -15,6 +15,7 @@ from samcli.commands._utils.options import (
     guided_deploy_stack_name,
     artifact_callback,
     resolve_s3_callback,
+    image_repositories_callback,
 )
 from samcli.commands.package.exceptions import PackageResolveS3AndS3SetError, PackageResolveS3AndS3NotSetError
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -98,6 +99,26 @@ class TestGetOrDefaultTemplateFileName(TestCase):
         self.assertEqual(result, expected_result_from_ctx)
 
 
+class TestImageRepositoriesCallBack(TestCase):
+    def test_image_repositories_callback(self):
+        mock_params = MagicMock()
+        result = image_repositories_callback(
+            ctx=MockContext(info_name="test", parent=None, params=mock_params),
+            param=MagicMock(),
+            provided_value=({"a": "b"}, {"c": "d"}),
+        )
+        self.assertEqual(result, {"a": "b", "c": "d"})
+
+    def test_image_repositories_callback_None(self):
+        mock_params = MagicMock()
+        self.assertEqual(
+            image_repositories_callback(
+                ctx=MockContext(info_name="test", parent=None, params=mock_params), param=MagicMock(), provided_value=()
+            ),
+            {},
+        )
+
+
 class TestArtifactBasedOptionRequired(TestCase):
     @patch("samcli.commands._utils.options.get_template_artifacts_format")
     def test_zip_based_artifact_s3_required(self, template_artifacts_mock):
@@ -166,12 +187,19 @@ class TestArtifactBasedOptionRequired(TestCase):
         # implicitly artifacts are zips
         template_artifacts_mock.return_value = [ZIP]
         mock_params = MagicMock()
-        mock_params.get = MagicMock()
+        mock_params.get.side_effect = [
+            MagicMock(),
+            False,
+        ]
+        mock_default_map = MagicMock()
+        mock_default_map.get.side_effect = [False]
+        mock_param = MagicMock(name="s3_bucket")
+        mock_param.name = "s3_bucket"
         s3_bucket = None
         with self.assertRaises(click.BadOptionUsage):
             artifact_callback(
-                ctx=MockContext(info_name="test", parent=None, params=mock_params),
-                param=MagicMock(),
+                ctx=MockContext(info_name="test", parent=None, params=mock_params, default_map=mock_default_map),
+                param=mock_param,
                 provided_value=s3_bucket,
                 artifact=ZIP,
             )
@@ -190,21 +218,6 @@ class TestArtifactBasedOptionRequired(TestCase):
             artifact=IMAGE,
         )
         self.assertEqual(result, image_repository)
-
-    @patch("samcli.commands._utils.options.get_template_artifacts_format")
-    def test_image_based_artifact_image_repo_not_given_error(self, template_artifacts_mock):
-        template_artifacts_mock.return_value = [IMAGE]
-        mock_params = MagicMock()
-        mock_params.get = MagicMock()
-        image_repository = None
-
-        with self.assertRaises(click.BadOptionUsage):
-            artifact_callback(
-                ctx=MockContext(info_name="test", parent=None, params=mock_params),
-                param=MagicMock(),
-                provided_value=image_repository,
-                artifact=IMAGE,
-            )
 
     @patch("samcli.commands._utils.options.get_template_artifacts_format")
     def test_artifact_different_from_required_option(self, template_artifacts_mock):

@@ -10,6 +10,7 @@ class TestPackageCliCommand(TestCase):
         self.template_file = "input-template-file"
         self.s3_bucket = "s3-bucket"
         self.image_repository = "image-repo"
+        self.image_repositories = None
         self.s3_prefix = "s3-prefix"
         self.kms_key_id = "kms-key-id"
         self.output_template_file = "output-template-file"
@@ -34,6 +35,7 @@ class TestPackageCliCommand(TestCase):
             s3_bucket=self.s3_bucket,
             s3_prefix=self.s3_prefix,
             image_repository=self.image_repository,
+            image_repositories=self.image_repositories,
             kms_key_id=self.kms_key_id,
             output_template_file=self.output_template_file,
             use_json=self.use_json,
@@ -51,6 +53,7 @@ class TestPackageCliCommand(TestCase):
             s3_bucket=self.s3_bucket,
             s3_prefix=self.s3_prefix,
             image_repository=self.image_repository,
+            image_repositories=self.image_repositories,
             kms_key_id=self.kms_key_id,
             output_template_file=self.output_template_file,
             use_json=self.use_json,
@@ -78,6 +81,7 @@ class TestPackageCliCommand(TestCase):
             s3_bucket=None,
             s3_prefix=self.s3_prefix,
             image_repository=self.image_repository,
+            image_repositories=self.image_repositories,
             kms_key_id=self.kms_key_id,
             output_template_file=self.output_template_file,
             use_json=self.use_json,
@@ -95,6 +99,7 @@ class TestPackageCliCommand(TestCase):
             s3_bucket="managed-s3-bucket",
             s3_prefix=self.s3_prefix,
             image_repository=self.image_repository,
+            image_repositories=self.image_repositories,
             kms_key_id=self.kms_key_id,
             output_template_file=self.output_template_file,
             use_json=self.use_json,

@@ -18,7 +18,8 @@ class TestGuidedContext(TestCase):
             s3_prefix="s3_p",
             confirm_changeset=True,
             region="region",
-            image_repository="image-repo",
+            image_repository=None,
+            image_repositories={"HelloWorldFunction": "image-repo"},
         )
 
     @patch("samcli.commands.deploy.guided_context.prompt")
@@ -118,6 +119,7 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch("samcli.commands.deploy.guided_context.get_template_function_resource_ids")
     @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
     @patch("samcli.commands.deploy.guided_context.transform_template")
     @patch("samcli.commands.deploy.guided_context.click.secho")
@@ -130,6 +132,7 @@ class TestGuidedContext(TestCase):
         patched_click_secho,
         patched_transform_template,
         patched_get_template_artifacts_format,
+        mock_get_template_function_resource_ids,
         patched_get_template_data,
         patchedauth_per_resource,
         patched_manage_stack,
@@ -137,6 +140,7 @@ class TestGuidedContext(TestCase):
         patched_prompt,
     ):
 
+        mock_get_template_function_resource_ids.return_value = ["HelloWorldFunction"]
         patched_signer_config_per_function.return_value = (None, None)
         patched_tag_translation.return_value = "helloworld-123456-v1"
         patched_transform_template.return_value = MagicMock(
@@ -170,14 +174,20 @@ class TestGuidedContext(TestCase):
         expected_prompt_calls = [
             call(f"\t{self.gc.start_bold}Stack Name{self.gc.end_bold}", default="test", type=click.STRING),
             call(f"\t{self.gc.start_bold}AWS Region{self.gc.end_bold}", default="region", type=click.STRING),
-            call(f"\t{self.gc.start_bold}Image Repository{self.gc.end_bold}", default="image-repo", type=click.STRING),
+            call(
+                f"\t{self.gc.start_bold}Image Repository for HelloWorldFunction{self.gc.end_bold}",
+                default="image-repo",
+            ),
             call(f"\t{self.gc.start_bold}Capabilities{self.gc.end_bold}", default=["CAPABILITY_IAM"], type=ANY),
         ]
         self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
         # Now to check click secho outputs
+        print(expected_prompt_calls)
+        print(patched_prompt.call_args_list)
         expected_click_secho_calls = [
-            call(f"\t{self.gc.start_bold}Images that will be pushed:{self.gc.end_bold}"),
-            call(f"\t  helloworld:v1 to 123456789012.dkr.ecr.region.amazonaws.com/myrepo:helloworld-123456-v1"),
+            call(
+                f"\t  helloworld:v1 to be pushed to 123456789012.dkr.ecr.region.amazonaws.com/myrepo:helloworld-123456-v1"
+            ),
             call(nl=True),
             call("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy"),
             call("\t#SAM needs permission to be able to create roles to connect to the resources in your template"),
@@ -190,6 +200,7 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_data")
     @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
+    @patch("samcli.commands.deploy.guided_context.get_template_function_resource_ids")
     @patch("samcli.commands.deploy.guided_context.transform_template")
     @patch("samcli.commands.deploy.guided_context.click.secho")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
@@ -198,6 +209,7 @@ class TestGuidedContext(TestCase):
         patched_signer_config_per_function,
         patched_click_secho,
         patched_transform_template,
+        mock_get_template_function_resource_ids,
         patched_get_template_artifacts_format,
         patched_get_template_data,
         patchedauth_per_resource,
@@ -205,6 +217,7 @@ class TestGuidedContext(TestCase):
         patched_confirm,
         patched_prompt,
     ):
+        mock_get_template_function_resource_ids.return_value = ["HelloWorldFunction"]
 
         patched_transform_template.return_value = MagicMock(
             functions={
@@ -242,7 +255,10 @@ class TestGuidedContext(TestCase):
         expected_prompt_calls = [
             call(f"\t{self.gc.start_bold}Stack Name{self.gc.end_bold}", default="test", type=click.STRING),
             call(f"\t{self.gc.start_bold}AWS Region{self.gc.end_bold}", default="region", type=click.STRING),
-            call(f"\t{self.gc.start_bold}Image Repository{self.gc.end_bold}", default="image-repo", type=click.STRING),
+            call(
+                f"\t{self.gc.start_bold}Image Repository for HelloWorldFunction{self.gc.end_bold}",
+                default="image-repo",
+            ),
             call(f"\t{self.gc.start_bold}Capabilities{self.gc.end_bold}", default=["CAPABILITY_IAM"], type=ANY),
         ]
         self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
@@ -260,6 +276,7 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_data")
     @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
+    @patch("samcli.commands.deploy.guided_context.get_template_function_resource_ids")
     @patch("samcli.commands.deploy.guided_context.transform_template")
     @patch("samcli.commands.deploy.guided_context.click.secho")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
@@ -268,6 +285,7 @@ class TestGuidedContext(TestCase):
         patched_signer_config_per_function,
         patched_click_secho,
         patched_transform_template,
+        mock_get_template_function_resource_ids,
         patched_get_template_artifacts_format,
         patched_get_template_data,
         patchedauth_per_resource,
@@ -275,6 +293,7 @@ class TestGuidedContext(TestCase):
         patched_confirm,
         patched_prompt,
     ):
+        mock_get_template_function_resource_ids.return_value = ["HelloWorldFunction"]
 
         # Set ImageUri to be None, the sam app was never built.
         patched_transform_template.return_value = MagicMock(
@@ -301,6 +320,7 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_data")
     @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
+    @patch("samcli.commands.deploy.guided_context.get_template_function_resource_ids")
     @patch("samcli.commands.deploy.guided_context.transform_template")
     @patch("samcli.commands.deploy.guided_context.click.secho")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
@@ -309,6 +329,7 @@ class TestGuidedContext(TestCase):
         patched_signer_config_per_function,
         patched_click_secho,
         patched_transform_template,
+        mock_get_template_function_resource_ids,
         patched_get_template_artifacts_format,
         patched_get_template_data,
         patchedauth_per_resource,
@@ -316,6 +337,7 @@ class TestGuidedContext(TestCase):
         patched_confirm,
         patched_prompt,
     ):
+        mock_get_template_function_resource_ids.return_value = ["HelloWorldFunction"]
 
         patched_transform_template.return_value = MagicMock(
             functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri="mysamapp:v1")}
