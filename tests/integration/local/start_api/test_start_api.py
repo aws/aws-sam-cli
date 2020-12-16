@@ -1,7 +1,6 @@
 import os
 import threading
 import uuid
-from unittest import skipIf
 
 import docker
 import requests
@@ -12,11 +11,9 @@ import pytest
 
 from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
 from samcli.local.apigw.local_apigw_service import Route
-from tests.testing_utils import IS_WINDOWS
 from .start_api_integ_base import StartApiIntegBaseClass
 
 
-@skipIf(IS_WINDOWS, "Skip these tests in Windows since Appveyor stucks")
 class TestParallelRequests(StartApiIntegBaseClass):
     """
     Test Class centered around sending parallel requests to the service `sam local start-api`
