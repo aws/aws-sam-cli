@@ -107,7 +107,7 @@ def image_repositories_callback(ctx, param, provided_value):
     for value in provided_value:
         image_repositories.update(value)
 
-    return image_repositories
+    return image_repositories if image_repositories else None
 
 
 def artifact_callback(ctx, param, provided_value, artifact):

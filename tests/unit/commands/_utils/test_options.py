@@ -115,7 +115,7 @@ class TestImageRepositoriesCallBack(TestCase):
             image_repositories_callback(
                 ctx=MockContext(info_name="test", parent=None, params=mock_params), param=MagicMock(), provided_value=()
             ),
-            {},
+            None,
         )
 
 
