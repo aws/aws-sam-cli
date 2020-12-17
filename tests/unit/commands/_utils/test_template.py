@@ -18,7 +18,10 @@ from samcli.commands._utils.template import (
     get_template_parameters,
     TemplateNotFoundException,
     TemplateFailedParsingException,
+    get_template_artifacts_format,
+    get_template_function_resource_ids,
 )
+from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 
 class Test_get_template_data(TestCase):
@@ -258,3 +261,27 @@ class Test_move_template(TestCase):
         yaml_dump_mock.assert_called_with(modified_template)
         m.assert_called_with(dest, "w")
         m.return_value.write.assert_called_with(dumped_yaml)
+
+
+class Test_get_template_artifacts_format(TestCase):
+    @patch("samcli.commands._utils.template.get_template_data")
+    def test_template_get_artifacts_format(self, mock_get_template_data):
+        mock_get_template_data.return_value = {
+            "Resources": {
+                "HelloWorldFunction1": {"Properties": {"PackageType": IMAGE}},
+                "HelloWorldFunction2": {"Properties": {"PackageType": ZIP}},
+            }
+        }
+        self.assertEqual(get_template_artifacts_format(MagicMock()), [IMAGE, ZIP])
+
+
+class Test_get_template_function_resouce_ids(TestCase):
+    @patch("samcli.commands._utils.template.get_template_data")
+    def test_get_template_function_resouce_ids(self, mock_get_template_data):
+        mock_get_template_data.return_value = {
+            "Resources": {
+                "HelloWorldFunction1": {"Type": "AWS::Lambda::Function", "Properties": {"PackageType": IMAGE}},
+                "HelloWorldFunction2": {"Type": "AWS::Serverless::Function", "Properties": {"PackageType": ZIP}},
+            }
+        }
+        self.assertEqual(get_template_function_resource_ids(MagicMock(), IMAGE), ["HelloWorldFunction1"])

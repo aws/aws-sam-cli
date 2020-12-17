@@ -53,6 +53,7 @@ class PackageContext:
         template_file,
         s3_bucket,
         image_repository,
+        image_repositories,
         s3_prefix,
         kms_key_id,
         output_template_file,
@@ -68,6 +69,7 @@ class PackageContext:
         self.template_file = template_file
         self.s3_bucket = s3_bucket
         self.image_repository = image_repository
+        self.image_repositories = image_repositories
         self.s3_prefix = s3_prefix
         self.kms_key_id = kms_key_id
         self.output_template_file = output_template_file
@@ -107,9 +109,9 @@ class PackageContext:
         )
         # attach the given metadata to the artifacts to be uploaded
         self.s3_uploader.artifact_metadata = self.metadata
-        self.ecr_uploader = ECRUploader(docker_client, ecr_client, self.image_repository)
+        self.ecr_uploader = ECRUploader(docker_client, ecr_client, self.image_repository, self.image_repositories)
 
-        code_signer_client = boto3.client("signer")
+        code_signer_client = boto3.client("signer", config=get_boto_config_with_user_agent(region_name=region_name))
         self.code_signer = CodeSigner(code_signer_client, self.signing_profiles)
 
         # NOTE(srirammv): move this to its own class.

@@ -26,13 +26,15 @@ class ECRUploader:
     Class to upload Images to ECR.
     """
 
-    def __init__(self, docker_client, ecr_client, ecr_repo, tag="latest", stream=stderr()):
+    def __init__(self, docker_client, ecr_client, ecr_repo, ecr_repo_multi, tag="latest", stream=stderr()):
         self.docker_client = docker_client if docker_client else docker.from_env()
         self.ecr_client = ecr_client
         self.ecr_repo = ecr_repo
+        self.ecr_repo_multi = ecr_repo_multi
         self.tag = tag
         self.auth_config = {}
         self.stream = StreamWriter(stream=stream, auto_flush=True)
+        self.login_session_active = False
 
     def login(self):
         """
@@ -52,28 +54,34 @@ class ECRUploader:
             raise DockerLoginFailedError(msg=str(ex)) from ex
         self.auth_config = {"username": username, "password": password}
 
-    def upload(self, image):
+    def upload(self, image, resource_name):
         """
         Uploads given local image to ECR.
         :param image: locally tagged docker image that would be uploaded to ECR.
+        :param resource_name: logical ID of the resource to be uploaded to ECR.
         :return: remote ECR image path that has been uploaded.
         """
-        self.login()
+        if not self.login_session_active:
+            self.login()
+            self.login_session_active = True
         try:
             docker_img = self.docker_client.images.get(image)
 
             _tag = tag_translation(image, docker_image_id=docker_img.id, gen_tag=self.tag)
+            repository = (
+                self.ecr_repo if not isinstance(self.ecr_repo_multi, dict) else self.ecr_repo_multi.get(resource_name)
+            )
 
-            docker_img.tag(repository=self.ecr_repo, tag=_tag)
+            docker_img.tag(repository=repository, tag=_tag)
             push_logs = self.docker_client.api.push(
-                repository=self.ecr_repo, tag=_tag, auth_config=self.auth_config, stream=True, decode=True
+                repository=repository, tag=_tag, auth_config=self.auth_config, stream=True, decode=True
             )
             self._stream_progress(push_logs)
 
         except (BuildError, APIError) as ex:
             raise DockerPushFailedError(msg=str(ex)) from ex
 
-        return f"{self.ecr_repo}:{_tag}"
+        return f"{repository}:{_tag}"
 
     # TODO: move this to a generic class to allow for streaming logs back from docker.
     def _stream_progress(self, logs):
