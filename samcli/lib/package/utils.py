@@ -102,7 +102,7 @@ def upload_local_image_artifacts(resource_id, resource_dict, property_name, pare
         LOG.debug("Property %s of %s is already an ECR URL", property_name, resource_id)
         return image_path
 
-    return uploader.upload(image_path)
+    return uploader.upload(image_path, resource_id)
 
 
 def upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir, uploader, extension=None):

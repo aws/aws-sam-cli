@@ -62,6 +62,26 @@ class TestPackageImage(PackageIntegBase):
             raise
         process_stdout = stdout.strip()
 
+        self.assertEqual(0, process.returncode)
+        self.assertIn(f"{self.ecr_repo_name}", process_stdout.decode("utf-8"))
+
+    @parameterized.expand(
+        [("Hello", "aws-serverless-function-image.yaml"), ("MyLambdaFunction", "aws-lambda-function-image.yaml")]
+    )
+    def test_package_template_with_image_repositories(self, resource_id, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+        command_list = self.get_command_list(
+            image_repositories=f"{resource_id}={self.ecr_repo_name}", template=template_path
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+        process_stdout = stdout.strip()
+
         self.assertIn(f"{self.ecr_repo_name}", process_stdout.decode("utf-8"))
         self.assertEqual(0, process.returncode)
 

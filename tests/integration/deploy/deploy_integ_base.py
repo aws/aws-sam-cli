@@ -24,6 +24,7 @@ class DeployIntegBase(TestCase):
         self,
         s3_bucket=None,
         image_repository=None,
+        image_repositories=None,
         stack_name=None,
         template=None,
         template_file=None,
@@ -53,6 +54,8 @@ class DeployIntegBase(TestCase):
             command_list = command_list + ["--s3-bucket", str(s3_bucket)]
         if image_repository:
             command_list = command_list + ["--image-repository", str(image_repository)]
+        if image_repositories:
+            command_list = command_list + ["--image-repositories", str(image_repositories)]
         if capabilities:
             command_list = command_list + ["--capabilities", str(capabilities)]
         if parameter_overrides:

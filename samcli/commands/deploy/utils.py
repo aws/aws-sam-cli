@@ -3,6 +3,8 @@ Utilities for sam deploy command
 """
 
 import json
+import textwrap
+
 import click
 
 
@@ -54,16 +56,26 @@ def print_deploy_args(
         for key, value in signing_profiles.items():
             _signing_profiles[key] = f"{value['profile_name']}:{value['profile_owner']}"
 
+    image_repository_format_text = (
+        json.dumps(image_repository, indent=4) if isinstance(image_repository, dict) else image_repository
+    )
+    parameter_overrides_format_text = json.dumps(_parameters)
+    signing_profiles_format_text = json.dumps(signing_profiles)
+
     click.secho("\n\tDeploying with following values\n\t===============================", fg="yellow")
     click.echo(f"\tStack name                   : {stack_name}")
     click.echo(f"\tRegion                       : {region}")
     click.echo(f"\tConfirm changeset            : {confirm_changeset}")
     if image_repository:
-        click.echo(f"\tDeployment image repository  : {image_repository}")
+        msg = "Deployment image repository  : "
+        # NOTE(sriram-mv): tab length is 8 spaces.
+        prefix_length = len(msg) + 8
+        click.echo(f"\t{msg}")
+        click.echo(f"{textwrap.indent(image_repository_format_text, prefix=' ' * prefix_length)}")
     click.echo(f"\tDeployment s3 bucket         : {s3_bucket}")
     click.echo(f"\tCapabilities                 : {capabilities_string}")
-    click.echo(f"\tParameter overrides          : {_parameters}")
-    click.echo(f"\tSigning Profiles           : {signing_profiles}")
+    click.echo(f"\tParameter overrides          : {parameter_overrides_format_text}")
+    click.echo(f"\tSigning Profiles             : {signing_profiles_format_text}")
 
     click.secho("\nInitiating deployment\n=====================", fg="yellow")
 
