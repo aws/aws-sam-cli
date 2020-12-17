@@ -6,6 +6,7 @@ import time
 from unittest import skipIf
 
 import boto3
+import docker
 from parameterized import parameterized
 
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
@@ -27,24 +28,13 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
 class TestDeploy(PackageIntegBase, DeployIntegBase):
     @classmethod
     def setUpClass(cls):
-        super().setUpClass()
-
-        # create signing profile which will be used for code signing tests
-        signer_client = boto3.client("signer")
-
-        cls.signing_profile_name = str(uuid.uuid4().hex)
-        put_signing_profile_result = signer_client.put_signing_profile(
-            profileName=cls.signing_profile_name, platformId="AWSLambda-SHA384-ECDSA"
-        )
-        cls.signing_profile_version_arn = put_signing_profile_result.get("profileVersionArn")
-
-    @classmethod
-    def tearDownClass(cls):
-        super().tearDownClass()
-
-        # cancel signing profile after all tests completes
-        signer_client = boto3.client("signer")
-        signer_client.cancel_signing_profile(profileName=cls.signing_profile_name)
+        cls.docker_client = docker.from_env()
+        cls.local_images = [("alpine", "latest")]
+        # setup some images locally by pulling them.
+        for repo, tag in cls.local_images:
+            cls.docker_client.api.pull(repository=repo, tag=tag)
+        PackageIntegBase.setUpClass()
+        DeployIntegBase.setUpClass()
 
     def setUp(self):
         self.cf_client = boto3.client("cloudformation")
