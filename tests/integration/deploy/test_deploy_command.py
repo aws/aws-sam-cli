@@ -6,6 +6,7 @@ import time
 from unittest import skipIf
 
 import boto3
+import docker
 from parameterized import parameterized
 
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
@@ -25,6 +26,16 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
 
 @skipIf(SKIP_DEPLOY_TESTS, "Skip deploy tests in CI/CD only")
 class TestDeploy(PackageIntegBase, DeployIntegBase):
+    @classmethod
+    def setUpClass(cls):
+        cls.docker_client = docker.from_env()
+        cls.local_images = [("alpine", "latest")]
+        # setup some images locally by pulling them.
+        for repo, tag in cls.local_images:
+            cls.docker_client.api.pull(repository=repo, tag=tag)
+        PackageIntegBase.setUpClass()
+        DeployIntegBase.setUpClass()
+
     def setUp(self):
         self.cf_client = boto3.client("cloudformation")
         self.sns_arn = os.environ.get("AWS_SNS")
