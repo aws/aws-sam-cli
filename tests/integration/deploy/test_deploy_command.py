@@ -26,7 +26,6 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
 
 @skipIf(SKIP_DEPLOY_TESTS, "Skip deploy tests in CI/CD only")
 class TestDeploy(PackageIntegBase, DeployIntegBase):
-
     @classmethod
     def setUpClass(cls):
         cls.docker_client = docker.from_env()
