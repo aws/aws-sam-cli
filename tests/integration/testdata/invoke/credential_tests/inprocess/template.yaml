@@ -1,0 +1,22 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: STS Tests
+
+Globals:
+  Function:
+    Timeout: 20
+
+
+Resources:
+  DotnetStsExample:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dotnet/STS
+      Handler: STS::STS.Function::FunctionHandler
+      Runtime: dotnetcore2.1
+  GoStsExample:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: golang
+      Handler: golang
+      Runtime: go1.x

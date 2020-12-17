@@ -65,7 +65,8 @@ class PackageIntegBase(TestCase):
             cls.s3_bucket.create()
             time.sleep(SLEEP)
         if not cls.pre_created_ecr_repo:
-            cls.ecr.create_repository(repositoryName=cls.ecr_repo_name)
+            ecr_result = cls.ecr.create_repository(repositoryName=cls.ecr_repo_name)
+            cls.ecr_repo_name = ecr_result.get("repository", {}).get("repositoryUri", None)
             time.sleep(SLEEP)
 
     def setUp(self):
@@ -94,6 +95,7 @@ class PackageIntegBase(TestCase):
         kms_key_id=None,
         metadata=None,
         image_repository=None,
+        image_repositories=None,
         resolve_s3=False,
     ):
         command_list = [self.base_command(), "package"]
@@ -122,6 +124,8 @@ class PackageIntegBase(TestCase):
             command_list = command_list + ["--metadata", json.dumps(metadata)]
         if image_repository:
             command_list = command_list + ["--image-repository", str(image_repository)]
+        if image_repositories:
+            command_list = command_list + ["--image-repositories", str(image_repositories)]
         if resolve_s3:
             command_list = command_list + ["--resolve-s3"]
         return command_list

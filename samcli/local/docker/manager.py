@@ -6,6 +6,8 @@ import logging
 
 import sys
 import re
+import threading
+
 import docker
 
 from samcli.lib.utils.stream_writer import StreamWriter
@@ -34,6 +36,9 @@ class ContainerManager:
         self.docker_network_id = docker_network_id
         self.docker_client = docker_client or docker.from_env()
 
+        self._lock = threading.Lock()
+        self._lock_per_image = {}
+
     @property
     def is_docker_reachable(self):
         """
@@ -46,20 +51,20 @@ class ContainerManager:
         """
         return utils.is_docker_reachable(self.docker_client)
 
-    def run(self, container, input_data=None, warm=False):
+    def create(self, container):
         """
-        Create and run a Docker container based on the given configuration.
+        Create a container based on the given configuration.
 
-        :param samcli.local.docker.container.Container container: Container to create and run
-        :param input_data: Optional. Input data sent to the container through container's stdin.
-        :param bool warm: Indicates if an existing container can be reused. Defaults False ie. a new container will
-            be created for every request.
-        :raises DockerImagePullFailedException: If the Docker image was not available in the server
+        Parameters
+        ----------
+        container samcli.local.docker.container.Container:
+            Container to be created
+
+        Raises
+        ------
+        DockerImagePullFailedException
+            If the Docker image was not available in the server
         """
-
-        if warm:
-            raise ValueError("The facility to invoke warm container does not exist")
-
         image_name = container.image
 
         is_image_local = self.has_image(image_name)
@@ -83,11 +88,28 @@ class ContainerManager:
 
                 LOG.info("Failed to download a new %s image. Invoking with the already downloaded image.", image_name)
 
+        container.network_id = self.docker_network_id
+        container.create()
+
+    def run(self, container, input_data=None):
+        """
+        Run a Docker container based on the given configuration.
+        If the container is not created, it will call Create method to create.
+
+        Parameters
+        ----------
+        container: samcli.local.docker.container.Container
+            Container to create and run
+        input_data: str, optional
+            Input data sent to the container through container's stdin.
+
+        Raises
+        ------
+        DockerImagePullFailedException
+            If the Docker image was not available in the server
+        """
         if not container.is_created():
-            # Create the container first before running.
-            # Create the container in appropriate Docker network
-            container.network_id = self.docker_network_id
-            container.create()
+            self.create(container)
 
         container.start(input_data=input_data)
 
@@ -115,25 +137,35 @@ class ContainerManager:
         DockerImagePullFailedException
             If the Docker image was not available in the server
         """
-        stream_writer = stream or StreamWriter(sys.stderr)
+        # use a global lock to get the image lock
+        with self._lock:
+            image_lock = self._lock_per_image.get(image_name)
+            if not image_lock:
+                image_lock = threading.Lock()
+                self._lock_per_image[image_name] = image_lock
 
-        try:
-            result_itr = self.docker_client.api.pull(image_name, stream=True, decode=True)
-        except docker.errors.APIError as ex:
-            LOG.debug("Failed to download image with name %s", image_name)
-            raise DockerImagePullFailedException(str(ex)) from ex
+        # with specific image lock, pull this image only once
+        # since there are different locks for each image, different images can be pulled in parallel
+        with image_lock:
+            stream_writer = stream or StreamWriter(sys.stderr)
 
-        # io streams, especially StringIO, work only with unicode strings
-        stream_writer.write("\nFetching {} Docker container image...".format(image_name))
+            try:
+                result_itr = self.docker_client.api.pull(image_name, stream=True, decode=True)
+            except docker.errors.APIError as ex:
+                LOG.debug("Failed to download image with name %s", image_name)
+                raise DockerImagePullFailedException(str(ex)) from ex
 
-        # Each line contains information on progress of the pull. Each line is a JSON string
-        for _ in result_itr:
-            # For every line, print a dot to show progress
-            stream_writer.write(".")
-            stream_writer.flush()
+            # io streams, especially StringIO, work only with unicode strings
+            stream_writer.write("\nFetching {} Docker container image...".format(image_name))
 
-        # We are done. Go to the next line
-        stream_writer.write("\n")
+            # Each line contains information on progress of the pull. Each line is a JSON string
+            for _ in result_itr:
+                # For every line, print a dot to show progress
+                stream_writer.write(".")
+                stream_writer.flush()
+
+            # We are done. Go to the next line
+            stream_writer.write("\n")
 
     def has_image(self, image_name):
         """
