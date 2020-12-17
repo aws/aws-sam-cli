@@ -94,6 +94,22 @@ def guided_deploy_stack_name(ctx, param, provided_value):
     return provided_value if provided_value else DEFAULT_STACK_NAME
 
 
+def image_repositories_callback(ctx, param, provided_value):
+    """
+    Create an dictionary of function logical ids to ECR URIs.
+    :param ctx: Click Context
+    :param param: Param name
+    :param provided_value: Value provided by Click, after being processed by ImageRepositoriesType.
+    :return: dictionary of function logic ids to ECR URIs.
+    """
+
+    image_repositories = {}
+    for value in provided_value:
+        image_repositories.update(value)
+
+    return image_repositories if image_repositories else None
+
+
 def artifact_callback(ctx, param, provided_value, artifact):
     """
     Provide an error if there are zip/image artifact based resources, and an destination export destination is not specified.
@@ -104,9 +120,13 @@ def artifact_callback(ctx, param, provided_value, artifact):
     :return: Actual value to be used in the CLI
     """
 
+    # NOTE(sriram-mv): Both params and default_map need to be checked, as the option can be either be
+    # passed in directly or through configuration file.
+    # If passed in through configuration file, default_map is loaded with those values.
     template_file = (
         ctx.params.get("t", False) or ctx.params.get("template_file", False) or ctx.params.get("template", False)
     )
+    resolve_s3 = ctx.params.get("resolve_s3", False) or ctx.default_map.get("resolve_s3", False)
 
     required = any(
         [
@@ -117,12 +137,9 @@ def artifact_callback(ctx, param, provided_value, artifact):
     # NOTE(sriram-mv): Explicit check for param name being s3_bucket
     # If that is the case, check for another option called resolve_s3 to be defined.
     # resolve_s3 option resolves for the s3 bucket automatically.
-    # NOTE(sriram-mv): Both params and default_map need to be checked, as the option can be either be
-    # passed in directly or through configuration file.
-    # If passed in through configuration file, default_map is loaded with those values.
-    if param.name == "s3_bucket" and (ctx.params.get("resolve_s3", False) or ctx.default_map.get("resolve_s3", False)):
+    if param.name == "s3_bucket" and resolve_s3:
         pass
-    elif required and not provided_value:
+    elif required and not provided_value and param.name == "s3_bucket":
         raise click.BadOptionUsage(option_name=param.name, ctx=ctx, message=f"Missing option '{param.opts[0]}'")
 
     return provided_value

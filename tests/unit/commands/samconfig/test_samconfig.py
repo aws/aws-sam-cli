@@ -16,7 +16,7 @@ from unittest import TestCase
 from unittest.mock import patch, ANY
 import logging
 
-from samcli.lib.utils.packagetype import ZIP
+from samcli.lib.utils.packagetype import ZIP, IMAGE
 
 LOG = logging.getLogger()
 logging.basicConfig()
@@ -319,10 +319,19 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
             )
 
+    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_function_resource_ids")
+    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
     @patch("samcli.commands._utils.options.get_template_artifacts_format")
     @patch("samcli.commands.package.command.do_cli")
-    def test_package(self, do_cli_mock, get_template_artifacts_format_mock):
-
+    def test_package(
+        self,
+        do_cli_mock,
+        get_template_artifacts_format_mock,
+        cli_validation_artifacts_format_mock,
+        mock_get_template_function_resource_ids,
+    ):
+        mock_get_template_function_resource_ids.return_value = ["HelloWorldFunction"]
+        cli_validation_artifacts_format_mock.return_value = [ZIP]
         get_template_artifacts_format_mock.return_value = [ZIP]
         config_values = {
             "template_file": "mytemplate.yaml",
@@ -356,6 +365,7 @@ class TestSamConfigForAllCommands(TestCase):
                 str(Path(os.getcwd(), "mytemplate.yaml")),
                 "mybucket",
                 "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
+                None,
                 "myprefix",
                 "mykms",
                 "output.yaml",
@@ -369,9 +379,43 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
             )
 
-    @patch("samcli.commands.deploy.command.do_cli")
-    def test_deploy(self, do_cli_mock):
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
+    @patch("samcli.commands.package.command.do_cli")
+    def test_package_with_image_repository_and_image_repositories(
+        self, do_cli_mock, get_template_artifacts_format_mock
+    ):
 
+        get_template_artifacts_format_mock.return_value = [IMAGE]
+        config_values = {
+            "template_file": "mytemplate.yaml",
+            "s3_bucket": "mybucket",
+            "force_upload": True,
+            "s3_prefix": "myprefix",
+            "image_repository": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
+            "image_repositories": ["HelloWorldFunction=123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"],
+            "kms_key_id": "mykms",
+            "use_json": True,
+            "metadata": '{"m1": "value1", "m2": "value2"}',
+            "region": "myregion",
+            "output_template_file": "output.yaml",
+            "signing_profiles": "function=profile:owner",
+        }
+
+        with samconfig_parameters(["package"], self.scratch_dir, **config_values) as config_path:
+
+            from samcli.commands.package.command import cli
+
+            LOG.debug(Path(config_path).read_text())
+            runner = CliRunner()
+            result = runner.invoke(cli, [])
+
+            self.assertIsNotNone(result.exception)
+
+    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
+    @patch("samcli.commands.deploy.command.do_cli")
+    def test_deploy(self, do_cli_mock, get_template_artifacts_format_mock):
+
+        get_template_artifacts_format_mock.return_value = [ZIP]
         config_values = {
             "template_file": "mytemplate.yaml",
             "stack_name": "mystack",
@@ -414,6 +458,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "mystack",
                 "mybucket",
                 "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
+                None,
                 True,
                 False,
                 "myprefix",
@@ -438,7 +483,46 @@ class TestSamConfigForAllCommands(TestCase):
             )
 
     @patch("samcli.commands.deploy.command.do_cli")
-    def test_deploy_different_parameter_override_format(self, do_cli_mock):
+    def test_deploy_image_repositories_and_image_repository(self, do_cli_mock):
+
+        config_values = {
+            "template_file": "mytemplate.yaml",
+            "stack_name": "mystack",
+            "s3_bucket": "mybucket",
+            "image_repository": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
+            "image_repositories": ["HelloWorldFunction=123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"],
+            "force_upload": True,
+            "s3_prefix": "myprefix",
+            "kms_key_id": "mykms",
+            "parameter_overrides": "ParameterKey=Key,ParameterValue=Value",
+            "capabilities": "cap1 cap2",
+            "no_execute_changeset": True,
+            "role_arn": "arn",
+            "notification_arns": "notify1 notify2",
+            "fail_on_empty_changeset": True,
+            "use_json": True,
+            "tags": 'a=tag1 b="tag with spaces"',
+            "metadata": '{"m1": "value1", "m2": "value2"}',
+            "guided": True,
+            "confirm_changeset": True,
+            "region": "myregion",
+            "signing_profiles": "function=profile:owner",
+        }
+
+        with samconfig_parameters(["deploy"], self.scratch_dir, **config_values) as config_path:
+
+            from samcli.commands.deploy.command import cli
+
+            LOG.debug(Path(config_path).read_text())
+            runner = CliRunner()
+            result = runner.invoke(cli, [])
+            self.assertIsNotNone(result.exception)
+
+    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
+    @patch("samcli.commands.deploy.command.do_cli")
+    def test_deploy_different_parameter_override_format(self, do_cli_mock, get_template_artifacts_format_mock):
+
+        get_template_artifacts_format_mock.return_value = [ZIP]
 
         config_values = {
             "template_file": "mytemplate.yaml",
@@ -482,6 +566,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "mystack",
                 "mybucket",
                 "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
+                None,
                 True,
                 False,
                 "myprefix",

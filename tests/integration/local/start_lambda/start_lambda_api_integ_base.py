@@ -65,10 +65,7 @@ class StartLambdaIntegBaseClass(TestCase):
     @classmethod
     def tearDownClass(cls):
         # After all the tests run, we need to kill the start_lambda process.
-        if hasattr(signal, "CTRL_C_EVENT"):
-            cls.start_lambda_process.send_signal(signal.CTRL_C_EVENT)
-        else:
-            cls.start_lambda_process.send_signal(signal.SIGINT)
+        cls.start_lambda_process.kill()
 
     @staticmethod
     def random_port():
