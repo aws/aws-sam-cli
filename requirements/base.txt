@@ -6,7 +6,7 @@ boto3~=1.14.23
 jmespath~=0.10.0
 PyYAML~=5.3
 cookiecutter~=1.7.2
-aws-sam-translator==1.32.0
+aws-sam-translator==1.33.0
 #docker minor version updates can include breaking changes. Auto update micro version only.
 docker~=4.2.0
 dateparser~=0.7
