@@ -8,6 +8,7 @@ from functools import partial
 
 import click
 from click.types import FuncParamType
+from tomlkit.items import Array as tomlkit_Array
 
 from samcli.commands._utils.template import get_template_data, TemplateNotFoundException
 from samcli.cli.types import CfnParameterOverridesType, CfnMetadataType, CfnTags, SigningProfilesOptionType
@@ -362,7 +363,7 @@ def notification_arns_override_option(f):
 
 
 def _space_separated_list_func_type(value):
-    return value.split(" ") if not isinstance(value, tuple) else value
+    return value.split(" ") if not isinstance(value, tuple) and not isinstance(value, tomlkit_Array) else value
 
 
 _space_separated_list_func_type.__name__ = "LIST"
