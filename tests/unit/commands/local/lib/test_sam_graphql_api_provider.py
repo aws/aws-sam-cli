@@ -60,27 +60,21 @@ class TestSamGraphQLApiProvider(TestCase):
                         "ApiId": "SomeApiId",
                         "TypeName": resolver_type_name,
                         "FieldName": resolver_field_name,
-                        "DataSourceName": {
-                            "Fn::GetAtt": [data_source_name, "Name"]
-                        },
+                        "DataSourceName": {"Fn::GetAtt": [data_source_name, "Name"]},
                     },
                 },
                 data_source_name: {
                     "Type": "AWS::AppSync::DataSource",
                     "Properties": {
                         "ApiId": "SomeApiId",
-                        "LambdaConfig": {
-                            "LambdaFunctionArn": {
-                                "Fn::GetAtt": [lambda_function_name, "Arn"]
-                            }
-                        },
+                        "LambdaConfig": {"LambdaFunctionArn": {"Fn::GetAtt": [lambda_function_name, "Arn"]}},
                         "Type": "AWS_LAMBDA",
                     },
                 },
                 lambda_function_name: {
                     "Type": lambda_function_resource_type,
                     "Properties": {},
-                }
+                },
             }
         }
 
@@ -89,15 +83,11 @@ class TestSamGraphQLApiProvider(TestCase):
         print("Provider", api.resolvers)
 
         self.assertEqual(len(provider.api.resolvers), 1)
-        self.assertEqual(provider.api.resolvers[0], Resolver(
-            lambda_function_name,
-            resolver_type_name,
-            resolver_field_name,
-        ))
-
-
-
-
-
-
-
+        self.assertEqual(
+            provider.api.resolvers[0],
+            Resolver(
+                lambda_function_name,
+                resolver_type_name,
+                resolver_field_name,
+            ),
+        )

@@ -20,11 +20,13 @@ class GraphQLApiCollector:
         self._schema_path = None
 
     def add_resolver(self, object_type, field_name, data_source_logical_id):
-        self._resolvers.append({
-            "object_type": object_type,
-            "field_name": field_name,
-            "data_source_logical_id": data_source_logical_id,
-        })
+        self._resolvers.append(
+            {
+                "object_type": object_type,
+                "field_name": field_name,
+                "data_source_logical_id": data_source_logical_id,
+            }
+        )
 
     def add_data_source(self, data_source_logical_id, function_logical_id):
         self._data_source_to_function[data_source_logical_id] = function_logical_id
@@ -46,18 +48,21 @@ class GraphQLApiCollector:
                 LOG.info("Missing data source %s for resolver %s", data_source_logical_id, resolver)
             elif self._data_source_to_function[data_source_logical_id] not in self._functions:
                 LOG.info(
-                    "Missing function %s for resolver %s, functions need to be present in the same template", 
-                    self._data_source_to_function[data_source_logical_id], resolver
+                    "Missing function %s for resolver %s, functions need to be present in the same template",
+                    self._data_source_to_function[data_source_logical_id],
+                    resolver,
                 )
             else:
                 function_logical_id = self._data_source_to_function[data_source_logical_id]
 
-                resolvers.append(Resolver(
-                    function_logical_id,
-                    resolver.get("object_type"),
-                    resolver.get("field_name"),
-                ))
-        
+                resolvers.append(
+                    Resolver(
+                        function_logical_id,
+                        resolver.get("object_type"),
+                        resolver.get("field_name"),
+                    )
+                )
+
         api = GraphQLApi()
         api.schema_path = self._schema_path
         api.resolvers = resolvers

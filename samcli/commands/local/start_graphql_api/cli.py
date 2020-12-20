@@ -149,7 +149,9 @@ def do_cli(  # pylint: disable=R0914
             aws_profile=ctx.profile,
         ) as invoke_context:
 
-            service = LocalGraphQLApiService(lambda_invoke_context=invoke_context, port=port, host=host, static_dir=static_dir)
+            service = LocalGraphQLApiService(
+                lambda_invoke_context=invoke_context, port=port, host=host, static_dir=static_dir
+            )
             service.start()
 
     except NoApisDefined as ex:

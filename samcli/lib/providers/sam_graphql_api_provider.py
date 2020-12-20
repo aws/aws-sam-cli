@@ -5,7 +5,7 @@ import logging
 from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.local.apigw.local_apigw_service import Route
-import os 
+import os
 
 LOG = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ class SamGraphQLApiProvider:
 
     def _extract_from_resolver(self, logical_id, resolver_resource, collector, cwd=None):
         resource_properties = resolver_resource.get("Properties", {})
-                
+
         data_source = resource_properties.get(self._RESOLVER_DATA_SOURCE)
         resolver_type = resource_properties.get(self._RESOLVER_TYPE)
         field_name = resource_properties.get(self._RESOLVER_FIELD_NAME)
@@ -76,23 +76,31 @@ class SamGraphQLApiProvider:
         lambda_config = resource_properties.get(self._DATA_SOURCE_LAMBDA_CONFIG, {})
 
         if data_source_type != self._DATA_SOURCE_TYPE_AWS_LAMBDA:
-            LOG.info("Found data source of type %s, but only type %s is supported", data_source_type, self._DATA_SOURCE_TYPE_AWS_LAMBDA)
+            LOG.info(
+                "Found data source of type %s, but only type %s is supported",
+                data_source_type,
+                self._DATA_SOURCE_TYPE_AWS_LAMBDA,
+            )
         elif self._DATA_SOURCE_LAMBDA_ARN not in lambda_config:
-            LOG.info("Did not find %s in %s, data source will be ignored", self._DATA_SOURCE_LAMBDA_ARN, self._DATA_SOURCE_LAMBDA_CONFIG)
+            LOG.info(
+                "Did not find %s in %s, data source will be ignored",
+                self._DATA_SOURCE_LAMBDA_ARN,
+                self._DATA_SOURCE_LAMBDA_CONFIG,
+            )
         else:
             lambda_arn = lambda_config.get(self._DATA_SOURCE_LAMBDA_ARN)
             LOG.debug("Found Lambda ARN %s", lambda_arn)
             lambda_logical_id = lambda_arn.split(":")[-1]
 
             collector.add_data_source(logical_id, lambda_logical_id)
-    
+
     def _extract_from_serverless_function(self, logical_id, function_resource, collector, cwd=None):
         collector.add_function(logical_id)
-    
+
     def _extract_from_schema(self, logical_id, schema_resource, collector, cwd=None):
         resource_properties = schema_resource.get("Properties", {})
         if self._SCHEMA_LOCATION in resource_properties:
             schema_path = resource_properties[self._SCHEMA_LOCATION]
             schema_full_path = os.path.join(cwd, schema_path)
-            
+
             collector.add_schema(schema_full_path)

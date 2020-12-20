@@ -6,7 +6,7 @@ import logging
 import os
 
 from samcli.commands.local.lib.exceptions import NoApisDefined
-from samcli.local.appsync.local_appsync_service import LocalAppsyncService
+from samcli.local.appsync.local_appsync_service import LocalAppSyncService
 from samcli.lib.providers.graphql_api_provider import GraphQLApiProvider
 
 LOG = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ class LocalGraphQLApiService:
         # contains the response to the API which is sent out as HTTP response. Only stderr needs to be printed
         # to the console or a log file. stderr from Docker container contains runtime logs and output of print
         # statements from the Lambda function
-        service = LocalAppsyncService(
+        service = LocalAppSyncService(
             api=self.api_provider.api,
             lambda_runner=self.lambda_runner,
             static_dir=static_dir_path,
@@ -105,7 +105,7 @@ class LocalGraphQLApiService:
             "endpoint": "POST",
             "playground": "GET",
         }
-    
+
         for name, method in mounted_endpoints.items():
             output = f"Mounting GraphQL {name} at http://{host}:{port}/graphql [{method}]"
 
@@ -114,7 +114,7 @@ class LocalGraphQLApiService:
 
         for resolver in resolvers:
             output = f"Resolving {resolver.object_type}.{resolver.field_name} using Lambda {resolver.function_name}"
-            
+
             print_lines.append(output)
             LOG.info(output)
 

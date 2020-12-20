@@ -256,10 +256,11 @@ class Api:
     def binary_media_types(self):
         return list(self.binary_media_types_set)
 
+
 class GraphQLApi:
     def __init__(self, resolvers=None):
         if resolvers is None:
-            resolvers = {}
+            resolvers = []
         self.resolvers = resolvers
         self.schema_path = None
 

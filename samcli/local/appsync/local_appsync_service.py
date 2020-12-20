@@ -7,31 +7,18 @@ import base64
 from flask import Flask, request, jsonify
 from werkzeug.datastructures import Headers
 from werkzeug.routing import BaseConverter
-
-from samcli.lib.providers.provider import Cors
-from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
-from samcli.lib.utils.stream_writer import StreamWriter
-from samcli.local.lambdafn.exceptions import FunctionNotFound
-from samcli.local.events.api_event import (
-    ContextIdentity,
-    ContextHTTP,
-    RequestContext,
-    RequestContextV2,
-    ApiGatewayLambdaEvent,
-    ApiGatewayV2LambdaEvent,
-)
-
 from ariadne import load_schema_from_path, ObjectType, make_executable_schema, graphql_sync
 from ariadne.constants import PLAYGROUND_HTML
 
-from pprint import pprint
+from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
+from samcli.lib.utils.stream_writer import StreamWriter
+from samcli.local.lambdafn.exceptions import FunctionNotFound
 
 LOG = logging.getLogger(__name__)
 
-class Resolver():
-    def __init__(
-        self, function_name, object_type, field_name
-    ):
+
+class Resolver:
+    def __init__(self, function_name, object_type, field_name):
         """
         Creates an AppSyncResolver
 
@@ -51,7 +38,8 @@ class Resolver():
             and self.object_type == other.object_type
         )
 
-class LocalAppsyncService(BaseLocalService):
+
+class LocalAppSyncService(BaseLocalService):
     _DEFAULT_PORT = 3000
     _DEFAULT_HOST = "127.0.0.1"
 
@@ -115,8 +103,8 @@ class LocalAppsyncService(BaseLocalService):
         self.executable_schema = make_executable_schema(type_defs, *object_types.values())
 
         self._app.add_url_rule(
-            '/graphql', 
-            endpoint='/graphql',
+            "/graphql",
+            endpoint="/graphql",
             view_func=self._request_handler,
             methods=["GET", "POST"],
             provide_automatic_options=False,
@@ -132,12 +120,13 @@ class LocalAppsyncService(BaseLocalService):
             function_logical_id = resolver.function_name
 
             LOG.info("Function logical id = %s", function_logical_id)
-            
+
             LOG.info("Resolving")
-            
+
             LOG.info("Creating event %s", self._direct_lambda_resolver_event(arguments, info))
 
             return {"Hello": "world"}
+
         return handler
 
     def _direct_lambda_resolver_event(self, arguments, info):
@@ -149,17 +138,15 @@ class LocalAppsyncService(BaseLocalService):
         return {
             "arguments": arguments,
             "source": {},
-            "identity": {}, # @todo fill with JWT token contents
-            "request": {
-                "headers": dict(request.headers)
-            },
+            "identity": {},  # @todo fill with JWT token contents
+            "request": {"headers": dict(request.headers)},
             "info": {
                 "fieldName": info.field_name,
                 "parentTypeName": info.parent_type.name,
                 "variables": info.variable_values,
                 "selectionSetList": selection_set,
                 "selectionSetGraphQL": selection_set_graphql,
-            }
+            },
         }
 
     def _graphql_playground(self):
