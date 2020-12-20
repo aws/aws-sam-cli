@@ -12,10 +12,11 @@ LOG = logging.getLogger(__name__)
 
 class SamGraphQLApiProvider:
     SERVERLESS_FUNCTION = "AWS::Serverless::Function"
+    LAMBDA_FUNCTION = "AWS::Lambda::Function"
     APPSYNC_RESOLVER = "AWS::AppSync::Resolver"
     APPSYNC_DATA_SOURCE = "AWS::AppSync::DataSource"
     APPSYNC_SCHEMA = "AWS::AppSync::GraphQLSchema"
-    TYPES = [SERVERLESS_FUNCTION, APPSYNC_RESOLVER, APPSYNC_DATA_SOURCE, APPSYNC_SCHEMA]
+    TYPES = [SERVERLESS_FUNCTION, APPSYNC_RESOLVER, APPSYNC_DATA_SOURCE, APPSYNC_SCHEMA, LAMBDA_FUNCTION]
 
     _DATA_SOURCE_TYPE = "Type"
     _DATA_SOURCE_TYPE_AWS_LAMBDA = "AWS_LAMBDA"
@@ -48,7 +49,7 @@ class SamGraphQLApiProvider:
         # parsed here and in InvokeContext.
         for logical_id, resource in resources.items():
             resource_type = resource.get(CfnBaseApiProvider.RESOURCE_TYPE)
-            if resource_type == SamGraphQLApiProvider.SERVERLESS_FUNCTION:
+            if resource_type in [SamGraphQLApiProvider.SERVERLESS_FUNCTION, SamGraphQLApiProvider.LAMBDA_FUNCTION]:
                 self._extract_from_serverless_function(logical_id, resource, collector)
             if resource_type == SamGraphQLApiProvider.APPSYNC_RESOLVER:
                 self._extract_from_resolver(logical_id, resource, collector)

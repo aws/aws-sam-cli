@@ -24,8 +24,32 @@ from samcli.local.events.api_event import (
 from ariadne import load_schema_from_path, ObjectType, make_executable_schema, graphql_sync
 from ariadne.constants import PLAYGROUND_HTML
 
+from pprint import pprint
+
 LOG = logging.getLogger(__name__)
 
+class Resolver():
+    def __init__(
+        self, function_name, object_type, field_name
+    ):
+        """
+        Creates an AppSyncResolver
+
+        :param function_name: Name of the Lambda function this resolver is connected to
+        :param str object_type: Root object type in GraphQL schema, e.g. Query or Mutation
+        :param str field_name: Field name for resolver in GraphQL schema
+        """
+        self.function_name = function_name
+        self.field_name = field_name
+        self.object_type = object_type
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, Resolver)
+            and self.function_name == other.function_name
+            and self.field_name == other.field_name
+            and self.object_type == other.object_type
+        )
 
 class LocalAppsyncService(BaseLocalService):
     _DEFAULT_PORT = 3000
@@ -78,19 +102,17 @@ class LocalAppsyncService(BaseLocalService):
         self._app.url_map.strict_slashes = False
 
         type_defs = load_schema_from_path(self.api.schema_path)
-        
-        query = ObjectType("Query")
-        mutation = ObjectType("Mutation")
+        object_types = {}
 
-        LOG.info("Resolvers %s", self.api.resolvers)
+        LOG.debug("Using resolver list from API %s", self.api.resolvers)
 
-        for field_name, _ in self.api.resolvers["Query"].items():
-            query.set_field(field_name, self._resolve)
-        
-        for field_name, _ in self.api.resolvers["Mutation"].items():
-            mutation.set_field(field_name, self._resolve)
+        for resolver in self.api.resolvers:
+            if resolver.object_type not in object_types:
+                object_types[resolver.object_type] = ObjectType(resolver.object_type)
 
-        self.executable_schema = make_executable_schema(type_defs, query)
+            object_types[resolver.object_type].set_field(resolver.field_name, self._generate_resolver(resolver))
+
+        self.executable_schema = make_executable_schema(type_defs, *object_types.values())
 
         self._app.add_url_rule(
             '/graphql', 
@@ -100,19 +122,30 @@ class LocalAppsyncService(BaseLocalService):
             provide_automatic_options=False,
         )
 
-    def _resolve(self, _, info, **arguments):
-        LOG.info("Resolving field name %s, field nodes %s", info.field_name, info.field_nodes[0])
+    def _generate_resolver(self, resolver):
+        def handler(_, info, **arguments):
+            LOG.debug("Incoming request to LocalAppSyncService: %s.%s", info.parent_type.name, info.field_name)
 
-        LOG.info("Parent type is %s", info.parent_type.name)
-        LOG.info("Function logical id = %s", self.api.resolvers[info.parent_type.name][info.field_name])
-        
-        LOG.info("Resolving")
-        
-        LOG.info("Creating event %s", self._direct_lambda_resolver_event(arguments, info))
+            # LOG.info("Resolving field name %s, field nodes %s", info.field_name, pprint(vars(info)))
+            LOG.info("Parent type is %s", info.parent_type.name)
 
-        return {"Hello": "world"}
+            function_logical_id = resolver.function_name
+
+            LOG.info("Function logical id = %s", function_logical_id)
+            
+            LOG.info("Resolving")
+            
+            LOG.info("Creating event %s", self._direct_lambda_resolver_event(arguments, info))
+
+            return {"Hello": "world"}
+        return handler
 
     def _direct_lambda_resolver_event(self, arguments, info):
+        # @TODO select correct field_node based on info.field_name
+        selection_set = [selection.name.value for selection in info.field_nodes[0].selection_set.selections]
+        # @TODO get exact piece of the query that matches the field name
+        selection_set_graphql = request.get_json()["query"]
+
         return {
             "arguments": arguments,
             "source": {},
@@ -124,16 +157,13 @@ class LocalAppsyncService(BaseLocalService):
                 "fieldName": info.field_name,
                 "parentTypeName": info.parent_type.name,
                 "variables": info.variable_values,
-                "selectionSetList": ["string"],
-                "selectionSetGraphQL": request.get_json()["query"],
+                "selectionSetList": selection_set,
+                "selectionSetGraphQL": selection_set_graphql,
             }
         }
 
     def _graphql_playground(self):
         # On GET request serve GraphQL Playground
-        # You don't need to provide Playground if you don't want to
-        # but keep on mind this will not prohibit clients from
-        # exploring your API using desktop GraphQL Playground app.
         return PLAYGROUND_HTML, 200
 
     def _request_handler(self):

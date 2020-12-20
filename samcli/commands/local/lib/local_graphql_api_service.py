@@ -42,14 +42,12 @@ class LocalGraphQLApiService:
 
     def start(self):
         """
-        Creates and starts the local API Gateway service. This method will block until the service is stopped
+        Creates and starts the local AppSync service. This method will block until the service is stopped
         manually using an interrupt. After the service is started, callers can make HTTP requests to the endpoint
         to invoke the Lambda function and receive a response.
 
         NOTE: This is a blocking call that will not return until the thread is interrupted with SIGINT/SIGTERM
         """
-
-        LOG.info("This is starting GraphQL magic %s", self.api_provider.api.resolvers)
 
         if not self.api_provider.api.resolvers:
             raise NoApisDefined("No APIs available in template")
@@ -86,8 +84,7 @@ class LocalGraphQLApiService:
     def _print_resolvers(resolvers, host, port):
         """
         Helper method to print the APIs that will be mounted. This method is purely for printing purposes.
-        This method takes in a list of Route Configurations and prints out the Routes grouped by path.
-        Grouping routes by Function Name + Path is the bulk of the logic.
+        This method takes in a list of Resolvers and prints out them.
 
         Example output:
             Mounting GraphQL endpoint at http://127.0.0.1:3000/graphql [POST]
@@ -104,15 +101,22 @@ class LocalGraphQLApiService:
         """
 
         print_lines = []
-        output = "Mounting GraphQL endpoint at http://{}:{}/graphql [POST]".format(host, port)
-        output = "Mounting GraphQL playground at http://{}:{}/graphql [GET]".format(host, port)
-        print_lines.append(output)
+        mounted_endpoints = {
+            "endpoint": "POST",
+            "playground": "GET",
+        }
+    
+        for name, method in mounted_endpoints.items():
+            output = f"Mounting GraphQL {name} at http://{host}:{port}/graphql [{method}]"
 
-        LOG.info(output)
+            print_lines.append(output)
+            LOG.info(output)
 
-        # for resolver in resolvers:
-        #     output = "Resolving {}.{} via local Lambda {}".format(resolver.resolver_type)
-        #     print_lines.append(output)
+        for resolver in resolvers:
+            output = f"Resolving {resolver.object_type}.{resolver.field_name} using Lambda {resolver.function_name}"
+            
+            print_lines.append(output)
+            LOG.info(output)
 
         return print_lines
 
