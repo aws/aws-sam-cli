@@ -545,7 +545,6 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         [
             ("dotnetcore2.1", "Dotnetcore2.1"),
             ("dotnetcore3.1", "Dotnetcore3.1"),
-            ("dotnet5.0", "Dotnet5.0"),
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
