@@ -2,7 +2,7 @@ chevron~=0.12
 click~=7.1
 Flask~=1.1.2
 #Need to add Schemas latest SDK.
-boto3~=1.14.23
+boto3~=1.14
 jmespath~=0.10.0
 PyYAML~=5.3
 cookiecutter~=1.7.2
