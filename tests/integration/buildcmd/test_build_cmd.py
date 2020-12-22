@@ -485,7 +485,6 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         [
             ("dotnetcore2.1", "Dotnetcore2.1", None),
             ("dotnetcore3.1", "Dotnetcore3.1", None),
-            ("dotnet5.0", "Dotnet5.0", None),
             ("dotnetcore2.1", "Dotnetcore2.1", "debug"),
             ("dotnetcore3.1", "Dotnetcore3.1", "debug"),
             ("dotnet5.0", "Dotnet5.0", "debug"),
