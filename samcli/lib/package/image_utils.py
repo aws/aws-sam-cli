@@ -2,7 +2,7 @@
 Image artifacts based utilities
 """
 import docker
-from docker.errors import APIError
+from docker.errors import APIError, NullResource
 
 from samcli.commands.package.exceptions import DockerGetLocalImageFailedError
 from samcli.lib.package.utils import is_ecr_url
@@ -11,6 +11,10 @@ SHA_CHECKSUM_TRUNCATION_LENGTH = 12
 
 
 class NonLocalImageException(Exception):
+    pass
+
+
+class NoImageFoundException(Exception):
     pass
 
 
@@ -35,6 +39,8 @@ def tag_translation(image, docker_image_id=None, gen_tag="latest"):
             docker_image_id = docker_client.images.get(image).id
         except APIError as ex:
             raise DockerGetLocalImageFailedError(str(ex)) from ex
+        except NullResource as ex:
+            raise NoImageFoundException(str(ex)) from ex
 
     # NOTE(sriram-mv): Checksum truncation Length is set to 12
     _id = docker_image_id.split(":")[1][:SHA_CHECKSUM_TRUNCATION_LENGTH]

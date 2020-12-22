@@ -155,3 +155,85 @@ class TestFunctionConfigInvalidTimeouts(TestCase):
                 timeout=timeout,
                 env_vars=self.env_vars_mock,
             )
+
+
+class TestFunctionConfig_equals(TestCase):
+
+    DEFAULT_MEMORY = 128
+    DEFAULT_TIMEOUT = 3
+
+    def setUp(self):
+        self.name = "name"
+        self.name2 = "name2"
+        self.runtime = "runtime"
+        self.handler = "handler"
+        self.imageuri = None
+        self.imageconfig = None
+        self.packagetype = ZIP
+        self.code_path = "codepath"
+        self.memory = 1234
+        self.timeout = 34
+        self.env_vars_mock = Mock()
+        self.layers = ["layer1"]
+
+    def test_equals_function_config(self):
+        config1 = FunctionConfig(
+            self.name,
+            self.runtime,
+            self.handler,
+            self.imageuri,
+            self.imageconfig,
+            self.packagetype,
+            self.code_path,
+            self.layers,
+            memory=self.memory,
+            timeout=self.timeout,
+            env_vars=self.env_vars_mock,
+        )
+
+        config2 = FunctionConfig(
+            self.name,
+            self.runtime,
+            self.handler,
+            self.imageuri,
+            self.imageconfig,
+            self.packagetype,
+            self.code_path,
+            self.layers,
+            memory=self.memory,
+            timeout=self.timeout,
+            env_vars=self.env_vars_mock,
+        )
+
+        self.assertTrue(config1 == config2)
+
+    def test_not_equals_function_config(self):
+        config1 = FunctionConfig(
+            self.name,
+            self.runtime,
+            self.handler,
+            self.imageuri,
+            self.imageconfig,
+            self.packagetype,
+            self.code_path,
+            self.layers,
+            memory=self.memory,
+            timeout=self.timeout,
+            env_vars=self.env_vars_mock,
+        )
+
+        config2 = FunctionConfig(
+            self.name2,
+            self.runtime,
+            self.handler,
+            self.imageuri,
+            self.imageconfig,
+            self.packagetype,
+            self.code_path,
+            self.layers,
+            memory=self.memory,
+            timeout=self.timeout,
+            env_vars=self.env_vars_mock,
+        )
+
+        self.assertTrue(config1 != config2)
