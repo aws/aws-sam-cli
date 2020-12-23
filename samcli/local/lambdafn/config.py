@@ -78,3 +78,6 @@ class FunctionConfig:
         self.env_vars.handler = self.handler
         self.env_vars.memory = self.memory
         self.env_vars.timeout = self.timeout
+
+    def __eq__(self, other):
+        return self.name == other.name

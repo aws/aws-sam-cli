@@ -35,6 +35,9 @@ class TestCli(TestCase):
         self.region_name = "region"
         self.profile = "profile"
 
+        self.warm_containers = None
+        self.debug_function = None
+
         self.ctx_mock = Mock()
         self.ctx_mock.region = self.region_name
         self.ctx_mock.profile = self.profile
@@ -52,6 +55,9 @@ class TestCli(TestCase):
 
         service_mock = Mock()
         local_api_service_mock.return_value = service_mock
+
+        self.warm_containers = None
+        self.debug_function = None
 
         self.call_cli()
 
@@ -72,6 +78,8 @@ class TestCli(TestCase):
             force_image_build=self.force_image_build,
             aws_region=self.region_name,
             aws_profile=self.profile,
+            warm_container_initialization_mode=self.warm_containers,
+            debug_function=self.debug_function,
         )
 
         local_api_service_mock.assert_called_with(
@@ -175,4 +183,6 @@ class TestCli(TestCase):
             parameter_overrides=self.parameter_overrides,
             layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
+            warm_containers=self.warm_containers,
+            debug_function=self.debug_function,
         )
