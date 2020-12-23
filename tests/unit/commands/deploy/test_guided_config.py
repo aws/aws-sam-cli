@@ -3,7 +3,9 @@ from unittest import TestCase
 from unittest.mock import patch
 
 import click
-from click.globals import _local
+
+# TODO: importing private module property, to investigate alternative for stability
+from click.globals import _local  # type: ignore
 from click import Context
 
 from samcli.commands.deploy.exceptions import GuidedDeployFailedError
