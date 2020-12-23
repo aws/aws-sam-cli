@@ -3,7 +3,7 @@ pyinstaller_package_foldername=$2
 python_package_url=$3
 
 if [ "$python_package_url" == "" ]; then
-    python_package_url="https://www.python.org/ftp/python/3.8.7/Python-3.8.7.tgz";
+    python_package_url="https://www.python.org/ftp/python/3.7.9/Python-3.7.9.tgz";
 fi
 
 echo $python_package_url
@@ -35,7 +35,7 @@ python3 -m venv venv
 ./venv/bin/pip install -r src/requirements/reproducible-linux.txt
 
 echo "Copying All Python Libraries"
-cp -r ./venv/lib/python*/site-packages/* ./output/python-libraries
+#cp -r ./venv/lib/python*/site-packages/* ./output/python-libraries
 
 echo "Installing PyInstaller"
 ./venv/bin/pip install -r src/requirements/pyinstaller-build.txt

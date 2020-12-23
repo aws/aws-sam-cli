@@ -391,3 +391,6 @@ tests/integration/testdata/buildcmd/Dotnetcore2.1/bin
 tests/integration/testdata/buildcmd/Dotnetcore2.1/obj
 
 # End of https://www.gitignore.io/api/osx,node,macos,linux,python,windows,pycharm,intellij,sublimetext,visualstudiocode
+
+# Installer build folder
+.build
