@@ -161,7 +161,6 @@ class Deployer:
             "TemplateBody": cfn_template,
             "ChangeSetType": changeset_type,
             "Parameters": parameter_values,
-            "Capabilities": capabilities,
             "Description": "Created by SAM CLI at {0} UTC".format(datetime.utcnow().isoformat()),
             "Tags": tags,
         }
@@ -180,6 +179,8 @@ class Deployer:
                 kwargs["TemplateURL"] = s3_uploader.to_path_style_s3_url(parts["Key"], parts.get("Version", None))
 
         # don't set these arguments if not specified to use existing values
+        if capabilities is not None:
+            kwargs["Capabilities"] = capabilities
         if role_arn is not None:
             kwargs["RoleARN"] = role_arn
         if notification_arns is not None:
