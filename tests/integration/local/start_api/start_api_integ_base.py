@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Dict
 from unittest import TestCase, skipIf
 import threading
 from subprocess import Popen
@@ -14,7 +14,7 @@ from tests.testing_utils import SKIP_DOCKER_MESSAGE, SKIP_DOCKER_TESTS
 class StartApiIntegBaseClass(TestCase):
     template: Optional[str] = None
     container_mode: Optional[str] = None
-    parameter_overrides: Optional[str] = None
+    parameter_overrides: Optional[Dict[str, str]] = None
     binary_data_file: Optional[str] = None
     integration_dir = str(Path(__file__).resolve().parents[2])
 
