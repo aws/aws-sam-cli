@@ -1,6 +1,9 @@
+import threading
+import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time
 import json
+import docker
 from parameterized import parameterized
 
 import pytest
@@ -10,6 +13,7 @@ from botocore import UNSIGNED
 from botocore.config import Config
 from botocore.exceptions import ClientError
 
+from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
 from .start_lambda_api_integ_base import StartLambdaIntegBaseClass
 
 
@@ -36,21 +40,20 @@ class TestParallelRequests(StartLambdaIntegBaseClass):
         """
         number_of_requests = 10
         start_time = time()
-        thread_pool = ThreadPoolExecutor(number_of_requests)
+        with ThreadPoolExecutor(number_of_requests) as thread_pool:
+            futures = [
+                thread_pool.submit(self.lambda_client.invoke, FunctionName="HelloWorldSleepFunction")
+                for _ in range(0, number_of_requests)
+            ]
+            results = [r.result() for r in as_completed(futures)]
 
-        futures = [
-            thread_pool.submit(self.lambda_client.invoke, FunctionName="HelloWorldSleepFunction")
-            for _ in range(0, number_of_requests)
-        ]
-        results = [r.result() for r in as_completed(futures)]
+            end_time = time()
 
-        end_time = time()
+            self.assertEqual(len(results), 10)
+            self.assertGreater(end_time - start_time, 10)
 
-        self.assertEqual(len(results), 10)
-        self.assertGreater(end_time - start_time, 10)
-
-        for result in results:
-            self.assertEqual(result.get("Payload").read().decode("utf-8"), '"Slept for 10s"')
+            for result in results:
+                self.assertEqual(result.get("Payload").read().decode("utf-8"), '"Slept for 10s"')
 
 
 class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
@@ -215,3 +218,123 @@ class TestLambdaService(StartLambdaIntegBaseClass):
         self.assertEqual(response.get("Payload").read().decode("utf-8"), "")
         self.assertIsNone(response.get("FunctionError"))
         self.assertEqual(response.get("StatusCode"), 200)
+
+
+class TestWarmContainersBaseClass(StartLambdaIntegBaseClass):
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+        self.docker_client = docker.from_env()
+        self.lambda_client = boto3.client(
+            "lambda",
+            endpoint_url=self.url,
+            region_name="us-east-1",
+            use_ssl=False,
+            verify=False,
+            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
+        )
+
+    def count_running_containers(self):
+        running_containers = 0
+        for container in self.docker_client.containers.list():
+            _, output = container.exec_run(["bash", "-c", "'printenv'"])
+            if f"MODE={self.mode_env_variable}" in str(output):
+                running_containers += 1
+        return running_containers
+
+
+class TestWarmContainers(TestWarmContainersBaseClass):
+    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    container_mode = ContainersInitializationMode.EAGER.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_can_invoke_lambda_function_successfully(self):
+        result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
+        self.assertEqual(result.get("StatusCode"), 200)
+
+        response = json.loads(result.get("Payload").read().decode("utf-8"))
+        self.assertEqual(response.get("statusCode"), 200)
+        self.assertEqual(json.loads(response.get("body")), {"hello": "world"})
+
+
+class TestWarmContainersInitialization(TestWarmContainersBaseClass):
+    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    container_mode = ContainersInitializationMode.EAGER.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_all_containers_are_initialized_before_any_invoke(self):
+        initiated_containers = self.count_running_containers()
+        # validate that there a container initialized for each lambda function
+        self.assertEqual(initiated_containers, 2)
+
+
+class TestWarmContainersMultipleInvoke(TestWarmContainersBaseClass):
+    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    container_mode = ContainersInitializationMode.EAGER.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_no_new_created_containers_after_lambda_function_invoke(self):
+
+        initiated_containers_before_invoking_any_function = self.count_running_containers()
+        result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
+        initiated_containers = self.count_running_containers()
+
+        # validate that no new containers got created
+        self.assertEqual(initiated_containers, initiated_containers_before_invoking_any_function)
+
+
+class TestLazyContainers(TestWarmContainersBaseClass):
+    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    container_mode = ContainersInitializationMode.LAZY.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_can_invoke_lambda_function_successfully(self):
+        result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
+        self.assertEqual(result.get("StatusCode"), 200)
+
+        response = json.loads(result.get("Payload").read().decode("utf-8"))
+        self.assertEqual(response.get("statusCode"), 200)
+        self.assertEqual(json.loads(response.get("body")), {"hello": "world"})
+
+
+class TestLazyContainersInitialization(TestWarmContainersBaseClass):
+    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    container_mode = ContainersInitializationMode.LAZY.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_no_container_is_initialized_before_any_invoke(self):
+        initiated_containers = self.count_running_containers()
+
+        # no container is initialized
+        self.assertEqual(initiated_containers, 0)
+
+
+class TestLazyContainersMultipleInvoke(TestWarmContainersBaseClass):
+    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    container_mode = ContainersInitializationMode.LAZY.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_only_one_new_created_containers_after_lambda_function_invoke(self):
+        initiated_containers_before_any_invoke = self.count_running_containers()
+        self.lambda_client.invoke(FunctionName="HelloWorldFunction")
+        initiated_containers = self.count_running_containers()
+
+        # only one container is initialized
+        self.assertEqual(initiated_containers, initiated_containers_before_any_invoke + 1)
