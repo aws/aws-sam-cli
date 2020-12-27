@@ -112,27 +112,23 @@ class LocalAppSyncService(BaseLocalService):
 
     def _generate_resolver(self, resolver):
         def handler(_, info, **arguments):
-            LOG.debug(
-                "Incoming request to LocalAppSyncService: %s.%s", 
-                info.parent_type.name, 
-                info.field_name
-            )
+            LOG.debug("Incoming request to LocalAppSyncService: %s.%s", info.parent_type.name, info.field_name)
 
             event = self._direct_lambda_resolver_event(request, arguments, info)
 
             LOG.info("Creating event %s", event)
-            
+
             stdout_stream = io.BytesIO()
             stdout_stream_writer = StreamWriter(stdout_stream, self.is_debugging)
 
             try:
-                self.lambda_runner.invoke(resolver.function_name, event, stdout=stdout_stream_writer, stderr=self.stderr)
+                self.lambda_runner.invoke(
+                    resolver.function_name, event, stdout=stdout_stream_writer, stderr=self.stderr
+                )
             except FunctionNotFound:
-                return {
-                    "errors": "Lambda not found"
-                }
+                return {"errors": "Lambda not found"}
 
-            LOG.info('Stdout stream info %s', stdout_stream)
+            LOG.info("Stdout stream info %s", stdout_stream)
 
             lambda_response, lambda_logs, _ = LambdaOutputParser.get_lambda_output(stdout_stream)
 
@@ -140,7 +136,7 @@ class LocalAppSyncService(BaseLocalService):
                 # Write the logs to stderr if available.
                 self.stderr.write(lambda_logs)
 
-            LOG.info('Lambda response %s', lambda_response)
+            LOG.info("Lambda response %s", lambda_response)
 
             return json.loads(lambda_response)
 

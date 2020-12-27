@@ -17,11 +17,7 @@ from samcli.local.lambdafn.exceptions import FunctionNotFound
 class TestApiGatewayService(TestCase):
     def setUp(self):
         self.function_name = Mock()
-        self.appsync_resolver = Resolver(
-          function_name=self.function_name, 
-          object_type="query", 
-          field_name="foo_bar"
-        )
+        self.appsync_resolver = Resolver(function_name=self.function_name, object_type="query", field_name="foo_bar")
         self.api_list_of_resolvers = [self.appsync_resolver]
 
         self.lambda_runner = Mock()
@@ -32,7 +28,7 @@ class TestApiGatewayService(TestCase):
         self.api_service = LocalAppSyncService(
             self.api, self.lambda_runner, port=3000, host="127.0.0.1", stderr=self.stderr
         )
-      
+
     @patch("samcli.local.appsync.local_appsync_service.make_executable_schema")
     @patch("samcli.local.appsync.local_appsync_service.load_schema_from_path")
     @patch("samcli.local.appsync.local_appsync_service.Flask")
@@ -62,7 +58,9 @@ class TestApiGatewayService(TestCase):
 
     def test_initalize_with_values(self):
         lambda_runner = Mock()
-        local_service = LocalAppSyncService(GraphQLApi(), lambda_runner, static_dir="dir/static", port=5000, host="129.0.0.0")
+        local_service = LocalAppSyncService(
+            GraphQLApi(), lambda_runner, static_dir="dir/static", port=5000, host="129.0.0.0"
+        )
         self.assertEqual(local_service.port, 5000)
         self.assertEqual(local_service.host, "129.0.0.0")
         self.assertEqual(local_service.api.resolvers, [])
@@ -174,13 +172,12 @@ class TestApiGatewayService(TestCase):
     #     with self.assertRaises(KeyError):
     #         self.api_service._get_current_route(request_mock)
 
+
 class TestService_construct_direct_lambda_event(TestCase):
     def setUp(self):
         self.request_mock = Mock()
         self.request_mock.headers = {}
-        self.request_mock.get_json.return_value = {
-          "query": "QUERY_DATA_FOO_BAR"
-        }
+        self.request_mock.get_json.return_value = {"query": "QUERY_DATA_FOO_BAR"}
         self.info_mock = MagicMock()
         self.info_mock.field_name = "something"
         self.info_mock.parent_type.name = "something else"
@@ -192,17 +189,17 @@ class TestService_construct_direct_lambda_event(TestCase):
         # ]
 
         self.expected_dict = {
-          "arguments": {},
-          "identity": {},
-          "info": {
-            "fieldName": "something",
-            "parentTypeName": "something else",
-            "selectionSetGraphQL": "QUERY_DATA_FOO_BAR",
-            "selectionSetList": [],
-            "variables": {}
-          },
-          "request": {"headers": {}},
-          "source": {}
+            "arguments": {},
+            "identity": {},
+            "info": {
+                "fieldName": "something",
+                "parentTypeName": "something else",
+                "selectionSetGraphQL": "QUERY_DATA_FOO_BAR",
+                "selectionSetList": [],
+                "variables": {},
+            },
+            "request": {"headers": {}},
+            "source": {},
         }
 
     def test_construct_event_no_data(self):
