@@ -4,6 +4,10 @@
 #
 #    pip-compile --allow-unsafe --generate-hashes --output-file=requirements/reproducible-linux.txt
 #
+ariadne==0.12.0 \
+    --hash=sha256:00a21584eb5ca8751380f9870d560db0a486ff69747884674caaee811a2ae64b \
+    --hash=sha256:e88b574d13c155f934d5e57431e5f9ab3a266a7064a6e397e7c662241276e2e3 \
+    # via aws-sam-cli (setup.py)
 arrow==0.15.5 \
     --hash=sha256:5390e464e2c5f76971b60ffa7ee29c598c7501a294bc9f5e6dadcb251a5d027b \
     --hash=sha256:70729bcc831da496ca3cb4b7e89472c8e2d27d398908155e0796179f6d2d41ee
@@ -81,6 +85,10 @@ flask==1.1.2 \
     --hash=sha256:4efa1ae2d7c9865af48986de8aeb8504bf32c7f3d6fdc9353d34b21f4b127060 \
     --hash=sha256:8a4fdd8936eba2512e9c85df320a37e694c93945b33ef33c89946a340a238557
     # via aws-sam-cli (setup.py)
+graphql-core==3.0.5 \
+    --hash=sha256:51f7dab06b5035515b23984f6fcb677ed909b56c672152699cca32e03624992e \
+    --hash=sha256:dfc374d3426677727772d8da9dd010e92d10305ddd9c2f7f0fc388f07cee94c4 \
+    # via ariadne
 idna==2.9 \
     --hash=sha256:7588d1c14ae4c77d74036e8c22ff447b26d0fde8f007354fd48a7814db15b7cb \
     --hash=sha256:a068a21ceac8a4d63dbfd964670474107f541babbd2250d61922f029858365fa
@@ -253,6 +261,11 @@ tomlkit==0.7.0 \
     --hash=sha256:6babbd33b17d5c9691896b0e68159215a9387ebfa938aa3ac42f4a4beeb2b831 \
     --hash=sha256:ac57f29693fab3e309ea789252fcce3061e19110085aa31af5446ca749325618
     # via aws-sam-cli (setup.py)
+typing-extensions==3.7.4.3 \
+    --hash=sha256:7cb407020f00f7bfc3cb3e7881628838e69d8f3fcab2f64742a5e76b2f841918 \
+    --hash=sha256:99d4073b617d30288f569d3f13d2bd7548c3a7e4c8de87db09a9d29bb3a4a60c \
+    --hash=sha256:dafc7639cde7f1b6e1acc0f457842a83e722ccca8eef5270af2d74792619a89f \
+    # via ariadne
 tzlocal==2.0.0 \
     --hash=sha256:11c9f16e0a633b4b60e1eede97d8a46340d042e67b670b290ca526576e039048 \
     --hash=sha256:949b9dd5ba4be17190a80c0268167d7e6c92c62b30026cf9764caf3e308e5590

@@ -121,7 +121,7 @@ class TestCli(TestCase):
     )
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     def test_must_raise_user_exception_on_invalid_sam_template(
-        self, exeception_to_raise, execption_message, invoke_context_mock
+        self, exeception_to_raise, exception_message, invoke_context_mock
     ):
 
         invoke_context_mock.side_effect = exeception_to_raise
@@ -130,7 +130,7 @@ class TestCli(TestCase):
             self.call_cli()
 
         msg = str(context.exception)
-        expected = execption_message
+        expected = exception_message
         self.assertEqual(msg, expected)
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")

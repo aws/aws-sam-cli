@@ -112,34 +112,52 @@ class LocalAppSyncService(BaseLocalService):
 
     def _generate_resolver(self, resolver):
         def handler(_, info, **arguments):
-            LOG.debug("Incoming request to LocalAppSyncService: %s.%s", info.parent_type.name, info.field_name)
+            LOG.debug(
+                "Incoming request to LocalAppSyncService: %s.%s", 
+                info.parent_type.name, 
+                info.field_name
+            )
 
-            # LOG.info("Resolving field name %s, field nodes %s", info.field_name, pprint(vars(info)))
-            LOG.info("Parent type is %s", info.parent_type.name)
+            event = self._direct_lambda_resolver_event(request, arguments, info)
 
-            function_logical_id = resolver.function_name
+            LOG.info("Creating event %s", event)
+            
+            stdout_stream = io.BytesIO()
+            stdout_stream_writer = StreamWriter(stdout_stream, self.is_debugging)
 
-            LOG.info("Function logical id = %s", function_logical_id)
+            try:
+                self.lambda_runner.invoke(resolver.function_name, event, stdout=stdout_stream_writer, stderr=self.stderr)
+            except FunctionNotFound:
+                return {
+                    "errors": "Lambda not found"
+                }
 
-            LOG.info("Resolving")
+            LOG.info('Stdout stream info %s', stdout_stream)
 
-            LOG.info("Creating event %s", self._direct_lambda_resolver_event(arguments, info))
+            lambda_response, lambda_logs, _ = LambdaOutputParser.get_lambda_output(stdout_stream)
 
-            return {"Hello": "world"}
+            if self.stderr and lambda_logs:
+                # Write the logs to stderr if available.
+                self.stderr.write(lambda_logs)
+
+            LOG.info('Lambda response %s', lambda_response)
+
+            return json.loads(lambda_response)
 
         return handler
 
-    def _direct_lambda_resolver_event(self, arguments, info):
+    @staticmethod
+    def _direct_lambda_resolver_event(req, arguments, info):
         # @TODO select correct field_node based on info.field_name
         selection_set = [selection.name.value for selection in info.field_nodes[0].selection_set.selections]
         # @TODO get exact piece of the query that matches the field name
-        selection_set_graphql = request.get_json()["query"]
+        selection_set_graphql = req.get_json()["query"]
 
-        return {
+        contents = {
             "arguments": arguments,
             "source": {},
             "identity": {},  # @todo fill with JWT token contents
-            "request": {"headers": dict(request.headers)},
+            "request": {"headers": dict(req.headers)},
             "info": {
                 "fieldName": info.field_name,
                 "parentTypeName": info.parent_type.name,
@@ -148,6 +166,8 @@ class LocalAppSyncService(BaseLocalService):
                 "selectionSetGraphQL": selection_set_graphql,
             },
         }
+
+        return json.dumps(contents)
 
     def _graphql_playground(self):
         # On GET request serve GraphQL Playground

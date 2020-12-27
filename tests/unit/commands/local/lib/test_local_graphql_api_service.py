@@ -75,8 +75,8 @@ class TestLocalGraphQLApiService_start(TestCase):
     @patch("samcli.commands.local.lib.local_graphql_api_service.GraphQLApiProvider")
     @patch.object(LocalGraphQLApiService, "_print_resolvers")
     @patch.object(GraphQLApiProvider, "_extract_api")
-    def test_must_raise_if_route_not_available(
-        self, extract_api, log_routes_mock, GraphQLApiProviderMock, LocalAppSyncServiceMock
+    def test_must_raise_if_resolvers_not_available(
+        self, extract_api, log_resolvers_mock, GraphQLApiProviderMock, LocalAppSyncServiceMock
     ):
         resolver_list = []  # Empty
         api = Api()
