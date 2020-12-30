@@ -111,7 +111,8 @@ class DefaultBuildStrategy(BuildStrategy):
                              single_build_dir,
                              build_definition.metadata
         )
-        function_build_results[single_function_name] = result
+        for function in build_definition.functions:
+          function_build_results[function.name] = result
 
         # copy results to other functions
         if build_definition.packagetype == ZIP:
