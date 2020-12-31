@@ -213,6 +213,58 @@ class TestDeployer(TestCase):
                 tags={"unit": "true"},
             )
 
+    def test_create_changeset_pass_through_optional_arguments_only_if_having_values(self):
+        self.deployer.has_stack = MagicMock(return_value=False)
+        # assert that the arguments; Capabilities, RoleARN & NotificationARNs are passed through if having values
+        self.deployer.create_changeset(
+            stack_name="test",
+            cfn_template=" ",
+            parameter_values=[
+                {"ParameterKey": "a", "ParameterValue": "b"},
+                {"ParameterKey": "c", "UsePreviousValue": True},
+            ],
+            capabilities=["CAPABILITY_IAM"],
+            role_arn="role-arn",
+            notification_arns=[],
+            s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
+            tags={"unit": "true"},
+        )
+        self.deployer._client.create_change_set.assert_called_with(
+            Capabilities=["CAPABILITY_IAM"],
+            RoleARN="role-arn",
+            NotificationARNs=[],
+            ChangeSetName=ANY,
+            ChangeSetType="CREATE",
+            Description=ANY,
+            Parameters=[{"ParameterKey": "a", "ParameterValue": "b"}],
+            StackName="test",
+            Tags={"unit": "true"},
+            TemplateURL=ANY,
+        )
+        # assert that the arguments; Capabilities, RoleARN & NotificationARNs are not passed through if no values
+        self.deployer.create_changeset(
+            stack_name="test",
+            cfn_template=" ",
+            parameter_values=[
+                {"ParameterKey": "a", "ParameterValue": "b"},
+                {"ParameterKey": "c", "UsePreviousValue": True},
+            ],
+            capabilities=None,
+            role_arn=None,
+            notification_arns=None,
+            s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
+            tags={"unit": "true"},
+        )
+        self.deployer._client.create_change_set.assert_called_with(
+            ChangeSetName=ANY,
+            ChangeSetType="CREATE",
+            Description=ANY,
+            Parameters=[{"ParameterKey": "a", "ParameterValue": "b"}],
+            StackName="test",
+            Tags={"unit": "true"},
+            TemplateURL=ANY,
+        )
+
     def test_describe_changeset_with_changes(self):
         response = [
             {

@@ -8,7 +8,6 @@ import shutil
 import tempfile
 import uuid
 import zipfile
-import re
 import contextlib
 from contextlib import contextmanager
 from urllib.parse import urlparse, parse_qs
@@ -17,6 +16,7 @@ import jmespath
 
 from samcli.commands.package import exceptions
 from samcli.commands.package.exceptions import ImageNotFoundError
+from samcli.lib.package.ecr_utils import is_ecr_url
 from samcli.lib.utils.hash import dir_checksum
 
 LOG = logging.getLogger(__name__)
@@ -38,12 +38,6 @@ def is_s3_url(url):
         return True
     except ValueError:
         return False
-
-
-def is_ecr_url(url):
-    return bool(
-        re.match("(^[a-zA-Z0-9][a-zA-Z0-9-_]*).dkr.ecr.([a-zA-Z0-9][a-zA-Z0-9-_]*).amazonaws.com(.cn)?/.*", url)
-    )
 
 
 def is_local_folder(path):
@@ -108,7 +102,7 @@ def upload_local_image_artifacts(resource_id, resource_dict, property_name, pare
         LOG.debug("Property %s of %s is already an ECR URL", property_name, resource_id)
         return image_path
 
-    return uploader.upload(image_path)
+    return uploader.upload(image_path, resource_id)
 
 
 def upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir, uploader, extension=None):

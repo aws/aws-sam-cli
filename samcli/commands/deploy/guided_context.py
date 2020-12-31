@@ -9,8 +9,14 @@ from click.types import FuncParamType
 from click import prompt
 from click import confirm
 
+from samcli.cli.types import ImageRepositoryType
 from samcli.commands._utils.options import _space_separated_list_func_type
-from samcli.commands._utils.template import get_template_parameters, get_template_data, get_template_artifacts_format
+from samcli.commands._utils.template import (
+    get_template_parameters,
+    get_template_data,
+    get_template_artifacts_format,
+    get_template_function_resource_ids,
+)
 from samcli.commands.deploy.code_signer_utils import (
     signer_config_per_function,
     extract_profile_name_and_owner_from_existing,
@@ -23,7 +29,8 @@ from samcli.commands.deploy.auth_utils import auth_per_resource, transform_templ
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
 from samcli.lib.config.samconfig import DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.bootstrap.bootstrap import manage_stack
-from samcli.lib.package.image_utils import tag_translation, NonLocalImageException
+from samcli.lib.package.ecr_utils import is_ecr_url
+from samcli.lib.package.image_utils import tag_translation, NonLocalImageException, NoImageFoundException
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.packagetype import IMAGE
 
@@ -37,6 +44,7 @@ class GuidedContext:
         stack_name,
         s3_bucket,
         image_repository,
+        image_repositories,
         s3_prefix,
         region=None,
         profile=None,
@@ -53,6 +61,7 @@ class GuidedContext:
         self.stack_name = stack_name
         self.s3_bucket = s3_bucket
         self.image_repository = image_repository
+        self.image_repositories = image_repositories
         self.s3_prefix = s3_prefix
         self.region = region
         self.profile = profile
@@ -66,6 +75,7 @@ class GuidedContext:
         self.guided_stack_name = None
         self.guided_s3_bucket = None
         self.guided_image_repository = None
+        self.guided_image_repositories = None
         self.guided_s3_prefix = None
         self.guided_region = None
         self.guided_profile = None
@@ -109,7 +119,7 @@ class GuidedContext:
         input_parameter_overrides = self.prompt_parameters(
             parameter_override_keys, self.parameter_overrides_from_cmdline, self.start_bold, self.end_bold
         )
-        image_repository = self.prompt_image_repository(
+        image_repositories = self.prompt_image_repository(
             parameter_overrides=sanitize_parameter_overrides(input_parameter_overrides)
         )
 
@@ -154,7 +164,7 @@ class GuidedContext:
 
         self.guided_stack_name = stack_name
         self.guided_s3_bucket = s3_bucket
-        self.guided_image_repository = image_repository
+        self.guided_image_repositories = image_repositories
         self.guided_s3_prefix = stack_name
         self.guided_region = region
         self.guided_profile = self.profile
@@ -258,31 +268,39 @@ class GuidedContext:
         return _prompted_param_overrides
 
     def prompt_image_repository(self, parameter_overrides):
-        image_repository = None
+        image_repositories = {}
         artifacts_format = get_template_artifacts_format(template_file=self.template_file)
         if IMAGE in artifacts_format:
             self.transformed_resources = transform_template(
                 parameter_overrides=parameter_overrides,
                 template_dict=get_template_data(template_file=self.template_file),
             )
-            image_repository = prompt(
-                f"\t{self.start_bold}Image Repository{self.end_bold}",
-                type=click.STRING,
-                default=self.image_repository if self.image_repository else "",
-            )
-            for _, function_prop in self.transformed_resources.functions.items():
+            function_resources = get_template_function_resource_ids(template_file=self.template_file, artifact=IMAGE)
+            for resource_id in function_resources:
+                image_repositories[resource_id] = prompt(
+                    f"\t{self.start_bold}Image Repository for {resource_id}{self.end_bold}",
+                    default=self.image_repositories.get(resource_id, "")
+                    if isinstance(self.image_repositories, dict)
+                    else "" or self.image_repository,
+                )
+                if not is_ecr_url(image_repositories.get(resource_id)):
+                    raise GuidedDeployFailedError(
+                        f"Invalid Image Repository ECR URI: {image_repositories.get(resource_id)}"
+                    )
+            for resource_id, function_prop in self.transformed_resources.functions.items():
                 if function_prop.packagetype == IMAGE:
                     image = function_prop.imageuri
                     try:
                         tag = tag_translation(image)
                     except NonLocalImageException:
                         pass
+                    except NoImageFoundException as ex:
+                        raise GuidedDeployFailedError("No images found to deploy, try running sam build") from ex
                     else:
-                        click.secho(f"\t{self.start_bold}Images that will be pushed:{self.end_bold}")
-                        click.secho(f"\t  {image} to {image_repository}:{tag}")
+                        click.secho(f"\t  {image} to be pushed to {image_repositories.get(resource_id)}:{tag}")
             click.secho(nl=True)
 
-        return image_repository
+        return image_repositories
 
     def run(self):
 
@@ -307,7 +325,7 @@ class GuidedContext:
                 stack_name=self.guided_stack_name,
                 s3_bucket=self.guided_s3_bucket,
                 s3_prefix=self.guided_s3_prefix,
-                image_repository=self.guided_image_repository,
+                image_repositories=self.guided_image_repositories,
                 region=self.guided_region,
                 profile=self.guided_profile,
                 confirm_changeset=self.confirm_changeset,

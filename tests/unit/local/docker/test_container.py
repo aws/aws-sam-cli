@@ -1,6 +1,7 @@
 """
 Unit test for Container class
 """
+import docker
 from docker.errors import NotFound, APIError
 from unittest import TestCase
 from unittest.mock import Mock, call, patch, ANY
@@ -456,7 +457,7 @@ class TestContainer_wait_for_result(TestCase):
         self.container.id = "someid"
 
         self.container.is_created = Mock()
-        self.timeout = 0.1
+        self.timeout = 1
 
     @patch("samcli.local.docker.container.requests")
     def test_wait_for_result_no_error(self, mock_requests):
@@ -661,3 +662,62 @@ class TestContainer_copy(TestCase):
         # Make sure we open the tarfile right and extract to right location
         tarfile_mock.open.assert_called_with(fileobj=fp_mock, mode="r")
         tar_mock.extractall(path=dest)
+
+    def test_raise_if_container_is_not_created(self):
+        source = "source"
+        dest = "dest"
+
+        self.container.is_created = Mock()
+        self.container.is_created.return_value = False
+
+        with self.assertRaises(RuntimeError):
+            self.container.copy(source, dest)
+
+
+class TestContainer_is_created(TestCase):
+    def setUp(self):
+        self.mock_client = Mock()
+        self.container = Container("image", "cmd", "dir", "dir", docker_client=self.mock_client)
+
+    def test_container_id_is_none_return_false(self):
+        self.container.id = None
+        self.assertFalse(self.container.is_created())
+
+    def test_real_container_is_not_exist_return_false(self):
+        self.container.id = "not_exist"
+        self.mock_client.containers.get.side_effect = docker.errors.NotFound("")
+        self.assertFalse(self.container.is_created())
+
+    def test_real_container_exist_return_true(self):
+        self.container.id = "not_exist"
+        self.assertTrue(self.container.is_created())
+
+
+class TestContainer_is_running(TestCase):
+    def setUp(self):
+        self.mock_client = Mock()
+        self.container = Container("image", "cmd", "dir", "dir", docker_client=self.mock_client)
+
+    def test_container_id_is_none_return_false(self):
+        self.container.id = None
+        self.assertFalse(self.container.is_running())
+
+    def test_real_container_is_not_exist_return_false(self):
+        self.container.id = "not_exist"
+        self.mock_client.containers.get.side_effect = docker.errors.NotFound("")
+        self.assertFalse(self.container.is_running())
+
+    def test_real_container_status_is_not_running_return_false(self):
+        self.container.id = "not_exist"
+        real_container_mock = Mock()
+        real_container_mock.status = "stopped"
+        self.mock_client.containers.get.return_value = real_container_mock
+
+        self.assertFalse(self.container.is_running())
+
+    def test_real_container_is_running_return_true(self):
+        self.container.id = "not_exist"
+        real_container_mock = Mock()
+        real_container_mock.status = "running"
+        self.mock_client.containers.get.return_value = real_container_mock
+        self.assertTrue(self.container.is_created())
