@@ -9,6 +9,7 @@ from samcli.commands.build.exceptions import MissingBuildMethodException
 from samcli.lib.utils import osutils
 from samcli.lib.utils.async_utils import AsyncContext
 from samcli.lib.utils.hash import dir_checksum
+from samcli.lib.utils.packagetype import ZIP, IMAGE
 
 LOG = logging.getLogger(__name__)
 
@@ -101,22 +102,26 @@ class DefaultBuildStrategy(BuildStrategy):
         single_build_dir = str(pathlib.Path(self._build_dir, single_function_name))
 
         LOG.debug("Building to following folder %s", single_build_dir)
-        self._build_function(build_definition.get_function_name(),
+        result = self._build_function(
+                             build_definition.get_function_name(),
                              build_definition.codeuri,
+                             build_definition.packagetype,
                              build_definition.runtime,
                              build_definition.get_handler_name(),
                              single_build_dir,
-                             build_definition.metadata)
-        function_build_results[single_function_name] = single_build_dir
+                             build_definition.metadata
+        )
+        function_build_results[single_function_name] = result
 
         # copy results to other functions
-        for function in build_definition.functions:
-            if function.name is not single_function_name:
-                # artifacts directory will be created by the builder
-                artifacts_dir = str(pathlib.Path(self._build_dir, function.name))
-                LOG.debug("Copying artifacts from %s to %s", single_build_dir, artifacts_dir)
-                osutils.copytree(single_build_dir, artifacts_dir)
-                function_build_results[function.name] = artifacts_dir
+        if build_definition.packagetype == ZIP:
+            for function in build_definition.functions:
+                if function.name is not single_function_name:
+                    # artifacts directory will be created by the builder
+                    artifacts_dir = str(pathlib.Path(self._build_dir, function.name))
+                    LOG.debug("Copying artifacts from %s to %s", single_build_dir, artifacts_dir)
+                    osutils.copytree(single_build_dir, artifacts_dir)
+                    function_build_results[function.name] = artifacts_dir
 
         return function_build_results
 
@@ -166,6 +171,9 @@ class CachedBuildStrategy(BuildStrategy):
         """
         Builds single function definition with caching
         """
+        if build_definition.packagetype == IMAGE:
+            return self._delegate_build_strategy.build_single_function_definition(build_definition)
+
         code_dir = str(pathlib.Path(self._base_dir, build_definition.codeuri).resolve())
         source_md5 = dir_checksum(code_dir)
         cache_function_dir = pathlib.Path(self._cache_dir, build_definition.uuid)

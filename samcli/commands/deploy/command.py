@@ -7,6 +7,7 @@ import click
 
 from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.main import aws_creds_options, common_options, pass_context
+from samcli.cli.types import ImageRepositoryType, ImageRepositoriesType
 from samcli.commands._utils.options import (
     capabilities_override_option,
     guided_deploy_stack_name,
@@ -17,8 +18,10 @@ from samcli.commands._utils.options import (
     tags_override_option,
     template_click_option,
     signing_profiles_option,
+    image_repositories_callback,
 )
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
+from samcli.lib.cli_validation.image_repository_validation import image_repository_validation
 from samcli.lib.telemetry.metrics import track_command
 from samcli.lib.utils import osutils
 from samcli.lib.bootstrap.bootstrap import manage_stack
@@ -68,6 +71,21 @@ LOG = logging.getLogger(__name__)
     help="The name of the S3 bucket where this command uploads your "
     "CloudFormation template. This is required the deployments of "
     "templates sized greater than 51,200 bytes",
+)
+@click.option(
+    "--image-repository",
+    type=ImageRepositoryType(),
+    required=False,
+    help="ECR repo uri where this command uploads the image artifacts that are referenced in your template.",
+)
+@click.option(
+    "--image-repositories",
+    multiple=True,
+    callback=image_repositories_callback,
+    type=ImageRepositoriesType(),
+    required=False,
+    help="Specify mapping of Function Logical ID to ECR Repo uri, of the form Function_Logical_ID=ECR_Repo_Uri."
+    "This option can be specified multiple times.",
 )
 @click.option(
     "--force-upload",
@@ -146,6 +164,7 @@ LOG = logging.getLogger(__name__)
 @capabilities_override_option
 @aws_creds_options
 @common_options
+@image_repository_validation
 @pass_context
 @track_command
 def cli(
@@ -153,6 +172,8 @@ def cli(
     template_file,
     stack_name,
     s3_bucket,
+    image_repository,
+    image_repositories,
     force_upload,
     no_progressbar,
     s3_prefix,
@@ -179,6 +200,8 @@ def cli(
         template_file,
         stack_name,
         s3_bucket,
+        image_repository,
+        image_repositories,
         force_upload,
         no_progressbar,
         s3_prefix,
@@ -207,6 +230,8 @@ def do_cli(
     template_file,
     stack_name,
     s3_bucket,
+    image_repository,
+    image_repositories,
     force_upload,
     no_progressbar,
     s3_prefix,
@@ -240,6 +265,8 @@ def do_cli(
             template_file=template_file,
             stack_name=stack_name,
             s3_bucket=s3_bucket,
+            image_repository=image_repository,
+            image_repositories=image_repositories,
             s3_prefix=s3_prefix,
             region=region,
             profile=profile,
@@ -266,6 +293,8 @@ def do_cli(
             template_file=template_file,
             s3_bucket=guided_context.guided_s3_bucket if guided else s3_bucket,
             s3_prefix=guided_context.guided_s3_prefix if guided else s3_prefix,
+            image_repository=guided_context.guided_image_repository if guided else image_repository,
+            image_repositories=guided_context.guided_image_repositories if guided else image_repositories,
             output_template_file=output_template_file.name,
             kms_key_id=kms_key_id,
             use_json=use_json,
@@ -283,6 +312,8 @@ def do_cli(
             template_file=output_template_file.name,
             stack_name=guided_context.guided_stack_name if guided else stack_name,
             s3_bucket=guided_context.guided_s3_bucket if guided else s3_bucket,
+            image_repository=guided_context.guided_image_repository if guided else image_repository,
+            image_repositories=guided_context.guided_image_repositories if guided else image_repositories,
             force_upload=force_upload,
             no_progressbar=no_progressbar,
             s3_prefix=guided_context.guided_s3_prefix if guided else s3_prefix,

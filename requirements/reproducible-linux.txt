@@ -12,10 +12,10 @@ attrs==19.3.0 \
     --hash=sha256:08a96c641c3a74e44eb59afb61a24f2cb9f4d7188748e76ba4bb5edfa3cb7d1c \
     --hash=sha256:f7b7ce16570fe9965acd6d30101a28f62fb4a7f9e926b3bbc9b61f8b04247e72 \
     # via jsonschema
-aws-sam-translator==1.31.0 \
-    --hash=sha256:3a1d73d098161e60966b0d53bb310c98e4f66101688cce3d1697903643782d79 \
-    --hash=sha256:65749571042e704027bbcaabe6dddd5d13ab54959c46e60c347918d6b85551fd \
-    --hash=sha256:b87a61cffba8f29e4f1b5eb43a4abafdfb14b76aedc716517d48dbdf0b1f989a \
+aws-sam-translator==1.33.0 \
+    --hash=sha256:505d18b0bad8702bfba80fc5bc78d9c4b003ab009a9e42648561bdf1fd67bf01 \
+    --hash=sha256:89c5c997164231b847634d8034d3534d3a048d88f4b66b2897f6251366e640f5 \
+    --hash=sha256:9f3767614746a38300ee988ef70d6f862e71e59ea536252bbf9a319daaac1fff \
     # via aws-sam-cli (setup.py)
 aws_lambda_builders==1.1.0 \
     --hash=sha256:2b40a0003c2c05143e1aa816fed758c7d78f3e5c8e115be681aa2478f2655056 \
@@ -134,6 +134,9 @@ markupsafe==1.1.1 \
     --hash=sha256:e249096428b3ae81b08327a63a485ad0878de3fb939049038579ac0ef61e17e7 \
     --hash=sha256:e8313f01ba26fbbe36c7be1966a7b7424942f670f38e666995b88d012765b9be \
     # via cookiecutter, jinja2
+pathtools==0.1.2 \
+    --hash=sha256:7c35c5421a39bb82e58018febd90e3b6e5db34c5443aaaf742b3f33d4655f1c0 \
+    # via watchdog
 poyo==0.5.0 \
     --hash=sha256:3e2ca8e33fdc3c411cd101ca395668395dd5dc7ac775b8e809e3def9f9fe041a \
     --hash=sha256:e26956aa780c45f011ca9886f044590e2d8fd8b61db7b1c1cf4e0869f48ed4dd \
@@ -220,6 +223,9 @@ urllib3==1.25.8 \
     --hash=sha256:2f3db8b19923a873b3e5256dc9c2dedfa883e33d87c690d9c7913e1f40673cdc \
     --hash=sha256:87716c2d2a7121198ebcb7ce7cccf6ce5e9ba539041cfbaeecfb641dc0bf6acc \
     # via botocore, requests
+watchdog==0.10.3 \
+    --hash=sha256:4214e1379d128b0588021880ccaf40317ee156d4603ac388b9adcf29165e0c04 \
+    # via aws-sam-cli (setup.py)
 websocket-client==0.57.0 \
     --hash=sha256:0fc45c961324d79c781bab301359d5a1b00b13ad1b10415a4780229ef71a5549 \
     --hash=sha256:d735b91d6d1692a6a181f2a8c9e0238e5f6373356f561bb9dc4c7af36f452010 \

@@ -11,11 +11,12 @@ from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV, DEFAULT_CONFIG_F
 
 
 class MockContext:
-    def __init__(self, info_name, parent, params=None, command=None):
+    def __init__(self, info_name, parent, params=None, command=None, default_map=None):
         self.info_name = info_name
         self.parent = parent
         self.params = params
         self.command = command
+        self.default_map = default_map
 
 
 class TestTomlProvider(TestCase):

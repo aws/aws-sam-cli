@@ -6,6 +6,7 @@ from click.testing import CliRunner
 from samcli.commands.init import cli as init_cmd
 from pathlib import Path
 
+from samcli.lib.utils.packagetype import ZIP
 from tests.integration.init.schemas.schemas_test_data_setup import SchemaTestDataSetup
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 
@@ -18,6 +19,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
     def test_init_interactive_with_event_bridge_app_aws_registry(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
+        # 1: Zip Packagetype
         # 13: Java runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
@@ -27,6 +29,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
         # 1: select aws schema
 
         user_input = """
+1
 1
 13
 1
@@ -38,7 +41,7 @@ Y
         """
         with tempfile.TemporaryDirectory() as temp:
             runner = CliRunner()
-            result = runner.invoke(init_cmd, ["--output-dir", temp], input=user_input)
+            result = runner.invoke(init_cmd, ["--output-dir", temp, "--debug"], input=user_input)
 
             self.assertFalse(result.exception)
             expected_output_folder = Path(temp, "eb-app-maven")
@@ -52,7 +55,8 @@ Y
         # setup schema data
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 13: Java Runtime
+        # 1: Zip Packagetype
+        # 13: Java runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
         # 3: select event-bridge app from scratch
@@ -61,6 +65,7 @@ Y
         # 1: select aws schema
 
         user_input = """
+1
 1
 13
 1
@@ -97,6 +102,7 @@ Y
     def test_init_interactive_with_event_bridge_app_pagination(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
+        # 1: Zip Packagetype
         # 13: Java Runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
@@ -108,6 +114,7 @@ Y
         # select 2nd schema
 
         user_input = """
+1
 1
 13
 1
@@ -135,6 +142,7 @@ P
     def test_init_interactive_with_event_bridge_app_customer_registry(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
+        # 1: Zip Packagetype
         # 13: Java Runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
@@ -144,6 +152,7 @@ P
         # 1: select 1 schema
 
         user_input = """
+1
 1
 13
 1
@@ -180,6 +189,7 @@ Y
     def test_init_interactive_with_event_bridge_app_aws_schemas_python(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
+        # 1: Zip Packagetype
         # 8: Python 3.7
         # eb-app-python37: response to name
         # 3: select event-bridge app from scratch
@@ -188,6 +198,7 @@ Y
         # 1: select aws schema
 
         user_input = """
+1
 1
 8
 eb-app-python37
@@ -210,6 +221,7 @@ Y
         self._init_custom_config("mynewprofile", "us-west-2")
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
+        # 1: Zip Packagetype
         # 8: Python 3.7
         # eb-app-python37: response to name
         # 3: select event-bridge app from scratch
@@ -220,6 +232,7 @@ Y
         # 1: select aws schema
 
         user_input = """
+1
 1
 8
 eb-app-python37
@@ -246,6 +259,7 @@ us-east-1
         self._init_custom_config("default", "cn-north-1")
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
+        # 1: Zip Pacakgetype
         # 8: Python 3.7
         # eb-app-python37: response to name
         # 3: select event-bridge app from scratch
@@ -254,6 +268,7 @@ us-east-1
         # 1: select aws schema
 
         user_input = """
+1
 1
 8
 eb-app-python37
