@@ -388,5 +388,25 @@ class ImageRepositoryType(click.ParamType):
         """
         result = self.transformer.transform(value, param, ctx)
         if not result:
-            raise click.BadParameter(f"{param.opts[0]} needs to be a valid ECR URI")
+            raise click.BadParameter(f"Invalid Image Repository ECR URI: {value}")
         return value
+
+
+class ImageRepositoriesType(click.ParamType):
+    """
+    Custom Parameter Type for Multi valued Image Repositories option.
+    """
+
+    name = ""
+
+    def convert(self, value, param, ctx):
+        key_value_pair = value.split("=")
+        if len(key_value_pair) != 2:
+            raise click.BadParameter(
+                f"{param.opts[0]} is not a valid format, it needs to be of the form function_logical_id=ECR_URI"
+            )
+        key = key_value_pair[0]
+        _value = key_value_pair[1]
+        if not is_ecr_url(_value):
+            raise click.BadParameter(f"{param.opts[0]} needs to have valid ECR URI as value")
+        return {key: _value}

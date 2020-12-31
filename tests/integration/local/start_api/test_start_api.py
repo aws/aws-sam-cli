@@ -34,22 +34,21 @@ class TestParallelRequests(StartApiIntegBaseClass):
         """
         number_of_requests = 10
         start_time = time()
-        thread_pool = ThreadPoolExecutor(number_of_requests)
+        with ThreadPoolExecutor(number_of_requests) as thread_pool:
+            futures = [
+                thread_pool.submit(requests.get, self.url + "/sleepfortenseconds/function1", timeout=300)
+                for _ in range(0, number_of_requests)
+            ]
+            results = [r.result() for r in as_completed(futures)]
 
-        futures = [
-            thread_pool.submit(requests.get, self.url + "/sleepfortenseconds/function1")
-            for _ in range(0, number_of_requests)
-        ]
-        results = [r.result() for r in as_completed(futures)]
+            end_time = time()
 
-        end_time = time()
+            self.assertEqual(len(results), 10)
+            self.assertGreater(end_time - start_time, 10)
 
-        self.assertEqual(len(results), 10)
-        self.assertGreater(end_time - start_time, 10)
-
-        for result in results:
-            self.assertEqual(result.status_code, 200)
-            self.assertEqual(result.json(), {"message": "HelloWorld! I just slept and waking up."})
+            for result in results:
+                self.assertEqual(result.status_code, 200)
+                self.assertEqual(result.json(), {"message": "HelloWorld! I just slept and waking up."})
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -60,24 +59,25 @@ class TestParallelRequests(StartApiIntegBaseClass):
         """
         number_of_requests = 10
         start_time = time()
-        thread_pool = ThreadPoolExecutor(10)
+        with ThreadPoolExecutor(10) as thread_pool:
+            test_url_paths = ["/sleepfortenseconds/function0", "/sleepfortenseconds/function1"]
 
-        test_url_paths = ["/sleepfortenseconds/function0", "/sleepfortenseconds/function1"]
+            futures = [
+                thread_pool.submit(
+                    requests.get, self.url + test_url_paths[function_num % len(test_url_paths)], timeout=300
+                )
+                for function_num in range(0, number_of_requests)
+            ]
+            results = [r.result() for r in as_completed(futures)]
 
-        futures = [
-            thread_pool.submit(requests.get, self.url + test_url_paths[function_num % len(test_url_paths)])
-            for function_num in range(0, number_of_requests)
-        ]
-        results = [r.result() for r in as_completed(futures)]
+            end_time = time()
 
-        end_time = time()
+            self.assertEqual(len(results), 10)
+            self.assertGreater(end_time - start_time, 10)
 
-        self.assertEqual(len(results), 10)
-        self.assertGreater(end_time - start_time, 10)
-
-        for result in results:
-            self.assertEqual(result.status_code, 200)
-            self.assertEqual(result.json(), {"message": "HelloWorld! I just slept and waking up."})
+            for result in results:
+                self.assertEqual(result.status_code, 200)
+                self.assertEqual(result.json(), {"message": "HelloWorld! I just slept and waking up."})
 
 
 class TestServiceErrorResponses(StartApiIntegBaseClass):
@@ -216,6 +216,18 @@ class TestService(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_large_input_request(self):
+        # not exact 6 mega, as local start-api sends extra data with the input data
+        around_six_mega = 6 * 1024 * 1024 - 2 * 1024
+        data = "a" * around_six_mega
+        response = requests.post(self.url + "/echoeventbody", data=data, timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+        self.assertEqual(response_data.get("body"), data)
 
 
 class TestServiceWithHttpApi(StartApiIntegBaseClass):
@@ -1637,9 +1649,6 @@ class TestCFNTemplateHttpApiWithSwaggerBody(StartApiIntegBaseClass):
 
 
 class TestWarmContainersBaseClass(StartApiIntegBaseClass):
-    mode_env_variable = str(uuid.uuid4())
-    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
-
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
         self.docker_client = docker.from_env()
@@ -1656,6 +1665,8 @@ class TestWarmContainersBaseClass(StartApiIntegBaseClass):
 class TestWarmContainers(TestWarmContainersBaseClass):
     template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -1668,6 +1679,8 @@ class TestWarmContainers(TestWarmContainersBaseClass):
 class TestWarmContainersInitialization(TestWarmContainersBaseClass):
     template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -1680,6 +1693,8 @@ class TestWarmContainersInitialization(TestWarmContainersBaseClass):
 class TestWarmContainersMultipleInvoke(TestWarmContainersBaseClass):
     template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -1695,6 +1710,8 @@ class TestWarmContainersMultipleInvoke(TestWarmContainersBaseClass):
 class TestLazyContainers(TestWarmContainersBaseClass):
     template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.LAZY.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -1707,6 +1724,8 @@ class TestLazyContainers(TestWarmContainersBaseClass):
 class TestLazyContainersInitialization(TestWarmContainersBaseClass):
     template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.LAZY.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -1720,6 +1739,8 @@ class TestLazyContainersInitialization(TestWarmContainersBaseClass):
 class TestLazyContainersMultipleInvoke(TestWarmContainersBaseClass):
     template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.LAZY.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
