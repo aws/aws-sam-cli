@@ -3,8 +3,8 @@ Utilities for checking authorization of certain resource types
 """
 import logging
 
+from samcli.commands.deploy.transform_utils import transform_template
 from samcli.commands.local.lib.swagger.reader import SwaggerReader
-from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 
 LOG = logging.getLogger(__name__)
 
@@ -30,9 +30,7 @@ def auth_per_resource(parameter_overrides, template_dict):
 
     _auth_per_resource = []
 
-    sam_functions = SamFunctionProvider(
-        template_dict=template_dict, parameter_overrides=parameter_overrides, ignore_code_extraction_warnings=True
-    )
+    sam_functions = transform_template(parameter_overrides=parameter_overrides, template_dict=template_dict)
     for sam_function in sam_functions.get_all():
         # Only check for auth if there are function events defined.
         if sam_function.events:

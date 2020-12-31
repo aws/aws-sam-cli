@@ -1,16 +1,22 @@
 import io
+import tempfile
 
 from unittest import TestCase
-from unittest.mock import patch, Mock, mock_open
+from unittest.mock import patch, Mock, mock_open, ANY
 
 from docker.errors import ImageNotFound, BuildError, APIError
 
+from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
+from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.local.docker.lambda_image import LambdaImage
 from samcli.commands.local.cli_common.user_exceptions import ImageBuildException
 from samcli import __version__ as version
 
 
 class TestLambdaImage(TestCase):
+    def setUp(self):
+        self.layer_cache_dir = tempfile.gettempdir()
+
     def test_initialization_without_defaults(self):
         lambda_image = LambdaImage("layer_downloader", False, False, docker_client="docker_client")
 
@@ -31,34 +37,82 @@ class TestLambdaImage(TestCase):
         self.assertFalse(lambda_image.force_image_build)
         self.assertEqual(lambda_image.docker_client, docker_client_mock)
 
-    def test_building_image_with_no_layers(self):
+    def test_building_image_with_no_runtime_only_image(self):
         docker_client_mock = Mock()
+        layer_downloader_mock = Mock()
+        setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
+        docker_client_mock.api.build.return_value = ["mock"]
 
-        lambda_image = LambdaImage("layer_downloader", False, False, docker_client=docker_client_mock)
+        lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=docker_client_mock)
 
         self.assertEqual(
-            lambda_image.build("python3.6", [], False), f"amazon/aws-sam-cli-emulation-image-python3.6:rapid-{version}"
+            lambda_image.build(None, IMAGE, "mylambdaimage:v1", [], False),
+            f"mylambdaimage:rapid-{version}",
         )
 
-    @patch("samcli.local.docker.lambda_image.extensions_preview_enabled")
-    def test_building_image_with_no_layers_extensions_preview(self, PreviewEnabledMock):
+    @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version")
+    def test_building_image_with_no_runtime_only_image_always_build(
+        self, generate_docker_image_version_patch, build_image_patch
+    ):
         docker_client_mock = Mock()
-        PreviewEnabledMock.return_value = True
+        layer_downloader_mock = Mock()
+        setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
+        docker_client_mock.api.build.return_value = ["mock"]
+        generate_docker_image_version_patch.return_value = "image-version"
 
-        lambda_image = LambdaImage("layer_downloader", False, False, docker_client=docker_client_mock)
+        docker_client_mock = Mock()
+        docker_client_mock.images.get.return_value = Mock()
+
+        lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=docker_client_mock)
 
         self.assertEqual(
-            lambda_image.build("python3.6", [], False),
-            f"amazon/aws-sam-cli-emulation-image-python3.6:preview-rapid-{version}",
+            lambda_image.build(None, IMAGE, "mylambdaimage:v1", ["mylayer"], False),
+            f"mylambdaimage:rapid-{version}",
+        )
+
+        # No layers are added, because runtime is not defined.
+        build_image_patch.assert_called_once_with(
+            "mylambdaimage:v1", f"mylambdaimage:rapid-{version}", [], False, stream=ANY
+        )
+        # No Layers are added.
+        layer_downloader_mock.assert_not_called()
+
+    def test_building_image_with_non_accpeted_package_type(self):
+        docker_client_mock = Mock()
+        layer_downloader_mock = Mock()
+        setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
+        docker_client_mock.api.build.return_value = ["mock"]
+
+        lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=docker_client_mock)
+        with self.assertRaises(InvalidIntermediateImageError):
+            lambda_image.build("python3.6", "Non-accepted-packagetype", None, [], False)
+        with self.assertRaises(InvalidIntermediateImageError):
+            lambda_image.build("python3.6", None, None, [], False)
+
+    def test_building_image_with_no_layers(self):
+        docker_client_mock = Mock()
+        layer_downloader_mock = Mock()
+        setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
+        docker_client_mock.api.build.return_value = ["mock"]
+
+        lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=docker_client_mock)
+
+        self.assertEqual(
+            lambda_image.build("python3.6", ZIP, None, [], False),
+            f"amazon/aws-sam-cli-emulation-image-python3.6:rapid-{version}",
         )
 
     def test_building_image_with_go_debug(self):
         docker_client_mock = Mock()
-
-        lambda_image = LambdaImage("layer_downloader", False, False, docker_client=docker_client_mock)
+        layer_downloader_mock = Mock()
+        setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
+        docker_client_mock.api.build.return_value = ["mock"]
+        lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=docker_client_mock)
 
         self.assertEqual(
-            lambda_image.build("go1.x", [], True), f"amazon/aws-sam-cli-emulation-image-go1.x:debug-{version}"
+            lambda_image.build("go1.x", ZIP, None, [], True),
+            f"amazon/aws-sam-cli-emulation-image-go1.x:debug-{version}",
         )
 
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
@@ -76,7 +130,7 @@ class TestLambdaImage(TestCase):
         docker_client_mock.images.get.return_value = Mock()
 
         lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=docker_client_mock)
-        actual_image_id = lambda_image.build("python3.6", [layer_mock], False)
+        actual_image_id = lambda_image.build("python3.6", ZIP, None, [layer_mock], False)
 
         self.assertEqual(actual_image_id, "samcli/lambda:image-version")
 
@@ -101,7 +155,7 @@ class TestLambdaImage(TestCase):
         stream = io.StringIO()
 
         lambda_image = LambdaImage(layer_downloader_mock, False, True, docker_client=docker_client_mock)
-        actual_image_id = lambda_image.build("python3.6", ["layers1"], False, stream=stream)
+        actual_image_id = lambda_image.build("python3.6", ZIP, None, ["layers1"], False, stream=stream)
 
         self.assertEqual(actual_image_id, "samcli/lambda:image-version")
 
@@ -132,7 +186,7 @@ class TestLambdaImage(TestCase):
         stream = io.StringIO()
 
         lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=docker_client_mock)
-        actual_image_id = lambda_image.build("python3.6", ["layers1"], False, stream=stream)
+        actual_image_id = lambda_image.build("python3.6", ZIP, None, ["layers1"], False, stream=stream)
 
         self.assertEqual(actual_image_id, "samcli/lambda:image-version")
 
@@ -167,7 +221,9 @@ class TestLambdaImage(TestCase):
         docker_client_mock = Mock()
         docker_patch.from_env.return_value = docker_client_mock
 
-        expected_docker_file = "FROM python\nADD init /var/rapid\nRUN chmod +x /var/rapid/init\nADD layer1 /opt\n"
+        expected_docker_file = (
+            "FROM python\nADD aws-lambda-rie /var/rapid\nRUN chmod +x /var/rapid/aws-lambda-rie\nADD layer1 /opt\n"
+        )
 
         layer_mock = Mock()
         layer_mock.name = "layer1"
@@ -179,7 +235,7 @@ class TestLambdaImage(TestCase):
         docker_client_mock = Mock()
         docker_patch.from_env.return_value = docker_client_mock
 
-        expected_docker_file = "FROM python\nADD init /var/rapid\nRUN chmod +x /var/rapid/init\nADD aws-lambda-go /var/runtime\nRUN chmod +x /var/runtime/aws-lambda-go\nADD layer1 /opt\n"
+        expected_docker_file = "FROM python\nADD aws-lambda-rie /var/rapid\nRUN chmod +x /var/rapid/aws-lambda-rie\nADD aws-lambda-go /var/runtime\nRUN chmod +x /var/runtime/aws-lambda-go\nADD layer1 /opt\n"
 
         layer_mock = Mock()
         layer_mock.name = "layer1"

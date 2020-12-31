@@ -47,3 +47,15 @@ class AppTemplateUpdateException(UserException):
     """
     Exception class when updates to app templates for init enters an unstable state.
     """
+
+
+class LambdaImagesTemplateException(UserException):
+    """
+    Exception class when multiple Lambda Image app templates are found for any runtime
+    """
+
+
+class ContainersInitializationException(UserException):
+    """
+    Exception class when SAM is not able to initialize any of the lambda functions containers
+    """

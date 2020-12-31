@@ -1,18 +1,20 @@
 """
 Unit test for Container class
 """
+import docker
 from docker.errors import NotFound, APIError
 from unittest import TestCase
 from unittest.mock import Mock, call, patch, ANY
 
 from requests import RequestException
 
+from samcli.lib.utils.packagetype import IMAGE
 from samcli.local.docker.container import Container, ContainerResponseException
 
 
 class TestContainer_init(TestCase):
     def setUp(self):
-        self.image = "image"
+        self.image = IMAGE
         self.cmd = "cmd"
         self.working_dir = "working_dir"
         self.host_dir = "host_dir"
@@ -52,12 +54,13 @@ class TestContainer_init(TestCase):
 
 class TestContainer_create(TestCase):
     def setUp(self):
-        self.image = "image"
+        self.image = IMAGE
         self.cmd = "cmd"
         self.working_dir = "working_dir"
         self.host_dir = "host_dir"
         self.memory_mb = 123
         self.exposed_ports = {123: 123}
+        self.always_exposed_ports = {Container.RAPID_PORT_CONTAINER: ANY}
         self.entrypoint = ["a", "b", "c"]
         self.env_vars = {"key": "value"}
         self.container_opts = {"container": "opts"}
@@ -81,7 +84,12 @@ class TestContainer_create(TestCase):
         self.mock_docker_client.containers.create.return_value.id = generated_id
 
         container = Container(
-            self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
+            self.image,
+            self.cmd,
+            self.working_dir,
+            self.host_dir,
+            docker_client=self.mock_docker_client,
+            exposed_ports=self.exposed_ports,
         )
 
         container_id = container.create()
@@ -93,41 +101,11 @@ class TestContainer_create(TestCase):
             command=self.cmd,
             working_dir=self.working_dir,
             volumes=expected_volumes,
-            ports={},
             tty=False,
-            use_config_proxy=True,
-        )
-        self.mock_docker_client.networks.get.assert_not_called()
-
-    @patch("samcli.local.docker.container.extensions_preview_enabled")
-    def test_must_create_container_with_required_values_extensions_preview(self, PreviewEnabledMock):
-        """
-        Create a container with only required values. Optional values are not provided
-        :return:
-        """
-
-        PreviewEnabledMock.return_value = True
-
-        expected_volumes = {self.host_dir: {"bind": self.working_dir, "mode": "ro,delegated"}}
-        generated_id = "fooobar"
-        self.mock_docker_client.containers.create.return_value = Mock()
-        self.mock_docker_client.containers.create.return_value.id = generated_id
-
-        container = Container(
-            self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
-        )
-
-        container_id = container.create()
-        self.assertEqual(container_id, generated_id)
-        self.assertEqual(container.id, generated_id)
-
-        self.mock_docker_client.containers.create.assert_called_with(
-            self.image,
-            command=self.cmd,
-            working_dir=self.working_dir,
-            volumes=expected_volumes,
-            ports={Container.RAPID_PORT_CONTAINER: ANY},
-            tty=False,
+            ports={
+                container_port: ("127.0.0.1", host_port)
+                for container_port, host_port in {**self.exposed_ports, **self.always_exposed_ports}.items()
+            },
             use_config_proxy=True,
         )
         self.mock_docker_client.networks.get.assert_not_called()
@@ -174,59 +152,10 @@ class TestContainer_create(TestCase):
             tty=False,
             use_config_proxy=True,
             environment=self.env_vars,
-            ports=self.exposed_ports,
-            entrypoint=self.entrypoint,
-            mem_limit=expected_memory,
-            container="opts",
-        )
-        self.mock_docker_client.networks.get.assert_not_called()
-
-    @patch("samcli.local.docker.container.extensions_preview_enabled")
-    def test_must_create_container_including_all_optional_values_extensions_preview(self, PreviewEnabledMock):
-        """
-        Create a container with required and optional values.
-        :return:
-        """
-
-        PreviewEnabledMock.return_value = True
-
-        expected_volumes = {
-            self.host_dir: {"bind": self.working_dir, "mode": "ro,delegated"},
-            "/somepath": {"blah": "blah value"},
-        }
-        expected_memory = "{}m".format(self.memory_mb)
-
-        generated_id = "fooobar"
-        self.mock_docker_client.containers.create.return_value = Mock()
-        self.mock_docker_client.containers.create.return_value.id = generated_id
-
-        container = Container(
-            self.image,
-            self.cmd,
-            self.working_dir,
-            self.host_dir,
-            memory_limit_mb=self.memory_mb,
-            exposed_ports=self.exposed_ports,
-            entrypoint=self.entrypoint,
-            env_vars=self.env_vars,
-            docker_client=self.mock_docker_client,
-            container_opts=self.container_opts,
-            additional_volumes=self.additional_volumes,
-        )
-
-        container_id = container.create()
-        self.assertEqual(container_id, generated_id)
-        self.assertEqual(container.id, generated_id)
-
-        self.mock_docker_client.containers.create.assert_called_with(
-            self.image,
-            command=self.cmd,
-            working_dir=self.working_dir,
-            volumes=expected_volumes,
-            tty=False,
-            use_config_proxy=True,
-            environment=self.env_vars,
-            ports={**self.exposed_ports, **{Container.RAPID_PORT_CONTAINER: ANY}},
+            ports={
+                container_port: ("127.0.0.1", host_port)
+                for container_port, host_port in {**self.exposed_ports, **self.always_exposed_ports}.items()
+            },
             entrypoint=self.entrypoint,
             mem_limit=expected_memory,
             container="opts",
@@ -283,7 +212,10 @@ class TestContainer_create(TestCase):
             tty=False,
             use_config_proxy=True,
             environment=self.env_vars,
-            ports=self.exposed_ports,
+            ports={
+                container_port: ("127.0.0.1", host_port)
+                for container_port, host_port in {**self.exposed_ports, **self.always_exposed_ports}.items()
+            },
             entrypoint=self.entrypoint,
             mem_limit=expected_memory,
             container="opts",
@@ -319,10 +251,10 @@ class TestContainer_create(TestCase):
             self.image,
             command=self.cmd,
             working_dir=self.working_dir,
-            ports={},
             tty=False,
             use_config_proxy=True,
             volumes=expected_volumes,
+            ports=self.always_exposed_ports,
         )
 
         self.mock_docker_client.networks.get.assert_called_with(network_id)
@@ -357,7 +289,7 @@ class TestContainer_create(TestCase):
             self.image,
             command=self.cmd,
             working_dir=self.working_dir,
-            ports={},
+            ports=self.always_exposed_ports,
             tty=False,
             use_config_proxy=True,
             volumes=expected_volumes,
@@ -381,7 +313,7 @@ class TestContainer_create(TestCase):
 
 class TestContainer_delete(TestCase):
     def setUp(self):
-        self.image = "image"
+        self.image = IMAGE
         self.cmd = "cmd"
         self.working_dir = "working_dir"
         self.host_dir = "host_dir"
@@ -463,7 +395,7 @@ class TestContainer_delete(TestCase):
 
 class TestContainer_start(TestCase):
     def setUp(self):
-        self.image = "image"
+        self.image = IMAGE
         self.cmd = "cmd"
         self.working_dir = "working_dir"
         self.host_dir = "host_dir"
@@ -508,9 +440,8 @@ class TestContainer_start(TestCase):
 
 
 class TestContainer_wait_for_result(TestCase):
-    @patch("samcli.local.docker.container.extensions_preview_enabled")
-    def setUp(self, PreviewEnabledMock):
-        self.image = "image"
+    def setUp(self):
+        self.image = IMAGE
         self.name = "function_name"
         self.event = {}
         self.cmd = ["cmd"]
@@ -520,16 +451,13 @@ class TestContainer_wait_for_result(TestCase):
         self.mock_docker_client = Mock()
         self.mock_docker_client.containers = Mock()
         self.mock_docker_client.containers.get = Mock()
-
-        PreviewEnabledMock.return_value = True
-
         self.container = Container(
             self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
         )
         self.container.id = "someid"
 
         self.container.is_created = Mock()
-        self.timeout = 0.1
+        self.timeout = 1
 
     @patch("samcli.local.docker.container.requests")
     def test_wait_for_result_no_error(self, mock_requests):
@@ -563,15 +491,20 @@ class TestContainer_wait_for_result(TestCase):
         stdout_mock = Mock()
         stderr_mock = Mock()
         self.container.rapid_port_host = "7077"
-        mock_requests.post.side_effect = RequestException()
+        mock_requests.post.side_effect = [RequestException(), RequestException(), RequestException()]
         with self.assertRaises(ContainerResponseException):
             self.container.wait_for_result(event=self.event, name=self.name, stdout=stdout_mock, stderr=stderr_mock)
 
-        self.assertEqual(mock_requests.post.call_count, 2)
+        self.assertEqual(mock_requests.post.call_count, 3)
         calls = mock_requests.post.call_args_list
         self.assertEqual(
             calls,
             [
+                call(
+                    "http://localhost:7077/2015-03-31/functions/function/invocations",
+                    data={},
+                    timeout=(self.timeout, None),
+                ),
                 call(
                     "http://localhost:7077/2015-03-31/functions/function/invocations",
                     data={},
@@ -598,14 +531,14 @@ class TestContainer_wait_for_result(TestCase):
 
         stdout_mock = Mock()
         stderr_mock = Mock()
-        mock_requests.post.side_effect = RequestException()
+        mock_requests.post.side_effect = ContainerResponseException()
         with self.assertRaises(ContainerResponseException):
             self.container.wait_for_result(event=self.event, name=self.name, stdout=stdout_mock, stderr=stderr_mock)
 
 
 class TestContainer_wait_for_logs(TestCase):
     def setUp(self):
-        self.image = "image"
+        self.image = IMAGE
         self.cmd = ["cmd"]
         self.working_dir = "working_dir"
         self.host_dir = "host_dir"
@@ -669,14 +602,6 @@ class TestContainer_write_container_output(TestCase):
 
         self.stderr_mock.write.assert_has_calls([call(b"stderr1"), call(b"stderr2")])
 
-    def test_must_write_only_stdout(self):
-
-        Container._write_container_output(self.output_itr, stdout=self.stdout_mock, stderr=None)
-
-        self.stdout_mock.write.assert_has_calls([call(b"stdout1"), call(b"stdout2")])
-
-        self.stderr_mock.write.assert_not_called()  # stderr must never be called
-
     def test_must_write_only_stderr(self):
         # All the invalid frames must be ignored
 
@@ -685,6 +610,14 @@ class TestContainer_write_container_output(TestCase):
         self.stdout_mock.write.assert_not_called()
 
         self.stderr_mock.write.assert_has_calls([call(b"stderr1"), call(b"stderr2")])
+
+    def test_must_write_only_stdout(self):
+
+        Container._write_container_output(self.output_itr, stdout=self.stdout_mock, stderr=None)
+
+        self.stdout_mock.write.assert_has_calls([call(b"stdout1"), call(b"stdout2")])
+
+        self.stderr_mock.write.assert_not_called()  # stderr must never be called
 
 
 class TestContainer_image(TestCase):
@@ -698,7 +631,7 @@ class TestContainer_image(TestCase):
 class TestContainer_copy(TestCase):
     def setUp(self):
         self.mock_client = Mock()
-        self.container = Container("image", "cmd", "dir", "dir", docker_client=self.mock_client)
+        self.container = Container(IMAGE, "cmd", "dir", "dir", docker_client=self.mock_client)
         self.container.id = "containerid"
 
     @patch("samcli.local.docker.container.tempfile")
@@ -729,3 +662,62 @@ class TestContainer_copy(TestCase):
         # Make sure we open the tarfile right and extract to right location
         tarfile_mock.open.assert_called_with(fileobj=fp_mock, mode="r")
         tar_mock.extractall(path=dest)
+
+    def test_raise_if_container_is_not_created(self):
+        source = "source"
+        dest = "dest"
+
+        self.container.is_created = Mock()
+        self.container.is_created.return_value = False
+
+        with self.assertRaises(RuntimeError):
+            self.container.copy(source, dest)
+
+
+class TestContainer_is_created(TestCase):
+    def setUp(self):
+        self.mock_client = Mock()
+        self.container = Container("image", "cmd", "dir", "dir", docker_client=self.mock_client)
+
+    def test_container_id_is_none_return_false(self):
+        self.container.id = None
+        self.assertFalse(self.container.is_created())
+
+    def test_real_container_is_not_exist_return_false(self):
+        self.container.id = "not_exist"
+        self.mock_client.containers.get.side_effect = docker.errors.NotFound("")
+        self.assertFalse(self.container.is_created())
+
+    def test_real_container_exist_return_true(self):
+        self.container.id = "not_exist"
+        self.assertTrue(self.container.is_created())
+
+
+class TestContainer_is_running(TestCase):
+    def setUp(self):
+        self.mock_client = Mock()
+        self.container = Container("image", "cmd", "dir", "dir", docker_client=self.mock_client)
+
+    def test_container_id_is_none_return_false(self):
+        self.container.id = None
+        self.assertFalse(self.container.is_running())
+
+    def test_real_container_is_not_exist_return_false(self):
+        self.container.id = "not_exist"
+        self.mock_client.containers.get.side_effect = docker.errors.NotFound("")
+        self.assertFalse(self.container.is_running())
+
+    def test_real_container_status_is_not_running_return_false(self):
+        self.container.id = "not_exist"
+        real_container_mock = Mock()
+        real_container_mock.status = "stopped"
+        self.mock_client.containers.get.return_value = real_container_mock
+
+        self.assertFalse(self.container.is_running())
+
+    def test_real_container_is_running_return_true(self):
+        self.container.id = "not_exist"
+        real_container_mock = Mock()
+        real_container_mock.status = "running"
+        self.mock_client.containers.get.return_value = real_container_mock
+        self.assertTrue(self.container.is_created())

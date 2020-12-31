@@ -66,6 +66,44 @@ class SamBaseProvider:
         return codeuri
 
     @staticmethod
+    def _extract_lambda_function_imageuri(resource_properties, code_property_key):
+        """
+        Extracts the Lambda Function ImageUri from the Resource Properties
+
+        Parameters
+        ----------
+        resource_properties dict
+            Dictionary representing the Properties of the Resource
+        code_property_key str
+            Property Key of the code on the Resource
+
+        Returns
+        -------
+        str
+            Representing the local imageuri
+        """
+        return resource_properties.get(code_property_key, dict()).get("ImageUri", None)
+
+    @staticmethod
+    def _extract_sam_function_imageuri(resource_properties, code_property_key):
+        """
+        Extracts the Serverless Function ImageUri from the Resource Properties
+
+        Parameters
+        ----------
+        resource_properties dict
+            Dictionary representing the Properties of the Resource
+        code_property_key str
+            Property Key of the code on the Resource
+
+        Returns
+        -------
+        str
+            Representing the local imageuri
+        """
+        return resource_properties.get(code_property_key, None)
+
+    @staticmethod
     def _extract_sam_function_codeuri(
         name, resource_properties, code_property_key, ignore_code_extraction_warnings=False
     ):
