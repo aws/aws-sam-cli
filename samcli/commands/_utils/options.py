@@ -362,7 +362,11 @@ def notification_arns_override_option(f):
 
 
 def _space_separated_list_func_type(value):
-    return value.split(" ") if not isinstance(value, tuple) and not isinstance(value, list) else value
+    if isinstance(value, str):
+        return value.split(" ")
+    if isinstance(value, (list, tuple)):
+        return value
+    raise ValueError()
 
 
 _space_separated_list_func_type.__name__ = "LIST"

@@ -8,6 +8,7 @@ from unittest import TestCase
 from unittest.mock import patch, MagicMock
 
 import click
+import pytest
 from tomlkit import parse
 
 from samcli.commands._utils.options import (
@@ -443,3 +444,7 @@ class TestSpaceSeparatedList(TestCase):
         result = _space_separated_list_func_type(doc["test"]["capabilities"])
         self.assertTrue(isinstance(result, list))
         self.assertEqual(result, self.elements)
+
+    def test_raise_value_error(self):
+        with pytest.raises(ValueError):
+            _space_separated_list_func_type(1)
