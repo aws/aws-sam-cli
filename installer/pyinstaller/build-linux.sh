@@ -74,6 +74,11 @@ cd python-libraries
 rm -rf *.dist-info
 rm -rf *.egg-info
 rm -rf __pycache__
+rm -rf pip
+rm -rf easy_install.py
+rm -rf pkg_resources
+rm -rf setuptools
+
 rm -rf *.so
 zip -r ../$python_library_zip_filename ./*
 cd ..
