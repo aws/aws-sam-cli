@@ -3,6 +3,7 @@ Test the common CLI options
 """
 
 import os
+from datetime import datetime
 
 from unittest import TestCase
 from unittest.mock import patch, MagicMock
@@ -445,6 +446,9 @@ class TestSpaceSeparatedList(TestCase):
         self.assertTrue(isinstance(result, list))
         self.assertEqual(result, self.elements)
 
-    def test_raise_value_error(self):
+
+@pytest.mark.parametrize("test_input", [1, 1.4, True, datetime.now(), {"test": False}, None])
+class TestSpaceSeparatedListInvalidDataTypes:
+    def test_raise_value_error(self, test_input):
         with pytest.raises(ValueError):
-            _space_separated_list_func_type(1)
+            _space_separated_list_func_type(test_input)
