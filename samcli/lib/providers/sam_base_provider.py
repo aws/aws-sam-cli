@@ -21,6 +21,7 @@ class SamBaseProvider:
     LAMBDA_FUNCTION = "AWS::Lambda::Function"
     SERVERLESS_LAYER = "AWS::Serverless::LayerVersion"
     LAMBDA_LAYER = "AWS::Lambda::LayerVersion"
+    SERVERLESS_APPLICATION = "AWS::Serverless::Application"
     DEFAULT_CODEURI = "."
 
     def get(self, name):

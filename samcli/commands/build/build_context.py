@@ -1,13 +1,15 @@
 """
 Context object used by build command
 """
-
+import itertools
 import logging
 import os
 import shutil
 import pathlib
+from typing import Dict
 
 from samcli.lib.providers.provider import ResourcesToBuildCollector
+from samcli.lib.providers.sam_application_provider import SamApplicationProvider
 from samcli.local.docker.manager import ContainerManager
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_layer_provider import SamLayerProvider
@@ -54,7 +56,7 @@ class BuildContext:
         self._mode = mode
         self._cached = cached
 
-        self._function_provider = None
+        self._function_providers: Dict[str, SamFunctionProvider] = dict()
         self._layer_provider = None
         self._template_dict = None
         self._app_builder = None
@@ -63,7 +65,9 @@ class BuildContext:
     def __enter__(self):
         self._template_dict = get_template_data(self._template_file)
 
-        self._function_provider = SamFunctionProvider(self._template_dict, self._parameter_overrides)
+        self._function_providers = BuildContext._get_function_providers_in_application_recursively(
+            self._template_dict, self._parameter_overrides
+        )
         self._layer_provider = SamLayerProvider(self._template_dict, self._parameter_overrides)
 
         if not self._base_dir:
@@ -86,6 +90,25 @@ class BuildContext:
 
     def __exit__(self, *args):
         pass
+
+    @staticmethod
+    def _get_function_providers_in_application_recursively(template_dict, parameter_overrides=None):
+        """
+        Traverse the nested applications to find all functions
+        """
+        function_providers = {"": SamFunctionProvider(template_dict, parameter_overrides)}
+
+        application_provider = SamApplicationProvider(template_dict, parameter_overrides)
+        for application in application_provider.get_all():
+            application_template_dict = get_template_data(application.location)
+
+            providers = BuildContext._get_function_providers_in_application_recursively(
+                application_template_dict, application.parameters
+            )
+            for key, provider in providers.items():
+                function_providers[f"{application.name}/{key}"] = provider
+
+        return function_providers
 
     @staticmethod
     def _setup_build_dir(build_dir, clean):
@@ -114,8 +137,8 @@ class BuildContext:
         return self._container_manager
 
     @property
-    def function_provider(self):
-        return self._function_provider
+    def function_providers(self):
+        return self._function_providers
 
     @property
     def layer_provider(self):
@@ -179,7 +202,14 @@ class BuildContext:
             self._collect_single_buildable_layer(self._resource_identifier, result)
 
             if not result.functions and not result.layers:
-                all_resources = [f.name for f in self._function_provider.get_all()]
+                all_resources = list(
+                    itertools.chain.from_iterable(
+                        [
+                            [prefix + f.name for f in function_provider.get_all()]
+                            for prefix, function_provider in self._function_providers.items()
+                        ]
+                    )
+                )
                 all_resources.extend([l.name for l in self._layer_provider.get_all()])
 
                 available_resource_message = (
@@ -188,7 +218,15 @@ class BuildContext:
                 LOG.info(available_resource_message)
                 raise ResourceNotFound(f"Unable to find a function or layer with name '{self._resource_identifier}'")
             return result
-        result.add_functions(self._function_provider.get_all())
+        # single_build_dir uses function's name (ref: build_single_function_definition())
+        # here we replace each function's name
+        functions = itertools.chain.from_iterable(
+            [
+                [f._replace(name=prefix + f.name) for f in function_provider.get_all()]
+                for prefix, function_provider in self._function_providers.items()
+            ]
+        )
+        result.add_functions(functions)
         result.add_layers([l for l in self._layer_provider.get_all() if l.build_method is not None])
         return result
 
