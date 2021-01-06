@@ -350,9 +350,9 @@ class ApplicationBuilder:
             # Not including subfolder in return so that we copy subfolder, instead of copying artifacts inside it.
             return str(pathlib.Path(self._build_dir, layer_name))
 
-    def _build_function(
+    def _build_function(  # pylint: disable=R1710
         self, function_name, codeuri, packagetype, runtime, handler, artifacts_dir, metadata=None
-    ):  # pylint: disable=R1710
+    ):
         """
         Given the function information, this method will build the Lambda function. Depending on the configuration
         it will either build the function in process or by spinning up a Docker container.
