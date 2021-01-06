@@ -196,11 +196,15 @@ class ApplicationBuilder:
 
         for logical_id, resource in template_dict.get("Resources", {}).items():
 
-            if logical_id not in built_artifacts:
+            if logical_id not in built_artifacts and resource.get("Type") != SamBaseProvider.SERVERLESS_APPLICATION:
                 # this resource was not built. So skip it
                 continue
 
-            artifact_dir = pathlib.Path(built_artifacts[logical_id]).resolve()
+            artifact_dir = (
+                pathlib.Path(built_artifacts[logical_id]).resolve()
+                if logical_id in built_artifacts
+                else pathlib.Path(self._build_dir, logical_id, "template.yaml")  # simplified scenario
+            )
 
             # Default path to absolute path of the artifact
             store_path = str(artifact_dir)
@@ -229,6 +233,10 @@ class ApplicationBuilder:
 
             if resource_type == SamBaseProvider.SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
                 properties["ImageUri"] = built_artifacts[logical_id]
+
+            # nested application
+            if resource_type == SamBaseProvider.SERVERLESS_APPLICATION:
+                properties["Location"] = store_path
 
         return template_dict
 

@@ -12,7 +12,9 @@ from samcli.commands._utils.options import (
     parameter_override_option,
 )
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
+from samcli.commands._utils.template import get_template_data
 from samcli.lib.build.exceptions import BuildInsideContainerError
+from samcli.lib.providers.sam_application_provider import SamApplicationProvider
 from samcli.lib.telemetry.metrics import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 
@@ -191,6 +193,46 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     Implementation of the ``cli`` method
     """
 
+    LOG.debug("'build' command is called")
+    if cached:
+        LOG.info("Starting Build use cache")
+    if use_container:
+        LOG.info("Starting Build inside a container")
+
+    build_application_recursively(
+        function_identifier,
+        template,
+        base_dir,
+        build_dir,
+        cache_dir,
+        clean,
+        use_container,
+        cached,
+        parallel,
+        manifest_path,
+        docker_network,
+        skip_pull_image,
+        parameter_overrides,
+        mode,
+    )
+
+
+def build_application_recursively(
+    function_identifier,
+    template,
+    base_dir,
+    build_dir,
+    cache_dir,
+    clean,
+    use_container,
+    cached,
+    parallel,
+    manifest_path,
+    docker_network,
+    skip_pull_image,
+    parameter_overrides,
+    mode,
+):
     from samcli.commands.exceptions import UserException
 
     from samcli.commands.build.build_context import BuildContext
@@ -205,11 +247,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     from samcli.commands._utils.template import move_template
     from samcli.lib.build.build_graph import InvalidBuildGraphException
 
-    LOG.debug("'build' command is called")
-    if cached:
-        LOG.info("Starting Build use cache")
-    if use_container:
-        LOG.info("Starting Build inside a container")
+    LOG.debug(f"Building template {template}")
 
     with BuildContext(
         function_identifier,
@@ -284,6 +322,27 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
             deep_wrap = getattr(ex, "wrapped_from", None)
             wrapped_from = deep_wrap if deep_wrap else ex.__class__.__name__
             raise UserException(str(ex), wrapped_from=wrapped_from) from ex
+
+    LOG.debug(f"Build children of {template}")
+    template_dict = get_template_data(template)
+    application_provider = SamApplicationProvider(template_dict)
+    for application in application_provider.get_all():
+        build_application_recursively(
+            function_identifier,
+            application.location,
+            base_dir,
+            build_dir + "/" + application.name,
+            cache_dir + "/" + application.name,
+            clean,
+            use_container,
+            cached,
+            parallel,
+            manifest_path,
+            docker_network,
+            skip_pull_image,
+            application.parameters,  # TODO: resolve parameters
+            mode,
+        )
 
 
 def gen_success_msg(artifacts_dir, output_template_path, is_default_build_dir):

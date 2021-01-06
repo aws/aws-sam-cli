@@ -23,11 +23,13 @@ import boto3
 import click
 import docker
 
+from samcli.commands._utils.template import get_template_data
 from samcli.commands.package.exceptions import PackageFailedError
 from samcli.lib.package.artifact_exporter import Template
 from samcli.lib.package.ecr_uploader import ECRUploader
 from samcli.lib.package.code_signer import CodeSigner
 from samcli.lib.package.s3_uploader import S3Uploader
+from samcli.lib.providers.sam_application_provider import SamApplicationProvider
 from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
 from samcli.yamlhelper import yaml_dump
 
