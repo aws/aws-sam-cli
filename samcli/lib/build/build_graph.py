@@ -409,7 +409,9 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         if self.metadata and self.metadata.get("BuildMethod", None) == "makefile":
             return False
 
-        return self.runtime == other.runtime \
-               and self.codeuri == other.codeuri \
-               and self.packagetype == other.packagetype \
-               and self.metadata == other.metadata
+        return (
+            self.runtime == other.runtime
+            and self.codeuri == other.codeuri
+            and self.packagetype == other.packagetype
+            and self.metadata == other.metadata
+        )
