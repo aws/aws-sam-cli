@@ -24,20 +24,20 @@ class BuildContext:
     _BUILD_DIR_PERMISSIONS = 0o755
 
     def __init__(
-            self,
-            resource_identifier,
-            template_file,
-            base_dir,
-            build_dir,
-            cache_dir,
-            cached,
-            mode,
-            manifest_path=None,
-            clean=False,
-            use_container=False,
-            parameter_overrides=None,
-            docker_network=None,
-            skip_pull_image=False,
+        self,
+        resource_identifier,
+        template_file,
+        base_dir,
+        build_dir,
+        cache_dir,
+        cached,
+        mode,
+        manifest_path=None,
+        clean=False,
+        use_container=False,
+        parameter_overrides=None,
+        docker_network=None,
+        skip_pull_image=False,
     ):
 
         self._resource_identifier = resource_identifier
@@ -177,8 +177,9 @@ class BuildContext:
                 all_resources = [f.name for f in self._function_provider.get_all()]
                 all_resources.extend([l.name for l in self._layer_provider.get_all()])
 
-                available_resource_message = f"{self._resource_identifier} not found. Possible options in your " \
-                                             f"template: {all_resources}"
+                available_resource_message = (
+                    f"{self._resource_identifier} not found. Possible options in your " f"template: {all_resources}"
+                )
                 LOG.info(available_resource_message)
                 raise ResourceNotFound(f"Unable to find a function or layer with name '{self._resource_identifier}'")
             return result
