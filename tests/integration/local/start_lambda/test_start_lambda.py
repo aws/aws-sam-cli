@@ -1,12 +1,13 @@
 import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from time import time
+from time import time, sleep
 import json
 import docker
 from parameterized import parameterized
 
 import pytest
+import random
 
 import boto3
 from botocore import UNSIGNED
@@ -14,7 +15,7 @@ from botocore.config import Config
 from botocore.exceptions import ClientError
 
 from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
-from .start_lambda_api_integ_base import StartLambdaIntegBaseClass
+from .start_lambda_api_integ_base import StartLambdaIntegBaseClass, WatchWarmContainersIntegBaseClass
 
 
 class TestParallelRequests(StartLambdaIntegBaseClass):
@@ -338,3 +339,374 @@ class TestLazyContainersMultipleInvoke(TestWarmContainersBaseClass):
 
         # only one container is initialized
         self.assertEqual(initiated_containers, initiated_containers_before_any_invoke + 1)
+
+
+class TestImagePackageType(StartLambdaIntegBaseClass):
+    template_path = "/testdata/start_api/image_package_type/template.yaml"
+    build_before_invoke = True
+    tag = f"python-{random.randint(1000,2000)}"
+    build_overrides = {"Tag": tag}
+    parameter_overrides = {"ImageUri": f"helloworldfunction:{tag}"}
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+        self.lambda_client = boto3.client(
+            "lambda",
+            endpoint_url=self.url,
+            region_name="us-east-1",
+            use_ssl=False,
+            verify=False,
+            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
+        )
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_can_invoke_lambda_function_successfully(self):
+        result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
+        self.assertEqual(result.get("StatusCode"), 200)
+
+        response = json.loads(result.get("Payload").read().decode("utf-8"))
+        self.assertEqual(response.get("statusCode"), 200)
+        self.assertEqual(json.loads(response.get("body")), {"hello": "world"})
+
+
+class TestImagePackageTypeWithEagerWarmContainersMode(StartLambdaIntegBaseClass):
+    template_path = "/testdata/start_api/image_package_type/template.yaml"
+    container_mode = ContainersInitializationMode.EAGER.value
+    build_before_invoke = True
+    tag = f"python-{random.randint(1000,2000)}"
+    build_overrides = {"Tag": tag}
+    parameter_overrides = {"ImageUri": f"helloworldfunction:{tag}"}
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+        self.lambda_client = boto3.client(
+            "lambda",
+            endpoint_url=self.url,
+            region_name="us-east-1",
+            use_ssl=False,
+            verify=False,
+            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
+        )
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_can_invoke_lambda_function_successfully(self):
+        result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
+        self.assertEqual(result.get("StatusCode"), 200)
+
+        response = json.loads(result.get("Payload").read().decode("utf-8"))
+        self.assertEqual(response.get("statusCode"), 200)
+        self.assertEqual(json.loads(response.get("body")), {"hello": "world"})
+
+
+class TestImagePackageTypeWithEagerLazyContainersMode(StartLambdaIntegBaseClass):
+    template_path = "/testdata/start_api/image_package_type/template.yaml"
+    container_mode = ContainersInitializationMode.LAZY.value
+    build_before_invoke = True
+    tag = f"python-{random.randint(1000,2000)}"
+    build_overrides = {"Tag": tag}
+    parameter_overrides = {"ImageUri": f"helloworldfunction:{tag}"}
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+        self.lambda_client = boto3.client(
+            "lambda",
+            endpoint_url=self.url,
+            region_name="us-east-1",
+            use_ssl=False,
+            verify=False,
+            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
+        )
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_can_invoke_lambda_function_successfully(self):
+        result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
+        self.assertEqual(result.get("StatusCode"), 200)
+
+        response = json.loads(result.get("Payload").read().decode("utf-8"))
+        self.assertEqual(response.get("statusCode"), 200)
+        self.assertEqual(json.loads(response.get("body")), {"hello": "world"})
+
+
+class TestWatchingZipWarmContainers(WatchWarmContainersIntegBaseClass):
+    template_content = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    """
+    code_content = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world"})}
+    """
+    code_content_2 = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}
+    """
+    docker_file_content = ""
+    container_mode = ContainersInitializationMode.EAGER.value
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+        self.lambda_client = boto3.client(
+            "lambda",
+            endpoint_url=self.url,
+            region_name="us-east-1",
+            use_ssl=False,
+            verify=False,
+            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
+        )
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_changed_code_got_observed_and_loaded(self):
+        result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
+        self.assertEqual(result.get("StatusCode"), 200)
+
+        response = json.loads(result.get("Payload").read().decode("utf-8"))
+        self.assertEqual(response.get("statusCode"), 200)
+        self.assertEqual(json.loads(response.get("body")), {"hello": "world"})
+
+        self._write_file_content(self.code_path, self.code_content_2)
+        # wait till SAM got notified that the source code got changed
+        sleep(0.5)
+        result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
+        self.assertEqual(result.get("StatusCode"), 200)
+
+        response = json.loads(result.get("Payload").read().decode("utf-8"))
+        self.assertEqual(response.get("statusCode"), 200)
+        self.assertEqual(json.loads(response.get("body")), {"hello": "world2"})
+
+
+class TestWatchingImageWarmContainers(WatchWarmContainersIntegBaseClass):
+    template_content = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Parameteres:
+  Tag:
+    Type: String
+  ImageUri:
+    Type: String
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - main.handler
+        Timeout: 600
+      ImageUri: !Ref ImageUri
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    Metadata:
+      DockerTag: !Ref Tag
+      DockerContext: .
+      Dockerfile: Dockerfile
+        """
+    code_content = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world"})}"""
+    code_content_2 = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}"""
+    docker_file_content = """FROM public.ecr.aws/lambda/python:3.7
+COPY main.py ./"""
+    container_mode = ContainersInitializationMode.EAGER.value
+    build_before_invoke = True
+    tag = f"python-{random.randint(1000, 2000)}"
+    build_overrides = {"Tag": tag}
+    parameter_overrides = {"ImageUri": f"helloworldfunction:{tag}"}
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+        self.lambda_client = boto3.client(
+            "lambda",
+            endpoint_url=self.url,
+            region_name="us-east-1",
+            use_ssl=False,
+            verify=False,
+            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
+        )
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_changed_code_got_observed_and_loaded(self):
+        result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
+        self.assertEqual(result.get("StatusCode"), 200)
+
+        response = json.loads(result.get("Payload").read().decode("utf-8"))
+        self.assertEqual(response.get("statusCode"), 200)
+        self.assertEqual(json.loads(response.get("body")), {"hello": "world"})
+
+        self._write_file_content(self.code_path, self.code_content_2)
+        self.build()
+        # wait till SAM got notified that the source code got changed
+        sleep(0.5)
+        result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
+        self.assertEqual(result.get("StatusCode"), 200)
+
+        response = json.loads(result.get("Payload").read().decode("utf-8"))
+        self.assertEqual(response.get("statusCode"), 200)
+        self.assertEqual(json.loads(response.get("body")), {"hello": "world2"})
+
+
+class TestWatchingZipLazyContainers(WatchWarmContainersIntegBaseClass):
+    template_content = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    """
+    code_content = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world"})}
+    """
+    code_content_2 = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}
+    """
+    docker_file_content = ""
+    container_mode = ContainersInitializationMode.LAZY.value
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+        self.lambda_client = boto3.client(
+            "lambda",
+            endpoint_url=self.url,
+            region_name="us-east-1",
+            use_ssl=False,
+            verify=False,
+            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
+        )
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_changed_code_got_observed_and_loaded(self):
+        result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
+        self.assertEqual(result.get("StatusCode"), 200)
+
+        response = json.loads(result.get("Payload").read().decode("utf-8"))
+        self.assertEqual(response.get("statusCode"), 200)
+        self.assertEqual(json.loads(response.get("body")), {"hello": "world"})
+
+        self._write_file_content(self.code_path, self.code_content_2)
+        # wait till SAM got notified that the source code got changed
+        sleep(0.5)
+        result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
+        self.assertEqual(result.get("StatusCode"), 200)
+
+        response = json.loads(result.get("Payload").read().decode("utf-8"))
+        self.assertEqual(response.get("statusCode"), 200)
+        self.assertEqual(json.loads(response.get("body")), {"hello": "world2"})
+
+
+class TestWatchingImageLazyContainers(WatchWarmContainersIntegBaseClass):
+    template_content = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Parameteres:
+  Tag:
+    Type: String
+  ImageUri:
+    Type: String
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - main.handler
+        Timeout: 600
+      ImageUri: !Ref ImageUri
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    Metadata:
+      DockerTag: !Ref Tag
+      DockerContext: .
+      Dockerfile: Dockerfile
+        """
+    code_content = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world"})}"""
+    code_content_2 = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}"""
+    docker_file_content = """FROM public.ecr.aws/lambda/python:3.7
+COPY main.py ./"""
+    container_mode = ContainersInitializationMode.LAZY.value
+    build_before_invoke = True
+    tag = f"python-{random.randint(1000, 2000)}"
+    build_overrides = {"Tag": tag}
+    parameter_overrides = {"ImageUri": f"helloworldfunction:{tag}"}
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+        self.lambda_client = boto3.client(
+            "lambda",
+            endpoint_url=self.url,
+            region_name="us-east-1",
+            use_ssl=False,
+            verify=False,
+            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
+        )
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_changed_code_got_observed_and_loaded(self):
+        result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
+        self.assertEqual(result.get("StatusCode"), 200)
+
+        response = json.loads(result.get("Payload").read().decode("utf-8"))
+        self.assertEqual(response.get("statusCode"), 200)
+        self.assertEqual(json.loads(response.get("body")), {"hello": "world"})
+
+        self._write_file_content(self.code_path, self.code_content_2)
+        self.build()
+        # wait till SAM got notified that the source code got changed
+        sleep(0.5)
+        result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
+        self.assertEqual(result.get("StatusCode"), 200)
+
+        response = json.loads(result.get("Payload").read().decode("utf-8"))
+        self.assertEqual(response.get("statusCode"), 200)
+        self.assertEqual(json.loads(response.get("body")), {"hello": "world2"})
