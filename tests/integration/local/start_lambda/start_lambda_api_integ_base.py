@@ -1,4 +1,5 @@
 import signal
+from typing import Optional, Dict
 from unittest import TestCase, skipIf
 import threading
 from subprocess import Popen
@@ -13,9 +14,9 @@ from tests.testing_utils import SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE
 
 @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
 class StartLambdaIntegBaseClass(TestCase):
-    template = None
-    container_mode = None
-    parameter_overrides = None
+    template: Optional[str] = None
+    container_mode: Optional[str] = None
+    parameter_overrides: Optional[Dict[str, str]] = None
     binary_data_file = None
     integration_dir = str(Path(__file__).resolve().parents[2])
 

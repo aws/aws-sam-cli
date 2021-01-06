@@ -129,6 +129,10 @@ class EnvironmentVariables:
     def handler(self):
         return self._function["handler"]
 
+    @handler.setter
+    def handler(self, value):
+        self._function["handler"] = value
+
     @property
     def name(self):
         return self._function["name"]
@@ -136,10 +140,6 @@ class EnvironmentVariables:
     @name.setter
     def name(self, value):
         self._function["name"] = value
-
-    @handler.setter
-    def handler(self, value):
-        self._function["handler"] = value
 
     def _get_aws_variables(self):
         """

@@ -421,15 +421,6 @@ class TestSchemasCommand(TestCase):
                 "Java8", "aws.events", "aws.batch.BatchJobStateChange", "1", download_dir
             )
 
-    def test_download_source_code_binding(self):
-        response = io.BytesIO(b"some initial binary data: \x00\x01")
-        schemas_api_caller = SchemasApiCaller(self.client)
-        self.client.get_code_binding_source.return_value = {"Body": response}
-        with tempfile.TemporaryFile() as download_dir:
-            schemas_api_caller.download_source_code_binding(
-                "Java8", "aws.events", "aws.batch.BatchJobStateChange", "1", download_dir
-            )
-
     def test_download_source_code_binding_raises_not_available_in_region_exception(self):
         response = io.BytesIO(b"some initial binary data: \x00\x01")
         schemas_api_caller = SchemasApiCaller(self.client)
