@@ -10,7 +10,7 @@ from unittest.mock import patch, Mock, ANY, call
 import samcli.lib.telemetry.metric
 from samcli.lib.telemetry.metric import (
     capture_return_value,
-    get_metric,
+    _get_metric,
     send_installed_metric,
     track_command,
     track_template_warnings,
@@ -347,10 +347,10 @@ class TestParameterCapture(TestCase):
             arg1_data = "arg1 test data"
             arg2_data = "arg2 test data"
             capture_parameter(metric_name, "m1", 0)(test_func)(arg1_data, arg2_data)
-            assert get_metric(metric_name).get_data()["m1"] == arg1_data
+            assert _get_metric(metric_name).get_data()["m1"] == arg1_data
             capture_parameter(metric_name, "m2", 1)(test_func)(arg1_data, arg2_data)
-            assert get_metric(metric_name).get_data()["m1"] == arg1_data
-            assert get_metric(metric_name).get_data()["m2"] == arg2_data
+            assert _get_metric(metric_name).get_data()["m1"] == arg1_data
+            assert _get_metric(metric_name).get_data()["m2"] == arg2_data
 
     def test_must_capture_positional_parameter_as_list(self):
         def test_func(arg1, arg2):
@@ -362,10 +362,10 @@ class TestParameterCapture(TestCase):
             arg1_data = "arg1 test data"
             arg2_data = "arg2 test data"
             capture_parameter(metric_name, "m1", 0, as_list=True)(test_func)(arg1_data, arg2_data)
-            assert arg1_data in get_metric(metric_name).get_data()["m1"]
+            assert arg1_data in _get_metric(metric_name).get_data()["m1"]
             capture_parameter(metric_name, "m1", 1, as_list=True)(test_func)(arg1_data, arg2_data)
-            assert arg1_data in get_metric(metric_name).get_data()["m1"]
-            assert arg2_data in get_metric(metric_name).get_data()["m1"]
+            assert arg1_data in _get_metric(metric_name).get_data()["m1"]
+            assert arg2_data in _get_metric(metric_name).get_data()["m1"]
 
     def test_must_capture_named_parameter(self):
         def test_func(arg1, arg2, kwarg1=None, kwarg2=None):
@@ -381,12 +381,12 @@ class TestParameterCapture(TestCase):
             capture_parameter(metric_name, "km1", "kwarg1")(test_func)(
                 arg1_data, arg2_data, kwarg1=kwarg1_data, kwarg2=kwarg2_data
             )
-            assert get_metric(metric_name).get_data()["km1"] == kwarg1_data
+            assert _get_metric(metric_name).get_data()["km1"] == kwarg1_data
             capture_parameter(metric_name, "km2", "kwarg2")(test_func)(
                 arg1_data, arg2_data, kwarg1=kwarg1_data, kwarg2=kwarg2_data
             )
-            assert get_metric(metric_name).get_data()["km1"] == kwarg1_data
-            assert get_metric(metric_name).get_data()["km2"] == kwarg2_data
+            assert _get_metric(metric_name).get_data()["km1"] == kwarg1_data
+            assert _get_metric(metric_name).get_data()["km2"] == kwarg2_data
 
     def test_must_capture_nested_parameter(self):
         def test_func(arg1, arg2):
@@ -404,12 +404,12 @@ class TestParameterCapture(TestCase):
             capture_parameter(metric_name, "m1", 0, parameter_nested_identifier="nested_data")(test_func)(
                 arg1_data, arg2_data
             )
-            assert get_metric(metric_name).get_data()["m1"] == arg1_nested_data
+            assert _get_metric(metric_name).get_data()["m1"] == arg1_nested_data
             capture_parameter(metric_name, "m2", 1, parameter_nested_identifier="nested.data")(test_func)(
                 arg1_data, arg2_data
             )
-            assert get_metric(metric_name).get_data()["m1"] == arg1_nested_data
-            assert get_metric(metric_name).get_data()["m2"] == arg2_nested_data
+            assert _get_metric(metric_name).get_data()["m1"] == arg1_nested_data
+            assert _get_metric(metric_name).get_data()["m2"] == arg2_nested_data
 
     def test_must_capture_return_value(self):
         def test_func(arg1, arg2):
@@ -421,7 +421,7 @@ class TestParameterCapture(TestCase):
             arg1_data = "arg1 test data"
             arg2_data = "arg2 test data"
             capture_return_value(metric_name, "m1")(test_func)(arg1_data, arg2_data)
-            assert get_metric(metric_name).get_data()["m1"] == arg1_data
+            assert _get_metric(metric_name).get_data()["m1"] == arg1_data
 
 
 class TestMetric(TestCase):

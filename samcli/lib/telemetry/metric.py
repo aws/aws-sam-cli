@@ -253,14 +253,14 @@ def capture_return_value(metric_name, key, as_list=False):
 
 
 def add_metric_data(metric_name, key, value):
-    get_metric(metric_name).add_data(key, value)
+    _get_metric(metric_name).add_data(key, value)
 
 
 def add_metric_list_data(metric_name, key, value):
-    get_metric(metric_name).add_list_data(key, value)
+    _get_metric(metric_name).add_list_data(key, value)
 
 
-def get_metric(metric_name):
+def _get_metric(metric_name):
     if metric_name not in _METRICS:
         _METRICS[metric_name] = Metric(metric_name)
     return _METRICS[metric_name]
@@ -270,7 +270,7 @@ def emit_metric(metric_name):
     if metric_name not in _METRICS:
         return
     telemetry = Telemetry()
-    telemetry.emit(get_metric(metric_name))
+    telemetry.emit(_get_metric(metric_name))
     _METRICS.pop(metric_name)
 
 
