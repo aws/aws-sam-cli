@@ -1,4 +1,4 @@
-name: "Close stale issues"
+name: Close stale issues
 
 # Controls when the action will run.
 on:
