@@ -226,7 +226,7 @@ class InvokeContext:
 
         def initialize_function_container(function):
             function_config = self.local_lambda_runner.get_invoke_config(function)
-            self.lambda_runtime.run(None, function_config, self._debug_context, None)
+            self.lambda_runtime.run(None, function_config, self._debug_context)
 
         try:
             async_context = AsyncContext()

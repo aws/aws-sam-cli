@@ -41,7 +41,7 @@ class LambdaRuntime:
         self._image_builder = image_builder
         self._temp_uncompressed_paths_to_be_cleaned = []
 
-    def create(self, function_config, debug_context=None, event=None):
+    def create(self, function_config, debug_context=None):
         """
         Create a new Container for the passed function, then store it in a dictionary using the function name,
         so it can be retrieved later and used in the other functions. Make sure to use the debug_context only
@@ -53,20 +53,14 @@ class LambdaRuntime:
             Configuration of the function to create a new Container for it.
         debug_context DebugContext
             Debugging context for the function (includes port, args, and path)
-        event str
-            input event passed to Lambda function
 
         Returns
         -------
         Container
             the created container
         """
-        environ = function_config.env_vars
-        if event:
-            # Update with event input
-            environ.add_lambda_event_body(event)
         # Generate a dictionary of environment variable key:values
-        env_vars = environ.resolve()
+        env_vars = function_config.env_vars.resolve()
 
         code_dir = self._get_code_dir(function_config.code_abs_path)
         container = LambdaContainer(
@@ -91,7 +85,7 @@ class LambdaRuntime:
             LOG.debug("Ctrl+C was pressed. Aborting container creation")
             raise
 
-    def run(self, container, function_config, debug_context, event=None):
+    def run(self, container, function_config, debug_context):
         """
         Find the created container for the passed Lambda function, then using the
         ContainerManager run this container.
@@ -105,8 +99,6 @@ class LambdaRuntime:
             Configuration of the function to run its created container.
         debug_context DebugContext
             Debugging context for the function (includes port, args, and path)
-        event str
-            input event passed to Lambda function
         Returns
         -------
         Container
@@ -114,7 +106,7 @@ class LambdaRuntime:
         """
 
         if not container:
-            container = self.create(function_config, debug_context, event)
+            container = self.create(function_config, debug_context)
 
         if container.is_running():
             LOG.info("Lambda function '%s' is already running", function_config.name)
@@ -152,8 +144,8 @@ class LambdaRuntime:
         container = None
         try:
             # Start the container. This call returns immediately after the container starts
-            container = self.create(function_config, debug_context, event)
-            container = self.run(container, function_config, debug_context, event)
+            container = self.create(function_config, debug_context)
+            container = self.run(container, function_config, debug_context)
             # Setup appropriate interrupt - timeout or Ctrl+C - before function starts executing.
             #
             # Start the timer **after** container starts. Container startup takes several seconds, only after which,
@@ -299,7 +291,7 @@ class WarmLambdaRuntime(LambdaRuntime):
 
         super().__init__(container_manager, image_builder)
 
-    def create(self, function_config, debug_context=None, event=None):
+    def create(self, function_config, debug_context=None):
         """
         Create a new Container for the passed function, then store it in a dictionary using the function name,
         so it can be retrieved later and used in the other functions. Make sure to use the debug_context only
@@ -311,8 +303,6 @@ class WarmLambdaRuntime(LambdaRuntime):
             Configuration of the function to create a new Container for it.
         debug_context DebugContext
             Debugging context for the function (includes port, args, and path)
-        event str
-            input event passed to Lambda function
 
         Returns
         -------
@@ -336,7 +326,7 @@ class WarmLambdaRuntime(LambdaRuntime):
             )
             debug_context = None
 
-        container = super().create(function_config, debug_context, None)
+        container = super().create(function_config, debug_context)
         self._containers[function_config.name] = container
         self._add_function_to_observer(function_config)
         return container

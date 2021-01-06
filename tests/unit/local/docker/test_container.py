@@ -457,7 +457,7 @@ class TestContainer_wait_for_result(TestCase):
         self.container.id = "someid"
 
         self.container.is_created = Mock()
-        self.timeout = 0.1
+        self.timeout = 1
 
     @patch("samcli.local.docker.container.requests")
     def test_wait_for_result_no_error(self, mock_requests):
