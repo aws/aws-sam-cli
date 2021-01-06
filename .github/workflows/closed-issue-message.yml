@@ -1,4 +1,4 @@
-name: Closed Issue Message
+name: Closed issue message
 
 on:
   issues:
