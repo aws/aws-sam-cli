@@ -202,6 +202,10 @@ class LayerVersion:
     def codeuri(self):
         return self._codeuri
 
+    @codeuri.setter
+    def codeuri(self, codeuri):
+        self._codeuri = codeuri
+
     @property
     def version(self):
         return self._version
@@ -210,10 +214,6 @@ class LayerVersion:
     def layer_arn(self):
         layer_arn, _ = self.arn.rsplit(":", 1)
         return layer_arn
-
-    @codeuri.setter
-    def codeuri(self, codeuri):
-        self._codeuri = codeuri
 
     @property
     def build_method(self):
@@ -259,7 +259,7 @@ class Api:
 
 _CorsTuple = namedtuple("Cors", ["allow_origin", "allow_methods", "allow_headers", "max_age"])
 
-_CorsTuple.__new__.__defaults__ = (
+_CorsTuple.__new__.__defaults__ = (  # type: ignore
     None,  # Allow Origin defaults to None
     None,  # Allow Methods is optional and defaults to empty
     None,  # Allow Headers is optional and defaults to empty
