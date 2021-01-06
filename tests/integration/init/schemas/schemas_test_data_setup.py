@@ -4,7 +4,7 @@ import shutil
 import tempfile
 from unittest import TestCase
 
-from boto3.session import Session
+from boto3 import Session
 from botocore.exceptions import ClientError
 from click.testing import CliRunner
 from samcli.commands.init import cli as init_cmd
@@ -34,6 +34,7 @@ class SchemaTestDataSetup(TestCase):
         setup_non_partner_schema_data("other-schema", schemas_client)
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
+        # 1: Zip Packagetype
         # 13: Java runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
@@ -42,10 +43,11 @@ class SchemaTestDataSetup(TestCase):
 
         user_input = """
 1
+1
 13
 1
 eb-app-maven
-Y
+1
 1
                 """
         with tempfile.TemporaryDirectory() as temp:

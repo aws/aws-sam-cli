@@ -6,6 +6,7 @@ from pathlib import Path
 import click
 
 from samcli.commands._utils.options import template_click_option, docker_click_options, parameter_override_click_option
+from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
 
 
 def get_application_dir():
@@ -102,6 +103,11 @@ def invoke_common_options(f):
                 "--debug-args", help="Additional arguments to be passed to the debugger.", envvar="DEBUGGER_ARGS"
             ),
             click.option(
+                "--container-env-vars",
+                type=click.Path(exists=True),
+                help="JSON file containing environment variables to be set within the container environment",
+            ),
+            click.option(
                 "--docker-volume-basedir",
                 "-v",
                 envvar="SAM_DOCKER_VOLUME_BASEDIR",
@@ -132,6 +138,47 @@ def invoke_common_options(f):
 
     # Reverse the list to maintain ordering of options in help text printed with --help
     for option in reversed(invoke_options):
+        option(f)
+
+    return f
+
+
+def warm_containers_common_options(f):
+    """
+    Warm containers related CLI options shared by "local start-api" and "local start_lambda" commands
+
+    :param f: Callback passed by Click
+    """
+
+    warm_containers_options = [
+        click.option(
+            "--warm-containers",
+            help="""
+            \b
+            Optional. Specifies how AWS SAM CLI manages 
+            containers for each function.
+            Two modes are available:
+            EAGER: Containers for all functions are 
+            loaded at startup and persist between 
+            invocations.
+            LAZY:  Containers are only loaded when each 
+            function is first invoked. Those containers 
+            persist for additional invocations.
+            """,
+            type=click.Choice(ContainersInitializationMode.__members__, case_sensitive=False),
+        ),
+        click.option(
+            "--debug-function",
+            help="Optional. Specifies the Lambda Function logicalId to apply debug options to when"
+            " --warm-containers is specified.  This parameter applies to --debug-port, --debugger-path,"
+            " and --debug-args.",
+            type=click.STRING,
+            multiple=False,
+        ),
+    ]
+
+    # Reverse the list to maintain ordering of options in help text printed with --help
+    for option in reversed(warm_containers_options):
         option(f)
 
     return f

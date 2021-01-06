@@ -12,7 +12,7 @@ from samcli.commands._utils.options import (
     parameter_override_option,
 )
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
-from samcli.lib.build.app_builder import BuildInsideContainerError
+from samcli.lib.build.exceptions import BuildInsideContainerError
 from samcli.lib.telemetry.metrics import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 
@@ -71,8 +71,7 @@ $ sam build MyFunction
     "-b",
     default=DEFAULT_BUILD_DIR,
     type=click.Path(file_okay=False, dir_okay=True, writable=True),  # Must be a directory
-    help="Path to a folder where the built artifacts will be stored. "
-    "This directory will be first removed before starting a build.",
+    help="Path to a folder where the built artifacts will be stored. This directory will be first removed before starting a build.",
 )
 @click.option(
     "--cache-dir",
@@ -80,7 +79,7 @@ $ sam build MyFunction
     default=DEFAULT_CACHE_DIR,
     type=click.Path(file_okay=False, dir_okay=True, writable=True),  # Must be a directory
     help="The folder where the cache artifacts will be stored when --cached is specified. "
-    "The default cache directory is .aws-sam/cache",
+         "The default cache directory is .aws-sam/cache",
 )
 @click.option(
     "--base-dir",
@@ -103,7 +102,7 @@ $ sam build MyFunction
     "-p",
     is_flag=True,
     help="Enabled parallel builds. Use this flag to build your AWS SAM template's functions and layers in parallel. "
-    "By default the functions and layers are built in sequence",
+         "By default the functions and layers are built in sequence",
 )
 @click.option(
     "--manifest",
@@ -117,12 +116,12 @@ $ sam build MyFunction
     "-c",
     is_flag=True,
     help="Enable cached builds. Use this flag to reuse build artifacts that have not changed from previous builds. "
-    "AWS SAM evaluates whether you have made any changes to files in your project directory. \n\n"
-    "Note: AWS SAM does not evaluate whether changes have been made to third party modules "
-    "that your project depends on, where you have not provided a specific version. "
-    "For example, if your Python function includes a requirements.txt file with the following entry "
-    "requests=1.x and the latest request module version changes from 1.1 to 1.2, "
-    "SAM will not pull the latest version until you run a non-cached build.",
+         "AWS SAM evaluates whether you have made any changes to files in your project directory. \n\n"
+         "Note: AWS SAM does not evaluate whether changes have been made to third party modules "
+         "that your project depends on, where you have not provided a specific version. "
+         "For example, if your Python function includes a requirements.txt file with the following entry "
+         "requests=1.x and the latest request module version changes from 1.1 to 1.2, "
+         "SAM will not pull the latest version until you run a non-cached build.",
 )
 @template_option_without_build
 @parameter_override_option
@@ -237,7 +236,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
                 manifest_path_override=ctx.manifest_path_override,
                 container_manager=ctx.container_manager,
                 mode=ctx.mode,
-                parallel=parallel,
+                parallel=parallel
             )
         except FunctionNotFound as ex:
             raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex

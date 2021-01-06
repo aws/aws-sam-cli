@@ -9,7 +9,6 @@ class TestSamCliLogger(TestCase):
     def test_configure_samcli_logger(self, logging_patch):
         formatter_mock = Mock()
         logger_mock = Mock()
-        logger_mock.handlers = []
         logging_patch.DEBUG = 2
 
         stream_handler_mock = Mock()
@@ -25,7 +24,7 @@ class TestSamCliLogger(TestCase):
         stream_handler_mock.setFormatter.assert_called_once_with(formatter_mock)
 
     @patch("samcli.lib.utils.sam_logging.logging")
-    def test_configure_samcli_logger_null_logger(self, logging_patch):
+    def test_configure_samcli_logger(self, logging_patch):
         logger_mock = Mock()
 
         SamCliLogger.configure_null_logger(logger_mock)

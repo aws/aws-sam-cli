@@ -17,7 +17,7 @@ Following variables are exported by this module:
 
 import os
 
-
-telemetry_endpoint_url = os.getenv(
-    "__SAM_CLI_TELEMETRY_ENDPOINT_URL", "https://aws-serverless-tools-telemetry.us-west-2.amazonaws.com/metrics"
-)
+if "__SAM_CLI_TELEMETRY_ENDPOINT_URL" not in os.environ:
+    telemetry_endpoint_url = "https://aws-serverless-tools-telemetry.us-west-2.amazonaws.com/metrics"
+else:
+    telemetry_endpoint_url = os.getenv("__SAM_CLI_TELEMETRY_ENDPOINT_URL")

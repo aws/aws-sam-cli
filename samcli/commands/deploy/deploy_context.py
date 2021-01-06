@@ -47,6 +47,8 @@ class DeployContext:
         template_file,
         stack_name,
         s3_bucket,
+        image_repository,
+        image_repositories,
         force_upload,
         no_progressbar,
         s3_prefix,
@@ -61,10 +63,13 @@ class DeployContext:
         region,
         profile,
         confirm_changeset,
+        signing_profiles,
     ):
         self.template_file = template_file
         self.stack_name = stack_name
         self.s3_bucket = s3_bucket
+        self.image_repository = image_repository
+        self.image_repositories = image_repositories
         self.force_upload = force_upload
         self.no_progressbar = no_progressbar
         self.s3_prefix = s3_prefix
@@ -81,6 +86,7 @@ class DeployContext:
         self.s3_uploader = None
         self.deployer = None
         self.confirm_changeset = confirm_changeset
+        self.signing_profiles = signing_profiles
 
     def __enter__(self):
         return self
@@ -125,10 +131,12 @@ class DeployContext:
         print_deploy_args(
             self.stack_name,
             self.s3_bucket,
+            self.image_repositories if isinstance(self.image_repositories, dict) else self.image_repository,
             region,
             self.capabilities,
             self.parameter_overrides,
             self.confirm_changeset,
+            self.signing_profiles,
         )
         return self.deploy(
             self.stack_name,

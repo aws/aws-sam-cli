@@ -3,12 +3,13 @@ Contains asyncio related methods and helpers
 """
 import asyncio
 import logging
+from concurrent.futures.thread import ThreadPoolExecutor
 from functools import partial
 
 LOG = logging.getLogger(__name__)
 
 
-async def _run_given_tasks_async(tasks, event_loop=asyncio.get_event_loop()):
+async def _run_given_tasks_async(tasks, event_loop=asyncio.get_event_loop(), executor=None):
     """
     Given list of Task objects, this method executes all tasks in the given event loop (or default one)
     and returns list of the results.
@@ -29,6 +30,9 @@ async def _run_given_tasks_async(tasks, event_loop=asyncio.get_event_loop()):
     event_loop: EventLoop
         The EventLoop instance that will be used for execution. If nothing is provided, this will be the default one
 
+    executor: ThreadPoolExecutor
+        The Executor that will be used by the EventLoop to execute the input tasks
+
     Returns
     --------
     results : list of results that is returned by the list of Tasks in order. Raises an exception if the underlying
@@ -42,7 +46,7 @@ async def _run_given_tasks_async(tasks, event_loop=asyncio.get_event_loop()):
     for task in tasks:
         # loop in all tasks and pass them to the executor
         LOG.debug("Invoking function %s", str(task))
-        async_tasks.append(event_loop.run_in_executor(None, task))
+        async_tasks.append(event_loop.run_in_executor(executor, task))
 
     LOG.debug("Waiting for async results")
 
@@ -64,7 +68,7 @@ async def _run_given_tasks_async(tasks, event_loop=asyncio.get_event_loop()):
     return results
 
 
-def run_given_tasks_async(tasks, event_loop=asyncio.get_event_loop()):
+def run_given_tasks_async(tasks, event_loop=asyncio.get_event_loop(), executor=None):
     """
     Runs the given list of tasks in the given (or default) event loop.
     This function will wait for execution to be completed
@@ -77,11 +81,13 @@ def run_given_tasks_async(tasks, event_loop=asyncio.get_event_loop()):
 
     event_loop: EventLoop instance that will be used to execute these tasks
 
+    executor: ThreadPoolExecutor that will be used by the EventLoop to execute the input tasks
+
     Returns
     -------
     List of results from the given Task list. Raises the exception if any of the underlying functions throw one
     """
-    return event_loop.run_until_complete(_run_given_tasks_async(tasks, event_loop))
+    return event_loop.run_until_complete(_run_given_tasks_async(tasks, event_loop, executor))
 
 
 class AsyncContext:
@@ -91,6 +97,7 @@ class AsyncContext:
 
     def __init__(self):
         self._async_tasks = []
+        self.executor = None
 
     def add_async_task(self, function, *args):
         """
@@ -104,13 +111,21 @@ class AsyncContext:
         """
         self._async_tasks.append(partial(function, *args))
 
-    def run_async(self):
+    def run_async(self, default_executor=True):
         """
         Will run all collected functions in async context, and return their results in order
+
+        Parameters
+        ----------
+        default_executor: bool
+            Determines if the async object will run using the default executor, or with a new created executor
 
         Returns
         -------
         List of result of the executions in order
         """
         event_loop = asyncio.new_event_loop()
+        if not default_executor:
+            with ThreadPoolExecutor() as self.executor:
+                return run_given_tasks_async(self._async_tasks, event_loop, self.executor)
         return run_given_tasks_async(self._async_tasks, event_loop)

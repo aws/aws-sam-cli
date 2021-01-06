@@ -62,6 +62,45 @@ class ExportFailedError(UserException):
         )
 
 
+class ImageNotFoundError(UserException):
+    def __init__(self, resource_id, property_name):
+        self.resource_id = resource_id
+        self.property_name = property_name
+
+        message_fmt = "Image not found for {property_name} parameter of {resource_id} resource. \n"
+
+        super().__init__(
+            message=message_fmt.format(
+                property_name=self.property_name,
+                resource_id=self.resource_id,
+            )
+        )
+
+
+class ECRAuthorizationError(UserException):
+    def __init__(self, msg):
+        self.msg = msg
+        super().__init__(message=self.msg)
+
+
+class DockerLoginFailedError(UserException):
+    def __init__(self, msg):
+        self.msg = msg
+        super().__init__(message=self.msg)
+
+
+class DockerPushFailedError(UserException):
+    def __init__(self, msg):
+        self.msg = msg
+        super().__init__(message=self.msg)
+
+
+class DockerGetLocalImageFailedError(UserException):
+    def __init__(self, msg):
+        self.msg = msg
+        super().__init__(message=self.msg)
+
+
 class PackageFailedError(UserException):
     def __init__(self, template_file, ex):
         self.template_file = template_file

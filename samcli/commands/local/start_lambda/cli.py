@@ -6,10 +6,15 @@ import logging
 import click
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
-from samcli.commands.local.cli_common.options import invoke_common_options, service_common_options
+from samcli.commands.local.cli_common.options import (
+    invoke_common_options,
+    service_common_options,
+    warm_containers_common_options,
+)
+from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.telemetry.metrics import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
-
+from samcli.local.docker.exceptions import ContainerNotStartableException
 
 LOG = logging.getLogger(__name__)
 
@@ -53,6 +58,7 @@ Here is a Python example:
 @configuration_option(provider=TomlProvider(section="parameters"))
 @service_common_options(3001)
 @invoke_common_options
+@warm_containers_common_options
 @cli_framework_options
 @aws_creds_options
 @pass_context
@@ -68,6 +74,7 @@ def cli(
     debug_port,
     debug_args,
     debugger_path,
+    container_env_vars,
     docker_volume_basedir,
     docker_network,
     log_file,
@@ -77,7 +84,9 @@ def cli(
     parameter_overrides,
     config_file,
     config_env,
-):  # pylint: disable=R0914
+    warm_containers,
+    debug_function,
+):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(
@@ -89,6 +98,7 @@ def cli(
         debug_port,
         debug_args,
         debugger_path,
+        container_env_vars,
         docker_volume_basedir,
         docker_network,
         log_file,
@@ -96,6 +106,8 @@ def cli(
         skip_pull_image,
         force_image_build,
         parameter_overrides,
+        warm_containers,
+        debug_function,
     )  # pragma: no cover
 
 
@@ -108,6 +120,7 @@ def do_cli(  # pylint: disable=R0914
     debug_port,
     debug_args,
     debugger_path,
+    container_env_vars,
     docker_volume_basedir,
     docker_network,
     log_file,
@@ -115,6 +128,8 @@ def do_cli(  # pylint: disable=R0914
     skip_pull_image,
     force_image_build,
     parameter_overrides,
+    warm_containers,
+    debug_function,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -145,11 +160,14 @@ def do_cli(  # pylint: disable=R0914
             debug_ports=debug_port,
             debug_args=debug_args,
             debugger_path=debugger_path,
+            container_env_vars_file=container_env_vars,
             parameter_overrides=parameter_overrides,
             layer_cache_basedir=layer_cache_basedir,
             force_image_build=force_image_build,
             aws_region=ctx.region,
             aws_profile=ctx.profile,
+            warm_container_initialization_mode=warm_containers,
+            debug_function=debug_function,
         ) as invoke_context:
 
             service = LocalLambdaService(lambda_invoke_context=invoke_context, port=port, host=host)
@@ -159,6 +177,9 @@ def do_cli(  # pylint: disable=R0914
         InvalidSamDocumentException,
         OverridesNotWellDefinedError,
         InvalidLayerReference,
+        InvalidIntermediateImageError,
         DebuggingNotSupported,
     ) as ex:
+        raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
+    except ContainerNotStartableException as ex:
         raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex

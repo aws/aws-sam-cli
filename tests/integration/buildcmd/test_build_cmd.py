@@ -3,6 +3,7 @@ import shutil
 import sys
 import os
 import logging
+import random
 from unittest import skipIf
 from pathlib import Path
 from parameterized import parameterized
@@ -11,7 +12,14 @@ import pytest
 
 from samcli.lib.utils import osutils
 from .build_integ_base import BuildIntegBase, DedupBuildIntegBase, CachedBuildIntegBase, BuildIntegRubyBase
-from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE, run_command
+from tests.testing_utils import (
+    IS_WINDOWS,
+    RUNNING_ON_CI,
+    CI_OVERRIDE,
+    run_command,
+    SKIP_DOCKER_TESTS,
+    SKIP_DOCKER_MESSAGE,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -22,7 +30,47 @@ TIMEOUT = 420  # 7 mins
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
+    template = "template_image.yaml"
+
+    EXPECTED_FILES_GLOBAL_MANIFEST = set()
+    EXPECTED_FILES_PROJECT_MANIFEST = {
+        "__init__.py",
+        "main.py",
+        "numpy",
+        # 'cryptography',
+        "requirements.txt",
+    }
+
+    FUNCTION_LOGICAL_ID_IMAGE = "ImageFunction"
+
+    @parameterized.expand([("3.6", False), ("3.7", False), ("3.8", False)])
+    @pytest.mark.flaky(reruns=3)
+    def test_with_default_requirements(self, runtime, use_container):
+        overrides = {
+            "Runtime": runtime,
+            "Handler": "main.handler",
+            "DockerFile": "Dockerfile",
+            "Tag": f"{random.randint(1,100)}",
+        }
+        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
+
+        LOG.info("Running Command: ")
+        LOG.info(cmdlist)
+        run_command(cmdlist, cwd=self.working_dir)
+
+        expected = {"pi": "3.14"}
+        self._verify_invoke_built_function(
+            self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
+        )
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
 class TestBuildCommand_PythonFunctions(BuildIntegBase):
+    EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {
         "__init__.py",
         "main.py",
@@ -47,6 +95,9 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_with_default_requirements(self, runtime, use_container):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         overrides = {"Runtime": runtime, "CodeUri": "Python", "Handler": "main.handler"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
@@ -85,9 +136,10 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
         )
 
         expected = {"pi": "3.14"}
-        self._verify_invoke_built_function(
-            self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
-        )
+        if not SKIP_DOCKER_TESTS:
+            self._verify_invoke_built_function(
+                self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
+            )
         self.verify_docker_container_cleanedup(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
@@ -134,6 +186,7 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildCommand_NodeFunctions(BuildIntegBase):
+    EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {"node_modules", "main.js"}
     EXPECTED_NODE_MODULES = {"minimal-request-promise"}
 
@@ -144,6 +197,9 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_with_default_package_json(self, runtime, use_container):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         overrides = {"Runtime": runtime, "CodeUri": "Node", "Handler": "ignored"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
@@ -208,6 +264,7 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
 class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
     @parameterized.expand(["ruby2.5", "ruby2.7"])
     @pytest.mark.flaky(reruns=3)
+    @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
     def test_building_ruby_in_container(self, runtime):
         self._test_with_default_gemfile(runtime, "use_container", "Ruby", self.test_data_path)
 
@@ -290,6 +347,7 @@ class TestBuildCommand_Java(BuildIntegBase):
             ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
         ]
     )
+    @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
     def test_building_java_in_container(self, runtime, code_path, expected_files):
         self._test_with_building_java(runtime, code_path, expected_files, "use_container")
@@ -326,6 +384,9 @@ class TestBuildCommand_Java(BuildIntegBase):
         self._test_with_building_java(runtime, code_path, expected_files, False)
 
     def _test_with_building_java(self, runtime, code_path, expected_files, use_container):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         overrides = {"Runtime": runtime, "CodeUri": code_path, "Handler": "aws.example.Hello::myHandler"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
         cmdlist += ["--skip-pull-image"]
@@ -362,9 +423,13 @@ class TestBuildCommand_Java(BuildIntegBase):
         # If we are testing in the container, invoke the function as well. Otherwise we cannot guarantee docker is on appveyor
         if use_container:
             expected = "Hello World"
-            self._verify_invoke_built_function(
-                self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
-            )
+            if not SKIP_DOCKER_TESTS:
+                self._verify_invoke_built_function(
+                    self.built_template,
+                    self.FUNCTION_LOGICAL_ID,
+                    self._make_parameter_override_arg(overrides),
+                    expected,
+                )
 
             self.verify_docker_container_cleanedup(runtime)
 
@@ -467,13 +532,15 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         )
 
         expected = "{'message': 'Hello World'}"
-        self._verify_invoke_built_function(
-            self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
-        )
+        if not SKIP_DOCKER_TESTS:
+            self._verify_invoke_built_function(
+                self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
+            )
 
         self.verify_docker_container_cleanedup(runtime)
 
     @parameterized.expand([("dotnetcore2.1", "Dotnetcore2.1"), ("dotnetcore3.1", "Dotnetcore3.1")])
+    @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
     def test_must_fail_with_container(self, runtime, code_uri):
         use_container = True
@@ -552,13 +619,15 @@ class TestBuildCommand_Go_Modules(BuildIntegBase):
         )
 
         expected = "{'message': 'Hello World'}"
-        self._verify_invoke_built_function(
-            self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
-        )
+        if not SKIP_DOCKER_TESTS:
+            self._verify_invoke_built_function(
+                self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
+            )
 
         self.verify_docker_container_cleanedup(runtime)
 
     @parameterized.expand([("go1.x", "Go")])
+    @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
     def test_go_must_fail_with_container(self, runtime, code_uri):
         use_container = True
@@ -596,6 +665,7 @@ class TestBuildCommand_Go_Modules(BuildIntegBase):
 class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
     template = "many-functions-template.yaml"
 
+    EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {
         "__init__.py",
         "main.py",
@@ -624,6 +694,9 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_build_single_function(self, runtime, use_container, function_identifier):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         overrides = {"Runtime": runtime, "CodeUri": "Python", "Handler": "main.handler"}
         cmdlist = self.get_command_list(
             use_container=use_container, parameter_overrides=overrides, function_identifier=function_identifier
@@ -635,9 +708,10 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
         self._verify_built_artifact(self.default_build_dir, function_identifier, self.EXPECTED_FILES_PROJECT_MANIFEST)
 
         expected = {"pi": "3.14"}
-        self._verify_invoke_built_function(
-            self.built_template, function_identifier, self._make_parameter_override_arg(overrides), expected
-        )
+        if not SKIP_DOCKER_TESTS:
+            self._verify_invoke_built_function(
+                self.built_template, function_identifier, self._make_parameter_override_arg(overrides), expected
+            )
         self.verify_docker_container_cleanedup(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
@@ -668,11 +742,15 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
 class TestBuildCommand_LayerBuilds(BuildIntegBase):
     template = "layers-functions-template.yaml"
 
+    EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {"__init__.py", "main.py", "requirements.txt"}
     EXPECTED_LAYERS_FILES_PROJECT_MANIFEST = {"__init__.py", "layer.py", "numpy", "requirements.txt"}
 
     @parameterized.expand([("python3.7", False, "LayerOne"), ("python3.7", "use_container", "LayerOne")])
     def test_build_single_layer(self, runtime, use_container, layer_identifier):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         overrides = {"LayerBuildMethod": runtime, "LayerContentUri": "PyLayer"}
         cmdlist = self.get_command_list(
             use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
@@ -695,6 +773,9 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         [("makefile", False, "LayerWithMakefile"), ("makefile", "use_container", "LayerWithMakefile")]
     )
     def test_build_layer_with_makefile(self, build_method, use_container, layer_identifier):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         overrides = {"LayerBuildMethod": build_method, "LayerMakeContentUri": "PyLayerMake"}
         cmdlist = self.get_command_list(
             use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
@@ -715,6 +796,9 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
 
     @parameterized.expand([("python3.7", False, "LayerTwo"), ("python3.7", "use_container", "LayerTwo")])
     def test_build_fails_with_missing_metadata(self, runtime, use_container, layer_identifier):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         overrides = {"LayerBuildMethod": runtime, "LayerContentUri": "PyLayer"}
         cmdlist = self.get_command_list(
             use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
@@ -728,6 +812,9 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
 
     @parameterized.expand([("python3.7", False), ("python3.7", "use_container")])
     def test_build_function_and_layer(self, runtime, use_container):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         overrides = {
             "LayerBuildMethod": runtime,
             "LayerContentUri": "PyLayer",
@@ -751,13 +838,17 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         )
 
         expected = {"pi": "3.14"}
-        self._verify_invoke_built_function(
-            self.built_template, "FunctionOne", self._make_parameter_override_arg(overrides), expected
-        )
+        if not SKIP_DOCKER_TESTS:
+            self._verify_invoke_built_function(
+                self.built_template, "FunctionOne", self._make_parameter_override_arg(overrides), expected
+            )
         self.verify_docker_container_cleanedup(runtime)
 
     @parameterized.expand([("python3.7", False), ("python3.7", "use_container")])
     def test_build_function_with_dependent_layer(self, runtime, use_container):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         overrides = {
             "LayerBuildMethod": runtime,
             "LayerContentUri": "PyLayer",
@@ -782,9 +873,10 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         )
 
         expected = {"pi": "3.14"}
-        self._verify_invoke_built_function(
-            self.built_template, "FunctionOne", self._make_parameter_override_arg(overrides), expected
-        )
+        if not SKIP_DOCKER_TESTS:
+            self._verify_invoke_built_function(
+                self.built_template, "FunctionOne", self._make_parameter_override_arg(overrides), expected
+            )
         self.verify_docker_container_cleanedup(runtime)
 
     def _verify_built_artifact(
@@ -814,6 +906,7 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegBase):
     # Test Suite for runtime: provided and where selection of the build workflow is implicitly makefile builder
     # if the makefile is present.
 
+    EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {"__init__.py", "main.py", "requests", "requirements.txt"}
 
     FUNCTION_LOGICAL_ID = "Function"
@@ -828,6 +921,9 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_with_Makefile(self, runtime, use_container, manifest):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         overrides = {"Runtime": runtime, "CodeUri": "Provided", "Handler": "main.handler"}
         manifest_path = None
         if manifest:
@@ -848,9 +944,10 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegBase):
         expected = "2.23.0"
         # Building was done with a makefile, but invoke should be checked with corresponding python image.
         overrides["Runtime"] = self._get_python_version()
-        self._verify_invoke_built_function(
-            self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
-        )
+        if not SKIP_DOCKER_TESTS:
+            self._verify_invoke_built_function(
+                self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
+            )
         self.verify_docker_container_cleanedup(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
@@ -883,6 +980,7 @@ class TestBuildWithBuildMethod(BuildIntegBase):
     # Test Suite where `BuildMethod` is explicitly specified.
 
     template = "custom-build-function.yaml"
+    EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {"__init__.py", "main.py", "requests", "requirements.txt"}
 
     FUNCTION_LOGICAL_ID = "Function"
@@ -890,6 +988,9 @@ class TestBuildWithBuildMethod(BuildIntegBase):
     @parameterized.expand([(False, None, "makefile"), ("use_container", "Makefile-container", "makefile")])
     @pytest.mark.flaky(reruns=3)
     def test_with_makefile_builder_specified_python_runtime(self, use_container, manifest, build_method):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         # runtime is chosen based off current python version.
         runtime = self._get_python_version()
         # Codeuri is still Provided, since that directory has the makefile.
@@ -912,14 +1013,18 @@ class TestBuildWithBuildMethod(BuildIntegBase):
 
         expected = "2.23.0"
         # Building was done with a makefile, invoke is checked with the same runtime image.
-        self._verify_invoke_built_function(
-            self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
-        )
+        if not SKIP_DOCKER_TESTS:
+            self._verify_invoke_built_function(
+                self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
+            )
         self.verify_docker_container_cleanedup(runtime)
 
     @parameterized.expand([(False,), ("use_container")])
     @pytest.mark.flaky(reruns=3)
     def test_with_native_builder_specified_python_runtime(self, use_container):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         # runtime is chosen based off current python version.
         runtime = self._get_python_version()
         # Codeuri is still Provided, since that directory has the makefile, but it also has the
@@ -942,14 +1047,18 @@ class TestBuildWithBuildMethod(BuildIntegBase):
 
         expected = "2.23.0"
         # Building was done with a `python-pip` builder, invoke is checked with the same runtime image.
-        self._verify_invoke_built_function(
-            self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
-        )
+        if not SKIP_DOCKER_TESTS:
+            self._verify_invoke_built_function(
+                self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
+            )
         self.verify_docker_container_cleanedup(runtime)
 
     @parameterized.expand([(False,), ("use_container")])
     @pytest.mark.flaky(reruns=3)
     def test_with_wrong_builder_specified_python_runtime(self, use_container):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         # runtime is chosen based off current python version.
         runtime = self._get_python_version()
         # BuildMethod is set to the ruby2.7, this should cause failure.
@@ -1017,7 +1126,10 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
         ]
     )
     @pytest.mark.flaky(reruns=3)
-    def test_dedup_build(self, use_continer, code_uri, function1_handler, function2_handler, runtime):
+    def test_dedup_build(self, use_container, code_uri, function1_handler, function2_handler, runtime):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         """
         Build template above and verify that each function call returns as expected
         """
@@ -1027,7 +1139,7 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
             "Function2Handler": function2_handler,
             "FunctionRuntime": runtime,
         }
-        cmdlist = self.get_command_list(use_container=use_continer, parameter_overrides=overrides)
+        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
         # Built using `native` python-pip builder for a python project.
@@ -1035,9 +1147,10 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
 
         expected_messages = ["World", "Mars"]
 
-        self._verify_build_and_invoke_functions(
-            expected_messages, command_result, self._make_parameter_override_arg(overrides)
-        )
+        if not SKIP_DOCKER_TESTS:
+            self._verify_build_and_invoke_functions(
+                expected_messages, command_result, self._make_parameter_override_arg(overrides)
+            )
 
 
 @skipIf(
@@ -1060,7 +1173,8 @@ class TestBuildWithDedupBuildsMakefile(DedupBuildIntegBase):
 
         expected_messages = ["World", "Mars"]
 
-        self._verify_build_and_invoke_functions(expected_messages, command_result, "")
+        if not SKIP_DOCKER_TESTS:
+            self._verify_build_and_invoke_functions(expected_messages, command_result, "")
 
     def _verify_process_code_and_output(self, command_result):
         """
@@ -1098,7 +1212,10 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
         ]
     )
     @pytest.mark.flaky(reruns=3)
-    def test_cache_build(self, use_continer, code_uri, function1_handler, function2_handler, runtime):
+    def test_cache_build(self, use_container, code_uri, function1_handler, function2_handler, runtime):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         """
         Build template above and verify that each function call returns as expected
         """
@@ -1108,7 +1225,7 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
             "Function2Handler": function2_handler,
             "FunctionRuntime": runtime,
         }
-        cmdlist = self.get_command_list(use_container=use_continer, parameter_overrides=overrides, cached=True)
+        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides, cached=True)
 
         LOG.info("Running Command: %s", cmdlist)
         # Built using `native` python-pip builder for a python project.
@@ -1116,9 +1233,10 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
 
         expected_messages = ["World", "Mars"]
 
-        self._verify_build_and_invoke_functions(
-            expected_messages, command_result, self._make_parameter_override_arg(overrides)
-        )
+        if not SKIP_DOCKER_TESTS:
+            self._verify_build_and_invoke_functions(
+                expected_messages, command_result, self._make_parameter_override_arg(overrides)
+            )
 
 
 @skipIf(
@@ -1150,17 +1268,20 @@ class TestParallelBuilds(DedupBuildIntegBase):
         ]
     )
     @pytest.mark.flaky(reruns=3)
-    def test_dedup_build(self, use_continer, code_uri, function1_handler, function2_handler, runtime):
+    def test_dedup_build(self, use_container, code_uri, function1_handler, function2_handler, runtime):
         """
         Build template above and verify that each function call returns as expected
         """
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         overrides = {
             "FunctionCodeUri": code_uri,
             "Function1Handler": function1_handler,
             "Function2Handler": function2_handler,
             "FunctionRuntime": runtime,
         }
-        cmdlist = self.get_command_list(use_container=use_continer, parameter_overrides=overrides, parallel=True)
+        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides, parallel=True)
 
         LOG.info("Running Command: %s", cmdlist)
         # Built using `native` python-pip builder for a python project.
@@ -1168,6 +1289,7 @@ class TestParallelBuilds(DedupBuildIntegBase):
 
         expected_messages = ["World", "Mars"]
 
-        self._verify_build_and_invoke_functions(
-            expected_messages, command_result, self._make_parameter_override_arg(overrides)
-        )
+        if not SKIP_DOCKER_TESTS:
+            self._verify_build_and_invoke_functions(
+                expected_messages, command_result, self._make_parameter_override_arg(overrides)
+            )

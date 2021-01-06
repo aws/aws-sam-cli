@@ -60,11 +60,10 @@ class TemplateWarningsChecker:
 
 
 class CodeDeployWarning(TemplateWarning):
-    WARNING_MESSAGE = """\
-Your template includes a deployment configuration that will create an additional unecessary CodeDeploy Service Role.
-By 9/25 the SAM service will no longer create this extra role, and any applications deployed after this date that 
-directly reference this role will produce an error as the role will be removed. For more information on this issue 
-and how to mitigate it, please read these docs[1]
+    WARNING_MESSAGE = """Your template includes a deployment configuration that will create an additional unecessary CodeDeploy Service Role.
+By 9/25 the SAM service will no longer create this extra role, and any applications deployed after this date that directly
+reference this role will produce an error as the role will be removed. For more information on this issue and how to
+mitigate it, please read these docs[1]
 
 [1] https://github.com/aws/aws-sam-cli/wiki/08-2020-codeploy-servicerole
     """
@@ -90,12 +89,10 @@ and how to mitigate it, please read these docs[1]
 
 
 class CodeDeployConditionWarning(TemplateWarning):
-    WARNING_MESSAGE = """\
-Your template includes a deployment configuration with a Condition attached to it. SAM currently has a bug that
+    WARNING_MESSAGE = """Your template includes a deployment configuration with a Condition attached to it. SAM currently has a bug that
 ignores conditions for DeploymentPreference, causing CodeDeploy DeploymentGroups to be created in error.
-After October 23, 2020 the SAM service will fix this bug, causing subsequent deployments to remove these CodeDeploy 
-DeploymentGroups if the attached Condition is false. For more information on this issue and how to mitigate it, 
-please read these docs[1]
+After October 23, 2020 the SAM service will fix this bug, causing subsequent deployments to remove these CodeDeploy DeploymentGroups
+if the attached Condition is false. For more information on this issue and how to mitigate it, please read these docs[1]
 
 [1] https://github.com/aws/aws-sam-cli/wiki/08-2020-codeploy-deploymentgroup-condition
     """

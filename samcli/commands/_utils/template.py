@@ -10,8 +10,15 @@ import yaml
 from botocore.utils import set_value_from_jmespath
 
 from samcli.commands.exceptions import UserException
+from samcli.lib.utils.packagetype import ZIP
 from samcli.yamlhelper import yaml_parse, yaml_dump
-from samcli.commands._utils.resources import METADATA_WITH_LOCAL_PATHS, RESOURCES_WITH_LOCAL_PATHS
+from samcli.commands._utils.resources import (
+    METADATA_WITH_LOCAL_PATHS,
+    RESOURCES_WITH_LOCAL_PATHS,
+    RESOURCES_WITH_IMAGE_COMPONENT,
+    AWS_SERVERLESS_FUNCTION,
+    AWS_LAMBDA_FUNCTION,
+)
 
 
 class TemplateNotFoundException(UserException):
@@ -240,3 +247,41 @@ def get_template_parameters(template_file):
     """
     template_dict = get_template_data(template_file=template_file)
     return template_dict.get("Parameters", dict())
+
+
+def get_template_artifacts_format(template_file):
+    """
+    Get a list of template artifact formats based on PackageType
+    :param template_file:
+    :return: list of artifact formats
+    """
+
+    template_dict = get_template_data(template_file=template_file)
+    return list(
+        {
+            resource_id: resource.get("Properties", {}).get("PackageType", ZIP)
+            for resource_id, resource in template_dict.get("Resources", {}).items()
+        }.values()
+    )
+
+
+def get_template_function_resource_ids(template_file, artifact):
+    """
+    Get a list of function logical ids from template file.
+    Function resource types include
+        AWS::Lambda::Function
+        AWS::Serverless::Function
+    :param template_file: template file location.
+    :param artifact: artifact of type IMAGE or ZIP
+    :return: list of artifact formats
+    """
+
+    template_dict = get_template_data(template_file=template_file)
+    _function_resource_ids = []
+    for resource_id, resource in template_dict.get("Resources", {}).items():
+        if resource.get("Properties", {}).get("PackageType", ZIP) == artifact and resource.get("Type") in [
+            AWS_SERVERLESS_FUNCTION,
+            AWS_LAMBDA_FUNCTION,
+        ]:
+            _function_resource_ids.append(resource_id)
+    return _function_resource_ids

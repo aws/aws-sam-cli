@@ -96,8 +96,7 @@ class UnsupportedBuilderException(Exception):
 
 def get_selector(selector_list, identifiers, specified_workflow=None):
     """
-    Determine the correct workflow selector from a list of selectors,
-    series of identifiers and user specified workflow if defined.
+    Determine the correct workflow selector from a list of selectors, series of identifiers and user specified workflow if defined.
 
     Parameters
     ----------
@@ -186,8 +185,8 @@ def get_workflow_config(runtime, code_dir, project_dir, specified_workflow=None)
 
     specified_workflow str
         Workflow to be used, if directly specified. They are currently scoped to "makefile" and the official runtime
-        identifier names themselves, eg: nodejs10.x. If a workflow is not directly specified,
-        it is calculated by the current method based on the runtime.
+        identifier names themselves, eg: nodejs10.x. If a workflow is not directly specified, it is calculated by the current method
+        based on the runtime.
 
     Returns
     -------
@@ -239,8 +238,8 @@ def get_workflow_config(runtime, code_dir, project_dir, specified_workflow=None)
         "provided.al2": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG),
     }
     # First check if the runtime is present and is buildable, if not raise an UnsupportedRuntimeException Error.
-    # If runtime is present it should be in selectors_by_runtime, however for layers there will be no runtime
-    # so in that case we move ahead and resolve to any matching workflow from both types.
+    # If runtime is present it should be in selectors_by_runtime, however for layers there will be no runtime so in that case
+    # we move ahead and resolve to any matching workflow from both types.
     if runtime and runtime not in selectors_by_runtime:
         raise UnsupportedRuntimeException("'{}' runtime is not supported".format(runtime))
 

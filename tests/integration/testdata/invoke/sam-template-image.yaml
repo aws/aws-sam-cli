@@ -1,0 +1,14 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: A hello world application.
+
+Resources:
+  HelloWorldFunctionInNonDefaultTemplate:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: sam-test-lambdaimage:v1
+      ImageConfig:
+        Command:
+          - main.handler
+      Timeout: 600

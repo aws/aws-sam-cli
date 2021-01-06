@@ -6,7 +6,7 @@ import os
 import json
 import base64
 import warnings
-from urllib.parse import quote as url_quote
+from requests.utils import quote as url_quote
 
 with warnings.catch_warnings():
     # https://github.com/aws/aws-sam-cli/issues/2381
