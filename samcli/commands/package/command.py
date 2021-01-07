@@ -41,8 +41,8 @@ HELP_TEXT = (
     """The SAM package command creates and uploads artifacts based on the package type of a given resource.
 It uploads local images to ECR for `Image` package types.
 It creates zip of your code and dependencies and uploads it to S3 for other package types.
-The command returns a copy of your template, replacing references to local artifacts with the AWS location where the command
-uploaded the artifacts.
+The command returns a copy of your template, replacing references to local artifacts
+with the AWS location where the command uploaded the artifacts.
 
 The following resources and their property locations are supported.
 """

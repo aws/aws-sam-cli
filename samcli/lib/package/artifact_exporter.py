@@ -17,14 +17,6 @@ Exporting resources defined in the cloudformation template to the cloud.
 # language governing permissions and limitations under the License.
 import os
 
-import platform
-import tempfile
-import zipfile
-import contextlib
-from contextlib import contextmanager
-import uuid
-from urllib.parse import urlparse, parse_qs
-import shutil
 from botocore.utils import set_value_from_jmespath
 
 from samcli.commands._utils.resources import (
@@ -45,7 +37,7 @@ from samcli.lib.utils.packagetype import ZIP
 from samcli.yamlhelper import yaml_parse, yaml_dump
 
 
-# NOTE: sriram-mv, A cyclic dependecy on `Template` needs to be broken.
+# NOTE: sriram-mv, A cyclic dependency on `Template` needs to be broken.
 
 
 class CloudFormationStackResource(ResourceZip):

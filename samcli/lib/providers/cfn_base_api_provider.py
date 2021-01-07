@@ -143,8 +143,8 @@ class CfnBaseApiProvider:
 
     def extract_cors_http(self, cors_prop):
         """
-        Extract Cors property from AWS::Serverless::HttpApi resource by reading and parsing Swagger documents. The result
-        is added to the HttpApi.
+        Extract Cors property from AWS::Serverless::HttpApi resource by reading and parsing Swagger documents.
+        The result is added to the HttpApi.
 
         Parameters
         ----------

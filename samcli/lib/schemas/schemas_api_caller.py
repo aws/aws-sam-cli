@@ -170,7 +170,8 @@ class SchemasApiCaller:
 
         except JSONDecodeError as ex:
             raise SchemasApiException(
-                "Parse error reading the content from Schemas response. This should not be possible, please raise an issue."
+                "Parse error reading the content from Schemas response. "
+                "This should not be possible, please raise an issue."
             ) from ex
 
     def download_source_code_binding(self, runtime, registry_name, schema_name, schema_version, download_location):
