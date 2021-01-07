@@ -39,8 +39,8 @@ class Container:
     _STDERR_FRAME_TYPE = 2
     RAPID_PORT_CONTAINER = "8080"
     URL = "http://localhost:{port}/2015-03-31/functions/{function_name}/invocations"
-    # NOTE(sriram-mv): 100ms Connection Timeout for http requests talking to `aws-lambda-rie` HTTP APIs
-    RAPID_CONNECTION_TIMEOUT = 0.1
+    # Set connection timeout to 1 sec to support the large input.
+    RAPID_CONNECTION_TIMEOUT = 1
 
     def __init__(
         self,

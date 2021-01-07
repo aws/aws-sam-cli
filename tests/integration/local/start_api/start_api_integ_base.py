@@ -1,4 +1,4 @@
-import signal
+from typing import Optional, Dict
 from unittest import TestCase, skipIf
 import threading
 from subprocess import Popen
@@ -12,10 +12,10 @@ from tests.testing_utils import SKIP_DOCKER_MESSAGE, SKIP_DOCKER_TESTS
 
 @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
 class StartApiIntegBaseClass(TestCase):
-    template = None
-    container_mode = None
-    parameter_overrides = None
-    binary_data_file = None
+    template: Optional[str] = None
+    container_mode: Optional[str] = None
+    parameter_overrides: Optional[Dict[str, str]] = None
+    binary_data_file: Optional[str] = None
     integration_dir = str(Path(__file__).resolve().parents[2])
 
     @classmethod
@@ -58,10 +58,7 @@ class StartApiIntegBaseClass(TestCase):
     @classmethod
     def tearDownClass(cls):
         # After all the tests run, we need to kill the start-api process.
-        if hasattr(signal, "CTRL_C_EVENT"):
-            cls.start_api_process.send_signal(signal.CTRL_C_EVENT)
-        else:
-            cls.start_api_process.send_signal(signal.SIGINT)
+        cls.start_api_process.kill()
 
     @staticmethod
     def random_port():

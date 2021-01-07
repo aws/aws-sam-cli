@@ -46,7 +46,6 @@ class LambdaRuntime_create(TestCase):
 
     @patch("samcli.local.lambdafn.runtime.LambdaContainer")
     def test_must_create_lambda_container(self, LambdaContainerMock):
-        event = "event"
         code_dir = "some code dir"
 
         container = Mock()
@@ -61,10 +60,7 @@ class LambdaRuntime_create(TestCase):
 
         LambdaContainerMock.return_value = container
 
-        self.runtime.create(self.func_config, debug_context=debug_options, event=event)
-
-        # Verify if Lambda Event data is set
-        self.env_vars.add_lambda_event_body.assert_called_with(event)
+        self.runtime.create(self.func_config, debug_context=debug_options)
 
         # Make sure env-vars get resolved
         self.env_vars.resolve.assert_called_with()
@@ -91,7 +87,6 @@ class LambdaRuntime_create(TestCase):
 
     @patch("samcli.local.lambdafn.runtime.LambdaContainer")
     def test_keyboard_interrupt_must_raise(self, LambdaContainerMock):
-        event = "event"
         code_dir = "some code dir"
 
         container = Mock()
@@ -109,7 +104,7 @@ class LambdaRuntime_create(TestCase):
         self.manager_mock.create.side_effect = KeyboardInterrupt("some exception")
 
         with self.assertRaises(KeyboardInterrupt):
-            self.runtime.create(self.func_config, debug_context=debug_options, event=event)
+            self.runtime.create(self.func_config, debug_context=debug_options)
 
 
 class LambdaRuntime_run(TestCase):
@@ -144,7 +139,6 @@ class LambdaRuntime_run(TestCase):
         self.env_vars.resolve.return_value = self.env_var_value
 
     def test_must_run_passed_container(self):
-        event = "event"
         container = Mock()
         container.is_running.return_value = False
         debug_options = Mock()
@@ -152,11 +146,10 @@ class LambdaRuntime_run(TestCase):
 
         self.runtime = LambdaRuntime(self.manager_mock, lambda_image_mock)
 
-        self.runtime.run(container, self.func_config, debug_context=debug_options, event=event)
+        self.runtime.run(container, self.func_config, debug_context=debug_options)
         self.manager_mock.run.assert_called_with(container)
 
     def test_must_create_container_first_if_passed_container_is_none(self):
-        event = "event"
         container = Mock()
         container.is_running.return_value = False
         debug_options = Mock()
@@ -167,12 +160,11 @@ class LambdaRuntime_run(TestCase):
         self.runtime.create = create_mock
         create_mock.return_value = container
 
-        self.runtime.run(None, self.func_config, debug_context=debug_options, event=event)
-        create_mock.assert_called_with(self.func_config, debug_options, event)
+        self.runtime.run(None, self.func_config, debug_context=debug_options)
+        create_mock.assert_called_with(self.func_config, debug_options)
         self.manager_mock.run.assert_called_with(container)
 
     def test_must_skip_run_running_container(self):
-        event = "event"
         container = Mock()
         container.is_running.return_value = True
         debug_options = Mock()
@@ -180,11 +172,10 @@ class LambdaRuntime_run(TestCase):
 
         self.runtime = LambdaRuntime(self.manager_mock, lambda_image_mock)
 
-        self.runtime.run(container, self.func_config, debug_context=debug_options, event=event)
+        self.runtime.run(container, self.func_config, debug_context=debug_options)
         self.manager_mock.run.assert_not_called()
 
     def test_keyboard_interrupt_must_raise(self):
-        event = "event"
         container = Mock()
         container.is_running.return_value = False
         debug_options = Mock()
@@ -195,7 +186,7 @@ class LambdaRuntime_run(TestCase):
         self.manager_mock.run.side_effect = KeyboardInterrupt("some exception")
 
         with self.assertRaises(KeyboardInterrupt):
-            self.runtime.run(container, self.func_config, debug_context=debug_options, event=event)
+            self.runtime.run(container, self.func_config, debug_context=debug_options)
 
 
 class LambdaRuntime_invoke(TestCase):
@@ -258,9 +249,6 @@ class LambdaRuntime_invoke(TestCase):
         container.is_running.return_value = False
 
         self.runtime.invoke(self.func_config, event, debug_context=debug_options, stdout=stdout, stderr=stderr)
-
-        # Verify if Lambda Event data is set
-        self.env_vars.add_lambda_event_body.assert_called_with(event)
 
         # Make sure env-vars get resolved
         self.env_vars.resolve.assert_called_with()
