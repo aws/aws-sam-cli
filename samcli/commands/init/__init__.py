@@ -149,7 +149,8 @@ class PackageType:
 @click.option("-n", "--name", help="Name of your project to be generated as a folder")
 @click.option(
     "--app-template",
-    help="Identifier of the managed application template you want to use. If not sure, call 'sam init' without options for an interactive workflow.",
+    help="Identifier of the managed application template you want to use. "
+    "If not sure, call 'sam init' without options for an interactive workflow.",
     cls=Mutex,
     not_required=["location", "base_image"],
 )
@@ -242,7 +243,8 @@ def do_cli(
                 app_template = options[0].get("appTemplate")
             elif len(options) > 1:
                 raise LambdaImagesTemplateException(
-                    "Multiple lambda image application templates found. This should not be possible, please raise an issue."
+                    "Multiple lambda image application templates found. "
+                    "This should not be possible, please raise an issue."
                 )
 
         if app_template and not location:
@@ -277,8 +279,8 @@ def _deprecate_notification(runtime):
     deprecated_runtimes = {"dotnetcore1.0", "dotnetcore2.0"}
     if runtime in deprecated_runtimes:
         message = (
-            f"WARNING: {runtime} is no longer supported by AWS Lambda, please update to a newer supported runtime. SAM CLI "
-            f"will drop support for all deprecated runtimes {deprecated_runtimes} on May 1st. "
+            f"WARNING: {runtime} is no longer supported by AWS Lambda, please update to a newer supported runtime. "
+            f"SAM CLI will drop support for all deprecated runtimes {deprecated_runtimes} on May 1st. "
             f"See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
         )
         LOG.warning(Colored().yellow(message))
