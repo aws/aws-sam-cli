@@ -3,6 +3,7 @@ Class that provides nested applications from a given SAM template
 """
 import logging
 from typing import NamedTuple, Optional, Any
+from urllib.parse import unquote, urlparse
 
 from samcli.lib.utils.colors import Colored
 from .sam_base_provider import SamBaseProvider
@@ -103,7 +104,14 @@ class SamApplicationProvider(SamBaseProvider):
             if resource_metadata:
                 resource_properties["Metadata"] = resource_metadata
 
-            if resource_type == SamApplicationProvider.SERVERLESS_APPLICATION:
+            if resource_type == SamApplicationProvider.SERVERLESS_APPLICATION and not resource_properties.get(
+                "Location"
+            ).startswith("s3://"):
+                result[name] = SamApplicationProvider._convert_sam_application_resource(name, resource_properties)
+
+            if resource_type == SamApplicationProvider.CLOUDFORMATION_STACK and resource_properties.get(
+                "TemplateURL"
+            ).startswith("file://"):
                 result[name] = SamApplicationProvider._convert_sam_application_resource(name, resource_properties)
 
             # We don't care about other resource types. Just ignore them
@@ -112,6 +120,12 @@ class SamApplicationProvider(SamBaseProvider):
 
     @staticmethod
     def _convert_sam_application_resource(name, resource_properties):
-        return Application(
-            name=name, location=resource_properties.get("Location"), parameters=resource_properties.get("Parameters")
-        )
+        location = resource_properties.get("Location")
+        if location.startswith("file://"):
+            location = unquote(urlparse(location).path)
+        return Application(name=name, location=location, parameters=resource_properties.get("Parameters"))
+
+    @staticmethod
+    def _convert_cfn_stack_resource(name, resource_properties):
+        location = unquote(urlparse(resource_properties.get("TemplateURL")).path)
+        return Application(name=name, location=location, parameters=resource_properties.get("Parameters"))

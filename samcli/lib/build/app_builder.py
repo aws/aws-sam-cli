@@ -196,7 +196,10 @@ class ApplicationBuilder:
 
         for logical_id, resource in template_dict.get("Resources", {}).items():
 
-            if logical_id not in built_artifacts and resource.get("Type") != SamBaseProvider.SERVERLESS_APPLICATION:
+            if logical_id not in built_artifacts and resource.get("Type") not in {
+                SamBaseProvider.SERVERLESS_APPLICATION,
+                SamBaseProvider.CLOUDFORMATION_STACK,
+            }:
                 # this resource was not built. So skip it
                 continue
 
@@ -237,6 +240,8 @@ class ApplicationBuilder:
             # nested application
             if resource_type == SamBaseProvider.SERVERLESS_APPLICATION:
                 properties["Location"] = store_path
+            if resource_type == SamBaseProvider.CLOUDFORMATION_STACK:
+                properties["TemplateURL"] = store_path
 
         return template_dict
 

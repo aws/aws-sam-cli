@@ -4,6 +4,7 @@ Base class for SAM Template providers
 
 import logging
 
+from samcli.commands._utils.resources import AWS_CLOUDFORMATION_STACK, AWS_SERVERLESS_APPLICATION
 from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
@@ -21,7 +22,8 @@ class SamBaseProvider:
     LAMBDA_FUNCTION = "AWS::Lambda::Function"
     SERVERLESS_LAYER = "AWS::Serverless::LayerVersion"
     LAMBDA_LAYER = "AWS::Lambda::LayerVersion"
-    SERVERLESS_APPLICATION = "AWS::Serverless::Application"
+    SERVERLESS_APPLICATION = AWS_SERVERLESS_APPLICATION
+    CLOUDFORMATION_STACK = AWS_CLOUDFORMATION_STACK
     DEFAULT_CODEURI = "."
 
     def get(self, name):
