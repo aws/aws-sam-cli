@@ -9,7 +9,6 @@ from click.types import FuncParamType
 from click import prompt
 from click import confirm
 
-from samcli.cli.types import ImageRepositoryType
 from samcli.commands._utils.options import _space_separated_list_func_type
 from samcli.commands._utils.template import (
     get_template_parameters,

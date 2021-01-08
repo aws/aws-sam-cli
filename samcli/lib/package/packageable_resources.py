@@ -38,13 +38,11 @@ from samcli.commands._utils.resources import (
     AWS_SERVERLESS_LAYERVERSION,
     AWS_GLUE_JOB,
     AWS_STEPFUNCTIONS_STATEMACHINE,
-)
-
-from samcli.commands._utils.template import (
     METADATA_WITH_LOCAL_PATHS,
     RESOURCES_WITH_LOCAL_PATHS,
     RESOURCES_WITH_IMAGE_COMPONENT,
 )
+
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 LOG = logging.getLogger(__name__)
@@ -84,10 +82,6 @@ class ResourceZip(Resource):
     FORCE_ZIP = False
     ARTIFACT_TYPE = ZIP
     EXPORT_DESTINATION = "s3"
-
-    def __init__(self, uploader, code_signer):
-        self.uploader = uploader
-        self.code_signer = code_signer
 
     def export(self, resource_id, resource_dict, parent_dir):
         if resource_dict is None:
@@ -157,10 +151,6 @@ class ResourceImageDict(Resource):
     EXPORT_DESTINATION = "ecr"
     EXPORT_PROPERTY_CODE_KEY = "ImageUri"
 
-    def __init__(self, uploader, code_signer):
-        self.uploader = uploader
-        self.code_signer = code_signer
-
     def export(self, resource_id, resource_dict, parent_dir):
         if resource_dict is None:
             return
@@ -202,10 +192,6 @@ class ResourceImage(Resource):
     FORCE_ZIP = False
     ARTIFACT_TYPE: Optional[str] = IMAGE
     EXPORT_DESTINATION = "ecr"
-
-    def __init__(self, uploader, code_signer):
-        self.uploader = uploader
-        self.code_signer = code_signer
 
     def export(self, resource_id, resource_dict, parent_dir):
         if resource_dict is None:
