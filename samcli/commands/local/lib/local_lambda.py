@@ -6,7 +6,6 @@ import os
 import logging
 import boto3
 
-from samcli.commands.local.cli_common.user_exceptions import InvokeContextException
 from samcli.lib.utils.codeuri import resolve_code_path
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.local.docker.container import ContainerResponseException
@@ -116,7 +115,8 @@ class LocalLambdaRunner:
             # pylint: disable=no-member
             if hasattr(os_error, "winerror") and os_error.winerror == 1314:
                 raise NoPrivilegeException(
-                    "Administrator, Windows Developer Mode, or SeCreateSymbolicLinkPrivilege is required to create symbolic link for files: {}, {}".format(
+                    "Administrator, Windows Developer Mode, "
+                    "or SeCreateSymbolicLinkPrivilege is required to create symbolic link for files: {}, {}".format(
                         os_error.filename, os_error.filename2
                     )
                 ) from os_error

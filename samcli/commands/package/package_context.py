@@ -22,7 +22,6 @@ import os
 import boto3
 import click
 import docker
-from botocore.config import Config
 
 from samcli.commands.package.exceptions import PackageFailedError
 from samcli.lib.package.artifact_exporter import Template

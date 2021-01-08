@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 from unittest import TestCase, skipIf
 from pathlib import Path
 from subprocess import Popen, PIPE, TimeoutExpired
@@ -10,7 +11,7 @@ TIMEOUT = 300
 
 @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
 class InvokeIntegBase(TestCase):
-    template = None
+    template: Optional[Path] = None
 
     @classmethod
     def setUpClass(cls):

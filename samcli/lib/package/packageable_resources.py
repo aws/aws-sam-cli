@@ -4,6 +4,7 @@ Code for all Package-able resources
 import logging
 import os
 import shutil
+from typing import Optional
 
 import jmespath
 from botocore.utils import set_value_from_jmespath
@@ -37,27 +38,25 @@ from samcli.commands._utils.resources import (
     AWS_SERVERLESS_LAYERVERSION,
     AWS_GLUE_JOB,
     AWS_STEPFUNCTIONS_STATEMACHINE,
-)
-
-from samcli.commands._utils.template import (
     METADATA_WITH_LOCAL_PATHS,
     RESOURCES_WITH_LOCAL_PATHS,
     RESOURCES_WITH_IMAGE_COMPONENT,
 )
+
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 LOG = logging.getLogger(__name__)
 
 
 class Resource:
-    RESOURCE_TYPE = None
-    PROPERTY_NAME = None
+    RESOURCE_TYPE: Optional[str] = None
+    PROPERTY_NAME: Optional[str] = None
     PACKAGE_NULL_PROPERTY = True
     # Set this property to True in base class if you want the exporter to zip
     # up the file before uploading This is useful for Lambda functions.
     FORCE_ZIP = False
-    EXPORT_DESTINATION = None
-    ARTIFACT_TYPE = None
+    EXPORT_DESTINATION: Optional[str] = None
+    ARTIFACT_TYPE: Optional[str] = None
 
     def __init__(self, uploader, code_signer):
         self.uploader = uploader
@@ -75,18 +74,14 @@ class ResourceZip(Resource):
     Base class representing a CloudFormation resource that can be exported
     """
 
-    RESOURCE_TYPE = None
-    PROPERTY_NAME = None
+    RESOURCE_TYPE: Optional[str] = None
+    PROPERTY_NAME: Optional[str] = None
     PACKAGE_NULL_PROPERTY = True
     # Set this property to True in base class if you want the exporter to zip
     # up the file before uploading This is useful for Lambda functions.
     FORCE_ZIP = False
     ARTIFACT_TYPE = ZIP
     EXPORT_DESTINATION = "s3"
-
-    def __init__(self, uploader, code_signer):
-        self.uploader = uploader
-        self.code_signer = code_signer
 
     def export(self, resource_id, resource_dict, parent_dir):
         if resource_dict is None:
@@ -149,16 +144,12 @@ class ResourceImageDict(Resource):
     Base class representing a CFN Image based resource that can be exported.
     """
 
-    RESOURCE_TYPE = None
-    PROPERTY_NAME = None
+    RESOURCE_TYPE: Optional[str] = None
+    PROPERTY_NAME: Optional[str] = None
     FORCE_ZIP = False
     ARTIFACT_TYPE = IMAGE
     EXPORT_DESTINATION = "ecr"
     EXPORT_PROPERTY_CODE_KEY = "ImageUri"
-
-    def __init__(self, uploader, code_signer):
-        self.uploader = uploader
-        self.code_signer = code_signer
 
     def export(self, resource_id, resource_dict, parent_dir):
         if resource_dict is None:
@@ -196,15 +187,11 @@ class ResourceImage(Resource):
     Base class representing a SAM Image based resource that can be exported.
     """
 
-    RESOURCE_TYPE = None
-    PROPERTY_NAME = None
+    RESOURCE_TYPE: Optional[str] = None
+    PROPERTY_NAME: Optional[str] = None
     FORCE_ZIP = False
-    ARTIFACT_TYPE = IMAGE
+    ARTIFACT_TYPE: Optional[str] = IMAGE
     EXPORT_DESTINATION = "ecr"
-
-    def __init__(self, uploader, code_signer):
-        self.uploader = uploader
-        self.code_signer = code_signer
 
     def export(self, resource_id, resource_dict, parent_dir):
         if resource_dict is None:
@@ -242,9 +229,9 @@ class ResourceWithS3UrlDict(ResourceZip):
     an dict like {Bucket: "", Key: "", Version: ""}
     """
 
-    BUCKET_NAME_PROPERTY = None
-    OBJECT_KEY_PROPERTY = None
-    VERSION_PROPERTY = None
+    BUCKET_NAME_PROPERTY: Optional[str] = None
+    OBJECT_KEY_PROPERTY: Optional[str] = None
+    VERSION_PROPERTY: Optional[str] = None
     ARTIFACT_TYPE = ZIP
     EXPORT_DESTINATION = "s3"
 
