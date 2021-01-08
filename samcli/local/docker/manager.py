@@ -122,7 +122,6 @@ class ContainerManager:
         :param samcli.local.docker.container.Container container: Container to stop
         """
         if self.do_shutdown_event:
-            print("DO SHUTDOWN EVENT NOW")
             container.stop()
         container.delete()
 
