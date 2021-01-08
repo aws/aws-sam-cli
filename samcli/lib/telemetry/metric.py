@@ -187,7 +187,9 @@ def _parse_attr(obj, name):
     """
     Get attribute from an object.
     @param obj Object
-    @param name Attribute name to get from the object. Can be nested with "." in between. For example: config.random_field.value
+    @param name Attribute name to get from the object.
+        Can be nested with "." in between.
+        For example: config.random_field.value
     """
     return reduce(getattr, name.split("."), obj)
 
@@ -198,9 +200,12 @@ def capture_parameter(metric_name, key, parameter_identifier, parameter_nested_i
 
     :param metric_name Name of the metric
     :param key Key for storing the captured parameter
-    :param parameter_identifier Either a string for named parameter or int for positional parameter. "self" can be accessed with 0.
-    :param parameter_nested_identifier If specified, the attribute pointed by this parameter will be stored instead. Can be in nested format such as config.random_field.value.
-    :param as_list Default to False. Setting to True will append the captured parameter into a list instead of overriding the previous one.
+    :param parameter_identifier Either a string for named parameter or int for positional parameter.
+        "self" can be accessed with 0.
+    :param parameter_nested_identifier If specified, the attribute pointed by this parameter will be stored instead.
+        Can be in nested format such as config.random_field.value.
+    :param as_list Default to False. Setting to True will append the captured parameter into
+        a list instead of overriding the previous one.
     """
 
     def wrap(func):
@@ -234,7 +239,8 @@ def capture_return_value(metric_name, key, as_list=False):
 
     :param metric_name Name of the metric
     :param key Key for storing the captured parameter
-    :param as_list Default to False. Setting to True will append the captured parameter into a list instead of overriding the previous one.
+    :param as_list Default to False. Setting to True will append the captured parameter into
+        a list instead of overriding the previous one.
     """
 
     def wrap(func):
