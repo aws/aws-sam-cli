@@ -97,7 +97,8 @@ class Events:
 
         return transformed
 
-    def encode(self, encoding_scheme, val):
+    @staticmethod
+    def encode(encoding_scheme, val):
         """
         encodes a given val with given encoding scheme
 
@@ -122,7 +123,8 @@ class Events:
         # returns original val if encoding_scheme not recognized
         return val
 
-    def hash(self, hashing_scheme, val):
+    @staticmethod
+    def hash(hashing_scheme, val):
         """
         hashes a given val using given hashing_scheme
 

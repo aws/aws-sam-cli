@@ -332,7 +332,8 @@ class GuidedContext:
                 signing_profiles=self.signing_profiles,
             )
 
-    def _get_parameter_value(self, parameter_key, parameter_properties, parameter_override_from_cmdline):
+    @staticmethod
+    def _get_parameter_value(parameter_key, parameter_properties, parameter_override_from_cmdline):
         """
         This function provide the value of a parameter. If the command line/config file have "override_parameter"
         whose key exist in the template file parameters, it will use the corresponding value.

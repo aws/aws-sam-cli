@@ -11,7 +11,7 @@ class TemplateWarning:
     Top level class which all warnings should extend from.
     """
 
-    def check(self, template_dict):
+    def check(self, template_dict):  # pylint: disable=no-self-use
         raise Exception("NotImplementedException")
 
 
@@ -115,10 +115,12 @@ please read these docs[1]
                 return (True, self.WARNING_MESSAGE)
         return (False, "")
 
-    def _have_condition(self, function):
+    @staticmethod
+    def _have_condition(function):
         condition = function.get("Condition", None)
         return condition is not None
 
-    def _have_deployment_preferences(self, function):
+    @staticmethod
+    def _have_deployment_preferences(function):
         deployment_preference = function.get("Properties", {}).get("DeploymentPreference", None)
         return deployment_preference is not None

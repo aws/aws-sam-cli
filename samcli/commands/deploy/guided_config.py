@@ -105,5 +105,6 @@ class GuidedConfig:
             _image_repositories = [f"{key}={value}" for key, value in image_repositories.items()]
             samconfig.put(cmd_names, self.section, "image_repositories", _image_repositories, env=config_env)
 
-    def quote_parameter_values(self, parameter_value):
+    @staticmethod
+    def quote_parameter_values(parameter_value):
         return '"{}"'.format(parameter_value)

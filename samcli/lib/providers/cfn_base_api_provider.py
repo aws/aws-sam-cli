@@ -35,7 +35,8 @@ class CfnBaseApiProvider:
         """
         raise NotImplementedError("not implemented")
 
-    def extract_swagger_route(self, logical_id, body, uri, binary_media, collector, cwd=None, event_type=Route.API):
+    @staticmethod
+    def extract_swagger_route(logical_id, body, uri, binary_media, collector, cwd=None, event_type=Route.API):
         """
         Parse the Swagger documents and adds it to the ApiCollector.
 

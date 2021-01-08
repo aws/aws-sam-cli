@@ -177,8 +177,9 @@ class EventTypeSubCommand(click.MultiCommand):
         """
         return sorted(self.subcmd_definition.keys())
 
+    @staticmethod
     @track_command
-    def cmd_implementation(self, events_lib, top_level_cmd_name, subcmd_name, *args, **kwargs):
+    def cmd_implementation(events_lib, top_level_cmd_name, subcmd_name, *args, **kwargs):
         """
         calls for value substitution in the event json and returns the
         customized json as a string

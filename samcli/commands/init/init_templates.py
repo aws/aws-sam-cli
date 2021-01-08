@@ -83,7 +83,8 @@ class InitTemplates:
             msg = "Can't find application template " + app_template + " - check valid values in interactive init."
             raise InvalidInitTemplateError(msg) from ex
 
-    def _check_app_template(self, entry, app_template):
+    @staticmethod
+    def _check_app_template(entry, app_template):
         return entry["appTemplate"] == app_template
 
     def init_options(self, package_type, runtime, base_image, dependency_manager):
@@ -113,7 +114,8 @@ class InitTemplates:
                 return list(templates_by_dep)
             return list(templates)
 
-    def _init_options_from_bundle(self, package_type, runtime, dependency_manager):
+    @staticmethod
+    def _init_options_from_bundle(package_type, runtime, dependency_manager):
         for mapping in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values()))):
             if runtime in mapping["runtimes"] or any([r.startswith(runtime) for r in mapping["runtimes"]]):
                 if not dependency_manager or dependency_manager == mapping["dependency_manager"]:
@@ -128,7 +130,8 @@ class InitTemplates:
         )
         raise InvalidInitTemplateError(msg)
 
-    def _shared_dir_check(self, shared_dir):
+    @staticmethod
+    def _shared_dir_check(shared_dir):
         try:
             shared_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
             return True
@@ -174,7 +177,8 @@ class InitTemplates:
                 if "not found" in output.lower():
                     click.echo("WARN: Could not clone app template repo.")
 
-    def _replace_app_templates(self, temp_path, dest_path):
+    @staticmethod
+    def _replace_app_templates(temp_path, dest_path):
         try:
             LOG.debug("Removing old templates from %s", str(dest_path))
             shutil.rmtree(dest_path, onerror=rmtree_callback)
@@ -208,11 +212,13 @@ class InitTemplates:
                 if "not found" in output.lower():
                     click.echo("WARN: Could not clone app template repo.")
 
-    def _template_directory_exists(self, expected_path):
+    @staticmethod
+    def _template_directory_exists(expected_path):
         path = Path(expected_path)
         return path.exists()
 
-    def _git_executable(self):
+    @staticmethod
+    def _git_executable():
         execname = "git"
         if platform.system().lower() == "windows":
             options = [execname, "{}.cmd".format(execname), "{}.exe".format(execname), "{}.bat".format(execname)]

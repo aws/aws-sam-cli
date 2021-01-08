@@ -113,7 +113,8 @@ class ContainerManager:
 
         container.start(input_data=input_data)
 
-    def stop(self, container):
+    @staticmethod
+    def stop(container):
         """
         Stop and delete the container
 
@@ -181,7 +182,8 @@ class ContainerManager:
         except docker.errors.ImageNotFound:
             return False
 
-    def _is_rapid_image(self, image_name):
+    @staticmethod
+    def _is_rapid_image(image_name):
         """
         Is the image tagged as a RAPID clone?
 

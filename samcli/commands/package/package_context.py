@@ -139,7 +139,8 @@ class PackageContext:
 
         return exported_str
 
-    def write_output(self, output_file_name, data):
+    @staticmethod
+    def write_output(output_file_name, data):
         if output_file_name is None:
             click.echo(data)
             return

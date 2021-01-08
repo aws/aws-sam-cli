@@ -189,7 +189,8 @@ class SamConfig:
     def _version(self):
         return self.document.get(VERSION_KEY, None)
 
-    def _version_sanity_check(self, version):
+    @staticmethod
+    def _version_sanity_check(version):
         if not isinstance(version, float):
             raise SamConfigVersionException(f"'{VERSION_KEY}' key is not present or is in unrecognized format. ")
 

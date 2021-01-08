@@ -186,7 +186,8 @@ class GlobalConfig:
             return cfg_value
         return self._set_value(key, str(uuid.uuid4()))
 
-    def _set_json_cfg(self, filepath, key, value, json_body=None):
+    @staticmethod
+    def _set_json_cfg(filepath, key, value, json_body=None):
         """
         Special logic method to add a value to a JSON configuration file. This
         method will write a new version of the file in question, so it will

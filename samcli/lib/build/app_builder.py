@@ -172,7 +172,8 @@ class ApplicationBuilder:
         build_graph.clean_redundant_definitions_and_update(not self._is_building_specific_resource)
         return build_graph
 
-    def update_template(self, template_dict, original_template_path, built_artifacts):
+    @staticmethod
+    def update_template(template_dict, original_template_path, built_artifacts):
         """
         Given the path to built artifacts, update the template to point appropriate resource CodeUris to the artifacts
         folder
