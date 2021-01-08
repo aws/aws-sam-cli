@@ -71,7 +71,8 @@ $ sam build MyFunction
     "-b",
     default=DEFAULT_BUILD_DIR,
     type=click.Path(file_okay=False, dir_okay=True, writable=True),  # Must be a directory
-    help="Path to a folder where the built artifacts will be stored. This directory will be first removed before starting a build.",
+    help="Path to a folder where the built artifacts will be stored. "
+    "This directory will be first removed before starting a build.",
 )
 @click.option(
     "--cache-dir",

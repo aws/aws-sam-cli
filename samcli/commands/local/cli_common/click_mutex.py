@@ -41,7 +41,7 @@ You can run 'sam init' without any options for an interactive initialization flo
                     if mutex_opt in opts:
                         req_cnt -= 1
 
-                if req_cnt == 0:
+                if not req_cnt:
                     req_flag = False
 
             if current_opt and req_flag:
