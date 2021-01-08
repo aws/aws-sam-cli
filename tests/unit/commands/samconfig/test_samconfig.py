@@ -165,6 +165,7 @@ class TestSamConfigForAllCommands(TestCase):
             "layer_cache_basedir": "basedir",
             "skip_pull_image": True,
             "force_image_build": True,
+            "shutdown": True,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
         }
 
@@ -200,6 +201,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "basedir",
                 True,
                 True,
+                True,
                 {"Key": "Value", "Key2": "Value2"},
             )
 
@@ -222,6 +224,7 @@ class TestSamConfigForAllCommands(TestCase):
             "layer_cache_basedir": "basedir",
             "skip_pull_image": True,
             "force_image_build": True,
+            "shutdown": False,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
         }
 
@@ -259,6 +262,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 {"Key": "Value", "Key2": "Value2"},
                 None,
+                False,
                 None,
             )
 
@@ -280,6 +284,7 @@ class TestSamConfigForAllCommands(TestCase):
             "layer_cache_basedir": "basedir",
             "skip_pull_image": True,
             "force_image_build": True,
+            "shutdown": False,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value",
         }
 
@@ -316,6 +321,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 {"Key": "Value"},
                 None,
+                False,
                 None,
             )
 
@@ -687,6 +693,7 @@ class TestSamConfigWithOverrides(TestCase):
             "layer_cache_basedir": "basedir",
             "skip_pull_image": True,
             "force_image_build": True,
+            "shutdown": False,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value",
         }
 
@@ -730,6 +737,7 @@ class TestSamConfigWithOverrides(TestCase):
                     "otherbasedir",
                     "--skip-pull-image",
                     "--force-image-build",
+                    "--shutdown",
                     "--parameter-overrides",
                     "A=123 C=D E=F12! G=H",
                 ],
@@ -759,6 +767,7 @@ class TestSamConfigWithOverrides(TestCase):
                 True,
                 {"A": "123", "C": "D", "E": "F12!", "G": "H"},
                 None,
+                True,
                 None,
             )
 
@@ -780,6 +789,7 @@ class TestSamConfigWithOverrides(TestCase):
             "layer_cache_basedir": "basedir",
             "skip_pull_image": True,
             "force_image_build": False,
+            "shutdown": False,
         }
 
         # NOTE: Because we don't load the full Click BaseCommand here, this is mounted as top-level command
@@ -848,6 +858,7 @@ class TestSamConfigWithOverrides(TestCase):
                 True,
                 {"A": "123", "C": "D", "E": "F12!", "G": "H"},
                 None,
+                False,
                 None,
             )
 
