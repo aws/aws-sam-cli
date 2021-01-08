@@ -4,6 +4,9 @@ CLI command for "build" command
 
 import os
 import logging
+from textwrap import indent
+from typing import Iterable, NamedTuple
+
 import click
 
 from samcli.commands._utils.options import (
@@ -17,6 +20,13 @@ from samcli.lib.build.exceptions import BuildInsideContainerError
 from samcli.lib.providers.sam_application_provider import SamApplicationProvider
 from samcli.lib.telemetry.metrics import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
+
+
+class BuildOutput(NamedTuple):
+    application_name: str
+    artifact_path: str
+    template_path: str
+    children: Iterable["BuildOutput"]
 
 
 LOG = logging.getLogger(__name__)
@@ -199,7 +209,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     if use_container:
         LOG.info("Starting Build inside a container")
 
-    build_application_recursively(
+    build_output = build_application_recursively(
         function_identifier,
         template,
         base_dir,
@@ -215,6 +225,14 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         parameter_overrides,
         mode,
     )
+    click.secho("\nBuild Succeeded", fg="green")
+
+    msg = gen_success_msg(
+        build_output,
+        os.path.abspath(build_dir) == os.path.abspath(DEFAULT_BUILD_DIR),
+    )
+
+    click.secho(msg, fg="yellow")
 
 
 def build_application_recursively(
@@ -232,7 +250,8 @@ def build_application_recursively(
     skip_pull_image,
     parameter_overrides,
     mode,
-):
+    application_name="Main",
+) -> BuildOutput:
     from samcli.commands.exceptions import UserException
 
     from samcli.commands.build.build_context import BuildContext
@@ -286,8 +305,6 @@ def build_application_recursively(
 
             move_template(ctx.original_template_path, ctx.output_template_path, modified_template)
 
-            click.secho("\nBuild Succeeded", fg="green")
-
             # try to use relpath so the command is easier to understand, however,
             # under Windows, when SAM and (build_dir or output_template_path) are
             # on different drive, relpath() fails.
@@ -298,14 +315,6 @@ def build_application_recursively(
                 LOG.debug("Failed to retrieve relpath - using the specified path as-is instead")
                 build_dir_in_success_message = ctx.build_dir
                 output_template_path_in_success_message = ctx.output_template_path
-
-            msg = gen_success_msg(
-                build_dir_in_success_message,
-                output_template_path_in_success_message,
-                os.path.abspath(ctx.build_dir) == os.path.abspath(DEFAULT_BUILD_DIR),
-            )
-
-            click.secho(msg, fg="yellow")
 
         except (
             UnsupportedRuntimeException,
@@ -326,13 +335,14 @@ def build_application_recursively(
     LOG.debug(f"Build children of {template}")
     template_dict = get_template_data(template)
     application_provider = SamApplicationProvider(template_dict)
-    for application in application_provider.get_all():
-        build_application_recursively(
+    child_build_outputs = []
+    for child_application in application_provider.get_all():
+        child_build_output = build_application_recursively(
             function_identifier,
-            application.location,
+            child_application.location,
             base_dir,
-            build_dir + "/" + application.name,
-            cache_dir + "/" + application.name,
+            build_dir + "/" + child_application.name,
+            cache_dir + "/" + child_application.name,
             clean,
             use_container,
             cached,
@@ -340,30 +350,55 @@ def build_application_recursively(
             manifest_path,
             docker_network,
             skip_pull_image,
-            application.parameters,  # TODO: resolve parameters
+            child_application.parameters,  # TODO: resolve parameters
             mode,
+            child_application.name,
         )
+        child_build_outputs.append(child_build_output)
+    return BuildOutput(
+        application_name, build_dir_in_success_message, output_template_path_in_success_message, child_build_outputs
+    )
 
 
-def gen_success_msg(artifacts_dir, output_template_path, is_default_build_dir):
+def gen_build_output_summary(build_output: BuildOutput, indent_level=0) -> str:
+    output_summary = """- {application_name}
+  Build Artifacts  : {artifacts_dir}
+  Built Template   : {template}""".format(
+        application_name=build_output.application_name,
+        artifacts_dir=build_output.artifact_path,
+        template=build_output.template_path,
+    )
+    if build_output.children:
+        output_summary += "\n  Nested:\n"
+    output_summary = indent(output_summary, "  " * indent_level)
+    for child_build_output in build_output.children:
+        output_summary += gen_build_output_summary(child_build_output, indent_level + 1)
+
+    return output_summary
+
+
+def gen_success_msg(build_output: BuildOutput, is_default_build_dir: bool):
 
     invoke_cmd = "sam local invoke"
     if not is_default_build_dir:
-        invoke_cmd += " -t {}".format(output_template_path)
+        invoke_cmd += " -t {}".format(build_output.template_path)
 
     deploy_cmd = "sam deploy --guided"
     if not is_default_build_dir:
-        deploy_cmd += " --template-file {}".format(output_template_path)
+        deploy_cmd += " --template-file {}".format(build_output.template_path)
 
-    msg = """\nBuilt Artifacts  : {artifacts_dir}
-Built Template   : {template}
+    msg = """\n{build_summary}
 
 Commands you can use next
 =========================
 [*] Invoke Function: {invokecmd}
 [*] Deploy: {deploycmd}
     """.format(
-        invokecmd=invoke_cmd, deploycmd=deploy_cmd, artifacts_dir=artifacts_dir, template=output_template_path
+        build_summary=gen_build_output_summary(build_output),
+        invokecmd=invoke_cmd,
+        deploycmd=deploy_cmd,
+        artifacts_dir=build_output.artifact_path,
+        template=build_output.template_path,
     )
 
     return msg
