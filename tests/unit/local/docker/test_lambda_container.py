@@ -14,7 +14,6 @@ from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
 RUNTIMES_WITH_ENTRYPOINT = [
     Runtime.dotnetcore21.value,
     Runtime.dotnetcore31.value,
-    Runtime.dotnet5.value,
     Runtime.go1x.value,
 ]
 
@@ -33,7 +32,6 @@ RUNTIMES_WITH_DEBUG_ENV_VARS_ONLY = [
     Runtime.java8al2.value,
     Runtime.dotnetcore21.value,
     Runtime.dotnetcore31.value,
-    Runtime.dotnet5.value,
 ]
 
 RUNTIMES_WITH_ENTRYPOINT_OVERRIDES = RUNTIMES_WITH_ENTRYPOINT + RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT
