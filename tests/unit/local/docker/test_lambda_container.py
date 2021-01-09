@@ -11,11 +11,7 @@ from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.local.docker.lambda_container import LambdaContainer, Runtime
 from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
 
-RUNTIMES_WITH_ENTRYPOINT = [
-    Runtime.dotnetcore21.value,
-    Runtime.dotnetcore31.value,
-    Runtime.go1x.value,
-]
+RUNTIMES_WITH_ENTRYPOINT = [Runtime.dotnetcore21.value, Runtime.dotnetcore31.value, Runtime.go1x.value]
 
 RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT = [
     Runtime.nodejs10x.value,
@@ -548,7 +544,7 @@ class TestLambdaContainer_get_debug_settings(TestCase):
 
         self.assertIsNotNone(container_env_vars)
 
-    @parameterized.expand([param(r) for r in set(RUNTIMES_WITH_ENTRYPOINT) if not (r.startswith("dotnet"))])
+    @parameterized.expand([param(r) for r in set(RUNTIMES_WITH_ENTRYPOINT) if not r.startswith("dotnetcore")])
     def test_debug_arg_must_be_split_by_spaces_and_appended_to_entrypoint(self, runtime):
         """
         Debug args list is appended starting at second position in the array
