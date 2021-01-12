@@ -125,6 +125,18 @@ class LambdaDebugSettings:
                     **_container_env_vars,
                 },
             ),
+            Runtime.nodejs14x.value: DebugSettings(
+                entry
+                + ["/var/lang/bin/node"]
+                + debug_args_list
+                + ["--no-lazy", "--expose-gc"]
+                + ["/var/runtime/index.js"],
+                container_env_vars={
+                    "NODE_PATH": "/opt/nodejs/node_modules:/opt/nodejs/node14/node_modules:/var/runtime/node_module",
+                    "NODE_OPTIONS": f"--inspect-brk=0.0.0.0:{str(debug_port)} --max-http-header-size 81920",
+                    **_container_env_vars,
+                },
+            ),
             Runtime.python27.value: DebugSettings(
                 entry + ["/usr/bin/python2.7"] + debug_args_list + ["/var/runtime/awslambda/bootstrap.py"],
                 container_env_vars=_container_env_vars,
