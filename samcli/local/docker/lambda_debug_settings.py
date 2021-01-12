@@ -134,6 +134,7 @@ class LambdaDebugSettings:
                 container_env_vars={
                     "NODE_PATH": "/opt/nodejs/node_modules:/opt/nodejs/node14/node_modules:/var/runtime/node_module",
                     "NODE_OPTIONS": f"--inspect-brk=0.0.0.0:{str(debug_port)} --max-http-header-size 81920",
+                    "AWS_EXECUTION_ENV": "AWS_Lambda_nodejs14.x",
                     **_container_env_vars,
                 },
             ),
