@@ -11,7 +11,7 @@ import click
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options
 from samcli.local.common.runtime_template import RUNTIMES, SUPPORTED_DEP_MANAGERS, LAMBDA_IMAGES_RUNTIMES
-from samcli.lib.telemetry.metrics import track_command
+from samcli.lib.telemetry.metric import track_command
 from samcli.commands.init.interactive_init_flow import _get_runtime_from_image
 from samcli.commands.local.cli_common.click_mutex import Mutex
 from samcli.lib.utils.packagetype import IMAGE, ZIP
