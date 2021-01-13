@@ -1,103 +1,57 @@
-import platform
 import requests
 
 from unittest.mock import patch, Mock, ANY
 from unittest import TestCase
 
 from samcli.lib.telemetry.telemetry import Telemetry
-from samcli import __version__ as samcli_version
 
 
 class TestTelemetry(TestCase):
     def setUp(self):
+        self.gc_mock = Mock()
+        self.global_config_patcher = patch("samcli.lib.telemetry.telemetry.GlobalConfig", self.gc_mock)
+        self.global_config_patcher.start()
+        self.gc_mock.return_value.telemetry_enabled = True
+
         self.test_session_id = "TestSessionId"
         self.test_installation_id = "TestInstallationId"
         self.url = "some_test_url"
 
-        self.gc_mock = Mock()
-        self.context_mock = Mock()
-
-        self.global_config_patcher = patch("samcli.lib.telemetry.telemetry.GlobalConfig", self.gc_mock)
-        self.context_patcher = patch("samcli.lib.telemetry.telemetry.Context", self.context_mock)
-
-        self.global_config_patcher.start()
-        self.context_patcher.start()
-
-        self.context_mock.get_current_context.return_value.session_id = self.test_session_id
-        self.gc_mock.return_value.installation_id = self.test_installation_id
+        self.metric_mock = Mock()
+        self.metric_mock.get_metric_name.return_value = "metric_name"
+        self.metric_mock.get_data.return_value = {"a": "1", "b": "2"}
 
     def tearDown(self):
         self.global_config_patcher.stop()
-        self.context_mock.stop()
-
-    def test_must_raise_on_invalid_session_id(self):
-        self.context_mock.get_current_context.return_value = None
-
-        with self.assertRaises(RuntimeError):
-            Telemetry()
 
     @patch("samcli.lib.telemetry.telemetry.requests")
     def test_must_add_metric_with_attributes_to_registry(self, requests_mock):
         telemetry = Telemetry(url=self.url)
+
         metric_name = "mymetric"
         attrs = {"a": 1, "b": 2}
 
-        telemetry.emit(metric_name, attrs)
+        metric_mock = Mock()
+        metric_mock.get_metric_name.return_value = metric_name
+        metric_mock.get_data.return_value = attrs
 
-        expected = {
-            "metrics": [
-                {
-                    metric_name: {
-                        "a": 1,
-                        "b": 2,
-                        "requestId": ANY,
-                        "installationId": self.test_installation_id,
-                        "sessionId": self.test_session_id,
-                        "executionEnvironment": "CLI",
-                        "pyversion": platform.python_version(),
-                        "samcliVersion": samcli_version,
-                    }
-                }
-            ]
-        }
-        requests_mock.post.assert_called_once_with(ANY, json=expected, timeout=ANY)
+        telemetry.emit(metric_mock)
 
-    @patch("samcli.lib.telemetry.telemetry.requests")
-    @patch("samcli.lib.telemetry.telemetry.uuid")
-    def test_must_add_request_id_as_uuid_v4(self, uuid_mock, requests_mock):
-        fake_uuid = uuid_mock.uuid4.return_value = "fake uuid"
-
-        telemetry = Telemetry(url=self.url)
-        telemetry.emit("metric_name", {})
-
-        expected = {"metrics": [{"metric_name": _ignore_other_attrs({"requestId": fake_uuid})}]}
-        requests_mock.post.assert_called_once_with(ANY, json=expected, timeout=ANY)
-
-    @patch("samcli.lib.telemetry.telemetry.requests")
-    def test_execution_environment_should_be_identified(self, requests_mock):
-        telemetry = Telemetry(url=self.url)
-
-        telemetry.emit("metric_name", {})
-
-        expected_execution_environment = "CLI"
-
-        expected = {
-            "metrics": [{"metric_name": _ignore_other_attrs({"executionEnvironment": expected_execution_environment})}]
-        }
+        expected = {"metrics": [{metric_name: {"a": 1, "b": 2}}]}
         requests_mock.post.assert_called_once_with(ANY, json=expected, timeout=ANY)
 
     @patch("samcli.lib.telemetry.telemetry.requests")
     def test_default_request_should_be_fire_and_forget(self, requests_mock):
         telemetry = Telemetry(url=self.url)
 
-        telemetry.emit("metric_name", {})
+        telemetry.emit(self.metric_mock)
         requests_mock.post.assert_called_once_with(ANY, json=ANY, timeout=(2, 0.1))  # 100ms response timeout
 
     @patch("samcli.lib.telemetry.telemetry.requests")
     def test_request_must_wait_for_2_seconds_for_response(self, requests_mock):
         telemetry = Telemetry(url=self.url)
 
-        telemetry._send({}, wait_for_response=True)
+        telemetry._send(self.metric_mock, wait_for_response=True)
         requests_mock.post.assert_called_once_with(ANY, json=ANY, timeout=(2, 2))
 
     @patch("samcli.lib.telemetry.telemetry.requests")
@@ -115,7 +69,7 @@ class TestTelemetry(TestCase):
         requests_mock.exceptions.ConnectionError = requests.exceptions.ConnectionError
         requests_mock.post.side_effect = requests.exceptions.Timeout()
 
-        telemetry.emit("metric_name", {})
+        telemetry.emit(self.metric_mock)
 
     @patch("samcli.lib.telemetry.telemetry.requests")
     def test_must_swallow_connection_error_exception(self, requests_mock):
@@ -125,7 +79,7 @@ class TestTelemetry(TestCase):
         requests_mock.exceptions.ConnectionError = requests.exceptions.ConnectionError
         requests_mock.post.side_effect = requests.exceptions.ConnectionError()
 
-        telemetry.emit("metric_name", {})
+        telemetry.emit(self.metric_mock)
 
     @patch("samcli.lib.telemetry.telemetry.requests")
     def test_must_raise_on_other_requests_exception(self, requests_mock):
@@ -136,7 +90,7 @@ class TestTelemetry(TestCase):
         requests_mock.post.side_effect = IOError()
 
         with self.assertRaises(IOError):
-            telemetry.emit("metric_name", {})
+            telemetry.emit(self.metric_mock)
 
     @patch("samcli.lib.telemetry.telemetry.DEFAULT_ENDPOINT_URL")
     def test_must_use_default_endpoint_url_if_not_customized(self, default_endpoint_url_mock):
@@ -144,13 +98,18 @@ class TestTelemetry(TestCase):
 
         self.assertEqual(telemetry._url, default_endpoint_url_mock)
 
+    @patch("samcli.lib.telemetry.telemetry.requests")
+    @patch("samcli.lib.telemetry.telemetry.GlobalConfig")
+    def test_must_not_send_when_telemetry_disabled(self, gc_mock, requests_mock):
+        telemetry = Telemetry(url=self.url)
+        gc_mock.return_value.telemetry_enabled = False
+        telemetry.emit(self.metric_mock)
+        requests_mock.post.assert_not_called()
 
-def _ignore_other_attrs(data):
-
-    common_attrs = ["requestId", "installationId", "sessionId", "executionEnvironment", "pyversion", "samcliVersion"]
-
-    for a in common_attrs:
-        if a not in data:
-            data[a] = ANY
-
-    return data
+    @patch("samcli.lib.telemetry.telemetry.requests")
+    @patch("samcli.lib.telemetry.telemetry.GlobalConfig")
+    def test_must_send_when_telemetry_disabled_but_forced(self, gc_mock, requests_mock):
+        telemetry = Telemetry(url=self.url)
+        gc_mock.return_value.telemetry_enabled = False
+        telemetry.emit(self.metric_mock, force_emit=True)
+        requests_mock.post.assert_called()

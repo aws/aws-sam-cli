@@ -13,6 +13,6 @@ dateparser~=0.7
 python-dateutil~=2.6, <2.8.1
 requests==2.23.0
 serverlessrepo==0.1.10
-aws_lambda_builders==1.1.0
+aws_lambda_builders==1.2.0
 tomlkit==0.7.0
 watchdog==0.10.3
