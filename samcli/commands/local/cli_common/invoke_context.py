@@ -53,8 +53,6 @@ class InvokeContext:
     This class sets up some resources that need to be cleaned up after the context object is used.
     """
 
-    _function_providers: List[SamFunctionProvider]
-
     def __init__(
         self,  # pylint: disable=R0914
         template_file,
@@ -147,7 +145,6 @@ class InvokeContext:
         self._debug_function = debug_function
 
         self._template_dict = None
-        self._function_providers = []
         self._env_vars_value = None
         self._container_env_vars_value = None
         self._log_file_handle = None
