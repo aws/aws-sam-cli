@@ -328,6 +328,7 @@ class SamFunctionProvider(SamBaseProvider):
 
                 if resource_type == SamFunctionProvider.SERVERLESS_LAYER:
                     codeuri = SamFunctionProvider._extract_sam_function_codeuri(
+                        self.template_file,
                         layer_logical_id,
                         layer_properties,
                         "ContentUri",

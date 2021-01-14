@@ -101,7 +101,9 @@ class SamLayerProvider(SamBaseProvider):
         codeuri = None
 
         if resource_type == self.SERVERLESS_LAYER:
-            codeuri = SamLayerProvider._extract_sam_function_codeuri(layer_logical_id, layer_properties, "ContentUri")
+            codeuri = SamLayerProvider._extract_sam_function_codeuri(
+                self._template_file, layer_logical_id, layer_properties, "ContentUri"
+            )
         if resource_type == self.LAMBDA_LAYER:
             codeuri = SamLayerProvider._extract_lambda_function_code(layer_properties, "Content")
 
