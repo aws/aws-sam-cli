@@ -12,12 +12,20 @@ from cookiecutter.main import cookiecutter
 from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING
 from .exceptions import GenerateProjectFailedError
 from .arbitrary_project import generate_non_cookiecutter_project
+from ..utils.packagetype import IMAGE
 
 LOG = logging.getLogger(__name__)
 
 
 def generate_project(
-    location=None, runtime=None, dependency_manager=None, output_dir=".", name=None, no_input=False, extra_context=None
+    location=None,
+    package_type=None,
+    runtime=None,
+    dependency_manager=None,
+    output_dir=".",
+    name=None,
+    no_input=False,
+    extra_context=None,
 ):
     """Generates project using cookiecutter and options given
 
@@ -51,7 +59,7 @@ def generate_project(
 
     template = None
 
-    if runtime:
+    if runtime and package_type != IMAGE:
         for mapping in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values()))):
             if runtime in mapping["runtimes"] or any([r.startswith(runtime) for r in mapping["runtimes"]]):
                 if not dependency_manager or dependency_manager == mapping["dependency_manager"]:
