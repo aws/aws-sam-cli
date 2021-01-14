@@ -32,6 +32,7 @@ from .exceptions import (
     UnsupportedBuilderLibraryVersionError,
 )
 from .workflow_config import get_workflow_config, get_layer_subfolder, supports_build_in_container
+from ..providers.provider import ResourcesToBuildCollector
 
 LOG = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ class ApplicationBuilder:
 
     def __init__(
         self,
-        resources_to_build,
+        resources_to_build: ResourcesToBuildCollector,
         build_dir,
         base_dir,
         cache_dir,
@@ -63,8 +64,8 @@ class ApplicationBuilder:
 
         Parameters
         ----------
-        resources_to_build: Iterator
-            Iterator that can vend out resources available in the SAM template
+        resources_to_build: ResourcesToBuildCollector
+            Its "functions" and "layers" are Iterators that can vend out resources available in the SAM template
 
         build_dir : str
             Path to the directory where we will be storing built artifacts
@@ -172,7 +173,7 @@ class ApplicationBuilder:
         build_graph.clean_redundant_definitions_and_update(not self._is_building_specific_resource)
         return build_graph
 
-    def update_template(self, template_dict, original_template_path, built_artifacts):
+    def update_template(self, template_dict, original_template_path, app_prefix, built_artifacts):
         """
         Given the path to built artifacts, update the template to point appropriate resource CodeUris to the artifacts
         folder
@@ -196,11 +197,18 @@ class ApplicationBuilder:
 
         for logical_id, resource in template_dict.get("Resources", {}).items():
 
-            if logical_id not in built_artifacts:
+            if logical_id not in built_artifacts and resource.get("Type") not in {
+                SamBaseProvider.SERVERLESS_APPLICATION,
+                SamBaseProvider.CLOUDFORMATION_STACK,
+            }:
                 # this resource was not built. So skip it
                 continue
 
-            artifact_dir = pathlib.Path(built_artifacts[logical_id]).resolve()
+            artifact_dir = (
+                pathlib.Path(built_artifacts[logical_id]).resolve()
+                if logical_id in built_artifacts
+                else pathlib.Path(self._build_dir, app_prefix, logical_id, "template.yaml")  # simplified scenario
+            )
 
             # Default path to absolute path of the artifact
             store_path = str(artifact_dir)
@@ -229,6 +237,12 @@ class ApplicationBuilder:
 
             if resource_type == SamBaseProvider.SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
                 properties["ImageUri"] = built_artifacts[logical_id]
+
+            # nested application
+            if resource_type == SamBaseProvider.SERVERLESS_APPLICATION:
+                properties["Location"] = store_path
+            if resource_type == SamBaseProvider.CLOUDFORMATION_STACK:
+                properties["TemplateURL"] = store_path
 
         return template_dict
 
@@ -319,7 +333,7 @@ class ApplicationBuilder:
                     self._stream_writer.write(str.encode(log_stream))
                     self._stream_writer.flush()
 
-    def _build_layer(self, layer_name, codeuri, specified_workflow, compatible_runtimes):
+    def _build_layer(self, layer_name, codeuri, specified_workflow, compatible_runtimes, artifacts_dir):
         # Create the arguments to pass to the builder
         # Code is always relative to the given base directory.
         code_dir = str(pathlib.Path(self._base_dir, codeuri).resolve())
@@ -328,7 +342,7 @@ class ApplicationBuilder:
         subfolder = get_layer_subfolder(specified_workflow)
 
         # artifacts directory will be created by the builder
-        artifacts_dir = str(pathlib.Path(self._build_dir, layer_name, subfolder))
+        artifacts_dir = str(pathlib.Path(artifacts_dir, subfolder))
 
         with osutils.mkdir_temp() as scratch_dir:
             manifest_path = self._manifest_path_override or os.path.join(code_dir, config.manifest_name)

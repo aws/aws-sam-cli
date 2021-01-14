@@ -27,7 +27,7 @@ import botocore.exceptions
 from boto3.s3 import transfer
 
 from samcli.commands.package.exceptions import NoSuchBucketError, BucketNotSpecifiedError
-from samcli.lib.package.artifact_exporter import parse_s3_url
+from samcli.lib.package.utils import parse_s3_url
 from samcli.lib.utils.hash import file_checksum
 
 LOG = logging.getLogger(__name__)

@@ -4,11 +4,13 @@ Holds classes and utility methods related to build graph
 
 import logging
 from pathlib import Path
+from typing import List, Optional
 from uuid import uuid4
 
 import tomlkit
 
 from samcli.lib.build.exceptions import InvalidBuildGraphException
+from samcli.lib.providers.provider import Function, LayerVersion
 from samcli.lib.utils.packagetype import ZIP
 
 LOG = logging.getLogger(__name__)
@@ -157,7 +159,7 @@ class BuildGraph:
     def get_layer_build_definitions(self):
         return tuple(self._layer_build_definitions)
 
-    def put_function_build_definition(self, function_build_definition, function):
+    def put_function_build_definition(self, function_build_definition: "FunctionBuildDefinition", function):
         """
         Puts the newly read function build definition into existing build graph.
         If graph already contains a function build definition which is same as the newly passed one, then it will add
@@ -192,7 +194,7 @@ class BuildGraph:
             function_build_definition.add_function(function)
             self._function_build_definitions.append(function_build_definition)
 
-    def put_layer_build_definition(self, layer_build_definition, layer):
+    def put_layer_build_definition(self, layer_build_definition: "LayerBuildDefinition", layer: LayerVersion):
         """
         Puts the newly read layer build definition into existing build graph.
         If graph already contains a layer build definition which is same as the newly passed one, then it will add
@@ -321,7 +323,7 @@ class LayerBuildDefinition(AbstractBuildDefinition):
         self.codeuri = codeuri
         self.build_method = build_method
         self.compatible_runtimes = compatible_runtimes
-        self.layer = None
+        self.layer: Optional[LayerVersion] = None
 
     def __str__(self):
         return (
@@ -365,10 +367,14 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         self.codeuri = codeuri
         self.packagetype = packagetype
         self.metadata = metadata if metadata else {}
-        self.functions = []
+        self.functions: List[Function] = []
 
     def add_function(self, function):
         self.functions.append(function)
+
+    def get_function_app_prefix(self):
+        self._validate_functions()
+        return self.functions[0].app_prefix
 
     def get_function_name(self):
         self._validate_functions()

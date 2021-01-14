@@ -6,11 +6,15 @@ import logging
 import os
 import shutil
 import pathlib
+from typing import Tuple, Iterable
 
 from samcli.lib.providers.provider import ResourcesToBuildCollector
+from samcli.lib.providers.sam_function_layer_provider_recursive import (
+    SamRecursiveFunctionProvider,
+    SamRecursiveLayerProvider,
+    SamRecursiveAppProvider,
+)
 from samcli.local.docker.manager import ContainerManager
-from samcli.lib.providers.sam_function_provider import SamFunctionProvider
-from samcli.lib.providers.sam_layer_provider import SamLayerProvider
 from samcli.commands._utils.template import get_template_data
 from samcli.local.lambdafn.exceptions import ResourceNotFound
 from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
@@ -22,6 +26,10 @@ class BuildContext:
     # Build directories need not be world writable.
     # This is usually a optimal permission for directories
     _BUILD_DIR_PERMISSIONS = 0o755
+
+    _function_provider: SamRecursiveFunctionProvider
+    _layer_provider: SamRecursiveLayerProvider
+    _app_provider: SamRecursiveAppProvider
 
     def __init__(
         self,
@@ -54,8 +62,6 @@ class BuildContext:
         self._mode = mode
         self._cached = cached
 
-        self._function_provider = None
-        self._layer_provider = None
         self._template_dict = None
         self._app_builder = None
         self._container_manager = None
@@ -63,8 +69,9 @@ class BuildContext:
     def __enter__(self):
         self._template_dict = get_template_data(self._template_file)
 
-        self._function_provider = SamFunctionProvider(self._template_dict, self._parameter_overrides)
-        self._layer_provider = SamLayerProvider(self._template_dict, self._parameter_overrides)
+        self._function_provider = SamRecursiveFunctionProvider(self._template_file, self._parameter_overrides)
+        self._layer_provider = SamRecursiveLayerProvider(self._template_file, self._parameter_overrides)
+        self._app_provider = SamRecursiveAppProvider(self._template_file, self._parameter_overrides)
 
         if not self._base_dir:
             # Base directory, if not provided, is the directory containing the template
@@ -122,6 +129,10 @@ class BuildContext:
         return self._layer_provider
 
     @property
+    def app_provider(self):
+        return self._app_provider
+
+    @property
     def template_dict(self):
         return self._template_dict
 
@@ -154,6 +165,15 @@ class BuildContext:
         return os.path.abspath(self._template_file)
 
     @property
+    def templates_to_move(self) -> Iterable[Tuple[str, str, str]]:
+        yield self.original_template_path, self.output_template_path, ""
+        # nested app
+        for nested_app in self._app_provider.get_all():
+            yield nested_app.location, os.path.join(
+                self._build_dir, nested_app.app_prefix, nested_app.name, "template.yaml"
+            ), os.path.join(nested_app.app_prefix, nested_app.name)
+
+    @property
     def manifest_path_override(self):
         if self._manifest_path:
             return os.path.abspath(self._manifest_path)
@@ -179,8 +199,8 @@ class BuildContext:
             self._collect_single_buildable_layer(self._resource_identifier, result)
 
             if not result.functions and not result.layers:
-                all_resources = [f.name for f in self._function_provider.get_all()]
-                all_resources.extend([l.name for l in self._layer_provider.get_all()])
+                all_resources = [f.app_prefix + f.name for f in self._function_provider.get_all()]
+                all_resources.extend([l.app_prefix + l.name for l in self._layer_provider.get_all()])
 
                 available_resource_message = (
                     f"{self._resource_identifier} not found. Possible options in your " f"template: {all_resources}"
@@ -189,7 +209,7 @@ class BuildContext:
                 raise ResourceNotFound(f"Unable to find a function or layer with name '{self._resource_identifier}'")
             return result
         result.add_functions(self._function_provider.get_all())
-        result.add_layers([l for l in self._layer_provider.get_all() if l.build_method is not None])
+        result.add_layers(self._layer_provider.get_all())
         return result
 
     @property
@@ -202,7 +222,9 @@ class BuildContext:
         """
         return bool(self._resource_identifier)
 
-    def _collect_single_function_and_dependent_layers(self, resource_identifier, resource_collector):
+    def _collect_single_function_and_dependent_layers(
+        self, resource_identifier, resource_collector: ResourcesToBuildCollector
+    ):
         """
         Populate resource_collector with function with provided identifier and all layers that function need to be
         build in resource_collector
@@ -240,7 +262,7 @@ class BuildContext:
             # No layer found
             return
         if layer and layer.build_method is None:
-            LOG.error("Layer %s is missing BuildMethod Metadata.", self._function_provider)
+            LOG.error("Layer %s is missing BuildMethod Metadata.", layer.name)
             raise MissingBuildMethodException(f"Build method missing in layer {resource_identifier}.")
 
         resource_collector.add_layer(layer)

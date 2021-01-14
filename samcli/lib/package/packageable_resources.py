@@ -4,12 +4,14 @@ Code for all Package-able resources
 import logging
 import os
 import shutil
-from typing import Optional
+from typing import Optional, Union
 
 import jmespath
 from botocore.utils import set_value_from_jmespath
 
 from samcli.commands.package import exceptions
+from samcli.lib.package.ecr_uploader import ECRUploader
+from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.utils import (
     resource_not_packageable,
     is_local_file,
@@ -58,7 +60,7 @@ class Resource:
     EXPORT_DESTINATION: Optional[str] = None
     ARTIFACT_TYPE: Optional[str] = None
 
-    def __init__(self, uploader, code_signer):
+    def __init__(self, uploader: Union[S3Uploader, ECRUploader], code_signer):
         self.uploader = uploader
         self.code_signer = code_signer
 

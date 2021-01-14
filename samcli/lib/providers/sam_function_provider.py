@@ -2,6 +2,7 @@
 Class that provides functions from a given SAM template
 """
 import logging
+from typing import Iterable, Optional
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
 from samcli.lib.providers.exceptions import InvalidLayerReference
@@ -9,6 +10,7 @@ from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from .provider import Function, LayerVersion
 from .sam_base_provider import SamBaseProvider
+from ...commands._utils.template import get_template_data
 
 LOG = logging.getLogger(__name__)
 
@@ -21,7 +23,14 @@ class SamFunctionProvider(SamBaseProvider):
     It may or may not contain a function.
     """
 
-    def __init__(self, template_dict, parameter_overrides=None, ignore_code_extraction_warnings=False):
+    def __init__(
+        self,
+        app_prefix: str,
+        template_file: str,
+        parameter_overrides=None,
+        ignore_code_extraction_warnings=False,
+        base_url: Optional[str] = None,
+    ):
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
         to be valid, normalized and a dictionary. It should be normalized by running all pre-processing
@@ -37,15 +46,18 @@ class SamFunctionProvider(SamBaseProvider):
             to get substituted within the template
         :param bool ignore_code_extraction_warnings: Ignores Log warnings
         """
-
+        self.app_prefix = app_prefix
+        self.template_file = template_file
+        template_dict = get_template_data(template_file)
         self.template_dict = SamFunctionProvider.get_template(template_dict, parameter_overrides)
         self.ignore_code_extraction_warnings = ignore_code_extraction_warnings
         self.resources = self.template_dict.get("Resources", {})
+        self.base_url = base_url
 
         LOG.debug("%d resources found in the template", len(self.resources))
 
         # Store a map of function name to function information for quick reference
-        self.functions = self._extract_functions(self.resources, self.ignore_code_extraction_warnings)
+        self.functions = self._extract_functions()
 
         self._deprecated_runtimes = {"nodejs4.3", "nodejs6.10", "nodejs8.10", "dotnetcore2.0"}
         self._colored = Colored()
@@ -56,7 +68,7 @@ class SamFunctionProvider(SamBaseProvider):
         also have a function name. This method searches only for LogicalID and returns the function that matches
         it.
 
-        :param string name: Name of the function
+        :param string name: Name of the function (prefixed or not)
         :return Function: namedtuple containing the Function information if function is found.
                           None, if function is not found
         :raises ValueError If name is not given
@@ -66,11 +78,11 @@ class SamFunctionProvider(SamBaseProvider):
             raise ValueError("Function name is required")
 
         for f in self.get_all():
-            if f.name == name:
+            if f.name == name or f"{f.app_prefix}{f.name}" == name:
                 self._deprecate_notification(f.runtime)
                 return f
 
-            if f.functionname == name:
+            if f.functionname == name or f"{f.app_prefix}{f.functionname}" == name:
                 self._deprecate_notification(f.runtime)
                 return f
 
@@ -86,7 +98,7 @@ class SamFunctionProvider(SamBaseProvider):
             )
             LOG.warning(self._colored.yellow(message))
 
-    def get_all(self):
+    def get_all(self) -> Iterable[Function]:
         """
         Yields all the Lambda functions available in the SAM Template.
 
@@ -96,21 +108,18 @@ class SamFunctionProvider(SamBaseProvider):
         for _, function in self.functions.items():
             yield function
 
-    @staticmethod
-    def _extract_functions(resources, ignore_code_extraction_warnings=False):
+    def _extract_functions(self):
         """
         Extracts and returns function information from the given dictionary of SAM/CloudFormation resources. This
         method supports functions defined with AWS::Serverless::Function and AWS::Lambda::Function
 
-        :param dict resources: Dictionary of SAM/CloudFormation resources
-        :param bool ignore_code_extraction_warnings: suppress log statements on code extraction from resources.
         :return dict(string : samcli.commands.local.lib.provider.Function): Dictionary of function LogicalId to the
             Function configuration object
         """
 
         result = {}
 
-        for name, resource in resources.items():
+        for name, resource in self.resources.items():
 
             resource_type = resource.get("Type")
             resource_properties = resource.get("Properties", {})
@@ -120,29 +129,28 @@ class SamFunctionProvider(SamBaseProvider):
                 resource_properties["Metadata"] = resource_metadata
 
             if resource_type == SamFunctionProvider.SERVERLESS_FUNCTION:
-                layers = SamFunctionProvider._parse_layer_info(
+                layers = self._parse_layer_info(
                     resource_properties.get("Layers", []),
-                    resources,
-                    ignore_code_extraction_warnings=ignore_code_extraction_warnings,
                 )
-                result[name] = SamFunctionProvider._convert_sam_function_resource(
-                    name, resource_properties, layers, ignore_code_extraction_warnings=ignore_code_extraction_warnings
+                result[name] = self._convert_sam_function_resource(
+                    name,
+                    resource_properties,
+                    layers,
                 )
 
             elif resource_type == SamFunctionProvider.LAMBDA_FUNCTION:
-                layers = SamFunctionProvider._parse_layer_info(
+                layers = self._parse_layer_info(
                     resource_properties.get("Layers", []),
-                    resources,
-                    ignore_code_extraction_warnings=ignore_code_extraction_warnings,
                 )
-                result[name] = SamFunctionProvider._convert_lambda_function_resource(name, resource_properties, layers)
+                result[name] = SamFunctionProvider._convert_lambda_function_resource(
+                    self.app_prefix, name, resource_properties, layers
+                )
 
             # We don't care about other resource types. Just ignore them
 
         return result
 
-    @staticmethod
-    def _convert_sam_function_resource(name, resource_properties, layers, ignore_code_extraction_warnings=False):
+    def _convert_sam_function_resource(self, name, resource_properties, layers):
         """
         Converts a AWS::Serverless::Function resource to a Function configuration usable by the provider.
 
@@ -166,17 +174,26 @@ class SamFunctionProvider(SamBaseProvider):
         packagetype = resource_properties.get("PackageType", ZIP)
         if packagetype == ZIP:
             codeuri = SamFunctionProvider._extract_sam_function_codeuri(
-                name, resource_properties, "CodeUri", ignore_code_extraction_warnings=ignore_code_extraction_warnings
+                self.template_file,
+                name,
+                resource_properties,
+                "CodeUri",
+                ignore_code_extraction_warnings=self.ignore_code_extraction_warnings,
+                base_url=self.base_url,
             )
             LOG.debug("Found Serverless function with name='%s' and CodeUri='%s'", name, codeuri)
         elif packagetype == IMAGE:
             imageuri = SamFunctionProvider._extract_sam_function_imageuri(resource_properties, "ImageUri")
             LOG.debug("Found Serverless function with name='%s' and ImageUri='%s'", name, imageuri)
 
-        return SamFunctionProvider._build_function_configuration(name, codeuri, resource_properties, layers, imageuri)
+        return SamFunctionProvider._build_function_configuration(
+            self.app_prefix, name, codeuri, resource_properties, layers, imageuri
+        )
 
     @staticmethod
-    def _convert_lambda_function_resource(name, resource_properties, layers):  # pylint: disable=invalid-name
+    def _convert_lambda_function_resource(
+        app_prefix, name, resource_properties, layers
+    ):  # pylint: disable=invalid-name
         """
         Converts a AWS::Lambda::Function resource to a Function configuration usable by the provider.
 
@@ -208,10 +225,12 @@ class SamFunctionProvider(SamBaseProvider):
             imageuri = SamFunctionProvider._extract_lambda_function_imageuri(resource_properties, "Code")
             LOG.debug("Found Lambda function with name='%s' and Imageuri='%s'", name, imageuri)
 
-        return SamFunctionProvider._build_function_configuration(name, codeuri, resource_properties, layers, imageuri)
+        return SamFunctionProvider._build_function_configuration(
+            app_prefix, name, codeuri, resource_properties, layers, imageuri
+        )
 
     @staticmethod
-    def _build_function_configuration(name, codeuri, resource_properties, layers, imageuri=None):
+    def _build_function_configuration(app_prefix, name, codeuri, resource_properties, layers, imageuri=None):
         """
         Builds a Function configuration usable by the provider.
 
@@ -232,6 +251,7 @@ class SamFunctionProvider(SamBaseProvider):
             Function configuration
         """
         return Function(
+            app_prefix=app_prefix,
             name=name,
             functionname=resource_properties.get("FunctionName", name),
             packagetype=resource_properties.get("PackageType", ZIP),
@@ -250,8 +270,7 @@ class SamFunctionProvider(SamBaseProvider):
             codesign_config_arn=resource_properties.get("CodeSigningConfigArn", None),
         )
 
-    @staticmethod
-    def _parse_layer_info(list_of_layers, resources, ignore_code_extraction_warnings=False):
+    def _parse_layer_info(self, list_of_layers):
         """
         Creates a list of Layer objects that are represented by the resources and the list of layers
 
@@ -285,14 +304,14 @@ class SamFunctionProvider(SamBaseProvider):
 
             # If the layer is a string, assume it is the arn
             if isinstance(layer, str):
-                layers.append(LayerVersion(layer, None))
+                layers.append(LayerVersion(self.app_prefix, layer, None))
                 continue
 
             # In the list of layers that is defined within a template, you can reference a LayerVersion resource.
             # When running locally, we need to follow that Ref so we can extract the local path to the layer code.
             if isinstance(layer, dict) and layer.get("Ref"):
                 layer_logical_id = layer.get("Ref")
-                layer_resource = resources.get(layer_logical_id)
+                layer_resource = self.resources.get(layer_logical_id)
                 if not layer_resource or layer_resource.get("Type", "") not in (
                     SamFunctionProvider.SERVERLESS_LAYER,
                     SamFunctionProvider.LAMBDA_LAYER,
@@ -309,7 +328,11 @@ class SamFunctionProvider(SamBaseProvider):
 
                 if resource_type == SamFunctionProvider.SERVERLESS_LAYER:
                     codeuri = SamFunctionProvider._extract_sam_function_codeuri(
-                        layer_logical_id, layer_properties, "ContentUri", ignore_code_extraction_warnings
+                        layer_logical_id,
+                        layer_properties,
+                        "ContentUri",
+                        self.ignore_code_extraction_warnings,
+                        self.base_url,
                     )
 
                 layers.append(

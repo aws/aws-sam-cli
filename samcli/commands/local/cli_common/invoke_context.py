@@ -7,8 +7,10 @@ import logging
 import os
 from enum import Enum
 from pathlib import Path
+from typing import List
 
 import samcli.lib.utils.osutils as osutils
+from samcli.lib.providers.sam_function_layer_provider_recursive import SamRecursiveFunctionProvider
 from samcli.lib.utils.async_utils import AsyncContext
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
@@ -51,6 +53,8 @@ class InvokeContext:
     This class sets up some resources that need to be cleaned up after the context object is used.
     """
 
+    _function_providers: List[SamFunctionProvider]
+
     def __init__(
         self,  # pylint: disable=R0914
         template_file,
@@ -70,7 +74,7 @@ class InvokeContext:
         aws_region=None,
         aws_profile=None,
         warm_container_initialization_mode=None,
-        debug_function=None,
+        debug_function: str = None,
     ):
         """
         Initialize the context
@@ -88,8 +92,7 @@ class InvokeContext:
         docker_network str
             Docker network identifier
         log_file str
-            Path to a file to send container output to. If the file does not exist, it will be
-            created
+            Path to a file to send container output to. If the file does not exist, it will be created
         skip_pull_image bool
             Should we skip pulling the Docker container image?
         aws_profile str
@@ -144,7 +147,7 @@ class InvokeContext:
         self._debug_function = debug_function
 
         self._template_dict = None
-        self._function_provider = None
+        self._function_providers = []
         self._env_vars_value = None
         self._container_env_vars_value = None
         self._log_file_handle = None
@@ -164,7 +167,9 @@ class InvokeContext:
 
         # Grab template from file and create a provider
         self._template_dict = self._get_template_data(self._template_file)
-        self._function_provider = SamFunctionProvider(self._template_dict, self.parameter_overrides)
+        self._function_provider = SamRecursiveFunctionProvider(
+            self._template_file, self.parameter_overrides, base_url=self.get_cwd()
+        )
 
         self._env_vars_value = self._get_env_vars_value(self._env_vars_file)
         self._container_env_vars_value = self._get_env_vars_value(self._container_env_vars_file)
@@ -175,8 +180,9 @@ class InvokeContext:
         # if the template contains multiple functions, a warning message "that the debugging option will be ignored"
         # will be printed
         if self._containers_mode == ContainersMode.WARM and self._debug_ports and not self._debug_function:
-            if len(self._function_provider.functions) == 1:
-                self._debug_function = list(self._function_provider.functions.keys())[0]
+            functions = list(self._function_provider.get_all())
+            if len(functions) == 1:
+                self._debug_function = functions[0].name
             else:
                 LOG.info(
                     "Warning: you supplied debugging options but you did not specify the --debug-function option."

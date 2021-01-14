@@ -5,6 +5,7 @@ source
 import hashlib
 import logging
 from collections import namedtuple
+from typing import List, Iterable
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, UnsupportedIntrinsic
 
@@ -14,6 +15,10 @@ LOG = logging.getLogger(__name__)
 Function = namedtuple(
     "Function",
     [
+        # If the function is in a nested application, app_prefix is the path combining all nested applications' names
+        # for example, if the function is in root template, app_prefix = ""
+        # if the function is in root:Child:GrandChild template, app_prefix = "Child/GrandChild"
+        "app_prefix",
         # Function name or logical ID
         "name",
         # Function name (used in place of logical ID)
@@ -56,24 +61,24 @@ class ResourcesToBuildCollector:
     def __init__(self):
         self.result = {"Function": [], "Layer": []}
 
-    def add_function(self, function):
+    def add_function(self, function: Function):
         self.result.get("Function").append(function)
 
-    def add_functions(self, functions):
+    def add_functions(self, functions: Iterable[Function]):
         self.result.get("Function").extend(functions)
 
-    def add_layer(self, layer):
+    def add_layer(self, layer: "LayerVersion"):
         self.result.get("Layer").append(layer)
 
-    def add_layers(self, layers):
+    def add_layers(self, layers: Iterable["LayerVersion"]):
         self.result.get("Layer").extend(layers)
 
     @property
-    def functions(self):
+    def functions(self) -> List[Function]:
         return self.result.get("Function")
 
     @property
-    def layers(self):
+    def layers(self) -> List["LayerVersion"]:
         return self.result.get("Layer")
 
     def __eq__(self, other):
@@ -90,7 +95,7 @@ class LayerVersion:
 
     LAYER_NAME_DELIMETER = "-"
 
-    def __init__(self, arn, codeuri, compatible_runtimes=None, metadata=None):
+    def __init__(self, app_prefix: str, arn, codeuri, compatible_runtimes=None, metadata=None):
         """
         Parameters
         ----------
@@ -106,6 +111,7 @@ class LayerVersion:
         if not isinstance(arn, str):
             raise UnsupportedIntrinsic("{} is an Unsupported Intrinsic".format(arn))
 
+        self._app_prefix = app_prefix
         self._arn = arn
         self._codeuri = codeuri
         self.is_defined_within_template = bool(codeuri)
@@ -178,6 +184,10 @@ class LayerVersion:
         return LayerVersion.LAYER_NAME_DELIMETER.join(
             [layer_name, layer_version, hashlib.sha256(arn.encode("utf-8")).hexdigest()[0:10]]
         )
+
+    @property
+    def app_prefix(self):
+        return self._app_prefix
 
     @property
     def arn(self):

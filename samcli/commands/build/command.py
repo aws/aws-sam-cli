@@ -12,6 +12,7 @@ from samcli.commands._utils.options import (
     parameter_override_option,
 )
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
+from samcli.commands._utils.template import get_template_data
 from samcli.lib.build.exceptions import BuildInsideContainerError
 from samcli.lib.telemetry.metrics import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
@@ -244,9 +245,13 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
 
         try:
             artifacts = builder.build()
-            modified_template = builder.update_template(ctx.template_dict, ctx.original_template_path, artifacts)
 
-            move_template(ctx.original_template_path, ctx.output_template_path, modified_template)
+            # move nested templates
+            for original_path, output_path, app_prefix in ctx.templates_to_move:
+                LOG.info(f"Move {original_path} to {output_path} in {app_prefix}")
+                template_dict = get_template_data(original_path)
+                modified_template = builder.update_template(template_dict, original_path, app_prefix, artifacts)
+                move_template(original_path, output_path, modified_template)
 
             click.secho("\nBuild Succeeded", fg="green")
 

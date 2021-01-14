@@ -16,6 +16,7 @@ Exporting resources defined in the cloudformation template to the cloud.
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 import os
+from typing import Union, Dict
 
 from botocore.utils import set_value_from_jmespath
 
@@ -26,12 +27,14 @@ from samcli.commands._utils.resources import (
     AWS_SERVERLESS_APPLICATION,
 )
 from samcli.commands.package import exceptions
+from samcli.lib.package.ecr_uploader import ECRUploader
 from samcli.lib.package.packageable_resources import (
     RESOURCES_EXPORT_LIST,
     METADATA_EXPORT_LIST,
     GLOBAL_EXPORT_DICT,
     ResourceZip,
 )
+from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.utils import is_local_folder, make_abs_path, is_s3_url, is_local_file, mktempfile, parse_s3_url
 from samcli.lib.utils.packagetype import ZIP
 from samcli.yamlhelper import yaml_parse, yaml_dump
@@ -108,7 +111,7 @@ class Template:
         self,
         template_path,
         parent_dir,
-        uploader,
+        uploader: Union[S3Uploader, ECRUploader, Dict[str, Union[S3Uploader, ECRUploader]]],
         code_signer,
         resources_to_export=frozenset(
             RESOURCES_EXPORT_LIST + [CloudFormationStackResource, ServerlessApplicationResource]
@@ -170,7 +173,7 @@ class Template:
                 if exporter_class.RESOURCE_TYPE != metadata_type:
                     continue
 
-                exporter = exporter_class(self.uploader[exporter_class.EXPORT_DESTINATION], self.code_signer)
+                exporter = exporter_class(self.uploader, self.code_signer)
                 exporter.export(metadata_type, metadata_dict, self.template_dir)
 
         return template_dict

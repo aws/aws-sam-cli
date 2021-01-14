@@ -6,6 +6,7 @@ import pathlib
 import shutil
 
 from samcli.commands.build.exceptions import MissingBuildMethodException
+from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition
 from samcli.lib.utils import osutils
 from samcli.lib.utils.async_utils import AsyncContext
 from samcli.lib.utils.hash import dir_checksum
@@ -86,7 +87,7 @@ class DefaultBuildStrategy(BuildStrategy):
         self._build_function = build_function
         self._build_layer = build_layer
 
-    def build_single_function_definition(self, build_definition):
+    def build_single_function_definition(self, build_definition: FunctionBuildDefinition):
         """
         Build the unique definition and then copy the artifact to the corresponding function folder
         """
@@ -100,8 +101,10 @@ class DefaultBuildStrategy(BuildStrategy):
         )
 
         # build into one of the functions from this build definition
+        single_function_app_prefix = build_definition.get_function_app_prefix()
         single_function_name = build_definition.get_function_name()
-        single_build_dir = str(pathlib.Path(self._build_dir, single_function_name))
+        single_function_path = pathlib.Path(single_function_app_prefix, single_function_name)
+        single_build_dir = str(pathlib.Path(self._build_dir, single_function_path))
 
         LOG.debug("Building to following folder %s", single_build_dir)
         result = self._build_function(
@@ -118,16 +121,17 @@ class DefaultBuildStrategy(BuildStrategy):
         # copy results to other functions
         if build_definition.packagetype == ZIP:
             for function in build_definition.functions:
-                if function.name is not single_function_name:
+                function_path = pathlib.Path(function.app_prefix, function.name)
+                if function_path != single_function_path:
                     # artifacts directory will be created by the builder
-                    artifacts_dir = str(pathlib.Path(self._build_dir, function.name))
+                    artifacts_dir = str(pathlib.Path(self._build_dir, function_path))
                     LOG.debug("Copying artifacts from %s to %s", single_build_dir, artifacts_dir)
                     osutils.copytree(single_build_dir, artifacts_dir)
                     function_build_results[function.name] = artifacts_dir
 
         return function_build_results
 
-    def build_single_layer_definition(self, layer_definition):
+    def build_single_layer_definition(self, layer_definition: LayerBuildDefinition):
         """
         Build the unique definition and then copy the artifact to the corresponding layer folder
         """
@@ -137,7 +141,12 @@ class DefaultBuildStrategy(BuildStrategy):
             raise MissingBuildMethodException(
                 f"Layer {layer.name} cannot be build without BuildMethod. Please provide BuildMethod in Metadata."
             )
-        return {layer.name: self._build_layer(layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes)}
+        artifacts_dir = str(pathlib.Path(self._build_dir, layer.app_prefix, layer.name))
+        return {
+            layer.name: self._build_layer(
+                layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes, artifacts_dir
+            )
+        }
 
 
 class CachedBuildStrategy(BuildStrategy):
@@ -168,7 +177,7 @@ class CachedBuildStrategy(BuildStrategy):
             result.update(super().build())
         return result
 
-    def build_single_function_definition(self, build_definition):
+    def build_single_function_definition(self, build_definition: FunctionBuildDefinition):
         """
         Builds single function definition with caching
         """
@@ -203,14 +212,14 @@ class CachedBuildStrategy(BuildStrategy):
             )
             for function in build_definition.functions:
                 # artifacts directory will be created by the builder
-                artifacts_dir = str(pathlib.Path(self._build_dir, function.name))
+                artifacts_dir = str(pathlib.Path(self._build_dir, function.app_prefix, function.name))
                 LOG.debug("Copying artifacts from %s to %s", cache_function_dir, artifacts_dir)
                 osutils.copytree(cache_function_dir, artifacts_dir)
                 function_build_results[function.name] = artifacts_dir
 
         return function_build_results
 
-    def build_single_layer_definition(self, layer_definition):
+    def build_single_layer_definition(self, layer_definition: LayerBuildDefinition):
         """
         Builds single layer definition with caching
         """
@@ -241,7 +250,8 @@ class CachedBuildStrategy(BuildStrategy):
                 layer_definition.uuid,
             )
             # artifacts directory will be created by the builder
-            artifacts_dir = str(pathlib.Path(self._build_dir, layer_definition.layer.name))
+            layer = layer_definition.layer
+            artifacts_dir = str(pathlib.Path(self._build_dir, layer.app_prefix, layer.name))
             LOG.debug("Copying artifacts from %s to %s", cache_function_dir, artifacts_dir)
             osutils.copytree(cache_function_dir, artifacts_dir)
             layer_build_result[layer_definition.layer.name] = artifacts_dir

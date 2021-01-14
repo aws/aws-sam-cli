@@ -4,8 +4,12 @@ Implementation of Local Lambda runner
 
 import os
 import logging
+from typing import List
+
 import boto3
 
+from samcli.lib.providers.provider import Function
+from samcli.lib.providers.sam_function_layer_provider_recursive import SamRecursiveFunctionProvider
 from samcli.lib.utils.codeuri import resolve_code_path
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.local.docker.container import ContainerResponseException
@@ -29,7 +33,7 @@ class LocalLambdaRunner:
     def __init__(
         self,
         local_runtime,
-        function_provider,
+        function_provider: SamRecursiveFunctionProvider,
         cwd,
         aws_profile=None,
         aws_region=None,
@@ -40,7 +44,7 @@ class LocalLambdaRunner:
         Initializes the class
 
         :param samcli.local.lambdafn.runtime.LambdaRuntime local_runtime: Lambda runtime capable of running a function
-        :param samcli.commands.local.lib.provider.FunctionProvider function_provider: Provider that can return a
+        :param List[samcli.commands.local.lib.provider.FunctionProvider] function_providers: Providers that can return a
             Lambda function
         :param string cwd: Current working directory. We will resolve all function CodeURIs relative to this directory.
         :param string aws_profile: Optional. Name of the profile to fetch AWS credentials from.
@@ -135,7 +139,7 @@ class LocalLambdaRunner:
         """
         return bool(self.debug_context)
 
-    def get_invoke_config(self, function):
+    def get_invoke_config(self, function: Function):
         """
         Returns invoke configuration to pass to Lambda Runtime to invoke the given function
 

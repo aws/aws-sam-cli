@@ -3,7 +3,9 @@ Base class for SAM Template providers
 """
 
 import logging
+import os
 
+from samcli.commands._utils.resources import AWS_CLOUDFORMATION_STACK, AWS_SERVERLESS_APPLICATION
 from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
@@ -21,6 +23,8 @@ class SamBaseProvider:
     LAMBDA_FUNCTION = "AWS::Lambda::Function"
     SERVERLESS_LAYER = "AWS::Serverless::LayerVersion"
     LAMBDA_LAYER = "AWS::Lambda::LayerVersion"
+    SERVERLESS_APPLICATION = AWS_SERVERLESS_APPLICATION
+    CLOUDFORMATION_STACK = AWS_CLOUDFORMATION_STACK
     DEFAULT_CODEURI = "."
 
     def get(self, name):
@@ -105,7 +109,12 @@ class SamBaseProvider:
 
     @staticmethod
     def _extract_sam_function_codeuri(
-        name, resource_properties, code_property_key, ignore_code_extraction_warnings=False
+        template_file: str,
+        name: str,
+        resource_properties,
+        code_property_key,
+        ignore_code_extraction_warnings=False,
+        base_url: str = None,
     ):
         """
         Extracts the SAM Function CodeUri from the Resource Properties
@@ -137,6 +146,11 @@ class SamBaseProvider:
                     name,
                     codeuri,
                 )
+        # In case the template is not in wd, adjust accordingly
+        if not base_url:
+            base_url = os.getcwd()
+        if not os.path.isabs(codeuri) and os.path.dirname(template_file) != base_url:
+            codeuri = os.path.join(os.path.relpath(os.path.dirname(template_file), base_url), codeuri)
         return codeuri
 
     @staticmethod

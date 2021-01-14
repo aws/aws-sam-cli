@@ -2,9 +2,11 @@
 Class that provides layers from a given SAM template
 """
 import logging
+from typing import Iterable, Optional
 
 from .provider import LayerVersion
 from .sam_base_provider import SamBaseProvider
+from ...commands._utils.template import get_template_data
 
 LOG = logging.getLogger(__name__)
 
@@ -17,7 +19,7 @@ class SamLayerProvider(SamBaseProvider):
     It may or may not contain a layer.
     """
 
-    def __init__(self, template_dict, parameter_overrides=None):
+    def __init__(self, app_prefix: str, template_file: str, parameter_overrides=None, base_url: Optional[str] = None):
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
         to be valid, normalized and a dictionary. It should be normalized by running all pre-processing
@@ -34,9 +36,13 @@ class SamLayerProvider(SamBaseProvider):
         parameter_overrides: Optional dictionary of values for SAM template parameters that might want to get
             substituted within the template
         """
+        self._app_prefix = app_prefix
+        self._template_file = template_file
+        template_dict = get_template_data(template_file)
         self._template_dict = SamLayerProvider.get_template(template_dict, parameter_overrides)
         self._resources = self._template_dict.get("Resources", {})
         self._layers = self._extract_layers()
+        self._base_url = base_url
 
     def get(self, name):
         """
@@ -55,11 +61,11 @@ class SamLayerProvider(SamBaseProvider):
             raise ValueError("Layer name is required")
 
         for layer in self._layers:
-            if layer.name == name:
+            if layer.name == name or f"{layer.app_prefix}{layer.name}":
                 return layer
         return None
 
-    def get_all(self):
+    def get_all(self) -> Iterable[LayerVersion]:
         """
         Returns all Layers in template
         Returns
@@ -99,4 +105,6 @@ class SamLayerProvider(SamBaseProvider):
         if resource_type == self.LAMBDA_LAYER:
             codeuri = SamLayerProvider._extract_lambda_function_code(layer_properties, "Content")
 
-        return LayerVersion(layer_logical_id, codeuri, compatible_runtimes, layer_resource.get("Metadata", None))
+        return LayerVersion(
+            self._app_prefix, layer_logical_id, codeuri, compatible_runtimes, layer_resource.get("Metadata", None)
+        )
