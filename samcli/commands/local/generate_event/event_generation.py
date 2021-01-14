@@ -9,7 +9,7 @@ import click
 import samcli.lib.generated_sample_events.events as events
 from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.options import debug_option
-from samcli.lib.telemetry.metrics import track_command
+from samcli.lib.telemetry.metric import track_command
 
 
 class ServiceCommand(click.MultiCommand):
