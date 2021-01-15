@@ -3,11 +3,14 @@ Test the common CLI options
 """
 
 import os
+from datetime import datetime
 
 from unittest import TestCase
 from unittest.mock import patch, MagicMock
 
 import click
+import pytest
+from tomlkit import parse
 
 from samcli.commands._utils.options import (
     get_or_default_template_file_name,
@@ -16,6 +19,7 @@ from samcli.commands._utils.options import (
     artifact_callback,
     resolve_s3_callback,
     image_repositories_callback,
+    _space_separated_list_func_type,
 )
 from samcli.commands.package.exceptions import PackageResolveS3AndS3SetError, PackageResolveS3AndS3NotSetError
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -405,3 +409,46 @@ class TestGuidedDeployStackName(TestCase):
                 param=MagicMock(),
                 provided_value=stack_name,
             )
+
+
+class TestSpaceSeparatedList(TestCase):
+    elements = [
+        "CAPABILITY_IAM",
+        "CAPABILITY_NAMED_IAM",
+    ]
+
+    def test_value_as_spaced_string(self):
+        result = _space_separated_list_func_type(" ".join(self.elements))
+        self.assertTrue(isinstance(result, list))
+        self.assertEqual(result, self.elements)
+
+    def test_value_as_list(self):
+        result = _space_separated_list_func_type(self.elements)
+        self.assertTrue(isinstance(result, list))
+        self.assertEqual(result, self.elements)
+
+    def test_value_as_tuple(self):
+        result = _space_separated_list_func_type(tuple(self.elements))
+        self.assertTrue(isinstance(result, tuple))
+        self.assertEqual(result, tuple(self.elements))
+
+    def test_value_as_tomlkit_array(self):
+        content = """
+        [test]
+        capabilities = [
+          "CAPABILITY_IAM",
+          "CAPABILITY_NAMED_IAM"
+        ]
+        """
+        doc = parse(content)
+
+        result = _space_separated_list_func_type(doc["test"]["capabilities"])
+        self.assertTrue(isinstance(result, list))
+        self.assertEqual(result, self.elements)
+
+
+@pytest.mark.parametrize("test_input", [1, 1.4, True, datetime.now(), {"test": False}, None])
+class TestSpaceSeparatedListInvalidDataTypes:
+    def test_raise_value_error(self, test_input):
+        with pytest.raises(ValueError):
+            _space_separated_list_func_type(test_input)
