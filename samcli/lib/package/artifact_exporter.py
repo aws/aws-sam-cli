@@ -145,7 +145,7 @@ class Template:
         self.uploaders = uploaders
         self.code_signer = code_signer
 
-    def export_global_artifacts(self, template_dict):
+    def _export_global_artifacts(self, template_dict: Dict) -> Dict:
         """
         Template params such as AWS::Include transforms are not specific to
         any resource type but contain artifacts that should be exported,
@@ -158,14 +158,14 @@ class Template:
                     val, self.uploaders.get(ResourceZip.EXPORT_DESTINATION), self.template_dir
                 )
             elif isinstance(val, dict):
-                self.export_global_artifacts(val)
+                self._export_global_artifacts(val)
             elif isinstance(val, list):
                 for item in val:
                     if isinstance(item, dict):
-                        self.export_global_artifacts(item)
+                        self._export_global_artifacts(item)
         return template_dict
 
-    def export_metadata(self, template_dict):
+    def _export_metadata(self):
         """
         Exports the local artifacts referenced by the metadata section in
         the given template to an export destination.
@@ -173,10 +173,10 @@ class Template:
         :return: The template with references to artifacts that have been
         exported to export destination.
         """
-        if "Metadata" not in template_dict:
-            return template_dict
+        if "Metadata" not in self.template_dict:
+            return
 
-        for metadata_type, metadata_dict in template_dict["Metadata"].items():
+        for metadata_type, metadata_dict in self.template_dict["Metadata"].items():
             for exporter_class in self.metadata_to_export:
                 if exporter_class.RESOURCE_TYPE != metadata_type:
                     continue
@@ -184,9 +184,7 @@ class Template:
                 exporter = exporter_class(self.uploaders, self.code_signer)
                 exporter.export(metadata_type, metadata_dict, self.template_dir)
 
-        return template_dict
-
-    def apply_global_values(self, template_dict):
+    def _apply_global_values(self):
         """
         Takes values from the "Global" parameters and applies them to resources where needed for packaging.
 
@@ -208,9 +206,7 @@ class Template:
                     if code_uri_global is not None and resource_dict is not None:
                         resource_dict["CodeUri"] = code_uri_global
 
-        return template_dict
-
-    def export(self):
+    def export(self) -> Dict:
         """
         Exports the local artifacts referenced by the given template to an
         export destination.
@@ -218,13 +214,13 @@ class Template:
         :return: The template with references to artifacts that have been
         exported to an export destination.
         """
-        self.template_dict = self.export_metadata(self.template_dict)
+        self._export_metadata()
 
         if "Resources" not in self.template_dict:
             return self.template_dict
 
-        self.template_dict = self.apply_global_values(self.template_dict)
-        self.template_dict = self.export_global_artifacts(self.template_dict)
+        self._apply_global_values()
+        self.template_dict = self._export_global_artifacts(self.template_dict)
 
         for resource_id, resource in self.template_dict["Resources"].items():
 

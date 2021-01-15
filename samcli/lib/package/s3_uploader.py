@@ -20,11 +20,14 @@ import threading
 import os
 import sys
 from collections import abc
+from typing import Optional, Dict, Any
+from urllib.parse import urlparse, parse_qs
 
 import botocore
 import botocore.exceptions
 
 from boto3.s3 import transfer
+from mypy_boto3_s3.client import S3Client
 
 from samcli.commands.package.exceptions import NoSuchBucketError, BucketNotSpecifiedError
 from samcli.lib.utils.hash import file_checksum
@@ -51,7 +54,15 @@ class S3Uploader:
             raise TypeError("Artifact metadata should be in dict type")
         self._artifact_metadata = val
 
-    def __init__(self, s3_client, bucket_name, prefix=None, kms_key_id=None, force_upload=False, no_progressbar=False):
+    def __init__(
+        self,
+        s3_client: S3Client,
+        bucket_name: str,
+        prefix: Optional[str] = None,
+        kms_key_id: Optional[str] = None,
+        force_upload: bool = False,
+        no_progressbar: bool = False,
+    ):
         self.s3 = s3_client
         self.bucket_name = bucket_name
         self.prefix = prefix
@@ -62,7 +73,7 @@ class S3Uploader:
 
         self._artifact_metadata = None
 
-    def upload(self, file_name, remote_path):
+    def upload(self, file_name: str, remote_path: str) -> str:
         """
         Uploads given file to S3
         :param file_name: Path to the file that will be uploaded
@@ -111,7 +122,9 @@ class S3Uploader:
                 raise NoSuchBucketError(bucket_name=self.bucket_name) from ex
             raise ex
 
-    def upload_with_dedup(self, file_name, extension=None, precomputed_md5=None):
+    def upload_with_dedup(
+        self, file_name: str, extension: Optional[str] = None, precomputed_md5: Optional[str] = None
+    ) -> str:
         """
         Makes and returns name of the S3 object based on the file's MD5 sum
 
@@ -132,7 +145,7 @@ class S3Uploader:
 
         return self.upload(file_name, remote_path)
 
-    def file_exists(self, remote_path):
+    def file_exists(self, remote_path: str) -> bool:
         """
         Check if the file we are trying to upload already exists in S3
 
@@ -151,12 +164,12 @@ class S3Uploader:
             # this information.
             return False
 
-    def make_url(self, obj_path):
+    def make_url(self, obj_path: str) -> str:
         if not self.bucket_name:
             raise BucketNotSpecifiedError()
         return "s3://{0}/{1}".format(self.bucket_name, obj_path)
 
-    def to_path_style_s3_url(self, key, version=None):
+    def to_path_style_s3_url(self, key: str, version: Optional[str] = None) -> str:
         """
         This link describes the format of Path Style URLs
         http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html#access-bucket-intro
@@ -168,7 +181,7 @@ class S3Uploader:
 
         return result
 
-    def get_version_of_artifact(self, s3_url):
+    def get_version_of_artifact(self, s3_url: str) -> str:
         """
         Returns version information of the S3 object that is given as S3 URL
         """
