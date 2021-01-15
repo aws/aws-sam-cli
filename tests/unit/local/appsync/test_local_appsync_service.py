@@ -67,6 +67,45 @@ class TestApiGatewayService(TestCase):
         self.assertEqual(local_service.static_dir, "dir/static")
         self.assertEqual(local_service.lambda_runner, lambda_runner)
 
+    @patch.object(LocalAppSyncService, "_direct_lambda_resolver_event")
+    @patch("samcli.local.appsync.local_appsync_service.LambdaOutputParser")
+    def test_generate_resolver_fn(self, lambda_output_parser, direct_lambda_resolver_event):
+        test_object = {"foo": "bar"}
+        mock_logs_string = "some logs"
+        mock_lambda_output_json = json.dumps(test_object)
+        lambda_output_parser.get_lambda_output.return_value = (mock_lambda_output_json, mock_logs_string, None)
+
+        stderr_mock = Mock()        
+        lambda_runner = Mock()
+        direct_lambda_resolver_event = Mock()
+        resolver = Resolver("foo", "bar", "foo_bar_field_name")
+
+        local_service = LocalAppSyncService(
+            GraphQLApi(), lambda_runner, stderr=stderr_mock
+        )
+        resolver_fn = local_service._generate_resolver_fn(resolver)
+
+        info = MagicMock()
+        result = resolver_fn(None, info)
+        
+        self.assertEqual(result, test_object)
+        stderr_mock.write.assert_called_once_with(mock_logs_string)
+
+
+    # def test_request_handles_error_when_invoke_cant_find_function(self, service_error_responses_patch, request_mock):
+    #     not_found_response_mock = Mock()
+    #     self.api_service._construct_v_1_0_event = Mock()
+    #     self.api_service._get_current_route = MagicMock()
+    #     self.api_service._get_current_route.methods = []
+
+    #     service_error_responses_patch.lambda_not_found_response.return_value = not_found_response_mock
+
+    #     self.lambda_runner.invoke.side_effect = FunctionNotFound()
+    #     request_mock.return_value = ("test", "test")
+    #     response = self.api_service._request_handler()
+
+    #     self.assertEqual(response, not_found_response_mock)
+
     # @patch.object(LocalApigwService, "get_request_methods_endpoints")
     # @patch("samcli.local.apigw.local_apigw_service.ServiceErrorResponses")
     # def test_request_handles_error_when_invoke_cant_find_function(self, service_error_responses_patch, request_mock):
@@ -182,11 +221,6 @@ class TestService_construct_direct_lambda_event(TestCase):
         self.info_mock.field_name = "something"
         self.info_mock.parent_type.name = "something else"
         self.info_mock.variable_values = {}
-        # self.selection_set_mock = Mock()
-        # self.selection_set_mock.selections = []
-        # self.info_mock.field_nodes = [
-        #   self.selection_set_mock
-        # ]
 
         self.expected_dict = {
             "arguments": {},
@@ -207,4 +241,40 @@ class TestService_construct_direct_lambda_event(TestCase):
             self.request_mock, arguments={}, info=self.info_mock
         )
         actual_event_dict = json.loads(actual_event_str)
+        self.assertEqual(actual_event_dict, self.expected_dict)
+
+    def test_construct_event_arguments(self): 
+        arguments = {
+            "foo1": "bar1",
+            "bar2": "foo2",
+        }
+        actual_event_str = LocalAppSyncService._direct_lambda_resolver_event(
+            self.request_mock, arguments=arguments, info=self.info_mock
+        )
+        actual_event_dict = json.loads(actual_event_str)
+        expected = self.expected_dict
+        expected["arguments"] = arguments
+        self.assertEqual(actual_event_dict, self.expected_dict)
+
+    def test_construct_event_selection_list(self): 
+        info_mock = self.info_mock
+        
+        field_name_one = MagicMock()
+        field_name_one.name.value = "someField"
+        field_name_two = MagicMock()
+        field_name_two.name.value = "someOtherField"
+        info_mock.field_nodes[0].selection_set.selections = [
+            field_name_one,
+            field_name_two,
+        ]
+
+        selection_set = [a for a in info_mock.field_nodes[0].selection_set.selections]
+        print("Selection set %s", selection_set)
+        
+        actual_event_str = LocalAppSyncService._direct_lambda_resolver_event(
+            self.request_mock, arguments={}, info=info_mock
+        )
+        actual_event_dict = json.loads(actual_event_str)
+        expected = self.expected_dict
+        expected["info"]["selectionSetList"] = ["someField", "someOtherField"]
         self.assertEqual(actual_event_dict, self.expected_dict)
