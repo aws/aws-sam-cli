@@ -7,7 +7,7 @@ import unittest
 
 from contextlib import contextmanager, closing
 from unittest import mock
-from unittest.mock import patch, Mock, MagicMock
+from unittest.mock import patch, Mock
 
 from samcli.commands.package.exceptions import ExportFailedError
 from samcli.lib.package.s3_uploader import S3Uploader
