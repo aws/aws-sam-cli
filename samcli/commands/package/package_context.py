@@ -28,6 +28,7 @@ from samcli.lib.package.artifact_exporter import Template
 from samcli.lib.package.ecr_uploader import ECRUploader
 from samcli.lib.package.code_signer import CodeSigner
 from samcli.lib.package.s3_uploader import S3Uploader
+from samcli.lib.package.uploaders import Uploaders
 from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
 from samcli.yamlhelper import yaml_dump
 
@@ -46,6 +47,8 @@ class PackageContext:
         "--stack-name <YOUR STACK NAME>"
         "\n"
     )
+
+    uploaders: Uploaders
 
     def __init__(
         self,
@@ -79,11 +82,8 @@ class PackageContext:
         self.region = region
         self.profile = profile
         self.on_deploy = on_deploy
-        self.s3_uploader = None
         self.code_signer = None
         self.signing_profiles = signing_profiles
-        self.ecr_uploader = None
-        self.uploader = {}
 
     def __enter__(self):
         return self
@@ -92,7 +92,6 @@ class PackageContext:
         pass
 
     def run(self):
-
         region_name = self.region if self.region else None
 
         s3_client = boto3.client(
@@ -103,18 +102,18 @@ class PackageContext:
 
         docker_client = docker.from_env()
 
-        self.s3_uploader = S3Uploader(
+        s3_uploader = S3Uploader(
             s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload, self.no_progressbar
         )
         # attach the given metadata to the artifacts to be uploaded
-        self.s3_uploader.artifact_metadata = self.metadata
-        self.ecr_uploader = ECRUploader(docker_client, ecr_client, self.image_repository, self.image_repositories)
+        s3_uploader.artifact_metadata = self.metadata
+        ecr_uploader = ECRUploader(docker_client, ecr_client, self.image_repository, self.image_repositories)
+
+        self.uploaders = Uploaders(s3_uploader, ecr_uploader)
 
         code_signer_client = boto3.client("signer", config=get_boto_config_with_user_agent(region_name=region_name))
         self.code_signer = CodeSigner(code_signer_client, self.signing_profiles)
 
-        # NOTE(srirammv): move this to its own class.
-        self.uploader = {"s3": self.s3_uploader, "ecr": self.ecr_uploader}
         try:
             exported_str = self._export(self.template_file, self.use_json)
 
@@ -130,7 +129,7 @@ class PackageContext:
             raise PackageFailedError(template_file=self.template_file, ex=str(ex)) from ex
 
     def _export(self, template_path, use_json):
-        template = Template(template_path, os.getcwd(), self.uploader, self.code_signer)
+        template = Template(template_path, os.getcwd(), self.uploaders, self.code_signer)
         exported_template = template.export()
 
         if use_json:
