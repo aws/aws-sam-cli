@@ -46,7 +46,8 @@ def local_common_options(f):
             "--shutdown",
             is_flag=True,
             default=False,
-            help="If set, will emulate a shutdown event after the invoke completes, in order to test extension handling of shutdown behavior.",
+            help="If set, will emulate a shutdown event after the invoke completes, "
+            "in order to test extension handling of shutdown behavior.",
         )
     ]
 

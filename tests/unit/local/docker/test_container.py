@@ -310,6 +310,7 @@ class TestContainer_create(TestCase):
         with self.assertRaises(RuntimeError):
             container.create()
 
+
 class TestContainer_stop(TestCase):
     def setUp(self):
         self.image = IMAGE
