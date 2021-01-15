@@ -36,7 +36,7 @@ from samcli.lib.package.packageable_resources import (
 )
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Uploaders
-from samcli.lib.package.utils import is_local_folder, make_abs_path, is_s3_url, is_local_file, mktempfile, parse_s3_url
+from samcli.lib.package.utils import is_local_folder, make_abs_path, is_s3_url, is_local_file, mktempfile
 from samcli.lib.utils.packagetype import ZIP
 from samcli.yamlhelper import yaml_parse, yaml_dump
 
@@ -88,7 +88,7 @@ class CloudFormationStackResource(ResourceZip):
             url = self.uploader.upload_with_dedup(temporary_file.name, "template")
 
             # TemplateUrl property requires S3 URL to be in path-style format
-            parts = parse_s3_url(url, version_property="Version")
+            parts = S3Uploader.parse_s3_url(url, version_property="Version")
             s3_path_url = self.uploader.to_path_style_s3_url(parts["Key"], parts.get("Version", None))
             set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, s3_path_url)
 

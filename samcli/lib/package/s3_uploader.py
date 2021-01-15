@@ -27,7 +27,6 @@ import botocore.exceptions
 from boto3.s3 import transfer
 
 from samcli.commands.package.exceptions import NoSuchBucketError, BucketNotSpecifiedError
-from samcli.lib.package.artifact_exporter import parse_s3_url
 from samcli.lib.utils.hash import file_checksum
 
 LOG = logging.getLogger(__name__)
@@ -173,13 +172,40 @@ class S3Uploader:
         """
         Returns version information of the S3 object that is given as S3 URL
         """
-        parsed_s3_url = parse_s3_url(s3_url)
+        parsed_s3_url = self.parse_s3_url(s3_url)
         s3_bucket = parsed_s3_url["Bucket"]
         s3_key = parsed_s3_url["Key"]
         s3_object_tagging = self.s3.get_object_tagging(Bucket=s3_bucket, Key=s3_key)
         LOG.debug("S3 Object (%s) tagging information %s", s3_url, s3_object_tagging)
         s3_object_version_id = s3_object_tagging["VersionId"]
         return s3_object_version_id
+
+    @staticmethod
+    def parse_s3_url(
+        url: Any,
+        bucket_name_property: str = "Bucket",
+        object_key_property: str = "Key",
+        version_property: Optional[str] = None,
+    ) -> Dict:
+
+        if isinstance(url, str) and url.startswith("s3://"):
+
+            parsed = urlparse(url)
+            query = parse_qs(parsed.query)
+
+            if parsed.netloc and parsed.path:
+                result = dict()
+                result[bucket_name_property] = parsed.netloc
+                result[object_key_property] = parsed.path.lstrip("/")
+
+                # If there is a query string that has a single versionId field,
+                # set the object version and return
+                if version_property is not None and "versionId" in query and len(query["versionId"]) == 1:
+                    result[version_property] = query["versionId"][0]
+
+                return result
+
+        raise ValueError("URL given to the parse method is not a valid S3 url " "{0}".format(url))
 
 
 class ProgressPercentage:

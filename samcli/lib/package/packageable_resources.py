@@ -20,7 +20,6 @@ from samcli.lib.package.utils import (
     copy_to_temp_dir,
     upload_local_artifacts,
     upload_local_image_artifacts,
-    parse_s3_url,
     is_s3_url,
     is_path_value_valid,
 )
@@ -260,7 +259,7 @@ class ResourceWithS3UrlDict(ResourceZip):
             resource_id, resource_dict, self.PROPERTY_NAME, parent_dir, self.uploader
         )
 
-        parsed_url = parse_s3_url(
+        parsed_url = S3Uploader.parse_s3_url(
             artifact_s3_url,
             bucket_name_property=self.BUCKET_NAME_PROPERTY,
             object_key_property=self.OBJECT_KEY_PROPERTY,
