@@ -199,6 +199,14 @@ class Container:
         except docker.errors.NotFound:
             # Container is already removed
             LOG.debug("Container with ID %s does not exist. Cannot stop!", self.id)
+        except docker.errors.APIError as ex:
+            msg = str(ex)
+            removal_in_progress = ("removal of container" in msg) and ("is already in progress" in msg)
+
+            # When removal is already started, Docker API will throw an exception
+            # Skip such exceptions.
+            if not removal_in_progress:
+                raise ex
 
     def delete(self):
         """
