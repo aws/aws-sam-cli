@@ -11,6 +11,7 @@ import threading
 
 from samcli.local.docker.lambda_container import LambdaContainer
 from samcli.lib.utils.file_observer import FileObserver
+from samcli.lib.telemetry.metric import capture_parameter
 from .zip import unzip
 
 LOG = logging.getLogger(__name__)
@@ -120,6 +121,7 @@ class LambdaRuntime:
             LOG.debug("Ctrl+C was pressed. Aborting container running")
             raise
 
+    @capture_parameter("runtimeMetric", "runtimes", 1, parameter_nested_identifier="runtime", as_list=True)
     def invoke(self, function_config, event, debug_context=None, stdout=None, stderr=None):
         """
         Invoke the given Lambda function locally.
