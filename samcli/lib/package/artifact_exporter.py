@@ -16,6 +16,7 @@ Exporting resources defined in the cloudformation template to the cloud.
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 import os
+from typing import Dict
 
 from botocore.utils import set_value_from_jmespath
 
@@ -26,12 +27,15 @@ from samcli.commands._utils.resources import (
     AWS_SERVERLESS_APPLICATION,
 )
 from samcli.commands.package import exceptions
+from samcli.lib.package.code_signer import CodeSigner
 from samcli.lib.package.packageable_resources import (
     RESOURCES_EXPORT_LIST,
     METADATA_EXPORT_LIST,
     GLOBAL_EXPORT_DICT,
     ResourceZip,
 )
+from samcli.lib.package.s3_uploader import S3Uploader
+from samcli.lib.package.uploaders import Uploaders
 from samcli.lib.package.utils import is_local_folder, make_abs_path, is_s3_url, is_local_file, mktempfile, parse_s3_url
 from samcli.lib.utils.packagetype import ZIP
 from samcli.yamlhelper import yaml_parse, yaml_dump
@@ -73,7 +77,7 @@ class CloudFormationStackResource(ResourceZip):
                 property_name=self.PROPERTY_NAME, resource_id=resource_id, template_path=abs_template_path
             )
 
-        exported_template_dict = Template(template_path, parent_dir, self.uploader, self.code_signer).export()
+        exported_template_dict = Template(template_path, parent_dir, self.uploaders, self.code_signer).export()
 
         exported_template_str = yaml_dump(exported_template_dict)
 
@@ -104,12 +108,19 @@ class Template:
     Class to export a CloudFormation template
     """
 
+    template_dict: Dict
+    template_dir: str
+    resources_to_export: frozenset
+    metadata_to_export: frozenset
+    uploaders: Uploaders
+    code_signer: CodeSigner
+
     def __init__(
         self,
-        template_path,
-        parent_dir,
-        uploader,
-        code_signer,
+        template_path: str,
+        parent_dir: str,
+        uploaders: Uploaders,
+        code_signer: CodeSigner,
         resources_to_export=frozenset(
             RESOURCES_EXPORT_LIST + [CloudFormationStackResource, ServerlessApplicationResource]
         ),
@@ -131,7 +142,7 @@ class Template:
         self.template_dir = template_dir
         self.resources_to_export = resources_to_export
         self.metadata_to_export = metadata_to_export
-        self.uploader = uploader
+        self.uploaders = uploaders
         self.code_signer = code_signer
 
     def export_global_artifacts(self, template_dict):
@@ -144,7 +155,7 @@ class Template:
         for key, val in template_dict.items():
             if key in GLOBAL_EXPORT_DICT:
                 template_dict[key] = GLOBAL_EXPORT_DICT[key](
-                    val, self.uploader.get(ResourceZip.EXPORT_DESTINATION), self.template_dir
+                    val, self.uploaders.get(ResourceZip.EXPORT_DESTINATION), self.template_dir
                 )
             elif isinstance(val, dict):
                 self.export_global_artifacts(val)
@@ -170,7 +181,7 @@ class Template:
                 if exporter_class.RESOURCE_TYPE != metadata_type:
                     continue
 
-                exporter = exporter_class(self.uploader[exporter_class.EXPORT_DESTINATION], self.code_signer)
+                exporter = exporter_class(self.uploaders, self.code_signer)
                 exporter.export(metadata_type, metadata_dict, self.template_dir)
 
         return template_dict
@@ -226,11 +237,7 @@ class Template:
                 if resource_dict.get("PackageType", ZIP) != exporter_class.ARTIFACT_TYPE:
                     continue
                 # Export code resources
-                if isinstance(self.uploader, dict):
-                    exporter = exporter_class(self.uploader[exporter_class.EXPORT_DESTINATION], self.code_signer)
-                else:
-                    # In-case of nested exports fall back to same uploader passed in.
-                    exporter = exporter_class(self.uploader, self.code_signer)
+                exporter = exporter_class(self.uploaders, self.code_signer)
                 exporter.export(resource_id, resource_dict, self.template_dir)
 
         return self.template_dict
