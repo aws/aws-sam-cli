@@ -235,7 +235,7 @@ class Container:
         # a read time out for the response received from the server.
         resp = requests.post(
             self.URL.format(port=self.rapid_port_host, function_name="function"),
-            data=event,
+            data=event.encode("utf-8"),
             timeout=(self.RAPID_CONNECTION_TIMEOUT, None),
         )
         stdout.write(resp.content)
