@@ -141,7 +141,7 @@ class CfnBaseApiProvider:
         if prop:
             if allow_bool and isinstance(prop, bool):
                 # The only boolean header is allow credentials and the only valid value for that is 'true'
-                if prop is False:
+                if not prop:
                     return None
                 prop = "'true'"
             if not isinstance(prop, str) or prop.startswith("!"):
