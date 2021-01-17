@@ -161,7 +161,6 @@ class Deployer:
             "TemplateBody": cfn_template,
             "ChangeSetType": changeset_type,
             "Parameters": parameter_values,
-            "Capabilities": capabilities,
             "Description": "Created by SAM CLI at {0} UTC".format(datetime.utcnow().isoformat()),
             "Tags": tags,
         }
@@ -180,6 +179,8 @@ class Deployer:
                 kwargs["TemplateURL"] = s3_uploader.to_path_style_s3_url(parts["Key"], parts.get("Version", None))
 
         # don't set these arguments if not specified to use existing values
+        if capabilities is not None:
+            kwargs["Capabilities"] = capabilities
         if role_arn is not None:
             kwargs["RoleARN"] = role_arn
         if notification_arns is not None:
@@ -344,9 +345,8 @@ class Deployer:
 
         while stack_change_in_progress and retry_attempts <= self.max_attempts:
             try:
-
                 # Only sleep if there have been no retry_attempts
-                time.sleep(self.client_sleep if retry_attempts == 0 else 0)
+                time.sleep(0 if retry_attempts else self.client_sleep)
                 describe_stacks_resp = self._client.describe_stacks(StackName=stack_name)
                 paginator = self._client.get_paginator("describe_stack_events")
                 response_iterator = paginator.paginate(StackName=stack_name)

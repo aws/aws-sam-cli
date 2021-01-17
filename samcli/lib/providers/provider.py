@@ -26,10 +26,16 @@ Function = namedtuple(
         "timeout",
         # Name of the handler
         "handler",
+        # Image Uri
+        "imageuri",
+        # Package Type
+        "packagetype",
+        # Image Configuration
+        "imageconfig",
         # Path to the code. This could be a S3 URI or local path or a dictionary of S3 Bucket, Key, Version
         "codeuri",
-        # Environment variables. This is a dictionary with one key called Variables inside it. This contains the definition
-        # of environment variables
+        # Environment variables. This is a dictionary with one key called Variables inside it.
+        # This contains the definition of environment variables
         "environment",
         # Lambda Execution IAM Role ARN. In the future, this can be used by Local Lambda runtime to assume the IAM role
         # to get credentials to run the container with. This gives a much higher fidelity simulation of cloud Lambda.
@@ -196,6 +202,10 @@ class LayerVersion:
     def codeuri(self):
         return self._codeuri
 
+    @codeuri.setter
+    def codeuri(self, codeuri):
+        self._codeuri = codeuri
+
     @property
     def version(self):
         return self._version
@@ -204,10 +214,6 @@ class LayerVersion:
     def layer_arn(self):
         layer_arn, _ = self.arn.rsplit(":", 1)
         return layer_arn
-
-    @codeuri.setter
-    def codeuri(self, codeuri):
-        self._codeuri = codeuri
 
     @property
     def build_method(self):
@@ -253,7 +259,7 @@ class Api:
 
 _CorsTuple = namedtuple("Cors", ["allow_origin", "allow_methods", "allow_headers", "allow_credentials", "max_age"])
 
-_CorsTuple.__new__.__defaults__ = (
+_CorsTuple.__new__.__defaults__ = (  # type: ignore
     None,  # Allow Origin defaults to None
     None,  # Allow Methods is optional and defaults to empty
     None,  # Allow Headers is optional and defaults to empty

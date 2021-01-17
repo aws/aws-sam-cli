@@ -1,3 +1,4 @@
+from typing import Optional, Dict
 from unittest import TestCase, skipIf
 import threading
 from subprocess import Popen
@@ -11,8 +12,10 @@ from tests.testing_utils import SKIP_DOCKER_MESSAGE, SKIP_DOCKER_TESTS
 
 @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
 class StartApiIntegBaseClass(TestCase):
-    template = None
-    binary_data_file = None
+    template: Optional[str] = None
+    container_mode: Optional[str] = None
+    parameter_overrides: Optional[Dict[str, str]] = None
+    binary_data_file: Optional[str] = None
     integration_dir = str(Path(__file__).resolve().parents[2])
 
     @classmethod
@@ -36,9 +39,21 @@ class StartApiIntegBaseClass(TestCase):
         if os.getenv("SAM_CLI_DEV"):
             command = "samdev"
 
-        cls.start_api_process = Popen([command, "local", "start-api", "-t", cls.template, "-p", cls.port])
+        command_list = [command, "local", "start-api", "-t", cls.template, "-p", cls.port]
+
+        if cls.container_mode:
+            command_list += ["--warm-containers", cls.container_mode]
+
+        if cls.parameter_overrides:
+            command_list += ["--parameter-overrides", cls._make_parameter_override_arg(cls.parameter_overrides)]
+
+        cls.start_api_process = Popen(command_list)
         # we need to wait some time for start-api to start, hence the sleep
         time.sleep(5)
+
+    @classmethod
+    def _make_parameter_override_arg(self, overrides):
+        return " ".join(["ParameterKey={},ParameterValue={}".format(key, value) for key, value in overrides.items()])
 
     @classmethod
     def tearDownClass(cls):

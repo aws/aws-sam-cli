@@ -9,6 +9,7 @@ from samcli.commands.build.exceptions import MissingBuildMethodException
 from samcli.lib.utils import osutils
 from samcli.lib.utils.async_utils import AsyncContext
 from samcli.lib.utils.hash import dir_checksum
+from samcli.lib.utils.packagetype import ZIP, IMAGE
 
 LOG = logging.getLogger(__name__)
 
@@ -90,33 +91,39 @@ class DefaultBuildStrategy(BuildStrategy):
         Build the unique definition and then copy the artifact to the corresponding function folder
         """
         function_build_results = {}
-        LOG.info("Building codeuri: %s runtime: %s metadata: %s functions: %s",
-                 build_definition.codeuri,
-                 build_definition.runtime,
-                 build_definition.metadata,
-                 [function.name for function in build_definition.functions])
+        LOG.info(
+            "Building codeuri: %s runtime: %s metadata: %s functions: %s",
+            build_definition.codeuri,
+            build_definition.runtime,
+            build_definition.metadata,
+            [function.name for function in build_definition.functions],
+        )
 
         # build into one of the functions from this build definition
         single_function_name = build_definition.get_function_name()
         single_build_dir = str(pathlib.Path(self._build_dir, single_function_name))
 
         LOG.debug("Building to following folder %s", single_build_dir)
-        self._build_function(build_definition.get_function_name(),
-                             build_definition.codeuri,
-                             build_definition.runtime,
-                             build_definition.get_handler_name(),
-                             single_build_dir,
-                             build_definition.metadata)
-        function_build_results[single_function_name] = single_build_dir
+        result = self._build_function(
+            build_definition.get_function_name(),
+            build_definition.codeuri,
+            build_definition.packagetype,
+            build_definition.runtime,
+            build_definition.get_handler_name(),
+            single_build_dir,
+            build_definition.metadata,
+        )
+        function_build_results[single_function_name] = result
 
         # copy results to other functions
-        for function in build_definition.functions:
-            if function.name is not single_function_name:
-                # artifacts directory will be created by the builder
-                artifacts_dir = str(pathlib.Path(self._build_dir, function.name))
-                LOG.debug("Copying artifacts from %s to %s", single_build_dir, artifacts_dir)
-                osutils.copytree(single_build_dir, artifacts_dir)
-                function_build_results[function.name] = artifacts_dir
+        if build_definition.packagetype == ZIP:
+            for function in build_definition.functions:
+                if function.name is not single_function_name:
+                    # artifacts directory will be created by the builder
+                    artifacts_dir = str(pathlib.Path(self._build_dir, function.name))
+                    LOG.debug("Copying artifacts from %s to %s", single_build_dir, artifacts_dir)
+                    osutils.copytree(single_build_dir, artifacts_dir)
+                    function_build_results[function.name] = artifacts_dir
 
         return function_build_results
 
@@ -128,11 +135,9 @@ class DefaultBuildStrategy(BuildStrategy):
         LOG.info("Building layer '%s'", layer.name)
         if layer.build_method is None:
             raise MissingBuildMethodException(
-                f"Layer {layer.name} cannot be build without BuildMethod. Please provide BuildMethod in Metadata.")
-        return {layer.name: self._build_layer(layer.name,
-                                              layer.codeuri,
-                                              layer.build_method,
-                                              layer.compatible_runtimes)}
+                f"Layer {layer.name} cannot be build without BuildMethod. Please provide BuildMethod in Metadata."
+            )
+        return {layer.name: self._build_layer(layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes)}
 
 
 class CachedBuildStrategy(BuildStrategy):
@@ -144,8 +149,9 @@ class CachedBuildStrategy(BuildStrategy):
     For actual building, it uses delegate implementation
     """
 
-    def __init__(self, build_graph, delegate_build_strategy, base_dir, build_dir, cache_dir,
-                 is_building_specific_resource):
+    def __init__(
+        self, build_graph, delegate_build_strategy, base_dir, build_dir, cache_dir, is_building_specific_resource
+    ):
         super().__init__(build_graph)
         self._delegate_build_strategy = delegate_build_strategy
         self._base_dir = base_dir
@@ -166,14 +172,19 @@ class CachedBuildStrategy(BuildStrategy):
         """
         Builds single function definition with caching
         """
+        if build_definition.packagetype == IMAGE:
+            return self._delegate_build_strategy.build_single_function_definition(build_definition)
+
         code_dir = str(pathlib.Path(self._base_dir, build_definition.codeuri).resolve())
         source_md5 = dir_checksum(code_dir)
         cache_function_dir = pathlib.Path(self._cache_dir, build_definition.uuid)
         function_build_results = {}
 
         if not cache_function_dir.exists() or build_definition.source_md5 != source_md5:
-            LOG.info("Cache is invalid, running build and copying resources to function build definition of %s",
-                     build_definition.uuid)
+            LOG.info(
+                "Cache is invalid, running build and copying resources to function build definition of %s",
+                build_definition.uuid,
+            )
             build_result = self._delegate_build_strategy.build_single_function_definition(build_definition)
             function_build_results.update(build_result)
 
@@ -186,8 +197,10 @@ class CachedBuildStrategy(BuildStrategy):
                 osutils.copytree(value, cache_function_dir)
                 break
         else:
-            LOG.info("Valid cache found, copying previously built resources from function build definition of %s",
-                     build_definition.uuid)
+            LOG.info(
+                "Valid cache found, copying previously built resources from function build definition of %s",
+                build_definition.uuid,
+            )
             for function in build_definition.functions:
                 # artifacts directory will be created by the builder
                 artifacts_dir = str(pathlib.Path(self._build_dir, function.name))
@@ -207,8 +220,10 @@ class CachedBuildStrategy(BuildStrategy):
         layer_build_result = {}
 
         if not cache_function_dir.exists() or layer_definition.source_md5 != source_md5:
-            LOG.info("Cache is invalid, running build and copying resources to layer build definition of %s",
-                     layer_definition.uuid)
+            LOG.info(
+                "Cache is invalid, running build and copying resources to layer build definition of %s",
+                layer_definition.uuid,
+            )
             build_result = self._delegate_build_strategy.build_single_layer_definition(layer_definition)
             layer_build_result.update(build_result)
 
@@ -221,8 +236,10 @@ class CachedBuildStrategy(BuildStrategy):
                 osutils.copytree(value, cache_function_dir)
                 break
         else:
-            LOG.info("Valid cache found, copying previously built resources from layer build definition of %s",
-                     layer_definition.uuid)
+            LOG.info(
+                "Valid cache found, copying previously built resources from layer build definition of %s",
+                layer_definition.uuid,
+            )
             # artifacts directory will be created by the builder
             artifacts_dir = str(pathlib.Path(self._build_dir, layer_definition.layer.name))
             LOG.debug("Copying artifacts from %s to %s", cache_function_dir, artifacts_dir)
@@ -276,8 +293,7 @@ class ParallelBuildStrategy(BuildStrategy):
         Passes single function build into async context, no actual result returned from this function
         """
         self._async_context.add_async_task(
-            self._delegate_build_strategy.build_single_function_definition,
-            build_definition
+            self._delegate_build_strategy.build_single_function_definition, build_definition
         )
         return {}
 
@@ -286,7 +302,6 @@ class ParallelBuildStrategy(BuildStrategy):
         Passes single layer build into async context, no actual result returned from this function
         """
         self._async_context.add_async_task(
-            self._delegate_build_strategy.build_single_layer_definition,
-            layer_definition
+            self._delegate_build_strategy.build_single_layer_definition, layer_definition
         )
         return {}

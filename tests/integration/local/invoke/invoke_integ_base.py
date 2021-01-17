@@ -1,13 +1,17 @@
 import os
+from typing import Optional
 from unittest import TestCase, skipIf
 from pathlib import Path
+from subprocess import Popen, PIPE, TimeoutExpired
 
 from tests.testing_utils import SKIP_DOCKER_MESSAGE, SKIP_DOCKER_TESTS
+
+TIMEOUT = 300
 
 
 @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
 class InvokeIntegBase(TestCase):
-    template = None
+    template: Optional[Path] = None
 
     @classmethod
     def setUpClass(cls):
@@ -75,3 +79,35 @@ class InvokeIntegBase(TestCase):
             command_list = command_list + ["--region", region]
 
         return command_list
+
+    def get_build_command_list(
+        self,
+        template_path=None,
+        cached=None,
+        parallel=None,
+        use_container=None,
+    ):
+        command_list = [self.cmd, "build"]
+
+        if template_path:
+            command_list = command_list + ["-t", template_path]
+
+        if cached:
+            command_list = command_list + ["-c"]
+
+        if parallel:
+            command_list = command_list + ["-p"]
+
+        if use_container:
+            command_list = command_list + ["-u"]
+
+        return command_list
+
+    def run_command(self, command_list, env=None):
+        process = Popen(command_list, stdout=PIPE, env=env)
+        try:
+            (stdout, stderr) = process.communicate(timeout=TIMEOUT)
+            return stdout, stderr, process.returncode
+        except TimeoutExpired:
+            process.kill()
+            raise

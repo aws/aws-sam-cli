@@ -8,6 +8,8 @@ from json import JSONDecodeError
 
 import click
 
+from samcli.lib.package.ecr_utils import is_ecr_url
+
 PARAM_AND_METADATA_KEY_REGEX = """([A-Za-z0-9\\"\']+)"""
 
 
@@ -210,7 +212,8 @@ class CfnTags(click.ParamType):
         value = (value,) if not isinstance(value, tuple) else value
 
         for val in value:
-            # Using standard parser first. We should implement other type parser like JSON and Key=key,Value=val type format.
+            # Using standard parser first.
+            # We should implement other type parser like JSON and Key=key,Value=val type format.
             parsed, tags = self._standard_key_value_parser(val)
             if not parsed:
                 parsed, tags = self._space_separated_key_value_parser(val)
@@ -350,3 +353,61 @@ class SigningProfilesOptionType(click.ParamType):
         if equals_count == 1:
             return signing_profile.split(":")
         return signing_profile, ""
+
+
+class ImageRepositoryType(click.ParamType):
+    """
+    Custom Parameter Type for Image Repository option.
+    """
+
+    class Transformer:
+        """
+        Class takes in a converter (native click type) and a transformer.
+        transformer is a function callback where additional transformation happens before
+        conversion to a native click type.
+        """
+
+        def __init__(self, converter, transformation):
+            """
+
+            :param converter: native click Type
+            :param transformation: callback function for transformation prior to conversion.
+            """
+            self.converter = converter
+            self.transformer = transformation
+
+        def transform(self, *args, **kwargs):
+            return self.transformer(self.converter.convert(*args, **kwargs))
+
+    # Transformation callback function checks if the received option value is a valid ECR url.
+    transformer = Transformer(converter=click.STRING, transformation=is_ecr_url)
+    name = ""
+
+    def convert(self, value, param, ctx):
+        """
+        Attempt a conversion given the stipulations of allowed transformations.
+        """
+        result = self.transformer.transform(value, param, ctx)
+        if not result:
+            raise click.BadParameter(f"Invalid Image Repository ECR URI: {value}")
+        return value
+
+
+class ImageRepositoriesType(click.ParamType):
+    """
+    Custom Parameter Type for Multi valued Image Repositories option.
+    """
+
+    name = ""
+
+    def convert(self, value, param, ctx):
+        key_value_pair = value.split("=")
+        if len(key_value_pair) != 2:
+            raise click.BadParameter(
+                f"{param.opts[0]} is not a valid format, it needs to be of the form function_logical_id=ECR_URI"
+            )
+        key = key_value_pair[0]
+        _value = key_value_pair[1]
+        if not is_ecr_url(_value):
+            raise click.BadParameter(f"{param.opts[0]} needs to have valid ECR URI as value")
+        return {key: _value}

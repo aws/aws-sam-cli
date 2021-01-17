@@ -12,6 +12,8 @@ from samcli.lib.build.build_strategy import (
 from samcli.lib.utils import osutils
 from pathlib import Path
 
+from samcli.lib.utils.packagetype import ZIP
+
 
 @patch("samcli.lib.build.build_graph.BuildGraph._write")
 @patch("samcli.lib.build.build_graph.BuildGraph._read")
@@ -24,12 +26,12 @@ class BuildStrategyBaseTest(TestCase):
         self.function1_2 = Mock()
         self.function2 = Mock()
 
-        self.function_build_definition1 = FunctionBuildDefinition("runtime", "codeuri", {})
+        self.function_build_definition1 = FunctionBuildDefinition("runtime", "codeuri", ZIP, {})
         self.function_build_definition1.functions = [self.function1_1, self.function1_2]
-        self.function_build_definition2 = FunctionBuildDefinition("runtime2", "codeuri", {})
+        self.function_build_definition2 = FunctionBuildDefinition("runtime2", "codeuri", ZIP, {})
         self.function_build_definition1.functions = [self.function2]
-        self.build_graph.put_function_build_definition(self.function_build_definition1, Mock())
-        self.build_graph.put_function_build_definition(self.function_build_definition2, Mock())
+        self.build_graph.put_function_build_definition(self.function_build_definition1, Mock(packagetype=ZIP))
+        self.build_graph.put_function_build_definition(self.function_build_definition2, Mock(packagetype=ZIP))
 
         self.layer_build_definition1 = LayerBuildDefinition("layer1", "codeuri", "build_method", [])
         self.layer_build_definition2 = LayerBuildDefinition("layer2", "codeuri", "build_method", [])
@@ -126,6 +128,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                 call(
                     self.function_build_definition1.get_function_name(),
                     self.function_build_definition1.codeuri,
+                    ZIP,
                     self.function_build_definition1.runtime,
                     self.function_build_definition1.get_handler_name(),
                     ANY,
@@ -134,6 +137,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                 call(
                     self.function_build_definition2.get_function_name(),
                     self.function_build_definition2.codeuri,
+                    ZIP,
                     self.function_build_definition2.runtime,
                     self.function_build_definition2.get_handler_name(),
                     ANY,
@@ -188,6 +192,7 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
     [function_build_definitions]
     [function_build_definitions.{FUNCTION_UUID}]
     codeuri = "{CODEURI}"
+    packagetype = "{ZIP}"
     runtime = "{RUNTIME}"
     source_md5 = "{SOURCE_MD5}"
     functions = ["HelloWorldPython", "HelloWorldPython2"]

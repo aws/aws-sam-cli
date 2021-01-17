@@ -3,6 +3,7 @@ import shutil
 import sys
 import os
 import logging
+import random
 from unittest import skipIf
 from pathlib import Path
 from parameterized import parameterized
@@ -29,8 +30,45 @@ TIMEOUT = 420  # 7 mins
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
+    template = "template_image.yaml"
+
+    EXPECTED_FILES_PROJECT_MANIFEST = {
+        "__init__.py",
+        "main.py",
+        "numpy",
+        # 'cryptography',
+        "requirements.txt",
+    }
+
+    FUNCTION_LOGICAL_ID_IMAGE = "ImageFunction"
+
+    @parameterized.expand([("3.6", False), ("3.7", False), ("3.8", False)])
+    @pytest.mark.flaky(reruns=3)
+    def test_with_default_requirements(self, runtime, use_container):
+        overrides = {
+            "Runtime": runtime,
+            "Handler": "main.handler",
+            "DockerFile": "Dockerfile",
+            "Tag": f"{random.randint(1,100)}",
+        }
+        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
+
+        LOG.info("Running Command: ")
+        LOG.info(cmdlist)
+        run_command(cmdlist, cwd=self.working_dir)
+
+        expected = {"pi": "3.14"}
+        self._verify_invoke_built_function(
+            self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
+        )
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
 class TestBuildCommand_PythonFunctions(BuildIntegBase):
-    EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {
         "__init__.py",
         "main.py",
@@ -146,7 +184,6 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildCommand_NodeFunctions(BuildIntegBase):
-    EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {"node_modules", "main.js"}
     EXPECTED_NODE_MODULES = {"minimal-request-promise"}
 
@@ -625,7 +662,6 @@ class TestBuildCommand_Go_Modules(BuildIntegBase):
 class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
     template = "many-functions-template.yaml"
 
-    EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {
         "__init__.py",
         "main.py",
@@ -702,7 +738,6 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
 class TestBuildCommand_LayerBuilds(BuildIntegBase):
     template = "layers-functions-template.yaml"
 
-    EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {"__init__.py", "main.py", "requirements.txt"}
     EXPECTED_LAYERS_FILES_PROJECT_MANIFEST = {"__init__.py", "layer.py", "numpy", "requirements.txt"}
 
@@ -866,7 +901,6 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegBase):
     # Test Suite for runtime: provided and where selection of the build workflow is implicitly makefile builder
     # if the makefile is present.
 
-    EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {"__init__.py", "main.py", "requests", "requirements.txt"}
 
     FUNCTION_LOGICAL_ID = "Function"
@@ -940,7 +974,6 @@ class TestBuildWithBuildMethod(BuildIntegBase):
     # Test Suite where `BuildMethod` is explicitly specified.
 
     template = "custom-build-function.yaml"
-    EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {"__init__.py", "main.py", "requests", "requirements.txt"}
 
     FUNCTION_LOGICAL_ID = "Function"

@@ -4,7 +4,7 @@ CLI command for "bootstrap", which sets up a SAM development environment
 import click
 
 from samcli.cli.main import pass_context, common_options, aws_creds_options
-from samcli.lib.telemetry.metrics import track_command
+from samcli.lib.telemetry.metric import track_command
 from samcli.lib.bootstrap import bootstrap
 
 SHORT_HELP = "Set up development environment for AWS SAM applications."
