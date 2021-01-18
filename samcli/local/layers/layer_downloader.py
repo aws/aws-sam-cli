@@ -157,7 +157,7 @@ class LayerDownloader:
         return layer_version_response.get("Content").get("Location")
 
     @staticmethod
-    def _is_layer_cached(layer_path):
+    def _is_layer_cached(layer_path: Path) -> bool:
         """
         Checks if the layer is already cached on the system
 

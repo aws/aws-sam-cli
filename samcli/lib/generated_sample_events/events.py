@@ -6,6 +6,7 @@ import os
 import json
 import base64
 import warnings
+from typing import Dict, cast
 from urllib.parse import quote as url_quote
 
 with warnings.catch_warnings():
@@ -98,7 +99,7 @@ class Events:
         return transformed
 
     @staticmethod
-    def encode(encoding_scheme, val):
+    def encode(encoding_scheme: str, val: str) -> str:
         """
         encodes a given val with given encoding scheme
 
@@ -124,7 +125,7 @@ class Events:
         return val
 
     @staticmethod
-    def hash(hashing_scheme, val):
+    def hash(hashing_scheme: str, val: str) -> str:
         """
         hashes a given val using given hashing_scheme
 
@@ -145,7 +146,7 @@ class Events:
         # raise exception if hashing_scheme is unsupported
         raise ValueError("Hashing_scheme {} is not supported.".format(hashing_scheme))
 
-    def generate_event(self, service_name, event_type, values_to_sub):
+    def generate_event(self, service_name: str, event_type: str, values_to_sub: Dict) -> str:
         """
         opens the event json, substitutes the values in, and
         returns the customized event json
@@ -180,4 +181,5 @@ class Events:
         data = json.dumps(data, indent=2)
 
         # return the substituted file
-        return renderer.render(data, values_to_sub)
+        # According to chevron's code, it returns a str (A string containing the rendered template.)
+        return cast("str", renderer.render(data, values_to_sub))

@@ -12,6 +12,8 @@ import os
 import json
 
 import functools
+from typing import Dict
+
 import boto3
 
 # SAM Translator Library Internal module imports #
@@ -145,7 +147,7 @@ class _SamParserReimplemented:
             raise InvalidDocumentException(document_errors)
 
     @staticmethod
-    def _validate(sam_template):
+    def _validate(sam_template: Dict) -> None:
         """Validates the template and parameter values and raises exceptions if there's an issue
 
         :param dict sam_template: SAM template

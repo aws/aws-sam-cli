@@ -10,7 +10,8 @@ import platform
 import shutil
 import subprocess
 
-from pathlib import Path  # must come after Py2.7 deprecation
+from pathlib import Path
+from typing import Dict
 
 import click
 
@@ -84,8 +85,10 @@ class InitTemplates:
             raise InvalidInitTemplateError(msg) from ex
 
     @staticmethod
-    def _check_app_template(entry, app_template):
-        return entry["appTemplate"] == app_template
+    def _check_app_template(entry: Dict, app_template: str) -> bool:
+        # we need to cast it to bool because entry["appTemplate"] can be Any, and Any's __eq__ can return Any
+        # detail: https://github.com/python/mypy/issues/5697
+        return bool(entry["appTemplate"] == app_template)
 
     def init_options(self, package_type, runtime, base_image, dependency_manager):
         if not self.clone_attempted:
@@ -131,7 +134,7 @@ class InitTemplates:
         raise InvalidInitTemplateError(msg)
 
     @staticmethod
-    def _shared_dir_check(shared_dir):
+    def _shared_dir_check(shared_dir: Path) -> bool:
         try:
             shared_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
             return True
@@ -149,13 +152,13 @@ class InitTemplates:
             return
         expected_path = os.path.normpath(os.path.join(shared_dir, self._repo_name))
         if self._template_directory_exists(expected_path):
-            self._overwrite_existing_templates(shared_dir, expected_path)
+            self._overwrite_existing_templates(expected_path)
         else:
             # simply create the app templates repo
             self._clone_new_app_templates(shared_dir, expected_path)
         self.clone_attempted = True
 
-    def _overwrite_existing_templates(self, shared_dir, expected_path):
+    def _overwrite_existing_templates(self, expected_path: str):
         self.repo_path = expected_path
         # workflow to clone a copy to a new directory and overwrite
         with osutils.mkdir_temp(ignore_errors=True) as tempdir:
@@ -178,11 +181,11 @@ class InitTemplates:
                     click.echo("WARN: Could not clone app template repo.")
 
     @staticmethod
-    def _replace_app_templates(temp_path, dest_path):
+    def _replace_app_templates(temp_path: str, dest_path: str) -> None:
         try:
-            LOG.debug("Removing old templates from %s", str(dest_path))
+            LOG.debug("Removing old templates from %s", dest_path)
             shutil.rmtree(dest_path, onerror=rmtree_callback)
-            LOG.debug("Copying templates from %s to %s", str(temp_path), str(dest_path))
+            LOG.debug("Copying templates from %s to %s", temp_path, dest_path)
             shutil.copytree(temp_path, dest_path, ignore=shutil.ignore_patterns("*.git"))
         except (OSError, shutil.Error) as ex:
             # UNSTABLE STATE
@@ -213,12 +216,12 @@ class InitTemplates:
                     click.echo("WARN: Could not clone app template repo.")
 
     @staticmethod
-    def _template_directory_exists(expected_path):
+    def _template_directory_exists(expected_path: str) -> bool:
         path = Path(expected_path)
         return path.exists()
 
     @staticmethod
-    def _git_executable():
+    def _git_executable() -> str:
         execname = "git"
         if platform.system().lower() == "windows":
             options = [execname, "{}.cmd".format(execname), "{}.exe".format(execname), "{}.bat".format(execname)]

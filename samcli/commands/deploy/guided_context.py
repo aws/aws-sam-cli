@@ -3,6 +3,7 @@ Class to manage all the prompts during a guided sam deploy
 """
 
 import logging
+from typing import Dict, Any
 
 import click
 from click.types import FuncParamType
@@ -333,7 +334,9 @@ class GuidedContext:
             )
 
     @staticmethod
-    def _get_parameter_value(parameter_key, parameter_properties, parameter_override_from_cmdline):
+    def _get_parameter_value(
+        parameter_key: str, parameter_properties: Dict, parameter_override_from_cmdline: Dict
+    ) -> Any:
         """
         This function provide the value of a parameter. If the command line/config file have "override_parameter"
         whose key exist in the template file parameters, it will use the corresponding value.

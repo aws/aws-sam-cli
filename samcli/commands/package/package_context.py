@@ -18,6 +18,7 @@ Logic for uploading to s3 based on supplied template file and s3 bucket
 import json
 import logging
 import os
+from typing import Optional
 
 import boto3
 import click
@@ -140,7 +141,7 @@ class PackageContext:
         return exported_str
 
     @staticmethod
-    def write_output(output_file_name, data):
+    def write_output(output_file_name: Optional[str], data: str) -> None:
         if output_file_name is None:
             click.echo(data)
             return

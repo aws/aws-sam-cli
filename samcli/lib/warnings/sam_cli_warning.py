@@ -2,6 +2,7 @@
 Provides all Warnings checkers for sam template
 """
 import logging
+from typing import Dict
 
 LOG = logging.getLogger(__name__)
 
@@ -116,11 +117,11 @@ please read these docs[1]
         return (False, "")
 
     @staticmethod
-    def _have_condition(function):
+    def _have_condition(function: Dict) -> bool:
         condition = function.get("Condition", None)
         return condition is not None
 
     @staticmethod
-    def _have_deployment_preferences(function):
+    def _have_deployment_preferences(function: Dict) -> bool:
         deployment_preference = function.get("Properties", {}).get("DeploymentPreference", None)
         return deployment_preference is not None

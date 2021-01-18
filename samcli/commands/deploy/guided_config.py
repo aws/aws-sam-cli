@@ -1,6 +1,7 @@
 """
 Set of Utilities to deal with reading/writing to configuration file during sam deploy
 """
+from typing import Any
 
 import click
 
@@ -106,5 +107,5 @@ class GuidedConfig:
             samconfig.put(cmd_names, self.section, "image_repositories", _image_repositories, env=config_env)
 
     @staticmethod
-    def quote_parameter_values(parameter_value):
+    def quote_parameter_values(parameter_value: Any) -> str:
         return '"{}"'.format(parameter_value)

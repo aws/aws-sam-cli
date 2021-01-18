@@ -1,8 +1,10 @@
 """Class that parses the CloudFormation Api Template"""
 import logging
+from typing import Dict, Union, List, Optional
 
 from samcli.commands.local.lib.swagger.parser import SwaggerParser
 from samcli.commands.local.lib.swagger.reader import SwaggerReader
+from samcli.lib.providers.api_collector import ApiCollector
 
 from samcli.lib.providers.provider import Cors
 from samcli.local.apigw.local_apigw_service import Route
@@ -23,7 +25,7 @@ class CfnBaseApiProvider:
         resources: dict
             The dictionary containing the different resources within the template
 
-        collector: samcli.commands.local.lib.route_collector.RouteCollector
+        collector: samcli.lib.providers.api_collector.ApiCollector
             Instance of the API collector that where we will save the API information
 
         cwd : str
@@ -36,7 +38,15 @@ class CfnBaseApiProvider:
         raise NotImplementedError("not implemented")
 
     @staticmethod
-    def extract_swagger_route(logical_id, body, uri, binary_media, collector, cwd=None, event_type=Route.API):
+    def extract_swagger_route(
+        logical_id: str,
+        body: Dict,
+        uri: Union[str, Dict],
+        binary_media: List,
+        collector: ApiCollector,
+        cwd: Optional[str] = None,
+        event_type=Route.API,
+    ) -> None:
         """
         Parse the Swagger documents and adds it to the ApiCollector.
 
@@ -54,7 +64,7 @@ class CfnBaseApiProvider:
         binary_media: list
             The link to the binary media
 
-        collector: samcli.commands.local.lib.route_collector.RouteCollector
+        collector: samcli.lib.providers.api_collector.ApiCollector
             Instance of the Route collector that where we will save the route information
 
         cwd : str

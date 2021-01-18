@@ -7,6 +7,7 @@ import io
 import json
 import logging
 import pathlib
+from typing import Dict
 
 import docker
 from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
@@ -173,7 +174,7 @@ class ApplicationBuilder:
         return build_graph
 
     @staticmethod
-    def update_template(template_dict, original_template_path, built_artifacts):
+    def update_template(template_dict: Dict, original_template_path: str, built_artifacts: Dict[str, str]) -> Dict:
         """
         Given the path to built artifacts, update the template to point appropriate resource CodeUris to the artifacts
         folder
