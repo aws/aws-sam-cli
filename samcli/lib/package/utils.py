@@ -216,7 +216,9 @@ def make_zip(file_name, source_root):
                             info.external_attr = 0o100755 << 16
                             # Set host OS to Unix
                             info.create_system = 3
-                            zf.writestr(info, file_bytes, compress_type=compression_type, compresslevel=compression_level)
+                            zf.writestr(
+                                info, file_bytes, compress_type=compression_type, compresslevel=compression_level
+                            )
                     else:
                         zf.write(full_path, relative_path)
 
