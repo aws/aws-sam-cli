@@ -346,7 +346,8 @@ class LocalApigwService(BaseLocalService):
 
         return route
 
-    def get_request_methods_endpoints(self, flask_request):
+    @staticmethod
+    def get_request_methods_endpoints(flask_request):
         """
         Separated out for testing requests in request handler
         :param request flask_request: Flask Request
