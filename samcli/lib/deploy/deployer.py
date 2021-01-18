@@ -21,6 +21,7 @@ from collections import OrderedDict
 import logging
 import time
 from datetime import datetime
+from typing import Dict, List
 
 import botocore
 
@@ -395,7 +396,8 @@ class Deployer:
                 # Sleep in exponential backoff mode
                 time.sleep(math.pow(self.backoff, retry_attempts))
 
-    def _check_stack_complete(self, status):
+    @staticmethod
+    def _check_stack_complete(status: str) -> bool:
         return "COMPLETE" in status and "CLEANUP" not in status
 
     def wait_for_execute(self, stack_name, changeset_type):
@@ -443,10 +445,11 @@ class Deployer:
         except botocore.exceptions.ClientError as ex:
             raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
 
+    @staticmethod
     @pprint_column_names(
         format_string=OUTPUTS_FORMAT_STRING, format_kwargs=OUTPUTS_DEFAULTS_ARGS, table_header=OUTPUTS_TABLE_HEADER_NAME
     )
-    def _display_stack_outputs(self, stack_outputs, **kwargs):
+    def _display_stack_outputs(stack_outputs: List[Dict], **kwargs) -> None:
         for counter, output in enumerate(stack_outputs):
             for k, v in [
                 ("Key", output.get("OutputKey")),

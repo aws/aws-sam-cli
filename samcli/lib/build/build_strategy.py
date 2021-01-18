@@ -4,6 +4,7 @@ Keeps implementation of different build strategies
 import logging
 import pathlib
 import shutil
+from abc import abstractmethod, ABC
 
 from samcli.commands.build.exceptions import MissingBuildMethodException
 from samcli.lib.utils import osutils
@@ -14,7 +15,7 @@ from samcli.lib.utils.packagetype import ZIP, IMAGE
 LOG = logging.getLogger(__name__)
 
 
-class BuildStrategy:
+class BuildStrategy(ABC):
     """
     Base class for BuildStrategy
     Keeps basic implementation of build, build_functions and build_layers
@@ -50,12 +51,12 @@ class BuildStrategy:
 
         return function_build_results
 
+    @abstractmethod
     def build_single_function_definition(self, build_definition):
         """
         Builds single function definition and returns dictionary which contains function name as key,
         build location as value
         """
-        return {}
 
     def _build_layers(self, build_graph):
         """
@@ -67,12 +68,12 @@ class BuildStrategy:
 
         return layer_build_results
 
+    @abstractmethod
     def build_single_layer_definition(self, layer_definition):
         """
         Builds single layer definition and returns dictionary which contains layer name as key,
         build location as value
         """
-        return {}
 
 
 class DefaultBuildStrategy(BuildStrategy):
