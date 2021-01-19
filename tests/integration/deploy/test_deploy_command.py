@@ -33,25 +33,12 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         # setup some images locally by pulling them.
         for repo, tag in cls.local_images:
             cls.docker_client.api.pull(repository=repo, tag=tag)
+        # setup signing profile arn & name
+        cls.signing_profile_name = os.environ.get("AWS_SIGNING_PROFILE_NAME")
+        cls.signing_profile_version_arn = os.environ.get("AWS_SIGNING_PROFILE_VERSION_ARN")
+
         PackageIntegBase.setUpClass()
         DeployIntegBase.setUpClass()
-
-        # create signing profile which will be used for code signing tests
-        signer_client = boto3.client("signer")
-
-        cls.signing_profile_name = str(uuid.uuid4().hex)
-        put_signing_profile_result = signer_client.put_signing_profile(
-            profileName=cls.signing_profile_name, platformId="AWSLambda-SHA384-ECDSA"
-        )
-        cls.signing_profile_version_arn = put_signing_profile_result.get("profileVersionArn")
-
-    @classmethod
-    def tearDownClass(cls):
-        super().tearDownClass()
-
-        # cancel signing profile after all tests completes
-        signer_client = boto3.client("signer")
-        signer_client.cancel_signing_profile(profileName=cls.signing_profile_name)
 
     def setUp(self):
         self.cf_client = boto3.client("cloudformation")
@@ -695,6 +682,13 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         stack_name = self._method_to_stack_name(self.id())
         signing_profile_version_arn = TestDeploy.signing_profile_version_arn
         signing_profile_name = TestDeploy.signing_profile_name
+
+        if not signing_profile_name or not signing_profile_version_arn:
+            self.fail(
+                "Missing resources for Code Signer integration tests. Please provide "
+                "AWS_SIGNING_PROFILE_NAME and AWS_SIGNING_PROFILE_VERSION_ARN environment variables"
+            )
+
         self.stack_names.append(stack_name)
 
         signing_profiles_param = None
