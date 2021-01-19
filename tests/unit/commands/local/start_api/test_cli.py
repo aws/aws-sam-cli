@@ -32,6 +32,7 @@ class TestCli(TestCase):
         self.parameter_overrides = {}
         self.layer_cache_basedir = "/some/layers/path"
         self.force_image_build = True
+        self.shutdown = True
         self.region_name = "region"
         self.profile = "profile"
 
@@ -80,6 +81,7 @@ class TestCli(TestCase):
             aws_profile=self.profile,
             warm_container_initialization_mode=self.warm_containers,
             debug_function=self.debug_function,
+            shutdown=self.shutdown,
         )
 
         local_api_service_mock.assert_called_with(
@@ -185,4 +187,5 @@ class TestCli(TestCase):
             force_image_build=self.force_image_build,
             warm_containers=self.warm_containers,
             debug_function=self.debug_function,
+            shutdown=self.shutdown,
         )

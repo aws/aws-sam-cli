@@ -28,6 +28,7 @@ class TestCli(TestCase):
         self.layer_cache_basedir = "/some/layers/path"
         self.force_image_build = True
         self.warm_containers = None
+        self.shutdown = True
         self.debug_function = None
         self.region_name = "region"
         self.profile = "profile"
@@ -72,6 +73,7 @@ class TestCli(TestCase):
             aws_profile=self.profile,
             warm_container_initialization_mode=self.warm_containers,
             debug_function=self.debug_function,
+            shutdown=self.shutdown,
         )
 
         local_lambda_service_mock.assert_called_with(lambda_invoke_context=context_mock, port=self.port, host=self.host)
@@ -154,4 +156,5 @@ class TestCli(TestCase):
             force_image_build=self.force_image_build,
             warm_containers=self.warm_containers,
             debug_function=self.debug_function,
+            shutdown=self.shutdown,
         )
