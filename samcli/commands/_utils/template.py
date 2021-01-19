@@ -15,7 +15,6 @@ from samcli.yamlhelper import yaml_parse, yaml_dump
 from samcli.commands._utils.resources import (
     METADATA_WITH_LOCAL_PATHS,
     RESOURCES_WITH_LOCAL_PATHS,
-    RESOURCES_WITH_IMAGE_COMPONENT,
     AWS_SERVERLESS_FUNCTION,
     AWS_LAMBDA_FUNCTION,
 )

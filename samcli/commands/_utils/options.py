@@ -46,8 +46,8 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
         if ctx and ctx.default_map.get("template", None):
             provided_value = ctx.default_map.get("template")
         else:
-            # Default value was used. Value can either be template.yaml or template.yml. Decide based on which file exists
-            # .yml is the default, even if it does not exist.
+            # Default value was used. Value can either be template.yaml or template.yml.
+            # Decide based on which file exists .yml is the default, even if it does not exist.
             provided_value = "template.yml"
 
             for option in search_paths:
@@ -112,7 +112,8 @@ def image_repositories_callback(ctx, param, provided_value):
 
 def artifact_callback(ctx, param, provided_value, artifact):
     """
-    Provide an error if there are zip/image artifact based resources, and an destination export destination is not specified.
+    Provide an error if there are zip/image artifact based resources,
+    and an destination export destination is not specified.
     :param ctx: Click Context
     :param param: Param name
     :param provided_value: Value provided by Click, it would be the value provided by the user.
@@ -362,7 +363,11 @@ def notification_arns_override_option(f):
 
 
 def _space_separated_list_func_type(value):
-    return value.split(" ") if not isinstance(value, tuple) else value
+    if isinstance(value, str):
+        return value.split(" ")
+    if isinstance(value, (list, tuple)):
+        return value
+    raise ValueError()
 
 
 _space_separated_list_func_type.__name__ = "LIST"

@@ -1,0 +1,9 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Simple Serverless Application
+
+Resources:
+  myApp:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./aws-serverless-function-image.yaml
