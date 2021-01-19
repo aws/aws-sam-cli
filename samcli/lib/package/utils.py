@@ -178,8 +178,9 @@ def zip_folder(folder_path):
 def make_zip(file_name, source_root):
     zipfile_name = "{0}.zip".format(file_name)
     source_root = os.path.abspath(source_root)
+    compression_type = zipfile.ZIP_DEFLATED
     with open(zipfile_name, "wb") as f:
-        zip_file = zipfile.ZipFile(f, "w", zipfile.ZIP_DEFLATED)
+        zip_file = zipfile.ZipFile(f, "w", compression_type)
         with contextlib.closing(zip_file) as zf:
             for root, _, files in os.walk(source_root, followlinks=True):
                 for filename in files:
@@ -200,7 +201,7 @@ def make_zip(file_name, source_root):
                             info.external_attr = 0o100755 << 16
                             # Set host OS to Unix
                             info.create_system = 3
-                            zf.writestr(info, file_bytes)
+                            zf.writestr(info, file_bytes, compress_type=compression_type)
                     else:
                         zf.write(full_path, relative_path)
 
