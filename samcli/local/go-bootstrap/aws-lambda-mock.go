@@ -93,7 +93,7 @@ func main() {
 	var err error
 	var errored bool
 
-	var mockServerCmd = exec.Command("/var/rapid/init") // <-- This is our mount point for RAPID server.
+	var mockServerCmd = exec.Command("/var/rapid/aws-lambda-rie") // <-- This is our mount point for RAPID server.
 	mockServerCmd.Env = append(os.Environ(),
 		"DOCKER_LAMBDA_NO_BOOTSTRAP=1",
 		"DOCKER_LAMBDA_USE_STDIN=1",
