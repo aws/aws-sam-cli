@@ -204,10 +204,9 @@ class Container:
             removal_in_progress = ("removal of container" in msg) and ("is already in progress" in msg)
 
             # When removal is already started, Docker API will throw an exception
-            # Skip such exceptions.
+            # Skip such exceptions and log
             if not removal_in_progress:
                 raise ex
-            # else debug log explaining that we had and skipped an exception
             LOG.debug("Container removal is in progress, skipping exception: %s", msg)
 
     def delete(self):
@@ -228,10 +227,9 @@ class Container:
             removal_in_progress = ("removal of container" in msg) and ("is already in progress" in msg)
 
             # When removal is already started, Docker API will throw an exception
-            # Skip such exceptions.
+            # Skip such exceptions and log
             if not removal_in_progress:
                 raise ex
-            # else debug log explaining that we had and skipped an exception
             LOG.debug("Container removal is in progress, skipping exception: %s", msg)
 
         self.id = None
