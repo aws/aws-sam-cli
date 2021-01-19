@@ -7,6 +7,7 @@ import logging
 import uuid
 import os
 from pathlib import Path
+from typing import Optional, Dict, Any
 
 import click
 
@@ -39,7 +40,7 @@ class GlobalConfig:
         self._telemetry_enabled = telemetry_enabled
 
     @property
-    def config_dir(self):
+    def config_dir(self) -> Path:
         if not self._config_dir:
             # Internal Environment variable to customize SAM CLI App Dir. Currently used only by integ tests.
             app_dir = os.getenv("__SAM_CLI_APP_DIR")
@@ -137,7 +138,7 @@ class GlobalConfig:
         self._set_value("telemetryEnabled", value)
         self._telemetry_enabled = value
 
-    def _get_value(self, key):
+    def _get_value(self, key: str) -> Optional[Any]:
         cfg_path = self._get_config_file_path(CONFIG_FILENAME)
         if not cfg_path.exists():
             return None
@@ -146,7 +147,7 @@ class GlobalConfig:
             json_body = json.loads(body)
             return json_body.get(key)
 
-    def _set_value(self, key, value):
+    def _set_value(self, key: str, value: Any) -> Any:
         cfg_path = self._get_config_file_path(CONFIG_FILENAME)
         if not cfg_path.exists():
             return self._set_json_cfg(cfg_path, key, value)
@@ -186,7 +187,8 @@ class GlobalConfig:
             return cfg_value
         return self._set_value(key, str(uuid.uuid4()))
 
-    def _set_json_cfg(self, filepath, key, value, json_body=None):
+    @staticmethod
+    def _set_json_cfg(filepath: Path, key: str, value: Any, json_body: Optional[Dict] = None) -> Any:
         """
         Special logic method to add a value to a JSON configuration file. This
         method will write a new version of the file in question, so it will
