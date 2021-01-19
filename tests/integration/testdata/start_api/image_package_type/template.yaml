@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameteres:
+  Tag:
+    Type: String
+  ImageUri:
+    Type: String
+
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - main.handler
+        Timeout: 600
+      ImageUri: !Ref ImageUri
+      Events:
+        HelloWorld:
+          Type: Api
+          Properties:
+            Path: /hello
+            Method: get
+    Metadata:
+      DockerTag: !Ref Tag
+      DockerContext: .
+      Dockerfile: Dockerfile
