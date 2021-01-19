@@ -116,8 +116,7 @@ class ContainerManager:
 
         container.start(input_data=input_data)
 
-    @staticmethod
-    def stop(container: Container) -> None:
+    def stop(self, container: Container) -> None:
         """
         Stop and delete the container
 
