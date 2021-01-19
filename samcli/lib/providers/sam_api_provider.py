@@ -67,7 +67,7 @@ class SamApiProvider(CfnBaseApiProvider):
         api_resource : dict
             Resource definition, including its properties
 
-        collector: samcli.commands.local.lib.route_collector.RouteCollector
+        collector: samcli.lib.providers.api_collector.ApiCollector
             Instance of the API collector that where we will save the API information
 
         cwd : str
@@ -106,7 +106,7 @@ class SamApiProvider(CfnBaseApiProvider):
         api_resource : dict
             Resource definition, including its properties
 
-        collector: samcli.commands.local.lib.route_collector.RouteCollector
+        collector: samcli.lib.providers.api_collector.ApiCollector
             Instance of the API collector that where we will save the API information
 
         cwd : str
@@ -143,7 +143,7 @@ class SamApiProvider(CfnBaseApiProvider):
         function_resource : dict
             Contents of the function resource including its properties
 
-        collector: samcli.commands.local.lib.route_collector.RouteCollector
+        collector: samcli.lib.providers.api_collector.ApiCollector
             Instance of the API collector that where we will save the API information
         """
 
@@ -164,7 +164,7 @@ class SamApiProvider(CfnBaseApiProvider):
         serverless_function_events : dict
             Event Dictionary of a AWS::Serverless::Function
 
-        collector: samcli.commands.local.lib.route_collector.RouteCollector
+        collector: samcli.lib.providers.api_collector.ApiCollector
             Instance of the Route collector that where we will save the route information
         """
         count = 0
@@ -236,7 +236,7 @@ class SamApiProvider(CfnBaseApiProvider):
 
         Parameters
         ----------
-        collector: samcli.commands.local.lib.route_collector.RouteCollector
+        collector: samcli.lib.providers.api_collector.ApiCollector
             Collector object that holds all the APIs specified in the template
 
         Returns

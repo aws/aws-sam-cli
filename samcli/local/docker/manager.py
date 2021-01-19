@@ -12,6 +12,7 @@ import docker
 
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker import utils
+from samcli.local.docker.container import Container
 
 LOG = logging.getLogger(__name__)
 
@@ -115,7 +116,8 @@ class ContainerManager:
 
         container.start(input_data=input_data)
 
-    def stop(self, container):
+    @staticmethod
+    def stop(container: Container) -> None:
         """
         Stop and delete the container
 
@@ -185,7 +187,8 @@ class ContainerManager:
         except docker.errors.ImageNotFound:
             return False
 
-    def _is_rapid_image(self, image_name):
+    @staticmethod
+    def _is_rapid_image(image_name: str) -> bool:
         """
         Is the image tagged as a RAPID clone?
 
