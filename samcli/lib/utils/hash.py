@@ -69,7 +69,7 @@ def dir_checksum(directory: str, followlinks: bool = True) -> str:
     return md5_dir.hexdigest()
 
 
-def str_checksum(content):
+def str_checksum(content: str) -> str:
     """
     return a md5 checksum of a given string
 
