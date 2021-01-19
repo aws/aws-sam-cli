@@ -24,7 +24,7 @@ class ServiceCommand(click.MultiCommand):
         List all of the subcommands
     """
 
-    def __init__(self, events_lib, *args, **kwargs):
+    def __init__(self, events_lib: events.Events, *args, **kwargs):
         """
         Constructor for the ServiceCommand class
 
@@ -96,7 +96,7 @@ class EventTypeSubCommand(click.MultiCommand):
 
     TAGS = "tags"
 
-    def __init__(self, events_lib, top_level_cmd_name, subcmd_definition, *args, **kwargs):
+    def __init__(self, events_lib: events.Events, top_level_cmd_name, subcmd_definition, *args, **kwargs):
         """
         constructor for the EventTypeSubCommand class
 
@@ -177,8 +177,11 @@ class EventTypeSubCommand(click.MultiCommand):
         """
         return sorted(self.subcmd_definition.keys())
 
+    @staticmethod
     @track_command
-    def cmd_implementation(self, events_lib, top_level_cmd_name, subcmd_name, *args, **kwargs):
+    def cmd_implementation(
+        events_lib: events.Events, top_level_cmd_name: str, subcmd_name: str, *args, **kwargs
+    ) -> str:
         """
         calls for value substitution in the event json and returns the
         customized json as a string

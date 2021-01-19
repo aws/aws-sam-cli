@@ -39,14 +39,22 @@ class BuildStrategyBaseTest(TestCase):
         self.build_graph.put_layer_build_definition(self.layer_build_definition2, Mock())
 
 
+class _TestBuildStrategy(BuildStrategy):
+    def build_single_function_definition(self, build_definition):
+        return {}
+
+    def build_single_layer_definition(self, layer_definition):
+        return {}
+
+
 class BuildStrategyTest(BuildStrategyBaseTest):
     def test_build_functions_layers(self):
-        build_strategy = BuildStrategy(self.build_graph)
+        build_strategy = _TestBuildStrategy(self.build_graph)
 
         self.assertEqual(build_strategy.build(), {})
 
     def test_build_functions_layers_mock(self):
-        mock_build_strategy = BuildStrategy(self.build_graph)
+        mock_build_strategy = _TestBuildStrategy(self.build_graph)
         given_build_functions_result = {"function1": "build_dir_1"}
         given_build_layers_result = {"layer1": "layer_dir_1"}
 
@@ -63,7 +71,7 @@ class BuildStrategyTest(BuildStrategyBaseTest):
         mock_build_strategy._build_layers.assert_called_once_with(self.build_graph)
 
     def test_build_single_function_layer(self):
-        mock_build_strategy = BuildStrategy(self.build_graph)
+        mock_build_strategy = _TestBuildStrategy(self.build_graph)
         given_build_functions_result = [{"function1": "build_dir_1"}, {"function2": "build_dir_2"}]
         given_build_layers_result = [{"layer1": "layer_dir_1"}, {"layer2": "layer_dir_2"}]
 
@@ -304,7 +312,7 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
 class ParallelBuildStrategyTest(BuildStrategyBaseTest):
     def test_given_async_context_should_call_expected_methods(self):
         mock_async_context = Mock()
-        delegate_build_strategy = MagicMock(wraps=BuildStrategy(self.build_graph))
+        delegate_build_strategy = MagicMock(wraps=_TestBuildStrategy(self.build_graph))
         parallel_build_strategy = ParallelBuildStrategy(self.build_graph, delegate_build_strategy, mock_async_context)
 
         given_build_results = [
@@ -337,7 +345,7 @@ class ParallelBuildStrategyTest(BuildStrategyBaseTest):
 
     def test_given_delegate_strategy_it_should_call_delegated_build_methods(self):
         # create a mock delegate build strategy
-        delegate_build_strategy = MagicMock(wraps=BuildStrategy(self.build_graph))
+        delegate_build_strategy = MagicMock(wraps=_TestBuildStrategy(self.build_graph))
         delegate_build_strategy.build_single_function_definition.return_value = {
             "function1": "build_location1",
             "function2": "build_location2",

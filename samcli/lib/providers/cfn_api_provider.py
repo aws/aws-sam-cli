@@ -40,7 +40,7 @@ class CfnApiProvider(CfnBaseApiProvider):
         resources: dict
             The dictionary containing the different resources within the template
 
-        collector: samcli.commands.local.lib.route_collector.RouteCollector
+        collector: samcli.lib.providers.api_collector.ApiCollector
             Instance of the API collector that where we will save the API information
 
         cwd : str
