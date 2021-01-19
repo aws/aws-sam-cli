@@ -207,6 +207,8 @@ class Container:
             # Skip such exceptions.
             if not removal_in_progress:
                 raise ex
+            # else debug log explaining that we had and skipped an exception
+            LOG.debug("Container removal is in progress, skipping exception: %s", msg)
 
     def delete(self):
         """
@@ -229,6 +231,8 @@ class Container:
             # Skip such exceptions.
             if not removal_in_progress:
                 raise ex
+            # else debug log explaining that we had and skipped an exception
+            LOG.debug("Container removal is in progress, skipping exception: %s", msg)
 
         self.id = None
 
