@@ -138,4 +138,4 @@ class TestPackageImage(PackageIntegBase):
         # when image function is not in main template, erc_repo_name only shows in stderr (pushing progress)
         # here we make sure the image is successfully pushed to the correct repo
         self.assertIn(f"{self.ecr_repo_name}", process_stderr)
-        self.assertIn("Pushed", process_stderr)
+        self.assertIn("Uploading", process_stderr)
