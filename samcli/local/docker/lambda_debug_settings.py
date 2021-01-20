@@ -52,24 +52,30 @@ class LambdaDebugSettings:
             Runtime.java8.value: DebugSettings(
                 entry,
                 container_env_vars={
-                    "_JAVA_OPTIONS": f"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address={debug_port} -XX:MaxHeapSize=2834432k -XX:MaxMetaspaceSize=163840k -XX:ReservedCodeCacheSize=81920k -XX:+UseSerialGC -XX:-TieredCompilation -Djava.net.preferIPv4Stack=true -Xshare:off"
-                    + " ".join(debug_args_list),
+                    "_JAVA_OPTIONS": "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,"
+                    f"address={debug_port} -XX:MaxHeapSize=2834432k -XX:MaxMetaspaceSize=163840k "
+                    "-XX:ReservedCodeCacheSize=81920k -XX:+UseSerialGC -XX:-TieredCompilation "
+                    "-Djava.net.preferIPv4Stack=true -Xshare:off" + " ".join(debug_args_list),
                     **_container_env_vars,
                 },
             ),
             Runtime.java8al2.value: DebugSettings(
                 entry,
                 container_env_vars={
-                    "_JAVA_OPTIONS": f"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address={debug_port} -XX:MaxHeapSize=2834432k -XX:MaxMetaspaceSize=163840k -XX:ReservedCodeCacheSize=81920k -XX:+UseSerialGC -XX:-TieredCompilation -Djava.net.preferIPv4Stack=true -Xshare:off"
-                    + " ".join(debug_args_list),
+                    "_JAVA_OPTIONS": "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,"
+                    f"address={debug_port} -XX:MaxHeapSize=2834432k -XX:MaxMetaspaceSize=163840k "
+                    "-XX:ReservedCodeCacheSize=81920k -XX:+UseSerialGC -XX:-TieredCompilation "
+                    "-Djava.net.preferIPv4Stack=true -Xshare:off" + " ".join(debug_args_list),
                     **_container_env_vars,
                 },
             ),
             Runtime.java11.value: DebugSettings(
                 entry,
                 container_env_vars={
-                    "_JAVA_OPTIONS": f"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address=*:{debug_port} -XX:MaxHeapSize=2834432k -XX:MaxMetaspaceSize=163840k -XX:ReservedCodeCacheSize=81920k -XX:+UseSerialGC -XX:-TieredCompilation -Djava.net.preferIPv4Stack=true"
-                    + " ".join(debug_args_list),
+                    "_JAVA_OPTIONS": "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,"
+                    f"address=*:{debug_port} -XX:MaxHeapSize=2834432k -XX:MaxMetaspaceSize=163840k "
+                    "-XX:ReservedCodeCacheSize=81920k -XX:+UseSerialGC -XX:-TieredCompilation "
+                    "-Djava.net.preferIPv4Stack=true" + " ".join(debug_args_list),
                     **_container_env_vars,
                 },
             ),
@@ -96,6 +102,7 @@ class LambdaDebugSettings:
                 container_env_vars={
                     "NODE_PATH": "/opt/nodejs/node_modules:/opt/nodejs/node10/node_modules:/var/runtime/node_module",
                     "NODE_OPTIONS": f"--inspect-brk=0.0.0.0:{str(debug_port)} --max-http-header-size 81920",
+                    "AWS_EXECUTION_ENV": "AWS_Lambda_nodejs10.x",
                     **_container_env_vars,
                 },
             ),
@@ -108,6 +115,7 @@ class LambdaDebugSettings:
                 container_env_vars={
                     "NODE_PATH": "/opt/nodejs/node_modules:/opt/nodejs/node12/node_modules:/var/runtime/node_module",
                     "NODE_OPTIONS": f"--inspect-brk=0.0.0.0:{str(debug_port)} --max-http-header-size 81920",
+                    "AWS_EXECUTION_ENV": "AWS_Lambda_nodejs12.x",
                     **_container_env_vars,
                 },
             ),

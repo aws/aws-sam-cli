@@ -71,6 +71,7 @@ class InvokeContext:
         aws_profile=None,
         warm_container_initialization_mode=None,
         debug_function=None,
+        shutdown=False,
     ):
         """
         Initialize the context
@@ -116,6 +117,8 @@ class InvokeContext:
         debug_function str
             The Lambda function logicalId that will have the debugging options enabled in case of warm containers
             option is enabled
+        shutdown bool
+            Optional. If True, perform a SHUTDOWN event when tearing down containers. Default False.
         """
         self._template_file = template_file
         self._function_identifier = function_identifier
@@ -133,6 +136,7 @@ class InvokeContext:
         self._force_image_build = force_image_build
         self._aws_region = aws_region
         self._aws_profile = aws_profile
+        self._shutdown = shutdown
 
         self._containers_mode = ContainersMode.COLD
         self._containers_initializing_mode = ContainersInitializationMode.LAZY
@@ -193,7 +197,9 @@ class InvokeContext:
             self._debug_function,
         )
 
-        self._container_manager = self._get_container_manager(self._docker_network, self._skip_pull_image)
+        self._container_manager = self._get_container_manager(
+            self._docker_network, self._skip_pull_image, self._shutdown
+        )
 
         if not self._container_manager.is_docker_reachable:
             raise InvokeContextException(
@@ -226,7 +232,7 @@ class InvokeContext:
 
         def initialize_function_container(function):
             function_config = self.local_lambda_runner.get_invoke_config(function)
-            self.lambda_runtime.run(None, function_config, self._debug_context, None)
+            self.lambda_runtime.run(None, function_config, self._debug_context)
 
         try:
             async_context = AsyncContext()
@@ -478,7 +484,7 @@ class InvokeContext:
         )
 
     @staticmethod
-    def _get_container_manager(docker_network, skip_pull_image):
+    def _get_container_manager(docker_network, skip_pull_image, shutdown):
         """
         Creates a ContainerManager with specified options
 
@@ -488,6 +494,8 @@ class InvokeContext:
             Docker network identifier
         skip_pull_image bool
             Should the manager skip pulling the image
+        shutdown bool
+            Should SHUTDOWN events be sent when tearing down image
 
         Returns
         -------
@@ -495,4 +503,6 @@ class InvokeContext:
             Object representing Docker container manager
         """
 
-        return ContainerManager(docker_network_id=docker_network, skip_pull_image=skip_pull_image)
+        return ContainerManager(
+            docker_network_id=docker_network, skip_pull_image=skip_pull_image, do_shutdown_event=shutdown
+        )

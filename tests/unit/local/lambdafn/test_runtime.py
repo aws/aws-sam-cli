@@ -6,7 +6,7 @@ from unittest import TestCase
 from unittest.mock import Mock, patch, MagicMock, ANY, call
 from parameterized import parameterized
 
-from samcli.lib.utils.packagetype import ZIP
+from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.providers.provider import LayerVersion
 from samcli.local.lambdafn.runtime import LambdaRuntime, _unzip_file, WarmLambdaRuntime
 from samcli.local.lambdafn.config import FunctionConfig
@@ -46,7 +46,6 @@ class LambdaRuntime_create(TestCase):
 
     @patch("samcli.local.lambdafn.runtime.LambdaContainer")
     def test_must_create_lambda_container(self, LambdaContainerMock):
-        event = "event"
         code_dir = "some code dir"
 
         container = Mock()
@@ -61,10 +60,7 @@ class LambdaRuntime_create(TestCase):
 
         LambdaContainerMock.return_value = container
 
-        self.runtime.create(self.func_config, debug_context=debug_options, event=event)
-
-        # Verify if Lambda Event data is set
-        self.env_vars.add_lambda_event_body.assert_called_with(event)
+        self.runtime.create(self.func_config, debug_context=debug_options)
 
         # Make sure env-vars get resolved
         self.env_vars.resolve.assert_called_with()
@@ -91,7 +87,6 @@ class LambdaRuntime_create(TestCase):
 
     @patch("samcli.local.lambdafn.runtime.LambdaContainer")
     def test_keyboard_interrupt_must_raise(self, LambdaContainerMock):
-        event = "event"
         code_dir = "some code dir"
 
         container = Mock()
@@ -109,7 +104,7 @@ class LambdaRuntime_create(TestCase):
         self.manager_mock.create.side_effect = KeyboardInterrupt("some exception")
 
         with self.assertRaises(KeyboardInterrupt):
-            self.runtime.create(self.func_config, debug_context=debug_options, event=event)
+            self.runtime.create(self.func_config, debug_context=debug_options)
 
 
 class LambdaRuntime_run(TestCase):
@@ -144,7 +139,6 @@ class LambdaRuntime_run(TestCase):
         self.env_vars.resolve.return_value = self.env_var_value
 
     def test_must_run_passed_container(self):
-        event = "event"
         container = Mock()
         container.is_running.return_value = False
         debug_options = Mock()
@@ -152,11 +146,10 @@ class LambdaRuntime_run(TestCase):
 
         self.runtime = LambdaRuntime(self.manager_mock, lambda_image_mock)
 
-        self.runtime.run(container, self.func_config, debug_context=debug_options, event=event)
+        self.runtime.run(container, self.func_config, debug_context=debug_options)
         self.manager_mock.run.assert_called_with(container)
 
     def test_must_create_container_first_if_passed_container_is_none(self):
-        event = "event"
         container = Mock()
         container.is_running.return_value = False
         debug_options = Mock()
@@ -167,12 +160,11 @@ class LambdaRuntime_run(TestCase):
         self.runtime.create = create_mock
         create_mock.return_value = container
 
-        self.runtime.run(None, self.func_config, debug_context=debug_options, event=event)
-        create_mock.assert_called_with(self.func_config, debug_options, event)
+        self.runtime.run(None, self.func_config, debug_context=debug_options)
+        create_mock.assert_called_with(self.func_config, debug_options)
         self.manager_mock.run.assert_called_with(container)
 
     def test_must_skip_run_running_container(self):
-        event = "event"
         container = Mock()
         container.is_running.return_value = True
         debug_options = Mock()
@@ -180,11 +172,10 @@ class LambdaRuntime_run(TestCase):
 
         self.runtime = LambdaRuntime(self.manager_mock, lambda_image_mock)
 
-        self.runtime.run(container, self.func_config, debug_context=debug_options, event=event)
+        self.runtime.run(container, self.func_config, debug_context=debug_options)
         self.manager_mock.run.assert_not_called()
 
     def test_keyboard_interrupt_must_raise(self):
-        event = "event"
         container = Mock()
         container.is_running.return_value = False
         debug_options = Mock()
@@ -195,7 +186,7 @@ class LambdaRuntime_run(TestCase):
         self.manager_mock.run.side_effect = KeyboardInterrupt("some exception")
 
         with self.assertRaises(KeyboardInterrupt):
-            self.runtime.run(container, self.func_config, debug_context=debug_options, event=event)
+            self.runtime.run(container, self.func_config, debug_context=debug_options)
 
 
 class LambdaRuntime_invoke(TestCase):
@@ -258,9 +249,6 @@ class LambdaRuntime_invoke(TestCase):
         container.is_running.return_value = False
 
         self.runtime.invoke(self.func_config, event, debug_context=debug_options, stdout=stdout, stderr=stderr)
-
-        # Verify if Lambda Event data is set
-        self.env_vars.add_lambda_event_body.assert_called_with(event)
 
         # Make sure env-vars get resolved
         self.env_vars.resolve.assert_called_with()
@@ -555,8 +543,11 @@ class TestWarmLambdaRuntime_invoke(TestCase):
         self.env_var_value = {"a": "b"}
         self.env_vars.resolve.return_value = self.env_var_value
 
+    @patch("samcli.local.lambdafn.runtime.LambdaFunctionObserver")
     @patch("samcli.local.lambdafn.runtime.LambdaContainer")
-    def test_must_run_container_then_wait_for_result_and_container_not_stopped(self, LambdaContainerMock):
+    def test_must_run_container_then_wait_for_result_and_container_not_stopped(
+        self, LambdaContainerMock, LambdaFunctionObserverMock
+    ):
         event = "event"
         code_dir = "some code dir"
         stdout = "stdout"
@@ -568,7 +559,6 @@ class TestWarmLambdaRuntime_invoke(TestCase):
         lambda_image_mock = Mock()
 
         self.runtime = WarmLambdaRuntime(self.manager_mock, lambda_image_mock)
-        self.runtime._add_function_to_observer = Mock()
 
         # Using MagicMock to mock the context manager
         self.runtime._get_code_dir = MagicMock()
@@ -647,16 +637,19 @@ class TestWarmLambdaRuntime_create(TestCase):
         self.env_var_value = {"a": "b"}
         self.env_vars.resolve.return_value = self.env_var_value
 
+    @patch("samcli.local.lambdafn.runtime.LambdaFunctionObserver")
     @patch("samcli.local.lambdafn.runtime.LambdaContainer")
-    def test_must_create_non_cached_container(self, LambdaContainerMock):
+    def test_must_create_non_cached_container(self, LambdaContainerMock, LambdaFunctionObserverMock):
         code_dir = "some code dir"
         container = Mock()
         debug_options = Mock()
         debug_options.debug_function = self.name
         lambda_image_mock = Mock()
 
+        lambda_function_observer_mock = Mock()
+        LambdaFunctionObserverMock.return_value = lambda_function_observer_mock
+
         self.runtime = WarmLambdaRuntime(self.manager_mock, lambda_image_mock)
-        self.runtime._add_function_to_observer = Mock()
 
         # Using MagicMock to mock the context manager
         self.runtime._get_code_dir = MagicMock()
@@ -684,10 +677,12 @@ class TestWarmLambdaRuntime_create(TestCase):
         self.manager_mock.create.assert_called_with(container)
         # validate that the created container got cached
         self.assertEqual(self.runtime._containers[self.name], container)
-        self.runtime._add_function_to_observer.assert_called_with(self.func_config)
+        lambda_function_observer_mock.watch.assert_called_with(self.func_config)
+        lambda_function_observer_mock.start.assert_called_with()
 
+    @patch("samcli.local.lambdafn.runtime.LambdaFunctionObserver")
     @patch("samcli.local.lambdafn.runtime.LambdaContainer")
-    def test_must_return_cached_container(self, LambdaContainerMock):
+    def test_must_return_cached_container(self, LambdaContainerMock, LambdaFunctionObserverMock):
         code_dir = "some code dir"
         container = Mock()
         debug_options = Mock()
@@ -695,7 +690,6 @@ class TestWarmLambdaRuntime_create(TestCase):
         lambda_image_mock = Mock()
 
         self.runtime = WarmLambdaRuntime(self.manager_mock, lambda_image_mock)
-        self.runtime._add_function_to_observer = Mock()
 
         # Using MagicMock to mock the context manager
         self.runtime._get_code_dir = MagicMock()
@@ -709,8 +703,11 @@ class TestWarmLambdaRuntime_create(TestCase):
         self.manager_mock.create.assert_called_once_with(container)
         self.assertEqual(result, container)
 
+    @patch("samcli.local.lambdafn.runtime.LambdaFunctionObserver")
     @patch("samcli.local.lambdafn.runtime.LambdaContainer")
-    def test_must_ignore_debug_options_if_function_name_is_not_debug_function(self, LambdaContainerMock):
+    def test_must_ignore_debug_options_if_function_name_is_not_debug_function(
+        self, LambdaContainerMock, LambdaFunctionObserverMock
+    ):
         code_dir = "some code dir"
         container = Mock()
         debug_options = Mock()
@@ -718,7 +715,6 @@ class TestWarmLambdaRuntime_create(TestCase):
         lambda_image_mock = Mock()
 
         self.runtime = WarmLambdaRuntime(self.manager_mock, lambda_image_mock)
-        self.runtime._add_function_to_observer = Mock()
 
         # Using MagicMock to mock the context manager
         self.runtime._get_code_dir = MagicMock()
@@ -777,57 +773,6 @@ class TestWarmLambdaRuntime_get_code_dir(TestCase):
         self.assertEqual(res, uncompressed_dir_mock)
 
 
-class TestWarmLambdaRuntime_add_function_to_observer(TestCase):
-    def setUp(self):
-        self.manager_mock = Mock()
-
-        self.name = "name"
-        self.lang = "runtime"
-        self.handler = "handler"
-        self.code_path = "code-path"
-
-        self.layer1_code_path = "layer1-code-path"
-        self.layer1_arn = "layer1-arn"
-        self.layers = [LayerVersion(arn=self.layer1_arn, codeuri=self.layer1_code_path, compatible_runtimes=self.lang)]
-        self.imageuri = None
-        self.packagetype = ZIP
-        self.imageconfig = None
-        self.func_config = FunctionConfig(
-            self.name,
-            self.lang,
-            self.handler,
-            self.imageuri,
-            self.imageconfig,
-            self.packagetype,
-            self.code_path,
-            self.layers,
-        )
-
-    @patch("samcli.local.lambdafn.runtime.FileObserver")
-    def test_must_observe_function_code_path_and_layers_paths(self, FileObserverMock):
-        lambda_image_mock = Mock()
-        observer_mock = Mock()
-        FileObserverMock.return_value = observer_mock
-        self.runtime = WarmLambdaRuntime(self.manager_mock, lambda_image_mock)
-        self.runtime._add_function_to_observer(self.func_config)
-
-        self.assertEqual(
-            self.runtime._observed_paths,
-            {
-                "code-path": [self.func_config],
-                "layer1-code-path": [self.func_config],
-            },
-        )
-        self.assertEqual(
-            observer_mock.watch.call_args_list,
-            [
-                call("code-path"),
-                call("layer1-code-path"),
-            ],
-        )
-        observer_mock.start.assert_called_once_with()
-
-
 class TestWarmLambdaRuntime_clean_warm_containers_related_resources(TestCase):
     def setUp(self):
         self.manager_mock = Mock()
@@ -877,7 +822,6 @@ class TestWarmLambdaRuntime_on_code_change(TestCase):
         self.lang = "runtime"
         self.handler = "handler"
         self.imageuri = None
-        self.packagetype = ZIP
         self.imageconfig = None
 
         self.func1_name = "func1_name"
@@ -898,7 +842,7 @@ class TestWarmLambdaRuntime_on_code_change(TestCase):
             self.handler,
             self.imageuri,
             self.imageconfig,
-            self.packagetype,
+            ZIP,
             self.func1_code_path,
             self.common_layers,
         )
@@ -908,16 +852,10 @@ class TestWarmLambdaRuntime_on_code_change(TestCase):
             self.handler,
             self.imageuri,
             self.imageconfig,
-            self.packagetype,
+            IMAGE,
             self.func2_code_path,
             self.common_layers,
         )
-
-        self.runtime._observed_paths = {
-            self.func1_code_path: [self.func_config1],
-            self.func2_code_path: [self.func_config2],
-            self.common_layer_code_path: [self.func_config1, self.func_config2],
-        }
 
         self.func1_container_mock = Mock()
         self.func2_container_mock = Mock()
@@ -927,20 +865,9 @@ class TestWarmLambdaRuntime_on_code_change(TestCase):
         }
 
     def test_only_one_container_get_stopped_when_its_code_dir_got_changed(self):
-        changed_paths = [self.func1_code_path]
-
-        self.runtime._on_code_change(changed_paths)
+        self.runtime._on_code_change([self.func_config1])
 
         self.manager_mock.stop.assert_called_with(self.func1_container_mock)
-
-        self.assertEqual(
-            self.runtime._observed_paths,
-            {
-                self.func2_code_path: [self.func_config2],
-                self.common_layer_code_path: [self.func_config2],
-            },
-        )
-
         self.assertEqual(
             self.runtime._containers,
             {
@@ -948,12 +875,10 @@ class TestWarmLambdaRuntime_on_code_change(TestCase):
             },
         )
 
-        self.observer_mock.unwatch.assert_called_with(self.func1_code_path)
+        self.observer_mock.unwatch.assert_called_with(self.func_config1)
 
-    def test_both_containers_get_stopped_when_their_code_dir_got_changed(self):
-        changed_paths = [self.func1_code_path, self.func2_code_path]
-
-        self.runtime._on_code_change(changed_paths)
+    def test_both_containers_get_stopped_when_both_functions_got_updated(self):
+        self.runtime._on_code_change([self.func_config1, self.func_config2])
 
         self.assertEqual(
             self.manager_mock.stop.call_args_list,
@@ -962,43 +887,13 @@ class TestWarmLambdaRuntime_on_code_change(TestCase):
                 call(self.func2_container_mock),
             ],
         )
-
-        self.assertEqual(self.runtime._observed_paths, {})
-
         self.assertEqual(self.runtime._containers, {})
 
         self.assertEqual(
             self.observer_mock.unwatch.call_args_list,
             [
-                call(self.func1_code_path),
-                call(self.func2_code_path),
-                call(self.common_layer_code_path),
-            ],
-        )
-
-    def test_both_containers_get_stopped_when_common_layer_code_dir_got_changed(self):
-        changed_paths = [self.common_layer_code_path]
-
-        self.runtime._on_code_change(changed_paths)
-
-        self.assertEqual(
-            self.manager_mock.stop.call_args_list,
-            [
-                call(self.func1_container_mock),
-                call(self.func2_container_mock),
-            ],
-        )
-
-        self.assertEqual(self.runtime._observed_paths, {})
-
-        self.assertEqual(self.runtime._containers, {})
-
-        self.assertEqual(
-            self.observer_mock.unwatch.call_args_list,
-            [
-                call(self.func1_code_path),
-                call(self.func2_code_path),
-                call(self.common_layer_code_path),
+                call(self.func_config1),
+                call(self.func_config2),
             ],
         )
 

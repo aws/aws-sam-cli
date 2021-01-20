@@ -118,3 +118,24 @@ class TestPackageImage(PackageIntegBase):
 
         self.assertEqual(2, process.returncode)
         self.assertIn("Error: Missing option '--image-repository'", process_stderr.decode("utf-8"))
+
+    @parameterized.expand(["aws-serverless-application-image.yaml"])
+    def test_package_template_with_image_function_in_nested_application(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+        command_list = self.get_command_list(
+            image_repository=self.ecr_repo_name, template=template_path, resolve_s3=True
+        )
+
+        process = Popen(command_list, stdout=PIPE, stderr=PIPE)
+        try:
+            _, stderr = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+        process_stderr = stderr.strip().decode("utf-8")
+
+        self.assertEqual(0, process.returncode)
+        # when image function is not in main template, erc_repo_name only shows in stderr (pushing progress)
+        # here we make sure the image is successfully pushed to the correct repo
+        self.assertIn(f"{self.ecr_repo_name}", process_stderr)
+        self.assertIn("Uploading", process_stderr)

@@ -39,8 +39,8 @@ class Container:
     _STDERR_FRAME_TYPE = 2
     RAPID_PORT_CONTAINER = "8080"
     URL = "http://localhost:{port}/2015-03-31/functions/{function_name}/invocations"
-    # NOTE(sriram-mv): 100ms Connection Timeout for http requests talking to `aws-lambda-rie` HTTP APIs
-    RAPID_CONNECTION_TIMEOUT = 0.1
+    # Set connection timeout to 1 sec to support the large input.
+    RAPID_CONNECTION_TIMEOUT = 1
 
     def __init__(
         self,
@@ -180,6 +180,35 @@ class Container:
 
         return self.id
 
+    def stop(self, time=3):
+        """
+        Stop a container, with a given number of seconds between sending SIGTERM and SIGKILL.
+
+        Parameters
+        ----------
+        time
+            Optional. Number of seconds between SIGTERM and SIGKILL. Effectively, the amount of time
+            the container has to perform shutdown steps. Default: 3
+        """
+        if not self.is_created():
+            LOG.debug("Container was not created, cannot run stop.")
+            return
+
+        try:
+            self.docker_client.containers.get(self.id).stop(timeout=time)
+        except docker.errors.NotFound:
+            # Container is already removed
+            LOG.debug("Container with ID %s does not exist. Cannot stop!", self.id)
+        except docker.errors.APIError as ex:
+            msg = str(ex)
+            removal_in_progress = ("removal of container" in msg) and ("is already in progress" in msg)
+
+            # When removal is already started, Docker API will throw an exception
+            # Skip such exceptions and log
+            if not removal_in_progress:
+                raise ex
+            LOG.debug("Container removal is in progress, skipping exception: %s", msg)
+
     def delete(self):
         """
         Removes a container that was created earlier.
@@ -198,9 +227,10 @@ class Container:
             removal_in_progress = ("removal of container" in msg) and ("is already in progress" in msg)
 
             # When removal is already started, Docker API will throw an exception
-            # Skip such exceptions.
+            # Skip such exceptions and log
             if not removal_in_progress:
                 raise ex
+            LOG.debug("Container removal is in progress, skipping exception: %s", msg)
 
         self.id = None
 

@@ -17,6 +17,7 @@ Deploy a SAM stack
 
 import logging
 import os
+from typing import Dict, List
 
 import boto3
 import click
@@ -208,7 +209,8 @@ class DeployContext:
                 raise
             click.echo(str(ex))
 
-    def merge_parameters(self, template_dict, parameter_overrides):
+    @staticmethod
+    def merge_parameters(template_dict: Dict, parameter_overrides: Dict) -> List[Dict]:
         """
         CloudFormation CreateChangeset requires a value for every parameter
         from the template, either specifying a new value or use previous value.
@@ -216,10 +218,11 @@ class DeployContext:
         generates a dict of all parameters in a format that ChangeSet API
         will accept
 
+        :param template_dict:
         :param parameter_overrides:
         :return:
         """
-        parameter_values = []
+        parameter_values: List[Dict] = []
 
         if not isinstance(template_dict.get("Parameters", None), dict):
             return parameter_values

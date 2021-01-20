@@ -6,6 +6,7 @@ import time
 from unittest import skipIf
 
 import boto3
+import docker
 from parameterized import parameterized
 
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
@@ -25,6 +26,19 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
 
 @skipIf(SKIP_DEPLOY_TESTS, "Skip deploy tests in CI/CD only")
 class TestDeploy(PackageIntegBase, DeployIntegBase):
+    @classmethod
+    def setUpClass(cls):
+        cls.docker_client = docker.from_env()
+        cls.local_images = [("alpine", "latest")]
+        # setup some images locally by pulling them.
+        for repo, tag in cls.local_images:
+            cls.docker_client.api.pull(repository=repo, tag=tag)
+        # setup signing profile arn & name
+        cls.signing_profile_name = os.environ.get("AWS_SIGNING_PROFILE_NAME")
+        cls.signing_profile_version_arn = os.environ.get("AWS_SIGNING_PROFILE_VERSION_ARN")
+        PackageIntegBase.setUpClass()
+        DeployIntegBase.setUpClass()
+
     def setUp(self):
         self.cf_client = boto3.client("cloudformation")
         self.sns_arn = os.environ.get("AWS_SNS")
@@ -654,6 +668,58 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 1)
         self.assertIn("Error reading configuration: Unexpected character", str(deploy_process_execute.stderr))
+
+    @parameterized.expand([(True, True, True), (False, True, False), (False, False, True), (True, False, True)])
+    def test_deploy_with_code_signing_params(self, should_sign, should_enforce, will_succeed):
+        """
+        Signed function with UntrustedArtifactOnDeployment = Enforced config should succeed
+        Signed function with UntrustedArtifactOnDeployment = Warn config should succeed
+        Unsigned function with UntrustedArtifactOnDeployment = Enforce config should fail
+        Unsigned function with UntrustedArtifactOnDeployment = Warn config should succeed
+        """
+        template_path = self.test_data_path.joinpath("aws-serverless-function-with-code-signing.yaml")
+        stack_name = self._method_to_stack_name(self.id())
+        signing_profile_version_arn = TestDeploy.signing_profile_version_arn
+        signing_profile_name = TestDeploy.signing_profile_name
+
+        if not signing_profile_name or not signing_profile_version_arn:
+            self.fail(
+                "Missing resources for Code Signer integration tests. Please provide "
+                "AWS_SIGNING_PROFILE_NAME and AWS_SIGNING_PROFILE_VERSION_ARN environment variables"
+            )
+
+        self.stack_names.append(stack_name)
+
+        signing_profiles_param = None
+        if should_sign:
+            signing_profiles_param = f"HelloWorldFunctionWithCsc={signing_profile_name}"
+
+        enforce_param = "Warn"
+        if should_enforce:
+            enforce_param = "Enforce"
+
+        # Package and Deploy in one go without confirming change set.
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+            signing_profiles=signing_profiles_param,
+            parameter_overrides=f"SigningProfileVersionArn={signing_profile_version_arn} "
+            f"UntrustedArtifactOnDeployment={enforce_param}",
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+
+        if will_succeed:
+            self.assertEqual(deploy_process_execute.process.returncode, 0)
+        else:
+            self.assertEqual(deploy_process_execute.process.returncode, 1)
 
     def _method_to_stack_name(self, method_name):
         """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
