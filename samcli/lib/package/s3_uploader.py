@@ -227,7 +227,7 @@ class ProgressPercentage:
     def __init__(self, filename, remote_path):
         self._filename = filename
         self._remote_path = remote_path
-        self._size = float(os.path.getsize(filename))
+        self._size = os.path.getsize(filename)
         self._seen_so_far = 0
         self._lock = threading.Lock()
 
