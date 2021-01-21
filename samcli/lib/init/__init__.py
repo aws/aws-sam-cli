@@ -10,7 +10,7 @@ from cookiecutter.exceptions import CookiecutterException, RepositoryNotFound
 from cookiecutter.main import cookiecutter
 
 from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING
-from samcli.lib.utils.packagetype import IMAGE
+from samcli.lib.utils.packagetype import ZIP
 from .exceptions import GenerateProjectFailedError
 from .arbitrary_project import generate_non_cookiecutter_project
 
@@ -59,7 +59,7 @@ def generate_project(
 
     template = None
 
-    if runtime and package_type != IMAGE:
+    if runtime and package_type == ZIP:
         for mapping in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values()))):
             if runtime in mapping["runtimes"] or any([r.startswith(runtime) for r in mapping["runtimes"]]):
                 if not dependency_manager or dependency_manager == mapping["dependency_manager"]:
