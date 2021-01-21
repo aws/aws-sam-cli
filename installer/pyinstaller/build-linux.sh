@@ -65,7 +65,6 @@ yum install -y zip
 cd output
 cd pyinstaller-output
 cd dist
-rm -f libcom_err.so.2 libgssapi_krb5.so.2 libk5crypto.so.3 libkeyutils.so.1 libkrb5.so.3 libkrb5support.so.0 libpcre.so.1 libselinux.so.1 libssl.so.10
 cd ..
 zip -r ../$binary_zip_filename ./*
 cd ..
