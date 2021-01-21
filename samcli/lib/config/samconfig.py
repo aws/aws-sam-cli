@@ -6,6 +6,7 @@ import os
 import logging
 
 from pathlib import Path
+from typing import Any, Iterable
 
 import tomlkit
 
@@ -189,11 +190,12 @@ class SamConfig:
     def _version(self):
         return self.document.get(VERSION_KEY, None)
 
-    def _version_sanity_check(self, version):
+    @staticmethod
+    def _version_sanity_check(version: Any) -> None:
         if not isinstance(version, float):
             raise SamConfigVersionException(f"'{VERSION_KEY}' key is not present or is in unrecognized format. ")
 
     @staticmethod
-    def _to_key(cmd_names):
+    def _to_key(cmd_names: Iterable[str]) -> str:
         # construct a parsed name that is of the format: a_b_c_d
         return "_".join([cmd.replace("-", "_").replace(" ", "_") for cmd in cmd_names])

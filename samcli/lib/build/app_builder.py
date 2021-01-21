@@ -7,6 +7,7 @@ import io
 import json
 import logging
 import pathlib
+from typing import Dict
 
 import docker
 from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
@@ -22,8 +23,15 @@ from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.local.docker.utils import is_docker_reachable
-from .exceptions import DockerConnectionError, DockerfileOutSideOfContext, DockerBuildFailed, BuildError, \
-    BuildInsideContainerError, ContainerBuildNotSupported, UnsupportedBuilderLibraryVersionError
+from .exceptions import (
+    DockerConnectionError,
+    DockerfileOutSideOfContext,
+    DockerBuildFailed,
+    BuildError,
+    BuildInsideContainerError,
+    ContainerBuildNotSupported,
+    UnsupportedBuilderLibraryVersionError,
+)
 from .workflow_config import get_workflow_config, get_layer_subfolder, supports_build_in_container
 
 LOG = logging.getLogger(__name__)
@@ -36,19 +44,21 @@ class ApplicationBuilder:
     converting source code into artifacts that can be run on AWS Lambda
     """
 
-    def __init__(self,
-                 resources_to_build,
-                 build_dir,
-                 base_dir,
-                 cache_dir,
-                 cached=False,
-                 is_building_specific_resource=False,
-                 manifest_path_override=None,
-                 container_manager=None,
-                 parallel=False,
-                 mode=None,
-                 stream_writer=None,
-                 docker_client=None):
+    def __init__(
+        self,
+        resources_to_build,
+        build_dir,
+        base_dir,
+        cache_dir,
+        cached=False,
+        is_building_specific_resource=False,
+        manifest_path_override=None,
+        container_manager=None,
+        parallel=False,
+        mode=None,
+        stream_writer=None,
+        docker_client=None,
+    ):
         """
         Initialize the class
 
@@ -116,22 +126,26 @@ class ApplicationBuilder:
             if self._cached:
                 build_strategy = ParallelBuildStrategy(
                     build_graph,
-                    CachedBuildStrategy(build_graph,
-                                        build_strategy,
-                                        self._base_dir,
-                                        self._build_dir,
-                                        self._cache_dir,
-                                        self._is_building_specific_resource)
+                    CachedBuildStrategy(
+                        build_graph,
+                        build_strategy,
+                        self._base_dir,
+                        self._build_dir,
+                        self._cache_dir,
+                        self._is_building_specific_resource,
+                    ),
                 )
             else:
                 build_strategy = ParallelBuildStrategy(build_graph, build_strategy)
         elif self._cached:
-            build_strategy = CachedBuildStrategy(build_graph,
-                                                 build_strategy,
-                                                 self._base_dir,
-                                                 self._build_dir,
-                                                 self._cache_dir,
-                                                 self._is_building_specific_resource)
+            build_strategy = CachedBuildStrategy(
+                build_graph,
+                build_strategy,
+                self._base_dir,
+                self._build_dir,
+                self._cache_dir,
+                self._is_building_specific_resource,
+            )
 
         return build_strategy.build()
 
@@ -145,17 +159,22 @@ class ApplicationBuilder:
         functions = self._resources_to_build.functions
         layers = self._resources_to_build.layers
         for function in functions:
-            function_build_details = FunctionBuildDefinition(function.runtime, function.codeuri, function.packagetype, function.metadata)
+            function_build_details = FunctionBuildDefinition(
+                function.runtime, function.codeuri, function.packagetype, function.metadata
+            )
             build_graph.put_function_build_definition(function_build_details, function)
 
         for layer in layers:
-            layer_build_details = LayerBuildDefinition(layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes)
+            layer_build_details = LayerBuildDefinition(
+                layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes
+            )
             build_graph.put_layer_build_definition(layer_build_details, layer)
 
         build_graph.clean_redundant_definitions_and_update(not self._is_building_specific_resource)
         return build_graph
 
-    def update_template(self, template_dict, original_template_path, built_artifacts):
+    @staticmethod
+    def update_template(template_dict: Dict, original_template_path: str, built_artifacts: Dict[str, str]) -> Dict:
         """
         Given the path to built artifacts, update the template to point appropriate resource CodeUris to the artifacts
         folder
@@ -254,7 +273,13 @@ class ApplicationBuilder:
         if isinstance(docker_build_args, dict):
             LOG.info("Setting DockerBuildArgs: %s for %s function", docker_build_args, function_name)
 
-        build_logs = self._docker_client.api.build(path=str(docker_context_dir), dockerfile=dockerfile, tag=docker_tag, buildargs=docker_build_args, decode=True)
+        build_logs = self._docker_client.api.build(
+            path=str(docker_context_dir),
+            dockerfile=dockerfile,
+            tag=docker_tag,
+            buildargs=docker_build_args,
+            decode=True,
+        )
 
         # The Docker-py low level api will stream logs back but if an exception is raised by the api
         # this is raised when accessing the generator. So we need to wrap accessing build_logs in a try: except.
@@ -319,7 +344,8 @@ class ApplicationBuilder:
                     LOG.warning(
                         "For container layer build, first compatible runtime is chosen as build target for container."
                     )
-                    # Only set to this value if specified workflow is makefile which will result in config language as provided
+                    # Only set to this value if specified workflow is makefile
+                    # which will result in config language as provided
                     build_runtime = compatible_runtimes[0]
             options = ApplicationBuilder._get_build_options(layer_name, config.language, None)
 
@@ -327,7 +353,9 @@ class ApplicationBuilder:
             # Not including subfolder in return so that we copy subfolder, instead of copying artifacts inside it.
             return str(pathlib.Path(self._build_dir, layer_name))
 
-    def _build_function(self, function_name, codeuri, packagetype, runtime, handler, artifacts_dir, metadata=None): # pylint: disable=R1710
+    def _build_function(  # pylint: disable=R1710
+        self, function_name, codeuri, packagetype, runtime, handler, artifacts_dir, metadata=None
+    ):
         """
         Given the function information, this method will build the Lambda function. Depending on the configuration
         it will either build the function in process or by spinning up a Docker container.
@@ -359,9 +387,10 @@ class ApplicationBuilder:
         if packagetype == ZIP:
             if runtime in self._deprecated_runtimes:
                 message = (
-                    f"WARNING: {runtime} is no longer supported by AWS Lambda, please update to a newer supported runtime. SAM CLI "
+                    f"WARNING: {runtime} is no longer supported by AWS Lambda, "
+                    "please update to a newer supported runtime. SAM CLI "
                     f"will drop support for all deprecated runtimes {self._deprecated_runtimes} on May 1st. "
-                    f"See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
+                    "See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
                 )
                 LOG.warning(self._colored.yellow(message))
 

@@ -384,7 +384,8 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
 
     def __str__(self):
         return (
-            f"BuildDefinition({self.runtime}, {self.codeuri}, {self.packagetype}, {self.source_md5}, {self.uuid}, {self.metadata}, "
+            "BuildDefinition("
+            f"{self.runtime}, {self.codeuri}, {self.packagetype}, {self.source_md5}, {self.uuid}, {self.metadata}, "
             f"{[f.functionname for f in self.functions]})"
         )
 
@@ -409,7 +410,9 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         if self.metadata and self.metadata.get("BuildMethod", None) == "makefile":
             return False
 
-        return self.runtime == other.runtime \
-               and self.codeuri == other.codeuri \
-               and self.packagetype == other.packagetype \
-               and self.metadata == other.metadata
+        return (
+            self.runtime == other.runtime
+            and self.codeuri == other.codeuri
+            and self.packagetype == other.packagetype
+            and self.metadata == other.metadata
+        )
