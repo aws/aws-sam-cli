@@ -55,7 +55,9 @@ class BaseCommand(click.MultiCommand):
         :param args: Other Arguments passed to super class
         :param kwargs: Other Arguments passed to super class
         """
-        super(BaseCommand, self).__init__(*args, **kwargs)
+        # alias -h to --help for all commands
+        kwargs["context_settings"] = dict(help_option_names=["-h", "--help"])
+        super().__init__(*args, **kwargs)
 
         if not cmd_packages:
             cmd_packages = _SAM_CLI_COMMAND_PACKAGES

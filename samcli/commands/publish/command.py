@@ -10,13 +10,13 @@ from serverlessrepo.publish import CREATE_APPLICATION
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from samcli.commands._utils.options import template_common_option
 from samcli.commands._utils.template import get_template_data, TemplateFailedParsingException, TemplateNotFoundException
-from samcli.lib.telemetry.metrics import track_command
+from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 
 LOG = logging.getLogger(__name__)
 
-SAM_PUBLISH_DOC = "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-template-publishing-applications.html"  # noqa
-SAM_PACKAGE_DOC = "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-package.html"  # noqa
+SAM_PUBLISH_DOC = "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-template-publishing-applications.html"  # pylint: disable=line-too-long # noqa
+SAM_PACKAGE_DOC = "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-package.html"  # pylint: disable=line-too-long # noqa
 HELP_TEXT = """
 Use this command to publish a packaged AWS SAM template to
 the AWS Serverless Application Repository to share within your team,
@@ -48,7 +48,13 @@ SEMANTIC_VERSION = "SemanticVersion"
 @cli_framework_options
 @pass_context
 @track_command
-def cli(ctx, template_file, semantic_version):
+def cli(
+    ctx,
+    template_file,
+    semantic_version,
+    config_file,
+    config_env,
+):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(ctx, template_file, semantic_version)  # pragma: no cover
@@ -83,12 +89,12 @@ def do_cli(ctx, template, semantic_version):
             "Your SAM template contains invalid S3 URIs. Please make sure that you have uploaded application "
             "artifacts to S3 by packaging the template. See more details in {}".format(SAM_PACKAGE_DOC),
             wrapped_from=ex.__class__.__name__,
-        )
+        ) from ex
     except ServerlessRepoError as ex:
         click.secho("Publish Failed", fg="red")
         LOG.debug("Failed to publish application to serverlessrepo", exc_info=True)
         error_msg = "{}\nPlease follow the instructions in {}".format(str(ex), SAM_PUBLISH_DOC)
-        raise UserException(error_msg, wrapped_from=ex.__class__.__name__)
+        raise UserException(error_msg, wrapped_from=ex.__class__.__name__) from ex
 
     application_id = publish_output.get("application_id")
     _print_console_link(ctx.region, application_id)

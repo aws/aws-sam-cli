@@ -6,7 +6,7 @@ import yaml
 from botocore.utils import set_value_from_jmespath
 
 from unittest import TestCase
-from unittest.mock import patch, mock_open
+from unittest.mock import patch, mock_open, MagicMock
 from parameterized import parameterized, param
 
 from samcli.commands._utils.template import (
@@ -18,7 +18,10 @@ from samcli.commands._utils.template import (
     get_template_parameters,
     TemplateNotFoundException,
     TemplateFailedParsingException,
+    get_template_artifacts_format,
+    get_template_function_resource_ids,
 )
+from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 
 class Test_get_template_data(TestCase):
@@ -48,7 +51,7 @@ class Test_get_template_data(TestCase):
 
             self.assertEqual(result, parse_result)
 
-        m.assert_called_with(filename, "r")
+        m.assert_called_with(filename, "r", encoding="utf-8")
         yaml_parse_mock.assert_called_with(file_data)
 
     @patch("samcli.commands._utils.template.yaml_parse")
@@ -68,7 +71,7 @@ class Test_get_template_data(TestCase):
 
             self.assertEqual(result, {"Myparameter": "String"})
 
-        m.assert_called_with(filename, "r")
+        m.assert_called_with(filename, "r", encoding="utf-8")
         yaml_parse_mock.assert_called_with(file_data)
 
     @parameterized.expand([param(ValueError()), param(yaml.YAMLError())])
@@ -90,6 +93,40 @@ class Test_get_template_data(TestCase):
 
             actual_exception = ex_ctx.exception
             self.assertTrue(str(actual_exception).startswith("Failed to parse template: "))
+
+    @patch("samcli.commands._utils.template.yaml_parse")
+    @patch("samcli.commands._utils.template.pathlib")
+    def test_must_read_file_with_non_utf8_encoding(self, pathlib_mock, yaml_parse_mock):
+        filename = "filename"
+        file_data = "utf-8 😐"
+        parse_result = "parse result"
+        default_locale_encoding = "cp932"
+
+        pathlib_mock.Path.return_value.exists.return_value = True  # Fake that the file exists
+
+        yaml_parse_mock.return_value = parse_result
+
+        # mock open with a different default encoding
+        def mock_encoding_open(
+            file, mode="r", buffering=-1, encoding=None, errors=None, newline=None, closefd=True, opener=None
+        ):
+            if encoding is None:
+                encoding = default_locale_encoding
+            mock_file = MagicMock()
+
+            def mock_read():
+                return file_data.encode("utf-8").decode(encoding)
+
+            # __enter__ is used for with open(...) PEP343
+            mock_file.__enter__.return_value = mock_file
+            mock_file.read = mock_read
+            return mock_file
+
+        with patch("samcli.commands._utils.template.open", mock_encoding_open):
+            result = get_template_data(filename)
+            self.assertEqual(result, parse_result)
+
+        yaml_parse_mock.assert_called_with(file_data)
 
 
 class Test_update_relative_paths(TestCase):
@@ -224,3 +261,27 @@ class Test_move_template(TestCase):
         yaml_dump_mock.assert_called_with(modified_template)
         m.assert_called_with(dest, "w")
         m.return_value.write.assert_called_with(dumped_yaml)
+
+
+class Test_get_template_artifacts_format(TestCase):
+    @patch("samcli.commands._utils.template.get_template_data")
+    def test_template_get_artifacts_format(self, mock_get_template_data):
+        mock_get_template_data.return_value = {
+            "Resources": {
+                "HelloWorldFunction1": {"Properties": {"PackageType": IMAGE}},
+                "HelloWorldFunction2": {"Properties": {"PackageType": ZIP}},
+            }
+        }
+        self.assertEqual(get_template_artifacts_format(MagicMock()), [IMAGE, ZIP])
+
+
+class Test_get_template_function_resouce_ids(TestCase):
+    @patch("samcli.commands._utils.template.get_template_data")
+    def test_get_template_function_resouce_ids(self, mock_get_template_data):
+        mock_get_template_data.return_value = {
+            "Resources": {
+                "HelloWorldFunction1": {"Type": "AWS::Lambda::Function", "Properties": {"PackageType": IMAGE}},
+                "HelloWorldFunction2": {"Type": "AWS::Serverless::Function", "Properties": {"PackageType": ZIP}},
+            }
+        }
+        self.assertEqual(get_template_function_resource_ids(MagicMock(), IMAGE), ["HelloWorldFunction1"])

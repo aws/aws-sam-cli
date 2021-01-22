@@ -271,4 +271,4 @@ class LogsCommandContext:
             )
 
             # The exception message already has a well formatted error message that we can surface to user
-            raise UserException(str(ex), wrapped_from=ex.response["Error"]["Code"])
+            raise UserException(str(ex), wrapped_from=ex.response["Error"]["Code"]) from ex

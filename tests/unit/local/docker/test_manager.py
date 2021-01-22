@@ -3,13 +3,31 @@ Tests container manager
 """
 
 import io
+import importlib
 from unittest import TestCase
+from unittest.mock import Mock, patch, MagicMock, ANY, call
 
 import requests
-
-from unittest.mock import Mock
 from docker.errors import APIError, ImageNotFound
 from samcli.local.docker.manager import ContainerManager, DockerImagePullFailedException
+
+
+# pywintypes is not available non-Windows OS,
+# we need to make up an Exception for this
+class MockPywintypesError(Exception):
+    pass
+
+
+def patched_modules():
+    # Mock these modules to simulate a Windows environment
+    platform_mock = Mock()
+    platform_mock.system.return_value = "Windows"
+    pywintypes_mock = Mock()
+    pywintypes_mock.error = MockPywintypesError
+    return {
+        "platform": platform_mock,
+        "pywintypes": pywintypes_mock,
+    }
 
 
 class TestContainerManager_init(TestCase):
@@ -31,11 +49,6 @@ class TestContainerManager_run(TestCase):
         self.container_mock.create = Mock()
         self.container_mock.is_created = Mock()
 
-    def test_must_error_with_warm(self):
-
-        with self.assertRaises(ValueError):
-            self.manager.run(self.container_mock, warm=True)
-
     def test_must_pull_image_and_run_container(self):
         input_data = "input data"
 
@@ -44,6 +57,7 @@ class TestContainerManager_run(TestCase):
 
         # Assume the image doesn't exist.
         self.manager.has_image.return_value = False
+        self.container_mock.is_created.return_value = False
 
         self.manager.run(self.container_mock, input_data)
 
@@ -61,6 +75,7 @@ class TestContainerManager_run(TestCase):
         self.manager.has_image.return_value = True
         # And, don't skip pulling => Pull again
         self.manager.skip_pull_image = False
+        self.container_mock.is_created.return_value = False
 
         self.manager.run(self.container_mock, input_data)
 
@@ -80,10 +95,32 @@ class TestContainerManager_run(TestCase):
         self.manager.skip_pull_image = False
 
         self.container_mock.image = "samcli/lambda"
+        self.container_mock.is_created.return_value = False
 
         self.manager.run(self.container_mock, input_data)
 
         self.manager.has_image.assert_called_with("samcli/lambda")
+        self.manager.pull_image.assert_not_called()
+        self.container_mock.start.assert_called_with(input_data=input_data)
+
+    def test_must_not_pull_image_if_image_is_rapid_image(self):
+        input_data = "input data"
+        rapid_image_name = "Mock_image_name:rapid-1.0.0"
+
+        self.manager.has_image = Mock()
+        self.manager.pull_image = Mock()
+
+        # Assume the image exist.
+        self.manager.has_image.return_value = True
+        # And, don't skip pulling => Pull again
+        self.manager.skip_pull_image = False
+
+        self.container_mock.image = rapid_image_name
+        self.container_mock.is_created.return_value = False
+
+        self.manager.run(self.container_mock, input_data)
+
+        self.manager.has_image.assert_called_with(rapid_image_name)
         self.manager.pull_image.assert_not_called()
         self.container_mock.start.assert_called_with(input_data=input_data)
 
@@ -97,6 +134,7 @@ class TestContainerManager_run(TestCase):
         self.manager.has_image.return_value = True
         # And, skip pulling
         self.manager.skip_pull_image = True
+        self.container_mock.is_created.return_value = False
 
         self.manager.run(self.container_mock, input_data)
 
@@ -115,6 +153,7 @@ class TestContainerManager_run(TestCase):
         self.manager.has_image.return_value = False
         # And, don't skip pulling => Pull again
         self.manager.skip_pull_image = False
+        self.container_mock.is_created.return_value = False
 
         with self.assertRaises(DockerImagePullFailedException):
             self.manager.run(self.container_mock, input_data)
@@ -133,6 +172,7 @@ class TestContainerManager_run(TestCase):
         self.manager.has_image.return_value = True
         # And, don't skip pulling => Pull again
         self.manager.skip_pull_image = False
+        self.container_mock.is_created.return_value = False
 
         self.manager.run(self.container_mock, input_data)
 
@@ -201,25 +241,62 @@ class TestContainerManager_pull_image(TestCase):
         ex = context.exception
         self.assertEqual(str(ex), msg)
 
+    @patch("samcli.local.docker.manager.threading")
+    def test_multiple_image_pulls_must_use_locks(self, mock_threading):
+        self.mock_docker_client.api.pull.return_value = [1, 2, 3]
+
+        # mock general lock
+        mock_lock = MagicMock()
+        self.manager._lock = mock_lock
+
+        # mock locks per image
+        mock_image1_lock = MagicMock()
+        mock_image2_lock = MagicMock()
+        mock_threading.Lock.side_effect = [mock_image1_lock, mock_image2_lock]
+
+        # pull 2 different images for multiple times
+        self.manager.pull_image("image1")
+        self.manager.pull_image("image1")
+        self.manager.pull_image("image2")
+
+        # assert that image1 lock have been used twice and image2 lock only used once
+        mock_image1_lock.assert_has_calls(2 * [call.__enter__(), call.__exit__(ANY, ANY, ANY)], any_order=True)
+        mock_image2_lock.assert_has_calls([call.__enter__(), call.__exit__(ANY, ANY, ANY)])
+
+        # assert that general lock have been used three times for all the image pulls
+        mock_lock.assert_has_calls(3 * [call.__enter__(), call.__exit__(ANY, ANY, ANY)], any_order=True)
+
 
 class TestContainerManager_is_docker_reachable(TestCase):
     def setUp(self):
         self.ping_mock = Mock()
 
-        docker_client_mock = Mock()
-        docker_client_mock.ping = self.ping_mock
+        self.docker_client_mock = Mock()
+        self.docker_client_mock.ping = self.ping_mock
 
-        self.manager = ContainerManager(docker_client=docker_client_mock)
+        self.manager = ContainerManager(docker_client=self.docker_client_mock)
 
     def test_must_use_docker_client_ping(self):
-        self.manager.is_docker_reachable
+        with patch.dict("sys.modules", patched_modules()):
+            import samcli.local.docker.manager as manager_module
+            import samcli.local.docker.utils as docker_utils
 
-        self.ping_mock.assert_called_once_with()
+            importlib.reload(manager_module)
+            importlib.reload(docker_utils)
+            self.manager.is_docker_reachable
+
+            self.ping_mock.assert_called_once_with()
 
     def test_must_return_true_if_ping_does_not_raise(self):
-        is_reachable = self.manager.is_docker_reachable
+        with patch.dict("sys.modules", patched_modules()):
+            import samcli.local.docker.manager as manager_module
+            import samcli.local.docker.utils as docker_utils
 
-        self.assertTrue(is_reachable)
+            importlib.reload(manager_module)
+            importlib.reload(docker_utils)
+            is_reachable = self.manager.is_docker_reachable
+
+            self.assertTrue(is_reachable)
 
     def test_must_return_false_if_ping_raises_api_error(self):
         self.ping_mock.side_effect = APIError("error")
@@ -234,6 +311,43 @@ class TestContainerManager_is_docker_reachable(TestCase):
         is_reachable = self.manager.is_docker_reachable
 
         self.assertFalse(is_reachable)
+
+    def test_must_return_false_if_ping_raises_pywintypes_error(self):
+        with patch.dict("sys.modules", patched_modules()):
+            import samcli.local.docker.manager as manager_module
+            import samcli.local.docker.utils as docker_utils
+
+            importlib.reload(manager_module)
+            importlib.reload(docker_utils)
+            manager = manager_module.ContainerManager(docker_client=self.docker_client_mock)
+            import pywintypes  # pylint: disable=import-error
+
+            self.ping_mock.side_effect = pywintypes.error("pywintypes.error")
+            is_reachable = manager.is_docker_reachable
+            self.assertFalse(is_reachable)
+
+        # reload modules to ensure platform.system() is unpatched
+        importlib.reload(manager_module)
+
+    def test_must_return_True_simulate_non_windows_platform(self):
+
+        # Mock these modules to simulate a Windows environment
+        platform_mock = Mock()
+        platform_mock.system.return_value = "Darwin"
+        modules = {
+            "platform": platform_mock,
+        }
+        with patch.dict("sys.modules", modules):
+            import samcli.local.docker.manager as manager_module
+
+            importlib.reload(manager_module)
+            manager = manager_module.ContainerManager(docker_client=self.docker_client_mock)
+
+            is_reachable = manager.is_docker_reachable
+            self.assertTrue(is_reachable)
+
+        # reload modules to ensure platform.system() is unpatched
+        importlib.reload(manager_module)
 
 
 class TestContainerManager_has_image(TestCase):

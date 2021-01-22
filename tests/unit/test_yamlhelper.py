@@ -26,6 +26,7 @@ class TestYaml(TestCase):
         Key4: !SomeTag {"a": "1"}
         Key5: !GetAtt OneMore.Outputs.Arn
         Key6: !Condition OtherCondition
+        Key7: "012345678"
     """
 
     parsed_yaml_dict = {
@@ -36,6 +37,7 @@ class TestYaml(TestCase):
             "Key4": {"Fn::SomeTag": {"a": "1"}},
             "Key5": {"Fn::GetAtt": ["OneMore", "Outputs.Arn"]},
             "Key6": {"Condition": "OtherCondition"},
+            "Key7": "012345678",
         }
     }
 
@@ -47,6 +49,15 @@ class TestYaml(TestCase):
         formatted_str = yaml_dump(output)
         output_again = yaml_parse(formatted_str)
         self.assertEqual(output, output_again)
+
+    def test_yaml_dumps(self):
+        input_yaml_dict = {"Resource": {"Key7": "012345678"}}
+
+        expected_output = "Resource:\n  Key7: '012345678'\n"
+
+        output = yaml_dump(input_yaml_dict)
+
+        self.assertEqual(output, expected_output)
 
     def test_yaml_getatt(self):
         # This is an invalid syntax for !GetAtt. But make sure the code does

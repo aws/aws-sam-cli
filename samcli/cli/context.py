@@ -4,6 +4,7 @@ Context information passed to each CLI command
 
 import logging
 import uuid
+from typing import Optional, cast
 
 import boto3
 import botocore
@@ -12,6 +13,12 @@ from botocore import credentials
 import click
 
 from samcli.commands.exceptions import CredentialsError
+from samcli.lib.utils.sam_logging import (
+    LAMBDA_BULDERS_LOGGER_NAME,
+    SamCliLogger,
+    SAM_CLI_FORMATTER_WITH_TIMESTAMP,
+    SAM_CLI_LOGGER_NAME,
+)
 
 
 class Context:
@@ -26,6 +33,8 @@ class Context:
     This class itself does not rely on how Click works. It is just a plain old Python class that holds common
     properties used by every CLI command.
     """
+
+    _session_id: str
 
     def __init__(self):
         """
@@ -50,9 +59,11 @@ class Context:
         self._debug = value
 
         if self._debug:
-            # Turn on debug logging
-            logging.getLogger("samcli").setLevel(logging.DEBUG)
-            logging.getLogger("aws_lambda_builders").setLevel(logging.DEBUG)
+            # Turn on debug logging and display timestamps
+            sam_cli_logger = logging.getLogger(SAM_CLI_LOGGER_NAME)
+            lambda_builders_logger = logging.getLogger(LAMBDA_BULDERS_LOGGER_NAME)
+            SamCliLogger.configure_logger(sam_cli_logger, SAM_CLI_FORMATTER_WITH_TIMESTAMP, logging.DEBUG)
+            SamCliLogger.configure_logger(lambda_builders_logger, SAM_CLI_FORMATTER_WITH_TIMESTAMP, logging.DEBUG)
 
     @property
     def region(self):
@@ -79,7 +90,7 @@ class Context:
         self._refresh_session()
 
     @property
-    def session_id(self):
+    def session_id(self) -> str:
         """
         Returns the ID of this command session. This is a randomly generated UUIDv4 which will not change until the
         command terminates.
@@ -106,8 +117,24 @@ class Context:
 
         return None
 
+    @property
+    def template_dict(self):
+        """
+        Returns the template_dictionary from click context.
+        Returns
+        -------
+        dict
+            Template as dictionary
+
+        """
+        click_core_ctx = click.get_current_context()
+        if click_core_ctx:
+            return click_core_ctx.template_dict
+
+        return None
+
     @staticmethod
-    def get_current_context():
+    def get_current_context() -> Optional["Context"]:
         """
         Get the current Context object from Click's context stacks. This method is safe to run within the
         actual command's handler that has a ``@pass_context`` annotation. Outside of the handler, you run
@@ -135,7 +162,7 @@ class Context:
 
         click_core_ctx = click.get_current_context()
         if click_core_ctx:
-            return click_core_ctx.find_object(Context) or click_core_ctx.ensure_object(Context)
+            return cast("Context", click_core_ctx.find_object(Context) or click_core_ctx.ensure_object(Context))
 
         return None
 
@@ -156,7 +183,7 @@ class Context:
             ).cache = credentials.JSONFileCache()
 
         except botocore.exceptions.ProfileNotFound as ex:
-            raise CredentialsError(str(ex))
+            raise CredentialsError(str(ex)) from ex
 
 
 def get_cmd_names(cmd_name, ctx):

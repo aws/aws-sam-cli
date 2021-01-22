@@ -34,7 +34,7 @@ class SwaggerParser:
         """
         return self.swagger.get(self._BINARY_MEDIA_TYPES_EXTENSION_KEY) or []
 
-    def get_routes(self):
+    def get_routes(self, event_type=Route.API):
         """
         Parses a swagger document and returns a list of APIs configured in the document.
 
@@ -84,9 +84,43 @@ class SwaggerParser:
                 if method.lower() == self._ANY_METHOD_EXTENSION_KEY:
                     # Convert to a more commonly used method notation
                     method = self._ANY_METHOD
-                route = Route(function_name, full_path, methods=[method])
+                payload_format_version = self._get_payload_format_version(method_config)
+                route = Route(
+                    function_name,
+                    full_path,
+                    methods=[method],
+                    event_type=event_type,
+                    payload_format_version=payload_format_version,
+                )
                 result.append(route)
         return result
+
+    def _get_integration(self, method_config):
+        """
+        Get Integration defined in the method configuration.
+        Integration configuration is defined under the special "x-amazon-apigateway-integration" key. We care only
+        about Lambda integrations, which are of type aws_proxy, and ignore the rest.
+
+        Parameters
+        ----------
+        method_config : dict
+            Dictionary containing the method configuration which might contain integration settings
+
+        Returns
+        -------
+        dict or None
+            integration, if possible. None, if not.
+        """
+        if not isinstance(method_config, dict) or self._INTEGRATION_KEY not in method_config:
+            return None
+
+        integration = method_config[self._INTEGRATION_KEY]
+
+        if integration and isinstance(integration, dict) and integration.get("type") == IntegrationType.aws_proxy.value:
+            # Integration must be "aws_proxy" otherwise we don't care about it
+            return integration
+
+        return None
 
     def _get_integration_function_name(self, method_config):
         """
@@ -106,13 +140,28 @@ class SwaggerParser:
         string or None
             Lambda function name, if possible. None, if not.
         """
-        if not isinstance(method_config, dict) or self._INTEGRATION_KEY not in method_config:
+        integration = self._get_integration(method_config)
+        if integration is None:
             return None
 
-        integration = method_config[self._INTEGRATION_KEY]
+        return LambdaUri.get_function_name(integration.get("uri"))
 
-        if integration and isinstance(integration, dict) and integration.get("type") == IntegrationType.aws_proxy.value:
-            # Integration must be "aws_proxy" otherwise we don't care about it
-            return LambdaUri.get_function_name(integration.get("uri"))
+    def _get_payload_format_version(self, method_config):
+        """
+        Get the "payloadFormatVersion" from the Integration defined in the method configuration.
 
-        return None
+        Parameters
+        ----------
+        method_config : dict
+            Dictionary containing the method configuration which might contain integration settings
+
+        Returns
+        -------
+        string or None
+            Payload format version, if exists. None, if not.
+        """
+        integration = self._get_integration(method_config)
+        if integration is None:
+            return None
+
+        return integration.get("payloadFormatVersion")

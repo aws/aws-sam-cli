@@ -1,7 +1,7 @@
 {
 	"swagger": 2,
 	"info": {
-		"version": "0.0.1",
+		"version": "2.0.1",
 		"title": "test"
 	},
 	"basePath": "/pete",

@@ -1,5 +1,6 @@
 import os
 import subprocess
+import tempfile
 
 from parameterized import parameterized
 from unittest import TestCase
@@ -48,9 +49,13 @@ class TestAllCommands(TestCase):
 
     def run_and_verify_no_crash(self, cmd_name, args):
         sam_cmd = "samdev" if os.getenv("SAM_CLI_DEV", 0) else "sam"
-        process = subprocess.Popen([sam_cmd, cmd_name] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = process.communicate()
+        # if a previous smoke test run have been killed, re-running them will fail. so run them in a temp folder
+        with tempfile.TemporaryDirectory() as temp:
+            process = subprocess.Popen(
+                [sam_cmd, cmd_name] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=temp
+            )
+            stdout, stderr = process.communicate()
 
-        # Just make sure "Traceback" is not in the stdout and stderr - aka the command didn't blow up with stacktrace
-        self.assertNotIn("Traceback", str(stdout.decode("utf-8")))
-        self.assertNotIn("Traceback", str(stderr.decode("utf-8")))
+            # Just make sure "Traceback" is not in the stdout and stderr - aka the command didn't blow up with stacktrace
+            self.assertNotIn("Traceback", str(stdout.decode("utf-8")))
+            self.assertNotIn("Traceback", str(stderr.decode("utf-8")))

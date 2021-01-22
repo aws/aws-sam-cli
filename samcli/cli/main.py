@@ -4,11 +4,17 @@ Entry point for the CLI
 
 import logging
 import json
+import atexit
 import click
 
 from samcli import __version__
-from samcli.lib.telemetry.metrics import send_installed_metric
-from samcli.lib.utils.sam_logging import SamCliLogger
+from samcli.lib.telemetry.metric import send_installed_metric, emit_all_metrics
+from samcli.lib.utils.sam_logging import (
+    LAMBDA_BULDERS_LOGGER_NAME,
+    SamCliLogger,
+    SAM_CLI_FORMATTER,
+    SAM_CLI_LOGGER_NAME,
+)
 from .options import debug_option, region_option, profile_option
 from .context import Context
 from .command import BaseCommand
@@ -94,11 +100,12 @@ def cli(ctx):
         except (IOError, ValueError) as ex:
             LOG.debug("Unable to write telemetry flag", exc_info=ex)
 
-    sam_cli_logger = logging.getLogger("samcli")
-    sam_cli_formatter = logging.Formatter("%(message)s")
-    lambda_builders_logger = logging.getLogger("aws_lambda_builders")
+    sam_cli_logger = logging.getLogger(SAM_CLI_LOGGER_NAME)
+    lambda_builders_logger = logging.getLogger(LAMBDA_BULDERS_LOGGER_NAME)
     botocore_logger = logging.getLogger("botocore")
 
-    SamCliLogger.configure_logger(sam_cli_logger, sam_cli_formatter, logging.INFO)
-    SamCliLogger.configure_logger(lambda_builders_logger, sam_cli_formatter, logging.INFO)
+    atexit.register(emit_all_metrics)
+
+    SamCliLogger.configure_logger(sam_cli_logger, SAM_CLI_FORMATTER, logging.INFO)
+    SamCliLogger.configure_logger(lambda_builders_logger, SAM_CLI_FORMATTER, logging.INFO)
     SamCliLogger.configure_null_logger(botocore_logger)
