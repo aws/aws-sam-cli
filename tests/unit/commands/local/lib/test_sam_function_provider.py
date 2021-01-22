@@ -73,20 +73,19 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     "Handler": "index.handler",
                 },
             },
-<<<<<<< HEAD
             "LambdaFuncWithInlineCode": {
                 "Type": "AWS::Lambda::Function",
                 "Properties": {
                     "Code": {"ZipFile": "testcode"},
                     "Runtime": "nodejs4.3",
                     "Handler": "index.handler",
-=======
+                }
+            }
             "LambdaFunc2": {
                 "Type": "AWS::Lambda::Function",
                 "Properties": {
                     "Code": {"ImageUri": "123456789012.dkr.ecr.us-east-1.amazonaws.com/myrepo"},
                     "PackageType": IMAGE,
->>>>>>> fcefe86e2944c49900d54359e40aff59b7e0f7d4
                 },
             },
             "LambdaFuncWithLocalPath": {
