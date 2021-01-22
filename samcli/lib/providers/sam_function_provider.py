@@ -167,18 +167,22 @@ class SamFunctionProvider(SamBaseProvider):
         if packagetype == ZIP:
             if not "InlineCode" in resource_properties or resource_properties["InlineCode"] is None:
                 codeuri = SamFunctionProvider._extract_sam_function_codeuri(
-                    name, resource_properties, "CodeUri", ignore_code_extraction_warnings=ignore_code_extraction_warnings
+                    name,
+                    resource_properties,
+                    "CodeUri",
+                    ignore_code_extraction_warnings=ignore_code_extraction_warnings,
                 )
-                LOG.debug("Found Serverless function with name='%s' and CodeUri='%s'", name, codeuri)
-                return SamFunctionProvider._build_function_configuration(name, codeuri, resource_properties, layers, inlinecode, imageuri)
-            inlinecode = resource_properties["InlineCode"]
-            LOG.debug("Found Serverless function with name='%s' and InlineCode", name)
-            return SamFunctionProvider._build_function_configuration(name, None, resource_properties, layers, inlinecode, imageuri)
+            else:
+                inlinecode = resource_properties["InlineCode"]
+                LOG.debug("Found Serverless function with name='%s' and InlineCode", name)
+                codeuri = None
         elif packagetype == IMAGE:
             imageuri = SamFunctionProvider._extract_sam_function_imageuri(resource_properties, "ImageUri")
             LOG.debug("Found Serverless function with name='%s' and ImageUri='%s'", name, imageuri)
 
-        return SamFunctionProvider._build_function_configuration(name, codeuri, resource_properties, layers, inlinecode, imageuri)
+        return SamFunctionProvider._build_function_configuration(
+            name, codeuri, resource_properties, layers, inlinecode, imageuri
+        )
 
     @staticmethod
     def _convert_lambda_function_resource(name, resource_properties, layers):  # pylint: disable=invalid-name
@@ -210,15 +214,17 @@ class SamFunctionProvider(SamBaseProvider):
             if not "ZipFile" in resource_properties["Code"] or resource_properties["Code"]["ZipFile"] is None:
                 codeuri = SamFunctionProvider._extract_lambda_function_code(resource_properties, "Code")
                 LOG.debug("Found Lambda function with name='%s' and CodeUri='%s'", name, codeuri)
-                return SamFunctionProvider._build_function_configuration(name, codeuri, resource_properties, layers, inlinecode, imageuri)
-            inlinecode = resource_properties["Code"]["ZipFile"]
-            LOG.debug("Found Lambda function with name='%s' and Code ZipFile", name)
-            return SamFunctionProvider._build_function_configuration(name, None, resource_properties, layers, inlinecode, imageuri)
+            else:
+                inlinecode = resource_properties["Code"]["ZipFile"]
+                LOG.debug("Found Lambda function with name='%s' and Code ZipFile", name)
+                codeuri = None
         elif packagetype == IMAGE:
             imageuri = SamFunctionProvider._extract_lambda_function_imageuri(resource_properties, "Code")
             LOG.debug("Found Lambda function with name='%s' and Imageuri='%s'", name, imageuri)
 
-        return SamFunctionProvider._build_function_configuration(name, codeuri, resource_properties, layers, inlinecode, imageuri)
+        return SamFunctionProvider._build_function_configuration(
+            name, codeuri, resource_properties, layers, inlinecode, imageuri
+        )
 
     @staticmethod
     def _build_function_configuration(name, codeuri, resource_properties, layers, inlinecode=None, imageuri=None):
