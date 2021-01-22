@@ -77,17 +77,6 @@ class TestApplicationBuilder_build(TestCase):
         result = self.builder.build()
         self.maxDiff = None
 
-        print(result)
-        print(
-            {
-                self.func1.name: os.path.join("builddir", self.func1.name),
-                self.func2.name: os.path.join("builddir", self.func2.name),
-                self.imageFunc1.name: build_image_function_mock_return,
-                self.layer1.name: f"{self.layer1.name}_location",
-                self.layer2.name: f"{self.layer2.name}_location",
-            }
-        )
-
         self.assertEqual(
             result,
             {

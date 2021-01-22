@@ -60,14 +60,12 @@ class ResourcesToBuildCollector:
 
     def add_function(self, function):
         if function.inlinecode and function.inlinecode is not None:
-            print(function.inlinecode)
             return
         self.result.get("Function").append(function)
 
     def add_functions(self, functions):
         for function in functions:
             if function.inlinecode and function.inlinecode is not None:
-                print(function.inlinecode)
                 continue
             self.result.get("Function").append(function)
 
