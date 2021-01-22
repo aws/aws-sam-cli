@@ -165,17 +165,17 @@ class SamFunctionProvider(SamBaseProvider):
         imageuri = None
         packagetype = resource_properties.get("PackageType", ZIP)
         if packagetype == ZIP:
-            if not "InlineCode" in resource_properties or resource_properties["InlineCode"] is None:
+            if "InlineCode" in resource_properties and resource_properties["InlineCode"] is not None:
+                inlinecode = resource_properties["InlineCode"]
+                LOG.debug("Found Serverless function with name='%s' and InlineCode", name)
+                codeuri = None
+            else:
                 codeuri = SamFunctionProvider._extract_sam_function_codeuri(
                     name,
                     resource_properties,
                     "CodeUri",
                     ignore_code_extraction_warnings=ignore_code_extraction_warnings,
                 )
-            else:
-                inlinecode = resource_properties["InlineCode"]
-                LOG.debug("Found Serverless function with name='%s' and InlineCode", name)
-                codeuri = None
         elif packagetype == IMAGE:
             imageuri = SamFunctionProvider._extract_sam_function_imageuri(resource_properties, "ImageUri")
             LOG.debug("Found Serverless function with name='%s' and ImageUri='%s'", name, imageuri)
@@ -211,13 +211,13 @@ class SamFunctionProvider(SamBaseProvider):
         imageuri = None
         packagetype = resource_properties.get("PackageType", ZIP)
         if packagetype == ZIP:
-            if not "ZipFile" in resource_properties["Code"] or resource_properties["Code"]["ZipFile"] is None:
-                codeuri = SamFunctionProvider._extract_lambda_function_code(resource_properties, "Code")
-                LOG.debug("Found Lambda function with name='%s' and CodeUri='%s'", name, codeuri)
-            else:
+            if "ZipFile" in resource_properties["Code"] and resource_properties["Code"]["ZipFile"] is not None:
                 inlinecode = resource_properties["Code"]["ZipFile"]
                 LOG.debug("Found Lambda function with name='%s' and Code ZipFile", name)
                 codeuri = None
+            else:
+                codeuri = SamFunctionProvider._extract_lambda_function_code(resource_properties, "Code")
+                LOG.debug("Found Lambda function with name='%s' and CodeUri='%s'", name, codeuri)
         elif packagetype == IMAGE:
             imageuri = SamFunctionProvider._extract_lambda_function_imageuri(resource_properties, "Code")
             LOG.debug("Found Lambda function with name='%s' and Imageuri='%s'", name, imageuri)

@@ -782,8 +782,6 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             "Timeout": "30",
             "Handler": "myhandler",
             "Environment": "myenvironment",
-            "Role": "myrole",
-            "Layers": ["Layer1", "Layer2"],
         }
 
         expected = Function(
@@ -795,16 +793,18 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             handler="myhandler",
             codeuri=None,
             environment="myenvironment",
-            rolearn="myrole",
+            rolearn=None,
+            layers=[],
             events=None,
             metadata=None,
             inlinecode="testcode",
+            imageuri=None,
             imageconfig=None,
             packagetype=ZIP,
             codesign_config_arn=None,
         )
 
-        result = SamFunctionProvider._convert_lambda_function_resource(name, properties, ["Layer1", "Layer2"])
+        result = SamFunctionProvider._convert_lambda_function_resource(name, properties, [])
 
         self.assertEqual(expected, result)
 
