@@ -24,6 +24,15 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     "Handler": "index.handler",
                 },
             },
+            "SamFuncWithInlineCode": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {
+                    "FunctionName": "SamFuncWithInlineCode",
+                    "InlineCode": "testcode",
+                    "Runtime": "nodejs4.3",
+                    "Handler": "index.handler",
+                },
+            },
             "SamFunc2": {
                 "Type": "AWS::Serverless::Function",
                 "Properties": {
@@ -55,6 +64,14 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                 "Type": "AWS::Lambda::Function",
                 "Properties": {
                     "Code": {"S3Bucket": "bucket", "S3Key": "key"},
+                    "Runtime": "nodejs4.3",
+                    "Handler": "index.handler",
+                },
+            },
+            "LambdaFuncWithInlineCode": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {
+                    "Code": {"ZipFile": "testcode"},
                     "Runtime": "nodejs4.3",
                     "Handler": "index.handler",
                 },
@@ -100,6 +117,25 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     layers=[],
                     events=None,
                     metadata=None,
+                    inlinecode=None,
+                ),
+            ),
+            (
+                "SamFuncWithInlineCode",
+                Function(
+                    name="SamFuncWithInlineCode",
+                    functionname="SamFuncWithInlineCode",
+                    runtime="nodejs4.3",
+                    handler="index.handler",
+                    codeuri=None,
+                    memory=None,
+                    timeout=None,
+                    environment=None,
+                    rolearn=None,
+                    layers=[],
+                    events=None,
+                    metadata=None,
+                    inlinecode="testcode",
                 ),
             ),
             (
@@ -117,6 +153,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     layers=[],
                     events=None,
                     metadata=None,
+                    inlinecode=None,
                 ),
             ),
             (
@@ -134,6 +171,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     layers=[],
                     events=None,
                     metadata=None,
+                    inlinecode=None,
                 ),
             ),
             (
@@ -151,6 +189,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     layers=[],
                     events=None,
                     metadata=None,
+                    inlinecode=None,
                 ),
             ),
             (
@@ -168,6 +207,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     layers=[],
                     events=None,
                     metadata=None,
+                    inlinecode=None,
                 ),
             ),
             (
@@ -185,6 +225,25 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     layers=[],
                     events=None,
                     metadata=None,
+                    inlinecode=None,
+                ),
+            ),
+            (
+                "LambdaFuncWithInlineCode",
+                Function(
+                    name="LambdaFuncWithInlineCode",
+                    functionname="LambdaFuncWithInlineCode",
+                    runtime="nodejs4.3",
+                    handler="index.handler",
+                    codeuri=None,
+                    memory=None,
+                    timeout=None,
+                    environment=None,
+                    rolearn=None,
+                    layers=[],
+                    events=None,
+                    metadata=None,
+                    inlinecode="testcode",
                 ),
             ),
             (
@@ -202,6 +261,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     layers=[],
                     events=None,
                     metadata=None,
+                    inlinecode=None,
                 ),
             ),
             (
@@ -219,6 +279,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     layers=[],
                     events=None,
                     metadata=None,
+                    inlinecode=None,
                 ),
             ),
         ]
@@ -233,10 +294,12 @@ class TestSamFunctionProviderEndToEnd(TestCase):
         result = {f.name for f in self.provider.get_all()}
         expected = {
             "SamFunctions",
+            "SamFuncWithInlineCode",
             "SamFunc2",
             "SamFunc3",
             "SamFuncWithFunctionNameOverride",
             "LambdaFunc1",
+            "LambdaFuncWithInlineCode",
             "LambdaFuncWithLocalPath",
             "LambdaFuncWithFunctionNameOverride",
         }
@@ -359,6 +422,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             layers=["Layer1", "Layer2"],
             events=None,
             metadata=None,
+            inlinecode=None,
         )
 
         result = SamFunctionProvider._convert_sam_function_resource(name, properties, ["Layer1", "Layer2"])
@@ -383,6 +447,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             layers=[],
             events=None,
             metadata=None,
+            inlinecode=None,
         )
 
         result = SamFunctionProvider._convert_sam_function_resource(name, properties, [])
@@ -396,6 +461,69 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
 
         result = SamFunctionProvider._convert_sam_function_resource(name, properties, [])
         self.assertEqual(result.codeuri, ".")  # Default value
+
+    def test_must_use_inlinecode(self):
+
+        name = "myname"
+        properties = {
+            "InlineCode": "testcode",
+            "Runtime": "myruntime",
+            "MemorySize": "mymemorysize",
+            "Timeout": "30",
+            "Handler": "index.handler",
+        }
+
+        expected = Function(
+            name="myname",
+            functionname="myname",
+            runtime="myruntime",
+            memory="mymemorysize",
+            timeout="30",
+            handler="index.handler",
+            codeuri=None,
+            environment=None,
+            rolearn=None,
+            layers=[],
+            events=None,
+            metadata=None,
+            inlinecode="testcode",
+        )
+
+        result = SamFunctionProvider._convert_sam_function_resource(name, properties, [])
+
+        self.assertEqual(expected, result)
+
+    def test_must_prioritize_inlinecode(self):
+
+        name = "myname"
+        properties = {
+            "CodeUri": "/usr/local",
+            "InlineCode": "testcode",
+            "Runtime": "myruntime",
+            "MemorySize": "mymemorysize",
+            "Timeout": "30",
+            "Handler": "index.handler",
+        }
+
+        expected = Function(
+            name="myname",
+            functionname="myname",
+            runtime="myruntime",
+            memory="mymemorysize",
+            timeout="30",
+            handler="index.handler",
+            codeuri=None,
+            environment=None,
+            rolearn=None,
+            layers=[],
+            events=None,
+            metadata=None,
+            inlinecode="testcode",
+        )
+
+        result = SamFunctionProvider._convert_sam_function_resource(name, properties, [])
+
+        self.assertEqual(expected, result)
 
     def test_must_handle_code_dict(self):
 
@@ -447,6 +575,41 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             layers=["Layer1", "Layer2"],
             events=None,
             metadata=None,
+            inlinecode=None,
+        )
+
+        result = SamFunctionProvider._convert_lambda_function_resource(name, properties, ["Layer1", "Layer2"])
+
+        self.assertEqual(expected, result)
+
+    def test_must_use_inlinecode(self):
+
+        name = "myname"
+        properties = {
+            "Code": {"ZipFile": "testcode"},
+            "Runtime": "myruntime",
+            "MemorySize": "mymemorysize",
+            "Timeout": "30",
+            "Handler": "myhandler",
+            "Environment": "myenvironment",
+            "Role": "myrole",
+            "Layers": ["Layer1", "Layer2"],
+        }
+
+        expected = Function(
+            name="myname",
+            functionname="myname",
+            runtime="myruntime",
+            memory="mymemorysize",
+            timeout="30",
+            handler="myhandler",
+            codeuri=None,
+            environment="myenvironment",
+            rolearn="myrole",
+            layers=["Layer1", "Layer2"],
+            events=None,
+            metadata=None,
+            inlinecode="testcode",
         )
 
         result = SamFunctionProvider._convert_lambda_function_resource(name, properties, ["Layer1", "Layer2"])
@@ -471,6 +634,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             layers=[],
             events=None,
             metadata=None,
+            inlinecode=None,
         )
 
         result = SamFunctionProvider._convert_lambda_function_resource(name, properties, [])
@@ -570,6 +734,7 @@ class TestSamFunctionProvider_get(TestCase):
             layers=[],
             events=None,
             metadata=None,
+            inlinecode=None,
         )
         provider.functions = {"func1": function}
 

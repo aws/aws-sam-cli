@@ -40,6 +40,8 @@ Function = namedtuple(
         "events",
         # Metadata
         "metadata",
+        # InlineCode
+        "inlinecode",
     ],
 )
 
@@ -49,10 +51,15 @@ class ResourcesToBuildCollector:
         self.result = {"Function": [], "Layer": []}
 
     def add_function(self, function):
+        if function.inlinecode:
+            return
         self.result.get("Function").append(function)
 
     def add_functions(self, functions):
-        self.result.get("Function").extend(functions)
+        for function in functions:
+            if function.inlinecode:
+                continue
+            self.result.get("Function").append(function)
 
     def add_layer(self, layer):
         self.result.get("Layer").append(layer)

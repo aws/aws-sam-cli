@@ -217,6 +217,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             layers=[],
             events=None,
             metadata=None,
+            inlinecode=None,
         )
 
         self.local_lambda.env_vars_values = env_vars_values
@@ -259,6 +260,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             layers=[],
             events=None,
             metadata=None,
+            inlinecode=None,
         )
 
         self.local_lambda.env_vars_values = env_vars_values
@@ -292,6 +294,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             layers=[],
             events=None,
             metadata=None,
+            inlinecode=None,
         )
 
         self.local_lambda.env_vars_values = {}
@@ -355,6 +358,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             layers=layers,
             events=None,
             metadata=None,
+            inlinecode=None,
         )
 
         config = "someconfig"
@@ -402,6 +406,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             layers=[],
             events=None,
             metadata=None,
+            inlinecode=None,
         )
 
         config = "someconfig"

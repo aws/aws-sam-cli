@@ -158,14 +158,16 @@ class SamFunctionProvider(SamBaseProvider):
         samcli.commands.local.lib.provider.Function
             Function configuration
         """
+        if not "InlineCode" in resource_properties or resource_properties["InlineCode"] is None:
+            codeuri = SamFunctionProvider._extract_sam_function_codeuri(
+                name, resource_properties, "CodeUri", ignore_code_extraction_warnings=ignore_code_extraction_warnings
+            )
+            LOG.debug("Found Serverless function with name='%s' and CodeUri='%s'", name, codeuri)
+            return SamFunctionProvider._build_function_configuration(name, codeuri, resource_properties, layers, None)
 
-        codeuri = SamFunctionProvider._extract_sam_function_codeuri(
-            name, resource_properties, "CodeUri", ignore_code_extraction_warnings=ignore_code_extraction_warnings
-        )
-
-        LOG.debug("Found Serverless function with name='%s' and CodeUri='%s'", name, codeuri)
-
-        return SamFunctionProvider._build_function_configuration(name, codeuri, resource_properties, layers)
+        inlinecode = resource_properties["InlineCode"]
+        LOG.debug("Found Serverless function with name='%s' and InlineCode", name)
+        return SamFunctionProvider._build_function_configuration(name, None, resource_properties, layers, inlinecode)
 
     @staticmethod
     def _convert_lambda_function_resource(name, resource_properties, layers):  # pylint: disable=invalid-name
@@ -189,14 +191,17 @@ class SamFunctionProvider(SamBaseProvider):
 
         # CodeUri is set to "." in order to get code locally from current directory. AWS::Lambda::Function's ``Code``
         # property does not support specifying a local path
-        codeuri = SamFunctionProvider._extract_lambda_function_code(resource_properties, "Code")
+        if not "ZipFile" in resource_properties["Code"] or resource_properties["Code"]["ZipFile"] is None:
+            codeuri = SamFunctionProvider._extract_lambda_function_code(resource_properties, "Code")
+            LOG.debug("Found Lambda function with name='%s' and CodeUri='%s'", name, codeuri)
+            return SamFunctionProvider._build_function_configuration(name, codeuri, resource_properties, layers, None)
 
-        LOG.debug("Found Lambda function with name='%s' and CodeUri='%s'", name, codeuri)
-
-        return SamFunctionProvider._build_function_configuration(name, codeuri, resource_properties, layers)
+        inlinecode = resource_properties["Code"]["ZipFile"]
+        LOG.debug("Found Lambda function with name='%s' and Code ZipFile", name)
+        return SamFunctionProvider._build_function_configuration(name, None, resource_properties, layers, inlinecode)
 
     @staticmethod
-    def _build_function_configuration(name, codeuri, resource_properties, layers):
+    def _build_function_configuration(name, codeuri, resource_properties, layers, inlinecode=None):
         """
         Builds a Function configuration usable by the provider.
 
@@ -229,6 +234,7 @@ class SamFunctionProvider(SamBaseProvider):
             events=resource_properties.get("Events"),
             layers=layers,
             metadata=resource_properties.get("Metadata", None),
+            inlinecode=inlinecode,
         )
 
     @staticmethod

@@ -447,6 +447,7 @@ class DummyLayer:
 
 
 class DummyFunction:
-    def __init__(self, name, layers=[]):
+    def __init__(self, name, layers=[], inlinecode=None):
         self.name = name
         self.layers = layers
+        self.inlinecode = inlinecode

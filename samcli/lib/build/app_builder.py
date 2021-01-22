@@ -163,10 +163,12 @@ class ApplicationBuilder:
             resource_type = resource.get("Type")
             properties = resource.setdefault("Properties", {})
             if resource_type == SamBaseProvider.SERVERLESS_FUNCTION:
-                properties["CodeUri"] = artifact_relative_path
+                if "InlineCode" not in properties or properties["InlineCode"] is None:
+                    properties["CodeUri"] = artifact_relative_path
 
             if resource_type == SamBaseProvider.LAMBDA_FUNCTION:
-                properties["Code"] = artifact_relative_path
+                if "ZipFile" not in properties["Code"] or properties["Code"]["ZipFile"] is None:
+                    properties["Code"] = artifact_relative_path
 
             if resource_type in [SamBaseProvider.SERVERLESS_LAYER, SamBaseProvider.LAMBDA_LAYER]:
                 properties["ContentUri"] = artifact_relative_path
