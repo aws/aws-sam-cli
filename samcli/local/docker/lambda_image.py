@@ -224,7 +224,7 @@ class LambdaImage:
 
             if is_debug_go:
                 LOG.debug("Adding custom GO Bootstrap to support debugging")
-                tar_paths[self._GO_BOOTSTRAP_PATH] = "/aws-lambda-go"
+                tar_paths[self._GO_BOOTSTRAP_PATH] = "/go-bootstrap.sh"
 
             for layer in layers:
                 tar_paths[layer.codeuri] = "/" + layer.name
@@ -289,9 +289,7 @@ class LambdaImage:
         )
 
         if is_debug_go:
-            dockerfile_content = (
-                dockerfile_content + "ADD aws-lambda-go /var/runtime\nRUN chmod +x /var/runtime/aws-lambda-go\n"
-            )
+            dockerfile_content += "ADD go-bootstrap.sh /var/runtime\nRUN chmod +x /var/runtime/go-bootstrap.sh\n"
 
         for layer in layers:
             dockerfile_content = dockerfile_content + f"ADD {layer.name} {LambdaImage._LAYERS_DIR}\n"

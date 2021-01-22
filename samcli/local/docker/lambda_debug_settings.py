@@ -88,10 +88,13 @@ class LambdaDebugSettings:
                 container_env_vars={"_AWS_LAMBDA_DOTNET_DEBUGGING": "1", **_container_env_vars},
             ),
             Runtime.go1x.value: DebugSettings(
-                ["/var/runtime/aws-lambda-go"]
-                + debug_args_list
-                + ["-debug=true", "-delvePort=" + str(debug_port), "-delvePath=" + options.get("delvePath")],
-                container_env_vars=_container_env_vars,
+                ["/bin/bash", "/var/runtime/go-bootstrap.sh"],
+                container_env_vars={
+                    "_DELVE_LISTEN_PORT": debug_port,
+                    "_DELVE_CLI_ARGS": " ".join(debug_args_list),
+                    "_DELVE_CLI_PATH": options.get("delvePath"),
+                    **_container_env_vars,
+                },
             ),
             Runtime.nodejs10x.value: DebugSettings(
                 entry

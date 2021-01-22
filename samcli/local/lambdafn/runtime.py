@@ -4,10 +4,12 @@ Classes representing a local Lambda runtime
 
 import os
 import shutil
+import stat
 import tempfile
 import signal
 import logging
 import threading
+from pathlib import Path
 
 from samcli.local.docker.lambda_container import LambdaContainer
 from samcli.lib.utils.file_observer import LambdaFunctionObserver
@@ -41,6 +43,7 @@ class LambdaRuntime:
         self._container_manager = container_manager
         self._image_builder = image_builder
         self._temp_uncompressed_paths_to_be_cleaned = []
+        self._handler_wrapper_file = None
 
     def create(self, function_config, debug_context=None):
         """
@@ -64,6 +67,21 @@ class LambdaRuntime:
         env_vars = function_config.env_vars.resolve()
 
         code_dir = self._get_code_dir(function_config.code_abs_path)
+
+        is_debug = bool(debug_context and debug_context.debugger_path)
+        is_debug_go = function_config.runtime == "go1.x" and is_debug
+
+        if is_debug_go:
+            self._handler_wrapper_file = Path(code_dir, "handler-wrapper.sh")
+            with open(self._handler_wrapper_file, "w") as f:
+                f.write(
+                    """#!/bin/bash
+$_DELVE_CLI_PATH --listen=:$_DELVE_LISTEN_PORT \\
+    --headless=true $_DELVE_CLI_ARGS exec /var/task/$ORIGINAL_HANDLER"""
+                )
+            original_stat = os.stat(self._handler_wrapper_file)
+            os.chmod(self._handler_wrapper_file, original_stat.st_mode | stat.S_IEXEC)
+
         container = LambdaContainer(
             function_config.runtime,
             function_config.imageuri,
@@ -189,6 +207,8 @@ class LambdaRuntime:
         if container:
             self._container_manager.stop(container)
         self._clean_decompressed_paths()
+        if self._handler_wrapper_file:
+            self._handler_wrapper_file.unlink()
 
     def _configure_interrupt(self, function_name, timeout, container, is_debugging):
         """
