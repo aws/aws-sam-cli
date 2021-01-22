@@ -31,11 +31,14 @@ class TestApplicationBuilder_build(TestCase):
         self.func1 = Mock()
         self.func1.packagetype = ZIP
         self.func1.name = "function_name1"
+        self.func1.inlinecode = None
         self.func2 = Mock()
         self.func2.packagetype = ZIP
         self.func2.name = "function_name2"
+        self.func2.inlinecode = None
         self.imageFunc1 = Mock()
         self.imageFunc1.name = "function_name3"
+        self.imageFunc1.inlinecode = None
 
         self.layer1 = Mock()
         self.layer2 = Mock()
@@ -73,6 +76,17 @@ class TestApplicationBuilder_build(TestCase):
 
         result = self.builder.build()
         self.maxDiff = None
+
+        print(result)
+        print(
+            {
+                self.func1.name: os.path.join("builddir", self.func1.name),
+                self.func2.name: os.path.join("builddir", self.func2.name),
+                self.imageFunc1.name: build_image_function_mock_return,
+                self.layer1.name: f"{self.layer1.name}_location",
+                self.layer2.name: f"{self.layer2.name}_location",
+            }
+        )
 
         self.assertEqual(
             result,

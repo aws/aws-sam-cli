@@ -79,7 +79,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     "Code": {"ZipFile": "testcode"},
                     "Runtime": "nodejs4.3",
                     "Handler": "index.handler",
-                }
+                },
             },
             "LambdaFunc2": {
                 "Type": "AWS::Lambda::Function",
