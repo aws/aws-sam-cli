@@ -17,6 +17,7 @@ LOG = logging.getLogger(__name__)
 
 DEFAULT_CONFIG_FILE_NAME = "samconfig.toml"
 DEFAULT_ENV = "default"
+DEFAULT_GLOBAL_SECTION = "global"
 
 
 class SamConfig:
@@ -73,7 +74,12 @@ class SamConfig:
         env = env or DEFAULT_ENV
 
         self._read()
-        return self.document[env][self._to_key(cmd_names)][section]
+        params = self.document[env][self._to_key(cmd_names)][section]
+        if DEFAULT_GLOBAL_SECTION in self.document[env]:
+            global_params = self.document[env][DEFAULT_GLOBAL_SECTION][section]
+            global_params.update(params.copy())
+            params = global_params.copy()
+        return params
 
     def put(self, cmd_names, section, key, value, env=DEFAULT_ENV):
         """
