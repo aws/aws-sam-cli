@@ -6,10 +6,11 @@ import logging
 import click
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
-from samcli.commands.local.cli_common.options import invoke_common_options
-from samcli.lib.telemetry.metrics import track_command
+from samcli.commands.local.cli_common.options import invoke_common_options, local_common_options
+from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
+from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
-
+from samcli.local.docker.exceptions import ContainerNotStartableException
 
 LOG = logging.getLogger(__name__)
 
@@ -41,6 +42,7 @@ STDIN_FILE_NAME = "-"
 )
 @click.option("--no-event", is_flag=True, default=True, help="DEPRECATED: By default no event is assumed.", hidden=True)
 @invoke_common_options
+@local_common_options
 @cli_framework_options
 @aws_creds_options
 @click.argument("function_identifier", required=False)
@@ -56,12 +58,14 @@ def cli(
     debug_port,
     debug_args,
     debugger_path,
+    container_env_vars,
     docker_volume_basedir,
     docker_network,
     log_file,
     layer_cache_basedir,
     skip_pull_image,
     force_image_build,
+    shutdown,
     parameter_overrides,
     config_file,
     config_env,
@@ -79,12 +83,14 @@ def cli(
         debug_port,
         debug_args,
         debugger_path,
+        container_env_vars,
         docker_volume_basedir,
         docker_network,
         log_file,
         layer_cache_basedir,
         skip_pull_image,
         force_image_build,
+        shutdown,
         parameter_overrides,
     )  # pragma: no cover
 
@@ -99,12 +105,14 @@ def do_cli(  # pylint: disable=R0914
     debug_port,
     debug_args,
     debugger_path,
+    container_env_vars,
     docker_volume_basedir,
     docker_network,
     log_file,
     layer_cache_basedir,
     skip_pull_image,
     force_image_build,
+    shutdown,
     parameter_overrides,
 ):
     """
@@ -141,11 +149,13 @@ def do_cli(  # pylint: disable=R0914
             debug_ports=debug_port,
             debug_args=debug_args,
             debugger_path=debugger_path,
+            container_env_vars_file=container_env_vars,
             parameter_overrides=parameter_overrides,
             layer_cache_basedir=layer_cache_basedir,
             force_image_build=force_image_build,
             aws_region=ctx.region,
             aws_profile=ctx.profile,
+            shutdown=shutdown,
         ) as context:
 
             # Invoke the function
@@ -156,17 +166,20 @@ def do_cli(  # pylint: disable=R0914
     except FunctionNotFound as ex:
         raise UserException(
             "Function {} not found in template".format(function_identifier), wrapped_from=ex.__class__.__name__
-        )
+        ) from ex
     except (
         InvalidSamDocumentException,
         OverridesNotWellDefinedError,
         InvalidLayerReference,
+        InvalidIntermediateImageError,
         DebuggingNotSupported,
         NoPrivilegeException,
     ) as ex:
-        raise UserException(str(ex), wrapped_from=ex.__class__.__name__)
+        raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
     except DockerImagePullFailedException as ex:
-        raise UserException(str(ex), wrapped_from=ex.__class__.__name__)
+        raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
+    except ContainerNotStartableException as ex:
+        raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
 
 
 def _get_event(event_file_name):

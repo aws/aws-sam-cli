@@ -6,6 +6,7 @@ import time
 from unittest import skipIf
 
 import boto3
+import docker
 from parameterized import parameterized
 
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
@@ -16,7 +17,7 @@ from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RU
 from tests.testing_utils import CommandResult, run_command, run_command_with_input
 
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
-# This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary.
+# This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
 SKIP_DEPLOY_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 CFN_SLEEP = 3
 TIMEOUT = 300
@@ -25,18 +26,33 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
 
 @skipIf(SKIP_DEPLOY_TESTS, "Skip deploy tests in CI/CD only")
 class TestDeploy(PackageIntegBase, DeployIntegBase):
+    @classmethod
+    def setUpClass(cls):
+        cls.docker_client = docker.from_env()
+        cls.local_images = [("alpine", "latest")]
+        # setup some images locally by pulling them.
+        for repo, tag in cls.local_images:
+            cls.docker_client.api.pull(repository=repo, tag=tag)
+        # setup signing profile arn & name
+        cls.signing_profile_name = os.environ.get("AWS_SIGNING_PROFILE_NAME")
+        cls.signing_profile_version_arn = os.environ.get("AWS_SIGNING_PROFILE_VERSION_ARN")
+        PackageIntegBase.setUpClass()
+        DeployIntegBase.setUpClass()
+
     def setUp(self):
         self.cf_client = boto3.client("cloudformation")
         self.sns_arn = os.environ.get("AWS_SNS")
         self.stack_names = []
         time.sleep(CFN_SLEEP)
-        super(TestDeploy, self).setUp()
+        super().setUp()
 
     def tearDown(self):
         shutil.rmtree(os.path.join(os.getcwd(), ".aws-sam", "build"), ignore_errors=True)
         for stack_name in self.stack_names:
-            self.cf_client.delete_stack(StackName=stack_name)
-        super(TestDeploy, self).tearDown()
+            # because of the termination protection, do not delete aws-sam-cli-managed-default stack
+            if stack_name != SAM_CLI_STACK_NAME:
+                self.cf_client.delete_stack(StackName=stack_name)
+        super().tearDown()
 
     @parameterized.expand(["aws-serverless-function.yaml"])
     def test_package_and_deploy_no_s3_bucket_all_args(self, template_file):
@@ -101,6 +117,60 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             capabilities="CAPABILITY_IAM",
             s3_prefix="integ_deploy",
             s3_bucket=self.s3_bucket.name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+    @parameterized.expand(["aws-serverless-function-image.yaml"])
+    def test_no_package_and_deploy_with_s3_bucket_all_args_image_repository(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stack_names.append(stack_name)
+
+        # Package and Deploy in one go without confirming change set.
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
+            image_repository=self.ecr_repo_name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+    @parameterized.expand([("Hello", "aws-serverless-function-image.yaml")])
+    def test_no_package_and_deploy_with_s3_bucket_all_args_image_repositories(self, resource_id, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stack_names.append(stack_name)
+
+        # Package and Deploy in one go without confirming change set.
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
+            image_repositories=f"{resource_id}={self.ecr_repo_name}",
             force_upload=True,
             notification_arns=self.sns_arn,
             parameter_overrides="Parameter=Clarity",
@@ -447,7 +517,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
-    def test_deploy_guided(self, template_file):
+    def test_deploy_guided_zip(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
@@ -458,6 +528,26 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
 
         deploy_process_execute = run_command_with_input(
             deploy_command_list, "{}\n\n\n\n\n\n\n\n\n".format(stack_name).encode()
+        )
+
+        # Deploy should succeed with a managed stack
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+        self.stack_names.append(SAM_CLI_STACK_NAME)
+        # Remove samconfig.toml
+        os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
+
+    @parameterized.expand(["aws-serverless-function-image.yaml"])
+    def test_deploy_guided_image(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stack_names.append(stack_name)
+
+        # Package and Deploy in one go without confirming change set.
+        deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
+
+        deploy_process_execute = run_command_with_input(
+            deploy_command_list, f"{stack_name}\n\n{self.ecr_repo_name}\n\n\ny\n\n\n\n\n\n".encode()
         )
 
         # Deploy should succeed with a managed stack
@@ -567,6 +657,69 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
 
         deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+    @parameterized.expand([("aws-serverless-function.yaml", "samconfig-invalid-syntax.toml")])
+    def test_deploy_with_invalid_config(self, template_file, config_file):
+        template_path = self.test_data_path.joinpath(template_file)
+        config_path = self.test_data_path.joinpath(config_file)
+
+        deploy_command_list = self.get_deploy_command_list(template_file=template_path, config_file=config_path)
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 1)
+        self.assertIn("Error reading configuration: Unexpected character", str(deploy_process_execute.stderr))
+
+    @parameterized.expand([(True, True, True), (False, True, False), (False, False, True), (True, False, True)])
+    def test_deploy_with_code_signing_params(self, should_sign, should_enforce, will_succeed):
+        """
+        Signed function with UntrustedArtifactOnDeployment = Enforced config should succeed
+        Signed function with UntrustedArtifactOnDeployment = Warn config should succeed
+        Unsigned function with UntrustedArtifactOnDeployment = Enforce config should fail
+        Unsigned function with UntrustedArtifactOnDeployment = Warn config should succeed
+        """
+        template_path = self.test_data_path.joinpath("aws-serverless-function-with-code-signing.yaml")
+        stack_name = self._method_to_stack_name(self.id())
+        signing_profile_version_arn = TestDeploy.signing_profile_version_arn
+        signing_profile_name = TestDeploy.signing_profile_name
+
+        if not signing_profile_name or not signing_profile_version_arn:
+            self.fail(
+                "Missing resources for Code Signer integration tests. Please provide "
+                "AWS_SIGNING_PROFILE_NAME and AWS_SIGNING_PROFILE_VERSION_ARN environment variables"
+            )
+
+        self.stack_names.append(stack_name)
+
+        signing_profiles_param = None
+        if should_sign:
+            signing_profiles_param = f"HelloWorldFunctionWithCsc={signing_profile_name}"
+
+        enforce_param = "Warn"
+        if should_enforce:
+            enforce_param = "Enforce"
+
+        # Package and Deploy in one go without confirming change set.
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+            signing_profiles=signing_profiles_param,
+            parameter_overrides=f"SigningProfileVersionArn={signing_profile_version_arn} "
+            f"UntrustedArtifactOnDeployment={enforce_param}",
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+
+        if will_succeed:
+            self.assertEqual(deploy_process_execute.process.returncode, 0)
+        else:
+            self.assertEqual(deploy_process_execute.process.returncode, 1)
 
     def _method_to_stack_name(self, method_name):
         """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""

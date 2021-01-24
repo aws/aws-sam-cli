@@ -21,6 +21,7 @@ from collections import OrderedDict
 import logging
 import time
 from datetime import datetime
+from typing import Dict, List
 
 import botocore
 
@@ -33,7 +34,8 @@ from samcli.commands.deploy.exceptions import (
 )
 from samcli.commands._utils.table_print import pprint_column_names, pprint_columns, newline_per_item, MIN_OFFSET
 from samcli.commands.deploy import exceptions as deploy_exceptions
-from samcli.lib.package.artifact_exporter import mktempfile, parse_s3_url
+from samcli.lib.package.artifact_exporter import mktempfile
+from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.time import utc_to_timestamp
 
 LOG = logging.getLogger(__name__)
@@ -116,7 +118,7 @@ class Deployer:
             # catch that and throw a deploy failed error.
 
             LOG.debug("Botocore Exception : %s", str(e))
-            raise DeployFailedError(stack_name=stack_name, msg=str(e))
+            raise DeployFailedError(stack_name=stack_name, msg=str(e)) from e
 
         except Exception as e:
             # We don't know anything about this exception. Don't handle
@@ -161,7 +163,6 @@ class Deployer:
             "TemplateBody": cfn_template,
             "ChangeSetType": changeset_type,
             "Parameters": parameter_values,
-            "Capabilities": capabilities,
             "Description": "Created by SAM CLI at {0} UTC".format(datetime.utcnow().isoformat()),
             "Tags": tags,
         }
@@ -174,12 +175,14 @@ class Deployer:
                 temporary_file.flush()
 
                 # TemplateUrl property requires S3 URL to be in path-style format
-                parts = parse_s3_url(
+                parts = S3Uploader.parse_s3_url(
                     s3_uploader.upload_with_dedup(temporary_file.name, "template"), version_property="Version"
                 )
                 kwargs["TemplateURL"] = s3_uploader.to_path_style_s3_url(parts["Key"], parts.get("Version", None))
 
         # don't set these arguments if not specified to use existing values
+        if capabilities is not None:
+            kwargs["Capabilities"] = capabilities
         if role_arn is not None:
             kwargs["RoleARN"] = role_arn
         if notification_arns is not None:
@@ -192,12 +195,12 @@ class Deployer:
             return resp, changeset_type
         except botocore.exceptions.ClientError as ex:
             if "The bucket you are attempting to access must be addressed using the specified endpoint" in str(ex):
-                raise DeployBucketInDifferentRegionError(f"Failed to create/update stack {stack_name}")
-            raise ChangeSetError(stack_name=stack_name, msg=str(ex))
+                raise DeployBucketInDifferentRegionError(f"Failed to create/update stack {stack_name}") from ex
+            raise ChangeSetError(stack_name=stack_name, msg=str(ex)) from ex
 
         except Exception as ex:
             LOG.debug("Unable to create changeset", exc_info=ex)
-            raise ChangeSetError(stack_name=stack_name, msg=str(ex))
+            raise ChangeSetError(stack_name=stack_name, msg=str(ex)) from ex
 
     @pprint_column_names(
         format_string=DESCRIBE_CHANGESET_FORMAT_STRING,
@@ -297,7 +300,7 @@ class Deployer:
 
             raise ChangeSetError(
                 stack_name=stack_name, msg="ex: {0} Status: {1}. Reason: {2}".format(ex, status, reason)
-            )
+            ) from ex
 
     def execute_changeset(self, changeset_id, stack_name):
         """
@@ -310,7 +313,7 @@ class Deployer:
         try:
             return self._client.execute_change_set(ChangeSetName=changeset_id, StackName=stack_name)
         except botocore.exceptions.ClientError as ex:
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex))
+            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
 
     def get_last_event_time(self, stack_name):
         """
@@ -344,9 +347,8 @@ class Deployer:
 
         while stack_change_in_progress and retry_attempts <= self.max_attempts:
             try:
-
                 # Only sleep if there have been no retry_attempts
-                time.sleep(self.client_sleep if retry_attempts == 0 else 0)
+                time.sleep(0 if retry_attempts else self.client_sleep)
                 describe_stacks_resp = self._client.describe_stacks(StackName=stack_name)
                 paginator = self._client.get_paginator("describe_stack_events")
                 response_iterator = paginator.paginate(StackName=stack_name)
@@ -394,7 +396,8 @@ class Deployer:
                 # Sleep in exponential backoff mode
                 time.sleep(math.pow(self.backoff, retry_attempts))
 
-    def _check_stack_complete(self, status):
+    @staticmethod
+    def _check_stack_complete(status: str) -> bool:
         return "COMPLETE" in status and "CLEANUP" not in status
 
     def wait_for_execute(self, stack_name, changeset_type):
@@ -440,12 +443,13 @@ class Deployer:
             self.describe_changeset(result["Id"], stack_name)
             return result, changeset_type
         except botocore.exceptions.ClientError as ex:
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex))
+            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
 
+    @staticmethod
     @pprint_column_names(
         format_string=OUTPUTS_FORMAT_STRING, format_kwargs=OUTPUTS_DEFAULTS_ARGS, table_header=OUTPUTS_TABLE_HEADER_NAME
     )
-    def _display_stack_outputs(self, stack_outputs, **kwargs):
+    def _display_stack_outputs(stack_outputs: List[Dict], **kwargs) -> None:
         for counter, output in enumerate(stack_outputs):
             for k, v in [
                 ("Key", output.get("OutputKey")),
@@ -480,4 +484,4 @@ class Deployer:
                 return None
 
         except botocore.exceptions.ClientError as ex:
-            raise DeployStackOutPutFailedError(stack_name=stack_name, msg=str(ex))
+            raise DeployStackOutPutFailedError(stack_name=stack_name, msg=str(ex)) from ex

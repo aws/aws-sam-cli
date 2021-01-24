@@ -15,10 +15,10 @@ SKIP_PACKAGE_REGRESSION_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI 
 @skipIf(SKIP_PACKAGE_REGRESSION_TESTS, "Skip package regression tests in CI/CD only")
 class TestPackageRegression(PackageRegressionBase):
     def setUp(self):
-        super(TestPackageRegression, self).setUp()
+        super().setUp()
 
     def tearDown(self):
-        super(TestPackageRegression, self).tearDown()
+        super().tearDown()
 
     @parameterized.expand(
         [

@@ -1,7 +1,14 @@
 from unittest import TestCase
 from unittest.mock import Mock
 
-from samcli.local.events.api_event import ContextIdentity, RequestContext, ApiGatewayLambdaEvent
+from samcli.local.events.api_event import (
+    ContextIdentity,
+    ContextHTTP,
+    RequestContext,
+    RequestContextV2,
+    ApiGatewayLambdaEvent,
+    ApiGatewayV2LambdaEvent,
+)
 
 
 class TestContextIdentity(TestCase):
@@ -76,6 +83,43 @@ class TestContextIdentity(TestCase):
         }
 
         self.assertEqual(identity.to_dict(), expected)
+
+
+class TextContextHTTP(TestCase):
+    def test_class_initialized(self):
+        context_http = ContextHTTP("method", "path", "protocol", "source_ip", "user_agent")
+
+        self.assertEqual(context_http.method, "method")
+        self.assertEqual(context_http.path, "path")
+        self.assertEqual(context_http.protocol, "protocol")
+        self.assertEqual(context_http.source_ip, "source_ip")
+        self.assertEqual(context_http.user_agent, "user_agent")
+
+    def test_to_dict(self):
+        context_http = ContextHTTP("method", "path", "protocol", "source_ip", "user_agent")
+
+        expected = {
+            "method": "method",
+            "path": "path",
+            "protocol": "protocol",
+            "sourceIp": "source_ip",
+            "userAgent": "user_agent",
+        }
+
+        self.assertEqual(context_http.to_dict(), expected)
+
+    def test_to_dict_with_defaults(self):
+        context_http = ContextHTTP()
+
+        expected = {
+            "method": None,
+            "path": None,
+            "protocol": "HTTP/1.1",
+            "sourceIp": "127.0.0.1",
+            "userAgent": "Custom User Agent String",
+        }
+
+        self.assertEqual(context_http.to_dict(), expected)
 
 
 class TestRequestContext(TestCase):
@@ -162,7 +206,7 @@ class TestRequestContext(TestCase):
             "apiId": "1234567890",
             "resourcePath": None,
             "httpMethod": None,
-            "requestId": "c6af9ac6-7b61-11e6-9a41-93e8deadbeef",
+            "requestId": "",
             "accountId": "123456789012",
             "stage": None,
             "identity": {},
@@ -174,7 +218,58 @@ class TestRequestContext(TestCase):
             "requestTime": "request_time",
         }
 
+        request_context_dict = request_context.to_dict()
+        self.assertEquals(len(request_context_dict["requestId"]), 36)
+        request_context_dict["requestId"] = ""
+        self.assertEqual(request_context_dict, expected)
+
+
+class TestRequestContextV2(TestCase):
+    def test_class_initialized(self):
+        http_mock = Mock()
+
+        request_context = RequestContextV2("account_id", "api_id", http_mock, "request_id", "route_key", "stage")
+
+        self.assertEqual(request_context.account_id, "account_id")
+        self.assertEqual(request_context.api_id, "api_id")
+        self.assertEqual(request_context.http, http_mock)
+        self.assertEqual(request_context.request_id, "request_id")
+        self.assertEqual(request_context.route_key, "route_key")
+        self.assertEqual(request_context.stage, "stage")
+
+    def test_to_dict(self):
+        http_mock = Mock()
+        http_mock.to_dict.return_value = {"method": "POST"}
+
+        request_context = RequestContextV2("account_id", "api_id", http_mock, "request_id", "route_key", "stage")
+
+        expected = {
+            "accountId": "account_id",
+            "apiId": "api_id",
+            "http": http_mock.to_dict(),
+            "requestId": "request_id",
+            "routeKey": "route_key",
+            "stage": "stage",
+        }
+
         self.assertEqual(request_context.to_dict(), expected)
+
+    def test_to_dict_with_defaults(self):
+        request_context = RequestContextV2()
+
+        expected = {
+            "accountId": "123456789012",
+            "apiId": "1234567890",
+            "http": {},
+            "requestId": "",
+            "routeKey": None,
+            "stage": None,
+        }
+
+        request_context_dict = request_context.to_dict()
+        self.assertEquals(len(request_context_dict["requestId"]), 36)
+        request_context_dict["requestId"] = ""
+        self.assertEqual(request_context_dict, expected)
 
 
 class TestApiGatewayLambdaEvent(TestCase):
@@ -225,6 +320,7 @@ class TestApiGatewayLambdaEvent(TestCase):
         )
 
         expected = {
+            "version": "1.0",
             "httpMethod": "request_method",
             "body": "request_data",
             "resource": "resource",
@@ -245,6 +341,7 @@ class TestApiGatewayLambdaEvent(TestCase):
         event = ApiGatewayLambdaEvent()
 
         expected = {
+            "version": "1.0",
             "httpMethod": None,
             "body": None,
             "resource": None,
@@ -361,5 +458,170 @@ class TestApiGatewayLambdaEvent(TestCase):
                 {"param": "some param"},
                 "Not a dict",
                 "request_path",
+                False,
+            )
+
+
+class TestApiGatewayV2LambdaEvent(TestCase):
+    def test_class_initialized(self):
+        event = ApiGatewayV2LambdaEvent(
+            "route_key",
+            "raw_path",
+            "raw_query_string",
+            ["cookie1=value1"],
+            {"header_key": "value"},
+            {"query_string": "some query"},
+            "request_context",
+            "body",
+            {"param": "some param"},
+            {"stage_vars": "some vars"},
+            False,
+        )
+
+        self.assertEqual(event.version, "2.0")
+        self.assertEqual(event.route_key, "route_key")
+        self.assertEqual(event.raw_path, "raw_path")
+        self.assertEqual(event.raw_query_string, "raw_query_string")
+        self.assertEqual(event.cookies, ["cookie1=value1"])
+        self.assertEqual(event.headers, {"header_key": "value"})
+        self.assertEqual(event.query_string_params, {"query_string": "some query"})
+        self.assertEqual(event.request_context, "request_context")
+        self.assertEqual(event.body, "body")
+        self.assertEqual(event.path_parameters, {"param": "some param"})
+        self.assertEqual(event.is_base_64_encoded, False)
+        self.assertEqual(event.stage_variables, {"stage_vars": "some vars"})
+
+    def test_to_dict(self):
+        request_context_mock = Mock()
+        request_context_mock.to_dict.return_value = {"request_context": "the request context"}
+
+        event = ApiGatewayV2LambdaEvent(
+            "route_key",
+            "raw_path",
+            "raw_query_string",
+            ["cookie1=value1"],
+            {"header_key": "value"},
+            {"query_string": "some query"},
+            request_context_mock,
+            "body",
+            {"param": "some param"},
+            {"stage_vars": "some vars"},
+            False,
+        )
+
+        expected = {
+            "version": "2.0",
+            "routeKey": "route_key",
+            "rawPath": "raw_path",
+            "rawQueryString": "raw_query_string",
+            "cookies": ["cookie1=value1"],
+            "headers": {"header_key": "value"},
+            "queryStringParameters": {"query_string": "some query"},
+            "requestContext": request_context_mock.to_dict(),
+            "body": "body",
+            "pathParameters": {"param": "some param"},
+            "stageVariables": {"stage_vars": "some vars"},
+            "isBase64Encoded": False,
+        }
+
+        self.assertEqual(event.to_dict(), expected)
+
+    def test_to_dict_with_defaults(self):
+        event = ApiGatewayV2LambdaEvent()
+
+        expected = {
+            "version": "2.0",
+            "routeKey": None,
+            "rawPath": None,
+            "rawQueryString": None,
+            "cookies": None,
+            "headers": None,
+            "queryStringParameters": None,
+            "requestContext": {},
+            "body": None,
+            "pathParameters": None,
+            "stageVariables": None,
+            "isBase64Encoded": False,
+        }
+
+        self.assertEqual(event.to_dict(), expected)
+
+    def test_init_with_invalid_cookies(self):
+        with self.assertRaises(TypeError):
+            ApiGatewayV2LambdaEvent(
+                "route_key",
+                "raw_path",
+                "raw_query_string",
+                "invalid cookie",
+                {"header_key": "value"},
+                {"query_string": "some query"},
+                "request_context",
+                "body",
+                {"param": "some param"},
+                {"stage_vars": "some vars"},
+                False,
+            )
+
+    def test_init_with_invalid_headers(self):
+        with self.assertRaises(TypeError):
+            ApiGatewayV2LambdaEvent(
+                "route_key",
+                "raw_path",
+                "raw_query_string",
+                ["cookie1"],
+                "invalid headers",
+                {"query_string": "some query"},
+                "request_context",
+                "body",
+                {"param": "some param"},
+                {"stage_vars": "some vars"},
+                False,
+            )
+
+    def test_init_with_invalid_query_string_params(self):
+        with self.assertRaises(TypeError):
+            ApiGatewayV2LambdaEvent(
+                "route_key",
+                "raw_path",
+                "raw_query_string",
+                ["cookie1=value1"],
+                {"header_key": "value"},
+                "invalid_query_string",
+                "request_context",
+                "body",
+                {"param": "some param"},
+                {"stage_vars": "some vars"},
+                False,
+            )
+
+    def test_init_with_invalid_path_parameters(self):
+        with self.assertRaises(TypeError):
+            ApiGatewayV2LambdaEvent(
+                "route_key",
+                "raw_path",
+                "raw_query_string",
+                ["cookie1=value1"],
+                {"header_key": "value"},
+                {"query_string": "some query"},
+                "request_context",
+                "body",
+                "invalid_path_params",
+                {"stage_vars": "some vars"},
+                False,
+            )
+
+    def test_init_with_invalid_stage_variables(self):
+        with self.assertRaises(TypeError):
+            ApiGatewayV2LambdaEvent(
+                "route_key",
+                "raw_path",
+                "raw_query_string",
+                ["cookie1=value1"],
+                {"header_key": "value"},
+                {"query_string": "some query"},
+                "request_context",
+                "body",
+                {"param": "some param"},
+                "invalid_stage_vars",
                 False,
             )

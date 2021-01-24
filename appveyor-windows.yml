@@ -26,6 +26,7 @@ environment:
   HOMEPATH: 'C:\Users\appveyor'
   NOSE_PARAMETERIZED_NO_WARN: 1
   AWS_S3: 'AWS_S3_37_WIN'
+  AWS_ECR: 'AWS_ECR_37'
   APPVEYOR_CONSOLE_DISABLE_PTY: true
 
 init:
@@ -49,6 +50,7 @@ install:
     - "echo %PYTHON_HOME%"
     - "echo %PATH%"
     - "python --version"
+    - "docker info"
 
     # Upgrade setuptools, wheel and virtualenv
     - "python -m pip install --upgrade setuptools wheel virtualenv"
@@ -75,6 +77,10 @@ install:
 
 test_script:
     # Reactivate virtualenv before running tests
+    - ps: "
+        If ((Test-Path env:BY_CANARY) -And (Test-Path env:DOCKER_USER) -And (Test-Path env:DOCKER_PASS)){
+          echo Logging in Docker Hub; echo $env:DOCKER_PASS | docker login --username $env:DOCKER_USER --password-stdin;
+        }"
     - "git --version"
     - "venv\\Scripts\\activate"
     - "docker system prune -a -f"

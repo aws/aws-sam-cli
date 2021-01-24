@@ -13,7 +13,7 @@ class InvalidLocalPathError(UserException):
             "Parameter {property_name} of resource {resource_id} refers "
             "to a file or folder that does not exist {local_path}"
         )
-        super(InvalidLocalPathError, self).__init__(
+        super().__init__(
             message=message_fmt.format(
                 resource_id=self.resource_id, property_name=self.property_name, local_path=self.local_path
             )
@@ -31,7 +31,7 @@ class InvalidTemplateUrlParameterError(UserException):
             "It must be a S3 URL or path to CloudFormation "
             "template file. Actual: {template_path}"
         )
-        super(InvalidTemplateUrlParameterError, self).__init__(
+        super().__init__(
             message=message_fmt.format(
                 property_name=self.property_name, resource_id=self.resource_id, template_path=self.template_path
             )
@@ -52,7 +52,7 @@ class ExportFailedError(UserException):
             "{ex}"
         )
 
-        super(ExportFailedError, self).__init__(
+        super().__init__(
             message=message_fmt.format(
                 property_value=self.property_value,
                 property_name=self.property_name,
@@ -62,6 +62,45 @@ class ExportFailedError(UserException):
         )
 
 
+class ImageNotFoundError(UserException):
+    def __init__(self, resource_id, property_name):
+        self.resource_id = resource_id
+        self.property_name = property_name
+
+        message_fmt = "Image not found for {property_name} parameter of {resource_id} resource. \n"
+
+        super().__init__(
+            message=message_fmt.format(
+                property_name=self.property_name,
+                resource_id=self.resource_id,
+            )
+        )
+
+
+class ECRAuthorizationError(UserException):
+    def __init__(self, msg):
+        self.msg = msg
+        super().__init__(message=self.msg)
+
+
+class DockerLoginFailedError(UserException):
+    def __init__(self, msg):
+        self.msg = msg
+        super().__init__(message=self.msg)
+
+
+class DockerPushFailedError(UserException):
+    def __init__(self, msg):
+        self.msg = msg
+        super().__init__(message=self.msg)
+
+
+class DockerGetLocalImageFailedError(UserException):
+    def __init__(self, msg):
+        self.msg = msg
+        super().__init__(message=self.msg)
+
+
 class PackageFailedError(UserException):
     def __init__(self, template_file, ex):
         self.template_file = template_file
@@ -69,9 +108,7 @@ class PackageFailedError(UserException):
 
         message_fmt = "Failed to package template: {template_file}. \n {ex}"
 
-        super(PackageFailedError, self).__init__(
-            message=message_fmt.format(template_file=self.template_file, ex=self.ex)
-        )
+        super().__init__(message=message_fmt.format(template_file=self.template_file, ex=self.ex))
 
 
 class NoSuchBucketError(UserException):
@@ -80,7 +117,7 @@ class NoSuchBucketError(UserException):
 
         message_fmt = "\nS3 Bucket does not exist."
 
-        super(NoSuchBucketError, self).__init__(message=message_fmt.format(**self.kwargs))
+        super().__init__(message=message_fmt.format(**self.kwargs))
 
 
 class BucketNotSpecifiedError(UserException):
@@ -89,18 +126,18 @@ class BucketNotSpecifiedError(UserException):
 
         message_fmt = "\nS3 Bucket not specified, use --s3-bucket to specify a bucket name or run sam deploy --guided"
 
-        super(BucketNotSpecifiedError, self).__init__(message=message_fmt.format(**self.kwargs))
+        super().__init__(message=message_fmt.format(**self.kwargs))
 
 
 class PackageResolveS3AndS3SetError(UserException):
     def __init__(self):
         message_fmt = "Cannot use both --resolve-s3 and --s3-bucket parameters. Please use only one."
 
-        super(PackageResolveS3AndS3SetError, self).__init__(message=message_fmt)
+        super().__init__(message=message_fmt)
 
 
 class PackageResolveS3AndS3NotSetError(UserException):
     def __init__(self):
         message_fmt = "Cannot skip both --resolve-s3 and --s3-bucket parameters. Please provide one of these arguments."
 
-        super(PackageResolveS3AndS3NotSetError, self).__init__(message=message_fmt)
+        super().__init__(message=message_fmt)

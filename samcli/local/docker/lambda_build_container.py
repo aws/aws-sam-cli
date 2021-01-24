@@ -88,7 +88,7 @@ class LambdaBuildContainer(Container):
         if log_level:
             env_vars = {"LAMBDA_BUILDERS_LOG_LEVEL": log_level}
 
-        super(LambdaBuildContainer, self).__init__(
+        super().__init__(
             image,
             cmd,
             container_dirs["source_dir"],

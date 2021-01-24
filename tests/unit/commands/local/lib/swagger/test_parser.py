@@ -89,6 +89,43 @@ class TestSwaggerParser_get_apis(TestCase):
 
         self.assertEqual(expected, result)
 
+    def test_payload_format_version(self):
+        function_name = "myfunction"
+        swagger = {
+            "paths": {
+                "/path1": {
+                    "get": {
+                        "x-amazon-apigateway-integration": {
+                            "type": "aws_proxy",
+                            "uri": "someuri",
+                            "payloadFormatVersion": "1.0",
+                        }
+                    }
+                },
+                "/path2": {
+                    "get": {
+                        "x-amazon-apigateway-integration": {
+                            "type": "aws_proxy",
+                            "uri": "someuri",
+                            "payloadFormatVersion": "2.0",
+                        }
+                    }
+                },
+            }
+        }
+
+        parser = SwaggerParser(swagger)
+        parser._get_integration_function_name = Mock()
+        parser._get_integration_function_name.return_value = function_name
+
+        expected = [
+            Route(path="/path1", methods=["get"], function_name=function_name, payload_format_version="1.0"),
+            Route(path="/path2", methods=["get"], function_name=function_name, payload_format_version="2.0"),
+        ]
+        result = parser.get_routes()
+
+        self.assertEqual(expected, result)
+
     @parameterized.expand(
         [
             param("empty swagger", {}),

@@ -12,6 +12,8 @@ import platform
 import docker
 
 from samcli.commands.local.cli_common.user_exceptions import ImageBuildException
+from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
+from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.lib.utils.tar import create_tarball
 from samcli import __version__ as version
@@ -75,7 +77,7 @@ class LambdaImage:
         self.force_image_build = force_image_build
         self.docker_client = docker_client or docker.from_env()
 
-    def build(self, runtime, layers, is_debug, stream=None):
+    def build(self, runtime, packagetype, image, layers, is_debug, stream=None):
         """
         Build the image if one is not already on the system that matches the runtime and layers
 
@@ -83,6 +85,10 @@ class LambdaImage:
         ----------
         runtime str
             Name of the Lambda runtime
+        packagetype str
+            Packagetype for the Lambda
+        image str
+            Pre-defined invocation image.
         layers list(samcli.commands.local.lib.provider.Layer)
             List of layers
 
@@ -91,13 +97,27 @@ class LambdaImage:
         str
             The image to be used (REPOSITORY:TAG)
         """
-        base_image = f"{self._INVOKE_REPO_PREFIX}-{runtime}:latest"
+        image_name = None
 
-        # Default image tag to be the base image with a tag of 'rapid' instead of latest
-        image_tag = f"{self._INVOKE_REPO_PREFIX}-{runtime}:rapid-{version}"
+        if packagetype == IMAGE:
+            image_name = image
+        elif packagetype == ZIP:
+            image_name = f"{self._INVOKE_REPO_PREFIX}-{runtime}:latest"
+
+        if not image_name:
+            raise InvalidIntermediateImageError(f"Invalid PackageType, PackageType needs to be one of [{ZIP}, {IMAGE}]")
+
+        if image:
+            self.skip_pull_image = True
+
+        # Default image tag to be the base image with a tag of 'rapid' instead of latest.
+        # If the image name had a digest, removing the @ so that a valid image name can be constructed
+        # to use for the local invoke image name.
+        image_tag = f"{image_name.split(':')[0].replace('@', '')}:rapid-{version}"
+
         downloaded_layers = []
 
-        if layers:
+        if layers and packagetype == ZIP:
             downloaded_layers = self.layer_downloader.download_all(layers, self.force_image_build)
 
             docker_image_version = self._generate_docker_image_version(downloaded_layers, runtime)
@@ -119,13 +139,24 @@ class LambdaImage:
             self.force_image_build
             or image_not_found
             or any(layer.is_defined_within_template for layer in downloaded_layers)
+            or not runtime
         ):
             stream_writer = stream or StreamWriter(sys.stderr)
             stream_writer.write("Building image...")
             stream_writer.flush()
-            self._build_image(base_image, image_tag, downloaded_layers, is_debug_go, stream=stream_writer)
+            self._build_image(
+                image if image else image_name, image_tag, downloaded_layers, is_debug_go, stream=stream_writer
+            )
 
         return image_tag
+
+    def get_config(self, image_tag):
+        config = {}
+        try:
+            image = self.docker_client.images.get(image_tag)
+            return image.attrs.get("Config")
+        except docker.errors.ImageNotFound:
+            return config
 
     @staticmethod
     def _generate_docker_image_version(layers, runtime):
@@ -189,7 +220,7 @@ class LambdaImage:
                 dockerfile.write(dockerfile_content)
 
             # add dockerfile and rapid source paths
-            tar_paths = {str(full_dockerfile_path): "Dockerfile", self._RAPID_SOURCE_PATH: "/init"}
+            tar_paths = {str(full_dockerfile_path): "Dockerfile", self._RAPID_SOURCE_PATH: "/aws-lambda-rie"}
 
             if is_debug_go:
                 LOG.debug("Adding custom GO Bootstrap to support debugging")
@@ -217,10 +248,10 @@ class LambdaImage:
                         stream_writer.write(".")
                         stream_writer.flush()
                     stream_writer.write("\n")
-                except (docker.errors.BuildError, docker.errors.APIError):
+                except (docker.errors.BuildError, docker.errors.APIError) as ex:
                     stream_writer.write("\n")
                     LOG.exception("Failed to build Docker Image")
-                    raise ImageBuildException("Building Image failed.")
+                    raise ImageBuildException("Building Image failed.") from ex
         finally:
             if full_dockerfile_path.exists():
                 full_dockerfile_path.unlink()
@@ -253,7 +284,9 @@ class LambdaImage:
             String representing the Dockerfile contents for the image
 
         """
-        dockerfile_content = f"FROM {base_image}\nADD init /var/rapid\nRUN chmod +x /var/rapid/init\n"
+        dockerfile_content = (
+            f"FROM {base_image}\nADD aws-lambda-rie /var/rapid\nRUN chmod +x /var/rapid/aws-lambda-rie\n"
+        )
 
         if is_debug_go:
             dockerfile_content = (

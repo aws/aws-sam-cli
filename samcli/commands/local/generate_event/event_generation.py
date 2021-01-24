@@ -7,10 +7,9 @@ import functools
 import click
 
 import samcli.lib.generated_sample_events.events as events
-from samcli.cli.cli_config_file import TomlProvider, get_ctx_defaults, configuration_option
+from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.options import debug_option
-from samcli.lib.telemetry.metrics import track_command
-import samcli.lib.config.samconfig as samconfig
+from samcli.lib.telemetry.metric import track_command
 
 
 class ServiceCommand(click.MultiCommand):
@@ -25,7 +24,7 @@ class ServiceCommand(click.MultiCommand):
         List all of the subcommands
     """
 
-    def __init__(self, events_lib, *args, **kwargs):
+    def __init__(self, events_lib: events.Events, *args, **kwargs):
         """
         Constructor for the ServiceCommand class
 
@@ -39,7 +38,7 @@ class ServiceCommand(click.MultiCommand):
             dictionary containing the keys/values used to construct the ServiceCommand
         """
 
-        super(ServiceCommand, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         if not events_lib:
             raise ValueError("Events library is necessary to run this command")
 
@@ -97,7 +96,7 @@ class EventTypeSubCommand(click.MultiCommand):
 
     TAGS = "tags"
 
-    def __init__(self, events_lib, top_level_cmd_name, subcmd_definition, *args, **kwargs):
+    def __init__(self, events_lib: events.Events, top_level_cmd_name, subcmd_definition, *args, **kwargs):
         """
         constructor for the EventTypeSubCommand class
 
@@ -115,7 +114,7 @@ class EventTypeSubCommand(click.MultiCommand):
             key/value pairs passed into the constructor
         """
 
-        super(EventTypeSubCommand, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.top_level_cmd_name = top_level_cmd_name
         self.subcmd_definition = subcmd_definition
         self.events_lib = events_lib
@@ -178,8 +177,11 @@ class EventTypeSubCommand(click.MultiCommand):
         """
         return sorted(self.subcmd_definition.keys())
 
+    @staticmethod
     @track_command
-    def cmd_implementation(self, events_lib, top_level_cmd_name, subcmd_name, *args, **kwargs):
+    def cmd_implementation(
+        events_lib: events.Events, top_level_cmd_name: str, subcmd_name: str, *args, **kwargs
+    ) -> str:
         """
         calls for value substitution in the event json and returns the
         customized json as a string
@@ -222,4 +224,4 @@ class GenerateEventCommand(ServiceCommand):
         kwargs: dict
             commands, subcommands, and parameters for generate-event
         """
-        super(GenerateEventCommand, self).__init__(events.Events(), *args, **kwargs)
+        super().__init__(events.Events(), *args, **kwargs)

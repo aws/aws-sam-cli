@@ -8,7 +8,7 @@ class ChangeEmptyError(UserException):
     def __init__(self, stack_name):
         self.stack_name = stack_name
         message_fmt = "No changes to deploy. Stack {stack_name} is up to date"
-        super(ChangeEmptyError, self).__init__(message=message_fmt.format(stack_name=self.stack_name))
+        super().__init__(message=message_fmt.format(stack_name=self.stack_name))
 
 
 class ChangeSetError(UserException):
@@ -16,7 +16,7 @@ class ChangeSetError(UserException):
         self.stack_name = stack_name
         self.msg = msg
         message_fmt = "Failed to create changeset for the stack: {stack_name}, {msg}"
-        super(ChangeSetError, self).__init__(message=message_fmt.format(stack_name=self.stack_name, msg=self.msg))
+        super().__init__(message=message_fmt.format(stack_name=self.stack_name, msg=self.msg))
 
 
 class DeployFailedError(UserException):
@@ -26,13 +26,13 @@ class DeployFailedError(UserException):
 
         message_fmt = "Failed to create/update the stack: {stack_name}, {msg}"
 
-        super(DeployFailedError, self).__init__(message=message_fmt.format(stack_name=self.stack_name, msg=msg))
+        super().__init__(message=message_fmt.format(stack_name=self.stack_name, msg=msg))
 
 
 class GuidedDeployFailedError(UserException):
     def __init__(self, msg):
         self.msg = msg
-        super(GuidedDeployFailedError, self).__init__(message=msg)
+        super().__init__(message=msg)
 
 
 class DeployStackOutPutFailedError(UserException):
@@ -42,9 +42,7 @@ class DeployStackOutPutFailedError(UserException):
 
         message_fmt = "Failed to get outputs from stack: {stack_name}, {msg}"
 
-        super(DeployStackOutPutFailedError, self).__init__(
-            message=message_fmt.format(stack_name=self.stack_name, msg=msg)
-        )
+        super().__init__(message=message_fmt.format(stack_name=self.stack_name, msg=msg))
 
 
 class DeployBucketInDifferentRegionError(UserException):
@@ -53,7 +51,7 @@ class DeployBucketInDifferentRegionError(UserException):
 
         message_fmt = "{msg} : deployment s3 bucket is in a different region, try sam deploy --guided"
 
-        super(DeployBucketInDifferentRegionError, self).__init__(message=message_fmt.format(msg=self.msg))
+        super().__init__(message=message_fmt.format(msg=self.msg))
 
 
 class DeployBucketRequiredError(UserException):
@@ -66,7 +64,7 @@ class DeployBucketRequiredError(UserException):
             "then deployed."
         )
 
-        super(DeployBucketRequiredError, self).__init__(message=message_fmt)
+        super().__init__(message=message_fmt)
 
 
 class DeployResolveS3AndS3SetError(UserException):
@@ -76,4 +74,4 @@ class DeployResolveS3AndS3SetError(UserException):
             " Please use only one or use the --guided option for a guided deployment."
         )
 
-        super(DeployResolveS3AndS3SetError, self).__init__(message=message_fmt)
+        super().__init__(message=message_fmt)

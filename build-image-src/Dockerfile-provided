@@ -57,3 +57,5 @@ RUN pip3 install wheel
 ENV LANG=en_US.UTF-8
 
 ENV PATH=/var/lang/bin:$PATH
+
+COPY ATTRIBUTION.txt /
