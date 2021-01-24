@@ -4,6 +4,7 @@ Utilities for sam deploy command
 
 import json
 import textwrap
+import copy
 
 import click
 
@@ -39,17 +40,12 @@ def print_deploy_args(
     :param image_repository: Name of image repository used for packaging artifacts as container images.
     :param region: Name of region to which the current sam/cloudformation stack will be deployed to.
     :param capabilities: Corresponding IAM capabilities to be used during the stack deploy.
-    :param template_params: Parameters from template, need to hide "NoEcho" paramters
     :param parameter_overrides: Cloudformation parameter overrides to be supplied based on the stack's template
     :param confirm_changeset: Prompt for changeset to be confirmed before going ahead with the deploy.
     :param signing_profiles: Signing profile details which will be used to sign functions/layers
     :return:
     """
     _parameters = parameter_overrides.copy()
-    for key, value in _parameters.items():
-        if template_params and isinstance(template_params.get(key, None), dict):
-            is_hidden = template_params.get(key).get("NoEcho", False)
-            _parameters[key] = value if not is_hidden else "*" * len(value)
 
     capabilities_string = json.dumps(capabilities)
 
@@ -91,3 +87,13 @@ def sanitize_parameter_overrides(parameter_overrides):
     :return:
     """
     return {key: value.get("Value") if isinstance(value, dict) else value for key, value in parameter_overrides.items()}
+
+
+def hide_noecho_parameter_overrides(template_parameters, parameter_overrides):
+    hidden_params = copy.deepcopy(parameter_overrides)
+    params = template_parameters.get("Parameters", None)
+    for key, value in hidden_params.items():
+        if isinstance(params, dict) and key in params and isinstance(params[key], dict):
+            is_hidden = params[key].get("NoEcho", False)
+            hidden_params[key] = value if not is_hidden else "*" * 5
+    return hidden_params
