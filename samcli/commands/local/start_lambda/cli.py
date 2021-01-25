@@ -10,9 +10,10 @@ from samcli.commands.local.cli_common.options import (
     invoke_common_options,
     service_common_options,
     warm_containers_common_options,
+    local_common_options,
 )
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
-from samcli.lib.telemetry.metrics import track_command
+from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.local.docker.exceptions import ContainerNotStartableException
 
@@ -59,6 +60,7 @@ Here is a Python example:
 @service_common_options(3001)
 @invoke_common_options
 @warm_containers_common_options
+@local_common_options
 @cli_framework_options
 @aws_creds_options
 @pass_context
@@ -85,6 +87,7 @@ def cli(
     config_file,
     config_env,
     warm_containers,
+    shutdown,
     debug_function,
 ):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
@@ -107,6 +110,7 @@ def cli(
         force_image_build,
         parameter_overrides,
         warm_containers,
+        shutdown,
         debug_function,
     )  # pragma: no cover
 
@@ -129,6 +133,7 @@ def do_cli(  # pylint: disable=R0914
     force_image_build,
     parameter_overrides,
     warm_containers,
+    shutdown,
     debug_function,
 ):
     """
@@ -168,6 +173,7 @@ def do_cli(  # pylint: disable=R0914
             aws_profile=ctx.profile,
             warm_container_initialization_mode=warm_containers,
             debug_function=debug_function,
+            shutdown=shutdown,
         ) as invoke_context:
 
             service = LocalLambdaService(lambda_invoke_context=invoke_context, port=port, host=host)

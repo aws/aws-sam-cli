@@ -20,7 +20,7 @@ from samcli.commands._utils.options import (
 from samcli.commands._utils.options import metadata_override_option, template_click_option, no_progressbar_option
 from samcli.commands._utils.resources import resources_generator
 from samcli.lib.bootstrap.bootstrap import manage_stack
-from samcli.lib.telemetry.metrics import track_command, track_template_warnings
+from samcli.lib.telemetry.metric import track_command, track_template_warnings
 from samcli.lib.warnings.sam_cli_warning import CodeDeployWarning, CodeDeployConditionWarning
 
 SHORT_HELP = "Package an AWS SAM application."
@@ -41,8 +41,8 @@ HELP_TEXT = (
     """The SAM package command creates and uploads artifacts based on the package type of a given resource.
 It uploads local images to ECR for `Image` package types.
 It creates zip of your code and dependencies and uploads it to S3 for other package types.
-The command returns a copy of your template, replacing references to local artifacts with the AWS location where the command
-uploaded the artifacts.
+The command returns a copy of your template, replacing references to local artifacts
+with the AWS location where the command uploaded the artifacts.
 
 The following resources and their property locations are supported.
 """

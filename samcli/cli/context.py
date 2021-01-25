@@ -4,6 +4,7 @@ Context information passed to each CLI command
 
 import logging
 import uuid
+from typing import Optional, cast
 
 import boto3
 import botocore
@@ -32,6 +33,8 @@ class Context:
     This class itself does not rely on how Click works. It is just a plain old Python class that holds common
     properties used by every CLI command.
     """
+
+    _session_id: str
 
     def __init__(self):
         """
@@ -87,7 +90,7 @@ class Context:
         self._refresh_session()
 
     @property
-    def session_id(self):
+    def session_id(self) -> str:
         """
         Returns the ID of this command session. This is a randomly generated UUIDv4 which will not change until the
         command terminates.
@@ -131,7 +134,7 @@ class Context:
         return None
 
     @staticmethod
-    def get_current_context():
+    def get_current_context() -> Optional["Context"]:
         """
         Get the current Context object from Click's context stacks. This method is safe to run within the
         actual command's handler that has a ``@pass_context`` annotation. Outside of the handler, you run
@@ -159,7 +162,7 @@ class Context:
 
         click_core_ctx = click.get_current_context()
         if click_core_ctx:
-            return click_core_ctx.find_object(Context) or click_core_ctx.ensure_object(Context)
+            return cast("Context", click_core_ctx.find_object(Context) or click_core_ctx.ensure_object(Context))
 
         return None
 
