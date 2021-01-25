@@ -6,6 +6,7 @@ import logging
 from typing import Dict, Any
 
 import click
+from botocore.session import get_session
 from click.types import FuncParamType
 from click import prompt
 from click import confirm
@@ -98,7 +99,7 @@ class GuidedContext:
     # pylint: disable=too-many-statements
     def guided_prompts(self, parameter_override_keys):
         default_stack_name = self.stack_name or "sam-app"
-        default_region = self.region or "us-east-1"
+        default_region = self.region or get_session().get_config_variable("region") or "us-east-1"
         default_capabilities = self.capabilities[0] or ("CAPABILITY_IAM",)
         default_config_env = self.config_env or DEFAULT_ENV
         default_config_file = self.config_file or DEFAULT_CONFIG_FILE_NAME
