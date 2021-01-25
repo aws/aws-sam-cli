@@ -65,9 +65,7 @@ class ResourcesToBuildCollector:
 
     def add_functions(self, functions):
         for function in functions:
-            if function.inlinecode and function.inlinecode is not None:
-                continue
-            self.result.get("Function").append(function)
+            self.add_function(function)
 
     def add_layer(self, layer):
         self.result.get("Layer").append(layer)

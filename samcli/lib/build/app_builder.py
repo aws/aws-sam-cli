@@ -216,22 +216,26 @@ class ApplicationBuilder:
 
             resource_type = resource.get("Type")
             properties = resource.setdefault("Properties", {})
+            package_type = properties.get("PackageType", ZIP)
 
-            if resource_type == SamBaseProvider.SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == ZIP:
+            if resource_type == SamBaseProvider.SERVERLESS_FUNCTION and package_type == ZIP:
                 if "InlineCode" not in properties or properties["InlineCode"] is None:
                     properties["CodeUri"] = store_path
 
-            if resource_type == SamBaseProvider.LAMBDA_FUNCTION and properties.get("PackageType", ZIP) == ZIP:
-                if "ZipFile" not in properties["Code"] or properties["Code"]["ZipFile"] is None:
+            if resource_type == SamBaseProvider.LAMBDA_FUNCTION and package_type == ZIP:
+                if "Code" in properties:
+                    if "ZipFile" not in properties["Code"] or properties["Code"]["ZipFile"] is None:
+                        properties["Code"] = store_path
+                else:
                     properties["Code"] = store_path
 
             if resource_type in [SamBaseProvider.SERVERLESS_LAYER, SamBaseProvider.LAMBDA_LAYER]:
                 properties["ContentUri"] = store_path
 
-            if resource_type == SamBaseProvider.LAMBDA_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
+            if resource_type == SamBaseProvider.LAMBDA_FUNCTION and package_type == IMAGE:
                 properties["Code"] = built_artifacts[logical_id]
 
-            if resource_type == SamBaseProvider.SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
+            if resource_type == SamBaseProvider.SERVERLESS_FUNCTION and package_type == IMAGE:
                 properties["ImageUri"] = built_artifacts[logical_id]
 
         return template_dict
