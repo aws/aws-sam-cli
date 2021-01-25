@@ -51,4 +51,4 @@ class TestSamPython36HelloWorldNonUTF8Integration(InvokeIntegBase):
         self._caplog.set_level(100000)  # https://github.com/pallets/click/issues/824
         result = runner.invoke(cli, [function_name, "-t", self.template_path, "-e", self.event_path])
         cli_stdout_lines = result.output.strip().split("\n")
-        self.assertIn('"Hello world"', cli_stdout_lines)
+        self.assertTrue(any(["Hello world" in line for line in cli_stdout_lines]))

@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  ModeEnvVariable:
+    Type: String
+
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.6
+      FunctionName: customname
+      CodeUri: .
+      Timeout: 600
+      Environment:
+        Variables:
+          MODE: !Ref ModeEnvVariable
+      Events:
+        IdBasePath:
+          Type: Api
+          Properties:
+            Method: POST
+            Path: /id
+
+        PathWithAnyMethod:
+          Type: Api
+          Properties:
+            Method: ANY
+            Path: /anyandall
+
+        ProxyPath:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /proxypath/{proxy+}
+
+  EchoEventFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.echo_event_handler
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Environment:
+        Variables:
+          MODE: !Ref ModeEnvVariable
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /id/{id}/user/{user}
+
+        PathWithPathParam:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /id/{id}
+
+        EchoEventBodyPath:
+          Type: Api
+          Properties:
+            Method: POST
+            Path: /echoeventbody

@@ -14,6 +14,8 @@ class TestSamDeployCommand(TestCase):
             template_file="template-file",
             stack_name="stack-name",
             s3_bucket="s3-bucket",
+            image_repository="image-repo",
+            image_repositories=None,
             force_upload=True,
             no_progressbar=False,
             s3_prefix="s3-prefix",
@@ -28,6 +30,7 @@ class TestSamDeployCommand(TestCase):
             region=None,
             profile=None,
             confirm_changeset=False,
+            signing_profiles=None,
         )
 
     def test_template_improper(self):

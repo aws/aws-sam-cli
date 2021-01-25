@@ -7,44 +7,34 @@ import io
 import json
 import logging
 import pathlib
+from typing import Dict
 
 import docker
+from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
-from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
 
 import samcli.lib.utils.osutils as osutils
+from samcli.lib.utils.stream_writer import StreamWriter
+from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition, BuildGraph
+from samcli.lib.build.build_strategy import DefaultBuildStrategy, CachedBuildStrategy, ParallelBuildStrategy
 from samcli.lib.utils.colors import Colored
-from samcli.commands.build.exceptions import MissingBuildMethodException
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
-from samcli.lib.build.build_graph import BuildDefinition, BuildGraph
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
+from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.local.docker.utils import is_docker_reachable
+from .exceptions import (
+    DockerConnectionError,
+    DockerfileOutSideOfContext,
+    DockerBuildFailed,
+    BuildError,
+    BuildInsideContainerError,
+    ContainerBuildNotSupported,
+    UnsupportedBuilderLibraryVersionError,
+)
 from .workflow_config import get_workflow_config, get_layer_subfolder, supports_build_in_container
 
 LOG = logging.getLogger(__name__)
-
-
-class UnsupportedBuilderLibraryVersionError(Exception):
-    def __init__(self, container_name, error_msg):
-        msg = (
-            "You are running an outdated version of Docker container '{container_name}' that is not compatible with"
-            "this version of SAM CLI. Please upgrade to continue to continue with build. Reason: '{error_msg}'"
-        )
-        Exception.__init__(self, msg.format(container_name=container_name, error_msg=error_msg))
-
-
-class ContainerBuildNotSupported(Exception):
-    pass
-
-
-class BuildError(Exception):
-    def __init__(self, wrapped_from, msg):
-        self.wrapped_from = wrapped_from
-        Exception.__init__(self, msg)
-
-
-class BuildInsideContainerError(Exception):
-    pass
 
 
 class ApplicationBuilder:
@@ -59,25 +49,35 @@ class ApplicationBuilder:
         resources_to_build,
         build_dir,
         base_dir,
+        cache_dir,
+        cached=False,
         is_building_specific_resource=False,
         manifest_path_override=None,
         container_manager=None,
         parallel=False,
         mode=None,
+        stream_writer=None,
+        docker_client=None,
     ):
         """
         Initialize the class
 
         Parameters
         ----------
-        functions_to_build: Iterator
-            Iterator that can vend out functions available in the SAM template
+        resources_to_build: Iterator
+            Iterator that can vend out resources available in the SAM template
 
         build_dir : str
             Path to the directory where we will be storing built artifacts
 
         base_dir : str
             Path to a folder. Use this folder as the root to resolve relative source code paths against
+
+        cache_dir : str
+            Path to a the directory where we will be caching built artifacts
+
+        cached:
+            Optional. Set to True to build each function with cache to improve performance
 
         is_building_specific_resource : boolean
             Whether customer requested to build a specific resource alone in isolation,
@@ -96,12 +96,16 @@ class ApplicationBuilder:
         self._resources_to_build = resources_to_build
         self._build_dir = build_dir
         self._base_dir = base_dir
+        self._cache_dir = cache_dir
+        self._cached = cached
         self._manifest_path_override = manifest_path_override
         self._is_building_specific_resource = is_building_specific_resource
 
         self._container_manager = container_manager
         self._parallel = parallel
         self._mode = mode
+        self._stream_writer = stream_writer if stream_writer else StreamWriter(osutils.stderr())
+        self._docker_client = docker_client if docker_client else docker.from_env()
 
         self._deprecated_runtimes = {"nodejs4.3", "nodejs6.10", "nodejs8.10", "dotnetcore2.0"}
         self._colored = Colored()
@@ -115,74 +119,62 @@ class ApplicationBuilder:
         dict
             Returns the path to where each resource was built as a map of resource's LogicalId to the path string
         """
+        build_graph = self._get_build_graph()
+        build_strategy = DefaultBuildStrategy(build_graph, self._build_dir, self._build_function, self._build_layer)
 
-        result = self._build_functions()
-
-        for layer in self._resources_to_build.layers:
-            LOG.info("Building layer '%s'", layer.name)
-            if layer.build_method is None:
-                raise MissingBuildMethodException(
-                    f"Layer {layer.name} cannot be build without BuildMethod. Please provide BuildMethod in Metadata."
+        if self._parallel:
+            if self._cached:
+                build_strategy = ParallelBuildStrategy(
+                    build_graph,
+                    CachedBuildStrategy(
+                        build_graph,
+                        build_strategy,
+                        self._base_dir,
+                        self._build_dir,
+                        self._cache_dir,
+                        self._is_building_specific_resource,
+                    ),
                 )
-            result[layer.name] = self._build_layer(
-                layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes
+            else:
+                build_strategy = ParallelBuildStrategy(build_graph, build_strategy)
+        elif self._cached:
+            build_strategy = CachedBuildStrategy(
+                build_graph,
+                build_strategy,
+                self._base_dir,
+                self._build_dir,
+                self._cache_dir,
+                self._is_building_specific_resource,
             )
 
-        return result
+        return build_strategy.build()
 
     def _get_build_graph(self):
         """
-        Converts list of functions into a build graph, where we can iterate on each unique build and trigger build
+        Converts list of functions and layers into a build graph, where we can iterate on each unique build and trigger
+        build
         :return: BuildGraph, which represents list of unique build definitions
         """
         build_graph = BuildGraph(self._build_dir)
         functions = self._resources_to_build.functions
+        layers = self._resources_to_build.layers
         for function in functions:
-            build_details = BuildDefinition(function.runtime, function.codeuri, function.metadata)
-            build_graph.put_build_definition(build_details, function)
+            function_build_details = FunctionBuildDefinition(
+                function.runtime, function.codeuri, function.packagetype, function.metadata
+            )
+            build_graph.put_function_build_definition(function_build_details, function)
 
-        build_graph.clean_redundant_functions_and_update(not self._is_building_specific_resource)
+        for layer in layers:
+            layer_build_details = LayerBuildDefinition(
+                layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes
+            )
+            build_graph.put_layer_build_definition(layer_build_details, layer)
+
+        build_graph.clean_redundant_definitions_and_update(not self._is_building_specific_resource)
         return build_graph
 
-    def _build_functions(self):
-        """
-        Iterates through build graph and runs each unique build and copies outcome to the corresponding function folder
-        """
-        build_graph = self._get_build_graph()
-        function_build_results = {}
-
-        for build_definition in build_graph.get_build_definitions():
-            LOG.info("Building codeuri: %s runtime: %s metadata: %s functions: %s",
-                     build_definition.codeuri,
-                     build_definition.runtime,
-                     build_definition.metadata,
-                     [function.name for function in build_definition.functions])
-
-            # build into one of the functions from this build definition
-            single_function_name = build_definition.get_function_name()
-            single_build_dir = str(pathlib.Path(self._build_dir, single_function_name))
-
-            LOG.debug("Building to following folder %s", single_build_dir)
-            self._build_function(build_definition.get_function_name(),
-                                 build_definition.codeuri,
-                                 build_definition.runtime,
-                                 build_definition.get_handler_name(),
-                                 single_build_dir,
-                                 build_definition.metadata)
-            function_build_results[single_function_name] = single_build_dir
-
-            # copy results to other functions
-            for function in build_definition.functions:
-                if function.name is not single_function_name:
-                    # artifacts directory will be created by the builder
-                    artifacts_dir = str(pathlib.Path(self._build_dir, function.name))
-                    LOG.debug("Copying artifacts from %s to %s", single_build_dir, artifacts_dir)
-                    osutils.copytree(single_build_dir, artifacts_dir)
-                    function_build_results[function.name] = artifacts_dir
-
-        return function_build_results
-
-    def update_template(self, template_dict, original_template_path, built_artifacts):
+    @staticmethod
+    def update_template(template_dict: Dict, original_template_path: str, built_artifacts: Dict[str, str]) -> Dict:
         """
         Given the path to built artifacts, update the template to point appropriate resource CodeUris to the artifacts
         folder
@@ -222,19 +214,112 @@ class ApplicationBuilder:
                 #   package stage running on a different machine
                 store_path = os.path.relpath(artifact_dir, original_dir)
 
-
             resource_type = resource.get("Type")
             properties = resource.setdefault("Properties", {})
-            if resource_type == SamBaseProvider.SERVERLESS_FUNCTION:
+
+            if resource_type == SamBaseProvider.SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == ZIP:
                 properties["CodeUri"] = store_path
 
-            if resource_type == SamBaseProvider.LAMBDA_FUNCTION:
+            if resource_type == SamBaseProvider.LAMBDA_FUNCTION and properties.get("PackageType", ZIP) == ZIP:
                 properties["Code"] = store_path
 
             if resource_type in [SamBaseProvider.SERVERLESS_LAYER, SamBaseProvider.LAMBDA_LAYER]:
                 properties["ContentUri"] = store_path
 
+            if resource_type == SamBaseProvider.LAMBDA_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
+                properties["Code"] = built_artifacts[logical_id]
+
+            if resource_type == SamBaseProvider.SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
+                properties["ImageUri"] = built_artifacts[logical_id]
+
         return template_dict
+
+    def _build_lambda_image(self, function_name, metadata):
+        """
+        Build an Lambda image
+
+        Parameters
+        ----------
+        function_name str
+            Name of the function (logical id or function name)
+        metadata dict
+            Dictionary representing the Metadata attached to the Resource in the template
+
+        Returns
+        -------
+        str
+            The full tag (org/repo:tag) of the image that was built
+        """
+
+        LOG.info("Building image for %s function", function_name)
+
+        dockerfile = metadata.get("Dockerfile")
+        docker_context = metadata.get("DockerContext")
+        # Have a default tag if not present.
+        tag = metadata.get("DockerTag", "latest")
+        docker_tag = f"{function_name.lower()}:{tag}"
+        docker_build_args = metadata.get("DockerBuildArgs", {})
+        if not isinstance(docker_build_args, dict):
+            raise DockerBuildFailed("DockerBuildArgs needs to be a dictionary!")
+
+        docker_context_dir = pathlib.Path(self._base_dir, docker_context).resolve()
+        if not is_docker_reachable(self._docker_client):
+            raise DockerConnectionError(msg=f"Building image for {function_name} requires Docker. is Docker running?")
+
+        if os.environ.get("SAM_BUILD_MODE") and isinstance(docker_build_args, dict):
+            docker_build_args["SAM_BUILD_MODE"] = os.environ.get("SAM_BUILD_MODE")
+            docker_tag = "-".join([docker_tag, docker_build_args["SAM_BUILD_MODE"]])
+
+        if isinstance(docker_build_args, dict):
+            LOG.info("Setting DockerBuildArgs: %s for %s function", docker_build_args, function_name)
+
+        build_logs = self._docker_client.api.build(
+            path=str(docker_context_dir),
+            dockerfile=dockerfile,
+            tag=docker_tag,
+            buildargs=docker_build_args,
+            decode=True,
+        )
+
+        # The Docker-py low level api will stream logs back but if an exception is raised by the api
+        # this is raised when accessing the generator. So we need to wrap accessing build_logs in a try: except.
+        try:
+            self._stream_lambda_image_build_logs(build_logs, function_name)
+        except docker.errors.APIError as e:
+            if e.is_server_error and "Cannot locate specified Dockerfile" in e.explanation:
+                raise DockerfileOutSideOfContext(e.explanation) from e
+
+            # Not sure what else can be raise that we should be catching but re-raising for now
+            raise
+
+        return docker_tag
+
+    def _stream_lambda_image_build_logs(self, build_logs, function_name):
+        """
+        Stream logs to the console from an Lambda image build.
+
+        Parameters
+        ----------
+        build_logs generator
+            A generator for the build output.
+        function_name str
+            Name of the function that is being built
+
+        Returns
+        -------
+        None
+        """
+        for log in build_logs:
+            if log:
+                log_stream = log.get("stream")
+                error_stream = log.get("error")
+
+                if error_stream:
+                    raise DockerBuildFailed(f"{function_name} failed to build: {error_stream}")
+
+                if log_stream:
+                    self._stream_writer.write(str.encode(log_stream))
+                    self._stream_writer.flush()
 
     def _build_layer(self, layer_name, codeuri, specified_workflow, compatible_runtimes):
         # Create the arguments to pass to the builder
@@ -259,7 +344,8 @@ class ApplicationBuilder:
                     LOG.warning(
                         "For container layer build, first compatible runtime is chosen as build target for container."
                     )
-                    # Only set to this value if specified workflow is makefile which will result in config language as provided
+                    # Only set to this value if specified workflow is makefile
+                    # which will result in config language as provided
                     build_runtime = compatible_runtimes[0]
             options = ApplicationBuilder._get_build_options(layer_name, config.language, None)
 
@@ -267,7 +353,9 @@ class ApplicationBuilder:
             # Not including subfolder in return so that we copy subfolder, instead of copying artifacts inside it.
             return str(pathlib.Path(self._build_dir, layer_name))
 
-    def _build_function(self, function_name, codeuri, runtime, handler, artifacts_dir, metadata=None):
+    def _build_function(  # pylint: disable=R1710
+        self, function_name, codeuri, packagetype, runtime, handler, artifacts_dir, metadata=None
+    ):
         """
         Given the function information, this method will build the Lambda function. Depending on the configuration
         it will either build the function in process or by spinning up a Docker container.
@@ -294,35 +382,38 @@ class ApplicationBuilder:
         str
             Path to the location where built artifacts are available
         """
+        if packagetype == IMAGE:
+            return self._build_lambda_image(function_name=function_name, metadata=metadata)
+        if packagetype == ZIP:
+            if runtime in self._deprecated_runtimes:
+                message = (
+                    f"WARNING: {runtime} is no longer supported by AWS Lambda, "
+                    "please update to a newer supported runtime. SAM CLI "
+                    f"will drop support for all deprecated runtimes {self._deprecated_runtimes} on May 1st. "
+                    "See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
+                )
+                LOG.warning(self._colored.yellow(message))
 
-        if runtime in self._deprecated_runtimes:
-            message = (
-                f"WARNING: {runtime} is no longer supported by AWS Lambda, please update to a newer supported runtime. SAM CLI "
-                f"will drop support for all deprecated runtimes {self._deprecated_runtimes} on May 1st. "
-                f"See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
-            )
-            LOG.warning(self._colored.yellow(message))
+            # Create the arguments to pass to the builder
+            # Code is always relative to the given base directory.
+            code_dir = str(pathlib.Path(self._base_dir, codeuri).resolve())
 
-        # Create the arguments to pass to the builder
-        # Code is always relative to the given base directory.
-        code_dir = str(pathlib.Path(self._base_dir, codeuri).resolve())
+            # Determine if there was a build workflow that was specified directly in the template.
+            specified_build_workflow = metadata.get("BuildMethod", None) if metadata else None
 
-        # Determine if there was a build workflow that was specified directly in the template.
-        specified_build_workflow = metadata.get("BuildMethod", None) if metadata else None
+            config = get_workflow_config(runtime, code_dir, self._base_dir, specified_workflow=specified_build_workflow)
 
-        config = get_workflow_config(runtime, code_dir, self._base_dir, specified_workflow=specified_build_workflow)
+            with osutils.mkdir_temp() as scratch_dir:
+                manifest_path = self._manifest_path_override or os.path.join(code_dir, config.manifest_name)
 
-        with osutils.mkdir_temp() as scratch_dir:
-            manifest_path = self._manifest_path_override or os.path.join(code_dir, config.manifest_name)
+                # By default prefer to build in-process for speed
+                build_method = self._build_function_in_process
+                if self._container_manager:
+                    build_method = self._build_function_on_container
 
-            # By default prefer to build in-process for speed
-            build_method = self._build_function_in_process
-            if self._container_manager:
-                build_method = self._build_function_on_container
+                options = ApplicationBuilder._get_build_options(function_name, config.language, handler)
 
-            options = ApplicationBuilder._get_build_options(function_name, config.language, handler)
-
-            return build_method(config, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, options)
+                return build_method(config, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, options)
 
     @staticmethod
     def _get_build_options(function_name, language, handler):

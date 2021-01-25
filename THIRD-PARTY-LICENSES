@@ -180,10 +180,7 @@ LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-------
-
-Contents of the samcli/local/rapid and samcli/local/go-bootstrap folder forked from the original Open Source MIT licensed project lambci/docker-lambda: https://github.com/lambci/docker-lambda/
-
+Contents of the samcli/local/go-bootstrap folder forked from the original Open Source MIT licensed project lambci/docker-lambda: https://github.com/lambci/docker-lambda/
 Copyright 2016 Michael Hart and LambCI contributors
 Portions Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 

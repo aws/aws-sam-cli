@@ -6,9 +6,8 @@ from unittest import TestCase
 from unittest.mock import patch, Mock
 from parameterized import parameterized, param
 
-from pathlib import Path
-
 from samcli.commands.local.lib.debug_context import DebugContext
+from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.local.docker.lambda_container import LambdaContainer, Runtime
 from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
 
@@ -41,16 +40,21 @@ class TestLambdaContainer_init(TestCase):
         self.runtime = "nodejs12.x"
         self.handler = "handler"
         self.code_dir = "codedir"
+        self.image_config = None
+        self.imageuri = None
+        self.packagetype = ZIP
         self.env_var = {"var": "value"}
         self.memory_mb = 1024
-        self.debug_options = DebugContext(debug_args="a=b c=d e=f", debug_ports=[1235])
+        self.debug_options = DebugContext(
+            debug_args="a=b c=d e=f", debug_ports=[1235], container_env_vars={"debug_var": "debug_value"}
+        )
 
     @patch.object(LambdaContainer, "_get_image")
     @patch.object(LambdaContainer, "_get_exposed_ports")
     @patch.object(LambdaContainer, "_get_debug_settings")
     @patch.object(LambdaContainer, "_get_additional_options")
     @patch.object(LambdaContainer, "_get_additional_volumes")
-    def test_must_configure_container_properly(
+    def test_must_configure_container_properly_zip(
         self,
         get_additional_volumes_mock,
         get_additional_options_mock,
@@ -59,12 +63,12 @@ class TestLambdaContainer_init(TestCase):
         get_image_mock,
     ):
 
-        image = "image"
+        image = IMAGE
         ports = {"a": "b"}
         addtl_options = {}
         addtl_volumes = {}
         debug_settings = ([1, 2, 3], {"a": "b"})
-        expected_cmd = [self.handler]
+        expected_cmd = []
 
         get_image_mock.return_value = image
         get_exposed_ports_mock.return_value = ports
@@ -76,11 +80,14 @@ class TestLambdaContainer_init(TestCase):
         image_builder_mock = Mock()
 
         container = LambdaContainer(
-            self.runtime,
-            self.handler,
-            self.code_dir,
+            image_config=self.image_config,
+            imageuri=self.imageuri,
+            packagetype=self.packagetype,
+            runtime=self.runtime,
+            handler=self.handler,
+            code_dir=self.code_dir,
             layers=[],
-            image_builder=image_builder_mock,
+            lambda_image=image_builder_mock,
             env_vars=self.env_var,
             memory_mb=self.memory_mb,
             debug_options=self.debug_options,
@@ -95,9 +102,304 @@ class TestLambdaContainer_init(TestCase):
         self.assertEqual(expected_env_vars, container._env_vars)
         self.assertEqual(self.memory_mb, container._memory_limit_mb)
 
-        get_image_mock.assert_called_with(image_builder_mock, self.runtime, [], self.debug_options)
+        get_image_mock.assert_called_with(
+            image_builder_mock, self.runtime, self.packagetype, self.imageuri, [], self.debug_options
+        )
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_debug_settings_mock.assert_called_with(self.runtime, self.debug_options)
+        get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
+        get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options)
+
+    @patch.object(LambdaContainer, "_get_config")
+    @patch.object(LambdaContainer, "_get_image")
+    @patch.object(LambdaContainer, "_get_exposed_ports")
+    @patch.object(LambdaContainer, "_get_additional_options")
+    @patch.object(LambdaContainer, "_get_additional_volumes")
+    @patch.object(LambdaContainer, "_get_debug_settings")
+    def test_must_configure_container_properly_image_no_debug(
+        self,
+        get_debug_settings_mock,
+        get_additional_volumes_mock,
+        get_additional_options_mock,
+        get_exposed_ports_mock,
+        get_image_mock,
+        get_config_mock,
+    ):
+        self.packagetype = IMAGE
+        self.imageuri = "mylambda_image:v1"
+        self.runtime = None
+
+        image = IMAGE
+        ports = {"a": "b"}
+        addtl_options = {}
+        addtl_volumes = {}
+        expected_cmd = ["mycommand"]
+
+        get_image_mock.return_value = image
+        get_debug_settings_mock.return_value = (LambdaContainer._DEFAULT_ENTRYPOINT, {})
+        get_config_mock.return_value = {
+            "Cmd": ["mycommand"],
+            "Entrypoint": ["my-additional-entrypoint"],
+            "WorkingDir": "/var/mytask",
+        }
+        get_exposed_ports_mock.return_value = ports
+        get_additional_options_mock.return_value = addtl_options
+        get_additional_volumes_mock.return_value = addtl_volumes
+        expected_env_vars = {**self.env_var}
+
+        image_builder_mock = Mock()
+
+        container = LambdaContainer(
+            image_config=self.image_config,
+            imageuri=self.imageuri,
+            packagetype=self.packagetype,
+            runtime=self.runtime,
+            handler=self.handler,
+            code_dir=self.code_dir,
+            layers=[],
+            lambda_image=image_builder_mock,
+            env_vars=self.env_var,
+            memory_mb=self.memory_mb,
+            debug_options=self.debug_options,
+        )
+
+        self.assertEqual(image, container._image)
+        self.assertEqual(expected_cmd, container._cmd)
+        self.assertEqual(get_config_mock()["WorkingDir"], container._working_dir)
+        self.assertEqual(self.code_dir, container._host_dir)
+        self.assertEqual(ports, container._exposed_ports)
+        self.assertEqual(LambdaContainer._DEFAULT_ENTRYPOINT + get_config_mock()["Entrypoint"], container._entrypoint)
+        self.assertEqual({**expected_env_vars, **{"AWS_LAMBDA_FUNCTION_HANDLER": "mycommand"}}, container._env_vars)
+        self.assertEqual(self.memory_mb, container._memory_limit_mb)
+
+        get_image_mock.assert_called_with(
+            image_builder_mock, self.runtime, self.packagetype, self.imageuri, [], self.debug_options
+        )
+        get_exposed_ports_mock.assert_called_with(self.debug_options)
+        get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
+        get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options)
+
+    @patch.object(LambdaContainer, "_get_config")
+    @patch.object(LambdaContainer, "_get_image")
+    @patch.object(LambdaContainer, "_get_exposed_ports")
+    @patch.object(LambdaContainer, "_get_additional_options")
+    @patch.object(LambdaContainer, "_get_additional_volumes")
+    def test_must_configure_container_properly_image_debug(
+        self,
+        get_additional_volumes_mock,
+        get_additional_options_mock,
+        get_exposed_ports_mock,
+        get_image_mock,
+        get_config_mock,
+    ):
+        self.packagetype = IMAGE
+        self.imageuri = "mylambda_image:v1"
+        self.runtime = None
+
+        image = IMAGE
+        ports = {"a": "b"}
+        addtl_options = {}
+        addtl_volumes = {}
+        expected_cmd = ["mycommand"]
+
+        get_image_mock.return_value = image
+        get_config_mock.return_value = {
+            "Cmd": ["mycommand"],
+            "Entrypoint": ["my-additional-entrypoint"],
+            "WorkingDir": "/var/mytask",
+        }
+        get_exposed_ports_mock.return_value = ports
+        get_additional_options_mock.return_value = addtl_options
+        get_additional_volumes_mock.return_value = addtl_volumes
+        expected_env_vars = {
+            **self.env_var,
+            **self.debug_options.container_env_vars,
+            **{"AWS_LAMBDA_FUNCTION_HANDLER": "mycommand"},
+        }
+
+        image_builder_mock = Mock()
+
+        container = LambdaContainer(
+            image_config=self.image_config,
+            imageuri=self.imageuri,
+            packagetype=self.packagetype,
+            runtime=self.runtime,
+            handler=self.handler,
+            code_dir=self.code_dir,
+            layers=[],
+            lambda_image=image_builder_mock,
+            env_vars=self.env_var,
+            memory_mb=self.memory_mb,
+            debug_options=self.debug_options,
+        )
+
+        self.assertEqual(image, container._image)
+        self.assertEqual(expected_cmd, container._cmd)
+        self.assertEqual(get_config_mock()["WorkingDir"], container._working_dir)
+        self.assertEqual(self.code_dir, container._host_dir)
+        self.assertEqual(ports, container._exposed_ports)
+        # Dis-regard Entrypoint when debug args are present.
+        self.assertEqual(
+            LambdaContainer._DEFAULT_ENTRYPOINT + self.debug_options.debug_args.split(" "), container._entrypoint
+        )
+        self.assertEqual(expected_env_vars, container._env_vars)
+        self.assertEqual(self.memory_mb, container._memory_limit_mb)
+
+        get_image_mock.assert_called_with(
+            image_builder_mock, self.runtime, IMAGE, self.imageuri, [], self.debug_options
+        )
+        get_exposed_ports_mock.assert_called_with(self.debug_options)
+        get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
+        get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options)
+
+    @patch.object(LambdaContainer, "_get_config")
+    @patch.object(LambdaContainer, "_get_image")
+    @patch.object(LambdaContainer, "_get_exposed_ports")
+    @patch.object(LambdaContainer, "_get_additional_options")
+    @patch.object(LambdaContainer, "_get_additional_volumes")
+    def test_must_configure_container_properly_image_with_imageconfig_debug(
+        self,
+        get_additional_volumes_mock,
+        get_additional_options_mock,
+        get_exposed_ports_mock,
+        get_image_mock,
+        get_config_mock,
+    ):
+        self.packagetype = IMAGE
+        self.imageuri = "mylambda_image:v1"
+        self.runtime = None
+        self.image_config = {
+            "Command": ["my-imageconfig-command"],
+            "EntryPoint": ["my-imageconfig-entrypoint"],
+            "WorkingDirectory": "/var/myimageconfigtask",
+        }
+
+        image = IMAGE
+        ports = {"a": "b"}
+        addtl_options = {}
+        addtl_volumes = {}
+        expected_cmd = ["my-imageconfig-command"]
+
+        get_image_mock.return_value = image
+        get_config_mock.return_value = {
+            "Cmd": ["mycommand"],
+            "Entrypoint": ["my-additional-entrypoint"],
+            "WorkingDir": "/var/mytask",
+        }
+        get_exposed_ports_mock.return_value = ports
+        get_additional_options_mock.return_value = addtl_options
+        get_additional_volumes_mock.return_value = addtl_volumes
+        expected_env_vars = {**self.env_var, **self.debug_options.container_env_vars}
+
+        image_builder_mock = Mock()
+
+        container = LambdaContainer(
+            image_config=self.image_config,
+            imageuri=self.imageuri,
+            packagetype=self.packagetype,
+            runtime=self.runtime,
+            handler=self.handler,
+            code_dir=self.code_dir,
+            layers=[],
+            lambda_image=image_builder_mock,
+            env_vars=self.env_var,
+            memory_mb=self.memory_mb,
+            debug_options=self.debug_options,
+        )
+
+        self.assertEqual(image, container._image)
+        self.assertEqual(expected_cmd, container._cmd)
+        self.assertEqual(self.image_config["WorkingDirectory"], container._working_dir)
+        self.assertEqual(self.code_dir, container._host_dir)
+        self.assertEqual(ports, container._exposed_ports)
+        self.assertEqual(
+            LambdaContainer._DEFAULT_ENTRYPOINT + self.debug_options.debug_args.split(" "), container._entrypoint
+        )
+        self.assertEqual(
+            {**expected_env_vars, **{"AWS_LAMBDA_FUNCTION_HANDLER": "my-imageconfig-command"}}, container._env_vars
+        )
+        self.assertEqual(self.memory_mb, container._memory_limit_mb)
+
+        get_image_mock.assert_called_with(
+            image_builder_mock, self.runtime, IMAGE, self.imageuri, [], self.debug_options
+        )
+        get_exposed_ports_mock.assert_called_with(self.debug_options)
+        get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
+        get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options)
+
+    @patch.object(LambdaContainer, "_get_config")
+    @patch.object(LambdaContainer, "_get_image")
+    @patch.object(LambdaContainer, "_get_exposed_ports")
+    @patch.object(LambdaContainer, "_get_additional_options")
+    @patch.object(LambdaContainer, "_get_additional_volumes")
+    @patch.object(LambdaContainer, "_get_debug_settings")
+    def test_must_configure_container_properly_image_with_imageconfig_no_debug(
+        self,
+        get_debug_settings_mock,
+        get_additional_volumes_mock,
+        get_additional_options_mock,
+        get_exposed_ports_mock,
+        get_image_mock,
+        get_config_mock,
+    ):
+        self.packagetype = IMAGE
+        self.imageuri = "mylambda_image:v1"
+        self.runtime = None
+        self.image_config = {
+            "Command": ["my-imageconfig-command"],
+            "EntryPoint": ["my-imageconfig-entrypoint"],
+            "WorkingDirectory": "/var/myimageconfigtask",
+        }
+
+        image = IMAGE
+        ports = {"a": "b"}
+        addtl_options = {}
+        addtl_volumes = {}
+        expected_cmd = ["my-imageconfig-command"]
+
+        get_image_mock.return_value = image
+        get_config_mock.return_value = {
+            "Cmd": ["mycommand"],
+            "Entrypoint": ["my-additional-entrypoint"],
+            "WorkingDir": "/var/mytask",
+        }
+        get_exposed_ports_mock.return_value = ports
+        get_debug_settings_mock.return_value = (LambdaContainer._DEFAULT_ENTRYPOINT, {})
+        get_additional_options_mock.return_value = addtl_options
+        get_additional_volumes_mock.return_value = addtl_volumes
+        expected_env_vars = {**self.env_var}
+
+        image_builder_mock = Mock()
+
+        container = LambdaContainer(
+            image_config=self.image_config,
+            imageuri=self.imageuri,
+            packagetype=self.packagetype,
+            runtime=self.runtime,
+            handler=self.handler,
+            code_dir=self.code_dir,
+            layers=[],
+            lambda_image=image_builder_mock,
+            env_vars=self.env_var,
+            memory_mb=self.memory_mb,
+            debug_options=self.debug_options,
+        )
+
+        self.assertEqual(image, container._image)
+        self.assertEqual(expected_cmd, container._cmd)
+        self.assertEqual(self.image_config["WorkingDirectory"], container._working_dir)
+        self.assertEqual(self.code_dir, container._host_dir)
+        self.assertEqual(ports, container._exposed_ports)
+        self.assertEqual(LambdaContainer._DEFAULT_ENTRYPOINT + self.image_config["EntryPoint"], container._entrypoint)
+        self.assertEqual(
+            {**expected_env_vars, **{"AWS_LAMBDA_FUNCTION_HANDLER": "my-imageconfig-command"}}, container._env_vars
+        )
+        self.assertEqual(self.memory_mb, container._memory_limit_mb)
+
+        get_image_mock.assert_called_with(
+            image_builder_mock, self.runtime, self.packagetype, self.imageuri, [], self.debug_options
+        )
+        get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
         get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options)
 
@@ -108,7 +410,16 @@ class TestLambdaContainer_init(TestCase):
         image_builder_mock = Mock()
 
         with self.assertRaises(ValueError) as context:
-            LambdaContainer(runtime, self.handler, self.code_dir, [], image_builder_mock)
+            LambdaContainer(
+                runtime=runtime,
+                imageuri=self.imageuri,
+                handler=self.handler,
+                packagetype=self.packagetype,
+                image_config=self.image_config,
+                code_dir=self.code_dir,
+                layers=[],
+                lambda_image=image_builder_mock,
+            )
 
         self.assertEqual(str(context.exception), "Unsupported Lambda runtime foo")
 
@@ -158,9 +469,19 @@ class TestLambdaContainer_get_image(TestCase):
         image_builder = Mock()
         image_builder.build.return_value = expected
 
-        self.assertEqual(LambdaContainer._get_image(image_builder, "foo", [], debug_options), expected)
+        self.assertEqual(
+            LambdaContainer._get_image(
+                lambda_image=image_builder,
+                runtime="foo",
+                packagetype=ZIP,
+                image=None,
+                layers=[],
+                debug_options=debug_options,
+            ),
+            expected,
+        )
 
-        image_builder.build.assert_called_with("foo", [], True)
+        image_builder.build.assert_called_with("foo", ZIP, None, [], True)
 
     def test_must_return_lambci_image_without_debug(self):
         debug_options = DebugContext()
@@ -170,9 +491,19 @@ class TestLambdaContainer_get_image(TestCase):
         image_builder = Mock()
         image_builder.build.return_value = expected
 
-        self.assertEqual(LambdaContainer._get_image(image_builder, "foo", [], debug_options), expected)
+        self.assertEqual(
+            LambdaContainer._get_image(
+                lambda_image=image_builder,
+                runtime="foo",
+                packagetype=ZIP,
+                image=None,
+                layers=[],
+                debug_options=debug_options,
+            ),
+            expected,
+        )
 
-        image_builder.build.assert_called_with("foo", [], False)
+        image_builder.build.assert_called_with("foo", ZIP, None, [], False)
 
 
 class TestLambdaContainer_get_debug_settings(TestCase):
@@ -184,7 +515,7 @@ class TestLambdaContainer_get_debug_settings(TestCase):
 
     def test_must_skip_if_debug_port_is_not_specified(self):
         self.assertEqual(
-            ("/var/rapid/init", {}),
+            (LambdaContainer._DEFAULT_ENTRYPOINT, {}),
             LambdaContainer._get_debug_settings("runtime", None),
             "Must not provide entrypoint if debug port is not given",
         )
@@ -197,17 +528,21 @@ class TestLambdaContainer_get_debug_settings(TestCase):
 
         elif runtime in RUNTIMES_WITH_DEBUG_ENV_VARS_ONLY:
             result, _ = LambdaContainer._get_debug_settings(runtime, self.debug_options)
-            self.assertEquals("/var/rapid/init", result, "{} runtime must not override entrypoint".format(runtime))
+            self.assertEquals(
+                ["/var/rapid/aws-lambda-rie", "--log-level", "error"],
+                result,
+                "{} runtime must not override entrypoint".format(runtime),
+            )
 
         else:
             with self.assertRaises(DebuggingNotSupported):
                 LambdaContainer._get_debug_settings(runtime, self.debug_options)
 
     @parameterized.expand([param(r) for r in RUNTIMES_WITH_DEBUG_ENV_VARS_ONLY])
-    def test_must_provide_debug_env_vars(self, runtime):
-        _, debug_env_vars = LambdaContainer._get_debug_settings(runtime, self.debug_options)
+    def test_must_provide_container_env_vars(self, runtime):
+        _, container_env_vars = LambdaContainer._get_debug_settings(runtime, self.debug_options)
 
-        self.assertIsNotNone(debug_env_vars)
+        self.assertIsNotNone(container_env_vars)
 
     @parameterized.expand([param(r) for r in set(RUNTIMES_WITH_ENTRYPOINT) if not r.startswith("dotnetcore")])
     def test_debug_arg_must_be_split_by_spaces_and_appended_to_entrypoint(self, runtime):
@@ -227,7 +562,7 @@ class TestLambdaContainer_get_debug_settings(TestCase):
         """
         expected_debug_args = ["a=b", "c=d", "e=f"]
         result, _ = LambdaContainer._get_debug_settings(runtime, self.debug_options)
-        actual = result[4:5][0]
+        actual = result[4:7]
 
         self.assertTrue(all(debug_arg in actual for debug_arg in expected_debug_args))
 

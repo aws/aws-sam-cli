@@ -6,12 +6,13 @@ from unittest import TestCase
 from unittest.mock import patch, Mock
 from parameterized import parameterized, param
 
+from samcli.local.docker.exceptions import ContainerNotStartableException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.lib.providers.exceptions import InvalidLayerReference
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.exceptions import UserException
 from samcli.commands.local.invoke.cli import do_cli as invoke_cli, _get_event as invoke_cli_get_event
-from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
+from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError, InvalidIntermediateImageError
 from samcli.local.docker.manager import DockerImagePullFailedException
 from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
 
@@ -25,6 +26,7 @@ class TestCli(TestCase):
         self.template = "template"
         self.eventfile = "eventfile"
         self.env_vars = "env-vars"
+        self.container_env_vars = "debug-env-vars"
         self.debug_ports = [123]
         self.debug_args = "args"
         self.debugger_path = "/test/path"
@@ -36,6 +38,7 @@ class TestCli(TestCase):
         self.parameter_overrides = {}
         self.layer_cache_basedir = "/some/layers/path"
         self.force_image_build = True
+        self.shutdown = False
         self.region_name = "region"
         self.profile = "profile"
 
@@ -63,6 +66,7 @@ class TestCli(TestCase):
             debug_port=self.debug_ports,
             debug_args=self.debug_args,
             debugger_path=self.debugger_path,
+            container_env_vars=self.container_env_vars,
             docker_volume_basedir=self.docker_volume_basedir,
             docker_network=self.docker_network,
             log_file=self.log_file,
@@ -70,6 +74,7 @@ class TestCli(TestCase):
             parameter_overrides=self.parameter_overrides,
             layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
+            shutdown=self.shutdown,
         )
 
         InvokeContextMock.assert_called_with(
@@ -83,9 +88,11 @@ class TestCli(TestCase):
             debug_ports=self.debug_ports,
             debug_args=self.debug_args,
             debugger_path=self.debugger_path,
+            container_env_vars_file=self.container_env_vars,
             parameter_overrides=self.parameter_overrides,
             layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
+            shutdown=self.shutdown,
             aws_region=self.region_name,
             aws_profile=self.profile,
         )
@@ -117,6 +124,7 @@ class TestCli(TestCase):
             debug_port=self.debug_ports,
             debug_args=self.debug_args,
             debugger_path=self.debugger_path,
+            container_env_vars=self.container_env_vars,
             docker_volume_basedir=self.docker_volume_basedir,
             docker_network=self.docker_network,
             log_file=self.log_file,
@@ -124,6 +132,7 @@ class TestCli(TestCase):
             parameter_overrides=self.parameter_overrides,
             layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
+            shutdown=self.shutdown,
         )
 
         InvokeContextMock.assert_called_with(
@@ -137,9 +146,11 @@ class TestCli(TestCase):
             debug_ports=self.debug_ports,
             debug_args=self.debug_args,
             debugger_path=self.debugger_path,
+            container_env_vars_file=self.container_env_vars,
             parameter_overrides=self.parameter_overrides,
             layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
+            shutdown=self.shutdown,
             aws_region=self.region_name,
             aws_profile=self.profile,
         )
@@ -185,6 +196,7 @@ class TestCli(TestCase):
                 debug_port=self.debug_ports,
                 debug_args=self.debug_args,
                 debugger_path=self.debugger_path,
+                container_env_vars=self.container_env_vars,
                 docker_volume_basedir=self.docker_volume_basedir,
                 docker_network=self.docker_network,
                 log_file=self.log_file,
@@ -192,6 +204,59 @@ class TestCli(TestCase):
                 parameter_overrides=self.parameter_overrides,
                 layer_cache_basedir=self.layer_cache_basedir,
                 force_image_build=self.force_image_build,
+                shutdown=self.shutdown,
+            )
+
+        msg = str(ex_ctx.exception)
+        self.assertEqual(msg, expected_exectpion_message)
+
+    @parameterized.expand(
+        [
+            param(
+                InvalidIntermediateImageError("ImageUri not set to a reference-able image for Function: MyFunction"),
+                "ImageUri not set to a reference-able image for Function: MyFunction",
+            ),
+        ]
+    )
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
+    @patch("samcli.commands.local.invoke.cli._get_event")
+    def test_must_raise_user_exception_on_function_local_invoke_image_not_found_for_IMAGE_packagetype(
+        self, side_effect_exception, expected_exectpion_message, get_event_mock, InvokeContextMock
+    ):
+        event_data = "data"
+        get_event_mock.return_value = event_data
+
+        ctx_mock = Mock()
+        ctx_mock.region = self.region_name
+        ctx_mock.profile = self.profile
+
+        # Mock the __enter__ method to return a object inside a context manager
+        context_mock = Mock()
+        InvokeContextMock.return_value.__enter__.return_value = context_mock
+
+        context_mock.local_lambda_runner.invoke.side_effect = side_effect_exception
+
+        with self.assertRaises(UserException) as ex_ctx:
+
+            invoke_cli(
+                ctx=ctx_mock,
+                function_identifier=self.function_id,
+                template=self.template,
+                event=self.eventfile,
+                no_event=self.no_event,
+                env_vars=self.env_vars,
+                debug_port=self.debug_ports,
+                debug_args=self.debug_args,
+                debugger_path=self.debugger_path,
+                container_env_vars=self.container_env_vars,
+                docker_volume_basedir=self.docker_volume_basedir,
+                docker_network=self.docker_network,
+                log_file=self.log_file,
+                skip_pull_image=self.skip_pull_image,
+                parameter_overrides=self.parameter_overrides,
+                layer_cache_basedir=self.layer_cache_basedir,
+                force_image_build=self.force_image_build,
+                shutdown=self.shutdown,
             )
 
         msg = str(ex_ctx.exception)
@@ -233,6 +298,7 @@ class TestCli(TestCase):
                 debug_port=self.debug_ports,
                 debug_args=self.debug_args,
                 debugger_path=self.debugger_path,
+                container_env_vars=self.container_env_vars,
                 docker_volume_basedir=self.docker_volume_basedir,
                 docker_network=self.docker_network,
                 log_file=self.log_file,
@@ -240,6 +306,7 @@ class TestCli(TestCase):
                 parameter_overrides=self.parameter_overrides,
                 layer_cache_basedir=self.layer_cache_basedir,
                 force_image_build=self.force_image_build,
+                shutdown=self.shutdown,
             )
 
         msg = str(ex_ctx.exception)
@@ -269,6 +336,7 @@ class TestCli(TestCase):
                 debug_port=self.debug_ports,
                 debug_args=self.debug_args,
                 debugger_path=self.debugger_path,
+                container_env_vars=self.container_env_vars,
                 docker_volume_basedir=self.docker_volume_basedir,
                 docker_network=self.docker_network,
                 log_file=self.log_file,
@@ -276,10 +344,63 @@ class TestCli(TestCase):
                 parameter_overrides=self.parameter_overrides,
                 layer_cache_basedir=self.layer_cache_basedir,
                 force_image_build=self.force_image_build,
+                shutdown=self.shutdown,
             )
 
         msg = str(ex_ctx.exception)
         self.assertEqual(msg, "bad env vars")
+
+    @parameterized.expand(
+        [
+            param(
+                ContainerNotStartableException("Container cannot be started, no free ports on host"),
+                "Container cannot be started, no free ports on host",
+            ),
+        ]
+    )
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
+    @patch("samcli.commands.local.invoke.cli._get_event")
+    def test_must_raise_user_exception_on_function_no_free_ports(
+        self, side_effect_exception, expected_exectpion_message, get_event_mock, InvokeContextMock
+    ):
+        event_data = "data"
+        get_event_mock.return_value = event_data
+
+        ctx_mock = Mock()
+        ctx_mock.region = self.region_name
+        ctx_mock.profile = self.profile
+
+        # Mock the __enter__ method to return a object inside a context manager
+        context_mock = Mock()
+        InvokeContextMock.return_value.__enter__.return_value = context_mock
+
+        context_mock.local_lambda_runner.invoke.side_effect = side_effect_exception
+
+        with self.assertRaises(UserException) as ex_ctx:
+
+            invoke_cli(
+                ctx=ctx_mock,
+                function_identifier=self.function_id,
+                template=self.template,
+                event=self.eventfile,
+                no_event=self.no_event,
+                env_vars=self.env_vars,
+                debug_port=self.debug_ports,
+                debug_args=self.debug_args,
+                debugger_path=self.debugger_path,
+                container_env_vars=self.container_env_vars,
+                docker_volume_basedir=self.docker_volume_basedir,
+                docker_network=self.docker_network,
+                log_file=self.log_file,
+                skip_pull_image=self.skip_pull_image,
+                parameter_overrides=self.parameter_overrides,
+                layer_cache_basedir=self.layer_cache_basedir,
+                force_image_build=self.force_image_build,
+                shutdown=self.shutdown,
+            )
+
+        msg = str(ex_ctx.exception)
+        self.assertEqual(msg, expected_exectpion_message)
 
 
 class TestGetEvent(TestCase):

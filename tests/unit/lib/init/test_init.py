@@ -7,6 +7,7 @@ from cookiecutter.exceptions import CookiecutterException, RepositoryNotFound
 from samcli.lib.init import generate_project
 from samcli.lib.init import GenerateProjectFailedError
 from samcli.lib.init import RUNTIME_DEP_TEMPLATE_MAPPING
+from samcli.lib.utils.packagetype import ZIP
 
 
 class TestInit(TestCase):
@@ -27,6 +28,7 @@ class TestInit(TestCase):
         generate_project(
             location=self.location,
             runtime=self.runtime,
+            package_type=ZIP,
             dependency_manager=self.dependency_manager,
             output_dir=self.output_dir,
             name=self.name,
@@ -43,6 +45,7 @@ class TestInit(TestCase):
         generate_project(
             location=self.location,
             runtime=self.runtime,
+            package_type=ZIP,
             dependency_manager=None,
             output_dir=self.output_dir,
             name=self.name,
@@ -59,6 +62,7 @@ class TestInit(TestCase):
             generate_project(
                 location=self.location,
                 runtime=self.runtime,
+                package_type=ZIP,
                 dependency_manager="gradle",
                 output_dir=self.output_dir,
                 name=self.name,
@@ -86,6 +90,7 @@ class TestInit(TestCase):
             generate_project(
                 location=self.location,
                 runtime=self.runtime,
+                package_type=ZIP,
                 dependency_manager=self.dependency_manager,
                 output_dir=self.output_dir,
                 name=self.name,
@@ -112,6 +117,7 @@ class TestInit(TestCase):
         cookiecutter_context = {"key1": "value1", "key2": "value2"}
         generate_project(
             runtime=self.runtime,
+            package_type=ZIP,
             dependency_manager=self.dependency_manager,
             output_dir=self.output_dir,
             name=self.name,
