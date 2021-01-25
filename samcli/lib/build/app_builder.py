@@ -223,10 +223,11 @@ class ApplicationBuilder:
                     properties["CodeUri"] = store_path
 
             if resource_type == SamBaseProvider.LAMBDA_FUNCTION and package_type == ZIP:
-                if "Code" in properties:
-                    if "ZipFile" not in properties["Code"] or properties["Code"]["ZipFile"] is None:
-                        properties["Code"] = store_path
-                else:
+                if (
+                    "Code" not in properties
+                    or "ZipFile" not in properties["Code"]
+                    or properties["Code"]["ZipFile"] is None
+                ):
                     properties["Code"] = store_path
 
             if resource_type in [SamBaseProvider.SERVERLESS_LAYER, SamBaseProvider.LAMBDA_LAYER]:
