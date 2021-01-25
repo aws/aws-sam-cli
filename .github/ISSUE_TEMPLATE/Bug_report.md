@@ -6,21 +6,25 @@ about: Create an Issue to report a bug
 <!-- Make sure we don't have an existing Issue that reports the bug you are seeing (both open and closed). 
 If you do find an existing Issue, re-open or add a comment to that Issue instead of creating a new one. -->
 
-### Description
+### Description:
+<!-- Briefly describe the bug you are facing.-->
 
-Briefly describe the bug you are facing.
 
-### Steps to reproduce
 
-Provide steps to replicate.
+### Steps to reproduce:
+<!-- Provide steps to replicate.-->
 
-### Observed result
 
-Please provide command output with `--debug` flag set.
 
-### Expected result
+### Observed result:
+<!-- Please provide command output with `--debug` flag set.-->
 
-Describe what you expected.
+
+
+### Expected result:
+<!-- Describe what you expected.-->
+
+
 
 ### Additional environment details (Ex: Windows, Mac, Amazon Linux etc)
 

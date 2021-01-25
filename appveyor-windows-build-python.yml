@@ -52,6 +52,13 @@ install:
     # Upgrade setuptools, wheel and virtualenv
     - "python -m pip install --upgrade setuptools wheel virtualenv"
 
+    # Upgrade pip in each python
+    - "C:\\Python27\\python.exe -m pip install --upgrade pip"
+    - "C:\\Python36-x64\\python.exe -m pip install --upgrade pip"
+    # python is python3.7
+    - "python -m pip install --upgrade pip"
+    - "C:\\Python38\\python.exe -m pip install --upgrade pip"
+
     # Create new virtual environment with chosen python version and activate it
     - "python -m virtualenv venv"
     - "venv\\Scripts\\activate"

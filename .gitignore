@@ -359,6 +359,9 @@ GitHub.sublime-settings
 !.vscode/extensions.json
 .history
 
+### Theia editor (GitPod)
+.theia
+
 ### Windows ###
 # Windows thumbnail cache files
 Thumbs.db

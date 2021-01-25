@@ -23,4 +23,22 @@ namespace HelloWorld
             return "{'message': 'Hello World'}";
         }
     }
+
+    public class FirstFunction
+    {
+
+        public string FunctionHandler(APIGatewayProxyRequest apigProxyEvent, ILambdaContext context)
+        {
+            return "Hello World";
+        }
+    }
+
+    public class SecondFunction
+    {
+
+        public string FunctionHandler(APIGatewayProxyRequest apigProxyEvent, ILambdaContext context)
+        {
+            return "Hello Mars";
+        }
+    }
 }

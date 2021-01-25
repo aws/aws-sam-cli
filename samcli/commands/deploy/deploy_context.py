@@ -17,6 +17,7 @@ Deploy a SAM stack
 
 import logging
 import os
+from typing import Dict, List
 
 import boto3
 import click
@@ -47,7 +48,10 @@ class DeployContext:
         template_file,
         stack_name,
         s3_bucket,
+        image_repository,
+        image_repositories,
         force_upload,
+        no_progressbar,
         s3_prefix,
         kms_key_id,
         parameter_overrides,
@@ -60,11 +64,15 @@ class DeployContext:
         region,
         profile,
         confirm_changeset,
+        signing_profiles,
     ):
         self.template_file = template_file
         self.stack_name = stack_name
         self.s3_bucket = s3_bucket
+        self.image_repository = image_repository
+        self.image_repositories = image_repositories
         self.force_upload = force_upload
+        self.no_progressbar = no_progressbar
         self.s3_prefix = s3_prefix
         self.kms_key_id = kms_key_id
         self.parameter_overrides = parameter_overrides
@@ -79,6 +87,7 @@ class DeployContext:
         self.s3_uploader = None
         self.deployer = None
         self.confirm_changeset = confirm_changeset
+        self.signing_profiles = signing_profiles
 
     def __enter__(self):
         return self
@@ -113,7 +122,9 @@ class DeployContext:
         if self.s3_bucket:
             s3_client = boto3.client("s3", region_name=self.region if self.region else None, config=boto_config)
 
-            self.s3_uploader = S3Uploader(s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload)
+            self.s3_uploader = S3Uploader(
+                s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload, self.no_progressbar
+            )
 
         self.deployer = Deployer(cloudformation_client)
 
@@ -121,10 +132,12 @@ class DeployContext:
         print_deploy_args(
             self.stack_name,
             self.s3_bucket,
+            self.image_repositories if isinstance(self.image_repositories, dict) else self.image_repository,
             region,
             self.capabilities,
             self.parameter_overrides,
             self.confirm_changeset,
+            self.signing_profiles,
         )
         return self.deploy(
             self.stack_name,
@@ -196,7 +209,8 @@ class DeployContext:
                 raise
             click.echo(str(ex))
 
-    def merge_parameters(self, template_dict, parameter_overrides):
+    @staticmethod
+    def merge_parameters(template_dict: Dict, parameter_overrides: Dict) -> List[Dict]:
         """
         CloudFormation CreateChangeset requires a value for every parameter
         from the template, either specifying a new value or use previous value.
@@ -204,10 +218,11 @@ class DeployContext:
         generates a dict of all parameters in a format that ChangeSet API
         will accept
 
+        :param template_dict:
         :param parameter_overrides:
         :return:
         """
-        parameter_values = []
+        parameter_values: List[Dict] = []
 
         if not isinstance(template_dict.get("Parameters", None), dict):
             return parameter_values

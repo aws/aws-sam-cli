@@ -126,7 +126,7 @@ class TelemetryServer(Thread):
     """
 
     def __init__(self):
-        super(TelemetryServer, self).__init__()
+        super().__init__()
 
         self.flask_app = Flask(__name__)
 

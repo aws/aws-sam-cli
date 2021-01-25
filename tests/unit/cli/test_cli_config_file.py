@@ -1,3 +1,4 @@
+import os
 import tempfile
 
 from pathlib import Path
@@ -6,15 +7,16 @@ from unittest.mock import MagicMock
 
 from samcli.commands.exceptions import ConfigException
 from samcli.cli.cli_config_file import TomlProvider, configuration_option, configuration_callback, get_ctx_defaults
-from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV
+from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
 
 
 class MockContext:
-    def __init__(self, info_name, parent, params=None, command=None):
+    def __init__(self, info_name, parent, params=None, command=None, default_map=None):
         self.info_name = info_name
         self.parent = parent
         self.params = params
         self.command = command
+        self.default_map = default_map
 
 
 class TestTomlProvider(TestCase):
@@ -26,32 +28,49 @@ class TestTomlProvider(TestCase):
 
     def test_toml_valid_with_section(self):
         config_dir = tempfile.gettempdir()
-        configpath = Path(config_dir, "samconfig.toml")
-        configpath.write_text("version=0.1\n[config_env.topic.parameters]\nword='clarity'\n")
+        config_path = Path(config_dir, "samconfig.toml")
+        config_path.write_text("version=0.1\n[config_env.topic.parameters]\nword='clarity'\n")
         self.assertEqual(
-            TomlProvider(section=self.parameters)(config_dir, self.config_env, [self.cmd_name]), {"word": "clarity"}
+            TomlProvider(section=self.parameters)(config_path, self.config_env, [self.cmd_name]), {"word": "clarity"}
         )
 
     def test_toml_valid_with_no_version(self):
         config_dir = tempfile.gettempdir()
-        configpath = Path(config_dir, "samconfig.toml")
-        configpath.write_text("[config_env.topic.parameters]\nword='clarity'\n")
+        config_path = Path(config_dir, "samconfig.toml")
+        config_path.write_text("[config_env.topic.parameters]\nword='clarity'\n")
         with self.assertRaises(ConfigException):
-            TomlProvider(section=self.parameters)(config_dir, self.config_env, [self.cmd_name])
+            TomlProvider(section=self.parameters)(config_path, self.config_env, [self.cmd_name])
 
     def test_toml_valid_with_invalid_version(self):
         config_dir = tempfile.gettempdir()
-        configpath = Path(config_dir, "samconfig.toml")
-        configpath.write_text("version='abc'\n[config_env.topic.parameters]\nword='clarity'\n")
+        config_path = Path(config_dir, "samconfig.toml")
+        config_path.write_text("version='abc'\n[config_env.topic.parameters]\nword='clarity'\n")
         with self.assertRaises(ConfigException):
-            TomlProvider(section=self.parameters)(config_dir, self.config_env, [self.cmd_name])
+            TomlProvider(section=self.parameters)(config_path, self.config_env, [self.cmd_name])
 
     def test_toml_invalid_empty_dict(self):
         config_dir = tempfile.gettempdir()
-        configpath = Path(config_dir, "samconfig.toml")
-        configpath.write_text("[topic]\nword=clarity\n")
+        config_path = Path(config_dir, "samconfig.toml")
+        config_path.write_text("[topic]\nword=clarity\n")
 
         self.assertEqual(self.toml_provider(config_dir, self.config_env, [self.cmd_name]), {})
+
+    def test_toml_invalid_file_name(self):
+        config_dir = tempfile.gettempdir()
+        config_path = Path(config_dir, "mysamconfig.toml")
+        config_path.write_text("version=0.1\n[config_env.topic.parameters]\nword='clarity'\n")
+        config_path_invalid = Path(config_dir, "samconfig.toml")
+
+        with self.assertRaises(ConfigException):
+            self.toml_provider(config_path_invalid, self.config_env, [self.cmd_name])
+
+    def test_toml_invalid_syntax(self):
+        config_dir = tempfile.gettempdir()
+        config_path = Path(config_dir, "samconfig.toml")
+        config_path.write_text("version=0.1\n[config_env.topic.parameters]\nword=_clarity'\n")
+
+        with self.assertRaises(ConfigException):
+            self.toml_provider(config_path, self.config_env, [self.cmd_name])
 
 
 class TestCliConfiguration(TestCase):
@@ -75,10 +94,11 @@ class TestCliConfiguration(TestCase):
         mock_context3 = MockContext(info_name="start-api", parent=mock_context2)
         self.ctx.parent = mock_context3
         self.ctx.info_name = "test_info"
+        self.ctx.params = {}
+        setattr(self.ctx, "samconfig_dir", None)
         configuration_callback(
             cmd_name=self.cmd_name,
             option_name=self.option_name,
-            config_env_name=self.config_env,
             saved_callback=self.saved_callback,
             provider=self.provider,
             ctx=self.ctx,
@@ -95,10 +115,13 @@ class TestCliConfiguration(TestCase):
         click_option = configuration_option(provider=toml_provider)
         clc = click_option(self.Dummy())
         self.assertEqual(clc.__click_params__[0].is_eager, True)
-        self.assertEqual(clc.__click_params__[0].help, "Read config-env from Configuration File.")
+        self.assertEqual(
+            clc.__click_params__[0].help,
+            "This is a hidden click option whose callback function loads configuration parameters.",
+        )
         self.assertEqual(clc.__click_params__[0].hidden, True)
         self.assertEqual(clc.__click_params__[0].expose_value, False)
-        self.assertEqual(clc.__click_params__[0].callback.args, (None, "--config-env", "default", None, toml_provider))
+        self.assertEqual(clc.__click_params__[0].callback.args, (None, None, None, toml_provider))
 
     def test_get_ctx_defaults_non_nested(self):
         provider = MagicMock()
@@ -109,7 +132,7 @@ class TestCliConfiguration(TestCase):
 
         get_ctx_defaults("start-api", provider, mock_context3, "default")
 
-        provider.assert_called_with(SamConfig.config_dir(), "default", ["local", "start-api"])
+        provider.assert_called_with(None, "default", ["local", "start-api"])
 
     def test_get_ctx_defaults_nested(self):
         provider = MagicMock()
@@ -121,6 +144,4 @@ class TestCliConfiguration(TestCase):
 
         get_ctx_defaults("intent-answer", provider, mock_context4, "default")
 
-        provider.assert_called_with(
-            SamConfig.config_dir(), "default", ["local", "generate-event", "alexa-skills-kit", "intent-answer"]
-        )
+        provider.assert_called_with(None, "default", ["local", "generate-event", "alexa-skills-kit", "intent-answer"])

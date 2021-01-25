@@ -1,0 +1,11 @@
+{
+  "name": "npmdeps",
+  "version": "1.0.0",
+  "description": "",
+  "keywords": [],
+  "author": "",
+  "license": "APACHE2.0",
+  "dependencies": {
+    "aws-sdk": "2.803.0"
+  }
+}

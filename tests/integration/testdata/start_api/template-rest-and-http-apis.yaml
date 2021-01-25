@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Api:
+    BinaryMediaTypes:
+      # These are equivalent to image/gif and image/png when deployed
+      - image~1gif
+      - image~1png
+    Variables:
+      VarName: varValue
+    Cors: "'*''"
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.6
+      FunctionName: customname
+      CodeUri: .
+      Timeout: 600
+      Events:
+        IdBasePath:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /rest-api
+
+        PathWithAnyMethod:
+          Type: HttpApi
+          Properties:
+            Method: GET
+            Path: /http-api

@@ -13,7 +13,7 @@ class OptionNargs(click.Option):
 
     def __init__(self, *args, **kwargs):
         self.nargs = kwargs.pop("nargs", -1)
-        super(OptionNargs, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._previous_parser_process = None
         self._nargs_parser = None
 
@@ -37,7 +37,7 @@ class OptionNargs(click.Option):
             self._previous_parser_process(value, state)
 
         # Add current option to Parser by calling add_to_parser on the super class.
-        super(OptionNargs, self).add_to_parser(parser, ctx)
+        super().add_to_parser(parser, ctx)
         for name in self.opts:
             # Get OptionParser object for current option
             option_parser = getattr(parser, "_long_opt").get(name) or getattr(parser, "_short_opt").get(name)

@@ -1,0 +1,24 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Template with unnecessary service role
+
+Resources:
+
+  Function:
+    Type: AWS::Serverless::Function
+    Condition: true
+    Properties:
+      Handler: lambda.lambda_handler
+      Runtime: python3.7
+      CodeUri: s3://bucket/key
+      DeploymentPreference:
+        Type: Linear10PercentEvery1Minute
+        Role: arn:aws:iam::123456789999:role/custom-codedeploy-servicerole
+        Hooks:
+          PreTraffic: !Ref preTrafficHook
+        Events:
+          Api:
+            Type: Api
+            Properties:
+              Path: /test
+              Method: get

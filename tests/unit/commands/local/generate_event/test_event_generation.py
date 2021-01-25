@@ -13,30 +13,65 @@ class TestEvents(TestCase):
         self.values_to_sub = {"hello": "world"}
 
     def test_base64_encoding(self):
-        tags = {"hello": {"encoding": "base64"}}
-        e = events.Events().encode(tags, "encoding", self.values_to_sub)
-        self.assertEqual(e, {"hello": "d29ybGQ="})
+        result = events.Events().encode("base64", "world")
+        self.assertEqual(result, "d29ybGQ=")
 
     def test_url_encoding(self):
-        tags = {"hello": {"encoding": "url"}}
-        e = events.Events().encode(tags, "encoding", self.values_to_sub)
-        self.assertEqual(e, {"hello": "world"})
+        result = events.Events().encode("url", "http://www.example.com/?a=1&b=2")
+        self.assertEqual(result, "http%3A//www.example.com/%3Fa%3D1%26b%3D2")
 
     def test_if_encoding_is_none(self):
-        tags = {"hello": {"encoding": "None"}}
-        e = events.Events().encode(tags, "encoding", self.values_to_sub)
-        self.assertEqual(e, {"hello": "world"})
+        result = events.Events().encode(None, "hello")
+        self.assertEqual(result, "hello")
 
-    def test_if_tags_is_empty(self):
-        tags = {}
-        e = events.Events().encode(tags, "encoding", {})
-        self.assertEqual(e, {})
+    def test_if_encoding_is_other(self):
+        result = events.Events().encode("other", "hello")
+        self.assertEqual(result, "hello")
 
-    def test_if_tags_is_two_or_more(self):
-        tags = {"hello": {"encoding": "base64"}, "hi": {"encoding": "url"}, "bop": {"encoding": "None"}}
-        values_to_sub = {"bop": "dop", "hello": "world", "hi": "yo"}
-        e = events.Events().encode(tags, "encoding", values_to_sub)
-        self.assertEqual(e, {"bop": "dop", "hello": "d29ybGQ=", "hi": "yo"})
+    def test_md5_hashing(self):
+        result = events.Events().hash("md5", "hello, world!")
+        self.assertEqual(result, "3adbbad1791fbae3ec908894c4963870")
+
+    def test_if_hashing_is_not_supported(self):
+        self.assertRaises(ValueError, events.Events().hash, "unsupported", "hello, world!")
+
+    def test_transform_val_encoding(self):
+        properties = {"encoding": "base64"}
+        val = "world"
+        result = events.Events().transform_val(properties, val)
+        self.assertEqual(result, "d29ybGQ=")
+
+    def test_transform_val_hashing(self):
+        properties = {"hashing": "md5"}
+        val = "hello, world!"
+        result = events.Events().transform_val(properties, val)
+        self.assertEqual(result, "3adbbad1791fbae3ec908894c4963870")
+
+    def test_transform_val_both(self):
+        properties = {"encoding": "url", "hashing": "md5"}
+        val = "http://www.example.com/?a=1&b=2"
+        result = events.Events().transform_val(properties, val)
+        self.assertEqual(result, "d878d5aa4c79b8f2b3e2c5d4e9d45beb")
+
+    def test_transform(self):
+        tags = {
+            "hello": {"encoding": "base64"},
+            "url": {"encoding": "url"},
+            "foo": {"children": {"baz": {"hashing": "md5"}}},
+        }
+        values_to_sub = {
+            "hello": "world",
+            "url": "http://www.example.com/?a=1&b=2",
+            "foo": "bar",
+        }
+        result = events.Events().transform(tags, values_to_sub)
+        expected = {
+            "hello": "d29ybGQ=",
+            "url": "http%3A//www.example.com/%3Fa%3D1%26b%3D2",
+            "foo": "bar",
+            "baz": "37b51d194a7513e45b56f6524f2d51f2",
+        }
+        self.assertEqual(result, expected)
 
 
 class TestServiceCommand(TestCase):
@@ -86,7 +121,7 @@ class TestEventTypeSubCommand(TestCase):
 
         # Disable telemetry
         self.old_environ = os.environ.copy()
-        os.environ["SAM_CLI_TELEMETRY"] = 0
+        os.environ["SAM_CLI_TELEMETRY"] = "0"
 
     def tearDown(self):
         os.environ = self.old_environ
@@ -128,7 +163,6 @@ class TestEventTypeSubCommand(TestCase):
             short_help="Generates a hello Event",
             params=[],
             callback=callback_object_mock,
-            context_settings={"default_map": {}},
         )
 
     def test_subcommand_list_return_value(self):

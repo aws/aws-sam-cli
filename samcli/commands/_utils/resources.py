@@ -1,10 +1,13 @@
 """
-Enums for Resources and thier Location Properties, along with utlity functions
+Enums for Resources and thier Location Properties, along with utility functions
 """
+
+from collections import defaultdict
 
 AWS_SERVERLESSREPO_APPLICATION = "AWS::ServerlessRepo::Application"
 AWS_SERVERLESS_FUNCTION = "AWS::Serverless::Function"
 AWS_SERVERLESS_API = "AWS::Serverless::Api"
+AWS_SERVERLESS_HTTPAPI = "AWS::Serverless::HttpApi"
 AWS_APPSYNC_GRAPHQLSCHEMA = "AWS::AppSync::GraphQLSchema"
 AWS_APPSYNC_RESOLVER = "AWS::AppSync::Resolver"
 AWS_APPSYNC_FUNCTIONCONFIGURATION = "AWS::AppSync::FunctionConfiguration"
@@ -24,6 +27,7 @@ METADATA_WITH_LOCAL_PATHS = {AWS_SERVERLESSREPO_APPLICATION: ["LicenseUrl", "Rea
 RESOURCES_WITH_LOCAL_PATHS = {
     AWS_SERVERLESS_FUNCTION: ["CodeUri"],
     AWS_SERVERLESS_API: ["DefinitionUri"],
+    AWS_SERVERLESS_HTTPAPI: ["DefinitionUri"],
     AWS_SERVERLESS_STATEMACHINE: ["DefinitionUri"],
     AWS_APPSYNC_GRAPHQLSCHEMA: ["DefinitionS3Location"],
     AWS_APPSYNC_RESOLVER: ["RequestMappingTemplateS3Location", "ResponseMappingTemplateS3Location"],
@@ -39,12 +43,26 @@ RESOURCES_WITH_LOCAL_PATHS = {
     AWS_STEPFUNCTIONS_STATEMACHINE: ["DefinitionS3Location"],
 }
 
+RESOURCES_WITH_IMAGE_COMPONENT = {
+    AWS_SERVERLESS_FUNCTION: ["ImageUri"],
+    AWS_LAMBDA_FUNCTION: ["Code"],
+}
+
 
 def resources_generator():
     """
     Generator to yield set of resources and their locations that are supported for package operations
     :return:
     """
-    for resource, locations in dict({**METADATA_WITH_LOCAL_PATHS, **RESOURCES_WITH_LOCAL_PATHS}).items():
-        for location in locations:
-            yield resource, location
+    _resource_property_dict = defaultdict(list)
+    for _dict in (METADATA_WITH_LOCAL_PATHS, RESOURCES_WITH_LOCAL_PATHS, RESOURCES_WITH_IMAGE_COMPONENT):
+        for key, value in _dict.items():
+            # Only add values to the list if they are different, same property name could be used with the resource
+            # to package to different locations.
+            if value not in _resource_property_dict.get(key, []):
+                _resource_property_dict[key].append(value)
+
+    for resource, location_list in _resource_property_dict.items():
+        for locations in location_list:
+            for location in locations:
+                yield resource, location

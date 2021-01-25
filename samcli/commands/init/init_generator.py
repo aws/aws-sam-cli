@@ -7,8 +7,8 @@ from samcli.lib.init import generate_project
 from samcli.lib.init.exceptions import GenerateProjectFailedError, ArbitraryProjectDownloadFailed
 
 
-def do_generate(location, runtime, dependency_manager, output_dir, name, no_input, extra_context):
+def do_generate(location, package_type, runtime, dependency_manager, output_dir, name, no_input, extra_context):
     try:
-        generate_project(location, runtime, dependency_manager, output_dir, name, no_input, extra_context)
+        generate_project(location, package_type, runtime, dependency_manager, output_dir, name, no_input, extra_context)
     except (GenerateProjectFailedError, ArbitraryProjectDownloadFailed) as e:
-        raise UserException(str(e), wrapped_from=e.__class__.__name__)
+        raise UserException(str(e), wrapped_from=e.__class__.__name__) from e

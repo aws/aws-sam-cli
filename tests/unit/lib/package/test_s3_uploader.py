@@ -19,6 +19,7 @@ class TestS3Uploader(TestCase):
         self.prefix = "mock-prefix"
         self.kms_key_id = "mock-kms-key-id"
         self.force_upload = False
+        self.no_progressbar = False
 
     def test_s3_uploader_init(self):
         s3_uploader = S3Uploader(
@@ -27,12 +28,14 @@ class TestS3Uploader(TestCase):
             prefix=self.prefix,
             kms_key_id=self.kms_key_id,
             force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
         )
         self.assertEqual(s3_uploader.s3, self.s3)
         self.assertEqual(s3_uploader.bucket_name, self.bucket_name)
         self.assertEqual(s3_uploader.prefix, self.prefix)
         self.assertEqual(s3_uploader.kms_key_id, self.kms_key_id)
         self.assertEqual(s3_uploader.force_upload, self.force_upload)
+        self.assertEqual(s3_uploader.no_progressbar, self.no_progressbar)
         self.assertEqual(s3_uploader.artifact_metadata, None)
 
     def test_s3_uploader_artifact_metadata(self):
@@ -42,6 +45,7 @@ class TestS3Uploader(TestCase):
             prefix=self.prefix,
             kms_key_id=self.kms_key_id,
             force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
         )
         s3_uploader.artifact_metadata = {}
         self.assertEqual(s3_uploader.artifact_metadata, {})
@@ -55,6 +59,7 @@ class TestS3Uploader(TestCase):
             prefix=None,
             kms_key_id=self.kms_key_id,
             force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
         )
         with tempfile.NamedTemporaryFile() as f:
             s3_url = s3_uploader.upload("package.zip", f.name)
@@ -67,6 +72,7 @@ class TestS3Uploader(TestCase):
             prefix=self.prefix,
             kms_key_id=self.kms_key_id,
             force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
         )
         with tempfile.NamedTemporaryFile() as f:
             s3_url = s3_uploader.upload("package.zip", f.name)
@@ -79,6 +85,7 @@ class TestS3Uploader(TestCase):
             prefix=self.prefix,
             kms_key_id=self.kms_key_id,
             force_upload=True,
+            no_progressbar=self.no_progressbar,
         )
         remote_path = Path.joinpath(Path(os.getcwd()), Path("tmp"))
         s3_uploader.transfer_manager.upload = MagicMock(
@@ -95,6 +102,7 @@ class TestS3Uploader(TestCase):
             prefix=self.prefix,
             kms_key_id=self.kms_key_id,
             force_upload=True,
+            no_progressbar=self.no_progressbar,
         )
         remote_path = Path.joinpath(Path(os.getcwd()), Path("tmp"))
         s3_uploader.transfer_manager.upload = MagicMock(
@@ -111,6 +119,7 @@ class TestS3Uploader(TestCase):
             prefix=self.prefix,
             kms_key_id=self.kms_key_id,
             force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
         )
         with tempfile.NamedTemporaryFile(mode="wb", delete=False) as f:
             f.write(b"Hello World!")
@@ -124,6 +133,7 @@ class TestS3Uploader(TestCase):
             prefix=self.prefix,
             kms_key_id=self.kms_key_id,
             force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
         )
         self.s3.meta.endpoint_url = "s3_url"
         self.assertEqual(
@@ -137,6 +147,7 @@ class TestS3Uploader(TestCase):
             prefix=self.prefix,
             kms_key_id=self.kms_key_id,
             force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
         )
         s3_uploader.artifact_metadata = {"a": "b"}
         remote_path = Path.joinpath(Path(os.getcwd()), Path("tmp"))
@@ -152,6 +163,7 @@ class TestS3Uploader(TestCase):
             prefix=self.prefix,
             kms_key_id=self.kms_key_id,
             force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
         )
         s3_uploader.artifact_metadata = {"a": "b"}
         remote_path = Path.joinpath(Path(os.getcwd()), Path("tmp"))
@@ -167,6 +179,7 @@ class TestS3Uploader(TestCase):
             prefix=self.prefix,
             kms_key_id=self.kms_key_id,
             force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
         )
         self.s3.head_object = MagicMock(side_effect=ClientError(error_response={}, operation_name="head_object"))
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
@@ -174,3 +187,24 @@ class TestS3Uploader(TestCase):
             self.assertEqual(
                 s3_url, "s3://{0}/{1}/{2}.zip".format(self.bucket_name, self.prefix, file_checksum(f.name))
             )
+
+    def test_get_version_of_artifact(self):
+        s3_uploader = S3Uploader(
+            s3_client=self.s3,
+            bucket_name=self.bucket_name,
+            prefix=self.prefix,
+            kms_key_id=self.kms_key_id,
+            force_upload=self.force_upload,
+        )
+
+        given_version_id = "versionId"
+        given_s3_bucket = "mybucket"
+        given_s3_location = "my/object/location"
+        given_s3_url = f"s3://{given_s3_bucket}/{given_s3_location}"
+
+        self.s3.get_object_tagging.return_value = {"VersionId": given_version_id}
+
+        version_id = s3_uploader.get_version_of_artifact(given_s3_url)
+
+        self.s3.get_object_tagging.assert_called_with(Bucket=given_s3_bucket, Key=given_s3_location)
+        self.assertEqual(version_id, given_version_id)
