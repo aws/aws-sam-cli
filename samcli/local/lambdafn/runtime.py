@@ -10,7 +10,9 @@ import logging
 import threading
 
 from samcli.local.docker.lambda_container import LambdaContainer
-from samcli.lib.utils.file_observer import FileObserver
+from samcli.lib.utils.file_observer import LambdaFunctionObserver
+from samcli.lib.utils.packagetype import ZIP
+from samcli.lib.telemetry.metric import capture_parameter
 from .zip import unzip
 
 LOG = logging.getLogger(__name__)
@@ -120,6 +122,7 @@ class LambdaRuntime:
             LOG.debug("Ctrl+C was pressed. Aborting container running")
             raise
 
+    @capture_parameter("runtimeMetric", "runtimes", 1, parameter_nested_identifier="runtime", as_list=True)
     def invoke(self, function_config, event, debug_context=None, stdout=None, stderr=None):
         """
         Invoke the given Lambda function locally.
@@ -283,9 +286,7 @@ class WarmLambdaRuntime(LambdaRuntime):
         """
         self._containers = {}
 
-        # used to observe any code change in case if warm containers is enabled to support the reloading
-        self._observed_paths = {}
-        self._observer = FileObserver(self._on_code_change)
+        self._observer = LambdaFunctionObserver(self._on_code_change)
 
         super().__init__(container_manager, image_builder)
 
@@ -326,7 +327,10 @@ class WarmLambdaRuntime(LambdaRuntime):
 
         container = super().create(function_config, debug_context)
         self._containers[function_config.name] = container
-        self._add_function_to_observer(function_config)
+
+        self._observer.watch(function_config)
+        self._observer.start()
+
         return container
 
     def _on_invoke_done(self, container):
@@ -340,25 +344,6 @@ class WarmLambdaRuntime(LambdaRuntime):
         container: Container
            The current running container
         """
-
-    def _add_function_to_observer(self, function_config):
-        """
-        observe the function code path, so the function container be reload if its code got changed.
-
-        Parameters
-        ----------
-        function_config: FunctionConfig
-            Configuration of the function to create a new Container for it.
-        """
-        code_paths = [function_config.code_abs_path]
-        if function_config.layers:
-            code_paths += [layer.codeuri for layer in function_config.layers]
-        for code_path in code_paths:
-            functions = self._observed_paths.get(code_path, [])
-            functions += [function_config]
-            self._observed_paths[code_path] = functions
-            self._observer.watch(code_path)
-        self._observer.start()
 
     def _configure_interrupt(self, function_name, timeout, container, is_debugging):
         """
@@ -413,51 +398,30 @@ class WarmLambdaRuntime(LambdaRuntime):
         self._clean_decompressed_paths()
         self._observer.stop()
 
-    def _on_code_change(self, paths):
+    def _on_code_change(self, functions):
         """
         Handles the lambda function code change event. it determines if there is a real change in the code
         by comparing the checksum of the code path before and after the event.
 
         Parameters
         ----------
-        paths: list of str
-            the paths of the code that got changed
+        functions: list [FunctionConfig]
+            the lambda functions that their source code or images got changed
         """
-        for path in paths:
-            functions = self._observed_paths.get(path, []).copy()
-            for function_config in functions:
-                function_name = function_config.name
-                LOG.info(
-                    "Lambda Function '%s' code has been changed, terminate its warm container. "
-                    "The new container will be created in lazy mode",
-                    function_name,
-                )
-                container = self._containers.get(function_name, None)
-                if container:
-                    self._container_manager.stop(container)
-                    self._containers.pop(function_name, None)
-                self._remove_observed_lambda_function(function_config)
-
-    def _remove_observed_lambda_function(self, function_config):
-        """
-        remove the lambda function's code paths from the observed paths
-
-        Parameters
-        ----------
-        function_config: FunctionConfig
-            Configuration of the function to invoke
-        """
-        code_paths = [function_config.code_abs_path]
-        if function_config.layers:
-            code_paths += [layer.codeuri for layer in function_config.layers]
-
-        for path in code_paths:
-            functions = self._observed_paths.get(path, [])
-            if function_config in functions:
-                functions.remove(function_config)
-            if not functions:
-                self._observed_paths.pop(path, None)
-                self._observer.unwatch(path)
+        for function_config in functions:
+            function_name = function_config.name
+            resource = "source code" if function_config.packagetype == ZIP else f"{function_config.imageuri} image"
+            LOG.info(
+                "Lambda Function '%s' %s has been changed, terminate its warm container. "
+                "The new container will be created in lazy mode",
+                function_name,
+                resource,
+            )
+            container = self._containers.get(function_name, None)
+            if container:
+                self._container_manager.stop(container)
+                self._containers.pop(function_name, None)
+            self._observer.unwatch(function_config)
 
 
 def _unzip_file(filepath):

@@ -7,6 +7,7 @@ import io
 import json
 import logging
 import pathlib
+from typing import Dict
 
 import docker
 from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
@@ -172,7 +173,8 @@ class ApplicationBuilder:
         build_graph.clean_redundant_definitions_and_update(not self._is_building_specific_resource)
         return build_graph
 
-    def update_template(self, template_dict, original_template_path, built_artifacts):
+    @staticmethod
+    def update_template(template_dict: Dict, original_template_path: str, built_artifacts: Dict[str, str]) -> Dict:
         """
         Given the path to built artifacts, update the template to point appropriate resource CodeUris to the artifacts
         folder
@@ -342,7 +344,8 @@ class ApplicationBuilder:
                     LOG.warning(
                         "For container layer build, first compatible runtime is chosen as build target for container."
                     )
-                    # Only set to this value if specified workflow is makefile which will result in config language as provided
+                    # Only set to this value if specified workflow is makefile
+                    # which will result in config language as provided
                     build_runtime = compatible_runtimes[0]
             options = ApplicationBuilder._get_build_options(layer_name, config.language, None)
 
@@ -384,9 +387,10 @@ class ApplicationBuilder:
         if packagetype == ZIP:
             if runtime in self._deprecated_runtimes:
                 message = (
-                    f"WARNING: {runtime} is no longer supported by AWS Lambda, please update to a newer supported runtime. SAM CLI "
+                    f"WARNING: {runtime} is no longer supported by AWS Lambda, "
+                    "please update to a newer supported runtime. SAM CLI "
                     f"will drop support for all deprecated runtimes {self._deprecated_runtimes} on May 1st. "
-                    f"See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
+                    "See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
                 )
                 LOG.warning(self._colored.yellow(message))
 

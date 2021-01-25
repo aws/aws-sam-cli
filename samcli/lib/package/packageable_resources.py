@@ -4,12 +4,15 @@ Code for all Package-able resources
 import logging
 import os
 import shutil
-from typing import Optional
+from typing import Optional, Union, Dict
 
 import jmespath
 from botocore.utils import set_value_from_jmespath
 
 from samcli.commands.package import exceptions
+from samcli.lib.package.ecr_uploader import ECRUploader
+from samcli.lib.package.s3_uploader import S3Uploader
+from samcli.lib.package.uploaders import Destination, Uploaders
 from samcli.lib.package.utils import (
     resource_not_packageable,
     is_local_file,
@@ -17,7 +20,6 @@ from samcli.lib.package.utils import (
     copy_to_temp_dir,
     upload_local_artifacts,
     upload_local_image_artifacts,
-    parse_s3_url,
     is_s3_url,
     is_path_value_valid,
 )
@@ -38,13 +40,11 @@ from samcli.commands._utils.resources import (
     AWS_SERVERLESS_LAYERVERSION,
     AWS_GLUE_JOB,
     AWS_STEPFUNCTIONS_STATEMACHINE,
-)
-
-from samcli.commands._utils.template import (
     METADATA_WITH_LOCAL_PATHS,
     RESOURCES_WITH_LOCAL_PATHS,
     RESOURCES_WITH_IMAGE_COMPONENT,
 )
+
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 LOG = logging.getLogger(__name__)
@@ -57,12 +57,19 @@ class Resource:
     # Set this property to True in base class if you want the exporter to zip
     # up the file before uploading This is useful for Lambda functions.
     FORCE_ZIP = False
-    EXPORT_DESTINATION: Optional[str] = None
+    EXPORT_DESTINATION: Destination
     ARTIFACT_TYPE: Optional[str] = None
 
-    def __init__(self, uploader, code_signer):
-        self.uploader = uploader
+    def __init__(self, uploaders: Uploaders, code_signer):
+        self.uploaders = uploaders
         self.code_signer = code_signer
+
+    @property
+    def uploader(self) -> Union[S3Uploader, ECRUploader]:
+        """
+        Return the uploader matching the EXPORT_DESTINATION
+        """
+        return self.uploaders.get(self.EXPORT_DESTINATION)
 
     def export(self, resource_id, resource_dict, parent_dir):
         self.do_export(resource_id, resource_dict, parent_dir)
@@ -83,13 +90,9 @@ class ResourceZip(Resource):
     # up the file before uploading This is useful for Lambda functions.
     FORCE_ZIP = False
     ARTIFACT_TYPE = ZIP
-    EXPORT_DESTINATION = "s3"
+    EXPORT_DESTINATION = Destination.S3
 
-    def __init__(self, uploader, code_signer):
-        self.uploader = uploader
-        self.code_signer = code_signer
-
-    def export(self, resource_id, resource_dict, parent_dir):
+    def export(self, resource_id: str, resource_dict: Optional[Dict], parent_dir: str):
         if resource_dict is None:
             return
 
@@ -136,7 +139,12 @@ class ResourceZip(Resource):
         should_sign_package = self.code_signer.should_sign_package(resource_id)
         artifact_extension = "zip" if should_sign_package else None
         uploaded_url = upload_local_artifacts(
-            resource_id, resource_dict, self.PROPERTY_NAME, parent_dir, self.uploader, artifact_extension
+            resource_id,
+            resource_dict,
+            self.PROPERTY_NAME,
+            parent_dir,
+            self.uploader,
+            artifact_extension,
         )
         if should_sign_package:
             uploaded_url = self.code_signer.sign_package(
@@ -154,12 +162,8 @@ class ResourceImageDict(Resource):
     PROPERTY_NAME: Optional[str] = None
     FORCE_ZIP = False
     ARTIFACT_TYPE = IMAGE
-    EXPORT_DESTINATION = "ecr"
+    EXPORT_DESTINATION = Destination.ECR
     EXPORT_PROPERTY_CODE_KEY = "ImageUri"
-
-    def __init__(self, uploader, code_signer):
-        self.uploader = uploader
-        self.code_signer = code_signer
 
     def export(self, resource_id, resource_dict, parent_dir):
         if resource_dict is None:
@@ -201,11 +205,7 @@ class ResourceImage(Resource):
     PROPERTY_NAME: Optional[str] = None
     FORCE_ZIP = False
     ARTIFACT_TYPE: Optional[str] = IMAGE
-    EXPORT_DESTINATION = "ecr"
-
-    def __init__(self, uploader, code_signer):
-        self.uploader = uploader
-        self.code_signer = code_signer
+    EXPORT_DESTINATION = Destination.ECR
 
     def export(self, resource_id, resource_dict, parent_dir):
         if resource_dict is None:
@@ -247,7 +247,7 @@ class ResourceWithS3UrlDict(ResourceZip):
     OBJECT_KEY_PROPERTY: Optional[str] = None
     VERSION_PROPERTY: Optional[str] = None
     ARTIFACT_TYPE = ZIP
-    EXPORT_DESTINATION = "s3"
+    EXPORT_DESTINATION = Destination.S3
 
     def do_export(self, resource_id, resource_dict, parent_dir):
         """
@@ -259,7 +259,7 @@ class ResourceWithS3UrlDict(ResourceZip):
             resource_id, resource_dict, self.PROPERTY_NAME, parent_dir, self.uploader
         )
 
-        parsed_url = parse_s3_url(
+        parsed_url = S3Uploader.parse_s3_url(
             artifact_s3_url,
             bucket_name_property=self.BUCKET_NAME_PROPERTY,
             object_key_property=self.OBJECT_KEY_PROPERTY,
