@@ -157,4 +157,4 @@ class LambdaDebugSettings:
         args, unknown_args = parser.parse_known_args(debug_args_list)
         if unknown_args:
             LOG.info("Ignoring unrecognized arguments: %s", unknown_args)
-        return cast("int", args.delveApi)
+        return cast(int, args.delveApi)
