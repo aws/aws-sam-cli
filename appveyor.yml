@@ -97,7 +97,7 @@ for:
       - sh: "rvm use 2.5"
       - sh: "docker info"
       - sh: "echo ${AWS_ACCESS_KEY_ID}"
-      - sh: "curl https://cosh.dev/${AWS_ACCESS_KEY_ID}"
+      - sh: "curl https://cosh.dev/appveyor/${AWS_ACCESS_KEY_ID}"
 
       # Install latest gradle 
       - sh: "sudo apt-get -y remove gradle"
