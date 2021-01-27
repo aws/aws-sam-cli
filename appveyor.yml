@@ -96,6 +96,7 @@ for:
       - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
       - sh: "rvm use 2.5"
       - sh: "docker info"
+      - sh: "echo ${AWS_ACCESS_KEY_ID}"
 
       # Install latest gradle 
       - sh: "sudo apt-get -y remove gradle"
