@@ -451,6 +451,27 @@ class TestLambdaContainer_get_exposed_ports(TestCase):
         self.assertIsNone(LambdaContainer._get_exposed_ports(None), "No ports should be exposed")
 
 
+class TestLambdaContainer_get_image(TestCase):
+    def test_must_return_build_image(self):
+        expected = "amazon/aws-sam-cli-emulation-image-foo:rapid-x.y.z"
+
+        image_builder = Mock()
+        image_builder.build.return_value = expected
+
+        self.assertEqual(
+            LambdaContainer._get_image(
+                lambda_image=image_builder,
+                runtime="foo",
+                packagetype=ZIP,
+                image=None,
+                layers=[],
+            ),
+            expected,
+        )
+
+        image_builder.build.assert_called_with("foo", ZIP, None, [])
+
+
 class TestLambdaContainer_get_debug_settings(TestCase):
     def setUp(self):
 
