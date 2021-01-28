@@ -218,16 +218,10 @@ class ApplicationBuilder:
             properties = resource.setdefault("Properties", {})
 
             if resource_type == SamBaseProvider.SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == ZIP:
-                if "InlineCode" not in properties or properties["InlineCode"] is None:
-                    properties["CodeUri"] = store_path
+                properties["CodeUri"] = store_path
 
             if resource_type == SamBaseProvider.LAMBDA_FUNCTION and properties.get("PackageType", ZIP) == ZIP:
-                if (
-                    "Code" not in properties
-                    or "ZipFile" not in properties["Code"]
-                    or properties["Code"]["ZipFile"] is None
-                ):
-                    properties["Code"] = store_path
+                properties["Code"] = store_path
 
             if resource_type in [SamBaseProvider.SERVERLESS_LAYER, SamBaseProvider.LAMBDA_LAYER]:
                 properties["ContentUri"] = store_path

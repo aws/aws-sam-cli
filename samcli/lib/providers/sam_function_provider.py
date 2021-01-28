@@ -176,6 +176,7 @@ class SamFunctionProvider(SamBaseProvider):
                     "CodeUri",
                     ignore_code_extraction_warnings=ignore_code_extraction_warnings,
                 )
+                LOG.debug("Found Serverless function with name='%s' and CodeUri='%s'", name, codeuri)
         elif packagetype == IMAGE:
             imageuri = SamFunctionProvider._extract_sam_function_imageuri(resource_properties, "ImageUri")
             LOG.debug("Found Serverless function with name='%s' and ImageUri='%s'", name, imageuri)
