@@ -4,6 +4,7 @@ Utilities for sam deploy command
 
 import json
 import textwrap
+import copy
 
 import click
 
@@ -45,9 +46,6 @@ def print_deploy_args(
     :return:
     """
     _parameters = parameter_overrides.copy()
-    for key, value in _parameters.items():
-        if isinstance(value, dict):
-            _parameters[key] = value.get("Value", value) if not value.get("Hidden") else "*" * len(value.get("Value"))
 
     capabilities_string = json.dumps(capabilities)
 
@@ -89,3 +87,13 @@ def sanitize_parameter_overrides(parameter_overrides):
     :return:
     """
     return {key: value.get("Value") if isinstance(value, dict) else value for key, value in parameter_overrides.items()}
+
+
+def hide_noecho_parameter_overrides(template_parameters, parameter_overrides):
+    hidden_params = copy.deepcopy(parameter_overrides)
+    params = template_parameters.get("Parameters", None)
+    for key, value in hidden_params.items():
+        if isinstance(params, dict) and key in params and isinstance(params[key], dict):
+            is_hidden = params[key].get("NoEcho", False)
+            hidden_params[key] = value if not is_hidden else "*" * 5
+    return hidden_params
