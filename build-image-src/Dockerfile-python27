@@ -59,3 +59,7 @@ RUN pip3 install wheel
 RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python get-pip.py && rm get-pip.py
 
 COPY ATTRIBUTION.txt /
+
+# Compatible with initial base image
+ENTRYPOINT []
+CMD ["/bin/bash"]

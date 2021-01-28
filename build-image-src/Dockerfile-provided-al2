@@ -1,12 +1,7 @@
-FROM amazon/aws-sam-cli-emulation-image-java8.al2
+FROM public.ecr.aws/lambda/provided:al2
 
-# To learn more context around use of `amazonlinux:2` image please read comment in java11/build/Dockerfile
-FROM amazonlinux:2
-COPY --from=0 / /rootfs
-
-# Installing by yum at copied location
-RUN yum groupinstall -y development --installroot=/rootfs && yum clean all
-RUN yum install -d1 --installroot=/rootfs -y \
+RUN yum groupinstall -y development && \
+  yum install -d1 -y \
   yum \
   tar \
   gzip \
@@ -25,21 +20,16 @@ RUN yum install -d1 --installroot=/rootfs -y \
   libmpc-devel \
   && yum clean all
 
-# Copying root from AL2 to runtimes image
-FROM amazon/aws-sam-cli-emulation-image-java8.al2
-COPY --from=1 /rootfs /
-
 # Install AWS CLI
 RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && unzip awscliv2.zip && ./aws/install && rm awscliv2.zip && rm -rf ./aws
 
 # Install SAM CLI in a dedicated Python virtualenv
 ARG SAM_CLI_VERSION
-RUN curl -Lk "https://github.com/awslabs/aws-sam-cli/archive/v$SAM_CLI_VERSION.zip" -o "samcli.zip" && \
+RUN curl -L "https://github.com/awslabs/aws-sam-cli/archive/v$SAM_CLI_VERSION.zip" -o "samcli.zip" && \
   unzip samcli.zip && python3 -m venv /usr/local/opt/sam-cli && \
   /usr/local/opt/sam-cli/bin/pip3 --no-cache-dir install -r ./aws-sam-cli-$SAM_CLI_VERSION/requirements/reproducible-linux.txt && \
-  /usr/local/opt/sam-cli/bin/pip3 --no-cache-dir install ./aws-sam-cli-$SAM_CLI_VERSION
-
-RUN rm samcli.zip && rm -rf aws-sam-cli-$SAM_CLI_VERSION
+  /usr/local/opt/sam-cli/bin/pip3 --no-cache-dir install ./aws-sam-cli-$SAM_CLI_VERSION && \
+  rm samcli.zip && rm -rf aws-sam-cli-$SAM_CLI_VERSION
 
 ENV PATH=$PATH:/usr/local/opt/sam-cli/bin
 
@@ -50,3 +40,7 @@ ENV LANG=en_US.UTF-8
 RUN pip3 install wheel
 
 COPY ATTRIBUTION.txt /
+
+# Compatible with initial base image
+ENTRYPOINT []
+CMD ["/bin/bash"]
