@@ -1,19 +1,7 @@
-FROM amazon/aws-sam-cli-emulation-image-python2.7
+FROM public.ecr.aws/lambda/python:2.7
 
 # Install build tools
-# The base image essentially corrupts the RPM DB,
-#  so we need to make changes for yum to run successfully.
-RUN chmod 1777 /tmp && \
-  /usr/bin/python3 -c "from configparser import SafeConfigParser; \
-  yum_conf = SafeConfigParser(); \
-  yum_conf.read('/etc/yum.conf'); \
-  yum_conf.has_section('main') or yum_conf.add_section('main'); \
-  yum_conf.set('main', 'plugins', '1'); \
-  f = open('/etc/yum.conf', 'w'); \
-  yum_conf.write(f); \
-  f.close();" && \
-  rpm --rebuilddb && \
-  yum groupinstall -y development && \
+RUN yum groupinstall -y development && \
   yum install -d1 -y \
   tar \
   gzip \
@@ -44,9 +32,8 @@ ARG SAM_CLI_VERSION
 RUN curl -Lk "https://github.com/awslabs/aws-sam-cli/archive/v$SAM_CLI_VERSION.zip" -o "samcli.zip" && \
   unzip samcli.zip && python3 -m venv /usr/local/opt/sam-cli && \
   /usr/local/opt/sam-cli/bin/pip3 --no-cache-dir install -r ./aws-sam-cli-$SAM_CLI_VERSION/requirements/reproducible-linux.txt && \
-  /usr/local/opt/sam-cli/bin/pip3 --no-cache-dir install ./aws-sam-cli-$SAM_CLI_VERSION
-
-RUN rm samcli.zip && rm -rf aws-sam-cli-$SAM_CLI_VERSION
+  /usr/local/opt/sam-cli/bin/pip3 --no-cache-dir install ./aws-sam-cli-$SAM_CLI_VERSION && \
+  rm samcli.zip && rm -rf aws-sam-cli-$SAM_CLI_VERSION
 
 ENV PATH=$PATH:/usr/local/opt/sam-cli/bin
 
@@ -56,7 +43,7 @@ ENV LANG=en_US.UTF-8
 # Python for it to be picked up during `sam build`
 RUN pip3 install wheel
 
-RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python get-pip.py && rm get-pip.py
+RUN curl https://bootstrap.pypa.io/2.7/get-pip.py -o get-pip.py && python get-pip.py && rm get-pip.py
 
 COPY ATTRIBUTION.txt /
 
