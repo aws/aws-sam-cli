@@ -567,7 +567,8 @@ class IntrinsicResolver:
 
         return location_data
 
-    def handle_fn_import_value(self, intrinsic_value, ignore_errors):
+    @staticmethod
+    def handle_fn_import_value(intrinsic_value, ignore_errors):
         """
         { "Fn::ImportValue" : sharedValueToImport }
         This intrinsic function requires handling multiple stacks, which is not currently supported by SAM-CLI.

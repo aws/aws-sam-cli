@@ -7,6 +7,8 @@ from functools import wraps, reduce
 import uuid
 import platform
 import logging
+from typing import Optional
+
 import click
 
 from samcli import __version__ as samcli_version
@@ -327,7 +329,8 @@ class Metric:
         self._data["pyversion"] = platform.python_version()
         self._data["samcliVersion"] = samcli_version
 
-    def _default_session_id(self):
+    @staticmethod
+    def _default_session_id() -> Optional[str]:
         """
         Get the default SessionId from Click Context.
         Fail silently if Context does not exist.
@@ -341,7 +344,8 @@ class Metric:
             LOG.debug("Unable to find Click Context for getting session_id.")
             return None
 
-    def _get_execution_environment(self):
+    @staticmethod
+    def _get_execution_environment() -> str:
         """
         Returns the environment in which SAM CLI is running. Possible options are:
 

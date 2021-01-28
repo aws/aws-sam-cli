@@ -17,6 +17,7 @@ Deploy a SAM stack
 
 import logging
 import os
+from typing import Dict, List
 
 import boto3
 import click
@@ -24,7 +25,11 @@ import click
 from samcli.commands._utils.template import get_template_data
 from samcli.commands.deploy import exceptions as deploy_exceptions
 from samcli.commands.deploy.auth_utils import auth_per_resource
-from samcli.commands.deploy.utils import sanitize_parameter_overrides, print_deploy_args
+from samcli.commands.deploy.utils import (
+    sanitize_parameter_overrides,
+    print_deploy_args,
+    hide_noecho_parameter_overrides,
+)
 from samcli.lib.deploy.deployer import Deployer
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
@@ -128,13 +133,14 @@ class DeployContext:
         self.deployer = Deployer(cloudformation_client)
 
         region = s3_client._client_config.region_name if s3_client else self.region  # pylint: disable=W0212
+        display_parameter_overrides = hide_noecho_parameter_overrides(template_dict, self.parameter_overrides)
         print_deploy_args(
             self.stack_name,
             self.s3_bucket,
             self.image_repositories if isinstance(self.image_repositories, dict) else self.image_repository,
             region,
             self.capabilities,
-            self.parameter_overrides,
+            display_parameter_overrides,
             self.confirm_changeset,
             self.signing_profiles,
         )
@@ -208,7 +214,8 @@ class DeployContext:
                 raise
             click.echo(str(ex))
 
-    def merge_parameters(self, template_dict, parameter_overrides):
+    @staticmethod
+    def merge_parameters(template_dict: Dict, parameter_overrides: Dict) -> List[Dict]:
         """
         CloudFormation CreateChangeset requires a value for every parameter
         from the template, either specifying a new value or use previous value.
@@ -216,10 +223,11 @@ class DeployContext:
         generates a dict of all parameters in a format that ChangeSet API
         will accept
 
+        :param template_dict:
         :param parameter_overrides:
         :return:
         """
-        parameter_values = []
+        parameter_values: List[Dict] = []
 
         if not isinstance(template_dict.get("Parameters", None), dict):
             return parameter_values

@@ -6,7 +6,7 @@ import logging
 import click
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
-from samcli.commands.local.cli_common.options import invoke_common_options
+from samcli.commands.local.cli_common.options import invoke_common_options, local_common_options
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
@@ -42,6 +42,7 @@ STDIN_FILE_NAME = "-"
 )
 @click.option("--no-event", is_flag=True, default=True, help="DEPRECATED: By default no event is assumed.", hidden=True)
 @invoke_common_options
+@local_common_options
 @cli_framework_options
 @aws_creds_options
 @click.argument("function_identifier", required=False)
@@ -64,6 +65,7 @@ def cli(
     layer_cache_basedir,
     skip_pull_image,
     force_image_build,
+    shutdown,
     parameter_overrides,
     config_file,
     config_env,
@@ -88,6 +90,7 @@ def cli(
         layer_cache_basedir,
         skip_pull_image,
         force_image_build,
+        shutdown,
         parameter_overrides,
     )  # pragma: no cover
 
@@ -109,6 +112,7 @@ def do_cli(  # pylint: disable=R0914
     layer_cache_basedir,
     skip_pull_image,
     force_image_build,
+    shutdown,
     parameter_overrides,
 ):
     """
@@ -151,6 +155,7 @@ def do_cli(  # pylint: disable=R0914
             force_image_build=force_image_build,
             aws_region=ctx.region,
             aws_profile=ctx.profile,
+            shutdown=shutdown,
         ) as context:
 
             # Invoke the function
