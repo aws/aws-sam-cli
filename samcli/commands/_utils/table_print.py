@@ -4,6 +4,7 @@ Utilities for table pretty printing using click
 from itertools import count, zip_longest
 import textwrap
 from functools import wraps
+from typing import Sized
 
 import click
 
@@ -116,7 +117,7 @@ def pprint_columns(columns, width, margin, format_string, format_args, columns_d
         click.secho(format_string.format(*format_args, **columns_dict), fg=color)
 
 
-def newline_per_item(iterable, counter):
+def newline_per_item(iterable: Sized, counter: int) -> None:
     """
     Adds a new line based on the index of a given iterable
     Parameters

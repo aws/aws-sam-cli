@@ -1,8 +1,10 @@
 """Class that parses the CloudFormation Api Template"""
 import logging
+from typing import Dict, Union, List, Optional
 
 from samcli.commands.local.lib.swagger.parser import SwaggerParser
 from samcli.commands.local.lib.swagger.reader import SwaggerReader
+from samcli.lib.providers.api_collector import ApiCollector
 
 from samcli.lib.providers.provider import Cors
 from samcli.local.apigw.local_apigw_service import Route
@@ -23,7 +25,7 @@ class CfnBaseApiProvider:
         resources: dict
             The dictionary containing the different resources within the template
 
-        collector: samcli.commands.local.lib.route_collector.RouteCollector
+        collector: samcli.lib.providers.api_collector.ApiCollector
             Instance of the API collector that where we will save the API information
 
         cwd : str
@@ -35,7 +37,16 @@ class CfnBaseApiProvider:
         """
         raise NotImplementedError("not implemented")
 
-    def extract_swagger_route(self, logical_id, body, uri, binary_media, collector, cwd=None, event_type=Route.API):
+    @staticmethod
+    def extract_swagger_route(
+        logical_id: str,
+        body: Dict,
+        uri: Union[str, Dict],
+        binary_media: List,
+        collector: ApiCollector,
+        cwd: Optional[str] = None,
+        event_type=Route.API,
+    ) -> None:
         """
         Parse the Swagger documents and adds it to the ApiCollector.
 
@@ -53,7 +64,7 @@ class CfnBaseApiProvider:
         binary_media: list
             The link to the binary media
 
-        collector: samcli.commands.local.lib.route_collector.RouteCollector
+        collector: samcli.lib.providers.api_collector.ApiCollector
             Instance of the Route collector that where we will save the route information
 
         cwd : str
@@ -90,10 +101,15 @@ class CfnBaseApiProvider:
 
             allow_origin = self._get_cors_prop(cors_prop, "AllowOrigin")
             allow_headers = self._get_cors_prop(cors_prop, "AllowHeaders")
+            allow_credentials = self._get_cors_prop(cors_prop, "AllowCredentials", True)
             max_age = self._get_cors_prop(cors_prop, "MaxAge")
 
             cors = Cors(
-                allow_origin=allow_origin, allow_methods=allow_methods, allow_headers=allow_headers, max_age=max_age
+                allow_origin=allow_origin,
+                allow_methods=allow_methods,
+                allow_headers=allow_headers,
+                allow_credentials=allow_credentials,
+                max_age=max_age,
             )
         elif cors_prop and isinstance(cors_prop, str):
             allow_origin = cors_prop
@@ -107,12 +123,13 @@ class CfnBaseApiProvider:
                 allow_origin=allow_origin,
                 allow_methods=",".join(sorted(Route.ANY_HTTP_METHODS)),
                 allow_headers=None,
+                allow_credentials=None,
                 max_age=None,
             )
         return cors
 
     @staticmethod
-    def _get_cors_prop(cors_dict, prop_name):
+    def _get_cors_prop(cors_dict, prop_name, allow_bool=False):
         """
         Extract cors properties from dictionary and remove extra quotes.
 
@@ -121,12 +138,20 @@ class CfnBaseApiProvider:
         cors_dict : dict
             Resource properties for Cors
 
+        prop_name : str
+            Cors property to get the value for
+
+        allow_bool : bool
+            If a boolean value is allowed for this property or not (defaults to false)
+
         Return
         ------
         A string with the extra quotes removed
         """
         prop = cors_dict.get(prop_name)
         if prop:
+            if allow_bool and isinstance(prop, bool):
+                prop = "'true'"  # We alredy know this is true due to L141 passing
             if not isinstance(prop, str) or prop.startswith("!"):
                 LOG.warning(
                     "CORS Property %s was not fully resolved. Will proceed as if the Property was not defined.",
@@ -165,16 +190,26 @@ class CfnBaseApiProvider:
             allow_headers = self._get_cors_prop_http(cors_prop, "AllowHeaders", list)
             if isinstance(allow_headers, list):
                 allow_headers = ",".join(allow_headers)
+
+            # Read AllowCredentials but only output the header with the case-sensitive value of true
+            # (see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Credentials)
+            allow_credentials = "true" if self._get_cors_prop_http(cors_prop, "AllowCredentials", bool) else None
+
             max_age = self._get_cors_prop_http(cors_prop, "MaxAge", int)
 
             cors = Cors(
-                allow_origin=allow_origins, allow_methods=allow_methods, allow_headers=allow_headers, max_age=max_age
+                allow_origin=allow_origins,
+                allow_methods=allow_methods,
+                allow_headers=allow_headers,
+                allow_credentials=allow_credentials,
+                max_age=max_age,
             )
         elif cors_prop and isinstance(cors_prop, bool) and cors_prop:
             cors = Cors(
                 allow_origin="*",
                 allow_methods=",".join(sorted(Route.ANY_HTTP_METHODS)),
                 allow_headers=None,
+                allow_credentials=None,
                 max_age=None,
             )
         return cors
