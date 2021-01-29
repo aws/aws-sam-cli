@@ -134,7 +134,7 @@ class TestPackageImage(PackageIntegBase):
             #https://docs.python.org/3/library/tempfile.html#tempfile.NamedTemporaryFile
             #Closes the NamedTemporaryFile as on Windows NT or later, NamedTemporaryFile cannot be opened twice.
             packaged_file.close()
-            
+
             command_list = self.get_command_list(
                 image_repository=self.ecr_repo_name,
                 template=template_path,
@@ -149,9 +149,6 @@ class TestPackageImage(PackageIntegBase):
             except TimeoutExpired:
                 process.kill()
                 raise
-            
-            print(stdout)
-            print(stderr)
 
             self.assertEqual(0, process.returncode)
 
