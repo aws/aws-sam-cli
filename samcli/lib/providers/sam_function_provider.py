@@ -161,12 +161,11 @@ class SamFunctionProvider(SamBaseProvider):
             Function configuration
         """
         codeuri = SamFunctionProvider.DEFAULT_CODEURI
-        inlinecode = None
+        inlinecode = resource_properties.get("InlineCode")
         imageuri = None
         packagetype = resource_properties.get("PackageType", ZIP)
         if packagetype == ZIP:
-            if resource_properties.get("InlineCode"):
-                inlinecode = resource_properties["InlineCode"]
+            if inlinecode:
                 LOG.debug("Found Serverless function with name='%s' and InlineCode", name)
                 codeuri = None
             else:
