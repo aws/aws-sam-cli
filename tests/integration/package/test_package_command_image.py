@@ -131,8 +131,8 @@ class TestPackageImage(PackageIntegBase):
         # when image function is not in main template, erc_repo_name does not show up in stdout
         # here we download the nested application template file and verify its content
         with tempfile.NamedTemporaryFile() as packaged_file, tempfile.TemporaryFile() as packaged_nested_file:
-            #https://docs.python.org/3/library/tempfile.html#tempfile.NamedTemporaryFile
-            #Closes the NamedTemporaryFile as on Windows NT or later, NamedTemporaryFile cannot be opened twice.
+            # https://docs.python.org/3/library/tempfile.html#tempfile.NamedTemporaryFile
+            # Closes the NamedTemporaryFile as on Windows NT or later, NamedTemporaryFile cannot be opened twice.
             packaged_file.close()
 
             command_list = self.get_command_list(
@@ -141,7 +141,7 @@ class TestPackageImage(PackageIntegBase):
                 resolve_s3=True,
                 output_template_file=packaged_file.name,
             )
-            
+
             process = Popen(command_list, stdout=PIPE, stderr=PIPE)
             try:
                 process.communicate(timeout=TIMEOUT)
