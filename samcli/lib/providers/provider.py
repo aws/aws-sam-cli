@@ -46,6 +46,8 @@ Function = namedtuple(
         "events",
         # Metadata
         "metadata",
+        # InlineCode
+        "inlinecode",
         # Code Signing config ARN
         "codesign_config_arn",
     ],

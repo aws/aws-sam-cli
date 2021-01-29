@@ -484,7 +484,7 @@ def handler(event, context):
 
         self._write_file_content(self.code_path, self.code_content_2)
         # wait till SAM got notified that the source code got changed
-        sleep(0.5)
+        sleep(2)
         result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
         self.assertEqual(result.get("StatusCode"), 200)
 
@@ -562,7 +562,7 @@ COPY main.py ./"""
         self._write_file_content(self.code_path, self.code_content_2)
         self.build()
         # wait till SAM got notified that the source code got changed
-        sleep(0.5)
+        sleep(2)
         result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
         self.assertEqual(result.get("StatusCode"), 200)
 
@@ -625,7 +625,7 @@ def handler(event, context):
 
         self._write_file_content(self.code_path, self.code_content_2)
         # wait till SAM got notified that the source code got changed
-        sleep(0.5)
+        sleep(2)
         result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
         self.assertEqual(result.get("StatusCode"), 200)
 
@@ -703,7 +703,7 @@ COPY main.py ./"""
         self._write_file_content(self.code_path, self.code_content_2)
         self.build()
         # wait till SAM got notified that the source code got changed
-        sleep(0.5)
+        sleep(2)
         result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
         self.assertEqual(result.get("StatusCode"), 200)
 
