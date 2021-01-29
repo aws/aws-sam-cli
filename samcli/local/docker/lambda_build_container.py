@@ -37,6 +37,7 @@ class LambdaBuildContainer(Container):
         executable_search_paths=None,
         log_level=None,
         mode=None,
+        env_vars=None,
     ):
 
         abs_manifest_path = pathlib.Path(manifest_path).resolve()
@@ -84,9 +85,10 @@ class LambdaBuildContainer(Container):
             manifest_dir: {"bind": container_dirs["manifest_dir"], "mode": "ro"}
         }
 
-        env_vars = None
         if log_level:
-            env_vars = {"LAMBDA_BUILDERS_LOG_LEVEL": log_level}
+            if not env_vars:
+                env_vars = {}
+            env_vars["LAMBDA_BUILDERS_LOG_LEVEL"] = log_level
 
         super().__init__(
             image,

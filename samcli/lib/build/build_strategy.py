@@ -113,6 +113,7 @@ class DefaultBuildStrategy(BuildStrategy):
             build_definition.get_handler_name(),
             single_build_dir,
             build_definition.metadata,
+            build_definition.env_vars,
         )
         function_build_results[single_function_name] = result
 

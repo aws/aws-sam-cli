@@ -22,6 +22,7 @@ RUNTIME_FIELD = "runtime"
 METADATA_FIELD = "metadata"
 FUNCTIONS_FIELD = "functions"
 SOURCE_MD5_FIELD = "source_md5"
+ENV_VARS_FIELD = "env_vars"
 LAYER_NAME_FIELD = "layer_name"
 BUILD_METHOD_FIELD = "build_method"
 COMPATIBLE_RUNTIMES_FIELD = "compatible_runtimes"
@@ -47,6 +48,7 @@ def _function_build_definition_to_toml_table(function_build_definition):
         toml_table[CODE_URI_FIELD] = function_build_definition.codeuri
         toml_table[RUNTIME_FIELD] = function_build_definition.runtime
         toml_table[SOURCE_MD5_FIELD] = function_build_definition.source_md5
+        toml_table[ENV_VARS_FIELD] = function_build_definition.env_vars
     toml_table[PACKAGETYPE_FIELD] = function_build_definition.packagetype
     toml_table[FUNCTIONS_FIELD] = list(map(lambda f: f.name, function_build_definition.functions))
 
@@ -78,6 +80,7 @@ def _toml_table_to_function_build_definition(uuid, toml_table):
         toml_table.get(PACKAGETYPE_FIELD, ZIP),
         dict(toml_table.get(METADATA_FIELD, {})),
         toml_table.get(SOURCE_MD5_FIELD, ""),
+        dict(toml_table.get(ENV_VARS_FIELD, {})),
     )
     function_build_definition.uuid = uuid
     return function_build_definition
@@ -359,12 +362,14 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
     LayerBuildDefinition holds information about each unique function build
     """
 
-    def __init__(self, runtime, codeuri, packagetype, metadata, source_md5=""):
+    def __init__(self, runtime, codeuri, packagetype, metadata, source_md5="", env_vars=None):
         super().__init__(source_md5)
         self.runtime = runtime
         self.codeuri = codeuri
         self.packagetype = packagetype
         self.metadata = metadata if metadata else {}
+        if env_vars:
+            self.env_vars = env_vars
         self.functions = []
 
     def add_function(self, function):
@@ -385,7 +390,7 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
     def __str__(self):
         return (
             "BuildDefinition("
-            f"{self.runtime}, {self.codeuri}, {self.packagetype}, {self.source_md5}, {self.uuid}, {self.metadata}, "
+            f"{self.runtime}, {self.codeuri}, {self.packagetype}, {self.source_md5}, {self.uuid}, {self.metadata}, {self.env_vars},"
             f"{[f.functionname for f in self.functions]})"
         )
 
@@ -415,4 +420,5 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
             and self.codeuri == other.codeuri
             and self.packagetype == other.packagetype
             and self.metadata == other.metadata
+            and self.env_vars == other.env_vars
         )

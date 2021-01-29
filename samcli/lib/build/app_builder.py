@@ -58,6 +58,7 @@ class ApplicationBuilder:
         mode=None,
         stream_writer=None,
         docker_client=None,
+        env_vars=None,
     ):
         """
         Initialize the class
@@ -109,6 +110,7 @@ class ApplicationBuilder:
 
         self._deprecated_runtimes = {"nodejs4.3", "nodejs6.10", "nodejs8.10", "dotnetcore2.0"}
         self._colored = Colored()
+        self._env_vars = env_vars
 
     def build(self):
         """
@@ -119,7 +121,7 @@ class ApplicationBuilder:
         dict
             Returns the path to where each resource was built as a map of resource's LogicalId to the path string
         """
-        build_graph = self._get_build_graph()
+        build_graph = self._get_build_graph(self._env_vars)
         build_strategy = DefaultBuildStrategy(build_graph, self._build_dir, self._build_function, self._build_layer)
 
         if self._parallel:
@@ -149,7 +151,7 @@ class ApplicationBuilder:
 
         return build_strategy.build()
 
-    def _get_build_graph(self):
+    def _get_build_graph(self, env_vars=None):
         """
         Converts list of functions and layers into a build graph, where we can iterate on each unique build and trigger
         build
@@ -354,7 +356,7 @@ class ApplicationBuilder:
             return str(pathlib.Path(self._build_dir, layer_name))
 
     def _build_function(  # pylint: disable=R1710
-        self, function_name, codeuri, packagetype, runtime, handler, artifacts_dir, metadata=None
+        self, function_name, codeuri, packagetype, runtime, handler, artifacts_dir, metadata=None, env_vars=None,
     ):
         """
         Given the function information, this method will build the Lambda function. Depending on the configuration
@@ -406,12 +408,12 @@ class ApplicationBuilder:
             with osutils.mkdir_temp() as scratch_dir:
                 manifest_path = self._manifest_path_override or os.path.join(code_dir, config.manifest_name)
 
+                options = ApplicationBuilder._get_build_options(function_name, config.language, handler)
                 # By default prefer to build in-process for speed
                 build_method = self._build_function_in_process
                 if self._container_manager:
                     build_method = self._build_function_on_container
-
-                options = ApplicationBuilder._get_build_options(function_name, config.language, handler)
+                    return build_method(config, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, options, env_vars)
 
                 return build_method(config, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, options)
 
@@ -472,6 +474,7 @@ class ApplicationBuilder:
         manifest_path,
         runtime,
         options,
+        env_vars,
     ):
 
         if not self._container_manager.is_docker_reachable:
@@ -499,6 +502,7 @@ class ApplicationBuilder:
             options=options,
             executable_search_paths=config.executable_search_paths,
             mode=self._mode,
+            env_vars=env_vars, 
         )
 
         try:

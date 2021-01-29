@@ -225,6 +225,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         docker_network=docker_network,
         skip_pull_image=skip_pull_image,
         mode=mode,
+        container_env_vars=container_env_vars,
     ) as ctx:
         try:
             builder = ApplicationBuilder(
