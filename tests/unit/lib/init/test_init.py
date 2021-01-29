@@ -163,8 +163,8 @@ class TestInit(TestCase):
     def test_when_generate_project_with_invalid_template_location(self, invalid_location):
         expected_msg = str(InvalidLocationError(template=invalid_location))
 
-        # WHEN generate_project returns an error
-        # THEN we should receive a GenerateProjectFailedError Exception
+        # WHEN the --location is not valid
+        # THEN we should receive a InvalidLocationError Exception
         with self.assertRaises(InvalidLocationError) as ctx:
             generate_project(
                 location=invalid_location,
