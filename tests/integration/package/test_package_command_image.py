@@ -141,8 +141,7 @@ class TestPackageImage(PackageIntegBase):
                 resolve_s3=True,
                 output_template_file=packaged_file.name,
             )
-
-            print(command_list)
+            
             process = Popen(command_list, stdout=PIPE, stderr=PIPE)
             try:
                 process.communicate(timeout=TIMEOUT)
