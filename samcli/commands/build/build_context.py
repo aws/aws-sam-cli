@@ -5,6 +5,7 @@ Context object used by build command
 import logging
 import os
 import shutil
+from typing import Optional, cast
 import pathlib
 
 from samcli.lib.providers.provider import ResourcesToBuildCollector
@@ -25,20 +26,20 @@ class BuildContext:
 
     def __init__(
         self,
-        resource_identifier,
-        template_file,
-        base_dir,
-        build_dir,
-        cache_dir,
-        cached,
-        mode,
-        manifest_path=None,
-        clean=False,
-        use_container=False,
-        parameter_overrides=None,
-        docker_network=None,
-        skip_pull_image=False,
-    ):
+        resource_identifier: Optional[str],
+        template_file: str,
+        base_dir: Optional[str],
+        build_dir: str,
+        cache_dir: str,
+        cached: bool,
+        mode: Optional[str],
+        manifest_path: Optional[str],
+        clean: bool,
+        use_container: bool,
+        parameter_overrides: dict,
+        docker_network: Optional[str],
+        skip_pull_image: bool,
+    ) -> None:
 
         self._resource_identifier = resource_identifier
         self._template_file = template_file
@@ -54,13 +55,12 @@ class BuildContext:
         self._mode = mode
         self._cached = cached
 
-        self._function_provider = None
-        self._layer_provider = None
-        self._template_dict = None
-        self._app_builder = None
-        self._container_manager = None
+        self._function_provider: SamFunctionProvider
+        self._layer_provider: SamLayerProvider
+        self._template_dict: dict
+        self._container_manager: ContainerManager
 
-    def __enter__(self):
+    def __enter__(self) -> "BuildContext":
         self._template_dict = get_template_data(self._template_file)
 
         self._function_provider = SamFunctionProvider(self._template_dict, self._parameter_overrides)
@@ -88,7 +88,7 @@ class BuildContext:
         pass
 
     @staticmethod
-    def _setup_build_dir(build_dir, clean):
+    def _setup_build_dir(build_dir: str, clean: bool) -> str:
         build_path = pathlib.Path(build_dir)
 
         if os.path.abspath(str(build_path)) == os.path.abspath(str(pathlib.Path.cwd())):
@@ -110,62 +110,63 @@ class BuildContext:
         return str(build_path.resolve())
 
     @property
-    def container_manager(self):
+    def container_manager(self) -> ContainerManager:
         return self._container_manager
 
     @property
-    def function_provider(self):
+    def function_provider(self) -> SamFunctionProvider:
         return self._function_provider
 
     @property
-    def layer_provider(self):
+    def layer_provider(self) -> SamLayerProvider:
         return self._layer_provider
 
     @property
-    def template_dict(self):
+    def template_dict(self) -> dict:
         return self._template_dict
 
     @property
-    def build_dir(self):
+    def build_dir(self) -> str:
         return self._build_dir
 
     @property
-    def base_dir(self):
-        return self._base_dir
+    def base_dir(self) -> str:
+        # self._base_dir will be assigned with a str value if it is None in __enter__()
+        return cast(str, self._base_dir)
 
     @property
-    def cache_dir(self):
+    def cache_dir(self) -> str:
         return self._cache_dir
 
     @property
-    def cached(self):
+    def cached(self) -> bool:
         return self._cached
 
     @property
-    def use_container(self):
+    def use_container(self) -> bool:
         return self._use_container
 
     @property
-    def output_template_path(self):
+    def output_template_path(self) -> str:
         return os.path.join(self._build_dir, "template.yaml")
 
     @property
-    def original_template_path(self):
+    def original_template_path(self) -> str:
         return os.path.abspath(self._template_file)
 
     @property
-    def manifest_path_override(self):
+    def manifest_path_override(self) -> Optional[str]:
         if self._manifest_path:
             return os.path.abspath(self._manifest_path)
 
         return None
 
     @property
-    def mode(self):
+    def mode(self) -> Optional[str]:
         return self._mode
 
     @property
-    def resources_to_build(self):
+    def resources_to_build(self) -> ResourcesToBuildCollector:
         """
         Function return resources that should be build by current build command. This function considers
         Lambda Functions and Layers with build method as buildable resources.
@@ -193,7 +194,7 @@ class BuildContext:
         return result
 
     @property
-    def is_building_specific_resource(self):
+    def is_building_specific_resource(self) -> bool:
         """
         Whether customer requested to build a specific resource alone in isolation,
         by specifying function_identifier to the build command.
@@ -202,7 +203,9 @@ class BuildContext:
         """
         return bool(self._resource_identifier)
 
-    def _collect_single_function_and_dependent_layers(self, resource_identifier, resource_collector):
+    def _collect_single_function_and_dependent_layers(
+        self, resource_identifier: str, resource_collector: ResourcesToBuildCollector
+    ) -> None:
         """
         Populate resource_collector with function with provided identifier and all layers that function need to be
         build in resource_collector
@@ -223,7 +226,9 @@ class BuildContext:
         resource_collector.add_function(function)
         resource_collector.add_layers([l for l in function.layers if l.build_method is not None])
 
-    def _collect_single_buildable_layer(self, resource_identifier, resource_collector):
+    def _collect_single_buildable_layer(
+        self, resource_identifier: str, resource_collector: ResourcesToBuildCollector
+    ) -> None:
         """
         Populate resource_collector with layer with provided identifier.
 
