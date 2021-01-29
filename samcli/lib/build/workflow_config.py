@@ -5,6 +5,7 @@ Contains Builder Workflow Configs for different Runtimes
 import os
 import logging
 from collections import namedtuple
+from typing import Dict, List, Optional, Tuple, Union
 
 LOG = logging.getLogger(__name__)
 
@@ -94,7 +95,11 @@ class UnsupportedBuilderException(Exception):
     pass
 
 
-def get_selector(selector_list, identifiers, specified_workflow=None):
+def get_selector(
+    selector_list: List[Dict[str, Union["BasicWorkflowSelector", "ManifestWorkflowSelector"]]],
+    identifiers: List[Optional[str]],
+    specified_workflow: Optional[str] = None,
+) -> Optional[Union["BasicWorkflowSelector", "ManifestWorkflowSelector"]]:
     """
     Determine the correct workflow selector from a list of selectors,
     series of identifiers and user specified workflow if defined.
@@ -116,7 +121,7 @@ def get_selector(selector_list, identifiers, specified_workflow=None):
     """
 
     # Create a combined view of all the selectors
-    all_selectors = {}
+    all_selectors: Dict[str, Union["BasicWorkflowSelector", "ManifestWorkflowSelector"]] = dict()
     for selector in selector_list:
         all_selectors = {**all_selectors, **selector}
 
@@ -124,23 +129,20 @@ def get_selector(selector_list, identifiers, specified_workflow=None):
     if specified_workflow and specified_workflow not in all_selectors:
         raise UnsupportedBuilderException("'{}' does not have a supported builder".format(specified_workflow))
 
-    # Loop through all identifers to gather list of selectors with potential matches.
-    selectors = [all_selectors.get(identifier, None) for identifier in identifiers]
-
-    # Intialize a `None` selector.
-    selector = None
+    # Loop through all identifiers to gather list of selectors with potential matches.
+    selectors = [all_selectors.get(identifier) for identifier in identifiers if identifier]
 
     try:
         # Find first non-None selector.
         # Return the first selector with a match.
-        selector = next(_selector for _selector in selectors if _selector)
+        return next(_selector for _selector in selectors if _selector)
     except StopIteration:
         pass
 
-    return selector
+    return None
 
 
-def get_layer_subfolder(build_workflow):
+def get_layer_subfolder(build_workflow: str) -> str:
     subfolders_by_runtime = {
         "python2.7": "python",
         "python3.6": "python",
@@ -166,7 +168,9 @@ def get_layer_subfolder(build_workflow):
     return subfolders_by_runtime[build_workflow]
 
 
-def get_workflow_config(runtime, code_dir, project_dir, specified_workflow=None):
+def get_workflow_config(
+    runtime: Optional[str], code_dir: str, project_dir: str, specified_workflow: Optional[str] = None
+) -> CONFIG:
     """
     Get a workflow config that corresponds to the runtime provided. This method examines contents of the project
     and code directories to determine the most appropriate workflow for the given runtime. Currently the decision is
@@ -251,17 +255,18 @@ def get_workflow_config(runtime, code_dir, project_dir, specified_workflow=None)
             identifiers=[specified_workflow, runtime],
             specified_workflow=specified_workflow,
         )
+        assert selector
 
         # Identify workflow configuration from the workflow selector.
         config = selector.get_config(code_dir, project_dir)
         return config
-    except ValueError as ex:
+    except (ValueError, AssertionError) as ex:
         raise UnsupportedRuntimeException(
             "Unable to find a supported build workflow for runtime '{}'. Reason: {}".format(runtime, str(ex))
         ) from ex
 
 
-def supports_build_in_container(config):
+def supports_build_in_container(config: CONFIG) -> Tuple[bool, Optional[str]]:
     """
     Given a workflow config, this method provides a boolean on whether the workflow can run within a container or not.
 
@@ -276,7 +281,7 @@ def supports_build_in_container(config):
         True, if this workflow can be built inside a container. False, along with a reason message if it cannot be.
     """
 
-    def _key(c):
+    def _key(c: CONFIG) -> str:
         return str(c.language) + str(c.dependency_manager) + str(c.application_framework)
 
     # This information could have beeen bundled inside the Workflow Config object. But we this way because
@@ -305,13 +310,13 @@ class BasicWorkflowSelector:
     Basic workflow selector that returns the first available configuration in the given list of configurations
     """
 
-    def __init__(self, configs):
-        if not isinstance(configs, list):
-            configs = [configs]
+    def __init__(self, configs: Union[CONFIG, List[CONFIG]]) -> None:
+        if isinstance(configs, list):
+            self.configs = configs
+        else:
+            self.configs = [configs]
 
-        self.configs = configs
-
-    def get_config(self, code_dir, project_dir):
+    def get_config(self, code_dir: str, project_dir: str) -> CONFIG:
         """
         Returns the first available configuration
         """
@@ -323,7 +328,7 @@ class ManifestWorkflowSelector(BasicWorkflowSelector):
     Selects a workflow by examining the directories for presence of a supported manifest
     """
 
-    def get_config(self, code_dir, project_dir):
+    def get_config(self, code_dir: str, project_dir: str) -> CONFIG:
         """
         Finds a configuration by looking for a manifest in the given directories.
 
@@ -356,5 +361,5 @@ class ManifestWorkflowSelector(BasicWorkflowSelector):
         )
 
     @staticmethod
-    def _has_manifest(config, directory):
+    def _has_manifest(config: CONFIG, directory: str) -> bool:
         return os.path.exists(os.path.join(directory, config.manifest_name))
