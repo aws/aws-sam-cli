@@ -145,7 +145,7 @@ class TestPackageImage(PackageIntegBase):
             print(command_list)
             process = Popen(command_list, stdout=PIPE, stderr=PIPE)
             try:
-                stdout, stderr = process.communicate(timeout=TIMEOUT)
+                process.communicate(timeout=TIMEOUT)
             except TimeoutExpired:
                 process.kill()
                 raise
