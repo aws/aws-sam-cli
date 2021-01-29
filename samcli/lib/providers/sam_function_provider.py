@@ -165,7 +165,7 @@ class SamFunctionProvider(SamBaseProvider):
         imageuri = None
         packagetype = resource_properties.get("PackageType", ZIP)
         if packagetype == ZIP:
-            if resource_properties.get("InlineCode") is not None:
+            if resource_properties.get("InlineCode"):
                 inlinecode = resource_properties["InlineCode"]
                 LOG.debug("Found Serverless function with name='%s' and InlineCode", name)
                 codeuri = None
@@ -215,7 +215,7 @@ class SamFunctionProvider(SamBaseProvider):
             if (
                 "Code" in resource_properties
                 and isinstance(resource_properties["Code"], dict)
-                and resource_properties["Code"].get("ZipFile") is not None
+                and resource_properties["Code"].get("ZipFile")
             ):
                 inlinecode = resource_properties["Code"]["ZipFile"]
                 LOG.debug("Found Lambda function with name='%s' and Code ZipFile", name)
@@ -232,7 +232,9 @@ class SamFunctionProvider(SamBaseProvider):
         )
 
     @staticmethod
-    def _build_function_configuration(name, codeuri, resource_properties, layers, inlinecode=None, imageuri=None):
+    def _build_function_configuration(
+        name: str, codeuri: str, resource_properties: dict, layers: list, inlinecode: str, imageuri: str
+    ):
         """
         Builds a Function configuration usable by the provider.
 
