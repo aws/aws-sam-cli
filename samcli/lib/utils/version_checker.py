@@ -3,6 +3,7 @@ Contains information about newer version checker for SAM CLI
 """
 import logging
 from datetime import datetime, timedelta
+from functools import wraps
 
 import click
 from requests import get
@@ -34,6 +35,7 @@ def check_newer_version(func):
         A wrapped function reference which executes original function and checks newer version of SAM CLI
     """
 
+    @wraps(func)
     def wrapped(*args, **kwargs):
         # execute actual command first
         actual_result = func(*args, **kwargs)
@@ -45,7 +47,7 @@ def check_newer_version(func):
     return wrapped
 
 
-def inform_newer_version(check_all_always=False):
+def inform_newer_version(force_check=False):
     """
     Compares installed SAM CLI version with the up to date version from PyPi,
     and print information if up to date version is different then what is installed now
@@ -66,8 +68,8 @@ def inform_newer_version(check_all_always=False):
         global_config = GlobalConfig()
         last_version_check = global_config.last_version_check
 
-        if check_all_always or is_last_check_older_then_week(last_version_check):
-            compare_current_version()
+        if force_check or is_last_check_older_than_delta(last_version_check):
+            fetch_and_compare_versions()
         else:
             need_to_update_last_check_time = False
     except Exception as e:
@@ -77,16 +79,16 @@ def inform_newer_version(check_all_always=False):
             update_last_check_time(global_config)
 
 
-def compare_current_version():
+def fetch_and_compare_versions():
     """
     Compare current up to date version with the installed one, and inform if a newer version available
     """
     response = get(AWS_SAM_CLI_PYPI_ENDPOINT, timeout=PYPI_CALL_TIMEOUT_IN_SECONDS)
     result = response.json()
-    current_version = result.get("info", {}).get("version", None)
-    LOG.debug("Installed version %s, current version %s", installed_version, current_version)
-    if current_version and installed_version != current_version:
-        click.secho(f"\nSAM CLI update available ({current_version}); ({installed_version} installed)", fg="green")
+    latest_version = result.get("info", {}).get("version", None)
+    LOG.debug("Installed version %s, current version %s", installed_version, latest_version)
+    if latest_version and installed_version != latest_version:
+        click.secho(f"\nSAM CLI update available ({latest_version}); ({installed_version} installed)", fg="green")
         click.echo(f"To download: {AWS_SAM_CLI_INSTALL_DOCS}")
 
 
@@ -105,7 +107,7 @@ def update_last_check_time(global_config):
         LOG.debug("Updating last version check time was failed", exc_info=e)
 
 
-def is_last_check_older_then_week(last_version_check):
+def is_last_check_older_than_delta(last_version_check):
     """
     Check if last version check have been made longer then a week ago
 

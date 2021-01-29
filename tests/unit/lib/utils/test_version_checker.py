@@ -5,9 +5,9 @@ from unittest.mock import patch, call, ANY
 from samcli.cli.global_config import GlobalConfig
 from samcli.lib.utils.version_checker import (
     check_newer_version,
-    is_last_check_older_then_week,
+    is_last_check_older_than_delta,
     update_last_check_time,
-    compare_current_version,
+    fetch_and_compare_versions,
     AWS_SAM_CLI_INSTALL_DOCS,
     AWS_SAM_CLI_PYPI_ENDPOINT,
     PYPI_CALL_TIMEOUT_IN_SECONDS,
@@ -24,33 +24,33 @@ class TestVersionChecker(TestCase):
         actual = real_fn("Hello", "World")
         self.assertEqual(actual, "Hello World")
 
-    @patch("samcli.lib.utils.version_checker.is_last_check_older_then_week")
-    @patch("samcli.lib.utils.version_checker.compare_current_version")
+    @patch("samcli.lib.utils.version_checker.is_last_check_older_than_delta")
+    @patch("samcli.lib.utils.version_checker.fetch_and_compare_versions")
     @patch("samcli.lib.utils.version_checker.update_last_check_time")
-    def test_must_call_compare_current_version_if_newer_version_is_available(
-        self, mock_update_last_check, mock_compare_current_version, mock_is_last_check_older
+    def test_must_call_fetch_and_compare_versions_if_newer_version_is_available(
+        self, mock_update_last_check, mock_fetch_and_compare_versions, mock_is_last_check_older_than_delta
     ):
-        mock_is_last_check_older.return_value = True
+        mock_is_last_check_older_than_delta.return_value = True
         actual = real_fn("Hello", "World")
 
         self.assertEqual(actual, "Hello World")
-        mock_is_last_check_older.assert_called_once()
-        mock_compare_current_version.assert_called_once()
+        mock_is_last_check_older_than_delta.assert_called_once()
+        mock_fetch_and_compare_versions.assert_called_once()
         mock_update_last_check.assert_called_once()
 
-    @patch("samcli.lib.utils.version_checker.is_last_check_older_then_week")
-    @patch("samcli.lib.utils.version_checker.compare_current_version")
+    @patch("samcli.lib.utils.version_checker.is_last_check_older_than_delta")
+    @patch("samcli.lib.utils.version_checker.fetch_and_compare_versions")
     @patch("samcli.lib.utils.version_checker.update_last_check_time")
-    def test_must_not_call_compare_current_version_if_no_newer_version_is_available(
-        self, mock_update_last_check, mock_compare_current_version, mock_is_last_check_older
+    def test_must_not_call_fetch_and_compare_versions_if_no_newer_version_is_available(
+        self, mock_update_last_check, mock_fetch_and_compare_versions, mock_is_last_check_older_than_delta
     ):
-        mock_is_last_check_older.return_value = False
+        mock_is_last_check_older_than_delta.return_value = False
         actual = real_fn("Hello", "World")
 
         self.assertEqual(actual, "Hello World")
-        mock_is_last_check_older.assert_called_once()
+        mock_is_last_check_older_than_delta.assert_called_once()
 
-        mock_compare_current_version.assert_not_called()
+        mock_fetch_and_compare_versions.assert_not_called()
         mock_update_last_check.assert_not_called()
 
     @patch("samcli.lib.utils.version_checker.get")
@@ -66,7 +66,7 @@ class TestVersionChecker(TestCase):
     @patch("samcli.lib.utils.version_checker.installed_version", "1.9.0")
     def test_compare_invalid_response(self, mock_log, get_mock):
         get_mock.return_value.json.return_value = {}
-        compare_current_version()
+        fetch_and_compare_versions()
 
         get_mock.assert_has_calls([call(AWS_SAM_CLI_PYPI_ENDPOINT, timeout=PYPI_CALL_TIMEOUT_IN_SECONDS)])
 
@@ -79,9 +79,9 @@ class TestVersionChecker(TestCase):
     @patch("samcli.lib.utils.version_checker.get")
     @patch("samcli.lib.utils.version_checker.LOG")
     @patch("samcli.lib.utils.version_checker.installed_version", "1.9.0")
-    def test_compare_current_versions_same(self, mock_log, get_mock):
+    def test_fetch_and_compare_versions_same(self, mock_log, get_mock):
         get_mock.return_value.json.return_value = {"info": {"version": "1.9.0"}}
-        compare_current_version()
+        fetch_and_compare_versions()
 
         get_mock.assert_has_calls([call(AWS_SAM_CLI_PYPI_ENDPOINT, timeout=PYPI_CALL_TIMEOUT_IN_SECONDS)])
 
@@ -94,9 +94,9 @@ class TestVersionChecker(TestCase):
     @patch("samcli.lib.utils.version_checker.get")
     @patch("samcli.lib.utils.version_checker.click")
     @patch("samcli.lib.utils.version_checker.installed_version", "1.9.0")
-    def test_compare_current_versions_different(self, mock_click, get_mock):
+    def test_fetch_and_compare_versions_different(self, mock_click, get_mock):
         get_mock.return_value.json.return_value = {"info": {"version": "1.10.0"}}
-        compare_current_version()
+        fetch_and_compare_versions()
 
         get_mock.assert_has_calls([call(AWS_SAM_CLI_PYPI_ENDPOINT, timeout=PYPI_CALL_TIMEOUT_IN_SECONDS)])
 
@@ -130,12 +130,12 @@ class TestVersionChecker(TestCase):
         update_last_check_time(None)
 
     def test_last_check_time_none_should_return_true(self):
-        self.assertTrue(is_last_check_older_then_week(None))
+        self.assertTrue(is_last_check_older_than_delta(None))
 
     def test_last_check_time_week_older_should_return_true(self):
         eight_days_ago = datetime.utcnow() - timedelta(days=8)
-        self.assertTrue(is_last_check_older_then_week(eight_days_ago))
+        self.assertTrue(is_last_check_older_than_delta(eight_days_ago))
 
     def test_last_check_time_week_earlier_should_return_false(self):
         eight_days_ago = datetime.utcnow() - timedelta(days=6)
-        self.assertFalse(is_last_check_older_then_week(eight_days_ago.timestamp()))
+        self.assertFalse(is_last_check_older_than_delta(eight_days_ago.timestamp()))

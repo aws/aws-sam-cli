@@ -66,8 +66,8 @@ def print_version_option(ctx, param, value):
     """
     if not value or ctx.resilient_parsing:
         return
-    click.echo("SAM CLI, version %(version)s" % {"version": __version__}, color=ctx.color)
-    inform_newer_version(True)
+    click.echo(f"SAM CLI, version {__version__}", color=ctx.color)
+    inform_newer_version(force_check=True)
     ctx.exit()
 
 
