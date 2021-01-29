@@ -19,6 +19,7 @@ from .options import debug_option, region_option, profile_option
 from .context import Context
 from .command import BaseCommand
 from .global_config import GlobalConfig
+from ..lib.utils.version_checker import inform_newer_version
 
 LOG = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
@@ -58,6 +59,18 @@ def print_info(ctx, param, value):
     ctx.exit()
 
 
+def print_version_option(ctx, param, value):
+    """
+    Since default implementation for click.version_option doesn't support callback's we need to create a simple version
+    of it, which will print version information, and check for new version and exit the cli
+    """
+    if not value or ctx.resilient_parsing:
+        return
+    click.echo("SAM CLI, version %(version)s" % {"version": __version__}, color=ctx.color)
+    inform_newer_version(True)
+    ctx.exit()
+
+
 # Keep the message to 80chars wide to it prints well on most terminals
 TELEMETRY_PROMPT = """
 \tSAM CLI now collects telemetry to better understand customer needs.
@@ -72,7 +85,7 @@ TELEMETRY_PROMPT = """
 
 @click.command(cls=BaseCommand)
 @common_options
-@click.version_option(version=__version__, prog_name="SAM CLI")
+@click.option("--version", is_flag=True, is_eager=True, callback=print_version_option, expose_value=False)
 @click.option("--info", is_flag=True, is_eager=True, callback=print_info, expose_value=False)
 @pass_context
 def cli(ctx):
