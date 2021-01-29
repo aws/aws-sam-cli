@@ -31,11 +31,14 @@ class TestApplicationBuilder_build(TestCase):
         self.func1 = Mock()
         self.func1.packagetype = ZIP
         self.func1.name = "function_name1"
+        self.func1.inlinecode = None
         self.func2 = Mock()
         self.func2.packagetype = ZIP
         self.func2.name = "function_name2"
+        self.func2.inlinecode = None
         self.imageFunc1 = Mock()
         self.imageFunc1.name = "function_name3"
+        self.imageFunc1.inlinecode = None
 
         self.layer1 = Mock()
         self.layer2 = Mock()
