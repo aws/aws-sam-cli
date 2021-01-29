@@ -23,8 +23,11 @@ class BuildStrategyBaseTest(TestCase):
         self.build_graph = BuildGraph("build_dir")
 
         self.function1_1 = Mock()
+        self.function1_1.inlinecode = None
         self.function1_2 = Mock()
+        self.function1_2.inlinecode = None
         self.function2 = Mock()
+        self.function2.inlinecode = None
 
         self.function_build_definition1 = FunctionBuildDefinition("runtime", "codeuri", ZIP, {})
         self.function_build_definition1.functions = [self.function1_1, self.function1_2]
@@ -116,12 +119,15 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
         build_graph = Mock(spec=BuildGraph)
         build_graph.get_layer_build_definitions.return_value = [layer_build_definition]
         build_graph.get_function_build_definitions.return_value = []
-        default_build_strategy = DefaultBuildStrategy(build_graph, "build_dir", Mock(), Mock())
+        mock_function = Mock()
+        mock_function.inlinecode = None
+        default_build_strategy = DefaultBuildStrategy(build_graph, "build_dir", mock_function, Mock())
 
         self.assertRaises(MissingBuildMethodException, default_build_strategy.build)
 
     def test_build_layers_and_functions(self, mock_copy_tree, mock_path):
         given_build_function = Mock()
+        given_build_function.inlinecode = None
         given_build_layer = Mock()
         given_build_dir = "build_dir"
         default_build_strategy = DefaultBuildStrategy(
@@ -256,8 +262,10 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
             )
             func1 = Mock()
             func1.name = "func1_name"
+            func1.inlinecode = None
             func2 = Mock()
             func2.name = "func2_name"
+            func2.inlinecode = None
             build_definition = build_graph.get_function_build_definitions()[0]
             layer_definition = build_graph.get_layer_build_definitions()[0]
             build_graph.put_function_build_definition(build_definition, func1)
