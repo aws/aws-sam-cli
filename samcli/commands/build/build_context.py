@@ -33,12 +33,14 @@ class BuildContext:
         cache_dir: str,
         cached: bool,
         mode: Optional[str],
-        manifest_path: Optional[str],
-        clean: bool,
-        use_container: bool,
-        parameter_overrides: dict,
-        docker_network: Optional[str],
-        skip_pull_image: bool,
+        manifest_path: Optional[str] = None,
+        clean: bool = False,
+        use_container: bool = False,
+        # FIXME: parameter_overrides is never None, we should change this to "dict" from Optional[dict]
+        # See samcli/commands/_utils/options.py:251 for its all possible values
+        parameter_overrides: Optional[dict] = None,
+        docker_network: Optional[str] = None,
+        skip_pull_image: bool = False,
     ) -> None:
 
         self._resource_identifier = resource_identifier
