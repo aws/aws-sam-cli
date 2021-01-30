@@ -36,6 +36,7 @@ class BuildContext:
         manifest_path: Optional[str] = None,
         clean: bool = False,
         use_container: bool = False,
+        # pylint: disable=fixme
         # FIXME: parameter_overrides is never None, we should change this to "dict" from Optional[dict]
         # See samcli/commands/_utils/options.py:251 for its all possible values
         parameter_overrides: Optional[dict] = None,
