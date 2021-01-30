@@ -5,7 +5,7 @@ Context object used by build command
 import logging
 import os
 import shutil
-from typing import Optional, cast, Dict
+from typing import Optional, Dict
 import pathlib
 
 from samcli.lib.providers.provider import ResourcesToBuildCollector
@@ -58,10 +58,10 @@ class BuildContext:
         self._mode = mode
         self._cached = cached
 
-        self._function_provider: SamFunctionProvider
-        self._layer_provider: SamLayerProvider
-        self._template_dict: Dict
-        self._container_manager: ContainerManager
+        self._function_provider: Optional[SamFunctionProvider] = None
+        self._layer_provider: Optional[SamLayerProvider] = None
+        self._template_dict: Optional[Dict] = None
+        self._container_manager: Optional[ContainerManager] = None
 
     def __enter__(self) -> "BuildContext":
         self._template_dict = get_template_data(self._template_file)
@@ -114,19 +114,23 @@ class BuildContext:
 
     @property
     def container_manager(self) -> ContainerManager:
-        return self._container_manager
+        # Note(xinhol): self._container_manager will be assigned with a value if it is None in __enter__()
+        return self._container_manager  # type: ignore
 
     @property
     def function_provider(self) -> SamFunctionProvider:
-        return self._function_provider
+        # Note(xinhol): self._container_manager will be assigned with a value if it is None in __enter__()
+        return self._function_provider  # type: ignore
 
     @property
     def layer_provider(self) -> SamLayerProvider:
-        return self._layer_provider
+        # Note(xinhol): self._container_manager will be assigned with a value if it is None in __enter__()
+        return self._layer_provider  # type: ignore
 
     @property
     def template_dict(self) -> Dict:
-        return self._template_dict
+        # Note(xinhol): self._template_dict will be assigned with a value if it is None in __enter__()
+        return self._template_dict  # type: ignore
 
     @property
     def build_dir(self) -> str:
@@ -134,8 +138,8 @@ class BuildContext:
 
     @property
     def base_dir(self) -> str:
-        # self._base_dir will be assigned with a str value if it is None in __enter__()
-        return cast(str, self._base_dir)
+        # Note(xinhol): self._base_dir will be assigned with a str value if it is None in __enter__()
+        return self._base_dir  # type: ignore
 
     @property
     def cache_dir(self) -> str:
@@ -183,8 +187,8 @@ class BuildContext:
             self._collect_single_buildable_layer(self._resource_identifier, result)
 
             if not result.functions and not result.layers:
-                all_resources = [f.name for f in self._function_provider.get_all() if not f.inlinecode]
-                all_resources.extend([l.name for l in self._layer_provider.get_all()])
+                all_resources = [f.name for f in self.function_provider.get_all() if not f.inlinecode]
+                all_resources.extend([l.name for l in self.layer_provider.get_all()])
 
                 available_resource_message = (
                     f"{self._resource_identifier} not found. Possible options in your " f"template: {all_resources}"
@@ -192,8 +196,8 @@ class BuildContext:
                 LOG.info(available_resource_message)
                 raise ResourceNotFound(f"Unable to find a function or layer with name '{self._resource_identifier}'")
             return result
-        result.add_functions([f for f in self._function_provider.get_all() if not f.inlinecode])
-        result.add_layers([l for l in self._layer_provider.get_all() if l.build_method is not None])
+        result.add_functions([f for f in self.function_provider.get_all() if not f.inlinecode])
+        result.add_layers([l for l in self.layer_provider.get_all() if l.build_method is not None])
         return result
 
     @property
@@ -221,7 +225,7 @@ class BuildContext:
         ResourcesToBuildCollector
 
         """
-        function = self._function_provider.get(resource_identifier)
+        function = self.function_provider.get(resource_identifier)
         if not function:
             # No function found
             return
@@ -243,7 +247,7 @@ class BuildContext:
         -------
 
         """
-        layer = self._layer_provider.get(resource_identifier)
+        layer = self.layer_provider.get(resource_identifier)
         if not layer:
             # No layer found
             return
