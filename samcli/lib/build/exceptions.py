@@ -32,18 +32,15 @@ class DockerConnectionError(BuildError):
 
 
 class DockerfileOutSideOfContext(BuildError):
-
     def __init__(self, msg):
         BuildError.__init__(self, "DockerfileOutSideOfContext", msg)
 
 
 class DockerBuildFailed(BuildError):
-
     def __init__(self, msg):
         BuildError.__init__(self, "DockerBuildFailed", msg)
 
 
 class InvalidBuildGraphException(Exception):
-
     def __init__(self, msg):
         Exception.__init__(self, msg)

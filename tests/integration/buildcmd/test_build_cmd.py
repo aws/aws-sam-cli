@@ -33,7 +33,6 @@ TIMEOUT = 420  # 7 mins
 class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
     template = "template_image.yaml"
 
-    EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {
         "__init__.py",
         "main.py",
@@ -70,7 +69,6 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildCommand_PythonFunctions(BuildIntegBase):
-    EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {
         "__init__.py",
         "main.py",
@@ -186,7 +184,6 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildCommand_NodeFunctions(BuildIntegBase):
-    EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {"node_modules", "main.js"}
     EXPECTED_NODE_MODULES = {"minimal-request-promise"}
 
@@ -665,7 +662,6 @@ class TestBuildCommand_Go_Modules(BuildIntegBase):
 class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
     template = "many-functions-template.yaml"
 
-    EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {
         "__init__.py",
         "main.py",
@@ -742,7 +738,6 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
 class TestBuildCommand_LayerBuilds(BuildIntegBase):
     template = "layers-functions-template.yaml"
 
-    EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {"__init__.py", "main.py", "requirements.txt"}
     EXPECTED_LAYERS_FILES_PROJECT_MANIFEST = {"__init__.py", "layer.py", "numpy", "requirements.txt"}
 
@@ -906,7 +901,6 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegBase):
     # Test Suite for runtime: provided and where selection of the build workflow is implicitly makefile builder
     # if the makefile is present.
 
-    EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {"__init__.py", "main.py", "requests", "requirements.txt"}
 
     FUNCTION_LOGICAL_ID = "Function"
@@ -980,7 +974,6 @@ class TestBuildWithBuildMethod(BuildIntegBase):
     # Test Suite where `BuildMethod` is explicitly specified.
 
     template = "custom-build-function.yaml"
-    EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {"__init__.py", "main.py", "requests", "requirements.txt"}
 
     FUNCTION_LOGICAL_ID = "Function"
@@ -1293,3 +1286,49 @@ class TestParallelBuilds(DedupBuildIntegBase):
             self._verify_build_and_invoke_functions(
                 expected_messages, command_result, self._make_parameter_override_arg(overrides)
             )
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildWithInlineCode(BuildIntegBase):
+    template = "inline_template.yaml"
+
+    @parameterized.expand(
+        [
+            (False,),
+            ("use_container",),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_inline_not_built(self, use_container):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        cmdlist = self.get_command_list(use_container=use_container)
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        run_command(cmdlist, cwd=self.working_dir)
+
+        self._verify_built_artifact(self.default_build_dir)
+
+        self.verify_docker_container_cleanedup("python3.7")
+
+    def _verify_built_artifact(self, build_dir):
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        codeuri_logical_id = "CodeUriFunction"
+        inline_logical_id = "InlineCodeFunction"
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("template.yaml", build_dir_files)
+        self.assertIn(codeuri_logical_id, build_dir_files)
+        self.assertNotIn(inline_logical_id, build_dir_files)
+
+        template_path = build_dir.joinpath("template.yaml")
+
+        # Make sure the template has correct CodeUri for resource
+        self._verify_resource_property(str(template_path), codeuri_logical_id, "CodeUri", codeuri_logical_id)
+        # Make sure the template has correct InlineCode for resource
+        self._verify_resource_property(str(template_path), inline_logical_id, "InlineCode", "def handler(): pass")

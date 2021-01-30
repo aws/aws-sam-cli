@@ -12,6 +12,7 @@ import docker
 
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker import utils
+from samcli.local.docker.container import Container
 
 LOG = logging.getLogger(__name__)
 
@@ -23,18 +24,20 @@ class ContainerManager:
     serve requests faster. It is also thread-safe.
     """
 
-    def __init__(self, docker_network_id=None, docker_client=None, skip_pull_image=False):
+    def __init__(self, docker_network_id=None, docker_client=None, skip_pull_image=False, do_shutdown_event=False):
         """
         Instantiate the container manager
 
         :param docker_network_id: Optional Docker network to run this container in.
         :param docker_client: Optional docker client object
         :param bool skip_pull_image: Should we pull new Docker container image?
+        :param bool do_shutdown_event: Optional. If True, send a SHUTDOWN event to the container before final teardown.
         """
 
         self.skip_pull_image = skip_pull_image
         self.docker_network_id = docker_network_id
         self.docker_client = docker_client or docker.from_env()
+        self.do_shutdown_event = do_shutdown_event
 
         self._lock = threading.Lock()
         self._lock_per_image = {}
@@ -113,12 +116,14 @@ class ContainerManager:
 
         container.start(input_data=input_data)
 
-    def stop(self, container):
+    def stop(self, container: Container) -> None:
         """
         Stop and delete the container
 
         :param samcli.local.docker.container.Container container: Container to stop
         """
+        if self.do_shutdown_event:
+            container.stop()
         container.delete()
 
     def pull_image(self, image_name, stream=None):
@@ -181,7 +186,8 @@ class ContainerManager:
         except docker.errors.ImageNotFound:
             return False
 
-    def _is_rapid_image(self, image_name):
+    @staticmethod
+    def _is_rapid_image(image_name: str) -> bool:
         """
         Is the image tagged as a RAPID clone?
 

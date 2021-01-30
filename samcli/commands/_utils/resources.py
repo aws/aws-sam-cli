@@ -1,5 +1,5 @@
 """
-Enums for Resources and thier Location Properties, along with utlity functions
+Enums for Resources and thier Location Properties, along with utility functions
 """
 
 from collections import defaultdict

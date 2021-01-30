@@ -1,17 +1,16 @@
-import os
-import threading
 import uuid
+import random
 
 import docker
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from time import time
+from time import time, sleep
 
 import pytest
 
 from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
 from samcli.local.apigw.local_apigw_service import Route
-from .start_api_integ_base import StartApiIntegBaseClass
+from .start_api_integ_base import StartApiIntegBaseClass, WatchWarmContainersIntegBaseClass
 
 
 class TestParallelRequests(StartApiIntegBaseClass):
@@ -216,6 +215,18 @@ class TestService(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_large_input_request(self):
+        # not exact 6 mega, as local start-api sends extra data with the input data
+        around_six_mega = 6 * 1024 * 1024 - 2 * 1024
+        data = "a" * around_six_mega
+        response = requests.post(self.url + "/echoeventbody", data=data, timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+        self.assertEqual(response_data.get("body"), data)
 
 
 class TestServiceWithHttpApi(StartApiIntegBaseClass):
@@ -1177,6 +1188,7 @@ class TestServiceCorsSwaggerRequests(StartApiIntegBaseClass):
         self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "*")
         self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), "origin, x-requested-with")
         self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), "GET,OPTIONS")
+        self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), "true")
         self.assertEqual(response.headers.get("Access-Control-Max-Age"), "510")
 
 
@@ -1203,6 +1215,7 @@ class TestServiceCorsSwaggerRequestsWithHttpApi(StartApiIntegBaseClass):
         self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "*")
         self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), "origin")
         self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), "GET,OPTIONS,POST")
+        self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), "true")
         self.assertEqual(response.headers.get("Access-Control-Max-Age"), "42")
 
 
@@ -1228,6 +1241,7 @@ class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
         self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "*")
         self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), None)
         self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), ",".join(sorted(Route.ANY_HTTP_METHODS)))
+        self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), None)
         self.assertEqual(response.headers.get("Access-Control-Max-Age"), None)
 
     @pytest.mark.flaky(reruns=3)
@@ -1244,6 +1258,7 @@ class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
         self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), None)
         self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), None)
         self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), None)
+        self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), None)
         self.assertEqual(response.headers.get("Access-Control-Max-Age"), None)
 
 
@@ -1515,6 +1530,7 @@ class TestCFNTemplateQuickCreatedHttpApiWithDefaultRoute(StartApiIntegBaseClass)
         self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "https://example.com")
         self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), "x-apigateway-header")
         self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), "GET,OPTIONS")
+        self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), "true")
         self.assertEqual(response.headers.get("Access-Control-Max-Age"), "600")
 
 
@@ -1739,3 +1755,285 @@ class TestLazyContainersMultipleInvoke(TestWarmContainersBaseClass):
 
         # only one container is initialized
         self.assertEqual(initiated_containers, initiated_containers_before_any_invoke + 1)
+
+
+class TestImagePackageType(StartApiIntegBaseClass):
+    template_path = "/testdata/start_api/image_package_type/template.yaml"
+    build_before_invoke = True
+    tag = f"python-{random.randint(1000,2000)}"
+    build_overrides = {"Tag": tag}
+    parameter_overrides = {"ImageUri": f"helloworldfunction:{tag}"}
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_can_invoke_lambda_function_successfully(self):
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+
+class TestImagePackageTypeWithEagerWarmContainersMode(StartApiIntegBaseClass):
+    template_path = "/testdata/start_api/image_package_type/template.yaml"
+    container_mode = ContainersInitializationMode.EAGER.value
+    build_before_invoke = True
+    tag = f"python-{random.randint(1000,2000)}"
+    build_overrides = {"Tag": tag}
+    parameter_overrides = {"ImageUri": f"helloworldfunction:{tag}"}
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_can_invoke_lambda_function_successfully(self):
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+
+class TestImagePackageTypeWithEagerLazyContainersMode(StartApiIntegBaseClass):
+    template_path = "/testdata/start_api/image_package_type/template.yaml"
+    container_mode = ContainersInitializationMode.LAZY.value
+    build_before_invoke = True
+    tag = f"python-{random.randint(1000,2000)}"
+    build_overrides = {"Tag": tag}
+    parameter_overrides = {"ImageUri": f"helloworldfunction:{tag}"}
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_can_invoke_lambda_function_successfully(self):
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+
+class TestWatchingZipWarmContainers(WatchWarmContainersIntegBaseClass):
+    template_content = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    """
+    code_content = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world"})}
+    """
+    code_content_2 = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}
+    """
+    docker_file_content = ""
+    container_mode = ContainersInitializationMode.EAGER.value
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_changed_code_got_observed_and_loaded(self):
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+        self._write_file_content(self.code_path, self.code_content_2)
+        # wait till SAM got notified that the source code got changed
+        sleep(2)
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world2"})
+
+
+class TestWatchingImageWarmContainers(WatchWarmContainersIntegBaseClass):
+    template_content = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Parameteres:
+  Tag:
+    Type: String
+  ImageUri:
+    Type: String
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - main.handler
+        Timeout: 600
+      ImageUri: !Ref ImageUri
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    Metadata:
+      DockerTag: !Ref Tag
+      DockerContext: .
+      Dockerfile: Dockerfile
+        """
+    code_content = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world"})}"""
+    code_content_2 = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}"""
+    docker_file_content = """FROM public.ecr.aws/lambda/python:3.7
+COPY main.py ./"""
+    container_mode = ContainersInitializationMode.EAGER.value
+    build_before_invoke = True
+    tag = f"python-{random.randint(1000, 2000)}"
+    build_overrides = {"Tag": tag}
+    parameter_overrides = {"ImageUri": f"helloworldfunction:{tag}"}
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=6000, method="thread")
+    def test_changed_code_got_observed_and_loaded(self):
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+        self._write_file_content(self.code_path, self.code_content_2)
+        self.build()
+        # wait till SAM got notified that the image got changed
+        sleep(2)
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world2"})
+
+
+class TestWatchingZipLazyContainers(WatchWarmContainersIntegBaseClass):
+    template_content = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    """
+    code_content = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world"})}
+    """
+    code_content_2 = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}
+    """
+    docker_file_content = ""
+    container_mode = ContainersInitializationMode.LAZY.value
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_changed_code_got_observed_and_loaded(self):
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+        self._write_file_content(self.code_path, self.code_content_2)
+        # wait till SAM got notified that the source code got changed
+        sleep(2)
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world2"})
+
+
+class TestWatchingImageLazyContainers(WatchWarmContainersIntegBaseClass):
+    template_content = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Parameteres:
+  Tag:
+    Type: String
+  ImageUri:
+    Type: String
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - main.handler
+        Timeout: 600
+      ImageUri: !Ref ImageUri
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    Metadata:
+      DockerTag: !Ref Tag
+      DockerContext: .
+      Dockerfile: Dockerfile
+        """
+    code_content = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world"})}"""
+    code_content_2 = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}"""
+    docker_file_content = """FROM public.ecr.aws/lambda/python:3.7
+COPY main.py ./"""
+    container_mode = ContainersInitializationMode.LAZY.value
+    build_before_invoke = True
+    tag = f"python-{random.randint(1000, 2000)}"
+    build_overrides = {"Tag": tag}
+    parameter_overrides = {"ImageUri": f"helloworldfunction:{tag}"}
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=6000, method="thread")
+    def test_changed_code_got_observed_and_loaded(self):
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+        self._write_file_content(self.code_path, self.code_content_2)
+        self.build()
+        # wait till SAM got notified that the image got changed
+        sleep(2)
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world2"})
