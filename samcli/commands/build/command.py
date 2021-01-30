@@ -4,7 +4,7 @@ CLI command for "build" command
 
 import os
 import logging
-from typing import List, Optional
+from typing import List, Optional, Dict
 import click
 
 from samcli.cli.context import Context
@@ -187,7 +187,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     manifest_path: Optional[str],
     docker_network: Optional[str],
     skip_pull_image: bool,
-    parameter_overrides: dict,
+    parameter_overrides: Dict,
     mode: Optional[str],
 ) -> None:
     """

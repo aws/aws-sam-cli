@@ -5,7 +5,7 @@ Context object used by build command
 import logging
 import os
 import shutil
-from typing import Optional, cast
+from typing import Optional, cast, Dict
 import pathlib
 
 from samcli.lib.providers.provider import ResourcesToBuildCollector
@@ -59,7 +59,7 @@ class BuildContext:
 
         self._function_provider: SamFunctionProvider
         self._layer_provider: SamLayerProvider
-        self._template_dict: dict
+        self._template_dict: Dict
         self._container_manager: ContainerManager
 
     def __enter__(self) -> "BuildContext":
@@ -124,7 +124,7 @@ class BuildContext:
         return self._layer_provider
 
     @property
-    def template_dict(self) -> dict:
+    def template_dict(self) -> Dict:
         return self._template_dict
 
     @property

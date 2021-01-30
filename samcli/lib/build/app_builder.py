@@ -458,7 +458,7 @@ class ApplicationBuilder:
             Dictionary that represents the options to pass to the builder workflow or None if options are not needed
         """
 
-        _build_options: dict = {
+        _build_options: Dict = {
             "go": {"artifact_executable_name": handler},
             "provided": {"build_logical_id": function_name},
         }
