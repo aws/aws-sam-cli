@@ -3,7 +3,7 @@
 SAM_CLI_TELEMETRY ?= 0
 
 init:
-	SAM_CLI_DEV=1 pip install -e '.[dev]'
+	SAM_CLI_DEV=1 python3 -m pip install -e '.[dev]'
 
 test:
 	# Run unit tests
