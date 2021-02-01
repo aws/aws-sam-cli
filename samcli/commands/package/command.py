@@ -124,10 +124,10 @@ The following resources and their property locations are supported.
     "Do not use --s3-guided parameter with this option.",
 )
 @click.option(
-    "--allow-bucket-owner-full-control",
+    "--acl",
+    default=None,
     required=False,
-    is_flag=True,
-    help="Allows the bucket owner full control over the uploaded artifact objects."
+    help="Sets the specified canned ACL policy on uploaded artifact S3 objects."
 )
 @metadata_override_option
 @signing_profiles_option
