@@ -256,12 +256,14 @@ def get_workflow_config(
             specified_workflow=specified_workflow,
         )
         if not selector:
-            raise RuntimeError(f"Cannot find workflow selector for {specified_workflow} or {runtime}")
+            raise ValueError(
+                f"Cannot find workflow selector, specified_workflow: {specified_workflow}, runtime: {runtime}",
+            )
 
         # Identify workflow configuration from the workflow selector.
         config = selector.get_config(code_dir, project_dir)
         return config
-    except (ValueError, AssertionError) as ex:
+    except ValueError as ex:
         raise UnsupportedRuntimeException(
             "Unable to find a supported build workflow for runtime '{}'. Reason: {}".format(runtime, str(ex))
         ) from ex
