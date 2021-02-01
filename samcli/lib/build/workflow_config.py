@@ -255,7 +255,8 @@ def get_workflow_config(
             identifiers=[specified_workflow, runtime],
             specified_workflow=specified_workflow,
         )
-        assert selector
+        if not selector:
+            raise RuntimeError(f"Cannot find workflow selector for {specified_workflow} or {runtime}")
 
         # Identify workflow configuration from the workflow selector.
         config = selector.get_config(code_dir, project_dir)
