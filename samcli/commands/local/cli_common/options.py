@@ -35,6 +35,29 @@ def get_default_layer_cache_dir():
     return str(layer_cache_dir)
 
 
+def local_common_options(f):
+    """
+    Common CLI options shared by "local invoke", "local start-api", and "local start-lambda" commands
+
+    :param f: Callback passed by Click
+    """
+    local_options = [
+        click.option(
+            "--shutdown",
+            is_flag=True,
+            default=False,
+            help="If set, will emulate a shutdown event after the invoke completes, "
+            "in order to test extension handling of shutdown behavior.",
+        )
+    ]
+
+    # Reverse the list to maintain ordering of options in help text printed with --help
+    for option in reversed(local_options):
+        option(f)
+
+    return f
+
+
 def service_common_options(port):
     def construct_options(f):
         """

@@ -1,10 +1,15 @@
+import tempfile
 from subprocess import Popen, PIPE, TimeoutExpired
 
 from unittest import skipIf
+from urllib.parse import urlparse
+
+import boto3
 from parameterized import parameterized
 
 import docker
 
+from samcli.commands._utils.template import get_template_data
 from .package_integ_base import PackageIntegBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 
@@ -122,20 +127,42 @@ class TestPackageImage(PackageIntegBase):
     @parameterized.expand(["aws-serverless-application-image.yaml"])
     def test_package_template_with_image_function_in_nested_application(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
-        command_list = self.get_command_list(
-            image_repository=self.ecr_repo_name, template=template_path, resolve_s3=True
-        )
 
-        process = Popen(command_list, stdout=PIPE, stderr=PIPE)
-        try:
-            _, stderr = process.communicate(timeout=TIMEOUT)
-        except TimeoutExpired:
-            process.kill()
-            raise
-        process_stderr = stderr.strip().decode("utf-8")
+        # when image function is not in main template, erc_repo_name does not show up in stdout
+        # here we download the nested application template file and verify its content
+        with tempfile.NamedTemporaryFile() as packaged_file, tempfile.TemporaryFile() as packaged_nested_file:
+            # https://docs.python.org/3/library/tempfile.html#tempfile.NamedTemporaryFile
+            # Closes the NamedTemporaryFile as on Windows NT or later, NamedTemporaryFile cannot be opened twice.
+            packaged_file.close()
 
-        self.assertEqual(0, process.returncode)
-        # when image function is not in main template, erc_repo_name only shows in stderr (pushing progress)
-        # here we make sure the image is successfully pushed to the correct repo
-        self.assertIn(f"{self.ecr_repo_name}", process_stderr)
-        self.assertIn("Pushed", process_stderr)
+            command_list = self.get_command_list(
+                image_repository=self.ecr_repo_name,
+                template=template_path,
+                resolve_s3=True,
+                output_template_file=packaged_file.name,
+            )
+
+            process = Popen(command_list, stdout=PIPE, stderr=PIPE)
+            try:
+                process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            self.assertEqual(0, process.returncode)
+
+            # download the root template and locate nested template url
+            template_dict = get_template_data(packaged_file.name)
+            nested_app_template_uri = (
+                template_dict.get("Resources", {}).get("myApp", {}).get("Properties").get("Location")
+            )
+
+            # extract bucket name and object key from the url
+            parsed = urlparse(nested_app_template_uri)
+            bucket_name, key = parsed.path.lstrip("/").split("/")
+
+            # download and verify it contains ecr_repo_name
+            s3 = boto3.resource("s3")
+            s3.Object(bucket_name, key).download_fileobj(packaged_nested_file)
+            packaged_nested_file.seek(0)
+            self.assertIn(f"{self.ecr_repo_name}", packaged_nested_file.read().decode())

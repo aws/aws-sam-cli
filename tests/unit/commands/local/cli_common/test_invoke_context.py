@@ -38,6 +38,7 @@ class TestInvokeContext__enter__(TestCase):
             parameter_overrides={},
             aws_region="region",
             aws_profile="profile",
+            shutdown=False,
         )
 
         template_dict = "template_dict"
@@ -81,7 +82,9 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context._get_debug_context.assert_called_once_with(
             [1111], "args", "path-to-debugger", "env_vars_value", None
         )
-        ContainerManagerMock.assert_called_once_with(docker_network_id="network", skip_pull_image=True)
+        ContainerManagerMock.assert_called_once_with(
+            docker_network_id="network", skip_pull_image=True, do_shutdown_event=False
+        )
 
     @patch("samcli.commands.local.cli_common.invoke_context.ContainerManager")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
@@ -113,6 +116,7 @@ class TestInvokeContext__enter__(TestCase):
             aws_region="region",
             aws_profile="profile",
             warm_container_initialization_mode=ContainersInitializationMode.EAGER.value,
+            shutdown=True,
         )
 
         _initialize_all_functions_containers_mock = Mock()
@@ -159,7 +163,9 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context._get_debug_context.assert_called_once_with(
             None, "args", "path-to-debugger", "env_vars_value", None
         )
-        ContainerManagerMock.assert_called_once_with(docker_network_id="network", skip_pull_image=True)
+        ContainerManagerMock.assert_called_once_with(
+            docker_network_id="network", skip_pull_image=True, do_shutdown_event=True
+        )
         _initialize_all_functions_containers_mock.assert_called_once_with()
 
     @patch("samcli.commands.local.cli_common.invoke_context.ContainerManager")
@@ -193,6 +199,7 @@ class TestInvokeContext__enter__(TestCase):
             aws_profile="profile",
             warm_container_initialization_mode=ContainersInitializationMode.EAGER.value,
             debug_function="",
+            shutdown=True,
         )
 
         _initialize_all_functions_containers_mock = Mock()
@@ -240,12 +247,14 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context._get_debug_context.assert_called_once_with(
             [1111], "args", "path-to-debugger", "Debug env var value", "function_name"
         )
-        ContainerManagerMock.assert_called_once_with(docker_network_id="network", skip_pull_image=True)
+        ContainerManagerMock.assert_called_once_with(
+            docker_network_id="network", skip_pull_image=True, do_shutdown_event=True
+        )
         _initialize_all_functions_containers_mock.assert_called_once_with()
 
     @patch("samcli.commands.local.cli_common.invoke_context.ContainerManager")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
-    def test_no_container_will_be_innnitialized_if_lazy_containers_is_enabled(
+    def test_no_container_will_be_initialized_if_lazy_containers_is_enabled(
         self, SamFunctionProviderMock, ContainerManagerMock
     ):
         function_provider = Mock()
@@ -272,6 +281,7 @@ class TestInvokeContext__enter__(TestCase):
             aws_profile="profile",
             warm_container_initialization_mode=ContainersInitializationMode.LAZY.value,
             debug_function="debug_function",
+            shutdown=True,
         )
 
         template_dict = "template_dict"
@@ -315,7 +325,9 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context._get_debug_context.assert_called_once_with(
             [1111], "args", "path-to-debugger", "env_vars_value", "debug_function"
         )
-        ContainerManagerMock.assert_called_once_with(docker_network_id="network", skip_pull_image=True)
+        ContainerManagerMock.assert_called_once_with(
+            docker_network_id="network", skip_pull_image=True, do_shutdown_event=True
+        )
 
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
     def test_must_use_container_manager_to_check_docker_connectivity(self, SamFunctionProviderMock):

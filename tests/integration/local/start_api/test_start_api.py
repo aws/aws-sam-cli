@@ -1188,6 +1188,7 @@ class TestServiceCorsSwaggerRequests(StartApiIntegBaseClass):
         self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "*")
         self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), "origin, x-requested-with")
         self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), "GET,OPTIONS")
+        self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), "true")
         self.assertEqual(response.headers.get("Access-Control-Max-Age"), "510")
 
 
@@ -1214,6 +1215,7 @@ class TestServiceCorsSwaggerRequestsWithHttpApi(StartApiIntegBaseClass):
         self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "*")
         self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), "origin")
         self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), "GET,OPTIONS,POST")
+        self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), "true")
         self.assertEqual(response.headers.get("Access-Control-Max-Age"), "42")
 
 
@@ -1239,6 +1241,7 @@ class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
         self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "*")
         self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), None)
         self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), ",".join(sorted(Route.ANY_HTTP_METHODS)))
+        self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), None)
         self.assertEqual(response.headers.get("Access-Control-Max-Age"), None)
 
     @pytest.mark.flaky(reruns=3)
@@ -1255,6 +1258,7 @@ class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
         self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), None)
         self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), None)
         self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), None)
+        self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), None)
         self.assertEqual(response.headers.get("Access-Control-Max-Age"), None)
 
 
@@ -1526,6 +1530,7 @@ class TestCFNTemplateQuickCreatedHttpApiWithDefaultRoute(StartApiIntegBaseClass)
         self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "https://example.com")
         self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), "x-apigateway-header")
         self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), "GET,OPTIONS")
+        self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), "true")
         self.assertEqual(response.headers.get("Access-Control-Max-Age"), "600")
 
 
@@ -1851,7 +1856,7 @@ def handler(event, context):
 
         self._write_file_content(self.code_path, self.code_content_2)
         # wait till SAM got notified that the source code got changed
-        sleep(0.5)
+        sleep(2)
         response = requests.get(self.url + "/hello", timeout=300)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world2"})
@@ -1915,7 +1920,7 @@ COPY main.py ./"""
         self._write_file_content(self.code_path, self.code_content_2)
         self.build()
         # wait till SAM got notified that the image got changed
-        sleep(0.5)
+        sleep(2)
         response = requests.get(self.url + "/hello", timeout=300)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world2"})
@@ -1964,7 +1969,7 @@ def handler(event, context):
 
         self._write_file_content(self.code_path, self.code_content_2)
         # wait till SAM got notified that the source code got changed
-        sleep(0.5)
+        sleep(2)
         response = requests.get(self.url + "/hello", timeout=300)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world2"})
@@ -2028,7 +2033,7 @@ COPY main.py ./"""
         self._write_file_content(self.code_path, self.code_content_2)
         self.build()
         # wait till SAM got notified that the image got changed
-        sleep(0.5)
+        sleep(2)
         response = requests.get(self.url + "/hello", timeout=300)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world2"})
