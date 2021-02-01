@@ -37,6 +37,7 @@ class TestS3Uploader(TestCase):
         self.assertEqual(s3_uploader.force_upload, self.force_upload)
         self.assertEqual(s3_uploader.no_progressbar, self.no_progressbar)
         self.assertEqual(s3_uploader.artifact_metadata, None)
+        self.assertEqual(s3_uploader.artifact_acl, None)
 
     def test_s3_uploader_artifact_metadata(self):
         s3_uploader = S3Uploader(
@@ -51,6 +52,18 @@ class TestS3Uploader(TestCase):
         self.assertEqual(s3_uploader.artifact_metadata, {})
         with self.assertRaises(TypeError):
             s3_uploader.artifact_metadata = "Not a dict"
+
+    def test_s3_uploader_artifact_acl(self):
+        s3_uploader = S3Uploader(
+            s3_client=self.s3,
+            bucket_name=self.bucket_name,
+            prefix=self.prefix,
+            kms_key_id=self.kms_key_id,
+            force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
+        )
+        s3_uploader.artifact_acl = "bucket-owner-full-control"
+        self.assertEqual(s3_uploader.artifact_acl, "bucket-owner-full-control")
 
     def test_s3_upload_skip_upload(self):
         s3_uploader = S3Uploader(
