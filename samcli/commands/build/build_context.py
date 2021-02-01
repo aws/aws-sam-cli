@@ -119,12 +119,12 @@ class BuildContext:
 
     @property
     def function_provider(self) -> SamFunctionProvider:
-        # Note(xinhol): self._container_manager will be assigned with a value if it is None in __enter__()
+        # Note(xinhol): self._function_provider will be assigned with a value if it is None in __enter__()
         return self._function_provider  # type: ignore
 
     @property
     def layer_provider(self) -> SamLayerProvider:
-        # Note(xinhol): self._container_manager will be assigned with a value if it is None in __enter__()
+        # Note(xinhol): self._layer_provider will be assigned with a value if it is None in __enter__()
         return self._layer_provider  # type: ignore
 
     @property
