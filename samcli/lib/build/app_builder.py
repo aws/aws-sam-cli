@@ -15,8 +15,7 @@ from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
 
-import samcli.lib.utils.osutils as osutils
-from samcli.lib.utils.stream_writer import StreamWriter
+from samcli.commands.build.exceptions import MissingMetadataForImageFunctionException, InvalidPackageTypeException
 from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition, BuildGraph
 from samcli.lib.build.build_strategy import (
     DefaultBuildStrategy,
@@ -24,12 +23,15 @@ from samcli.lib.build.build_strategy import (
     ParallelBuildStrategy,
     BuildStrategy,
 )
-from samcli.lib.utils.colors import Colored
 from samcli.lib.providers.provider import ResourcesToBuildCollector
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
-from samcli.local.docker.lambda_build_container import LambdaBuildContainer
+from samcli.lib.utils.colors import Colored
+import samcli.lib.utils.osutils as osutils
 from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.lib.utils.stream_writer import StreamWriter
+from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from samcli.local.docker.utils import is_docker_reachable
+from samcli.local.docker.manager import ContainerManager
 from .exceptions import (
     DockerConnectionError,
     DockerfileOutSideOfContext,
@@ -40,8 +42,6 @@ from .exceptions import (
     UnsupportedBuilderLibraryVersionError,
 )
 from .workflow_config import get_workflow_config, get_layer_subfolder, supports_build_in_container, CONFIG
-from ...commands.build.exceptions import MissingMetadataForImageFunctionException, InvalidPackageTypeException
-from ...local.docker.manager import ContainerManager
 
 LOG = logging.getLogger(__name__)
 
