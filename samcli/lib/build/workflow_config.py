@@ -312,7 +312,7 @@ class BasicWorkflowSelector:
     """
 
     def __init__(self, configs: Union[CONFIG, List[CONFIG]]) -> None:
-        if isinstance(configs, List):
+        if isinstance(configs, list):
             self.configs = configs
         else:
             self.configs = [configs]
