@@ -64,6 +64,7 @@ class PackageContext:
         force_upload,
         no_progressbar,
         metadata,
+        acl,
         region,
         profile,
         on_deploy=False,
@@ -80,6 +81,7 @@ class PackageContext:
         self.force_upload = force_upload
         self.no_progressbar = no_progressbar
         self.metadata = metadata
+        self.acl = acl
         self.region = region
         self.profile = profile
         self.on_deploy = on_deploy
@@ -104,10 +106,14 @@ class PackageContext:
         docker_client = docker.from_env()
 
         s3_uploader = S3Uploader(
-            s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload, self.no_progressbar
+            s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload, self.no_progressbar,
         )
         # attach the given metadata to the artifacts to be uploaded
         s3_uploader.artifact_metadata = self.metadata
+
+        # Attach the given ACL to the artifacts to be uploaded.
+        s3_uploader.artifact_acl = self.acl
+
         ecr_uploader = ECRUploader(docker_client, ecr_client, self.image_repository, self.image_repositories)
 
         self.uploaders = Uploaders(s3_uploader, ecr_uploader)

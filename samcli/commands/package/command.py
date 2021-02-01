@@ -123,6 +123,12 @@ The following resources and their property locations are supported.
     help="Automatically resolve s3 bucket for non-guided deployments."
     "Do not use --s3-guided parameter with this option.",
 )
+@click.option(
+    "--allow-bucket-owner-full-control",
+    required=False,
+    is_flag=True,
+    help="Allows the bucket owner full control over the uploaded artifact objects."
+)
 @metadata_override_option
 @signing_profiles_option
 @no_progressbar_option
@@ -145,6 +151,7 @@ def cli(
     force_upload,
     no_progressbar,
     metadata,
+    acl,
     signing_profiles,
     resolve_s3,
     config_file,
@@ -165,6 +172,7 @@ def cli(
         force_upload,
         no_progressbar,
         metadata,
+        acl,
         signing_profiles,
         ctx.region,
         ctx.profile,
@@ -184,6 +192,7 @@ def do_cli(
     force_upload,
     no_progressbar,
     metadata,
+    acl,
     signing_profiles,
     region,
     profile,
@@ -209,6 +218,7 @@ def do_cli(
         force_upload=force_upload,
         no_progressbar=no_progressbar,
         metadata=metadata,
+        acl=acl,
         region=region,
         profile=profile,
         signing_profiles=signing_profiles,

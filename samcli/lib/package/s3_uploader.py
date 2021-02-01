@@ -53,6 +53,17 @@ class S3Uploader:
             raise TypeError("Artifact metadata should be in dict type")
         self._artifact_metadata = val
 
+    @property
+    def artifact_acl(self):
+        """
+        ACL to attach to the object(s) uploaded by the uploader.
+        """
+        return self._artifact_acl
+
+    @artifact_acl.setter
+    def artifact_acl(self, val):
+        self._artifact_acl = val
+
     def __init__(
         self,
         s3_client: Any,
@@ -71,6 +82,7 @@ class S3Uploader:
         self.transfer_manager = transfer.create_transfer_manager(self.s3, transfer.TransferConfig())
 
         self._artifact_metadata = None
+        self._artifact_acl = None
 
     def upload(self, file_name: str, remote_path: str) -> str:
         """
@@ -100,6 +112,9 @@ class S3Uploader:
 
             if self.artifact_metadata:
                 additional_args["Metadata"] = self.artifact_metadata
+
+            if self.artifact_acl:
+                additional_args["ACL"] = self.artifact_acl
 
             if not self.bucket_name:
                 raise BucketNotSpecifiedError()

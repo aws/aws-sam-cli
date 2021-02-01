@@ -23,6 +23,7 @@ class TestPackageCommand(TestCase):
             force_upload=True,
             no_progressbar=False,
             metadata={},
+            acl=None,
             region=None,
             profile=None,
         )
@@ -50,6 +51,7 @@ class TestPackageCommand(TestCase):
                     force_upload=True,
                     no_progressbar=False,
                     metadata={},
+                    acl=None,
                     region=None,
                     profile=None,
                 )
@@ -71,6 +73,7 @@ class TestPackageCommand(TestCase):
                 force_upload=True,
                 no_progressbar=False,
                 metadata={},
+                acl=None,
                 region=None,
                 profile=None,
             )
@@ -92,6 +95,7 @@ class TestPackageCommand(TestCase):
                 force_upload=True,
                 no_progressbar=False,
                 metadata={},
+                acl=None,
                 region=None,
                 profile=None,
             )

@@ -18,6 +18,7 @@ class TestPackageCliCommand(TestCase):
         self.force_upload = False
         self.no_progressbar = (False,)
         self.metadata = {"abc": "def"}
+        self.acl = "bucket-owner-full-control"
         self.region = None
         self.profile = None
         self.resolve_s3 = False
@@ -42,6 +43,7 @@ class TestPackageCliCommand(TestCase):
             force_upload=self.force_upload,
             no_progressbar=self.no_progressbar,
             metadata=self.metadata,
+            acl=self.acl,
             region=self.region,
             profile=self.profile,
             resolve_s3=self.resolve_s3,
@@ -88,6 +90,7 @@ class TestPackageCliCommand(TestCase):
             force_upload=self.force_upload,
             no_progressbar=self.no_progressbar,
             metadata=self.metadata,
+            acl=self.acl,
             region=self.region,
             profile=self.profile,
             resolve_s3=True,
