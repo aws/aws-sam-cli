@@ -155,6 +155,12 @@ LOG = logging.getLogger(__name__)
     help="Automatically resolve s3 bucket for non-guided deployments."
     "Do not use --s3-guided parameter with this option.",
 )
+@click.option(
+    "--acl",
+    default=None,
+    required=False,
+    help="Sets the specified canned ACL policy on uploaded artifact S3 objects."
+)
 @metadata_override_option
 @notification_arns_override_option
 @tags_override_option
@@ -187,6 +193,7 @@ def cli(
     use_json,
     tags,
     metadata,
+    acl,
     guided,
     confirm_changeset,
     signing_profiles,
@@ -215,6 +222,7 @@ def cli(
         use_json,
         tags,
         metadata,
+        acl,
         guided,
         confirm_changeset,
         ctx.region,
@@ -245,6 +253,7 @@ def do_cli(
     use_json,
     tags,
     metadata,
+    acl,
     guided,
     confirm_changeset,
     region,
@@ -301,6 +310,7 @@ def do_cli(
             force_upload=force_upload,
             no_progressbar=no_progressbar,
             metadata=metadata,
+            acl=acl,
             on_deploy=True,
             region=guided_context.guided_region if guided else region,
             profile=profile,
