@@ -181,7 +181,7 @@ class BuildContext:
             self._collect_single_buildable_layer(self._resource_identifier, result)
 
             if not result.functions and not result.layers:
-                all_resources = [f.name for f in self._function_provider.get_all()]
+                all_resources = [f.name for f in self._function_provider.get_all() if not f.inlinecode]
                 all_resources.extend([l.name for l in self._layer_provider.get_all()])
 
                 available_resource_message = (
@@ -190,7 +190,7 @@ class BuildContext:
                 LOG.info(available_resource_message)
                 raise ResourceNotFound(f"Unable to find a function or layer with name '{self._resource_identifier}'")
             return result
-        result.add_functions(self._function_provider.get_all())
+        result.add_functions([f for f in self._function_provider.get_all() if not f.inlinecode])
         result.add_layers([l for l in self._layer_provider.get_all() if l.build_method is not None])
         return result
 
