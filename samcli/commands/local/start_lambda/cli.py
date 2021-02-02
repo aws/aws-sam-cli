@@ -5,7 +5,12 @@ CLI command for "local start-lambda" command
 import logging
 import click
 
-from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
+from samcli.cli.main import (
+    pass_context,
+    common_options as cli_framework_options,
+    aws_creds_options,
+    print_cmdline_options,
+)
 from samcli.commands.local.cli_common.options import (
     invoke_common_options,
     service_common_options,
@@ -65,6 +70,7 @@ Here is a Python example:
 @aws_creds_options
 @pass_context
 @track_command
+@print_cmdline_options
 def cli(
     ctx,  # pylint: disable=R0914
     # start-lambda Specific Options

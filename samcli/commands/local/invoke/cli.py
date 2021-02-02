@@ -5,7 +5,12 @@ CLI command for "local invoke" command
 import logging
 import click
 
-from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
+from samcli.cli.main import (
+    pass_context,
+    common_options as cli_framework_options,
+    aws_creds_options,
+    print_cmdline_options,
+)
 from samcli.commands.local.cli_common.options import invoke_common_options, local_common_options
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.telemetry.metric import track_command
@@ -48,6 +53,7 @@ STDIN_FILE_NAME = "-"
 @click.argument("function_identifier", required=False)
 @pass_context
 @track_command  # pylint: disable=R0914
+@print_cmdline_options
 def cli(
     ctx,
     function_identifier,
