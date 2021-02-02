@@ -79,9 +79,10 @@ class SamFunctionProvider(SamBaseProvider):
     def _deprecate_notification(self, runtime):
         if runtime in self._deprecated_runtimes:
             message = (
-                f"WARNING: {runtime} is no longer supported by AWS Lambda, please update to a newer supported runtime. SAM CLI "
+                f"WARNING: {runtime} is no longer supported by AWS Lambda, "
+                "please update to a newer supported runtime. SAM CLI "
                 f"will drop support for all deprecated runtimes {self._deprecated_runtimes} on May 1st. "
-                f"See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
+                "See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
             )
             LOG.warning(self._colored.yellow(message))
 
@@ -159,20 +160,29 @@ class SamFunctionProvider(SamBaseProvider):
         samcli.commands.local.lib.provider.Function
             Function configuration
         """
-
         codeuri = SamFunctionProvider.DEFAULT_CODEURI
+        inlinecode = resource_properties.get("InlineCode")
         imageuri = None
         packagetype = resource_properties.get("PackageType", ZIP)
         if packagetype == ZIP:
-            codeuri = SamFunctionProvider._extract_sam_function_codeuri(
-                name, resource_properties, "CodeUri", ignore_code_extraction_warnings=ignore_code_extraction_warnings
-            )
-            LOG.debug("Found Serverless function with name='%s' and CodeUri='%s'", name, codeuri)
+            if inlinecode:
+                LOG.debug("Found Serverless function with name='%s' and InlineCode", name)
+                codeuri = None
+            else:
+                codeuri = SamFunctionProvider._extract_sam_function_codeuri(
+                    name,
+                    resource_properties,
+                    "CodeUri",
+                    ignore_code_extraction_warnings=ignore_code_extraction_warnings,
+                )
+                LOG.debug("Found Serverless function with name='%s' and CodeUri='%s'", name, codeuri)
         elif packagetype == IMAGE:
             imageuri = SamFunctionProvider._extract_sam_function_imageuri(resource_properties, "ImageUri")
             LOG.debug("Found Serverless function with name='%s' and ImageUri='%s'", name, imageuri)
 
-        return SamFunctionProvider._build_function_configuration(name, codeuri, resource_properties, layers, imageuri)
+        return SamFunctionProvider._build_function_configuration(
+            name, codeuri, resource_properties, layers, inlinecode, imageuri
+        )
 
     @staticmethod
     def _convert_lambda_function_resource(name, resource_properties, layers):  # pylint: disable=invalid-name
@@ -197,20 +207,33 @@ class SamFunctionProvider(SamBaseProvider):
         # CodeUri is set to "." in order to get code locally from current directory. AWS::Lambda::Function's ``Code``
         # property does not support specifying a local path
         codeuri = SamFunctionProvider.DEFAULT_CODEURI
+        inlinecode = None
         imageuri = None
         packagetype = resource_properties.get("PackageType", ZIP)
-
         if packagetype == ZIP:
-            codeuri = SamFunctionProvider._extract_lambda_function_code(resource_properties, "Code")
-            LOG.debug("Found Lambda function with name='%s' and CodeUri='%s'", name, codeuri)
+            if (
+                "Code" in resource_properties
+                and isinstance(resource_properties["Code"], dict)
+                and resource_properties["Code"].get("ZipFile")
+            ):
+                inlinecode = resource_properties["Code"]["ZipFile"]
+                LOG.debug("Found Lambda function with name='%s' and Code ZipFile", name)
+                codeuri = None
+            else:
+                codeuri = SamFunctionProvider._extract_lambda_function_code(resource_properties, "Code")
+                LOG.debug("Found Lambda function with name='%s' and CodeUri='%s'", name, codeuri)
         elif packagetype == IMAGE:
             imageuri = SamFunctionProvider._extract_lambda_function_imageuri(resource_properties, "Code")
             LOG.debug("Found Lambda function with name='%s' and Imageuri='%s'", name, imageuri)
 
-        return SamFunctionProvider._build_function_configuration(name, codeuri, resource_properties, layers, imageuri)
+        return SamFunctionProvider._build_function_configuration(
+            name, codeuri, resource_properties, layers, inlinecode, imageuri
+        )
 
     @staticmethod
-    def _build_function_configuration(name, codeuri, resource_properties, layers, imageuri=None):
+    def _build_function_configuration(
+        name: str, codeuri: str, resource_properties: dict, layers: list, inlinecode: str, imageuri: str
+    ):
         """
         Builds a Function configuration usable by the provider.
 
@@ -246,6 +269,7 @@ class SamFunctionProvider(SamBaseProvider):
             events=resource_properties.get("Events"),
             layers=layers,
             metadata=resource_properties.get("Metadata", None),
+            inlinecode=inlinecode,
             codesign_config_arn=resource_properties.get("CodeSigningConfigArn", None),
         )
 
@@ -278,7 +302,8 @@ class SamFunctionProvider(SamBaseProvider):
             if layer == "arn:aws:lambda:::awslayer:AmazonLinux1703":
                 raise InvalidLayerVersionArn(
                     "Building and invoking locally only supports AmazonLinux1803. See "
-                    "https://aws.amazon.com/blogs/compute/upcoming-updates-to-the-aws-lambda-execution-environment/ for more detials."
+                    "https://aws.amazon.com/blogs/compute/upcoming-updates-to-the-aws-lambda-execution-environment/ "
+                    "for more detials."
                 )  # noqa: E501
 
             # If the layer is a string, assume it is the arn

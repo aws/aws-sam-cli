@@ -38,6 +38,7 @@ class TestCli(TestCase):
         self.parameter_overrides = {}
         self.layer_cache_basedir = "/some/layers/path"
         self.force_image_build = True
+        self.shutdown = False
         self.region_name = "region"
         self.profile = "profile"
 
@@ -73,6 +74,7 @@ class TestCli(TestCase):
             parameter_overrides=self.parameter_overrides,
             layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
+            shutdown=self.shutdown,
         )
 
         InvokeContextMock.assert_called_with(
@@ -90,6 +92,7 @@ class TestCli(TestCase):
             parameter_overrides=self.parameter_overrides,
             layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
+            shutdown=self.shutdown,
             aws_region=self.region_name,
             aws_profile=self.profile,
         )
@@ -129,6 +132,7 @@ class TestCli(TestCase):
             parameter_overrides=self.parameter_overrides,
             layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
+            shutdown=self.shutdown,
         )
 
         InvokeContextMock.assert_called_with(
@@ -146,6 +150,7 @@ class TestCli(TestCase):
             parameter_overrides=self.parameter_overrides,
             layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
+            shutdown=self.shutdown,
             aws_region=self.region_name,
             aws_profile=self.profile,
         )
@@ -199,6 +204,7 @@ class TestCli(TestCase):
                 parameter_overrides=self.parameter_overrides,
                 layer_cache_basedir=self.layer_cache_basedir,
                 force_image_build=self.force_image_build,
+                shutdown=self.shutdown,
             )
 
         msg = str(ex_ctx.exception)
@@ -250,6 +256,7 @@ class TestCli(TestCase):
                 parameter_overrides=self.parameter_overrides,
                 layer_cache_basedir=self.layer_cache_basedir,
                 force_image_build=self.force_image_build,
+                shutdown=self.shutdown,
             )
 
         msg = str(ex_ctx.exception)
@@ -299,6 +306,7 @@ class TestCli(TestCase):
                 parameter_overrides=self.parameter_overrides,
                 layer_cache_basedir=self.layer_cache_basedir,
                 force_image_build=self.force_image_build,
+                shutdown=self.shutdown,
             )
 
         msg = str(ex_ctx.exception)
@@ -336,6 +344,7 @@ class TestCli(TestCase):
                 parameter_overrides=self.parameter_overrides,
                 layer_cache_basedir=self.layer_cache_basedir,
                 force_image_build=self.force_image_build,
+                shutdown=self.shutdown,
             )
 
         msg = str(ex_ctx.exception)
@@ -387,6 +396,7 @@ class TestCli(TestCase):
                 parameter_overrides=self.parameter_overrides,
                 layer_cache_basedir=self.layer_cache_basedir,
                 force_image_build=self.force_image_build,
+                shutdown=self.shutdown,
             )
 
         msg = str(ex_ctx.exception)
