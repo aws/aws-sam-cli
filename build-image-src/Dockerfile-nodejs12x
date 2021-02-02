@@ -17,6 +17,7 @@ RUN yum groupinstall -y development --installroot=/rootfs && \
   gzip \
   unzip \
   python3 \
+  jq \
   grep \
   curl \
   make \
