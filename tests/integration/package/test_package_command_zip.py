@@ -389,7 +389,7 @@ class TestPackageZip(PackageIntegBase):
                 ),
                 process_stdout,
             )
-    
+
     @parameterized.expand(
         [
             "aws-serverless-function.yaml",
