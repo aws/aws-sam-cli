@@ -113,23 +113,25 @@ class BuildContext:
         return str(build_path.resolve())
 
     @property
-    def container_manager(self) -> ContainerManager:
-        # Note(xinhol): self._container_manager will be assigned with a value if it is None in __enter__()
-        return self._container_manager  # type: ignore
+    def container_manager(self) -> Optional[ContainerManager]:
+        return self._container_manager
 
     @property
     def function_provider(self) -> SamFunctionProvider:
-        # Note(xinhol): self._function_provider will be assigned with a value if it is None in __enter__()
+        # Note(xinhol): self._function_provider will be assigned with a value in __enter__() and
+        # this function is only used in the context (after __enter__ is called)
         return self._function_provider  # type: ignore
 
     @property
     def layer_provider(self) -> SamLayerProvider:
-        # Note(xinhol): self._layer_provider will be assigned with a value if it is None in __enter__()
+        # Note(xinhol): self._layer_provider will be assigned with a value in __enter__() and
+        # this function is only used in the context (after __enter__ is called)
         return self._layer_provider  # type: ignore
 
     @property
     def template_dict(self) -> Dict:
-        # Note(xinhol): self._template_dict will be assigned with a value if it is None in __enter__()
+        # Note(xinhol): self._template_dict will be assigned with a value in __enter__() and
+        # this function is only used in the context (after __enter__ is called)
         return self._template_dict  # type: ignore
 
     @property

@@ -611,4 +611,4 @@ class ApplicationBuilder:
             LOG.debug("Builder crashed")
             raise ValueError(msg)
 
-        return cast(dict, response)
+        return cast(Dict, response)

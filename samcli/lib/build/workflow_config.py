@@ -95,11 +95,14 @@ class UnsupportedBuilderException(Exception):
     pass
 
 
+WorkFlowSelector = Union["BasicWorkflowSelector", "ManifestWorkflowSelector"]
+
+
 def get_selector(
-    selector_list: List[Dict[str, Union["BasicWorkflowSelector", "ManifestWorkflowSelector"]]],
+    selector_list: List[Dict[str, WorkFlowSelector]],
     identifiers: List[Optional[str]],
     specified_workflow: Optional[str] = None,
-) -> Optional[Union["BasicWorkflowSelector", "ManifestWorkflowSelector"]]:
+) -> Optional[WorkFlowSelector]:
     """
     Determine the correct workflow selector from a list of selectors,
     series of identifiers and user specified workflow if defined.
@@ -121,7 +124,7 @@ def get_selector(
     """
 
     # Create a combined view of all the selectors
-    all_selectors: Dict[str, Union["BasicWorkflowSelector", "ManifestWorkflowSelector"]] = dict()
+    all_selectors: Dict[str, WorkFlowSelector] = dict()
     for selector in selector_list:
         all_selectors = {**all_selectors, **selector}
 

@@ -32,7 +32,7 @@ LAYER_FIELD = "layer"
 
 def _function_build_definition_to_toml_table(
     function_build_definition: "FunctionBuildDefinition",
-) -> "tomlkit.items.Table":
+) -> tomlkit.items.Table:
     """
     Converts given function_build_definition into toml table representation
 
