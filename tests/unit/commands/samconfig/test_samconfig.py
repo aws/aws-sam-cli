@@ -320,7 +320,6 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 True,
                 {"Key": "Value"},
-
                 None,
                 False,
                 None,
