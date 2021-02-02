@@ -48,12 +48,13 @@ def _function_build_definition_to_toml_table(function_build_definition):
         toml_table[CODE_URI_FIELD] = function_build_definition.codeuri
         toml_table[RUNTIME_FIELD] = function_build_definition.runtime
         toml_table[SOURCE_MD5_FIELD] = function_build_definition.source_md5
-        toml_table[ENV_VARS_FIELD] = function_build_definition.env_vars
     toml_table[PACKAGETYPE_FIELD] = function_build_definition.packagetype
     toml_table[FUNCTIONS_FIELD] = list(map(lambda f: f.name, function_build_definition.functions))
 
     if function_build_definition.metadata:
         toml_table[METADATA_FIELD] = function_build_definition.metadata
+    if function_build_definition.env_vars:
+        toml_table[ENV_VARS_FIELD] = function_build_definition.env_vars
 
     return toml_table
 
@@ -368,8 +369,7 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         self.codeuri = codeuri
         self.packagetype = packagetype
         self.metadata = metadata if metadata else {}
-        if env_vars:
-            self.env_vars = env_vars
+        self.env_vars = env_vars if env_vars else {}
         self.functions = []
 
     def add_function(self, function):

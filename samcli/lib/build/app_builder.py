@@ -23,6 +23,7 @@ from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.local.docker.utils import is_docker_reachable
+from samcli.local.lambdafn.env_vars import EnvironmentVariables
 from .exceptions import (
     DockerConnectionError,
     DockerfileOutSideOfContext,
@@ -58,7 +59,7 @@ class ApplicationBuilder:
         mode=None,
         stream_writer=None,
         docker_client=None,
-        env_vars=None,
+        env_vars_file=None,
     ):
         """
         Initialize the class
@@ -110,7 +111,7 @@ class ApplicationBuilder:
 
         self._deprecated_runtimes = {"nodejs4.3", "nodejs6.10", "nodejs8.10", "dotnetcore2.0"}
         self._colored = Colored()
-        self._env_vars = env_vars
+        self._env_vars_file = env_vars_file
 
     def build(self):
         """
@@ -121,7 +122,7 @@ class ApplicationBuilder:
         dict
             Returns the path to where each resource was built as a map of resource's LogicalId to the path string
         """
-        build_graph = self._get_build_graph(self._env_vars)
+        build_graph = self._get_build_graph(self._env_vars_file)
         build_strategy = DefaultBuildStrategy(build_graph, self._build_dir, self._build_function, self._build_layer)
 
         if self._parallel:
@@ -151,7 +152,7 @@ class ApplicationBuilder:
 
         return build_strategy.build()
 
-    def _get_build_graph(self, env_vars=None):
+    def _get_build_graph(self, env_vars_file=None):
         """
         Converts list of functions and layers into a build graph, where we can iterate on each unique build and trigger
         build
@@ -160,9 +161,12 @@ class ApplicationBuilder:
         build_graph = BuildGraph(self._build_dir)
         functions = self._resources_to_build.functions
         layers = self._resources_to_build.layers
+        env_vars_values = self._get_env_vars_value(env_vars_file)
         for function in functions:
+            env_vars = self._make_env_vars(function, env_vars_values)
+            print(env_vars)
             function_build_details = FunctionBuildDefinition(
-                function.runtime, function.codeuri, function.packagetype, function.metadata
+                function.runtime, function.codeuri, function.packagetype, function.metadata, env_vars=env_vars
             )
             build_graph.put_function_build_definition(function_build_details, function)
 
@@ -489,6 +493,8 @@ class ApplicationBuilder:
         # If we are printing debug logs in SAM CLI, the builder library should also print debug logs
         log_level = LOG.getEffectiveLevel()
 
+        env_vars = env_vars or {}
+
         container = LambdaBuildContainer(
             lambda_builders_protocol_version,
             config.language,
@@ -577,3 +583,72 @@ class ApplicationBuilder:
             raise ValueError(msg)
 
         return response
+
+    @staticmethod
+    def _get_env_vars_value(filename):
+        """
+        If the user provided a file containing values of environment variables, this method will read the file and
+        return its value
+
+        :param string filename: Path to file containing environment variable values
+        :return dict: Value of environment variables, if provided. None otherwise
+        :raises InvokeContextException: If the file was not found or not a valid JSON
+        """
+        if not filename:
+            return None
+
+        # Try to read the file and parse it as JSON
+        try:
+
+            with open(filename, "r") as fp:
+                return json.load(fp)
+
+        except Exception as ex:
+            raise InvokeContextException(
+                "Could not read environment variables overrides from file {}: {}".format(filename, str(ex))
+            ) from ex
+
+    def _make_env_vars(self, function, env_vars_values):
+        """Returns the environment variables configuration for this function
+
+        Parameters
+        ----------
+        function : samcli.commands.local.lib.provider.Function
+            Lambda function to generate the configuration for
+
+        Returns
+        -------
+        dictionary
+            Environment variable configuration for this function
+
+        Raises
+        ------
+        samcli.commands.local.lib.exceptions.OverridesNotWellDefinedError
+            If the environment dict is in the wrong format to process environment vars
+
+        """
+
+        name = function.name
+
+        if env_vars_values:
+            for env_var_value in env_vars_values.values():
+                if not isinstance(env_var_value, dict):
+                    reason = """
+                                Environment variables must be in either CloudFormation parameter file
+                                format or in {FunctionName: {key:value}} JSON pairs
+                                """
+                    LOG.debug(reason)
+                    raise OverridesNotWellDefinedError(reason)
+
+            if "Parameters" in env_vars_values:
+                LOG.debug("Environment variables data is in CloudFormation parameter file format")
+                # CloudFormation parameter file format
+                overrides = env_vars_values["Parameters"]
+            else:
+                # Standard format
+                LOG.debug("Environment variables data is standard format")
+                overrides = env_vars_values.get(name, None)
+
+            return overrides
+
+        return None

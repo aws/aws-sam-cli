@@ -124,6 +124,13 @@ $ sam build MyFunction
     "requests=1.x and the latest request module version changes from 1.1 to 1.2, "
     "SAM will not pull the latest version until you run a non-cached build.",
 )
+@click.option(
+    "--container-env-vars",
+    "-ev",
+    default=None,
+    type=click.Path(),    # Must be a json file
+    help="Path to environment variable json file (ex: env_vars.json) to pass into build containers",
+)
 @template_option_without_build
 @parameter_override_option
 @docker_common_options
@@ -144,6 +151,7 @@ def cli(
     parallel,
     manifest,
     docker_network,
+    container_env_vars,
     skip_pull_image,
     parameter_overrides,
     config_file,
@@ -168,6 +176,7 @@ def cli(
         skip_pull_image,
         parameter_overrides,
         mode,
+        container_env_vars,
     )  # pragma: no cover
 
 
@@ -186,6 +195,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     skip_pull_image,
     parameter_overrides,
     mode,
+    container_env_vars,
 ):
     """
     Implementation of the ``cli`` method
@@ -239,6 +249,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
                 container_manager=ctx.container_manager,
                 mode=ctx.mode,
                 parallel=parallel,
+                env_vars_file=container_env_vars,
             )
         except FunctionNotFound as ex:
             raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex

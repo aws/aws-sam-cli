@@ -38,6 +38,7 @@ class BuildContext:
         parameter_overrides=None,
         docker_network=None,
         skip_pull_image=False,
+        container_env_vars=None,
     ):
 
         self._resource_identifier = resource_identifier
@@ -53,6 +54,7 @@ class BuildContext:
         self._skip_pull_image = skip_pull_image
         self._mode = mode
         self._cached = cached
+        self._container_env_vars = container_env_vars
 
         self._function_provider = None
         self._layer_provider = None
