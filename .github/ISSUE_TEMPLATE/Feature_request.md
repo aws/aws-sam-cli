@@ -1,6 +1,10 @@
 ---
 name: Feature request
 about: Suggest an idea/feature/enhancement
+title: ''
+labels: ''
+assignees: ''
+
 ---
 
 <!-- Make sure we don't have an existing Issue that reports the bug you are seeing (both open and closed). -->
