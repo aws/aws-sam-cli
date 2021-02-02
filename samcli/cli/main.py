@@ -65,14 +65,15 @@ def print_cmdline_options(func):
             config_file = kwargs["config_file"]
             config_env = kwargs["config_env"]
             click.echo(f"Using config file: {config_file}, config environment: {config_env}")
-        cmdline_args_log = "Expand command line arguments to:\n"
+        click.echo("Expand command line arguments to:")
+        cmdline_args_log = ""
         for key, value in kwargs.items():
             if key not in ["config_file", "config_env"]:
                 if isinstance(value, bool) and value:
                     cmdline_args_log += f"--{key} "
                 elif value:
                     cmdline_args_log += f"--{key}={str(value)} "
-        cmdline_args_log = textwrap.fill(cmdline_args_log, width=70, subsequent_indent=" " * 4)
+        cmdline_args_log = textwrap.fill(cmdline_args_log, width=120, initial_indent=" " * 4, subsequent_indent=" " * 4)
         click.echo(cmdline_args_log)
         return func(*args, **kwargs)
 

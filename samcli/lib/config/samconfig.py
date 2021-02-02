@@ -17,7 +17,7 @@ LOG = logging.getLogger(__name__)
 
 DEFAULT_CONFIG_FILE_NAME = "samconfig.toml"
 DEFAULT_ENV = "default"
-DEFAULT_GLOBAL_SECTION = "global"
+DEFAULT_GLOBAL_CMDNAME = "global"
 
 
 class SamConfig:
@@ -74,12 +74,14 @@ class SamConfig:
         env = env or DEFAULT_ENV
 
         self._read()
-        params = self.document[env][self._to_key(cmd_names)][section]
-        if DEFAULT_GLOBAL_SECTION in self.document[env]:
-            global_params = self.document[env][DEFAULT_GLOBAL_SECTION][section]
-            global_params.update(params.copy())
-            params = global_params.copy()
-        return params
+        if isinstance(self.document, dict):
+            params = self.document.get(env, {}).get(self._to_key(cmd_names), {}).get(section, {})
+            if DEFAULT_GLOBAL_CMDNAME in self.document.get(env, {}):
+                global_params = self.document.get(env, {}).get(DEFAULT_GLOBAL_CMDNAME, {}).get(section, {})
+                global_params.update(params.copy())
+                params = global_params.copy()
+            return params
+        return {}
 
     def put(self, cmd_names, section, key, value, env=DEFAULT_ENV):
         """
@@ -112,19 +114,19 @@ class SamConfig:
 
         if not self.document:
             self._read()
-            # Empty document prepare the initial structure.
-            # self.document is a nested dict, we need to check each layer and add new tables, otherwise duplicated key
-            # in parent layer will override the whole child layer
-            if self.document.get(env, None):
-                if self.document[env].get(self._to_key(cmd_names), None):
-                    if not self.document[env][self._to_key(cmd_names)].get(section, None):
-                        self.document[env][self._to_key(cmd_names)].update({section: {key: value}})
+        # Empty document prepare the initial structure.
+        # self.document is a nested dict, we need to check each layer and add new tables, otherwise duplicated key
+        # in parent layer will override the whole child layer
+        if self.document.get(env, None):
+            if self.document[env].get(self._to_key(cmd_names), None):
+                if self.document[env][self._to_key(cmd_names)].get(section, None):
+                    self.document[env][self._to_key(cmd_names)][section].update({key: value})
                 else:
-                    self.document[env].update({self._to_key(cmd_names): {section: {key: value}}})
+                    self.document[env][self._to_key(cmd_names)].update({section: {key: value}})
             else:
-                self.document.update({env: {self._to_key(cmd_names): {section: {key: value}}}})
-        # Only update appropriate key value pairs within a section
-        self.document[env][self._to_key(cmd_names)][section].update({key: value})
+                self.document[env].update({self._to_key(cmd_names): {section: {key: value}}})
+        else:
+            self.document.update({env: {self._to_key(cmd_names): {section: {key: value}}}})
 
     def flush(self):
         """
