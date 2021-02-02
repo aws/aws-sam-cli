@@ -20,14 +20,13 @@ import threading
 import os
 import sys
 from collections import abc
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, cast
 from urllib.parse import urlparse, parse_qs
 
 import botocore
 import botocore.exceptions
 
 from boto3.s3 import transfer
-from mypy_boto3_s3.client import S3Client
 
 from samcli.commands.package.exceptions import NoSuchBucketError, BucketNotSpecifiedError
 from samcli.lib.utils.hash import file_checksum
@@ -56,7 +55,7 @@ class S3Uploader:
 
     def __init__(
         self,
-        s3_client: S3Client,
+        s3_client: Any,
         bucket_name: str,
         prefix: Optional[str] = None,
         kms_key_id: Optional[str] = None,
@@ -191,7 +190,7 @@ class S3Uploader:
         s3_object_tagging = self.s3.get_object_tagging(Bucket=s3_bucket, Key=s3_key)
         LOG.debug("S3 Object (%s) tagging information %s", s3_url, s3_object_tagging)
         s3_object_version_id = s3_object_tagging["VersionId"]
-        return s3_object_version_id
+        return cast(str, s3_object_version_id)
 
     @staticmethod
     def parse_s3_url(
