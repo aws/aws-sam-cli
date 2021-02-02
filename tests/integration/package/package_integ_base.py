@@ -94,6 +94,7 @@ class PackageIntegBase(TestCase):
         no_progressbar=False,
         kms_key_id=None,
         metadata=None,
+        acl=None,
         image_repository=None,
         image_repositories=None,
         resolve_s3=False,
@@ -122,6 +123,8 @@ class PackageIntegBase(TestCase):
             command_list = command_list + ["--no-progressbar"]
         if metadata:
             command_list = command_list + ["--metadata", json.dumps(metadata)]
+        if acl:
+            command_list = command_list + ["--acl", acl]
         if image_repository:
             command_list = command_list + ["--image-repository", str(image_repository)]
         if image_repositories:
