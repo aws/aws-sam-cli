@@ -118,20 +118,20 @@ class BuildContext:
 
     @property
     def function_provider(self) -> SamFunctionProvider:
-        # Note(xinhol): self._function_provider will be assigned with a value in __enter__() and
+        # Note(xinhol): despite self._function_provider is Optional
+        # self._function_provider will be assigned with a non-None value in __enter__() and
         # this function is only used in the context (after __enter__ is called)
+        # so we can assume it is not Optional here
         return self._function_provider  # type: ignore
 
     @property
     def layer_provider(self) -> SamLayerProvider:
-        # Note(xinhol): self._layer_provider will be assigned with a value in __enter__() and
-        # this function is only used in the context (after __enter__ is called)
+        # same as function_provider()
         return self._layer_provider  # type: ignore
 
     @property
     def template_dict(self) -> Dict:
-        # Note(xinhol): self._template_dict will be assigned with a value in __enter__() and
-        # this function is only used in the context (after __enter__ is called)
+        # same as function_provider()
         return self._template_dict  # type: ignore
 
     @property
