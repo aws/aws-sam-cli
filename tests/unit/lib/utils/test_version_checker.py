@@ -137,5 +137,5 @@ class TestVersionChecker(TestCase):
         self.assertTrue(is_version_check_overdue(eight_days_ago))
 
     def test_last_check_time_week_earlier_should_return_false(self):
-        eight_days_ago = datetime.utcnow() - timedelta(days=6)
-        self.assertFalse(is_version_check_overdue(eight_days_ago.timestamp()))
+        six_days_ago = datetime.utcnow() - timedelta(days=6)
+        self.assertFalse(is_version_check_overdue(six_days_ago.timestamp()))
