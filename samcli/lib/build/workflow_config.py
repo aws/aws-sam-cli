@@ -5,7 +5,7 @@ Contains Builder Workflow Configs for different Runtimes
 import os
 import logging
 from collections import namedtuple
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union, cast
 
 LOG = logging.getLogger(__name__)
 
@@ -317,10 +317,10 @@ class BasicWorkflowSelector:
     """
 
     def __init__(self, configs: Union[CONFIG, List[CONFIG]]) -> None:
-        if isinstance(configs, list):
-            self.configs = configs
-        else:
-            self.configs = [configs]
+        if not isinstance(configs, list):
+            configs = [configs]
+
+        self.configs: List[CONFIG] = configs
 
     def get_config(self, code_dir: str, project_dir: str) -> CONFIG:
         """

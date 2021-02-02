@@ -15,7 +15,6 @@ from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
 
-from samcli.commands.build.exceptions import MissingMetadataForImageFunctionException, InvalidPackageTypeException
 from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition, BuildGraph
 from samcli.lib.build.build_strategy import (
     DefaultBuildStrategy,
@@ -403,11 +402,9 @@ class ApplicationBuilder:
             Path to the location where built artifacts are available
         """
         if packagetype == IMAGE:
-            if not metadata:
-                raise MissingMetadataForImageFunctionException(
-                    f"{function_name} has Image package type but Metadata is missing."
-                )
-            return self._build_lambda_image(function_name=function_name, metadata=metadata)
+            # pylint: disable=fixme
+            # FIXME: _build_lambda_image assumes metadata is not None, we need to throw an exception here
+            return self._build_lambda_image(function_name=function_name, metadata=metadata)  # type: ignore
         if packagetype == ZIP:
             if runtime in self._deprecated_runtimes:
                 message = (
@@ -439,7 +436,9 @@ class ApplicationBuilder:
 
                 return build_method(config, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, options)
 
-        raise InvalidPackageTypeException(f'Function {function_name} has invalid PackageType "{packagetype}"')
+        # pylint: disable=fixme
+        # FIXME: we need to throw an exception here, packagetype could be something else
+        return  # type: ignore
 
     @staticmethod
     def _get_build_options(function_name: str, language: str, handler: Optional[str]) -> Optional[Dict]:
