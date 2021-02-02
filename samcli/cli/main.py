@@ -15,11 +15,11 @@ from samcli.lib.utils.sam_logging import (
     SAM_CLI_FORMATTER,
     SAM_CLI_LOGGER_NAME,
 )
+from samcli.lib.utils.version_checker import inform_newer_version
 from .options import debug_option, region_option, profile_option
 from .context import Context
 from .command import BaseCommand
 from .global_config import GlobalConfig
-from ..lib.utils.version_checker import inform_newer_version
 
 LOG = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s", datefmt="%Y-%m-%d %H:%M:%S")

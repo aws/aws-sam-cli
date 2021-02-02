@@ -4,6 +4,7 @@ Contains information about newer version checker for SAM CLI
 import logging
 from datetime import datetime, timedelta
 from functools import wraps
+from typing import Optional
 
 import click
 from requests import get
@@ -47,7 +48,7 @@ def check_newer_version(func):
     return wrapped
 
 
-def inform_newer_version(force_check=False):
+def inform_newer_version(force_check=False) -> None:
     """
     Compares installed SAM CLI version with the up to date version from PyPi,
     and print information if up to date version is different then what is installed now
@@ -68,7 +69,7 @@ def inform_newer_version(force_check=False):
         global_config = GlobalConfig()
         last_version_check = global_config.last_version_check
 
-        if force_check or is_last_check_older_than_delta(last_version_check):
+        if force_check or is_version_check_overdue(last_version_check):
             fetch_and_compare_versions()
         else:
             need_to_update_last_check_time = False
@@ -79,7 +80,7 @@ def inform_newer_version(force_check=False):
             update_last_check_time(global_config)
 
 
-def fetch_and_compare_versions():
+def fetch_and_compare_versions() -> None:
     """
     Compare current up to date version with the installed one, and inform if a newer version available
     """
@@ -92,7 +93,7 @@ def fetch_and_compare_versions():
         click.echo(f"To download: {AWS_SAM_CLI_INSTALL_DOCS}")
 
 
-def update_last_check_time(global_config):
+def update_last_check_time(global_config: Optional[GlobalConfig]) -> None:
     """
     Update last_check_time in GlobalConfig
     Parameters
@@ -107,7 +108,7 @@ def update_last_check_time(global_config):
         LOG.debug("Updating last version check time was failed", exc_info=e)
 
 
-def is_last_check_older_than_delta(last_version_check):
+def is_version_check_overdue(last_version_check) -> bool:
     """
     Check if last version check have been made longer then a week ago
 

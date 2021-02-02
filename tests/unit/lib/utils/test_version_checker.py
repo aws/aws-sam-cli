@@ -5,7 +5,7 @@ from unittest.mock import patch, call, ANY
 from samcli.cli.global_config import GlobalConfig
 from samcli.lib.utils.version_checker import (
     check_newer_version,
-    is_last_check_older_than_delta,
+    is_version_check_overdue,
     update_last_check_time,
     fetch_and_compare_versions,
     AWS_SAM_CLI_INSTALL_DOCS,
@@ -24,31 +24,31 @@ class TestVersionChecker(TestCase):
         actual = real_fn("Hello", "World")
         self.assertEqual(actual, "Hello World")
 
-    @patch("samcli.lib.utils.version_checker.is_last_check_older_than_delta")
+    @patch("samcli.lib.utils.version_checker.is_version_check_overdue")
     @patch("samcli.lib.utils.version_checker.fetch_and_compare_versions")
     @patch("samcli.lib.utils.version_checker.update_last_check_time")
     def test_must_call_fetch_and_compare_versions_if_newer_version_is_available(
-        self, mock_update_last_check, mock_fetch_and_compare_versions, mock_is_last_check_older_than_delta
+        self, mock_update_last_check, mock_fetch_and_compare_versions, mock_is_version_check_overdue
     ):
-        mock_is_last_check_older_than_delta.return_value = True
+        mock_is_version_check_overdue.return_value = True
         actual = real_fn("Hello", "World")
 
         self.assertEqual(actual, "Hello World")
-        mock_is_last_check_older_than_delta.assert_called_once()
+        mock_is_version_check_overdue.assert_called_once()
         mock_fetch_and_compare_versions.assert_called_once()
         mock_update_last_check.assert_called_once()
 
-    @patch("samcli.lib.utils.version_checker.is_last_check_older_than_delta")
+    @patch("samcli.lib.utils.version_checker.is_version_check_overdue")
     @patch("samcli.lib.utils.version_checker.fetch_and_compare_versions")
     @patch("samcli.lib.utils.version_checker.update_last_check_time")
     def test_must_not_call_fetch_and_compare_versions_if_no_newer_version_is_available(
-        self, mock_update_last_check, mock_fetch_and_compare_versions, mock_is_last_check_older_than_delta
+        self, mock_update_last_check, mock_fetch_and_compare_versions, mock_is_version_check_overdue
     ):
-        mock_is_last_check_older_than_delta.return_value = False
+        mock_is_version_check_overdue.return_value = False
         actual = real_fn("Hello", "World")
 
         self.assertEqual(actual, "Hello World")
-        mock_is_last_check_older_than_delta.assert_called_once()
+        mock_is_version_check_overdue.assert_called_once()
 
         mock_fetch_and_compare_versions.assert_not_called()
         mock_update_last_check.assert_not_called()
@@ -130,12 +130,12 @@ class TestVersionChecker(TestCase):
         update_last_check_time(None)
 
     def test_last_check_time_none_should_return_true(self):
-        self.assertTrue(is_last_check_older_than_delta(None))
+        self.assertTrue(is_version_check_overdue(None))
 
     def test_last_check_time_week_older_should_return_true(self):
         eight_days_ago = datetime.utcnow() - timedelta(days=8)
-        self.assertTrue(is_last_check_older_than_delta(eight_days_ago))
+        self.assertTrue(is_version_check_overdue(eight_days_ago))
 
     def test_last_check_time_week_earlier_should_return_false(self):
         eight_days_ago = datetime.utcnow() - timedelta(days=6)
-        self.assertFalse(is_last_check_older_than_delta(eight_days_ago.timestamp()))
+        self.assertFalse(is_version_check_overdue(eight_days_ago.timestamp()))
