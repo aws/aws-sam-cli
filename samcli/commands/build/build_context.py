@@ -5,6 +5,7 @@ Context object used by build command
 import logging
 import os
 import shutil
+from typing import Optional, Dict
 import pathlib
 
 from samcli.lib.providers.provider import ResourcesToBuildCollector
@@ -25,20 +26,23 @@ class BuildContext:
 
     def __init__(
         self,
-        resource_identifier,
-        template_file,
-        base_dir,
-        build_dir,
-        cache_dir,
-        cached,
-        mode,
-        manifest_path=None,
-        clean=False,
-        use_container=False,
-        parameter_overrides=None,
-        docker_network=None,
-        skip_pull_image=False,
-    ):
+        resource_identifier: Optional[str],
+        template_file: str,
+        base_dir: Optional[str],
+        build_dir: str,
+        cache_dir: str,
+        cached: bool,
+        mode: Optional[str],
+        manifest_path: Optional[str] = None,
+        clean: bool = False,
+        use_container: bool = False,
+        # pylint: disable=fixme
+        # FIXME: parameter_overrides is never None, we should change this to "dict" from Optional[dict]
+        # See samcli/commands/_utils/options.py:251 for its all possible values
+        parameter_overrides: Optional[dict] = None,
+        docker_network: Optional[str] = None,
+        skip_pull_image: bool = False,
+    ) -> None:
 
         self._resource_identifier = resource_identifier
         self._template_file = template_file
@@ -54,13 +58,12 @@ class BuildContext:
         self._mode = mode
         self._cached = cached
 
-        self._function_provider = None
-        self._layer_provider = None
-        self._template_dict = None
-        self._app_builder = None
-        self._container_manager = None
+        self._function_provider: Optional[SamFunctionProvider] = None
+        self._layer_provider: Optional[SamLayerProvider] = None
+        self._template_dict: Optional[Dict] = None
+        self._container_manager: Optional[ContainerManager] = None
 
-    def __enter__(self):
+    def __enter__(self) -> "BuildContext":
         self._template_dict = get_template_data(self._template_file)
 
         self._function_provider = SamFunctionProvider(self._template_dict, self._parameter_overrides)
@@ -88,7 +91,7 @@ class BuildContext:
         pass
 
     @staticmethod
-    def _setup_build_dir(build_dir, clean):
+    def _setup_build_dir(build_dir: str, clean: bool) -> str:
         build_path = pathlib.Path(build_dir)
 
         if os.path.abspath(str(build_path)) == os.path.abspath(str(pathlib.Path.cwd())):
@@ -110,62 +113,69 @@ class BuildContext:
         return str(build_path.resolve())
 
     @property
-    def container_manager(self):
+    def container_manager(self) -> Optional[ContainerManager]:
         return self._container_manager
 
     @property
-    def function_provider(self):
-        return self._function_provider
+    def function_provider(self) -> SamFunctionProvider:
+        # Note(xinhol): despite self._function_provider is Optional
+        # self._function_provider will be assigned with a non-None value in __enter__() and
+        # this function is only used in the context (after __enter__ is called)
+        # so we can assume it is not Optional here
+        return self._function_provider  # type: ignore
 
     @property
-    def layer_provider(self):
-        return self._layer_provider
+    def layer_provider(self) -> SamLayerProvider:
+        # same as function_provider()
+        return self._layer_provider  # type: ignore
 
     @property
-    def template_dict(self):
-        return self._template_dict
+    def template_dict(self) -> Dict:
+        # same as function_provider()
+        return self._template_dict  # type: ignore
 
     @property
-    def build_dir(self):
+    def build_dir(self) -> str:
         return self._build_dir
 
     @property
-    def base_dir(self):
-        return self._base_dir
+    def base_dir(self) -> str:
+        # Note(xinhol): self._base_dir will be assigned with a str value if it is None in __enter__()
+        return self._base_dir  # type: ignore
 
     @property
-    def cache_dir(self):
+    def cache_dir(self) -> str:
         return self._cache_dir
 
     @property
-    def cached(self):
+    def cached(self) -> bool:
         return self._cached
 
     @property
-    def use_container(self):
+    def use_container(self) -> bool:
         return self._use_container
 
     @property
-    def output_template_path(self):
+    def output_template_path(self) -> str:
         return os.path.join(self._build_dir, "template.yaml")
 
     @property
-    def original_template_path(self):
+    def original_template_path(self) -> str:
         return os.path.abspath(self._template_file)
 
     @property
-    def manifest_path_override(self):
+    def manifest_path_override(self) -> Optional[str]:
         if self._manifest_path:
             return os.path.abspath(self._manifest_path)
 
         return None
 
     @property
-    def mode(self):
+    def mode(self) -> Optional[str]:
         return self._mode
 
     @property
-    def resources_to_build(self):
+    def resources_to_build(self) -> ResourcesToBuildCollector:
         """
         Function return resources that should be build by current build command. This function considers
         Lambda Functions and Layers with build method as buildable resources.
@@ -179,8 +189,8 @@ class BuildContext:
             self._collect_single_buildable_layer(self._resource_identifier, result)
 
             if not result.functions and not result.layers:
-                all_resources = [f.name for f in self._function_provider.get_all() if not f.inlinecode]
-                all_resources.extend([l.name for l in self._layer_provider.get_all()])
+                all_resources = [f.name for f in self.function_provider.get_all() if not f.inlinecode]
+                all_resources.extend([l.name for l in self.layer_provider.get_all()])
 
                 available_resource_message = (
                     f"{self._resource_identifier} not found. Possible options in your " f"template: {all_resources}"
@@ -188,12 +198,12 @@ class BuildContext:
                 LOG.info(available_resource_message)
                 raise ResourceNotFound(f"Unable to find a function or layer with name '{self._resource_identifier}'")
             return result
-        result.add_functions([f for f in self._function_provider.get_all() if not f.inlinecode])
-        result.add_layers([l for l in self._layer_provider.get_all() if l.build_method is not None])
+        result.add_functions([f for f in self.function_provider.get_all() if not f.inlinecode])
+        result.add_layers([l for l in self.layer_provider.get_all() if l.build_method is not None])
         return result
 
     @property
-    def is_building_specific_resource(self):
+    def is_building_specific_resource(self) -> bool:
         """
         Whether customer requested to build a specific resource alone in isolation,
         by specifying function_identifier to the build command.
@@ -202,7 +212,9 @@ class BuildContext:
         """
         return bool(self._resource_identifier)
 
-    def _collect_single_function_and_dependent_layers(self, resource_identifier, resource_collector):
+    def _collect_single_function_and_dependent_layers(
+        self, resource_identifier: str, resource_collector: ResourcesToBuildCollector
+    ) -> None:
         """
         Populate resource_collector with function with provided identifier and all layers that function need to be
         build in resource_collector
@@ -215,7 +227,7 @@ class BuildContext:
         ResourcesToBuildCollector
 
         """
-        function = self._function_provider.get(resource_identifier)
+        function = self.function_provider.get(resource_identifier)
         if not function:
             # No function found
             return
@@ -223,7 +235,9 @@ class BuildContext:
         resource_collector.add_function(function)
         resource_collector.add_layers([l for l in function.layers if l.build_method is not None])
 
-    def _collect_single_buildable_layer(self, resource_identifier, resource_collector):
+    def _collect_single_buildable_layer(
+        self, resource_identifier: str, resource_collector: ResourcesToBuildCollector
+    ) -> None:
         """
         Populate resource_collector with layer with provided identifier.
 
@@ -235,7 +249,7 @@ class BuildContext:
         -------
 
         """
-        layer = self._layer_provider.get(resource_identifier)
+        layer = self.layer_provider.get(resource_identifier)
         if not layer:
             # No layer found
             return

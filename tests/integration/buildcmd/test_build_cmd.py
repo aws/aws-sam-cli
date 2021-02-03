@@ -190,7 +190,14 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
 
     @parameterized.expand(
-        [("nodejs10.x", False), ("nodejs12.x", False), ("nodejs10.x", "use_container"), ("nodejs12.x", "use_container")]
+        [
+            ("nodejs10.x", False),
+            ("nodejs12.x", False),
+            ("nodejs14.x", False),
+            ("nodejs10.x", "use_container"),
+            ("nodejs12.x", "use_container"),
+            ("nodejs14.x", "use_container"),
+        ]
     )
     @pytest.mark.flaky(reruns=3)
     def test_with_default_package_json(self, runtime, use_container):
@@ -1108,12 +1115,12 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
                 "dotnetcore3.1",
             ),
             (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
+            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
             # container
             (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
+            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
         ]
@@ -1194,12 +1201,12 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
                 "dotnetcore3.1",
             ),
             (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
+            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
             # container
             (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
+            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
         ]
@@ -1250,12 +1257,12 @@ class TestParallelBuilds(DedupBuildIntegBase):
                 "dotnetcore3.1",
             ),
             (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
+            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
             # container
             (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
+            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
         ]
