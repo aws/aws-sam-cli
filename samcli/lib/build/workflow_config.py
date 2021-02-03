@@ -5,7 +5,7 @@ Contains Builder Workflow Configs for different Runtimes
 import os
 import logging
 from collections import namedtuple
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union, cast
 
 LOG = logging.getLogger(__name__)
 
@@ -258,13 +258,12 @@ def get_workflow_config(
             identifiers=[specified_workflow, runtime],
             specified_workflow=specified_workflow,
         )
-        if not selector:
-            raise ValueError(
-                f"Cannot find workflow selector, specified_workflow: {specified_workflow}, runtime: {runtime}",
-            )
+
+        # pylint: disable=fixme
+        # FIXME: selector could be None here, we should raise an exception if it is None.
 
         # Identify workflow configuration from the workflow selector.
-        config = selector.get_config(code_dir, project_dir)
+        config = cast(WorkFlowSelector, selector).get_config(code_dir, project_dir)
         return config
     except ValueError as ex:
         raise UnsupportedRuntimeException(
