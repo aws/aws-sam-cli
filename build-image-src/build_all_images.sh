@@ -1,3 +1,5 @@
+#!/bin/sh
+set -e
 # You can use this to build any changes you make to Docker build images to your local machine.
 # Of course, you can also run a single one of these commands manually.
 # If you use this script, ensure that you run with --skip-pull-image, else the remote image may be used.
