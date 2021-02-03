@@ -198,5 +198,5 @@ def _get_event(event_file_name):
 
     # click.open_file knows to open stdin when filename is '-'. This is safer than manually opening streams, and
     # accidentally closing a standard stream
-    with click.open_file(event_file_name, "r") as fp:
+    with click.open_file(event_file_name, "r", encoding="utf-8") as fp:
         return fp.read()
