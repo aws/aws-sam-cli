@@ -14,6 +14,7 @@ fi
 
 docker build -f Dockerfile-nodejs10x -t amazon/aws-sam-cli-build-image-nodejs10.x --build-arg SAM_CLI_VERSION=$SAM_CLI_VERSION .
 docker build -f Dockerfile-nodejs12x -t amazon/aws-sam-cli-build-image-nodejs12.x --build-arg SAM_CLI_VERSION=$SAM_CLI_VERSION .
+docker build -f Dockerfile-nodejs14x -t amazon/aws-sam-cli-build-image-nodejs14.x --build-arg SAM_CLI_VERSION=$SAM_CLI_VERSION .
 docker build -f Dockerfile-java11 -t amazon/aws-sam-cli-build-image-java11 --build-arg SAM_CLI_VERSION=$SAM_CLI_VERSION .
 docker build -f Dockerfile-java8 -t amazon/aws-sam-cli-build-image-java8 --build-arg SAM_CLI_VERSION=$SAM_CLI_VERSION .
 docker build -f Dockerfile-java8-al2 -t amazon/aws-sam-cli-build-image-java8.al2 --build-arg SAM_CLI_VERSION=$SAM_CLI_VERSION .
