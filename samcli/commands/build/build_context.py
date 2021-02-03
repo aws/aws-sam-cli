@@ -42,7 +42,7 @@ class BuildContext:
         parameter_overrides: Optional[dict] = None,
         docker_network: Optional[str] = None,
         skip_pull_image: bool = False,
-        container_env_vars: Optional[str] =None,
+        container_env_vars: Optional[str] = None,
     ) -> None:
 
         self._resource_identifier = resource_identifier

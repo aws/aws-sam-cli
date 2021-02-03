@@ -337,7 +337,12 @@ class ApplicationBuilder:
                     self._stream_writer.flush()
 
     def _build_layer(
-        self, layer_name: str, codeuri: str, specified_workflow: str, compatible_runtimes: List[str], env_vars: Optional[Dict]=None,
+        self,
+        layer_name: str,
+        codeuri: str,
+        specified_workflow: str,
+        compatible_runtimes: List[str],
+        env_vars: Optional[Dict] = None,
     ) -> str:
         # Create the arguments to pass to the builder
         # Code is always relative to the given base directory.
@@ -438,7 +443,9 @@ class ApplicationBuilder:
                 build_method = self._build_function_in_process
                 if self._container_manager:
                     build_method = self._build_function_on_container
-                    return build_method(config, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, options, env_vars)
+                    return build_method(
+                        config, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, options, env_vars
+                    )
 
                 return build_method(config, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, options)
 
@@ -513,7 +520,7 @@ class ApplicationBuilder:
         manifest_path: str,
         runtime: str,
         options: Optional[Dict],
-        env_vars: Optional[str] = None,
+        env_vars: Optional[Dict] = None,
     ) -> str:
         # _build_function_on_container() is only called when self._container_manager if not None
         if not self._container_manager:
@@ -546,7 +553,7 @@ class ApplicationBuilder:
             options=options,
             executable_search_paths=config.executable_search_paths,
             mode=self._mode,
-            env_vars=env_vars, 
+            env_vars=env_vars,
         )
 
         try:

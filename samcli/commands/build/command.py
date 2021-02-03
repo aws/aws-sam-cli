@@ -130,7 +130,7 @@ $ sam build MyFunction
     "--container-env-vars",
     "-ev",
     default=None,
-    type=click.Path(),    # Must be a json file
+    type=click.Path(),  # Must be a json file
     help="Path to environment variable json file (ex: env_vars.json) to pass into build containers",
 )
 @template_option_without_build

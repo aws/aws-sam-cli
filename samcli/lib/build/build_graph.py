@@ -329,7 +329,13 @@ class LayerBuildDefinition(AbstractBuildDefinition):
     """
 
     def __init__(
-        self, name: str, codeuri: str, build_method: str, compatible_runtimes: List[str], source_md5: str = "", env_vars: Optional[Dict]= None
+        self,
+        name: str,
+        codeuri: str,
+        build_method: str,
+        compatible_runtimes: List[str],
+        source_md5: str = "",
+        env_vars: Optional[Dict] = None,
     ):
         super().__init__(source_md5)
         self.name = name
@@ -379,7 +385,13 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
     """
 
     def __init__(
-        self, runtime: str, codeuri: str, packagetype: str, metadata: Optional[Dict], source_md5: str = "", env_vars: Optional[Dict] = None
+        self,
+        runtime: str,
+        codeuri: str,
+        packagetype: str,
+        metadata: Optional[Dict],
+        source_md5: str = "",
+        env_vars: Optional[Dict] = None,
     ) -> None:
         super().__init__(source_md5)
         self.runtime = runtime
