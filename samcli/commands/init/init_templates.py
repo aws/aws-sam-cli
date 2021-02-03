@@ -10,7 +10,8 @@ import platform
 import shutil
 import subprocess
 
-from pathlib import Path  # must come after Py2.7 deprecation
+from pathlib import Path
+from typing import Dict
 
 import click
 
@@ -83,8 +84,11 @@ class InitTemplates:
             msg = "Can't find application template " + app_template + " - check valid values in interactive init."
             raise InvalidInitTemplateError(msg) from ex
 
-    def _check_app_template(self, entry, app_template):
-        return entry["appTemplate"] == app_template
+    @staticmethod
+    def _check_app_template(entry: Dict, app_template: str) -> bool:
+        # we need to cast it to bool because entry["appTemplate"] can be Any, and Any's __eq__ can return Any
+        # detail: https://github.com/python/mypy/issues/5697
+        return bool(entry["appTemplate"] == app_template)
 
     def init_options(self, package_type, runtime, base_image, dependency_manager):
         if not self.clone_attempted:
@@ -113,7 +117,8 @@ class InitTemplates:
                 return list(templates_by_dep)
             return list(templates)
 
-    def _init_options_from_bundle(self, package_type, runtime, dependency_manager):
+    @staticmethod
+    def _init_options_from_bundle(package_type, runtime, dependency_manager):
         for mapping in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values()))):
             if runtime in mapping["runtimes"] or any([r.startswith(runtime) for r in mapping["runtimes"]]):
                 if not dependency_manager or dependency_manager == mapping["dependency_manager"]:
@@ -128,7 +133,8 @@ class InitTemplates:
         )
         raise InvalidInitTemplateError(msg)
 
-    def _shared_dir_check(self, shared_dir):
+    @staticmethod
+    def _shared_dir_check(shared_dir: Path) -> bool:
         try:
             shared_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
             return True
@@ -146,13 +152,13 @@ class InitTemplates:
             return
         expected_path = os.path.normpath(os.path.join(shared_dir, self._repo_name))
         if self._template_directory_exists(expected_path):
-            self._overwrite_existing_templates(shared_dir, expected_path)
+            self._overwrite_existing_templates(expected_path)
         else:
             # simply create the app templates repo
             self._clone_new_app_templates(shared_dir, expected_path)
         self.clone_attempted = True
 
-    def _overwrite_existing_templates(self, shared_dir, expected_path):
+    def _overwrite_existing_templates(self, expected_path: str):
         self.repo_path = expected_path
         # workflow to clone a copy to a new directory and overwrite
         with osutils.mkdir_temp(ignore_errors=True) as tempdir:
@@ -174,11 +180,12 @@ class InitTemplates:
                 if "not found" in output.lower():
                     click.echo("WARN: Could not clone app template repo.")
 
-    def _replace_app_templates(self, temp_path, dest_path):
+    @staticmethod
+    def _replace_app_templates(temp_path: str, dest_path: str) -> None:
         try:
-            LOG.debug("Removing old templates from %s", str(dest_path))
+            LOG.debug("Removing old templates from %s", dest_path)
             shutil.rmtree(dest_path, onerror=rmtree_callback)
-            LOG.debug("Copying templates from %s to %s", str(temp_path), str(dest_path))
+            LOG.debug("Copying templates from %s to %s", temp_path, dest_path)
             shutil.copytree(temp_path, dest_path, ignore=shutil.ignore_patterns("*.git"))
         except (OSError, shutil.Error) as ex:
             # UNSTABLE STATE
@@ -208,11 +215,13 @@ class InitTemplates:
                 if "not found" in output.lower():
                     click.echo("WARN: Could not clone app template repo.")
 
-    def _template_directory_exists(self, expected_path):
+    @staticmethod
+    def _template_directory_exists(expected_path: str) -> bool:
         path = Path(expected_path)
         return path.exists()
 
-    def _git_executable(self):
+    @staticmethod
+    def _git_executable() -> str:
         execname = "git"
         if platform.system().lower() == "windows":
             options = [execname, "{}.cmd".format(execname), "{}.exe".format(execname), "{}.bat".format(execname)]

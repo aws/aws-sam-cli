@@ -10,6 +10,7 @@ import samcli.lib.generated_sample_events.events as events
 from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.options import debug_option
 from samcli.lib.telemetry.metric import track_command
+from samcli.lib.utils.version_checker import check_newer_version
 
 
 class ServiceCommand(click.MultiCommand):
@@ -24,7 +25,7 @@ class ServiceCommand(click.MultiCommand):
         List all of the subcommands
     """
 
-    def __init__(self, events_lib, *args, **kwargs):
+    def __init__(self, events_lib: events.Events, *args, **kwargs):
         """
         Constructor for the ServiceCommand class
 
@@ -96,7 +97,7 @@ class EventTypeSubCommand(click.MultiCommand):
 
     TAGS = "tags"
 
-    def __init__(self, events_lib, top_level_cmd_name, subcmd_definition, *args, **kwargs):
+    def __init__(self, events_lib: events.Events, top_level_cmd_name, subcmd_definition, *args, **kwargs):
         """
         constructor for the EventTypeSubCommand class
 
@@ -177,8 +178,12 @@ class EventTypeSubCommand(click.MultiCommand):
         """
         return sorted(self.subcmd_definition.keys())
 
+    @staticmethod
     @track_command
-    def cmd_implementation(self, events_lib, top_level_cmd_name, subcmd_name, *args, **kwargs):
+    @check_newer_version
+    def cmd_implementation(
+        events_lib: events.Events, top_level_cmd_name: str, subcmd_name: str, *args, **kwargs
+    ) -> str:
         """
         calls for value substitution in the event json and returns the
         customized json as a string

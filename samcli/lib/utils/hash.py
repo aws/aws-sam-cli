@@ -7,7 +7,7 @@ import hashlib
 BLOCK_SIZE = 4096
 
 
-def file_checksum(file_name):
+def file_checksum(file_name: str) -> str:
     """
 
     Parameters
@@ -37,7 +37,7 @@ def file_checksum(file_name):
         return md5.hexdigest()
 
 
-def dir_checksum(directory, followlinks=True):
+def dir_checksum(directory: str, followlinks: bool = True) -> str:
     """
 
     Parameters
@@ -69,7 +69,7 @@ def dir_checksum(directory, followlinks=True):
     return md5_dir.hexdigest()
 
 
-def str_checksum(content):
+def str_checksum(content: str) -> str:
     """
     return a md5 checksum of a given string
 

@@ -2,6 +2,7 @@
 Class that provides functions from a given SAM template
 """
 import logging
+from typing import Dict, List
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
 from samcli.lib.providers.exceptions import InvalidLayerReference
@@ -160,20 +161,29 @@ class SamFunctionProvider(SamBaseProvider):
         samcli.commands.local.lib.provider.Function
             Function configuration
         """
-
         codeuri = SamFunctionProvider.DEFAULT_CODEURI
+        inlinecode = resource_properties.get("InlineCode")
         imageuri = None
         packagetype = resource_properties.get("PackageType", ZIP)
         if packagetype == ZIP:
-            codeuri = SamFunctionProvider._extract_sam_function_codeuri(
-                name, resource_properties, "CodeUri", ignore_code_extraction_warnings=ignore_code_extraction_warnings
-            )
-            LOG.debug("Found Serverless function with name='%s' and CodeUri='%s'", name, codeuri)
+            if inlinecode:
+                LOG.debug("Found Serverless function with name='%s' and InlineCode", name)
+                codeuri = None
+            else:
+                codeuri = SamFunctionProvider._extract_sam_function_codeuri(
+                    name,
+                    resource_properties,
+                    "CodeUri",
+                    ignore_code_extraction_warnings=ignore_code_extraction_warnings,
+                )
+                LOG.debug("Found Serverless function with name='%s' and CodeUri='%s'", name, codeuri)
         elif packagetype == IMAGE:
             imageuri = SamFunctionProvider._extract_sam_function_imageuri(resource_properties, "ImageUri")
             LOG.debug("Found Serverless function with name='%s' and ImageUri='%s'", name, imageuri)
 
-        return SamFunctionProvider._build_function_configuration(name, codeuri, resource_properties, layers, imageuri)
+        return SamFunctionProvider._build_function_configuration(
+            name, codeuri, resource_properties, layers, inlinecode, imageuri
+        )
 
     @staticmethod
     def _convert_lambda_function_resource(name, resource_properties, layers):  # pylint: disable=invalid-name
@@ -198,20 +208,33 @@ class SamFunctionProvider(SamBaseProvider):
         # CodeUri is set to "." in order to get code locally from current directory. AWS::Lambda::Function's ``Code``
         # property does not support specifying a local path
         codeuri = SamFunctionProvider.DEFAULT_CODEURI
+        inlinecode = None
         imageuri = None
         packagetype = resource_properties.get("PackageType", ZIP)
-
         if packagetype == ZIP:
-            codeuri = SamFunctionProvider._extract_lambda_function_code(resource_properties, "Code")
-            LOG.debug("Found Lambda function with name='%s' and CodeUri='%s'", name, codeuri)
+            if (
+                "Code" in resource_properties
+                and isinstance(resource_properties["Code"], dict)
+                and resource_properties["Code"].get("ZipFile")
+            ):
+                inlinecode = resource_properties["Code"]["ZipFile"]
+                LOG.debug("Found Lambda function with name='%s' and Code ZipFile", name)
+                codeuri = None
+            else:
+                codeuri = SamFunctionProvider._extract_lambda_function_code(resource_properties, "Code")
+                LOG.debug("Found Lambda function with name='%s' and CodeUri='%s'", name, codeuri)
         elif packagetype == IMAGE:
             imageuri = SamFunctionProvider._extract_lambda_function_imageuri(resource_properties, "Code")
             LOG.debug("Found Lambda function with name='%s' and Imageuri='%s'", name, imageuri)
 
-        return SamFunctionProvider._build_function_configuration(name, codeuri, resource_properties, layers, imageuri)
+        return SamFunctionProvider._build_function_configuration(
+            name, codeuri, resource_properties, layers, inlinecode, imageuri
+        )
 
     @staticmethod
-    def _build_function_configuration(name, codeuri, resource_properties, layers, imageuri=None):
+    def _build_function_configuration(
+        name: str, codeuri: str, resource_properties: Dict, layers: List, inlinecode: str, imageuri: str
+    ):
         """
         Builds a Function configuration usable by the provider.
 
@@ -247,6 +270,7 @@ class SamFunctionProvider(SamBaseProvider):
             events=resource_properties.get("Events"),
             layers=layers,
             metadata=resource_properties.get("Metadata", None),
+            inlinecode=inlinecode,
             codesign_config_arn=resource_properties.get("CodeSigningConfigArn", None),
         )
 

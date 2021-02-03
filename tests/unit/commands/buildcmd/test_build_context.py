@@ -41,7 +41,7 @@ class TestBuildContext__enter__(TestCase):
             clean=True,
             use_container=True,
             docker_network="network",
-            parameter_overrides="overrides",
+            parameter_overrides={"overrides": "value"},
             skip_pull_image=True,
             mode="buildmode",
             cached=False,
@@ -70,7 +70,7 @@ class TestBuildContext__enter__(TestCase):
         self.assertTrue(layer1 in resources_to_build.layers)
 
         get_template_data_mock.assert_called_once_with("template_file")
-        SamFunctionProviderMock.assert_called_once_with(template_dict, "overrides")
+        SamFunctionProviderMock.assert_called_once_with(template_dict, {"overrides": "value"})
         pathlib_mock.Path.assert_called_once_with("template_file")
         setup_build_dir_mock.assert_called_with("build_dir", True)
         ContainerManagerMock.assert_called_once_with(docker_network_id="network", skip_pull_image=True)
@@ -107,7 +107,7 @@ class TestBuildContext__enter__(TestCase):
             clean=True,
             use_container=True,
             docker_network="network",
-            parameter_overrides="overrides",
+            parameter_overrides={"overrides": "value"},
             skip_pull_image=True,
             mode="buildmode",
             cached=False,
@@ -152,7 +152,7 @@ class TestBuildContext__enter__(TestCase):
             clean=True,
             use_container=True,
             docker_network="network",
-            parameter_overrides="overrides",
+            parameter_overrides={"overrides": "value"},
             skip_pull_image=True,
             mode="buildmode",
             cached=False,
@@ -199,7 +199,7 @@ class TestBuildContext__enter__(TestCase):
             clean=True,
             use_container=True,
             docker_network="network",
-            parameter_overrides="overrides",
+            parameter_overrides={"overrides": "value"},
             skip_pull_image=True,
             mode="buildmode",
             cached=False,
@@ -246,7 +246,7 @@ class TestBuildContext__enter__(TestCase):
             clean=True,
             use_container=True,
             docker_network="network",
-            parameter_overrides="overrides",
+            parameter_overrides={"overrides": "value"},
             skip_pull_image=True,
             mode="buildmode",
             cached=False,
@@ -295,7 +295,7 @@ class TestBuildContext__enter__(TestCase):
             clean=True,
             use_container=True,
             docker_network="network",
-            parameter_overrides="overrides",
+            parameter_overrides={"overrides": "value"},
             skip_pull_image=True,
             mode="buildmode",
             cached=False,
@@ -324,7 +324,7 @@ class TestBuildContext__enter__(TestCase):
         self.assertEqual(resources_to_build.functions, [func1, func2])
         self.assertEqual(resources_to_build.layers, [layer1])
         get_template_data_mock.assert_called_once_with("template_file")
-        SamFunctionProviderMock.assert_called_once_with(template_dict, "overrides")
+        SamFunctionProviderMock.assert_called_once_with(template_dict, {"overrides": "value"})
         pathlib_mock.Path.assert_called_once_with("template_file")
         setup_build_dir_mock.assert_called_with("build_dir", True)
         ContainerManagerMock.assert_called_once_with(docker_network_id="network", skip_pull_image=True)
@@ -461,6 +461,7 @@ class DummyLayer:
 
 
 class DummyFunction:
-    def __init__(self, name, layers=[]):
+    def __init__(self, name, layers=[], inlinecode=None):
         self.name = name
         self.layers = layers
+        self.inlinecode = inlinecode

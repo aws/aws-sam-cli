@@ -1,6 +1,7 @@
 """
 Module to check mutually exclusive cli parameters
 """
+from typing import List
 
 import click
 
@@ -11,8 +12,8 @@ class Mutex(click.Option):
     """
 
     def __init__(self, *args, **kwargs):
-        self.required_params: list = kwargs.pop("required_params", None)
-        self.not_required: list = kwargs.pop("not_required", None)
+        self.required_params: List = kwargs.pop("required_params", None)
+        self.not_required: List = kwargs.pop("not_required", None)
 
         super().__init__(*args, **kwargs)
 
