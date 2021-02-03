@@ -2,7 +2,7 @@ from unittest.mock import patch, Mock, PropertyMock, call
 
 from unittest import TestCase
 from click.testing import CliRunner
-from samcli.cli.main import cli, print_version_option
+from samcli.cli.main import cli
 
 
 class TestCliBase(TestCase):
@@ -54,11 +54,3 @@ class TestCliBase(TestCase):
 
             # If prompt is skipped, this should be NOT called
             send_installed_metric_mock.assert_not_called()
-
-    @patch("samcli.cli.main.inform_newer_version")
-    @patch("samcli.cli.main.click")
-    @patch("samcli.cli.main.__version__", "1.1.0")
-    def test_print_version_option(self, mock_click, mock_inform_newer_version):
-        print_version_option(Mock(resilient_parsing=None, color="green"), Mock(), Mock())
-        mock_inform_newer_version.assert_called_once()
-        mock_click.assert_has_calls([call.echo("SAM CLI, version %(version)s" % {"version": "1.1.0"}, color="green")])

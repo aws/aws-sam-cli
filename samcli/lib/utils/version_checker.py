@@ -41,14 +41,14 @@ def check_newer_version(func):
         # execute actual command first
         actual_result = func(*args, **kwargs)
         # check and inform newer version if it is available
-        inform_newer_version()
+        _inform_newer_version()
 
         return actual_result
 
     return wrapped
 
 
-def inform_newer_version(force_check=False) -> None:
+def _inform_newer_version(force_check=False) -> None:
     """
     Compares installed SAM CLI version with the up to date version from PyPi,
     and print information if up to date version is different then what is installed now
