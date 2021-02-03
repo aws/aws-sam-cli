@@ -5,7 +5,7 @@ source
 import hashlib
 import logging
 from collections import namedtuple
-from typing import NamedTuple, Optional, List
+from typing import NamedTuple, Optional, List, Dict
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, UnsupportedIntrinsic
 
@@ -49,6 +49,8 @@ class Function(NamedTuple):
     inlinecode: Optional[str]
     # Code Signing config ARN
     codesign_config_arn: Optional[str]
+    # The path of the stack relative to the root stack, it is empty for functions in root stack
+    stack_path: str = ""
 
 
 class ResourcesToBuildCollector:
@@ -89,10 +91,19 @@ class LayerVersion:
 
     LAYER_NAME_DELIMETER = "-"
 
-    def __init__(self, arn, codeuri, compatible_runtimes=None, metadata=None):
+    def __init__(
+        self,
+        arn: str,
+        codeuri: Optional[str],
+        compatible_runtimes: Optional[List[str]] = None,
+        metadata: Optional[Dict] = None,
+        stack_path: str = "",
+    ):
         """
         Parameters
         ----------
+        stack_path str
+            The path of the stack relative to the root stack, it is empty for layers in root stack
         name str
             Name of the layer, this can be the ARN or Logical Id in the template
         codeuri str
@@ -105,6 +116,7 @@ class LayerVersion:
         if not isinstance(arn, str):
             raise UnsupportedIntrinsic("{} is an Unsupported Intrinsic".format(arn))
 
+        self._stack_path = stack_path
         self._arn = arn
         self._codeuri = codeuri
         self.is_defined_within_template = bool(codeuri)
@@ -177,6 +189,10 @@ class LayerVersion:
         return LayerVersion.LAYER_NAME_DELIMETER.join(
             [layer_name, layer_version, hashlib.sha256(arn.encode("utf-8")).hexdigest()[0:10]]
         )
+
+    @property
+    def stack_path(self) -> str:
+        return self._stack_path
 
     @property
     def arn(self):
