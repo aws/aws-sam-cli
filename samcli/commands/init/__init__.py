@@ -9,7 +9,7 @@ from json import JSONDecodeError
 import click
 
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
-from samcli.cli.main import pass_context, common_options, print_cmdline_options
+from samcli.cli.main import pass_context, common_options
 from samcli.local.common.runtime_template import RUNTIMES, SUPPORTED_DEP_MANAGERS, LAMBDA_IMAGES_RUNTIMES
 from samcli.lib.telemetry.metric import track_command
 from samcli.commands.init.interactive_init_flow import _get_runtime_from_image
@@ -202,7 +202,6 @@ def non_interactive_validation(func):
 @non_interactive_validation
 @pass_context
 @track_command
-@print_cmdline_options
 def cli(
     ctx,
     no_interactive,

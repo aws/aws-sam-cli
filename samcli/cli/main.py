@@ -5,7 +5,6 @@ Entry point for the CLI
 import logging
 import json
 import atexit
-import textwrap
 import click
 
 from samcli import __version__
@@ -57,27 +56,6 @@ def print_info(ctx, param, value):
     click.echo(json.dumps({"version": __version__}, indent=2))
 
     ctx.exit()
-
-
-def print_cmdline_options(func):
-    def wrapper(*args, **kwargs):
-        if kwargs["config_file"] and kwargs["config_env"]:
-            config_file = kwargs["config_file"]
-            config_env = kwargs["config_env"]
-            click.echo(f"Using config file: {config_file}, config environment: {config_env}")
-        click.echo("Expand command line arguments to:")
-        cmdline_args_log = ""
-        for key, value in kwargs.items():
-            if key not in ["config_file", "config_env"]:
-                if isinstance(value, bool) and value:
-                    cmdline_args_log += f"--{key} "
-                elif value:
-                    cmdline_args_log += f"--{key}={str(value)} "
-        cmdline_args_log = textwrap.fill(cmdline_args_log, width=120, initial_indent=" " * 4, subsequent_indent=" " * 4)
-        click.echo(cmdline_args_log)
-        return func(*args, **kwargs)
-
-    return wrapper
 
 
 # Keep the message to 80chars wide to it prints well on most terminals

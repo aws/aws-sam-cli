@@ -5,12 +5,7 @@ CLI command for "logs" command
 import logging
 import click
 
-from samcli.cli.main import (
-    pass_context,
-    common_options as cli_framework_options,
-    aws_creds_options,
-    print_cmdline_options,
-)
+from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 
@@ -80,7 +75,6 @@ $ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
 @aws_creds_options
 @pass_context
 @track_command
-@print_cmdline_options
 def cli(
     ctx,
     name,

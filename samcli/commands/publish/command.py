@@ -7,12 +7,7 @@ import click
 import boto3
 from serverlessrepo.publish import CREATE_APPLICATION
 
-from samcli.cli.main import (
-    pass_context,
-    common_options as cli_framework_options,
-    aws_creds_options,
-    print_cmdline_options,
-)
+from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from samcli.commands._utils.options import template_common_option
 from samcli.commands._utils.template import get_template_data, TemplateFailedParsingException, TemplateNotFoundException
 from samcli.lib.telemetry.metric import track_command
@@ -53,7 +48,6 @@ SEMANTIC_VERSION = "SemanticVersion"
 @cli_framework_options
 @pass_context
 @track_command
-@print_cmdline_options
 def cli(
     ctx,
     template_file,

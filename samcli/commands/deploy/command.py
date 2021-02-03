@@ -6,7 +6,7 @@ import logging
 import click
 
 from samcli.cli.cli_config_file import TomlProvider, configuration_option
-from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_options
+from samcli.cli.main import aws_creds_options, common_options, pass_context
 from samcli.cli.types import ImageRepositoryType, ImageRepositoriesType
 from samcli.commands._utils.options import (
     capabilities_override_option,
@@ -167,7 +167,6 @@ LOG = logging.getLogger(__name__)
 @image_repository_validation
 @pass_context
 @track_command
-@print_cmdline_options
 def cli(
     ctx,
     template_file,
