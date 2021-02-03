@@ -164,15 +164,15 @@ class ApplicationBuilder:
         env_vars_values = self._get_env_vars_value(env_vars_file)
         for function in functions:
             env_vars = self._make_env_vars(function, env_vars_values)
-            print(env_vars)
             function_build_details = FunctionBuildDefinition(
                 function.runtime, function.codeuri, function.packagetype, function.metadata, env_vars=env_vars
             )
             build_graph.put_function_build_definition(function_build_details, function)
 
         for layer in layers:
+            env_vars = self._make_env_vars(layer, env_vars_values)
             layer_build_details = LayerBuildDefinition(
-                layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes
+                layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes, env_vars=env_vars
             )
             build_graph.put_layer_build_definition(layer_build_details, layer)
 
@@ -327,7 +327,7 @@ class ApplicationBuilder:
                     self._stream_writer.write(str.encode(log_stream))
                     self._stream_writer.flush()
 
-    def _build_layer(self, layer_name, codeuri, specified_workflow, compatible_runtimes):
+    def _build_layer(self, layer_name, codeuri, specified_workflow, compatible_runtimes, env_vars=None):
         # Create the arguments to pass to the builder
         # Code is always relative to the given base directory.
         code_dir = str(pathlib.Path(self._base_dir, codeuri).resolve())
@@ -355,7 +355,7 @@ class ApplicationBuilder:
                     build_runtime = compatible_runtimes[0]
             options = ApplicationBuilder._get_build_options(layer_name, config.language, None)
 
-            build_method(config, code_dir, artifacts_dir, scratch_dir, manifest_path, build_runtime, options)
+            build_method(config, code_dir, artifacts_dir, scratch_dir, manifest_path, build_runtime, options, env_vars)
             # Not including subfolder in return so that we copy subfolder, instead of copying artifacts inside it.
             return str(pathlib.Path(self._build_dir, layer_name))
 
@@ -478,7 +478,7 @@ class ApplicationBuilder:
         manifest_path,
         runtime,
         options,
-        env_vars,
+        env_vars=None,
     ):
 
         if not self._container_manager.is_docker_reachable:

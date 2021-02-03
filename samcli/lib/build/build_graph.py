@@ -108,6 +108,8 @@ def _layer_build_definition_to_toml_table(layer_build_definition):
     toml_table[COMPATIBLE_RUNTIMES_FIELD] = layer_build_definition.compatible_runtimes
     toml_table[SOURCE_MD5_FIELD] = layer_build_definition.source_md5
     toml_table[LAYER_FIELD] = layer_build_definition.layer.name
+    if layer_build_definition.env_vars:
+        toml_table[ENV_VARS_FIELD] = layer_build_definition.env_vars
 
     return toml_table
 
@@ -134,6 +136,7 @@ def _toml_table_to_layer_build_definition(uuid, toml_table):
         toml_table[BUILD_METHOD_FIELD],
         toml_table[COMPATIBLE_RUNTIMES_FIELD],
         toml_table.get(SOURCE_MD5_FIELD, ""),
+        dict(toml_table.get(ENV_VARS_FIELD, {})),
     )
     layer_build_definition.uuid = uuid
     return layer_build_definition
@@ -319,18 +322,19 @@ class LayerBuildDefinition(AbstractBuildDefinition):
     LayerBuildDefinition holds information about each unique layer build
     """
 
-    def __init__(self, name, codeuri, build_method, compatible_runtimes, source_md5=""):
+    def __init__(self, name, codeuri, build_method, compatible_runtimes, source_md5="", env_vars=None):
         super().__init__(source_md5)
         self.name = name
         self.codeuri = codeuri
         self.build_method = build_method
         self.compatible_runtimes = compatible_runtimes
+        self.env_vars = env_vars if env_vars else {}
         self.layer = None
 
     def __str__(self):
         return (
             f"LayerBuildDefinition({self.name}, {self.codeuri}, {self.source_md5}, {self.uuid}, "
-            f"{self.build_method}, {self.compatible_runtimes}, {self.layer.name})"
+            f"{self.build_method}, {self.compatible_runtimes}, {self.env_vars}, {self.layer.name})"
         )
 
     def __eq__(self, other):
@@ -355,6 +359,7 @@ class LayerBuildDefinition(AbstractBuildDefinition):
             and self.codeuri == other.codeuri
             and self.build_method == other.build_method
             and self.compatible_runtimes == other.compatible_runtimes
+            and self.env_vars == other.env_vars
         )
 
 

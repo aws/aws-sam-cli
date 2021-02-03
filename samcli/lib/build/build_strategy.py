@@ -139,7 +139,7 @@ class DefaultBuildStrategy(BuildStrategy):
             raise MissingBuildMethodException(
                 f"Layer {layer.name} cannot be build without BuildMethod. Please provide BuildMethod in Metadata."
             )
-        return {layer.name: self._build_layer(layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes)}
+        return {layer.name: self._build_layer(layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes, layer_definition.env_vars)}
 
 
 class CachedBuildStrategy(BuildStrategy):
