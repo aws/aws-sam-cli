@@ -4,11 +4,13 @@ Holds classes and utility methods related to build graph
 
 import logging
 from pathlib import Path
+from typing import Tuple, List, Any, Optional
 from uuid import uuid4
 
 import tomlkit
 
 from samcli.lib.build.exceptions import InvalidBuildGraphException
+from samcli.lib.providers.provider import Function, LayerVersion
 from samcli.lib.utils.packagetype import ZIP
 
 LOG = logging.getLogger(__name__)
@@ -28,7 +30,9 @@ COMPATIBLE_RUNTIMES_FIELD = "compatible_runtimes"
 LAYER_FIELD = "layer"
 
 
-def _function_build_definition_to_toml_table(function_build_definition):
+def _function_build_definition_to_toml_table(
+    function_build_definition: "FunctionBuildDefinition",
+) -> tomlkit.items.Table:
     """
     Converts given function_build_definition into toml table representation
 
@@ -48,7 +52,7 @@ def _function_build_definition_to_toml_table(function_build_definition):
         toml_table[RUNTIME_FIELD] = function_build_definition.runtime
         toml_table[SOURCE_MD5_FIELD] = function_build_definition.source_md5
     toml_table[PACKAGETYPE_FIELD] = function_build_definition.packagetype
-    toml_table[FUNCTIONS_FIELD] = list(map(lambda f: f.name, function_build_definition.functions))
+    toml_table[FUNCTIONS_FIELD] = [f.name for f in function_build_definition.functions]
 
     if function_build_definition.metadata:
         toml_table[METADATA_FIELD] = function_build_definition.metadata
@@ -56,7 +60,7 @@ def _function_build_definition_to_toml_table(function_build_definition):
     return toml_table
 
 
-def _toml_table_to_function_build_definition(uuid, toml_table):
+def _toml_table_to_function_build_definition(uuid: str, toml_table: tomlkit.items.Table) -> "FunctionBuildDefinition":
     """
     Converts given toml table into FunctionBuildDefinition instance
 
@@ -83,7 +87,7 @@ def _toml_table_to_function_build_definition(uuid, toml_table):
     return function_build_definition
 
 
-def _layer_build_definition_to_toml_table(layer_build_definition):
+def _layer_build_definition_to_toml_table(layer_build_definition: "LayerBuildDefinition") -> tomlkit.items.Table:
     """
     Converts given layer_build_definition into toml table representation
 
@@ -108,7 +112,7 @@ def _layer_build_definition_to_toml_table(layer_build_definition):
     return toml_table
 
 
-def _toml_table_to_layer_build_definition(uuid, toml_table):
+def _toml_table_to_layer_build_definition(uuid: str, toml_table: tomlkit.items.Table) -> "LayerBuildDefinition":
     """
     Converts given toml table into LayerBuildDefinition instance
 
@@ -144,20 +148,22 @@ class BuildGraph:
     FUNCTION_BUILD_DEFINITIONS = "function_build_definitions"
     LAYER_BUILD_DEFINITIONS = "layer_build_definitions"
 
-    def __init__(self, build_dir):
+    def __init__(self, build_dir: str) -> None:
         # put build.toml file inside .aws-sam folder
         self._filepath = Path(build_dir).parent.joinpath(DEFAULT_BUILD_GRAPH_FILE_NAME)
-        self._function_build_definitions = []
-        self._layer_build_definitions = []
+        self._function_build_definitions: List["FunctionBuildDefinition"] = []
+        self._layer_build_definitions: List["LayerBuildDefinition"] = []
         self._read()
 
-    def get_function_build_definitions(self):
+    def get_function_build_definitions(self) -> Tuple["FunctionBuildDefinition", ...]:
         return tuple(self._function_build_definitions)
 
-    def get_layer_build_definitions(self):
+    def get_layer_build_definitions(self) -> Tuple["LayerBuildDefinition", ...]:
         return tuple(self._layer_build_definitions)
 
-    def put_function_build_definition(self, function_build_definition, function):
+    def put_function_build_definition(
+        self, function_build_definition: "FunctionBuildDefinition", function: Function
+    ) -> None:
         """
         Puts the newly read function build definition into existing build graph.
         If graph already contains a function build definition which is same as the newly passed one, then it will add
@@ -192,7 +198,7 @@ class BuildGraph:
             function_build_definition.add_function(function)
             self._function_build_definitions.append(function_build_definition)
 
-    def put_layer_build_definition(self, layer_build_definition, layer):
+    def put_layer_build_definition(self, layer_build_definition: "LayerBuildDefinition", layer: LayerVersion) -> None:
         """
         Puts the newly read layer build definition into existing build graph.
         If graph already contains a layer build definition which is same as the newly passed one, then it will add
@@ -227,7 +233,7 @@ class BuildGraph:
             layer_build_definition.layer = layer
             self._layer_build_definitions.append(layer_build_definition)
 
-    def clean_redundant_definitions_and_update(self, persist):
+    def clean_redundant_definitions_and_update(self, persist: bool) -> None:
         """
         Removes build definitions which doesn't have any function in it, which means these build definitions
         are no longer used, and they can be deleted
@@ -241,7 +247,7 @@ class BuildGraph:
         if persist:
             self._write()
 
-    def _read(self):
+    def _read(self) -> None:
         """
         Reads build.toml file into array of build definition
         Each build definition will have empty function list, which will be populated from the current template.yaml file
@@ -269,7 +275,7 @@ class BuildGraph:
             )
             self._layer_build_definitions.append(layer_build_definition)
 
-    def _write(self):
+    def _write(self) -> None:
         """
         Writes build definition details into build.toml file, which would be used by the next build.
         build.toml file will contain the same information as build graph,
@@ -278,14 +284,14 @@ class BuildGraph:
         """
         # convert build definition list into toml table
         function_build_definitions_table = tomlkit.table()
-        for build_definition in self._function_build_definitions:
-            build_definition_as_table = _function_build_definition_to_toml_table(build_definition)
-            function_build_definitions_table.add(build_definition.uuid, build_definition_as_table)
+        for function_build_definition in self._function_build_definitions:
+            build_definition_as_table = _function_build_definition_to_toml_table(function_build_definition)
+            function_build_definitions_table.add(function_build_definition.uuid, build_definition_as_table)
 
         layer_build_definitions_table = tomlkit.table()
-        for build_definition in self._layer_build_definitions:
-            build_definition_as_table = _layer_build_definition_to_toml_table(build_definition)
-            layer_build_definitions_table.add(build_definition.uuid, build_definition_as_table)
+        for layer_build_definition in self._layer_build_definitions:
+            build_definition_as_table = _layer_build_definition_to_toml_table(layer_build_definition)
+            layer_build_definitions_table.add(layer_build_definition.uuid, build_definition_as_table)
 
         # create toml document and add build definitions
         document = tomlkit.document()
@@ -305,7 +311,7 @@ class AbstractBuildDefinition:
     Build definition holds information about each unique build
     """
 
-    def __init__(self, source_md5):
+    def __init__(self, source_md5: str) -> None:
         self.uuid = str(uuid4())
         self.source_md5 = source_md5
 
@@ -315,21 +321,25 @@ class LayerBuildDefinition(AbstractBuildDefinition):
     LayerBuildDefinition holds information about each unique layer build
     """
 
-    def __init__(self, name, codeuri, build_method, compatible_runtimes, source_md5=""):
+    def __init__(
+        self, name: str, codeuri: str, build_method: str, compatible_runtimes: List[str], source_md5: str = ""
+    ):
         super().__init__(source_md5)
         self.name = name
         self.codeuri = codeuri
         self.build_method = build_method
         self.compatible_runtimes = compatible_runtimes
-        self.layer = None
+        # Note(xinhol): In our code, we assume "layer" is never None. We should refactor
+        # this and move "layer" out of LayerBuildDefinition to take advantage of type check.
+        self.layer: LayerVersion = None  # type: ignore
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"LayerBuildDefinition({self.name}, {self.codeuri}, {self.source_md5}, {self.uuid}, "
             f"{self.build_method}, {self.compatible_runtimes}, {self.layer.name})"
         )
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         """
         Checks equality of the layer build definition
 
@@ -359,37 +369,39 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
     LayerBuildDefinition holds information about each unique function build
     """
 
-    def __init__(self, runtime, codeuri, packagetype, metadata, source_md5=""):
+    def __init__(
+        self, runtime: str, codeuri: str, packagetype: str, metadata: Optional[dict], source_md5: str = ""
+    ) -> None:
         super().__init__(source_md5)
         self.runtime = runtime
         self.codeuri = codeuri
         self.packagetype = packagetype
         self.metadata = metadata if metadata else {}
-        self.functions = []
+        self.functions: List[Function] = []
 
-    def add_function(self, function):
+    def add_function(self, function: Function) -> None:
         self.functions.append(function)
 
-    def get_function_name(self):
+    def get_function_name(self) -> str:
         self._validate_functions()
         return self.functions[0].name
 
-    def get_handler_name(self):
+    def get_handler_name(self) -> Optional[str]:
         self._validate_functions()
         return self.functions[0].handler
 
-    def _validate_functions(self):
+    def _validate_functions(self) -> None:
         if not self.functions:
             raise InvalidBuildGraphException("Build definition doesn't have any function definition to build")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             "BuildDefinition("
             f"{self.runtime}, {self.codeuri}, {self.packagetype}, {self.source_md5}, {self.uuid}, {self.metadata}, "
             f"{[f.functionname for f in self.functions]})"
         )
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         """
         Checks equality of the function build definition
 
