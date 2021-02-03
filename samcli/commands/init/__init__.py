@@ -10,6 +10,7 @@ import click
 
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options
+from samcli.lib.utils.version_checker import check_newer_version
 from samcli.local.common.runtime_template import RUNTIMES, SUPPORTED_DEP_MANAGERS, LAMBDA_IMAGES_RUNTIMES
 from samcli.lib.telemetry.metric import track_command
 from samcli.commands.init.interactive_init_flow import _get_runtime_from_image
@@ -83,6 +84,34 @@ class PackageType:
         return provided_value
 
 
+def non_interactive_validation(func):
+    """
+    Check requirement for --dependency-manager parameter for non interactive mode
+
+    --dependency-manager parameter is only required if --package-type is ZIP
+    or --base-image is one of the java ones
+    """
+
+    def wrapped(*args, **kwargs):
+        ctx = click.get_current_context()
+        non_interactive = ctx.params.get("no_interactive")
+
+        # only run in non interactive mode
+        if non_interactive:
+            package_type = ctx.params.get("package_type")
+            base_image = ctx.params.get("base_image")
+            dependency_manager = ctx.params.get("dependency_manager")
+
+            # dependency manager is only required for ZIP package type and for java based IMAGE package types
+            if package_type == ZIP or (base_image and "java" in base_image):
+                if not dependency_manager:
+                    raise click.UsageError("Missing parameter --dependency-manager")
+
+        return func(*args, **kwargs)
+
+    return wrapped
+
+
 @click.command(
     "init",
     help=HELP_TEXT,
@@ -99,7 +128,8 @@ class PackageType:
     required_params=[
         ["name", "location"],
         ["name", "runtime", "dependency_manager", "app_template"],
-        ["name", "package_type", "base_image", "dependency_manager"],
+        ["name", "package_type", "base_image"],
+        # check non_interactive_validation for additional validations
     ],
 )
 @click.option(
@@ -170,8 +200,10 @@ class PackageType:
     required=False,
 )
 @common_options
+@non_interactive_validation
 @pass_context
 @track_command
+@check_newer_version
 def cli(
     ctx,
     no_interactive,
@@ -232,7 +264,7 @@ def do_cli(
 
     # check for required parameters
     zip_bool = name and runtime and dependency_manager and app_template
-    image_bool = name and pt_explicit and base_image and dependency_manager
+    image_bool = name and pt_explicit and base_image
     if location or zip_bool or image_bool:
         # need to turn app_template into a location before we generate
         templates = InitTemplates(no_interactive, auto_clone)
@@ -256,7 +288,7 @@ def do_cli(
 
         if not output_dir:
             output_dir = "."
-        do_generate(location, runtime, dependency_manager, output_dir, name, no_input, extra_context)
+        do_generate(location, package_type, runtime, dependency_manager, output_dir, name, no_input, extra_context)
     else:
         # proceed to interactive state machine, which will call do_generate
         do_interactive(

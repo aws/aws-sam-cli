@@ -145,6 +145,7 @@ LAMBDA_IMAGES_RUNTIMES = [
     "amazon/java11-base",
     "amazon/java8.al2-base",
     "amazon/java8-base",
+    "amazon/dotnet5.0-base",
     "amazon/dotnetcore3.1-base",
     "amazon/dotnetcore2.1-base",
 ]

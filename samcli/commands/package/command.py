@@ -21,6 +21,7 @@ from samcli.commands._utils.options import metadata_override_option, template_cl
 from samcli.commands._utils.resources import resources_generator
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.telemetry.metric import track_command, track_template_warnings
+from samcli.lib.utils.version_checker import check_newer_version
 from samcli.lib.warnings.sam_cli_warning import CodeDeployWarning, CodeDeployConditionWarning
 
 SHORT_HELP = "Package an AWS SAM application."
@@ -131,6 +132,7 @@ The following resources and their property locations are supported.
 @image_repository_validation
 @pass_context
 @track_command
+@check_newer_version
 @track_template_warnings([CodeDeployWarning.__name__, CodeDeployConditionWarning.__name__])
 def cli(
     ctx,
