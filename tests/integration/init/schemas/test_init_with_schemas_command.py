@@ -20,7 +20,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 1: Zip Packagetype
-        # 13: Java runtime
+        # 14: Java runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
         # 3: select event-bridge app from scratch
@@ -31,7 +31,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
         user_input = """
 1
 1
-13
+14
 1
 eb-app-maven
 3
@@ -56,7 +56,7 @@ Y
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 1: Zip Packagetype
-        # 13: Java runtime
+        # 14: Java runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
         # 3: select event-bridge app from scratch
@@ -67,7 +67,7 @@ Y
         user_input = """
 1
 1
-13
+14
 1
 eb-app-maven
 3
@@ -103,7 +103,7 @@ Y
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 1: Zip Packagetype
-        # 13: Java Runtime
+        # 14: Java Runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
         # 3: select event-bridge app from scratch
@@ -116,7 +116,7 @@ Y
         user_input = """
 1
 1
-13
+14
 1
 eb-app-maven
 3
@@ -143,7 +143,7 @@ P
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 1: Zip Packagetype
-        # 13: Java Runtime
+        # 14: Java Runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
         # 3: select event-bridge app from scratch
@@ -154,7 +154,7 @@ P
         user_input = """
 1
 1
-13
+14
 1
 eb-app-maven
 3
@@ -190,7 +190,7 @@ Y
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 1: Zip Packagetype
-        # 8: Python 3.7
+        # 9: Python 3.7
         # eb-app-python37: response to name
         # 3: select event-bridge app from scratch
         # Y: Use default profile
@@ -200,7 +200,7 @@ Y
         user_input = """
 1
 1
-8
+9
 eb-app-python37
 3
 Y
@@ -222,7 +222,7 @@ Y
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 1: Zip Packagetype
-        # 8: Python 3.7
+        # 9: Python 3.7
         # eb-app-python37: response to name
         # 3: select event-bridge app from scratch
         # N: Use default profile
@@ -234,7 +234,7 @@ Y
         user_input = """
 1
 1
-8
+9
 eb-app-python37
 3
 N
@@ -260,7 +260,7 @@ us-east-1
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 1: Zip Pacakgetype
-        # 8: Python 3.7
+        # 9: Python 3.7
         # eb-app-python37: response to name
         # 3: select event-bridge app from scratch
         # Y: Use default profile
@@ -270,7 +270,7 @@ us-east-1
         user_input = """
 1
 1
-8
+9
 eb-app-python37
 3
 Y
