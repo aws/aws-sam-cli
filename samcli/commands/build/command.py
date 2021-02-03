@@ -15,7 +15,7 @@ from samcli.cli.main import pass_context, common_options as cli_framework_option
 from samcli.lib.build.exceptions import BuildInsideContainerError
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
-
+from samcli.lib.utils.version_checker import check_newer_version
 
 LOG = logging.getLogger(__name__)
 
@@ -132,6 +132,7 @@ $ sam build MyFunction
 @click.argument("function_identifier", required=False)
 @pass_context
 @track_command
+@check_newer_version
 def cli(
     ctx,
     function_identifier,

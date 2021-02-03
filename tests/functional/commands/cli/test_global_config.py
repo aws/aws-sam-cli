@@ -2,6 +2,7 @@ import json
 import tempfile
 import shutil
 import os
+from time import time
 
 from unittest.mock import mock_open, patch
 from unittest import TestCase
@@ -128,6 +129,81 @@ class TestGlobalConfig(TestCase):
             f.write(json.dumps(cfg, indent=4) + "\n")
         gc = GlobalConfig(config_dir=self._cfg_dir, telemetry_enabled=False)
         self.assertFalse(gc.telemetry_enabled)
+
+    def test_last_version_check_value_provided(self):
+        last_version_check_value = time()
+        gc = GlobalConfig(last_version_check=last_version_check_value)
+        self.assertEqual(gc.last_version_check, last_version_check_value)
+
+    def test_last_version_check_value_cfg(self):
+        last_version_check_value = time()
+        path = Path(self._cfg_dir, "metadata.json")
+        with open(str(path), "w") as f:
+            cfg = {"lastVersionCheck": last_version_check_value}
+            f.write(json.dumps(cfg, indent=4) + "\n")
+        gc = GlobalConfig(config_dir=self._cfg_dir)
+        self.assertEqual(gc.last_version_check, last_version_check_value)
+
+    def test_last_version_check_value_no_file(self):
+        gc = GlobalConfig(config_dir=self._cfg_dir)
+        self.assertIsNone(gc.last_version_check)
+
+    def test_last_version_check_value_not_in_cfg(self):
+        path = Path(self._cfg_dir, "metadata.json")
+        with open(str(path), "w") as f:
+            cfg = {"installationId": "stub-uuid"}
+            f.write(json.dumps(cfg, indent=4) + "\n")
+        gc = GlobalConfig(config_dir=self._cfg_dir)
+        self.assertIsNone(gc.last_version_check)
+
+    def test_set_last_version_check_value_no_file(self):
+        path = Path(self._cfg_dir, "metadata.json")
+        gc = GlobalConfig(config_dir=self._cfg_dir)
+        self.assertIsNone(gc.last_version_check)  # pre-state test
+
+        last_version_check_value = time()
+        gc.last_version_check = last_version_check_value
+        from_gc = gc.last_version_check
+        json_body = json.loads(path.read_text())
+        from_file = json_body["lastVersionCheck"]
+        self.assertEqual(from_gc, from_file)
+
+    def test_last_version_check_value_no_key(self):
+        path = Path(self._cfg_dir, "metadata.json")
+        with open(str(path), "w") as f:
+            cfg = {"installationId": "stub-uuid"}
+            f.write(json.dumps(cfg, indent=4) + "\n")
+        gc = GlobalConfig(config_dir=self._cfg_dir)
+
+        last_version_check_value = time()
+        gc.last_version_check = last_version_check_value
+        json_body = json.loads(path.read_text())
+        self.assertEqual(gc.last_version_check, json_body["lastVersionCheck"])
+
+    def test_set_last_version_check_value_overwrite(self):
+        last_version_check_value = time()
+        path = Path(self._cfg_dir, "metadata.json")
+        with open(str(path), "w") as f:
+            cfg = {"lastVersionCheck": last_version_check_value}
+            f.write(json.dumps(cfg, indent=4) + "\n")
+
+        gc = GlobalConfig(config_dir=self._cfg_dir)
+        self.assertEqual(gc.last_version_check, last_version_check_value)
+
+        last_version_check_new_value = time()
+        gc.last_version_check = last_version_check_new_value
+        json_body = json.loads(path.read_text())
+        self.assertEqual(gc.last_version_check, json_body["lastVersionCheck"])
+
+    def test_last_version_check_explicit_value(self):
+        last_version_check_value = time()
+        last_version_check_value_override = time()
+        path = Path(self._cfg_dir, "metadata.json")
+        with open(str(path), "w") as f:
+            cfg = {"lastVersionCheck": last_version_check_value}
+            f.write(json.dumps(cfg, indent=4) + "\n")
+        gc = GlobalConfig(config_dir=self._cfg_dir, last_version_check=last_version_check_value_override)
+        self.assertEqual(gc.last_version_check, last_version_check_value_override)
 
     def test_setter_raises_on_invalid_json(self):
         path = Path(self._cfg_dir, "metadata.json")
