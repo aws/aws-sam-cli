@@ -4,8 +4,10 @@ CLI command for "build" command
 
 import os
 import logging
+from typing import List, Optional, Dict
 import click
 
+from samcli.cli.context import Context
 from samcli.commands._utils.options import (
     template_option_without_build,
     docker_common_options,
@@ -15,7 +17,7 @@ from samcli.cli.main import pass_context, common_options as cli_framework_option
 from samcli.lib.build.exceptions import BuildInsideContainerError
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
-
+from samcli.lib.utils.version_checker import check_newer_version
 
 LOG = logging.getLogger(__name__)
 
@@ -34,7 +36,7 @@ Supported Resource Types
 Supported Runtimes
 ------------------
 1. Python 2.7, 3.6, 3.7, 3.8 using PIP\n
-2. Nodejs 12.x, 10.x, 8.10, 6.10 using NPM\n
+2. Nodejs 14.x, 12.x, 10.x, 8.10, 6.10 using NPM\n
 3. Ruby 2.5 using Bundler\n
 4. Java 8, Java 11 using Gradle and Maven\n
 5. Dotnetcore2.0 and 2.1 using Dotnet CLI (without --use-container flag)\n
@@ -139,24 +141,26 @@ $ sam build MyFunction
 @click.argument("function_identifier", required=False)
 @pass_context
 @track_command
+@check_newer_version
 def cli(
-    ctx,
-    function_identifier,
-    template_file,
-    base_dir,
-    build_dir,
-    cache_dir,
-    use_container,
-    cached,
-    parallel,
-    manifest,
-    docker_network,
-    container_env_vars,
-    skip_pull_image,
-    parameter_overrides,
-    config_file,
-    config_env,
-):
+    ctx: Context,
+    # please keep the type below consistent with @click.options
+    function_identifier: Optional[str],
+    template_file: str,
+    base_dir: Optional[str],
+    build_dir: str,
+    cache_dir: str,
+    use_container: bool,
+    cached: bool,
+    parallel: bool,
+    manifest: Optional[str],
+    docker_network: Optional[str],
+    container_env_vars: Optional[str],
+    skip_pull_image: bool,
+    parameter_overrides: dict,
+    config_file: str,
+    config_env: str,
+) -> None:
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     mode = _get_mode_value_from_envvar("SAM_BUILD_MODE", choices=["debug"])
@@ -181,22 +185,22 @@ def cli(
 
 
 def do_cli(  # pylint: disable=too-many-locals, too-many-statements
-    function_identifier,
-    template,
-    base_dir,
-    build_dir,
-    cache_dir,
-    clean,
-    use_container,
-    cached,
-    parallel,
-    manifest_path,
-    docker_network,
-    skip_pull_image,
-    parameter_overrides,
-    mode,
-    container_env_vars,
-):
+    function_identifier: Optional[str],
+    template: str,
+    base_dir: Optional[str],
+    build_dir: str,
+    cache_dir: str,
+    clean: bool,
+    use_container: bool,
+    cached: bool,
+    parallel: bool,
+    manifest_path: Optional[str],
+    docker_network: Optional[str],
+    skip_pull_image: bool,
+    parameter_overrides: Dict,
+    mode: Optional[str],
+    container_env_vars: Optional[str],
+) -> None:
     """
     Implementation of the ``cli`` method
     """
@@ -298,7 +302,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
             raise UserException(str(ex), wrapped_from=wrapped_from) from ex
 
 
-def gen_success_msg(artifacts_dir, output_template_path, is_default_build_dir):
+def gen_success_msg(artifacts_dir: str, output_template_path: str, is_default_build_dir: bool) -> str:
 
     invoke_cmd = "sam local invoke"
     if not is_default_build_dir:
@@ -322,7 +326,7 @@ Commands you can use next
     return msg
 
 
-def _get_mode_value_from_envvar(name, choices):
+def _get_mode_value_from_envvar(name: str, choices: List[str]) -> Optional[str]:
 
     mode = os.environ.get(name, None)
     if not mode:

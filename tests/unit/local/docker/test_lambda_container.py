@@ -16,6 +16,7 @@ RUNTIMES_WITH_ENTRYPOINT = [Runtime.dotnetcore21.value, Runtime.dotnetcore31.val
 RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT = [
     Runtime.nodejs10x.value,
     Runtime.nodejs12x.value,
+    Runtime.nodejs14x.value,
     Runtime.python37.value,
     Runtime.python38.value,
     Runtime.python36.value,
