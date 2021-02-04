@@ -59,7 +59,9 @@ class TestApplicationBuilder_build(TestCase):
         build_image_function_mock_return = Mock()
         build_layer_mock = Mock()
 
-        def build_layer_return(layer_name, layer_codeuri, layer_build_method, layer_compatible_runtimes):
+        def build_layer_return(
+            layer_name, layer_codeuri, layer_build_method, layer_compatible_runtimes, layer_env_vars
+        ):
             return f"{layer_name}_location"
 
         build_layer_mock.side_effect = build_layer_return
@@ -98,6 +100,7 @@ class TestApplicationBuilder_build(TestCase):
                     self.func1.handler,
                     ANY,
                     self.func1.metadata,
+                    ANY,
                 ),
                 call(
                     self.func2.name,
@@ -107,6 +110,7 @@ class TestApplicationBuilder_build(TestCase):
                     self.func2.handler,
                     ANY,
                     self.func2.metadata,
+                    ANY,
                 ),
                 call(
                     self.imageFunc1.name,
@@ -116,6 +120,7 @@ class TestApplicationBuilder_build(TestCase):
                     self.imageFunc1.handler,
                     ANY,
                     self.imageFunc1.metadata,
+                    ANY,
                 ),
             ],
             any_order=False,
@@ -123,8 +128,20 @@ class TestApplicationBuilder_build(TestCase):
 
         build_layer_mock.assert_has_calls(
             [
-                call(self.layer1.name, self.layer1.codeuri, self.layer1.build_method, self.layer1.compatible_runtimes),
-                call(self.layer2.name, self.layer2.codeuri, self.layer2.build_method, self.layer2.compatible_runtimes),
+                call(
+                    self.layer1.name,
+                    self.layer1.codeuri,
+                    self.layer1.build_method,
+                    self.layer1.compatible_runtimes,
+                    ANY,
+                ),
+                call(
+                    self.layer2.name,
+                    self.layer2.codeuri,
+                    self.layer2.build_method,
+                    self.layer2.compatible_runtimes,
+                    ANY,
+                ),
             ]
         )
 
@@ -189,6 +206,7 @@ class TestApplicationBuilder_build(TestCase):
                     function1_1.handler,
                     ANY,
                     function1_1.metadata,
+                    ANY,
                 ),
                 call(
                     function2.name,
@@ -198,6 +216,7 @@ class TestApplicationBuilder_build(TestCase):
                     function2.handler,
                     ANY,
                     function2.metadata,
+                    ANY,
                 ),
             ],
             any_order=True,
@@ -670,7 +689,7 @@ class TestApplicationBuilder_build_function(TestCase):
         self.builder._build_function(function_name, codeuri, packagetype, runtime, handler, artifacts_dir)
 
         self.builder._build_function_on_container.assert_called_with(
-            config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, None
+            config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, None, None
         )
 
 
@@ -762,7 +781,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
             options=None,
             executable_search_paths=config.executable_search_paths,
             mode="mode",
-            env_vars={}
+            env_vars={},
         )
 
         self.container_manager.run.assert_called_with(container_mock)
