@@ -2,6 +2,7 @@
 Class that provides functions from a given SAM template
 """
 import logging
+from typing import Dict, List
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
 from samcli.lib.providers.exceptions import InvalidLayerReference
@@ -232,7 +233,7 @@ class SamFunctionProvider(SamBaseProvider):
 
     @staticmethod
     def _build_function_configuration(
-        name: str, codeuri: str, resource_properties: dict, layers: list, inlinecode: str, imageuri: str
+        name: str, codeuri: str, resource_properties: Dict, layers: List, inlinecode: str, imageuri: str
     ):
         """
         Builds a Function configuration usable by the provider.
