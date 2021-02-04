@@ -147,6 +147,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                     self.function_build_definition1.get_handler_name(),
                     ANY,
                     self.function_build_definition1.metadata,
+                    self.function_build_definition1.env_vars,
                 ),
                 call(
                     self.function_build_definition2.get_function_name(),
@@ -156,6 +157,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                     self.function_build_definition2.get_handler_name(),
                     ANY,
                     self.function_build_definition2.metadata,
+                    self.function_build_definition1.env_vars,
                 ),
             ]
         )
@@ -168,12 +170,14 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                     self.layer_build_definition1.layer.codeuri,
                     self.layer_build_definition1.layer.build_method,
                     self.layer_build_definition1.layer.compatible_runtimes,
+                    self.function_build_definition1.env_vars,
                 ),
                 call(
                     self.layer_build_definition2.layer.name,
                     self.layer_build_definition2.layer.codeuri,
                     self.layer_build_definition2.layer.build_method,
                     self.layer_build_definition2.layer.compatible_runtimes,
+                    self.function_build_definition1.env_vars,
                 ),
             ]
         )

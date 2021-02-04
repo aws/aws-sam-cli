@@ -419,7 +419,8 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
     def __str__(self) -> str:
         return (
             "BuildDefinition("
-            f"{self.runtime}, {self.codeuri}, {self.packagetype}, {self.source_md5}, {self.uuid}, {self.metadata}, {self.env_vars},"
+            f"{self.runtime}, {self.codeuri}, {self.packagetype}, {self.source_md5}, "
+            f"{self.uuid}, {self.metadata}, {self.env_vars}, "
             f"{[f.functionname for f in self.functions]})"
         )
 

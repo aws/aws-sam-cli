@@ -155,7 +155,7 @@ def cli(
     parallel: bool,
     manifest: Optional[str],
     docker_network: Optional[str],
-    container_env_vars: Optional[str],
+    container_env_vars: str,
     skip_pull_image: bool,
     parameter_overrides: dict,
     config_file: str,
@@ -199,7 +199,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     skip_pull_image: bool,
     parameter_overrides: Dict,
     mode: Optional[str],
-    container_env_vars: Optional[str],
+    container_env_vars: str,
 ) -> None:
     """
     Implementation of the ``cli`` method

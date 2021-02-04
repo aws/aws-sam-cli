@@ -345,5 +345,8 @@ class TestBuildDefinition(TestCase):
         build_definition = FunctionBuildDefinition("runtime", "codeuri", ZIP, None, "source_md5")
         self.assertEqual(
             str(build_definition),
-            f"BuildDefinition(runtime, codeuri, Zip, source_md5, {build_definition.uuid}, {{}}, [])",
+            f"BuildDefinition(runtime, codeuri, Zip, source_md5, {build_definition.uuid}, {{}}, {{}}, [])",
         )
+
+    def test_with_container_env_vars(self):
+        pass

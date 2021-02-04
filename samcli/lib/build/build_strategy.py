@@ -87,8 +87,8 @@ class DefaultBuildStrategy(BuildStrategy):
         self,
         build_graph: BuildGraph,
         build_dir: str,
-        build_function: Callable[[str, str, str, str, Optional[str], str, dict], str],
-        build_layer: Callable[[str, str, str, List[str]], str],
+        build_function: Callable[[str, str, str, str, Optional[str], str, dict, dict], str],
+        build_layer: Callable[[str, str, str, List[str], dict], str],
     ) -> None:
         super().__init__(build_graph)
         self._build_dir = build_dir

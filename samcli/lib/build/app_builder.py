@@ -7,14 +7,14 @@ import io
 import json
 import logging
 import pathlib
-from typing import List, Optional, Dict, cast
+from typing import List, Optional, Dict, cast, Any
 
 import docker
 import docker.errors
 from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
-
+from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
 from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition, BuildGraph
 from samcli.lib.build.build_strategy import (
     DefaultBuildStrategy,
@@ -22,7 +22,7 @@ from samcli.lib.build.build_strategy import (
     ParallelBuildStrategy,
     BuildStrategy,
 )
-from samcli.lib.providers.provider import ResourcesToBuildCollector
+from samcli.lib.providers.provider import ResourcesToBuildCollector, Function
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.lib.utils.colors import Colored
 import samcli.lib.utils.osutils as osutils
@@ -485,6 +485,7 @@ class ApplicationBuilder:
         manifest_path: str,
         runtime: str,
         options: Optional[dict],
+        env_vars: Optional[Dict] = None,
     ) -> str:
 
         builder = LambdaBuilder(
@@ -630,14 +631,14 @@ class ApplicationBuilder:
         return cast(Dict, response)
 
     @staticmethod
-    def _get_env_vars_value(filename):
+    def _get_env_vars_value(filename: Optional[str]) -> Any:
         """
         If the user provided a file containing values of environment variables, this method will read the file and
         return its value
 
         :param string filename: Path to file containing environment variable values
         :return dict: Value of environment variables, if provided. None otherwise
-        :raises InvokeContextException: If the file was not found or not a valid JSON
+        :raises IOError: If the file was not found or not a valid JSON
         """
         if not filename:
             return None
@@ -649,16 +650,17 @@ class ApplicationBuilder:
                 return json.load(fp)
 
         except Exception as ex:
-            raise InvokeContextException(
+            raise IOError(
                 "Could not read environment variables overrides from file {}: {}".format(filename, str(ex))
             ) from ex
 
-    def _make_env_vars(self, function, env_vars_values):
+    @staticmethod
+    def _make_env_vars(function: Function, env_vars_values: dict) -> Any:
         """Returns the environment variables configuration for this function
 
         Parameters
         ----------
-        function : samcli.commands.local.lib.provider.Function
+        function : samcli.lib.providers.provider.Function
             Lambda function to generate the configuration for
 
         Returns

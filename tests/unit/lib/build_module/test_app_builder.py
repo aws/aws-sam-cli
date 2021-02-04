@@ -762,6 +762,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
             options=None,
             executable_search_paths=config.executable_search_paths,
             mode="mode",
+            env_vars={}
         )
 
         self.container_manager.run.assert_called_with(container_mock)
