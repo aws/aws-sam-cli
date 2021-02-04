@@ -4,6 +4,7 @@ source
 """
 import hashlib
 import logging
+import os
 from collections import namedtuple
 from typing import NamedTuple, Optional, List, Dict
 
@@ -336,3 +337,17 @@ class BuildableStack(NamedTuple):
     parameters: Optional[Dict]
     # the raw template dict
     template_dict: Dict
+
+    @property
+    def stack_path_for_children_resources(self) -> str:
+        """
+        stack_path value for children Function or LayerVersion
+        """
+        return os.path.join(self.stack_path, self.name)
+
+    @property
+    def is_root_stack(self) -> bool:
+        """
+        If both stack_path and name are empty, it is root stack
+        """
+        return not self.stack_path and not self.name

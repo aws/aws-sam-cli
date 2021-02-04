@@ -2,13 +2,14 @@
 Class that provides functions from a given SAM template
 """
 import logging
-from typing import Dict, List
+import posixpath
+from typing import Dict, List, Generator, Optional, cast, Tuple
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
 from samcli.lib.providers.exceptions import InvalidLayerReference
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.packagetype import ZIP, IMAGE
-from .provider import Function, LayerVersion
+from .provider import Function, LayerVersion, BuildableStack
 from .sam_base_provider import SamBaseProvider
 
 LOG = logging.getLogger(__name__)
@@ -22,7 +23,7 @@ class SamFunctionProvider(SamBaseProvider):
     It may or may not contain a function.
     """
 
-    def __init__(self, template_dict, parameter_overrides=None, ignore_code_extraction_warnings=False):
+    def __init__(self, stacks: List[BuildableStack], ignore_code_extraction_warnings=False):
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
         to be valid, normalized and a dictionary. It should be normalized by running all pre-processing
@@ -33,25 +34,28 @@ class SamFunctionProvider(SamBaseProvider):
         After the class is initialized, any changes to the ``template_dict`` will not be reflected in here.
         You need to explicitly update the class with new template, if necessary.
 
-        :param dict template_dict: SAM Template as a dictionary
-        :param dict parameter_overrides: Optional dictionary of values for SAM template parameters that might want
-            to get substituted within the template
+        :param dict stacks: List of stacks functions are extracted from
         :param bool ignore_code_extraction_warnings: Ignores Log warnings
         """
 
-        self.template_dict = SamFunctionProvider.get_template(template_dict, parameter_overrides)
-        self.ignore_code_extraction_warnings = ignore_code_extraction_warnings
-        self.resources = self.template_dict.get("Resources", {})
+        stack_and_resources: List[Tuple[BuildableStack, Dict]] = [
+            (
+                stack,
+                SamFunctionProvider.get_template(stack.template_dict, stack.parameters).get("Resources", {}),
+            )
+            for stack in stacks
+        ]
 
-        LOG.debug("%d resources found in the template", len(self.resources))
+        for stack, resources in stack_and_resources:
+            LOG.debug("%d resources found in the stack %s", len(resources), stack.stack_path_for_children_resources)
 
         # Store a map of function name to function information for quick reference
-        self.functions = self._extract_functions(self.resources, self.ignore_code_extraction_warnings)
+        self.functions = self._extract_functions(stack_and_resources, ignore_code_extraction_warnings)
 
         self._deprecated_runtimes = {"nodejs4.3", "nodejs6.10", "nodejs8.10", "dotnetcore2.0"}
         self._colored = Colored()
 
-    def get(self, name):
+    def get(self, name: str) -> Optional[Function]:
         """
         Returns the function given name or LogicalId of the function. Every SAM resource has a logicalId, but it may
         also have a function name. This method searches only for LogicalID and returns the function that matches
@@ -67,17 +71,17 @@ class SamFunctionProvider(SamBaseProvider):
             raise ValueError("Function name is required")
 
         for f in self.get_all():
-            if f.name == name:
+            if posixpath.join(f.stack_path, f.name) == name or f.name == name:
                 self._deprecate_notification(f.runtime)
                 return f
 
-            if f.functionname == name:
+            if posixpath.join(f.stack_path, f.functionname) == name or f.functionname == name:
                 self._deprecate_notification(f.runtime)
                 return f
 
         return None
 
-    def _deprecate_notification(self, runtime):
+    def _deprecate_notification(self, runtime: Optional[str]) -> None:
         if runtime in self._deprecated_runtimes:
             message = (
                 f"WARNING: {runtime} is no longer supported by AWS Lambda, "
@@ -87,7 +91,7 @@ class SamFunctionProvider(SamBaseProvider):
             )
             LOG.warning(self._colored.yellow(message))
 
-    def get_all(self):
+    def get_all(self) -> Generator[Function, None, None]:
         """
         Yields all the Lambda functions available in the SAM Template.
 
@@ -98,52 +102,68 @@ class SamFunctionProvider(SamBaseProvider):
             yield function
 
     @staticmethod
-    def _extract_functions(resources, ignore_code_extraction_warnings=False):
+    def _extract_functions(
+        resources_by_stack: List[Tuple[BuildableStack, Dict]], ignore_code_extraction_warnings=False
+    ) -> Dict[str, Function]:
         """
         Extracts and returns function information from the given dictionary of SAM/CloudFormation resources. This
         method supports functions defined with AWS::Serverless::Function and AWS::Lambda::Function
 
-        :param dict resources: Dictionary of SAM/CloudFormation resources
+        :param dict resources_by_stack: Dictionary of SAM/CloudFormation resources by stack
         :param bool ignore_code_extraction_warnings: suppress log statements on code extraction from resources.
         :return dict(string : samcli.commands.local.lib.provider.Function): Dictionary of function LogicalId to the
             Function configuration object
         """
 
         result = {}
+        for stack, resources in resources_by_stack:
+            for name, resource in resources.items():
 
-        for name, resource in resources.items():
+                resource_type = resource.get("Type")
+                resource_properties = resource.get("Properties", {})
+                resource_metadata = resource.get("Metadata", None)
+                # Add extra metadata information to properties under a separate field.
+                if resource_metadata:
+                    resource_properties["Metadata"] = resource_metadata
 
-            resource_type = resource.get("Type")
-            resource_properties = resource.get("Properties", {})
-            resource_metadata = resource.get("Metadata", None)
-            # Add extra metadata information to properties under a separate field.
-            if resource_metadata:
-                resource_properties["Metadata"] = resource_metadata
+                if resource_type == SamFunctionProvider.SERVERLESS_FUNCTION:
+                    layers = SamFunctionProvider._parse_layer_info(
+                        stack.stack_path_for_children_resources,
+                        resource_properties.get("Layers", []),
+                        resources,
+                        ignore_code_extraction_warnings=ignore_code_extraction_warnings,
+                    )
+                    result[name] = SamFunctionProvider._convert_sam_function_resource(
+                        stack.stack_path_for_children_resources,
+                        name,
+                        resource_properties,
+                        layers,
+                        ignore_code_extraction_warnings=ignore_code_extraction_warnings,
+                    )
 
-            if resource_type == SamFunctionProvider.SERVERLESS_FUNCTION:
-                layers = SamFunctionProvider._parse_layer_info(
-                    resource_properties.get("Layers", []),
-                    resources,
-                    ignore_code_extraction_warnings=ignore_code_extraction_warnings,
-                )
-                result[name] = SamFunctionProvider._convert_sam_function_resource(
-                    name, resource_properties, layers, ignore_code_extraction_warnings=ignore_code_extraction_warnings
-                )
+                elif resource_type == SamFunctionProvider.LAMBDA_FUNCTION:
+                    layers = SamFunctionProvider._parse_layer_info(
+                        stack.stack_path_for_children_resources,
+                        resource_properties.get("Layers", []),
+                        resources,
+                        ignore_code_extraction_warnings=ignore_code_extraction_warnings,
+                    )
+                    result[name] = SamFunctionProvider._convert_lambda_function_resource(
+                        stack.stack_path_for_children_resources, name, resource_properties, layers
+                    )
 
-            elif resource_type == SamFunctionProvider.LAMBDA_FUNCTION:
-                layers = SamFunctionProvider._parse_layer_info(
-                    resource_properties.get("Layers", []),
-                    resources,
-                    ignore_code_extraction_warnings=ignore_code_extraction_warnings,
-                )
-                result[name] = SamFunctionProvider._convert_lambda_function_resource(name, resource_properties, layers)
-
-            # We don't care about other resource types. Just ignore them
+                # We don't care about other resource types. Just ignore them
 
         return result
 
     @staticmethod
-    def _convert_sam_function_resource(name, resource_properties, layers, ignore_code_extraction_warnings=False):
+    def _convert_sam_function_resource(
+        stack_path: str,
+        name: str,
+        resource_properties: Dict,
+        layers: List[LayerVersion],
+        ignore_code_extraction_warnings: bool = False,
+    ) -> Function:
         """
         Converts a AWS::Serverless::Function resource to a Function configuration usable by the provider.
 
@@ -161,7 +181,7 @@ class SamFunctionProvider(SamBaseProvider):
         samcli.commands.local.lib.provider.Function
             Function configuration
         """
-        codeuri = SamFunctionProvider.DEFAULT_CODEURI
+        codeuri: Optional[str] = SamFunctionProvider.DEFAULT_CODEURI
         inlinecode = resource_properties.get("InlineCode")
         imageuri = None
         packagetype = resource_properties.get("PackageType", ZIP)
@@ -182,11 +202,13 @@ class SamFunctionProvider(SamBaseProvider):
             LOG.debug("Found Serverless function with name='%s' and ImageUri='%s'", name, imageuri)
 
         return SamFunctionProvider._build_function_configuration(
-            name, codeuri, resource_properties, layers, inlinecode, imageuri
+            stack_path, name, codeuri, resource_properties, layers, inlinecode, imageuri
         )
 
     @staticmethod
-    def _convert_lambda_function_resource(name, resource_properties, layers):  # pylint: disable=invalid-name
+    def _convert_lambda_function_resource(
+        stack_path: str, name: str, resource_properties: Dict, layers: List[LayerVersion]
+    ) -> Function:
         """
         Converts a AWS::Lambda::Function resource to a Function configuration usable by the provider.
 
@@ -207,7 +229,7 @@ class SamFunctionProvider(SamBaseProvider):
 
         # CodeUri is set to "." in order to get code locally from current directory. AWS::Lambda::Function's ``Code``
         # property does not support specifying a local path
-        codeuri = SamFunctionProvider.DEFAULT_CODEURI
+        codeuri: Optional[str] = SamFunctionProvider.DEFAULT_CODEURI
         inlinecode = None
         imageuri = None
         packagetype = resource_properties.get("PackageType", ZIP)
@@ -228,13 +250,19 @@ class SamFunctionProvider(SamBaseProvider):
             LOG.debug("Found Lambda function with name='%s' and Imageuri='%s'", name, imageuri)
 
         return SamFunctionProvider._build_function_configuration(
-            name, codeuri, resource_properties, layers, inlinecode, imageuri
+            stack_path, name, codeuri, resource_properties, layers, inlinecode, imageuri
         )
 
     @staticmethod
     def _build_function_configuration(
-        name: str, codeuri: str, resource_properties: Dict, layers: List, inlinecode: str, imageuri: str
-    ):
+        stack_path: str,
+        name: str,
+        codeuri: Optional[str],
+        resource_properties: Dict,
+        layers: List,
+        inlinecode: Optional[str],
+        imageuri: Optional[str],
+    ) -> Function:
         """
         Builds a Function configuration usable by the provider.
 
@@ -255,6 +283,7 @@ class SamFunctionProvider(SamBaseProvider):
             Function configuration
         """
         return Function(
+            stack_path=stack_path,
             name=name,
             functionname=resource_properties.get("FunctionName", name),
             packagetype=resource_properties.get("PackageType", ZIP),
@@ -275,7 +304,12 @@ class SamFunctionProvider(SamBaseProvider):
         )
 
     @staticmethod
-    def _parse_layer_info(list_of_layers, resources, ignore_code_extraction_warnings=False):
+    def _parse_layer_info(
+        stack_path: str,
+        list_of_layers: List[LayerVersion],
+        resources: Dict,
+        ignore_code_extraction_warnings: bool = False,
+    ) -> List[LayerVersion]:
         """
         Creates a list of Layer objects that are represented by the resources and the list of layers
 
@@ -309,13 +343,19 @@ class SamFunctionProvider(SamBaseProvider):
 
             # If the layer is a string, assume it is the arn
             if isinstance(layer, str):
-                layers.append(LayerVersion(layer, None))
+                layers.append(
+                    LayerVersion(
+                        layer,
+                        None,
+                        stack_path=stack_path,
+                    )
+                )
                 continue
 
             # In the list of layers that is defined within a template, you can reference a LayerVersion resource.
             # When running locally, we need to follow that Ref so we can extract the local path to the layer code.
             if isinstance(layer, dict) and layer.get("Ref"):
-                layer_logical_id = layer.get("Ref")
+                layer_logical_id = cast(str, layer.get("Ref"))
                 layer_resource = resources.get(layer_logical_id)
                 if not layer_resource or layer_resource.get("Type", "") not in (
                     SamFunctionProvider.SERVERLESS_LAYER,
@@ -337,7 +377,13 @@ class SamFunctionProvider(SamBaseProvider):
                     )
 
                 layers.append(
-                    LayerVersion(layer_logical_id, codeuri, compatible_runtimes, layer_resource.get("Metadata", None))
+                    LayerVersion(
+                        layer_logical_id,
+                        codeuri,
+                        compatible_runtimes,
+                        layer_resource.get("Metadata", None),
+                        stack_path=stack_path,
+                    )
                 )
 
         return layers
