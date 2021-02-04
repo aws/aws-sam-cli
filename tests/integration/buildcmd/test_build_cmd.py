@@ -190,7 +190,14 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
 
     @parameterized.expand(
-        [("nodejs10.x", False), ("nodejs12.x", False), ("nodejs10.x", "use_container"), ("nodejs12.x", "use_container")]
+        [
+            ("nodejs10.x", False),
+            ("nodejs12.x", False),
+            ("nodejs14.x", False),
+            ("nodejs10.x", "use_container"),
+            ("nodejs12.x", "use_container"),
+            ("nodejs14.x", "use_container"),
+        ]
     )
     @pytest.mark.flaky(reruns=3)
     def test_with_default_package_json(self, runtime, use_container):
@@ -1108,12 +1115,12 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
                 "dotnetcore3.1",
             ),
             (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
+            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
             # container
             (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
+            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
         ]
@@ -1194,12 +1201,12 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
                 "dotnetcore3.1",
             ),
             (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
+            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
             # container
             (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
+            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
         ]
@@ -1250,12 +1257,12 @@ class TestParallelBuilds(DedupBuildIntegBase):
                 "dotnetcore3.1",
             ),
             (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
+            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
             # container
             (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
+            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
         ]
@@ -1286,3 +1293,49 @@ class TestParallelBuilds(DedupBuildIntegBase):
             self._verify_build_and_invoke_functions(
                 expected_messages, command_result, self._make_parameter_override_arg(overrides)
             )
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildWithInlineCode(BuildIntegBase):
+    template = "inline_template.yaml"
+
+    @parameterized.expand(
+        [
+            (False,),
+            ("use_container",),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_inline_not_built(self, use_container):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        cmdlist = self.get_command_list(use_container=use_container)
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        run_command(cmdlist, cwd=self.working_dir)
+
+        self._verify_built_artifact(self.default_build_dir)
+
+        self.verify_docker_container_cleanedup("python3.7")
+
+    def _verify_built_artifact(self, build_dir):
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        codeuri_logical_id = "CodeUriFunction"
+        inline_logical_id = "InlineCodeFunction"
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("template.yaml", build_dir_files)
+        self.assertIn(codeuri_logical_id, build_dir_files)
+        self.assertNotIn(inline_logical_id, build_dir_files)
+
+        template_path = build_dir.joinpath("template.yaml")
+
+        # Make sure the template has correct CodeUri for resource
+        self._verify_resource_property(str(template_path), codeuri_logical_id, "CodeUri", codeuri_logical_id)
+        # Make sure the template has correct InlineCode for resource
+        self._verify_resource_property(str(template_path), inline_logical_id, "InlineCode", "def handler(): pass")

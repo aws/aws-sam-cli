@@ -10,6 +10,7 @@ from samcli.commands.local.cli_common.options import invoke_common_options, loca
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
+from samcli.lib.utils.version_checker import check_newer_version
 from samcli.local.docker.exceptions import ContainerNotStartableException
 
 LOG = logging.getLogger(__name__)
@@ -48,6 +49,7 @@ STDIN_FILE_NAME = "-"
 @click.argument("function_identifier", required=False)
 @pass_context
 @track_command  # pylint: disable=R0914
+@check_newer_version
 def cli(
     ctx,
     function_identifier,
@@ -196,5 +198,5 @@ def _get_event(event_file_name):
 
     # click.open_file knows to open stdin when filename is '-'. This is safer than manually opening streams, and
     # accidentally closing a standard stream
-    with click.open_file(event_file_name, "r") as fp:
+    with click.open_file(event_file_name, "r", encoding="utf-8") as fp:
         return fp.read()
