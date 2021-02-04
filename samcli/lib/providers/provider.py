@@ -322,3 +322,17 @@ class AbstractApiProvider:
         :yields Api: namedtuple containing the API information
         """
         raise NotImplementedError("not implemented")
+
+
+class BuildableStack(NamedTuple):
+    # The path of the stack this resource resides in,
+    # relative to the root stack, it is empty for stacks defined in the root stack.
+    stack_path: str
+    # The name of the stack, it is empty for root stack
+    name: str
+    # The local location of the stack
+    location: str
+    # The parameter overrides for the stack
+    parameters: Optional[Dict]
+    # the raw template dict
+    template_dict: Dict
