@@ -2,23 +2,23 @@
 Utilities for checking authorization of certain resource types
 """
 import logging
+from typing import List, Tuple
 
 from samcli.commands.deploy.transform_utils import transform_template
 from samcli.commands.local.lib.swagger.reader import SwaggerReader
+from samcli.lib.providers.provider import BuildableStack
+from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 
 LOG = logging.getLogger(__name__)
 
 
-def auth_per_resource(parameter_overrides, template_dict):
+def auth_per_resource(stacks: List[BuildableStack]):
     """
     Check if authentication has been set for the function resources defined in the template that have `Api` Event type.
 
     Parameters
     ----------
-    parameter_overrides: dict
-        list of parameter overrides for the parameters defined in the template
-    template_dict: dict
-        Raw dictionary of the defined SAM template
+    :param list stacks: List of stacks where resources are looked for
 
     Returns
     -------
@@ -28,23 +28,23 @@ def auth_per_resource(parameter_overrides, template_dict):
 
     """
 
-    _auth_per_resource = []
+    _auth_per_resource: List[Tuple[str, bool]] = []
 
-    sam_functions = transform_template(parameter_overrides=parameter_overrides, template_dict=template_dict)
-    for sam_function in sam_functions.get_all():
+    sam_function_provider = transform_template(stacks)
+    for sam_function in sam_function_provider.get_all():
         # Only check for auth if there are function events defined.
         if sam_function.events:
-            _auth_resource_event(sam_functions, sam_function, _auth_per_resource)
+            _auth_resource_event(sam_function_provider, sam_function, _auth_per_resource)
 
     return _auth_per_resource
 
 
-def _auth_resource_event(sam_functions, sam_function, auth_resource_list):
+def _auth_resource_event(sam_function_provider: SamFunctionProvider, sam_function, auth_resource_list):
     """
 
     Parameters
     ----------
-    sam_functions: List of all functions with intrinscis resolved.
+    sam_function_provider: SamFunctionProvider
     sam_function: Current function which has all intrinsics resolved.
     auth_resource_list: List of tuples with function name and auth. eg: [("Name", True)]
 
@@ -63,7 +63,16 @@ def _auth_resource_event(sam_functions, sam_function, auth_resource_list):
                 if event.get("Properties", {}).get("Auth", False):
                     auth_resource_list.append((sam_function.name, True))
                 # Is there any auth defined on the referred http api or serverless api through the `id` construct?
-                elif _auth_id(sam_functions.resources, event.get("Properties", {}), identifier):
+                elif _auth_id(
+                    # use the resources containing the sam_function
+                    [
+                        resources
+                        for stack, resources in sam_function_provider.stack_and_resources
+                        if stack.stack_path_for_children_resources == sam_function.stack_path
+                    ][0],
+                    event.get("Properties", {}),
+                    identifier,
+                ):
                     auth_resource_list.append((sam_function.name, True))
                 else:
                     auth_resource_list.append((sam_function.name, False))

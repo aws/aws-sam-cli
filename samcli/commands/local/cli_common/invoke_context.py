@@ -9,6 +9,7 @@ from enum import Enum
 from pathlib import Path
 
 import samcli.lib.utils.osutils as osutils
+from samcli.lib.providers.sam_stack_provider import SamBuildableStackProvider
 from samcli.lib.utils.async_utils import AsyncContext
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
@@ -16,7 +17,7 @@ from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.local.lambdafn.runtime import LambdaRuntime, WarmLambdaRuntime
 from samcli.local.docker.lambda_image import LambdaImage
 from samcli.local.docker.manager import ContainerManager
-from samcli.commands._utils.template import get_template_data, TemplateNotFoundException, TemplateFailedParsingException
+from samcli.commands._utils.template import TemplateNotFoundException, TemplateFailedParsingException
 from samcli.local.layers.layer_downloader import LayerDownloader
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from .user_exceptions import InvokeContextException, DebugContextException
@@ -166,9 +167,9 @@ class InvokeContext:
         :returns InvokeContext: Returns this object
         """
 
-        # Grab template from file and create a provider
-        self._template_dict = self._get_template_data(self._template_file)
-        self._function_provider = SamFunctionProvider(self._template_dict, self.parameter_overrides)
+        stacks = self._get_stacks()
+        self._template_dict = [stack for stack in stacks if stack.is_root_stack][0].template_dict
+        self._function_provider = SamFunctionProvider(stacks)
 
         self._env_vars_value = self._get_env_vars_value(self._env_vars_file)
         self._container_env_vars_value = self._get_env_vars_value(self._container_env_vars_file)
@@ -381,18 +382,11 @@ class InvokeContext:
     def _is_debugging(self):
         return bool(self._debug_context)
 
-    @staticmethod
-    def _get_template_data(template_file):
-        """
-        Read the template file, parse it as JSON/YAML and return the template as a dictionary.
-
-        :param string template_file: Path to the template to read
-        :return dict: Template data as a dictionary
-        :raises InvokeContextException: If template file was not found or the data was not a JSON/YAML
-        """
-
+    def _get_stacks(self):
         try:
-            return get_template_data(template_file)
+            return SamBuildableStackProvider.get_buildable_stacks(
+                self._template_file, parameter_overrides=self._parameter_overrides
+            )
         except (TemplateNotFoundException, TemplateFailedParsingException) as ex:
             raise InvokeContextException(str(ex)) from ex
 

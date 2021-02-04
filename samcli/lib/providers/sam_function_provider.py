@@ -38,7 +38,7 @@ class SamFunctionProvider(SamBaseProvider):
         :param bool ignore_code_extraction_warnings: Ignores Log warnings
         """
 
-        stack_and_resources: List[Tuple[BuildableStack, Dict]] = [
+        self.stack_and_resources: List[Tuple[BuildableStack, Dict]] = [
             (
                 stack,
                 SamFunctionProvider.get_template(stack.template_dict, stack.parameters).get("Resources", {}),
@@ -46,11 +46,11 @@ class SamFunctionProvider(SamBaseProvider):
             for stack in stacks
         ]
 
-        for stack, resources in stack_and_resources:
+        for stack, resources in self.stack_and_resources:
             LOG.debug("%d resources found in the stack %s", len(resources), stack.stack_path_for_children_resources)
 
         # Store a map of function name to function information for quick reference
-        self.functions = self._extract_functions(stack_and_resources, ignore_code_extraction_warnings)
+        self.functions = self._extract_functions(self.stack_and_resources, ignore_code_extraction_warnings)
 
         self._deprecated_runtimes = {"nodejs4.3", "nodejs6.10", "nodejs8.10", "dotnetcore2.0"}
         self._colored = Colored()

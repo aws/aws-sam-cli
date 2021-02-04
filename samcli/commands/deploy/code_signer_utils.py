@@ -3,8 +3,11 @@ Utilities for code signing process
 """
 
 import logging
+from typing import List, Dict, Set
+
 from click import prompt, STRING
 
+from samcli.lib.providers.provider import BuildableStack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 
 LOG = logging.getLogger(__name__)
@@ -40,11 +43,11 @@ def extract_profile_name_and_owner_from_existing(function_or_layer_name, signing
     return profile_name, profile_owner
 
 
-def signer_config_per_function(parameter_overrides, template_dict):
+def signer_config_per_function(stacks: List[BuildableStack]):
     functions_with_code_sign = set()
-    layers_with_code_sign = {}
+    layers_with_code_sign: Dict[str, Set[str]] = {}
 
-    sam_functions = SamFunctionProvider(template_dict=template_dict, parameter_overrides=parameter_overrides)
+    sam_functions = SamFunctionProvider(stacks)
 
     for sam_function in sam_functions.get_all():
         if sam_function.codesign_config_arn:

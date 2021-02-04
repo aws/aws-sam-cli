@@ -8,15 +8,23 @@ from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBu
 
 
 class TestBuildContext__enter__(TestCase):
-    @patch("samcli.commands.build.build_context.get_template_data")
+    @patch("samcli.commands.build.build_context.SamBuildableStackProvider.get_buildable_stacks")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")
     @patch("samcli.commands.build.build_context.ContainerManager")
     def test_must_setup_context(
-        self, ContainerManagerMock, pathlib_mock, SamLayerProviderMock, SamFunctionProviderMock, get_template_data_mock
+        self,
+        ContainerManagerMock,
+        pathlib_mock,
+        SamLayerProviderMock,
+        SamFunctionProviderMock,
+        get_buildable_stacks_mock,
     ):
-        template_dict = get_template_data_mock.return_value = "template dict"
+        template_dict = "template dict"
+        stack = Mock()
+        stack.template_dict = template_dict
+        get_buildable_stacks_mock.return_value = [stack]
 
         layer1 = DummyLayer("layer1", "buildmethod")
         layer2 = DummyLayer("layer1", None)
@@ -69,22 +77,30 @@ class TestBuildContext__enter__(TestCase):
         self.assertTrue(function1 in resources_to_build.functions)
         self.assertTrue(layer1 in resources_to_build.layers)
 
-        get_template_data_mock.assert_called_once_with("template_file")
-        SamFunctionProviderMock.assert_called_once_with(template_dict, {"overrides": "value"})
+        get_buildable_stacks_mock.assert_called_once_with("template_file", parameter_overrides={"overrides": "value"})
+        SamFunctionProviderMock.assert_called_once_with([stack])
         pathlib_mock.Path.assert_called_once_with("template_file")
         setup_build_dir_mock.assert_called_with("build_dir", True)
         ContainerManagerMock.assert_called_once_with(docker_network_id="network", skip_pull_image=True)
         func_provider_mock.get.assert_called_once_with("function_identifier")
 
-    @patch("samcli.commands.build.build_context.get_template_data")
+    @patch("samcli.commands.build.build_context.SamBuildableStackProvider.get_buildable_stacks")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")
     @patch("samcli.commands.build.build_context.ContainerManager")
     def test_must_fail_with_illegal_identifier(
-        self, ContainerManagerMock, pathlib_mock, SamLayerProviderMock, SamFunctionProviderMock, get_template_data_mock
+        self,
+        ContainerManagerMock,
+        pathlib_mock,
+        SamLayerProviderMock,
+        SamFunctionProviderMock,
+        get_buildable_stacks_mock,
     ):
-        template_dict = get_template_data_mock.return_value = "template dict"
+        template_dict = "template dict"
+        stack = Mock()
+        stack.template_dict = template_dict
+        get_buildable_stacks_mock.return_value = [stack]
         func_provider_mock = Mock()
         func_provider_mock.get.return_value = None
         func_provider_mock.get_all.return_value = [DummyFunction("func1"), DummyFunction("func2")]
@@ -122,15 +138,23 @@ class TestBuildContext__enter__(TestCase):
         with self.assertRaises(ResourceNotFound):
             context.resources_to_build
 
-    @patch("samcli.commands.build.build_context.get_template_data")
+    @patch("samcli.commands.build.build_context.SamBuildableStackProvider.get_buildable_stacks")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")
     @patch("samcli.commands.build.build_context.ContainerManager")
     def test_must_return_only_layer_when_layer_is_build(
-        self, ContainerManagerMock, pathlib_mock, SamLayerProviderMock, SamFunctionProviderMock, get_template_data_mock
+        self,
+        ContainerManagerMock,
+        pathlib_mock,
+        SamLayerProviderMock,
+        SamFunctionProviderMock,
+        get_buildable_stacks_mock,
     ):
-        template_dict = get_template_data_mock.return_value = "template dict"
+        template_dict = "template dict"
+        stack = Mock()
+        stack.template_dict = template_dict
+        get_buildable_stacks_mock.return_value = [stack]
         func_provider_mock = Mock()
         func_provider_mock.get.return_value = None
         funcprovider = SamFunctionProviderMock.return_value = func_provider_mock
@@ -166,15 +190,23 @@ class TestBuildContext__enter__(TestCase):
         context.__enter__()
         self.assertTrue(layer1 in context.resources_to_build.layers)
 
-    @patch("samcli.commands.build.build_context.get_template_data")
+    @patch("samcli.commands.build.build_context.SamBuildableStackProvider.get_buildable_stacks")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")
     @patch("samcli.commands.build.build_context.ContainerManager")
     def test_must_return_buildable_dependent_layer_when_function_is_build(
-        self, ContainerManagerMock, pathlib_mock, SamLayerProviderMock, SamFunctionProviderMock, get_template_data_mock
+        self,
+        ContainerManagerMock,
+        pathlib_mock,
+        SamLayerProviderMock,
+        SamFunctionProviderMock,
+        get_buildable_stacks_mock,
     ):
-        template_dict = get_template_data_mock.return_value = "template dict"
+        template_dict = "template dict"
+        stack = Mock()
+        stack.template_dict = template_dict
+        get_buildable_stacks_mock.return_value = [stack]
 
         layer1 = DummyLayer("layer1", "python3.8")
         layer2 = DummyLayer("layer2", None)
@@ -216,15 +248,23 @@ class TestBuildContext__enter__(TestCase):
         self.assertTrue(layer2 not in context.resources_to_build.layers)
         self.assertTrue(context.is_building_specific_resource)
 
-    @patch("samcli.commands.build.build_context.get_template_data")
+    @patch("samcli.commands.build.build_context.SamBuildableStackProvider.get_buildable_stacks")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")
     @patch("samcli.commands.build.build_context.ContainerManager")
     def test_must_fail_when_layer_is_build_without_buildmethod(
-        self, ContainerManagerMock, pathlib_mock, SamLayerProviderMock, SamFunctionProviderMock, get_template_data_mock
+        self,
+        ContainerManagerMock,
+        pathlib_mock,
+        SamLayerProviderMock,
+        SamFunctionProviderMock,
+        get_buildable_stacks_mock,
     ):
-        template_dict = get_template_data_mock.return_value = "template dict"
+        template_dict = "template dict"
+        stack = Mock()
+        stack.template_dict = template_dict
+        get_buildable_stacks_mock.return_value = [stack]
         func_provider_mock = Mock()
         func_provider_mock.get.return_value = None
         funcprovider = SamFunctionProviderMock.return_value = func_provider_mock
@@ -261,15 +301,23 @@ class TestBuildContext__enter__(TestCase):
         with self.assertRaises(MissingBuildMethodException):
             context.resources_to_build
 
-    @patch("samcli.commands.build.build_context.get_template_data")
+    @patch("samcli.commands.build.build_context.SamBuildableStackProvider.get_buildable_stacks")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")
     @patch("samcli.commands.build.build_context.ContainerManager")
     def test_must_return_many_functions_to_build(
-        self, ContainerManagerMock, pathlib_mock, SamLayerProviderMock, SamFunctionProviderMock, get_template_data_mock
+        self,
+        ContainerManagerMock,
+        pathlib_mock,
+        SamLayerProviderMock,
+        SamFunctionProviderMock,
+        get_buildable_stacks_mock,
     ):
-        template_dict = get_template_data_mock.return_value = "template dict"
+        template_dict = "template dict"
+        stack = Mock()
+        stack.template_dict = template_dict
+        get_buildable_stacks_mock.return_value = [stack]
         func1 = DummyFunction("func1")
         func2 = DummyFunction("func2")
         func_provider_mock = Mock()
@@ -323,8 +371,8 @@ class TestBuildContext__enter__(TestCase):
         resources_to_build = context.resources_to_build
         self.assertEqual(resources_to_build.functions, [func1, func2])
         self.assertEqual(resources_to_build.layers, [layer1])
-        get_template_data_mock.assert_called_once_with("template_file")
-        SamFunctionProviderMock.assert_called_once_with(template_dict, {"overrides": "value"})
+        get_buildable_stacks_mock.assert_called_once_with("template_file", parameter_overrides={"overrides": "value"})
+        SamFunctionProviderMock.assert_called_once_with([stack])
         pathlib_mock.Path.assert_called_once_with("template_file")
         setup_build_dir_mock.assert_called_with("build_dir", True)
         ContainerManagerMock.assert_called_once_with(docker_network_id="network", skip_pull_image=True)

@@ -217,6 +217,7 @@ class TestLocalLambda_make_env_vars(TestCase):
         os_mock.environ = os_environ
 
         function = Function(
+            stack_path="",
             name="function_name",
             functionname="function_name",
             runtime="runtime",
@@ -265,6 +266,7 @@ class TestLocalLambda_make_env_vars(TestCase):
         os_mock.environ = os_environ
 
         function = Function(
+            stack_path="",
             name="function_name",
             functionname="function_name",
             runtime="runtime",
@@ -303,6 +305,7 @@ class TestLocalLambda_make_env_vars(TestCase):
         os_mock.environ = os_environ
 
         function = Function(
+            stack_path="",
             name="function_name",
             functionname="function_name",
             runtime="runtime",
@@ -372,6 +375,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
         layers = ["layer1", "layer2"]
 
         function = Function(
+            stack_path="",
             name="function_name",
             functionname="function_name",
             runtime="runtime",
@@ -427,6 +431,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
         resolve_code_path_patch.return_value = codepath
 
         function = Function(
+            stack_path="",
             name="function_name",
             functionname="function_name",
             runtime="runtime",

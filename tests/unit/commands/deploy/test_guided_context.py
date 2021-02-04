@@ -26,7 +26,7 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
-    @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch("samcli.commands.deploy.guided_context.SamBuildableStackProvider.get_buildable_stacks")
     @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
     @patch("samcli.commands.deploy.guided_context.transform_template")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
@@ -35,7 +35,7 @@ class TestGuidedContext(TestCase):
         patched_signer_config_per_function,
         patched_transform_template,
         patched_get_template_artifacts_format,
-        patched_get_template_data,
+        patched_get_buildable_stacks,
         patchedauth_per_resource,
         patched_manage_stack,
         patched_confirm,
@@ -71,7 +71,7 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
-    @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch("samcli.commands.deploy.guided_context.SamBuildableStackProvider.get_buildable_stacks")
     @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
     @patch("samcli.commands.deploy.guided_context.transform_template")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
@@ -80,7 +80,7 @@ class TestGuidedContext(TestCase):
         patched_signer_config_per_function,
         patched_transform_template,
         patched_get_template_artifacts_format,
-        patched_get_template_data,
+        patched_get_buildable_stacks,
         patchedauth_per_resource,
         patched_manage_stack,
         patched_confirm,
@@ -118,7 +118,7 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
-    @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch("samcli.commands.deploy.guided_context.SamBuildableStackProvider.get_buildable_stacks")
     @patch("samcli.commands.deploy.guided_context.get_template_function_resource_ids")
     @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
     @patch("samcli.commands.deploy.guided_context.transform_template")
@@ -133,7 +133,7 @@ class TestGuidedContext(TestCase):
         patched_transform_template,
         patched_get_template_artifacts_format,
         mock_get_template_function_resource_ids,
-        patched_get_template_data,
+        patched_get_buildable_stacks,
         patchedauth_per_resource,
         patched_manage_stack,
         patched_confirm,
@@ -198,7 +198,7 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
-    @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch("samcli.commands.deploy.guided_context.SamBuildableStackProvider.get_buildable_stacks")
     @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
     @patch("samcli.commands.deploy.guided_context.get_template_function_resource_ids")
     @patch("samcli.commands.deploy.guided_context.transform_template")
@@ -211,7 +211,7 @@ class TestGuidedContext(TestCase):
         patched_transform_template,
         mock_get_template_function_resource_ids,
         patched_get_template_artifacts_format,
-        patched_get_template_data,
+        patched_get_buildable_stacks,
         patchedauth_per_resource,
         patched_manage_stack,
         patched_confirm,
@@ -274,7 +274,7 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
-    @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch("samcli.commands.deploy.guided_context.SamBuildableStackProvider.get_buildable_stacks")
     @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
     @patch("samcli.commands.deploy.guided_context.get_template_function_resource_ids")
     @patch("samcli.commands.deploy.guided_context.transform_template")
@@ -287,7 +287,7 @@ class TestGuidedContext(TestCase):
         patched_transform_template,
         mock_get_template_function_resource_ids,
         patched_get_template_artifacts_format,
-        patched_get_template_data,
+        patched_get_buildable_stacks,
         patchedauth_per_resource,
         patched_manage_stack,
         patched_confirm,
@@ -318,7 +318,7 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
-    @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch("samcli.commands.deploy.guided_context.SamBuildableStackProvider.get_buildable_stacks")
     @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
     @patch("samcli.commands.deploy.guided_context.get_template_function_resource_ids")
     @patch("samcli.commands.deploy.guided_context.transform_template")
@@ -331,7 +331,7 @@ class TestGuidedContext(TestCase):
         patched_transform_template,
         mock_get_template_function_resource_ids,
         patched_get_template_artifacts_format,
-        patched_get_template_data,
+        patched_get_buildable_stacks,
         patchedauth_per_resource,
         patched_manage_stack,
         patched_confirm,
@@ -375,7 +375,7 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
-    @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch("samcli.commands.deploy.guided_context.SamBuildableStackProvider.get_buildable_stacks")
     @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
     @patch("samcli.commands.deploy.guided_context.transform_template")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
@@ -385,7 +385,7 @@ class TestGuidedContext(TestCase):
         patched_signer_config_per_function,
         patched_transform_template,
         patched_get_template_artifacts_format,
-        patched_get_template_data,
+        patched_get_buildable_stacks,
         patchedauth_per_resource,
         patched_manage_stack,
         patched_confirm,
@@ -417,7 +417,7 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
-    @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch("samcli.commands.deploy.guided_context.SamBuildableStackProvider.get_buildable_stacks")
     @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
     @patch("samcli.commands.deploy.guided_context.transform_template")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
@@ -426,7 +426,7 @@ class TestGuidedContext(TestCase):
         patched_signer_config_per_function,
         patched_transform_template,
         patched_get_template_artifacts_format,
-        patched_get_template_data,
+        patched_get_buildable_stacks,
         patchedauth_per_resource,
         patched_manage_stack,
         patched_confirm,
@@ -473,7 +473,7 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
-    @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch("samcli.commands.deploy.guided_context.SamBuildableStackProvider.get_buildable_stacks")
     @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
     @patch("samcli.commands.deploy.guided_context.transform_template")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
@@ -482,7 +482,7 @@ class TestGuidedContext(TestCase):
         patched_signer_config_per_function,
         patched_transform_template,
         patched_get_template_artifacts_format,
-        patched_get_template_data,
+        patched_get_buildable_stacks,
         patchedauth_per_resource,
         patched_manage_stack,
         patched_confirm,
@@ -526,7 +526,7 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
-    @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch("samcli.commands.deploy.guided_context.SamBuildableStackProvider.get_buildable_stacks")
     @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
     @patch("samcli.commands.deploy.guided_context.transform_template")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
@@ -535,7 +535,7 @@ class TestGuidedContext(TestCase):
         patched_signer_config_per_function,
         patched_transform_template,
         patched_get_template_artifacts_format,
-        patched_get_template_data,
+        patched_get_buildable_stacks,
         patchedauth_per_resource,
         patched_manage_stack,
         patched_confirm,
@@ -589,7 +589,7 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.code_signer_utils.prompt")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
-    @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch("samcli.commands.deploy.guided_context.SamBuildableStackProvider.get_buildable_stacks")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
     @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
     @patch("samcli.commands.deploy.guided_context.transform_template")
@@ -600,7 +600,7 @@ class TestGuidedContext(TestCase):
         patched_transform_template,
         patched_get_template_artifacts_format,
         patched_signer_config_per_function,
-        patched_get_template_data,
+        patched_get_buildable_stacks,
         patchedauth_per_resource,
         patched_manage_stack,
         patched_code_signer_prompt,
@@ -657,7 +657,7 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
-    @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch("samcli.commands.deploy.guided_context.SamBuildableStackProvider.get_buildable_stacks")
     @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
     @patch("samcli.commands.deploy.guided_context.transform_template")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
@@ -666,7 +666,7 @@ class TestGuidedContext(TestCase):
         patched_signer_config_per_function,
         patched_transform_template,
         patched_get_template_artifacts_format,
-        patched_get_template_data,
+        patched_get_buildable_stacks,
         patchedauth_per_resource,
         patched_manage_stack,
         patched_confirm,

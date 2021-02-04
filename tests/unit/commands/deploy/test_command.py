@@ -120,7 +120,7 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_parameters")
-    @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch("samcli.commands.deploy.guided_context.SamBuildableStackProvider.get_buildable_stacks")
     @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
     @patch("samcli.commands.deploy.guided_context.transform_template")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
@@ -134,7 +134,7 @@ class TestDeployCliCommand(TestCase):
         mock_signer_config_per_function,
         mock_transform_template,
         mock_get_template_artifacts_format,
-        mock_get_template_data,
+        mock_get_buildable_stacks,
         mock_get_template_parameters,
         mockauth_per_resource,
         mock_managed_stack,
@@ -206,7 +206,7 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_parameters")
-    @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch("samcli.commands.deploy.guided_context.SamBuildableStackProvider.get_buildable_stacks")
     @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
     @patch("samcli.commands.deploy.guided_context.get_template_function_resource_ids")
     @patch("samcli.commands.deploy.guided_context.transform_template")
@@ -224,7 +224,7 @@ class TestDeployCliCommand(TestCase):
         mock_transform_template,
         mock_get_template_function_resource_ids,
         mock_get_template_artifacts_format,
-        mock_get_template_data,
+        mock_get_buildable_stacks,
         mock_get_template_parameters,
         mockauth_per_resource,
         mock_managed_stack,
@@ -344,7 +344,7 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
-    @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch("samcli.commands.deploy.guided_context.SamBuildableStackProvider.get_buildable_stacks")
     @patch("samcli.commands.deploy.guided_context.get_template_parameters")
     @patch("samcli.commands.deploy.guided_context.get_template_function_resource_ids")
     @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
@@ -368,7 +368,7 @@ class TestDeployCliCommand(TestCase):
         mock_get_template_artifacts_format,
         mock_get_template_function_resource_ids,
         mock_get_template_parameters,
-        mock_get_template_data,
+        mock_get_buildable_stacks,
         mockauth_per_resource,
         mock_managed_stack,
         mock_deploy_context,
@@ -499,7 +499,7 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.deploy.command.click")
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
-    @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch("samcli.commands.deploy.guided_context.SamBuildableStackProvider.get_buildable_stacks")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.get_template_parameters")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
@@ -529,7 +529,7 @@ class TestDeployCliCommand(TestCase):
         mock_signer_config_per_function,
         mock_get_template_parameters,
         mock_managed_stack,
-        mock_get_template_data,
+        mock_get_buildable_stacks,
         mockauth_per_resource,
         mock_deploy_context,
         mock_deploy_click,
@@ -644,7 +644,7 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
-    @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch("samcli.commands.deploy.guided_context.SamBuildableStackProvider.get_buildable_stacks")
     @patch("samcli.commands.deploy.guided_context.get_template_parameters")
     @patch("samcli.commands.deploy.guided_context.get_template_function_resource_ids")
     @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
@@ -664,7 +664,7 @@ class TestDeployCliCommand(TestCase):
         mock_get_template_artifacts_format,
         mock_get_template_function_resource_ids,
         mock_get_template_parameters,
-        mock_get_template_data,
+        mock_get_buildable_stacks,
         mockauth_per_resource,
         mock_managed_stack,
         mock_deploy_context,

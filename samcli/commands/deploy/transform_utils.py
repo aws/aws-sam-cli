@@ -1,18 +1,18 @@
 """
 Transform for SAM templates to convert into function resource representation.
 """
+from typing import List
+
+from samcli.lib.providers.provider import BuildableStack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 
 
-def transform_template(parameter_overrides, template_dict):
+def transform_template(stacks: List[BuildableStack]) -> SamFunctionProvider:
     """
 
-    :param parameter_overrides: Dictionary of parameter overrides for the SAM template.
-    :param template_dict: Dictionary representation of the SAM template.
+    :param dict stacks: List of stacks to transform
     :return:
     """
-    sam_functions = SamFunctionProvider(
-        template_dict=template_dict, parameter_overrides=parameter_overrides, ignore_code_extraction_warnings=True
-    )
+    sam_function_provider = SamFunctionProvider(stacks, ignore_code_extraction_warnings=True)
 
-    return sam_functions
+    return sam_function_provider

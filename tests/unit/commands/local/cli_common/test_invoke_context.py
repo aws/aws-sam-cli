@@ -11,6 +11,8 @@ from samcli.commands.local.cli_common.invoke_context import InvokeContext, Conta
 from unittest import TestCase
 from unittest.mock import Mock, PropertyMock, patch, ANY, mock_open, call
 
+from samcli.lib.providers.provider import BuildableStack
+
 
 class TestInvokeContext__enter__(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.ContainerManager")
@@ -42,8 +44,9 @@ class TestInvokeContext__enter__(TestCase):
         )
 
         template_dict = "template_dict"
-        invoke_context._get_template_data = Mock()
-        invoke_context._get_template_data.return_value = template_dict
+        stacks = [BuildableStack("", "", template_file, invoke_context.parameter_overrides, template_dict)]
+        invoke_context._get_stacks = Mock()
+        invoke_context._get_stacks.return_value = stacks
 
         env_vars_value = "env_vars_value"
         invoke_context._get_env_vars_value = Mock()
@@ -74,8 +77,9 @@ class TestInvokeContext__enter__(TestCase):
         self.assertEqual(invoke_context._containers_mode, ContainersMode.COLD)
         self.assertEqual(invoke_context._containers_initializing_mode, ContainersInitializationMode.LAZY)
 
-        invoke_context._get_template_data.assert_called_with(template_file)
-        SamFunctionProviderMock.assert_called_with(template_dict, {"AWS::Region": "region"})
+        invoke_context._get_stacks.assert_called_once()
+        SamFunctionProviderMock.assert_called_with(stacks)
+        self.assertEqual(invoke_context.parameter_overrides, {"AWS::Region": "region"})
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
         self.assertEqual(invoke_context._get_env_vars_value.call_args_list, [call(env_vars_file), call(None)])
         invoke_context._setup_log_file.assert_called_with(log_file)
@@ -123,8 +127,9 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context._initialize_all_functions_containers = _initialize_all_functions_containers_mock
 
         template_dict = "template_dict"
-        invoke_context._get_template_data = Mock()
-        invoke_context._get_template_data.return_value = template_dict
+        stacks = [BuildableStack("", "", template_file, invoke_context.parameter_overrides, template_dict)]
+        invoke_context._get_stacks = Mock()
+        invoke_context._get_stacks.return_value = stacks
 
         env_vars_value = "env_vars_value"
         invoke_context._get_env_vars_value = Mock()
@@ -155,8 +160,9 @@ class TestInvokeContext__enter__(TestCase):
         self.assertEqual(invoke_context._containers_mode, ContainersMode.WARM)
         self.assertEqual(invoke_context._containers_initializing_mode, ContainersInitializationMode.EAGER)
 
-        invoke_context._get_template_data.assert_called_with(template_file)
-        SamFunctionProviderMock.assert_called_with(template_dict, {"AWS::Region": "region"})
+        invoke_context._get_stacks.assert_called_once()
+        SamFunctionProviderMock.assert_called_with(stacks)
+        self.assertEqual(invoke_context.parameter_overrides, {"AWS::Region": "region"})
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
         self.assertEqual(invoke_context._get_env_vars_value.call_args_list, [call(env_vars_file), call(None)])
         invoke_context._setup_log_file.assert_called_with(log_file)
@@ -206,8 +212,9 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context._initialize_all_functions_containers = _initialize_all_functions_containers_mock
 
         template_dict = "template_dict"
-        invoke_context._get_template_data = Mock()
-        invoke_context._get_template_data.return_value = template_dict
+        stacks = [BuildableStack("", "", template_file, invoke_context.parameter_overrides, template_dict)]
+        invoke_context._get_stacks = Mock()
+        invoke_context._get_stacks.return_value = stacks
 
         invoke_context._get_env_vars_value = Mock(side_effect=["Env var value", "Debug env var value"])
 
@@ -237,8 +244,9 @@ class TestInvokeContext__enter__(TestCase):
         self.assertEqual(invoke_context._containers_mode, ContainersMode.WARM)
         self.assertEqual(invoke_context._containers_initializing_mode, ContainersInitializationMode.EAGER)
 
-        invoke_context._get_template_data.assert_called_with(template_file)
-        SamFunctionProviderMock.assert_called_with(template_dict, {"AWS::Region": "region"})
+        invoke_context._get_stacks.assert_called_once()
+        SamFunctionProviderMock.assert_called_with(stacks)
+        self.assertEqual(invoke_context.parameter_overrides, {"AWS::Region": "region"})
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
         self.assertEqual(
             invoke_context._get_env_vars_value.call_args_list, [call("env_vars_file"), call("container_env_vars_file")]
@@ -285,8 +293,9 @@ class TestInvokeContext__enter__(TestCase):
         )
 
         template_dict = "template_dict"
-        invoke_context._get_template_data = Mock()
-        invoke_context._get_template_data.return_value = template_dict
+        stacks = [BuildableStack("", "", template_file, invoke_context.parameter_overrides, template_dict)]
+        invoke_context._get_stacks = Mock()
+        invoke_context._get_stacks.return_value = stacks
 
         env_vars_value = "env_vars_value"
         invoke_context._get_env_vars_value = Mock()
@@ -317,8 +326,9 @@ class TestInvokeContext__enter__(TestCase):
         self.assertEqual(invoke_context._containers_mode, ContainersMode.WARM)
         self.assertEqual(invoke_context._containers_initializing_mode, ContainersInitializationMode.LAZY)
 
-        invoke_context._get_template_data.assert_called_with(template_file)
-        SamFunctionProviderMock.assert_called_with(template_dict, {"AWS::Region": "region"})
+        invoke_context._get_stacks.assert_called_once()
+        SamFunctionProviderMock.assert_called_with(stacks)
+        self.assertEqual(invoke_context.parameter_overrides, {"AWS::Region": "region"})
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
         self.assertEqual(invoke_context._get_env_vars_value.call_args_list, [call(env_vars_file), call(None)])
         invoke_context._setup_log_file.assert_called_with(log_file)
@@ -333,7 +343,8 @@ class TestInvokeContext__enter__(TestCase):
     def test_must_use_container_manager_to_check_docker_connectivity(self, SamFunctionProviderMock):
         invoke_context = InvokeContext("template-file")
 
-        invoke_context._get_template_data = Mock()
+        invoke_context._get_stacks = Mock()
+        invoke_context._get_stacks.return_value = [Mock()]
         invoke_context._get_env_vars_value = Mock()
         invoke_context._setup_log_file = Mock()
         invoke_context._get_debug_context = Mock()
@@ -358,7 +369,8 @@ class TestInvokeContext__enter__(TestCase):
     def test_must_raise_if_docker_is_not_reachable(self, SamFunctionProviderMock):
         invoke_context = InvokeContext("template-file")
 
-        invoke_context._get_template_data = Mock()
+        invoke_context._get_stacks = Mock()
+        invoke_context._get_stacks.return_value = [Mock()]
         invoke_context._get_env_vars_value = Mock()
         invoke_context._setup_log_file = Mock()
         invoke_context._get_debug_context = Mock()
@@ -384,11 +396,11 @@ class TestInvokeContext__enter__(TestCase):
                     str(ex_ctx.exception),
                 )
 
-    @patch("samcli.commands.local.cli_common.invoke_context.get_template_data")
-    def test_must_raise_if_template_cannot_be_parsed(self, get_template_data_mock):
+    @patch("samcli.commands.local.cli_common.invoke_context.SamBuildableStackProvider.get_buildable_stacks")
+    def test_must_raise_if_template_cannot_be_parsed(self, get_buildable_stacks_mock):
         invoke_context = InvokeContext("template-file")
 
-        get_template_data_mock.side_effect = TemplateFailedParsingException("")
+        get_buildable_stacks_mock.side_effect = TemplateFailedParsingException("")
         with self.assertRaises(InvokeContextException) as ex_ctx:
             invoke_context.__enter__()
 
@@ -511,7 +523,8 @@ class TestInvokeContext_local_lambda_runner(TestCase):
         self.context.get_cwd = Mock()
         self.context.get_cwd.return_value = cwd
 
-        self.context._get_template_data = Mock()
+        self.context._get_stacks = Mock()
+        self.context._get_stacks.return_value = [Mock()]
         self.context._get_env_vars_value = Mock()
         self.context._setup_log_file = Mock()
         self.context._get_debug_context = Mock(return_value=None)
@@ -581,7 +594,8 @@ class TestInvokeContext_local_lambda_runner(TestCase):
         self.context.get_cwd = Mock()
         self.context.get_cwd.return_value = cwd
 
-        self.context._get_template_data = Mock()
+        self.context._get_stacks = Mock()
+        self.context._get_stacks.return_value = [Mock()]
         self.context._get_env_vars_value = Mock()
         self.context._setup_log_file = Mock()
         self.context._get_debug_context = Mock(return_value=None)
@@ -621,7 +635,8 @@ class TestInvokeContext_stdout_property(TestCase):
 
         context = InvokeContext(template_file="template", debug_ports=[6000])
 
-        context._get_template_data = Mock()
+        context._get_stacks = Mock()
+        context._get_stacks.return_value = [Mock()]
         context._get_env_vars_value = Mock()
         context._setup_log_file = Mock()
 
@@ -644,7 +659,8 @@ class TestInvokeContext_stdout_property(TestCase):
 
         context = InvokeContext(template_file="template")
 
-        context._get_template_data = Mock()
+        context._get_stacks = Mock()
+        context._get_stacks.return_value = [Mock()]
         context._get_env_vars_value = Mock()
         context._setup_log_file = Mock()
 
@@ -673,7 +689,8 @@ class TestInvokeContext_stdout_property(TestCase):
 
         context = InvokeContext(template_file="template")
 
-        context._get_template_data = Mock()
+        context._get_stacks = Mock()
+        context._get_stacks.return_value = [Mock()]
         context._get_env_vars_value = Mock()
         context._setup_log_file = Mock(return_value=None)
 
@@ -697,7 +714,8 @@ class TestInvokeContext_stdout_property(TestCase):
 
         context = InvokeContext(template_file="template")
 
-        context._get_template_data = Mock()
+        context._get_stacks = Mock()
+        context._get_stacks.return_value = [Mock()]
         context._get_env_vars_value = Mock()
 
         log_file_handle_mock = Mock()
@@ -725,7 +743,8 @@ class TestInvokeContext_stderr_property(TestCase):
 
         context = InvokeContext(template_file="template", debug_ports=[6000])
 
-        context._get_template_data = Mock()
+        context._get_stacks = Mock()
+        context._get_stacks.return_value = [Mock()]
         context._get_env_vars_value = Mock()
         context._setup_log_file = Mock()
 
@@ -748,7 +767,8 @@ class TestInvokeContext_stderr_property(TestCase):
 
         context = InvokeContext(template_file="template")
 
-        context._get_template_data = Mock()
+        context._get_stacks = Mock()
+        context._get_stacks.return_value = [Mock()]
         context._get_env_vars_value = Mock()
         context._setup_log_file = Mock()
 
@@ -777,7 +797,8 @@ class TestInvokeContext_stderr_property(TestCase):
 
         context = InvokeContext(template_file="template")
 
-        context._get_template_data = Mock()
+        context._get_stacks = Mock()
+        context._get_stacks.return_value = [Mock()]
         context._get_env_vars_value = Mock()
         context._setup_log_file = Mock(return_value=None)
 
@@ -801,7 +822,8 @@ class TestInvokeContext_stderr_property(TestCase):
 
         context = InvokeContext(template_file="template")
 
-        context._get_template_data = Mock()
+        context._get_stacks = Mock()
+        context._get_stacks.return_value = [Mock()]
         context._get_env_vars_value = Mock()
 
         log_file_handle_mock = Mock()
