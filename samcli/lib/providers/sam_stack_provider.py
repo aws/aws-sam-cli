@@ -3,6 +3,7 @@ Class that provides all nested stacks from a given SAM template
 """
 import logging
 import os
+import posixpath
 from typing import Optional, Dict, Generator, cast, List
 from urllib.parse import unquote, urlparse
 
@@ -194,3 +195,11 @@ class SamBuildableStackProvider(SamBaseProvider):
     @staticmethod
     def is_remote_url(url: str):
         return any([url.startswith(prefix) for prefix in ["s3://", "http://", "https://"]])
+
+    @staticmethod
+    def find_root_stack(stacks: List[BuildableStack]) -> BuildableStack:
+        candidates = [stack for stack in stacks if stack.is_root_stack]
+        if not candidates:
+            stacks_str = ", ".join([posixpath.join(stack.stack_path, stack.name) for stack in stacks])
+            raise ValueError(f"{stacks_str} does not contain a root stack")
+        return candidates[0]

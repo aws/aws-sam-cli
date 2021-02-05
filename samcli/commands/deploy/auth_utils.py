@@ -65,11 +65,7 @@ def _auth_resource_event(sam_function_provider: SamFunctionProvider, sam_functio
                 # Is there any auth defined on the referred http api or serverless api through the `id` construct?
                 elif _auth_id(
                     # use the resources containing the sam_function
-                    [
-                        resources
-                        for stack, resources in sam_function_provider.stack_and_resources
-                        if stack.stack_path_for_children_resources == sam_function.stack_path
-                    ][0],
+                    sam_function_provider.get_resources_by_stack_path(sam_function.stack_path),
                     event.get("Properties", {}),
                     identifier,
                 ):

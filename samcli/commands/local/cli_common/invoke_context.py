@@ -168,7 +168,7 @@ class InvokeContext:
         """
 
         stacks = self._get_stacks()
-        self._template_dict = [stack for stack in stacks if stack.is_root_stack][0].template_dict
+        self._template_dict = SamBuildableStackProvider.find_root_stack(stacks).template_dict
         self._function_provider = SamFunctionProvider(stacks)
 
         self._env_vars_value = self._get_env_vars_value(self._env_vars_file)

@@ -387,3 +387,13 @@ class SamFunctionProvider(SamBaseProvider):
                 )
 
         return layers
+
+    def get_resources_by_stack_path(self, stack_path: str) -> Dict:
+        candidates = [
+            resources
+            for stack, resources in self.stack_and_resources
+            if stack.stack_path_for_children_resources == stack_path
+        ]
+        if not candidates:
+            raise RuntimeError(f"Cannot find resources with stack_path = {stack_path}")
+        return candidates[0]
