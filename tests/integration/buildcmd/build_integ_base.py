@@ -68,6 +68,7 @@ class BuildIntegBase(TestCase):
         cached=False,
         cache_dir=None,
         parallel=False,
+        container_env_vars=None,
     ):
 
         command_list = [self.cmd, "build"]
@@ -103,6 +104,9 @@ class BuildIntegBase(TestCase):
 
         if parallel:
             command_list += ["--parallel"]
+
+        if container_env_vars:
+            command_list += ["--container-env-vars", container_env_vars]
 
         return command_list
 

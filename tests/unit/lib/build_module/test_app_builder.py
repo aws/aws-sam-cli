@@ -692,6 +692,38 @@ class TestApplicationBuilder_build_function(TestCase):
             config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, None, None
         )
 
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_must_build_in_container_with_env_vars(self, osutils_mock, get_workflow_config_mock):
+        function_name = "function_name"
+        codeuri = "path/to/source"
+        runtime = "runtime"
+        packagetype = ZIP
+        scratch_dir = "scratch"
+        handler = "handler.handle"
+        config_mock = get_workflow_config_mock.return_value = Mock()
+        config_mock.manifest_name = "manifest_name"
+        env_vars = {"TEST": "test"}
+
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=scratch_dir)
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+
+        self.builder._build_function_on_container = Mock()
+
+        code_dir = str(Path("/base/dir/path/to/source").resolve())
+        artifacts_dir = str(Path("/build/dir/function_name"))
+        manifest_path = str(Path(os.path.join(code_dir, config_mock.manifest_name)).resolve())
+
+        # Settting the container manager will make us use the container
+        self.builder._container_manager = Mock()
+        self.builder._build_function(
+            function_name, codeuri, packagetype, runtime, handler, artifacts_dir, env_vars=env_vars
+        )
+
+        self.builder._build_function_on_container.assert_called_with(
+            config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, None, {"TEST": "test"}
+        )
+
 
 class TestApplicationBuilder_build_function_in_process(TestCase):
     def setUp(self):

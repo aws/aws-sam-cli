@@ -1339,3 +1339,52 @@ class TestBuildWithInlineCode(BuildIntegBase):
         self._verify_resource_property(str(template_path), codeuri_logical_id, "CodeUri", codeuri_logical_id)
         # Make sure the template has correct InlineCode for resource
         self._verify_resource_property(str(template_path), inline_logical_id, "InlineCode", "def handler(): pass")
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildWithContainerEnvVars(BuildIntegBase):
+    template = "container_env_vars_template.yml"
+
+    @parameterized.expand(
+        [
+            ("use_container", "env_vars_function.json"),
+            ("use_container", "env_vars_parameters.json"),
+        ]
+    )
+    # @pytest.mark.flaky(reruns=3)
+    def test_env_vars_passed(self, use_container, env_vars_file):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        cmdlist = self.get_command_list(
+            use_container=use_container, container_env_vars=self.get_env_file(env_vars_file)
+        )
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        run_command(cmdlist, cwd=self.working_dir)
+
+        self._verify_built_env_var(self.default_build_dir)
+
+        self.verify_docker_container_cleanedup("python3.7")
+
+    @staticmethod
+    def get_env_file(filename):
+        test_data_path = Path(__file__).resolve().parents[2].joinpath("integration", "testdata")
+        return str(test_data_path.joinpath("buildcmd", filename))
+
+    def _verify_built_env_var(self, build_dir):
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("CheckEnvVarsFunction", build_dir_files)
+
+        function_files = os.listdir(str(build_dir.joinpath("CheckEnvVarsFunction")))
+        self.assertIn("env_vars_result.txt", function_files)
+
+        output_file = build_dir.joinpath("CheckEnvVarsFunction", "env_vars_result.txt")
+        with open(str(output_file), "r") as r:
+            actual = r.read()
+            self.assertEqual(actual.strip(), "MyVar")
