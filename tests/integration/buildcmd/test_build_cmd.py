@@ -1385,6 +1385,6 @@ class TestBuildWithContainerEnvVars(BuildIntegBase):
         self.assertIn("env_vars_result.txt", function_files)
 
         output_file = build_dir.joinpath("CheckEnvVarsFunction", "env_vars_result.txt")
-        with open(str(output_file), "r") as r:
+        with open(str(output_file), "r", encoding="utf-8") as r:
             actual = r.read()
             self.assertEqual(actual.strip(), "MyVar")
