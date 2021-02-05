@@ -19,6 +19,7 @@ RUN chmod 1777 /tmp && \
   gzip \
   unzip \
   python3 \
+  jq \
   grep \
   curl \
   make \

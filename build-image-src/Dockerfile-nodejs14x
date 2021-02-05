@@ -17,6 +17,7 @@ RUN yum install -d1 --installroot=/rootfs -y \
   gzip \
   unzip \
   python3 \
+  jq \
   grep \
   curl \
   make \
