@@ -58,7 +58,8 @@ class SamFunctionProvider(SamBaseProvider):
     def get(self, name: str) -> Optional[Function]:
         """
         Returns the function given name or LogicalId of the function. Every SAM resource has a logicalId, but it may
-        also have a function name. This method searches only for LogicalID and returns the function that matches
+        also have a function name. This method searches only for LogicalID and returns the function that matches.
+        If it is in a nested stack, "name" can be prefixed with stack path to avoid ambiguity
         it.
 
         :param string name: Name of the function

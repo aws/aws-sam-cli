@@ -49,6 +49,7 @@ class SamLayerProvider(SamBaseProvider):
     def get(self, name: str) -> Optional[LayerVersion]:
         """
         Returns the layer with given name or logical id.
+        If it is in a nested stack, name can be prefixed with stack path to avoid ambiguity
 
         Parameters
         ----------
