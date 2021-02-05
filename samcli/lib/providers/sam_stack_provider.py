@@ -167,6 +167,9 @@ class SamBuildableStackProvider(SamBaseProvider):
         stack_path: str = "",
         name: str = "",
         parameter_overrides: Optional[Dict] = None,
+        # Note(xinhol): recursive is only set to True in some of tests.
+        # We will remove recursive and make this method recursive by default
+        # for nested stack support in the future.
         recursive: bool = False,
     ) -> List[BuildableStack]:
         template_dict = get_template_data(template_file)
