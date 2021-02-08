@@ -1,5 +1,4 @@
 #!/bin/sh
-set -eu
 binary_zip_filename=$1
 python_library_zip_filename=$2
 python_version=$3
@@ -11,6 +10,8 @@ fi
 if [ "$python_version" = "" ]; then
     python_version="3.7.9";
 fi
+
+set -eu
 
 yum install -y zlib-devel openssl-devel
 
@@ -53,7 +54,6 @@ mkdir pyinstaller-output
 
 mv dist/sam pyinstaller-output/dist
 cp installer/assets/* pyinstaller-output
-cp /usr/local/lib/libcrypt.so.2 pyinstaller-output/dist/libcrypt.so.2
 chmod 755 pyinstaller-output/install
 
 echo "Copying Binary"
