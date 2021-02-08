@@ -15,6 +15,7 @@ from samcli.commands.local.cli_common.options import (
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
+from samcli.lib.utils.version_checker import check_newer_version
 from samcli.local.docker.exceptions import ContainerNotStartableException
 
 LOG = logging.getLogger(__name__)
@@ -65,6 +66,7 @@ Here is a Python example:
 @aws_creds_options
 @pass_context
 @track_command
+@check_newer_version
 def cli(
     ctx,  # pylint: disable=R0914
     # start-lambda Specific Options

@@ -5,53 +5,50 @@ source
 import hashlib
 import logging
 from collections import namedtuple
+from typing import NamedTuple, Optional, List
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, UnsupportedIntrinsic
 
 LOG = logging.getLogger(__name__)
 
 # Named Tuple to representing the properties of a Lambda Function
-Function = namedtuple(
-    "Function",
-    [
-        # Function name or logical ID
-        "name",
-        # Function name (used in place of logical ID)
-        "functionname",
-        # Runtime/language
-        "runtime",
-        # Memory in MBs
-        "memory",
-        # Function Timeout in seconds
-        "timeout",
-        # Name of the handler
-        "handler",
-        # Image Uri
-        "imageuri",
-        # Package Type
-        "packagetype",
-        # Image Configuration
-        "imageconfig",
-        # Path to the code. This could be a S3 URI or local path or a dictionary of S3 Bucket, Key, Version
-        "codeuri",
-        # Environment variables. This is a dictionary with one key called Variables inside it.
-        # This contains the definition of environment variables
-        "environment",
-        # Lambda Execution IAM Role ARN. In the future, this can be used by Local Lambda runtime to assume the IAM role
-        # to get credentials to run the container with. This gives a much higher fidelity simulation of cloud Lambda.
-        "rolearn",
-        # List of Layers
-        "layers",
-        # Event
-        "events",
-        # Metadata
-        "metadata",
-        # InlineCode
-        "inlinecode",
-        # Code Signing config ARN
-        "codesign_config_arn",
-    ],
-)
+class Function(NamedTuple):
+    # Function name or logical ID
+    name: str
+    # Function name (used in place of logical ID)
+    functionname: str
+    # Runtime/language
+    runtime: Optional[str]
+    # Memory in MBs
+    memory: Optional[int]
+    # Function Timeout in seconds
+    timeout: Optional[int]
+    # Name of the handler
+    handler: Optional[str]
+    # Image Uri
+    imageuri: Optional[str]
+    # Package Type
+    packagetype: str
+    # Image Configuration
+    imageconfig: Optional[str]
+    # Path to the code. This could be a S3 URI or local path or a dictionary of S3 Bucket, Key, Version
+    codeuri: Optional[str]
+    # Environment variables. This is a dictionary with one key called Variables inside it.
+    # This contains the definition of environment variables
+    environment: Optional[str]
+    # Lambda Execution IAM Role ARN. In the future, this can be used by Local Lambda runtime to assume the IAM role
+    # to get credentials to run the container with. This gives a much higher fidelity simulation of cloud Lambda.
+    rolearn: Optional[str]
+    # List of Layers
+    layers: List
+    # Event
+    events: Optional[List]
+    # Metadata
+    metadata: Optional[dict]
+    # InlineCode
+    inlinecode: Optional[str]
+    # Code Signing config ARN
+    codesign_config_arn: Optional[str]
 
 
 class ResourcesToBuildCollector:

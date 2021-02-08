@@ -509,7 +509,7 @@ class TestContainer_wait_for_result(TestCase):
     def setUp(self):
         self.image = IMAGE
         self.name = "function_name"
-        self.event = {}
+        self.event = "{}"
         self.cmd = ["cmd"]
         self.working_dir = "working_dir"
         self.host_dir = "host_dir"
@@ -568,17 +568,17 @@ class TestContainer_wait_for_result(TestCase):
             [
                 call(
                     "http://localhost:7077/2015-03-31/functions/function/invocations",
-                    data={},
+                    data=b"{}",
                     timeout=(self.timeout, None),
                 ),
                 call(
                     "http://localhost:7077/2015-03-31/functions/function/invocations",
-                    data={},
+                    data=b"{}",
                     timeout=(self.timeout, None),
                 ),
                 call(
                     "http://localhost:7077/2015-03-31/functions/function/invocations",
-                    data={},
+                    data=b"{}",
                     timeout=(self.timeout, None),
                 ),
             ],

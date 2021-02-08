@@ -11,13 +11,14 @@ ENV PATH=/var/lang/bin:$PATH \
     NODE_PATH=/opt/nodejs/node10/node_modules:/opt/nodejs/node_modules:/var/runtime/node_modules
 
 # Installing by yum at copied location
-RUN yum groupinstall -y development --installroot=/rootfs && yum clean all
-RUN yum install -d1 --installroot=/rootfs -y \
+RUN yum groupinstall -y development --installroot=/rootfs && \
+  yum install -d1 --installroot=/rootfs -y \
   yum \
   tar \
   gzip \
   unzip \
   python3 \
+  jq \
   grep \
   curl \
   make \
@@ -38,12 +39,11 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2
 
 # Install SAM CLI in a dedicated Python virtualenv
 ARG SAM_CLI_VERSION
-RUN curl -Lk "https://github.com/awslabs/aws-sam-cli/archive/v$SAM_CLI_VERSION.zip" -o "samcli.zip" && \
+RUN curl -L "https://github.com/awslabs/aws-sam-cli/archive/v$SAM_CLI_VERSION.zip" -o "samcli.zip" && \
   unzip samcli.zip && python3 -m venv /usr/local/opt/sam-cli && \
   /usr/local/opt/sam-cli/bin/pip3 --no-cache-dir install -r ./aws-sam-cli-$SAM_CLI_VERSION/requirements/reproducible-linux.txt && \
-  /usr/local/opt/sam-cli/bin/pip3 --no-cache-dir install ./aws-sam-cli-$SAM_CLI_VERSION
-
-RUN rm samcli.zip && rm -rf aws-sam-cli-$SAM_CLI_VERSION
+  /usr/local/opt/sam-cli/bin/pip3 --no-cache-dir install ./aws-sam-cli-$SAM_CLI_VERSION && \
+  rm samcli.zip && rm -rf aws-sam-cli-$SAM_CLI_VERSION
 
 ENV PATH=$PATH:/usr/local/opt/sam-cli/bin
 
