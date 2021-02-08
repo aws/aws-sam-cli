@@ -1,4 +1,6 @@
+import shutil
 import signal
+import uuid
 from typing import Optional, Dict
 from unittest import TestCase, skipIf
 import threading
@@ -6,10 +8,9 @@ from subprocess import Popen
 import time
 import os
 import random
-
 from pathlib import Path
 
-from tests.testing_utils import SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE
+from tests.testing_utils import SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE, run_command
 
 
 @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
@@ -17,8 +18,11 @@ class StartLambdaIntegBaseClass(TestCase):
     template: Optional[str] = None
     container_mode: Optional[str] = None
     parameter_overrides: Optional[Dict[str, str]] = None
-    binary_data_file = None
+    binary_data_file: Optional[str] = None
     integration_dir = str(Path(__file__).resolve().parents[2])
+
+    build_before_invoke = False
+    build_overrides: Optional[Dict[str, str]] = None
 
     @classmethod
     def setUpClass(cls):
@@ -28,9 +32,26 @@ class StartLambdaIntegBaseClass(TestCase):
         cls.port = str(StartLambdaIntegBaseClass.random_port())
         cls.env_var_path = cls.integration_dir + "/testdata/invoke/vars.json"
 
+        if cls.build_before_invoke:
+            cls.build()
+
         cls.thread = threading.Thread(target=cls.start_lambda())
         cls.thread.setDaemon(True)
         cls.thread.start()
+
+    @classmethod
+    def build(cls):
+        command = "sam"
+        if os.getenv("SAM_CLI_DEV"):
+            command = "samdev"
+        command_list = [command, "build"]
+        if cls.build_overrides:
+            overrides_arg = " ".join(
+                ["ParameterKey={},ParameterValue={}".format(key, value) for key, value in cls.build_overrides.items()]
+            )
+            command_list += ["--parameter-overrides", overrides_arg]
+        working_dir = str(Path(cls.template).resolve().parents[0])
+        run_command(command_list, cwd=working_dir)
 
     @classmethod
     def start_lambda(cls, wait_time=5):
@@ -71,3 +92,44 @@ class StartLambdaIntegBaseClass(TestCase):
     @staticmethod
     def random_port():
         return random.randint(30000, 40000)
+
+
+class WatchWarmContainersIntegBaseClass(StartLambdaIntegBaseClass):
+    temp_path: Optional[str] = None
+    template_path: Optional[str] = None
+    code_path: Optional[str] = None
+    docker_file_path: Optional[str] = None
+
+    @classmethod
+    def setUpClass(cls):
+        cls.temp_path = str(uuid.uuid4()).replace("-", "")[:10]
+        working_dir = str(Path(cls.integration_dir).resolve().joinpath(cls.temp_path))
+        if Path(working_dir).resolve().exists():
+            shutil.rmtree(working_dir)
+        os.mkdir(working_dir)
+        cls.template_path = f"/{cls.temp_path}/template.yaml"
+        cls.code_path = f"/{cls.temp_path}/main.py"
+        cls.docker_file_path = f"/{cls.temp_path}/Dockerfile"
+
+        if cls.template_content:
+            cls._write_file_content(cls.template_path, cls.template_content)
+
+        if cls.code_content:
+            cls._write_file_content(cls.code_path, cls.code_content)
+
+        if cls.docker_file_content:
+            cls._write_file_content(cls.docker_file_path, cls.docker_file_content)
+
+        super().setUpClass()
+
+    @classmethod
+    def _write_file_content(cls, path, content):
+        with open(cls.integration_dir + path, "w") as f:
+            f.write(content)
+
+    @classmethod
+    def tearDownClass(cls):
+        working_dir = str(Path(cls.integration_dir).resolve().joinpath(cls.temp_path))
+        if Path(working_dir).resolve().exists():
+            shutil.rmtree(working_dir)
+        super().tearDownClass()

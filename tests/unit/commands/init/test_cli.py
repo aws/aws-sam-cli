@@ -66,6 +66,7 @@ class TestCli(TestCase):
         generate_project_patch.assert_called_once_with(
             # need to change the location validation check
             ANY,
+            ZIP,
             self.runtime,
             self.dependency_manager,
             self.output_dir,
@@ -100,6 +101,7 @@ class TestCli(TestCase):
         generate_project_patch.assert_called_once_with(
             # need to change the location validation check
             ANY,
+            IMAGE,
             "nodejs12.x",
             "npm",
             self.output_dir,
@@ -134,6 +136,7 @@ class TestCli(TestCase):
         generate_project_patch.assert_called_once_with(
             # need to change the location validation check
             ANY,
+            IMAGE,
             "java11",
             "maven",
             self.output_dir,
@@ -273,7 +276,7 @@ class TestCli(TestCase):
 
         # THEN we should receive no errors
         generate_project_patch.assert_called_once_with(
-            ANY, self.runtime, self.dependency_manager, ".", self.name, True, self.extra_context_as_json
+            ANY, ZIP, self.runtime, self.dependency_manager, ".", self.name, True, self.extra_context_as_json
         )
 
     @patch("samcli.commands.init.init_generator.generate_project")
@@ -300,6 +303,7 @@ class TestCli(TestCase):
         # THEN we should receive no errors and right extra_context should be passed
         generate_project_patch.assert_called_once_with(
             ANY,
+            ZIP,
             self.runtime,
             self.dependency_manager,
             ".",
@@ -332,6 +336,7 @@ class TestCli(TestCase):
         # THEN extra_context should have not overridden default_parameters(name, runtime)
         generate_project_patch.assert_called_once_with(
             ANY,
+            ZIP,
             self.runtime,
             self.dependency_manager,
             ".",
@@ -385,6 +390,7 @@ class TestCli(TestCase):
         # THEN should set default parameter(name, runtime) as extra_context
         generate_project_patch.assert_called_once_with(
             "custom location",
+            ZIP,
             "java8",
             None,
             ".",
@@ -417,6 +423,7 @@ class TestCli(TestCase):
         # THEN extra_context should be without runtime
         generate_project_patch.assert_called_once_with(
             "custom location",
+            ZIP,
             None,
             None,
             ".",
@@ -449,6 +456,7 @@ class TestCli(TestCase):
         # THEN extra_context should be without name
         generate_project_patch.assert_called_once_with(
             "custom location",
+            ZIP,
             "java8",
             None,
             ".",
@@ -483,6 +491,7 @@ class TestCli(TestCase):
         # THEN we should receive no errors and right extra_context should be passed
         generate_project_patch.assert_called_once_with(
             ANY,
+            ZIP,
             self.runtime,
             self.dependency_manager,
             ".",
@@ -576,6 +585,7 @@ Y
         self.assertFalse(result.exception)
         generate_project_patch.assert_called_once_with(
             ANY,
+            ZIP,
             "java11",
             "maven",
             ".",
@@ -617,14 +627,14 @@ Y
 
         # 1: AWS Quick Start Templates
         # 2: Package type - Image
-        # 12: Java8 base image
+        # 13: Java8 base image
         # 1: dependency manager maven
         # test-project: response to name
 
         user_input = """
 1
 2
-12
+13
 1
 test-project
             """
@@ -633,6 +643,7 @@ test-project
 
         generate_project_patch.assert_called_once_with(
             ANY,
+            IMAGE,
             "java8",
             "maven",
             ".",
@@ -733,6 +744,7 @@ us-east-1
         self.assertFalse(result.exception)
         generate_project_patch.assert_called_once_with(
             ANY,
+            ZIP,
             "java11",
             "maven",
             ".",
@@ -902,6 +914,7 @@ Y
         self.assertTrue(result.exception)
         generate_project_patch.assert_called_once_with(
             ANY,
+            ZIP,
             "java11",
             "maven",
             ".",
@@ -1028,6 +1041,7 @@ Y
         generate_project_patch.assert_called_once_with(
             # need to change the location validation check
             ANY,
+            ZIP,
             self.runtime,
             self.dependency_manager,
             self.output_dir,
@@ -1056,6 +1070,7 @@ foo
         generate_project_patch.assert_called_once_with(
             # need to change the location validation check
             "foo",
+            ZIP,
             None,
             None,
             ".",
@@ -1091,6 +1106,7 @@ foo
         self.assertFalse(result.exception)
         generate_project_patch.assert_called_once_with(
             ANY,
+            IMAGE,
             "python3.8",
             "pip",
             ".",

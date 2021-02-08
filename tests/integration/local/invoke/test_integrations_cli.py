@@ -42,6 +42,22 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         self.assertEqual(process.returncode, 0)
 
+    # https://github.com/aws/aws-sam-cli/issues/2494
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_with_utf8_event(self):
+        command_list = self.get_command_list(
+            "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_utf8_path
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        self.assertEqual(process.returncode, 0)
+
     @pytest.mark.flaky(reruns=3)
     def test_function_with_metadata(self):
         command_list = self.get_command_list("FunctionWithMetadata", template_path=self.template_path, no_event=True)

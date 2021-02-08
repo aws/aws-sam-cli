@@ -3,13 +3,14 @@ Class to manage all the prompts during a guided sam deploy
 """
 
 import logging
+from typing import Dict, Any
 
 import click
+from botocore.session import get_session
 from click.types import FuncParamType
 from click import prompt
 from click import confirm
 
-from samcli.cli.types import ImageRepositoryType
 from samcli.commands._utils.options import _space_separated_list_func_type
 from samcli.commands._utils.template import (
     get_template_parameters,
@@ -98,7 +99,7 @@ class GuidedContext:
     # pylint: disable=too-many-statements
     def guided_prompts(self, parameter_override_keys):
         default_stack_name = self.stack_name or "sam-app"
-        default_region = self.region or "us-east-1"
+        default_region = self.region or get_session().get_config_variable("region") or "us-east-1"
         default_capabilities = self.capabilities[0] or ("CAPABILITY_IAM",)
         default_config_env = self.config_env or DEFAULT_ENV
         default_config_file = self.config_file or DEFAULT_CONFIG_FILE_NAME
@@ -333,7 +334,10 @@ class GuidedContext:
                 signing_profiles=self.signing_profiles,
             )
 
-    def _get_parameter_value(self, parameter_key, parameter_properties, parameter_override_from_cmdline):
+    @staticmethod
+    def _get_parameter_value(
+        parameter_key: str, parameter_properties: Dict, parameter_override_from_cmdline: Dict
+    ) -> Any:
         """
         This function provide the value of a parameter. If the command line/config file have "override_parameter"
         whose key exist in the template file parameters, it will use the corresponding value.

@@ -311,6 +311,72 @@ class TestContainer_create(TestCase):
             container.create()
 
 
+class TestContainer_stop(TestCase):
+    def setUp(self):
+        self.image = IMAGE
+        self.cmd = "cmd"
+        self.working_dir = "working_dir"
+        self.host_dir = "host_dir"
+
+        self.mock_docker_client = Mock()
+        self.mock_docker_client.containers = Mock()
+        self.mock_docker_client.containers.get = Mock()
+
+        self.container = Container(
+            self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
+        )
+        self.container.id = "someid"
+
+        self.container.is_created = Mock()
+
+    def test_stop_with_timeout(self):
+        self.container.is_created.return_value = True
+        real_container_mock = Mock()
+        self.mock_docker_client.containers.get.return_value = real_container_mock
+        real_container_mock.remove = Mock()
+
+        self.container.stop(time=3)
+
+        self.mock_docker_client.containers.get.assert_called_with("someid")
+        real_container_mock.stop.assert_called_with(timeout=3)
+
+        # Ensure ID remains set
+        self.assertIsNotNone(self.container.id)
+
+    def test_must_work_when_container_is_not_found(self):
+        self.container.is_created.return_value = True
+        real_container_mock = Mock()
+        self.mock_docker_client.containers.get.side_effect = NotFound("msg")
+        real_container_mock.remove = Mock()
+
+        self.container.stop()
+
+        self.mock_docker_client.containers.get.assert_called_with("someid")
+        real_container_mock.remove.assert_not_called()
+
+        # Ensure ID remains set
+        self.assertIsNotNone(self.container.id)
+
+    def test_must_raise_unknown_docker_api_errors(self):
+        self.container.is_created.return_value = True
+        real_container_mock = Mock()
+        self.mock_docker_client.containers.get.return_value = real_container_mock
+        real_container_mock.stop = Mock()
+        real_container_mock.stop.side_effect = APIError("some error")
+
+        with self.assertRaises(APIError):
+            self.container.stop()
+
+        # Ensure ID remains set
+        self.assertIsNotNone(self.container.id)
+
+    def test_must_skip_if_container_is_not_created(self):
+
+        self.container.is_created.return_value = False
+        self.container.stop()
+        self.mock_docker_client.containers.get.assert_not_called()
+
+
 class TestContainer_delete(TestCase):
     def setUp(self):
         self.image = IMAGE
@@ -443,7 +509,7 @@ class TestContainer_wait_for_result(TestCase):
     def setUp(self):
         self.image = IMAGE
         self.name = "function_name"
-        self.event = {}
+        self.event = "{}"
         self.cmd = ["cmd"]
         self.working_dir = "working_dir"
         self.host_dir = "host_dir"
@@ -502,17 +568,17 @@ class TestContainer_wait_for_result(TestCase):
             [
                 call(
                     "http://localhost:7077/2015-03-31/functions/function/invocations",
-                    data={},
+                    data=b"{}",
                     timeout=(self.timeout, None),
                 ),
                 call(
                     "http://localhost:7077/2015-03-31/functions/function/invocations",
-                    data={},
+                    data=b"{}",
                     timeout=(self.timeout, None),
                 ),
                 call(
                     "http://localhost:7077/2015-03-31/functions/function/invocations",
-                    data={},
+                    data=b"{}",
                     timeout=(self.timeout, None),
                 ),
             ],

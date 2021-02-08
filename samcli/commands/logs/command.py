@@ -6,8 +6,9 @@ import logging
 import click
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
-from samcli.lib.telemetry.metrics import track_command
+from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
+from samcli.lib.utils.version_checker import check_newer_version
 
 LOG = logging.getLogger(__name__)
 
@@ -75,6 +76,7 @@ $ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
 @aws_creds_options
 @pass_context
 @track_command
+@check_newer_version
 def cli(
     ctx,
     name,

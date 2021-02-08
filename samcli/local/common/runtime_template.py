@@ -31,7 +31,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "nodejs": [
         {
-            "runtimes": ["nodejs12.x", "nodejs10.x"],
+            "runtimes": ["nodejs14.x", "nodejs12.x", "nodejs10.x"],
             "dependency_manager": "npm",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-nodejs"),
             "build": True,
@@ -85,6 +85,7 @@ RUNTIME_TO_DEPENDENCY_MANAGERS = {
     "python2.7": ["pip"],
     "ruby2.5": ["bundler"],
     "ruby2.7": ["bundler"],
+    "nodejs14.x": ["npm"],
     "nodejs12.x": ["npm"],
     "nodejs10.x": ["npm"],
     "dotnetcore3.1": ["cli-package"],
@@ -111,13 +112,14 @@ RUNTIMES: Set[str] = set(
 # Order here should be a the group of the latest versions of runtimes followed by runtime groups
 INIT_RUNTIMES = [
     # latest of each runtime version
-    "nodejs12.x",
+    "nodejs14.x",
     "python3.8",
     "ruby2.7",
     "go1.x",
     "java11",
     "dotnetcore3.1",
     # older nodejs runtimes
+    "nodejs12.x",
     "nodejs10.x",
     # older python runtimes
     "python3.7",
@@ -133,6 +135,7 @@ INIT_RUNTIMES = [
 ]
 
 LAMBDA_IMAGES_RUNTIMES = [
+    "amazon/nodejs14.x-base",
     "amazon/nodejs12.x-base",
     "amazon/nodejs10.x-base",
     "amazon/python3.8-base",
@@ -145,11 +148,13 @@ LAMBDA_IMAGES_RUNTIMES = [
     "amazon/java11-base",
     "amazon/java8.al2-base",
     "amazon/java8-base",
+    "amazon/dotnet5.0-base",
     "amazon/dotnetcore3.1-base",
     "amazon/dotnetcore2.1-base",
 ]
 
-# Schemas Code lang is a MINIMUM supported version - this is why later Lambda runtimes can be mapped to earlier Schemas Code Languages
+# Schemas Code lang is a MINIMUM supported version
+# - this is why later Lambda runtimes can be mapped to earlier Schemas Code Languages
 SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
     "java8": "Java8",
     "java8.al2": "Java8",

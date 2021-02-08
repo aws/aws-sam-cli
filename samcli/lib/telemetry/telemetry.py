@@ -2,16 +2,11 @@
 Class to publish metrics
 """
 
-import platform
-import uuid
 import logging
 import requests
 
-from samcli import __version__ as samcli_version
-from samcli.cli.context import Context
-from samcli.cli.global_config import GlobalConfig
-
 # Get the preconfigured endpoint URL
+from samcli.cli.global_config import GlobalConfig
 from samcli.settings import telemetry_endpoint_url as DEFAULT_ENDPOINT_URL
 
 LOG = logging.getLogger(__name__)
@@ -27,16 +22,10 @@ class Telemetry:
         url : str
             Optional, URL where the metrics should be published to
         """
-        self._session_id = self._default_session_id()
-
-        if not self._session_id:
-            raise RuntimeError("Unable to retrieve session_id from Click Context")
-
-        self._gc = GlobalConfig()
         self._url = url or DEFAULT_ENDPOINT_URL
         LOG.debug("Telemetry endpoint configured to be %s", self._url)
 
-    def emit(self, metric_name, attrs):
+    def emit(self, metric, force_emit=False):
         """
         Emits the metric with given name and the attributes and send it immediately to the HTTP backend. This method
         will return immediately without waiting for response from the backend. Before sending, this method will
@@ -44,15 +33,14 @@ class Telemetry:
 
         Parameters
         ----------
-        metric_name : str
-            Name of the metric to publish
+        metric : Metric
+            Metric to be published
 
-        attrs : dict
-            Attributes sent along with the metric
+        force_emit : bool
+            Defaults to False. Set to True to emit even when telemetry is turned off.
         """
-        attrs = self._add_common_metric_attributes(attrs)
-
-        self._send({metric_name: attrs})
+        if bool(GlobalConfig().telemetry_enabled) or force_emit:
+            self._send({metric.get_metric_name(): metric.get_data()})
 
     def _send(self, metric, wait_for_response=False):
         """
@@ -90,38 +78,3 @@ class Telemetry:
             # Expected if request times out OR cannot connect to the backend (offline).
             # Just print debug log and ignore the exception.
             LOG.debug(str(ex))
-
-    def _add_common_metric_attributes(self, attrs):
-        attrs["requestId"] = str(uuid.uuid4())
-        attrs["installationId"] = self._gc.installation_id
-        attrs["sessionId"] = self._session_id
-        attrs["executionEnvironment"] = self._get_execution_environment()
-        attrs["pyversion"] = platform.python_version()
-        attrs["samcliVersion"] = samcli_version
-
-        return attrs
-
-    def _default_session_id(self):
-        """
-        Get the default SessionId from Click Context.
-        """
-        ctx = Context.get_current_context()
-        if ctx:
-            return ctx.session_id
-
-        return None
-
-    def _get_execution_environment(self):
-        """
-        Returns the environment in which SAM CLI is running. Possible options are:
-
-        CLI (default) - SAM CLI was executed from terminal or a script.
-        IDEToolkit    - SAM CLI was executed by IDE Toolkit
-        CodeBuild     - SAM CLI was executed from within CodeBuild
-
-        Returns
-        -------
-        str
-            Name of the environment where SAM CLI is executed in.
-        """
-        return "CLI"

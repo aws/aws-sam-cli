@@ -4,8 +4,9 @@ CLI command for "bootstrap", which sets up a SAM development environment
 import click
 
 from samcli.cli.main import pass_context, common_options, aws_creds_options
-from samcli.lib.telemetry.metrics import track_command
+from samcli.lib.telemetry.metric import track_command
 from samcli.lib.bootstrap import bootstrap
+from samcli.lib.utils.version_checker import check_newer_version
 
 SHORT_HELP = "Set up development environment for AWS SAM applications."
 
@@ -21,6 +22,7 @@ Currently this creates, if one does not exist, a managed S3 bucket for your acco
 @aws_creds_options
 @pass_context
 @track_command
+@check_newer_version
 def cli(ctx):
     do_cli(ctx.region, ctx.profile)  # pragma: no cover
 
