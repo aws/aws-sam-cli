@@ -1,3 +1,4 @@
+#!/bin/sh
 binary_zip_filename=$1
 python_library_zip_filename=$2
 python_version=$3
