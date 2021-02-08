@@ -1,17 +1,16 @@
 #!/bin/sh
+set -eu
 binary_zip_filename=$1
 python_library_zip_filename=$2
 python_version=$3
 
-if [ "$python_library_zip_filename" == "" ]; then
+if [ "$python_library_zip_filename" = "" ]; then
     python_library_zip_filename="python-libraries.zip";
 fi
 
-if [ "$python_version" == "" ]; then
+if [ "$python_version" = "" ]; then
     python_version="3.7.9";
 fi
-
-echo $python_source_url
 
 yum install -y zlib-devel openssl-devel
 
@@ -23,7 +22,7 @@ mkdir -p .build/output/pyinstaller-output
 cd .build
 
 echo "Copying Source"
-cp -r ../[^.]* ./src
+cp -r ../[!.]* ./src
 cp -r ./src/* ./output/aws-sam-cli-src
 
 echo "Installing Python"
@@ -67,21 +66,21 @@ cd output
 cd pyinstaller-output
 cd dist
 cd ..
-zip -r ../$binary_zip_filename ./*
+zip -r ../"$binary_zip_filename" ./*
 cd ..
-zip -r $binary_zip_filename aws-sam-cli-src
+zip -r "$binary_zip_filename" aws-sam-cli-src
 
 echo "Packaging Python Libraries"
 cd python-libraries
-rm -rf *.dist-info
-rm -rf *.egg-info
-rm -rf __pycache__
-rm -rf pip
-rm -rf easy_install.py
-rm -rf pkg_resources
-rm -rf setuptools
+rm -rf ./*.dist-info
+rm -rf ./*.egg-info
+rm -rf ./__pycache__
+rm -rf ./pip
+rm -rf ./easy_install.py
+rm -rf ./pkg_resources
+rm -rf ./setuptools
 
-rm -rf *.so
+rm -rf ./*.so
 zip -r ../$python_library_zip_filename ./*
 cd ..
 zip -r $python_library_zip_filename aws-sam-cli-src
