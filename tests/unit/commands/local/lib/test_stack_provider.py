@@ -5,7 +5,7 @@ from unittest.mock import patch
 from parameterized import parameterized
 
 from samcli.commands._utils.resources import AWS_SERVERLESS_APPLICATION, AWS_CLOUDFORMATION_STACK
-from samcli.lib.providers.provider import BuildableStack
+from samcli.lib.providers.provider import LocalBuildableStack
 from samcli.lib.providers.sam_stack_provider import SamBuildableStackProvider
 
 # LEAF_TEMPLATE is a template without any nested application/stack in it
@@ -60,8 +60,8 @@ class TestSamBuildableStackProvider(TestCase):
         self.assertListEqual(
             stacks,
             [
-                BuildableStack("", "", self.template_file, None, template),
-                BuildableStack("", "ChildStack", child_location_path, None, LEAF_TEMPLATE),
+                LocalBuildableStack("", "", self.template_file, None, template),
+                LocalBuildableStack("", "ChildStack", child_location_path, None, LEAF_TEMPLATE),
             ],
         )
 
@@ -98,7 +98,7 @@ class TestSamBuildableStackProvider(TestCase):
         self.assertListEqual(
             stacks,
             [
-                BuildableStack("", "", self.template_file, None, template),
+                LocalBuildableStack("", "", self.template_file, None, template),
             ],
         )
 
@@ -136,9 +136,9 @@ class TestSamBuildableStackProvider(TestCase):
         self.assertListEqual(
             stacks,
             [
-                BuildableStack("", "", self.template_file, None, template),
-                BuildableStack("", "ChildStack", child_template_file, None, child_template),
-                BuildableStack("ChildStack", "GrandChildStack", grand_child_template_file, None, LEAF_TEMPLATE),
+                LocalBuildableStack("", "", self.template_file, None, template),
+                LocalBuildableStack("", "ChildStack", child_template_file, None, child_template),
+                LocalBuildableStack("ChildStack", "GrandChildStack", grand_child_template_file, None, LEAF_TEMPLATE),
             ],
         )
 
@@ -165,6 +165,6 @@ class TestSamBuildableStackProvider(TestCase):
         self.assertListEqual(
             stacks,
             [
-                BuildableStack("", "", self.template_file, None, template),
+                LocalBuildableStack("", "", self.template_file, None, template),
             ],
         )

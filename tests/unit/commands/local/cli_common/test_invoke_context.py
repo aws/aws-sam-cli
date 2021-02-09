@@ -11,7 +11,7 @@ from samcli.commands.local.cli_common.invoke_context import InvokeContext, Conta
 from unittest import TestCase
 from unittest.mock import Mock, PropertyMock, patch, ANY, mock_open, call
 
-from samcli.lib.providers.provider import BuildableStack
+from samcli.lib.providers.provider import LocalBuildableStack
 
 
 class TestInvokeContext__enter__(TestCase):
@@ -44,7 +44,7 @@ class TestInvokeContext__enter__(TestCase):
         )
 
         template_dict = "template_dict"
-        stacks = [BuildableStack("", "", template_file, invoke_context.parameter_overrides, template_dict)]
+        stacks = [LocalBuildableStack("", "", template_file, invoke_context.parameter_overrides, template_dict)]
         invoke_context._get_stacks = Mock()
         invoke_context._get_stacks.return_value = stacks
 
@@ -127,7 +127,7 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context._initialize_all_functions_containers = _initialize_all_functions_containers_mock
 
         template_dict = "template_dict"
-        stacks = [BuildableStack("", "", template_file, invoke_context.parameter_overrides, template_dict)]
+        stacks = [LocalBuildableStack("", "", template_file, invoke_context.parameter_overrides, template_dict)]
         invoke_context._get_stacks = Mock()
         invoke_context._get_stacks.return_value = stacks
 
@@ -212,7 +212,7 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context._initialize_all_functions_containers = _initialize_all_functions_containers_mock
 
         template_dict = "template_dict"
-        stacks = [BuildableStack("", "", template_file, invoke_context.parameter_overrides, template_dict)]
+        stacks = [LocalBuildableStack("", "", template_file, invoke_context.parameter_overrides, template_dict)]
         invoke_context._get_stacks = Mock()
         invoke_context._get_stacks.return_value = stacks
 
@@ -293,7 +293,7 @@ class TestInvokeContext__enter__(TestCase):
         )
 
         template_dict = "template_dict"
-        stacks = [BuildableStack("", "", template_file, invoke_context.parameter_overrides, template_dict)]
+        stacks = [LocalBuildableStack("", "", template_file, invoke_context.parameter_overrides, template_dict)]
         invoke_context._get_stacks = Mock()
         invoke_context._get_stacks.return_value = stacks
 

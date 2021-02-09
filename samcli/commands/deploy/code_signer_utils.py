@@ -7,7 +7,7 @@ from typing import List, Dict, Set
 
 from click import prompt, STRING
 
-from samcli.lib.providers.provider import BuildableStack
+from samcli.lib.providers.provider import LocalBuildableStack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 
 LOG = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ def extract_profile_name_and_owner_from_existing(function_or_layer_name, signing
     return profile_name, profile_owner
 
 
-def signer_config_per_function(stacks: List[BuildableStack]):
+def signer_config_per_function(stacks: List[LocalBuildableStack]):
     functions_with_code_sign = set()
     layers_with_code_sign: Dict[str, Set[str]] = {}
 

@@ -5,7 +5,7 @@ from samcli.commands.deploy.code_signer_utils import (
     extract_profile_name_and_owner_from_existing,
     signer_config_per_function,
 )
-from samcli.lib.providers.provider import BuildableStack
+from samcli.lib.providers.provider import LocalBuildableStack
 
 
 class TestCodeSignerUtils(TestCase):
@@ -107,7 +107,7 @@ class TestCodeSignerUtils(TestCase):
             ),
         }
         (functions_with_code_sign, layers_with_code_sign) = signer_config_per_function(
-            [BuildableStack("", "", "", {}, template_dict)]
+            [LocalBuildableStack("", "", "", {}, template_dict)]
         )
 
         self.assertEqual(functions_with_code_sign, {function_name_1, function_name_2})

@@ -3,11 +3,11 @@ Transform for SAM templates to convert into function resource representation.
 """
 from typing import List
 
-from samcli.lib.providers.provider import BuildableStack
+from samcli.lib.providers.provider import LocalBuildableStack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 
 
-def transform_template(stacks: List[BuildableStack]) -> SamFunctionProvider:
+def transform_template(stacks: List[LocalBuildableStack]) -> SamFunctionProvider:
     """
 
     :param dict stacks: List of stacks to transform

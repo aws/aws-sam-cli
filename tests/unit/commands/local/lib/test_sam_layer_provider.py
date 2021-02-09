@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from parameterized import parameterized
 
-from samcli.lib.providers.provider import LayerVersion, BuildableStack
+from samcli.lib.providers.provider import LayerVersion, LocalBuildableStack
 from samcli.lib.providers.sam_layer_provider import SamLayerProvider
 
 
@@ -96,8 +96,8 @@ class TestSamLayerProvider(TestCase):
 
     def setUp(self):
         self.parameter_overrides = {}
-        root_stack = BuildableStack("", "", "template.yaml", self.parameter_overrides, self.TEMPLATE)
-        child_stack = BuildableStack("", "ChildStack", "./child.yaml", None, self.CHILD_TEMPLATE)
+        root_stack = LocalBuildableStack("", "", "template.yaml", self.parameter_overrides, self.TEMPLATE)
+        child_stack = LocalBuildableStack("", "ChildStack", "./child.yaml", None, self.CHILD_TEMPLATE)
         with patch("samcli.lib.providers.sam_stack_provider.get_template_data") as get_template_data_mock:
             get_template_data_mock.side_effect = lambda t: {
                 "template.yaml": self.TEMPLATE,

@@ -325,7 +325,13 @@ class AbstractApiProvider:
         raise NotImplementedError("not implemented")
 
 
-class BuildableStack(NamedTuple):
+class LocalBuildableStack(NamedTuple):
+    """
+    A class encapsulate info about a local stack/sam-app resource,
+    including its content, parameter overrides, file location, logicalID and
+    if it is an nested stack, its parent stack's position at the "nested stack tree."
+    """
+
     # The path of the stack this resource resides in,
     # relative to the root stack, it is empty for stacks defined in the root stack.
     stack_path: str

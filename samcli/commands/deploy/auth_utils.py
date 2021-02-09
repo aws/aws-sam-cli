@@ -6,13 +6,13 @@ from typing import List, Tuple
 
 from samcli.commands.deploy.transform_utils import transform_template
 from samcli.commands.local.lib.swagger.reader import SwaggerReader
-from samcli.lib.providers.provider import BuildableStack
+from samcli.lib.providers.provider import LocalBuildableStack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 
 LOG = logging.getLogger(__name__)
 
 
-def auth_per_resource(stacks: List[BuildableStack]):
+def auth_per_resource(stacks: List[LocalBuildableStack]):
     """
     Check if authentication has been set for the function resources defined in the template that have `Api` Event type.
 

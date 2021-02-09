@@ -9,7 +9,7 @@ from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersion
 from samcli.lib.providers.exceptions import InvalidLayerReference
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.packagetype import ZIP, IMAGE
-from .provider import Function, LayerVersion, BuildableStack
+from .provider import Function, LayerVersion, LocalBuildableStack
 from .sam_base_provider import SamBaseProvider
 
 LOG = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ class SamFunctionProvider(SamBaseProvider):
     It may or may not contain a function.
     """
 
-    def __init__(self, stacks: List[BuildableStack], ignore_code_extraction_warnings=False):
+    def __init__(self, stacks: List[LocalBuildableStack], ignore_code_extraction_warnings=False):
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
         to be valid, normalized and a dictionary. It should be normalized by running all pre-processing
@@ -38,7 +38,7 @@ class SamFunctionProvider(SamBaseProvider):
         :param bool ignore_code_extraction_warnings: Ignores Log warnings
         """
 
-        self.stack_and_resources: List[Tuple[BuildableStack, Dict]] = [
+        self.stack_and_resources: List[Tuple[LocalBuildableStack, Dict]] = [
             (
                 stack,
                 SamFunctionProvider.get_template(stack.template_dict, stack.parameters).get("Resources", {}),
@@ -104,7 +104,7 @@ class SamFunctionProvider(SamBaseProvider):
 
     @staticmethod
     def _extract_functions(
-        resources_by_stack: List[Tuple[BuildableStack, Dict]], ignore_code_extraction_warnings=False
+        resources_by_stack: List[Tuple[LocalBuildableStack, Dict]], ignore_code_extraction_warnings=False
     ) -> Dict[str, Function]:
         """
         Extracts and returns function information from the given dictionary of SAM/CloudFormation resources. This

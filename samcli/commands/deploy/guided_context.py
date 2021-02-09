@@ -31,7 +31,7 @@ from samcli.lib.config.samconfig import DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.package.ecr_utils import is_ecr_url
 from samcli.lib.package.image_utils import tag_translation, NonLocalImageException, NoImageFoundException
-from samcli.lib.providers.provider import BuildableStack
+from samcli.lib.providers.provider import LocalBuildableStack
 from samcli.lib.providers.sam_stack_provider import SamBuildableStackProvider
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.packagetype import IMAGE
@@ -179,7 +179,7 @@ class GuidedContext:
         self.config_file = config_file if config_file else default_config_file
         self.confirm_changeset = confirm_changeset
 
-    def prompt_authorization(self, stacks: List[BuildableStack]):
+    def prompt_authorization(self, stacks: List[LocalBuildableStack]):
         auth_required_per_resource = auth_per_resource(stacks)
 
         for resource, authorization_required in auth_required_per_resource:
@@ -191,7 +191,7 @@ class GuidedContext:
                 if not auth_confirm:
                     raise GuidedDeployFailedError(msg="Security Constraints Not Satisfied!")
 
-    def prompt_code_signing_settings(self, stacks: List[BuildableStack]):
+    def prompt_code_signing_settings(self, stacks: List[LocalBuildableStack]):
         (functions_with_code_sign, layers_with_code_sign) = signer_config_per_function(stacks)
 
         # if no function or layer definition found with code signing, skip it
@@ -267,7 +267,7 @@ class GuidedContext:
                     _prompted_param_overrides[parameter_key] = {"Value": parameter, "Hidden": False}
         return _prompted_param_overrides
 
-    def prompt_image_repository(self, stacks: List[BuildableStack]):
+    def prompt_image_repository(self, stacks: List[LocalBuildableStack]):
         image_repositories = {}
         artifacts_format = get_template_artifacts_format(template_file=self.template_file)
         if IMAGE in artifacts_format:
