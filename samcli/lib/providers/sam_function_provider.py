@@ -3,7 +3,7 @@ Class that provides functions from a given SAM template
 """
 import logging
 import posixpath
-from typing import Dict, List, Generator, Optional, cast
+from typing import Dict, List, Optional, cast, Iterator
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
 from samcli.lib.providers.exceptions import InvalidLayerReference
@@ -86,7 +86,7 @@ class SamFunctionProvider(SamBaseProvider):
             )
             LOG.warning(self._colored.yellow(message))
 
-    def get_all(self) -> Generator[Function, None, None]:
+    def get_all(self) -> Iterator[Function]:
         """
         Yields all the Lambda functions available in the SAM Template.
 

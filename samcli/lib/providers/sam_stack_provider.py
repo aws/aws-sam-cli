@@ -3,7 +3,7 @@ Class that provides all nested stacks from a given SAM template
 """
 import logging
 import os
-from typing import Optional, Dict, Generator, cast, List
+from typing import Optional, Dict, cast, List, Iterator
 from urllib.parse import unquote, urlparse
 
 from samcli.commands._utils.template import get_template_data
@@ -63,7 +63,7 @@ class SamLocalStackProvider(SamBaseProvider):
 
         return None
 
-    def get_all(self) -> Generator[Stack, None, None]:
+    def get_all(self) -> Iterator[Stack]:
         """
         Yields all the applications available in the SAM Template.
         :yields Application: map containing the application information
