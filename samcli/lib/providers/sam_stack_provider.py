@@ -8,20 +8,20 @@ from typing import Optional, Dict, Generator, cast, List
 from urllib.parse import unquote, urlparse
 
 from samcli.commands._utils.template import get_template_data
-from samcli.lib.providers.provider import LocalBuildableStack
+from samcli.lib.providers.provider import Stack
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 
 LOG = logging.getLogger(__name__)
 
 
-class SamBuildableStackProvider(SamBaseProvider):
+class SamLocalStackProvider(SamBaseProvider):
     """
-    Fetches and returns nested stacks from a SAM Template. The SAM template passed to this provider is assumed
+    Fetches and returns local nested stacks from a SAM Template. The SAM template passed to this provider is assumed
     to be valid, normalized and a dictionary.
     It may or may not contain a stack.
     """
 
-    # see get_local_buildable_stacks() for info about this env var
+    # see get_stacks() for info about this env var
     ENV_SAM_CLI_ENABLE_NESTED_STACK = "SAM_CLI_ENABLE_NESTED_STACK"
 
     def __init__(self, stack_path: str, template_dict: Dict, parameter_overrides: Optional[Dict] = None):
@@ -47,7 +47,7 @@ class SamBuildableStackProvider(SamBaseProvider):
         # Store a map of stack name to stack information for quick reference
         self._stacks = self._extract_stacks()
 
-    def get(self, name: str) -> Optional[LocalBuildableStack]:
+    def get(self, name: str) -> Optional[Stack]:
         """
         Returns the application given name or LogicalId of the application.
         Every SAM resource has a logicalId, but it may
@@ -64,7 +64,7 @@ class SamBuildableStackProvider(SamBaseProvider):
 
         return None
 
-    def get_all(self) -> Generator[LocalBuildableStack, None, None]:
+    def get_all(self) -> Generator[Stack, None, None]:
         """
         Yields all the applications available in the SAM Template.
         :yields Application: map containing the application information
@@ -73,7 +73,7 @@ class SamBuildableStackProvider(SamBaseProvider):
         for _, stack in self._stacks.items():
             yield stack
 
-    def _extract_stacks(self) -> Dict[str, LocalBuildableStack]:
+    def _extract_stacks(self) -> Dict[str, Stack]:
         """
         Extracts and returns nested application information from the given dictionary of SAM/CloudFormation resources.
         This method supports applications defined with AWS::Serverless::Application
@@ -81,7 +81,7 @@ class SamBuildableStackProvider(SamBaseProvider):
             Application object
         """
 
-        result: Dict[str, LocalBuildableStack] = {}
+        result: Dict[str, Stack] = {}
 
         for name, resource in self._resources.items():
 
@@ -92,15 +92,13 @@ class SamBuildableStackProvider(SamBaseProvider):
             if resource_metadata:
                 resource_properties["Metadata"] = resource_metadata
 
-            stack: Optional[LocalBuildableStack] = None
-            if resource_type == SamBuildableStackProvider.SERVERLESS_APPLICATION:
-                stack = SamBuildableStackProvider._convert_sam_application_resource(
+            stack: Optional[Stack] = None
+            if resource_type == SamLocalStackProvider.SERVERLESS_APPLICATION:
+                stack = SamLocalStackProvider._convert_sam_application_resource(
                     self._stack_path, name, resource_properties
                 )
-            if resource_type == SamBuildableStackProvider.CLOUDFORMATION_STACK:
-                stack = SamBuildableStackProvider._convert_cfn_stack_resource(
-                    self._stack_path, name, resource_properties
-                )
+            if resource_type == SamLocalStackProvider.CLOUDFORMATION_STACK:
+                stack = SamLocalStackProvider._convert_cfn_stack_resource(self._stack_path, name, resource_properties)
 
             if stack:
                 result[name] = stack
@@ -110,9 +108,7 @@ class SamBuildableStackProvider(SamBaseProvider):
         return result
 
     @staticmethod
-    def _convert_sam_application_resource(
-        stack_path: str, name: str, resource_properties: Dict
-    ) -> Optional[LocalBuildableStack]:
+    def _convert_sam_application_resource(stack_path: str, name: str, resource_properties: Dict) -> Optional[Stack]:
         location = resource_properties.get("Location")
 
         if isinstance(location, dict):
@@ -125,7 +121,7 @@ class SamBuildableStackProvider(SamBaseProvider):
             return None
 
         location = cast(str, location)
-        if SamBuildableStackProvider.is_remote_url(location):
+        if SamLocalStackProvider.is_remote_url(location):
             LOG.warning(
                 "Nested application '%s' has specified S3 location for Location which is unsupported. "
                 "Skipping resources inside this nested application.",
@@ -135,7 +131,7 @@ class SamBuildableStackProvider(SamBaseProvider):
         if location.startswith("file://"):
             location = unquote(urlparse(location).path)
 
-        return LocalBuildableStack(
+        return Stack(
             stack_path=stack_path,
             name=name,
             location=location,
@@ -144,12 +140,10 @@ class SamBuildableStackProvider(SamBaseProvider):
         )
 
     @staticmethod
-    def _convert_cfn_stack_resource(
-        stack_path: str, name: str, resource_properties: Dict
-    ) -> Optional[LocalBuildableStack]:
+    def _convert_cfn_stack_resource(stack_path: str, name: str, resource_properties: Dict) -> Optional[Stack]:
         template_url = resource_properties.get("TemplateURL", "")
 
-        if SamBuildableStackProvider.is_remote_url(template_url):
+        if SamLocalStackProvider.is_remote_url(template_url):
             LOG.warning(
                 "Nested stack '%s' has specified S3 location for Location which is unsupported. "
                 "Skipping resources inside this nested stack.",
@@ -159,7 +153,7 @@ class SamBuildableStackProvider(SamBaseProvider):
         if template_url.startswith("file://"):
             template_url = unquote(urlparse(template_url).path)
 
-        return LocalBuildableStack(
+        return Stack(
             stack_path=stack_path,
             name=name,
             location=template_url,
@@ -168,26 +162,25 @@ class SamBuildableStackProvider(SamBaseProvider):
         )
 
     @staticmethod
-    def get_local_buildable_stacks(
+    def get_stacks(
         template_file: str,
         stack_path: str = "",
         name: str = "",
         parameter_overrides: Optional[Dict] = None,
-    ) -> List[LocalBuildableStack]:
+    ) -> List[Stack]:
         template_dict = get_template_data(template_file)
-        stacks = [LocalBuildableStack(stack_path, name, template_file, parameter_overrides, template_dict)]
+        stacks = [Stack(stack_path, name, template_file, parameter_overrides, template_dict)]
 
-        # Note(xinhol): recursive get_local_buildable_stacks is only
-        # enabled in tests by env var SAM_CLI_ENABLE_NESTED_STACK.
+        # Note(xinhol): recursive get_stacks is only enabled in tests by env var SAM_CLI_ENABLE_NESTED_STACK.
         # We will remove this env var and make this method recursive by default
         # for nested stack support in the future.
-        if not os.environ.get(SamBuildableStackProvider.ENV_SAM_CLI_ENABLE_NESTED_STACK, False):
+        if not os.environ.get(SamLocalStackProvider.ENV_SAM_CLI_ENABLE_NESTED_STACK, False):
             return stacks
 
-        current = SamBuildableStackProvider(stack_path, template_dict, parameter_overrides)
+        current = SamLocalStackProvider(stack_path, template_dict, parameter_overrides)
         for child_stack in current.get_all():
             stacks.extend(
-                SamBuildableStackProvider.get_local_buildable_stacks(
+                SamLocalStackProvider.get_stacks(
                     child_stack.location,
                     os.path.join(stack_path, name),
                     child_stack.name,
@@ -201,7 +194,7 @@ class SamBuildableStackProvider(SamBaseProvider):
         return any([url.startswith(prefix) for prefix in ["s3://", "http://", "https://"]])
 
     @staticmethod
-    def find_root_stack(stacks: List[LocalBuildableStack]) -> LocalBuildableStack:
+    def find_root_stack(stacks: List[Stack]) -> Stack:
         candidates = [stack for stack in stacks if stack.is_root_stack]
         if not candidates:
             stacks_str = ", ".join([posixpath.join(stack.stack_path, stack.name) for stack in stacks])

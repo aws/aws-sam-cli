@@ -31,7 +31,7 @@ from samcli.commands.deploy.utils import (
 )
 from samcli.lib.deploy.deployer import Deployer
 from samcli.lib.package.s3_uploader import S3Uploader
-from samcli.lib.providers.sam_stack_provider import SamBuildableStackProvider
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
 from samcli.yamlhelper import yaml_parse
 
@@ -174,7 +174,7 @@ class DeployContext:
         fail_on_empty_changeset=True,
         confirm_changeset=False,
     ):
-        stacks = SamBuildableStackProvider.get_local_buildable_stacks(
+        stacks = SamLocalStackProvider.get_stacks(
             self.template_file, parameter_overrides=sanitize_parameter_overrides(self.parameter_overrides)
         )
         auth_required_per_resource = auth_per_resource(stacks)

@@ -5,7 +5,7 @@ import logging
 import posixpath
 from typing import List, Tuple, Dict, Optional
 
-from .provider import LayerVersion, LocalBuildableStack
+from .provider import LayerVersion, Stack
 from .sam_base_provider import SamBaseProvider
 
 LOG = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ class SamLayerProvider(SamBaseProvider):
     It may or may not contain a layer.
     """
 
-    def __init__(self, stacks: List[LocalBuildableStack]):
+    def __init__(self, stacks: List[Stack]):
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
         to be valid, normalized and a dictionary. It should be normalized by running all pre-processing
@@ -36,7 +36,7 @@ class SamLayerProvider(SamBaseProvider):
         parameter_overrides: Optional dictionary of values for SAM template parameters that might want to get
             substituted within the template
         """
-        self._stack_and_resources: List[Tuple[LocalBuildableStack, Dict]] = [
+        self._stack_and_resources: List[Tuple[Stack, Dict]] = [
             (
                 stack,
                 SamLayerProvider.get_template(stack.template_dict, stack.parameters).get("Resources", {}),

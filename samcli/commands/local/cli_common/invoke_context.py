@@ -9,7 +9,7 @@ from enum import Enum
 from pathlib import Path
 
 import samcli.lib.utils.osutils as osutils
-from samcli.lib.providers.sam_stack_provider import SamBuildableStackProvider
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.async_utils import AsyncContext
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
@@ -168,7 +168,7 @@ class InvokeContext:
         """
 
         stacks = self._get_stacks()
-        self._template_dict = SamBuildableStackProvider.find_root_stack(stacks).template_dict
+        self._template_dict = SamLocalStackProvider.find_root_stack(stacks).template_dict
         self._function_provider = SamFunctionProvider(stacks)
 
         self._env_vars_value = self._get_env_vars_value(self._env_vars_file)
@@ -384,9 +384,7 @@ class InvokeContext:
 
     def _get_stacks(self):
         try:
-            return SamBuildableStackProvider.get_local_buildable_stacks(
-                self._template_file, parameter_overrides=self._parameter_overrides
-            )
+            return SamLocalStackProvider.get_stacks(self._template_file, parameter_overrides=self._parameter_overrides)
         except (TemplateNotFoundException, TemplateFailedParsingException) as ex:
             raise InvokeContextException(str(ex)) from ex
 

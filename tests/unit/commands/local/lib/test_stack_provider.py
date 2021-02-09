@@ -5,8 +5,8 @@ from unittest.mock import patch
 from parameterized import parameterized
 
 from samcli.commands._utils.resources import AWS_SERVERLESS_APPLICATION, AWS_CLOUDFORMATION_STACK
-from samcli.lib.providers.provider import LocalBuildableStack
-from samcli.lib.providers.sam_stack_provider import SamBuildableStackProvider
+from samcli.lib.providers.provider import Stack
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 
 # LEAF_TEMPLATE is a template without any nested application/stack in it
 LEAF_TEMPLATE = {
@@ -50,8 +50,8 @@ class TestSamBuildableStackProvider(TestCase):
             self.template_file: template,
             child_location_path: LEAF_TEMPLATE,
         }.get(t)
-        with patch.dict(os.environ, {SamBuildableStackProvider.ENV_SAM_CLI_ENABLE_NESTED_STACK: "1"}):
-            stacks = SamBuildableStackProvider.get_local_buildable_stacks(
+        with patch.dict(os.environ, {SamLocalStackProvider.ENV_SAM_CLI_ENABLE_NESTED_STACK: "1"}):
+            stacks = SamLocalStackProvider.get_stacks(
                 self.template_file,
                 "",
                 "",
@@ -60,8 +60,8 @@ class TestSamBuildableStackProvider(TestCase):
         self.assertListEqual(
             stacks,
             [
-                LocalBuildableStack("", "", self.template_file, None, template),
-                LocalBuildableStack("", "ChildStack", child_location_path, None, LEAF_TEMPLATE),
+                Stack("", "", self.template_file, None, template),
+                Stack("", "ChildStack", child_location_path, None, LEAF_TEMPLATE),
             ],
         )
 
@@ -88,8 +88,8 @@ class TestSamBuildableStackProvider(TestCase):
             self.template_file: template,
             child_location_path: LEAF_TEMPLATE,
         }.get(t)
-        with patch.dict(os.environ, {SamBuildableStackProvider.ENV_SAM_CLI_ENABLE_NESTED_STACK: ""}):
-            stacks = SamBuildableStackProvider.get_local_buildable_stacks(
+        with patch.dict(os.environ, {SamLocalStackProvider.ENV_SAM_CLI_ENABLE_NESTED_STACK: ""}):
+            stacks = SamLocalStackProvider.get_stacks(
                 self.template_file,
                 "",
                 "",
@@ -98,7 +98,7 @@ class TestSamBuildableStackProvider(TestCase):
         self.assertListEqual(
             stacks,
             [
-                LocalBuildableStack("", "", self.template_file, None, template),
+                Stack("", "", self.template_file, None, template),
             ],
         )
 
@@ -126,8 +126,8 @@ class TestSamBuildableStackProvider(TestCase):
             child_template_file: child_template,
             grand_child_template_file: LEAF_TEMPLATE,
         }.get(t)
-        with patch.dict(os.environ, {SamBuildableStackProvider.ENV_SAM_CLI_ENABLE_NESTED_STACK: "1"}):
-            stacks = SamBuildableStackProvider.get_local_buildable_stacks(
+        with patch.dict(os.environ, {SamLocalStackProvider.ENV_SAM_CLI_ENABLE_NESTED_STACK: "1"}):
+            stacks = SamLocalStackProvider.get_stacks(
                 self.template_file,
                 "",
                 "",
@@ -136,9 +136,9 @@ class TestSamBuildableStackProvider(TestCase):
         self.assertListEqual(
             stacks,
             [
-                LocalBuildableStack("", "", self.template_file, None, template),
-                LocalBuildableStack("", "ChildStack", child_template_file, None, child_template),
-                LocalBuildableStack("ChildStack", "GrandChildStack", grand_child_template_file, None, LEAF_TEMPLATE),
+                Stack("", "", self.template_file, None, template),
+                Stack("", "ChildStack", child_template_file, None, child_template),
+                Stack("ChildStack", "GrandChildStack", grand_child_template_file, None, LEAF_TEMPLATE),
             ],
         )
 
@@ -155,8 +155,8 @@ class TestSamBuildableStackProvider(TestCase):
         self.get_template_data_mock.side_effect = lambda t: {
             self.template_file: template,
         }.get(t)
-        with patch.dict(os.environ, {SamBuildableStackProvider.ENV_SAM_CLI_ENABLE_NESTED_STACK: "1"}):
-            stacks = SamBuildableStackProvider.get_local_buildable_stacks(
+        with patch.dict(os.environ, {SamLocalStackProvider.ENV_SAM_CLI_ENABLE_NESTED_STACK: "1"}):
+            stacks = SamLocalStackProvider.get_stacks(
                 self.template_file,
                 "",
                 "",
@@ -165,6 +165,6 @@ class TestSamBuildableStackProvider(TestCase):
         self.assertListEqual(
             stacks,
             [
-                LocalBuildableStack("", "", self.template_file, None, template),
+                Stack("", "", self.template_file, None, template),
             ],
         )

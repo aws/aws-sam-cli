@@ -5,14 +5,14 @@ from unittest.mock import patch
 from parameterized import parameterized
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
-from samcli.lib.providers.provider import Function, LayerVersion, LocalBuildableStack
+from samcli.lib.providers.provider import Function, LayerVersion, Stack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.exceptions import InvalidLayerReference
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 
 def make_root_stack(template, parameter_overrides=None):
-    return LocalBuildableStack("", "", "template.yaml", parameter_overrides, template)
+    return Stack("", "", "template.yaml", parameter_overrides, template)
 
 
 STACK_PATH = posixpath.join("this_is_a", "stack_path")
@@ -147,8 +147,8 @@ class TestSamFunctionProviderEndToEnd(TestCase):
 
     def setUp(self):
         self.parameter_overrides = {}
-        root_stack = LocalBuildableStack("", "", "template.yaml", self.parameter_overrides, self.TEMPLATE)
-        child_stack = LocalBuildableStack("", "ChildStack", "./child.yaml", None, self.CHILD_TEMPLATE)
+        root_stack = Stack("", "", "template.yaml", self.parameter_overrides, self.TEMPLATE)
+        child_stack = Stack("", "ChildStack", "./child.yaml", None, self.CHILD_TEMPLATE)
         with patch("samcli.lib.providers.sam_stack_provider.get_template_data") as get_template_data_mock:
             get_template_data_mock.side_effect = lambda t: {
                 "template.yaml": self.TEMPLATE,

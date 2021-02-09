@@ -9,7 +9,7 @@ from typing import Optional, Dict
 import pathlib
 
 from samcli.lib.providers.provider import ResourcesToBuildCollector
-from samcli.lib.providers.sam_stack_provider import SamBuildableStackProvider
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.local.docker.manager import ContainerManager
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_layer_provider import SamLayerProvider
@@ -65,10 +65,8 @@ class BuildContext:
 
     def __enter__(self) -> "BuildContext":
 
-        stacks = SamBuildableStackProvider.get_local_buildable_stacks(
-            self._template_file, parameter_overrides=self._parameter_overrides
-        )
-        self._template_dict = SamBuildableStackProvider.find_root_stack(stacks).template_dict
+        stacks = SamLocalStackProvider.get_stacks(self._template_file, parameter_overrides=self._parameter_overrides)
+        self._template_dict = SamLocalStackProvider.find_root_stack(stacks).template_dict
 
         self._function_provider = SamFunctionProvider(stacks)
         self._layer_provider = SamLayerProvider(stacks)
