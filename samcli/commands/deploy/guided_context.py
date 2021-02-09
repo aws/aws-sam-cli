@@ -25,13 +25,14 @@ from samcli.commands.deploy.code_signer_utils import (
 )
 from samcli.commands.deploy.exceptions import GuidedDeployFailedError
 from samcli.commands.deploy.guided_config import GuidedConfig
-from samcli.commands.deploy.auth_utils import auth_per_resource, transform_template
+from samcli.commands.deploy.auth_utils import auth_per_resource
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
 from samcli.lib.config.samconfig import DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.package.ecr_utils import is_ecr_url
 from samcli.lib.package.image_utils import tag_translation, NonLocalImageException, NoImageFoundException
 from samcli.lib.providers.provider import Stack
+from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.packagetype import IMAGE
@@ -87,7 +88,7 @@ class GuidedContext:
         self.start_bold = "\033[1m"
         self.end_bold = "\033[0m"
         self.color = Colored()
-        self.transformed_resources = None
+        self.function_provider = None
 
     @property
     def guided_capabilities(self):
@@ -271,7 +272,7 @@ class GuidedContext:
         image_repositories = {}
         artifacts_format = get_template_artifacts_format(template_file=self.template_file)
         if IMAGE in artifacts_format:
-            self.transformed_resources = transform_template(stacks)
+            self.function_provider = SamFunctionProvider(stacks, ignore_code_extraction_warnings=True)
             function_resources = get_template_function_resource_ids(template_file=self.template_file, artifact=IMAGE)
             for resource_id in function_resources:
                 image_repositories[resource_id] = prompt(
@@ -284,7 +285,7 @@ class GuidedContext:
                     raise GuidedDeployFailedError(
                         f"Invalid Image Repository ECR URI: {image_repositories.get(resource_id)}"
                     )
-            for resource_id, function_prop in self.transformed_resources.functions.items():
+            for resource_id, function_prop in self.function_provider.functions.items():
                 if function_prop.packagetype == IMAGE:
                     image = function_prop.imageuri
                     try:

@@ -4,7 +4,6 @@ Utilities for checking authorization of certain resource types
 import logging
 from typing import List, Tuple
 
-from samcli.commands.deploy.transform_utils import transform_template
 from samcli.commands.local.lib.swagger.reader import SwaggerReader
 from samcli.lib.providers.provider import Stack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
@@ -31,7 +30,7 @@ def auth_per_resource(stacks: List[Stack]):
 
     _auth_per_resource: List[Tuple[str, bool]] = []
 
-    sam_function_provider = transform_template(stacks)
+    sam_function_provider = SamFunctionProvider(stacks, ignore_code_extraction_warnings=True)
     for sam_function in sam_function_provider.get_all():
         # Only check for auth if there are function events defined.
         if sam_function.events:

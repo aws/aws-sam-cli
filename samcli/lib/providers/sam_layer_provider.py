@@ -33,8 +33,6 @@ class SamLayerProvider(SamBaseProvider):
         Parameters
         ----------
         :param dict stacks: List of stacks layers are extracted from
-        parameter_overrides: Optional dictionary of values for SAM template parameters that might want to get
-            substituted within the template
         """
         self._stacks = stacks
 
