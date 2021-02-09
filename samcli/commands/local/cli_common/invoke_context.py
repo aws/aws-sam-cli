@@ -384,7 +384,7 @@ class InvokeContext:
 
     def _get_stacks(self):
         try:
-            return SamBuildableStackProvider.get_buildable_stacks(
+            return SamBuildableStackProvider.get_local_buildable_stacks(
                 self._template_file, parameter_overrides=self._parameter_overrides
             )
         except (TemplateNotFoundException, TemplateFailedParsingException) as ex:

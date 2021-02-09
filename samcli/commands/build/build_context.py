@@ -65,7 +65,7 @@ class BuildContext:
 
     def __enter__(self) -> "BuildContext":
 
-        stacks = SamBuildableStackProvider.get_buildable_stacks(
+        stacks = SamBuildableStackProvider.get_local_buildable_stacks(
             self._template_file, parameter_overrides=self._parameter_overrides
         )
         self._template_dict = SamBuildableStackProvider.find_root_stack(stacks).template_dict

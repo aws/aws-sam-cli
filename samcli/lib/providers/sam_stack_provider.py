@@ -21,7 +21,7 @@ class SamBuildableStackProvider(SamBaseProvider):
     It may or may not contain a stack.
     """
 
-    # see get_buildable_stacks() for info about this env var
+    # see get_local_buildable_stacks() for info about this env var
     ENV_SAM_CLI_ENABLE_NESTED_STACK = "SAM_CLI_ENABLE_NESTED_STACK"
 
     def __init__(self, stack_path: str, template_dict: Dict, parameter_overrides: Optional[Dict] = None):
@@ -168,7 +168,7 @@ class SamBuildableStackProvider(SamBaseProvider):
         )
 
     @staticmethod
-    def get_buildable_stacks(
+    def get_local_buildable_stacks(
         template_file: str,
         stack_path: str = "",
         name: str = "",
@@ -177,7 +177,8 @@ class SamBuildableStackProvider(SamBaseProvider):
         template_dict = get_template_data(template_file)
         stacks = [LocalBuildableStack(stack_path, name, template_file, parameter_overrides, template_dict)]
 
-        # Note(xinhol): recursive get_buildable_stacks is only enabled in tests by env var SAM_CLI_ENABLE_NESTED_STACK.
+        # Note(xinhol): recursive get_local_buildable_stacks is only
+        # enabled in tests by env var SAM_CLI_ENABLE_NESTED_STACK.
         # We will remove this env var and make this method recursive by default
         # for nested stack support in the future.
         if not os.environ.get(SamBuildableStackProvider.ENV_SAM_CLI_ENABLE_NESTED_STACK, False):
@@ -186,7 +187,7 @@ class SamBuildableStackProvider(SamBaseProvider):
         current = SamBuildableStackProvider(stack_path, template_dict, parameter_overrides)
         for child_stack in current.get_all():
             stacks.extend(
-                SamBuildableStackProvider.get_buildable_stacks(
+                SamBuildableStackProvider.get_local_buildable_stacks(
                     child_stack.location,
                     os.path.join(stack_path, name),
                     child_stack.name,

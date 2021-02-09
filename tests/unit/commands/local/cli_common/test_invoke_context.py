@@ -396,7 +396,7 @@ class TestInvokeContext__enter__(TestCase):
                     str(ex_ctx.exception),
                 )
 
-    @patch("samcli.commands.local.cli_common.invoke_context.SamBuildableStackProvider.get_buildable_stacks")
+    @patch("samcli.commands.local.cli_common.invoke_context.SamBuildableStackProvider.get_local_buildable_stacks")
     def test_must_raise_if_template_cannot_be_parsed(self, get_buildable_stacks_mock):
         invoke_context = InvokeContext("template-file")
 

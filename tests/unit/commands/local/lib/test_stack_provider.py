@@ -51,7 +51,7 @@ class TestSamBuildableStackProvider(TestCase):
             child_location_path: LEAF_TEMPLATE,
         }.get(t)
         with patch.dict(os.environ, {SamBuildableStackProvider.ENV_SAM_CLI_ENABLE_NESTED_STACK: "1"}):
-            stacks = SamBuildableStackProvider.get_buildable_stacks(
+            stacks = SamBuildableStackProvider.get_local_buildable_stacks(
                 self.template_file,
                 "",
                 "",
@@ -89,7 +89,7 @@ class TestSamBuildableStackProvider(TestCase):
             child_location_path: LEAF_TEMPLATE,
         }.get(t)
         with patch.dict(os.environ, {SamBuildableStackProvider.ENV_SAM_CLI_ENABLE_NESTED_STACK: ""}):
-            stacks = SamBuildableStackProvider.get_buildable_stacks(
+            stacks = SamBuildableStackProvider.get_local_buildable_stacks(
                 self.template_file,
                 "",
                 "",
@@ -127,7 +127,7 @@ class TestSamBuildableStackProvider(TestCase):
             grand_child_template_file: LEAF_TEMPLATE,
         }.get(t)
         with patch.dict(os.environ, {SamBuildableStackProvider.ENV_SAM_CLI_ENABLE_NESTED_STACK: "1"}):
-            stacks = SamBuildableStackProvider.get_buildable_stacks(
+            stacks = SamBuildableStackProvider.get_local_buildable_stacks(
                 self.template_file,
                 "",
                 "",
@@ -156,7 +156,7 @@ class TestSamBuildableStackProvider(TestCase):
             self.template_file: template,
         }.get(t)
         with patch.dict(os.environ, {SamBuildableStackProvider.ENV_SAM_CLI_ENABLE_NESTED_STACK: "1"}):
-            stacks = SamBuildableStackProvider.get_buildable_stacks(
+            stacks = SamBuildableStackProvider.get_local_buildable_stacks(
                 self.template_file,
                 "",
                 "",

@@ -121,7 +121,7 @@ class GuidedContext:
         input_parameter_overrides = self.prompt_parameters(
             parameter_override_keys, self.parameter_overrides_from_cmdline, self.start_bold, self.end_bold
         )
-        stacks = SamBuildableStackProvider.get_buildable_stacks(
+        stacks = SamBuildableStackProvider.get_local_buildable_stacks(
             self.template_file, parameter_overrides=sanitize_parameter_overrides(input_parameter_overrides)
         )
         image_repositories = self.prompt_image_repository(stacks)

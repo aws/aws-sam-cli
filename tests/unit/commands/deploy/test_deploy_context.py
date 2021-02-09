@@ -130,7 +130,7 @@ class TestSamDeployCommand(TestCase):
 
     @patch("boto3.Session")
     @patch("samcli.commands.deploy.deploy_context.auth_per_resource")
-    @patch("samcli.commands.deploy.deploy_context.SamBuildableStackProvider.get_buildable_stacks")
+    @patch("samcli.commands.deploy.deploy_context.SamBuildableStackProvider.get_local_buildable_stacks")
     @patch.object(Deployer, "create_and_wait_for_changeset", MagicMock(return_value=({"Id": "test"}, "CREATE")))
     @patch.object(Deployer, "execute_changeset", MagicMock())
     @patch.object(Deployer, "wait_for_execute", MagicMock())

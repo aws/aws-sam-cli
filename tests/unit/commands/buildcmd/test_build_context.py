@@ -8,7 +8,7 @@ from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBu
 
 
 class TestBuildContext__enter__(TestCase):
-    @patch("samcli.commands.build.build_context.SamBuildableStackProvider.get_buildable_stacks")
+    @patch("samcli.commands.build.build_context.SamBuildableStackProvider.get_local_buildable_stacks")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")
@@ -84,7 +84,7 @@ class TestBuildContext__enter__(TestCase):
         ContainerManagerMock.assert_called_once_with(docker_network_id="network", skip_pull_image=True)
         func_provider_mock.get.assert_called_once_with("function_identifier")
 
-    @patch("samcli.commands.build.build_context.SamBuildableStackProvider.get_buildable_stacks")
+    @patch("samcli.commands.build.build_context.SamBuildableStackProvider.get_local_buildable_stacks")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")
@@ -138,7 +138,7 @@ class TestBuildContext__enter__(TestCase):
         with self.assertRaises(ResourceNotFound):
             context.resources_to_build
 
-    @patch("samcli.commands.build.build_context.SamBuildableStackProvider.get_buildable_stacks")
+    @patch("samcli.commands.build.build_context.SamBuildableStackProvider.get_local_buildable_stacks")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")
@@ -190,7 +190,7 @@ class TestBuildContext__enter__(TestCase):
         context.__enter__()
         self.assertTrue(layer1 in context.resources_to_build.layers)
 
-    @patch("samcli.commands.build.build_context.SamBuildableStackProvider.get_buildable_stacks")
+    @patch("samcli.commands.build.build_context.SamBuildableStackProvider.get_local_buildable_stacks")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")
@@ -248,7 +248,7 @@ class TestBuildContext__enter__(TestCase):
         self.assertTrue(layer2 not in context.resources_to_build.layers)
         self.assertTrue(context.is_building_specific_resource)
 
-    @patch("samcli.commands.build.build_context.SamBuildableStackProvider.get_buildable_stacks")
+    @patch("samcli.commands.build.build_context.SamBuildableStackProvider.get_local_buildable_stacks")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")
@@ -301,7 +301,7 @@ class TestBuildContext__enter__(TestCase):
         with self.assertRaises(MissingBuildMethodException):
             context.resources_to_build
 
-    @patch("samcli.commands.build.build_context.SamBuildableStackProvider.get_buildable_stacks")
+    @patch("samcli.commands.build.build_context.SamBuildableStackProvider.get_local_buildable_stacks")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")

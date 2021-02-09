@@ -174,7 +174,7 @@ class DeployContext:
         fail_on_empty_changeset=True,
         confirm_changeset=False,
     ):
-        stacks = SamBuildableStackProvider.get_buildable_stacks(
+        stacks = SamBuildableStackProvider.get_local_buildable_stacks(
             self.template_file, parameter_overrides=sanitize_parameter_overrides(self.parameter_overrides)
         )
         auth_required_per_resource = auth_per_resource(stacks)
