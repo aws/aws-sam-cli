@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import patch, call, ANY, MagicMock, Mock
+from unittest.mock import patch, call, ANY, MagicMock
 from parameterized import parameterized, param
 
 import click
