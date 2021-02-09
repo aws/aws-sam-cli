@@ -1,6 +1,6 @@
 import posixpath
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import patch, PropertyMock
 
 from parameterized import parameterized
 
@@ -513,60 +513,57 @@ class TestSamFunctionProvider_init(TestCase):
     def setUp(self):
         self.parameter_overrides = {}
 
-    @patch.object(SamFunctionProvider, "get_template")
     @patch.object(SamFunctionProvider, "_extract_functions")
-    @patch("samcli.lib.providers.sam_stack_provider.get_template_data")
-    def test_must_extract_functions(self, get_template_data_mock, extract_mock, get_template_mock):
+    @patch("samcli.lib.providers.provider.SamBaseProvider.get_template")
+    def test_must_extract_functions(self, get_template_mock, extract_mock):
         extract_result = {"foo": "bar"}
         extract_mock.return_value = extract_result
 
         template = {"Resources": {"a": "b"}}
         get_template_mock.return_value = template
-        get_template_data_mock.return_value = template
         stack = make_root_stack(template, self.parameter_overrides)
         provider = SamFunctionProvider([stack])
 
-        extract_mock.assert_called_with([(stack, {"a": "b"})], False)
+        extract_mock.assert_called_with([stack], False)
         get_template_mock.assert_called_with(template, self.parameter_overrides)
         self.assertEqual(provider.functions, extract_result)
 
-    @patch.object(SamFunctionProvider, "get_template")
     @patch.object(SamFunctionProvider, "_extract_functions")
-    @patch("samcli.lib.providers.sam_stack_provider.get_template_data")
-    def test_must_default_to_empty_resources(self, get_template_data_mock, extract_mock, get_template_mock):
+    @patch("samcli.lib.providers.provider.SamBaseProvider.get_template")
+    def test_must_default_to_empty_resources(self, get_template_mock, extract_mock):
         extract_result = {"foo": "bar"}
         extract_mock.return_value = extract_result
 
         template = {"a": "b"}  # Template does *not* have 'Resources' key
         get_template_mock.return_value = template
-        get_template_data_mock.return_value = template
         stack = make_root_stack(template, self.parameter_overrides)
         provider = SamFunctionProvider([stack])
 
-        extract_mock.assert_called_with([(stack, {})], False)  # Empty Resources value must be passed
+        extract_mock.assert_called_with([stack], False)  # Empty Resources value must be passed
         self.assertEqual(provider.functions, extract_result)
 
 
 class TestSamFunctionProvider_extract_functions(TestCase):
+    @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
     @patch.object(SamFunctionProvider, "_convert_sam_function_resource")
-    def test_must_work_for_sam_function(self, convert_mock):
+    def test_must_work_for_sam_function(self, convert_mock, resources_mock):
         convertion_result = "some result"
         convert_mock.return_value = convertion_result
 
-        resources = {"Func1": {"Type": "AWS::Serverless::Function", "Properties": {"a": "b"}}}
-
+        resources_mock.return_value = {"Func1": {"Type": "AWS::Serverless::Function", "Properties": {"a": "b"}}}
         expected = {"Func1": "some result"}
 
-        result = SamFunctionProvider._extract_functions([(make_root_stack(None), resources)])
+        result = SamFunctionProvider._extract_functions([make_root_stack(None)])
         self.assertEqual(expected, result)
         convert_mock.assert_called_with("", "Func1", {"a": "b"}, [], ignore_code_extraction_warnings=False)
 
+    @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
     @patch.object(SamFunctionProvider, "_convert_sam_function_resource")
-    def test_must_work_with_no_properties(self, convert_mock):
+    def test_must_work_with_no_properties(self, convert_mock, resources_mock):
         convertion_result = "some result"
         convert_mock.return_value = convertion_result
 
-        resources = {
+        resources_mock.return_value = {
             "Func1": {
                 "Type": "AWS::Serverless::Function"
                 # No Properties
@@ -575,29 +572,31 @@ class TestSamFunctionProvider_extract_functions(TestCase):
 
         expected = {"Func1": "some result"}
 
-        result = SamFunctionProvider._extract_functions([(make_root_stack(None), resources)])
+        result = SamFunctionProvider._extract_functions([make_root_stack(None)])
         self.assertEqual(expected, result)
         convert_mock.assert_called_with("", "Func1", {}, [], ignore_code_extraction_warnings=False)
 
+    @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
     @patch.object(SamFunctionProvider, "_convert_lambda_function_resource")
-    def test_must_work_for_lambda_function(self, convert_mock):
+    def test_must_work_for_lambda_function(self, convert_mock, resources_mock):
         convertion_result = "some result"
         convert_mock.return_value = convertion_result
 
-        resources = {"Func1": {"Type": "AWS::Lambda::Function", "Properties": {"a": "b"}}}
+        resources_mock.return_value = {"Func1": {"Type": "AWS::Lambda::Function", "Properties": {"a": "b"}}}
 
         expected = {"Func1": "some result"}
 
-        result = SamFunctionProvider._extract_functions([(make_root_stack(None), resources)])
+        result = SamFunctionProvider._extract_functions([make_root_stack(None)])
         self.assertEqual(expected, result)
         convert_mock.assert_called_with("", "Func1", {"a": "b"}, [])
 
-    def test_must_skip_unknown_resource(self):
-        resources = {"Func1": {"Type": "AWS::SomeOther::Function", "Properties": {"a": "b"}}}
+    @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
+    def test_must_skip_unknown_resource(self, resources_mock):
+        resources_mock.return_value = {"Func1": {"Type": "AWS::SomeOther::Function", "Properties": {"a": "b"}}}
 
         expected = {}
 
-        result = SamFunctionProvider._extract_functions([(make_root_stack(None), resources)])
+        result = SamFunctionProvider._extract_functions([make_root_stack(None)])
         self.assertEqual(expected, result)
 
 

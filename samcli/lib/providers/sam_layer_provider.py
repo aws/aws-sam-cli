@@ -3,7 +3,7 @@ Class that provides layers from a given SAM template
 """
 import logging
 import posixpath
-from typing import List, Tuple, Dict, Optional
+from typing import List, Dict, Optional
 
 from .provider import LayerVersion, Stack
 from .sam_base_provider import SamBaseProvider
@@ -36,13 +36,7 @@ class SamLayerProvider(SamBaseProvider):
         parameter_overrides: Optional dictionary of values for SAM template parameters that might want to get
             substituted within the template
         """
-        self._stack_and_resources: List[Tuple[Stack, Dict]] = [
-            (
-                stack,
-                SamLayerProvider.get_template(stack.template_dict, stack.parameters).get("Resources", {}),
-            )
-            for stack in stacks
-        ]
+        self._stacks = stacks
 
         self._layers = self._extract_layers()
 
@@ -83,12 +77,10 @@ class SamLayerProvider(SamBaseProvider):
         of those resources.
         """
         layers = []
-        for stack, resources in self._stack_and_resources:
-            for name, resource in resources.items():
+        for stack in self._stacks:
+            for name, resource in stack.resources.items():
                 if resource.get("Type") in [self.LAMBDA_LAYER, self.SERVERLESS_LAYER]:
-                    layers.append(
-                        self._convert_lambda_layer_resource(stack.stack_path_for_children_resources, name, resource)
-                    )
+                    layers.append(self._convert_lambda_layer_resource(stack.stack_path, name, resource))
         return layers
 
     def _convert_lambda_layer_resource(

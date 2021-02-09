@@ -3,7 +3,6 @@ Class that provides all nested stacks from a given SAM template
 """
 import logging
 import os
-import posixpath
 from typing import Optional, Dict, Generator, cast, List
 from urllib.parse import unquote, urlparse
 
@@ -132,7 +131,7 @@ class SamLocalStackProvider(SamBaseProvider):
             location = unquote(urlparse(location).path)
 
         return Stack(
-            stack_path=stack_path,
+            parent_stack_path=stack_path,
             name=name,
             location=location,
             parameters=resource_properties.get("Parameters"),
@@ -154,7 +153,7 @@ class SamLocalStackProvider(SamBaseProvider):
             template_url = unquote(urlparse(template_url).path)
 
         return Stack(
-            stack_path=stack_path,
+            parent_stack_path=stack_path,
             name=name,
             location=template_url,
             parameters=resource_properties.get("Parameters"),
@@ -197,6 +196,6 @@ class SamLocalStackProvider(SamBaseProvider):
     def find_root_stack(stacks: List[Stack]) -> Stack:
         candidates = [stack for stack in stacks if stack.is_root_stack]
         if not candidates:
-            stacks_str = ", ".join([posixpath.join(stack.stack_path, stack.name) for stack in stacks])
+            stacks_str = ", ".join([stack.stack_path for stack in stacks])
             raise ValueError(f"{stacks_str} does not contain a root stack")
         return candidates[0]

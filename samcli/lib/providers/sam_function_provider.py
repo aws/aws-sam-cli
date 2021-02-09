@@ -3,7 +3,7 @@ Class that provides functions from a given SAM template
 """
 import logging
 import posixpath
-from typing import Dict, List, Generator, Optional, cast, Tuple
+from typing import Dict, List, Generator, Optional, cast
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
 from samcli.lib.providers.exceptions import InvalidLayerReference
@@ -38,19 +38,13 @@ class SamFunctionProvider(SamBaseProvider):
         :param bool ignore_code_extraction_warnings: Ignores Log warnings
         """
 
-        self.stack_and_resources: List[Tuple[Stack, Dict]] = [
-            (
-                stack,
-                SamFunctionProvider.get_template(stack.template_dict, stack.parameters).get("Resources", {}),
-            )
-            for stack in stacks
-        ]
+        self.stacks = stacks
 
-        for stack, resources in self.stack_and_resources:
-            LOG.debug("%d resources found in the stack %s", len(resources), stack.stack_path_for_children_resources)
+        for stack in stacks:
+            LOG.debug("%d resources found in the stack %s", len(stack.resources), stack.stack_path)
 
         # Store a map of function name to function information for quick reference
-        self.functions = self._extract_functions(self.stack_and_resources, ignore_code_extraction_warnings)
+        self.functions = self._extract_functions(self.stacks, ignore_code_extraction_warnings)
 
         self._deprecated_runtimes = {"nodejs4.3", "nodejs6.10", "nodejs8.10", "dotnetcore2.0"}
         self._colored = Colored()
@@ -103,9 +97,7 @@ class SamFunctionProvider(SamBaseProvider):
             yield function
 
     @staticmethod
-    def _extract_functions(
-        resources_by_stack: List[Tuple[Stack, Dict]], ignore_code_extraction_warnings=False
-    ) -> Dict[str, Function]:
+    def _extract_functions(stacks: List[Stack], ignore_code_extraction_warnings=False) -> Dict[str, Function]:
         """
         Extracts and returns function information from the given dictionary of SAM/CloudFormation resources. This
         method supports functions defined with AWS::Serverless::Function and AWS::Lambda::Function
@@ -117,8 +109,8 @@ class SamFunctionProvider(SamBaseProvider):
         """
 
         result = {}
-        for stack, resources in resources_by_stack:
-            for name, resource in resources.items():
+        for stack in stacks:
+            for name, resource in stack.resources.items():
 
                 resource_type = resource.get("Type")
                 resource_properties = resource.get("Properties", {})
@@ -129,13 +121,13 @@ class SamFunctionProvider(SamBaseProvider):
 
                 if resource_type == SamFunctionProvider.SERVERLESS_FUNCTION:
                     layers = SamFunctionProvider._parse_layer_info(
-                        stack.stack_path_for_children_resources,
+                        stack.stack_path,
                         resource_properties.get("Layers", []),
-                        resources,
+                        stack.resources,
                         ignore_code_extraction_warnings=ignore_code_extraction_warnings,
                     )
                     result[name] = SamFunctionProvider._convert_sam_function_resource(
-                        stack.stack_path_for_children_resources,
+                        stack.stack_path,
                         name,
                         resource_properties,
                         layers,
@@ -144,13 +136,13 @@ class SamFunctionProvider(SamBaseProvider):
 
                 elif resource_type == SamFunctionProvider.LAMBDA_FUNCTION:
                     layers = SamFunctionProvider._parse_layer_info(
-                        stack.stack_path_for_children_resources,
+                        stack.stack_path,
                         resource_properties.get("Layers", []),
-                        resources,
+                        stack.resources,
                         ignore_code_extraction_warnings=ignore_code_extraction_warnings,
                     )
                     result[name] = SamFunctionProvider._convert_lambda_function_resource(
-                        stack.stack_path_for_children_resources, name, resource_properties, layers
+                        stack.stack_path, name, resource_properties, layers
                     )
 
                 # We don't care about other resource types. Just ignore them
@@ -390,11 +382,7 @@ class SamFunctionProvider(SamBaseProvider):
         return layers
 
     def get_resources_by_stack_path(self, stack_path: str) -> Dict:
-        candidates = [
-            resources
-            for stack, resources in self.stack_and_resources
-            if stack.stack_path_for_children_resources == stack_path
-        ]
+        candidates = [stack.resources for stack in self.stacks if stack.stack_path == stack_path]
         if not candidates:
             raise RuntimeError(f"Cannot find resources with stack_path = {stack_path}")
         return candidates[0]

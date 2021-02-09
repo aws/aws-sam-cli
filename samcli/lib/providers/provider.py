@@ -4,11 +4,12 @@ source
 """
 import hashlib
 import logging
-import os
+import posixpath
 from collections import namedtuple
 from typing import NamedTuple, Optional, List, Dict
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, UnsupportedIntrinsic
+from samcli.lib.providers.sam_base_provider import SamBaseProvider
 
 LOG = logging.getLogger(__name__)
 
@@ -328,16 +329,15 @@ class AbstractApiProvider:
 class Stack(NamedTuple):
     """
     A class encapsulate info about a stack/sam-app resource,
-    including its content, parameter overrides, file location, logicalID and
-    if it is an nested stack, its parent stack's position at the "nested stack tree."
+    including its content, parameter overrides, file location, logicalID
+    and its parent stack's stack_path (for nested stacks).
     """
 
-    # The path of the stack this resource resides in,
-    # relative to the root stack, it is empty for stacks defined in the root stack.
-    stack_path: str
-    # The name of the stack, it is empty for root stack
+    # The stack_path of the parent stack, see property stack_path for more details
+    parent_stack_path: str
+    # The name (logicalID) of the stack, it is empty for root stack
     name: str
-    # The local location of the stack
+    # The file location of the stack template.
     location: str
     # The parameter overrides for the stack
     parameters: Optional[Dict]
@@ -345,15 +345,29 @@ class Stack(NamedTuple):
     template_dict: Dict
 
     @property
-    def stack_path_for_children_resources(self) -> str:
+    def stack_path(self) -> str:
         """
-        stack_path value for children Function or LayerVersion
+        path of stack in the "nested stack tree" consisting of stack logicalIDs. It is unique.
+        Example values:
+            root stack: ""
+            root stack's child stack StackX: "StackX"
+            StackX's child stack StackY: "StackX/StackY"
         """
-        return os.path.join(self.stack_path, self.name)
+        return posixpath.join(self.parent_stack_path, self.name)
 
     @property
     def is_root_stack(self) -> bool:
         """
-        If both stack_path and name are empty, it is root stack
+        Return True if the stack is the root stack.
         """
-        return not self.stack_path and not self.name
+        return not self.stack_path
+
+    @property
+    def resources(self) -> Dict:
+        """
+        Return the resources dictionary where SAM plugins have been run
+        and parameter values have been substituted.
+        """
+        processed_template_dict: Dict = SamBaseProvider.get_template(self.template_dict, self.parameters)
+        resources: Dict = processed_template_dict.get("Resources", {})
+        return resources

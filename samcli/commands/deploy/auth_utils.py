@@ -18,7 +18,8 @@ def auth_per_resource(stacks: List[Stack]):
 
     Parameters
     ----------
-    :param list stacks: List of stacks where resources are looked for
+    stacks: List[Stack]
+        The list of stacks where resources are looked for
 
     Returns
     -------
