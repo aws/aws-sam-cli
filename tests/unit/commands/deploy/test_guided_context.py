@@ -716,3 +716,69 @@ class TestGuidedContext(TestCase):
             ),
         ]
         self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
+
+    @patch("samcli.commands.deploy.guided_context.get_session")
+    @patch("samcli.commands.deploy.guided_context.prompt")
+    @patch("samcli.commands.deploy.guided_context.confirm")
+    @patch("samcli.commands.deploy.guided_context.manage_stack")
+    @patch("samcli.commands.deploy.guided_context.auth_per_resource")
+    @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
+    @patch("samcli.commands.deploy.guided_context.transform_template")
+    @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
+    def test_guided_prompts_use_defined_s3_bucket(
+        self,
+        patched_signer_config_per_function,
+        patched_transform_template,
+        patched_get_template_artifacts_format,
+        patched_get_template_data,
+        patchedauth_per_resource,
+        mocked_manage_stack,
+        patched_confirm,
+        patched_prompt,
+        patched_get_session,
+    ):
+        self.gc.s3_bucket = "user_defined_s3_b"
+        patched_transform_template.return_value = {}
+        patched_get_template_artifacts_format.return_value = [ZIP]
+        # Series of inputs to confirmations so that full range of questions are asked.
+        patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
+        patched_confirm.side_effect = [True, False, True, True, ""]
+        patched_signer_config_per_function.return_value = ({}, {})
+        mocked_manage_stack.return_value = "managed_s3_bucket"
+        self.gc.guided_prompts(parameter_override_keys=None)
+        self.assertEqual(self.gc.guided_s3_bucket, "user_defined_s3_b")
+        mocked_manage_stack.assert_not_called()
+
+    @patch("samcli.commands.deploy.guided_context.get_session")
+    @patch("samcli.commands.deploy.guided_context.prompt")
+    @patch("samcli.commands.deploy.guided_context.confirm")
+    @patch("samcli.commands.deploy.guided_context.manage_stack")
+    @patch("samcli.commands.deploy.guided_context.auth_per_resource")
+    @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
+    @patch("samcli.commands.deploy.guided_context.transform_template")
+    @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
+    def test_guided_prompts_use_managed_s3_bucket(
+        self,
+        patched_signer_config_per_function,
+        patched_transform_template,
+        patched_get_template_artifacts_format,
+        patched_get_template_data,
+        patchedauth_per_resource,
+        mocked_manage_stack,
+        patched_confirm,
+        patched_prompt,
+        patched_get_session,
+    ):
+        self.gc.s3_bucket = None
+        patched_transform_template.return_value = {}
+        patched_get_template_artifacts_format.return_value = [ZIP]
+        # Series of inputs to confirmations so that full range of questions are asked.
+        patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
+        patched_confirm.side_effect = [True, False, True, True, ""]
+        patched_signer_config_per_function.return_value = ({}, {})
+        mocked_manage_stack.return_value = "managed_s3_bucket"
+        self.gc.guided_prompts(parameter_override_keys=None)
+        self.assertEqual(self.gc.guided_s3_bucket, "managed_s3_bucket")
+        mocked_manage_stack.assert_called_once()
