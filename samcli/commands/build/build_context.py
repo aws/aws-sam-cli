@@ -9,10 +9,10 @@ from typing import Optional, Dict
 import pathlib
 
 from samcli.lib.providers.provider import ResourcesToBuildCollector
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.local.docker.manager import ContainerManager
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_layer_provider import SamLayerProvider
-from samcli.commands._utils.template import get_template_data
 from samcli.local.lambdafn.exceptions import ResourceNotFound
 from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
 
@@ -66,10 +66,12 @@ class BuildContext:
         self._container_manager: Optional[ContainerManager] = None
 
     def __enter__(self) -> "BuildContext":
-        self._template_dict = get_template_data(self._template_file)
 
-        self._function_provider = SamFunctionProvider(self._template_dict, self._parameter_overrides)
-        self._layer_provider = SamLayerProvider(self._template_dict, self._parameter_overrides)
+        stacks = SamLocalStackProvider.get_stacks(self._template_file, parameter_overrides=self._parameter_overrides)
+        self._template_dict = SamLocalStackProvider.find_root_stack(stacks).template_dict
+
+        self._function_provider = SamFunctionProvider(stacks)
+        self._layer_provider = SamLayerProvider(stacks)
 
         if not self._base_dir:
             # Base directory, if not provided, is the directory containing the template
