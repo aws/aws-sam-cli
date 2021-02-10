@@ -44,7 +44,7 @@ class TestInvokeContext__enter__(TestCase):
         )
 
         template_dict = "template_dict"
-        stacks = [Stack("", "", template_file, invoke_context._parameter_overrides, template_dict)]
+        stacks = [Stack("", "", template_file, invoke_context.parameter_overrides, template_dict)]
         invoke_context._get_stacks = Mock()
         invoke_context._get_stacks.return_value = stacks
 
@@ -79,7 +79,7 @@ class TestInvokeContext__enter__(TestCase):
 
         invoke_context._get_stacks.assert_called_once()
         SamFunctionProviderMock.assert_called_with(stacks)
-        self.assertEqual(invoke_context._parameter_overrides, {"AWS::Region": "region"})
+        self.assertEqual(invoke_context.parameter_overrides, {"AWS::Region": "region"})
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
         self.assertEqual(invoke_context._get_env_vars_value.call_args_list, [call(env_vars_file), call(None)])
         invoke_context._setup_log_file.assert_called_with(log_file)
@@ -127,7 +127,7 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context._initialize_all_functions_containers = _initialize_all_functions_containers_mock
 
         template_dict = "template_dict"
-        stacks = [Stack("", "", template_file, invoke_context._parameter_overrides, template_dict)]
+        stacks = [Stack("", "", template_file, invoke_context.parameter_overrides, template_dict)]
         invoke_context._get_stacks = Mock()
         invoke_context._get_stacks.return_value = stacks
 
@@ -162,7 +162,7 @@ class TestInvokeContext__enter__(TestCase):
 
         invoke_context._get_stacks.assert_called_once()
         SamFunctionProviderMock.assert_called_with(stacks)
-        self.assertEqual(invoke_context._parameter_overrides, {"AWS::Region": "region"})
+        self.assertEqual(invoke_context.parameter_overrides, {"AWS::Region": "region"})
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
         self.assertEqual(invoke_context._get_env_vars_value.call_args_list, [call(env_vars_file), call(None)])
         invoke_context._setup_log_file.assert_called_with(log_file)
@@ -212,7 +212,7 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context._initialize_all_functions_containers = _initialize_all_functions_containers_mock
 
         template_dict = "template_dict"
-        stacks = [Stack("", "", template_file, invoke_context._parameter_overrides, template_dict)]
+        stacks = [Stack("", "", template_file, invoke_context.parameter_overrides, template_dict)]
         invoke_context._get_stacks = Mock()
         invoke_context._get_stacks.return_value = stacks
 
@@ -246,7 +246,7 @@ class TestInvokeContext__enter__(TestCase):
 
         invoke_context._get_stacks.assert_called_once()
         SamFunctionProviderMock.assert_called_with(stacks)
-        self.assertEqual(invoke_context._parameter_overrides, {"AWS::Region": "region"})
+        self.assertEqual(invoke_context.parameter_overrides, {"AWS::Region": "region"})
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
         self.assertEqual(
             invoke_context._get_env_vars_value.call_args_list, [call("env_vars_file"), call("container_env_vars_file")]
@@ -293,7 +293,7 @@ class TestInvokeContext__enter__(TestCase):
         )
 
         template_dict = "template_dict"
-        stacks = [Stack("", "", template_file, invoke_context._parameter_overrides, template_dict)]
+        stacks = [Stack("", "", template_file, invoke_context.parameter_overrides, template_dict)]
         invoke_context._get_stacks = Mock()
         invoke_context._get_stacks.return_value = stacks
 
@@ -328,7 +328,7 @@ class TestInvokeContext__enter__(TestCase):
 
         invoke_context._get_stacks.assert_called_once()
         SamFunctionProviderMock.assert_called_with(stacks)
-        self.assertEqual(invoke_context._parameter_overrides, {"AWS::Region": "region"})
+        self.assertEqual(invoke_context.parameter_overrides, {"AWS::Region": "region"})
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
         self.assertEqual(invoke_context._get_env_vars_value.call_args_list, [call(env_vars_file), call(None)])
         invoke_context._setup_log_file.assert_called_with(log_file)
