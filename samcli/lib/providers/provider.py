@@ -57,9 +57,13 @@ class Function(NamedTuple):
     @property
     def full_path(self) -> str:
         """
-        Return the unique path-like identifier in a multi-stack situation.
+        Return the path-like identifier of this Function. If it is in root stack, full_path = name.
+        This path is guaranteed to be unique in a multi-stack situation.
+        Example:
+            "HelloWorldFunction"
+            "ChildStackA/GrandChildStackB/AFunctionInNestedStack"
         """
-        return _get_full_path(self)
+        return get_full_path(self.stack_path, self.name)
 
 
 class ResourcesToBuildCollector:
@@ -250,9 +254,13 @@ class LayerVersion:
     @property
     def full_path(self) -> str:
         """
-        Return the unique path-like identifier in a multi-stack situation.
+        Return the path-like identifier of this Layer. If it is in root stack, full_path = name.
+        This path is guaranteed to be unique in a multi-stack situation.
+        Example:
+            "HelloWorldLayer"
+            "ChildStackA/GrandChildStackB/ALayerInNestedStack"
         """
-        return _get_full_path(self)
+        return get_full_path(self.stack_path, self.name)
 
     def __eq__(self, other):
         if isinstance(other, type(self)):
@@ -387,9 +395,9 @@ class Stack(NamedTuple):
         return resources
 
 
-def _get_full_path(resource: Union[Function, LayerVersion]) -> str:
+def get_full_path(stack_path: str, logical_id: str) -> str:
     """
     Return the unique posix path-like identifier
-    while will used for identify a function/layers from resources in a multi-stack situation
+    while will used for identify a resource from resources in a multi-stack situation
     """
-    return posixpath.join(resource.stack_path, resource.name)
+    return posixpath.join(stack_path, logical_id)
