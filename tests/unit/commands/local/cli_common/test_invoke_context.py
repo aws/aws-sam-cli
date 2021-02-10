@@ -1059,3 +1059,11 @@ class TestInvokeContext_get_debug_context(TestCase):
         resolve_path_mock.is_dir.assert_called_once()
         pathlib_path_mock.resolve.assert_called_once_with(strict=True)
         pathlib_mock.assert_called_once_with("./path")
+
+
+class TestInvokeContext_get_stacks(TestCase):
+    @patch("samcli.commands.local.cli_common.invoke_context.SamLocalStackProvider.get_stacks")
+    def test_must_pass_custom_region(self, get_stacks_mock):
+        invoke_context = InvokeContext("template_file", aws_region="my-custom-region")
+        invoke_context._get_stacks()
+        get_stacks_mock.assert_called_with("template_file", parameter_overrides={"AWS::Region": "my-custom-region"})
