@@ -347,7 +347,7 @@ class Stack(NamedTuple):
     @property
     def stack_path(self) -> str:
         """
-        path of stack in the "nested stack tree" consisting of stack logicalIDs. It is unique.
+        The path of stack in the "nested stack tree" consisting of stack logicalIDs. It is unique.
         Example values:
             root stack: ""
             root stack's child stack StackX: "StackX"
