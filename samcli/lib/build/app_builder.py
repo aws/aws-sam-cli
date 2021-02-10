@@ -7,7 +7,7 @@ import io
 import json
 import logging
 import pathlib
-from typing import List, Optional, Dict, cast, Any
+from typing import List, Optional, Dict, cast
 
 import docker
 import docker.errors
@@ -170,7 +170,16 @@ class ApplicationBuilder:
         build_graph = BuildGraph(self._build_dir)
         functions = self._resources_to_build.functions
         layers = self._resources_to_build.layers
-        env_vars_values = self._get_env_vars_value(env_vars_file)
+        env_vars_values = {}
+        if env_vars_file:
+            try:
+                with open(env_vars_file, "r") as fp:
+                    env_vars_values = json.load(fp)
+            except Exception as ex:
+                raise IOError(
+                    "Could not read environment variables overrides from file {}: {}".format(env_vars_file, str(ex))
+                ) from ex
+
         for function in functions:
             env_vars = self._make_env_vars(function, env_vars_values)
             function_build_details = FunctionBuildDefinition(
@@ -631,31 +640,7 @@ class ApplicationBuilder:
         return cast(Dict, response)
 
     @staticmethod
-    def _get_env_vars_value(filename: Optional[str]) -> Any:
-        """
-        If the user provided a file containing values of environment variables, this method will read the file and
-        return its value
-
-        :param string filename: Path to file containing environment variable values
-        :return dict: Value of environment variables, if provided. None otherwise
-        :raises IOError: If the file was not found or not a valid JSON
-        """
-        if not filename:
-            return None
-
-        # Try to read the file and parse it as JSON
-        try:
-
-            with open(filename, "r") as fp:
-                return json.load(fp)
-
-        except Exception as ex:
-            raise IOError(
-                "Could not read environment variables overrides from file {}: {}".format(filename, str(ex))
-            ) from ex
-
-    @staticmethod
-    def _make_env_vars(function: Function, env_vars_values: dict) -> Any:
+    def _make_env_vars(function: Function, env_vars_values: dict) -> Dict:
         """Returns the environment variables configuration for this function
 
         Parameters
@@ -676,6 +661,7 @@ class ApplicationBuilder:
         """
 
         name = function.name
+        overrides = {}
 
         if env_vars_values:
             for env_var_value in env_vars_values.values():
@@ -694,8 +680,6 @@ class ApplicationBuilder:
             else:
                 # Standard format
                 LOG.debug("Environment variables data is standard format")
-                overrides = env_vars_values.get(name, None)
+                overrides = env_vars_values.get(name, {})
 
-            return overrides
-
-        return None
+        return overrides
