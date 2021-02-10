@@ -132,7 +132,12 @@ class InvokeContext:
         self._debug_args = debug_args
         self._debugger_path = debugger_path
         self._container_env_vars_file = container_env_vars_file
-        self._parameter_overrides = parameter_overrides or {}
+
+        self.parameter_overrides = parameter_overrides or {}
+        # Override certain CloudFormation pseudo-parameters based on values provided by customer
+        if aws_region:
+            self.parameter_overrides["AWS::Region"] = aws_region
+
         self._layer_cache_basedir = layer_cache_basedir
         self._force_image_build = force_image_build
         self._aws_region = aws_region
@@ -371,20 +376,12 @@ class InvokeContext:
         return cwd
 
     @property
-    def parameter_overrides(self):
-        # Override certain CloudFormation pseudo-parameters based on values provided by customer
-        if self._aws_region:
-            self._parameter_overrides["AWS::Region"] = self._aws_region
-
-        return self._parameter_overrides
-
-    @property
     def _is_debugging(self):
         return bool(self._debug_context)
 
     def _get_stacks(self):
         try:
-            return SamLocalStackProvider.get_stacks(self._template_file, parameter_overrides=self._parameter_overrides)
+            return SamLocalStackProvider.get_stacks(self._template_file, parameter_overrides=self.parameter_overrides)
         except (TemplateNotFoundException, TemplateFailedParsingException) as ex:
             raise InvokeContextException(str(ex)) from ex
 
