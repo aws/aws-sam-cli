@@ -22,7 +22,6 @@ from typing import Dict, List
 import boto3
 import click
 
-from samcli.commands._utils.template import get_template_data
 from samcli.commands.deploy import exceptions as deploy_exceptions
 from samcli.commands.deploy.auth_utils import auth_per_resource
 from samcli.commands.deploy.utils import (
@@ -32,6 +31,7 @@ from samcli.commands.deploy.utils import (
 )
 from samcli.lib.deploy.deployer import Deployer
 from samcli.lib.package.s3_uploader import S3Uploader
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
 from samcli.yamlhelper import yaml_parse
 
@@ -174,10 +174,10 @@ class DeployContext:
         fail_on_empty_changeset=True,
         confirm_changeset=False,
     ):
-
-        auth_required_per_resource = auth_per_resource(
-            sanitize_parameter_overrides(self.parameter_overrides), get_template_data(self.template_file)
+        stacks = SamLocalStackProvider.get_stacks(
+            self.template_file, parameter_overrides=sanitize_parameter_overrides(self.parameter_overrides)
         )
+        auth_required_per_resource = auth_per_resource(stacks)
 
         for resource, authorization_required in auth_required_per_resource:
             if not authorization_required:
