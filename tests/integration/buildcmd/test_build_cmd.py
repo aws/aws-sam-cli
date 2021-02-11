@@ -11,7 +11,13 @@ from parameterized import parameterized
 import pytest
 
 from samcli.lib.utils import osutils
-from .build_integ_base import BuildIntegBase, DedupBuildIntegBase, CachedBuildIntegBase, BuildIntegRubyBase
+from .build_integ_base import (
+    BuildIntegBase,
+    DedupBuildIntegBase,
+    CachedBuildIntegBase,
+    BuildIntegRubyBase,
+    NestedBuildIntegBase,
+)
 from tests.testing_utils import (
     IS_WINDOWS,
     RUNNING_ON_CI,
@@ -1376,3 +1382,166 @@ class TestBuildWithInlineCode(BuildIntegBase):
         self._verify_resource_property(str(template_path), codeuri_logical_id, "CodeUri", codeuri_logical_id)
         # Make sure the template has correct InlineCode for resource
         self._verify_resource_property(str(template_path), inline_logical_id, "InlineCode", "def handler(): pass")
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildWithNestedStacks(NestedBuildIntegBase):
+    template = "nested-root-template.yaml"
+
+    @parameterized.expand(
+        [
+            (
+                "use_container",
+                True,
+                True,
+            ),
+            (
+                "use_container",
+                False,
+                False,
+            ),
+            (
+                False,
+                True,
+                True,
+            ),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_nested_build(self, use_container, cached, parallel):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        """
+        Build template above and verify that each function call returns as expected
+        """
+        overrides = {
+            "Runtime": "python3.7",
+            "CodeUri": "Python",
+            "LocalNestedFuncHandler": "main.handler",
+        }
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, cached=cached, parallel=parallel
+        )
+
+        LOG.info("Running Command: %s", cmdlist)
+        LOG.info(self.working_dir)
+
+        newenv = os.environ.copy()
+        newenv["SAM_CLI_ENABLE_NESTED_STACK"] = "1"
+        command_result = run_command(cmdlist, cwd=self.working_dir, env=newenv)
+
+        function_full_paths = ["Function", "Function2", "LocalNestedStack/Function1", "LocalNestedStack/Function2"]
+        stack_paths = ["", "LocalNestedStack"]
+        if not SKIP_DOCKER_TESTS:
+            self._verify_build(
+                function_full_paths,
+                stack_paths,
+                command_result,
+            )
+
+            overrides = self._make_parameter_override_arg(overrides)
+            self._verify_invoke_built_functions(
+                self.built_template,
+                overrides,
+                [
+                    # invoking function in root stack using function name
+                    ("Function", "Hello World"),
+                    # there is only 1 Function1 in these two stacks, so invoking either by name and by full_path are the same
+                    ("Function1", {"pi": "3.14"}),
+                    ("LocalNestedStack/Function1", {"pi": "3.14"}),
+                    # Function2 appears in both stacks and have different handler:
+                    # - invoking using function name will match the root stack one by default
+                    # - invoking using full path to avoid ambiguity
+                    ("Function2", "Hello Mars"),
+                    ("LocalNestedStack/Function2", {"pi": "3.14"}),
+                ],
+            )
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
+    template = "nested-root-template-image.yaml"
+    EXPECTED_FILES_PROJECT_MANIFEST = {
+        "__init__.py",
+        "main.py",
+        "numpy",
+        # 'cryptography',
+        "requirements.txt",
+    }
+
+    @parameterized.expand(
+        [
+            (
+                "use_container",
+                True,
+                True,
+            ),
+            (
+                "use_container",
+                False,
+                False,
+            ),
+            (
+                False,
+                True,
+                True,
+            ),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_nested_build(self, use_container, cached, parallel):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        """
+        Build template above and verify that each function call returns as expected
+        """
+        overrides = {
+            "Runtime": "3.7",
+            "DockerFile": "Dockerfile",
+            "Tag": f"{random.randint(1,100)}",
+            "LocalNestedFuncHandler": "main.handler",
+        }
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, cached=cached, parallel=parallel
+        )
+
+        LOG.info("Running Command: %s", cmdlist)
+        LOG.info(self.working_dir)
+
+        newenv = os.environ.copy()
+        newenv["SAM_CLI_ENABLE_NESTED_STACK"] = "1"
+        command_result = run_command(cmdlist, cwd=self.working_dir, env=newenv)
+
+        stack_paths = ["", "LocalNestedStack"]
+        if not SKIP_DOCKER_TESTS:
+            self._verify_build(
+                [],  # there is no function artifact dirs to check
+                stack_paths,
+                command_result,
+            )
+
+            overrides = self._make_parameter_override_arg(overrides)
+            self._verify_invoke_built_functions(
+                self.built_template,
+                overrides,
+                [
+                    # invoking function in root stack using function name
+                    ("Function", "Hello World"),
+                    # there is only 1 Function1 in these two stacks, so invoking either by name and by full_path are the same
+                    ("Function1", {"pi": "3.14"}),
+                    ("LocalNestedStack/Function1", {"pi": "3.14"}),
+                    # Function2 appears in both stacks and have different handler:
+                    # - invoking using function name will match the root stack one by default
+                    # - invoking using full path to avoid ambiguity
+                    ("Function2", "Hello Mars"),
+                    ("LocalNestedStack/Function2", {"pi": "3.14"}),
+                ],
+            )
