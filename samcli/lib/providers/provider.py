@@ -6,7 +6,7 @@ import hashlib
 import logging
 import posixpath
 from collections import namedtuple
-from typing import NamedTuple, Optional, List, Dict, Union
+from typing import NamedTuple, Optional, List, Dict
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, UnsupportedIntrinsic
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
