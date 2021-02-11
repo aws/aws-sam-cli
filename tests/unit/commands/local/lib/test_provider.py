@@ -5,7 +5,7 @@ from unittest.mock import Mock
 from parameterized import parameterized
 
 
-from samcli.lib.providers.provider import LayerVersion, _get_build_dir
+from samcli.lib.providers.provider import LayerVersion, Stack, _get_build_dir
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, UnsupportedIntrinsic
 
 
@@ -26,6 +26,18 @@ class TestProvider(TestCase):
     )
     def test_stack_build_dir(self, resource, output_build_dir):
         self.assertEqual(_get_build_dir(resource, "builddir"), output_build_dir)
+
+    @parameterized.expand(
+        [
+            ("", "", os.path.join("builddir", "template.yaml")),  # root stack
+            ("", "A", os.path.join("builddir", "A", "template.yaml")),
+            ("A", "B", os.path.join("builddir", "A", "B", "template.yaml")),
+            ("A/B", "C", os.path.join("builddir", "A", "B", "C", "template.yaml")),
+        ]
+    )
+    def test_stack_get_output_template_path(self, parent_stack_path, name, output_template_path):
+        root_stack = Stack(parent_stack_path, name, None, None, None)
+        self.assertEqual(root_stack.get_output_template_path("builddir"), output_template_path)
 
 
 class TestLayerVersion(TestCase):

@@ -407,6 +407,13 @@ class Stack(NamedTuple):
         resources: Dict = processed_template_dict.get("Resources", {})
         return resources
 
+    def get_output_template_path(self, build_root: str) -> str:
+        """
+        Return the path of the template yaml file output by "sam build."
+        """
+        # stack_path is always posix path, we need to convert it to path that matches the OS
+        return os.path.join(build_root, self.stack_path.replace(posixpath.sep, os.path.sep), "template.yaml")
+
 
 def get_full_path(stack_path: str, logical_id: str) -> str:
     """

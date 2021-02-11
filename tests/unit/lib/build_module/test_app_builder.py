@@ -9,6 +9,8 @@ from unittest import TestCase, skipUnless
 from unittest.mock import Mock, call, patch, ANY
 from pathlib import Path, WindowsPath
 
+from parameterized import parameterized
+
 from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition
 from samcli.lib.providers.provider import ResourcesToBuildCollector
 from samcli.lib.build.app_builder import (
@@ -401,6 +403,14 @@ class TestApplicationBuilderForLayerBuild(TestCase):
 
 
 class TestApplicationBuilder_update_template(TestCase):
+    def make_root_template(self, resource_type, location_property_name):
+        return {
+            "Resources": {
+                "MyFunction1": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "oldvalue"}},
+                "ChildStackXXX": {"Type": resource_type, "Properties": {location_property_name: "./child.yaml"}},
+            }
+        }
+
     def setUp(self):
         self.builder = ApplicationBuilder(Mock(), "builddir", "basedir", "cachedir")
 
@@ -447,12 +457,77 @@ class TestApplicationBuilder_update_template(TestCase):
             }
         }
 
-        actual = self.builder.update_template(self.template_dict, original_template_path, built_artifacts)
+        actual = self.builder.update_template("", self.template_dict, original_template_path, built_artifacts, {})
         self.assertEqual(actual, expected_result)
+
+    @parameterized.expand([("AWS::Serverless::Application", "Location"), ("AWS::CloudFormation::Stack", "TemplateURL")])
+    def test_must_update_resources_with_build_artifacts_and_template_paths_in_multi_stack(
+        self, resource_type, location_property_name
+    ):
+        self.maxDiff = None
+        original_child_template_path = "/path/to/child.yaml"
+        original_root_template_path = "/path/to/template.yaml"
+        built_artifacts = {
+            "MyFunction1": "/path/to/build/MyFunction1",
+            "ChildStackXXX/MyFunction1": "/path/to/build/ChildStackXXX/MyFunction1",
+            "ChildStackXXX/MyFunction2": "/path/to/build/ChildStackXXX/MyFunction2",
+            "ChildStackXXX/MyImageFunction1": "myimagefunction1:Tag",
+        }
+        stack_output_paths = {
+            "": "/path/to/build/template.yaml",
+            "ChildStackXXX": "/path/to/build/ChildStackXXX/template.yaml",
+        }
+
+        expected_child = {
+            "Resources": {
+                "MyFunction1": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {"CodeUri": os.path.join("build", "ChildStackXXX", "MyFunction1")},
+                },
+                "MyFunction2": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {"Code": os.path.join("build", "ChildStackXXX", "MyFunction2")},
+                },
+                "GlueResource": {"Type": "AWS::Glue::Job", "Properties": {"Command": {"ScriptLocation": "something"}}},
+                "OtherResource": {"Type": "AWS::Lambda::Version", "Properties": {"CodeUri": "something"}},
+                "MyImageFunction1": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {"Code": "myimagefunction1:Tag", "PackageType": IMAGE},
+                    "Metadata": {"Dockerfile": "Dockerfile", "DockerContext": "DockerContext", "DockerTag": "Tag"},
+                },
+            }
+        }
+        expected_root = {
+            "Resources": {
+                "MyFunction1": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {"CodeUri": os.path.join("build", "MyFunction1")},
+                },
+                "ChildStackXXX": {
+                    "Type": resource_type,
+                    "Properties": {
+                        location_property_name: os.path.join("build", "ChildStackXXX", "template.yaml"),
+                    },
+                },
+            }
+        }
+
+        actual_root = self.builder.update_template(
+            "",
+            self.make_root_template(resource_type, location_property_name),
+            original_root_template_path,
+            built_artifacts,
+            stack_output_paths,
+        )
+        actual_child = self.builder.update_template(
+            "ChildStackXXX", self.template_dict, original_child_template_path, built_artifacts, stack_output_paths
+        )
+        self.assertEqual(expected_root, actual_root)
+        self.assertEqual(expected_child, actual_child)
 
     def test_must_skip_if_no_artifacts(self):
         built_artifacts = {}
-        actual = self.builder.update_template(self.template_dict, "/foo/bar/template.txt", built_artifacts)
+        actual = self.builder.update_template("", self.template_dict, "/foo/bar/template.txt", built_artifacts, {})
 
         self.assertEqual(actual, self.template_dict)
 
@@ -467,6 +542,8 @@ class TestApplicationBuilder_update_template_windows(TestCase):
                 "MyFunction2": {"Type": "AWS::Lambda::Function", "Properties": {"Code": "oldvalue"}},
                 "GlueResource": {"Type": "AWS::Glue::Job", "Properties": {"Command": {"ScriptLocation": "something"}}},
                 "OtherResource": {"Type": "AWS::Lambda::Version", "Properties": {"CodeUri": "something"}},
+                "ChildStack1": {"Type": "AWS::Serverless::Application", "Properties": {"Location": "oldvalue"}},
+                "ChildStack2": {"Type": "AWS::CloudFormation::Stack", "Properties": {"TemplateURL": "oldvalue"}},
             }
         }
 
@@ -492,6 +569,9 @@ class TestApplicationBuilder_update_template_windows(TestCase):
                 function_1_path = "D:\\path\\to\\build\\MyFunction1"
                 function_2_path = "C:\\path2\\to\\build\\MyFunction2"
                 built_artifacts = {"MyFunction1": function_1_path, "MyFunction2": function_2_path}
+                child_1_path = "D:\\path\\to\\build\\ChildStack1\\template.yaml"
+                child_2_path = "C:\\path2\\to\\build\\ChildStack2\\template.yaml"
+                output_template_paths = {"ChildStack1": child_1_path, "ChildStack2": child_2_path}
 
                 expected_result = {
                     "Resources": {
@@ -508,10 +588,20 @@ class TestApplicationBuilder_update_template_windows(TestCase):
                             "Properties": {"Command": {"ScriptLocation": "something"}},
                         },
                         "OtherResource": {"Type": "AWS::Lambda::Version", "Properties": {"CodeUri": "something"}},
+                        "ChildStack1": {
+                            "Type": "AWS::Serverless::Application",
+                            "Properties": {"Location": child_1_path},
+                        },
+                        "ChildStack2": {
+                            "Type": "AWS::CloudFormation::Stack",
+                            "Properties": {"TemplateURL": "..\\..\\path2\\to\\build\\ChildStack2\\template.yaml"},
+                        },
                     }
                 }
 
-                actual = self.builder.update_template(self.template_dict, original_template_path, built_artifacts)
+                actual = self.builder.update_template(
+                    "", self.template_dict, original_template_path, built_artifacts, output_template_paths
+                )
                 self.assertEqual(actual, expected_result)
 
     def tearDown(self):

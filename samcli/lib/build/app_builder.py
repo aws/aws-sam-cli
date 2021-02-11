@@ -22,7 +22,7 @@ from samcli.lib.build.build_strategy import (
     ParallelBuildStrategy,
     BuildStrategy,
 )
-from samcli.lib.providers.provider import ResourcesToBuildCollector
+from samcli.lib.providers.provider import ResourcesToBuildCollector, get_full_path
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.lib.utils.colors import Colored
 import samcli.lib.utils.osutils as osutils
@@ -184,16 +184,24 @@ class ApplicationBuilder:
         return build_graph
 
     @staticmethod
-    def update_template(template_dict: Dict, original_template_path: str, built_artifacts: Dict[str, str]) -> Dict:
+    def update_template(
+        stack_path: str,
+        template_dict: Dict,
+        original_template_path: str,
+        built_artifacts: Dict[str, str],
+        stack_output_template_path_by_stack_path: Dict[str, str],
+    ) -> Dict:
         """
         Given the path to built artifacts, update the template to point appropriate resource CodeUris to the artifacts
         folder
 
         Parameters
         ----------
-        template_dict
+        stack_path: str
+        template_dict: dict
         original_template_path : str
             Path where the template file will be written to
+        stack_output_template_path_by_stack_path: Dict[str, str]
 
         built_artifacts : dict
             Map of LogicalId of a resource to the path where the the built artifacts for this resource lives
@@ -208,39 +216,52 @@ class ApplicationBuilder:
 
         for logical_id, resource in template_dict.get("Resources", {}).items():
 
-            if logical_id not in built_artifacts:
-                # this resource was not built. So skip it
+            full_path = get_full_path(stack_path, logical_id)
+            is_artifact = full_path in built_artifacts
+            is_stack = full_path in stack_output_template_path_by_stack_path
+
+            if not is_artifact and not is_stack:
+                # this resource was not built or a nested stack. So skip it
                 continue
-
-            artifact_dir = pathlib.Path(built_artifacts[logical_id]).resolve()
-
-            # Default path to absolute path of the artifact
-            store_path = str(artifact_dir)
-
-            # In Windows, if template and artifacts are in two different drives, relpath will fail
-            if original_dir.drive == artifact_dir.drive:
-                # Artifacts are written relative  the template because it makes the template portable
-                #   Ex: A CI/CD pipeline build stage could zip the output folder and pass to a
-                #   package stage running on a different machine
-                store_path = os.path.relpath(artifact_dir, original_dir)
 
             resource_type = resource.get("Type")
             properties = resource.setdefault("Properties", {})
 
-            if resource_type == SamBaseProvider.SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == ZIP:
-                properties["CodeUri"] = store_path
+            abs_out_path = pathlib.Path(
+                built_artifacts[full_path] if is_artifact else stack_output_template_path_by_stack_path[full_path]
+            ).resolve()
+            # Default path to absolute path of the artifact
+            store_path = str(abs_out_path)
 
-            if resource_type == SamBaseProvider.LAMBDA_FUNCTION and properties.get("PackageType", ZIP) == ZIP:
-                properties["Code"] = store_path
+            # In Windows, if template and artifacts are in two different drives, relpath will fail
+            if original_dir.drive == abs_out_path.drive:
+                # Artifacts are written relative  the template because it makes the template portable
+                #   Ex: A CI/CD pipeline build stage could zip the output folder and pass to a
+                #   package stage running on a different machine
+                store_path = os.path.relpath(abs_out_path, original_dir)
 
-            if resource_type in [SamBaseProvider.SERVERLESS_LAYER, SamBaseProvider.LAMBDA_LAYER]:
-                properties["ContentUri"] = store_path
+            if is_artifact:
+                if resource_type == SamBaseProvider.SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == ZIP:
+                    properties["CodeUri"] = store_path
 
-            if resource_type == SamBaseProvider.LAMBDA_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
-                properties["Code"] = built_artifacts[logical_id]
+                if resource_type == SamBaseProvider.LAMBDA_FUNCTION and properties.get("PackageType", ZIP) == ZIP:
+                    properties["Code"] = store_path
 
-            if resource_type == SamBaseProvider.SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
-                properties["ImageUri"] = built_artifacts[logical_id]
+                if resource_type in [SamBaseProvider.SERVERLESS_LAYER, SamBaseProvider.LAMBDA_LAYER]:
+                    properties["ContentUri"] = store_path
+
+                if resource_type == SamBaseProvider.LAMBDA_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
+                    properties["Code"] = built_artifacts[full_path]
+
+                if resource_type == SamBaseProvider.SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
+                    properties["ImageUri"] = built_artifacts[full_path]
+
+            if is_stack:
+                if resource_type == SamBaseProvider.SERVERLESS_APPLICATION:
+                    properties["Location"] = store_path
+
+                if resource_type == SamBaseProvider.CLOUDFORMATION_STACK:
+                    properties["TemplateURL"] = store_path
 
         return template_dict
 
