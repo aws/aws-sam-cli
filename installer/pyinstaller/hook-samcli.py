@@ -21,5 +21,6 @@ hiddenimports = [
 datas = (
     hooks.collect_data_files("samcli")
     + hooks.collect_data_files("samtranslator")
+    + hooks.collect_data_files("aws_lambda_builders")
     + hooks.collect_data_files("text_unidecode")
 )
