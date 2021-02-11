@@ -102,13 +102,13 @@ class SamFunctionProvider(SamBaseProvider):
         Extracts and returns function information from the given dictionary of SAM/CloudFormation resources. This
         method supports functions defined with AWS::Serverless::Function and AWS::Lambda::Function
 
-        :param dict resources_by_stack: Dictionary of SAM/CloudFormation resources by stack
+        :param stacks: List of SAM/CloudFormation stacks to extract functions from
         :param bool ignore_code_extraction_warnings: suppress log statements on code extraction from resources.
-        :return dict(string : samcli.commands.local.lib.provider.Function): Dictionary of function LogicalId to the
+        :return dict(string : samcli.commands.local.lib.provider.Function): Dictionary of function full_path to the
             Function configuration object
         """
 
-        result = {}  # dict: full_path -> Function
+        result: Dict[str, Function] = {}  # a dict with full_path as key and extracted function as value
         for stack in stacks:
             for name, resource in stack.resources.items():
 
@@ -126,14 +126,14 @@ class SamFunctionProvider(SamBaseProvider):
                         stack.resources,
                         ignore_code_extraction_warnings=ignore_code_extraction_warnings,
                     )
-                    f = SamFunctionProvider._convert_sam_function_resource(
+                    function = SamFunctionProvider._convert_sam_function_resource(
                         stack.stack_path,
                         name,
                         resource_properties,
                         layers,
                         ignore_code_extraction_warnings=ignore_code_extraction_warnings,
                     )
-                    result[f.full_path] = f
+                    result[function.full_path] = function
 
                 elif resource_type == SamFunctionProvider.LAMBDA_FUNCTION:
                     layers = SamFunctionProvider._parse_layer_info(
@@ -142,10 +142,10 @@ class SamFunctionProvider(SamBaseProvider):
                         stack.resources,
                         ignore_code_extraction_warnings=ignore_code_extraction_warnings,
                     )
-                    f = SamFunctionProvider._convert_lambda_function_resource(
+                    function = SamFunctionProvider._convert_lambda_function_resource(
                         stack.stack_path, name, resource_properties, layers
                     )
-                    result[f.full_path] = f
+                    result[function.full_path] = function
 
                 # We don't care about other resource types. Just ignore them
 
