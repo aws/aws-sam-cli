@@ -125,16 +125,18 @@ class DefaultBuildStrategy(BuildStrategy):
         function_build_results[single_function_name] = result
 
         # copy results to other functions
-        for function in build_definition.functions:
-            if function.name != single_function_name:
-                if build_definition.packagetype == ZIP:
+        if build_definition.packagetype == ZIP:
+            for function in build_definition.functions:
+                if function.name != single_function_name:
                     # for zip function we need to copy over the artifacts
                     # artifacts directory will be created by the builder
                     artifacts_dir = str(pathlib.Path(self._build_dir, function.name))
                     LOG.debug("Copying artifacts from %s to %s", single_build_dir, artifacts_dir)
                     osutils.copytree(single_build_dir, artifacts_dir)
                     function_build_results[function.name] = artifacts_dir
-                elif build_definition.packagetype == IMAGE:
+        elif build_definition.packagetype == IMAGE:
+            for function in build_definition.functions:
+                if function.name != single_function_name:
                     # for image function, we just need to copy the image tag
                     function_build_results[function.name] = result
 
