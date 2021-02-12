@@ -1,6 +1,6 @@
 import posixpath
 from unittest import TestCase
-from unittest.mock import patch, PropertyMock
+from unittest.mock import patch, PropertyMock, Mock, call
 
 from parameterized import parameterized
 
@@ -547,11 +547,12 @@ class TestSamFunctionProvider_extract_functions(TestCase):
     @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
     @patch.object(SamFunctionProvider, "_convert_sam_function_resource")
     def test_must_work_for_sam_function(self, convert_mock, resources_mock):
-        convertion_result = "some result"
+        convertion_result = Mock()
+        convertion_result.full_path = "A/B/C/Func1"
         convert_mock.return_value = convertion_result
 
         resources_mock.return_value = {"Func1": {"Type": "AWS::Serverless::Function", "Properties": {"a": "b"}}}
-        expected = {"Func1": "some result"}
+        expected = {"A/B/C/Func1": convertion_result}
 
         result = SamFunctionProvider._extract_functions([make_root_stack(None)])
         self.assertEqual(expected, result)
@@ -560,7 +561,8 @@ class TestSamFunctionProvider_extract_functions(TestCase):
     @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
     @patch.object(SamFunctionProvider, "_convert_sam_function_resource")
     def test_must_work_with_no_properties(self, convert_mock, resources_mock):
-        convertion_result = "some result"
+        convertion_result = Mock()
+        convertion_result.full_path = "A/B/C/Func1"
         convert_mock.return_value = convertion_result
 
         resources_mock.return_value = {
@@ -570,7 +572,7 @@ class TestSamFunctionProvider_extract_functions(TestCase):
             }
         }
 
-        expected = {"Func1": "some result"}
+        expected = {"A/B/C/Func1": convertion_result}
 
         result = SamFunctionProvider._extract_functions([make_root_stack(None)])
         self.assertEqual(expected, result)
@@ -579,12 +581,13 @@ class TestSamFunctionProvider_extract_functions(TestCase):
     @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
     @patch.object(SamFunctionProvider, "_convert_lambda_function_resource")
     def test_must_work_for_lambda_function(self, convert_mock, resources_mock):
-        convertion_result = "some result"
+        convertion_result = Mock()
+        convertion_result.full_path = "A/B/C/Func1"
         convert_mock.return_value = convertion_result
 
         resources_mock.return_value = {"Func1": {"Type": "AWS::Lambda::Function", "Properties": {"a": "b"}}}
 
-        expected = {"Func1": "some result"}
+        expected = {"A/B/C/Func1": convertion_result}
 
         result = SamFunctionProvider._extract_functions([make_root_stack(None)])
         self.assertEqual(expected, result)
@@ -598,6 +601,41 @@ class TestSamFunctionProvider_extract_functions(TestCase):
 
         result = SamFunctionProvider._extract_functions([make_root_stack(None)])
         self.assertEqual(expected, result)
+
+    @patch.object(SamFunctionProvider, "_convert_lambda_function_resource")
+    def test_must_work_for_multiple_functions_with_name_but_in_different_stacks(
+        self,
+        convert_mock,
+    ):
+        function_root = Mock()
+        function_root.name = "Func1"
+        function_root.full_path = "Func1"
+        function_child = Mock()
+        function_child.name = "Func1"
+        function_child.full_path = "C/Func1"
+
+        stack_root = Mock()
+        stack_root.resources = {
+            "Func1": {"Type": "AWS::Lambda::Function", "Properties": {"a": "b"}},
+            "C": {"Type": "AWS::Serverless::Application", "Properties": {"Location": "./child.yaml"}},
+        }
+        stack_child = Mock()
+        stack_child.resources = {
+            "Func1": {"Type": "AWS::Lambda::Function", "Properties": {"a": "b"}},
+        }
+
+        convert_mock.side_effect = [function_root, function_child]
+
+        expected = {"Func1": function_root, "C/Func1": function_child}
+
+        result = SamFunctionProvider._extract_functions([stack_root, stack_child])
+        self.assertEqual(expected, result)
+        convert_mock.assert_has_calls(
+            [
+                call(stack_root.stack_path, "Func1", {"a": "b"}, []),
+                call(stack_child.stack_path, "Func1", {"a": "b"}, []),
+            ]
+        )
 
 
 class TestSamFunctionProvider_convert_sam_function_resource(TestCase):

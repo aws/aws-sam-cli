@@ -54,6 +54,17 @@ class Function(NamedTuple):
     # The path of the stack relative to the root stack, it is empty for functions in root stack
     stack_path: str = ""
 
+    @property
+    def full_path(self) -> str:
+        """
+        Return the path-like identifier of this Function. If it is in root stack, full_path = name.
+        This path is guaranteed to be unique in a multi-stack situation.
+        Example:
+            "HelloWorldFunction"
+            "ChildStackA/GrandChildStackB/AFunctionInNestedStack"
+        """
+        return get_full_path(self.stack_path, self.name)
+
 
 class ResourcesToBuildCollector:
     def __init__(self):
@@ -240,6 +251,17 @@ class LayerVersion:
     def compatible_runtimes(self):
         return self._compatible_runtimes
 
+    @property
+    def full_path(self) -> str:
+        """
+        Return the path-like identifier of this Layer. If it is in root stack, full_path = name.
+        This path is guaranteed to be unique in a multi-stack situation.
+        Example:
+            "HelloWorldLayer"
+            "ChildStackA/GrandChildStackB/ALayerInNestedStack"
+        """
+        return get_full_path(self.stack_path, self.name)
+
     def __eq__(self, other):
         if isinstance(other, type(self)):
             return self.__dict__ == other.__dict__
@@ -371,3 +393,11 @@ class Stack(NamedTuple):
         processed_template_dict: Dict = SamBaseProvider.get_template(self.template_dict, self.parameters)
         resources: Dict = processed_template_dict.get("Resources", {})
         return resources
+
+
+def get_full_path(stack_path: str, logical_id: str) -> str:
+    """
+    Return the unique posix path-like identifier
+    while will used for identify a resource from resources in a multi-stack situation
+    """
+    return posixpath.join(stack_path, logical_id)
