@@ -10,6 +10,7 @@ from samcli.commands.local.cli_common.options import invoke_common_options, loca
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
+from samcli.lib.utils.events import get_event
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.local.docker.exceptions import ContainerNotStartableException
 
@@ -29,7 +30,6 @@ $ sam local invoke "HelloWorldFunction" -e event.json\n
 Invoking a Lambda function using input from stdin
 $ echo '{"message": "Hey, are you there?" }' | sam local invoke "HelloWorldFunction" --event - \n
 """
-STDIN_FILE_NAME = "-"
 
 
 @click.command("invoke", help=HELP_TEXT, short_help="Invokes a local Lambda function once.")
@@ -133,7 +133,7 @@ def do_cli(  # pylint: disable=R0914
     LOG.debug("local invoke command is called")
 
     if event:
-        event_data = _get_event(event)
+        event_data = get_event(event)
     else:
         event_data = "{}"
 
@@ -182,21 +182,3 @@ def do_cli(  # pylint: disable=R0914
         raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
     except ContainerNotStartableException as ex:
         raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
-
-
-def _get_event(event_file_name):
-    """
-    Read the event JSON data from the given file. If no file is provided, read the event from stdin.
-
-    :param string event_file_name: Path to event file, or '-' for stdin
-    :return string: Contents of the event file or stdin
-    """
-
-    if event_file_name == STDIN_FILE_NAME:
-        # If event is empty, listen to stdin for event data until EOF
-        LOG.info("Reading invoke payload from stdin (you can also pass it from file with --event)")
-
-    # click.open_file knows to open stdin when filename is '-'. This is safer than manually opening streams, and
-    # accidentally closing a standard stream
-    with click.open_file(event_file_name, "r", encoding="utf-8") as fp:
-        return fp.read()

@@ -11,13 +11,10 @@ from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.lib.providers.exceptions import InvalidLayerReference
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.exceptions import UserException
-from samcli.commands.local.invoke.cli import do_cli as invoke_cli, _get_event as invoke_cli_get_event
+from samcli.commands.local.invoke.cli import do_cli as invoke_cli
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError, InvalidIntermediateImageError
 from samcli.local.docker.manager import DockerImagePullFailedException
 from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
-
-
-STDIN_FILE_NAME = "-"
 
 
 class TestCli(TestCase):
@@ -43,7 +40,7 @@ class TestCli(TestCase):
         self.profile = "profile"
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
-    @patch("samcli.commands.local.invoke.cli._get_event")
+    @patch("samcli.commands.local.invoke.cli.get_event")
     def test_cli_must_setup_context_and_invoke(self, get_event_mock, InvokeContextMock):
         event_data = "data"
         get_event_mock.return_value = event_data
@@ -103,7 +100,7 @@ class TestCli(TestCase):
         get_event_mock.assert_called_with(self.eventfile)
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
-    @patch("samcli.commands.local.invoke.cli._get_event")
+    @patch("samcli.commands.local.invoke.cli.get_event")
     def test_cli_must_invoke_with_no_event(self, get_event_mock, InvokeContextMock):
         self.event = None
 
@@ -167,7 +164,7 @@ class TestCli(TestCase):
         ]
     )
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
-    @patch("samcli.commands.local.invoke.cli._get_event")
+    @patch("samcli.commands.local.invoke.cli.get_event")
     def test_must_raise_user_exception_on_function_not_found(
         self, side_effect_exception, expected_exectpion_message, get_event_mock, InvokeContextMock
     ):
@@ -219,7 +216,7 @@ class TestCli(TestCase):
         ]
     )
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
-    @patch("samcli.commands.local.invoke.cli._get_event")
+    @patch("samcli.commands.local.invoke.cli.get_event")
     def test_must_raise_user_exception_on_function_local_invoke_image_not_found_for_IMAGE_packagetype(
         self, side_effect_exception, expected_exectpion_message, get_event_mock, InvokeContextMock
     ):
@@ -273,7 +270,7 @@ class TestCli(TestCase):
         ]
     )
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
-    @patch("samcli.commands.local.invoke.cli._get_event")
+    @patch("samcli.commands.local.invoke.cli.get_event")
     def test_must_raise_user_exception_on_invalid_sam_template(
         self, exeception_to_raise, execption_message, get_event_mock, InvokeContextMock
     ):
@@ -313,7 +310,7 @@ class TestCli(TestCase):
         self.assertEqual(msg, execption_message)
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
-    @patch("samcli.commands.local.invoke.cli._get_event")
+    @patch("samcli.commands.local.invoke.cli.get_event")
     def test_must_raise_user_exception_on_invalid_env_vars(self, get_event_mock, InvokeContextMock):
         event_data = "data"
         get_event_mock.return_value = event_data
@@ -359,7 +356,7 @@ class TestCli(TestCase):
         ]
     )
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
-    @patch("samcli.commands.local.invoke.cli._get_event")
+    @patch("samcli.commands.local.invoke.cli.get_event")
     def test_must_raise_user_exception_on_function_no_free_ports(
         self, side_effect_exception, expected_exectpion_message, get_event_mock, InvokeContextMock
     ):
@@ -401,22 +398,3 @@ class TestCli(TestCase):
 
         msg = str(ex_ctx.exception)
         self.assertEqual(msg, expected_exectpion_message)
-
-
-class TestGetEvent(TestCase):
-    @parameterized.expand([param(STDIN_FILE_NAME), param("somefile")])
-    @patch("samcli.commands.local.invoke.cli.click")
-    def test_must_work_with_stdin(self, filename, click_mock):
-        event_data = "some data"
-
-        # Mock file pointer
-        fp_mock = Mock()
-
-        # Mock the context manager
-        click_mock.open_file.return_value.__enter__.return_value = fp_mock
-        fp_mock.read.return_value = event_data
-
-        result = invoke_cli_get_event(filename)
-
-        self.assertEqual(result, event_data)
-        fp_mock.read.assert_called_with()
