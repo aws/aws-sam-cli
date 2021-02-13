@@ -167,7 +167,6 @@ python-dateutil==2.8.0 \
     --hash=sha256:c89805f6f4d64db21ed966fda138f8a5ed7a4fdbc1a8ee329ce1b74e3c74da9e
     # via
     #   arrow
-    #   aws-sam-cli (setup.py)
     #   botocore
     #   dateparser
 python-slugify==4.0.1 \
