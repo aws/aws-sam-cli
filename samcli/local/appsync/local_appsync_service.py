@@ -182,6 +182,7 @@ class LocalAppSyncService(BaseLocalService):
         status_code = 200 if success else 400
         return jsonify(result), status_code
 
+
 def graphql_playground():
     # On GET request serve GraphQL Playground
     return PLAYGROUND_HTML, 200

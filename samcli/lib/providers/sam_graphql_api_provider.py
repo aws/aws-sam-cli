@@ -101,5 +101,6 @@ class SamGraphQLApiProvider:
 
             collector.add_schema(schema_full_path)
 
+
 def extract_from_serverless_function(logical_id, function_resource, collector, cwd=None):
     collector.add_function(logical_id)
