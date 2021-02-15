@@ -264,6 +264,7 @@ class GraphQLApi:
         self.resolvers = resolvers
         self.schema_path = None
 
+
 _CorsTuple = namedtuple("Cors", ["allow_origin", "allow_methods", "allow_headers", "allow_credentials", "max_age"])
 
 _CorsTuple.__new__.__defaults__ = (  # type: ignore

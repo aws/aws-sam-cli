@@ -2,10 +2,9 @@
 
 import logging
 
-from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
-from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
-from samcli.local.apigw.local_apigw_service import Route
 import os
+from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
+
 
 LOG = logging.getLogger(__name__)
 
@@ -50,7 +49,7 @@ class SamGraphQLApiProvider:
         for logical_id, resource in resources.items():
             resource_type = resource.get(CfnBaseApiProvider.RESOURCE_TYPE)
             if resource_type in [SamGraphQLApiProvider.SERVERLESS_FUNCTION, SamGraphQLApiProvider.LAMBDA_FUNCTION]:
-                self._extract_from_serverless_function(logical_id, resource, collector)
+                extract_from_serverless_function(logical_id, resource, collector)
             if resource_type == SamGraphQLApiProvider.APPSYNC_RESOLVER:
                 self._extract_from_resolver(logical_id, resource, collector)
             if resource_type == SamGraphQLApiProvider.APPSYNC_DATA_SOURCE:
@@ -94,9 +93,6 @@ class SamGraphQLApiProvider:
 
             collector.add_data_source(logical_id, lambda_logical_id)
 
-    def _extract_from_serverless_function(self, logical_id, function_resource, collector, cwd=None):
-        collector.add_function(logical_id)
-
     def _extract_from_schema(self, logical_id, schema_resource, collector, cwd=None):
         resource_properties = schema_resource.get("Properties", {})
         if self._SCHEMA_LOCATION in resource_properties:
@@ -104,3 +100,6 @@ class SamGraphQLApiProvider:
             schema_full_path = os.path.join(cwd, schema_path)
 
             collector.add_schema(schema_full_path)
+
+def extract_from_serverless_function(logical_id, function_resource, collector, cwd=None):
+    collector.add_function(logical_id)

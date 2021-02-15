@@ -3,7 +3,6 @@
 import logging
 
 from samcli.lib.providers.graphql_api_collector import GraphQLApiCollector
-from samcli.lib.providers.cfn_api_provider import CfnApiProvider
 from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
 from samcli.lib.providers.provider import AbstractApiProvider
 from samcli.lib.providers.sam_base_provider import SamBaseProvider

@@ -4,7 +4,6 @@ routes in a standardized format
 """
 
 import logging
-from collections import defaultdict
 
 from samcli.local.appsync.local_appsync_service import Resolver
 from samcli.lib.providers.provider import GraphQLApi

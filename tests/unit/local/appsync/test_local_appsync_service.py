@@ -75,22 +75,19 @@ class TestApiGatewayService(TestCase):
         mock_lambda_output_json = json.dumps(test_object)
         lambda_output_parser.get_lambda_output.return_value = (mock_lambda_output_json, mock_logs_string, None)
 
-        stderr_mock = Mock()        
+        stderr_mock = Mock()
         lambda_runner = Mock()
         direct_lambda_resolver_event = Mock()
         resolver = Resolver("foo", "bar", "foo_bar_field_name")
 
-        local_service = LocalAppSyncService(
-            GraphQLApi(), lambda_runner, stderr=stderr_mock
-        )
+        local_service = LocalAppSyncService(GraphQLApi(), lambda_runner, stderr=stderr_mock)
         resolver_fn = local_service._generate_resolver_fn(resolver)
 
         info = MagicMock()
         result = resolver_fn(None, info)
-        
+
         self.assertEqual(result, test_object)
         stderr_mock.write.assert_called_once_with(mock_logs_string)
-
 
     # def test_request_handles_error_when_invoke_cant_find_function(self, service_error_responses_patch, request_mock):
     #     not_found_response_mock = Mock()
@@ -243,7 +240,7 @@ class TestService_construct_direct_lambda_event(TestCase):
         actual_event_dict = json.loads(actual_event_str)
         self.assertEqual(actual_event_dict, self.expected_dict)
 
-    def test_construct_event_arguments(self): 
+    def test_construct_event_arguments(self):
         arguments = {
             "foo1": "bar1",
             "bar2": "foo2",
@@ -256,9 +253,9 @@ class TestService_construct_direct_lambda_event(TestCase):
         expected["arguments"] = arguments
         self.assertEqual(actual_event_dict, self.expected_dict)
 
-    def test_construct_event_selection_list(self): 
+    def test_construct_event_selection_list(self):
         info_mock = self.info_mock
-        
+
         field_name_one = MagicMock()
         field_name_one.name.value = "someField"
         field_name_two = MagicMock()
@@ -270,7 +267,7 @@ class TestService_construct_direct_lambda_event(TestCase):
 
         selection_set = [a for a in info_mock.field_nodes[0].selection_set.selections]
         print("Selection set %s", selection_set)
-        
+
         actual_event_str = LocalAppSyncService._direct_lambda_resolver_event(
             self.request_mock, arguments={}, info=info_mock
         )

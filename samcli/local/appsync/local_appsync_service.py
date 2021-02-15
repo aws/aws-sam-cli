@@ -2,11 +2,8 @@
 import io
 import json
 import logging
-import base64
 
 from flask import Flask, request, jsonify
-from werkzeug.datastructures import Headers
-from werkzeug.routing import BaseConverter
 from ariadne import load_schema_from_path, ObjectType, make_executable_schema, graphql_sync
 from ariadne.constants import PLAYGROUND_HTML
 
@@ -165,15 +162,11 @@ class LocalAppSyncService(BaseLocalService):
 
         return json.dumps(contents)
 
-    def _graphql_playground(self):
-        # On GET request serve GraphQL Playground
-        return PLAYGROUND_HTML, 200
-
     def _request_handler(self):
         LOG.info("getting in req %s", request)
 
         if request.method == "GET":
-            return self._graphql_playground()
+            return graphql_playground()
 
         # GraphQL queries are always sent as POST
         data = request.get_json()
@@ -188,3 +181,7 @@ class LocalAppSyncService(BaseLocalService):
 
         status_code = 200 if success else 400
         return jsonify(result), status_code
+
+def graphql_playground():
+    # On GET request serve GraphQL Playground
+    return PLAYGROUND_HTML, 200
