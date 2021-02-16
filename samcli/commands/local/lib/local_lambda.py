@@ -69,7 +69,7 @@ class LocalLambdaRunner:
 
     def invoke(
         self,
-        function_name: str,
+        function_identifier: str,
         event: str,
         stdout: Optional[StreamWriter] = None,
         stderr: Optional[StreamWriter] = None,
@@ -82,8 +82,8 @@ class LocalLambdaRunner:
 
         Parameters
         ----------
-        function_name str
-            Name of the Lambda function to invoke
+        function_identifier str
+            Identifier of the Lambda function to invoke, it can be logicalID, function name or full path
         event str
             Event data passed to the function. Must be a valid JSON String.
         stdout samcli.lib.utils.stream_writer.StreamWriter
@@ -98,23 +98,23 @@ class LocalLambdaRunner:
         """
 
         # Generate the correct configuration based on given inputs
-        function = self.provider.get(function_name)
+        function = self.provider.get(function_identifier)
 
         if not function:
             all_functions = [f.name for f in self.provider.get_all()]
             available_function_message = "{} not found. Possible options in your template: {}".format(
-                function_name, all_functions
+                function_identifier, all_functions
             )
             LOG.info(available_function_message)
-            raise FunctionNotFound("Unable to find a Function with name '{}'".format(function_name))
+            raise FunctionNotFound("Unable to find a Function with name '{}'".format(function_identifier))
 
-        LOG.debug("Found one Lambda function with name '%s'", function_name)
+        LOG.debug("Found one Lambda function with name '%s'", function_identifier)
         if function.packagetype == ZIP:
             LOG.info("Invoking %s (%s)", function.handler, function.runtime)
         elif function.packagetype == IMAGE:
             if not function.imageuri:
                 raise InvalidIntermediateImageError(
-                    f"ImageUri not provided for Function: {function_name} of PackageType: {function.packagetype}"
+                    f"ImageUri not provided for Function: {function_identifier} of PackageType: {function.packagetype}"
                 )
             LOG.info("Invoking Container created from %s", function.imageuri)
         config = self.get_invoke_config(function)
