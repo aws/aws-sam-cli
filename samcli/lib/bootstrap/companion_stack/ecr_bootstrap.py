@@ -1,7 +1,7 @@
-import re
+from typing import Dict
 from string import Template
 
-from samcli.lib.utils.hash import str_checksum
+from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack, ECRRepo
 from samcli import __version__ as VERSION
 
 _STACK_TEMPLATE = Template(
@@ -57,28 +57,30 @@ _OUTPUT_TEMPLATE = Template(
 
 
 class CompanionStackBuilder:
-    def __init__(self, stack_name):
-        self._stack_name = stack_name
-        self._functions = dict()
+    _parent_stack_name: str
+    _companion_stack: CompanionStack
+    _repo_mapping: Dict[str, ECRRepo]
 
-        self._escaped_stack_name = re.sub(r"[^a-z0-9]", "", self._stack_name.lower())
-        self._stack_hash = str_checksum(self._stack_name)
+    def __init__(self, companion_stack: CompanionStack) -> None:
+        self._companion_stack = companion_stack
+        self._repo_mapping:Dict[str, ECRRepo] = dict()
 
-    def add_function(self, function_logical_id):
-        self._functions[function_logical_id] = self._get_repo_logical_id(function_logical_id)
+    def add_function(self, function_logical_id: str) -> None:
+        self._repo_mapping[function_logical_id] = ECRRepo(self._companion_stack, function_logical_id)
 
-    def build(self):
+    def build(self) -> str:
         repo_templates = list()
         repo_output_templates = list()
-        companion_stack_name = self.get_companion_stack_name()
-        for function_logical_id, repo_logical_id in self._functions.items():
-            repo_name = self._get_repo_name(function_logical_id)
+        companion_stack_name = self._companion_stack.stack_name
+        for _, ecr_repo in self._repo_mapping.items():
+            repo_logical_id = ecr_repo.logical_id
+            repo_name = ecr_repo.physical_id
+            repo_output_logical_id = ecr_repo.output_logical_id
+
             repo_template = _REPO_TEMPLATE.substitute(
                 repo_logical_id=repo_logical_id, repo_name=repo_name, companion_stack_name=companion_stack_name
             )
             repo_templates.append(repo_template)
-
-            repo_output_logical_id = self._get_repo_output_logical_id(function_logical_id)
             repo_output_template = _OUTPUT_TEMPLATE.substitute(
                 repo_output_logical_id=repo_output_logical_id, repo_logical_id=repo_logical_id
             )
@@ -94,39 +96,7 @@ class CompanionStackBuilder:
         )
 
         return stack_template_string
-    
-    def get_repo_logical_id_mapping(self):
-        return self._functions
 
-    def _get_escaped_function_logical_id(self, function_logical_id):
-        return re.sub(r"[^a-z0-9]", "", function_logical_id.lower())
-
-    def _get_function_md5(self, function_logical_id):
-        return str_checksum(function_logical_id)
-
-    def get_repo_logical_id(self, function_logical_id):
-        return (
-            self._get_escaped_function_logical_id(function_logical_id)[:52]
-            + self._get_function_md5(function_logical_id)
-            + "Repo"
-        )
-
-    def get_repo_output_logical_id(self, function_logical_id):
-        return (
-            self._get_escaped_function_logical_id(function_logical_id)[:52]
-            + self._get_function_md5(function_logical_id)
-            + "Out"
-        )
-
-    def get_repo_name(self, function_logical_id):
-        return (
-            self._escaped_stack_name
-            + self._escaped_stack_name[:8]
-            + "/"
-            + self._get_escaped_function_logical_id(function_logical_id)
-            + self._get_function_md5(function_logical_id)[:8]
-            + "repo"
-        )
-
-    def get_companion_stack_name(self):
-        return self._stack_name[:104] + "-" + self._stack_hash[:8] + "-CompanionStack"
+    @property
+    def repo_mapping(self) -> Dict[str, ECRRepo]:
+        return self._repo_mapping
