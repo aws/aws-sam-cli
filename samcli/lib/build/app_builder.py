@@ -200,8 +200,9 @@ class ApplicationBuilder:
         stack_path: str
         template_dict: dict
         original_template_path : str
-            Path where the template file will be written to
+            Path where the original template file of root stack is located
         stack_output_template_path_by_stack_path: Dict[str, str]
+            A dictionary contains where the template of each stack will be written to
 
         built_artifacts : dict
             Map of LogicalId of a resource to the path where the the built artifacts for this resource lives
