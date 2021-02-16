@@ -127,8 +127,16 @@ $ sam build MyFunction
     "SAM will not pull the latest version until you run a non-cached build.",
 )
 @click.option(
-    "--container-env-vars",
-    "-ev",
+    "--container-env-var",
+    "-e",
+    default=None,
+    multiple=True,  # Can pass in multiple env vars
+    required=False,
+    help="Path to environment variable json file (ex: env_vars.json) to pass into build containers",
+)
+@click.option(
+    "--container-env-vars-file",
+    "-ef",
     default=None,
     type=click.Path(),  # Must be a json file
     help="Path to environment variable json file (ex: env_vars.json) to pass into build containers",
@@ -155,7 +163,8 @@ def cli(
     parallel: bool,
     manifest: Optional[str],
     docker_network: Optional[str],
-    container_env_vars: str,
+    container_env_var: Optional[list],
+    container_env_vars_file: str,
     skip_pull_image: bool,
     parameter_overrides: dict,
     config_file: str,
@@ -180,7 +189,8 @@ def cli(
         skip_pull_image,
         parameter_overrides,
         mode,
-        container_env_vars,
+        container_env_var,
+        container_env_vars_file,
     )  # pragma: no cover
 
 
@@ -199,7 +209,8 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     skip_pull_image: bool,
     parameter_overrides: Dict,
     mode: Optional[str],
-    container_env_vars: str,
+    container_env_var: Optional[list],
+    container_env_vars_file: str,
 ) -> None:
     """
     Implementation of the ``cli`` method
@@ -225,6 +236,26 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     if use_container:
         LOG.info("Starting Build inside a container")
 
+    processed_env_vars = {}
+    for env_var in container_env_var:
+        if "." in env_var:
+            function, variable = env_var.split(".")
+            if len(env_var.split(".")) != 2:
+                raise Exception(f"Invalid command line --container-env-var input {env_var}")
+            key, value = variable.split("=")
+            if len(variable.split("=")) != 2:
+                raise Exception(f"Invalid command line --container-env-var input {env_var}")
+            if not processed_env_vars.get(function):
+                processed_env_vars[function] = {}
+            processed_env_vars[function][key] = value
+        else:
+            key, value = env_var.split("=")
+            if len(env_var.split("=")) != 2:
+                raise Exception(f"Invalid command line --container-env-var input {env_var}")
+            if not processed_env_vars.get("Parameters"):
+                processed_env_vars["Parameters"] = {}
+            processed_env_vars["Parameters"][key] = value
+
     with BuildContext(
         function_identifier,
         template,
@@ -239,7 +270,8 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         docker_network=docker_network,
         skip_pull_image=skip_pull_image,
         mode=mode,
-        container_env_vars=container_env_vars,
+        container_env_vars=processed_env_vars,
+        container_env_vars_file=container_env_vars_file,
     ) as ctx:
         try:
             builder = ApplicationBuilder(
@@ -253,7 +285,8 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
                 container_manager=ctx.container_manager,
                 mode=ctx.mode,
                 parallel=parallel,
-                env_vars_file=container_env_vars,
+                env_vars=processed_env_vars,
+                env_vars_file=container_env_vars_file,
             )
         except FunctionNotFound as ex:
             raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex

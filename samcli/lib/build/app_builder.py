@@ -66,6 +66,7 @@ class ApplicationBuilder:
         mode: Optional[str] = None,
         stream_writer: Optional[StreamWriter] = None,
         docker_client: Optional[docker.DockerClient] = None,
+        env_vars: Optional[Dict] = None,
         env_vars_file: Optional[str] = None,
     ) -> None:
         """
@@ -118,6 +119,7 @@ class ApplicationBuilder:
 
         self._deprecated_runtimes = {"nodejs4.3", "nodejs6.10", "nodejs8.10", "dotnetcore2.0"}
         self._colored = Colored()
+        self._env_vars = env_vars
         self._env_vars_file = env_vars_file
 
     def build(self) -> Dict[str, str]:
@@ -129,7 +131,7 @@ class ApplicationBuilder:
         dict
             Returns the path to where each resource was built as a map of resource's LogicalId to the path string
         """
-        build_graph = self._get_build_graph(self._env_vars_file)
+        build_graph = self._get_build_graph(self._env_vars, self._env_vars_file)
         build_strategy: BuildStrategy = DefaultBuildStrategy(
             build_graph, self._build_dir, self._build_function, self._build_layer
         )
@@ -161,7 +163,7 @@ class ApplicationBuilder:
 
         return build_strategy.build()
 
-    def _get_build_graph(self, env_vars_file: Optional[str] = None) -> BuildGraph:
+    def _get_build_graph(self, inline_env_vars: Optional[Dict] = None, env_vars_file: Optional[str] = None) -> BuildGraph:
         """
         Converts list of functions and layers into a build graph, where we can iterate on each unique build and trigger
         build
@@ -173,7 +175,7 @@ class ApplicationBuilder:
         env_vars_values = {}
         if env_vars_file:
             try:
-                with open(env_vars_file, "r") as fp:
+                with open(env_vars_file, "r", encoding="utf-8") as fp:
                     env_vars_values = json.load(fp)
             except Exception as ex:
                 raise IOError(
@@ -181,14 +183,14 @@ class ApplicationBuilder:
                 ) from ex
 
         for function in functions:
-            env_vars = self._make_env_vars(function, env_vars_values)
+            env_vars = self._make_env_vars(function, env_vars_values, inline_env_vars)
             function_build_details = FunctionBuildDefinition(
                 function.runtime, function.codeuri, function.packagetype, function.metadata, env_vars=env_vars
             )
             build_graph.put_function_build_definition(function_build_details, function)
 
         for layer in layers:
-            env_vars = self._make_env_vars(layer, env_vars_values)
+            env_vars = self._make_env_vars(layer, env_vars_values, inline_env_vars)
             layer_build_details = LayerBuildDefinition(
                 layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes, env_vars=env_vars
             )
@@ -640,7 +642,7 @@ class ApplicationBuilder:
         return cast(Dict, response)
 
     @staticmethod
-    def _make_env_vars(function: Function, env_vars_values: dict) -> Dict:
+    def _make_env_vars(function: Function, env_vars_values: dict, inline_env_vars: dict) -> Dict:
         """Returns the environment variables configuration for this function
 
         Parameters
@@ -661,25 +663,66 @@ class ApplicationBuilder:
         """
 
         name = function.name
-        overrides = {}
+        result = {}
 
-        if env_vars_values:
+        if env_vars_values and inline_env_vars:
             for env_var_value in env_vars_values.values():
                 if not isinstance(env_var_value, dict):
                     reason = """
-                                Environment variables must be in either CloudFormation parameter file
-                                format or in {FunctionName: {key:value}} JSON pairs
+                                Environment variables in incorrect format
+                                """
+                    LOG.debug(reason)
+                    raise OverridesNotWellDefinedError(reason)
+            
+            for inline_env_var in inline_env_vars.values():
+                if not isinstance(inline_env_var, dict):
+                    reason = """
+                                Environment variables in incorrect format
                                 """
                     LOG.debug(reason)
                     raise OverridesNotWellDefinedError(reason)
 
-            if "Parameters" in env_vars_values:
-                LOG.debug("Environment variables data is in CloudFormation parameter file format")
+            LOG.debug("Environment variables data is being parsed")
                 # CloudFormation parameter file format
-                overrides = env_vars_values["Parameters"]
-            else:
-                # Standard format
-                LOG.debug("Environment variables data is standard format")
-                overrides = env_vars_values.get(name, {})
+            parameter_result = env_vars_values.get("Parameters", {})
+            result = parameter_result.copy()
+            inline_parameter_result = inline_env_vars.get("Parameters", {})
+            result.update(inline_parameter_result)
+            specific_result = env_vars_values.get(name, {})
+            result.update(specific_result)
+            inline_specific_result = inline_env_vars.get(name, {})
+            result.update(inline_specific_result)
 
-        return overrides
+        elif env_var_values:
+            for env_var_value in env_vars_values.values():
+                if not isinstance(env_var_value, dict):
+                    reason = """
+                                Environment variables in incorrect format
+                                """
+                    LOG.debug(reason)
+                    raise OverridesNotWellDefinedError(reason)
+
+            LOG.debug("Environment variables data is being parsed")
+                # CloudFormation parameter file format
+            parameter_result = env_vars_values.get("Parameters", {})
+            result = parameter_result.copy()
+            specific_result = env_vars_values.get(name, {})
+            result.update(specific_result)
+
+        elif inline_env_vars:
+            for inline_env_var in inline_env_vars.values():
+                if not isinstance(inline_env_var, dict):
+                    reason = """
+                                Environment variables in incorrect format
+                                """
+                    LOG.debug(reason)
+                    raise OverridesNotWellDefinedError(reason)
+
+            LOG.debug("Environment variables data is being parsed")
+                # CloudFormation parameter file format
+            parameter_result = inline_env_vars.get("Parameters", {})
+            result = parameter_result.copy()
+            specific_result = inline_env_vars.get(name, {})
+            result.update(specific_result)
+
+        return result

@@ -42,7 +42,8 @@ class BuildContext:
         parameter_overrides: Optional[dict] = None,
         docker_network: Optional[str] = None,
         skip_pull_image: bool = False,
-        container_env_vars: Optional[str] = None,
+        container_env_vars: Optional[dict] = None,
+        container_env_vars_file: Optional[str] = None,
     ) -> None:
 
         self._resource_identifier = resource_identifier
@@ -59,6 +60,7 @@ class BuildContext:
         self._mode = mode
         self._cached = cached
         self._container_env_vars = container_env_vars
+        self._container_env_vars_file = container_env_vars_file
 
         self._function_provider: Optional[SamFunctionProvider] = None
         self._layer_provider: Optional[SamLayerProvider] = None
