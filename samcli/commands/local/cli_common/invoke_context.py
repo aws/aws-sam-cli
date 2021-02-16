@@ -7,11 +7,15 @@ import logging
 import os
 from enum import Enum
 from pathlib import Path
+from typing import Dict, List, Optional, IO, cast, Tuple, Any
 
 import samcli.lib.utils.osutils as osutils
+from samcli.lib.providers.provider import Stack, Function
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.async_utils import AsyncContext
 from samcli.lib.utils.stream_writer import StreamWriter
+from samcli.commands.exceptions import ContainersInitializationException
+from samcli.commands.local.cli_common.user_exceptions import InvokeContextException, DebugContextException
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.local.lambdafn.runtime import LambdaRuntime, WarmLambdaRuntime
@@ -20,8 +24,6 @@ from samcli.local.docker.manager import ContainerManager
 from samcli.commands._utils.template import TemplateNotFoundException, TemplateFailedParsingException
 from samcli.local.layers.layer_downloader import LayerDownloader
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
-from .user_exceptions import InvokeContextException, DebugContextException
-from ...exceptions import ContainersInitializationException
 
 LOG = logging.getLogger(__name__)
 
@@ -54,26 +56,26 @@ class InvokeContext:
 
     def __init__(
         self,  # pylint: disable=R0914
-        template_file,
-        function_identifier=None,
-        env_vars_file=None,
-        docker_volume_basedir=None,
-        docker_network=None,
-        log_file=None,
-        skip_pull_image=None,
-        debug_ports=None,
-        debug_args=None,
-        debugger_path=None,
-        container_env_vars_file=None,
-        parameter_overrides=None,
-        layer_cache_basedir=None,
-        force_image_build=None,
-        aws_region=None,
-        aws_profile=None,
-        warm_container_initialization_mode=None,
-        debug_function=None,
-        shutdown=False,
-    ):
+        template_file: str,
+        function_identifier: Optional[str] = None,
+        env_vars_file: Optional[str] = None,
+        docker_volume_basedir: Optional[str] = None,
+        docker_network: Optional[str] = None,
+        log_file: Optional[str] = None,
+        skip_pull_image: Optional[bool] = None,
+        debug_ports: Optional[Tuple[int]] = None,
+        debug_args: Optional[str] = None,
+        debugger_path: Optional[str] = None,
+        container_env_vars_file: Optional[str] = None,
+        parameter_overrides: Optional[Dict] = None,
+        layer_cache_basedir: Optional[str] = None,
+        force_image_build: Optional[bool] = None,
+        aws_region: Optional[str] = None,
+        aws_profile: Optional[str] = None,
+        warm_container_initialization_mode: Optional[str] = None,
+        debug_function: Optional[str] = None,
+        shutdown: bool = False,
+    ) -> None:
         """
         Initialize the context
 
@@ -90,8 +92,7 @@ class InvokeContext:
         docker_network str
             Docker network identifier
         log_file str
-            Path to a file to send container output to. If the file does not exist, it will be
-            created
+            Path to a file to send container output to. If the file does not exist, it will be created
         skip_pull_image bool
             Should we skip pulling the Docker container image?
         aws_profile str
@@ -153,19 +154,23 @@ class InvokeContext:
 
         self._debug_function = debug_function
 
-        self._template_dict = None
-        self._function_provider = None
-        self._env_vars_value = None
-        self._container_env_vars_value = None
-        self._log_file_handle = None
-        self._debug_context = None
-        self._layers_downloader = None
-        self._container_manager = None
-        self._lambda_runtimes = None
+        # Note(xinhol): despite self._template_dict and self._function_provider are initialized as None
+        # they will be assigned with a non-None value in __enter__() and
+        # it is only used in the context (after __enter__ is called)
+        # so we can assume they are not Optional here
+        self._template_dict: Dict = None  # type: ignore
+        self._function_provider: SamFunctionProvider = None  # type: ignore
+        self._env_vars_value: Optional[Dict] = None
+        self._container_env_vars_value: Optional[Dict] = None
+        self._log_file_handle: Optional[IO] = None
+        self._debug_context: Optional[DebugContext] = None
+        self._layers_downloader: Optional[LayerDownloader] = None
+        self._container_manager: Optional[ContainerManager] = None
+        self._lambda_runtimes: Optional[Dict[ContainersMode, LambdaRuntime]] = None
 
-        self._local_lambda_runner = None
+        self._local_lambda_runner: Optional[LocalLambdaRunner] = None
 
-    def __enter__(self):
+    def __enter__(self) -> "InvokeContext":
         """
         Performs some basic checks and returns itself when everything is ready to invoke a Lambda function.
 
@@ -218,7 +223,7 @@ class InvokeContext:
 
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:
         """
         Cleanup any necessary opened resources
         """
@@ -230,13 +235,13 @@ class InvokeContext:
         if self._containers_mode == ContainersMode.WARM:
             self._clean_running_containers_and_related_resources()
 
-    def _initialize_all_functions_containers(self):
+    def _initialize_all_functions_containers(self) -> None:
         """
         Create and run a container for each available lambda function
         """
         LOG.info("Initializing the lambda functions containers.")
 
-        def initialize_function_container(function):
+        def initialize_function_container(function: Function) -> None:
             function_config = self.local_lambda_runner.get_invoke_config(function)
             self.lambda_runtime.run(None, function_config, self._debug_context)
 
@@ -256,14 +261,15 @@ class InvokeContext:
             self._clean_running_containers_and_related_resources()
             raise ContainersInitializationException("Lambda functions containers initialization failed") from ex
 
-    def _clean_running_containers_and_related_resources(self):
+    def _clean_running_containers_and_related_resources(self) -> None:
         """
-        Clean the running containers and any other related open resources
+        Clean the running containers and any other related open resources,
+        it is only used when self.lambda_runtime is a WarmLambdaRuntime
         """
-        self.lambda_runtime.clean_running_containers_and_related_resources()
+        cast(WarmLambdaRuntime, self.lambda_runtime).clean_running_containers_and_related_resources()
 
     @property
-    def function_name(self):
+    def function_name(self) -> str:
         """
         Returns name of the function to invoke. If no function identifier is provided, this method will return name of
         the only function from the template
@@ -291,7 +297,7 @@ class InvokeContext:
         )
 
     @property
-    def lambda_runtime(self):
+    def lambda_runtime(self) -> LambdaRuntime:
         if not self._lambda_runtimes:
             layer_downloader = LayerDownloader(self._layer_cache_basedir, self.get_cwd())
             image_builder = LambdaImage(layer_downloader, self._skip_pull_image, self._force_image_build)
@@ -303,7 +309,7 @@ class InvokeContext:
         return self._lambda_runtimes[self._containers_mode]
 
     @property
-    def local_lambda_runner(self):
+    def local_lambda_runner(self) -> LocalLambdaRunner:
         """
         Returns an instance of the runner capable of running Lambda functions locally
 
@@ -325,7 +331,7 @@ class InvokeContext:
         return self._local_lambda_runner
 
     @property
-    def stdout(self):
+    def stdout(self) -> StreamWriter:
         """
         Returns stream writer for stdout to output Lambda function logs to
 
@@ -338,7 +344,7 @@ class InvokeContext:
         return StreamWriter(stream, self._is_debugging)
 
     @property
-    def stderr(self):
+    def stderr(self) -> StreamWriter:
         """
         Returns stream writer for stderr to output Lambda function errors to
 
@@ -351,7 +357,7 @@ class InvokeContext:
         return StreamWriter(stream, self._is_debugging)
 
     @property
-    def template(self):
+    def template(self) -> Dict:
         """
         Returns the template data as dictionary
 
@@ -359,7 +365,7 @@ class InvokeContext:
         """
         return self._template_dict
 
-    def get_cwd(self):
+    def get_cwd(self) -> str:
         """
         Get the working directory. This is usually relative to the directory that contains the template. If a Docker
         volume location is specified, it takes preference
@@ -376,17 +382,17 @@ class InvokeContext:
         return cwd
 
     @property
-    def _is_debugging(self):
+    def _is_debugging(self) -> bool:
         return bool(self._debug_context)
 
-    def _get_stacks(self):
+    def _get_stacks(self) -> List[Stack]:
         try:
             return SamLocalStackProvider.get_stacks(self._template_file, parameter_overrides=self.parameter_overrides)
         except (TemplateNotFoundException, TemplateFailedParsingException) as ex:
             raise InvokeContextException(str(ex)) from ex
 
     @staticmethod
-    def _get_env_vars_value(filename):
+    def _get_env_vars_value(filename: Optional[str]) -> Optional[Dict]:
         """
         If the user provided a file containing values of environment variables, this method will read the file and
         return its value
@@ -402,7 +408,7 @@ class InvokeContext:
         try:
 
             with open(filename, "r") as fp:
-                return json.load(fp)
+                return cast(Dict, json.load(fp))
 
         except Exception as ex:
             raise InvokeContextException(
@@ -410,7 +416,7 @@ class InvokeContext:
             ) from ex
 
     @staticmethod
-    def _setup_log_file(log_file):
+    def _setup_log_file(log_file: Optional[str]) -> Optional[IO]:
         """
         Open a log file if necessary and return the file handle. This will create a file if it does not exist
 
@@ -423,7 +429,13 @@ class InvokeContext:
         return open(log_file, "wb")
 
     @staticmethod
-    def _get_debug_context(debug_ports, debug_args, debugger_path, container_env_vars, debug_function=None):
+    def _get_debug_context(
+        debug_ports: Optional[Tuple[int]],
+        debug_args: Optional[str],
+        debugger_path: Optional[str],
+        container_env_vars: Optional[Dict[str, str]],
+        debug_function: Optional[str] = None,
+    ) -> DebugContext:
         """
         Creates a DebugContext if the InvokeContext is in a debugging mode
 
@@ -473,7 +485,9 @@ class InvokeContext:
         )
 
     @staticmethod
-    def _get_container_manager(docker_network, skip_pull_image, shutdown):
+    def _get_container_manager(
+        docker_network: Optional[str], skip_pull_image: Optional[bool], shutdown: Optional[bool]
+    ) -> ContainerManager:
         """
         Creates a ContainerManager with specified options
 
