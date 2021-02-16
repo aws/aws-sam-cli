@@ -269,10 +269,10 @@ class InvokeContext:
         cast(WarmLambdaRuntime, self.lambda_runtime).clean_running_containers_and_related_resources()
 
     @property
-    def function_name(self) -> str:
+    def function_identifier(self) -> str:
         """
-        Returns name of the function to invoke. If no function identifier is provided, this method will return name of
-        the only function from the template
+        Returns identifier of the function to invoke. If no function identifier is provided, this method will return
+        logicalID of the only function from the template
 
         :return string: Name of the function
         :raises InvokeContextException: If function identifier is not provided
@@ -285,10 +285,10 @@ class InvokeContext:
 
         all_functions = list(self._function_provider.get_all())
         if len(all_functions) == 1:
-            return all_functions[0].functionname
+            return all_functions[0].name
 
         # Get all the available function names to print helpful exception message
-        all_function_names = [f.functionname for f in all_functions]
+        all_function_names = [f.name for f in all_functions]
 
         # There are more functions in the template, and function identifier is not provided, hence raise.
         raise InvokeContextException(

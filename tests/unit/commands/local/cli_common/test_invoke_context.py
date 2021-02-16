@@ -460,17 +460,17 @@ class TestInvokeContext_function_name_property(TestCase):
         id = "id"
         context = InvokeContext(template_file="template_file", function_identifier=id)
 
-        self.assertEqual(id, context.function_name)
+        self.assertEqual(id, context.function_identifier)
 
     def test_must_return_one_function_from_template(self):
         context = InvokeContext(template_file="template_file")
 
         function = Mock()
-        function.functionname = "myname"
+        function.name = "myname"
         context._function_provider = Mock()
         context._function_provider.get_all.return_value = [function]  # Provider returns only one function
 
-        self.assertEqual("myname", context.function_name)
+        self.assertEqual("myname", context.function_identifier)
 
     def test_must_raise_if_more_than_one_function(self):
         context = InvokeContext(template_file="template_file")
@@ -479,7 +479,7 @@ class TestInvokeContext_function_name_property(TestCase):
         context._function_provider.get_all.return_value = [Mock(), Mock(), Mock()]  # Provider returns three functions
 
         with self.assertRaises(InvokeContextException):
-            context.function_name
+            context.function_identifier
 
 
 class TestInvokeContext_local_lambda_runner(TestCase):
