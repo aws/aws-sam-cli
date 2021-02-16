@@ -8,12 +8,14 @@ import tempfile
 import signal
 import logging
 import threading
+from typing import Optional
 
 from samcli.local.docker.lambda_container import LambdaContainer
 from samcli.lib.utils.file_observer import LambdaFunctionObserver
 from samcli.lib.utils.packagetype import ZIP
 from samcli.lib.telemetry.metric import capture_parameter
 from .zip import unzip
+from ...lib.utils.stream_writer import StreamWriter
 
 LOG = logging.getLogger(__name__)
 
@@ -123,7 +125,14 @@ class LambdaRuntime:
             raise
 
     @capture_parameter("runtimeMetric", "runtimes", 1, parameter_nested_identifier="runtime", as_list=True)
-    def invoke(self, function_config, event, debug_context=None, stdout=None, stderr=None):
+    def invoke(
+        self,
+        function_config,
+        event,
+        debug_context=None,
+        stdout: Optional[StreamWriter] = None,
+        stderr: Optional[StreamWriter] = None,
+    ):
         """
         Invoke the given Lambda function locally.
 
@@ -137,8 +146,10 @@ class LambdaRuntime:
         :param FunctionConfig function_config: Configuration of the function to invoke
         :param event: String input event passed to Lambda function
         :param DebugContext debug_context: Debugging context for the function (includes port, args, and path)
-        :param io.IOBase stdout: Optional. IO Stream to that receives stdout text from container.
-        :param io.IOBase stderr: Optional. IO Stream that receives stderr text from container
+        :param samcli.lib.utils.stream_writer.StreamWriter stdout: Optional.
+            StreamWriter that receives stdout text from container.
+        :param samcli.lib.utils.stream_writer.StreamWriter stderr: Optional.
+            StreamWriter that receives stderr text from container.
         :raises Keyboard
         """
         timer = None
