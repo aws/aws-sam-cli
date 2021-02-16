@@ -359,7 +359,7 @@ class ApplicationBuilder:
         codeuri: str,
         specified_workflow: str,
         compatible_runtimes: List[str],
-        artifacts_dir: str,
+        artifact_dir: str,
     ) -> str:
         """
         Given the layer information, this method will build the Lambda layer. Depending on the configuration
@@ -379,7 +379,7 @@ class ApplicationBuilder:
         compatible_runtimes : List[str]
             List of runtimes the layer build is compatible with
 
-        artifacts_dir: str
+        artifact_dir: str
             Path to where layer will be build into.
             A subfolder will be created in this directory depending on the specified workflow.
 
@@ -396,7 +396,7 @@ class ApplicationBuilder:
         subfolder = get_layer_subfolder(specified_workflow)
 
         # artifacts directory will be created by the builder
-        artifacts_subdir = str(pathlib.Path(artifacts_dir, subfolder))
+        artifact_subdir = str(pathlib.Path(artifact_dir, subfolder))
 
         with osutils.mkdir_temp() as scratch_dir:
             manifest_path = self._manifest_path_override or os.path.join(code_dir, config.manifest_name)
@@ -415,9 +415,9 @@ class ApplicationBuilder:
                     build_runtime = compatible_runtimes[0]
             options = ApplicationBuilder._get_build_options(layer_name, config.language, None)
 
-            build_method(config, code_dir, artifacts_subdir, scratch_dir, manifest_path, build_runtime, options)
+            build_method(config, code_dir, artifact_subdir, scratch_dir, manifest_path, build_runtime, options)
             # Not including subfolder in return so that we copy subfolder, instead of copying artifacts inside it.
-            return artifacts_dir
+            return artifact_dir
 
     def _build_function(  # pylint: disable=R1710
         self,
@@ -426,7 +426,7 @@ class ApplicationBuilder:
         packagetype: str,
         runtime: str,
         handler: Optional[str],
-        artifacts_dir: str,
+        artifact_dir: str,
         metadata: Optional[Dict] = None,
     ) -> str:
         """
@@ -444,7 +444,7 @@ class ApplicationBuilder:
         runtime : str
             AWS Lambda function runtime
 
-        artifacts_dir: str
+        artifact_dir: str
             Path to where function will be build into
 
         metadata : dict
@@ -488,7 +488,7 @@ class ApplicationBuilder:
 
                 options = ApplicationBuilder._get_build_options(function_name, config.language, handler)
 
-                return build_method(config, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, options)
+                return build_method(config, code_dir, artifact_dir, scratch_dir, manifest_path, runtime, options)
 
         # pylint: disable=fixme
         # FIXME: we need to throw an exception here, packagetype could be something else
