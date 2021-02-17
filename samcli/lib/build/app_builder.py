@@ -228,18 +228,18 @@ class ApplicationBuilder:
             resource_type = resource.get("Type")
             properties = resource.setdefault("Properties", {})
 
-            abs_out_path = pathlib.Path(
+            absolute_output_path = pathlib.Path(
                 built_artifacts[full_path] if is_artifact else stack_output_template_path_by_stack_path[full_path]
             ).resolve()
             # Default path to absolute path of the artifact
-            store_path = str(abs_out_path)
+            store_path = str(absolute_output_path)
 
             # In Windows, if template and artifacts are in two different drives, relpath will fail
-            if original_dir.drive == abs_out_path.drive:
+            if original_dir.drive == absolute_output_path.drive:
                 # Artifacts are written relative  the template because it makes the template portable
                 #   Ex: A CI/CD pipeline build stage could zip the output folder and pass to a
                 #   package stage running on a different machine
-                store_path = os.path.relpath(abs_out_path, original_dir)
+                store_path = os.path.relpath(absolute_output_path, original_dir)
 
             if is_artifact:
                 if resource_type == SamBaseProvider.SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == ZIP:
