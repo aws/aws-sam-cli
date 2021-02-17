@@ -166,8 +166,8 @@ class LambdaDebugSettings:
     @staticmethod
     def parse_go_delve_api_version(debug_args_list: List[str]) -> int:
         parser = ArgumentParser("Parser for delve args")
-        parser.add_argument("-delveApi", type=int, default=1)
+        parser.add_argument("-delveAPI", type=int, default=1)
         args, unknown_args = parser.parse_known_args(debug_args_list)
         if unknown_args:
-            LOG.info("Ignoring unrecognized arguments: %s", unknown_args)
-        return cast(int, args.delveApi)
+            LOG.warning('Ignoring unrecognized arguments: %s. Only "-delveAPI" is supported.', unknown_args)
+        return cast(int, args.delveAPI)

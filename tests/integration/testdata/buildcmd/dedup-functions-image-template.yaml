@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Timeout: 20
+    MemorySize: 512
+
+Parameteres:
+  Function1Handler:
+    Type: String
+  Function2Handler:
+    Type: String
+  FunctionRuntime:
+    Type: String
+  DockerFile:
+    Type: String
+  Tag:
+    Type: String
+
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - !Ref Function1Handler
+      Timeout: 600
+    Metadata:
+      DockerTag: !Ref Tag
+      DockerContext: ./PythonImage
+      Dockerfile: !Ref DockerFile
+      DockerBuildArgs:
+        BASE_RUNTIME: !Ref FunctionRuntime
+
+  HelloMarsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - !Ref Function2Handler
+      Timeout: 600
+    Metadata:
+      DockerTag: !Ref Tag
+      DockerContext: ./PythonImage
+      Dockerfile: !Ref DockerFile
+      DockerBuildArgs:
+        BASE_RUNTIME: !Ref FunctionRuntime
