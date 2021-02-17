@@ -163,7 +163,9 @@ class ApplicationBuilder:
 
         return build_strategy.build()
 
-    def _get_build_graph(self, inline_env_vars: Optional[Dict] = None, env_vars_file: Optional[str] = None) -> BuildGraph:
+    def _get_build_graph(
+        self, inline_env_vars: Optional[Dict] = None, env_vars_file: Optional[str] = None
+    ) -> BuildGraph:
         """
         Converts list of functions and layers into a build graph, where we can iterate on each unique build and trigger
         build
@@ -673,7 +675,7 @@ class ApplicationBuilder:
                                 """
                     LOG.debug(reason)
                     raise OverridesNotWellDefinedError(reason)
-            
+
             for inline_env_var in inline_env_vars.values():
                 if not isinstance(inline_env_var, dict):
                     reason = """
@@ -683,7 +685,7 @@ class ApplicationBuilder:
                     raise OverridesNotWellDefinedError(reason)
 
             LOG.debug("Environment variables data is being parsed")
-                # CloudFormation parameter file format
+            # CloudFormation parameter file format
             parameter_result = env_vars_values.get("Parameters", {})
             result = parameter_result.copy()
             inline_parameter_result = inline_env_vars.get("Parameters", {})
@@ -693,7 +695,7 @@ class ApplicationBuilder:
             inline_specific_result = inline_env_vars.get(name, {})
             result.update(inline_specific_result)
 
-        elif env_var_values:
+        elif env_vars_values:
             for env_var_value in env_vars_values.values():
                 if not isinstance(env_var_value, dict):
                     reason = """
@@ -703,7 +705,7 @@ class ApplicationBuilder:
                     raise OverridesNotWellDefinedError(reason)
 
             LOG.debug("Environment variables data is being parsed")
-                # CloudFormation parameter file format
+            # CloudFormation parameter file format
             parameter_result = env_vars_values.get("Parameters", {})
             result = parameter_result.copy()
             specific_result = env_vars_values.get(name, {})
@@ -719,7 +721,7 @@ class ApplicationBuilder:
                     raise OverridesNotWellDefinedError(reason)
 
             LOG.debug("Environment variables data is being parsed")
-                # CloudFormation parameter file format
+            # CloudFormation parameter file format
             parameter_result = inline_env_vars.get("Parameters", {})
             result = parameter_result.copy()
             specific_result = inline_env_vars.get(name, {})

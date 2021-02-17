@@ -50,7 +50,8 @@ class TestDoCli(TestCase):
             "skip_pull",
             "parameter_overrides",
             "mode",
-            "container_env_vars",
+            "container_env_var",
+            "container_env_vars_file",
         )
 
         ApplicationBuilderMock.assert_called_once_with(
@@ -64,6 +65,7 @@ class TestDoCli(TestCase):
             container_manager=ctx_mock.container_manager,
             mode=ctx_mock.mode,
             parallel="parallel",
+            env_vars=ctx_mock.container_env_vars,
             env_vars_file="container_env_vars",
         )
         builder_mock.build.assert_called_once()
@@ -113,7 +115,8 @@ class TestDoCli(TestCase):
                 "skip_pull",
                 "parameteroverrides",
                 "mode",
-                "container_env_vars",
+                "container_env_var",
+                "container_env_vars_file",
             )
 
         self.assertEqual(str(ctx.exception), str(exception))
@@ -143,7 +146,8 @@ class TestDoCli(TestCase):
                 "skip_pull",
                 "parameteroverrides",
                 "mode",
-                "container_env_vars",
+                "container_env_var",
+                "container_env_vars_file",
             )
 
         self.assertEqual(str(ctx.exception), "Function Not Found")
