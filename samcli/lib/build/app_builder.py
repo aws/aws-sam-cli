@@ -1,7 +1,6 @@
 """
 Builds the application
 """
-
 import os
 import io
 import json
@@ -22,7 +21,7 @@ from samcli.lib.build.build_strategy import (
     ParallelBuildStrategy,
     BuildStrategy,
 )
-from samcli.lib.providers.provider import ResourcesToBuildCollector, get_full_path
+from samcli.lib.providers.provider import ResourcesToBuildCollector, get_full_path, Stack
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.lib.utils.colors import Colored
 import samcli.lib.utils.osutils as osutils
@@ -185,9 +184,7 @@ class ApplicationBuilder:
 
     @staticmethod
     def update_template(
-        stack_path: str,
-        template_dict: Dict,
-        original_template_path: str,
+        stack: Stack,
         built_artifacts: Dict[str, str],
         stack_output_template_path_by_stack_path: Dict[str, str],
     ) -> Dict:
@@ -197,15 +194,11 @@ class ApplicationBuilder:
 
         Parameters
         ----------
-        stack_path: str
-        template_dict: dict
-        original_template_path : str
-            Path where the original template file of root stack is located
-        stack_output_template_path_by_stack_path: Dict[str, str]
-            A dictionary contains where the template of each stack will be written to
-
+        stack: Stack
         built_artifacts : dict
             Map of LogicalId of a resource to the path where the the built artifacts for this resource lives
+        stack_output_template_path_by_stack_path: Dict[str, str]
+            A dictionary contains where the template of each stack will be written to
 
         Returns
         -------
@@ -213,11 +206,13 @@ class ApplicationBuilder:
             Updated template
         """
 
-        original_dir = pathlib.Path(original_template_path).parent.resolve()
+        original_dir = pathlib.Path(stack.location).parent.resolve()
+
+        template_dict = stack.template_dict
 
         for logical_id, resource in template_dict.get("Resources", {}).items():
 
-            full_path = get_full_path(stack_path, logical_id)
+            full_path = get_full_path(stack.stack_path, logical_id)
             is_artifact = full_path in built_artifacts
             is_stack = full_path in stack_output_template_path_by_stack_path
 

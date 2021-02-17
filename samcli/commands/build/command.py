@@ -255,9 +255,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
             }
             for stack in ctx.stacks:
                 modified_template = builder.update_template(
-                    stack.stack_path,
-                    stack.template_dict,
-                    stack.location,
+                    stack,
                     artifacts,
                     stack_output_template_path_by_stack_path,
                 )

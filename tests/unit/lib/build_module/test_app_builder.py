@@ -457,7 +457,8 @@ class TestApplicationBuilder_update_template(TestCase):
             }
         }
 
-        actual = self.builder.update_template("", self.template_dict, original_template_path, built_artifacts, {})
+        stack = Mock(stack_path="", template_dict=self.template_dict, location=original_template_path)
+        actual = self.builder.update_template(stack, built_artifacts, {})
         self.assertEqual(actual, expected_result)
 
     @parameterized.expand([("AWS::Serverless::Application", "Location"), ("AWS::CloudFormation::Stack", "TemplateURL")])
@@ -512,22 +513,25 @@ class TestApplicationBuilder_update_template(TestCase):
             }
         }
 
-        actual_root = self.builder.update_template(
-            "",
-            self.make_root_template(resource_type, location_property_name),
-            original_root_template_path,
-            built_artifacts,
-            stack_output_paths,
+        stack_root = Mock(
+            stack_path="",
+            template_dict=self.make_root_template(resource_type, location_property_name),
+            location=original_root_template_path,
         )
-        actual_child = self.builder.update_template(
-            "ChildStackXXX", self.template_dict, original_child_template_path, built_artifacts, stack_output_paths
+        actual_root = self.builder.update_template(stack_root, built_artifacts, stack_output_paths)
+        stack_child = Mock(
+            stack_path="ChildStackXXX",
+            template_dict=self.template_dict,
+            location=original_child_template_path,
         )
+        actual_child = self.builder.update_template(stack_child, built_artifacts, stack_output_paths)
         self.assertEqual(expected_root, actual_root)
         self.assertEqual(expected_child, actual_child)
 
     def test_must_skip_if_no_artifacts(self):
         built_artifacts = {}
-        actual = self.builder.update_template("", self.template_dict, "/foo/bar/template.txt", built_artifacts, {})
+        stack = Mock(stack_path="", template_dict=self.template_dict, location="/foo/bar/template.txt")
+        actual = self.builder.update_template(stack, built_artifacts, {})
 
         self.assertEqual(actual, self.template_dict)
 
@@ -599,9 +603,12 @@ class TestApplicationBuilder_update_template_windows(TestCase):
                     }
                 }
 
-                actual = self.builder.update_template(
-                    "", self.template_dict, original_template_path, built_artifacts, output_template_paths
-                )
+                stack = Mock()
+                stack.stack_path = ""
+                stack.template_dict = self.template_dict
+                stack.location = original_template_path
+
+                actual = self.builder.update_template(stack, built_artifacts, output_template_paths)
                 self.assertEqual(actual, expected_result)
 
     def tearDown(self):

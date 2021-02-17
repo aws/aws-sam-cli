@@ -83,18 +83,14 @@ class TestDoCli(TestCase):
         builder_mock.update_template.assert_has_calls(
             [
                 call(
-                    root_stack.stack_path,
-                    root_stack.template_dict,
-                    root_stack.location,
+                    root_stack,
                     artifacts,
                     stack_output_template_path_by_stack_path,
                 )
             ],
             [
                 call(
-                    child_stack.stack_path,
-                    child_stack.template_dict,
-                    child_stack.location,
+                    child_stack,
                     artifacts,
                     stack_output_template_path_by_stack_path,
                 )
