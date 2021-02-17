@@ -32,7 +32,7 @@ class BuildStrategyBaseTest(TestCase):
         self.function_build_definition1 = FunctionBuildDefinition("runtime", "codeuri", ZIP, {})
         self.function_build_definition1.functions = [self.function1_1, self.function1_2]
         self.function_build_definition2 = FunctionBuildDefinition("runtime2", "codeuri", ZIP, {})
-        self.function_build_definition1.functions = [self.function2]
+        self.function_build_definition2.functions = [self.function2]
         self.build_graph.put_function_build_definition(self.function_build_definition1, Mock(packagetype=ZIP))
         self.build_graph.put_function_build_definition(self.function_build_definition2, Mock(packagetype=ZIP))
 
@@ -157,7 +157,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                     self.function_build_definition2.get_handler_name(),
                     ANY,
                     self.function_build_definition2.metadata,
-                    self.function_build_definition1.env_vars,
+                    self.function_build_definition2.env_vars,
                 ),
             ]
         )
@@ -177,7 +177,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                     self.layer_build_definition2.layer.codeuri,
                     self.layer_build_definition2.layer.build_method,
                     self.layer_build_definition2.layer.compatible_runtimes,
-                    self.function_build_definition1.env_vars,
+                    self.function_build_definition2.env_vars,
                 ),
             ]
         )
