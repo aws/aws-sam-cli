@@ -213,10 +213,10 @@ class ApplicationBuilder:
         for logical_id, resource in template_dict.get("Resources", {}).items():
 
             full_path = get_full_path(stack.stack_path, logical_id)
-            is_artifact = full_path in built_artifacts
+            has_build_artifact = full_path in built_artifacts
             is_stack = full_path in stack_output_template_path_by_stack_path
 
-            if not is_artifact and not is_stack:
+            if not has_build_artifact and not is_stack:
                 # this resource was not built or a nested stack. So skip it
                 continue
 
@@ -224,7 +224,9 @@ class ApplicationBuilder:
             properties = resource.setdefault("Properties", {})
 
             absolute_output_path = pathlib.Path(
-                built_artifacts[full_path] if is_artifact else stack_output_template_path_by_stack_path[full_path]
+                built_artifacts[full_path]
+                if has_build_artifact
+                else stack_output_template_path_by_stack_path[full_path]
             ).resolve()
             # Default path to absolute path of the artifact
             store_path = str(absolute_output_path)
@@ -236,7 +238,7 @@ class ApplicationBuilder:
                 #   package stage running on a different machine
                 store_path = os.path.relpath(absolute_output_path, original_dir)
 
-            if is_artifact:
+            if has_build_artifact:
                 if resource_type == SamBaseProvider.SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == ZIP:
                     properties["CodeUri"] = store_path
 
