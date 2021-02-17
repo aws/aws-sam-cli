@@ -1445,9 +1445,7 @@ class TestBuildWithInlineContainerEnvVars(BuildIntegBase):
         if use_container and SKIP_DOCKER_TESTS:
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
-        cmdlist = self.get_command_list(
-            use_container=use_container, container_env_var=inline_env_var
-        )
+        cmdlist = self.get_command_list(use_container=use_container, container_env_var=inline_env_var)
 
         LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir)
