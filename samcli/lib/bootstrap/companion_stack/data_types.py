@@ -66,7 +66,7 @@ class ECRRepo:
     def logical_id(self) -> str:
         if self._logical_id is None:
             self._logical_id = (
-                self._escaped_function_logical_id[:52] + self._function_md5 + "Repo"
+                self._function_logical_id[:52] + self._function_md5[:8] + "Repo"
             )
         return self._logical_id
 
@@ -87,5 +87,5 @@ class ECRRepo:
     def output_logical_id(self) -> str:
         if self._output_logical_id is None:
             self._output_logical_id = (
-                self._escaped_function_logical_id[:52] + self._function_md5 + "Out"
+                self._function_logical_id[:52] + self._function_md5[:8] + "Out"
             )

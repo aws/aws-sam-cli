@@ -1,3 +1,7 @@
+from mypy_boto3_cloudformation.client import CloudFormationClient
+from mypy_boto3_s3.client import S3Client
+from samcli.lib.package.s3_uploader import S3Uploader
+from samcli.lib.deploy.deployer import Deployer
 import boto3
 
 from typing import List, Dict
@@ -7,15 +11,26 @@ from botocore.exceptions import ClientError, NoRegionError, NoCredentialsError
 from samcli.commands.exceptions import CredentialsError, RegionError
 from samcli.lib.bootstrap.companion_stack.ecr_bootstrap import CompanionStackBuilder
 from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack, ECRRepo
+from samcli.lib.package.artifact_exporter import mktempfile
 
 
 class CompanionStackManager:
-    def __init__(self, stack_name, function_logical_ids, region):
+    _companion_stack: str
+    _builder: CompanionStackBuilder
+    _boto_config: Config
+    _s3_bucket: str
+    _s3_prefix: str
+    _cfn_client: CloudFormationClient
+    _s3_client: S3Client
+    def __init__(self, stack_name, function_logical_ids, region, s3_bucket, s3_prefix):
         self._companion_stack = CompanionStack(stack_name)
         self._builder = CompanionStackBuilder(self._companion_stack)
         self._boto_config = Config(region_name=region if region else None)
+        self._s3_bucket = s3_bucket
+        self._s3_prefix = s3_prefix
         try:
             self._cfn_client = boto3.client("cloudformation", config=self._boto_config)
+            self._s3_client = boto3.client("s3", config=self._boto_config)
         except NoCredentialsError as ex:
             raise CredentialsError(
                 "Error Setting Up Managed Stack Client: Unable to resolve credentials for the AWS SDK for Python client. "
@@ -32,7 +47,30 @@ class CompanionStackManager:
             self._builder.add_function(function_logical_id)
 
     def update_companion_stack(self):
-        self._cfn_client.update_stack(StackName=self._companion_stack.stack_name, TemplateBody=self._builder.build())
+        stack_name = self._companion_stack.stack_name
+        template = self._builder.build()
+        
+        with mktempfile() as temporary_file:
+            temporary_file.write(template)
+            temporary_file.flush()
+
+            s3_uploader = S3Uploader(self._s3_client, bucket_name=self._s3_bucket, prefix=self._s3_prefix)
+            # TemplateUrl property requires S3 URL to be in path-style format
+            parts = S3Uploader.parse_s3_url(
+                s3_uploader.upload_with_dedup(temporary_file.name, "template"), version_property="Version"
+            )
+
+        template_url = s3_uploader.to_path_style_s3_url(parts["Key"], parts.get("Version", None))
+        waiter_config = {"Delay": 30, "MaxAttempts": 120}
+        if self.does_companion_stack_exist():
+            self._cfn_client.update_stack(StackName=stack_name, TemplateURL=template_url)
+            waiter = self._cfn_client.get_waiter('stack_update_complete')
+        else:
+            self._cfn_client.create_stack(StackName=stack_name, TemplateURL=template_url)
+            waiter = self._cfn_client.get_waiter('stack_create_complete')
+
+        waiter.wait(StackName=stack_name, WaiterConfig=waiter_config)
+
 
     def list_deployed_repos(self) -> List[ECRRepo]:
         """
@@ -70,5 +108,5 @@ class CompanionStackManager:
             return False
 
 
-manager = CompanionStackManager("test-ecr-stack", ["FuncA", "FuncB"], "us-west-2")
+manager = CompanionStackManager("Hello-World-Stack", ["TestFunction01", "AnotherTestFunction02"], "us-west-2")
 print(manager.get_unreferenced_repos())
