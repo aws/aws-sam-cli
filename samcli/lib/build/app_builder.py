@@ -217,7 +217,8 @@ class ApplicationBuilder:
             is_stack = full_path in stack_output_template_path_by_stack_path
 
             if not has_build_artifact and not is_stack:
-                # this resource was not built or a nested stack. So skip it
+                # this resource was not built or a nested stack.
+                # So skip it because there is no path/uri to update
                 continue
 
             resource_type = resource.get("Type")
