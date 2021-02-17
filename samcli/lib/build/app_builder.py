@@ -644,7 +644,7 @@ class ApplicationBuilder:
         return cast(Dict, response)
 
     @staticmethod
-    def _make_env_vars(function: Function, env_vars_values: dict, inline_env_vars: dict) -> Dict:
+    def _make_env_vars(function: Function, env_vars_values: Dict, inline_env_vars: Optional[Dict]) -> Dict:
         """Returns the environment variables configuration for this function
 
         Parameters

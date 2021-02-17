@@ -163,7 +163,7 @@ def cli(
     parallel: bool,
     manifest: Optional[str],
     docker_network: Optional[str],
-    container_env_var: Optional[list],
+    container_env_var: list,
     container_env_vars_file: str,
     skip_pull_image: bool,
     parameter_overrides: dict,
@@ -209,7 +209,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     skip_pull_image: bool,
     parameter_overrides: Dict,
     mode: Optional[str],
-    container_env_var: Optional[list],
+    container_env_var: list,
     container_env_vars_file: str,
 ) -> None:
     """
@@ -236,25 +236,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     if use_container:
         LOG.info("Starting Build inside a container")
 
-    processed_env_vars = {}
-    for env_var in container_env_var:
-        if "." in env_var:
-            function, variable = env_var.split(".")
-            if len(env_var.split(".")) != 2:
-                raise Exception(f"Invalid command line --container-env-var input {env_var}")
-            key, value = variable.split("=")
-            if len(variable.split("=")) != 2:
-                raise Exception(f"Invalid command line --container-env-var input {env_var}")
-            if not processed_env_vars.get(function):
-                processed_env_vars[function] = {}
-            processed_env_vars[function][key] = value
-        else:
-            key, value = env_var.split("=")
-            if len(env_var.split("=")) != 2:
-                raise Exception(f"Invalid command line --container-env-var input {env_var}")
-            if not processed_env_vars.get("Parameters"):
-                processed_env_vars["Parameters"] = {}
-            processed_env_vars["Parameters"][key] = value
+    processed_env_vars = _process_env_var(container_env_var)
 
     with BuildContext(
         function_identifier,
@@ -369,3 +351,28 @@ def _get_mode_value_from_envvar(name: str, choices: List[str]) -> Optional[str]:
         raise click.UsageError("Invalid value for 'mode': invalid choice: {}. (choose from {})".format(mode, choices))
 
     return mode
+
+
+def _process_env_var(container_env_var: list) -> Dict:
+    processed_env_vars: Dict = {}
+
+    for env_var in container_env_var:
+        if "." in env_var:
+            if len(env_var.split(".")) != 2 or len(env_var.split(".")[1].split("=")) != 2:
+                LOG.error("Invalid command line --container-env-var input %s, skipped", env_var)
+                continue
+            function, variable = env_var.split(".")
+            key, value = variable.split("=")
+            if not processed_env_vars.get(function):
+                processed_env_vars[function] = {}
+            processed_env_vars[function][key] = value
+        else:
+            if len(env_var.split("=")) != 2:
+                LOG.error("Invalid command line --container-env-var input %s, skipped", env_var)
+                continue
+            key, value = env_var.split("=")
+            if not processed_env_vars.get("Parameters"):
+                processed_env_vars["Parameters"] = {}
+            processed_env_vars["Parameters"][key] = value
+
+    return processed_env_vars

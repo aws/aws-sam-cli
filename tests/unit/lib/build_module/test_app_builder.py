@@ -930,3 +930,50 @@ class TestApplicationBuilder_parse_builder_response(TestCase):
             self.builder._parse_builder_response(json.dumps(data), self.image_name)
 
         self.assertEqual(str(ctx.exception), msg)
+
+
+class TestApplicationBuilder_make_env_vars(TestCase):
+    def test_make_env_vars_with_env_file(self):
+        function1 = generate_function("Function1")
+        env_vars_values = {
+            "Parameters": {"ENV_VAR1": "1"},
+            "Function1": {"ENV_VAR2": "2"},
+            "Function2": {"ENV_VAR3": "3"},
+        }
+        result = ApplicationBuilder._make_env_vars(function1, env_vars_values, {})
+        self.assertEqual(result, {"ENV_VAR1": "1", "ENV_VAR2": "2"})
+
+    def test_make_env_vars_with_function_precedence(self):
+        function1 = generate_function("Function1")
+        env_vars_values = {
+            "Parameters": {"ENV_VAR1": "1"},
+            "Function1": {"ENV_VAR1": "2"},
+            "Function2": {"ENV_VAR3": "3"},
+        }
+        result = ApplicationBuilder._make_env_vars(function1, env_vars_values, {})
+        self.assertEqual(result, {"ENV_VAR1": "2"})
+
+    def test_make_env_vars_with_inline_env(self):
+        function1 = generate_function("Function1")
+        inline_env_vars = {
+            "Parameters": {"ENV_VAR1": "1"},
+            "Function1": {"ENV_VAR2": "2"},
+            "Function2": {"ENV_VAR3": "3"},
+        }
+        result = ApplicationBuilder._make_env_vars(function1, {}, inline_env_vars)
+        self.assertEqual(result, {"ENV_VAR1": "1", "ENV_VAR2": "2"})
+
+    def test_make_env_vars_with_both(self):
+        function1 = generate_function("Function1")
+        env_vars_values = {
+            "Parameters": {"ENV_VAR1": "1"},
+            "Function1": {"ENV_VAR2": "2"},
+            "Function2": {"ENV_VAR3": "3"},
+        }
+        inline_env_vars = {
+            "Parameters": {"ENV_VAR1": "2"},
+            "Function1": {"ENV_VAR2": "3"},
+            "Function2": {"ENV_VAR3": "3"},
+        }
+        result = ApplicationBuilder._make_env_vars(function1, env_vars_values, inline_env_vars)
+        self.assertEqual(result, {"ENV_VAR1": "2", "ENV_VAR2": "3"})

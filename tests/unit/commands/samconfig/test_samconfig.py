@@ -145,6 +145,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 {"Key": "Value", "Key2": "Value2"},
                 None,
+                (),
                 None,
             )
 
@@ -162,7 +163,8 @@ class TestSamConfigForAllCommands(TestCase):
             "docker_network": "mynetwork",
             "skip_pull_image": True,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
-            "container_env_vars": "env_vars",
+            "container_env_var": (""),
+            "container_env_vars_file": "env_vars_file",
         }
 
         with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
@@ -194,7 +196,8 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 {"Key": "Value", "Key2": "Value2"},
                 None,
-                "env_vars",
+                (),
+                "env_vars_file",
             )
 
     @patch("samcli.commands.local.invoke.cli.do_cli")
