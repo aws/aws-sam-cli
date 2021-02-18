@@ -9,7 +9,7 @@ from typing import List, Dict
 from botocore.config import Config
 from botocore.exceptions import ClientError, NoRegionError, NoCredentialsError
 from samcli.commands.exceptions import CredentialsError, RegionError
-from samcli.lib.bootstrap.companion_stack.ecr_bootstrap import CompanionStackBuilder
+from samcli.lib.bootstrap.companion_stack.companion_stack_builder import CompanionStackBuilder
 from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack, ECRRepo
 from samcli.lib.package.artifact_exporter import mktempfile
 
@@ -49,7 +49,7 @@ class CompanionStackManager:
     def update_companion_stack(self):
         stack_name = self._companion_stack.stack_name
         template = self._builder.build()
-        
+
         with mktempfile() as temporary_file:
             temporary_file.write(template)
             temporary_file.flush()
@@ -63,10 +63,10 @@ class CompanionStackManager:
         template_url = s3_uploader.to_path_style_s3_url(parts["Key"], parts.get("Version", None))
         waiter_config = {"Delay": 30, "MaxAttempts": 120}
         if self.does_companion_stack_exist():
-            self._cfn_client.update_stack(StackName=stack_name, TemplateURL=template_url)
+            self._cfn_client.update_stack(StackName=stack_name, TemplateURL=template_url, Capabilities=["CAPABILITY_AUTO_EXPAND"])
             waiter = self._cfn_client.get_waiter('stack_update_complete')
         else:
-            self._cfn_client.create_stack(StackName=stack_name, TemplateURL=template_url)
+            self._cfn_client.create_stack(StackName=stack_name, TemplateURL=template_url, Capabilities=["CAPABILITY_AUTO_EXPAND"])
             waiter = self._cfn_client.get_waiter('stack_create_complete')
 
         waiter.wait(StackName=stack_name, WaiterConfig=waiter_config)
@@ -108,5 +108,6 @@ class CompanionStackManager:
             return False
 
 
-manager = CompanionStackManager("Hello-World-Stack", ["TestFunction01", "AnotherTestFunction02"], "us-west-2")
+manager = CompanionStackManager("Auto-ECR-Test-Stack", ["TestFunction01", "AnotherTestFunction03"], "us-west-2", "aws-sam-cli-managed-default-samclisourcebucket-9bu3m109ig6i", "Hello-World-Stack")
 print(manager.get_unreferenced_repos())
+print(manager.update_companion_stack())
