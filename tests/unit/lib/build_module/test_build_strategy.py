@@ -12,7 +12,7 @@ from samcli.lib.build.build_strategy import (
 from samcli.lib.utils import osutils
 from pathlib import Path
 
-from samcli.lib.utils.packagetype import ZIP
+from samcli.lib.utils.packagetype import ZIP, IMAGE
 
 
 @patch("samcli.lib.build.build_graph.BuildGraph._write")
@@ -23,8 +23,11 @@ class BuildStrategyBaseTest(TestCase):
         self.build_graph = BuildGraph("build_dir")
 
         self.function1_1 = Mock()
+        self.function1_1.inlinecode = None
         self.function1_2 = Mock()
+        self.function1_2.inlinecode = None
         self.function2 = Mock()
+        self.function2.inlinecode = None
 
         self.function_build_definition1 = FunctionBuildDefinition("runtime", "codeuri", ZIP, {})
         self.function_build_definition1.functions = [self.function1_1, self.function1_2]
@@ -116,12 +119,15 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
         build_graph = Mock(spec=BuildGraph)
         build_graph.get_layer_build_definitions.return_value = [layer_build_definition]
         build_graph.get_function_build_definitions.return_value = []
-        default_build_strategy = DefaultBuildStrategy(build_graph, "build_dir", Mock(), Mock())
+        mock_function = Mock()
+        mock_function.inlinecode = None
+        default_build_strategy = DefaultBuildStrategy(build_graph, "build_dir", mock_function, Mock())
 
         self.assertRaises(MissingBuildMethodException, default_build_strategy.build)
 
     def test_build_layers_and_functions(self, mock_copy_tree, mock_path):
         given_build_function = Mock()
+        given_build_function.inlinecode = None
         given_build_layer = Mock()
         given_build_dir = "build_dir"
         default_build_strategy = DefaultBuildStrategy(
@@ -186,6 +192,31 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
             str(mock_path(given_build_dir, self.function_build_definition1.get_function_name())),
             str(mock_path(given_build_dir, self.function1_2.name)),
         )
+
+    def test_build_single_function_definition_image_functions_with_same_metadata(self, mock_copy_tree, mock_path):
+        given_build_function = Mock()
+        built_image = Mock()
+        given_build_function.return_value = built_image
+        given_build_layer = Mock()
+        given_build_dir = "build_dir"
+        default_build_strategy = DefaultBuildStrategy(
+            self.build_graph, given_build_dir, given_build_function, given_build_layer
+        )
+
+        function1 = Mock()
+        function1.name = "Function"
+        function1.full_path = "Function"
+        function1.packagetype = IMAGE
+        function2 = Mock()
+        function2.name = "Function2"
+        function2.packagetype = IMAGE
+        build_definition = FunctionBuildDefinition("3.7", "codeuri", IMAGE, {})
+        # since they have the same metadata, they are put into the same build_definition.
+        build_definition.functions = [function1, function2]
+
+        result = default_build_strategy.build_single_function_definition(build_definition)
+        # both of the function name should show up in results
+        self.assertEqual(result, {"Function": built_image, "Function2": built_image})
 
 
 class CachedBuildStrategyTest(BuildStrategyBaseTest):
@@ -256,8 +287,10 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
             )
             func1 = Mock()
             func1.name = "func1_name"
+            func1.inlinecode = None
             func2 = Mock()
             func2.name = "func2_name"
+            func2.inlinecode = None
             build_definition = build_graph.get_function_build_definitions()[0]
             layer_definition = build_graph.get_layer_build_definitions()[0]
             build_graph.put_function_build_definition(build_definition, func1)

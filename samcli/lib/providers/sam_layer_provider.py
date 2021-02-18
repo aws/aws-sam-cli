@@ -2,8 +2,10 @@
 Class that provides layers from a given SAM template
 """
 import logging
+import posixpath
+from typing import List, Dict, Optional
 
-from .provider import LayerVersion
+from .provider import LayerVersion, Stack
 from .sam_base_provider import SamBaseProvider
 
 LOG = logging.getLogger(__name__)
@@ -17,7 +19,7 @@ class SamLayerProvider(SamBaseProvider):
     It may or may not contain a layer.
     """
 
-    def __init__(self, template_dict, parameter_overrides=None):
+    def __init__(self, stacks: List[Stack]):
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
         to be valid, normalized and a dictionary. It should be normalized by running all pre-processing
@@ -30,17 +32,16 @@ class SamLayerProvider(SamBaseProvider):
 
         Parameters
         ----------
-        template_dict: SAM Template as a dictionary
-        parameter_overrides: Optional dictionary of values for SAM template parameters that might want to get
-            substituted within the template
+        :param dict stacks: List of stacks layers are extracted from
         """
-        self._template_dict = SamLayerProvider.get_template(template_dict, parameter_overrides)
-        self._resources = self._template_dict.get("Resources", {})
+        self._stacks = stacks
+
         self._layers = self._extract_layers()
 
-    def get(self, name):
+    def get(self, name: str) -> Optional[LayerVersion]:
         """
         Returns the layer with given name or logical id.
+        If it is in a nested stack, name can be prefixed with stack path to avoid ambiguity
 
         Parameters
         ----------
@@ -55,11 +56,11 @@ class SamLayerProvider(SamBaseProvider):
             raise ValueError("Layer name is required")
 
         for layer in self._layers:
-            if layer.name == name:
+            if posixpath.join(layer.stack_path, layer.name) == name or layer.name == name:
                 return layer
         return None
 
-    def get_all(self):
+    def get_all(self) -> List[LayerVersion]:
         """
         Returns all Layers in template
         Returns
@@ -68,18 +69,21 @@ class SamLayerProvider(SamBaseProvider):
         """
         return self._layers
 
-    def _extract_layers(self):
+    def _extract_layers(self) -> List[LayerVersion]:
         """
         Extracts all resources with Type AWS::Lambda::LayerVersion and AWS::Serverless::LayerVersion and return a list
         of those resources.
         """
         layers = []
-        for name, resource in self._resources.items():
-            if resource.get("Type") in [self.LAMBDA_LAYER, self.SERVERLESS_LAYER]:
-                layers.append(self._convert_lambda_layer_resource(name, resource))
+        for stack in self._stacks:
+            for name, resource in stack.resources.items():
+                if resource.get("Type") in [self.LAMBDA_LAYER, self.SERVERLESS_LAYER]:
+                    layers.append(self._convert_lambda_layer_resource(stack.stack_path, name, resource))
         return layers
 
-    def _convert_lambda_layer_resource(self, layer_logical_id, layer_resource):
+    def _convert_lambda_layer_resource(
+        self, stack_path: str, layer_logical_id: str, layer_resource: Dict
+    ) -> LayerVersion:
         """
         Convert layer resource into {LayerVersion} object.
         Parameters
@@ -99,4 +103,10 @@ class SamLayerProvider(SamBaseProvider):
         if resource_type == self.LAMBDA_LAYER:
             codeuri = SamLayerProvider._extract_lambda_function_code(layer_properties, "Content")
 
-        return LayerVersion(layer_logical_id, codeuri, compatible_runtimes, layer_resource.get("Metadata", None))
+        return LayerVersion(
+            layer_logical_id,
+            codeuri,
+            compatible_runtimes,
+            layer_resource.get("Metadata", None),
+            stack_path=stack_path,
+        )

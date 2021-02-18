@@ -16,6 +16,7 @@ RUNTIMES_WITH_ENTRYPOINT = [Runtime.dotnetcore21.value, Runtime.dotnetcore31.val
 RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT = [
     Runtime.nodejs10x.value,
     Runtime.nodejs12x.value,
+    Runtime.nodejs14x.value,
     Runtime.python37.value,
     Runtime.python38.value,
     Runtime.python36.value,
@@ -28,6 +29,7 @@ RUNTIMES_WITH_DEBUG_ENV_VARS_ONLY = [
     Runtime.java8al2.value,
     Runtime.dotnetcore21.value,
     Runtime.dotnetcore31.value,
+    Runtime.go1x.value,
 ]
 
 RUNTIMES_WITH_ENTRYPOINT_OVERRIDES = RUNTIMES_WITH_ENTRYPOINT + RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT
@@ -102,9 +104,7 @@ class TestLambdaContainer_init(TestCase):
         self.assertEqual(expected_env_vars, container._env_vars)
         self.assertEqual(self.memory_mb, container._memory_limit_mb)
 
-        get_image_mock.assert_called_with(
-            image_builder_mock, self.runtime, self.packagetype, self.imageuri, [], self.debug_options
-        )
+        get_image_mock.assert_called_with(image_builder_mock, self.runtime, self.packagetype, self.imageuri, [])
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_debug_settings_mock.assert_called_with(self.runtime, self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
@@ -172,9 +172,7 @@ class TestLambdaContainer_init(TestCase):
         self.assertEqual({**expected_env_vars, **{"AWS_LAMBDA_FUNCTION_HANDLER": "mycommand"}}, container._env_vars)
         self.assertEqual(self.memory_mb, container._memory_limit_mb)
 
-        get_image_mock.assert_called_with(
-            image_builder_mock, self.runtime, self.packagetype, self.imageuri, [], self.debug_options
-        )
+        get_image_mock.assert_called_with(image_builder_mock, self.runtime, self.packagetype, self.imageuri, [])
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
         get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options)
@@ -245,9 +243,7 @@ class TestLambdaContainer_init(TestCase):
         self.assertEqual(expected_env_vars, container._env_vars)
         self.assertEqual(self.memory_mb, container._memory_limit_mb)
 
-        get_image_mock.assert_called_with(
-            image_builder_mock, self.runtime, IMAGE, self.imageuri, [], self.debug_options
-        )
+        get_image_mock.assert_called_with(image_builder_mock, self.runtime, IMAGE, self.imageuri, [])
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
         get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options)
@@ -320,9 +316,7 @@ class TestLambdaContainer_init(TestCase):
         )
         self.assertEqual(self.memory_mb, container._memory_limit_mb)
 
-        get_image_mock.assert_called_with(
-            image_builder_mock, self.runtime, IMAGE, self.imageuri, [], self.debug_options
-        )
+        get_image_mock.assert_called_with(image_builder_mock, self.runtime, IMAGE, self.imageuri, [])
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
         get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options)
@@ -396,9 +390,7 @@ class TestLambdaContainer_init(TestCase):
         )
         self.assertEqual(self.memory_mb, container._memory_limit_mb)
 
-        get_image_mock.assert_called_with(
-            image_builder_mock, self.runtime, self.packagetype, self.imageuri, [], self.debug_options
-        )
+        get_image_mock.assert_called_with(image_builder_mock, self.runtime, self.packagetype, self.imageuri, [])
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
         get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options)
@@ -461,10 +453,8 @@ class TestLambdaContainer_get_exposed_ports(TestCase):
 
 
 class TestLambdaContainer_get_image(TestCase):
-    def test_must_return_lambci_image_with_debug(self):
-        debug_options = DebugContext(debug_ports=[1235], debugger_path="a", debug_args="a=b c=d e=f")
-
-        expected = "lambci/lambda:foo"
+    def test_must_return_build_image(self):
+        expected = "amazon/aws-sam-cli-emulation-image-foo:rapid-x.y.z"
 
         image_builder = Mock()
         image_builder.build.return_value = expected
@@ -476,34 +466,11 @@ class TestLambdaContainer_get_image(TestCase):
                 packagetype=ZIP,
                 image=None,
                 layers=[],
-                debug_options=debug_options,
             ),
             expected,
         )
 
-        image_builder.build.assert_called_with("foo", ZIP, None, [], True)
-
-    def test_must_return_lambci_image_without_debug(self):
-        debug_options = DebugContext()
-
-        expected = "lambci/lambda:foo"
-
-        image_builder = Mock()
-        image_builder.build.return_value = expected
-
-        self.assertEqual(
-            LambdaContainer._get_image(
-                lambda_image=image_builder,
-                runtime="foo",
-                packagetype=ZIP,
-                image=None,
-                layers=[],
-                debug_options=debug_options,
-            ),
-            expected,
-        )
-
-        image_builder.build.assert_called_with("foo", ZIP, None, [], False)
+        image_builder.build.assert_called_with("foo", ZIP, None, [])
 
 
 class TestLambdaContainer_get_debug_settings(TestCase):
@@ -544,17 +511,6 @@ class TestLambdaContainer_get_debug_settings(TestCase):
 
         self.assertIsNotNone(container_env_vars)
 
-    @parameterized.expand([param(r) for r in set(RUNTIMES_WITH_ENTRYPOINT) if not r.startswith("dotnetcore")])
-    def test_debug_arg_must_be_split_by_spaces_and_appended_to_entrypoint(self, runtime):
-        """
-        Debug args list is appended starting at second position in the array
-        """
-        expected_debug_args = ["a=b", "c=d", "e=f"]
-        result, _ = LambdaContainer._get_debug_settings(runtime, self.debug_options)
-        actual = result[1:4]
-
-        self.assertEqual(actual, expected_debug_args)
-
     @parameterized.expand([param(r) for r in set(RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT)])
     def test_debug_arg_must_be_split_by_spaces_and_appended_to_bootstrap_based_entrypoint(self, runtime):
         """
@@ -572,6 +528,13 @@ class TestLambdaContainer_get_debug_settings(TestCase):
         result, _ = LambdaContainer._get_debug_settings(runtime, debug_options)
 
         self.assertIsNotNone(result)
+
+    @parameterized.expand([(2, "-delveAPI=2"), (2, "-delveAPI 2"), (1, None)])
+    def test_delve_api_version_can_be_read_from_debug_args(self, version, debug_args):
+        debug_options = DebugContext(debug_ports=[1235], debug_args=debug_args)
+        _, env_vars = LambdaContainer._get_debug_settings(Runtime.go1x.value, debug_options)
+
+        self.assertEqual(env_vars.get("_AWS_LAMBDA_GO_DELVE_API_VERSION"), version)
 
 
 class TestLambdaContainer_get_additional_options(TestCase):

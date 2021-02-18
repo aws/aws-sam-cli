@@ -3,7 +3,9 @@ Represents Lambda debug entrypoints.
 """
 
 import logging
+from argparse import ArgumentParser
 from collections import namedtuple
+from typing import List, cast
 
 from samcli.local.docker.lambda_image import Runtime
 
@@ -88,10 +90,14 @@ class LambdaDebugSettings:
                 container_env_vars={"_AWS_LAMBDA_DOTNET_DEBUGGING": "1", **_container_env_vars},
             ),
             Runtime.go1x.value: DebugSettings(
-                ["/var/runtime/aws-lambda-go"]
-                + debug_args_list
-                + ["-debug=true", "-delvePort=" + str(debug_port), "-delvePath=" + options.get("delvePath")],
-                container_env_vars=_container_env_vars,
+                entry,
+                container_env_vars={
+                    "_AWS_LAMBDA_GO_DEBUGGING": "1",
+                    "_AWS_LAMBDA_GO_DELVE_API_VERSION": LambdaDebugSettings.parse_go_delve_api_version(debug_args_list),
+                    "_AWS_LAMBDA_GO_DELVE_LISTEN_PORT": debug_port,
+                    "_AWS_LAMBDA_GO_DELVE_PATH": options.get("delvePath"),
+                    **_container_env_vars,
+                },
             ),
             Runtime.nodejs10x.value: DebugSettings(
                 entry
@@ -100,7 +106,7 @@ class LambdaDebugSettings:
                 + ["--no-lazy", "--expose-gc"]
                 + ["/var/runtime/index.js"],
                 container_env_vars={
-                    "NODE_PATH": "/opt/nodejs/node_modules:/opt/nodejs/node10/node_modules:/var/runtime/node_module",
+                    "NODE_PATH": "/opt/nodejs/node_modules:/opt/nodejs/node10/node_modules:/var/runtime/node_modules",
                     "NODE_OPTIONS": f"--inspect-brk=0.0.0.0:{str(debug_port)} --max-http-header-size 81920",
                     "AWS_EXECUTION_ENV": "AWS_Lambda_nodejs10.x",
                     **_container_env_vars,
@@ -113,9 +119,22 @@ class LambdaDebugSettings:
                 + ["--no-lazy", "--expose-gc"]
                 + ["/var/runtime/index.js"],
                 container_env_vars={
-                    "NODE_PATH": "/opt/nodejs/node_modules:/opt/nodejs/node12/node_modules:/var/runtime/node_module",
+                    "NODE_PATH": "/opt/nodejs/node_modules:/opt/nodejs/node12/node_modules:/var/runtime/node_modules",
                     "NODE_OPTIONS": f"--inspect-brk=0.0.0.0:{str(debug_port)} --max-http-header-size 81920",
                     "AWS_EXECUTION_ENV": "AWS_Lambda_nodejs12.x",
+                    **_container_env_vars,
+                },
+            ),
+            Runtime.nodejs14x.value: DebugSettings(
+                entry
+                + ["/var/lang/bin/node"]
+                + debug_args_list
+                + ["--no-lazy", "--expose-gc"]
+                + ["/var/runtime/index.js"],
+                container_env_vars={
+                    "NODE_PATH": "/opt/nodejs/node_modules:/opt/nodejs/node14/node_modules:/var/runtime/node_modules",
+                    "NODE_OPTIONS": f"--inspect-brk=0.0.0.0:{str(debug_port)} --max-http-header-size 81920",
+                    "AWS_EXECUTION_ENV": "AWS_Lambda_nodejs14.x",
                     **_container_env_vars,
                 },
             ),
@@ -143,3 +162,12 @@ class LambdaDebugSettings:
                 LOG.debug("Passing entrypoint as specified in template")
                 return DebugSettings(entry + debug_args_list, _container_env_vars)
             raise DebuggingNotSupported("Debugging is not currently supported for {}".format(runtime)) from ex
+
+    @staticmethod
+    def parse_go_delve_api_version(debug_args_list: List[str]) -> int:
+        parser = ArgumentParser("Parser for delve args")
+        parser.add_argument("-delveAPI", type=int, default=1)
+        args, unknown_args = parser.parse_known_args(debug_args_list)
+        if unknown_args:
+            LOG.warning('Ignoring unrecognized arguments: %s. Only "-delveAPI" is supported.', unknown_args)
+        return cast(int, args.delveAPI)

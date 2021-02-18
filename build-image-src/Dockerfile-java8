@@ -19,6 +19,7 @@ RUN chmod 1777 /tmp && \
   gzip \
   unzip \
   python3 \
+  jq \
   grep \
   curl \
   make \
@@ -39,16 +40,15 @@ RUN chmod 1777 /tmp && \
 
 # Install AWS CLI
 
-RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && unzip awscliv2.zip && ./aws/install && rm -rf awscliv2.zip
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && unzip awscliv2.zip && ./aws/install && rm -rf awscliv2.zip && rm -rf ./aws
 
 # Install SAM CLI in a dedicated Python virtualenv
 ARG SAM_CLI_VERSION
-RUN curl -Lk "https://github.com/awslabs/aws-sam-cli/archive/v$SAM_CLI_VERSION.zip" -o "samcli.zip" && \
+RUN curl -L "https://github.com/awslabs/aws-sam-cli/archive/v$SAM_CLI_VERSION.zip" -o "samcli.zip" && \
   unzip samcli.zip && python3 -m venv /usr/local/opt/sam-cli && \
   /usr/local/opt/sam-cli/bin/pip3 --no-cache-dir install -r ./aws-sam-cli-$SAM_CLI_VERSION/requirements/reproducible-linux.txt && \
-  /usr/local/opt/sam-cli/bin/pip3 --no-cache-dir install ./aws-sam-cli-$SAM_CLI_VERSION
-
-RUN rm samcli.zip && rm -rf aws-sam-cli-$SAM_CLI_VERSION
+  /usr/local/opt/sam-cli/bin/pip3 --no-cache-dir install ./aws-sam-cli-$SAM_CLI_VERSION && \
+  rm samcli.zip && rm -rf aws-sam-cli-$SAM_CLI_VERSION
 
 ENV PATH=$PATH:/usr/local/opt/sam-cli/bin
 

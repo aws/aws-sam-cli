@@ -47,6 +47,7 @@ def generate_function(
     events="events",
     codesign_config_arn="codesign_config_arn",
     metadata={},
+    inlinecode=None,
 ):
     return Function(
         name,
@@ -64,6 +65,7 @@ def generate_function(
         layers,
         events,
         metadata,
+        inlinecode,
         codesign_config_arn,
     )
 
