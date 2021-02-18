@@ -716,4 +716,3 @@ class TestGuidedContext(TestCase):
             ),
         ]
         self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
-
