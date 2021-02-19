@@ -161,13 +161,9 @@ class GuidedContext:
                 type=click.STRING,
             )
 
-        s3_bucket = self.s3_bucket
-        if s3_bucket:
-            click.echo(f"\n\t\tUsing defined S3 bucket: {s3_bucket}")
-        else:
-            s3_bucket = manage_stack(profile=self.profile, region=region)
-            click.echo(f"\n\t\tManaged S3 bucket: {s3_bucket}")
-            click.echo("\t\tA different default S3 bucket can be set in samconfig.toml")
+        s3_bucket = manage_stack(profile=self.profile, region=region)
+        click.echo(f"\n\t\tManaged S3 bucket: {s3_bucket}")
+        click.echo("\t\tA different default S3 bucket can be set in samconfig.toml")
 
         self.guided_stack_name = stack_name
         self.guided_s3_bucket = s3_bucket
