@@ -136,6 +136,26 @@ class TestSamConfig(TestCase):
             self.samconfig.get_all(cmd_names=["myCommand"], section="mySection", env="myEnv"),
         )
 
+    def test_dedup_global_param(self):
+        self._update_samconfig(
+            cmd_names=[DEFAULT_GLOBAL_CMDNAME],
+            section="mySection",
+            key="testKey",
+            value="ValueFromGlobal",
+            env="myEnv",
+        )
+        self._update_samconfig(
+            cmd_names=["myCommand"], section="mySection", key="testKey", value="ValueFromGlobal", env="myEnv"
+        )
+        self.assertEqual(
+            {"testKey": "ValueFromGlobal"},
+            self.samconfig.get_all(cmd_names=["myCommand"], section="mySection", env="myEnv"),
+        )
+        self.assertEqual(self.samconfig.document["myEnv"]["myCommand"]["mySection"], {})
+        self.assertEqual(
+            self.samconfig.document["myEnv"][DEFAULT_GLOBAL_CMDNAME]["mySection"], {"testKey": "ValueFromGlobal"}
+        )
+
     def test_check_config_get(self):
         self._setup_config()
         self.assertEqual(

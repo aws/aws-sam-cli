@@ -128,6 +128,8 @@ class SamConfig:
         else:
             self.document.update({env: {self._to_key(cmd_names): {section: {key: value}}}})
 
+        self._deduplicate_global_parameters(cmd_names, section, key, value, env)
+
     def flush(self):
         """
         Write the data back to file
@@ -197,6 +199,50 @@ class SamConfig:
 
     def _version(self):
         return self.document.get(VERSION_KEY, None)
+
+    def _deduplicate_global_parameters(self, cmd_names, section, key, value, env=DEFAULT_ENV):
+        """
+        In case the global parameters contains the same key-value with command parameters,
+        we remove the entry in command parameters
+
+        Parameters
+        ----------
+        cmd_names : list(str)
+            List of representing the entire command. Ex: ["local", "generate-event", "s3", "put"]
+
+        section : str
+            Specific section within the command to look into Ex: `parameters`
+
+        key : str
+            Key to write the data under
+
+        value
+            Value to write. Could be any of the supported TOML types.
+
+        env : str
+            Optional, Name of the environment
+        """
+        cmd_name = self._to_key(cmd_names)
+        global_params = self.document.get(env, {}).get(DEFAULT_GLOBAL_CMDNAME, {}).get(section, {})
+        command_params = self.document.get(env, {}).get(cmd_name, {}).get(section, {})
+        if (
+            cmd_name != DEFAULT_GLOBAL_CMDNAME
+            and global_params
+            and command_params
+            and global_params.get(key)
+            and global_params.get(key) == command_params.get(key)
+        ):
+            value = command_params.get(key)
+            save_global_message = (
+                f'\n\tParameter "{key}={value}" in [{env}.{cmd_name}.{section}] is defined as a global '
+                f"parameter [{env}.{DEFAULT_GLOBAL_CMDNAME}.{section}].\n\tThis parameter will be only saved "
+                f"under [{env}.{DEFAULT_GLOBAL_CMDNAME}.{section}] in {self.filepath}."
+            )
+            LOG.info(save_global_message)
+            # Only keep the global parameter
+            items = self.document[env][cmd_name][section].copy()
+            items.pop(key)
+            self.document[env][cmd_name][section] = items
 
     @staticmethod
     def _version_sanity_check(version: Any) -> None:

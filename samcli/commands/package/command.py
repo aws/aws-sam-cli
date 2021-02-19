@@ -6,7 +6,7 @@ from functools import partial
 import click
 
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
-from samcli.cli.main import pass_context, common_options, aws_creds_options
+from samcli.cli.main import pass_context, common_options, aws_creds_options, log_cmdline_info
 from samcli.cli.types import ImageRepositoryType, ImageRepositoriesType
 from samcli.commands.package.exceptions import PackageResolveS3AndS3SetError, PackageResolveS3AndS3NotSetError
 from samcli.lib.cli_validation.image_repository_validation import image_repository_validation
@@ -134,6 +134,7 @@ The following resources and their property locations are supported.
 @track_command
 @check_newer_version
 @track_template_warnings([CodeDeployWarning.__name__, CodeDeployConditionWarning.__name__])
+@log_cmdline_info
 def cli(
     ctx,
     template_file,
