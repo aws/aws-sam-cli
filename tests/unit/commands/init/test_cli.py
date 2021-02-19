@@ -627,14 +627,14 @@ Y
 
         # 1: AWS Quick Start Templates
         # 2: Package type - Image
-        # 12: Java8 base image
+        # 13: Java8 base image
         # 1: dependency manager maven
         # test-project: response to name
 
         user_input = """
 1
 2
-12
+13
 1
 test-project
             """

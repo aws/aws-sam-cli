@@ -7,6 +7,7 @@ RUN yum groupinstall -y development && \
   gzip \
   unzip \
   python3 \
+  jq \
   grep \
   curl \
   make \

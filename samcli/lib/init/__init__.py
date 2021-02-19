@@ -6,12 +6,12 @@ import logging
 
 from pathlib import Path
 
-from cookiecutter.exceptions import CookiecutterException, RepositoryNotFound
+from cookiecutter.exceptions import CookiecutterException, RepositoryNotFound, UnknownRepoType
 from cookiecutter.main import cookiecutter
 
 from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING
 from samcli.lib.utils.packagetype import ZIP
-from .exceptions import GenerateProjectFailedError
+from .exceptions import GenerateProjectFailedError, InvalidLocationError
 from .arbitrary_project import generate_non_cookiecutter_project
 
 LOG = logging.getLogger(__name__)
@@ -96,5 +96,7 @@ def generate_project(
         project_output_dir = str(Path(output_dir, name)) if name else output_dir
         generate_non_cookiecutter_project(location=params["template"], output_dir=project_output_dir)
 
+    except UnknownRepoType as e:
+        raise InvalidLocationError(template=params["template"]) from e
     except CookiecutterException as e:
         raise GenerateProjectFailedError(project=name, provider_error=e) from e

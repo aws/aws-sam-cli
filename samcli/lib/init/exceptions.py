@@ -16,5 +16,9 @@ class GenerateProjectFailedError(InitErrorException):
     fmt = "An error occurred while generating this project {project}: {provider_error}"
 
 
+class InvalidLocationError(InitErrorException):
+    fmt = "The template location specified is not valid: {template}"
+
+
 class ArbitraryProjectDownloadFailed(InitErrorException):
     fmt = "{msg}"

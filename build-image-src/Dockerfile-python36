@@ -5,6 +5,7 @@ RUN yum groupinstall -y development && \
   tar \
   gzip \
   unzip \
+  jq \
   grep \
   curl \
   make \
