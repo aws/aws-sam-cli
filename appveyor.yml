@@ -63,7 +63,7 @@ for:
       - "pip install awscli"
       
       # Create pre-dev virtual env without installing dev depenencies
-      # This is used for import check for prod code
+      # This is used for import check for prod code to prevent importing packages from dev.txt
       - "rm -rf pre-dev-venv"
       - "python -m virtualenv pre-dev-venv"
       - "pre-dev-venv\\Scripts\\activate"
