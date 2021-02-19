@@ -62,7 +62,8 @@ for:
       # Install AWS CLI Globally outside of a venv.
       - "pip install awscli"
       
-      # Create pre-dev virtual env
+      # Create pre-dev virtual env without installing dev depenencies
+      # This is used for import check for prod code
       - "rm -rf pre-dev-venv"
       - "python -m virtualenv pre-dev-venv"
       - "pre-dev-venv\\Scripts\\activate"
