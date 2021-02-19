@@ -46,19 +46,7 @@ def do_interactive(
             location, package_type, runtime, dependency_manager, output_dir, name, app_template, no_input
         )
     else:
-        if not pt_explicit:
-            click.echo("What package type would you like to use?")
-            click.echo("\t1 - Zip (artifact is a zip uploaded to S3)\t")
-            click.echo("\t2 - Image (artifact is an image uploaded to an ECR image repository)")
-            package_opt_choice = click.prompt("Package type", type=click.Choice(["1", "2"]), show_choices=False)
-            if package_opt_choice == "1":
-                package_type = ZIP
-            else:
-                package_type = IMAGE
-
-        _generate_from_app_template(
-            location, package_type, runtime, base_image, dependency_manager, output_dir, name, app_template
-        )
+        _generate_from_use_case(location, runtime, base_image, dependency_manager, output_dir, name, app_template)
 
 
 def _generate_from_location(
@@ -78,32 +66,62 @@ Output Directory: {output_dir}
     do_generate(location, package_type, runtime, dependency_manager, output_dir, name, no_input, None)
 
 
-# pylint: disable=too-many-statements
-def _generate_from_app_template(
-    location, package_type, runtime, base_image, dependency_manager, output_dir, name, app_template
+def _generate_from_use_case(
+    location, runtime, base_image, dependency_manager, output_dir, name, app_template
 ):
-    extra_context = None
-    if package_type == IMAGE:
-        base_image, runtime = _get_runtime_from_image(base_image)
+    templates = InitTemplates()
+    options = templates.use_case_init_options(None, runtime, base_image, dependency_manager)
+
+    click.echo("What is your use-case?")
+    use_cases = list(options.keys())
+    click_use_case_choices = []
+    for idx, use_case in enumerate(use_cases):
+        click.echo("\t{index} - {name}".format(index=idx+1, name=use_case))
+        click_use_case_choices.append(str(idx+1))
+    use_case_choice = click.prompt("Use case", type=click.Choice(click_use_case_choices), show_choices=False)
+
+    runtimes = list(options[use_cases[int(use_case_choice)-1]].keys())
+    if runtimes is None or len(runtimes) == 0:
+        click.echo("No templates available for your use case and chosen runtime")
+        return
+
+    chosen_runtime = ""
+    if len(runtimes) > 1:
+        click.echo("\nWhat is your runtime?")
+        click_runtime_choices = []
+        for idx, template_runtime in enumerate(runtimes):
+            click.echo("\t{index} - {name}".format(index=idx + 1, name=template_runtime))
+            click_runtime_choices.append(str(idx + 1))
+        runtime_choice = click.prompt("Runtime", type=click.Choice(click_runtime_choices), show_choices=False)
+        chosen_runtime = runtimes[int(runtime_choice)-1]
     else:
-        runtime = _get_runtime(runtime)
-    dependency_manager = _get_dependency_manager(dependency_manager, runtime)
+        chosen_runtime = runtimes[0]
+
+    # templates is already a list so no need to get the keys and cast
+    app_templates = options[use_cases[int(use_case_choice)-1]][chosen_runtime]
+    chosen_template = ""
+    if len(app_templates) > 1:
+        click.echo("\nSelect your starter template")
+        click_template_choices = []
+        for idx, template in enumerate(app_templates):
+            click.echo("\t{index} - {name}".format(index=idx+1, name=template["displayName"]))
+            click_template_choices.append(str(idx + 1))
+        template_choice = click.prompt("Template", type=click.Choice(click_template_choices), show_choices=False)
+        chosen_template = app_templates[int(template_choice) - 1]
+    else:
+        chosen_template = app_templates[0]
+
     if not name:
         name = click.prompt("\nProject name", type=str, default="sam-app")
-    templates = InitTemplates()
-    if app_template is not None:
-        location = templates.location_from_app_template(
-            package_type, runtime, base_image, dependency_manager, app_template
-        )
-        extra_context = {"project_name": name, "runtime": runtime}
-    else:
-        location, app_template = templates.prompt_for_location(package_type, runtime, base_image, dependency_manager)
-        extra_context = {"project_name": name, "runtime": runtime}
+
+    package_type = IMAGE if chosen_template["packageType"] == "Image" else ZIP
+    extra_context = {"project_name": name, "runtime": runtime}
 
     # executing event_bridge logic if call is for Schema dynamic template
-    is_dynamic_schemas_template = templates.is_dynamic_schemas_template(
-        package_type, app_template, runtime, base_image, dependency_manager
-    )
+    is_dynamic_schemas_template = False
+    if "isDynamicTemplate" in chosen_template and chosen_template["isDynamicTemplate"] == "True":
+        is_dynamic_schemas_template = True
+
     if is_dynamic_schemas_template:
         schemas_api_caller = get_schemas_api_caller()
         schema_template_details = _get_schema_template_details(schemas_api_caller)
@@ -112,51 +130,41 @@ def _generate_from_app_template(
 
     no_input = True
     summary_msg = ""
+    runtime = chosen_runtime
+    dependency_manager = chosen_template["dependencyManager"]
+    app_template = chosen_template["appTemplate"]
+
     if package_type == ZIP:
         summary_msg = f"""
-    -----------------------
-    Generating application:
-    -----------------------
-    Name: {name}
-    Runtime: {runtime}
-    Dependency Manager: {dependency_manager}
-    Application Template: {app_template}
-    Output Directory: {output_dir}
+-----------------------
+Generating application:
+-----------------------
+Name: {name}
+Runtime: {runtime}
+Dependency Manager: {dependency_manager}
+Application Template: {app_template}
+Output Directory: {output_dir}
     
-    Next steps can be found in the README file at {output_dir}/{name}/README.md
+Next steps can be found in the README file at {output_dir}/{name}/README.md
         """
     elif package_type == IMAGE:
         summary_msg = f"""
-    -----------------------
-    Generating application:
-    -----------------------
-    Name: {name}
-    Base Image: {base_image}
-    Dependency Manager: {dependency_manager}
-    Output Directory: {output_dir}
+-----------------------
+Generating application:
+-----------------------
+Name: {name}
+Base Image: {base_image}
+Dependency Manager: {dependency_manager}
+Output Directory: {output_dir}
 
-    Next steps can be found in the README file at {output_dir}/{name}/README.md
-        """
+Next steps can be found in the README file at {output_dir}/{name}/README.md
+            """
 
     click.echo(summary_msg)
     do_generate(location, package_type, runtime, dependency_manager, output_dir, name, no_input, extra_context)
     # executing event_bridge logic if call is for Schema dynamic template
     if is_dynamic_schemas_template:
         _package_schemas_code(runtime, schemas_api_caller, schema_template_details, output_dir, name, location)
-
-
-def _get_runtime(runtime):
-    if not runtime:
-        choices = list(map(str, range(1, len(INIT_RUNTIMES) + 1)))
-        choice_num = 1
-        click.echo("\nWhich runtime would you like to use?")
-        for r in INIT_RUNTIMES:
-            msg = "\t" + str(choice_num) + " - " + r
-            click.echo(msg)
-            choice_num = choice_num + 1
-        choice = click.prompt("Runtime", type=click.Choice(choices), show_choices=False)
-        runtime = INIT_RUNTIMES[int(choice) - 1]  # zero index
-    return runtime
 
 
 def _get_runtime_from_image(image):
@@ -176,26 +184,6 @@ def _get_runtime_from_image(image):
 
     runtime = image[image.find("/") + 1 : image.find("-")]
     return image, runtime
-
-
-def _get_dependency_manager(dependency_manager, runtime):
-    if not dependency_manager:
-        valid_dep_managers = RUNTIME_TO_DEPENDENCY_MANAGERS.get(runtime)
-        if valid_dep_managers is None:
-            dependency_manager = None
-        elif len(valid_dep_managers) == 1:
-            dependency_manager = valid_dep_managers[0]
-        else:
-            choices = list(map(str, range(1, len(valid_dep_managers) + 1)))
-            choice_num = 1
-            click.echo("\nWhich dependency manager would you like to use?")
-            for dm in valid_dep_managers:
-                msg = "\t" + str(choice_num) + " - " + dm
-                click.echo(msg)
-                choice_num = choice_num + 1
-            choice = click.prompt("Dependency manager", type=click.Choice(choices), show_choices=False)
-            dependency_manager = valid_dep_managers[int(choice) - 1]  # zero index
-    return dependency_manager
 
 
 def _get_schema_template_details(schemas_api_caller):
