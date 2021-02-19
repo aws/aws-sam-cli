@@ -2,6 +2,7 @@
 Class that provides functions from a given SAM template
 """
 import logging
+import posixpath
 from typing import Dict, List, Optional, cast, Iterator
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
@@ -42,7 +43,7 @@ class SamFunctionProvider(SamBaseProvider):
         for stack in stacks:
             LOG.debug("%d resources found in the stack %s", len(stack.resources), stack.stack_path)
 
-        # Store a map of function full_path to function information for quick reference
+        # Store a map of function name to function information for quick reference
         self.functions = self._extract_functions(self.stacks, ignore_code_extraction_warnings)
 
         self._deprecated_runtimes = {"nodejs4.3", "nodejs6.10", "nodejs8.10", "dotnetcore2.0"}
@@ -52,9 +53,8 @@ class SamFunctionProvider(SamBaseProvider):
         """
         Returns the function given name or LogicalId of the function. Every SAM resource has a logicalId, but it may
         also have a function name. This method searches only for LogicalID and returns the function that matches.
-        If it is in a nested stack, "name" can be prefixed with stack path to avoid ambiguity.
-        For example, if a function with name "FunctionA" is located in StackN, which is a nested stack in root stack,
-          either "StackN/FunctionA" or "FunctionA" can be used.
+        If it is in a nested stack, "name" can be prefixed with stack path to avoid ambiguity
+        it.
 
         :param string name: Name of the function
         :return Function: namedtuple containing the Function information if function is found.
@@ -65,12 +65,12 @@ class SamFunctionProvider(SamBaseProvider):
         if not name:
             raise ValueError("Function name is required")
 
-        # support lookup by full_path
-        if name in self.functions:
-            return self.functions.get(name)
-
         for f in self.get_all():
-            if name in (f.name, f.functionname):
+            if posixpath.join(f.stack_path, f.name) == name or f.name == name:
+                self._deprecate_notification(f.runtime)
+                return f
+
+            if posixpath.join(f.stack_path, f.functionname) == name or f.functionname == name:
                 self._deprecate_notification(f.runtime)
                 return f
 
@@ -102,13 +102,13 @@ class SamFunctionProvider(SamBaseProvider):
         Extracts and returns function information from the given dictionary of SAM/CloudFormation resources. This
         method supports functions defined with AWS::Serverless::Function and AWS::Lambda::Function
 
-        :param stacks: List of SAM/CloudFormation stacks to extract functions from
+        :param dict resources_by_stack: Dictionary of SAM/CloudFormation resources by stack
         :param bool ignore_code_extraction_warnings: suppress log statements on code extraction from resources.
-        :return dict(string : samcli.commands.local.lib.provider.Function): Dictionary of function full_path to the
+        :return dict(string : samcli.commands.local.lib.provider.Function): Dictionary of function LogicalId to the
             Function configuration object
         """
 
-        result: Dict[str, Function] = {}  # a dict with full_path as key and extracted function as value
+        result = {}
         for stack in stacks:
             for name, resource in stack.resources.items():
 
@@ -126,14 +126,13 @@ class SamFunctionProvider(SamBaseProvider):
                         stack.resources,
                         ignore_code_extraction_warnings=ignore_code_extraction_warnings,
                     )
-                    function = SamFunctionProvider._convert_sam_function_resource(
+                    result[name] = SamFunctionProvider._convert_sam_function_resource(
                         stack.stack_path,
                         name,
                         resource_properties,
                         layers,
                         ignore_code_extraction_warnings=ignore_code_extraction_warnings,
                     )
-                    result[function.full_path] = function
 
                 elif resource_type == SamFunctionProvider.LAMBDA_FUNCTION:
                     layers = SamFunctionProvider._parse_layer_info(
@@ -142,10 +141,9 @@ class SamFunctionProvider(SamBaseProvider):
                         stack.resources,
                         ignore_code_extraction_warnings=ignore_code_extraction_warnings,
                     )
-                    function = SamFunctionProvider._convert_lambda_function_resource(
+                    result[name] = SamFunctionProvider._convert_lambda_function_resource(
                         stack.stack_path, name, resource_properties, layers
                     )
-                    result[function.full_path] = function
 
                 # We don't care about other resource types. Just ignore them
 
