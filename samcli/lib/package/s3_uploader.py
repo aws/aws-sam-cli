@@ -27,7 +27,6 @@ import botocore
 import botocore.exceptions
 
 from boto3.s3 import transfer
-from mypy_boto3_s3.client import S3Client
 
 from samcli.commands.package.exceptions import NoSuchBucketError, BucketNotSpecifiedError
 from samcli.lib.utils.hash import file_checksum
