@@ -72,7 +72,7 @@ def _generate_from_use_case(
     templates = InitTemplates()
     options = templates.use_case_init_options(None, runtime, base_image, dependency_manager)
 
-    click.echo("What is your use-case?")
+    click.echo("\nWhat is your use-case?")
     use_cases = list(options.keys())
     click_use_case_choices = []
     for idx, use_case in enumerate(use_cases):
