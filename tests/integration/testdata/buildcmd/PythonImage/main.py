@@ -9,11 +9,3 @@ def handler(event, context):
     # print(Fernet.generate_key())
 
     return {"pi": "{0:.2f}".format(numpy.pi)}
-
-
-def first_function_handler(event, context):
-    return "Hello World"
-
-
-def second_function_handler(event, context):
-    return "Hello Mars"
