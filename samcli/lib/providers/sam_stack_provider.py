@@ -23,9 +23,7 @@ class SamLocalStackProvider(SamBaseProvider):
     # see get_stacks() for info about this env var
     ENV_SAM_CLI_ENABLE_NESTED_STACK = "SAM_CLI_ENABLE_NESTED_STACK"
 
-    def __init__(
-        self, template_file: str, stack_path: str, template_dict: Dict, parameter_overrides: Optional[Dict] = None
-    ):
+    def __init__(self, stack_path: str, template_dict: Dict, parameter_overrides: Optional[Dict] = None):
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
         to be valid, normalized and a dictionary. It should be normalized by running all pre-processing
@@ -34,14 +32,11 @@ class SamLocalStackProvider(SamBaseProvider):
         This class does not perform any syntactic validation of the template.
         After the class is initialized, any changes to the ``template_dict`` will not be reflected in here.
         You need to explicitly update the class with new template, if necessary.
-        :param str template_file: SAM Stack Template file path
-        :param str stack_path: SAM Stack stack_path (See samcli.lib.providers.provider.Stack.stack_path)
         :param dict template_dict: SAM Template as a dictionary
         :param dict parameter_overrides: Optional dictionary of values for SAM template parameters that might want
             to get substituted within the template
         """
 
-        self._template_directory = os.path.dirname(template_file)
         self._stack_path = stack_path
         self._template_dict = self.get_template(template_dict, parameter_overrides)
         self._resources = self._template_dict.get("Resources", {})
@@ -99,12 +94,10 @@ class SamLocalStackProvider(SamBaseProvider):
             stack: Optional[Stack] = None
             if resource_type == SamLocalStackProvider.SERVERLESS_APPLICATION:
                 stack = SamLocalStackProvider._convert_sam_application_resource(
-                    self._template_directory, self._stack_path, name, resource_properties
+                    self._stack_path, name, resource_properties
                 )
             if resource_type == SamLocalStackProvider.CLOUDFORMATION_STACK:
-                stack = SamLocalStackProvider._convert_cfn_stack_resource(
-                    self._template_directory, self._stack_path, name, resource_properties
-                )
+                stack = SamLocalStackProvider._convert_cfn_stack_resource(self._stack_path, name, resource_properties)
 
             if stack:
                 result[name] = stack
@@ -114,9 +107,7 @@ class SamLocalStackProvider(SamBaseProvider):
         return result
 
     @staticmethod
-    def _convert_sam_application_resource(
-        template_directory: str, stack_path: str, name: str, resource_properties: Dict
-    ) -> Optional[Stack]:
+    def _convert_sam_application_resource(stack_path: str, name: str, resource_properties: Dict) -> Optional[Stack]:
         location = resource_properties.get("Location")
 
         if isinstance(location, dict):
@@ -138,8 +129,6 @@ class SamLocalStackProvider(SamBaseProvider):
             return None
         if location.startswith("file://"):
             location = unquote(urlparse(location).path)
-        elif not os.path.isabs(location):
-            location = os.path.join(template_directory, os.path.relpath(location))
 
         return Stack(
             parent_stack_path=stack_path,
@@ -150,9 +139,7 @@ class SamLocalStackProvider(SamBaseProvider):
         )
 
     @staticmethod
-    def _convert_cfn_stack_resource(
-        template_directory: str, stack_path: str, name: str, resource_properties: Dict
-    ) -> Optional[Stack]:
+    def _convert_cfn_stack_resource(stack_path: str, name: str, resource_properties: Dict) -> Optional[Stack]:
         template_url = resource_properties.get("TemplateURL", "")
 
         if SamLocalStackProvider.is_remote_url(template_url):
@@ -164,8 +151,6 @@ class SamLocalStackProvider(SamBaseProvider):
             return None
         if template_url.startswith("file://"):
             template_url = unquote(urlparse(template_url).path)
-        elif not os.path.isabs(template_url):
-            template_url = os.path.join(template_directory, os.path.relpath(template_url))
 
         return Stack(
             parent_stack_path=stack_path,
@@ -191,7 +176,7 @@ class SamLocalStackProvider(SamBaseProvider):
         if not os.environ.get(SamLocalStackProvider.ENV_SAM_CLI_ENABLE_NESTED_STACK, False):
             return stacks
 
-        current = SamLocalStackProvider(template_file, stack_path, template_dict, parameter_overrides)
+        current = SamLocalStackProvider(stack_path, template_dict, parameter_overrides)
         for child_stack in current.get_all():
             stacks.extend(
                 SamLocalStackProvider.get_stacks(

@@ -12,7 +12,7 @@ from samcli.lib.build.build_strategy import (
 from samcli.lib.utils import osutils
 from pathlib import Path
 
-from samcli.lib.utils.packagetype import ZIP, IMAGE
+from samcli.lib.utils.packagetype import ZIP
 
 
 @patch("samcli.lib.build.build_graph.BuildGraph._write")
@@ -196,31 +196,6 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
             str(mock_path(given_build_dir, self.function_build_definition1.get_function_name())),
             str(mock_path(given_build_dir, self.function1_2.name)),
         )
-
-    def test_build_single_function_definition_image_functions_with_same_metadata(self, mock_copy_tree, mock_path):
-        given_build_function = Mock()
-        built_image = Mock()
-        given_build_function.return_value = built_image
-        given_build_layer = Mock()
-        given_build_dir = "build_dir"
-        default_build_strategy = DefaultBuildStrategy(
-            self.build_graph, given_build_dir, given_build_function, given_build_layer
-        )
-
-        function1 = Mock()
-        function1.name = "Function"
-        function1.full_path = "Function"
-        function1.packagetype = IMAGE
-        function2 = Mock()
-        function2.name = "Function2"
-        function2.packagetype = IMAGE
-        build_definition = FunctionBuildDefinition("3.7", "codeuri", IMAGE, {})
-        # since they have the same metadata, they are put into the same build_definition.
-        build_definition.functions = [function1, function2]
-
-        result = default_build_strategy.build_single_function_definition(build_definition)
-        # both of the function name should show up in results
-        self.assertEqual(result, {"Function": built_image, "Function2": built_image})
 
 
 class CachedBuildStrategyTest(BuildStrategyBaseTest):

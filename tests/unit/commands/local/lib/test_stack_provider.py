@@ -29,8 +29,8 @@ class TestSamBuildableStackProvider(TestCase):
 
     @parameterized.expand(
         [
-            (AWS_SERVERLESS_APPLICATION, "Location", "./child.yaml", "child.yaml"),
-            (AWS_CLOUDFORMATION_STACK, "TemplateURL", "./child.yaml", "child.yaml"),
+            (AWS_SERVERLESS_APPLICATION, "Location", "./child.yaml", "./child.yaml"),
+            (AWS_CLOUDFORMATION_STACK, "TemplateURL", "./child.yaml", "./child.yaml"),
             (AWS_SERVERLESS_APPLICATION, "Location", "file:///child.yaml", "/child.yaml"),
             (AWS_CLOUDFORMATION_STACK, "TemplateURL", "file:///child.yaml", "/child.yaml"),
         ]
@@ -103,8 +103,8 @@ class TestSamBuildableStackProvider(TestCase):
         )
 
     def test_sam_deep_nested_stack(self):
-        child_template_file = "child.yaml"
-        grand_child_template_file = "grand-child.yaml"
+        child_template_file = "./child.yaml"
+        grand_child_template_file = "./grand-child.yaml"
         template = {
             "Resources": {
                 "ChildStack": {
@@ -166,46 +166,5 @@ class TestSamBuildableStackProvider(TestCase):
             stacks,
             [
                 Stack("", "", self.template_file, None, template),
-            ],
-        )
-
-    @parameterized.expand(
-        [
-            (AWS_SERVERLESS_APPLICATION, "Location", "./child.yaml", os.path.join("somedir", "child.yaml")),
-            (AWS_SERVERLESS_APPLICATION, "Location", "child.yaml", os.path.join("somedir", "child.yaml")),
-            (AWS_CLOUDFORMATION_STACK, "TemplateURL", "./child.yaml", os.path.join("somedir", "child.yaml")),
-            (AWS_CLOUDFORMATION_STACK, "TemplateURL", "child.yaml", os.path.join("somedir", "child.yaml")),
-            (AWS_SERVERLESS_APPLICATION, "Location", "file:///child.yaml", "/child.yaml"),
-            (AWS_CLOUDFORMATION_STACK, "TemplateURL", "file:///child.yaml", "/child.yaml"),
-        ]
-    )
-    def test_sam_nested_stack_template_path_can_be_resolved_if_root_template_is_not_in_working_dir(
-        self, resource_type, location_property_name, child_location, child_location_path
-    ):
-        template_file = "somedir/template.yaml"
-        template = {
-            "Resources": {
-                "ChildStack": {
-                    "Type": resource_type,
-                    "Properties": {location_property_name: child_location},
-                }
-            }
-        }
-        self.get_template_data_mock.side_effect = lambda t: {
-            template_file: template,
-            child_location_path: LEAF_TEMPLATE,
-        }.get(t)
-        with patch.dict(os.environ, {SamLocalStackProvider.ENV_SAM_CLI_ENABLE_NESTED_STACK: "1"}):
-            stacks = SamLocalStackProvider.get_stacks(
-                template_file,
-                "",
-                "",
-                parameter_overrides=None,
-            )
-        self.assertListEqual(
-            stacks,
-            [
-                Stack("", "", template_file, None, template),
-                Stack("", "ChildStack", child_location_path, None, LEAF_TEMPLATE),
             ],
         )
