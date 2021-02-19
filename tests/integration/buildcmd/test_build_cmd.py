@@ -1157,43 +1157,6 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
-class TestBuildWithDedupImageBuilds(DedupBuildIntegBase):
-    template = "dedup-functions-image-template.yaml"
-
-    @parameterized.expand([(True,), (False,)])
-    @pytest.mark.flaky(reruns=3)
-    def test_dedup_build(self, use_container):
-        if use_container and SKIP_DOCKER_TESTS:
-            self.skipTest(SKIP_DOCKER_MESSAGE)
-
-        """
-        Build template above and verify that each function call returns as expected
-        """
-        overrides = {
-            "Function1Handler": "main.first_function_handler",
-            "Function2Handler": "main.second_function_handler",
-            "FunctionRuntime": "3.7",
-            "DockerFile": "Dockerfile",
-            "Tag": f"{random.randint(1,100)}",
-        }
-        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
-
-        LOG.info("Running Command: {}".format(cmdlist))
-        run_command(cmdlist, cwd=self.working_dir)
-
-        if not SKIP_DOCKER_TESTS:
-            self._verify_invoke_built_function(
-                self.built_template, "HelloWorldFunction", self._make_parameter_override_arg(overrides), "Hello World"
-            )
-            self._verify_invoke_built_function(
-                self.built_template, "HelloMarsFunction", self._make_parameter_override_arg(overrides), "Hello Mars"
-            )
-
-
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
 class TestBuildWithDedupBuildsMakefile(DedupBuildIntegBase):
     template = "dedup-functions-makefile-template.yaml"
 
