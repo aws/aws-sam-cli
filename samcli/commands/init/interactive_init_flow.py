@@ -134,6 +134,8 @@ def _generate_from_use_case(
     dependency_manager = chosen_template["dependencyManager"]
     app_template = chosen_template["appTemplate"]
 
+    templates.clone_templates_repo()
+
     if package_type == ZIP:
         summary_msg = f"""
 -----------------------
@@ -161,6 +163,7 @@ Next steps can be found in the README file at {output_dir}/{name}/README.md
             """
 
     click.echo(summary_msg)
+
     do_generate(location, package_type, runtime, dependency_manager, output_dir, name, no_input, extra_context)
     # executing event_bridge logic if call is for Schema dynamic template
     if is_dynamic_schemas_template:
