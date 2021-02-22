@@ -308,6 +308,7 @@ class ApplicationBuilder:
 
         LOG.info("Building image for %s function", function_name)
 
+        # LOG.info(metadata.get("Dockerfile"))
         dockerfile = cast(str, metadata.get("Dockerfile"))
         docker_context = cast(str, metadata.get("DockerContext"))
         # Have a default tag if not present.
