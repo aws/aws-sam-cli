@@ -54,6 +54,12 @@ $ sam build\n
 To build inside a AWS Lambda like Docker container
 $ sam build --use-container
 \b
+To build with inline environment variables passed inside build containers
+$ sam build --use-container --container-env-var Function.ENV_VAR=value --container-env-var GLOBAL_ENV_VAR=value
+\b
+To build with environment variables file passd inside build containers
+$ sam build --use-container --container-env-vars-file env.json
+\b
 To build & run your functions locally
 $ sam build && sam local invoke
 \b
