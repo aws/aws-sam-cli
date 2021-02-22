@@ -89,8 +89,6 @@ class LambdaBuildContainer(Container):
         if log_level:
             env_vars["LAMBDA_BUILDERS_LOG_LEVEL"] = log_level
 
-        print(env_vars)
-
         super().__init__(
             image,
             cmd,
