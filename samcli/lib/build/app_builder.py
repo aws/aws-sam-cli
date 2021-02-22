@@ -263,12 +263,17 @@ class ApplicationBuilder:
 
         LOG.info("Building image for %s function", function_name)
 
+        # LOG.info(metadata.get("Dockerfile"))
         dockerfile = cast(str, metadata.get("Dockerfile"))
         docker_context = cast(str, metadata.get("DockerContext"))
         # Have a default tag if not present.
         tag = metadata.get("DockerTag", "latest")
         docker_tag = f"{function_name.lower()}:{tag}"
         docker_build_args = metadata.get("DockerBuildArgs", {})
+       
+        #getting the target from docker_build_dictinary
+        docker_build_target = metadata.get("DockerBuildTarget", None)
+
         if not isinstance(docker_build_args, dict):
             raise DockerBuildFailed("DockerBuildArgs needs to be a dictionary!")
 
@@ -289,6 +294,7 @@ class ApplicationBuilder:
             tag=docker_tag,
             buildargs=docker_build_args,
             decode=True,
+            target=docker_build_target
         )
 
         # The Docker-py low level api will stream logs back but if an exception is raised by the api
