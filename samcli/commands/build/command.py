@@ -364,16 +364,22 @@ def _process_env_var(container_env_var: list) -> Dict:
 
     for env_var in container_env_var:
         if "." in env_var:
-            if len(env_var.split(".")) != 2 or len(env_var.split(".")[1].split("=")) != 2:
+            test_target = env_var.split(".")
+            if len(test_target) != 2 or not test_target[0].strip() or not test_target[1].strip():
                 LOG.error("Invalid command line --container-env-var input %s, skipped", env_var)
                 continue
             function, variable = env_var.split(".")
+            test_target = variable.split("=")
+            if len(test_target) != 2 or not test_target[0].strip() or not test_target[1].strip():
+                LOG.error("Invalid command line --container-env-var input %s, skipped", env_var)
+                continue
             key, value = variable.split("=")
             if not processed_env_vars.get(function):
                 processed_env_vars[function] = {}
             processed_env_vars[function][key] = value
         else:
-            if len(env_var.split("=")) != 2:
+            test_target = env_var.split("=")
+            if len(test_target) != 2 or not test_target[0].strip() or not test_target[1].strip():
                 LOG.error("Invalid command line --container-env-var input %s, skipped", env_var)
                 continue
             key, value = env_var.split("=")

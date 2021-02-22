@@ -184,25 +184,25 @@ class TestGetModeValueFromEnvvar(TestCase):
 
 class TestEnvVarParsing(TestCase):
     def test_process_global_env_var(self):
-        container_env_var = ("ENV_VAR1=1", "ENV_VAR2=2")
+        container_env_var = ["ENV_VAR1=1", "ENV_VAR2=2"]
 
         result = _process_env_var(container_env_var)
         self.assertEqual(result, {"Parameters": {"ENV_VAR1": "1", "ENV_VAR2": "2"}})
 
     def test_process_function_env_var(self):
-        container_env_var = ("Function1.ENV_VAR1=1", "Function2.ENV_VAR2=2")
+        container_env_var = ["Function1.ENV_VAR1=1", "Function2.ENV_VAR2=2"]
 
         result = _process_env_var(container_env_var)
         self.assertEqual(result, {"Function1": {"ENV_VAR1": "1"}, "Function2": {"ENV_VAR2": "2"}})
 
     def test_invalid_function_env_var(self):
-        container_env_var = ("Function1.Layer1.ENV_VAR1=1", "Function2.ENV_VAR2=2")
+        container_env_var = ["Function1.Layer1.ENV_VAR1=1", "Function2.ENV_VAR2=2"]
 
         result = _process_env_var(container_env_var)
         self.assertEqual(result, {"Function2": {"ENV_VAR2": "2"}})
 
     def test_invalid_global_env_var(self):
-        container_env_var = ("ENV_VAR1", "Function2.ENV_VAR2=2")
+        container_env_var = ["ENV_VAR1", "Function2.ENV_VAR2=2"]
 
         result = _process_env_var(container_env_var)
         self.assertEqual(result, {"Function2": {"ENV_VAR2": "2"}})
