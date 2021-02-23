@@ -5,10 +5,10 @@ Context object used by build command
 import logging
 import os
 import shutil
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 import pathlib
 
-from samcli.lib.providers.provider import ResourcesToBuildCollector
+from samcli.lib.providers.provider import ResourcesToBuildCollector, Stack
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.local.docker.manager import ContainerManager
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
@@ -62,14 +62,17 @@ class BuildContext:
         self._layer_provider: Optional[SamLayerProvider] = None
         self._template_dict: Optional[Dict] = None
         self._container_manager: Optional[ContainerManager] = None
+        self._stacks: List[Stack] = []
 
     def __enter__(self) -> "BuildContext":
 
-        stacks = SamLocalStackProvider.get_stacks(self._template_file, parameter_overrides=self._parameter_overrides)
-        self._template_dict = SamLocalStackProvider.find_root_stack(stacks).template_dict
+        self._stacks = SamLocalStackProvider.get_stacks(
+            self._template_file, parameter_overrides=self._parameter_overrides
+        )
+        self._template_dict = SamLocalStackProvider.find_root_stack(self.stacks).template_dict
 
-        self._function_provider = SamFunctionProvider(stacks)
-        self._layer_provider = SamLayerProvider(stacks)
+        self._function_provider = SamFunctionProvider(self.stacks)
+        self._layer_provider = SamLayerProvider(self.stacks)
 
         if not self._base_dir:
             # Base directory, if not provided, is the directory containing the template
@@ -158,12 +161,8 @@ class BuildContext:
         return self._use_container
 
     @property
-    def output_template_path(self) -> str:
-        return os.path.join(self._build_dir, "template.yaml")
-
-    @property
-    def original_template_path(self) -> str:
-        return os.path.abspath(self._template_file)
+    def stacks(self) -> List[Stack]:
+        return self._stacks
 
     @property
     def manifest_path_override(self) -> Optional[str]:
