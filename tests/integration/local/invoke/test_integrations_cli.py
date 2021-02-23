@@ -997,3 +997,43 @@ class TestBadLayerVersion(InvokeIntegBase):
         expected_error_output = "Error: arn:aws:lambda:us-west-2:111111111101:layer:layerDoesNotExist:${LayerVersion} is an Invalid Layer Arn."
 
         self.assertIn(expected_error_output, error_output)
+
+
+class TestInvokeWithFunctionFullPathToAvoidAmbiguity(InvokeIntegBase):
+    template = Path("template-deep-root.yaml")
+    nested_stack_enabled = True
+
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_with_function_name_will_call_functions_in_top_level_stacks(self):
+        command_list = self.get_command_list("FunctionA", template_path=self.template_path, event_path=self.event_path)
+
+        process = Popen(command_list, stdout=PIPE, env=self.env)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip()
+
+        self.assertEqual(process.returncode, 0)
+        with open(self.event_path) as f:
+            self.assertEqual(json.loads(process_stdout.decode("utf-8")), json.load(f))
+
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_with_function_full_path_will_call_functions_in_specified_stack(self):
+        command_list = self.get_command_list(
+            "SubApp/SubSubApp/FunctionA", template_path=self.template_path, event_path=self.event_path
+        )
+
+        process = Popen(command_list, stdout=PIPE, env=self.env)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip()
+
+        self.assertEqual(process.returncode, 0)
+        self.assertEqual(process_stdout.decode("utf-8"), '"Hello world"')
