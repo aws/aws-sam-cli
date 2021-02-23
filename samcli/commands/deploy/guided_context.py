@@ -3,7 +3,7 @@ Class to manage all the prompts during a guided sam deploy
 """
 
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 import click
 from botocore.session import get_session
@@ -14,7 +14,6 @@ from click import confirm
 from samcli.commands._utils.options import _space_separated_list_func_type
 from samcli.commands._utils.template import (
     get_template_parameters,
-    get_template_data,
     get_template_artifacts_format,
     get_template_function_resource_ids,
 )
@@ -26,12 +25,15 @@ from samcli.commands.deploy.code_signer_utils import (
 )
 from samcli.commands.deploy.exceptions import GuidedDeployFailedError
 from samcli.commands.deploy.guided_config import GuidedConfig
-from samcli.commands.deploy.auth_utils import auth_per_resource, transform_template
+from samcli.commands.deploy.auth_utils import auth_per_resource
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
 from samcli.lib.config.samconfig import DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.package.ecr_utils import is_ecr_url
 from samcli.lib.package.image_utils import tag_translation, NonLocalImageException, NoImageFoundException
+from samcli.lib.providers.provider import Stack
+from samcli.lib.providers.sam_function_provider import SamFunctionProvider
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.packagetype import IMAGE
 
@@ -86,7 +88,7 @@ class GuidedContext:
         self.start_bold = "\033[1m"
         self.end_bold = "\033[0m"
         self.color = Colored()
-        self.transformed_resources = None
+        self.function_provider = None
 
     @property
     def guided_capabilities(self):
@@ -120,9 +122,10 @@ class GuidedContext:
         input_parameter_overrides = self.prompt_parameters(
             parameter_override_keys, self.parameter_overrides_from_cmdline, self.start_bold, self.end_bold
         )
-        image_repositories = self.prompt_image_repository(
-            parameter_overrides=sanitize_parameter_overrides(input_parameter_overrides)
+        stacks = SamLocalStackProvider.get_stacks(
+            self.template_file, parameter_overrides=sanitize_parameter_overrides(input_parameter_overrides)
         )
+        image_repositories = self.prompt_image_repository(stacks)
 
         click.secho("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy")
         confirm_changeset = confirm(
@@ -140,9 +143,8 @@ class GuidedContext:
                 type=FuncParamType(func=_space_separated_list_func_type),
             )
 
-        sanitized_parameter_overrides = sanitize_parameter_overrides(input_parameter_overrides)
-        self.prompt_authorization(sanitized_parameter_overrides)
-        self.prompt_code_signing_settings(sanitized_parameter_overrides)
+        self.prompt_authorization(stacks)
+        self.prompt_code_signing_settings(stacks)
 
         save_to_config = confirm(
             f"\t{self.start_bold}Save arguments to configuration file{self.end_bold}", default=True
@@ -178,8 +180,8 @@ class GuidedContext:
         self.config_file = config_file if config_file else default_config_file
         self.confirm_changeset = confirm_changeset
 
-    def prompt_authorization(self, parameter_overrides):
-        auth_required_per_resource = auth_per_resource(parameter_overrides, get_template_data(self.template_file))
+    def prompt_authorization(self, stacks: List[Stack]):
+        auth_required_per_resource = auth_per_resource(stacks)
 
         for resource, authorization_required in auth_required_per_resource:
             if not authorization_required:
@@ -190,10 +192,8 @@ class GuidedContext:
                 if not auth_confirm:
                     raise GuidedDeployFailedError(msg="Security Constraints Not Satisfied!")
 
-    def prompt_code_signing_settings(self, parameter_overrides):
-        (functions_with_code_sign, layers_with_code_sign) = signer_config_per_function(
-            parameter_overrides, get_template_data(self.template_file)
-        )
+    def prompt_code_signing_settings(self, stacks: List[Stack]):
+        (functions_with_code_sign, layers_with_code_sign) = signer_config_per_function(stacks)
 
         # if no function or layer definition found with code signing, skip it
         if not functions_with_code_sign and not layers_with_code_sign:
@@ -268,14 +268,11 @@ class GuidedContext:
                     _prompted_param_overrides[parameter_key] = {"Value": parameter, "Hidden": False}
         return _prompted_param_overrides
 
-    def prompt_image_repository(self, parameter_overrides):
+    def prompt_image_repository(self, stacks: List[Stack]):
         image_repositories = {}
         artifacts_format = get_template_artifacts_format(template_file=self.template_file)
         if IMAGE in artifacts_format:
-            self.transformed_resources = transform_template(
-                parameter_overrides=parameter_overrides,
-                template_dict=get_template_data(template_file=self.template_file),
-            )
+            self.function_provider = SamFunctionProvider(stacks, ignore_code_extraction_warnings=True)
             function_resources = get_template_function_resource_ids(template_file=self.template_file, artifact=IMAGE)
             for resource_id in function_resources:
                 image_repositories[resource_id] = prompt(
@@ -288,7 +285,7 @@ class GuidedContext:
                     raise GuidedDeployFailedError(
                         f"Invalid Image Repository ECR URI: {image_repositories.get(resource_id)}"
                     )
-            for resource_id, function_prop in self.transformed_resources.functions.items():
+            for resource_id, function_prop in self.function_provider.functions.items():
                 if function_prop.packagetype == IMAGE:
                     image = function_prop.imageuri
                     try:

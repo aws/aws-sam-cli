@@ -4,10 +4,13 @@ source
 """
 import hashlib
 import logging
+import os
+import posixpath
 from collections import namedtuple
-from typing import NamedTuple, Optional, List
+from typing import NamedTuple, Optional, List, Dict, Union
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, UnsupportedIntrinsic
+from samcli.lib.providers.sam_base_provider import SamBaseProvider
 
 LOG = logging.getLogger(__name__)
 
@@ -49,6 +52,25 @@ class Function(NamedTuple):
     inlinecode: Optional[str]
     # Code Signing config ARN
     codesign_config_arn: Optional[str]
+    # The path of the stack relative to the root stack, it is empty for functions in root stack
+    stack_path: str = ""
+
+    @property
+    def full_path(self) -> str:
+        """
+        Return the path-like identifier of this Function. If it is in root stack, full_path = name.
+        This path is guaranteed to be unique in a multi-stack situation.
+        Example:
+            "HelloWorldFunction"
+            "ChildStackA/GrandChildStackB/AFunctionInNestedStack"
+        """
+        return get_full_path(self.stack_path, self.name)
+
+    def get_build_dir(self, build_root_dir: str) -> str:
+        """
+        Return the artifact directory based on the build root dir
+        """
+        return _get_build_dir(self, build_root_dir)
 
 
 class ResourcesToBuildCollector:
@@ -89,10 +111,19 @@ class LayerVersion:
 
     LAYER_NAME_DELIMETER = "-"
 
-    def __init__(self, arn, codeuri, compatible_runtimes=None, metadata=None):
+    def __init__(
+        self,
+        arn: str,
+        codeuri: Optional[str],
+        compatible_runtimes: Optional[List[str]] = None,
+        metadata: Optional[Dict] = None,
+        stack_path: str = "",
+    ):
         """
         Parameters
         ----------
+        stack_path str
+            The path of the stack relative to the root stack, it is empty for layers in root stack
         name str
             Name of the layer, this can be the ARN or Logical Id in the template
         codeuri str
@@ -105,6 +136,7 @@ class LayerVersion:
         if not isinstance(arn, str):
             raise UnsupportedIntrinsic("{} is an Unsupported Intrinsic".format(arn))
 
+        self._stack_path = stack_path
         self._arn = arn
         self._codeuri = codeuri
         self.is_defined_within_template = bool(codeuri)
@@ -179,6 +211,10 @@ class LayerVersion:
         )
 
     @property
+    def stack_path(self) -> str:
+        return self._stack_path
+
+    @property
     def arn(self):
         return self._arn
 
@@ -221,6 +257,23 @@ class LayerVersion:
     @property
     def compatible_runtimes(self):
         return self._compatible_runtimes
+
+    @property
+    def full_path(self) -> str:
+        """
+        Return the path-like identifier of this Layer. If it is in root stack, full_path = name.
+        This path is guaranteed to be unique in a multi-stack situation.
+        Example:
+            "HelloWorldLayer"
+            "ChildStackA/GrandChildStackB/ALayerInNestedStack"
+        """
+        return get_full_path(self.stack_path, self.name)
+
+    def get_build_dir(self, build_root_dir: str) -> str:
+        """
+        Return the artifact directory based on the build root dir
+        """
+        return _get_build_dir(self, build_root_dir)
 
     def __eq__(self, other):
         if isinstance(other, type(self)):
@@ -306,3 +359,73 @@ class AbstractApiProvider:
         :yields Api: namedtuple containing the API information
         """
         raise NotImplementedError("not implemented")
+
+
+class Stack(NamedTuple):
+    """
+    A class encapsulate info about a stack/sam-app resource,
+    including its content, parameter overrides, file location, logicalID
+    and its parent stack's stack_path (for nested stacks).
+    """
+
+    # The stack_path of the parent stack, see property stack_path for more details
+    parent_stack_path: str
+    # The name (logicalID) of the stack, it is empty for root stack
+    name: str
+    # The file location of the stack template.
+    location: str
+    # The parameter overrides for the stack
+    parameters: Optional[Dict]
+    # the raw template dict
+    template_dict: Dict
+
+    @property
+    def stack_path(self) -> str:
+        """
+        The path of stack in the "nested stack tree" consisting of stack logicalIDs. It is unique.
+        Example values:
+            root stack: ""
+            root stack's child stack StackX: "StackX"
+            StackX's child stack StackY: "StackX/StackY"
+        """
+        return posixpath.join(self.parent_stack_path, self.name)
+
+    @property
+    def is_root_stack(self) -> bool:
+        """
+        Return True if the stack is the root stack.
+        """
+        return not self.stack_path
+
+    @property
+    def resources(self) -> Dict:
+        """
+        Return the resources dictionary where SAM plugins have been run
+        and parameter values have been substituted.
+        """
+        processed_template_dict: Dict = SamBaseProvider.get_template(self.template_dict, self.parameters)
+        resources: Dict = processed_template_dict.get("Resources", {})
+        return resources
+
+    def get_output_template_path(self, build_root: str) -> str:
+        """
+        Return the path of the template yaml file output by "sam build."
+        """
+        # stack_path is always posix path, we need to convert it to path that matches the OS
+        return os.path.join(build_root, self.stack_path.replace(posixpath.sep, os.path.sep), "template.yaml")
+
+
+def get_full_path(stack_path: str, logical_id: str) -> str:
+    """
+    Return the unique posix path-like identifier
+    while will used for identify a resource from resources in a multi-stack situation
+    """
+    return posixpath.join(stack_path, logical_id)
+
+
+def _get_build_dir(resource: Union[Function, LayerVersion], build_root: str) -> str:
+    """
+    Return the build directory to place build artifact
+    """
+    # stack_path is always posix path, we need to convert it to path that matches the OS
+    return os.path.join(build_root, resource.stack_path.replace(posixpath.sep, os.path.sep), resource.name)
