@@ -1,4 +1,5 @@
 import os
+import posixpath
 import sys
 
 import docker
@@ -7,6 +8,8 @@ import json
 from unittest import TestCase, skipUnless
 from unittest.mock import Mock, call, patch, ANY
 from pathlib import Path, WindowsPath
+
+from parameterized import parameterized
 
 from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition
 from samcli.lib.providers.provider import ResourcesToBuildCollector
@@ -28,16 +31,24 @@ from tests.unit.lib.build_module.test_build_graph import generate_function
 
 class TestApplicationBuilder_build(TestCase):
     def setUp(self):
+        self.build_dir = "builddir"
+
         self.func1 = Mock()
         self.func1.packagetype = ZIP
         self.func1.name = "function_name1"
+        self.func1.full_path = posixpath.join("StackJ", "function_name1")
+        self.func1.get_build_dir = Mock()
         self.func1.inlinecode = None
         self.func2 = Mock()
         self.func2.packagetype = ZIP
         self.func2.name = "function_name2"
+        self.func2.full_path = posixpath.join("StackJ", "function_name2")
+        self.func2.get_build_dir = Mock()
         self.func2.inlinecode = None
         self.imageFunc1 = Mock()
         self.imageFunc1.name = "function_name3"
+        self.imageFunc1.full_path = posixpath.join("StackJ", "function_name3")
+        self.imageFunc1.get_build_dir = Mock()
         self.imageFunc1.inlinecode = None
 
         self.layer1 = Mock()
@@ -45,7 +56,11 @@ class TestApplicationBuilder_build(TestCase):
 
         self.imageFunc1.packagetype = IMAGE
         self.layer1.build_method = "build_method"
+        self.layer1.full_path = os.path.join("StackJ", "layer_name1")
+        self.layer1.get_build_dir = Mock()
         self.layer2.build_method = "build_method"
+        self.layer2.full_path = os.path.join("StackJ", "layer_name2")
+        self.layer2.get_build_dir = Mock()
 
         resources_to_build_collector = ResourcesToBuildCollector()
         resources_to_build_collector.add_functions([self.func1, self.func2, self.imageFunc1])
@@ -59,7 +74,7 @@ class TestApplicationBuilder_build(TestCase):
         build_image_function_mock_return = Mock()
         build_layer_mock = Mock()
 
-        def build_layer_return(layer_name, layer_codeuri, layer_build_method, layer_compatible_runtimes):
+        def build_layer_return(layer_name, layer_codeuri, layer_build_method, layer_compatible_runtimes, artifact_dir):
             return f"{layer_name}_location"
 
         build_layer_mock.side_effect = build_layer_return
@@ -69,8 +84,8 @@ class TestApplicationBuilder_build(TestCase):
         self.builder._build_layer = build_layer_mock
 
         build_function_mock.side_effect = [
-            os.path.join("builddir", self.func1.name),
-            os.path.join("builddir", self.func2.name),
+            os.path.join(self.build_dir, "StackJ", "function_name1"),
+            os.path.join(self.build_dir, "StackJ", "function_name2"),
             build_image_function_mock_return,
         ]
 
@@ -80,11 +95,11 @@ class TestApplicationBuilder_build(TestCase):
         self.assertEqual(
             result,
             {
-                self.func1.name: os.path.join("builddir", self.func1.name),
-                self.func2.name: os.path.join("builddir", self.func2.name),
-                self.imageFunc1.name: build_image_function_mock_return,
-                self.layer1.name: f"{self.layer1.name}_location",
-                self.layer2.name: f"{self.layer2.name}_location",
+                self.func1.full_path: os.path.join("builddir", "StackJ", "function_name1"),
+                self.func2.full_path: os.path.join("builddir", "StackJ", "function_name2"),
+                self.imageFunc1.full_path: build_image_function_mock_return,
+                self.layer1.full_path: f"{self.layer1.name}_location",
+                self.layer2.full_path: f"{self.layer2.name}_location",
             },
         )
 
@@ -123,8 +138,58 @@ class TestApplicationBuilder_build(TestCase):
 
         build_layer_mock.assert_has_calls(
             [
-                call(self.layer1.name, self.layer1.codeuri, self.layer1.build_method, self.layer1.compatible_runtimes),
-                call(self.layer2.name, self.layer2.codeuri, self.layer2.build_method, self.layer2.compatible_runtimes),
+                call(
+                    self.layer1.name,
+                    self.layer1.codeuri,
+                    self.layer1.build_method,
+                    self.layer1.compatible_runtimes,
+                    ANY,
+                ),
+                call(
+                    self.layer2.name,
+                    self.layer2.codeuri,
+                    self.layer2.build_method,
+                    self.layer2.compatible_runtimes,
+                    ANY,
+                ),
+            ]
+        )
+
+    @patch("samcli.lib.build.build_graph.BuildGraph._write")
+    def test_should_use_function_or_layer_get_build_dir_to_determine_artifact_dir(self, persist_mock):
+        def get_func_call_with_artifact_dir(artifact_dir):
+            return call(ANY, ANY, ANY, ANY, ANY, artifact_dir, ANY)
+
+        def get_layer_call_with_artifact_dir(artifact_dir):
+            return call(ANY, ANY, ANY, ANY, artifact_dir)
+
+        build_function_mock = Mock()
+        build_layer_mock = Mock()
+        self.builder._build_function = build_function_mock
+        self.builder._build_layer = build_layer_mock
+
+        self.builder.build()
+
+        # make sure function/layer's get_build_dir() is called with correct directory
+        self.func1.get_build_dir.assert_called_with(self.build_dir)
+        self.func2.get_build_dir.assert_called_with(self.build_dir)
+        self.imageFunc1.get_build_dir.assert_called_with(self.build_dir)
+        self.layer1.get_build_dir.assert_called_with(self.build_dir)
+        self.layer2.get_build_dir.assert_called_with(self.build_dir)
+
+        # make sure whatever is returned from .get_build_dir() is used for build function/layer
+        build_function_mock.assert_has_calls(
+            [
+                get_func_call_with_artifact_dir(self.func1.get_build_dir()),
+                get_func_call_with_artifact_dir(self.func2.get_build_dir()),
+                get_func_call_with_artifact_dir(self.imageFunc1.get_build_dir()),
+            ]
+        )
+
+        build_layer_mock.assert_has_calls(
+            [
+                get_layer_call_with_artifact_dir(self.layer1.get_build_dir()),
+                get_layer_call_with_artifact_dir(self.layer2.get_build_dir()),
             ]
         )
 
@@ -161,9 +226,9 @@ class TestApplicationBuilder_build(TestCase):
         builder = ApplicationBuilder(resources_to_build_collector, "builddir", "basedir", "cachedir")
         builder._build_function = build_function_mock
         build_function_mock.side_effect = [
-            os.path.join(build_dir, function1_1.name),
-            os.path.join(build_dir, function1_2.name),
-            os.path.join(build_dir, function1_2.name),
+            function1_1.get_build_dir(build_dir),
+            function1_2.get_build_dir(build_dir),
+            function1_2.get_build_dir(build_dir),
         ]
 
         result = builder.build()
@@ -172,9 +237,9 @@ class TestApplicationBuilder_build(TestCase):
         self.assertEqual(
             result,
             {
-                function1_1.name: os.path.join(build_dir, function1_1.name),
-                function1_2.name: os.path.join(build_dir, function1_2.name),
-                function2.name: os.path.join(build_dir, function1_2.name),
+                function1_1.full_path: function1_1.get_build_dir(build_dir),
+                function1_2.full_path: function1_2.get_build_dir(build_dir),
+                function2.full_path: function1_2.get_build_dir(build_dir),
             },
         )
 
@@ -299,7 +364,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
         build_function_in_process_mock = Mock()
 
         self.builder._build_function_in_process = build_function_in_process_mock
-        self.builder._build_layer("layer_name", "code_uri", "python3.8", ["python3.8"])
+        self.builder._build_layer("layer_name", "code_uri", "python3.8", ["python3.8"], "full_path")
 
         build_function_in_process_mock.assert_called_once()
         args, _ = build_function_in_process_mock.call_args_list[0]
@@ -322,7 +387,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
         build_function_on_container_mock = Mock()
 
         self.builder._build_function_on_container = build_function_on_container_mock
-        self.builder._build_layer("layer_name", "code_uri", "python3.8", ["python3.8"])
+        self.builder._build_layer("layer_name", "code_uri", "python3.8", ["python3.8"], "full_path")
 
         build_function_on_container_mock.assert_called_once()
         args, _ = build_function_on_container_mock.call_args_list[0]
@@ -338,6 +403,14 @@ class TestApplicationBuilderForLayerBuild(TestCase):
 
 
 class TestApplicationBuilder_update_template(TestCase):
+    def make_root_template(self, resource_type, location_property_name):
+        return {
+            "Resources": {
+                "MyFunction1": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "oldvalue"}},
+                "ChildStackXXX": {"Type": resource_type, "Properties": {location_property_name: "./child.yaml"}},
+            }
+        }
+
     def setUp(self):
         self.builder = ApplicationBuilder(Mock(), "builddir", "basedir", "cachedir")
 
@@ -384,12 +457,81 @@ class TestApplicationBuilder_update_template(TestCase):
             }
         }
 
-        actual = self.builder.update_template(self.template_dict, original_template_path, built_artifacts)
+        stack = Mock(stack_path="", template_dict=self.template_dict, location=original_template_path)
+        actual = self.builder.update_template(stack, built_artifacts, {})
         self.assertEqual(actual, expected_result)
+
+    @parameterized.expand([("AWS::Serverless::Application", "Location"), ("AWS::CloudFormation::Stack", "TemplateURL")])
+    def test_must_update_resources_with_build_artifacts_and_template_paths_in_multi_stack(
+        self, resource_type, location_property_name
+    ):
+        self.maxDiff = None
+        original_child_template_path = "/path/to/child.yaml"
+        original_root_template_path = "/path/to/template.yaml"
+        built_artifacts = {
+            "MyFunction1": "/path/to/build/MyFunction1",
+            "ChildStackXXX/MyFunction1": "/path/to/build/ChildStackXXX/MyFunction1",
+            "ChildStackXXX/MyFunction2": "/path/to/build/ChildStackXXX/MyFunction2",
+            "ChildStackXXX/MyImageFunction1": "myimagefunction1:Tag",
+        }
+        stack_output_paths = {
+            "": "/path/to/build/template.yaml",
+            "ChildStackXXX": "/path/to/build/ChildStackXXX/template.yaml",
+        }
+
+        expected_child = {
+            "Resources": {
+                "MyFunction1": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {"CodeUri": os.path.join("build", "ChildStackXXX", "MyFunction1")},
+                },
+                "MyFunction2": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {"Code": os.path.join("build", "ChildStackXXX", "MyFunction2")},
+                },
+                "GlueResource": {"Type": "AWS::Glue::Job", "Properties": {"Command": {"ScriptLocation": "something"}}},
+                "OtherResource": {"Type": "AWS::Lambda::Version", "Properties": {"CodeUri": "something"}},
+                "MyImageFunction1": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {"Code": "myimagefunction1:Tag", "PackageType": IMAGE},
+                    "Metadata": {"Dockerfile": "Dockerfile", "DockerContext": "DockerContext", "DockerTag": "Tag"},
+                },
+            }
+        }
+        expected_root = {
+            "Resources": {
+                "MyFunction1": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {"CodeUri": os.path.join("build", "MyFunction1")},
+                },
+                "ChildStackXXX": {
+                    "Type": resource_type,
+                    "Properties": {
+                        location_property_name: os.path.join("build", "ChildStackXXX", "template.yaml"),
+                    },
+                },
+            }
+        }
+
+        stack_root = Mock(
+            stack_path="",
+            template_dict=self.make_root_template(resource_type, location_property_name),
+            location=original_root_template_path,
+        )
+        actual_root = self.builder.update_template(stack_root, built_artifacts, stack_output_paths)
+        stack_child = Mock(
+            stack_path="ChildStackXXX",
+            template_dict=self.template_dict,
+            location=original_child_template_path,
+        )
+        actual_child = self.builder.update_template(stack_child, built_artifacts, stack_output_paths)
+        self.assertEqual(expected_root, actual_root)
+        self.assertEqual(expected_child, actual_child)
 
     def test_must_skip_if_no_artifacts(self):
         built_artifacts = {}
-        actual = self.builder.update_template(self.template_dict, "/foo/bar/template.txt", built_artifacts)
+        stack = Mock(stack_path="", template_dict=self.template_dict, location="/foo/bar/template.txt")
+        actual = self.builder.update_template(stack, built_artifacts, {})
 
         self.assertEqual(actual, self.template_dict)
 
@@ -404,6 +546,8 @@ class TestApplicationBuilder_update_template_windows(TestCase):
                 "MyFunction2": {"Type": "AWS::Lambda::Function", "Properties": {"Code": "oldvalue"}},
                 "GlueResource": {"Type": "AWS::Glue::Job", "Properties": {"Command": {"ScriptLocation": "something"}}},
                 "OtherResource": {"Type": "AWS::Lambda::Version", "Properties": {"CodeUri": "something"}},
+                "ChildStack1": {"Type": "AWS::Serverless::Application", "Properties": {"Location": "oldvalue"}},
+                "ChildStack2": {"Type": "AWS::CloudFormation::Stack", "Properties": {"TemplateURL": "oldvalue"}},
             }
         }
 
@@ -429,6 +573,9 @@ class TestApplicationBuilder_update_template_windows(TestCase):
                 function_1_path = "D:\\path\\to\\build\\MyFunction1"
                 function_2_path = "C:\\path2\\to\\build\\MyFunction2"
                 built_artifacts = {"MyFunction1": function_1_path, "MyFunction2": function_2_path}
+                child_1_path = "D:\\path\\to\\build\\ChildStack1\\template.yaml"
+                child_2_path = "C:\\path2\\to\\build\\ChildStack2\\template.yaml"
+                output_template_paths = {"ChildStack1": child_1_path, "ChildStack2": child_2_path}
 
                 expected_result = {
                     "Resources": {
@@ -445,10 +592,23 @@ class TestApplicationBuilder_update_template_windows(TestCase):
                             "Properties": {"Command": {"ScriptLocation": "something"}},
                         },
                         "OtherResource": {"Type": "AWS::Lambda::Version", "Properties": {"CodeUri": "something"}},
+                        "ChildStack1": {
+                            "Type": "AWS::Serverless::Application",
+                            "Properties": {"Location": child_1_path},
+                        },
+                        "ChildStack2": {
+                            "Type": "AWS::CloudFormation::Stack",
+                            "Properties": {"TemplateURL": "..\\..\\path2\\to\\build\\ChildStack2\\template.yaml"},
+                        },
                     }
                 }
 
-                actual = self.builder.update_template(self.template_dict, original_template_path, built_artifacts)
+                stack = Mock()
+                stack.stack_path = ""
+                stack.template_dict = self.template_dict
+                stack.location = original_template_path
+
+                actual = self.builder.update_template(stack, built_artifacts, output_template_paths)
                 self.assertEqual(actual, expected_result)
 
     def tearDown(self):
@@ -602,7 +762,7 @@ class TestApplicationBuilder_build_function(TestCase):
         self.builder._build_function_in_process = Mock()
 
         code_dir = str(Path("/base/dir/path/to/source").resolve())
-        artifacts_dir = str(Path("/build/dir/function_name"))
+        artifacts_dir = str(Path("/build/dir/function_full_path"))
         manifest_path = str(Path(os.path.join(code_dir, config_mock.manifest_name)).resolve())
 
         self.builder._build_function(function_name, codeuri, ZIP, runtime, handler, artifacts_dir)
@@ -629,7 +789,7 @@ class TestApplicationBuilder_build_function(TestCase):
         self.builder._build_function_in_process = Mock()
 
         code_dir = str(Path("/base/dir/path/to/source").resolve())
-        artifacts_dir = str(Path("/build/dir/function_name"))
+        artifacts_dir = str(Path("/build/dir/function_full_path"))
         manifest_path = str(Path(os.path.join(code_dir, config_mock.manifest_name)).resolve())
 
         self.builder._build_function(
@@ -662,7 +822,7 @@ class TestApplicationBuilder_build_function(TestCase):
         self.builder._build_function_on_container = Mock()
 
         code_dir = str(Path("/base/dir/path/to/source").resolve())
-        artifacts_dir = str(Path("/build/dir/function_name"))
+        artifacts_dir = str(Path("/build/dir/function_full_path"))
         manifest_path = str(Path(os.path.join(code_dir, config_mock.manifest_name)).resolve())
 
         # Settting the container manager will make us use the container
