@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from unittest import TestCase
 
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 from samcli.lib.providers.provider import Api
 from samcli.lib.providers.api_provider import ApiProvider
@@ -11,21 +11,21 @@ from samcli.lib.providers.cfn_api_provider import CfnApiProvider
 
 class TestApiProvider_init(TestCase):
     @patch.object(ApiProvider, "_extract_api")
-    @patch("samcli.lib.providers.api_provider.SamBaseProvider")
-    def test_provider_with_valid_template(self, SamBaseProviderMock, extract_api_mock):
+    def test_provider_with_valid_template(self, extract_api_mock):
         extract_api_mock.return_value = Api(routes={"set", "of", "values"})
         template = {"Resources": {"a": "b"}}
-        SamBaseProviderMock.get_template.return_value = template
+        stack_mock = Mock(template_dict=template, resources=template["Resources"])
 
-        provider = ApiProvider(template)
+        provider = ApiProvider([stack_mock])
         self.assertEqual(len(provider.routes), 3)
         self.assertEqual(provider.routes, set(["set", "of", "values"]))
 
-        self.assertEqual(provider.template_dict, {"Resources": {"a": "b"}})
-        self.assertEqual(provider.resources, {"a": "b"})
-
 
 class TestApiProviderSelection(TestCase):
+    def make_mock_stacks_with_resources(self, resources):
+        stack_mock = Mock(resources=resources)
+        return [stack_mock]
+
     def test_default_provider(self):
         resources = {
             "TestApi": {
@@ -53,7 +53,7 @@ class TestApiProviderSelection(TestCase):
             }
         }
 
-        provider = ApiProvider.find_api_provider(resources)
+        provider = ApiProvider.find_api_provider(self.make_mock_stacks_with_resources(resources))
         self.assertTrue(isinstance(provider, SamApiProvider))
 
     def test_api_provider_sam_api(self):
@@ -83,7 +83,7 @@ class TestApiProviderSelection(TestCase):
             }
         }
 
-        provider = ApiProvider.find_api_provider(resources)
+        provider = ApiProvider.find_api_provider(self.make_mock_stacks_with_resources(resources))
         self.assertTrue(isinstance(provider, SamApiProvider))
 
     def test_api_provider_sam_function(self):
@@ -113,7 +113,7 @@ class TestApiProviderSelection(TestCase):
             }
         }
 
-        provider = ApiProvider.find_api_provider(resources)
+        provider = ApiProvider.find_api_provider(self.make_mock_stacks_with_resources(resources))
 
         self.assertTrue(isinstance(provider, SamApiProvider))
 
@@ -144,7 +144,7 @@ class TestApiProviderSelection(TestCase):
             }
         }
 
-        provider = ApiProvider.find_api_provider(resources)
+        provider = ApiProvider.find_api_provider(self.make_mock_stacks_with_resources(resources))
         self.assertTrue(isinstance(provider, CfnApiProvider))
 
     def test_multiple_api_provider_cloud_formation(self):
@@ -196,5 +196,5 @@ class TestApiProviderSelection(TestCase):
             },
         }
 
-        provider = ApiProvider.find_api_provider(resources)
+        provider = ApiProvider.find_api_provider(self.make_mock_stacks_with_resources(resources))
         self.assertTrue(isinstance(provider, CfnApiProvider))
