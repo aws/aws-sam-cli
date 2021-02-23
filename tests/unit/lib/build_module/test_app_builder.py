@@ -598,13 +598,13 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
         self.builder._build_lambda_image("Name", metadata)
         self.assertEqual(
             self.docker_client_mock.api.build.call_args,
-            # NOTE (sriram-mv): path set to ANY to handle platform differences.
             call(
                 path=ANY,
                 dockerfile="Dockerfile",
                 tag="name:Tag-debug",
                 buildargs={"a": "b", "SAM_BUILD_MODE": "debug"},
                 decode=True,
+                DockerBuildTarget="target"
             ),
         )
 
