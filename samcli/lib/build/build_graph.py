@@ -53,7 +53,7 @@ def _function_build_definition_to_toml_table(
         toml_table[RUNTIME_FIELD] = function_build_definition.runtime
         toml_table[SOURCE_MD5_FIELD] = function_build_definition.source_md5
     toml_table[PACKAGETYPE_FIELD] = function_build_definition.packagetype
-    toml_table[FUNCTIONS_FIELD] = [f.name for f in function_build_definition.functions]
+    toml_table[FUNCTIONS_FIELD] = [f.full_path for f in function_build_definition.functions]
 
     if function_build_definition.metadata:
         toml_table[METADATA_FIELD] = function_build_definition.metadata
@@ -114,6 +114,7 @@ def _layer_build_definition_to_toml_table(layer_build_definition: "LayerBuildDef
     toml_table[LAYER_FIELD] = layer_build_definition.layer.name
     if layer_build_definition.env_vars:
         toml_table[ENV_VARS_FIELD] = layer_build_definition.env_vars
+    toml_table[LAYER_FIELD] = layer_build_definition.layer.full_path
 
     return toml_table
 
@@ -411,6 +412,20 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
     def get_handler_name(self) -> Optional[str]:
         self._validate_functions()
         return self.functions[0].handler
+
+    def get_full_path(self) -> str:
+        """
+        Return the build identifier of the first function
+        """
+        self._validate_functions()
+        return self.functions[0].full_path
+
+    def get_build_dir(self, artifact_root_dir: str) -> str:
+        """
+        Return the directory path relative to root build directory
+        """
+        self._validate_functions()
+        return self.functions[0].get_build_dir(artifact_root_dir)
 
     def _validate_functions(self) -> None:
         if not self.functions:

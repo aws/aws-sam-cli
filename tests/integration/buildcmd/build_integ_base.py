@@ -1,4 +1,5 @@
 import os
+import posixpath
 import uuid
 import shutil
 import tempfile
@@ -266,3 +267,70 @@ class DedupBuildIntegBase(BuildIntegBase):
 class CachedBuildIntegBase(DedupBuildIntegBase):
     def _verify_cached_artifact(self, cache_dir):
         self.assertTrue(cache_dir.exists(), "Cache directory should be created")
+
+
+class NestedBuildIntegBase(BuildIntegBase):
+    def _verify_build(self, function_full_paths, stack_paths, command_result):
+        self._verify_process_code_and_output(command_result, function_full_paths)
+        for function_full_path in function_full_paths:
+            self._verify_build_artifact(self.default_build_dir, function_full_path)
+        for stack_path in stack_paths:
+            self._verify_move_template(self.default_build_dir, stack_path)
+
+    def _verify_build_artifact(self, build_dir, function_full_path):
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("template.yaml", build_dir_files)
+        # full_path is always posix path
+        path_components = posixpath.split(function_full_path)
+        artifact_path = Path(build_dir, *path_components)
+        self.assertTrue(artifact_path.exists())
+
+    def _verify_move_template(self, build_dir, stack_path):
+        path_components = posixpath.split(stack_path)
+        stack_build_dir_path = Path(build_dir, Path(*path_components), "template.yaml")
+        self.assertTrue(stack_build_dir_path.exists())
+
+    def _verify_process_code_and_output(self, command_result, function_full_paths):
+        self.assertEqual(command_result.process.returncode, 0)
+        # check HelloWorld and HelloMars functions are built in the same build
+        for function_full_path in function_full_paths:
+            self.assertRegex(
+                command_result.stderr.decode("utf-8"),
+                f"Building codeuri: .* runtime: .* metadata: .* functions: \\[.*'{function_full_path}'.*\\]",
+            )
+
+    def _verify_invoke_built_function(self, template_path, function_logical_id, overrides, expected_result):
+        """
+        Note(Xinhol) this _verify_invoke_built_function() is identical to the superclass' one
+        except it add SAM_CLI_ENABLE_NESTED_STACK=1 environment variable to it.
+        Once the nested stack support is completed and SAM_CLI_ENABLE_NESTED_STACK is removed,
+        we can remove this overriding method _verify_invoke_built_function.
+        """
+        LOG.info("Invoking built function '{}'".format(function_logical_id))
+
+        cmdlist = [
+            self.cmd,
+            "local",
+            "invoke",
+            function_logical_id,
+            "-t",
+            str(template_path),
+            "--no-event",
+            "--parameter-overrides",
+            overrides,
+            "--debug",
+        ]
+
+        newenv = os.environ.copy()
+        newenv["SAM_CLI_ENABLE_NESTED_STACK"] = "1"
+        process_execute = run_command(cmdlist, env=newenv)
+        process_execute.process.wait()
+
+        process_stdout = process_execute.stdout.decode("utf-8")
+        self.assertEqual(json.loads(process_stdout), expected_result)
+
+    def _verify_invoke_built_functions(self, template_path, overrides, function_and_expected):
+        for function_identifier, expected in function_and_expected:
+            self._verify_invoke_built_function(template_path, function_identifier, overrides, expected)

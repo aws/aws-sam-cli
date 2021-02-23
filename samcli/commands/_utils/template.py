@@ -87,6 +87,9 @@ def move_template(src_template_path, dest_template_path, template_dict):
     # update any relative paths in the template to be relative to the new location.
     modified_template = _update_relative_paths(template_dict, original_root, new_root)
 
+    # if a stack only has image functions, the directory for that directory won't be created.
+    # here we make sure the directory the destination template file to write to exists.
+    os.makedirs(os.path.dirname(dest_template_path), exist_ok=True)
     with open(dest_template_path, "w") as fp:
         fp.write(yaml_dump(modified_template))
 

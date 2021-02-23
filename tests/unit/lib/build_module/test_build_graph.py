@@ -49,6 +49,7 @@ def generate_function(
     codesign_config_arn="codesign_config_arn",
     metadata={},
     inlinecode=None,
+    stack_path="",
 ):
     return Function(
         name,
@@ -68,6 +69,7 @@ def generate_function(
         metadata,
         inlinecode,
         codesign_config_arn,
+        stack_path,
     )
 
 

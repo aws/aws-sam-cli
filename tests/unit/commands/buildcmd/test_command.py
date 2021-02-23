@@ -2,7 +2,7 @@ import os
 import click
 
 from unittest import TestCase
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, call
 from parameterized import parameterized
 
 from samcli.commands.build.command import do_cli, _get_mode_value_from_envvar, _process_env_var
@@ -29,11 +29,26 @@ class TestDoCli(TestCase):
     def test_must_succeed_build(self, os_mock, move_template_mock, ApplicationBuilderMock, BuildContextMock):
 
         ctx_mock = Mock()
+
+        # create stack mocks
+        root_stack = Mock()
+        root_stack.is_root_stack = True
+        root_stack.get_output_template_path = Mock(return_value="./build_dir/template.yaml")
+        child_stack = Mock()
+        child_stack.get_output_template_path = Mock(return_value="./build_dir/abcd/template.yaml")
+        ctx_mock.stacks = [root_stack, child_stack]
+        stack_output_template_path_by_stack_path = {
+            root_stack.stack_path: "./build_dir/template.yaml",
+            child_stack.stack_path: "./build_dir/abcd/template.yaml",
+        }
+
         BuildContextMock.return_value.__enter__ = Mock()
         BuildContextMock.return_value.__enter__.return_value = ctx_mock
         builder_mock = ApplicationBuilderMock.return_value = Mock()
         artifacts = builder_mock.build.return_value = "artifacts"
-        modified_template = builder_mock.update_template.return_value = "modified template"
+        modified_template_root = "modified template 1"
+        modified_template_child = "modified template 2"
+        builder_mock.update_template.side_effect = [modified_template_root, modified_template_child]
 
         do_cli(
             "function_identifier",
@@ -69,11 +84,35 @@ class TestDoCli(TestCase):
             container_env_vars_file="container_env_vars_file",
         )
         builder_mock.build.assert_called_once()
-        builder_mock.update_template.assert_called_once_with(
-            ctx_mock.template_dict, ctx_mock.original_template_path, artifacts
+        builder_mock.update_template.assert_has_calls(
+            [
+                call(
+                    root_stack,
+                    artifacts,
+                    stack_output_template_path_by_stack_path,
+                )
+            ],
+            [
+                call(
+                    child_stack,
+                    artifacts,
+                    stack_output_template_path_by_stack_path,
+                )
+            ],
         )
-        move_template_mock.assert_called_once_with(
-            ctx_mock.original_template_path, ctx_mock.output_template_path, modified_template
+        move_template_mock.assert_has_calls(
+            [
+                call(
+                    root_stack.location,
+                    stack_output_template_path_by_stack_path[root_stack.stack_path],
+                    modified_template_root,
+                ),
+                call(
+                    child_stack.location,
+                    stack_output_template_path_by_stack_path[child_stack.stack_path],
+                    modified_template_child,
+                ),
+            ]
         )
 
     @parameterized.expand(
