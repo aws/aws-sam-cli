@@ -1,6 +1,5 @@
 FROM public.ecr.aws/lambda/provided:alami
 
-# Install build tools
 RUN yum groupinstall -y development && \
   yum install -d1 -y \
   tar \

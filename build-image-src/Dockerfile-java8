@@ -1,6 +1,5 @@
 FROM public.ecr.aws/lambda/java:8
 
-# Install build tools
 RUN yum groupinstall -y development && \
   yum install -d1 -y \
   tar \

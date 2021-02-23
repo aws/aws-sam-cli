@@ -1,18 +1,7 @@
-FROM amazon/aws-sam-cli-emulation-image-nodejs14.x
+FROM public.ecr.aws/lambda/nodejs:14
 
-# To learn more context around use of `amazonlinux:2` image please read comment in java11/build/Dockerfile
-# Copying root from runtimes image to AL2
-FROM amazonlinux:2
-COPY --from=0 / /rootfs
-
-ENV PATH=/var/lang/bin:$PATH \
-    LD_LIBRARY_PATH=/var/lang/lib:$LD_LIBRARY_PATH \
-    AWS_EXECUTION_ENV=AWS_Lambda_nodejs14.x \
-    NODE_PATH=/opt/nodejs/node14/node_modules:/opt/nodejs/node_modules:/var/runtime/node_modules
-
-# Installing by yum at copied location
-RUN yum groupinstall -y development --installroot=/rootfs && \
-  yum install -d1 --installroot=/rootfs -y \
+RUN yum groupinstall -y development && \
+  yum install -d1 -y \
   tar \
   gzip \
   unzip \
@@ -28,10 +17,6 @@ RUN yum groupinstall -y development --installroot=/rootfs && \
   zlib1g-dev \
   libmpc-devel \
   && yum clean all
-
-# Copying root from AL2 to runtimes image
-FROM amazon/aws-sam-cli-emulation-image-nodejs14.x
-COPY --from=1 /rootfs /
 
 # Install AWS CLI
 RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && unzip awscliv2.zip && ./aws/install && rm awscliv2.zip && rm -rf ./aws
@@ -53,3 +38,7 @@ ENV LANG=en_US.UTF-8
 RUN pip3 install wheel
 
 COPY ATTRIBUTION.txt /
+
+# Compatible with initial base image
+ENTRYPOINT []
+CMD ["/bin/bash"]
