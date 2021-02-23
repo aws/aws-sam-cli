@@ -579,6 +579,34 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
             ),
         )
 
+    @patch("samcli.lib.build.app_builder.os")
+    def test_can_build_image_function_under_debug_with_target(self, mock_os):
+        mock_os.environ.get.return_value = "debug"
+        metadata = {
+            "Dockerfile": "Dockerfile",
+            "DockerContext": "context",
+            "DockerTag": "Tag",
+            "DockerBuildArgs": {"a": "b"},
+            "DockerBuildTarget": "target"
+        }
+
+        self.docker_client_mock.api.build.return_value = []
+
+        result = self.builder._build_lambda_image("Name", metadata)
+
+        self.assertEqual(result, "name:Tag-debug")
+        self.builder._build_lambda_image("Name", metadata)
+        self.assertEqual(
+            self.docker_client_mock.api.build.call_args,
+            # NOTE (sriram-mv): path set to ANY to handle platform differences.
+            call(
+                path=ANY,
+                dockerfile="Dockerfile",
+                tag="name:Tag-debug",
+                buildargs={"a": "b", "SAM_BUILD_MODE": "debug"},
+                decode=True,
+            ),
+        )
 
 class TestApplicationBuilder_build_function(TestCase):
     def setUp(self):
