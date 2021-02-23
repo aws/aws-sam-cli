@@ -1388,7 +1388,6 @@ class TestBuildWithInlineCode(BuildIntegBase):
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
-<<<<<<< HEAD
 class TestBuildWithJsonContainerEnvVars(BuildIntegBase):
     template = "container_env_vars_template.yml"
 
@@ -1432,7 +1431,50 @@ class TestBuildWithJsonContainerEnvVars(BuildIntegBase):
         with open(str(output_file), "r", encoding="utf-8") as r:
             actual = r.read()
             self.assertEqual(actual.strip(), "MyVar")
-=======
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildWithInlineContainerEnvVars(BuildIntegBase):
+    template = "container_env_vars_template.yml"
+
+    @parameterized.expand(
+        [
+            ("use_container", "TEST_ENV_VAR=MyVar"),
+            ("use_container", "CheckEnvVarsFunction.TEST_ENV_VAR=MyVar"),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_inline_env_vars_passed(self, use_container, inline_env_var):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        cmdlist = self.get_command_list(use_container=use_container, container_env_vars=inline_env_var)
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        run_command(cmdlist, cwd=self.working_dir)
+
+        self._verify_built_env_var(self.default_build_dir)
+
+        self.verify_docker_container_cleanedup("python3.7")
+
+    def _verify_built_env_var(self, build_dir):
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("CheckEnvVarsFunction", build_dir_files)
+
+        function_files = os.listdir(str(build_dir.joinpath("CheckEnvVarsFunction")))
+        self.assertIn("env_vars_result.txt", function_files)
+
+        output_file = build_dir.joinpath("CheckEnvVarsFunction", "env_vars_result.txt")
+        with open(str(output_file), "r", encoding="utf-8") as r:
+            actual = r.read()
+            self.assertEqual(actual.strip(), "MyVar")
+
+
 class TestBuildWithNestedStacks(NestedBuildIntegBase):
     template = "nested-root-template.yaml"
 
@@ -1505,51 +1547,8 @@ class TestBuildWithNestedStacks(NestedBuildIntegBase):
                     ("LocalNestedStack/Function2", {"pi": "3.14"}),
                 ],
             )
->>>>>>> 223999e6fec448484a8b24668f81ba7c2c214612
 
 
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
-<<<<<<< HEAD
-class TestBuildWithInlineContainerEnvVars(BuildIntegBase):
-    template = "container_env_vars_template.yml"
-
-    @parameterized.expand(
-        [
-            ("use_container", "TEST_ENV_VAR=MyVar"),
-            ("use_container", "CheckEnvVarsFunction.TEST_ENV_VAR=MyVar"),
-        ]
-    )
-    @pytest.mark.flaky(reruns=3)
-    def test_inline_env_vars_passed(self, use_container, inline_env_var):
-        if use_container and SKIP_DOCKER_TESTS:
-            self.skipTest(SKIP_DOCKER_MESSAGE)
-
-        cmdlist = self.get_command_list(use_container=use_container, container_env_vars=inline_env_var)
-
-        LOG.info("Running Command: {}".format(cmdlist))
-        run_command(cmdlist, cwd=self.working_dir)
-
-        self._verify_built_env_var(self.default_build_dir)
-
-        self.verify_docker_container_cleanedup("python3.7")
-
-    def _verify_built_env_var(self, build_dir):
-        self.assertTrue(build_dir.exists(), "Build directory should be created")
-
-        build_dir_files = os.listdir(str(build_dir))
-        self.assertIn("CheckEnvVarsFunction", build_dir_files)
-
-        function_files = os.listdir(str(build_dir.joinpath("CheckEnvVarsFunction")))
-        self.assertIn("env_vars_result.txt", function_files)
-
-        output_file = build_dir.joinpath("CheckEnvVarsFunction", "env_vars_result.txt")
-        with open(str(output_file), "r", encoding="utf-8") as r:
-            actual = r.read()
-            self.assertEqual(actual.strip(), "MyVar")
-=======
 class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
     template = "nested-root-template-image.yaml"
     EXPECTED_FILES_PROJECT_MANIFEST = {
@@ -1629,4 +1628,3 @@ class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
                     ("LocalNestedStack/Function2", {"pi": "3.14"}),
                 ],
             )
->>>>>>> 223999e6fec448484a8b24668f81ba7c2c214612

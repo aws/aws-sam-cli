@@ -375,8 +375,8 @@ class ApplicationBuilder:
         codeuri: str,
         specified_workflow: str,
         compatible_runtimes: List[str],
-        container_env_vars: Optional[Dict] = None,
         artifact_dir: str,
+        container_env_vars: Optional[Dict] = None,
     ) -> str:
         """
         Given the layer information, this method will build the Lambda layer. Depending on the configuration
@@ -433,7 +433,14 @@ class ApplicationBuilder:
             options = ApplicationBuilder._get_build_options(layer_name, config.language, None)
 
             build_method(
-                config, code_dir, artifact_subdir, scratch_dir, manifest_path, build_runtime, options, container_env_vars
+                config,
+                code_dir,
+                artifact_subdir,
+                scratch_dir,
+                manifest_path,
+                build_runtime,
+                options,
+                container_env_vars,
             )
             # Not including subfolder in return so that we copy subfolder, instead of copying artifacts inside it.
             return artifact_dir
@@ -509,7 +516,7 @@ class ApplicationBuilder:
                     return build_method(
                         config,
                         code_dir,
-                        artifacts_dir,
+                        artifact_dir,
                         scratch_dir,
                         manifest_path,
                         runtime,

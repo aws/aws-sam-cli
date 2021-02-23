@@ -177,16 +177,16 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                     self.layer1.codeuri,
                     self.layer1.build_method,
                     self.layer1.compatible_runtimes,
-                    self.function_build_definition1.env_vars,
                     self.layer1.get_build_dir(given_build_dir),
+                    self.function_build_definition1.env_vars,
                 ),
                 call(
                     self.layer2.name,
                     self.layer2.codeuri,
                     self.layer2.build_method,
                     self.layer2.compatible_runtimes,
-                    self.function_build_definition2.env_vars,
                     self.layer2.get_build_dir(given_build_dir),
+                    self.function_build_definition2.env_vars,
                 ),
             ]
         )

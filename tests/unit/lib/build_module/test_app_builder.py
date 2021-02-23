@@ -75,7 +75,7 @@ class TestApplicationBuilder_build(TestCase):
         build_layer_mock = Mock()
 
         def build_layer_return(
-            layer_name, layer_codeuri, layer_build_method, layer_compatible_runtimes, layer_env_vars, artifact_dir
+            layer_name, layer_codeuri, layer_build_method, layer_compatible_runtimes, artifact_dir, layer_env_vars
         ):
             return f"{layer_name}_location"
 
@@ -149,12 +149,14 @@ class TestApplicationBuilder_build(TestCase):
                     self.layer1.build_method,
                     self.layer1.compatible_runtimes,
                     ANY,
+                    ANY,
                 ),
                 call(
                     self.layer2.name,
                     self.layer2.codeuri,
                     self.layer2.build_method,
                     self.layer2.compatible_runtimes,
+                    ANY,
                     ANY,
                 ),
             ]
@@ -163,10 +165,10 @@ class TestApplicationBuilder_build(TestCase):
     @patch("samcli.lib.build.build_graph.BuildGraph._write")
     def test_should_use_function_or_layer_get_build_dir_to_determine_artifact_dir(self, persist_mock):
         def get_func_call_with_artifact_dir(artifact_dir):
-            return call(ANY, ANY, ANY, ANY, ANY, artifact_dir, ANY)
+            return call(ANY, ANY, ANY, ANY, ANY, artifact_dir, ANY, ANY)
 
         def get_layer_call_with_artifact_dir(artifact_dir):
-            return call(ANY, ANY, ANY, ANY, artifact_dir)
+            return call(ANY, ANY, ANY, ANY, artifact_dir, ANY)
 
         build_function_mock = Mock()
         build_layer_mock = Mock()
