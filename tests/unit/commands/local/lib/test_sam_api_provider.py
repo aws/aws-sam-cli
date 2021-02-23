@@ -280,6 +280,66 @@ class TestSamApiProviderWithImplicitApis(TestCase):
         self.assertCountEqual(provider.routes, expected_routes)
         self.assertCountEqual(provider.api.binary_media_types, binary)
 
+    @parameterized.expand([("GET", "/path", "overridden_by_top_level_stack"), ("get", "/path2", False)])
+    def test_provider_with_multiple_stacks(self, method, func2_api_path, overridden_by_top_level_stack):
+        """
+        Here we test func2 has the same path & method and different path/method
+        """
+        template = {
+            "Resources": {
+                "SamFunc1": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "CodeUri": "/usr/foo/bar",
+                        "Runtime": "nodejs4.3",
+                        "Handler": "index.handler",
+                        "Events": {"Event1": {"Type": "Api", "Properties": {"Path": "/path", "Method": method}}},
+                    },
+                }
+            }
+        }
+
+        child_template = {
+            "Resources": {
+                "SamFunc2": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "CodeUri": "/usr/foo/bar",
+                        "Runtime": "nodejs4.3",
+                        "Handler": "index.handler",
+                        "Events": {
+                            "Event1": {"Type": "Api", "Properties": {"Path": func2_api_path, "Method": "GET"}},
+                            "Event2": {
+                                "Type": "Api",
+                                "Properties": {"Path": func2_api_path, "Method": "POST"},
+                            },
+                        },
+                    },
+                }
+            }
+        }
+
+        child_stack = Stack("", "ChildStackX", Mock(), None, child_template)
+        stacks = make_mock_stacks_from_template(template)
+        stacks.append(child_stack)
+        provider = ApiProvider(stacks)
+
+        self.assertEqual(len(provider.routes), 2)
+        self.assertSetEqual(
+            set(provider.routes),
+            {
+                Route(path="/path", methods=["GET"], function_name="SamFunc1"),
+                Route(
+                    path=func2_api_path,
+                    # if func2's API also has the path "/path," func1's "/path:GET" should
+                    # have a higher precedence, while func2's "/path:POST" still survive
+                    methods=["POST"] if overridden_by_top_level_stack else ["GET", "POST"],
+                    function_name="SamFunc2",
+                    stack_path="ChildStackX",
+                ),
+            },
+        )
+
 
 class TestSamApiProviderWithExplicitApis(TestCase):
     def setUp(self):
