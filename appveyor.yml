@@ -79,6 +79,7 @@ for:
 
     build_script:
       # Install pre-dev dependencies
+      # This env is currently used for doing import check with Pylint without dev.txt dependencies installed 
       - "pre-dev-venv\\Scripts\\activate"
       - "python -c \"import sys; print(sys.executable)\""
       - "pip install -e \".[pre-dev]\""
