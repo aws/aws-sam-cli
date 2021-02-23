@@ -154,12 +154,13 @@ class InvokeContext:
 
         self._debug_function = debug_function
 
-        # Note(xinhol): despite self._template_dict and self._function_provider are initialized as None
+        # Note(xinhol): despite self._template_dict, self._function_provider and self._stacks are initialized as None
         # they will be assigned with a non-None value in __enter__() and
         # it is only used in the context (after __enter__ is called)
         # so we can assume they are not Optional here
         self._template_dict: Dict = None  # type: ignore
         self._function_provider: SamFunctionProvider = None  # type: ignore
+        self._stacks: List[Stack] = None  # type: ignore
         self._env_vars_value: Optional[Dict] = None
         self._container_env_vars_value: Optional[Dict] = None
         self._log_file_handle: Optional[IO] = None
@@ -177,9 +178,9 @@ class InvokeContext:
         :returns InvokeContext: Returns this object
         """
 
-        stacks = self._get_stacks()
-        self._template_dict = SamLocalStackProvider.find_root_stack(stacks).template_dict
-        self._function_provider = SamFunctionProvider(stacks)
+        self._stacks = self._get_stacks()
+        self._template_dict = SamLocalStackProvider.find_root_stack(self._stacks).template_dict
+        self._function_provider = SamFunctionProvider(self._stacks)
 
         self._env_vars_value = self._get_env_vars_value(self._env_vars_file)
         self._container_env_vars_value = self._get_env_vars_value(self._container_env_vars_file)
@@ -364,6 +365,15 @@ class InvokeContext:
         :return dict: Template data
         """
         return self._template_dict
+
+    @property
+    def stacks(self) -> List[Stack]:
+        """
+        Returns the list of stacks (including the root stack and all children stacks)
+
+        :return list: list of stacks
+        """
+        return self._stacks
 
     def get_cwd(self) -> str:
         """
