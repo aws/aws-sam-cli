@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time, sleep
 
 import pytest
+from parameterized import parameterized_class
 
 from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
 from samcli.local.apigw.local_apigw_service import Route
@@ -120,12 +121,17 @@ class TestServiceErrorResponses(StartApiIntegBaseClass):
         pass
 
 
+@parameterized_class(
+    ("template_path", "nested_stack_enabled"),
+    [
+        ("/testdata/start_api/template.yaml", False),
+        ("/testdata/start_api/nested-templates/template-parent.yaml", "nested_stack_enabled"),
+    ],
+)
 class TestService(StartApiIntegBaseClass):
     """
     Testing general requirements around the Service that powers `sam local start-api`
     """
-
-    template_path = "/testdata/start_api/template.yaml"
 
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
@@ -229,12 +235,17 @@ class TestService(StartApiIntegBaseClass):
         self.assertEqual(response_data.get("body"), data)
 
 
+@parameterized_class(
+    ("template_path", "nested_stack_enabled"),
+    [
+        ("/testdata/start_api/template-http-api.yaml", False),
+        ("/testdata/start_api/nested-templates/template-http-api-parent.yaml", "nested_stack_enabled"),
+    ],
+)
 class TestServiceWithHttpApi(StartApiIntegBaseClass):
     """
     Testing general requirements around the Service that powers `sam local start-api`
     """
-
-    template_path = "/testdata/start_api/template-http-api.yaml"
 
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
@@ -1534,9 +1545,17 @@ class TestCFNTemplateQuickCreatedHttpApiWithDefaultRoute(StartApiIntegBaseClass)
         self.assertEqual(response.headers.get("Access-Control-Max-Age"), "600")
 
 
+@parameterized_class(
+    ("template_path", "nested_stack_enabled"),
+    [
+        ("/testdata/start_api/cfn-http-api-with-normal-and-default-routes.yaml", False),
+        (
+            "/testdata/start_api/nested-templates/cfn-http-api-with-normal-and-default-routes-parent.yaml",
+            "nested_stack_enabled",
+        ),
+    ],
+)
 class TestCFNTemplateHttpApiWithNormalAndDefaultRoutes(StartApiIntegBaseClass):
-    template_path = "/testdata/start_api/cfn-http-api-with-normal-and-default-routes.yaml"
-
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
@@ -1611,6 +1630,16 @@ class TestServerlessTemplateWithRestApiAndHttpApiGateways(StartApiIntegBaseClass
         self.assertEqual(response.json(), {"hello": "world"})
 
 
+@parameterized_class(
+    ("template_path", "nested_stack_enabled"),
+    [
+        ("/testdata/start_api/cfn-http-api-and-rest-api-gateways.yaml", False),
+        (
+            "/testdata/start_api/nested-templates/cfn-http-api-and-rest-api-gateways-parent.yaml",
+            "nested_stack_enabled",
+        ),
+    ],
+)
 class TestCFNTemplateWithRestApiAndHttpApiGateways(StartApiIntegBaseClass):
     template_path = "/testdata/start_api/cfn-http-api-and-rest-api-gateways.yaml"
 
