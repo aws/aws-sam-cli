@@ -1,4 +1,4 @@
-FROM public.ecr.aws/lambda/provided
+FROM public.ecr.aws/lambda/provided:alami
 
 # Install build tools
 RUN yum groupinstall -y development && \
