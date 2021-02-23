@@ -717,7 +717,7 @@ class TestApplicationBuilder_build_function(TestCase):
         # Settting the container manager will make us use the container
         self.builder._container_manager = Mock()
         self.builder._build_function(
-            function_name, codeuri, packagetype, runtime, handler, artifacts_dir, env_vars=env_vars
+            function_name, codeuri, packagetype, runtime, handler, artifacts_dir, container_env_vars=env_vars
         )
 
         self.builder._build_function_on_container.assert_called_with(
@@ -935,22 +935,22 @@ class TestApplicationBuilder_parse_builder_response(TestCase):
 class TestApplicationBuilder_make_env_vars(TestCase):
     def test_make_env_vars_with_env_file(self):
         function1 = generate_function("Function1")
-        env_vars_values = {
+        file_env_vars = {
             "Parameters": {"ENV_VAR1": "1"},
             "Function1": {"ENV_VAR2": "2"},
             "Function2": {"ENV_VAR3": "3"},
         }
-        result = ApplicationBuilder._make_env_vars(function1, env_vars_values, {})
+        result = ApplicationBuilder._make_env_vars(function1, file_env_vars, {})
         self.assertEqual(result, {"ENV_VAR1": "1", "ENV_VAR2": "2"})
 
     def test_make_env_vars_with_function_precedence(self):
         function1 = generate_function("Function1")
-        env_vars_values = {
+        file_env_vars = {
             "Parameters": {"ENV_VAR1": "1"},
             "Function1": {"ENV_VAR1": "2"},
             "Function2": {"ENV_VAR3": "3"},
         }
-        result = ApplicationBuilder._make_env_vars(function1, env_vars_values, {})
+        result = ApplicationBuilder._make_env_vars(function1, file_env_vars, {})
         self.assertEqual(result, {"ENV_VAR1": "2"})
 
     def test_make_env_vars_with_inline_env(self):
@@ -965,7 +965,7 @@ class TestApplicationBuilder_make_env_vars(TestCase):
 
     def test_make_env_vars_with_both(self):
         function1 = generate_function("Function1")
-        env_vars_values = {
+        file_env_vars = {
             "Parameters": {"ENV_VAR1": "1"},
             "Function1": {"ENV_VAR2": "2"},
             "Function2": {"ENV_VAR3": "3"},
@@ -975,5 +975,5 @@ class TestApplicationBuilder_make_env_vars(TestCase):
             "Function1": {"ENV_VAR2": "3"},
             "Function2": {"ENV_VAR3": "3"},
         }
-        result = ApplicationBuilder._make_env_vars(function1, env_vars_values, inline_env_vars)
+        result = ApplicationBuilder._make_env_vars(function1, file_env_vars, inline_env_vars)
         self.assertEqual(result, {"ENV_VAR1": "2", "ENV_VAR2": "3"})

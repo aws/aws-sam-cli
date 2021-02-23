@@ -65,8 +65,8 @@ class TestDoCli(TestCase):
             container_manager=ctx_mock.container_manager,
             mode=ctx_mock.mode,
             parallel="parallel",
-            env_vars={},
-            env_vars_file="container_env_vars_file",
+            container_env_vars={},
+            container_env_vars_file="container_env_vars_file",
         )
         builder_mock.build.assert_called_once()
         builder_mock.update_template.assert_called_once_with(
@@ -184,25 +184,25 @@ class TestGetModeValueFromEnvvar(TestCase):
 
 class TestEnvVarParsing(TestCase):
     def test_process_global_env_var(self):
-        container_env_var = ["ENV_VAR1=1", "ENV_VAR2=2"]
+        container_env_vars = ["ENV_VAR1=1", "ENV_VAR2=2"]
 
-        result = _process_env_var(container_env_var)
+        result = _process_env_var(container_env_vars)
         self.assertEqual(result, {"Parameters": {"ENV_VAR1": "1", "ENV_VAR2": "2"}})
 
     def test_process_function_env_var(self):
-        container_env_var = ["Function1.ENV_VAR1=1", "Function2.ENV_VAR2=2"]
+        container_env_vars = ["Function1.ENV_VAR1=1", "Function2.ENV_VAR2=2"]
 
-        result = _process_env_var(container_env_var)
+        result = _process_env_var(container_env_vars)
         self.assertEqual(result, {"Function1": {"ENV_VAR1": "1"}, "Function2": {"ENV_VAR2": "2"}})
 
     def test_invalid_function_env_var(self):
-        container_env_var = ["Function1.Layer1.ENV_VAR1=1", "Function2.ENV_VAR2=2"]
+        container_env_vars = ["Function1.Layer1.ENV_VAR1=1", "Function2.ENV_VAR2=2"]
 
-        result = _process_env_var(container_env_var)
+        result = _process_env_var(container_env_vars)
         self.assertEqual(result, {"Function2": {"ENV_VAR2": "2"}})
 
     def test_invalid_global_env_var(self):
-        container_env_var = ["ENV_VAR1", "Function2.ENV_VAR2=2"]
+        container_env_vars = ["ENV_VAR1", "Function2.ENV_VAR2=2"]
 
-        result = _process_env_var(container_env_var)
+        result = _process_env_var(container_env_vars)
         self.assertEqual(result, {"Function2": {"ENV_VAR2": "2"}})

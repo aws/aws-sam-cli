@@ -66,8 +66,8 @@ class ApplicationBuilder:
         mode: Optional[str] = None,
         stream_writer: Optional[StreamWriter] = None,
         docker_client: Optional[docker.DockerClient] = None,
-        env_vars: Optional[Dict] = None,
-        env_vars_file: Optional[str] = None,
+        container_env_vars: Optional[Dict] = None,
+        container_env_vars_file: Optional[str] = None,
     ) -> None:
         """
         Initialize the class
@@ -119,8 +119,8 @@ class ApplicationBuilder:
 
         self._deprecated_runtimes = {"nodejs4.3", "nodejs6.10", "nodejs8.10", "dotnetcore2.0"}
         self._colored = Colored()
-        self._env_vars = env_vars
-        self._env_vars_file = env_vars_file
+        self._container_env_vars = container_env_vars
+        self._container_env_vars_file = container_env_vars_file
 
     def build(self) -> Dict[str, str]:
         """
@@ -131,7 +131,7 @@ class ApplicationBuilder:
         dict
             Returns the path to where each resource was built as a map of resource's LogicalId to the path string
         """
-        build_graph = self._get_build_graph(self._env_vars, self._env_vars_file)
+        build_graph = self._get_build_graph(self._container_env_vars, self._container_env_vars_file)
         build_strategy: BuildStrategy = DefaultBuildStrategy(
             build_graph, self._build_dir, self._build_function, self._build_layer
         )
@@ -174,27 +174,27 @@ class ApplicationBuilder:
         build_graph = BuildGraph(self._build_dir)
         functions = self._resources_to_build.functions
         layers = self._resources_to_build.layers
-        env_vars_values = {}
+        file_env_vars = {}
         if env_vars_file:
             try:
                 with open(env_vars_file, "r", encoding="utf-8") as fp:
-                    env_vars_values = json.load(fp)
+                    file_env_vars = json.load(fp)
             except Exception as ex:
                 raise IOError(
                     "Could not read environment variables overrides from file {}: {}".format(env_vars_file, str(ex))
                 ) from ex
 
         for function in functions:
-            env_vars = self._make_env_vars(function, env_vars_values, inline_env_vars)
+            container_env_vars = self._make_env_vars(function, file_env_vars, inline_env_vars)
             function_build_details = FunctionBuildDefinition(
-                function.runtime, function.codeuri, function.packagetype, function.metadata, env_vars=env_vars
+                function.runtime, function.codeuri, function.packagetype, function.metadata, env_vars=container_env_vars
             )
             build_graph.put_function_build_definition(function_build_details, function)
 
         for layer in layers:
-            env_vars = self._make_env_vars(layer, env_vars_values, inline_env_vars)
+            container_env_vars = self._make_env_vars(layer, file_env_vars, inline_env_vars)
             layer_build_details = LayerBuildDefinition(
-                layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes, env_vars=env_vars
+                layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes, env_vars=container_env_vars
             )
             build_graph.put_layer_build_definition(layer_build_details, layer)
 
@@ -355,7 +355,7 @@ class ApplicationBuilder:
         codeuri: str,
         specified_workflow: str,
         compatible_runtimes: List[str],
-        env_vars: Optional[Dict] = None,
+        container_env_vars: Optional[Dict] = None,
     ) -> str:
         # Create the arguments to pass to the builder
         # Code is always relative to the given base directory.
@@ -384,7 +384,9 @@ class ApplicationBuilder:
                     build_runtime = compatible_runtimes[0]
             options = ApplicationBuilder._get_build_options(layer_name, config.language, None)
 
-            build_method(config, code_dir, artifacts_dir, scratch_dir, manifest_path, build_runtime, options, env_vars)
+            build_method(
+                config, code_dir, artifacts_dir, scratch_dir, manifest_path, build_runtime, options, container_env_vars
+            )
             # Not including subfolder in return so that we copy subfolder, instead of copying artifacts inside it.
             return str(pathlib.Path(self._build_dir, layer_name))
 
@@ -397,7 +399,7 @@ class ApplicationBuilder:
         handler: Optional[str],
         artifacts_dir: str,
         metadata: Optional[Dict] = None,
-        env_vars: Optional[Dict] = None,
+        container_env_vars: Optional[Dict] = None,
     ) -> str:
         """
         Given the function information, this method will build the Lambda function. Depending on the configuration
@@ -457,7 +459,14 @@ class ApplicationBuilder:
                 if self._container_manager:
                     build_method = self._build_function_on_container
                     return build_method(
-                        config, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, options, env_vars
+                        config,
+                        code_dir,
+                        artifacts_dir,
+                        scratch_dir,
+                        manifest_path,
+                        runtime,
+                        options,
+                        container_env_vars,
                     )
 
                 return build_method(config, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, options)
@@ -498,7 +507,7 @@ class ApplicationBuilder:
         manifest_path: str,
         runtime: str,
         options: Optional[dict],
-        env_vars: Optional[Dict] = None,
+        container_env_vars: Optional[Dict] = None,
     ) -> str:
 
         builder = LambdaBuilder(
@@ -534,7 +543,7 @@ class ApplicationBuilder:
         manifest_path: str,
         runtime: str,
         options: Optional[Dict],
-        env_vars: Optional[Dict] = None,
+        container_env_vars: Optional[Dict] = None,
     ) -> str:
         # _build_function_on_container() is only called when self._container_manager if not None
         if not self._container_manager:
@@ -552,7 +561,7 @@ class ApplicationBuilder:
         # If we are printing debug logs in SAM CLI, the builder library should also print debug logs
         log_level = LOG.getEffectiveLevel()
 
-        env_vars = env_vars or {}
+        container_env_vars = container_env_vars or {}
 
         container = LambdaBuildContainer(
             lambda_builders_protocol_version,
@@ -567,7 +576,7 @@ class ApplicationBuilder:
             options=options,
             executable_search_paths=config.executable_search_paths,
             mode=self._mode,
-            env_vars=env_vars,
+            env_vars=container_env_vars,
         )
 
         try:
@@ -644,7 +653,7 @@ class ApplicationBuilder:
         return cast(Dict, response)
 
     @staticmethod
-    def _make_env_vars(function: Function, env_vars_values: Dict, inline_env_vars: Optional[Dict]) -> Dict:
+    def _make_env_vars(function: Function, file_env_vars: Dict, inline_env_vars: Optional[Dict]) -> Dict:
         """Returns the environment variables configuration for this function
 
         Parameters
@@ -667,9 +676,9 @@ class ApplicationBuilder:
         name = function.name
         result = {}
 
-        if env_vars_values and inline_env_vars:
-            for env_var_value in env_vars_values.values():
-                if not isinstance(env_var_value, dict):
+        if file_env_vars and inline_env_vars:
+            for file_env_var in file_env_vars.values():
+                if not isinstance(file_env_var, dict):
                     reason = """
                                 Environment variables in incorrect format
                                 """
@@ -686,18 +695,18 @@ class ApplicationBuilder:
 
             LOG.debug("Environment variables data is being parsed")
             # CloudFormation parameter file format
-            parameter_result = env_vars_values.get("Parameters", {})
+            parameter_result = file_env_vars.get("Parameters", {})
             result = parameter_result.copy()
             inline_parameter_result = inline_env_vars.get("Parameters", {})
             result.update(inline_parameter_result)
-            specific_result = env_vars_values.get(name, {})
+            specific_result = file_env_vars.get(name, {})
             result.update(specific_result)
             inline_specific_result = inline_env_vars.get(name, {})
             result.update(inline_specific_result)
 
-        elif env_vars_values:
-            for env_var_value in env_vars_values.values():
-                if not isinstance(env_var_value, dict):
+        elif file_env_vars:
+            for file_env_var in file_env_vars.values():
+                if not isinstance(file_env_var, dict):
                     reason = """
                                 Environment variables in incorrect format
                                 """
@@ -706,9 +715,9 @@ class ApplicationBuilder:
 
             LOG.debug("Environment variables data is being parsed")
             # CloudFormation parameter file format
-            parameter_result = env_vars_values.get("Parameters", {})
+            parameter_result = file_env_vars.get("Parameters", {})
             result = parameter_result.copy()
-            specific_result = env_vars_values.get(name, {})
+            specific_result = file_env_vars.get(name, {})
             result.update(specific_result)
 
         elif inline_env_vars:
