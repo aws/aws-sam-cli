@@ -2066,3 +2066,43 @@ COPY main.py ./"""
         response = requests.get(self.url + "/hello", timeout=300)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world2"})
+
+
+class TestApiPrecedenceInNestedStacks(StartApiIntegBaseClass):
+    """
+    Here we test when two APIs share the same path+method,
+    whoever located in top level stack should win.
+    See SamApiProvider::merge_routes() docstring for the full detail.
+    """
+
+    template_path = "/testdata/start_api/nested-templates/template-precedence-root.yaml"
+    nested_stack_enabled = True
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_should_call_function_in_root_stack_if_path_method_collide(self):
+        response = requests.post(self.url + "/path1", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_should_call_function_in_child_stack_if_only_path_collides(self):
+        response = requests.get(self.url + "/path1", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content.decode("utf-8"), "42")
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_should_call_function_in_child_stack_if_nothing_collides(self):
+        data = "I don't collide with any other APIs"
+        response = requests.post(self.url + "/path2", data=data, timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+        self.assertEqual(response_data.get("body"), data)
