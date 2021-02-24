@@ -15,6 +15,7 @@ from samcli.commands._utils.options import (
 )
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from samcli.lib.build.exceptions import BuildInsideContainerError
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
@@ -248,22 +249,32 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
 
         try:
             artifacts = builder.build()
-            modified_template = builder.update_template(ctx.template_dict, ctx.original_template_path, artifacts)
 
-            move_template(ctx.original_template_path, ctx.output_template_path, modified_template)
+            stack_output_template_path_by_stack_path = {
+                stack.stack_path: stack.get_output_template_path(ctx.build_dir) for stack in ctx.stacks
+            }
+            for stack in ctx.stacks:
+                modified_template = builder.update_template(
+                    stack,
+                    artifacts,
+                    stack_output_template_path_by_stack_path,
+                )
+                move_template(stack.location, stack.get_output_template_path(ctx.build_dir), modified_template)
 
             click.secho("\nBuild Succeeded", fg="green")
 
             # try to use relpath so the command is easier to understand, however,
             # under Windows, when SAM and (build_dir or output_template_path) are
             # on different drive, relpath() fails.
+            root_stack = SamLocalStackProvider.find_root_stack(ctx.stacks)
+            out_template_path = root_stack.get_output_template_path(ctx.build_dir)
             try:
                 build_dir_in_success_message = os.path.relpath(ctx.build_dir)
-                output_template_path_in_success_message = os.path.relpath(ctx.output_template_path)
+                output_template_path_in_success_message = os.path.relpath(out_template_path)
             except ValueError:
                 LOG.debug("Failed to retrieve relpath - using the specified path as-is instead")
                 build_dir_in_success_message = ctx.build_dir
-                output_template_path_in_success_message = ctx.output_template_path
+                output_template_path_in_success_message = out_template_path
 
             msg = gen_success_msg(
                 build_dir_in_success_message,

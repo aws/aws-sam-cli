@@ -6,6 +6,7 @@ import os
 import logging
 import boto3
 
+from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.utils.codeuri import resolve_code_path
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.local.docker.container import ContainerResponseException
@@ -29,7 +30,7 @@ class LocalLambdaRunner:
     def __init__(
         self,
         local_runtime,
-        function_provider,
+        function_provider: SamFunctionProvider,
         cwd,
         aws_profile=None,
         aws_region=None,
@@ -146,7 +147,18 @@ class LocalLambdaRunner:
         env_vars = self._make_env_vars(function)
         code_abs_path = None
         if function.packagetype == ZIP:
-            code_abs_path = resolve_code_path(self.cwd, function.codeuri)
+            # the template file containing the function might not be in the same directory as root template file
+            # therefore we need to join the path of template directory and codeuri in case codeuri is a relative path.
+            stacks = [stack for stack in self.provider.stacks if stack.stack_path == function.stack_path]
+            if not stacks:
+                raise RuntimeError(f"Cannot find stack that matches function's stack_path {function.stack_path}")
+            stack = stacks[0]
+            codeuri = (
+                function.codeuri
+                if os.path.isabs(function.codeuri)
+                else os.path.join(os.path.dirname(stack.location), function.codeuri)
+            )
+            code_abs_path = resolve_code_path(self.cwd, codeuri)
             LOG.debug("Resolved absolute path to code is %s", code_abs_path)
 
         function_timeout = function.timeout
