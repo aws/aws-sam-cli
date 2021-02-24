@@ -23,8 +23,6 @@ class StartApiIntegBaseClass(TestCase):
     build_before_invoke = False
     build_overrides: Optional[Dict[str, str]] = None
 
-    nested_stack_enabled = False
-
     @classmethod
     def setUpClass(cls):
         # This is the directory for tests/integration which will be used to file the testdata
@@ -71,11 +69,7 @@ class StartApiIntegBaseClass(TestCase):
         if cls.parameter_overrides:
             command_list += ["--parameter-overrides", cls._make_parameter_override_arg(cls.parameter_overrides)]
 
-        newenv = None
-        if cls.nested_stack_enabled:
-            newenv = os.environ.copy()
-            newenv["SAM_CLI_ENABLE_NESTED_STACK"] = "1"
-        cls.start_api_process = Popen(command_list, env=newenv)
+        cls.start_api_process = Popen(command_list)
         # we need to wait some time for start-api to start, hence the sleep
         time.sleep(5)
 

@@ -20,9 +20,6 @@ class SamLocalStackProvider(SamBaseProvider):
     It may or may not contain a stack.
     """
 
-    # see get_stacks() for info about this env var
-    ENV_SAM_CLI_ENABLE_NESTED_STACK = "SAM_CLI_ENABLE_NESTED_STACK"
-
     def __init__(
         self,
         template_file: str,
@@ -238,12 +235,6 @@ class SamLocalStackProvider(SamBaseProvider):
                 template_dict,
             )
         ]
-
-        # Note(xinhol): recursive get_stacks is only enabled in tests by env var SAM_CLI_ENABLE_NESTED_STACK.
-        # We will remove this env var and make this method recursive by default
-        # for nested stack support in the future.
-        if not os.environ.get(SamLocalStackProvider.ENV_SAM_CLI_ENABLE_NESTED_STACK, False):
-            return stacks
 
         current = SamLocalStackProvider(
             template_file, stack_path, template_dict, parameter_overrides, global_parameter_overrides

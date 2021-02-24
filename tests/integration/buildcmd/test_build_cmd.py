@@ -1517,9 +1517,7 @@ class TestBuildWithNestedStacks(NestedBuildIntegBase):
         LOG.info("Running Command: %s", cmdlist)
         LOG.info(self.working_dir)
 
-        newenv = os.environ.copy()
-        newenv["SAM_CLI_ENABLE_NESTED_STACK"] = "1"
-        command_result = run_command(cmdlist, cwd=self.working_dir, env=newenv)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
 
         function_full_paths = ["Function", "Function2", "LocalNestedStack/Function1", "LocalNestedStack/Function2"]
         stack_paths = ["", "LocalNestedStack"]
@@ -1599,9 +1597,7 @@ class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
         LOG.info("Running Command: %s", cmdlist)
         LOG.info(self.working_dir)
 
-        newenv = os.environ.copy()
-        newenv["SAM_CLI_ENABLE_NESTED_STACK"] = "1"
-        command_result = run_command(cmdlist, cwd=self.working_dir, env=newenv)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
 
         stack_paths = ["", "LocalNestedStack"]
         if not SKIP_DOCKER_TESTS:

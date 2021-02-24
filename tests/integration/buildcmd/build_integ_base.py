@@ -301,36 +301,6 @@ class NestedBuildIntegBase(BuildIntegBase):
                 f"Building codeuri: .* runtime: .* metadata: .* functions: \\[.*'{function_full_path}'.*\\]",
             )
 
-    def _verify_invoke_built_function(self, template_path, function_logical_id, overrides, expected_result):
-        """
-        Note(Xinhol) this _verify_invoke_built_function() is identical to the superclass' one
-        except it add SAM_CLI_ENABLE_NESTED_STACK=1 environment variable to it.
-        Once the nested stack support is completed and SAM_CLI_ENABLE_NESTED_STACK is removed,
-        we can remove this overriding method _verify_invoke_built_function.
-        """
-        LOG.info("Invoking built function '{}'".format(function_logical_id))
-
-        cmdlist = [
-            self.cmd,
-            "local",
-            "invoke",
-            function_logical_id,
-            "-t",
-            str(template_path),
-            "--no-event",
-            "--parameter-overrides",
-            overrides,
-            "--debug",
-        ]
-
-        newenv = os.environ.copy()
-        newenv["SAM_CLI_ENABLE_NESTED_STACK"] = "1"
-        process_execute = run_command(cmdlist, env=newenv)
-        process_execute.process.wait()
-
-        process_stdout = process_execute.stdout.decode("utf-8")
-        self.assertEqual(json.loads(process_stdout), expected_result)
-
     def _verify_invoke_built_functions(self, template_path, overrides, function_and_expected):
         for function_identifier, expected in function_and_expected:
             self._verify_invoke_built_function(template_path, function_identifier, overrides, expected)
