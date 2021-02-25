@@ -172,8 +172,8 @@ def cli(
     parallel: bool,
     manifest: Optional[str],
     docker_network: Optional[str],
-    container_env_vars: list,
-    container_env_vars_file: str,
+    container_env_vars: Optional[List[str]],
+    container_env_vars_file: Optional[str],
     skip_pull_image: bool,
     parameter_overrides: dict,
     config_file: str,
@@ -218,8 +218,8 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     skip_pull_image: bool,
     parameter_overrides: Dict,
     mode: Optional[str],
-    container_env_vars: list,
-    container_env_vars_file: str,
+    container_env_vars: Optional[List[str]],
+    container_env_vars_file: Optional[str],
 ) -> None:
     """
     Implementation of the ``cli`` method
@@ -372,7 +372,7 @@ def _get_mode_value_from_envvar(name: str, choices: List[str]) -> Optional[str]:
     return mode
 
 
-def _process_env_var(container_env_vars: list) -> Dict:
+def _process_env_var(container_env_vars: Optional[List[str]]) -> Dict:
     """
     Parameters
     ----------
@@ -388,23 +388,24 @@ def _process_env_var(container_env_vars: list) -> Dict:
     """
     processed_env_vars: Dict = {}
 
-    for env_var in container_env_vars:
-        location_key = "Parameters"
-        pure_env_var = env_var
-        if "." in env_var:
-            test_target = env_var.split(".")
+    if container_env_vars:
+        for env_var in container_env_vars:
+            location_key = "Parameters"
+            pure_env_var = env_var
+            if "." in env_var:
+                test_target = env_var.split(".")
+                if len(test_target) != 2 or not test_target[0].strip() or not test_target[1].strip():
+                    LOG.error("Invalid command line --container-env-vars input %s, skipped", env_var)
+                    continue
+                location_key, pure_env_var = env_var.split(".")
+
+            test_target = pure_env_var.split("=")
             if len(test_target) != 2 or not test_target[0].strip() or not test_target[1].strip():
                 LOG.error("Invalid command line --container-env-vars input %s, skipped", env_var)
                 continue
-            location_key, pure_env_var = env_var.split(".")
-
-        test_target = pure_env_var.split("=")
-        if len(test_target) != 2 or not test_target[0].strip() or not test_target[1].strip():
-            LOG.error("Invalid command line --container-env-vars input %s, skipped", env_var)
-            continue
-        key, value = pure_env_var.split("=")
-        if not processed_env_vars.get(location_key):
-            processed_env_vars[location_key] = {}
-        processed_env_vars[location_key][key] = value
+            key, value = pure_env_var.split("=")
+            if not processed_env_vars.get(location_key):
+                processed_env_vars[location_key] = {}
+            processed_env_vars[location_key][key] = value
 
     return processed_env_vars
