@@ -1007,9 +1007,18 @@ class TestInvokeWithFunctionFullPathToAvoidAmbiguity(InvokeIntegBase):
     template = Path("template-deep-root.yaml")
     nested_stack_enabled = True
 
+    @parameterized.expand(
+        [
+            ("FunctionA", {"key1": "value1", "key2": "value2", "key3": "value3"}),
+            ("FunctionB", "wrote to stderr"),
+            ("FunctionNameC", "wrote to stdout"),
+        ]
+    )
     @pytest.mark.flaky(reruns=3)
-    def test_invoke_with_function_name_will_call_functions_in_top_level_stacks(self):
-        command_list = self.get_command_list("FunctionA", template_path=self.template_path, event_path=self.event_path)
+    def test_invoke_with_function_name_will_call_functions_in_top_level_stacks(self, function_identifier, expected):
+        command_list = self.get_command_list(
+            function_identifier, template_path=self.template_path, event_path=self.event_path
+        )
 
         process = Popen(command_list, stdout=PIPE, env=self.env)
         try:
@@ -1021,8 +1030,7 @@ class TestInvokeWithFunctionFullPathToAvoidAmbiguity(InvokeIntegBase):
         process_stdout = stdout.strip()
 
         self.assertEqual(process.returncode, 0)
-        with open(self.event_path) as f:
-            self.assertEqual(json.loads(process_stdout.decode("utf-8")), json.load(f))
+        self.assertEqual(json.loads(process_stdout.decode("utf-8")), expected)
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_function_full_path_will_call_functions_in_specified_stack(self):
