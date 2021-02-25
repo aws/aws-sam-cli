@@ -711,6 +711,12 @@ class ApplicationBuilder:
     def _make_env_vars(function: Function, file_env_vars: Dict, inline_env_vars: Optional[Dict]) -> Dict:
         """Returns the environment variables configuration for this function
 
+        Priority order (high to low):
+        1. Function specific env vars from command line
+        2. Function specific env vars from json file
+        3. Global env vars from command line
+        4. Global env vars from file
+
         Parameters
         ----------
         function : samcli.lib.providers.provider.Function
@@ -731,64 +737,27 @@ class ApplicationBuilder:
         name = function.name
         result = {}
 
-        if file_env_vars and inline_env_vars:
-            for file_env_var in file_env_vars.values():
-                if not isinstance(file_env_var, dict):
-                    reason = """
-                                Environment variables in incorrect format
-                                """
-                    LOG.debug(reason)
-                    raise OverridesNotWellDefinedError(reason)
+        # validate and raise OverridesNotWellDefinedError
+        for env_var in list((file_env_vars or {}).values()) + list((inline_env_vars or {}).values()):
+            if not isinstance(env_var, dict):
+                reason = "Environment variables {} in incorrect format".format(env_var)
+                LOG.debug(reason)
+                raise OverridesNotWellDefinedError(reason)
 
-            for inline_env_var in inline_env_vars.values():
-                if not isinstance(inline_env_var, dict):
-                    reason = """
-                                Environment variables in incorrect format
-                                """
-                    LOG.debug(reason)
-                    raise OverridesNotWellDefinedError(reason)
-
-            LOG.debug("Environment variables data is being parsed")
-            # CloudFormation parameter file format
+        if file_env_vars:
             parameter_result = file_env_vars.get("Parameters", {})
-            result = parameter_result.copy()
+            result.update(parameter_result)
+
+        if inline_env_vars:
             inline_parameter_result = inline_env_vars.get("Parameters", {})
             result.update(inline_parameter_result)
+
+        if file_env_vars:
             specific_result = file_env_vars.get(name, {})
             result.update(specific_result)
+
+        if inline_env_vars:
             inline_specific_result = inline_env_vars.get(name, {})
             result.update(inline_specific_result)
-
-        elif file_env_vars:
-            for file_env_var in file_env_vars.values():
-                if not isinstance(file_env_var, dict):
-                    reason = """
-                                Environment variables in incorrect format
-                                """
-                    LOG.debug(reason)
-                    raise OverridesNotWellDefinedError(reason)
-
-            LOG.debug("Environment variables data is being parsed")
-            # CloudFormation parameter file format
-            parameter_result = file_env_vars.get("Parameters", {})
-            result = parameter_result.copy()
-            specific_result = file_env_vars.get(name, {})
-            result.update(specific_result)
-
-        elif inline_env_vars:
-            for inline_env_var in inline_env_vars.values():
-                if not isinstance(inline_env_var, dict):
-                    reason = """
-                                Environment variables in incorrect format
-                                """
-                    LOG.debug(reason)
-                    raise OverridesNotWellDefinedError(reason)
-
-            LOG.debug("Environment variables data is being parsed")
-            # CloudFormation parameter file format
-            parameter_result = inline_env_vars.get("Parameters", {})
-            result = parameter_result.copy()
-            specific_result = inline_env_vars.get(name, {})
-            result.update(specific_result)
 
         return result

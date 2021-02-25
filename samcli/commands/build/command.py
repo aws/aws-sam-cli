@@ -113,7 +113,9 @@ $ sam build MyFunction
     default=None,
     multiple=True,  # Can pass in multiple env vars
     required=False,
-    help="Path to environment variable json file (ex: env_vars.json) to pass into build containers",
+    help="Input environment variables through command line to pass into build containers, you can either"
+    "input function specific format (FuncName.VarName=Value) or global format (VarName=Value). Example: "
+    "sam build --use-container --container-env-vars Func1.VAR1=value1 --container-env-vars VAR2=value2",
 )
 @click.option(
     "--container-env-vars-file",
@@ -371,6 +373,19 @@ def _get_mode_value_from_envvar(name: str, choices: List[str]) -> Optional[str]:
 
 
 def _process_env_var(container_env_vars: list) -> Dict:
+    """
+    Parameters
+    ----------
+    container_env_vars : list
+        the list of command line env vars received from --container-env-vars flag
+        Each input format needs to be either function specific format (FuncName.VarName=Value)
+        or global format (VarName=Value)
+
+    Returns
+    -------
+    dictionary
+        Processed command line environment variables
+    """
     processed_env_vars: Dict = {}
 
     for env_var in container_env_vars:
