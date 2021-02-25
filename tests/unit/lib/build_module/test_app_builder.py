@@ -747,7 +747,7 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
             "DockerContext": "context",
             "DockerTag": "Tag",
             "DockerBuildArgs": {"a": "b"},
-            "DockerBuildTarget": "stage"
+            "DockerBuildTarget": "stage",
         }
 
         self.docker_client_mock.api.build.return_value = []
@@ -764,9 +764,10 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
                 tag="name:Tag-debug",
                 buildargs={"a": "b", "SAM_BUILD_MODE": "debug"},
                 decode=True,
-                target="stage"
+                target="stage",
             ),
         )
+
 
 class TestApplicationBuilder_build_function(TestCase):
     def setUp(self):
