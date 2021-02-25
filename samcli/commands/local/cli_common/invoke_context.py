@@ -301,7 +301,7 @@ class InvokeContext:
     @property
     def lambda_runtime(self) -> LambdaRuntime:
         if not self._lambda_runtimes:
-            layer_downloader = LayerDownloader(self._layer_cache_basedir, self.get_cwd())
+            layer_downloader = LayerDownloader(self._layer_cache_basedir, self.get_cwd(), self._stacks)
             image_builder = LambdaImage(layer_downloader, self._skip_pull_image, self._force_image_build)
             self._lambda_runtimes = {
                 ContainersMode.WARM: WarmLambdaRuntime(self._container_manager, image_builder),

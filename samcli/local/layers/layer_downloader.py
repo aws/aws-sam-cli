@@ -3,11 +3,14 @@ Downloads Layers locally
 """
 
 import logging
+import os
 from pathlib import Path
+from typing import List
 
 import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
 
+from samcli.lib.providers.provider import Stack, LayerVersion
 from samcli.lib.utils.codeuri import resolve_code_path
 from samcli.local.lambdafn.zip import unzip_from_uri
 from samcli.commands.local.cli_common.user_exceptions import CredentialsRequired, ResourceNotFound
@@ -17,7 +20,7 @@ LOG = logging.getLogger(__name__)
 
 
 class LayerDownloader:
-    def __init__(self, layer_cache, cwd, lambda_client=None):
+    def __init__(self, layer_cache, cwd, stacks: List[Stack], lambda_client=None):
         """
 
         Parameters
@@ -26,11 +29,14 @@ class LayerDownloader:
             path where to cache layers
         cwd str
             Current working directory
+        stacks List[Stack]
+            List of all stacks
         lambda_client boto3.client('lambda')
             Boto3 Client for AWS Lambda
         """
         self._layer_cache = layer_cache
         self.cwd = cwd
+        self._stacks = stacks
         self._lambda_client = lambda_client
 
     @property
@@ -73,7 +79,7 @@ class LayerDownloader:
 
         return layer_dirs
 
-    def download(self, layer, force=False):
+    def download(self, layer: LayerVersion, force=False) -> LayerVersion:
         """
         Download a given layer to the local cache.
 
@@ -91,7 +97,18 @@ class LayerDownloader:
         """
         if layer.is_defined_within_template:
             LOG.info("%s is a local Layer in the template", layer.name)
-            layer.codeuri = resolve_code_path(self.cwd, layer.codeuri)
+            # the template file containing the layer might not be in the same directory as root template file
+            # therefore we need to join the path of template directory and codeuri in case codeuri is a relative path.
+            stacks = [stack for stack in self._stacks if stack.stack_path == layer.stack_path]
+            if not stacks:
+                raise RuntimeError(f"Cannot find stack that matches layer's stack_path {layer.stack_path}")
+            stack = stacks[0]
+            codeuri = (
+                layer.codeuri
+                if os.path.isabs(layer.codeuri)
+                else os.path.normpath(os.path.join(os.path.dirname(stack.location), layer.codeuri))
+            )
+            layer.codeuri = resolve_code_path(self.cwd, codeuri)
             return layer
 
         layer_path = Path(self.layer_cache).resolve().joinpath(layer.name)

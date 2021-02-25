@@ -683,6 +683,10 @@ class TestUsingConfigFiles(InvokeIntegBase):
             Path("nested-templates", "layer-template-parent.yaml"),
             "nested_stack_enabled",
         ),
+        (
+            Path("layers", "some-dir", "layer-template-parent.yaml"),
+            "nested_stack_enabled",
+        ),
     ],
 )
 @skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
