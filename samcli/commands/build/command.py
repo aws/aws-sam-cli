@@ -113,7 +113,7 @@ $ sam build MyFunction
     default=None,
     multiple=True,  # Can pass in multiple env vars
     required=False,
-    help="Input environment variables through command line to pass into build containers, you can either"
+    help="Input environment variables through command line to pass into build containers, you can either "
     "input function specific format (FuncName.VarName=Value) or global format (VarName=Value). Example: "
     "sam build --use-container --container-env-vars Func1.VAR1=value1 --container-env-vars VAR2=value2",
 )
@@ -389,28 +389,22 @@ def _process_env_var(container_env_vars: list) -> Dict:
     processed_env_vars: Dict = {}
 
     for env_var in container_env_vars:
+        location_key = "Parameters"
+        pure_env_var = env_var
         if "." in env_var:
             test_target = env_var.split(".")
             if len(test_target) != 2 or not test_target[0].strip() or not test_target[1].strip():
                 LOG.error("Invalid command line --container-env-vars input %s, skipped", env_var)
                 continue
-            function, variable = env_var.split(".")
-            test_target = variable.split("=")
-            if len(test_target) != 2 or not test_target[0].strip() or not test_target[1].strip():
-                LOG.error("Invalid command line --container-env-vars input %s, skipped", env_var)
-                continue
-            key, value = variable.split("=")
-            if not processed_env_vars.get(function):
-                processed_env_vars[function] = {}
-            processed_env_vars[function][key] = value
-        else:
-            test_target = env_var.split("=")
-            if len(test_target) != 2 or not test_target[0].strip() or not test_target[1].strip():
-                LOG.error("Invalid command line --container-env-vars input %s, skipped", env_var)
-                continue
-            key, value = env_var.split("=")
-            if not processed_env_vars.get("Parameters"):
-                processed_env_vars["Parameters"] = {}
-            processed_env_vars["Parameters"][key] = value
+            location_key, pure_env_var = env_var.split(".")
+
+        test_target = pure_env_var.split("=")
+        if len(test_target) != 2 or not test_target[0].strip() or not test_target[1].strip():
+            LOG.error("Invalid command line --container-env-vars input %s, skipped", env_var)
+            continue
+        key, value = pure_env_var.split("=")
+        if not processed_env_vars.get(location_key):
+            processed_env_vars[location_key] = {}
+        processed_env_vars[location_key][key] = value
 
     return processed_env_vars

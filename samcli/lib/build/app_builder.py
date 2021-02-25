@@ -715,7 +715,7 @@ class ApplicationBuilder:
         1. Function specific env vars from command line
         2. Function specific env vars from json file
         3. Global env vars from command line
-        4. Global env vars from file
+        4. Global env vars from json file
 
         Parameters
         ----------
