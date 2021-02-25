@@ -70,7 +70,7 @@ class TestBuildContext__enter__(TestCase):
         self.assertEqual(context.container_manager, container_mgr_mock)
         self.assertEqual(context.build_dir, build_dir_result)
         self.assertEqual(context.use_container, True)
-        self.assertEqual(context.output_template_path, os.path.join(build_dir_result, "template.yaml"))
+        self.assertEqual(context.stacks, [stack])
         self.assertEqual(context.manifest_path_override, os.path.abspath("manifest_path"))
         self.assertEqual(context.mode, "buildmode")
         resources_to_build = context.resources_to_build
@@ -364,7 +364,7 @@ class TestBuildContext__enter__(TestCase):
         self.assertEqual(context.container_manager, container_mgr_mock)
         self.assertEqual(context.build_dir, build_dir_result)
         self.assertEqual(context.use_container, True)
-        self.assertEqual(context.output_template_path, os.path.join(build_dir_result, "template.yaml"))
+        self.assertEqual(context.stacks, [stack])
         self.assertEqual(context.manifest_path_override, os.path.abspath("manifest_path"))
         self.assertEqual(context.mode, "buildmode")
         self.assertFalse(context.is_building_specific_resource)

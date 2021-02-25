@@ -1,7 +1,6 @@
 """
 Builds the application
 """
-
 import os
 import io
 import json
@@ -22,7 +21,7 @@ from samcli.lib.build.build_strategy import (
     ParallelBuildStrategy,
     BuildStrategy,
 )
-from samcli.lib.providers.provider import ResourcesToBuildCollector
+from samcli.lib.providers.provider import ResourcesToBuildCollector, get_full_path, Stack
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.lib.utils.colors import Colored
 import samcli.lib.utils.osutils as osutils
@@ -184,19 +183,22 @@ class ApplicationBuilder:
         return build_graph
 
     @staticmethod
-    def update_template(template_dict: Dict, original_template_path: str, built_artifacts: Dict[str, str]) -> Dict:
+    def update_template(
+        stack: Stack,
+        built_artifacts: Dict[str, str],
+        stack_output_template_path_by_stack_path: Dict[str, str],
+    ) -> Dict:
         """
         Given the path to built artifacts, update the template to point appropriate resource CodeUris to the artifacts
         folder
 
         Parameters
         ----------
-        template_dict
-        original_template_path : str
-            Path where the template file will be written to
-
+        stack: Stack
         built_artifacts : dict
             Map of LogicalId of a resource to the path where the the built artifacts for this resource lives
+        stack_output_template_path_by_stack_path: Dict[str, str]
+            A dictionary contains where the template of each stack will be written to
 
         Returns
         -------
@@ -204,43 +206,61 @@ class ApplicationBuilder:
             Updated template
         """
 
-        original_dir = pathlib.Path(original_template_path).parent.resolve()
+        original_dir = pathlib.Path(stack.location).parent.resolve()
+
+        template_dict = stack.template_dict
 
         for logical_id, resource in template_dict.get("Resources", {}).items():
 
-            if logical_id not in built_artifacts:
-                # this resource was not built. So skip it
+            full_path = get_full_path(stack.stack_path, logical_id)
+            has_build_artifact = full_path in built_artifacts
+            is_stack = full_path in stack_output_template_path_by_stack_path
+
+            if not has_build_artifact and not is_stack:
+                # this resource was not built or a nested stack.
+                # So skip it because there is no path/uri to update
                 continue
-
-            artifact_dir = pathlib.Path(built_artifacts[logical_id]).resolve()
-
-            # Default path to absolute path of the artifact
-            store_path = str(artifact_dir)
-
-            # In Windows, if template and artifacts are in two different drives, relpath will fail
-            if original_dir.drive == artifact_dir.drive:
-                # Artifacts are written relative  the template because it makes the template portable
-                #   Ex: A CI/CD pipeline build stage could zip the output folder and pass to a
-                #   package stage running on a different machine
-                store_path = os.path.relpath(artifact_dir, original_dir)
 
             resource_type = resource.get("Type")
             properties = resource.setdefault("Properties", {})
 
-            if resource_type == SamBaseProvider.SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == ZIP:
-                properties["CodeUri"] = store_path
+            absolute_output_path = pathlib.Path(
+                built_artifacts[full_path]
+                if has_build_artifact
+                else stack_output_template_path_by_stack_path[full_path]
+            ).resolve()
+            # Default path to absolute path of the artifact
+            store_path = str(absolute_output_path)
 
-            if resource_type == SamBaseProvider.LAMBDA_FUNCTION and properties.get("PackageType", ZIP) == ZIP:
-                properties["Code"] = store_path
+            # In Windows, if template and artifacts are in two different drives, relpath will fail
+            if original_dir.drive == absolute_output_path.drive:
+                # Artifacts are written relative  the template because it makes the template portable
+                #   Ex: A CI/CD pipeline build stage could zip the output folder and pass to a
+                #   package stage running on a different machine
+                store_path = os.path.relpath(absolute_output_path, original_dir)
 
-            if resource_type in [SamBaseProvider.SERVERLESS_LAYER, SamBaseProvider.LAMBDA_LAYER]:
-                properties["ContentUri"] = store_path
+            if has_build_artifact:
+                if resource_type == SamBaseProvider.SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == ZIP:
+                    properties["CodeUri"] = store_path
 
-            if resource_type == SamBaseProvider.LAMBDA_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
-                properties["Code"] = built_artifacts[logical_id]
+                if resource_type == SamBaseProvider.LAMBDA_FUNCTION and properties.get("PackageType", ZIP) == ZIP:
+                    properties["Code"] = store_path
 
-            if resource_type == SamBaseProvider.SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
-                properties["ImageUri"] = built_artifacts[logical_id]
+                if resource_type in [SamBaseProvider.SERVERLESS_LAYER, SamBaseProvider.LAMBDA_LAYER]:
+                    properties["ContentUri"] = store_path
+
+                if resource_type == SamBaseProvider.LAMBDA_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
+                    properties["Code"] = built_artifacts[full_path]
+
+                if resource_type == SamBaseProvider.SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
+                    properties["ImageUri"] = built_artifacts[full_path]
+
+            if is_stack:
+                if resource_type == SamBaseProvider.SERVERLESS_APPLICATION:
+                    properties["Location"] = store_path
+
+                if resource_type == SamBaseProvider.CLOUDFORMATION_STACK:
+                    properties["TemplateURL"] = store_path
 
         return template_dict
 
@@ -332,8 +352,40 @@ class ApplicationBuilder:
                     self._stream_writer.flush()
 
     def _build_layer(
-        self, layer_name: str, codeuri: str, specified_workflow: str, compatible_runtimes: List[str]
+        self,
+        layer_name: str,
+        codeuri: str,
+        specified_workflow: str,
+        compatible_runtimes: List[str],
+        artifact_dir: str,
     ) -> str:
+        """
+        Given the layer information, this method will build the Lambda layer. Depending on the configuration
+        it will either build the function in process or by spinning up a Docker container.
+
+        Parameters
+        ----------
+        layer_name : str
+            Name or LogicalId of the function
+
+        codeuri : str
+            Path to where the code lives
+
+        specified_workflow : str
+            The specified workflow
+
+        compatible_runtimes : List[str]
+            List of runtimes the layer build is compatible with
+
+        artifact_dir: str
+            Path to where layer will be build into.
+            A subfolder will be created in this directory depending on the specified workflow.
+
+        Returns
+        -------
+        str
+            Path to the location where built artifacts are available
+        """
         # Create the arguments to pass to the builder
         # Code is always relative to the given base directory.
         code_dir = str(pathlib.Path(self._base_dir, codeuri).resolve())
@@ -342,7 +394,7 @@ class ApplicationBuilder:
         subfolder = get_layer_subfolder(specified_workflow)
 
         # artifacts directory will be created by the builder
-        artifacts_dir = str(pathlib.Path(self._build_dir, layer_name, subfolder))
+        artifact_subdir = str(pathlib.Path(artifact_dir, subfolder))
 
         with osutils.mkdir_temp() as scratch_dir:
             manifest_path = self._manifest_path_override or os.path.join(code_dir, config.manifest_name)
@@ -361,9 +413,9 @@ class ApplicationBuilder:
                     build_runtime = compatible_runtimes[0]
             options = ApplicationBuilder._get_build_options(layer_name, config.language, None)
 
-            build_method(config, code_dir, artifacts_dir, scratch_dir, manifest_path, build_runtime, options)
+            build_method(config, code_dir, artifact_subdir, scratch_dir, manifest_path, build_runtime, options)
             # Not including subfolder in return so that we copy subfolder, instead of copying artifacts inside it.
-            return str(pathlib.Path(self._build_dir, layer_name))
+            return artifact_dir
 
     def _build_function(  # pylint: disable=R1710
         self,
@@ -372,7 +424,7 @@ class ApplicationBuilder:
         packagetype: str,
         runtime: str,
         handler: Optional[str],
-        artifacts_dir: str,
+        artifact_dir: str,
         metadata: Optional[Dict] = None,
     ) -> str:
         """
@@ -390,7 +442,7 @@ class ApplicationBuilder:
         runtime : str
             AWS Lambda function runtime
 
-        artifacts_dir: str
+        artifact_dir: str
             Path to where function will be build into
 
         metadata : dict
@@ -434,7 +486,7 @@ class ApplicationBuilder:
 
                 options = ApplicationBuilder._get_build_options(function_name, config.language, handler)
 
-                return build_method(config, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, options)
+                return build_method(config, code_dir, artifact_dir, scratch_dir, manifest_path, runtime, options)
 
         # pylint: disable=fixme
         # FIXME: we need to throw an exception here, packagetype could be something else
