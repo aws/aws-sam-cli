@@ -75,9 +75,10 @@ class SamConfig:
 
         self._read()
         if isinstance(self.document, dict):
-            params = self.document.get(env, {}).get(self._to_key(cmd_names), {}).get(section, {})
-            if DEFAULT_GLOBAL_CMDNAME in self.document.get(env, {}):
-                global_params = self.document.get(env, {}).get(DEFAULT_GLOBAL_CMDNAME, {}).get(section, {})
+            toml_content = self.document.get(env, {})
+            params = toml_content.get(self._to_key(cmd_names), {}).get(section, {})
+            if DEFAULT_GLOBAL_CMDNAME in toml_content:
+                global_params = toml_content.get(DEFAULT_GLOBAL_CMDNAME, {}).get(section, {})
                 global_params.update(params.copy())
                 params = global_params.copy()
             return params
@@ -117,18 +118,23 @@ class SamConfig:
         # Empty document prepare the initial structure.
         # self.document is a nested dict, we need to check each layer and add new tables, otherwise duplicated key
         # in parent layer will override the whole child layer
-        if self.document.get(env, None):
-            if self.document[env].get(self._to_key(cmd_names), None):
-                if self.document[env][self._to_key(cmd_names)].get(section, None):
-                    self.document[env][self._to_key(cmd_names)][section].update({key: value})
+        cmd_name_key = self._to_key(cmd_names)
+        env_content = self.document.get(env, {})
+        cmd_content = env_content.get(cmd_name_key, {})
+        param_content = cmd_content.get(section, {})
+        if env_content:
+            if cmd_content:
+                if param_content:
+                    self.document[env][cmd_name_key][section].update({key: value})
                 else:
-                    self.document[env][self._to_key(cmd_names)].update({section: {key: value}})
+                    self.document[env][cmd_name_key].update({section: {key: value}})
             else:
-                self.document[env].update({self._to_key(cmd_names): {section: {key: value}}})
+                self.document[env].update({cmd_name_key: {section: {key: value}}})
         else:
-            self.document.update({env: {self._to_key(cmd_names): {section: {key: value}}}})
-
-        self._deduplicate_global_parameters(cmd_names, section, key, value, env)
+            self.document.update({env: {cmd_name_key: {section: {key: value}}}})
+        # If the value we want to add to samconfig already exist in global section, we don't put it again in
+        # the special command section
+        self._deduplicate_global_parameters(cmd_name_key, section, key, value, env)
 
     def flush(self):
         """
@@ -200,15 +206,15 @@ class SamConfig:
     def _version(self):
         return self.document.get(VERSION_KEY, None)
 
-    def _deduplicate_global_parameters(self, cmd_names, section, key, value, env=DEFAULT_ENV):
+    def _deduplicate_global_parameters(self, cmd_name_key, section, key, value, env=DEFAULT_ENV):
         """
         In case the global parameters contains the same key-value with command parameters,
         we remove the entry in command parameters
 
         Parameters
         ----------
-        cmd_names : list(str)
-            List of representing the entire command. Ex: ["local", "generate-event", "s3", "put"]
+        cmd_name_key : str
+            key of command name
 
         section : str
             Specific section within the command to look into Ex: `parameters`
@@ -222,11 +228,10 @@ class SamConfig:
         env : str
             Optional, Name of the environment
         """
-        cmd_name = self._to_key(cmd_names)
         global_params = self.document.get(env, {}).get(DEFAULT_GLOBAL_CMDNAME, {}).get(section, {})
-        command_params = self.document.get(env, {}).get(cmd_name, {}).get(section, {})
+        command_params = self.document.get(env, {}).get(cmd_name_key, {}).get(section, {})
         if (
-            cmd_name != DEFAULT_GLOBAL_CMDNAME
+            cmd_name_key != DEFAULT_GLOBAL_CMDNAME
             and global_params
             and command_params
             and global_params.get(key)
@@ -234,15 +239,15 @@ class SamConfig:
         ):
             value = command_params.get(key)
             save_global_message = (
-                f'\n\tParameter "{key}={value}" in [{env}.{cmd_name}.{section}] is defined as a global '
+                f'\n\tParameter "{key}={value}" in [{env}.{cmd_name_key}.{section}] is defined as a global '
                 f"parameter [{env}.{DEFAULT_GLOBAL_CMDNAME}.{section}].\n\tThis parameter will be only saved "
                 f"under [{env}.{DEFAULT_GLOBAL_CMDNAME}.{section}] in {self.filepath}."
             )
             LOG.info(save_global_message)
             # Only keep the global parameter
-            items = self.document[env][cmd_name][section].copy()
+            items = self.document[env][cmd_name_key][section].copy()
             items.pop(key)
-            self.document[env][cmd_name][section] = items
+            self.document[env][cmd_name_key][section] = items
 
     @staticmethod
     def _version_sanity_check(version: Any) -> None:

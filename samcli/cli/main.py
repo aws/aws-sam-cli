@@ -61,7 +61,7 @@ def print_info(ctx, param, value):
 
 def log_cmdline_info(func):
     def wrapper(*args, **kwargs):
-        if kwargs["config_file"] and kwargs["config_env"]:
+        if kwargs.get("config_file") and kwargs.get("config_env"):
             config_file = kwargs["config_file"]
             config_env = kwargs["config_env"]
             LOG.debug("Using config file: %s, config environment: %s", config_file, config_env)
