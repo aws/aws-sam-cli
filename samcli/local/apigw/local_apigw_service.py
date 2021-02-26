@@ -77,8 +77,7 @@ class Route:
         )
 
     def __hash__(self):
-        # stack_path could be empty string, and hash('') = 0. To avoid that, we add a prefix to stack_path
-        route_hash = hash(self.function_name) * hash(self.path) * hash(f"stack_path:{self.stack_path}")
+        route_hash = hash(f"{self.stack_path}-{self.function_name}-{self.path}")
         for method in sorted(self.methods):
             route_hash *= hash(method)
         return route_hash
