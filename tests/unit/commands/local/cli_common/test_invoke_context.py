@@ -68,7 +68,6 @@ class TestInvokeContext__enter__(TestCase):
         result = invoke_context.__enter__()
         self.assertTrue(result is invoke_context, "__enter__() must return self")
 
-        self.assertEqual(invoke_context._template_dict, template_dict)
         self.assertEqual(invoke_context._function_provider, function_provider)
         self.assertEqual(invoke_context._env_vars_value, env_vars_value)
         self.assertEqual(invoke_context._log_file_handle, log_file_handle)
@@ -151,7 +150,6 @@ class TestInvokeContext__enter__(TestCase):
         result = invoke_context.__enter__()
         self.assertTrue(result is invoke_context, "__enter__() must return self")
 
-        self.assertEqual(invoke_context._template_dict, template_dict)
         self.assertEqual(invoke_context._function_provider, function_provider)
         self.assertEqual(invoke_context._env_vars_value, env_vars_value)
         self.assertEqual(invoke_context._log_file_handle, log_file_handle)
@@ -234,7 +232,6 @@ class TestInvokeContext__enter__(TestCase):
         result = invoke_context.__enter__()
         self.assertTrue(result is invoke_context, "__enter__() must return self")
 
-        self.assertEqual(invoke_context._template_dict, template_dict)
         self.assertEqual(invoke_context._function_provider, function_provider)
         self.assertEqual(invoke_context._env_vars_value, "Env var value")
         self.assertEqual(invoke_context._container_env_vars_value, "Debug env var value")
@@ -317,7 +314,6 @@ class TestInvokeContext__enter__(TestCase):
         result = invoke_context.__enter__()
         self.assertTrue(result is invoke_context, "__enter__() must return self")
 
-        self.assertEqual(invoke_context._template_dict, template_dict)
         self.assertEqual(invoke_context._function_provider, function_provider)
         self.assertEqual(invoke_context._env_vars_value, env_vars_value)
         self.assertEqual(invoke_context._log_file_handle, log_file_handle)
@@ -838,14 +834,6 @@ class TestInvokeContext_stderr_property(TestCase):
 
                 StreamWriterMock.assert_called_once_with(log_file_handle_mock, ANY)
                 self.assertEqual(stream_writer_mock, stderr)
-
-
-class TestInvokeContext_template_property(TestCase):
-    def test_must_return_tempalte_dict(self):
-        context = InvokeContext(template_file="file")
-        context._template_dict = "My template"
-
-        self.assertEqual("My template", context.template)
 
 
 class TestInvokeContextget_cwd(TestCase):
