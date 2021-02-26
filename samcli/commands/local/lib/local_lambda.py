@@ -162,10 +162,11 @@ class LocalLambdaRunner:
         if function.packagetype == ZIP:
             # the template file containing the function might not be in the same directory as root template file
             # therefore we need to join the path of template directory and codeuri in case codeuri is a relative path.
-            stacks = [stack for stack in self.provider.stacks if stack.stack_path == function.stack_path]
-            if not stacks:
+            try:
+                stack = next(stack for stack in self.provider.stacks if stack.stack_path == function.stack_path)
+            except StopIteration:
                 raise RuntimeError(f"Cannot find stack that matches function's stack_path {function.stack_path}")
-            stack = stacks[0]
+
             # Note(xinhol) function.codeuri might be None here, we should check first.
             codeuri = (
                 function.codeuri

@@ -99,10 +99,11 @@ class LayerDownloader:
             LOG.info("%s is a local Layer in the template", layer.name)
             # the template file containing the layer might not be in the same directory as root template file
             # therefore we need to join the path of template directory and codeuri in case codeuri is a relative path.
-            stacks = [stack for stack in self._stacks if stack.stack_path == layer.stack_path]
-            if not stacks:
+            try:
+                stack = next(stack for stack in self._stacks if stack.stack_path == layer.stack_path)
+            except StopIteration:
                 raise RuntimeError(f"Cannot find stack that matches layer's stack_path {layer.stack_path}")
-            stack = stacks[0]
+
             codeuri = (
                 layer.codeuri
                 if os.path.isabs(layer.codeuri)
