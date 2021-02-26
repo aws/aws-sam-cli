@@ -235,7 +235,7 @@ class TestEnvVarParsing(TestCase):
         self.assertEqual(result, {"Function1": {"ENV_VAR1": "1"}, "Function2": {"ENV_VAR2": "2"}})
 
     def test_invalid_function_env_var(self):
-        container_env_vars = ["Function1.Layer1.ENV_VAR1=1", "Function2.ENV_VAR2=2"]
+        container_env_vars = ["Function1.ENV_VAR1=", "Function2.ENV_VAR2=2"]
 
         result = _process_env_var(container_env_vars)
         self.assertEqual(result, {"Function2": {"ENV_VAR2": "2"}})
