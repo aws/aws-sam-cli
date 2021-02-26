@@ -203,10 +203,10 @@ class TestApiProviderSelection(TestCase):
 
 
 class TestApiProvider_merge_routes(TestCase):
-    @parameterized.expand([("", 0), ("A", -1), ("A/B/C", -3)])
-    def test_sort_key_stack_depth_desc(self, stack_path, negative_depth):
+    @parameterized.expand([("", 0), ("A", 1), ("A/B/C", 3)])
+    def test_get_route_stack_depth(self, stack_path, expected_depth):
         route = Mock(stack_path=stack_path)
-        self.assertEqual(SamApiProvider._sort_key_stack_depth_desc(route), negative_depth)
+        self.assertEqual(SamApiProvider._get_route_stack_depth(route), expected_depth)
 
     def test_explicit_apis_overridden_by_implicit(self):
         explicit1 = Mock(stack_path="", methods=["GET"], path="/")
