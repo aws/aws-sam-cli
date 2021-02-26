@@ -114,7 +114,7 @@ $ sam build MyFunction
     multiple=True,  # Can pass in multiple env vars
     required=False,
     help="Input environment variables through command line to pass into build containers, you can either "
-    "input function specific format (FuncName.VarName=Value) or global format (VarName=Value). e.g.: "
+    "input function specific format (FuncName.VarName=Value) or global format (VarName=Value). e.g. "
     "sam build --use-container --container-env-vars Func1.VAR1=value1 --container-env-vars VAR2=value2",
 )
 @click.option(
