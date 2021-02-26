@@ -101,8 +101,8 @@ class LayerDownloader:
             # therefore we need to join the path of template directory and codeuri in case codeuri is a relative path.
             try:
                 stack = next(stack for stack in self._stacks if stack.stack_path == layer.stack_path)
-            except StopIteration:
-                raise RuntimeError(f"Cannot find stack that matches layer's stack_path {layer.stack_path}")
+            except StopIteration as ex:
+                raise RuntimeError(f"Cannot find stack that matches layer's stack_path {layer.stack_path}") from ex
 
             codeuri = (
                 layer.codeuri

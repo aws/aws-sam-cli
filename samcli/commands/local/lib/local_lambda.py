@@ -164,8 +164,10 @@ class LocalLambdaRunner:
             # therefore we need to join the path of template directory and codeuri in case codeuri is a relative path.
             try:
                 stack = next(stack for stack in self.provider.stacks if stack.stack_path == function.stack_path)
-            except StopIteration:
-                raise RuntimeError(f"Cannot find stack that matches function's stack_path {function.stack_path}")
+            except StopIteration as ex:
+                raise RuntimeError(
+                    f"Cannot find stack that matches function's stack_path {function.stack_path}"
+                ) from ex
 
             # Note(xinhol) function.codeuri might be None here, we should check first.
             codeuri = (
