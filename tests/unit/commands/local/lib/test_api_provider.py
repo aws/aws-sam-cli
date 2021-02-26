@@ -3,6 +3,8 @@ from unittest import TestCase
 
 from unittest.mock import patch, Mock
 
+from parameterized import parameterized
+
 from samcli.lib.providers.provider import Api
 from samcli.lib.providers.api_provider import ApiProvider
 from samcli.lib.providers.sam_api_provider import SamApiProvider
@@ -198,3 +200,42 @@ class TestApiProviderSelection(TestCase):
 
         provider = ApiProvider.find_api_provider(self.make_mock_stacks_with_resources(resources))
         self.assertTrue(isinstance(provider, CfnApiProvider))
+
+
+class TestApiProvider_merge_routes(TestCase):
+    @parameterized.expand([("", 0), ("A", -1), ("A/B/C", -3)])
+    def test_sort_key_stack_depth_desc(self, stack_path, negative_depth):
+        route = Mock(stack_path=stack_path)
+        self.assertEqual(SamApiProvider._sort_key_stack_depth_desc(route), negative_depth)
+
+    def test_explicit_apis_overridden_by_implicit(self):
+        explicit1 = Mock(stack_path="", methods=["GET"], path="/")
+        explicit2 = Mock(stack_path="", methods=["GET"], path="/")
+        explicits = [explicit1, explicit2]
+        implicits = [Mock(stack_path="", methods=["GET"], path="/")]
+
+        collector = [
+            ("explicitApiLogicalID", [explicit1]),
+            (SamApiProvider.IMPLICIT_API_RESOURCE_ID, implicits),
+            ("explicitApiLogicalID2", [explicit2]),
+        ]
+        self.assertEqual(SamApiProvider.merge_routes(collector), implicits)
+
+    @parameterized.expand(
+        [
+            (SamApiProvider.IMPLICIT_API_RESOURCE_ID,),
+            (SamApiProvider.IMPLICIT_HTTP_API_RESOURCE_ID,),
+            ("explicitLogicalId",),
+        ]
+    )
+    def test_apis_in_child_stack_overridden_by_apis_in_parents_within_implicit_or_explicit(self, logicalId):
+        route1 = Mock(stack_path="", methods=["GET"], path="/")
+        route2 = Mock(stack_path="A", methods=["GET"], path="/")
+        route3 = Mock(stack_path="A/B/C", methods=["GET"], path="/")
+
+        collector = [
+            (logicalId, [route3]),
+            (logicalId, [route1]),
+            (logicalId, [route2]),
+        ]
+        self.assertEqual(SamApiProvider.merge_routes(collector), [route1])

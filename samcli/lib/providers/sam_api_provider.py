@@ -1,6 +1,7 @@
 """Parses SAM given the template"""
 
 import logging
+import re
 from typing import List
 
 from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
@@ -281,9 +282,9 @@ class SamApiProvider(CfnBaseApiProvider):
         # By adding implicit APIs to the end of the list, they will be iterated last. If a configuration was already
         # written by explicit API, it will be overridden by implicit API, just by virtue of order of iteration.
         # Within the explicit/implicit APIs, one defined in top level stack has the higher precedence. Here we
-        # use length of stack_path to order APIs (desc) due to top level stacks always have shorter stack_path.
-        all_configs = sorted(explicit_routes, key=lambda route: -len(route.stack_path)) + sorted(
-            implicit_routes, key=lambda route: -len(route.stack_path)
+        # use negative depth of stack_path to sort APIs.
+        all_configs = sorted(explicit_routes, key=SamApiProvider._sort_key_stack_depth_desc) + sorted(
+            implicit_routes, key=SamApiProvider._sort_key_stack_depth_desc
         )
 
         for config in all_configs:
@@ -307,3 +308,17 @@ class SamApiProvider(CfnBaseApiProvider):
             len(result),
         )
         return list(result)
+
+    @staticmethod
+    def _sort_key_stack_depth_desc(route: Route):
+        """
+        Returns negative stack depth, used for sorted(routes, _sort_key_stack_depth_desc).
+        Examples:
+            "" (root stack), -depth = 0
+            "A" (1-level nested stack), -depth = -1
+            "A/B/C" (3-level nested stack), -depth = -3
+        """
+
+        if not route.stack_path:
+            return 0
+        return -(len(re.findall(r"/", route.stack_path)) + 1)
