@@ -46,13 +46,13 @@ STDIN_FILE_NAME = "-"
 @local_common_options
 @cli_framework_options
 @aws_creds_options
-@click.argument("function_identifier", required=False)
+@click.argument("function_logical_id", required=False)
 @pass_context
 @track_command  # pylint: disable=R0914
 @check_newer_version
 def cli(
     ctx,
-    function_identifier,
+    function_logical_id,
     template_file,
     event,
     no_event,
@@ -77,7 +77,7 @@ def cli(
 
     do_cli(
         ctx,
-        function_identifier,
+        function_logical_id,
         template_file,
         event,
         no_event,
