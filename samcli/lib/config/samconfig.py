@@ -122,14 +122,12 @@ class SamConfig:
         env_content = self.document.get(env, {})
         cmd_content = env_content.get(cmd_name_key, {})
         param_content = cmd_content.get(section, {})
-        if env_content:
-            if cmd_content:
-                if param_content:
-                    self.document[env][cmd_name_key][section].update({key: value})
-                else:
-                    self.document[env][cmd_name_key].update({section: {key: value}})
-            else:
-                self.document[env].update({cmd_name_key: {section: {key: value}}})
+        if param_content:
+            param_content.update({key: value})
+        elif cmd_content:
+            cmd_content.update({section: {key: value}})
+        elif env_content:
+            env_content.update({cmd_name_key: {section: {key: value}}})
         else:
             self.document.update({env: {cmd_name_key: {section: {key: value}}}})
         # If the value we want to add to samconfig already exist in global section, we don't put it again in
