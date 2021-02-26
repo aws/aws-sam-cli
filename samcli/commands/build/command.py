@@ -56,10 +56,10 @@ To build inside a AWS Lambda like Docker container
 $ sam build --use-container
 \b
 To build with inline environment variables passed inside build containers
-$ sam build --use-container --container-env-vars Function.ENV_VAR=value --container-env-vars GLOBAL_ENV_VAR=value
+$ sam build --use-container --container-env-var Function.ENV_VAR=value --container-env-var GLOBAL_ENV_VAR=value
 \b
 To build with environment variables file passd inside build containers
-$ sam build --use-container --container-env-vars-file env.json
+$ sam build --use-container --container-env-var-file env.json
 \b
 To build & run your functions locally
 $ sam build && sam local invoke
@@ -108,17 +108,17 @@ $ sam build MyFunction
     "to build your function inside an AWS Lambda-like Docker container",
 )
 @click.option(
-    "--container-env-vars",
+    "--container-env-var",
     "-e",
     default=None,
     multiple=True,  # Can pass in multiple env vars
     required=False,
     help="Input environment variables through command line to pass into build containers, you can either "
-    "input function specific format (FuncName.VarName=Value) or global format (VarName=Value). e.g. "
-    "sam build --use-container --container-env-vars Func1.VAR1=value1 --container-env-vars VAR2=value2",
+    "input function specific format (FuncName.VarName=Value) or global format (VarName=Value). e.g., "
+    "sam build --use-container --container-env-var Func1.VAR1=value1 --container-env-var VAR2=value2",
 )
 @click.option(
-    "--container-env-vars-file",
+    "--container-env-var-file",
     "-ef",
     default=None,
     type=click.Path(),  # Must be a json file
@@ -172,8 +172,8 @@ def cli(
     parallel: bool,
     manifest: Optional[str],
     docker_network: Optional[str],
-    container_env_vars: Optional[List[str]],
-    container_env_vars_file: Optional[str],
+    container_env_var: Optional[List[str]],
+    container_env_var_file: Optional[str],
     skip_pull_image: bool,
     parameter_overrides: dict,
     config_file: str,
@@ -198,8 +198,8 @@ def cli(
         skip_pull_image,
         parameter_overrides,
         mode,
-        container_env_vars,
-        container_env_vars_file,
+        container_env_var,
+        container_env_var_file,
     )  # pragma: no cover
 
 
@@ -218,8 +218,8 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     skip_pull_image: bool,
     parameter_overrides: Dict,
     mode: Optional[str],
-    container_env_vars: Optional[List[str]],
-    container_env_vars_file: Optional[str],
+    container_env_var: Optional[List[str]],
+    container_env_var_file: Optional[str],
 ) -> None:
     """
     Implementation of the ``cli`` method
@@ -245,7 +245,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     if use_container:
         LOG.info("Starting Build inside a container")
 
-    processed_env_vars = _process_env_var(container_env_vars)
+    processed_env_vars = _process_env_var(container_env_var)
 
     with BuildContext(
         function_identifier,
@@ -261,8 +261,8 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         docker_network=docker_network,
         skip_pull_image=skip_pull_image,
         mode=mode,
-        container_env_vars=processed_env_vars,
-        container_env_vars_file=container_env_vars_file,
+        container_env_var=processed_env_vars,
+        container_env_var_file=container_env_var_file,
     ) as ctx:
         try:
             builder = ApplicationBuilder(
@@ -276,8 +276,8 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
                 container_manager=ctx.container_manager,
                 mode=ctx.mode,
                 parallel=parallel,
-                container_env_vars=processed_env_vars,
-                container_env_vars_file=container_env_vars_file,
+                container_env_var=processed_env_vars,
+                container_env_var_file=container_env_var_file,
             )
         except FunctionNotFound as ex:
             raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
@@ -372,12 +372,12 @@ def _get_mode_value_from_envvar(name: str, choices: List[str]) -> Optional[str]:
     return mode
 
 
-def _process_env_var(container_env_vars: Optional[List[str]]) -> Dict:
+def _process_env_var(container_env_var: Optional[List[str]]) -> Dict:
     """
     Parameters
     ----------
-    container_env_vars : list
-        the list of command line env vars received from --container-env-vars flag
+    container_env_var : list
+        the list of command line env vars received from --container-env-var flag
         Each input format needs to be either function specific format (FuncName.VarName=Value)
         or global format (VarName=Value)
 
@@ -388,25 +388,25 @@ def _process_env_var(container_env_vars: Optional[List[str]]) -> Dict:
     """
     processed_env_vars: Dict = {}
 
-    if container_env_vars:
-        for env_var in container_env_vars:
+    if container_env_var:
+        for env_var in container_env_var:
             location_key = "Parameters"
 
             if "=" not in env_var:
-                LOG.error("Invalid command line --container-env-vars input %s, skipped", env_var)
+                LOG.error("Invalid command line --container-env-var input %s, skipped", env_var)
                 continue
 
             key, value = env_var.split("=", 1)
             env_var_name = key
 
             if not value.strip():
-                LOG.error("Invalid command line --container-env-vars input %s, skipped", env_var)
+                LOG.error("Invalid command line --container-env-var input %s, skipped", env_var)
                 continue
 
             if "." in key:
                 location_key, env_var_name = key.split(".", 1)
                 if not location_key.strip() or not env_var_name.strip():
-                    LOG.error("Invalid command line --container-env-vars input %s, skipped", env_var)
+                    LOG.error("Invalid command line --container-env-var input %s, skipped", env_var)
                     continue
 
             if not processed_env_vars.get(location_key):

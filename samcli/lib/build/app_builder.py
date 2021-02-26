@@ -65,8 +65,8 @@ class ApplicationBuilder:
         mode: Optional[str] = None,
         stream_writer: Optional[StreamWriter] = None,
         docker_client: Optional[docker.DockerClient] = None,
-        container_env_vars: Optional[Dict] = None,
-        container_env_vars_file: Optional[str] = None,
+        container_env_var: Optional[Dict] = None,
+        container_env_var_file: Optional[str] = None,
     ) -> None:
         """
         Initialize the class
@@ -118,8 +118,8 @@ class ApplicationBuilder:
 
         self._deprecated_runtimes = {"nodejs4.3", "nodejs6.10", "nodejs8.10", "dotnetcore2.0"}
         self._colored = Colored()
-        self._container_env_vars = container_env_vars
-        self._container_env_vars_file = container_env_vars_file
+        self._container_env_var = container_env_var
+        self._container_env_var_file = container_env_var_file
 
     def build(self) -> Dict[str, str]:
         """
@@ -130,7 +130,7 @@ class ApplicationBuilder:
         dict
             Returns the path to where each resource was built as a map of resource's LogicalId to the path string
         """
-        build_graph = self._get_build_graph(self._container_env_vars, self._container_env_vars_file)
+        build_graph = self._get_build_graph(self._container_env_var, self._container_env_var_file)
         build_strategy: BuildStrategy = DefaultBuildStrategy(
             build_graph, self._build_dir, self._build_function, self._build_layer
         )
