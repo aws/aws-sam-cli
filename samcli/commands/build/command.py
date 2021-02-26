@@ -122,7 +122,7 @@ $ sam build MyFunction
     "-ef",
     default=None,
     type=click.Path(),  # Must be a json file
-    help="Path to environment variable json file (e.g.: env_vars.json) to pass into build containers",
+    help="Path to environment variable json file (e.g., env_vars.json) to pass into build containers",
 )
 @click.option(
     "--parallel",
@@ -136,7 +136,7 @@ $ sam build MyFunction
     "-m",
     default=None,
     type=click.Path(),
-    help="Path to a custom dependency manifest (e.g.: package.json) to use instead of the default one",
+    help="Path to a custom dependency manifest (e.g., package.json) to use instead of the default one",
 )
 @click.option(
     "--cached",

@@ -234,6 +234,12 @@ class TestEnvVarParsing(TestCase):
         result = _process_env_var(container_env_vars)
         self.assertEqual(result, {"Function1": {"ENV_VAR1": "1"}, "Function2": {"ENV_VAR2": "2"}})
 
+    def test_irregular_env_var_value(self):
+        container_env_vars = ["TEST_VERSION=1.2.3"]
+
+        result = _process_env_var(container_env_vars)
+        self.assertEqual(result, {"Parameters": {"TEST_VERSION": "1.2.3"}})
+
     def test_invalid_function_env_var(self):
         container_env_vars = ["Function1.ENV_VAR1=", "Function2.ENV_VAR2=2"]
 
@@ -245,3 +251,9 @@ class TestEnvVarParsing(TestCase):
 
         result = _process_env_var(container_env_vars)
         self.assertEqual(result, {"Function2": {"ENV_VAR2": "2"}})
+
+    def test_none_env_var_does_not_error_out(self):
+        container_env_vars = None
+
+        result = _process_env_var(container_env_vars)
+        self.assertEqual(result, {})
