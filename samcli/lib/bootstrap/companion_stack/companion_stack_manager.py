@@ -32,6 +32,8 @@ class CompanionStackManager:
         try:
             self._cfn_client = boto3.client("cloudformation", config=self._boto_config)
             self._s3_client = boto3.client("s3", config=self._boto_config)
+            self._account_id = boto3.client("sts").get_caller_identity().get("Account")
+            self._region_name = self._cfn_client.meta.region_name
         except NoCredentialsError as ex:
             raise CredentialsError(
                 "Error Setting Up Managed Stack Client: Unable to resolve credentials for the AWS SDK for Python client. "
@@ -111,9 +113,10 @@ class CompanionStackManager:
             return False
 
     def get_repository_mapping(self):
-        account_id = boto3.client("sts").get_caller_identity().get("Account")
-        region_name = self._cfn_client.meta.region_name
-        return dict((k, v.get_repo_uri(account_id, region_name)) for (k, v) in self._builder.repo_mapping.items())
+        return dict((k, self.get_repo_uri(v)) for (k, v) in self._builder.repo_mapping.items())
+
+    def get_repo_uri(self, repo: ECRRepo):
+        return repo.get_repo_uri(self._account_id, self._region_name)
 
 
 manager = CompanionStackManager(

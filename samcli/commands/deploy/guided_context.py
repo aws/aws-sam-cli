@@ -311,11 +311,7 @@ class GuidedContext:
             stack_name, missing_repo_functions, region, s3_bucket, s3_prefix
         )
 
-        if create_all_repos:
-            companion_stack_manager.get_unreferenced_repos()
-            companion_stack_manager.update_companion_stack()
-            image_repositories.update(companion_stack_manager.get_repository_mapping())
-        else:
+        if not create_all_repos:
             for function_logical_id in missing_repo_functions:
                 image_uri = prompt(
                     f"\t{self.start_bold}ECR repository for {function_logical_id}:{self.end_bold}",
@@ -325,6 +321,31 @@ class GuidedContext:
                     raise GuidedDeployFailedError(f"Invalid Image Repository ECR URI: {image_uri}")
 
                 image_repositories[function_logical_id] = image_uri
+
+        unreferenced_repos = companion_stack_manager.get_unreferenced_repos()
+        if unreferenced_repos:
+            click.echo(f"Checking for unreferenced ECR repositories to clean-up: {len(unreferenced_repos)} found")
+            for repo in unreferenced_repos:
+                repo_uri = companion_stack_manager.get_repo_uri(repo)
+                click.echo(f"\n{repo_uri}")
+            delete_repos = click.confirm(
+                "\nDelete the unreferenced repositories listed above when deploying?",
+                default=False,
+            )
+            if not delete_repos:
+                click.echo("\nDeployment aborted!")
+                click.echo(
+                    """
+ #The deployment was aborted to prevent unreferenced managed ECR repositories from being deleted.
+ #You may remove repositories from the SAMCLI managed stack to retain them and resolve this unreferenced check.
+ https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/<page>.html
+                """
+                )
+                raise GuidedDeployFailedError("Unreferenced auto created ECR repos must be deleted.")
+
+        if create_all_repos:
+            companion_stack_manager.update_companion_stack()
+            image_repositories.update(companion_stack_manager.get_repository_mapping())
 
         for resource_id, function_prop in self.function_provider.functions.items():
             if function_prop.packagetype == IMAGE:
