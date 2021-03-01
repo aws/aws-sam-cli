@@ -1011,6 +1011,7 @@ class TestInvokeWithFunctionFullPathToAvoidAmbiguity(InvokeIntegBase):
         [
             ("FunctionA", {"key1": "value1", "key2": "value2", "key3": "value3"}),
             ("FunctionB", "wrote to stderr"),
+            ("FunctionSomeLogicalID", "wrote to stdout"),
             ("FunctionNameC", "wrote to stdout"),
         ]
     )
