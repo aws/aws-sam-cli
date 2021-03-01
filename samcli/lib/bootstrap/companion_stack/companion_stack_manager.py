@@ -23,7 +23,7 @@ class CompanionStackManager:
     _cfn_client: CloudFormationClient
     _s3_client: S3Client
 
-    def __init__(self, stack_name, function_logical_ids, region, s3_bucket, s3_prefix):
+    def __init__(self, stack_name, region, s3_bucket, s3_prefix):
         self._companion_stack = CompanionStack(stack_name)
         self._builder = CompanionStackBuilder(self._companion_stack)
         self._boto_config = Config(region_name=region if region else None)
@@ -31,6 +31,7 @@ class CompanionStackManager:
         self._s3_prefix = s3_prefix
         try:
             self._cfn_client = boto3.client("cloudformation", config=self._boto_config)
+            self._ecr_client = boto3.client("ecr", config=self._boto_config)
             self._s3_client = boto3.client("s3", config=self._boto_config)
             self._account_id = boto3.client("sts").get_caller_identity().get("Account")
             self._region_name = self._cfn_client.meta.region_name
@@ -46,10 +47,12 @@ class CompanionStackManager:
                 "Please provide a region via the --region parameter or by the AWS_REGION environment variable."
             ) from ex
 
+    def set_functions(self, function_logical_ids: List[str]) -> None:
+        self._builder.clear_functions()
         for function_logical_id in function_logical_ids:
             self._builder.add_function(function_logical_id)
 
-    def update_companion_stack(self):
+    def update_companion_stack(self) -> None:
         stack_name = self._companion_stack.stack_name
         template = self._builder.build()
 
@@ -57,7 +60,9 @@ class CompanionStackManager:
             temporary_file.write(template)
             temporary_file.flush()
 
-            s3_uploader = S3Uploader(self._s3_client, bucket_name=self._s3_bucket, prefix=self._s3_prefix)
+            s3_uploader = S3Uploader(
+                self._s3_client, bucket_name=self._s3_bucket, prefix=self._s3_prefix, no_progressbar=True
+            )
             # TemplateUrl property requires S3 URL to be in path-style format
             parts = S3Uploader.parse_s3_url(
                 s3_uploader.upload_with_dedup(temporary_file.name, "template"), version_property="Version"
@@ -82,6 +87,8 @@ class CompanionStackManager:
         """
         Not using create_change_set as it is slow
         """
+        if not self.does_companion_stack_exist():
+            return None
         repos: List[ECRRepo] = list()
         stack = boto3.resource("cloudformation", config=self._boto_config).Stack(self._companion_stack.stack_name)
         resources = stack.resource_summaries.all()
@@ -93,6 +100,8 @@ class CompanionStackManager:
         return repos
 
     def get_unreferenced_repos(self) -> List[ECRRepo]:
+        if not self.does_companion_stack_exist():
+            return []
         deployed_repos: List[ECRRepo] = self.list_deployed_repos()
         current_mapping = self._builder.repo_mapping
 
@@ -105,27 +114,20 @@ class CompanionStackManager:
                 unreferenced_repos.append(deployed_repo)
         return unreferenced_repos
 
-    def does_companion_stack_exist(self):
+    def delete_unreferenced_repos(self) -> None:
+        repos = self.get_unreferenced_repos()
+        for repo in repos:
+            self._ecr_client.delete_repository(repositoryName=repo.physical_id, force=True)
+
+    def does_companion_stack_exist(self) -> bool:
         try:
             self._cfn_client.describe_stacks(StackName=self._companion_stack.stack_name)
             return True
         except ClientError:
             return False
 
-    def get_repository_mapping(self):
+    def get_repository_mapping(self) -> Dict[str, str]:
         return dict((k, self.get_repo_uri(v)) for (k, v) in self._builder.repo_mapping.items())
 
-    def get_repo_uri(self, repo: ECRRepo):
+    def get_repo_uri(self, repo: ECRRepo) -> str:
         return repo.get_repo_uri(self._account_id, self._region_name)
-
-
-manager = CompanionStackManager(
-    "Auto-ECR-Test-Stack",
-    ["TestFunction01", "AnotherTestFunction02"],
-    "us-west-2",
-    "aws-sam-cli-managed-default-samclisourcebucket-9bu3m109ig6i",
-    "Hello-World-Stack",
-)
-# print(manager.get_unreferenced_repos())
-# print(manager.update_companion_stack())
-print(manager.get_repository_mapping())

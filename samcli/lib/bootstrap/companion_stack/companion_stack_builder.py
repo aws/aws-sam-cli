@@ -68,6 +68,9 @@ class CompanionStackBuilder:
     def add_function(self, function_logical_id: str) -> None:
         self._repo_mapping[function_logical_id] = ECRRepo(self._companion_stack, function_logical_id)
 
+    def clear_functions(self) -> None:
+        self._repo_mapping = dict()
+
     def build(self) -> str:
         repo_templates = list()
         repo_output_templates = list()
