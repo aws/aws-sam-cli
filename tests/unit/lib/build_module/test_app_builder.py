@@ -724,9 +724,7 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
         self.docker_client_mock.api.build.return_value = []
 
         result = self.builder._build_lambda_image("Name", metadata)
-
         self.assertEqual(result, "name:Tag-debug")
-        self.builder._build_lambda_image("Name", metadata)
         self.assertEqual(
             self.docker_client_mock.api.build.call_args,
             # NOTE (sriram-mv): path set to ANY to handle platform differences.
@@ -753,9 +751,7 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
         self.docker_client_mock.api.build.return_value = []
 
         result = self.builder._build_lambda_image("Name", metadata)
-
         self.assertEqual(result, "name:Tag-debug")
-        self.builder._build_lambda_image("Name", metadata)
         self.assertEqual(
             self.docker_client_mock.api.build.call_args,
             call(
