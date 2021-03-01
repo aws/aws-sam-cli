@@ -169,7 +169,7 @@ class LocalLambdaRunner:
                     f"Cannot find stack that matches function's stack_path {function.stack_path}"
                 ) from ex
 
-            # Note(xinhol) function.codeuri might be None here, we should check first.
+            # Note(xinhol): function.codeuri might be None here, we might want to add some check here.
             codeuri = (
                 function.codeuri
                 if os.path.isabs(function.codeuri)  # type: ignore
