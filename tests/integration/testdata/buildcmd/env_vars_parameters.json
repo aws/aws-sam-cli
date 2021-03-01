@@ -1,0 +1,5 @@
+{
+    "Parameters": {
+      "TEST_ENV_VAR": "MyVar"
+    }
+}
