@@ -136,9 +136,9 @@ class InvokeContext:
 
         self._parameter_overrides = parameter_overrides
         # Override certain CloudFormation pseudo-parameters based on values provided by customer
-        self._pseudo_parameter_overrides: Optional[Dict] = None
+        self._global_parameter_overrides: Optional[Dict] = None
         if aws_region:
-            self._pseudo_parameter_overrides = {"AWS::Region": aws_region}
+            self._global_parameter_overrides = {"AWS::Region": aws_region}
 
         self._layer_cache_basedir = layer_cache_basedir
         self._force_image_build = force_image_build
@@ -390,7 +390,7 @@ class InvokeContext:
             return SamLocalStackProvider.get_stacks(
                 self._template_file,
                 parameter_overrides=self._parameter_overrides,
-                pseudo_parameter_overrides=self._pseudo_parameter_overrides,
+                global_parameter_overrides=self._global_parameter_overrides,
             )
         except (TemplateNotFoundException, TemplateFailedParsingException) as ex:
             raise InvokeContextException(str(ex)) from ex

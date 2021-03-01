@@ -220,7 +220,7 @@ class TestSamBuildableStackProvider(TestCase):
             (AWS_CLOUDFORMATION_STACK, "TemplateURL", "file:///child.yaml", "/child.yaml"),
         ]
     )
-    def test_pseudo_parameter_overrides_can_be_passed_to_child_stacks(
+    def test_global_parameter_overrides_can_be_passed_to_child_stacks(
         self, resource_type, location_property_name, child_location, child_location_path
     ):
         template_file = "somedir/template.yaml"
@@ -237,16 +237,16 @@ class TestSamBuildableStackProvider(TestCase):
             child_location_path: LEAF_TEMPLATE,
         }.get(t)
 
-        pseudo_parameter_overrides = {"AWS::Region": "custom_region"}
+        global_parameter_overrides = {"AWS::Region": "custom_region"}
 
         with patch.dict(os.environ, {SamLocalStackProvider.ENV_SAM_CLI_ENABLE_NESTED_STACK: "1"}):
             stacks = SamLocalStackProvider.get_stacks(
-                template_file, "", "", parameter_overrides=None, pseudo_parameter_overrides=pseudo_parameter_overrides
+                template_file, "", "", parameter_overrides=None, global_parameter_overrides=global_parameter_overrides
             )
         self.assertListEqual(
             stacks,
             [
-                Stack("", "", template_file, pseudo_parameter_overrides, template),
-                Stack("", "ChildStack", child_location_path, pseudo_parameter_overrides, LEAF_TEMPLATE),
+                Stack("", "", template_file, global_parameter_overrides, template),
+                Stack("", "ChildStack", child_location_path, global_parameter_overrides, LEAF_TEMPLATE),
             ],
         )

@@ -29,7 +29,7 @@ class SamLocalStackProvider(SamBaseProvider):
         stack_path: str,
         template_dict: Dict,
         parameter_overrides: Optional[Dict] = None,
-        pseudo_parameter_overrides: Optional[Dict] = None,
+        global_parameter_overrides: Optional[Dict] = None,
     ):
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
@@ -44,17 +44,17 @@ class SamLocalStackProvider(SamBaseProvider):
         :param dict template_dict: SAM Template as a dictionary
         :param dict parameter_overrides: Optional dictionary of values for SAM template parameters that might want
             to get substituted within the template
-        :param dict pseudo_parameter_overrides: Optional dictionary of values for SAM template pseudo parameters
-            that might want to get substituted within the template and its child templates
+        :param dict global_parameter_overrides: Optional dictionary of values for SAM template global parameters that
+            might want to get substituted within the template and all its child templates
         """
 
         self._template_directory = os.path.dirname(template_file)
         self._stack_path = stack_path
         self._template_dict = self.get_template(
-            template_dict, self.merge_parameter_overrides(parameter_overrides, pseudo_parameter_overrides)
+            template_dict, self.merge_parameter_overrides(parameter_overrides, global_parameter_overrides)
         )
         self._resources = self._template_dict.get("Resources", {})
-        self._pseudo_parameter_overrides = pseudo_parameter_overrides
+        self._global_parameter_overrides = global_parameter_overrides
 
         LOG.debug("%d stacks found in the template", len(self._resources))
 
@@ -129,7 +129,7 @@ class SamLocalStackProvider(SamBaseProvider):
         stack_path: str,
         name: str,
         resource_properties: Dict,
-        pseudo_parameter_overrides: Optional[Dict] = None,
+        global_parameter_overrides: Optional[Dict] = None,
     ) -> Optional[Stack]:
         location = resource_properties.get("Location")
 
@@ -160,7 +160,7 @@ class SamLocalStackProvider(SamBaseProvider):
             name=name,
             location=location,
             parameters=SamLocalStackProvider.merge_parameter_overrides(
-                resource_properties.get("Parameters", {}), pseudo_parameter_overrides
+                resource_properties.get("Parameters", {}), global_parameter_overrides
             ),
             template_dict=get_template_data(location),
         )
@@ -171,7 +171,7 @@ class SamLocalStackProvider(SamBaseProvider):
         stack_path: str,
         name: str,
         resource_properties: Dict,
-        pseudo_parameter_overrides: Optional[Dict] = None,
+        global_parameter_overrides: Optional[Dict] = None,
     ) -> Optional[Stack]:
         template_url = resource_properties.get("TemplateURL", "")
 
@@ -192,7 +192,7 @@ class SamLocalStackProvider(SamBaseProvider):
             name=name,
             location=template_url,
             parameters=SamLocalStackProvider.merge_parameter_overrides(
-                resource_properties.get("Parameters", {}), pseudo_parameter_overrides
+                resource_properties.get("Parameters", {}), global_parameter_overrides
             ),
             template_dict=get_template_data(template_url),
         )
@@ -203,7 +203,7 @@ class SamLocalStackProvider(SamBaseProvider):
         stack_path: str = "",
         name: str = "",
         parameter_overrides: Optional[Dict] = None,
-        pseudo_parameter_overrides: Optional[Dict] = None,
+        global_parameter_overrides: Optional[Dict] = None,
     ) -> List[Stack]:
         """
         Recursively extract stacks from a template file.
@@ -219,8 +219,8 @@ class SamLocalStackProvider(SamBaseProvider):
         parameter_overrides: Optional[Dict]
             Optional dictionary of values for SAM template parameters that might want
             to get substituted within the template
-        pseudo_parameter_overrides: Optional[Dict]
-            Optional dictionary of values for SAM template pseudo parameters
+        global_parameter_overrides: Optional[Dict]
+            Optional dictionary of values for SAM template global parameters
             that might want to get substituted within the template and its child templates
 
         Returns
@@ -234,7 +234,7 @@ class SamLocalStackProvider(SamBaseProvider):
                 stack_path,
                 name,
                 template_file,
-                SamLocalStackProvider.merge_parameter_overrides(parameter_overrides, pseudo_parameter_overrides),
+                SamLocalStackProvider.merge_parameter_overrides(parameter_overrides, global_parameter_overrides),
                 template_dict,
             )
         ]
@@ -246,7 +246,7 @@ class SamLocalStackProvider(SamBaseProvider):
             return stacks
 
         current = SamLocalStackProvider(
-            template_file, stack_path, template_dict, parameter_overrides, pseudo_parameter_overrides
+            template_file, stack_path, template_dict, parameter_overrides, global_parameter_overrides
         )
         for child_stack in current.get_all():
             stacks.extend(
@@ -255,7 +255,7 @@ class SamLocalStackProvider(SamBaseProvider):
                     os.path.join(stack_path, name),
                     child_stack.name,
                     child_stack.parameters,
-                    pseudo_parameter_overrides,
+                    global_parameter_overrides,
                 )
             )
         return stacks
@@ -274,9 +274,9 @@ class SamLocalStackProvider(SamBaseProvider):
 
     @staticmethod
     def merge_parameter_overrides(
-        parameter_overrides: Optional[Dict], pseudo_parameter_overrides: Optional[Dict]
+        parameter_overrides: Optional[Dict], global_parameter_overrides: Optional[Dict]
     ) -> Dict:
         merged_parameter_overrides = {}
         merged_parameter_overrides.update(parameter_overrides or {})
-        merged_parameter_overrides.update(pseudo_parameter_overrides or {})
+        merged_parameter_overrides.update(global_parameter_overrides or {})
         return merged_parameter_overrides

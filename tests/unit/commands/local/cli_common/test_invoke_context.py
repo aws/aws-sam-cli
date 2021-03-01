@@ -78,7 +78,7 @@ class TestInvokeContext__enter__(TestCase):
 
         invoke_context._get_stacks.assert_called_once()
         SamFunctionProviderMock.assert_called_with(stacks)
-        self.assertEqual(invoke_context._pseudo_parameter_overrides, {"AWS::Region": "region"})
+        self.assertEqual(invoke_context._global_parameter_overrides, {"AWS::Region": "region"})
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
         self.assertEqual(invoke_context._get_env_vars_value.call_args_list, [call(env_vars_file), call(None)])
         invoke_context._setup_log_file.assert_called_with(log_file)
@@ -160,7 +160,7 @@ class TestInvokeContext__enter__(TestCase):
 
         invoke_context._get_stacks.assert_called_once()
         SamFunctionProviderMock.assert_called_with(stacks)
-        self.assertEqual(invoke_context._pseudo_parameter_overrides, {"AWS::Region": "region"})
+        self.assertEqual(invoke_context._global_parameter_overrides, {"AWS::Region": "region"})
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
         self.assertEqual(invoke_context._get_env_vars_value.call_args_list, [call(env_vars_file), call(None)])
         invoke_context._setup_log_file.assert_called_with(log_file)
@@ -243,7 +243,7 @@ class TestInvokeContext__enter__(TestCase):
 
         invoke_context._get_stacks.assert_called_once()
         SamFunctionProviderMock.assert_called_with(stacks)
-        self.assertEqual(invoke_context._pseudo_parameter_overrides, {"AWS::Region": "region"})
+        self.assertEqual(invoke_context._global_parameter_overrides, {"AWS::Region": "region"})
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
         self.assertEqual(
             invoke_context._get_env_vars_value.call_args_list, [call("env_vars_file"), call("container_env_vars_file")]
@@ -324,7 +324,7 @@ class TestInvokeContext__enter__(TestCase):
 
         invoke_context._get_stacks.assert_called_once()
         SamFunctionProviderMock.assert_called_with(stacks)
-        self.assertEqual(invoke_context._pseudo_parameter_overrides, {"AWS::Region": "region"})
+        self.assertEqual(invoke_context._global_parameter_overrides, {"AWS::Region": "region"})
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
         self.assertEqual(invoke_context._get_env_vars_value.call_args_list, [call(env_vars_file), call(None)])
         invoke_context._setup_log_file.assert_called_with(log_file)
@@ -1055,5 +1055,5 @@ class TestInvokeContext_get_stacks(TestCase):
         invoke_context = InvokeContext("template_file", aws_region="my-custom-region")
         invoke_context._get_stacks()
         get_stacks_mock.assert_called_with(
-            "template_file", parameter_overrides=None, pseudo_parameter_overrides={"AWS::Region": "my-custom-region"}
+            "template_file", parameter_overrides=None, global_parameter_overrides={"AWS::Region": "my-custom-region"}
         )
