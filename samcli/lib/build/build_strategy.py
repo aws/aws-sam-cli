@@ -87,8 +87,8 @@ class DefaultBuildStrategy(BuildStrategy):
         self,
         build_graph: BuildGraph,
         build_dir: str,
-        build_function: Callable[[str, str, str, str, Optional[str], str, dict], str],
-        build_layer: Callable[[str, str, str, List[str], str], str],
+        build_function: Callable[[str, str, str, str, Optional[str], str, dict, dict], str],
+        build_layer: Callable[[str, str, str, List[str], str, dict], str],
     ) -> None:
         super().__init__(build_graph)
         self._build_dir = build_dir
@@ -121,6 +121,7 @@ class DefaultBuildStrategy(BuildStrategy):
             build_definition.get_handler_name(),
             single_build_dir,
             build_definition.metadata,
+            build_definition.env_vars,
         )
         function_build_results[single_full_path] = result
 
@@ -157,7 +158,12 @@ class DefaultBuildStrategy(BuildStrategy):
         single_build_dir = layer.get_build_dir(self._build_dir)
         return {
             layer.full_path: self._build_layer(
-                layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes, single_build_dir
+                layer.name,
+                layer.codeuri,
+                layer.build_method,
+                layer.compatible_runtimes,
+                single_build_dir,
+                layer_definition.env_vars,
             )
         }
 

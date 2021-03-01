@@ -74,7 +74,9 @@ class TestApplicationBuilder_build(TestCase):
         build_image_function_mock_return = Mock()
         build_layer_mock = Mock()
 
-        def build_layer_return(layer_name, layer_codeuri, layer_build_method, layer_compatible_runtimes, artifact_dir):
+        def build_layer_return(
+            layer_name, layer_codeuri, layer_build_method, layer_compatible_runtimes, artifact_dir, layer_env_vars
+        ):
             return f"{layer_name}_location"
 
         build_layer_mock.side_effect = build_layer_return
@@ -113,6 +115,7 @@ class TestApplicationBuilder_build(TestCase):
                     self.func1.handler,
                     ANY,
                     self.func1.metadata,
+                    ANY,
                 ),
                 call(
                     self.func2.name,
@@ -122,6 +125,7 @@ class TestApplicationBuilder_build(TestCase):
                     self.func2.handler,
                     ANY,
                     self.func2.metadata,
+                    ANY,
                 ),
                 call(
                     self.imageFunc1.name,
@@ -131,6 +135,7 @@ class TestApplicationBuilder_build(TestCase):
                     self.imageFunc1.handler,
                     ANY,
                     self.imageFunc1.metadata,
+                    ANY,
                 ),
             ],
             any_order=False,
@@ -144,12 +149,14 @@ class TestApplicationBuilder_build(TestCase):
                     self.layer1.build_method,
                     self.layer1.compatible_runtimes,
                     ANY,
+                    ANY,
                 ),
                 call(
                     self.layer2.name,
                     self.layer2.codeuri,
                     self.layer2.build_method,
                     self.layer2.compatible_runtimes,
+                    ANY,
                     ANY,
                 ),
             ]
@@ -158,10 +165,10 @@ class TestApplicationBuilder_build(TestCase):
     @patch("samcli.lib.build.build_graph.BuildGraph._write")
     def test_should_use_function_or_layer_get_build_dir_to_determine_artifact_dir(self, persist_mock):
         def get_func_call_with_artifact_dir(artifact_dir):
-            return call(ANY, ANY, ANY, ANY, ANY, artifact_dir, ANY)
+            return call(ANY, ANY, ANY, ANY, ANY, artifact_dir, ANY, ANY)
 
         def get_layer_call_with_artifact_dir(artifact_dir):
-            return call(ANY, ANY, ANY, ANY, artifact_dir)
+            return call(ANY, ANY, ANY, ANY, artifact_dir, ANY)
 
         build_function_mock = Mock()
         build_layer_mock = Mock()
@@ -254,6 +261,7 @@ class TestApplicationBuilder_build(TestCase):
                     function1_1.handler,
                     ANY,
                     function1_1.metadata,
+                    ANY,
                 ),
                 call(
                     function2.name,
@@ -263,6 +271,7 @@ class TestApplicationBuilder_build(TestCase):
                     function2.handler,
                     ANY,
                     function2.metadata,
+                    ANY,
                 ),
             ],
             any_order=True,
@@ -855,7 +864,39 @@ class TestApplicationBuilder_build_function(TestCase):
         self.builder._build_function(function_name, codeuri, packagetype, runtime, handler, artifacts_dir)
 
         self.builder._build_function_on_container.assert_called_with(
-            config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, None
+            config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, None, None
+        )
+
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_must_build_in_container_with_env_vars(self, osutils_mock, get_workflow_config_mock):
+        function_name = "function_name"
+        codeuri = "path/to/source"
+        runtime = "runtime"
+        packagetype = ZIP
+        scratch_dir = "scratch"
+        handler = "handler.handle"
+        config_mock = get_workflow_config_mock.return_value = Mock()
+        config_mock.manifest_name = "manifest_name"
+        env_vars = {"TEST": "test"}
+
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=scratch_dir)
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+
+        self.builder._build_function_on_container = Mock()
+
+        code_dir = str(Path("/base/dir/path/to/source").resolve())
+        artifacts_dir = str(Path("/build/dir/function_name"))
+        manifest_path = str(Path(os.path.join(code_dir, config_mock.manifest_name)).resolve())
+
+        # Settting the container manager will make us use the container
+        self.builder._container_manager = Mock()
+        self.builder._build_function(
+            function_name, codeuri, packagetype, runtime, handler, artifacts_dir, container_env_vars=env_vars
+        )
+
+        self.builder._build_function_on_container.assert_called_with(
+            config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, None, {"TEST": "test"}
         )
 
 
@@ -947,6 +988,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
             options=None,
             executable_search_paths=config.executable_search_paths,
             mode="mode",
+            env_vars={},
         )
 
         self.container_manager.run.assert_called_with(container_mock)
@@ -1063,3 +1105,50 @@ class TestApplicationBuilder_parse_builder_response(TestCase):
             self.builder._parse_builder_response(json.dumps(data), self.image_name)
 
         self.assertEqual(str(ctx.exception), msg)
+
+
+class TestApplicationBuilder_make_env_vars(TestCase):
+    def test_make_env_vars_with_env_file(self):
+        function1 = generate_function("Function1")
+        file_env_vars = {
+            "Parameters": {"ENV_VAR1": "1"},
+            "Function1": {"ENV_VAR2": "2"},
+            "Function2": {"ENV_VAR3": "3"},
+        }
+        result = ApplicationBuilder._make_env_vars(function1, file_env_vars, {})
+        self.assertEqual(result, {"ENV_VAR1": "1", "ENV_VAR2": "2"})
+
+    def test_make_env_vars_with_function_precedence(self):
+        function1 = generate_function("Function1")
+        file_env_vars = {
+            "Parameters": {"ENV_VAR1": "1"},
+            "Function1": {"ENV_VAR1": "2"},
+            "Function2": {"ENV_VAR3": "3"},
+        }
+        result = ApplicationBuilder._make_env_vars(function1, file_env_vars, {})
+        self.assertEqual(result, {"ENV_VAR1": "2"})
+
+    def test_make_env_vars_with_inline_env(self):
+        function1 = generate_function("Function1")
+        inline_env_vars = {
+            "Parameters": {"ENV_VAR1": "1"},
+            "Function1": {"ENV_VAR2": "2"},
+            "Function2": {"ENV_VAR3": "3"},
+        }
+        result = ApplicationBuilder._make_env_vars(function1, {}, inline_env_vars)
+        self.assertEqual(result, {"ENV_VAR1": "1", "ENV_VAR2": "2"})
+
+    def test_make_env_vars_with_both(self):
+        function1 = generate_function("Function1")
+        file_env_vars = {
+            "Parameters": {"ENV_VAR1": "1"},
+            "Function1": {"ENV_VAR2": "2"},
+            "Function2": {"ENV_VAR3": "3"},
+        }
+        inline_env_vars = {
+            "Parameters": {"ENV_VAR1": "2"},
+            "Function1": {"ENV_VAR2": "3"},
+            "Function2": {"ENV_VAR3": "3"},
+        }
+        result = ApplicationBuilder._make_env_vars(function1, file_env_vars, inline_env_vars)
+        self.assertEqual(result, {"ENV_VAR1": "2", "ENV_VAR2": "3"})
