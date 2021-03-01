@@ -374,7 +374,8 @@ class Stack(NamedTuple):
     name: str
     # The file location of the stack template.
     location: str
-    # The parameter overrides for the stack
+    # The parameter overrides for the stack, if there is global_parameter_overrides,
+    # it is also merged into this variable.
     parameters: Optional[Dict]
     # the raw template dict
     template_dict: Dict
