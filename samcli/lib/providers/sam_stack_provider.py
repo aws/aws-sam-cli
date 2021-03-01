@@ -276,7 +276,25 @@ class SamLocalStackProvider(SamBaseProvider):
     def merge_parameter_overrides(
         parameter_overrides: Optional[Dict], global_parameter_overrides: Optional[Dict]
     ) -> Dict:
+        """
+        Combine global parameters and stack-specific parameters.
+        Right now the only global parameter override available is AWS::Region (via --region in "sam local"),
+        and AWS::Region won't appear in normal stack-specific parameter_overrides, so we don't
+        specify which type of parameters have high precedence.
+
+        Parameters
+        ----------
+        parameter_overrides: Optional[Dict]
+            stack-specific parameters
+        global_parameter_overrides: Optional[Dict]
+            global parameters
+
+        Returns
+        -------
+        Dict
+            merged dict containing both global and stack-specific parameters
+        """
         merged_parameter_overrides = {}
-        merged_parameter_overrides.update(parameter_overrides or {})
         merged_parameter_overrides.update(global_parameter_overrides or {})
+        merged_parameter_overrides.update(parameter_overrides or {})
         return merged_parameter_overrides
