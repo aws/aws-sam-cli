@@ -110,6 +110,11 @@ class CompanionStackManager:
         except ClientError:
             return False
 
+    def get_repository_mapping(self):
+        account_id = boto3.client("sts").get_caller_identity().get("Account")
+        region_name = self._cfn_client.meta.region_name
+        return dict((k, v.get_repo_uri(account_id, region_name)) for (k, v) in self._builder.repo_mapping.items())
+
 
 manager = CompanionStackManager(
     "Auto-ECR-Test-Stack",
@@ -118,5 +123,6 @@ manager = CompanionStackManager(
     "aws-sam-cli-managed-default-samclisourcebucket-9bu3m109ig6i",
     "Hello-World-Stack",
 )
-print(manager.get_unreferenced_repos())
-print(manager.update_companion_stack())
+# print(manager.get_unreferenced_repos())
+# print(manager.update_companion_stack())
+print(manager.get_repository_mapping())

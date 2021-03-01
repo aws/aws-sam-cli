@@ -63,7 +63,7 @@ class CompanionStackBuilder:
 
     def __init__(self, companion_stack: CompanionStack) -> None:
         self._companion_stack = companion_stack
-        self._repo_mapping:Dict[str, ECRRepo] = dict()
+        self._repo_mapping: Dict[str, ECRRepo] = dict()
 
     def add_function(self, function_logical_id: str) -> None:
         self._repo_mapping[function_logical_id] = ECRRepo(self._companion_stack, function_logical_id)

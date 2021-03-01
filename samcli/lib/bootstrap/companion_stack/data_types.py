@@ -1,4 +1,3 @@
-
 import re
 from samcli.lib.utils.hash import str_checksum
 
@@ -65,9 +64,7 @@ class ECRRepo:
     @property
     def logical_id(self) -> str:
         if self._logical_id is None:
-            self._logical_id = (
-                self._function_logical_id[:52] + self._function_md5[:8] + "Repo"
-            )
+            self._logical_id = self._function_logical_id[:52] + self._function_md5[:8] + "Repo"
         return self._logical_id
 
     @property
@@ -86,6 +83,7 @@ class ECRRepo:
     @property
     def output_logical_id(self) -> str:
         if self._output_logical_id is None:
-            self._output_logical_id = (
-                self._function_logical_id[:52] + self._function_md5[:8] + "Out"
-            )
+            self._output_logical_id = self._function_logical_id[:52] + self._function_md5[:8] + "Out"
+
+    def get_repo_uri(self, account_id, region):
+        return f"{account_id}.dkr.ecr.{region}.amazonaws.com/{self.physical_id}"

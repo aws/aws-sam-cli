@@ -3,6 +3,7 @@ Class to manage all the prompts during a guided sam deploy
 """
 
 import logging
+from samcli.lib.bootstrap.companion_stack.companion_stack_manager import CompanionStackManager
 from typing import Dict, Any, List
 
 import click
@@ -125,7 +126,6 @@ class GuidedContext:
         stacks = SamLocalStackProvider.get_stacks(
             self.template_file, parameter_overrides=sanitize_parameter_overrides(input_parameter_overrides)
         )
-        image_repositories = self.prompt_image_repository(stacks)
 
         click.secho("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy")
         confirm_changeset = confirm(
@@ -164,6 +164,10 @@ class GuidedContext:
         s3_bucket = manage_stack(profile=self.profile, region=region)
         click.echo(f"\n\t\tManaged S3 bucket: {s3_bucket}")
         click.echo("\t\tA different default S3 bucket can be set in samconfig.toml")
+
+        image_repositories = self.prompt_image_repository(
+            stack_name, stacks, self.image_repositories, region, s3_bucket, self.s3_prefix
+        )
 
         self.guided_stack_name = stack_name
         self.guided_s3_bucket = s3_bucket
@@ -268,35 +272,72 @@ class GuidedContext:
                     _prompted_param_overrides[parameter_key] = {"Value": parameter, "Hidden": False}
         return _prompted_param_overrides
 
-    def prompt_image_repository(self, stacks: List[Stack]):
-        image_repositories = {}
+    def prompt_image_repository(
+        self, stack_name, image_repositories: Dict[str, str], stacks: List[Stack], region, s3_bucket, s3_prefix
+    ):
         artifacts_format = get_template_artifacts_format(template_file=self.template_file)
-        if IMAGE in artifacts_format:
-            self.function_provider = SamFunctionProvider(stacks, ignore_code_extraction_warnings=True)
-            function_resources = get_template_function_resource_ids(template_file=self.template_file, artifact=IMAGE)
-            for resource_id in function_resources:
-                image_repositories[resource_id] = prompt(
-                    f"\t{self.start_bold}Image Repository for {resource_id}{self.end_bold}",
-                    default=self.image_repositories.get(resource_id, "")
-                    if isinstance(self.image_repositories, dict)
-                    else "" or self.image_repository,
+        if IMAGE not in artifacts_format:
+            return {}
+
+        image_repositories = image_repositories.copy()
+
+        self.function_provider = SamFunctionProvider(stacks, ignore_code_extraction_warnings=True)
+        function_logical_ids = get_template_function_resource_ids(template_file=self.template_file, artifact=IMAGE)
+        missing_repo_functions = list()
+        if image_repositories:
+            for function_logical_id in function_logical_ids:
+                if function_logical_id not in self.image_repositories:
+                    missing_repo_functions.append(function_logical_id)
+        else:
+            missing_repo_functions = function_logical_ids
+
+        if not missing_repo_functions:
+            return {}
+
+        if missing_repo_functions == function_logical_ids:
+            click.echo("\nImage repositories: Not found.")
+            create_all_repos = click.confirm("\nCreate managed ECR repositories for all functions?", default=True)
+        else:
+            functions_with_repo_count = len(function_logical_ids) - len(missing_repo_functions)
+            click.echo(
+                f"\nImage repositories: Found ({len(functions_with_repo_count)} of {len(function_logical_ids)}) #Different image repositories can be set in samconfig.toml"
+            )
+            create_all_repos = click.confirm(
+                f"\nCreate managed ECR repositories for the {len(missing_repo_functions)} functions without?",
+                default=True,
+            )
+
+        companion_stack_manager = CompanionStackManager(
+            stack_name, missing_repo_functions, region, s3_bucket, s3_prefix
+        )
+
+        if create_all_repos:
+            companion_stack_manager.get_unreferenced_repos()
+            companion_stack_manager.update_companion_stack()
+            image_repositories.update(companion_stack_manager.get_repository_mapping())
+        else:
+            for function_logical_id in missing_repo_functions:
+                image_uri = prompt(
+                    f"\t{self.start_bold}ECR repository for {function_logical_id}:{self.end_bold}",
+                    default=self.image_repository,
                 )
-                if not is_ecr_url(image_repositories.get(resource_id)):
-                    raise GuidedDeployFailedError(
-                        f"Invalid Image Repository ECR URI: {image_repositories.get(resource_id)}"
-                    )
-            for resource_id, function_prop in self.function_provider.functions.items():
-                if function_prop.packagetype == IMAGE:
-                    image = function_prop.imageuri
-                    try:
-                        tag = tag_translation(image)
-                    except NonLocalImageException:
-                        pass
-                    except NoImageFoundException as ex:
-                        raise GuidedDeployFailedError("No images found to deploy, try running sam build") from ex
-                    else:
-                        click.secho(f"\t  {image} to be pushed to {image_repositories.get(resource_id)}:{tag}")
-            click.secho(nl=True)
+                if not is_ecr_url(image_uri):
+                    raise GuidedDeployFailedError(f"Invalid Image Repository ECR URI: {image_uri}")
+
+                image_repositories[function_logical_id] = image_uri
+
+        for resource_id, function_prop in self.function_provider.functions.items():
+            if function_prop.packagetype == IMAGE:
+                image = function_prop.imageuri
+                try:
+                    tag = tag_translation(image)
+                except NonLocalImageException:
+                    pass
+                except NoImageFoundException as ex:
+                    raise GuidedDeployFailedError("No images found to deploy, try running sam build") from ex
+                else:
+                    click.secho(f"\t  {image} to be pushed to {image_repositories.get(resource_id)}:{tag}")
+        click.secho(nl=True)
 
         return image_repositories
 
