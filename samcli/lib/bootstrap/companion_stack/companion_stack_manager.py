@@ -96,12 +96,10 @@ class CompanionStackManager:
 
         unreferenced_repos: List[ECRRepo] = list()
         for deployed_repo in deployed_repos:
-            found = False
             for _, current_repo in current_mapping.items():
                 if current_repo.logical_id == deployed_repo.logical_id:
-                    found = True
                     break
-            if not found:
+            else:
                 unreferenced_repos.append(deployed_repo)
         return unreferenced_repos
 
@@ -115,7 +113,7 @@ class CompanionStackManager:
 
 manager = CompanionStackManager(
     "Auto-ECR-Test-Stack",
-    ["TestFunction01", "AnotherTestFunction03"],
+    ["TestFunction01", "AnotherTestFunction02"],
     "us-west-2",
     "aws-sam-cli-managed-default-samclisourcebucket-9bu3m109ig6i",
     "Hello-World-Stack",
