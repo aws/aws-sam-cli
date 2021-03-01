@@ -4,7 +4,7 @@ Holds classes and utility methods related to build graph
 
 import logging
 from pathlib import Path
-from typing import Tuple, List, Any, Optional
+from typing import Tuple, List, Any, Optional, Dict
 from uuid import uuid4
 
 import tomlkit
@@ -24,6 +24,7 @@ RUNTIME_FIELD = "runtime"
 METADATA_FIELD = "metadata"
 FUNCTIONS_FIELD = "functions"
 SOURCE_MD5_FIELD = "source_md5"
+ENV_VARS_FIELD = "env_vars"
 LAYER_NAME_FIELD = "layer_name"
 BUILD_METHOD_FIELD = "build_method"
 COMPATIBLE_RUNTIMES_FIELD = "compatible_runtimes"
@@ -56,6 +57,8 @@ def _function_build_definition_to_toml_table(
 
     if function_build_definition.metadata:
         toml_table[METADATA_FIELD] = function_build_definition.metadata
+    if function_build_definition.env_vars:
+        toml_table[ENV_VARS_FIELD] = function_build_definition.env_vars
 
     return toml_table
 
@@ -82,6 +85,7 @@ def _toml_table_to_function_build_definition(uuid: str, toml_table: tomlkit.item
         toml_table.get(PACKAGETYPE_FIELD, ZIP),
         dict(toml_table.get(METADATA_FIELD, {})),
         toml_table.get(SOURCE_MD5_FIELD, ""),
+        dict(toml_table.get(ENV_VARS_FIELD, {})),
     )
     function_build_definition.uuid = uuid
     return function_build_definition
@@ -107,6 +111,9 @@ def _layer_build_definition_to_toml_table(layer_build_definition: "LayerBuildDef
     toml_table[BUILD_METHOD_FIELD] = layer_build_definition.build_method
     toml_table[COMPATIBLE_RUNTIMES_FIELD] = layer_build_definition.compatible_runtimes
     toml_table[SOURCE_MD5_FIELD] = layer_build_definition.source_md5
+    toml_table[LAYER_FIELD] = layer_build_definition.layer.name
+    if layer_build_definition.env_vars:
+        toml_table[ENV_VARS_FIELD] = layer_build_definition.env_vars
     toml_table[LAYER_FIELD] = layer_build_definition.layer.full_path
 
     return toml_table
@@ -134,6 +141,7 @@ def _toml_table_to_layer_build_definition(uuid: str, toml_table: tomlkit.items.T
         toml_table[BUILD_METHOD_FIELD],
         toml_table[COMPATIBLE_RUNTIMES_FIELD],
         toml_table.get(SOURCE_MD5_FIELD, ""),
+        dict(toml_table.get(ENV_VARS_FIELD, {})),
     )
     layer_build_definition.uuid = uuid
     return layer_build_definition
@@ -322,13 +330,20 @@ class LayerBuildDefinition(AbstractBuildDefinition):
     """
 
     def __init__(
-        self, name: str, codeuri: str, build_method: str, compatible_runtimes: List[str], source_md5: str = ""
+        self,
+        name: str,
+        codeuri: str,
+        build_method: str,
+        compatible_runtimes: List[str],
+        source_md5: str = "",
+        env_vars: Optional[Dict] = None,
     ):
         super().__init__(source_md5)
         self.name = name
         self.codeuri = codeuri
         self.build_method = build_method
         self.compatible_runtimes = compatible_runtimes
+        self.env_vars = env_vars if env_vars else {}
         # Note(xinhol): In our code, we assume "layer" is never None. We should refactor
         # this and move "layer" out of LayerBuildDefinition to take advantage of type check.
         self.layer: LayerVersion = None  # type: ignore
@@ -336,7 +351,7 @@ class LayerBuildDefinition(AbstractBuildDefinition):
     def __str__(self) -> str:
         return (
             f"LayerBuildDefinition({self.name}, {self.codeuri}, {self.source_md5}, {self.uuid}, "
-            f"{self.build_method}, {self.compatible_runtimes}, {self.layer.name})"
+            f"{self.build_method}, {self.compatible_runtimes}, {self.env_vars}, {self.layer.name})"
         )
 
     def __eq__(self, other: Any) -> bool:
@@ -361,6 +376,7 @@ class LayerBuildDefinition(AbstractBuildDefinition):
             and self.codeuri == other.codeuri
             and self.build_method == other.build_method
             and self.compatible_runtimes == other.compatible_runtimes
+            and self.env_vars == other.env_vars
         )
 
 
@@ -370,13 +386,20 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
     """
 
     def __init__(
-        self, runtime: str, codeuri: str, packagetype: str, metadata: Optional[dict], source_md5: str = ""
+        self,
+        runtime: str,
+        codeuri: str,
+        packagetype: str,
+        metadata: Optional[Dict],
+        source_md5: str = "",
+        env_vars: Optional[Dict] = None,
     ) -> None:
         super().__init__(source_md5)
         self.runtime = runtime
         self.codeuri = codeuri
         self.packagetype = packagetype
         self.metadata = metadata if metadata else {}
+        self.env_vars = env_vars if env_vars else {}
         self.functions: List[Function] = []
 
     def add_function(self, function: Function) -> None:
@@ -411,7 +434,8 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
     def __str__(self) -> str:
         return (
             "BuildDefinition("
-            f"{self.runtime}, {self.codeuri}, {self.packagetype}, {self.source_md5}, {self.uuid}, {self.metadata}, "
+            f"{self.runtime}, {self.codeuri}, {self.packagetype}, {self.source_md5}, "
+            f"{self.uuid}, {self.metadata}, {self.env_vars}, "
             f"{[f.functionname for f in self.functions]})"
         )
 
@@ -441,4 +465,5 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
             and self.codeuri == other.codeuri
             and self.packagetype == other.packagetype
             and self.metadata == other.metadata
+            and self.env_vars == other.env_vars
         )

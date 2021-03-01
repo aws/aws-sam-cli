@@ -37,6 +37,7 @@ class LambdaBuildContainer(Container):
         executable_search_paths=None,
         log_level=None,
         mode=None,
+        env_vars=None,
     ):
 
         abs_manifest_path = pathlib.Path(manifest_path).resolve()
@@ -46,6 +47,7 @@ class LambdaBuildContainer(Container):
         source_dir = str(pathlib.Path(source_dir).resolve())
 
         container_dirs = LambdaBuildContainer._get_container_dirs(source_dir, manifest_dir)
+        env_vars = env_vars if env_vars else {}
 
         # `executable_search_paths` are provided as a list of paths on the host file system that needs to passed to
         # the builder. But these paths don't exist within the container. We use the following method to convert the
@@ -84,9 +86,8 @@ class LambdaBuildContainer(Container):
             manifest_dir: {"bind": container_dirs["manifest_dir"], "mode": "ro"}
         }
 
-        env_vars = None
         if log_level:
-            env_vars = {"LAMBDA_BUILDERS_LOG_LEVEL": log_level}
+            env_vars["LAMBDA_BUILDERS_LOG_LEVEL"] = log_level
 
         super().__init__(
             image,
