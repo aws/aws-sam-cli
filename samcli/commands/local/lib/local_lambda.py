@@ -4,7 +4,6 @@ Implementation of Local Lambda runner
 
 import os
 import logging
-import posixpath
 from typing import Any, Dict, Optional, cast
 import boto3
 
@@ -102,7 +101,7 @@ class LocalLambdaRunner:
         function = self.provider.get(function_identifier)
 
         if not function:
-            all_function_full_paths = [posixpath.join(f.stack_path, f.name) for f in self.provider.get_all()]
+            all_function_full_paths = [f.full_path for f in self.provider.get_all()]
             available_function_message = "{} not found. Possible options in your template: {}".format(
                 function_identifier, all_function_full_paths
             )

@@ -5,7 +5,6 @@ import errno
 import json
 import logging
 import os
-import posixpath
 from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional, IO, cast, Tuple, Any
@@ -289,7 +288,7 @@ class InvokeContext:
             return all_functions[0].name
 
         # Get all the available function names to print helpful exception message
-        all_function_full_paths = [posixpath.join(f.stack_path, f.name) for f in all_functions]
+        all_function_full_paths = [f.full_path for f in all_functions]
 
         # There are more functions in the template, and function identifier is not provided, hence raise.
         raise InvokeContextException(
