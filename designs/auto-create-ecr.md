@@ -5,7 +5,7 @@ Auto Create ECR Repos in Guided Deploy
 What is the problem?
 --------------------
 
-With the release of Lambda Container Images Support in SAM CLI, customers today have to specify a ECR Repo URI location where images will need to be uploaded by SAM CLI after having been built. This means that customers need to have pre-created resources ready (in this case ECR repos) to go, so that they can supply them during the deploy process. This introduces friction and break in the seamless workflow that sam deploy --guided normally offers, with customers having to figure out how to create a ECR repo and how to find correct ECR URI to specify.
+With the release of Lambda Container Images Support in SAM CLI, customers today have to specify a ECR Repo URI location where images will need to be uploaded by SAM CLI after having been built. This means that customers need to have pre-created resources ready (in this case ECR repos) to go, so that they can supply them during the deploy process. This introduces friction and break in the seamless workflow that `sam deploy --guided` normally offers, with customers having to figure out how to create a ECR repo and how to find correct ECR URI to specify.
 
 Current flow for deploying a template with image based function:
 
