@@ -27,7 +27,8 @@ class ApiProvider(AbstractApiProvider):
         ----------
         template_dict : dict
             Template as a dictionary
-
+        parameter_overrides : Optional[Dict]
+            An optional dictionary containing parameters to override the default parameter values
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
         """

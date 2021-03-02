@@ -174,9 +174,6 @@ class ApiCollector:
         logical_id : str
             LogicalId of the AWS::Serverless::Api resource
 
-        api: samcli.commands.local.lib.provider.Api
-            Instance of the Api which will save all the api configurations
-
         binary_media_types : list of str
             List of binary media types supported by this resource
         """

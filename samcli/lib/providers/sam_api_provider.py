@@ -186,6 +186,7 @@ class SamApiProvider(CfnBaseApiProvider):
 
         :param str lambda_logical_id: Logical Id of the AWS::Serverless::Function
         :param dict event_properties: Dictionary of the Event's Property
+        :param event_type: The event type, 'Api' or 'HttpApi', see samcli/local/apigw/local_apigw_service.py:35
         :return tuple: tuple of route resource name and route
         """
         path = event_properties.get(SamApiProvider._EVENT_PATH)
