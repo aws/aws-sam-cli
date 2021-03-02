@@ -1030,3 +1030,21 @@ class TestInvokeWithFunctionFullPathToAvoidAmbiguity(InvokeIntegBase):
 
         self.assertEqual(process.returncode, 0)
         self.assertEqual(process_stdout.decode("utf-8"), '"Hello world"')
+
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_with_non_existent_function_full_path(self):
+        command_list = self.get_command_list(
+            "SubApp/SubSubApp/Function404", template_path=self.template_path, event_path=self.event_path
+        )
+
+        process = Popen(command_list, stdout=PIPE, stderr=PIPE)
+        try:
+            _, stderr = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stderr = stderr.strip()
+
+        self.assertEqual(process.returncode, 1)
+        self.assertIn("not found in template", process_stderr.decode("utf-8"))

@@ -2099,3 +2099,19 @@ class TestApiPrecedenceInNestedStacks(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         response_data = response.json()
         self.assertEqual(response_data.get("body"), data)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_should_not_call_non_existent_path(self):
+        data = "some data"
+        response = requests.post(self.url + "/path404", data=data, timeout=300)
+
+        self.assertEqual(response.status_code, 403)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_should_not_call_non_mounting_method(self):
+        data = "some data"
+        response = requests.put(self.url + "/path2", data=data, timeout=300)
+
+        self.assertEqual(response.status_code, 403)
