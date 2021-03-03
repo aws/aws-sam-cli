@@ -64,7 +64,8 @@ class InitTemplates:
         manifest_resp = requests.get(self._manifest_url)
 
         if not manifest_resp:
-            raise InvalidInitTemplateError("Can't retrieve templates manifest from {url}".format(url=self._manifest_url))
+            raise InvalidInitTemplateError("Can't retrieve templates manifest from {url}".
+                                           format(url=self._manifest_url))
 
         use_case_options = {}
         manifest_body = manifest_resp.json()

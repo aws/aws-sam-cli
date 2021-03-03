@@ -14,7 +14,7 @@ from samcli.commands.init.interactive_event_bridge_flow import (
 )
 from samcli.commands.exceptions import SchemasApiException
 from samcli.lib.schemas.schemas_code_manager import do_download_source_code_binding, do_extract_and_merge_schemas_code
-from samcli.local.common.runtime_template import INIT_RUNTIMES, RUNTIME_TO_DEPENDENCY_MANAGERS, LAMBDA_IMAGES_RUNTIMES
+from samcli.local.common.runtime_template import LAMBDA_IMAGES_RUNTIMES
 from samcli.commands.init.init_generator import do_generate
 from samcli.commands.init.init_templates import InitTemplates
 from samcli.lib.utils.osutils import remove
@@ -81,11 +81,11 @@ def _generate_from_use_case(
     use_case_choice = click.prompt("Use case", type=click.Choice(click_use_case_choices), show_choices=False)
 
     runtimes = list(options[use_cases[int(use_case_choice)-1]].keys())
-    if runtimes is None or len(runtimes) == 0:
+    if not runtimes:
         click.echo("No templates available for your use case and chosen runtime")
         return
 
-    chosen_runtime = ""
+    chosen_runtime = runtimes[0]
     if len(runtimes) > 1:
         click.echo("\nWhat is your runtime?")
         click_runtime_choices = []
@@ -94,12 +94,10 @@ def _generate_from_use_case(
             click_runtime_choices.append(str(idx + 1))
         runtime_choice = click.prompt("Runtime", type=click.Choice(click_runtime_choices), show_choices=False)
         chosen_runtime = runtimes[int(runtime_choice)-1]
-    else:
-        chosen_runtime = runtimes[0]
 
     # templates is already a list so no need to get the keys and cast
     app_templates = options[use_cases[int(use_case_choice)-1]][chosen_runtime]
-    chosen_template = ""
+    chosen_template = app_templates[0]
     if len(app_templates) > 1:
         click.echo("\nSelect your starter template")
         click_template_choices = []
@@ -108,8 +106,6 @@ def _generate_from_use_case(
             click_template_choices.append(str(idx + 1))
         template_choice = click.prompt("Template", type=click.Choice(click_template_choices), show_choices=False)
         chosen_template = app_templates[int(template_choice) - 1]
-    else:
-        chosen_template = app_templates[0]
 
     if not name:
         name = click.prompt("\nProject name", type=str, default="sam-app")
