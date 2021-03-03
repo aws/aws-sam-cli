@@ -146,10 +146,11 @@ class LambdaContainer(Container):
         return ports_map
 
     @staticmethod
-    def _get_additional_options(runtime, debug_options):
+    def _get_additional_options(runtime: str, debug_options):
         """
         Return additional Docker container options. Used by container debug mode to enable certain container
         security options.
+        :param runtime: The runtime string
         :param DebugContext debug_options: DebugContext for the runtime of the container.
         :return dict: Dictionary containing additional arguments to be passed to container creation.
         """
@@ -171,6 +172,7 @@ class LambdaContainer(Container):
         """
         Return additional volumes to be mounted in the Docker container. Used by container debug for mapping
         debugger executable into the container.
+        :param runtime: the runtime string
         :param DebugContext debug_options: DebugContext for the runtime of the container.
         :return dict: Dictionary containing volume map passed to container creation.
         """

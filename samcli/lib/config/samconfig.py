@@ -34,7 +34,6 @@ class SamConfig:
         ----------
         config_dir : string
             Directory where the configuration file needs to be stored
-
         filename : string
             Optional. Name of the configuration file. It is recommended to stick with default so in the future we
             could automatically support auto-resolving multiple config files within same directory.
@@ -49,10 +48,8 @@ class SamConfig:
         ----------
         cmd_names : list(str)
             List of representing the entire command. Ex: ["local", "generate-event", "s3", "put"]
-
         section : str
             Specific section within the command to look into Ex: `parameters`
-
         env : str
             Optional, Name of the environment
 
@@ -85,16 +82,12 @@ class SamConfig:
         ----------
         cmd_names : list(str)
             List of representing the entire command. Ex: ["local", "generate-event", "s3", "put"]
-
         section : str
             Specific section within the command to look into Ex: `parameters`
-
         key : str
             Key to write the data under
-
-        value
+        value : Any
             Value to write. Could be any of the supported TOML types.
-
         env : str
             Optional, Name of the environment
 

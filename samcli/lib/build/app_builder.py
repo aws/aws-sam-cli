@@ -75,32 +75,34 @@ class ApplicationBuilder:
         ----------
         resources_to_build: Iterator
             Iterator that can vend out resources available in the SAM template
-
         build_dir : str
             Path to the directory where we will be storing built artifacts
-
         base_dir : str
             Path to a folder. Use this folder as the root to resolve relative source code paths against
-
         cache_dir : str
             Path to a the directory where we will be caching built artifacts
-
         cached:
             Optional. Set to True to build each function with cache to improve performance
-
         is_building_specific_resource : boolean
             Whether customer requested to build a specific resource alone in isolation,
             by specifying function_identifier to the build command.
             Ex: sam build MyServerlessFunction
-
+        manifest_path_override : Optional[str]
+            Optional path to manifest file to replace the default one
         container_manager : samcli.local.docker.manager.ContainerManager
             Optional. If provided, we will attempt to build inside a Docker Container
-
         parallel : bool
             Optional. Set to True to build each function in parallel to improve performance
-
         mode : str
             Optional, name of the build mode to use ex: 'debug'
+        stream_writer : Optional[StreamWriter]
+            An optional stream writer to accept stderr output
+        docker_client : Optional[docker.DockerClient]
+            An optional Docker client object to replace the default one loaded from env
+        container_env_var : Optional[Dict]
+            An optional dictionary of environment variables to pass to the container
+        container_env_var_file : Optional[str]
+            An optional path to file that contains environment variables to pass to the container
         """
         self._resources_to_build = resources_to_build
         self._build_dir = build_dir
@@ -213,6 +215,7 @@ class ApplicationBuilder:
         Parameters
         ----------
         stack: Stack
+            The stack object representing the template
         built_artifacts : dict
             Map of LogicalId of a resource to the path where the the built artifacts for this resource lives
         stack_output_template_path_by_stack_path: Dict[str, str]
@@ -402,9 +405,12 @@ class ApplicationBuilder:
         compatible_runtimes : List[str]
             List of runtimes the layer build is compatible with
 
-        artifact_dir: str
+        artifact_dir : str
             Path to where layer will be build into.
             A subfolder will be created in this directory depending on the specified workflow.
+
+        container_env_vars : Optional[Dict]
+            An optional dictionary of environment variables to pass to the container.
 
         Returns
         -------
@@ -470,18 +476,20 @@ class ApplicationBuilder:
         ----------
         function_name : str
             Name or LogicalId of the function
-
         codeuri : str
             Path to where the code lives
-
+        packagetype : str
+            The package type, 'Zip' or 'Image', see samcli/lib/utils/packagetype.py
         runtime : str
             AWS Lambda function runtime
-
+        handler : Optional[str]
+            An optional string to specify which function the handler should be
         artifact_dir: str
             Path to where function will be build into
-
         metadata : dict
             AWS Lambda function metadata
+        container_env_vars : Optional[Dict]
+            An optional dictionary of environment variables to pass to the container.
 
         Returns
         -------
@@ -727,6 +735,11 @@ class ApplicationBuilder:
         ----------
         function : samcli.lib.providers.provider.Function
             Lambda function to generate the configuration for
+        file_env_vars : Dict
+            The dictionary of environment variables loaded from the file
+        inline_env_vars : Optional[Dict]
+            The optional dictionary of environment variables defined inline
+
 
         Returns
         -------

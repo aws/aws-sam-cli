@@ -135,6 +135,9 @@ class Deployer:
         :param cfn_template: CloudFormation template string
         :param parameter_values: Template parameters object
         :param capabilities: Array of capabilities passed to CloudFormation
+        :param role_arn: the Arn of the role to create changeset
+        :param notification_arns: Arns for sending notifications
+        :param s3_uploader: S3Uploader object to upload files to S3 buckets
         :param tags: Array of tags passed to CloudFormation
         :return:
         """
@@ -213,6 +216,7 @@ class Deployer:
 
         :param change_set_id: ID of the changeset
         :param stack_name: Name of the CloudFormation stack
+        :param kwargs: Other arguments to pass to pprint_columns()
         :return: dictionary of changes described in the changeset.
         """
         paginator = self._client.get_paginator("describe_change_set")
@@ -338,6 +342,7 @@ class Deployer:
         Calls CloudFormation to get current stack events
         :param stack_name: Name or ID of the stack
         :param time_stamp_marker: last event time on the stack to start streaming events from.
+        :param kwargs: Other arguments to pass to pprint_columns()
         :return:
         """
 
