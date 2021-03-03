@@ -8,7 +8,8 @@ init:
 test:
 	# Run unit tests
 	# Fail if coverage falls below 95%
-	pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit
+	# Run unit test in parallel (4 worker) with guarantees that all tests in a module run in the same worker.
+	pytest --cov samcli --cov-report term-missing --cov-fail-under 95 -n 4 --dist loadscope tests/unit
 
 test-cov-report:
 	# Run unit tests with html coverage report
@@ -22,11 +23,11 @@ integ-test:
 func-test:
 	# Verify function test coverage only for `samcli.local` package
 	@echo Telemetry Status: $(SAM_CLI_TELEMETRY)
-	pytest --cov samcli.local --cov samcli.commands.local --cov-report term-missing tests/functional
+	pytest --cov samcli.local --cov samcli.commands.local --cov-report term-missing -n 4 --dist loadscope tests/functional
 
 regres-test:
 	@echo Telemetry Status: $(SAM_CLI_TELEMETRY)
-	SAM_CLI_DEV=1 pytest tests/regression
+	SAM_CLI_DEV=1 pytest -n 4 --dist loadscope tests/regression
 
 smoke-test:
 	# Smoke tests run in parallel

@@ -511,7 +511,8 @@ class TestLambdaContainer_get_debug_settings(TestCase):
 
         self.assertIsNotNone(container_env_vars)
 
-    @parameterized.expand([param(r) for r in set(RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT)])
+    # sort the parameters is essential making unit test names deterministic, which is required by pytest-xdist
+    @parameterized.expand([param(r) for r in sorted(set(RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT))])
     def test_debug_arg_must_be_split_by_spaces_and_appended_to_bootstrap_based_entrypoint(self, runtime):
         """
         Debug args list is appended as arguments to bootstrap-args, which is past the fourth position in the array
