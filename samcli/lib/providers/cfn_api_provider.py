@@ -1,7 +1,9 @@
 """Parses SAM given a template"""
 import logging
+from typing import List
 
 from samcli.commands.local.lib.swagger.integration_uri import LambdaUri
+from samcli.lib.providers.provider import Stack
 from samcli.local.apigw.local_apigw_service import Route
 from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
 from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
@@ -31,14 +33,14 @@ class CfnApiProvider(CfnBaseApiProvider):
         APIGATEWAY_V2_STAGE,
     ]
 
-    def extract_resources(self, resources, collector, cwd=None):
+    def extract_resources(self, stacks: List[Stack], collector, cwd=None):
         """
         Extract the Route Object from a given resource and adds it to the RouteCollector.
 
         Parameters
         ----------
-        resources: dict
-            The dictionary containing the different resources within the template
+        stacks: List[Stack]
+            List of stacks apis are extracted from
 
         collector: samcli.lib.providers.api_collector.ApiCollector
             Instance of the API collector that where we will save the API information
@@ -51,38 +53,44 @@ class CfnApiProvider(CfnBaseApiProvider):
         Returns a list of routes
         """
 
-        for logical_id, resource in resources.items():
-            resource_type = resource.get(CfnBaseApiProvider.RESOURCE_TYPE)
-            if resource_type == CfnApiProvider.APIGATEWAY_RESTAPI:
-                self._extract_cloud_formation_route(logical_id, resource, collector, cwd=cwd)
+        for stack in stacks:
+            resources = stack.resources
+            for logical_id, resource in resources.items():
+                resource_type = resource.get(CfnBaseApiProvider.RESOURCE_TYPE)
+                if resource_type == CfnApiProvider.APIGATEWAY_RESTAPI:
+                    self._extract_cloud_formation_route(stack.stack_path, logical_id, resource, collector, cwd=cwd)
 
-            if resource_type == CfnApiProvider.APIGATEWAY_STAGE:
-                self._extract_cloud_formation_stage(resources, resource, collector)
+                if resource_type == CfnApiProvider.APIGATEWAY_STAGE:
+                    self._extract_cloud_formation_stage(resources, resource, collector)
 
-            if resource_type == CfnApiProvider.APIGATEWAY_METHOD:
-                self._extract_cloud_formation_method(resources, logical_id, resource, collector)
+                if resource_type == CfnApiProvider.APIGATEWAY_METHOD:
+                    self._extract_cloud_formation_method(stack.stack_path, resources, logical_id, resource, collector)
 
-            if resource_type == CfnApiProvider.APIGATEWAY_V2_API:
-                self._extract_cfn_gateway_v2_api(logical_id, resource, collector, cwd=cwd)
+                if resource_type == CfnApiProvider.APIGATEWAY_V2_API:
+                    self._extract_cfn_gateway_v2_api(stack.stack_path, logical_id, resource, collector, cwd=cwd)
 
-            if resource_type == CfnApiProvider.APIGATEWAY_V2_ROUTE:
-                self._extract_cfn_gateway_v2_route(resources, logical_id, resource, collector)
+                if resource_type == CfnApiProvider.APIGATEWAY_V2_ROUTE:
+                    self._extract_cfn_gateway_v2_route(stack.stack_path, resources, logical_id, resource, collector)
 
-            if resource_type == CfnApiProvider.APIGATEWAY_V2_STAGE:
-                self._extract_cfn_gateway_v2_stage(resources, resource, collector)
+                if resource_type == CfnApiProvider.APIGATEWAY_V2_STAGE:
+                    self._extract_cfn_gateway_v2_stage(resources, resource, collector)
 
         all_apis = []
         for _, apis in collector:
             all_apis.extend(apis)
         return all_apis
 
-    def _extract_cloud_formation_route(self, logical_id, api_resource, collector, cwd=None):
+    @staticmethod
+    def _extract_cloud_formation_route(stack_path: str, logical_id, api_resource, collector, cwd=None):
         """
         Extract APIs from AWS::ApiGateway::RestApi resource by reading and parsing Swagger documents. The result is
         added to the collector.
 
         Parameters
         ----------
+        stack_path : str
+            Path of the stack the resource is located
+
         logical_id : str
             Logical ID of the resource
 
@@ -101,7 +109,9 @@ class CfnApiProvider(CfnBaseApiProvider):
             # Swagger is not found anywhere.
             LOG.debug("Skipping resource '%s'. Swagger document not found in Body and BodyS3Location", logical_id)
             return
-        self.extract_swagger_route(logical_id, body, body_s3_location, binary_media, collector, cwd)
+        CfnBaseApiProvider.extract_swagger_route(
+            stack_path, logical_id, body, body_s3_location, binary_media, collector, cwd
+        )
 
     @staticmethod
     def _extract_cloud_formation_stage(resources, stage_resource, collector):
@@ -136,12 +146,15 @@ class CfnApiProvider(CfnBaseApiProvider):
         collector.stage_name = stage_name
         collector.stage_variables = stage_variables
 
-    def _extract_cloud_formation_method(self, resources, logical_id, method_resource, collector):
+    def _extract_cloud_formation_method(self, stack_path: str, resources, logical_id, method_resource, collector):
         """
         Extract APIs from AWS::ApiGateway::Method and work backwards up the tree to resolve and find the true path.
 
         Parameters
         ----------
+        stack_path : str
+            Path of the stack the resource is located
+
         resources: dict
             All Resource definition, including its properties
 
@@ -179,11 +192,14 @@ class CfnApiProvider(CfnBaseApiProvider):
             collector.add_binary_media_types(logical_id, [content_type])
 
         routes = Route(
-            methods=[method], function_name=self._get_integration_function_name(integration), path=resource_path
+            methods=[method],
+            function_name=self._get_integration_function_name(integration),
+            path=resource_path,
+            stack_path=stack_path,
         )
         collector.add_routes(rest_api_id, [routes])
 
-    def _extract_cfn_gateway_v2_api(self, logical_id, api_resource, collector, cwd=None):
+    def _extract_cfn_gateway_v2_api(self, stack_path: str, logical_id, api_resource, collector, cwd=None):
         """
         Extract APIs from AWS::ApiGatewayV2::Api resource by reading and parsing Swagger documents. The result is
         added to the collector. If the Swagger documents is not available, it can add a catch-all route based on
@@ -191,6 +207,9 @@ class CfnApiProvider(CfnBaseApiProvider):
 
         Parameters
         ----------
+        stack_path : str
+            Path of the stack the resource is located
+
         logical_id : str
             Logical ID of the resource
 
@@ -219,19 +238,25 @@ class CfnApiProvider(CfnBaseApiProvider):
                     path=path,
                     function_name=LambdaUri.get_function_name(target),
                     event_type=Route.HTTP,
+                    stack_path=stack_path,
                 )
                 collector.add_routes(logical_id, [routes])
             return
 
-        self.extract_swagger_route(logical_id, body, body_s3_location, None, collector, cwd, Route.HTTP)
+        CfnBaseApiProvider.extract_swagger_route(
+            stack_path, logical_id, body, body_s3_location, None, collector, cwd, Route.HTTP
+        )
 
-    def _extract_cfn_gateway_v2_route(self, resources, logical_id, route_resource, collector):
+    def _extract_cfn_gateway_v2_route(self, stack_path: str, resources, logical_id, route_resource, collector):
         """
         Extract APIs from AWS::ApiGatewayV2::Route, and link it with the integration resource to get the lambda
         function.
 
         Parameters
         ----------
+        stack_path : str
+            Path of the stack the resource is located
+
         resources: dict
             All Resource definition, including its properties
 
@@ -274,6 +299,7 @@ class CfnApiProvider(CfnBaseApiProvider):
             function_name=function_name,
             event_type=Route.HTTP,
             payload_format_version=payload_format_version,
+            stack_path=stack_path,
         )
         collector.add_routes(api_id, [routes])
 

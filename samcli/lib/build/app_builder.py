@@ -13,7 +13,7 @@ import docker.errors
 from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
-
+from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
 from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition, BuildGraph
 from samcli.lib.build.build_strategy import (
     DefaultBuildStrategy,
@@ -21,7 +21,7 @@ from samcli.lib.build.build_strategy import (
     ParallelBuildStrategy,
     BuildStrategy,
 )
-from samcli.lib.providers.provider import ResourcesToBuildCollector, get_full_path, Stack
+from samcli.lib.providers.provider import ResourcesToBuildCollector, Function, get_full_path, Stack
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.lib.utils.colors import Colored
 import samcli.lib.utils.osutils as osutils
@@ -65,6 +65,8 @@ class ApplicationBuilder:
         mode: Optional[str] = None,
         stream_writer: Optional[StreamWriter] = None,
         docker_client: Optional[docker.DockerClient] = None,
+        container_env_var: Optional[Dict] = None,
+        container_env_var_file: Optional[str] = None,
     ) -> None:
         """
         Initialize the class
@@ -116,6 +118,8 @@ class ApplicationBuilder:
 
         self._deprecated_runtimes = {"nodejs4.3", "nodejs6.10", "nodejs8.10", "dotnetcore2.0"}
         self._colored = Colored()
+        self._container_env_var = container_env_var
+        self._container_env_var_file = container_env_var_file
 
     def build(self) -> Dict[str, str]:
         """
@@ -126,7 +130,7 @@ class ApplicationBuilder:
         dict
             Returns the path to where each resource was built as a map of resource's LogicalId to the path string
         """
-        build_graph = self._get_build_graph()
+        build_graph = self._get_build_graph(self._container_env_var, self._container_env_var_file)
         build_strategy: BuildStrategy = DefaultBuildStrategy(
             build_graph, self._build_dir, self._build_function, self._build_layer
         )
@@ -158,7 +162,9 @@ class ApplicationBuilder:
 
         return build_strategy.build()
 
-    def _get_build_graph(self) -> BuildGraph:
+    def _get_build_graph(
+        self, inline_env_vars: Optional[Dict] = None, env_vars_file: Optional[str] = None
+    ) -> BuildGraph:
         """
         Converts list of functions and layers into a build graph, where we can iterate on each unique build and trigger
         build
@@ -167,15 +173,27 @@ class ApplicationBuilder:
         build_graph = BuildGraph(self._build_dir)
         functions = self._resources_to_build.functions
         layers = self._resources_to_build.layers
+        file_env_vars = {}
+        if env_vars_file:
+            try:
+                with open(env_vars_file, "r", encoding="utf-8") as fp:
+                    file_env_vars = json.load(fp)
+            except Exception as ex:
+                raise IOError(
+                    "Could not read environment variables overrides from file {}: {}".format(env_vars_file, str(ex))
+                ) from ex
+
         for function in functions:
+            container_env_vars = self._make_env_vars(function, file_env_vars, inline_env_vars)
             function_build_details = FunctionBuildDefinition(
-                function.runtime, function.codeuri, function.packagetype, function.metadata
+                function.runtime, function.codeuri, function.packagetype, function.metadata, env_vars=container_env_vars
             )
             build_graph.put_function_build_definition(function_build_details, function)
 
         for layer in layers:
+            container_env_vars = self._make_env_vars(layer, file_env_vars, inline_env_vars)
             layer_build_details = LayerBuildDefinition(
-                layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes
+                layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes, env_vars=container_env_vars
             )
             build_graph.put_layer_build_definition(layer_build_details, layer)
 
@@ -288,7 +306,9 @@ class ApplicationBuilder:
         # Have a default tag if not present.
         tag = metadata.get("DockerTag", "latest")
         docker_tag = f"{function_name.lower()}:{tag}"
+        docker_build_target = metadata.get("DockerBuildTarget", None)
         docker_build_args = metadata.get("DockerBuildArgs", {})
+
         if not isinstance(docker_build_args, dict):
             raise DockerBuildFailed("DockerBuildArgs needs to be a dictionary!")
 
@@ -303,13 +323,17 @@ class ApplicationBuilder:
         if isinstance(docker_build_args, dict):
             LOG.info("Setting DockerBuildArgs: %s for %s function", docker_build_args, function_name)
 
-        build_logs = self._docker_client.api.build(
-            path=str(docker_context_dir),
-            dockerfile=dockerfile,
-            tag=docker_tag,
-            buildargs=docker_build_args,
-            decode=True,
-        )
+        build_args = {
+            "path": str(docker_context_dir),
+            "dockerfile": dockerfile,
+            "tag": docker_tag,
+            "buildargs": docker_build_args,
+            "decode": True,
+        }
+        if docker_build_target:
+            build_args["target"] = cast(str, docker_build_target)
+
+        build_logs = self._docker_client.api.build(**build_args)
 
         # The Docker-py low level api will stream logs back but if an exception is raised by the api
         # this is raised when accessing the generator. So we need to wrap accessing build_logs in a try: except.
@@ -358,6 +382,7 @@ class ApplicationBuilder:
         specified_workflow: str,
         compatible_runtimes: List[str],
         artifact_dir: str,
+        container_env_vars: Optional[Dict] = None,
     ) -> str:
         """
         Given the layer information, this method will build the Lambda layer. Depending on the configuration
@@ -413,7 +438,16 @@ class ApplicationBuilder:
                     build_runtime = compatible_runtimes[0]
             options = ApplicationBuilder._get_build_options(layer_name, config.language, None)
 
-            build_method(config, code_dir, artifact_subdir, scratch_dir, manifest_path, build_runtime, options)
+            build_method(
+                config,
+                code_dir,
+                artifact_subdir,
+                scratch_dir,
+                manifest_path,
+                build_runtime,
+                options,
+                container_env_vars,
+            )
             # Not including subfolder in return so that we copy subfolder, instead of copying artifacts inside it.
             return artifact_dir
 
@@ -426,6 +460,7 @@ class ApplicationBuilder:
         handler: Optional[str],
         artifact_dir: str,
         metadata: Optional[Dict] = None,
+        container_env_vars: Optional[Dict] = None,
     ) -> str:
         """
         Given the function information, this method will build the Lambda function. Depending on the configuration
@@ -479,12 +514,21 @@ class ApplicationBuilder:
             with osutils.mkdir_temp() as scratch_dir:
                 manifest_path = self._manifest_path_override or os.path.join(code_dir, config.manifest_name)
 
+                options = ApplicationBuilder._get_build_options(function_name, config.language, handler)
                 # By default prefer to build in-process for speed
                 build_method = self._build_function_in_process
                 if self._container_manager:
                     build_method = self._build_function_on_container
-
-                options = ApplicationBuilder._get_build_options(function_name, config.language, handler)
+                    return build_method(
+                        config,
+                        code_dir,
+                        artifact_dir,
+                        scratch_dir,
+                        manifest_path,
+                        runtime,
+                        options,
+                        container_env_vars,
+                    )
 
                 return build_method(config, code_dir, artifact_dir, scratch_dir, manifest_path, runtime, options)
 
@@ -524,6 +568,7 @@ class ApplicationBuilder:
         manifest_path: str,
         runtime: str,
         options: Optional[dict],
+        container_env_vars: Optional[Dict] = None,
     ) -> str:
 
         builder = LambdaBuilder(
@@ -559,6 +604,7 @@ class ApplicationBuilder:
         manifest_path: str,
         runtime: str,
         options: Optional[Dict],
+        container_env_vars: Optional[Dict] = None,
     ) -> str:
         # _build_function_on_container() is only called when self._container_manager if not None
         if not self._container_manager:
@@ -576,6 +622,8 @@ class ApplicationBuilder:
         # If we are printing debug logs in SAM CLI, the builder library should also print debug logs
         log_level = LOG.getEffectiveLevel()
 
+        container_env_vars = container_env_vars or {}
+
         container = LambdaBuildContainer(
             lambda_builders_protocol_version,
             config.language,
@@ -589,6 +637,7 @@ class ApplicationBuilder:
             options=options,
             executable_search_paths=config.executable_search_paths,
             mode=self._mode,
+            env_vars=container_env_vars,
         )
 
         try:
@@ -663,3 +712,58 @@ class ApplicationBuilder:
             raise ValueError(msg)
 
         return cast(Dict, response)
+
+    @staticmethod
+    def _make_env_vars(function: Function, file_env_vars: Dict, inline_env_vars: Optional[Dict]) -> Dict:
+        """Returns the environment variables configuration for this function
+
+        Priority order (high to low):
+        1. Function specific env vars from command line
+        2. Function specific env vars from json file
+        3. Global env vars from command line
+        4. Global env vars from json file
+
+        Parameters
+        ----------
+        function : samcli.lib.providers.provider.Function
+            Lambda function to generate the configuration for
+
+        Returns
+        -------
+        dictionary
+            Environment variable configuration for this function
+
+        Raises
+        ------
+        samcli.commands.local.lib.exceptions.OverridesNotWellDefinedError
+            If the environment dict is in the wrong format to process environment vars
+
+        """
+
+        name = function.name
+        result = {}
+
+        # validate and raise OverridesNotWellDefinedError
+        for env_var in list((file_env_vars or {}).values()) + list((inline_env_vars or {}).values()):
+            if not isinstance(env_var, dict):
+                reason = "Environment variables {} in incorrect format".format(env_var)
+                LOG.debug(reason)
+                raise OverridesNotWellDefinedError(reason)
+
+        if file_env_vars:
+            parameter_result = file_env_vars.get("Parameters", {})
+            result.update(parameter_result)
+
+        if inline_env_vars:
+            inline_parameter_result = inline_env_vars.get("Parameters", {})
+            result.update(inline_parameter_result)
+
+        if file_env_vars:
+            specific_result = file_env_vars.get(name, {})
+            result.update(specific_result)
+
+        if inline_env_vars:
+            inline_specific_result = inline_env_vars.get(name, {})
+            result.update(inline_specific_result)
+
+        return result

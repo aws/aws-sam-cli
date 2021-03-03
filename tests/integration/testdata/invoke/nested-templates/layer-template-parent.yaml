@@ -1,0 +1,31 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: A hello world application.
+
+Parameters:
+  LayerOneArn:
+    Default: arn:aws:lambda:us-west-2:111111111111:layer:layer:1
+    Type: String
+
+  LayerTwoArn:
+    Default: arn:aws:lambda:us-west-2:111111111111:layer:layer2:1
+    Type: String
+
+  ChangedLayerArn:
+    Default: arn:aws:lambda:us-west-2:111111111111:layer:changed_layer:1
+    Type: String
+
+  NonExistentLayerArn:
+    Default: arn:aws:lambda:us-west-2:111111111111:layer:non_existent_layer:1
+    Type: String
+
+Resources:
+  SubApp:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ../layers/layer-template.yml
+      Parameters:
+        LayerOneArn: !Ref LayerOneArn
+        LayerTwoArn: !Ref LayerTwoArn
+        ChangedLayerArn: !Ref ChangedLayerArn
+        NonExistentLayerArn: !Ref NonExistentLayerArn

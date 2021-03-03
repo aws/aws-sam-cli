@@ -20,11 +20,13 @@ class SamLocalStackProvider(SamBaseProvider):
     It may or may not contain a stack.
     """
 
-    # see get_stacks() for info about this env var
-    ENV_SAM_CLI_ENABLE_NESTED_STACK = "SAM_CLI_ENABLE_NESTED_STACK"
-
     def __init__(
-        self, template_file: str, stack_path: str, template_dict: Dict, parameter_overrides: Optional[Dict] = None
+        self,
+        template_file: str,
+        stack_path: str,
+        template_dict: Dict,
+        parameter_overrides: Optional[Dict] = None,
+        global_parameter_overrides: Optional[Dict] = None,
     ):
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
@@ -39,12 +41,18 @@ class SamLocalStackProvider(SamBaseProvider):
         :param dict template_dict: SAM Template as a dictionary
         :param dict parameter_overrides: Optional dictionary of values for SAM template parameters that might want
             to get substituted within the template
+        :param dict global_parameter_overrides: Optional dictionary of values for SAM template global parameters that
+            might want to get substituted within the template and all its child templates
         """
 
         self._template_directory = os.path.dirname(template_file)
         self._stack_path = stack_path
-        self._template_dict = self.get_template(template_dict, parameter_overrides)
+        self._template_dict = self.get_template(
+            template_dict,
+            SamLocalStackProvider.merge_parameter_overrides(parameter_overrides, global_parameter_overrides),
+        )
         self._resources = self._template_dict.get("Resources", {})
+        self._global_parameter_overrides = global_parameter_overrides
 
         LOG.debug("%d stacks found in the template", len(self._resources))
 
@@ -115,7 +123,11 @@ class SamLocalStackProvider(SamBaseProvider):
 
     @staticmethod
     def _convert_sam_application_resource(
-        template_directory: str, stack_path: str, name: str, resource_properties: Dict
+        template_directory: str,
+        stack_path: str,
+        name: str,
+        resource_properties: Dict,
+        global_parameter_overrides: Optional[Dict] = None,
     ) -> Optional[Stack]:
         location = resource_properties.get("Location")
 
@@ -145,13 +157,19 @@ class SamLocalStackProvider(SamBaseProvider):
             parent_stack_path=stack_path,
             name=name,
             location=location,
-            parameters=resource_properties.get("Parameters"),
+            parameters=SamLocalStackProvider.merge_parameter_overrides(
+                resource_properties.get("Parameters", {}), global_parameter_overrides
+            ),
             template_dict=get_template_data(location),
         )
 
     @staticmethod
     def _convert_cfn_stack_resource(
-        template_directory: str, stack_path: str, name: str, resource_properties: Dict
+        template_directory: str,
+        stack_path: str,
+        name: str,
+        resource_properties: Dict,
+        global_parameter_overrides: Optional[Dict] = None,
     ) -> Optional[Stack]:
         template_url = resource_properties.get("TemplateURL", "")
 
@@ -171,7 +189,9 @@ class SamLocalStackProvider(SamBaseProvider):
             parent_stack_path=stack_path,
             name=name,
             location=template_url,
-            parameters=resource_properties.get("Parameters"),
+            parameters=SamLocalStackProvider.merge_parameter_overrides(
+                resource_properties.get("Parameters", {}), global_parameter_overrides
+            ),
             template_dict=get_template_data(template_url),
         )
 
@@ -181,17 +201,45 @@ class SamLocalStackProvider(SamBaseProvider):
         stack_path: str = "",
         name: str = "",
         parameter_overrides: Optional[Dict] = None,
+        global_parameter_overrides: Optional[Dict] = None,
     ) -> List[Stack]:
+        """
+        Recursively extract stacks from a template file.
+
+        Parameters
+        ----------
+        template_file: str
+            the file path of the template to extract stacks from
+        stack_path: str
+            the stack path of the parent stack, for root stack, it is ""
+        name: str
+            the name of the stack associated with the template_file, for root stack, it is ""
+        parameter_overrides: Optional[Dict]
+            Optional dictionary of values for SAM template parameters that might want
+            to get substituted within the template
+        global_parameter_overrides: Optional[Dict]
+            Optional dictionary of values for SAM template global parameters
+            that might want to get substituted within the template and its child templates
+
+        Returns
+        -------
+        stacks: List[Stack]
+            The list of stacks extracted from template_file
+        """
         template_dict = get_template_data(template_file)
-        stacks = [Stack(stack_path, name, template_file, parameter_overrides, template_dict)]
+        stacks = [
+            Stack(
+                stack_path,
+                name,
+                template_file,
+                SamLocalStackProvider.merge_parameter_overrides(parameter_overrides, global_parameter_overrides),
+                template_dict,
+            )
+        ]
 
-        # Note(xinhol): recursive get_stacks is only enabled in tests by env var SAM_CLI_ENABLE_NESTED_STACK.
-        # We will remove this env var and make this method recursive by default
-        # for nested stack support in the future.
-        if not os.environ.get(SamLocalStackProvider.ENV_SAM_CLI_ENABLE_NESTED_STACK, False):
-            return stacks
-
-        current = SamLocalStackProvider(template_file, stack_path, template_dict, parameter_overrides)
+        current = SamLocalStackProvider(
+            template_file, stack_path, template_dict, parameter_overrides, global_parameter_overrides
+        )
         for child_stack in current.get_all():
             stacks.extend(
                 SamLocalStackProvider.get_stacks(
@@ -199,6 +247,7 @@ class SamLocalStackProvider(SamBaseProvider):
                     os.path.join(stack_path, name),
                     child_stack.name,
                     child_stack.parameters,
+                    global_parameter_overrides,
                 )
             )
         return stacks
@@ -214,3 +263,30 @@ class SamLocalStackProvider(SamBaseProvider):
             stacks_str = ", ".join([stack.stack_path for stack in stacks])
             raise ValueError(f"{stacks_str} does not contain a root stack")
         return candidates[0]
+
+    @staticmethod
+    def merge_parameter_overrides(
+        parameter_overrides: Optional[Dict], global_parameter_overrides: Optional[Dict]
+    ) -> Dict:
+        """
+        Combine global parameters and stack-specific parameters.
+        Right now the only global parameter override available is AWS::Region (via --region in "sam local"),
+        and AWS::Region won't appear in normal stack-specific parameter_overrides, so we don't
+        specify which type of parameters have high precedence.
+
+        Parameters
+        ----------
+        parameter_overrides: Optional[Dict]
+            stack-specific parameters
+        global_parameter_overrides: Optional[Dict]
+            global parameters
+
+        Returns
+        -------
+        Dict
+            merged dict containing both global and stack-specific parameters
+        """
+        merged_parameter_overrides = {}
+        merged_parameter_overrides.update(global_parameter_overrides or {})
+        merged_parameter_overrides.update(parameter_overrides or {})
+        return merged_parameter_overrides

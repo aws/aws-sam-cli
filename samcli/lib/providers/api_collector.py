@@ -5,6 +5,7 @@ routes in a standardized format
 
 import logging
 from collections import defaultdict
+from typing import Optional, List
 
 from samcli.local.apigw.local_apigw_service import Route
 from samcli.lib.providers.provider import Api
@@ -145,12 +146,12 @@ class ApiCollector:
 
         Return
         -------
-        A list of routes without duplicate routes with the same function_name and method
+        A list of routes without duplicate routes with the same stack_path, function_name and method
         """
         grouped_routes = {}
 
         for route in routes:
-            key = "{}-{}".format(route.function_name, route.path)
+            key = "{}-{}-{}".format(route.stack_path, route.function_name, route.path)
             config = grouped_routes.get(key, None)
             methods = route.methods
             if config:
@@ -162,10 +163,11 @@ class ApiCollector:
                 methods=sorted_methods,
                 event_type=route.event_type,
                 payload_format_version=route.payload_format_version,
+                stack_path=route.stack_path,
             )
         return list(grouped_routes.values())
 
-    def add_binary_media_types(self, logical_id, binary_media_types):
+    def add_binary_media_types(self, logical_id: str, binary_media_types: Optional[List[str]]) -> None:
         """
         Stores the binary media type configuration for the API with given logical ID
         Parameters
