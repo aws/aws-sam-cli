@@ -6,7 +6,7 @@ import logging
 import random
 from unittest import skipIf
 from pathlib import Path
-from parameterized import parameterized
+from parameterized import parameterized, parameterized_class
 
 import pytest
 
@@ -910,6 +910,13 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         return "python{}.{}".format(sys.version_info.major, sys.version_info.minor)
 
 
+@parameterized_class(
+    ("template", "is_nested_parent"),
+    [
+        ("template-parent.yaml", "is_nested_parent"),
+        ("template.yaml", False),
+    ],
+)
 class TestBuildCommand_ProvidedFunctions(BuildIntegBase):
     # Test Suite for runtime: provided and where selection of the build workflow is implicitly makefile builder
     # if the makefile is present.
@@ -944,9 +951,14 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegBase):
         # Built using Makefile for a python project.
         run_command(cmdlist, cwd=self.working_dir)
 
-        self._verify_built_artifact(
-            self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
-        )
+        if self.is_nested_parent:
+            self._verify_built_artifact_in_subapp(
+                self.default_build_dir, "SubApp", self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
+            )
+        else:
+            self._verify_built_artifact(
+                self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
+            )
 
         expected = "2.23.0"
         # Building was done with a makefile, but invoke should be checked with corresponding python image.
@@ -967,6 +979,29 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegBase):
 
         template_path = build_dir.joinpath("template.yaml")
         resource_artifact_dir = build_dir.joinpath(function_logical_id)
+
+        # Make sure the template has correct CodeUri for resource
+        self._verify_resource_property(str(template_path), function_logical_id, "CodeUri", function_logical_id)
+
+        all_artifacts = set(os.listdir(str(resource_artifact_dir)))
+        actual_files = all_artifacts.intersection(expected_files)
+        self.assertEqual(actual_files, expected_files)
+
+    def _verify_built_artifact_in_subapp(self, build_dir, subapp_path, function_logical_id, expected_files):
+
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+        subapp_build_dir = Path(build_dir, subapp_path)
+        self.assertTrue(subapp_build_dir.exists(), f"Build directory for sub app {subapp_path} should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("template.yaml", build_dir_files)
+
+        subapp_build_dir_files = os.listdir(str(subapp_build_dir))
+        self.assertIn("template.yaml", subapp_build_dir_files)
+        self.assertIn(function_logical_id, subapp_build_dir_files)
+
+        template_path = subapp_build_dir.joinpath("template.yaml")
+        resource_artifact_dir = subapp_build_dir.joinpath(function_logical_id)
 
         # Make sure the template has correct CodeUri for resource
         self._verify_resource_property(str(template_path), function_logical_id, "CodeUri", function_logical_id)
@@ -1517,9 +1552,10 @@ class TestBuildWithNestedStacks(NestedBuildIntegBase):
         LOG.info("Running Command: %s", cmdlist)
         LOG.info(self.working_dir)
 
-        newenv = os.environ.copy()
-        newenv["SAM_CLI_ENABLE_NESTED_STACK"] = "1"
-        command_result = run_command(cmdlist, cwd=self.working_dir, env=newenv)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        # make sure functions are deduplicated properly, in stderr they will show up in the same line.
+        self.assertRegex(command_result.stderr.decode("utf-8"), r"Building .+'Function2',.+LocalNestedStack/Function2")
 
         function_full_paths = ["Function", "Function2", "LocalNestedStack/Function1", "LocalNestedStack/Function2"]
         stack_paths = ["", "LocalNestedStack"]
@@ -1599,9 +1635,7 @@ class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
         LOG.info("Running Command: %s", cmdlist)
         LOG.info(self.working_dir)
 
-        newenv = os.environ.copy()
-        newenv["SAM_CLI_ENABLE_NESTED_STACK"] = "1"
-        command_result = run_command(cmdlist, cwd=self.working_dir, env=newenv)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
 
         stack_paths = ["", "LocalNestedStack"]
         if not SKIP_DOCKER_TESTS:

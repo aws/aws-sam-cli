@@ -122,10 +122,10 @@ class TestServiceErrorResponses(StartApiIntegBaseClass):
 
 
 @parameterized_class(
-    ("template_path", "nested_stack_enabled"),
+    ("template_path",),
     [
-        ("/testdata/start_api/template.yaml", False),
-        ("/testdata/start_api/nested-templates/template-parent.yaml", "nested_stack_enabled"),
+        ("/testdata/start_api/template.yaml",),
+        ("/testdata/start_api/nested-templates/template-parent.yaml",),
     ],
 )
 class TestService(StartApiIntegBaseClass):
@@ -236,10 +236,10 @@ class TestService(StartApiIntegBaseClass):
 
 
 @parameterized_class(
-    ("template_path", "nested_stack_enabled"),
+    ("template_path",),
     [
-        ("/testdata/start_api/template-http-api.yaml", False),
-        ("/testdata/start_api/nested-templates/template-http-api-parent.yaml", "nested_stack_enabled"),
+        ("/testdata/start_api/template-http-api.yaml",),
+        ("/testdata/start_api/nested-templates/template-http-api-parent.yaml",),
     ],
 )
 class TestServiceWithHttpApi(StartApiIntegBaseClass):
@@ -1546,13 +1546,10 @@ class TestCFNTemplateQuickCreatedHttpApiWithDefaultRoute(StartApiIntegBaseClass)
 
 
 @parameterized_class(
-    ("template_path", "nested_stack_enabled"),
+    ("template_path",),
     [
-        ("/testdata/start_api/cfn-http-api-with-normal-and-default-routes.yaml", False),
-        (
-            "/testdata/start_api/nested-templates/cfn-http-api-with-normal-and-default-routes-parent.yaml",
-            "nested_stack_enabled",
-        ),
+        ("/testdata/start_api/cfn-http-api-with-normal-and-default-routes.yaml",),
+        ("/testdata/start_api/nested-templates/cfn-http-api-with-normal-and-default-routes-parent.yaml",),
     ],
 )
 class TestCFNTemplateHttpApiWithNormalAndDefaultRoutes(StartApiIntegBaseClass):
@@ -1631,13 +1628,10 @@ class TestServerlessTemplateWithRestApiAndHttpApiGateways(StartApiIntegBaseClass
 
 
 @parameterized_class(
-    ("template_path", "nested_stack_enabled"),
+    ("template_path",),
     [
-        ("/testdata/start_api/cfn-http-api-and-rest-api-gateways.yaml", False),
-        (
-            "/testdata/start_api/nested-templates/cfn-http-api-and-rest-api-gateways-parent.yaml",
-            "nested_stack_enabled",
-        ),
+        ("/testdata/start_api/cfn-http-api-and-rest-api-gateways.yaml",),
+        ("/testdata/start_api/nested-templates/cfn-http-api-and-rest-api-gateways-parent.yaml",),
     ],
 )
 class TestCFNTemplateWithRestApiAndHttpApiGateways(StartApiIntegBaseClass):
@@ -2076,7 +2070,6 @@ class TestApiPrecedenceInNestedStacks(StartApiIntegBaseClass):
     """
 
     template_path = "/testdata/start_api/nested-templates/template-precedence-root.yaml"
-    nested_stack_enabled = True
 
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
@@ -2106,3 +2099,19 @@ class TestApiPrecedenceInNestedStacks(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         response_data = response.json()
         self.assertEqual(response_data.get("body"), data)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_should_not_call_non_existent_path(self):
+        data = "some data"
+        response = requests.post(self.url + "/path404", data=data, timeout=300)
+
+        self.assertEqual(response.status_code, 403)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_should_not_call_non_mounting_method(self):
+        data = "some data"
+        response = requests.put(self.url + "/path2", data=data, timeout=300)
+
+        self.assertEqual(response.status_code, 403)

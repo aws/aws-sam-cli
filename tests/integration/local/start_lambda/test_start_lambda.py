@@ -112,13 +112,10 @@ class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
 
 
 @parameterized_class(
-    ("template_path", "nested_stack_enabled"),
+    ("template_path",),
     [
-        ("/testdata/invoke/template.yml", False),
-        (
-            "/testdata/invoke/nested-templates/template-parent.yaml",
-            "nested_stack_enabled",
-        ),
+        ("/testdata/invoke/template.yml",),
+        ("/testdata/invoke/nested-templates/template-parent.yaml",),
     ],
 )
 class TestLambdaService(StartLambdaIntegBaseClass):

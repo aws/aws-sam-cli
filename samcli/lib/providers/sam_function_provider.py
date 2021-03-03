@@ -43,7 +43,7 @@ class SamFunctionProvider(SamBaseProvider):
             LOG.debug("%d resources found in the stack %s", len(stack.resources), stack.stack_path)
 
         # Store a map of function full_path to function information for quick reference
-        self.functions = self._extract_functions(self.stacks, ignore_code_extraction_warnings)
+        self.functions = SamFunctionProvider._extract_functions(self.stacks, ignore_code_extraction_warnings)
 
         self._deprecated_runtimes = {"nodejs4.3", "nodejs6.10", "nodejs8.10", "dotnetcore2.0"}
         self._colored = Colored()

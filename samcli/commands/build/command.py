@@ -155,14 +155,14 @@ $ sam build MyFunction
 @docker_common_options
 @cli_framework_options
 @aws_creds_options
-@click.argument("function_identifier", required=False)
+@click.argument("resource_logical_id", required=False)
 @pass_context
 @track_command
 @check_newer_version
 def cli(
     ctx: Context,
     # please keep the type below consistent with @click.options
-    function_identifier: Optional[str],
+    resource_logical_id: Optional[str],
     template_file: str,
     base_dir: Optional[str],
     build_dir: str,
@@ -184,7 +184,7 @@ def cli(
     mode = _get_mode_value_from_envvar("SAM_BUILD_MODE", choices=["debug"])
 
     do_cli(
-        function_identifier,
+        resource_logical_id,
         template_file,
         base_dir,
         build_dir,

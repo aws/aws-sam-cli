@@ -61,7 +61,7 @@ class ApiProvider(AbstractApiProvider):
         """
 
         collector = ApiCollector()
-        provider = self.find_api_provider(self.stacks)
+        provider = ApiProvider.find_api_provider(self.stacks)
         provider.extract_resources(self.stacks, collector, cwd=self.cwd)
         return collector.get_api()
 
