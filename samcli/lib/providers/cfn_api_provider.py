@@ -93,12 +93,12 @@ class CfnApiProvider(CfnBaseApiProvider):
 
         logical_id : str
             Logical ID of the resource
-
         api_resource : dict
             Resource definition, including its properties
-
         collector : ApiCollector
             Instance of the API collector that where we will save the API information
+        cwd : Optional[str]
+            An optional string to override the current working directory
         """
         properties = api_resource.get("Properties", {})
         body = properties.get("Body")
@@ -212,12 +212,12 @@ class CfnApiProvider(CfnBaseApiProvider):
 
         logical_id : str
             Logical ID of the resource
-
         api_resource : dict
             Resource definition, including its properties
-
         collector : ApiCollector
             Instance of the API collector that where we will save the API information
+        cwd : Optional[str]
+            An optional string to override the current working directory
         """
         properties = api_resource.get("Properties", {})
         body = properties.get("Body")
@@ -371,8 +371,8 @@ class CfnApiProvider(CfnBaseApiProvider):
 
         Parameters
         ----------
-        method_config : str
-            the API gateway route key
+        integration : Dict
+            the integration defined in the method configuration
 
         Returns
         -------

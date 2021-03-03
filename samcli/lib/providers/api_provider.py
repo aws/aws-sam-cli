@@ -27,7 +27,6 @@ class ApiProvider(AbstractApiProvider):
         ----------
         stacks : dict
             List of stacks apis are extracted from
-
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
         """

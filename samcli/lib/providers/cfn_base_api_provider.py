@@ -24,10 +24,8 @@ class CfnBaseApiProvider:
         ----------
         stacks: List[Stack]
             List of stacks apis are extracted from
-
         collector: samcli.lib.providers.api_collector.ApiCollector
             Instance of the API collector that where we will save the API information
-
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
 
@@ -58,21 +56,18 @@ class CfnBaseApiProvider:
 
         logical_id : str
             Logical ID of the resource
-
         body : dict
             The body of the RestApi
-
         uri : str or dict
             The url to location of the RestApi
-
-        binary_media: list
+        binary_media : list
             The link to the binary media
-
-        collector: samcli.lib.providers.api_collector.ApiCollector
+        collector : samcli.lib.providers.api_collector.ApiCollector
             Instance of the Route collector that where we will save the route information
-
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
+        event_type : str
+            The event type, 'Api' or 'HttpApi', see samcli/local/apigw/local_apigw_service.py:35
         """
         reader = SwaggerReader(definition_body=body, definition_uri=uri, working_dir=cwd)
         swagger = reader.read()
