@@ -6,7 +6,7 @@ from samcli.commands.local.lib.swagger.parser import SwaggerParser
 from samcli.commands.local.lib.swagger.reader import SwaggerReader
 from samcli.lib.providers.api_collector import ApiCollector
 
-from samcli.lib.providers.provider import Cors
+from samcli.lib.providers.provider import Cors, Stack
 from samcli.local.apigw.local_apigw_service import Route
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 
@@ -16,18 +16,16 @@ LOG = logging.getLogger(__name__)
 class CfnBaseApiProvider:
     RESOURCE_TYPE = "Type"
 
-    def extract_resources(self, resources, collector, cwd=None):
+    def extract_resources(self, stacks: List[Stack], collector, cwd=None):
         """
         Extract the Route Object from a given resource and adds it to the RouteCollector.
 
         Parameters
         ----------
-        resources: dict
-            The dictionary containing the different resources within the template
-
+        stacks: List[Stack]
+            List of stacks apis are extracted from
         collector: samcli.lib.providers.api_collector.ApiCollector
             Instance of the API collector that where we will save the API information
-
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
 
@@ -39,10 +37,11 @@ class CfnBaseApiProvider:
 
     @staticmethod
     def extract_swagger_route(
+        stack_path: str,
         logical_id: str,
         body: Dict,
         uri: Union[str, Dict],
-        binary_media: List,
+        binary_media: Optional[List],
         collector: ApiCollector,
         cwd: Optional[str] = None,
         event_type=Route.API,
@@ -52,27 +51,27 @@ class CfnBaseApiProvider:
 
         Parameters
         ----------
+        stack_path : str
+            Path of the stack the resource is located
+
         logical_id : str
             Logical ID of the resource
-
         body : dict
             The body of the RestApi
-
         uri : str or dict
             The url to location of the RestApi
-
-        binary_media: list
+        binary_media : list
             The link to the binary media
-
-        collector: samcli.lib.providers.api_collector.ApiCollector
+        collector : samcli.lib.providers.api_collector.ApiCollector
             Instance of the Route collector that where we will save the route information
-
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
+        event_type : str
+            The event type, 'Api' or 'HttpApi', see samcli/local/apigw/local_apigw_service.py:35
         """
         reader = SwaggerReader(definition_body=body, definition_uri=uri, working_dir=cwd)
         swagger = reader.read()
-        parser = SwaggerParser(swagger)
+        parser = SwaggerParser(stack_path, swagger)
         routes = parser.get_routes(event_type)
         LOG.debug("Found '%s' APIs in resource '%s'", len(routes), logical_id)
 
@@ -95,7 +94,7 @@ class CfnBaseApiProvider:
         if cors_prop and isinstance(cors_prop, dict):
             allow_methods = self._get_cors_prop(cors_prop, "AllowMethods")
             if allow_methods:
-                allow_methods = self.normalize_cors_allow_methods(allow_methods)
+                allow_methods = CfnBaseApiProvider.normalize_cors_allow_methods(allow_methods)
             else:
                 allow_methods = ",".join(sorted(Route.ANY_HTTP_METHODS))
 
@@ -180,7 +179,7 @@ class CfnBaseApiProvider:
         if cors_prop and isinstance(cors_prop, dict):
             allow_methods = self._get_cors_prop_http(cors_prop, "AllowMethods", list)
             if isinstance(allow_methods, list):
-                allow_methods = self.normalize_cors_allow_methods(allow_methods)
+                allow_methods = CfnBaseApiProvider.normalize_cors_allow_methods(allow_methods)
             else:
                 allow_methods = ",".join(sorted(Route.ANY_HTTP_METHODS))
 

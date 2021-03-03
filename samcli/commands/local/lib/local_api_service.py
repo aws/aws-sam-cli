@@ -34,9 +34,7 @@ class LocalApiService:
         self.static_dir = static_dir
 
         self.cwd = lambda_invoke_context.get_cwd()
-        self.api_provider = ApiProvider(
-            lambda_invoke_context.template, parameter_overrides=lambda_invoke_context.parameter_overrides, cwd=self.cwd
-        )
+        self.api_provider = ApiProvider(lambda_invoke_context.stacks, cwd=self.cwd)
         self.lambda_runner = lambda_invoke_context.local_lambda_runner
         self.stderr_stream = lambda_invoke_context.stderr
 

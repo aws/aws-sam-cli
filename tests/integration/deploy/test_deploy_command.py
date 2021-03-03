@@ -29,7 +29,13 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     @classmethod
     def setUpClass(cls):
         cls.docker_client = docker.from_env()
-        cls.local_images = [("alpine", "latest")]
+        cls.local_images = [
+            ("alpine", "latest"),
+            # below 3 images are for test_deploy_nested_stacks()
+            ("python", "3.9-slim"),
+            ("python", "3.8-slim"),
+            ("python", "3.7-slim"),
+        ]
         # setup some images locally by pulling them.
         for repo, tag in cls.local_images:
             cls.docker_client.api.pull(repository=repo, tag=tag)
@@ -720,6 +726,39 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             self.assertEqual(deploy_process_execute.process.returncode, 0)
         else:
             self.assertEqual(deploy_process_execute.process.returncode, 1)
+
+    @parameterized.expand(
+        [os.path.join("deep-nested", "template.yaml"), os.path.join("deep-nested-image", "template.yaml")]
+    )
+    def test_deploy_nested_stacks(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stack_names.append(stack_name)
+
+        # Package and Deploy in one go without confirming change set.
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            # Note(xinhol): --capabilities does not allow passing multiple, we need to fix it
+            # here we use samconfig-deep-nested.toml as a workaround
+            config_file=self.test_data_path.joinpath("samconfig-deep-nested.toml"),
+            s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+            image_repository=self.ecr_repo_name,
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        process_stdout = deploy_process_execute.stdout.decode()
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+        # verify child stack ChildStackX's creation
+        self.assertRegex(process_stdout, r"CREATE_COMPLETE.+ChildStackX")
 
     def _method_to_stack_name(self, method_name):
         """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""

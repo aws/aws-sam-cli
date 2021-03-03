@@ -45,10 +45,8 @@ def _extract(file_info, output_dir, zip_ref):
     ----------
     file_info : zipfile.ZipInfo
         The ZipInfo for a ZipFile
-
     output_dir : str
         Path to the directory where the it should be unzipped to
-
     zip_ref : zipfile.ZipFile
         The ZipFile we are working with.
 
@@ -88,12 +86,10 @@ def unzip(zip_file_path, output_dir, permission=None):
     ----------
     zip_file_path : str
         Path to the zip file
-
     output_dir : str
         Path to the directory where the it should be unzipped to
-
-    permission : octal int
-        Permission to set
+    permission : int
+        Permission to set in an octal int form
     """
 
     with zipfile.ZipFile(zip_file_path, "r") as zip_ref:

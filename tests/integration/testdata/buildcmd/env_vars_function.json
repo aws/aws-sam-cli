@@ -1,0 +1,8 @@
+{
+    "Parameters": {
+      "TEST_ENV_VAR": "MyVar2"
+    },
+    "CheckEnvVarsFunction": {
+      "TEST_ENV_VAR": "MyVar"
+    }
+}

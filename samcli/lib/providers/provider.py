@@ -38,7 +38,7 @@ class Function(NamedTuple):
     codeuri: Optional[str]
     # Environment variables. This is a dictionary with one key called Variables inside it.
     # This contains the definition of environment variables
-    environment: Optional[str]
+    environment: Optional[Dict]
     # Lambda Execution IAM Role ARN. In the future, this can be used by Local Lambda runtime to assume the IAM role
     # to get credentials to run the container with. This gives a much higher fidelity simulation of cloud Lambda.
     rolearn: Optional[str]
@@ -374,7 +374,8 @@ class Stack(NamedTuple):
     name: str
     # The file location of the stack template.
     location: str
-    # The parameter overrides for the stack
+    # The parameter overrides for the stack, if there is global_parameter_overrides,
+    # it is also merged into this variable.
     parameters: Optional[Dict]
     # the raw template dict
     template_dict: Dict
