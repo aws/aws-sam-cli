@@ -99,7 +99,7 @@ class CfnBaseApiProvider:
         if cors_prop and isinstance(cors_prop, dict):
             allow_methods = self._get_cors_prop(cors_prop, "AllowMethods")
             if allow_methods:
-                allow_methods = self.normalize_cors_allow_methods(allow_methods)
+                allow_methods = CfnBaseApiProvider.normalize_cors_allow_methods(allow_methods)
             else:
                 allow_methods = ",".join(sorted(Route.ANY_HTTP_METHODS))
 
@@ -184,7 +184,7 @@ class CfnBaseApiProvider:
         if cors_prop and isinstance(cors_prop, dict):
             allow_methods = self._get_cors_prop_http(cors_prop, "AllowMethods", list)
             if isinstance(allow_methods, list):
-                allow_methods = self.normalize_cors_allow_methods(allow_methods)
+                allow_methods = CfnBaseApiProvider.normalize_cors_allow_methods(allow_methods)
             else:
                 allow_methods = ",".join(sorted(Route.ANY_HTTP_METHODS))
 

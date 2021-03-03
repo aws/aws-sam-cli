@@ -80,7 +80,8 @@ class CfnApiProvider(CfnBaseApiProvider):
             all_apis.extend(apis)
         return all_apis
 
-    def _extract_cloud_formation_route(self, stack_path: str, logical_id, api_resource, collector, cwd=None):
+    @staticmethod
+    def _extract_cloud_formation_route(stack_path: str, logical_id, api_resource, collector, cwd=None):
         """
         Extract APIs from AWS::ApiGateway::RestApi resource by reading and parsing Swagger documents. The result is
         added to the collector.
@@ -108,7 +109,9 @@ class CfnApiProvider(CfnBaseApiProvider):
             # Swagger is not found anywhere.
             LOG.debug("Skipping resource '%s'. Swagger document not found in Body and BodyS3Location", logical_id)
             return
-        self.extract_swagger_route(stack_path, logical_id, body, body_s3_location, binary_media, collector, cwd)
+        CfnBaseApiProvider.extract_swagger_route(
+            stack_path, logical_id, body, body_s3_location, binary_media, collector, cwd
+        )
 
     @staticmethod
     def _extract_cloud_formation_stage(resources, stage_resource, collector):
@@ -240,7 +243,9 @@ class CfnApiProvider(CfnBaseApiProvider):
                 collector.add_routes(logical_id, [routes])
             return
 
-        self.extract_swagger_route(stack_path, logical_id, body, body_s3_location, None, collector, cwd, Route.HTTP)
+        CfnBaseApiProvider.extract_swagger_route(
+            stack_path, logical_id, body, body_s3_location, None, collector, cwd, Route.HTTP
+        )
 
     def _extract_cfn_gateway_v2_route(self, stack_path: str, resources, logical_id, route_resource, collector):
         """

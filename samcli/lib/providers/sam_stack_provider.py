@@ -48,7 +48,8 @@ class SamLocalStackProvider(SamBaseProvider):
         self._template_directory = os.path.dirname(template_file)
         self._stack_path = stack_path
         self._template_dict = self.get_template(
-            template_dict, self.merge_parameter_overrides(parameter_overrides, global_parameter_overrides)
+            template_dict,
+            SamLocalStackProvider.merge_parameter_overrides(parameter_overrides, global_parameter_overrides),
         )
         self._resources = self._template_dict.get("Resources", {})
         self._global_parameter_overrides = global_parameter_overrides

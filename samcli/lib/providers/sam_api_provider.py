@@ -94,7 +94,7 @@ class SamApiProvider(CfnBaseApiProvider):
                 "Skipping resource '%s'. Swagger document not found in DefinitionBody and DefinitionUri", logical_id
             )
             return
-        self.extract_swagger_route(stack_path, logical_id, body, uri, binary_media, collector, cwd=cwd)
+        CfnBaseApiProvider.extract_swagger_route(stack_path, logical_id, body, uri, binary_media, collector, cwd=cwd)
         collector.stage_name = stage_name
         collector.stage_variables = stage_variables
         collector.cors = cors
@@ -135,7 +135,9 @@ class SamApiProvider(CfnBaseApiProvider):
                 "Skipping resource '%s'. Swagger document not found in DefinitionBody and DefinitionUri", logical_id
             )
             return
-        self.extract_swagger_route(stack_path, logical_id, body, uri, None, collector, cwd=cwd, event_type=Route.HTTP)
+        CfnBaseApiProvider.extract_swagger_route(
+            stack_path, logical_id, body, uri, None, collector, cwd=cwd, event_type=Route.HTTP
+        )
         collector.stage_name = stage_name
         collector.stage_variables = stage_variables
         collector.cors = cors
