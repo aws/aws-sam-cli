@@ -152,7 +152,9 @@ def cli(
     config_file,
     config_env,
 ):
-
+    """
+    `sam package` command entry point
+    """
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(
@@ -191,6 +193,10 @@ def do_cli(
     profile,
     resolve_s3,
 ):
+    """
+    Implementation of the ``cli`` method
+    """
+
     from samcli.commands.package.package_context import PackageContext
 
     if resolve_s3:

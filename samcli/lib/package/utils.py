@@ -176,6 +176,20 @@ def zip_folder(folder_path):
 
 
 def make_zip(file_name, source_root):
+    """
+    Create a zip file from the source directory
+
+    Parameters
+    ----------
+    file_name : str
+        The basename of the zip file, without .zip
+    source_root : str
+        The path to the source directory
+    Returns
+    -------
+    str
+        The name of the zip file, including .zip extension
+    """
     zipfile_name = "{0}.zip".format(file_name)
     source_root = os.path.abspath(source_root)
     compression_type = zipfile.ZIP_DEFLATED

@@ -220,6 +220,9 @@ def cli(
     config_file,
     config_env,
 ):
+    """
+    `sam init` command entry point
+    """
     do_cli(
         ctx,
         no_interactive,
@@ -254,6 +257,9 @@ def do_cli(
     extra_context,
     auto_clone=True,
 ):
+    """
+    Implementation of the ``cli`` method
+    """
 
     from samcli.commands.init.init_generator import do_generate
     from samcli.commands.init.interactive_init_flow import do_interactive

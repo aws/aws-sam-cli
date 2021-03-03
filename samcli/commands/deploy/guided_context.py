@@ -100,6 +100,17 @@ class GuidedContext:
 
     # pylint: disable=too-many-statements
     def guided_prompts(self, parameter_override_keys):
+        """
+        Start an interactive cli prompt to collection information for deployment
+
+        Parameters
+        ----------
+        parameter_override_keys
+            The keys of parameters to override, for each key, customers will be asked to provide a value
+        Returns
+        -------
+        None
+        """
         default_stack_name = self.stack_name or "sam-app"
         default_region = self.region or get_session().get_config_variable("region") or "us-east-1"
         default_capabilities = self.capabilities[0] or ("CAPABILITY_IAM",)
@@ -193,6 +204,19 @@ class GuidedContext:
                     raise GuidedDeployFailedError(msg="Security Constraints Not Satisfied!")
 
     def prompt_code_signing_settings(self, stacks: List[Stack]):
+        """
+        Prompt code signing settings to ask whether customers want to code sign their code and
+        display signing details.
+
+        Parameters
+        ----------
+        stacks : List[Stack]
+            List of stacks to search functions and layers
+
+        Returns
+        -------
+        None
+        """
         (functions_with_code_sign, layers_with_code_sign) = signer_config_per_function(stacks)
 
         # if no function or layer definition found with code signing, skip it
@@ -269,6 +293,20 @@ class GuidedContext:
         return _prompted_param_overrides
 
     def prompt_image_repository(self, stacks: List[Stack]):
+        """
+        Prompt for the image repository to push the images.
+        For each image function found in build artifacts, it will prompt for an image repository.
+
+        Parameters
+        ----------
+        stacks : List[Stack]
+            List of stacks to look for image functions.
+
+        Returns
+        -------
+        Dict
+            A dictionary contains image function logical ID as key, image repository as value.
+        """
         image_repositories = {}
         artifacts_format = get_template_artifacts_format(template_file=self.template_file)
         if IMAGE in artifacts_format:

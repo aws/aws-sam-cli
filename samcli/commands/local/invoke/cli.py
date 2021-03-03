@@ -72,7 +72,9 @@ def cli(
     config_file,
     config_env,
 ):
-
+    """
+    `sam local invoke` command entry point
+    """
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(

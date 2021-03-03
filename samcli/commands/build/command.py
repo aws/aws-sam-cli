@@ -179,6 +179,9 @@ def cli(
     config_file: str,
     config_env: str,
 ) -> None:
+    """
+    `sam build` command entry point
+    """
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     mode = _get_mode_value_from_envvar("SAM_BUILD_MODE", choices=["debug"])

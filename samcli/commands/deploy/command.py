@@ -196,7 +196,9 @@ def cli(
     config_file,
     config_env,
 ):
-
+    """
+    `sam deploy` command entry point
+    """
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
     do_cli(
         template_file,
@@ -256,6 +258,9 @@ def do_cli(
     config_file,
     config_env,
 ):
+    """
+    Implementation of the ``cli`` method
+    """
     from samcli.commands.package.package_context import PackageContext
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.deploy.guided_context import GuidedContext

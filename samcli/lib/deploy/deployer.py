@@ -406,6 +406,20 @@ class Deployer:
         return "COMPLETE" in status and "CLEANUP" not in status
 
     def wait_for_execute(self, stack_name, changeset_type):
+        """
+        Wait for changeset to execute and return when execution completes.
+        If the stack has "Outputs," they will be printed.
+
+        Parameters
+        ----------
+        stack_name : str
+            The name of the stack
+        changeset_type : str
+            The type of the changeset, 'CREATE' or 'UPDATE'
+        Returns
+        -------
+        None
+        """
         sys.stdout.write(
             "\n{} - Waiting for stack create/update "
             "to complete\n".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
