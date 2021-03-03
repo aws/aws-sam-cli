@@ -1,9 +1,11 @@
+import os
 from unittest import TestCase
 from unittest.mock import Mock, call, patch
 
 from botocore.exceptions import NoCredentialsError, ClientError
 from pathlib import Path
 
+from parameterized import parameterized
 
 from samcli.local.layers.layer_downloader import LayerDownloader
 from samcli.commands.local.cli_common.user_exceptions import CredentialsRequired, ResourceNotFound
@@ -14,7 +16,7 @@ class TestDownloadLayers(TestCase):
     def test_initialization(self, create_cache_patch):
         create_cache_patch.return_value = None
 
-        download_layers = LayerDownloader("/some/path", ".")
+        download_layers = LayerDownloader("/some/path", ".", Mock())
 
         self.assertEqual(download_layers.layer_cache, "/some/path")
         create_cache_patch.assert_called_with("/some/path")
@@ -23,7 +25,7 @@ class TestDownloadLayers(TestCase):
     def test_download_all_without_force(self, download_patch):
         download_patch.side_effect = ["/home/layer1", "/home/layer2"]
 
-        download_layers = LayerDownloader("/home", ".")
+        download_layers = LayerDownloader("/home", ".", Mock())
 
         acutal_results = download_layers.download_all(["layer1", "layer2"])
 
@@ -35,7 +37,7 @@ class TestDownloadLayers(TestCase):
     def test_download_all_with_force(self, download_patch):
         download_patch.side_effect = ["/home/layer1", "/home/layer2"]
 
-        download_layers = LayerDownloader("/home", ".")
+        download_layers = LayerDownloader("/home", ".", Mock())
 
         acutal_results = download_layers.download_all(["layer1", "layer2"], force=True)
 
@@ -48,7 +50,7 @@ class TestDownloadLayers(TestCase):
     def test_download_layer_that_is_cached(self, is_layer_cached_patch, create_cache_patch):
         is_layer_cached_patch.return_value = True
 
-        download_layers = LayerDownloader("/home", ".")
+        download_layers = LayerDownloader("/home", ".", Mock())
 
         layer_mock = Mock()
         layer_mock.is_defined_within_template = False
@@ -60,25 +62,43 @@ class TestDownloadLayers(TestCase):
 
         create_cache_patch.assert_called_once_with("/home")
 
+    @parameterized.expand(
+        [
+            ("/some/custom/path", "/some/custom/path"),  # absolute path no need to be adjusted
+            (os.path.join(".", "some", "custom", "path"), os.path.join("some", "path", "some", "custom", "path")),
+            (os.path.join("some", "custom", "path"), os.path.join("some", "path", "some", "custom", "path")),
+        ]
+    )
     @patch("samcli.local.layers.layer_downloader.resolve_code_path")
     @patch("samcli.local.layers.layer_downloader.LayerDownloader._create_cache")
-    def test_download_layer_that_was_template_defined(self, create_cache_patch, resolve_code_path_patch):
+    def test_download_layer_that_was_template_defined(
+        self, codeuri, adjusted_codeuri, create_cache_patch, resolve_code_path_patch
+    ):
+        """
+        when the template is not lcoated in working directory, layer's codeuri needs to be adjusted
+        """
+        stack_path_mock = Mock()
+        stack_template_location = "./some/path/template.yaml"
 
-        download_layers = LayerDownloader("/home", ".")
+        download_layers = LayerDownloader(
+            "/home", ".", [Mock(stack_path=stack_path_mock, location=stack_template_location)]
+        )
 
         layer_mock = Mock()
         layer_mock.is_template_defined = True
         layer_mock.name = "layer1"
-        layer_mock.codeuri = "/some/custom/path"
+        layer_mock.codeuri = codeuri
+        layer_mock.stack_path = stack_path_mock
 
-        resolve_code_path_patch.return_value = "./some/custom/path"
+        resolve_code_path_return_mock = Mock()
+        resolve_code_path_patch.return_value = resolve_code_path_return_mock
 
         actual = download_layers.download(layer_mock)
 
-        self.assertEqual(actual.codeuri, "./some/custom/path")
+        self.assertEqual(actual.codeuri, resolve_code_path_return_mock)
 
         create_cache_patch.assert_not_called()
-        resolve_code_path_patch.assert_called_once_with(".", "/some/custom/path")
+        resolve_code_path_patch.assert_called_once_with(".", adjusted_codeuri)
 
     @patch("samcli.local.layers.layer_downloader.unzip_from_uri")
     @patch("samcli.local.layers.layer_downloader.LayerDownloader._fetch_layer_uri")
@@ -89,7 +109,7 @@ class TestDownloadLayers(TestCase):
     ):
         is_layer_cached_patch.return_value = False
 
-        download_layers = LayerDownloader("/home", ".")
+        download_layers = LayerDownloader("/home", ".", Mock())
 
         layer_mock = Mock()
         layer_mock.is_defined_within_template = False
@@ -113,7 +133,7 @@ class TestDownloadLayers(TestCase):
         )
 
     def test_layer_is_cached(self):
-        download_layers = LayerDownloader("/", ".")
+        download_layers = LayerDownloader("/", ".", Mock())
 
         layer_path = Mock()
         layer_path.exists.return_value = True
@@ -121,7 +141,7 @@ class TestDownloadLayers(TestCase):
         self.assertTrue(download_layers._is_layer_cached(layer_path))
 
     def test_layer_is_not_cached(self):
-        download_layers = LayerDownloader("/", ".")
+        download_layers = LayerDownloader("/", ".", Mock())
 
         layer_path = Mock()
         layer_path.exists.return_value = False
@@ -143,7 +163,7 @@ class TestLayerDownloader_fetch_layer_uri(TestCase):
     def test_fetch_layer_uri_is_successful(self):
         lambda_client_mock = Mock()
         lambda_client_mock.get_layer_version.return_value = {"Content": {"Location": "some/uri"}}
-        download_layers = LayerDownloader("/", ".", lambda_client_mock)
+        download_layers = LayerDownloader("/", ".", Mock(), lambda_client_mock)
 
         layer = Mock()
         layer.layer_arn = "arn"
@@ -155,7 +175,7 @@ class TestLayerDownloader_fetch_layer_uri(TestCase):
     def test_fetch_layer_uri_fails_with_no_creds(self):
         lambda_client_mock = Mock()
         lambda_client_mock.get_layer_version.side_effect = NoCredentialsError()
-        download_layers = LayerDownloader("/", ".", lambda_client_mock)
+        download_layers = LayerDownloader("/", ".", Mock(), lambda_client_mock)
 
         layer = Mock()
         layer.layer_arn = "arn"
@@ -169,7 +189,7 @@ class TestLayerDownloader_fetch_layer_uri(TestCase):
         lambda_client_mock.get_layer_version.side_effect = ClientError(
             error_response={"Error": {"Code": "AccessDeniedException"}}, operation_name="lambda"
         )
-        download_layers = LayerDownloader("/", ".", lambda_client_mock)
+        download_layers = LayerDownloader("/", ".", Mock(), lambda_client_mock)
 
         layer = Mock()
         layer.layer_arn = "arn"
@@ -183,7 +203,7 @@ class TestLayerDownloader_fetch_layer_uri(TestCase):
         lambda_client_mock.get_layer_version.side_effect = ClientError(
             error_response={"Error": {"Code": "ResourceNotFoundException"}}, operation_name="lambda"
         )
-        download_layers = LayerDownloader("/", ".", lambda_client_mock)
+        download_layers = LayerDownloader("/", ".", Mock(), lambda_client_mock)
 
         layer = Mock()
         layer.layer_arn = "arn"
@@ -197,7 +217,7 @@ class TestLayerDownloader_fetch_layer_uri(TestCase):
         lambda_client_mock.get_layer_version.side_effect = ClientError(
             error_response={"Error": {"Code": "Unknown"}}, operation_name="lambda"
         )
-        download_layers = LayerDownloader("/", ".", lambda_client_mock)
+        download_layers = LayerDownloader("/", ".", Mock(), lambda_client_mock)
 
         layer = Mock()
         layer.layer_arn = "arn"

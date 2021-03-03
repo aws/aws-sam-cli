@@ -5,7 +5,7 @@ Context object used by build command
 import logging
 import os
 import shutil
-from typing import Optional, Dict, List
+from typing import Optional, List
 import pathlib
 
 from samcli.lib.providers.provider import ResourcesToBuildCollector, Stack
@@ -64,7 +64,6 @@ class BuildContext:
 
         self._function_provider: Optional[SamFunctionProvider] = None
         self._layer_provider: Optional[SamLayerProvider] = None
-        self._template_dict: Optional[Dict] = None
         self._container_manager: Optional[ContainerManager] = None
         self._stacks: List[Stack] = []
 
@@ -73,7 +72,6 @@ class BuildContext:
         self._stacks = SamLocalStackProvider.get_stacks(
             self._template_file, parameter_overrides=self._parameter_overrides
         )
-        self._template_dict = SamLocalStackProvider.find_root_stack(self.stacks).template_dict
 
         self._function_provider = SamFunctionProvider(self.stacks)
         self._layer_provider = SamLayerProvider(self.stacks)
@@ -137,11 +135,6 @@ class BuildContext:
     def layer_provider(self) -> SamLayerProvider:
         # same as function_provider()
         return self._layer_provider  # type: ignore
-
-    @property
-    def template_dict(self) -> Dict:
-        # same as function_provider()
-        return self._template_dict  # type: ignore
 
     @property
     def build_dir(self) -> str:

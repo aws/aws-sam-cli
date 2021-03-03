@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time, sleep
 import json
 import docker
-from parameterized import parameterized
+from parameterized import parameterized, parameterized_class
 
 import pytest
 import random
@@ -111,9 +111,17 @@ class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
         self.assertEqual(str(error.exception), expected_error_message)
 
 
+@parameterized_class(
+    ("template_path", "nested_stack_enabled"),
+    [
+        ("/testdata/invoke/template.yml", False),
+        (
+            "/testdata/invoke/nested-templates/template-parent.yaml",
+            "nested_stack_enabled",
+        ),
+    ],
+)
 class TestLambdaService(StartLambdaIntegBaseClass):
-    template_path = "/testdata/invoke/template.yml"
-
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
         self.lambda_client = boto3.client(

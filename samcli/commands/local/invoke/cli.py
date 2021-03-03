@@ -162,7 +162,7 @@ def do_cli(  # pylint: disable=R0914
 
             # Invoke the function
             context.local_lambda_runner.invoke(
-                context.function_name, event=event_data, stdout=context.stdout, stderr=context.stderr
+                context.function_identifier, event=event_data, stdout=context.stdout, stderr=context.stderr
             )
 
     except FunctionNotFound as ex:

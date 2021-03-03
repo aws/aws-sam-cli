@@ -63,7 +63,6 @@ class TestBuildContext__enter__(TestCase):
         result = context.__enter__()
 
         self.assertEqual(result, context)  # __enter__ must return self
-        self.assertEqual(context.template_dict, template_dict)
         self.assertEqual(context.function_provider, funcprovider)
         self.assertEqual(context.layer_provider, layerprovider)
         self.assertEqual(context.base_dir, base_dir)
@@ -357,7 +356,6 @@ class TestBuildContext__enter__(TestCase):
         result = context.__enter__()
 
         self.assertEqual(result, context)  # __enter__ must return self
-        self.assertEqual(context.template_dict, template_dict)
         self.assertEqual(context.function_provider, funcprovider)
         self.assertEqual(context.layer_provider, layerprovider)
         self.assertEqual(context.base_dir, base_dir)

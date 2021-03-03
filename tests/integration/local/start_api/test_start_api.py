@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time, sleep
 
 import pytest
+from parameterized import parameterized_class
 
 from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
 from samcli.local.apigw.local_apigw_service import Route
@@ -120,12 +121,17 @@ class TestServiceErrorResponses(StartApiIntegBaseClass):
         pass
 
 
+@parameterized_class(
+    ("template_path", "nested_stack_enabled"),
+    [
+        ("/testdata/start_api/template.yaml", False),
+        ("/testdata/start_api/nested-templates/template-parent.yaml", "nested_stack_enabled"),
+    ],
+)
 class TestService(StartApiIntegBaseClass):
     """
     Testing general requirements around the Service that powers `sam local start-api`
     """
-
-    template_path = "/testdata/start_api/template.yaml"
 
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
@@ -229,12 +235,17 @@ class TestService(StartApiIntegBaseClass):
         self.assertEqual(response_data.get("body"), data)
 
 
+@parameterized_class(
+    ("template_path", "nested_stack_enabled"),
+    [
+        ("/testdata/start_api/template-http-api.yaml", False),
+        ("/testdata/start_api/nested-templates/template-http-api-parent.yaml", "nested_stack_enabled"),
+    ],
+)
 class TestServiceWithHttpApi(StartApiIntegBaseClass):
     """
     Testing general requirements around the Service that powers `sam local start-api`
     """
-
-    template_path = "/testdata/start_api/template-http-api.yaml"
 
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
@@ -1534,9 +1545,17 @@ class TestCFNTemplateQuickCreatedHttpApiWithDefaultRoute(StartApiIntegBaseClass)
         self.assertEqual(response.headers.get("Access-Control-Max-Age"), "600")
 
 
+@parameterized_class(
+    ("template_path", "nested_stack_enabled"),
+    [
+        ("/testdata/start_api/cfn-http-api-with-normal-and-default-routes.yaml", False),
+        (
+            "/testdata/start_api/nested-templates/cfn-http-api-with-normal-and-default-routes-parent.yaml",
+            "nested_stack_enabled",
+        ),
+    ],
+)
 class TestCFNTemplateHttpApiWithNormalAndDefaultRoutes(StartApiIntegBaseClass):
-    template_path = "/testdata/start_api/cfn-http-api-with-normal-and-default-routes.yaml"
-
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
@@ -1611,6 +1630,16 @@ class TestServerlessTemplateWithRestApiAndHttpApiGateways(StartApiIntegBaseClass
         self.assertEqual(response.json(), {"hello": "world"})
 
 
+@parameterized_class(
+    ("template_path", "nested_stack_enabled"),
+    [
+        ("/testdata/start_api/cfn-http-api-and-rest-api-gateways.yaml", False),
+        (
+            "/testdata/start_api/nested-templates/cfn-http-api-and-rest-api-gateways-parent.yaml",
+            "nested_stack_enabled",
+        ),
+    ],
+)
 class TestCFNTemplateWithRestApiAndHttpApiGateways(StartApiIntegBaseClass):
     template_path = "/testdata/start_api/cfn-http-api-and-rest-api-gateways.yaml"
 
@@ -2037,3 +2066,43 @@ COPY main.py ./"""
         response = requests.get(self.url + "/hello", timeout=300)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world2"})
+
+
+class TestApiPrecedenceInNestedStacks(StartApiIntegBaseClass):
+    """
+    Here we test when two APIs share the same path+method,
+    whoever located in top level stack should win.
+    See SamApiProvider::merge_routes() docstring for the full detail.
+    """
+
+    template_path = "/testdata/start_api/nested-templates/template-precedence-root.yaml"
+    nested_stack_enabled = True
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_should_call_function_in_root_stack_if_path_method_collide(self):
+        response = requests.post(self.url + "/path1", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_should_call_function_in_child_stack_if_only_path_collides(self):
+        response = requests.get(self.url + "/path1", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content.decode("utf-8"), "42")
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_should_call_function_in_child_stack_if_nothing_collides(self):
+        data = "I don't collide with any other APIs"
+        response = requests.post(self.url + "/path2", data=data, timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+        self.assertEqual(response_data.get("body"), data)

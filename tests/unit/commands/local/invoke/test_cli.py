@@ -98,7 +98,7 @@ class TestCli(TestCase):
         )
 
         context_mock.local_lambda_runner.invoke.assert_called_with(
-            context_mock.function_name, event=event_data, stdout=context_mock.stdout, stderr=context_mock.stderr
+            context_mock.function_identifier, event=event_data, stdout=context_mock.stdout, stderr=context_mock.stderr
         )
         get_event_mock.assert_called_with(self.eventfile)
 
@@ -157,7 +157,7 @@ class TestCli(TestCase):
 
         get_event_mock.assert_not_called()
         context_mock.local_lambda_runner.invoke.assert_called_with(
-            context_mock.function_name, event="{}", stdout=context_mock.stdout, stderr=context_mock.stderr
+            context_mock.function_identifier, event="{}", stdout=context_mock.stdout, stderr=context_mock.stderr
         )
 
     @parameterized.expand(
