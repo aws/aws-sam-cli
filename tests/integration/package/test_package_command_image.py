@@ -1,3 +1,5 @@
+import os
+import re
 import tempfile
 from subprocess import Popen, PIPE, TimeoutExpired
 
@@ -24,7 +26,13 @@ class TestPackageImage(PackageIntegBase):
     @classmethod
     def setUpClass(cls):
         cls.docker_client = docker.from_env()
-        cls.local_images = [("alpine", "latest")]
+        cls.local_images = [
+            ("alpine", "latest"),
+            # below 3 images are for test_package_with_deep_nested_template_image()
+            ("python", "3.9-slim"),
+            ("python", "3.8-slim"),
+            ("python", "3.7-slim"),
+        ]
         # setup some images locally by pulling them.
         for repo, tag in cls.local_images:
             cls.docker_client.api.pull(repository=repo, tag=tag)
@@ -166,3 +174,44 @@ class TestPackageImage(PackageIntegBase):
             s3.Object(bucket_name, key).download_fileobj(packaged_nested_file)
             packaged_nested_file.seek(0)
             self.assertIn(f"{self.ecr_repo_name}", packaged_nested_file.read().decode())
+
+    def test_package_with_deep_nested_template_image(self):
+        """
+        this template contains two nested stacks:
+        - root
+          - FunctionA
+          - ChildStackX
+            - FunctionB
+            - ChildStackY
+              - FunctionA
+        """
+        template_file = os.path.join("deep-nested-image", "template.yaml")
+
+        template_path = self.test_data_path.joinpath(template_file)
+        command_list = self.get_command_list(
+            image_repository=self.ecr_repo_name, resolve_s3=True, template=template_path, force_upload=True
+        )
+
+        process = Popen(command_list, stdout=PIPE, stderr=PIPE)
+        try:
+            _, stderr = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+        process_stderr = stderr.strip().decode("utf-8")
+
+        # there are in total 3 function images and 2 child template file to upload
+        # verify both child templates are uploaded
+        uploads = re.findall(r"\.template", process_stderr)
+        self.assertEqual(len(uploads), 2)
+
+        # verify all function images are pushed
+        images = [
+            ("python", "3.9-slim"),
+            ("python", "3.8-slim"),
+            ("python", "3.7-slim"),
+        ]
+        for image, tag in images:
+            # check string like this:
+            # ...python-ce689abb4f0d-3.9-slim: digest:...
+            self.assertRegex(process_stderr, fr"{image}-.+-{tag}: digest:")

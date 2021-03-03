@@ -306,7 +306,9 @@ class ApplicationBuilder:
         # Have a default tag if not present.
         tag = metadata.get("DockerTag", "latest")
         docker_tag = f"{function_name.lower()}:{tag}"
+        docker_build_target = metadata.get("DockerBuildTarget", None)
         docker_build_args = metadata.get("DockerBuildArgs", {})
+
         if not isinstance(docker_build_args, dict):
             raise DockerBuildFailed("DockerBuildArgs needs to be a dictionary!")
 
@@ -321,13 +323,17 @@ class ApplicationBuilder:
         if isinstance(docker_build_args, dict):
             LOG.info("Setting DockerBuildArgs: %s for %s function", docker_build_args, function_name)
 
-        build_logs = self._docker_client.api.build(
-            path=str(docker_context_dir),
-            dockerfile=dockerfile,
-            tag=docker_tag,
-            buildargs=docker_build_args,
-            decode=True,
-        )
+        build_args = {
+            "path": str(docker_context_dir),
+            "dockerfile": dockerfile,
+            "tag": docker_tag,
+            "buildargs": docker_build_args,
+            "decode": True,
+        }
+        if docker_build_target:
+            build_args["target"] = cast(str, docker_build_target)
+
+        build_logs = self._docker_client.api.build(**build_args)
 
         # The Docker-py low level api will stream logs back but if an exception is raised by the api
         # this is raised when accessing the generator. So we need to wrap accessing build_logs in a try: except.

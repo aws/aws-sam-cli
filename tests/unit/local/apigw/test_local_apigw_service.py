@@ -1299,3 +1299,8 @@ class TestRouteEqualsHash(TestCase):
         route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
         route2 = Route(function_name="test", path="/test", methods=["GET", "POST"])
         self.assertEqual(route1.__hash__(), route2.__hash__())
+
+    def test_route_different_stack_path_hash(self):
+        route1 = Route(function_name="test", path="/test1", methods=["GET", "POST"], stack_path="2")
+        route2 = Route(function_name="test", path="/test1", methods=["GET", "POST"], stack_path="1")
+        self.assertNotEqual(route1.__hash__(), route2.__hash__())

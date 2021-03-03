@@ -103,7 +103,7 @@ class TestSamConfigForAllCommands(TestCase):
     @patch("samcli.commands.build.command.do_cli")
     def test_build(self, do_cli_mock):
         config_values = {
-            "function_identifier": "foo",
+            "resource_logical_id": "foo",
             "template_file": "mytemplate.yaml",
             "base_dir": "basedir",
             "build_dir": "builddir",
@@ -152,7 +152,7 @@ class TestSamConfigForAllCommands(TestCase):
     @patch("samcli.commands.build.command.do_cli")
     def test_build_with_container_env_vars(self, do_cli_mock):
         config_values = {
-            "function_identifier": "foo",
+            "resource_logical_id": "foo",
             "template_file": "mytemplate.yaml",
             "base_dir": "basedir",
             "build_dir": "builddir",
@@ -203,7 +203,7 @@ class TestSamConfigForAllCommands(TestCase):
     @patch("samcli.commands.local.invoke.cli.do_cli")
     def test_local_invoke(self, do_cli_mock):
         config_values = {
-            "function_identifier": "foo",
+            "function_logical_id": "foo",
             "template_file": "mytemplate.yaml",
             "event": "event",
             "no_event": False,
