@@ -99,7 +99,7 @@ for:
 
       # Run tests with dev env
       - "venv\\Scripts\\activate"
-      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 -n 4 --dist loadscope tests/unit"
+      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 -n 4 --dist loadfile tests/unit"
       - "pylint --rcfile .pylintrc samcli"
       - "mypy setup.py samcli tests"
       - "pytest -n 4 tests/functional"
@@ -159,7 +159,7 @@ for:
       
       # Dev Tests
       - "pip install -e \".[dev]\""
-      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 -n 4 --dist loadscope tests/unit"
+      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 -n 4 --dist loadfile tests/unit"
       - "pylint --rcfile .pylintrc samcli"
       - "mypy setup.py samcli tests"
       - "pytest -n 4 tests/functional"
@@ -169,8 +169,8 @@ for:
         if [[ -n $BY_CANARY ]] && [[ -n $DOCKER_USER ]] && [[ -n $DOCKER_PASS ]];
           then echo Logging in Docker Hub; echo $DOCKER_PASS | docker login --username $DOCKER_USER --password-stdin;
         fi"
-      - sh: "pytest -vv -n 2 --dist loadscope tests/integration "
-      - sh: "pytest -vv -n 4 --dist loadscope tests/regression"
+      - sh: "pytest -vv -n 2 --dist loadfile tests/integration"
+      - sh: "pytest -vv -n 4 --dist loadfile tests/regression"
       - sh: "black --check setup.py tests samcli"
 
       # Set JAVA_HOME to java11
