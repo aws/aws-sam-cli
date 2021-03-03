@@ -1554,6 +1554,9 @@ class TestBuildWithNestedStacks(NestedBuildIntegBase):
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
+        # make sure functions are deduplicated properly, in stderr they will show up in the same line.
+        self.assertRegex(command_result.stderr.decode("utf-8"), r"Building .+'Function2',.+LocalNestedStack/Function2")
+
         function_full_paths = ["Function", "Function2", "LocalNestedStack/Function1", "LocalNestedStack/Function2"]
         stack_paths = ["", "LocalNestedStack"]
         if not SKIP_DOCKER_TESTS:
