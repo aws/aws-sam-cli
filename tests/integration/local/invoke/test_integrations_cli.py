@@ -25,13 +25,10 @@ TIMEOUT = 300
 
 
 @parameterized_class(
-    ("template", "nested_stack_enabled"),
+    ("template",),
     [
-        (Path("template.yml"), False),
-        (
-            Path("nested-templates", "template-parent.yaml"),
-            "nested_stack_enabled",
-        ),
+        (Path("template.yml"),),
+        (Path("nested-templates/template-parent.yaml"),),
     ],
 )
 class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
@@ -41,7 +38,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
             "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
         )
 
-        process = Popen(command_list, stdout=PIPE, env=self.env)
+        process = Popen(command_list, stdout=PIPE)
         try:
             process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -57,7 +54,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
             "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_utf8_path
         )
 
-        process = Popen(command_list, stdout=PIPE, env=self.env)
+        process = Popen(command_list, stdout=PIPE)
         try:
             process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -70,7 +67,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
     def test_function_with_metadata(self):
         command_list = self.get_command_list("FunctionWithMetadata", template_path=self.template_path, no_event=True)
 
-        process = Popen(command_list, stdout=PIPE, env=self.env)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -94,7 +91,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
             function_name, template_path=self.template_path, event_path=self.event_path
         )
 
-        process = Popen(command_list, stdout=PIPE, env=self.env)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -110,7 +107,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
             "HelloWorldLambdaFunction", template_path=self.template_path, event_path=self.event_path
         )
 
-        process = Popen(command_list, stdout=PIPE, env=self.env)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -126,7 +123,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
             "func-name-override", template_path=self.template_path, event_path=self.event_path
         )
 
-        process = Popen(command_list, stdout=PIPE, env=self.env)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -146,7 +143,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         )
 
         start = timer()
-        process = Popen(command_list, stdout=PIPE, env=self.env)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -179,7 +176,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
             env_var_path=self.env_var_path,
         )
 
-        process = Popen(command_list, stdout=PIPE, env=self.env)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -195,7 +192,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
             function_name, template_path=self.template_path, event_path=self.event_path, env_var_path=self.env_var_path
         )
 
-        process = Popen(command_list, stdout=PIPE, env=self.env)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -210,7 +207,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
             "WriteToStdoutFunction", template_path=self.template_path, event_path=self.event_path
         )
 
-        process = Popen(command_list, stdout=PIPE, stderr=PIPE, env=self.env)
+        process = Popen(command_list, stdout=PIPE, stderr=PIPE)
         try:
             stdout, stderr = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -229,7 +226,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
             "WriteToStderrFunction", template_path=self.template_path, event_path=self.event_path
         )
 
-        process = Popen(command_list, stderr=PIPE, env=self.env)
+        process = Popen(command_list, stderr=PIPE)
         try:
             _, stderr = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -243,7 +240,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returns_expected_result_when_no_event_given(self):
         command_list = self.get_command_list("EchoEventFunction", template_path=self.template_path)
-        process = Popen(command_list, stdout=PIPE, env=self.env)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -264,7 +261,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
             parameter_overrides={"MyRuntimeVersion": "v0", "DefaultTimeout": "100"},
         )
 
-        process = Popen(command_list, stdout=PIPE, env=self.env)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -296,7 +293,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
             "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path, region=custom_region
         )
 
-        process = Popen(command_list, stdout=PIPE, env=self.env)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -325,8 +322,6 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         env["AWS_ACCESS_KEY_ID"] = key
         env["AWS_SECRET_ACCESS_KEY"] = secret
         env["AWS_SESSION_TOKEN"] = session
-        if self.nested_stack_enabled:
-            env["SAM_CLI_ENABLE_NESTED_STACK"] = "1"
 
         process = Popen(command_list, stdout=PIPE, env=env)
         try:
@@ -353,7 +348,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
             docker_network="host",
         )
 
-        process = Popen(command_list, stdout=PIPE, env=self.env)
+        process = Popen(command_list, stdout=PIPE)
         try:
             process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -371,8 +366,6 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         env = os.environ.copy()
         env["SAM_DOCKER_NETWORK"] = "non-existing-network"
-        if self.nested_stack_enabled:
-            env["SAM_CLI_ENABLE_NESTED_STACK"] = "1"
 
         process = Popen(command_list, stderr=PIPE, env=env)
         try:
@@ -392,8 +385,6 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         self.test_data_path.joinpath("invoke", "sam-template.yaml")
         env = os.environ.copy()
         env["SAM_TEMPLATE_FILE"] = str(self.test_data_path.joinpath("invoke", "sam-template.yaml"))
-        if self.nested_stack_enabled:
-            env["SAM_CLI_ENABLE_NESTED_STACK"] = "1"
 
         process = Popen(command_list, stdout=PIPE, env=env)
         try:
@@ -417,8 +408,6 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         env = os.environ.copy()
         env["SAM_SKIP_PULL_IMAGE"] = "True"
-        if self.nested_stack_enabled:
-            env["SAM_CLI_ENABLE_NESTED_STACK"] = "1"
 
         process = Popen(command_list, stderr=PIPE, env=env)
         try:
@@ -438,7 +427,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
             "GitLayerFunction", template_path=self.template_path, event_path=self.event_path
         )
 
-        process = Popen(command_list, stdout=PIPE, env=self.env)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -459,7 +448,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
             parameter_overrides={"LayerVersion": "5"},
         )
 
-        process = Popen(command_list, stdout=PIPE, env=self.env)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -676,17 +665,11 @@ class TestUsingConfigFiles(InvokeIntegBase):
 
 
 @parameterized_class(
-    ("template", "nested_stack_enabled"),
+    ("template",),
     [
-        (Path("layers", "layer-template.yml"), False),
-        (
-            Path("nested-templates", "layer-template-parent.yaml"),
-            "nested_stack_enabled",
-        ),
-        (
-            Path("layers", "some-dir", "layer-template-parent.yaml"),
-            "nested_stack_enabled",
-        ),
+        (Path("layers", "layer-template.yml"),),
+        (Path("nested-templates", "layer-template-parent.yaml"),),
+        (Path("layers", "some-dir", "layer-template-parent.yaml"),),
     ],
 )
 @skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
@@ -744,7 +727,7 @@ class TestLayerVersion(InvokeIntegBase):
             parameter_overrides=self.layer_utils.parameters_overrides,
         )
 
-        process = Popen(command_list, stdout=PIPE, env=self.env)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -768,7 +751,7 @@ class TestLayerVersion(InvokeIntegBase):
             parameter_overrides=self.layer_utils.parameters_overrides,
         )
 
-        process = Popen(command_list, stdout=PIPE, env=self.env)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -794,7 +777,7 @@ class TestLayerVersion(InvokeIntegBase):
             parameter_overrides=self.layer_utils.parameters_overrides,
         )
 
-        process = Popen(command_list, stdout=PIPE, env=self.env)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -819,7 +802,7 @@ class TestLayerVersion(InvokeIntegBase):
             parameter_overrides=self.layer_utils.parameters_overrides,
         )
 
-        process = Popen(command_list, stdout=PIPE, env=self.env)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate()
         except TimeoutExpired:
@@ -844,7 +827,7 @@ class TestLayerVersion(InvokeIntegBase):
             parameter_overrides=self.layer_utils.parameters_overrides,
         )
 
-        process = Popen(command_list, stdout=PIPE, env=self.env)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -869,7 +852,7 @@ class TestLayerVersion(InvokeIntegBase):
             parameter_overrides=self.layer_utils.parameters_overrides,
         )
 
-        process = Popen(command_list, stdout=PIPE, env=self.env)
+        process = Popen(command_list, stdout=PIPE)
         try:
             process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -890,8 +873,6 @@ class TestLayerVersion(InvokeIntegBase):
 
         env = os.environ.copy()
         env["SAM_LAYER_CACHE_BASEDIR"] = str(self.layer_cache)
-        if self.nested_stack_enabled:
-            env["SAM_CLI_ENABLE_NESTED_STACK"] = "1"
 
         process = Popen(command_list, stdout=PIPE, env=env)
         try:
@@ -932,7 +913,7 @@ class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
             parameter_overrides={"NonExistentLayerArn": non_existent_layer_arn},
         )
 
-        process = Popen(command_list, stderr=PIPE, env=self.env)
+        process = Popen(command_list, stderr=PIPE)
         try:
             _, stderr = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -955,7 +936,7 @@ class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
             region=self.region,
         )
 
-        process = Popen(command_list, stderr=PIPE, env=self.env)
+        process = Popen(command_list, stderr=PIPE)
         try:
             _, stderr = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -1005,7 +986,6 @@ class TestBadLayerVersion(InvokeIntegBase):
 
 class TestInvokeWithFunctionFullPathToAvoidAmbiguity(InvokeIntegBase):
     template = Path("template-deep-root.yaml")
-    nested_stack_enabled = True
 
     @parameterized.expand(
         [
@@ -1021,7 +1001,7 @@ class TestInvokeWithFunctionFullPathToAvoidAmbiguity(InvokeIntegBase):
             function_identifier, template_path=self.template_path, event_path=self.event_path
         )
 
-        process = Popen(command_list, stdout=PIPE, env=self.env)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -1039,7 +1019,7 @@ class TestInvokeWithFunctionFullPathToAvoidAmbiguity(InvokeIntegBase):
             "SubApp/SubSubApp/FunctionA", template_path=self.template_path, event_path=self.event_path
         )
 
-        process = Popen(command_list, stdout=PIPE, env=self.env)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -1050,3 +1030,21 @@ class TestInvokeWithFunctionFullPathToAvoidAmbiguity(InvokeIntegBase):
 
         self.assertEqual(process.returncode, 0)
         self.assertEqual(process_stdout.decode("utf-8"), '"Hello world"')
+
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_with_non_existent_function_full_path(self):
+        command_list = self.get_command_list(
+            "SubApp/SubSubApp/Function404", template_path=self.template_path, event_path=self.event_path
+        )
+
+        process = Popen(command_list, stdout=PIPE, stderr=PIPE)
+        try:
+            _, stderr = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stderr = stderr.strip()
+
+        self.assertEqual(process.returncode, 1)
+        self.assertIn("not found in template", process_stderr.decode("utf-8"))
