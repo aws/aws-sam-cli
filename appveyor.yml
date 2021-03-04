@@ -169,7 +169,11 @@ for:
         if [[ -n $BY_CANARY ]] && [[ -n $DOCKER_USER ]] && [[ -n $DOCKER_PASS ]];
           then echo Logging in Docker Hub; echo $DOCKER_PASS | docker login --username $DOCKER_USER --password-stdin;
         fi"
-      - sh: "pytest -vv -n 2 --dist loadfile tests/integration"
+      # warm container integration tests might be interfered by other tests using docker.
+      # To grant exclusive access to docker, here we run warm container integration tests in sequential,
+      # then run everything else in parallel.
+      - sh: "pytest -vv -k 'TestWarmContainers' tests/integration"
+      - sh: "pytest -vv -n 2 --dist loadfile -k 'not TestWarmContainers' tests/integration"
       - sh: "pytest -vv -n 4 --dist loadfile tests/regression"
       - sh: "black --check setup.py tests samcli"
 
