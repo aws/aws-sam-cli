@@ -12,6 +12,9 @@ class LogsFormatter:
     """
 
     def __init__(self, colored, formatter_chain=None):
+        # the docstring contains an example function which contains another docstring,
+        # pylint is confused so disable it for this method.
+        # pylint: disable=missing-param-doc,differing-param-doc,differing-type-doc
         """
 
         ``formatter_chain`` is a list of methods that can format an event. Each method must take an
@@ -61,8 +64,8 @@ class LogsFormatter:
             Terminal. To turn off coloring, set the appropriate property when instantiating the
             ``samcli.lib.utils.colors.Colored`` class.
 
-        formatter_chain : list of formatter methods
-
+        formatter_chain : List[str]
+            list of formatter methods
         """
 
         self.colored = colored

@@ -29,6 +29,7 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
     :param ctx: Click Context
     :param param: Param name
     :param provided_value: Value provided by Click. It could either be the default value or provided by user.
+    :param include_build: A boolean to set whether to search build template or not.
     :return: Actual value to be used in the CLI
     """
 

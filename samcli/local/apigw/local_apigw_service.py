@@ -3,6 +3,7 @@ import io
 import json
 import logging
 import base64
+from typing import List, Optional
 
 from flask import Flask, request
 from werkzeug.datastructures import Headers
@@ -38,7 +39,14 @@ class Route:
     ANY_HTTP_METHODS = ["GET", "DELETE", "PUT", "POST", "HEAD", "OPTIONS", "PATCH"]
 
     def __init__(
-        self, function_name, path, methods, event_type=API, payload_format_version=None, is_default_route=False
+        self,
+        function_name: str,
+        path: str,
+        methods: List[str],
+        event_type: str = API,
+        payload_format_version: Optional[str] = None,
+        is_default_route: bool = False,
+        stack_path: str = "",
     ):
         """
         Creates an ApiGatewayRoute
@@ -49,6 +57,7 @@ class Route:
         :param str event_type: Type of the event. "Api" or "HttpApi"
         :param str payload_format_version: version of payload format
         :param bool is_default_route: determines if the default route or not
+        :param str stack_path: path of the stack the route is located
         """
         self.methods = self.normalize_method(methods)
         self.function_name = function_name
@@ -56,6 +65,7 @@ class Route:
         self.event_type = event_type
         self.payload_format_version = payload_format_version
         self.is_default_route = is_default_route
+        self.stack_path = stack_path
 
     def __eq__(self, other):
         return (
@@ -63,10 +73,11 @@ class Route:
             and sorted(self.methods) == sorted(other.methods)
             and self.function_name == other.function_name
             and self.path == other.path
+            and self.stack_path == other.stack_path
         )
 
     def __hash__(self):
-        route_hash = hash(self.function_name) * hash(self.path)
+        route_hash = hash(f"{self.stack_path}-{self.function_name}-{self.path}")
         for method in sorted(self.methods):
             route_hash *= hash(method)
         return route_hash
@@ -105,19 +116,19 @@ class LocalApigwService(BaseLocalService):
 
         Parameters
         ----------
-        api: Api
+        api : Api
            an Api object that contains the list of routes and properties
-        lambda_runner samcli.commands.local.lib.local_lambda.LocalLambdaRunner
+        lambda_runner : samcli.commands.local.lib.local_lambda.LocalLambdaRunner
             The Lambda runner class capable of invoking the function
-        static_dir str
+        static_dir : str
             Directory from which to serve static files
-        port int
+        port : int
             Optional. port for the service to start listening on
             Defaults to 3000
-        host str
+        host : str
             Optional. host to start the service on
             Defaults to '127.0.0.1
-        stderr samcli.lib.utils.stream_writer.StreamWriter
+        stderr : samcli.lib.utils.stream_writer.StreamWriter
             Optional stream writer where the stderr from Docker container should be written to
         """
         super().__init__(lambda_runner.is_debugging(), port=port, host=host)
@@ -202,6 +213,7 @@ class LocalApigwService(BaseLocalService):
                 event_type=Route.HTTP,
                 payload_format_version=route.payload_format_version,
                 is_default_route=True,
+                stack_path=route.stack_path,
             )
 
     def _generate_route_keys(self, methods, path):
@@ -359,11 +371,13 @@ class LocalApigwService(BaseLocalService):
 
     # Consider moving this out to its own class. Logic is started to get dense and looks messy @jfuss
     @staticmethod
-    def _parse_v1_payload_format_lambda_output(lambda_output, binary_types, flask_request):
+    def _parse_v1_payload_format_lambda_output(lambda_output: str, binary_types, flask_request):
         """
         Parses the output from the Lambda Container
 
         :param str lambda_output: Output from Lambda Invoke
+        :param binary_types: list of binary types
+        :param flask_request: flash request object
         :return: Tuple(int, dict, str, bool)
         """
         # pylint: disable-msg=too-many-statements
@@ -418,11 +432,13 @@ class LocalApigwService(BaseLocalService):
         return status_code, headers, body
 
     @staticmethod
-    def _parse_v2_payload_format_lambda_output(lambda_output, binary_types, flask_request):
+    def _parse_v2_payload_format_lambda_output(lambda_output: str, binary_types, flask_request):
         """
         Parses the output from the Lambda Container
 
         :param str lambda_output: Output from Lambda Invoke
+        :param binary_types: list of binary types
+        :param flask_request: flash request object
         :return: Tuple(int, dict, str, bool)
         """
         # pylint: disable-msg=too-many-statements
@@ -478,7 +494,9 @@ class LocalApigwService(BaseLocalService):
 
         try:
             if LocalApigwService._should_base64_decode_body(binary_types, flask_request, headers, is_base_64_encoded):
-                body = base64.b64decode(body)
+                # Note(xinhol): here in this method we change the type of the variable body multiple times
+                # and confused mypy, we might want to avoid this and use multiple variables here.
+                body = base64.b64decode(body)  # type: ignore
         except ValueError as ex:
             LambdaResponseParseException(str(ex))
 
@@ -555,6 +573,10 @@ class LocalApigwService(BaseLocalService):
         Helper method that constructs the Event to be passed to Lambda
 
         :param request flask_request: Flask Request
+        :param port: the port number
+        :param binary_types: list of binary types
+        :param stage_name: Optional, the stage name string
+        :param stage_variables: Optional, API Gateway Stage Variables
         :return: String representing the event
         """
         # pylint: disable-msg=too-many-locals
@@ -578,6 +600,8 @@ class LocalApigwService(BaseLocalService):
 
         if request_data:
             # Flask does not parse/decode the request data. We should do it ourselves
+            # Note(xinhol): here we change request_data's type from bytes to str and confused mypy
+            # We might want to consider to use a new variable here.
             request_data = request_data.decode("utf-8")
 
         query_string_dict, multi_value_query_string_dict = LocalApigwService._query_string_params(flask_request)
@@ -623,6 +647,11 @@ class LocalApigwService(BaseLocalService):
         https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html
 
         :param request flask_request: Flask Request
+        :param port: the port number
+        :param binary_types: list of binary types
+        :param stage_name: Optional, the stage name string
+        :param stage_variables: Optional, API Gateway Stage Variables
+        :param route_key: Optional, the route key for the route
         :return: String representing the event
         """
         # pylint: disable-msg=too-many-locals

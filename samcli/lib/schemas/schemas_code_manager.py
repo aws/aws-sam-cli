@@ -16,8 +16,8 @@ def do_download_source_code_binding(runtime, schema_template_details, schemas_ap
     generating the code bindings if they haven't been generated first
     :param runtime: Lambda runtime
     :param schema_template_details: e.g: registry_name, schema_name, schema_version
-    :param schemas_api_caller:
-    :param download_dir:
+    :param schemas_api_caller: the schemas api caller object
+    :param download_location: the download location
     :return: directory location where code is downloaded
     """
     registry_name = schema_template_details["registry_name"]

@@ -35,6 +35,7 @@ class GlobalConfig:
 
         :param config_dir: Optional, overrides the default config directory path.
         :param installation_id: Optional, will use this installation id rather than checking config values.
+        :param telemetry_enabled: Optional, set whether telemetry is enabled or not.
         :param last_version_check: Optional, will be used to check if there is a newer version of SAM CLI available
         """
         self._config_dir = config_dir

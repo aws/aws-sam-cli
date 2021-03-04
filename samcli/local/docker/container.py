@@ -59,15 +59,18 @@ class Container:
         """
         Initializes the class with given configuration. This does not automatically create or run the container.
 
-        :param string image: Name of the Docker image to create container with
-        :param string working_dir: Working directory for the container
-        :param string host_dir: Directory in the host operating system that should be mounted to the ``working_dir`` on
+        :param str image: Name of the Docker image to create container with
+        :param str cmd: Command to pass to container
+        :param str working_dir: Working directory for the container
+        :param str host_dir: Directory in the host operating system that should be mounted to the ``working_dir`` on
             container
-        :param list cmd: Command to pass to container
         :param int memory_limit_mb: Optional. Max limit of memory in MegaBytes this Lambda function can use.
         :param dict exposed_ports: Optional. Dict of ports to expose
-        :param list entrypoint: Optional. Entry point process for the container. Defaults to the value in Dockerfile
+        :param dict entrypoint: Optional. Entry point process for the container. Defaults to the value in Dockerfile
         :param dict env_vars: Optional. Dict of environment variables to setup in the container
+        :param docker_client: Optional, a docker client to replace the default one loaded from env
+        :param container_opts: Optional, a dictionary containing the container options
+        :param additional_volumes: Optional list of additional volumes
         """
 
         self._image = image

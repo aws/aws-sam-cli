@@ -3,13 +3,18 @@ import tempfile
 from collections import OrderedDict
 from unittest import TestCase
 
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 from samcli.lib.providers.api_provider import ApiProvider
 from samcli.lib.providers.cfn_api_provider import CfnApiProvider
 from samcli.local.apigw.local_apigw_service import Route
 from tests.unit.commands.local.lib.test_sam_api_provider import make_swagger
-from samcli.lib.providers.provider import Cors
+from samcli.lib.providers.provider import Cors, Stack
+
+
+def make_mock_stacks_from_template(template):
+    stack_mock = Stack("", "", Mock(), parameters=None, template_dict=template)
+    return [stack_mock]
 
 
 class TestApiProviderWithApiGatewayRestRoute(TestCase):
@@ -24,7 +29,7 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
     def test_with_no_apis(self):
         template = {"Resources": {"Api1": {"Type": "AWS::ApiGateway::RestApi", "Properties": {}}}}
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         self.assertEqual(provider.routes, [])
 
@@ -35,7 +40,7 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
         self.assertCountEqual(self.input_routes, provider.routes)
 
     def test_with_swagger_as_local_file(self):
@@ -51,7 +56,7 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
                 "Resources": {"Api1": {"Type": "AWS::ApiGateway::RestApi", "Properties": {"BodyS3Location": filename}}}
             }
 
-            provider = ApiProvider(template)
+            provider = ApiProvider(make_mock_stacks_from_template(template))
             self.assertCountEqual(self.input_routes, provider.routes)
 
     def test_body_with_swagger_as_local_file_expect_fail(self):
@@ -80,7 +85,7 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
         SwaggerReaderMock.return_value.read.return_value = make_swagger(self.input_routes)
 
         cwd = "foo"
-        provider = ApiProvider(template, cwd=cwd)
+        provider = ApiProvider(make_mock_stacks_from_template(template), cwd=cwd)
         self.assertCountEqual(self.input_routes, provider.routes)
         SwaggerReaderMock.assert_called_with(definition_body=body, definition_uri=filename, working_dir=cwd)
 
@@ -99,7 +104,7 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
             "Resources": {"Api1": {"Type": "AWS::ApiGateway::RestApi", "Properties": {"Body": make_swagger(routes)}}}
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
         self.assertCountEqual(expected_routes, provider.routes)
 
     def test_with_binary_media_types(self):
@@ -119,7 +124,7 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
             Route(path="/path3", methods=["DELETE"], function_name="SamFunc1"),
         ]
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
         self.assertCountEqual(expected_apis, provider.routes)
         self.assertCountEqual(provider.api.binary_media_types, expected_binary_types)
 
@@ -142,7 +147,7 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
         expected_binary_types = sorted(self.binary_types + extra_binary_types)
         expected_routes = [Route(path="/path", methods=["OPTIONS"], function_name="SamFunc1")]
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
         self.assertCountEqual(expected_routes, provider.routes)
         self.assertCountEqual(provider.api.binary_media_types, expected_binary_types)
 
@@ -184,7 +189,7 @@ class TestCloudFormationStageValues(TestCase):
                 },
             }
         }
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
         route1 = Route(path="/path", methods=["GET"], function_name="NoApiEventFunction")
 
         self.assertIn(route1, provider.routes)
@@ -226,7 +231,7 @@ class TestCloudFormationStageValues(TestCase):
                 },
             }
         }
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
         route1 = Route(path="/path", methods=["GET"], function_name="NoApiEventFunction")
         self.assertIn(route1, provider.routes)
         self.assertEqual(provider.api.stage_name, "dev")
@@ -289,7 +294,7 @@ class TestCloudFormationStageValues(TestCase):
             },
         }
         template = {"Resources": resources}
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         result = [f for f in provider.get_all()]
         routes = result[0].routes
@@ -325,7 +330,7 @@ class TestCloudFormationResourceMethod(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         self.assertEqual(provider.routes, [Route(function_name=None, path="/{proxy+}", methods=["POST"])])
 
@@ -376,7 +381,7 @@ class TestCloudFormationResourceMethod(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
         self.assertCountEqual(
             provider.routes,
             [
@@ -399,7 +404,7 @@ class TestCloudFormationResourceMethod(TestCase):
                 },
             }
         }
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
         self.assertCountEqual(
             provider.routes,
             [
@@ -472,7 +477,7 @@ class TestCloudFormationResourceMethod(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
         self.assertCountEqual(
             provider.routes,
             [
@@ -546,7 +551,7 @@ class TestCloudFormationResourceMethod(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
         self.assertCountEqual(provider.api.binary_media_types, ["image/png", "image/jpg"])
 
     def test_cdk(self):
@@ -662,7 +667,7 @@ class TestCloudFormationResourceMethod(TestCase):
                 }
             },
         }
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
         proxy_paths = [Route(path="/{proxy+}", methods=Route.ANY_HTTP_METHODS, function_name="HelloHandler2E4FBA4D")]
         root_paths = [Route(path="/", methods=Route.ANY_HTTP_METHODS, function_name="HelloHandler2E4FBA4D")]
         self.assertCountEqual(provider.routes, proxy_paths + root_paths)
@@ -679,7 +684,7 @@ class TestCloudFormationProviderWithApiGatewayV2(TestCase):
     def test_with_no_apis(self):
         template = {"Resources": {"Api1": {"Type": "AWS::ApiGatewayV2::Api", "Properties": {}}}}
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         self.assertEqual(provider.routes, [])
 
@@ -690,7 +695,7 @@ class TestCloudFormationProviderWithApiGatewayV2(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
         self.assertCountEqual(self.input_routes, provider.routes)
 
     def test_with_swagger_as_local_file(self):
@@ -706,7 +711,7 @@ class TestCloudFormationProviderWithApiGatewayV2(TestCase):
                 "Resources": {"Api1": {"Type": "AWS::ApiGatewayV2::Api", "Properties": {"BodyS3Location": filename}}}
             }
 
-            provider = ApiProvider(template)
+            provider = ApiProvider(make_mock_stacks_from_template(template))
             self.assertCountEqual(self.input_routes, provider.routes)
 
     def test_body_with_swagger_as_local_file_expect_fail(self):
@@ -735,7 +740,7 @@ class TestCloudFormationProviderWithApiGatewayV2(TestCase):
         SwaggerReaderMock.return_value.read.return_value = make_swagger(self.input_routes)
 
         cwd = "foo"
-        provider = ApiProvider(template, cwd=cwd)
+        provider = ApiProvider(make_mock_stacks_from_template(template), cwd=cwd)
         self.assertCountEqual(self.input_routes, provider.routes)
         SwaggerReaderMock.assert_called_with(definition_body=body, definition_uri=filename, working_dir=cwd)
 
@@ -754,7 +759,7 @@ class TestCloudFormationProviderWithApiGatewayV2(TestCase):
             "Resources": {"Api1": {"Type": "AWS::ApiGatewayV2::Api", "Properties": {"Body": make_swagger(routes)}}}
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
         self.assertEqual(expected_routes, provider.routes)
 
     def test_with_quick_create_default_route(self):
@@ -779,7 +784,7 @@ class TestCloudFormationProviderWithApiGatewayV2(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
         self.assertEqual(expected_routes, provider.routes)
 
     def test_with_quick_create_defined_route(self):
@@ -805,7 +810,7 @@ class TestCloudFormationProviderWithApiGatewayV2(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
         self.assertEqual(expected_routes, provider.routes)
 
     def test_with_cors(self):
@@ -832,7 +837,7 @@ class TestCloudFormationProviderWithApiGatewayV2(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
         self.assertEqual(expected_cors, provider.api.cors)
 
 
@@ -864,7 +869,7 @@ class TestCloudFormationProviderWithApiGatewayV2Route(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         self.assertEqual(provider.routes, [Route(function_name="SamFunc1", path="/{proxy+}", methods=["POST"])])
 
@@ -882,7 +887,7 @@ class TestCloudFormationProviderWithApiGatewayV2Route(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         self.assertEqual(provider.routes, [])
 
@@ -913,7 +918,7 @@ class TestCloudFormationProviderWithApiGatewayV2Route(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         self.assertEqual(
             provider.routes,
@@ -979,7 +984,7 @@ class TestCloudFormationWithApiGatewayV2Stage(TestCase):
                 },
             }
         }
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
         route1 = Route(path="/path", methods=["GET"], function_name="NoApiEventFunction")
 
         self.assertIn(route1, provider.routes)
@@ -1021,7 +1026,7 @@ class TestCloudFormationWithApiGatewayV2Stage(TestCase):
                 },
             }
         }
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
         route1 = Route(path="/path", methods=["GET"], function_name="NoApiEventFunction")
         self.assertIn(route1, provider.routes)
         self.assertEqual(provider.api.stage_name, "dev")
@@ -1084,7 +1089,7 @@ class TestCloudFormationWithApiGatewayV2Stage(TestCase):
             },
         }
         template = {"Resources": resources}
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         result = [f for f in provider.get_all()]
         routes = result[0].routes
