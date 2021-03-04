@@ -1,0 +1,15 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: A hello world application.
+
+Resources:
+  FunctionA:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: python:3.8-slim
+
+  ChildStackX:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ChildStackX/template.yaml
