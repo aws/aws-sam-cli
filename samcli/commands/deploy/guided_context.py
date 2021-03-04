@@ -3,6 +3,8 @@ Class to manage all the prompts during a guided sam deploy
 """
 
 import logging
+from re import template
+from samcli.lib.bootstrap.companion_stack.companion_stack_manager_helper import CompanionStackManagerHelper
 from samcli.lib.bootstrap.companion_stack.companion_stack_manager import CompanionStackManager
 from typing import Dict, Any, List
 
@@ -33,10 +35,12 @@ from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.package.ecr_utils import is_ecr_url
 from samcli.lib.package.image_utils import tag_translation, NonLocalImageException, NoImageFoundException
 from samcli.lib.providers.provider import Stack
-from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.packagetype import IMAGE
+from samcli.commands.deploy.utils import sanitize_parameter_overrides
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 
 LOG = logging.getLogger(__name__)
 
@@ -276,52 +280,43 @@ class GuidedContext:
         self, stack_name, stacks: List[Stack], image_repositories: Dict[str, str], region, s3_bucket, s3_prefix
     ):
         image_repositories = image_repositories.copy() if image_repositories is not None else {}
-
-        companion_stack_manager = CompanionStackManager(stack_name, region, s3_bucket, s3_prefix)
-        deployed_repos = companion_stack_manager.list_deployed_repos()
-        deployed_repo_uris = [companion_stack_manager.get_repo_uri(repo) for repo in deployed_repos]
-
         self.function_provider = SamFunctionProvider(stacks, ignore_code_extraction_warnings=True)
-        function_logical_ids = get_template_function_resource_ids(template_file=self.template_file, artifact=IMAGE)
-        missing_repo_functions = list()
-        auto_ecr_repo_functions = list()
-        if image_repositories:
-            for function_logical_id in function_logical_ids:
-                if function_logical_id not in self.image_repositories:
-                    missing_repo_functions.append(function_logical_id)
-                    continue
 
-                repo_uri = self.image_repositories[function_logical_id]
-                if repo_uri in deployed_repo_uris:
-                    auto_ecr_repo_functions.append(function_logical_id)
+        manager_helper = CompanionStackManagerHelper(
+            stack_name, region, s3_bucket, s3_prefix, self.template_file, image_repositories
+        )
 
-        if missing_repo_functions == function_logical_ids:
+        # Prompt for auto create repos
+        if not manager_helper.missing_repo_functions:
+            create_all_repos = False
+        elif manager_helper.missing_repo_functions == manager_helper.function_logical_ids:
             click.echo("\n\t\tImage repositories: Not found.")
             click.echo(
                 "\t\t#Managed repositories will be deleted when their functions are removed from the template and deployed"
             )
             create_all_repos = click.confirm("\t\tCreate managed ECR repositories for all functions?", default=True)
         else:
-            functions_with_repo_count = len(function_logical_ids) - len(missing_repo_functions)
+            functions_with_repo_count = len(manager_helper.function_logical_ids) - len(
+                manager_helper.missing_repo_functions
+            )
             click.echo(
-                f"\n\t\tImage repositories: Found ({functions_with_repo_count} of {len(function_logical_ids)}) #Different image repositories can be set in samconfig.toml"
+                f"\n\t\tImage repositories: Found ({functions_with_repo_count} of {len(manager_helper.function_logical_ids)}) #Different image repositories can be set in samconfig.toml"
             )
             click.echo(
                 "\t\t#Managed repositories will be deleted when their functions are removed from the template and deployed"
             )
             create_all_repos = (
                 click.confirm(
-                    f"\n\t\tCreate managed ECR repositories for the {len(missing_repo_functions)} functions without?",
+                    f"\n\t\tCreate managed ECR repositories for the {len(manager_helper.missing_repo_functions)} functions without?",
                     default=True,
                 )
-                if missing_repo_functions
+                if manager_helper.missing_repo_functions
                 else True
             )
 
-        companion_stack_manager.set_functions(missing_repo_functions + auto_ecr_repo_functions)
-
+        # Prompt for image repos
         if not create_all_repos:
-            for function_logical_id in missing_repo_functions:
+            for function_logical_id in manager_helper.missing_repo_functions:
                 image_uri = prompt(
                     f"\t\t{self.start_bold}ECR repository for {function_logical_id}:{self.end_bold}",
                     default=self.image_repository,
@@ -331,11 +326,17 @@ class GuidedContext:
 
                 image_repositories[function_logical_id] = image_uri
 
-        unreferenced_repos = companion_stack_manager.get_unreferenced_repos()
-        if unreferenced_repos:
-            click.echo(f"\t\tChecking for unreferenced ECR repositories to clean-up: {len(unreferenced_repos)} found")
-            for repo in unreferenced_repos:
-                repo_uri = companion_stack_manager.get_repo_uri(repo)
+            manager_helper.update_sepcified_image_repos(image_repositories)
+        else:
+            image_repositories.update(manager_helper.manager.get_repository_mapping())
+
+        # Prompt for deleting referenced repos
+        if manager_helper.unreferenced_repos:
+            click.echo(
+                f"\t\tChecking for unreferenced ECR repositories to clean-up: {len(manager_helper.unreferenced_repos)} found"
+            )
+            for repo in manager_helper.unreferenced_repos:
+                repo_uri = manager_helper.manager.get_repo_uri(repo)
                 click.echo(f"\t\t {repo_uri}")
             delete_repos = click.confirm(
                 "\t\tDelete the unreferenced repositories listed above when deploying?",
@@ -349,13 +350,10 @@ class GuidedContext:
                     "\t\thttps://docs.aws.amazon.com/serverless-application-model/latest/developerguide/<page>.html"
                 )
                 raise GuidedDeployFailedError("Unreferenced Auto Created ECR Repos Must Be Deleted.")
-            else:
-                companion_stack_manager.delete_unreferenced_repos()
 
-        if create_all_repos:
-            companion_stack_manager.update_companion_stack()
-            image_repositories.update(companion_stack_manager.get_repository_mapping())
+        image_repositories = manager_helper.remove_unreferenced_repos_from_mapping(image_repositories)
 
+        # Check images locally exist
         for resource_id, function_prop in self.function_provider.functions.items():
             if function_prop.packagetype == IMAGE:
                 image = function_prop.imageuri
@@ -368,6 +366,8 @@ class GuidedContext:
                 else:
                     click.secho(f"\t  {image} to be pushed to {image_repositories.get(resource_id)}:{tag}")
         click.secho(nl=True)
+
+        manager_helper.manager.sync_repos()
 
         return image_repositories
 

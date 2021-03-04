@@ -102,7 +102,7 @@ class GuidedConfig:
                 samconfig.put(cmd_names, self.section, "parameter_overrides", " ".join(_params), env=config_env)
 
     def _save_image_repositories(self, cmd_names, config_env, samconfig, image_repositories):
-        if image_repositories:
+        if image_repositories is not None:
             _image_repositories = [f"{key}={value}" for key, value in image_repositories.items()]
             samconfig.put(cmd_names, self.section, "image_repositories", _image_repositories, env=config_env)
 

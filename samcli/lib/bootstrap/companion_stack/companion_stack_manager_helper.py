@@ -1,0 +1,41 @@
+from samcli.lib.bootstrap.companion_stack.data_types import ECRRepo
+from samcli.commands._utils.template import (
+    get_template_function_resource_ids,
+)
+from samcli.lib.utils.packagetype import IMAGE
+from samcli.lib.bootstrap.companion_stack.companion_stack_manager import CompanionStackManager
+from typing import Dict
+
+
+class CompanionStackManagerHelper:
+    def __init__(self, stack_name, region, s3_bucket, s3_prefix, template_file, specified_image_repos):
+        self.function_logical_ids = get_template_function_resource_ids(template_file=template_file, artifact=IMAGE)
+        self.missing_repo_functions = list()
+        self.auto_ecr_repo_functions = list()
+        self.manager = CompanionStackManager(stack_name, region, s3_bucket, s3_prefix)
+        self.deployed_repos = self.manager.list_deployed_repos()
+        self.deployed_repo_uris = [self.manager.get_repo_uri(repo) for repo in self.deployed_repos]
+        self.update_sepcified_image_repos(specified_image_repos)
+        self.unreferenced_repos = self.manager.get_unreferenced_repos()
+
+    def update_sepcified_image_repos(self, specified_image_repos):
+        self.missing_repo_functions.clear()
+        self.auto_ecr_repo_functions.clear()
+        for function_logical_id in self.function_logical_ids:
+            if not specified_image_repos or function_logical_id not in specified_image_repos:
+                self.missing_repo_functions.append(function_logical_id)
+                continue
+
+            repo_uri = specified_image_repos[function_logical_id]
+            if self.manager.is_repo_uri(repo_uri, function_logical_id):
+                self.auto_ecr_repo_functions.append(function_logical_id)
+        self.manager.set_functions(self.missing_repo_functions + self.auto_ecr_repo_functions)
+
+    def remove_unreferenced_repos_from_mapping(self, image_repositories: Dict[str, str]):
+        output_image_repositories = image_repositories.copy()
+        for function_logical_id, repo_uri in image_repositories.items():
+            for repo in self.unreferenced_repos:
+                if self.manager.get_repo_uri(repo) == repo_uri:
+                    del output_image_repositories[function_logical_id]
+                    break
+        return output_image_repositories

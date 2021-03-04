@@ -15,7 +15,7 @@ from samcli.lib.package.artifact_exporter import mktempfile
 
 
 class CompanionStackManager:
-    _companion_stack: str
+    _companion_stack: CompanionStack
     _builder: CompanionStackBuilder
     _boto_config: Config
     _s3_bucket: str
@@ -69,13 +69,15 @@ class CompanionStackManager:
             )
 
         template_url = s3_uploader.to_path_style_s3_url(parts["Key"], parts.get("Version", None))
-        waiter_config = {"Delay": 30, "MaxAttempts": 120}
-        if self.does_companion_stack_exist():
+        waiter_config = {"Delay": 10, "MaxAttempts": 120}
+
+        exists = self.does_companion_stack_exist()
+        if exists:
             self._cfn_client.update_stack(
                 StackName=stack_name, TemplateURL=template_url, Capabilities=["CAPABILITY_AUTO_EXPAND"]
             )
             waiter = self._cfn_client.get_waiter("stack_update_complete")
-        else:
+        elif self._builder.repo_mapping:
             self._cfn_client.create_stack(
                 StackName=stack_name, TemplateURL=template_url, Capabilities=["CAPABILITY_AUTO_EXPAND"]
             )
@@ -83,12 +85,19 @@ class CompanionStackManager:
 
         waiter.wait(StackName=stack_name, WaiterConfig=waiter_config)
 
+    def delete_companion_stack(self):
+        stack_name = self._companion_stack.stack_name
+        waiter = self._cfn_client.get_waiter("stack_delete_complete")
+        waiter_config = {"Delay": 10, "MaxAttempts": 60}
+        self._cfn_client.delete_stack(StackName=stack_name)
+        waiter.wait(StackName=stack_name, WaiterConfig=waiter_config)
+
     def list_deployed_repos(self) -> List[ECRRepo]:
         """
         Not using create_change_set as it is slow
         """
         if not self.does_companion_stack_exist():
-            return None
+            return []
         repos: List[ECRRepo] = list()
         stack = boto3.resource("cloudformation", config=self._boto_config).Stack(self._companion_stack.stack_name)
         resources = stack.resource_summaries.all()
@@ -117,7 +126,22 @@ class CompanionStackManager:
     def delete_unreferenced_repos(self) -> None:
         repos = self.get_unreferenced_repos()
         for repo in repos:
-            self._ecr_client.delete_repository(repositoryName=repo.physical_id, force=True)
+            try:
+                self._ecr_client.delete_repository(repositoryName=repo.physical_id, force=True)
+            except self._ecr_client.exceptions.RepositoryNotFoundException:
+                pass
+
+    def sync_repos(self) -> None:
+        exists = self.does_companion_stack_exist()
+        has_repo = bool(self.get_repository_mapping())
+        if exists:
+            self.delete_unreferenced_repos()
+            if has_repo:
+                self.update_companion_stack()
+            else:
+                self.delete_companion_stack()
+        elif not exists and has_repo:
+            self.update_companion_stack()
 
     def does_companion_stack_exist(self) -> bool:
         try:
@@ -131,3 +155,6 @@ class CompanionStackManager:
 
     def get_repo_uri(self, repo: ECRRepo) -> str:
         return repo.get_repo_uri(self._account_id, self._region_name)
+
+    def is_repo_uri(self, repo_uri, function_logical_id) -> bool:
+        return repo_uri == self.get_repo_uri(ECRRepo(self._companion_stack, function_logical_id))

@@ -25,6 +25,7 @@ def image_repository_validation(func):
         guided = ctx.params.get("guided", False) or ctx.params.get("g", False)
         image_repository = ctx.params.get("image_repository", False)
         image_repositories = ctx.params.get("image_repositories", False) or {}
+        resolve_image_repos = ctx.params.get("resolve_image_repos", False)
         template_file = (
             ctx.params.get("t", False) or ctx.params.get("template_file", False) or ctx.params.get("template", False)
         )
@@ -50,11 +51,13 @@ def image_repository_validation(func):
                 ),
             ),
             Validator(
-                validation_function=lambda: not guided and not (image_repository or image_repositories) and required,
+                validation_function=lambda: not guided
+                and not (image_repository or image_repositories or resolve_image_repos)
+                and required,
                 exception=click.BadOptionUsage(
                     option_name="--image-repositories",
                     ctx=ctx,
-                    message="Missing option '--image-repository' or '--image-repositories'",
+                    message="Missing option '--image-repository', '--image-repositories', or '--resolve_image_repos'",
                 ),
             ),
             Validator(
@@ -62,6 +65,7 @@ def image_repository_validation(func):
                 and (
                     set(image_repositories.keys()) != set(get_template_function_resource_ids(template_file, IMAGE))
                     and image_repositories
+                    and not resolve_image_repos
                 ),
                 exception=click.BadOptionUsage(
                     option_name="--image-repositories",
