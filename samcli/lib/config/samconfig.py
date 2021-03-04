@@ -125,7 +125,7 @@ class SamConfig:
             self.document.update({env: {cmd_name_key: {section: {key: value}}}})
         # If the value we want to add to samconfig already exist in global section, we don't put it again in
         # the special command section
-        self._deduplicate_global_parameters(cmd_name_key, section, key, value, env)
+        self._deduplicate_global_parameters(cmd_name_key, section, key, env)
 
     def flush(self):
         """
@@ -197,7 +197,7 @@ class SamConfig:
     def _version(self):
         return self.document.get(VERSION_KEY, None)
 
-    def _deduplicate_global_parameters(self, cmd_name_key, section, key, value, env=DEFAULT_ENV):
+    def _deduplicate_global_parameters(self, cmd_name_key, section, key, env=DEFAULT_ENV):
         """
         In case the global parameters contains the same key-value pair with command parameters,
         we only keep the entry in global parameters
@@ -212,9 +212,6 @@ class SamConfig:
 
         key : str
             Key to write the data under
-
-        value
-            Value to write. Could be any of the supported TOML types.
 
         env : str
             Optional, Name of the environment
