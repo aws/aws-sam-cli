@@ -107,9 +107,6 @@ class GuidedContext:
         ----------
         parameter_override_keys
             The keys of parameters to override, for each key, customers will be asked to provide a value
-        Returns
-        -------
-        None
         """
         default_stack_name = self.stack_name or "sam-app"
         default_region = self.region or get_session().get_config_variable("region") or "us-east-1"
@@ -212,10 +209,6 @@ class GuidedContext:
         ----------
         stacks : List[Stack]
             List of stacks to search functions and layers
-
-        Returns
-        -------
-        None
         """
         (functions_with_code_sign, layers_with_code_sign) = signer_config_per_function(stacks)
 

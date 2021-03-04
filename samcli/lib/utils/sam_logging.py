@@ -24,10 +24,6 @@ class SamCliLogger:
             Logger to configure
         formatter logging.formatter
             Formatter for the logger
-
-        Returns
-        -------
-        None
         """
         handlers = logger.handlers
         if handlers:
@@ -54,10 +50,6 @@ class SamCliLogger:
         ----------
         logger logging.getLogger
             Logger to configure
-
-        Returns
-        -------
-        None
         """
         logger.propagate = False
         logger.addHandler(logging.NullHandler())

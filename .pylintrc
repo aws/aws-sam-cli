@@ -80,7 +80,7 @@ disable=
     # We will remove them one by one.
     # W9005, # "%s" has constructor parameters documented in class and __init__
     W9006, # "%s" not documented as being raised
-    W9008, # Redundant returns documentation
+    # W9008, # Redundant returns documentation
     # W9010, # Redundant yields documentation
     W9011, # Missing return documentation
     W9012, # Missing return type documentation

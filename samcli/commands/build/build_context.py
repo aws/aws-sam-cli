@@ -219,11 +219,6 @@ class BuildContext:
         Parameters
         ----------
         resource_collector: Collector that will be populated with resources.
-
-        Returns
-        -------
-        ResourcesToBuildCollector
-
         """
         function = self.function_provider.get(resource_identifier)
         if not function:

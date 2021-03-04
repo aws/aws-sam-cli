@@ -201,10 +201,5 @@ class LayerDownloader:
         ----------
         layer_cache
             Directory to where the layers should be cached
-
-        Returns
-        -------
-        None
-
         """
         Path(layer_cache).mkdir(mode=0o700, parents=True, exist_ok=True)

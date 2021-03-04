@@ -361,10 +361,6 @@ class ApplicationBuilder:
             A generator for the build output.
         function_name str
             Name of the function that is being built
-
-        Returns
-        -------
-        None
         """
         for log in build_logs:
             if log:

@@ -106,7 +106,6 @@ def pprint_columns(columns, width, margin, format_string, format_args, columns_d
     :param columns_dict: arguments dictionary that have dummy values per column
     :param color: color supplied for rows within the table.
     :param textwrap_kwargs: keyword arguments that are passed to textwrap.wrap
-    :return:
     """
     for columns_text in zip_longest(*wrapped_text_generator(columns, width, margin, **textwrap_kwargs), fillvalue=""):
         counter = count()

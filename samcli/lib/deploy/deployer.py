@@ -278,7 +278,6 @@ class Deployer:
 
         :param changeset_id: ID or name of the changeset
         :param stack_name:   Stack name
-        :return: Latest status of the create-change-set operation
         """
         sys.stdout.write("\nWaiting for changeset to be created..\n")
         sys.stdout.flush()
@@ -343,7 +342,6 @@ class Deployer:
         :param stack_name: Name or ID of the stack
         :param time_stamp_marker: last event time on the stack to start streaming events from.
         :param kwargs: Other arguments to pass to pprint_columns()
-        :return:
         """
 
         stack_change_in_progress = True
@@ -416,9 +414,6 @@ class Deployer:
             The name of the stack
         changeset_type : str
             The type of the changeset, 'CREATE' or 'UPDATE'
-        Returns
-        -------
-        None
         """
         sys.stdout.write(
             "\n{} - Waiting for stack create/update "

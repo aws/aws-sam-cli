@@ -14,7 +14,7 @@ class LogsFormatter:
     def __init__(self, colored, formatter_chain=None):
         # the docstring contains an example function which contains another docstring,
         # pylint is confused so disable it for this method.
-        # pylint: disable=missing-param-doc,differing-param-doc,differing-type-doc
+        # pylint: disable=missing-param-doc,differing-param-doc,differing-type-doc,redundant-returns-doc
         """
 
         ``formatter_chain`` is a list of methods that can format an event. Each method must take an

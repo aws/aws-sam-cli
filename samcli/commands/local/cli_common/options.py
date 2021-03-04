@@ -66,10 +66,6 @@ def service_common_options(port):
     ----------
     port
         The port number to listen to
-
-    Returns
-    -------
-    None
     """
 
     def construct_options(f):
