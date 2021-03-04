@@ -1127,7 +1127,7 @@ class TestService_construct_event_http(TestCase):
         print("DEBUG: json.loads(actual_event_str)", json.loads(actual_event_str))
         print("DEBUG: self.expected_dict", self.expected_dict)
         actual_event_dict = json.loads(actual_event_str)
-        self.assertEquals(len(actual_event_dict["requestContext"]["requestId"]), 36)
+        self.assertEqual(len(actual_event_dict["requestContext"]["requestId"]), 36)
         actual_event_dict["requestContext"]["requestId"] = ""
         self.assertEqual(actual_event_dict, self.expected_dict)
 
@@ -1139,17 +1139,17 @@ class TestService_construct_event_http(TestCase):
             self.request_mock, 3000, binary_types=[], route_key="GET /endpoint"
         )
         actual_event_dict = json.loads(actual_event_str)
-        self.assertEquals(len(actual_event_dict["requestContext"]["requestId"]), 36)
+        self.assertEqual(len(actual_event_dict["requestContext"]["requestId"]), 36)
         actual_event_dict["requestContext"]["requestId"] = ""
         self.assertEqual(actual_event_dict, self.expected_dict)
 
     def test_v2_route_key(self):
         route_key = LocalApigwService._v2_route_key("GET", "/path", False)
-        self.assertEquals(route_key, "GET /path")
+        self.assertEqual(route_key, "GET /path")
 
     def test_v2_default_route_key(self):
         route_key = LocalApigwService._v2_route_key("GET", "/path", True)
-        self.assertEquals(route_key, "$default")
+        self.assertEqual(route_key, "$default")
 
     @patch("samcli.local.apigw.local_apigw_service.LocalApigwService._should_base64_encode")
     def test_construct_event_with_binary_data(self, should_base64_encode_patch):
@@ -1167,7 +1167,7 @@ class TestService_construct_event_http(TestCase):
             self.request_mock, 3000, binary_types=[], route_key="GET /endpoint"
         )
         actual_event_dict = json.loads(actual_event_str)
-        self.assertEquals(len(actual_event_dict["requestContext"]["requestId"]), 36)
+        self.assertEqual(len(actual_event_dict["requestContext"]["requestId"]), 36)
         actual_event_dict["requestContext"]["requestId"] = ""
         self.assertEqual(actual_event_dict, self.expected_dict)
 
