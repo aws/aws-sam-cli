@@ -5,7 +5,6 @@ Entry point for the CLI
 import logging
 import json
 import atexit
-import textwrap
 import click
 
 from samcli import __version__
@@ -59,7 +58,21 @@ def print_info(ctx, param, value):
     ctx.exit()
 
 
-def log_cmdline_info(func):
+def print_cmdline_args(func):
+    """
+    This function format and print out the command line arguments for debugging.
+
+    Parameters
+    ----------
+    func: function reference
+        Actual function (command) which will be executed
+
+    Returns
+    -------
+    function reference:
+        A wrapped function reference which executes original function and checks newer version of SAM CLI
+    """
+
     def wrapper(*args, **kwargs):
         if kwargs.get("config_file") and kwargs.get("config_env"):
             config_file = kwargs["config_file"]
@@ -73,7 +86,6 @@ def log_cmdline_info(func):
                     cmdline_args_log += f"--{key} "
                 elif value:
                     cmdline_args_log += f"--{key}={str(value)} "
-        cmdline_args_log = textwrap.fill(cmdline_args_log, width=120, initial_indent=" " * 4, subsequent_indent=" " * 4)
         LOG.debug(cmdline_args_log)
         return func(*args, **kwargs)
 

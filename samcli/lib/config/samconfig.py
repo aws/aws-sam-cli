@@ -233,9 +233,7 @@ class SamConfig:
             )
             LOG.info(save_global_message)
             # Only keep the global parameter
-            items = self.document[env][cmd_name_key][section].copy()
-            items.pop(key)
-            self.document[env][cmd_name_key][section] = items
+            del self.document[env][cmd_name_key][section][key]
 
     @staticmethod
     def _version_sanity_check(version: Any) -> None:
