@@ -1,10 +1,13 @@
-from samcli.lib.bootstrap.companion_stack.data_types import ECRRepo
+"""
+    Help class to bridge CLI functions and CompanionStackManager
+"""
+from typing import Dict
+
 from samcli.commands._utils.template import (
     get_template_function_resource_ids,
 )
 from samcli.lib.utils.packagetype import IMAGE
 from samcli.lib.bootstrap.companion_stack.companion_stack_manager import CompanionStackManager
-from typing import Dict
 
 
 class CompanionStackManagerHelper:

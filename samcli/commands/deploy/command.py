@@ -2,7 +2,6 @@
 CLI command for "deploy" command
 """
 import logging
-from samcli.lib.bootstrap.companion_stack.companion_stack_manager_helper import CompanionStackManagerHelper
 
 import click
 
@@ -27,6 +26,7 @@ from samcli.lib.cli_validation.image_repository_validation import image_reposito
 from samcli.lib.utils import osutils
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.utils.version_checker import check_newer_version
+from samcli.lib.bootstrap.companion_stack.companion_stack_manager_helper import CompanionStackManagerHelper
 
 SHORT_HELP = "Deploy an AWS SAM application."
 
@@ -293,9 +293,9 @@ def do_cli(
         )
         guided_context.run()
     else:
-        if resolve_s3 and bool(s3_bucket):
-            raise DeployResolveS3AndS3SetError()
-        elif resolve_s3:
+        if resolve_s3:
+            if bool(s3_bucket):
+                raise DeployResolveS3AndS3SetError()
             s3_bucket = manage_stack(profile=profile, region=region)
             click.echo(f"\n\t\tManaged S3 bucket: {s3_bucket}")
             click.echo("\t\tA different default S3 bucket can be set in samconfig.toml")

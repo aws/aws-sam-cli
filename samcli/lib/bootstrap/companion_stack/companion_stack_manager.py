@@ -1,17 +1,19 @@
-from mypy_boto3_cloudformation.client import CloudFormationClient
-from mypy_boto3_s3.client import S3Client
-from samcli.lib.package.s3_uploader import S3Uploader
-from samcli.lib.deploy.deployer import Deployer
-import boto3
-
+"""
+    Companion stack manager
+"""
 from typing import List, Dict
 
+import boto3
+from mypy_boto3_cloudformation.client import CloudFormationClient
+from mypy_boto3_s3.client import S3Client
 from botocore.config import Config
 from botocore.exceptions import ClientError, NoRegionError, NoCredentialsError
+
 from samcli.commands.exceptions import CredentialsError, RegionError
 from samcli.lib.bootstrap.companion_stack.companion_stack_builder import CompanionStackBuilder
 from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack, ECRRepo
 from samcli.lib.package.artifact_exporter import mktempfile
+from samcli.lib.package.s3_uploader import S3Uploader
 
 
 class CompanionStackManager:
@@ -37,7 +39,8 @@ class CompanionStackManager:
             self._region_name = self._cfn_client.meta.region_name
         except NoCredentialsError as ex:
             raise CredentialsError(
-                "Error Setting Up Managed Stack Client: Unable to resolve credentials for the AWS SDK for Python client. "
+                "Error Setting Up Managed Stack Client: Unable to resolve "
+                "credentials for the AWS SDK for Python client. "
                 "Please see their documentation for options to pass in credentials: "
                 "https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html"
             ) from ex

@@ -3,9 +3,6 @@ Class to manage all the prompts during a guided sam deploy
 """
 
 import logging
-from re import template
-from samcli.lib.bootstrap.companion_stack.companion_stack_manager_helper import CompanionStackManagerHelper
-from samcli.lib.bootstrap.companion_stack.companion_stack_manager import CompanionStackManager
 from typing import Dict, Any, List
 
 import click
@@ -17,8 +14,6 @@ from click import confirm
 from samcli.commands._utils.options import _space_separated_list_func_type
 from samcli.commands._utils.template import (
     get_template_parameters,
-    get_template_artifacts_format,
-    get_template_function_resource_ids,
 )
 from samcli.commands.deploy.code_signer_utils import (
     signer_config_per_function,
@@ -38,9 +33,8 @@ from samcli.lib.providers.provider import Stack
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.packagetype import IMAGE
-from samcli.commands.deploy.utils import sanitize_parameter_overrides
-from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
+from samcli.lib.bootstrap.companion_stack.companion_stack_manager_helper import CompanionStackManagerHelper
 
 LOG = logging.getLogger(__name__)
 
@@ -292,7 +286,8 @@ class GuidedContext:
         elif manager_helper.missing_repo_functions == manager_helper.function_logical_ids:
             click.echo("\n\t\tImage repositories: Not found.")
             click.echo(
-                "\t\t#Managed repositories will be deleted when their functions are removed from the template and deployed"
+                "\t\t#Managed repositories will be deleted when "
+                "their functions are removed from the template and deployed"
             )
             create_all_repos = click.confirm("\t\tCreate managed ECR repositories for all functions?", default=True)
         else:
@@ -300,14 +295,18 @@ class GuidedContext:
                 manager_helper.missing_repo_functions
             )
             click.echo(
-                f"\n\t\tImage repositories: Found ({functions_with_repo_count} of {len(manager_helper.function_logical_ids)}) #Different image repositories can be set in samconfig.toml"
+                "\n\t\tImage repositories: "
+                f"Found ({functions_with_repo_count} of {len(manager_helper.function_logical_ids)})"
+                "#Different image repositories can be set in samconfig.toml"
             )
             click.echo(
-                "\t\t#Managed repositories will be deleted when their functions are removed from the template and deployed"
+                "\t\t#Managed repositories will be deleted when their functions are "
+                "removed from the template and deployed"
             )
             create_all_repos = (
                 click.confirm(
-                    f"\n\t\tCreate managed ECR repositories for the {len(manager_helper.missing_repo_functions)} functions without?",
+                    "\n\t\tCreate managed ECR repositories for the "
+                    f"{len(manager_helper.missing_repo_functions)} functions without?",
                     default=True,
                 )
                 if manager_helper.missing_repo_functions
@@ -333,7 +332,8 @@ class GuidedContext:
         # Prompt for deleting referenced repos
         if manager_helper.unreferenced_repos:
             click.echo(
-                f"\t\tChecking for unreferenced ECR repositories to clean-up: {len(manager_helper.unreferenced_repos)} found"
+                "\t\tChecking for unreferenced ECR repositories to clean-up: "
+                f"{len(manager_helper.unreferenced_repos)} found"
             )
             for repo in manager_helper.unreferenced_repos:
                 repo_uri = manager_helper.manager.get_repo_uri(repo)
@@ -345,8 +345,10 @@ class GuidedContext:
             if not delete_repos:
                 click.echo("\t\tDeployment aborted!")
                 click.echo(
-                    "\t\t#The deployment was aborted to prevent unreferenced managed ECR repositories from being deleted."
-                    "\t\t#You may remove repositories from the SAMCLI managed stack to retain them and resolve this unreferenced check."
+                    "\t\t#The deployment was aborted to prevent "
+                    "unreferenced managed ECR repositories from being deleted."
+                    "\t\t#You may remove repositories from the SAMCLI "
+                    "managed stack to retain them and resolve this unreferenced check."
                     "\t\thttps://docs.aws.amazon.com/serverless-application-model/latest/developerguide/<page>.html"
                 )
                 raise GuidedDeployFailedError("Unreferenced Auto Created ECR Repos Must Be Deleted.")

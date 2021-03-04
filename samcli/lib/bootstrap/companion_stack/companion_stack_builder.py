@@ -1,4 +1,9 @@
+"""
+    Companion stack template builder
+"""
 from typing import Dict
+
+# pylint: disable=W0402
 from string import Template
 
 from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack, ECRRepo
@@ -32,7 +37,7 @@ _REPO_TEMPLATE = Template(
         - Key: AwsSamCliCompanionStack
           Value: $companion_stack_name
 
-      RepositoryPolicyText: 
+      RepositoryPolicyText:
         Version: "2012-10-17"
         Statement:
           -

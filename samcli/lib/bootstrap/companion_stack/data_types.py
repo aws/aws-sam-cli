@@ -1,3 +1,6 @@
+"""
+    Date type classes for companion stacks
+"""
 import re
 from samcli.lib.utils.hash import str_checksum
 
