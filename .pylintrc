@@ -84,8 +84,8 @@ disable=
     # W9010, # Redundant yields documentation
     W9011, # Missing return documentation
     W9012, # Missing return type documentation
-    W9013, # Missing yield documentation
-    W9014, # Missing yield type documentation
+    # W9013, # Missing yield documentation
+    # W9014, # Missing yield type documentation
     # W9015, # "%s" missing in parameter documentation
     W9016, # "%s" missing in parameter type documentation
     # W9017, # "%s" differing in parameter documentation
