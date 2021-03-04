@@ -50,12 +50,7 @@ class SamConfig:
         cmd_names : list(str)
             List of representing the entire command. Ex: ["local", "generate-event", "s3", "put"]
         section : str
-<<<<<<< commonProperty
             Specific section within the command to look into. e.g. `parameters`
-
-=======
-            Specific section within the command to look into Ex: `parameters`
->>>>>>> develop
         env : str
             Optional, Name of the environment
 
@@ -97,12 +92,7 @@ class SamConfig:
         cmd_names : list(str)
             List of representing the entire command. Ex: ["local", "generate-event", "s3", "put"]
         section : str
-<<<<<<< commonProperty
             Specific section within the command to look into. e.g. `parameters`
-
-=======
-            Specific section within the command to look into Ex: `parameters`
->>>>>>> develop
         key : str
             Key to write the data under
         value : Any
