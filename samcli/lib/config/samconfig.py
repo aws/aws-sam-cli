@@ -52,7 +52,7 @@ class SamConfig:
             List of representing the entire command. Ex: ["local", "generate-event", "s3", "put"]
 
         section : str
-            Specific section within the command to look into Ex: `parameters`
+            Specific section within the command to look into. e.g. `parameters`
 
         env : str
             Optional, Name of the environment
@@ -96,7 +96,7 @@ class SamConfig:
             List of representing the entire command. Ex: ["local", "generate-event", "s3", "put"]
 
         section : str
-            Specific section within the command to look into Ex: `parameters`
+            Specific section within the command to look into. e.g. `parameters`
 
         key : str
             Key to write the data under
@@ -206,8 +206,8 @@ class SamConfig:
 
     def _deduplicate_global_parameters(self, cmd_name_key, section, key, value, env=DEFAULT_ENV):
         """
-        In case the global parameters contains the same key-value with command parameters,
-        we remove the entry in command parameters
+        In case the global parameters contains the same key-value pair with command parameters,
+        we only keep the entry in global parameters
 
         Parameters
         ----------
@@ -215,7 +215,7 @@ class SamConfig:
             key of command name
 
         section : str
-            Specific section within the command to look into Ex: `parameters`
+            Specific section within the command to look into. e.g. `parameters`
 
         key : str
             Key to write the data under
