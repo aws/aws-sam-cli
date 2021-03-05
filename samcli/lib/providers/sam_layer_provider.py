@@ -104,7 +104,7 @@ class SamLayerProvider(SamBaseProvider):
 
         return LayerVersion(
             layer_logical_id,
-            codeuri and SamLocalStackProvider.normalize_resource_path(stack, codeuri),
+            SamLocalStackProvider.normalize_resource_path(stack, codeuri) if codeuri else None,
             compatible_runtimes,
             layer_resource.get("Metadata", None),
             stack_path=stack.stack_path,

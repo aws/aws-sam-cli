@@ -301,7 +301,7 @@ class SamFunctionProvider(SamBaseProvider):
             memory=resource_properties.get("MemorySize"),
             timeout=resource_properties.get("Timeout"),
             handler=resource_properties.get("Handler"),
-            codeuri=codeuri and SamLocalStackProvider.normalize_resource_path(stack, codeuri),
+            codeuri=SamLocalStackProvider.normalize_resource_path(stack, codeuri) if codeuri else None,
             imageuri=imageuri if imageuri else resource_properties.get("ImageUri"),
             imageconfig=resource_properties.get("ImageConfig"),
             environment=resource_properties.get("Environment"),
@@ -388,7 +388,7 @@ class SamFunctionProvider(SamBaseProvider):
                 layers.append(
                     LayerVersion(
                         layer_logical_id,
-                        codeuri and SamLocalStackProvider.normalize_resource_path(stack, codeuri),
+                        SamLocalStackProvider.normalize_resource_path(stack, codeuri) if codeuri else None,
                         compatible_runtimes,
                         layer_resource.get("Metadata", None),
                         stack_path=stack.stack_path,
