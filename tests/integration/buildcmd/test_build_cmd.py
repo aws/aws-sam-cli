@@ -913,7 +913,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
 @parameterized_class(
     ("template", "is_nested_parent"),
     [
-        ("template-parent.yaml", "is_nested_parent"),
+        (os.path.join("nested-parent", "template-parent.yaml"), "is_nested_parent"),
         ("template.yaml", False),
     ],
 )
@@ -1511,7 +1511,9 @@ class TestBuildWithInlineContainerEnvVars(BuildIntegBase):
 
 
 class TestBuildWithNestedStacks(NestedBuildIntegBase):
-    template = "nested-root-template.yaml"
+    # we put the root template in its own directory to test the scenario where codeuri and children templates
+    # are not located in the same folder.
+    template = os.path.join("nested-parent", "nested-root-template.yaml")
 
     @parameterized.expand(
         [
@@ -1542,7 +1544,8 @@ class TestBuildWithNestedStacks(NestedBuildIntegBase):
         """
         overrides = {
             "Runtime": "python3.7",
-            "CodeUri": "Python",
+            "CodeUri": "../Python",  # root stack is one level deeper than the code
+            "ChildStackCodeUri": "./Python",  # chidl stack is in the same folder as the code
             "LocalNestedFuncHandler": "main.handler",
         }
         cmdlist = self.get_command_list(
@@ -1586,7 +1589,8 @@ class TestBuildWithNestedStacks(NestedBuildIntegBase):
 
 
 class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
-    template = "nested-root-template-image.yaml"
+    template = os.path.join("nested-parent", "nested-root-template-image.yaml")
+
     EXPECTED_FILES_PROJECT_MANIFEST = {
         "__init__.py",
         "main.py",
