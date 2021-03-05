@@ -1,0 +1,28 @@
+from unittest.mock import Mock
+
+from libcst.testing.utils import UnitTest
+from parameterized import parameterized
+
+from samcli.lib.telemetry.cicd import CICDPlatform, _is_cicd_platform
+
+
+class TestCICD(UnitTest):
+    @parameterized.expand(
+        [
+            (CICDPlatform.Jenkins, "JENKINS_URL", Mock()),
+            (CICDPlatform.GitLab, "GITLAB_CI", Mock()),
+            (CICDPlatform.GitHubAction, "GITHUB_ACTION", Mock()),
+            (CICDPlatform.TravisCI, "TRAVIS", Mock()),
+            (CICDPlatform.CircleCI, "CIRCLECI", Mock()),
+            (CICDPlatform.AWSCodeBuild, "CODEBUILD_BUILD_ID", Mock()),
+            (CICDPlatform.TeamCity, "CODEBUILD_BUILD_ID", Mock()),
+            (CICDPlatform.Bamboo, "bamboo_buildNumber", Mock()),
+            (CICDPlatform.Buddy, "BUDDY", Mock()),
+            (CICDPlatform.CodeShip, "CI_NAME", "CodeShip"),
+            (CICDPlatform.Semaphore, "SEMAPHORE", Mock()),
+            (CICDPlatform.Appveyor, "APPVEYOR", Mock()),
+            (CICDPlatform.Unknown, "CI", Mock()),
+        ]
+    )
+    def test_is_cicd_platform(self, cicd_platform, env_var, env_var_value):
+        self.assertTrue(_is_cicd_platform(cicd_platform, {env_var: env_var_value}))

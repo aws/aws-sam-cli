@@ -16,6 +16,7 @@ from samcli.cli.context import Context
 from samcli.cli.global_config import GlobalConfig
 from samcli.lib.warnings.sam_cli_warning import TemplateWarningsChecker
 from samcli.commands.exceptions import UserException
+from samcli.lib.telemetry import cicd
 from .telemetry import Telemetry
 
 LOG = logging.getLogger(__name__)
@@ -326,6 +327,7 @@ class Metric:
         self._data["installationId"] = self._gc.installation_id
         self._data["sessionId"] = self._session_id
         self._data["executionEnvironment"] = self._get_execution_environment()
+        self._data["ci"] = bool(cicd.platform())
         self._data["pyversion"] = platform.python_version()
         self._data["samcliVersion"] = samcli_version
 
@@ -349,15 +351,17 @@ class Metric:
         """
         Returns the environment in which SAM CLI is running. Possible options are:
 
-        CLI (default) - SAM CLI was executed from terminal or a script.
-        IDEToolkit    - SAM CLI was executed by IDE Toolkit
-        CodeBuild     - SAM CLI was executed from within CodeBuild
+        CLI (default)               - SAM CLI was executed from terminal or a script.
+        other CICD platform name    - SAM CLI was executed in CICD
 
         Returns
         -------
         str
             Name of the environment where SAM CLI is executed in.
         """
+        cicd_platform = cicd.platform()
+        if cicd_platform:
+            return cicd_platform.name
         return "CLI"
 
 
