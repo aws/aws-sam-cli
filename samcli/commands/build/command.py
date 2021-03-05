@@ -13,7 +13,7 @@ from samcli.commands._utils.options import (
     docker_common_options,
     parameter_override_option,
 )
-from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
+from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.lib.build.exceptions import BuildInsideContainerError
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.telemetry.metric import track_command
@@ -159,6 +159,7 @@ $ sam build MyFunction
 @pass_context
 @track_command
 @check_newer_version
+@print_cmdline_args
 def cli(
     ctx: Context,
     # please keep the type below consistent with @click.options

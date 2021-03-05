@@ -5,7 +5,7 @@ CLI command for "local start-api" command
 import logging
 import click
 
-from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
+from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands.local.cli_common.options import (
     invoke_common_options,
     service_common_options,
@@ -55,6 +55,7 @@ and point SAM to the directory or file containing build artifacts.
 @pass_context
 @track_command
 @check_newer_version
+@print_cmdline_args
 def cli(
     ctx,
     # start-api Specific Options
