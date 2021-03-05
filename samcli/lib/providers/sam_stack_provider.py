@@ -290,3 +290,27 @@ class SamLocalStackProvider(SamBaseProvider):
         merged_parameter_overrides.update(global_parameter_overrides or {})
         merged_parameter_overrides.update(parameter_overrides or {})
         return merged_parameter_overrides
+
+    @staticmethod
+    def normalize_resource_path(stack: Stack, path: str) -> str:
+        """
+        Convert resource paths found in nested stack to ones resolvable from root stack.
+        For example,
+            root stack                -> template.yaml
+            child stack               -> folder/template.yaml
+            a resource in child stack -> folder/resource
+        the resource path is "resource" because it is extracted from child stack, the path is relative to child stack.
+        here we normalize the resource path into relative paths to root stack, which is "folder/resource"
+
+        Parameters
+        ----------
+        stack
+        path
+
+        Returns
+        -------
+        str
+            the normalized path relative to root stack
+
+        """
+        return path if os.path.isabs(path) else os.path.normpath(os.path.join(os.path.dirname(stack.location), path))

@@ -10,6 +10,7 @@ from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from .provider import Function, LayerVersion, Stack
 from .sam_base_provider import SamBaseProvider
+from .sam_stack_provider import SamLocalStackProvider
 
 LOG = logging.getLogger(__name__)
 
@@ -121,13 +122,12 @@ class SamFunctionProvider(SamBaseProvider):
 
                 if resource_type == SamFunctionProvider.SERVERLESS_FUNCTION:
                     layers = SamFunctionProvider._parse_layer_info(
-                        stack.stack_path,
+                        stack,
                         resource_properties.get("Layers", []),
-                        stack.resources,
                         ignore_code_extraction_warnings=ignore_code_extraction_warnings,
                     )
                     function = SamFunctionProvider._convert_sam_function_resource(
-                        stack.stack_path,
+                        stack,
                         name,
                         resource_properties,
                         layers,
@@ -137,13 +137,12 @@ class SamFunctionProvider(SamBaseProvider):
 
                 elif resource_type == SamFunctionProvider.LAMBDA_FUNCTION:
                     layers = SamFunctionProvider._parse_layer_info(
-                        stack.stack_path,
+                        stack,
                         resource_properties.get("Layers", []),
-                        stack.resources,
                         ignore_code_extraction_warnings=ignore_code_extraction_warnings,
                     )
                     function = SamFunctionProvider._convert_lambda_function_resource(
-                        stack.stack_path, name, resource_properties, layers
+                        stack, name, resource_properties, layers
                     )
                     result[function.full_path] = function
 
@@ -153,7 +152,7 @@ class SamFunctionProvider(SamBaseProvider):
 
     @staticmethod
     def _convert_sam_function_resource(
-        stack_path: str,
+        stack: Stack,
         name: str,
         resource_properties: Dict,
         layers: List[LayerVersion],
@@ -197,12 +196,18 @@ class SamFunctionProvider(SamBaseProvider):
             LOG.debug("Found Serverless function with name='%s' and ImageUri='%s'", name, imageuri)
 
         return SamFunctionProvider._build_function_configuration(
-            stack_path, name, codeuri, resource_properties, layers, inlinecode, imageuri
+            stack,
+            name,
+            codeuri,
+            resource_properties,
+            layers,
+            inlinecode,
+            imageuri,
         )
 
     @staticmethod
     def _convert_lambda_function_resource(
-        stack_path: str, name: str, resource_properties: Dict, layers: List[LayerVersion]
+        stack: Stack, name: str, resource_properties: Dict, layers: List[LayerVersion]
     ) -> Function:
         """
         Converts a AWS::Lambda::Function resource to a Function configuration usable by the provider.
@@ -245,12 +250,18 @@ class SamFunctionProvider(SamBaseProvider):
             LOG.debug("Found Lambda function with name='%s' and Imageuri='%s'", name, imageuri)
 
         return SamFunctionProvider._build_function_configuration(
-            stack_path, name, codeuri, resource_properties, layers, inlinecode, imageuri
+            stack,
+            name,
+            codeuri,
+            resource_properties,
+            layers,
+            inlinecode,
+            imageuri,
         )
 
     @staticmethod
     def _build_function_configuration(
-        stack_path: str,
+        stack: Stack,
         name: str,
         codeuri: Optional[str],
         resource_properties: Dict,
@@ -277,8 +288,12 @@ class SamFunctionProvider(SamBaseProvider):
         samcli.commands.local.lib.provider.Function
             Function configuration
         """
+        metadata = resource_properties.get("Metadata", None)
+        if metadata and "DockerContext" in metadata:
+            metadata["DockerContext"] = SamLocalStackProvider.normalize_resource_path(stack, metadata["DockerContext"])
+
         return Function(
-            stack_path=stack_path,
+            stack_path=stack.stack_path,
             name=name,
             functionname=resource_properties.get("FunctionName", name),
             packagetype=resource_properties.get("PackageType", ZIP),
@@ -286,23 +301,22 @@ class SamFunctionProvider(SamBaseProvider):
             memory=resource_properties.get("MemorySize"),
             timeout=resource_properties.get("Timeout"),
             handler=resource_properties.get("Handler"),
-            codeuri=codeuri,
+            codeuri=codeuri and SamLocalStackProvider.normalize_resource_path(stack, codeuri),
             imageuri=imageuri if imageuri else resource_properties.get("ImageUri"),
             imageconfig=resource_properties.get("ImageConfig"),
             environment=resource_properties.get("Environment"),
             rolearn=resource_properties.get("Role"),
             events=resource_properties.get("Events"),
             layers=layers,
-            metadata=resource_properties.get("Metadata", None),
+            metadata=metadata,
             inlinecode=inlinecode,
             codesign_config_arn=resource_properties.get("CodeSigningConfigArn", None),
         )
 
     @staticmethod
     def _parse_layer_info(
-        stack_path: str,
+        stack: Stack,
         list_of_layers: List[LayerVersion],
-        resources: Dict,
         ignore_code_extraction_warnings: bool = False,
     ) -> List[LayerVersion]:
         """
@@ -342,7 +356,7 @@ class SamFunctionProvider(SamBaseProvider):
                     LayerVersion(
                         layer,
                         None,
-                        stack_path=stack_path,
+                        stack_path=stack.stack_path,
                     )
                 )
                 continue
@@ -351,7 +365,7 @@ class SamFunctionProvider(SamBaseProvider):
             # When running locally, we need to follow that Ref so we can extract the local path to the layer code.
             if isinstance(layer, dict) and layer.get("Ref"):
                 layer_logical_id = cast(str, layer.get("Ref"))
-                layer_resource = resources.get(layer_logical_id)
+                layer_resource = stack.resources.get(layer_logical_id)
                 if not layer_resource or layer_resource.get("Type", "") not in (
                     SamFunctionProvider.SERVERLESS_LAYER,
                     SamFunctionProvider.LAMBDA_LAYER,
@@ -361,7 +375,7 @@ class SamFunctionProvider(SamBaseProvider):
                 layer_properties = layer_resource.get("Properties", {})
                 resource_type = layer_resource.get("Type")
                 compatible_runtimes = layer_properties.get("CompatibleRuntimes")
-                codeuri = None
+                codeuri: Optional[str] = None
 
                 if resource_type == SamFunctionProvider.LAMBDA_LAYER:
                     codeuri = SamFunctionProvider._extract_lambda_function_code(layer_properties, "Content")
@@ -374,10 +388,10 @@ class SamFunctionProvider(SamBaseProvider):
                 layers.append(
                     LayerVersion(
                         layer_logical_id,
-                        codeuri,
+                        codeuri and SamLocalStackProvider.normalize_resource_path(stack, codeuri),
                         compatible_runtimes,
                         layer_resource.get("Metadata", None),
-                        stack_path=stack_path,
+                        stack_path=stack.stack_path,
                     )
                 )
 
