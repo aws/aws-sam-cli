@@ -313,4 +313,6 @@ class SamLocalStackProvider(SamBaseProvider):
             the normalized path relative to root stack
 
         """
-        return path if os.path.isabs(path) else os.path.normpath(os.path.join(os.path.dirname(stack.location), path))
+        if os.path.isabs(path):
+            return path
+        return os.path.normpath(os.path.join(os.path.dirname(stack.location), path))

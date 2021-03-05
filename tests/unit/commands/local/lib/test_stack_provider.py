@@ -1,6 +1,6 @@
 import os
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 from parameterized import parameterized
 
@@ -207,4 +207,25 @@ class TestSamBuildableStackProvider(TestCase):
                 Stack("", "", template_file, global_parameter_overrides, template),
                 Stack("", "ChildStack", child_location_path, global_parameter_overrides, LEAF_TEMPLATE),
             ],
+        )
+
+    @parameterized.expand(
+        [
+            ("/path/template.yaml", "./code", "/path/code"),
+            ("/path/template.yaml", "code", "/path/code"),
+            ("/path/template.yaml", "/code", "/code"),
+            ("path/template.yaml", "./code", "path/code"),
+            ("path/template.yaml", "code", "path/code"),
+            ("path/template.yaml", "/code", "/code"),
+            ("./path/template.yaml", "./code", "path/code"),
+            ("./path/template.yaml", "code", "path/code"),
+            ("./path/template.yaml", "/code", "/code"),
+            ("./path/template.yaml", "../../code", "../code"),
+            ("./path/template.yaml", "code/../code", "path/code"),
+            ("./path/template.yaml", "/code", "/code"),
+        ]
+    )
+    def test_normalize_resource_path(self, stack_location, path, normalized_path):
+        self.assertEqual(
+            SamLocalStackProvider.normalize_resource_path(Mock(location=stack_location), path), normalized_path
         )
