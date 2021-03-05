@@ -1588,6 +1588,56 @@ class TestBuildWithNestedStacks(NestedBuildIntegBase):
             )
 
 
+class TestBuildWithNestedStacks3Level(NestedBuildIntegBase):
+    """
+    In this template, it has the same structure as .aws-sam/build
+    build
+        - template.yaml
+        - FunctionA
+        - ChildStackX
+            - template.yaml
+            - FunctionB
+            - ChildStackY
+                - template.yaml
+                - FunctionA
+                - MyLayerVersion
+    """
+
+    template = os.path.join("deep-nested", "template.yaml")
+
+    # @pytest.mark.flaky(reruns=3)
+    def test_nested_build(self):
+        if SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        cmdlist = self.get_command_list(use_container=True, cached=True, parallel=True)
+
+        LOG.info("Running Command: %s", cmdlist)
+        LOG.info(self.working_dir)
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        function_full_paths = ["FunctionA", "ChildStackX/FunctionB", "ChildStackX/ChildStackY/FunctionA"]
+        stack_paths = ["", "ChildStackX", "ChildStackX/ChildStackY"]
+        if not SKIP_DOCKER_TESTS:
+            self._verify_build(
+                function_full_paths,
+                stack_paths,
+                command_result,
+            )
+
+            self._verify_invoke_built_functions(
+                self.built_template,
+                "",
+                [
+                    ("FunctionA", {"body": '{"hello": "a"}', "statusCode": 200}),
+                    ("FunctionB", {"body": '{"hello": "b"}', "statusCode": 200}),
+                    ("ChildStackX/FunctionB", {"body": '{"hello": "b"}', "statusCode": 200}),
+                    ("ChildStackX/ChildStackY/FunctionA", {"body": '{"hello": "a2"}', "statusCode": 200}),
+                ],
+            )
+
+
 class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
     template = os.path.join("nested-parent", "nested-root-template-image.yaml")
 
