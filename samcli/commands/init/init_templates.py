@@ -40,6 +40,27 @@ class InitTemplates:
         self._auto_clone = auto_clone
 
     def prompt_for_location(self, package_type, runtime, base_image, dependency_manager):
+        """
+        Prompt for template location based on other information provided in previous steps.
+
+        Parameters
+        ----------
+        package_type : str
+            the package type, 'Zip' or 'Image', see samcli/lib/utils/packagetype.py
+        runtime : str
+            the runtime string
+        base_image : str
+            the base image string
+        dependency_manager : str
+            the dependency manager string
+
+        Returns
+        -------
+        location : str
+            The location of the template
+        app_template : str
+            The name of the template
+        """
         options = self.init_options(package_type, runtime, base_image, dependency_manager)
 
         if len(options) == 1:

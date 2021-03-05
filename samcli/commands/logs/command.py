@@ -89,6 +89,9 @@ def cli(
     config_file,
     config_env,
 ):  # pylint: disable=redefined-builtin
+    """
+    `sam logs` command entry point
+    """
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(name, stack_name, filter, tail, start_time, end_time)  # pragma: no cover

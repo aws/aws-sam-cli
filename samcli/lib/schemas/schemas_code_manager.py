@@ -53,7 +53,6 @@ def do_extract_and_merge_schemas_code(download_location, output_dir, project_nam
     :param output_dir:
     :param project_name:
     :param template_location:
-    :return:
     """
     click.echo("Merging code bindings...")
     cookiecutter_json_path = os.path.join(template_location, "cookiecutter.json")
