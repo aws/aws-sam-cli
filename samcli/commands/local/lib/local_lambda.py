@@ -160,22 +160,7 @@ class LocalLambdaRunner:
         env_vars = self._make_env_vars(function)
         code_abs_path = None
         if function.packagetype == ZIP:
-            # the template file containing the function might not be in the same directory as root template file
-            # therefore we need to join the path of template directory and codeuri in case codeuri is a relative path.
-            try:
-                stack = next(stack for stack in self.provider.stacks if stack.stack_path == function.stack_path)
-            except StopIteration as ex:
-                raise RuntimeError(
-                    f"Cannot find stack that matches function's stack_path {function.stack_path}"
-                ) from ex
-
-            # Note(xinhol): function.codeuri might be None here, we might want to add some check here.
-            codeuri = (
-                function.codeuri
-                if os.path.isabs(function.codeuri)  # type: ignore
-                else os.path.join(os.path.dirname(stack.location), function.codeuri)  # type: ignore
-            )
-            code_abs_path = resolve_code_path(self.cwd, codeuri)
+            code_abs_path = resolve_code_path(self.cwd, function.codeuri)
             LOG.debug("Resolved absolute path to code is %s", code_abs_path)
 
         function_timeout = function.timeout

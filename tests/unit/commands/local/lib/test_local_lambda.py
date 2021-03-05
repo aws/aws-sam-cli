@@ -423,22 +423,11 @@ class TestLocalLambda_get_invoke_config(TestCase):
         resolve_code_path_patch.assert_called_with(self.cwd, function.codeuri)
         self.local_lambda._make_env_vars.assert_called_with(function)
 
-    @parameterized.expand(
-        [
-            ("", "codeuri", "codeuri"),
-            ("ChildStackX", "codeuri", os.path.join("ChildStackX", "codeuri")),
-            # absolute codeuri can be directly passed to resolve
-            ("ChildStackX", "/path/to/codeuri", "/path/to/codeuri"),
-        ]
-    )
     @patch("samcli.commands.local.lib.local_lambda.resolve_code_path")
     @patch("samcli.commands.local.lib.local_lambda.LocalLambdaRunner.is_debugging")
     @patch("samcli.commands.local.lib.local_lambda.FunctionConfig")
     def test_timeout_set_to_max_during_debugging(
         self,
-        function_stack_path,
-        function_codeuri,
-        expected_codeuri_called_with,
         FunctionConfigMock,
         is_debugging_mock,
         resolve_code_path_patch,
@@ -453,14 +442,14 @@ class TestLocalLambda_get_invoke_config(TestCase):
         resolve_code_path_patch.return_value = codepath
 
         function = Function(
-            stack_path=function_stack_path,
+            stack_path=Mock(),
             name="function_name",
             functionname="function_name",
             runtime="runtime",
             memory=1234,
             timeout=36000,
             handler="handler",
-            codeuri=function_codeuri,
+            codeuri="codeuri",
             environment=None,
             rolearn=None,
             layers=[],
@@ -492,7 +481,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             env_vars=env_vars,
         )
 
-        resolve_code_path_patch.assert_called_with(self.cwd, expected_codeuri_called_with)
+        resolve_code_path_patch.assert_called_with(self.cwd, "codeuri")
         self.local_lambda._make_env_vars.assert_called_with(function)
 
 
