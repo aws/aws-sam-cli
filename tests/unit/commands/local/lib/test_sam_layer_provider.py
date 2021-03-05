@@ -86,7 +86,7 @@ class TestSamLayerProvider(TestCase):
                 "Type": "AWS::Serverless::LayerVersion",
                 "Properties": {
                     "LayerName": "Layer1",
-                    "ContentUri": "PyLayer/",
+                    "ContentUri": "PyLayer",
                     "CompatibleRuntimes": ["python3.8", "python3.6"],
                 },
                 "Metadata": {"BuildMethod": "python3.8"},
@@ -97,11 +97,11 @@ class TestSamLayerProvider(TestCase):
     def setUp(self):
         self.parameter_overrides = {}
         root_stack = Stack("", "", "template.yaml", self.parameter_overrides, self.TEMPLATE)
-        child_stack = Stack("", "ChildStack", "./child.yaml", None, self.CHILD_TEMPLATE)
+        child_stack = Stack("", "ChildStack", "./child/template.yaml", None, self.CHILD_TEMPLATE)
         with patch("samcli.lib.providers.sam_stack_provider.get_template_data") as get_template_data_mock:
             get_template_data_mock.side_effect = lambda t: {
                 "template.yaml": self.TEMPLATE,
-                "./child.yaml": self.CHILD_TEMPLATE,
+                "./child/template.yaml": self.CHILD_TEMPLATE,
             }
             self.provider = SamLayerProvider([root_stack, child_stack])
 
@@ -111,7 +111,7 @@ class TestSamLayerProvider(TestCase):
                 "ServerlessLayer",
                 LayerVersion(
                     "ServerlessLayer",
-                    "PyLayer/",
+                    "PyLayer",
                     ["python3.8", "python3.6"],
                     {"BuildMethod": "python3.8"},
                     stack_path="",
@@ -121,7 +121,7 @@ class TestSamLayerProvider(TestCase):
                 "LambdaLayer",
                 LayerVersion(
                     "LambdaLayer",
-                    "PyLayer/",
+                    "PyLayer",
                     ["python3.8", "python3.6"],
                     {"BuildMethod": "python3.8"},
                     stack_path="",
@@ -129,11 +129,11 @@ class TestSamLayerProvider(TestCase):
             ),
             (
                 "ServerlessLayerNoBuild",
-                LayerVersion("ServerlessLayerNoBuild", "PyLayer/", ["python3.8", "python3.6"], None, stack_path=""),
+                LayerVersion("ServerlessLayerNoBuild", "PyLayer", ["python3.8", "python3.6"], None, stack_path=""),
             ),
             (
                 "LambdaLayerNoBuild",
-                LayerVersion("LambdaLayerNoBuild", "PyLayer/", ["python3.8", "python3.6"], None, stack_path=""),
+                LayerVersion("LambdaLayerNoBuild", "PyLayer", ["python3.8", "python3.6"], None, stack_path=""),
             ),
             (
                 "ServerlessLayerS3Content",
@@ -147,7 +147,7 @@ class TestSamLayerProvider(TestCase):
                 posixpath.join("ChildStack", "SamLayerInChild"),
                 LayerVersion(
                     "SamLayerInChild",
-                    "PyLayer/",
+                    "child/PyLayer",
                     ["python3.8", "python3.6"],
                     {"BuildMethod": "python3.8"},
                     stack_path="ChildStack",
