@@ -12,3 +12,7 @@ class InvalidLayerReference(Exception):
         super().__init__(
             "Layer References need to be of type " "'AWS::Serverless::LayerVersion' or 'AWS::Lambda::LayerVersion'"
         )
+
+
+class RemoteStackLocationNotSupported(Exception):
+    pass

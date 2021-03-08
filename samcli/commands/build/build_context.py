@@ -69,9 +69,16 @@ class BuildContext:
 
     def __enter__(self) -> "BuildContext":
 
-        self._stacks = SamLocalStackProvider.get_stacks(
+        self._stacks, remote_stack_full_paths = SamLocalStackProvider.get_stacks(
             self._template_file, parameter_overrides=self._parameter_overrides
         )
+
+        if remote_stack_full_paths:
+            LOG.warning(
+                "Below nested stacks(s) specify non-local URL(s), which are unsupported:\n%s\n"
+                "Skipping building resources inside these nested stacks.",
+                "\n".join([f"- {full_path}" for full_path in remote_stack_full_paths]),
+            )
 
         self._function_provider = SamFunctionProvider(self.stacks)
         self._layer_provider = SamLayerProvider(self.stacks)

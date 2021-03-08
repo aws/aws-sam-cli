@@ -56,6 +56,6 @@ ENV LANG=en_US.UTF-8
 # Python for it to be picked up during `sam build`
 RUN pip3 install wheel
 
-RUN curl https://bootstrap.pypa.io/2.7/get-pip.py -o get-pip.py && python get-pip.py && rm get-pip.py
+RUN curl https://bootstrap.pypa.io/pip/2.7/get-pip.py -o get-pip.py && python get-pip.py && rm get-pip.py
 
 COPY ATTRIBUTION.txt /
