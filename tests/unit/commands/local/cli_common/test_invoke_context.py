@@ -1052,6 +1052,7 @@ class TestInvokeContext_get_debug_context(TestCase):
 class TestInvokeContext_get_stacks(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.SamLocalStackProvider.get_stacks")
     def test_must_pass_custom_region(self, get_stacks_mock):
+        get_stacks_mock.return_value = [Mock(), []]
         invoke_context = InvokeContext("template_file", aws_region="my-custom-region")
         invoke_context._get_stacks()
         get_stacks_mock.assert_called_with(

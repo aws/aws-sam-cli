@@ -3,11 +3,12 @@ Class that provides all nested stacks from a given SAM template
 """
 import logging
 import os
-from typing import Optional, Dict, cast, List, Iterator
+from typing import Optional, Dict, cast, List, Iterator, Tuple
 from urllib.parse import unquote, urlparse
 
 from samcli.commands._utils.template import get_template_data
-from samcli.lib.providers.provider import Stack
+from samcli.lib.providers.exceptions import RemoteStackLocationNotSupported
+from samcli.lib.providers.provider import Stack, get_full_path
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 
 LOG = logging.getLogger(__name__)
@@ -56,8 +57,11 @@ class SamLocalStackProvider(SamBaseProvider):
 
         LOG.debug("%d stacks found in the template", len(self._resources))
 
-        # Store a map of stack name to stack information for quick reference
-        self._stacks = self._extract_stacks()
+        # Store a map of stack name to stack information for quick reference -> self._stacks
+        # and detect remote stacks -> self._remote_stack_full_paths
+        self._stacks: Dict[str, Stack] = {}
+        self.remote_stack_full_paths: List[str] = []
+        self._extract_stacks()
 
     def get(self, name: str) -> Optional[Stack]:
         """
@@ -85,15 +89,13 @@ class SamLocalStackProvider(SamBaseProvider):
         for _, stack in self._stacks.items():
             yield stack
 
-    def _extract_stacks(self) -> Dict[str, Stack]:
+    def _extract_stacks(self) -> None:
         """
         Extracts and returns nested application information from the given dictionary of SAM/CloudFormation resources.
         This method supports applications defined with AWS::Serverless::Application
-        :return dict(string : application): Dictionary of application LogicalId to the
-            Application object
+        The dictionary of application LogicalId to the Application object will be assigned to self._stacks.
+        If child stacks with remote URL are detected, their full paths are recorded in self._remote_stack_full_paths.
         """
-
-        result: Dict[str, Stack] = {}
 
         for name, resource in self._resources.items():
 
@@ -105,21 +107,22 @@ class SamLocalStackProvider(SamBaseProvider):
                 resource_properties["Metadata"] = resource_metadata
 
             stack: Optional[Stack] = None
-            if resource_type == SamLocalStackProvider.SERVERLESS_APPLICATION:
-                stack = SamLocalStackProvider._convert_sam_application_resource(
-                    self._template_directory, self._stack_path, name, resource_properties
-                )
-            if resource_type == SamLocalStackProvider.CLOUDFORMATION_STACK:
-                stack = SamLocalStackProvider._convert_cfn_stack_resource(
-                    self._template_directory, self._stack_path, name, resource_properties
-                )
+            try:
+                if resource_type == SamLocalStackProvider.SERVERLESS_APPLICATION:
+                    stack = SamLocalStackProvider._convert_sam_application_resource(
+                        self._template_directory, self._stack_path, name, resource_properties
+                    )
+                if resource_type == SamLocalStackProvider.CLOUDFORMATION_STACK:
+                    stack = SamLocalStackProvider._convert_cfn_stack_resource(
+                        self._template_directory, self._stack_path, name, resource_properties
+                    )
+            except RemoteStackLocationNotSupported:
+                self.remote_stack_full_paths.append(get_full_path(self._stack_path, name))
 
             if stack:
-                result[name] = stack
+                self._stacks[name] = stack
 
             # We don't care about other resource types. Just ignore them
-
-        return result
 
     @staticmethod
     def _convert_sam_application_resource(
@@ -132,22 +135,11 @@ class SamLocalStackProvider(SamBaseProvider):
         location = resource_properties.get("Location")
 
         if isinstance(location, dict):
-            LOG.warning(
-                "Nested application '%s' has specified an application published to the "
-                "AWS Serverless Application Repository which is unsupported. "
-                "Skipping resources inside this nested application.",
-                name,
-            )
-            return None
+            raise RemoteStackLocationNotSupported()
 
         location = cast(str, location)
         if SamLocalStackProvider.is_remote_url(location):
-            LOG.warning(
-                "Nested application '%s' has specified S3 location for Location which is unsupported. "
-                "Skipping resources inside this nested application.",
-                name,
-            )
-            return None
+            raise RemoteStackLocationNotSupported()
         if location.startswith("file://"):
             location = unquote(urlparse(location).path)
         elif not os.path.isabs(location):
@@ -174,12 +166,7 @@ class SamLocalStackProvider(SamBaseProvider):
         template_url = resource_properties.get("TemplateURL", "")
 
         if SamLocalStackProvider.is_remote_url(template_url):
-            LOG.warning(
-                "Nested stack '%s' has specified S3 location for Location which is unsupported. "
-                "Skipping resources inside this nested stack.",
-                name,
-            )
-            return None
+            raise RemoteStackLocationNotSupported()
         if template_url.startswith("file://"):
             template_url = unquote(urlparse(template_url).path)
         elif not os.path.isabs(template_url):
@@ -202,7 +189,7 @@ class SamLocalStackProvider(SamBaseProvider):
         name: str = "",
         parameter_overrides: Optional[Dict] = None,
         global_parameter_overrides: Optional[Dict] = None,
-    ) -> List[Stack]:
+    ) -> Tuple[List[Stack], List[str]]:
         """
         Recursively extract stacks from a template file.
 
@@ -225,6 +212,8 @@ class SamLocalStackProvider(SamBaseProvider):
         -------
         stacks: List[Stack]
             The list of stacks extracted from template_file
+        remote_stack_full_paths : List[str]
+            The list of full paths of detected remote stacks
         """
         template_dict = get_template_data(template_file)
         stacks = [
@@ -236,21 +225,25 @@ class SamLocalStackProvider(SamBaseProvider):
                 template_dict,
             )
         ]
+        remote_stack_full_paths: List[str] = []
 
         current = SamLocalStackProvider(
             template_file, stack_path, template_dict, parameter_overrides, global_parameter_overrides
         )
+        remote_stack_full_paths.extend(current.remote_stack_full_paths)
+
         for child_stack in current.get_all():
-            stacks.extend(
-                SamLocalStackProvider.get_stacks(
-                    child_stack.location,
-                    os.path.join(stack_path, name),
-                    child_stack.name,
-                    child_stack.parameters,
-                    global_parameter_overrides,
-                )
+            stacks_in_child, remote_stack_full_paths_in_child = SamLocalStackProvider.get_stacks(
+                child_stack.location,
+                os.path.join(stack_path, name),
+                child_stack.name,
+                child_stack.parameters,
+                global_parameter_overrides,
             )
-        return stacks
+            stacks.extend(stacks_in_child)
+            remote_stack_full_paths.extend(remote_stack_full_paths_in_child)
+
+        return stacks, remote_stack_full_paths
 
     @staticmethod
     def is_remote_url(url: str):

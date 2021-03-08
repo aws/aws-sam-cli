@@ -387,11 +387,12 @@ class InvokeContext:
 
     def _get_stacks(self) -> List[Stack]:
         try:
-            return SamLocalStackProvider.get_stacks(
+            stacks, _ = SamLocalStackProvider.get_stacks(
                 self._template_file,
                 parameter_overrides=self._parameter_overrides,
                 global_parameter_overrides=self._global_parameter_overrides,
             )
+            return stacks
         except (TemplateNotFoundException, TemplateFailedParsingException) as ex:
             raise InvokeContextException(str(ex)) from ex
 

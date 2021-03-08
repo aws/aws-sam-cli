@@ -209,7 +209,7 @@ class DeployContext:
         confirm_changeset : bool
             Should wait for customer's confirm before executing the changeset
         """
-        stacks = SamLocalStackProvider.get_stacks(
+        stacks, _ = SamLocalStackProvider.get_stacks(
             self.template_file, parameter_overrides=sanitize_parameter_overrides(self.parameter_overrides)
         )
         auth_required_per_resource = auth_per_resource(stacks)

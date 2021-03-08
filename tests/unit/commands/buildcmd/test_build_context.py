@@ -1,6 +1,8 @@
 import os
 from unittest import TestCase
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, ANY
+
+from parameterized import parameterized
 
 from samcli.local.lambdafn.exceptions import ResourceNotFound
 from samcli.commands.build.build_context import BuildContext
@@ -24,7 +26,7 @@ class TestBuildContext__enter__(TestCase):
         template_dict = "template dict"
         stack = Mock()
         stack.template_dict = template_dict
-        get_buildable_stacks_mock.return_value = [stack]
+        get_buildable_stacks_mock.return_value = ([stack], [])
 
         layer1 = DummyLayer("layer1", "buildmethod")
         layer2 = DummyLayer("layer1", None)
@@ -99,7 +101,7 @@ class TestBuildContext__enter__(TestCase):
         template_dict = "template dict"
         stack = Mock()
         stack.template_dict = template_dict
-        get_buildable_stacks_mock.return_value = [stack]
+        get_buildable_stacks_mock.return_value = ([stack], [])
         func_provider_mock = Mock()
         func_provider_mock.get.return_value = None
         func_provider_mock.get_all.return_value = [DummyFunction("func1"), DummyFunction("func2")]
@@ -153,7 +155,7 @@ class TestBuildContext__enter__(TestCase):
         template_dict = "template dict"
         stack = Mock()
         stack.template_dict = template_dict
-        get_buildable_stacks_mock.return_value = [stack]
+        get_buildable_stacks_mock.return_value = ([stack], [])
         func_provider_mock = Mock()
         func_provider_mock.get.return_value = None
         funcprovider = SamFunctionProviderMock.return_value = func_provider_mock
@@ -205,7 +207,7 @@ class TestBuildContext__enter__(TestCase):
         template_dict = "template dict"
         stack = Mock()
         stack.template_dict = template_dict
-        get_buildable_stacks_mock.return_value = [stack]
+        get_buildable_stacks_mock.return_value = ([stack], [])
 
         layer1 = DummyLayer("layer1", "python3.8")
         layer2 = DummyLayer("layer2", None)
@@ -263,7 +265,7 @@ class TestBuildContext__enter__(TestCase):
         template_dict = "template dict"
         stack = Mock()
         stack.template_dict = template_dict
-        get_buildable_stacks_mock.return_value = [stack]
+        get_buildable_stacks_mock.return_value = ([stack], [])
         func_provider_mock = Mock()
         func_provider_mock.get.return_value = None
         funcprovider = SamFunctionProviderMock.return_value = func_provider_mock
@@ -316,7 +318,7 @@ class TestBuildContext__enter__(TestCase):
         template_dict = "template dict"
         stack = Mock()
         stack.template_dict = template_dict
-        get_buildable_stacks_mock.return_value = [stack]
+        get_buildable_stacks_mock.return_value = ([stack], [])
         func1 = DummyFunction("func1")
         func2 = DummyFunction("func2")
         func_provider_mock = Mock()
@@ -375,6 +377,50 @@ class TestBuildContext__enter__(TestCase):
         setup_build_dir_mock.assert_called_with("build_dir", True)
         ContainerManagerMock.assert_called_once_with(docker_network_id="network", skip_pull_image=True)
         func_provider_mock.get_all.assert_called_once()
+
+    @parameterized.expand([(["remote_stack_1", "stack.remote_stack_2"], "print_warning"), ([], False)])
+    @patch("samcli.commands.build.build_context.LOG")
+    @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
+    @patch("samcli.commands.build.build_context.SamFunctionProvider")
+    @patch("samcli.commands.build.build_context.SamLayerProvider")
+    @patch("samcli.commands.build.build_context.pathlib")
+    @patch("samcli.commands.build.build_context.ContainerManager")
+    def test_must_print_remote_url_warning(
+        self,
+        remote_stack_full_paths,
+        print_warning,
+        ContainerManagerMock,
+        pathlib_mock,
+        SamLayerProviderMock,
+        SamFunctionProviderMock,
+        get_buildable_stacks_mock,
+        log_mock,
+    ):
+        get_buildable_stacks_mock.return_value = ([], remote_stack_full_paths)
+
+        context = BuildContext(
+            "function_identifier",
+            "template_file",
+            None,  # No base dir is provided
+            "build_dir",
+            manifest_path="manifest_path",
+            clean=True,
+            use_container=True,
+            docker_network="network",
+            parameter_overrides={"overrides": "value"},
+            skip_pull_image=True,
+            mode="buildmode",
+            cached=False,
+            cache_dir="cache_dir",
+        )
+        context._setup_build_dir = Mock()
+
+        # call the enter method
+        context.__enter__()
+        if print_warning:
+            log_mock.warning.assert_called_once_with(ANY, ", ".join(remote_stack_full_paths))
+        else:
+            log_mock.warning.assert_not_called()
 
 
 class TestBuildContext_setup_build_dir(TestCase):
