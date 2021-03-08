@@ -1,3 +1,4 @@
+import os
 import posixpath
 from unittest import TestCase
 from unittest.mock import patch, PropertyMock, Mock, call
@@ -412,7 +413,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     functionname="LambdaFuncWithLocalPath",
                     runtime="nodejs4.3",
                     handler="index.handler",
-                    codeuri="some/path/to/code",
+                    codeuri=os.path.join("some", "path", "to", "code"),
                     memory=None,
                     timeout=None,
                     environment=None,
@@ -435,7 +436,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     functionname="LambdaFuncWithFunctionNameOverride-x",
                     runtime="nodejs4.3",
                     handler="index.handler",
-                    codeuri="some/path/to/code",
+                    codeuri=os.path.join("some", "path", "to", "code"),
                     memory=None,
                     timeout=None,
                     environment=None,
@@ -458,7 +459,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     functionname="LambdaFuncWithCodeSignConfig",
                     runtime="nodejs4.3",
                     handler="index.handler",
-                    codeuri="some/path/to/code",
+                    codeuri=os.path.join("some", "path", "to", "code"),
                     memory=None,
                     timeout=None,
                     environment=None,
@@ -481,7 +482,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     functionname="SamFunctionsInChildName",
                     runtime="nodejs4.3",
                     handler="index.handler",
-                    codeuri="child/foo/bar",
+                    codeuri=os.path.join("child", "foo", "bar"),
                     memory=None,
                     timeout=None,
                     environment=None,
@@ -536,7 +537,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     events=None,
                     metadata={
                         "DockerTag": "tag",
-                        "DockerContext": "child/image",  # the path should starts with child
+                        "DockerContext": os.path.join("child", "image"),  # the path should starts with child
                         "Dockerfile": "Dockerfile",
                     },
                     inlinecode=None,

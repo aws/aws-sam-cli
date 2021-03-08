@@ -147,7 +147,7 @@ class TestSamLayerProvider(TestCase):
                 posixpath.join("ChildStack", "SamLayerInChild"),
                 LayerVersion(
                     "SamLayerInChild",
-                    "child/PyLayer",
+                    os.path.join("child", "PyLayer"),
                     ["python3.8", "python3.6"],
                     {"BuildMethod": "python3.8"},
                     stack_path="ChildStack",

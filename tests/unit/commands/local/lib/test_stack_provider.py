@@ -1,5 +1,5 @@
 import os
-from unittest import TestCase
+from unittest import TestCase, skipIf
 from unittest.mock import patch, Mock
 
 from parameterized import parameterized
@@ -9,6 +9,8 @@ from samcli.lib.providers.provider import Stack
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 
 # LEAF_TEMPLATE is a template without any nested application/stack in it
+from tests.testing_utils import IS_WINDOWS
+
 LEAF_TEMPLATE = {
     "Resources": {
         "AFunction": {
@@ -225,7 +227,30 @@ class TestSamBuildableStackProvider(TestCase):
             ("./path/template.yaml", "/code", "/code"),
         ]
     )
-    def test_normalize_resource_path(self, stack_location, path, normalized_path):
+    @skipIf(IS_WINDOWS, "only run test_normalize_resource_path_windows_* on Windows")
+    def test_normalize_resource_path_poxis(self, stack_location, path, normalized_path):
+        self.assertEqual(
+            SamLocalStackProvider.normalize_resource_path(Mock(location=stack_location), path), normalized_path
+        )
+
+    @parameterized.expand(
+        [
+            ("C:\\path\\template.yaml", ".\\code", "C:\\path\\code"),
+            ("C:\\path\\template.yaml", "code", "C:\\path\\code"),
+            ("C:\\path\\template.yaml", "D:\\code", "D:\\code"),
+            ("path\\template.yaml", ".\\code", "path\\code"),
+            ("path\\template.yaml", "code", "path\\code"),
+            ("path\\template.yaml", "D:\\code", "D:\\code"),
+            (".\\path\\template.yaml", ".\\code", "path\\code"),
+            (".\\path\\template.yaml", "code", "path\\code"),
+            (".\\path\\template.yaml", "D:\\code", "D:\\code"),
+            (".\\path\\template.yaml", "..\\..\\code", "..\\code"),
+            (".\\path\\template.yaml", "code\\..\\code", "path\\code"),
+            (".\\path\\template.yaml", "D:\\code", "D:\\code"),
+        ]
+    )
+    @skipIf(not IS_WINDOWS, "skip test_normalize_resource_path_windows_* on non-Windows system")
+    def test_normalize_resource_path_windows(self, stack_location, path, normalized_path):
         self.assertEqual(
             SamLocalStackProvider.normalize_resource_path(Mock(location=stack_location), path), normalized_path
         )
