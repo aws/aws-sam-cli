@@ -290,7 +290,9 @@ class SamFunctionProvider(SamBaseProvider):
         """
         metadata = resource_properties.get("Metadata", None)
         if metadata and "DockerContext" in metadata:
-            metadata["DockerContext"] = SamLocalStackProvider.normalize_resource_path(stack, metadata["DockerContext"])
+            metadata["DockerContext"] = SamLocalStackProvider.normalize_resource_path(
+                stack.location, metadata["DockerContext"]
+            )
 
         return Function(
             stack_path=stack.stack_path,
@@ -301,7 +303,7 @@ class SamFunctionProvider(SamBaseProvider):
             memory=resource_properties.get("MemorySize"),
             timeout=resource_properties.get("Timeout"),
             handler=resource_properties.get("Handler"),
-            codeuri=SamLocalStackProvider.normalize_resource_path(stack, codeuri) if codeuri else None,
+            codeuri=SamLocalStackProvider.normalize_resource_path(stack.location, codeuri) if codeuri else None,
             imageuri=imageuri if imageuri else resource_properties.get("ImageUri"),
             imageconfig=resource_properties.get("ImageConfig"),
             environment=resource_properties.get("Environment"),
@@ -388,7 +390,7 @@ class SamFunctionProvider(SamBaseProvider):
                 layers.append(
                     LayerVersion(
                         layer_logical_id,
-                        SamLocalStackProvider.normalize_resource_path(stack, codeuri) if codeuri else None,
+                        SamLocalStackProvider.normalize_resource_path(stack.location, codeuri) if codeuri else None,
                         compatible_runtimes,
                         layer_resource.get("Metadata", None),
                         stack_path=stack.stack_path,

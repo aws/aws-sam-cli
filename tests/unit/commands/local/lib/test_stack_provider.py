@@ -229,9 +229,7 @@ class TestSamBuildableStackProvider(TestCase):
     )
     @skipIf(IS_WINDOWS, "only run test_normalize_resource_path_windows_* on Windows")
     def test_normalize_resource_path_poxis(self, stack_location, path, normalized_path):
-        self.assertEqual(
-            SamLocalStackProvider.normalize_resource_path(Mock(location=stack_location), path), normalized_path
-        )
+        self.assertEqual(SamLocalStackProvider.normalize_resource_path(stack_location, path), normalized_path)
 
     @parameterized.expand(
         [
@@ -251,6 +249,4 @@ class TestSamBuildableStackProvider(TestCase):
     )
     @skipIf(not IS_WINDOWS, "skip test_normalize_resource_path_windows_* on non-Windows system")
     def test_normalize_resource_path_windows(self, stack_location, path, normalized_path):
-        self.assertEqual(
-            SamLocalStackProvider.normalize_resource_path(Mock(location=stack_location), path), normalized_path
-        )
+        self.assertEqual(SamLocalStackProvider.normalize_resource_path(stack_location, path), normalized_path)

@@ -292,7 +292,7 @@ class SamLocalStackProvider(SamBaseProvider):
         return merged_parameter_overrides
 
     @staticmethod
-    def normalize_resource_path(stack: Stack, path: str) -> str:
+    def normalize_resource_path(stack_file_path: str, path: str) -> str:
         """
         Convert resource paths found in nested stack to ones resolvable from root stack.
         For example,
@@ -304,8 +304,10 @@ class SamLocalStackProvider(SamBaseProvider):
 
         Parameters
         ----------
-        stack
+        stack_file_path
+            The file path of the stack containing the resource
         path
+            the raw path read from the template dict
 
         Returns
         -------
@@ -315,4 +317,4 @@ class SamLocalStackProvider(SamBaseProvider):
         """
         if os.path.isabs(path):
             return path
-        return os.path.normpath(os.path.join(os.path.dirname(stack.location), path))
+        return os.path.normpath(os.path.join(os.path.dirname(stack_file_path), path))
