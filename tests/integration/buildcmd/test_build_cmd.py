@@ -1588,11 +1588,12 @@ class TestBuildWithNestedStacks(NestedBuildIntegBase):
             )
 
 
-class TestBuildWithNestedStacks3Level(NestedBuildIntegBase):
+class TestBuildWithNestedStacks3LevelWithSymlink(NestedBuildIntegBase):
     """
     In this template, it has the same structure as .aws-sam/build
     build
         - template.yaml
+        - child-stack-x-template-symlink.yaml (symlink to ChildStackX/template.yaml)
         - FunctionA
         - ChildStackX
             - template.yaml
@@ -1617,8 +1618,20 @@ class TestBuildWithNestedStacks3Level(NestedBuildIntegBase):
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
-        function_full_paths = ["FunctionA", "ChildStackX/FunctionB", "ChildStackX/ChildStackY/FunctionA"]
-        stack_paths = ["", "ChildStackX", "ChildStackX/ChildStackY"]
+        function_full_paths = [
+            "FunctionA",
+            "ChildStackX/FunctionB",
+            "ChildStackX/ChildStackY/FunctionA",
+            "ChildStackXViaSymlink/FunctionB",
+            "ChildStackXViaSymlink/ChildStackY/FunctionA",
+        ]
+        stack_paths = [
+            "",
+            "ChildStackX",
+            "ChildStackX/ChildStackY",
+            "ChildStackXViaSymlink",
+            "ChildStackXViaSymlink/ChildStackY",
+        ]
         if not SKIP_DOCKER_TESTS:
             self._verify_build(
                 function_full_paths,
@@ -1634,6 +1647,8 @@ class TestBuildWithNestedStacks3Level(NestedBuildIntegBase):
                     ("FunctionB", {"body": '{"hello": "b"}', "statusCode": 200}),
                     ("ChildStackX/FunctionB", {"body": '{"hello": "b"}', "statusCode": 200}),
                     ("ChildStackX/ChildStackY/FunctionA", {"body": '{"hello": "a2"}', "statusCode": 200}),
+                    ("ChildStackXViaSymlink/FunctionB", {"body": '{"hello": "b"}', "statusCode": 200}),
+                    ("ChildStackXViaSymlink/ChildStackY/FunctionA", {"body": '{"hello": "a2"}', "statusCode": 200}),
                 ],
             )
 

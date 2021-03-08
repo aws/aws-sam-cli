@@ -15,3 +15,8 @@ Resources:
     Type: AWS::Serverless::Application
     Properties:
       Location: ChildStackX/template.yaml
+
+  ChildStackXViaSymlink:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: child-stack-x-template-symlink.yaml
