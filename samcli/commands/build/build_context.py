@@ -75,8 +75,8 @@ class BuildContext:
 
         if remote_stack_full_paths:
             LOG.warning(
-                "Below nested stacks(s) specify non-local URL(s), which is unsupported:\n%s\n"
-                "Skipping building resources inside this these nested stacks.",
+                "Below nested stacks(s) specify non-local URL(s), which are unsupported:\n%s\n"
+                "Skipping building resources inside these nested stacks.",
                 "\n".join([f"- {full_path}" for full_path in remote_stack_full_paths]),
             )
 
