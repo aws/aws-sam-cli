@@ -45,7 +45,7 @@ class SamLocalStackProvider(SamBaseProvider):
             might want to get substituted within the template and all its child templates
         """
 
-        self._template_directory = os.path.dirname(template_file)
+        self._template_file = template_file
         self._stack_path = stack_path
         self._template_dict = self.get_template(
             template_dict,
@@ -107,11 +107,11 @@ class SamLocalStackProvider(SamBaseProvider):
             stack: Optional[Stack] = None
             if resource_type == SamLocalStackProvider.SERVERLESS_APPLICATION:
                 stack = SamLocalStackProvider._convert_sam_application_resource(
-                    self._template_directory, self._stack_path, name, resource_properties
+                    self._template_file, self._stack_path, name, resource_properties
                 )
             if resource_type == SamLocalStackProvider.CLOUDFORMATION_STACK:
                 stack = SamLocalStackProvider._convert_cfn_stack_resource(
-                    self._template_directory, self._stack_path, name, resource_properties
+                    self._template_file, self._stack_path, name, resource_properties
                 )
 
             if stack:
@@ -123,7 +123,7 @@ class SamLocalStackProvider(SamBaseProvider):
 
     @staticmethod
     def _convert_sam_application_resource(
-        template_directory: str,
+        template_file: str,
         stack_path: str,
         name: str,
         resource_properties: Dict,
@@ -150,8 +150,8 @@ class SamLocalStackProvider(SamBaseProvider):
             return None
         if location.startswith("file://"):
             location = unquote(urlparse(location).path)
-        elif not os.path.isabs(location):
-            location = os.path.join(template_directory, os.path.relpath(location))
+        else:
+            location = SamLocalStackProvider.normalize_resource_path(template_file, location)
 
         return Stack(
             parent_stack_path=stack_path,
@@ -165,7 +165,7 @@ class SamLocalStackProvider(SamBaseProvider):
 
     @staticmethod
     def _convert_cfn_stack_resource(
-        template_directory: str,
+        template_file: str,
         stack_path: str,
         name: str,
         resource_properties: Dict,
@@ -182,8 +182,8 @@ class SamLocalStackProvider(SamBaseProvider):
             return None
         if template_url.startswith("file://"):
             template_url = unquote(urlparse(template_url).path)
-        elif not os.path.isabs(template_url):
-            template_url = os.path.join(template_directory, os.path.relpath(template_url))
+        else:
+            template_url = SamLocalStackProvider.normalize_resource_path(template_file, template_url)
 
         return Stack(
             parent_stack_path=stack_path,
