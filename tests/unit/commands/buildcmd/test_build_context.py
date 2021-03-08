@@ -418,7 +418,9 @@ class TestBuildContext__enter__(TestCase):
         # call the enter method
         context.__enter__()
         if print_warning:
-            log_mock.warning.assert_called_once_with(ANY, ", ".join(remote_stack_full_paths))
+            log_mock.warning.assert_called_once_with(
+                ANY, "\n".join([f"- {full_path}" for full_path in remote_stack_full_paths])
+            )
         else:
             log_mock.warning.assert_not_called()
 
