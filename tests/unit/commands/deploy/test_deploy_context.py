@@ -1,6 +1,6 @@
 """Test sam deploy command"""
 from unittest import TestCase
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, Mock
 import tempfile
 
 from samcli.lib.deploy.deployer import Deployer
@@ -137,6 +137,7 @@ class TestSamDeployCommand(TestCase):
     def test_template_valid_execute_changeset_with_parameters(
         self, patched_get_buildable_stacks, patched_auth_required, patched_boto
     ):
+        patched_get_buildable_stacks.return_value = (Mock(), [])
         patched_auth_required.return_value = [("HelloWorldFunction", False)]
         with tempfile.NamedTemporaryFile(delete=False) as template_file:
             template_file.write(b'{"Parameters": {"a":"b","c":"d"}}')

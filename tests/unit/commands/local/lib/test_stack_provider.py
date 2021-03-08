@@ -50,7 +50,7 @@ class TestSamBuildableStackProvider(TestCase):
             self.template_file: template,
             child_location_path: LEAF_TEMPLATE,
         }.get(t)
-        stacks = SamLocalStackProvider.get_stacks(
+        stacks, remote_stack_full_paths = SamLocalStackProvider.get_stacks(
             self.template_file,
             "",
             "",
@@ -63,6 +63,7 @@ class TestSamBuildableStackProvider(TestCase):
                 Stack("", "ChildStack", child_location_path, {}, LEAF_TEMPLATE),
             ],
         )
+        self.assertFalse(remote_stack_full_paths)
 
     def test_sam_deep_nested_stack(self):
         child_template_file = "child.yaml"
@@ -88,7 +89,7 @@ class TestSamBuildableStackProvider(TestCase):
             child_template_file: child_template,
             grand_child_template_file: LEAF_TEMPLATE,
         }.get(t)
-        stacks = SamLocalStackProvider.get_stacks(
+        stacks, remote_stack_full_paths = SamLocalStackProvider.get_stacks(
             self.template_file,
             "",
             "",
@@ -102,6 +103,7 @@ class TestSamBuildableStackProvider(TestCase):
                 Stack("ChildStack", "GrandChildStack", grand_child_template_file, {}, LEAF_TEMPLATE),
             ],
         )
+        self.assertFalse(remote_stack_full_paths)
 
     @parameterized.expand([(AWS_SERVERLESS_APPLICATION, "Location"), (AWS_CLOUDFORMATION_STACK, "TemplateURL")])
     def test_remote_stack_is_skipped(self, resource_type, location_property_name):
@@ -116,7 +118,7 @@ class TestSamBuildableStackProvider(TestCase):
         self.get_template_data_mock.side_effect = lambda t: {
             self.template_file: template,
         }.get(t)
-        stacks = SamLocalStackProvider.get_stacks(
+        stacks, remote_stack_full_paths = SamLocalStackProvider.get_stacks(
             self.template_file,
             "",
             "",
@@ -128,6 +130,7 @@ class TestSamBuildableStackProvider(TestCase):
                 Stack("", "", self.template_file, {}, template),
             ],
         )
+        self.assertEqual(remote_stack_full_paths, ["ChildStack"])
 
     @parameterized.expand(
         [
@@ -155,7 +158,7 @@ class TestSamBuildableStackProvider(TestCase):
             template_file: template,
             child_location_path: LEAF_TEMPLATE,
         }.get(t)
-        stacks = SamLocalStackProvider.get_stacks(
+        stacks, remote_stack_full_paths = SamLocalStackProvider.get_stacks(
             template_file,
             "",
             "",
@@ -168,6 +171,7 @@ class TestSamBuildableStackProvider(TestCase):
                 Stack("", "ChildStack", child_location_path, {}, LEAF_TEMPLATE),
             ],
         )
+        self.assertFalse(remote_stack_full_paths)
 
     @parameterized.expand(
         [
@@ -198,7 +202,7 @@ class TestSamBuildableStackProvider(TestCase):
 
         global_parameter_overrides = {"AWS::Region": "custom_region"}
 
-        stacks = SamLocalStackProvider.get_stacks(
+        stacks, remote_stack_full_paths = SamLocalStackProvider.get_stacks(
             template_file, "", "", parameter_overrides=None, global_parameter_overrides=global_parameter_overrides
         )
         self.assertListEqual(
@@ -208,3 +212,4 @@ class TestSamBuildableStackProvider(TestCase):
                 Stack("", "ChildStack", child_location_path, global_parameter_overrides, LEAF_TEMPLATE),
             ],
         )
+        self.assertFalse(remote_stack_full_paths)
