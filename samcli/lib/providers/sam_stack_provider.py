@@ -302,6 +302,11 @@ class SamLocalStackProvider(SamBaseProvider):
         the resource path is "resource" because it is extracted from child stack, the path is relative to child stack.
         here we normalize the resource path into relative paths to root stack, which is "folder/resource"
 
+        * since stack_file_path might be a symlink, os.path.join() won't be able to derive the correct path.
+          for example, stack_file_path = 'folder/t.yaml' -> '../folder2/t.yaml' and the path = 'src'
+          the correct normalized path being returned should be '../folder2/t.yaml' but if we don't resolve the
+          symlink first, it would return 'folder/src.'
+
         Parameters
         ----------
         stack_file_path
@@ -317,4 +322,9 @@ class SamLocalStackProvider(SamBaseProvider):
         """
         if os.path.isabs(path):
             return path
+
+        # in case stack_file_path is symlink, resolve its real path (in relative path form)
+        if os.path.islink(stack_file_path):
+            stack_file_path = os.path.relpath(os.path.realpath(stack_file_path))
+
         return os.path.normpath(os.path.join(os.path.dirname(stack_file_path), path))

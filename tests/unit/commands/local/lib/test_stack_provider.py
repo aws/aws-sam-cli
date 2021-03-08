@@ -1,4 +1,5 @@
 import os
+import tempfile
 from unittest import TestCase, skipIf
 from unittest.mock import patch, Mock
 
@@ -250,3 +251,24 @@ class TestSamBuildableStackProvider(TestCase):
     @skipIf(not IS_WINDOWS, "skip test_normalize_resource_path_windows_* on non-Windows system")
     def test_normalize_resource_path_windows(self, stack_location, path, normalized_path):
         self.assertEqual(SamLocalStackProvider.normalize_resource_path(stack_location, path), normalized_path)
+
+    def test_normalize_resource_path_symlink(self):
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            template = os.path.join("some", "path", "template.yaml")
+            link1 = os.path.join(tmp_dir, "link1")
+            link2 = os.path.join(tmp_dir, "link2")
+            resource_path = "src"
+            expected = os.path.join("some", "path", "src")
+
+            os.symlink(template, link1)
+            os.symlink(link1, link2)
+
+            # on mac, tmp_dir itself could be a symlink
+            real_tmp_dir = os.path.realpath(tmp_dir)
+
+            self.assertEqual(
+                SamLocalStackProvider.normalize_resource_path(link2, resource_path),
+                # SamLocalStackProvider.normalize_resource_path() always returns a relative path.
+                os.path.relpath(os.path.join(real_tmp_dir, expected)),
+            )
