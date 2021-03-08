@@ -1,4 +1,6 @@
 import os
+import tempfile
+from pathlib import Path
 from unittest import TestCase, skipIf
 from unittest.mock import patch, Mock
 
@@ -255,3 +257,35 @@ class TestSamBuildableStackProvider(TestCase):
     @skipIf(not IS_WINDOWS, "skip test_normalize_resource_path_windows_* on non-Windows system")
     def test_normalize_resource_path_windows(self, stack_location, path, normalized_path):
         self.assertEqual(SamLocalStackProvider.normalize_resource_path(stack_location, path), normalized_path)
+
+    def test_normalize_resource_path_symlink(self):
+        """
+        template: tmp_dir/some/path/template.yaml
+        link1 (tmp_dir/symlinks/link1) -> ../some/path/template.yaml
+        link2 (tmp_dir/symlinks/link1) -> tmp_dir/symlinks/link1
+        resource_path (tmp_dir/some/path/src), raw path is "src"
+        The final expected value is the actual value of resource_path, which is tmp_dir/some/path/src
+        """
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            Path(tmp_dir, "some", "path").mkdir(parents=True)
+            Path(tmp_dir, "symlinks").mkdir(parents=True)
+
+            template = os.path.join("..", "some", "path", "template.yaml")
+            link1 = os.path.join(tmp_dir, "symlinks", "link1")
+            link2 = os.path.join(tmp_dir, "symlinks", "link2")
+
+            resource_path = "src"
+
+            # on mac, tmp_dir itself could be a symlink
+            real_tmp_dir = os.path.realpath(tmp_dir)
+            # expected is relative path
+            expected = os.path.relpath(os.path.join(real_tmp_dir, os.path.join("some", "path", "src")))
+
+            os.symlink(template, link1)
+            os.symlink(link1, link2)
+
+            self.assertEqual(
+                SamLocalStackProvider.normalize_resource_path(link2, resource_path),
+                # SamLocalStackProvider.normalize_resource_path() always returns a relative path.
+                expected,
+            )
