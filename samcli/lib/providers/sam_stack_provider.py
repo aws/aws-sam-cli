@@ -333,6 +333,10 @@ class SamLocalStackProvider(SamBaseProvider):
             return path
 
         if os.path.islink(stack_file_path):
-            stack_file_path = os.path.realpath(stack_file_path)
+            # os.path.realpath() always returns an absolute path while
+            # the return value of this method will show up in build artifacts,
+            # in case customers move the build artifacts among different machines (e.g., git or file sharing)
+            # absolute paths are not robust as relative paths. So here prefer to use relative path.
+            stack_file_path = os.path.relpath(os.path.realpath(stack_file_path))
 
         return os.path.normpath(os.path.join(os.path.dirname(stack_file_path), path))
