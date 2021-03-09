@@ -7,6 +7,7 @@ from typing import List, Dict, Optional
 
 from .provider import LayerVersion, Stack
 from .sam_base_provider import SamBaseProvider
+from .sam_stack_provider import SamLocalStackProvider
 
 LOG = logging.getLogger(__name__)
 
@@ -78,12 +79,10 @@ class SamLayerProvider(SamBaseProvider):
         for stack in self._stacks:
             for name, resource in stack.resources.items():
                 if resource.get("Type") in [self.LAMBDA_LAYER, self.SERVERLESS_LAYER]:
-                    layers.append(self._convert_lambda_layer_resource(stack.stack_path, name, resource))
+                    layers.append(self._convert_lambda_layer_resource(stack, name, resource))
         return layers
 
-    def _convert_lambda_layer_resource(
-        self, stack_path: str, layer_logical_id: str, layer_resource: Dict
-    ) -> LayerVersion:
+    def _convert_lambda_layer_resource(self, stack: Stack, layer_logical_id: str, layer_resource: Dict) -> LayerVersion:
         """
         Convert layer resource into {LayerVersion} object.
         Parameters
@@ -105,8 +104,8 @@ class SamLayerProvider(SamBaseProvider):
 
         return LayerVersion(
             layer_logical_id,
-            codeuri,
+            SamLocalStackProvider.normalize_resource_path(stack.location, codeuri) if codeuri else None,
             compatible_runtimes,
             layer_resource.get("Metadata", None),
-            stack_path=stack_path,
+            stack_path=stack.stack_path,
         )

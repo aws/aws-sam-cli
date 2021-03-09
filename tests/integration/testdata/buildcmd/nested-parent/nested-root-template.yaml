@@ -6,6 +6,8 @@ Parameteres:
     Type: String
   CodeUri:
     Type: String
+  ChildStackCodeUri:
+    Type: String
   LocalNestedFuncHandler:
     Type: String
 
@@ -41,10 +43,10 @@ Resources:
   LocalNestedStack:
     Type: AWS::Serverless::Application
     Properties:
-      Location: nested-child-template.yaml
+      Location: ../nested-child-template.yaml
       Parameters:
         Runtime: !Ref Runtime
-        CodeUri: !Ref CodeUri
+        CodeUri: !Ref ChildStackCodeUri
         Handler1: !Ref LocalNestedFuncHandler
         Handler2: !Ref LocalNestedFuncHandler
 
