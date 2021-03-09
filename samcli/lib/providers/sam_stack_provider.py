@@ -334,6 +334,6 @@ class SamLocalStackProvider(SamBaseProvider):
 
         # in case stack_file_path is symlink, resolve its real path (in relative path form)
         if os.path.islink(stack_file_path):
-            stack_file_path = os.path.relpath(os.path.realpath(stack_file_path))
+            stack_file_path = os.path.realpath(stack_file_path)
 
         return os.path.normpath(os.path.join(os.path.dirname(stack_file_path), path))

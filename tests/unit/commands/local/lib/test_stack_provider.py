@@ -283,7 +283,7 @@ class TestSamBuildableStackProvider(TestCase):
             real_tmp_dir = os.path.realpath(tmp_dir)
             # SamLocalStackProvider.normalize_resource_path() always returns a relative path.
             # so expected is converted to relative path
-            expected = os.path.relpath(os.path.join(real_tmp_dir, os.path.join("some", "path", "src")))
+            expected = os.path.join(real_tmp_dir, os.path.join("some", "path", "src"))
 
             os.symlink(os.path.join("..", "some", "path", "template.yaml"), link1)
             os.symlink("link1", link2)
