@@ -258,6 +258,7 @@ class TestSamBuildableStackProvider(TestCase):
     def test_normalize_resource_path_windows(self, stack_location, path, normalized_path):
         self.assertEqual(SamLocalStackProvider.normalize_resource_path(stack_location, path), normalized_path)
 
+    @skipIf(IS_WINDOWS, "symlink is not resolved consistently on windows")
     def test_normalize_resource_path_symlink(self):
         """
         template: tmp_dir/some/path/template.yaml
@@ -265,6 +266,9 @@ class TestSamBuildableStackProvider(TestCase):
         link2 (tmp_dir/symlinks/link1) -> tmp_dir/symlinks/link1
         resource_path (tmp_dir/some/path/src), raw path is "src"
         The final expected value is the actual value of resource_path, which is tmp_dir/some/path/src
+
+        Skip the test on windows, due to symlink is not resolved consistently on Python:
+        https://stackoverflow.com/questions/43333640/python-os-path-realpath-for-symlink-in-windows
         """
         with tempfile.TemporaryDirectory() as tmp_dir:
             Path(tmp_dir, "some", "path").mkdir(parents=True)
@@ -283,13 +287,6 @@ class TestSamBuildableStackProvider(TestCase):
 
             os.symlink(os.path.join("..", "some", "path", "template.yaml"), link1)
             os.symlink("link1", link2)
-
-            # sanity checks (debug)
-            self.assertTrue(link1.startswith("C:"))
-            self.assertTrue(os.path.islink(link1))
-            self.assertTrue(os.path.islink(link2))
-            self.assertEqual(os.path.realpath(link1), os.path.join(real_tmp_dir, "some", "path", "template.yaml"))
-            self.assertEqual(os.path.realpath(link2), os.path.join(real_tmp_dir, "some", "path", "template.yaml"))
 
             self.assertEqual(
                 SamLocalStackProvider.normalize_resource_path(link2, resource_path),

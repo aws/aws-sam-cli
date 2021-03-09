@@ -300,6 +300,22 @@ class SamLocalStackProvider(SamBaseProvider):
           the correct normalized path being returned should be '../folder2/t.yaml' but if we don't resolve the
           symlink first, it would return 'folder/src.'
 
+        * symlinks on Windows might not work properly.
+          https://stackoverflow.com/questions/43333640/python-os-path-realpath-for-symlink-in-windows
+          For example, using Python 3.7, realpath() is a no-op (same as abspath):
+            ```
+            Python 3.7.8 (tags/v3.7.8:4b47a5b6ba, Jun 28 2020, 08:53:46) [MSC v.1916 64 bit (AMD64)] on win32
+            Type "help", "copyright", "credits" or "license" for more information.
+            >>> import os
+            >>> os.symlink('some\\path', 'link1')
+            >>> os.path.realpath('link1')
+            'C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python37\\link1'
+            >>> os.path.islink('link1')
+            True
+            ```
+          For Python 3.8, according to manual tests, 3.8.8 can resolve symlinks correctly while 3.8.0 cannot.
+
+
         Parameters
         ----------
         stack_file_path
