@@ -285,6 +285,7 @@ class TestSamBuildableStackProvider(TestCase):
             os.symlink("link1", link2)
 
             # sanity checks (debug)
+            self.assertTrue(link1.startswith("C:"))
             self.assertTrue(os.path.islink(link1))
             self.assertTrue(os.path.islink(link2))
             self.assertEqual(os.path.realpath(link1), os.path.join(real_tmp_dir, "some", "path", "template.yaml"))
