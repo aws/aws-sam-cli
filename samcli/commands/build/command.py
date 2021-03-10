@@ -125,6 +125,14 @@ $ sam build MyFunction
     help="Path to environment variable json file (e.g., env_vars.json) to pass into build containers",
 )
 @click.option(
+    "--build-image",
+    "-bi",
+    default=None,
+    multiple=True,  # Can pass in multiple build images
+    required=False,
+    help="",
+)
+@click.option(
     "--parallel",
     "-p",
     is_flag=True,
