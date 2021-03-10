@@ -53,7 +53,7 @@ def get_packageable_resource_paths():
     """
     Resource Types with respective Locations that are package-able.
 
-    Yields
+    Returns
     ------
     _resource_property_dict : Dict
         Resource Dictionary containing packageable resource types and their locations as a list.
