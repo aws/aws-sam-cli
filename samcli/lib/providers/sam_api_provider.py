@@ -1,7 +1,7 @@
 """Parses SAM given the template"""
 
 import logging
-from typing import List, Optional, Dict, Tuple, cast
+from typing import List, Optional, Dict, Tuple, cast, Union
 
 from samcli.lib.providers.api_collector import ApiCollector
 from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
@@ -222,6 +222,7 @@ class SamApiProvider(CfnBaseApiProvider):
         # API. If omitted, the API is owned by Implicit API resource. This could either be a direct resource logical ID
         # or a "Ref" of the logicalID
 
+        api_resource_id: Union[str, Dict]
         payload_format_version: Optional[str] = None
 
         if event_type == SamApiProvider._EVENT_TYPE_API:
