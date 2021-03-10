@@ -43,6 +43,7 @@ class LocalLambdaRunner:
         aws_region: Optional[str] = None,
         env_vars_values: Optional[Dict[Any, Any]] = None,
         debug_context: Optional[DebugContext] = None,
+        localhost=None,
     ) -> None:
         """
         Initializes the class
@@ -55,6 +56,7 @@ class LocalLambdaRunner:
         :param string aws_region: Optional. AWS Region to use.
         :param dict env_vars_values: Optional. Dictionary containing values of environment variables.
         :param DebugContext debug_context: Optional. Debug context for the function (includes port, args, and path).
+        :param string localhost: Optional. Override of localhost to make it running in Docker
         """
 
         self.local_runtime = local_runtime
@@ -66,6 +68,7 @@ class LocalLambdaRunner:
         self.debug_context = debug_context
         self._boto3_session_creds: Optional[Dict[str, str]] = None
         self._boto3_region: Optional[str] = None
+        self.localhost = localhost
 
     def invoke(
         self,
@@ -121,7 +124,7 @@ class LocalLambdaRunner:
 
         # Invoke the function
         try:
-            self.local_runtime.invoke(config, event, debug_context=self.debug_context, stdout=stdout, stderr=stderr)
+            self.local_runtime.invoke(config, event, debug_context=self.debug_context, stdout=stdout, stderr=stderr, localhost=self.localhost)
         except ContainerResponseException:
             # NOTE(sriram-mv): This should still result in a exit code zero to avoid regressions.
             LOG.info("No response from invoke container for %s", function.name)

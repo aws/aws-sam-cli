@@ -44,7 +44,7 @@ class LambdaRuntime:
         self._image_builder = image_builder
         self._temp_uncompressed_paths_to_be_cleaned = []
 
-    def create(self, function_config, debug_context=None):
+    def create(self, function_config, debug_context=None, localhost=None):
         """
         Create a new Container for the passed function, then store it in a dictionary using the function name,
         so it can be retrieved later and used in the other functions. Make sure to use the debug_context only
@@ -56,6 +56,8 @@ class LambdaRuntime:
             Configuration of the function to create a new Container for it.
         debug_context DebugContext
             Debugging context for the function (includes port, args, and path)
+        localhost string
+            override of localhost to make it running in Docker
 
         Returns
         -------
@@ -78,6 +80,7 @@ class LambdaRuntime:
             memory_mb=function_config.memory,
             env_vars=env_vars,
             debug_options=debug_context,
+            localhost=localhost,
         )
         try:
             # create the container.
@@ -132,6 +135,7 @@ class LambdaRuntime:
         debug_context=None,
         stdout: Optional[StreamWriter] = None,
         stderr: Optional[StreamWriter] = None,
+        localhost=None
     ):
         """
         Invoke the given Lambda function locally.
@@ -150,13 +154,14 @@ class LambdaRuntime:
             StreamWriter that receives stdout text from container.
         :param samcli.lib.utils.stream_writer.StreamWriter stderr: Optional.
             StreamWriter that receives stderr text from container.
+        :param string localhost: Optional. Override of localhost to make it running in Docker
         :raises Keyboard
         """
         timer = None
         container = None
         try:
             # Start the container. This call returns immediately after the container starts
-            container = self.create(function_config, debug_context)
+            container = self.create(function_config, debug_context, localhost)
             container = self.run(container, function_config, debug_context)
             # Setup appropriate interrupt - timeout or Ctrl+C - before function starts executing.
             #
