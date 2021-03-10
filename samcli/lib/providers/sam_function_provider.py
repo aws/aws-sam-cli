@@ -2,7 +2,7 @@
 Class that provides functions from a given SAM template
 """
 import logging
-from typing import Dict, List, Optional, cast, Iterator
+from typing import Dict, List, Optional, cast, Iterator, Any
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
 from samcli.lib.providers.exceptions import InvalidLayerReference
@@ -23,7 +23,7 @@ class SamFunctionProvider(SamBaseProvider):
     It may or may not contain a function.
     """
 
-    def __init__(self, stacks: List[Stack], ignore_code_extraction_warnings=False):
+    def __init__(self, stacks: List[Stack], ignore_code_extraction_warnings: bool = False) -> None:
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
         to be valid, normalized and a dictionary. It should be normalized by running all pre-processing
@@ -98,7 +98,7 @@ class SamFunctionProvider(SamBaseProvider):
             yield function
 
     @staticmethod
-    def _extract_functions(stacks: List[Stack], ignore_code_extraction_warnings=False) -> Dict[str, Function]:
+    def _extract_functions(stacks: List[Stack], ignore_code_extraction_warnings: bool = False) -> Dict[str, Function]:
         """
         Extracts and returns function information from the given dictionary of SAM/CloudFormation resources. This
         method supports functions defined with AWS::Serverless::Function and AWS::Lambda::Function
@@ -318,7 +318,7 @@ class SamFunctionProvider(SamBaseProvider):
     @staticmethod
     def _parse_layer_info(
         stack: Stack,
-        list_of_layers: List[LayerVersion],
+        list_of_layers: List[Any],
         ignore_code_extraction_warnings: bool = False,
     ) -> List[LayerVersion]:
         """
@@ -326,10 +326,13 @@ class SamFunctionProvider(SamBaseProvider):
 
         Parameters
         ----------
-        list_of_layers List(str)
-            List of layers that are defined within the Layers Property on a function
-        resources dict
-            The Resources dictionary defined in a template
+        stack : Stack
+            The stack the layer is defined in
+        list_of_layers : List[Any]
+            List of layers that are defined within the Layers Property on a function,
+            layer can be defined as string or Dict, in case customers define it in other types, use "Any" here.
+        ignore_code_extraction_warnings : bool
+            Whether to print warning when codeuri is not a local pth
 
         Returns
         -------

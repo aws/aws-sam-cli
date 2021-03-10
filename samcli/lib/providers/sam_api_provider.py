@@ -1,8 +1,9 @@
 """Parses SAM given the template"""
 
 import logging
-from typing import List
+from typing import List, Optional, Dict, Tuple, cast
 
+from samcli.lib.providers.api_collector import ApiCollector
 from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.lib.providers.provider import Stack
@@ -25,7 +26,7 @@ class SamApiProvider(CfnBaseApiProvider):
     IMPLICIT_API_RESOURCE_ID = "ServerlessRestApi"
     IMPLICIT_HTTP_API_RESOURCE_ID = "ServerlessHttpApi"
 
-    def extract_resources(self, stacks: List[Stack], collector, cwd=None):
+    def extract_resources(self, stacks: List[Stack], collector: ApiCollector, cwd: Optional[str] = None) -> None:
         """
         Extract the Route Object from a given resource and adds it to the RouteCollector.
 
@@ -33,13 +34,10 @@ class SamApiProvider(CfnBaseApiProvider):
         ----------
         stacks: List[Stack]
             List of stacks apis are extracted from
-
         collector: samcli.commands.local.lib.route_collector.ApiCollector
             Instance of the API collector that where we will save the API information
-
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
-
         """
         # AWS::Serverless::Function is currently included when parsing of Apis because when SamBaseProvider is run on
         # the template we are creating the implicit apis due to plugins that translate it in the SAM repo,
@@ -57,7 +55,9 @@ class SamApiProvider(CfnBaseApiProvider):
 
         collector.routes = self.merge_routes(collector)
 
-    def _extract_from_serverless_api(self, stack_path: str, logical_id, api_resource, collector, cwd=None):
+    def _extract_from_serverless_api(
+        self, stack_path: str, logical_id: str, api_resource: Dict, collector: ApiCollector, cwd: Optional[str] = None
+    ) -> None:
         """
         Extract APIs from AWS::Serverless::Api resource by reading and parsing Swagger documents. The result is added
         to the collector.
@@ -99,7 +99,9 @@ class SamApiProvider(CfnBaseApiProvider):
         collector.stage_variables = stage_variables
         collector.cors = cors
 
-    def _extract_from_serverless_http(self, stack_path: str, logical_id, api_resource, collector, cwd=None):
+    def _extract_from_serverless_http(
+        self, stack_path: str, logical_id: str, api_resource: Dict, collector: ApiCollector, cwd: Optional[str] = None
+    ) -> None:
         """
         Extract APIs from AWS::Serverless::HttpApi resource by reading and parsing Swagger documents.
         The result is added to the collector.
@@ -142,7 +144,9 @@ class SamApiProvider(CfnBaseApiProvider):
         collector.stage_variables = stage_variables
         collector.cors = cors
 
-    def _extract_routes_from_function(self, stack_path: str, logical_id, function_resource, collector):
+    def _extract_routes_from_function(
+        self, stack_path: str, logical_id: str, function_resource: Dict, collector: ApiCollector
+    ) -> None:
         """
         Fetches a list of routes configured for this SAM Function resource.
 
@@ -165,7 +169,9 @@ class SamApiProvider(CfnBaseApiProvider):
         serverless_function_events = resource_properties.get(self._FUNCTION_EVENT, {})
         self.extract_routes_from_events(stack_path, logical_id, serverless_function_events, collector)
 
-    def extract_routes_from_events(self, stack_path: str, function_logical_id, serverless_function_events, collector):
+    def extract_routes_from_events(
+        self, stack_path: str, function_logical_id: str, serverless_function_events: Dict, collector: ApiCollector
+    ) -> None:
         """
         Given an AWS::Serverless::Function Event Dictionary, extract out all 'route' events and store  within the
         collector
@@ -197,7 +203,9 @@ class SamApiProvider(CfnBaseApiProvider):
         LOG.debug("Found '%d' API Events in Serverless function with name '%s'", count, function_logical_id)
 
     @staticmethod
-    def _convert_event_route(stack_path: str, lambda_logical_id, event_properties, event_type):
+    def _convert_event_route(
+        stack_path: str, lambda_logical_id: str, event_properties: Dict, event_type: str
+    ) -> Tuple[str, Route]:
         """
         Converts a AWS::Serverless::Function's Event Property to an Route configuration usable by the provider.
 
@@ -207,15 +215,14 @@ class SamApiProvider(CfnBaseApiProvider):
         :param event_type: The event type, 'Api' or 'HttpApi', see samcli/local/apigw/local_apigw_service.py:35
         :return tuple: tuple of route resource name and route
         """
-        path = event_properties.get(SamApiProvider._EVENT_PATH)
-        method = event_properties.get(SamApiProvider._EVENT_METHOD)
+        path = cast(str, event_properties.get(SamApiProvider._EVENT_PATH))
+        method = cast(str, event_properties.get(SamApiProvider._EVENT_METHOD))
 
         # An RESTAPI (HTTPAPI) Event, can have RestApiId (ApiId) property which designates the resource that owns this
         # API. If omitted, the API is owned by Implicit API resource. This could either be a direct resource logical ID
         # or a "Ref" of the logicalID
 
-        api_resource_id = None
-        payload_format_version = None
+        payload_format_version: Optional[str] = None
 
         if event_type == SamApiProvider._EVENT_TYPE_API:
             api_resource_id = event_properties.get("RestApiId", SamApiProvider.IMPLICIT_API_RESOURCE_ID)
@@ -247,7 +254,7 @@ class SamApiProvider(CfnBaseApiProvider):
         )
 
     @staticmethod
-    def merge_routes(collector):
+    def merge_routes(collector: ApiCollector) -> List[Route]:
         """
         Quite often, an API is defined both in Implicit and Explicit Route definitions. In such cases, Implicit API
         definition wins because that conveys clear intent that the API is backed by a function. This method will
@@ -279,7 +286,7 @@ class SamApiProvider(CfnBaseApiProvider):
 
         # We will use "path+method" combination as key to this dictionary and store the Api config for this combination.
         # If an path+method combo already exists, then overwrite it if and only if this is an implicit API
-        all_routes = {}
+        all_routes: Dict[str, Route] = {}
 
         # By adding implicit APIs to the end of the list, they will be iterated last. If a configuration was already
         # written by explicit API, it will be overridden by implicit API, just by virtue of order of iteration.
@@ -294,12 +301,9 @@ class SamApiProvider(CfnBaseApiProvider):
             # method on explicit route.
             for normalized_method in config.methods:
                 key = config.path + normalized_method
-                if (
-                    all_routes.get(key)
-                    and all_routes.get(key).payload_format_version
-                    and config.payload_format_version is None
-                ):
-                    config.payload_format_version = all_routes.get(key).payload_format_version
+                route = all_routes.get(key)
+                if route and route.payload_format_version and config.payload_format_version is None:
+                    config.payload_format_version = route.payload_format_version
                 all_routes[key] = config
 
         result = set(all_routes.values())  # Assign to a set() to de-dupe
@@ -312,7 +316,7 @@ class SamApiProvider(CfnBaseApiProvider):
         return list(result)
 
     @staticmethod
-    def _get_route_stack_depth(route: Route):
+    def _get_route_stack_depth(route: Route) -> int:
         """
         Returns stack depth, used for sorted(routes, _get_route_stack_depth).
         Examples:

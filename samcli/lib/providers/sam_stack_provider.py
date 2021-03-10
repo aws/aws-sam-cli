@@ -246,7 +246,7 @@ class SamLocalStackProvider(SamBaseProvider):
         return stacks, remote_stack_full_paths
 
     @staticmethod
-    def is_remote_url(url: str):
+    def is_remote_url(url: str) -> bool:
         return any([url.startswith(prefix) for prefix in ["s3://", "http://", "https://"]])
 
     @staticmethod
