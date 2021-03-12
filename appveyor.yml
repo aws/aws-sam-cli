@@ -111,6 +111,8 @@ for:
         - image: Ubuntu
 
     install:
+      # Update Yarn Debian key (https://github.com/yarnpkg/yarn/issues/7866)
+      - sh: "sudo apt-key adv --refresh-keys --keyserver keyserver.ubuntu.com"
       # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
       - sh: "sudo apt-get update"
 
