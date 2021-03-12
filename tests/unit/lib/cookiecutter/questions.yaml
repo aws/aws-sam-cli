@@ -1,0 +1,22 @@
+{
+  "Questions": [
+    {
+      "key": "1st",
+      "question": "any text",
+    },
+    {
+      "key": "2nd",
+      "question": "any text",
+      "options": ["option1", "option2"],
+      "nextQuestion": {
+        "option1": "1st"
+      }
+    },
+    {
+      "key": "3rd",
+      "question": "any text",
+      "isRequired": true,
+      "kind": "confirm"
+    }
+  ]
+}
