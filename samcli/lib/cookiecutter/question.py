@@ -40,8 +40,11 @@ class Question:
                 Question(key="r1-creation" text="What do you like to name resource1?"}
                 Question(key="r2" text="do you already have resource2?",
                          _next_question_map={"True": "r3", "False": "r2-creation"}
+    _default_next_question_key: str
+        The key of the next question that is not based on user's answer, i.e., if there is no matching in
+        the _next_question_map
     _kind: QuestionKind
-        the kind of the question, it can be one of the values of the QuestionKind enum. This basically directs
+        The kind of the question, it can be one of the values of the QuestionKind enum. This basically directs
         click on how to prompt the user for the answer; click.prompt, click.confirm, click.choice ...etc
     """
 
@@ -53,6 +56,7 @@ class Question:
         default: Optional[str] = None,
         is_required: Optional[bool] = False,
         next_question_map: Optional[Dict[str, str]] = None,
+        default_next_question_key: Optional[str] = None,
         kind: Optional[QuestionKind] = None,
     ):
         self._key = key
@@ -64,6 +68,7 @@ class Question:
         if not self._required and self._default_answer is None:
             self._default_answer = ""
         self._next_question_map = next_question_map or {}
+        self._default_next_question_key = default_next_question_key
         self._kind = kind or (QuestionKind.confirm if options else QuestionKind.default)
 
     @property
@@ -91,6 +96,10 @@ class Question:
         return self._next_question_map
 
     @property
+    def default_next_question_key(self):
+        return self._default_next_question_key
+
+    @property
     def kind(self):
         return self._kind
 
@@ -112,15 +121,14 @@ class Question:
     def is_info(self) -> bool:
         return self._kind == QuestionKind.info
 
-    def get_next_question_key(self, answer) -> Optional[str]:
+    def get_next_question_key(self, answer: Any) -> Optional[str]:
+        # _next_question_map is a Dict[str(answer), str(next question key)]
+        # so we need to parse the passed argument(answer) to str
         answer = str(answer)
-        return self._next_question_map.get(answer, self.get_default_next_question_key())
-
-    def get_default_next_question_key(self) -> Optional[str]:
-        return self._next_question_map.get("*")
+        return self._next_question_map.get(answer, self._default_next_question_key)
 
     def set_next_question_key(self, answer, next_question_key):
         self._next_question_map[answer] = next_question_key
 
     def set_default_next_question_key(self, next_question_key):
-        self.set_next_question_key("*", next_question_key)
+        self._default_next_question_key = next_question_key

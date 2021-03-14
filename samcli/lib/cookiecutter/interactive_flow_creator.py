@@ -53,7 +53,7 @@ class InteractiveFlowCreator:
             q = InteractiveFlowCreator._create_question_from_json(question)
             if not first_question_key:
                 first_question_key = q.key
-            elif previous_question and not previous_question.get_default_next_question_key():
+            elif previous_question and not previous_question.default_next_question_key:
                 previous_question.set_default_next_question_key(q.key)
             questions[q.key] = q
             previous_question = q

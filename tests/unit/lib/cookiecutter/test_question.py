@@ -12,8 +12,8 @@ class TestQuestion(TestCase):
         "option1": "key1",
         "option2": "key2",
         "option3": "key3",
-        "*": "default",
     }
+    _ANY_DEFAULT_NEXT_QUESTION_KEY = "default"
     _ANY_KIND = QuestionKind.default
 
     def setUp(self):
@@ -24,6 +24,7 @@ class TestQuestion(TestCase):
             default=self._ANY_ANSWER,
             is_required=True,
             next_question_map=self._ANY_NEXT_QUESTION_MAP,
+            default_next_question_key=self._ANY_DEFAULT_NEXT_QUESTION_KEY,
             kind=self._ANY_KIND,
         )
 
@@ -35,6 +36,7 @@ class TestQuestion(TestCase):
         assert q.default_answer == ""
         assert q.required is False
         assert q.next_question_map == {}
+        assert q.default_next_question_key is None
         assert q.kind == QuestionKind.default
 
         q = self.question
@@ -44,6 +46,7 @@ class TestQuestion(TestCase):
         assert q.default_answer == self._ANY_ANSWER
         assert q.required is True
         assert q.next_question_map == self._ANY_NEXT_QUESTION_MAP
+        assert q.default_next_question_key == self._ANY_DEFAULT_NEXT_QUESTION_KEY
         assert q.kind == self._ANY_KIND
 
     def test_get_choices_indexes_with_different_bases(self):
@@ -66,6 +69,6 @@ class TestQuestion(TestCase):
         assert self.question.get_next_question_key("option1") == "key1"
         assert self.question.get_next_question_key("option2") == "key2"
         assert self.question.get_next_question_key("option3") == "key3"
-        assert self.question.get_default_next_question_key() == "default"
+        assert self.question.get_next_question_key("any-option") == self._ANY_DEFAULT_NEXT_QUESTION_KEY
         self.question.set_default_next_question_key("new_default")
-        assert self.question.get_default_next_question_key() == "new_default"
+        assert self.question.get_next_question_key(None) == "new_default"

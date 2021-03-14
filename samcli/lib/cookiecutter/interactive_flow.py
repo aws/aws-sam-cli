@@ -42,7 +42,7 @@ class InteractiveFlow:
         )
         return question.get_option(int(choice) - 1)
 
-    def get_next_question(self, current_answer: Optional[str] = None) -> Optional[Question]:
+    def advance_to_next_question(self, current_answer: Optional[Any] = None) -> Optional[Question]:
         """
         Based on the answer of the current question, what is the next question to ask.
 
@@ -76,7 +76,7 @@ class InteractiveFlow:
                  associated to the key of the corresponding question
         """
         context = context.copy()
-        question = self.get_next_question()
+        question = self.advance_to_next_question()
         answer: Any = None
         while question:
             if question.is_info():
@@ -88,5 +88,5 @@ class InteractiveFlow:
             else:
                 answer = InteractiveFlow._ask_a_question(question)
             context[question.key] = answer
-            question = self.get_next_question(answer)
+            question = self.advance_to_next_question(answer)
         return context

@@ -8,9 +8,13 @@ class TestInteractiveFlow(TestCase):
     _ANY_TEXT = "any text"
     _ANY_ANSWER = "any answer"
     _PARTICULAR_ANSWER = "particular answer"
-    _FIRST_QUESTION = Question(key="1st", text=_ANY_TEXT, next_question_map={"*": "2nd"})
+    _FIRST_QUESTION = Question(key="1st", text=_ANY_TEXT, default_next_question_key="2nd")
     _SECOND_QUESTION = Question(
-        key="2nd", text=_ANY_TEXT, kind=QuestionKind.confirm, next_question_map={_PARTICULAR_ANSWER: "1st", "*": "3rd"}
+        key="2nd",
+        text=_ANY_TEXT,
+        kind=QuestionKind.confirm,
+        next_question_map={_PARTICULAR_ANSWER: "1st"},
+        default_next_question_key="3rd",
     )
     _THIRD_QUESTION = Question(key="3rd", text=_ANY_TEXT, options=["option1", "option2"])
     _QUESTIONS = {"1st": _FIRST_QUESTION, "2nd": _SECOND_QUESTION, "3rd": _THIRD_QUESTION}
@@ -22,13 +26,13 @@ class TestInteractiveFlow(TestCase):
         assert self.flow._questions == self._QUESTIONS
         assert self.flow._first_question_key == self._FIRST_QUESTION.key
 
-    def test_get_next_question(self):
-        assert self.flow.get_next_question() == self._FIRST_QUESTION
-        assert self.flow.get_next_question(self._ANY_ANSWER) == self._SECOND_QUESTION
-        assert self.flow.get_next_question(self._PARTICULAR_ANSWER) == self._FIRST_QUESTION
-        assert self.flow.get_next_question(self._ANY_ANSWER) == self._SECOND_QUESTION
-        assert self.flow.get_next_question(self._ANY_ANSWER) == self._THIRD_QUESTION
-        assert self.flow.get_next_question(self._ANY_ANSWER) is None
+    def test_advance_to_next_question(self):
+        assert self.flow.advance_to_next_question() == self._FIRST_QUESTION
+        assert self.flow.advance_to_next_question(self._ANY_ANSWER) == self._SECOND_QUESTION
+        assert self.flow.advance_to_next_question(self._PARTICULAR_ANSWER) == self._FIRST_QUESTION
+        assert self.flow.advance_to_next_question(self._ANY_ANSWER) == self._SECOND_QUESTION
+        assert self.flow.advance_to_next_question(self._ANY_ANSWER) == self._THIRD_QUESTION
+        assert self.flow.advance_to_next_question(self._ANY_ANSWER) is None
 
     @patch.object(InteractiveFlow, "_ask_a_question")
     @patch.object(InteractiveFlow, "_ask_a_yes_no_question")

@@ -15,7 +15,7 @@ class TestInteractiveFlowCreator(TestCase):
                 options=None,
                 default="",
                 is_required=None,
-                next_question_map={"*": "2nd"},
+                default_next_question_key="2nd",
                 kind=None,
             ),
             "2nd": Question(
@@ -24,7 +24,8 @@ class TestInteractiveFlowCreator(TestCase):
                 options=["option1", "option2"],
                 default="",
                 is_required=None,
-                next_question_map={"option1": "1st", "*": "3rd"},
+                next_question_map={"option1": "1st"},
+                default_next_question_key="3rd",
                 kind=None,
             ),
             "3rd": Question(
