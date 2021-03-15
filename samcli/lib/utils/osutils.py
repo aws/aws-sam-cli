@@ -27,7 +27,7 @@ def mkdir_temp(mode=0o755, ignore_errors=False):
         If true, we will log a debug statement on failure to clean up the temp directory, rather than failing.
         Defaults to False
 
-    Returns
+    Yields
     -------
     str
         Path to the directory
@@ -56,7 +56,6 @@ def rmtree_callback(function, path, excinfo):
     :param function: platform and implementation dependent function.
     :param path: argument to the function that caused it to fail.
     :param excinfo: tuple returned by sys.exc_info()
-    :return:
     """
     try:
         os.chmod(path=path, mode=stat.S_IWRITE)

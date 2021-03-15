@@ -52,7 +52,13 @@ RESOURCES_WITH_IMAGE_COMPONENT = {
 def resources_generator():
     """
     Generator to yield set of resources and their locations that are supported for package operations
-    :return:
+
+    Yields
+    ------
+    resource : Dict
+        The resource dictionary
+    location : str
+        The location of the resource
     """
     _resource_property_dict = defaultdict(list)
     for _dict in (METADATA_WITH_LOCAL_PATHS, RESOURCES_WITH_LOCAL_PATHS, RESOURCES_WITH_IMAGE_COMPONENT):

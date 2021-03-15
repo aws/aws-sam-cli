@@ -430,10 +430,5 @@ class IntrinsicsSymbolTable:
     def handle_pseudo_no_value():
         """
         This resolves AWS::NoValue so that it returns the python None
-
-        Returns
-        --------
-        None
-        :return:
         """
         return None

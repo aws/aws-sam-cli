@@ -3,7 +3,6 @@ Downloads Layers locally
 """
 
 import logging
-import os
 from pathlib import Path
 from typing import List
 
@@ -97,19 +96,7 @@ class LayerDownloader:
         """
         if layer.is_defined_within_template:
             LOG.info("%s is a local Layer in the template", layer.name)
-            # the template file containing the layer might not be in the same directory as root template file
-            # therefore we need to join the path of template directory and codeuri in case codeuri is a relative path.
-            try:
-                stack = next(stack for stack in self._stacks if stack.stack_path == layer.stack_path)
-            except StopIteration as ex:
-                raise RuntimeError(f"Cannot find stack that matches layer's stack_path {layer.stack_path}") from ex
-
-            codeuri = (
-                layer.codeuri
-                if os.path.isabs(layer.codeuri)
-                else os.path.normpath(os.path.join(os.path.dirname(stack.location), layer.codeuri))
-            )
-            layer.codeuri = resolve_code_path(self.cwd, codeuri)
+            layer.codeuri = resolve_code_path(self.cwd, layer.codeuri)
             return layer
 
         layer_path = Path(self.layer_cache).resolve().joinpath(layer.name)
@@ -201,10 +188,5 @@ class LayerDownloader:
         ----------
         layer_cache
             Directory to where the layers should be cached
-
-        Returns
-        -------
-        None
-
         """
         Path(layer_cache).mkdir(mode=0o700, parents=True, exist_ok=True)

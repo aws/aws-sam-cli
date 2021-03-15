@@ -3,11 +3,12 @@ Class that provides all nested stacks from a given SAM template
 """
 import logging
 import os
-from typing import Optional, Dict, cast, List, Iterator
+from typing import Optional, Dict, cast, List, Iterator, Tuple
 from urllib.parse import unquote, urlparse
 
 from samcli.commands._utils.template import get_template_data
-from samcli.lib.providers.provider import Stack
+from samcli.lib.providers.exceptions import RemoteStackLocationNotSupported
+from samcli.lib.providers.provider import Stack, get_full_path
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 
 LOG = logging.getLogger(__name__)
@@ -45,7 +46,7 @@ class SamLocalStackProvider(SamBaseProvider):
             might want to get substituted within the template and all its child templates
         """
 
-        self._template_directory = os.path.dirname(template_file)
+        self._template_file = template_file
         self._stack_path = stack_path
         self._template_dict = self.get_template(
             template_dict,
@@ -56,8 +57,11 @@ class SamLocalStackProvider(SamBaseProvider):
 
         LOG.debug("%d stacks found in the template", len(self._resources))
 
-        # Store a map of stack name to stack information for quick reference
-        self._stacks = self._extract_stacks()
+        # Store a map of stack name to stack information for quick reference -> self._stacks
+        # and detect remote stacks -> self._remote_stack_full_paths
+        self._stacks: Dict[str, Stack] = {}
+        self.remote_stack_full_paths: List[str] = []
+        self._extract_stacks()
 
     def get(self, name: str) -> Optional[Stack]:
         """
@@ -85,15 +89,13 @@ class SamLocalStackProvider(SamBaseProvider):
         for _, stack in self._stacks.items():
             yield stack
 
-    def _extract_stacks(self) -> Dict[str, Stack]:
+    def _extract_stacks(self) -> None:
         """
         Extracts and returns nested application information from the given dictionary of SAM/CloudFormation resources.
         This method supports applications defined with AWS::Serverless::Application
-        :return dict(string : application): Dictionary of application LogicalId to the
-            Application object
+        The dictionary of application LogicalId to the Application object will be assigned to self._stacks.
+        If child stacks with remote URL are detected, their full paths are recorded in self._remote_stack_full_paths.
         """
-
-        result: Dict[str, Stack] = {}
 
         for name, resource in self._resources.items():
 
@@ -105,25 +107,26 @@ class SamLocalStackProvider(SamBaseProvider):
                 resource_properties["Metadata"] = resource_metadata
 
             stack: Optional[Stack] = None
-            if resource_type == SamLocalStackProvider.SERVERLESS_APPLICATION:
-                stack = SamLocalStackProvider._convert_sam_application_resource(
-                    self._template_directory, self._stack_path, name, resource_properties
-                )
-            if resource_type == SamLocalStackProvider.CLOUDFORMATION_STACK:
-                stack = SamLocalStackProvider._convert_cfn_stack_resource(
-                    self._template_directory, self._stack_path, name, resource_properties
-                )
+            try:
+                if resource_type == SamLocalStackProvider.SERVERLESS_APPLICATION:
+                    stack = SamLocalStackProvider._convert_sam_application_resource(
+                        self._template_file, self._stack_path, name, resource_properties
+                    )
+                if resource_type == SamLocalStackProvider.CLOUDFORMATION_STACK:
+                    stack = SamLocalStackProvider._convert_cfn_stack_resource(
+                        self._template_file, self._stack_path, name, resource_properties
+                    )
+            except RemoteStackLocationNotSupported:
+                self.remote_stack_full_paths.append(get_full_path(self._stack_path, name))
 
             if stack:
-                result[name] = stack
+                self._stacks[name] = stack
 
             # We don't care about other resource types. Just ignore them
 
-        return result
-
     @staticmethod
     def _convert_sam_application_resource(
-        template_directory: str,
+        template_file: str,
         stack_path: str,
         name: str,
         resource_properties: Dict,
@@ -132,26 +135,15 @@ class SamLocalStackProvider(SamBaseProvider):
         location = resource_properties.get("Location")
 
         if isinstance(location, dict):
-            LOG.warning(
-                "Nested application '%s' has specified an application published to the "
-                "AWS Serverless Application Repository which is unsupported. "
-                "Skipping resources inside this nested application.",
-                name,
-            )
-            return None
+            raise RemoteStackLocationNotSupported()
 
         location = cast(str, location)
         if SamLocalStackProvider.is_remote_url(location):
-            LOG.warning(
-                "Nested application '%s' has specified S3 location for Location which is unsupported. "
-                "Skipping resources inside this nested application.",
-                name,
-            )
-            return None
+            raise RemoteStackLocationNotSupported()
         if location.startswith("file://"):
             location = unquote(urlparse(location).path)
-        elif not os.path.isabs(location):
-            location = os.path.join(template_directory, os.path.relpath(location))
+        else:
+            location = SamLocalStackProvider.normalize_resource_path(template_file, location)
 
         return Stack(
             parent_stack_path=stack_path,
@@ -165,7 +157,7 @@ class SamLocalStackProvider(SamBaseProvider):
 
     @staticmethod
     def _convert_cfn_stack_resource(
-        template_directory: str,
+        template_file: str,
         stack_path: str,
         name: str,
         resource_properties: Dict,
@@ -174,16 +166,11 @@ class SamLocalStackProvider(SamBaseProvider):
         template_url = resource_properties.get("TemplateURL", "")
 
         if SamLocalStackProvider.is_remote_url(template_url):
-            LOG.warning(
-                "Nested stack '%s' has specified S3 location for Location which is unsupported. "
-                "Skipping resources inside this nested stack.",
-                name,
-            )
-            return None
+            raise RemoteStackLocationNotSupported()
         if template_url.startswith("file://"):
             template_url = unquote(urlparse(template_url).path)
-        elif not os.path.isabs(template_url):
-            template_url = os.path.join(template_directory, os.path.relpath(template_url))
+        else:
+            template_url = SamLocalStackProvider.normalize_resource_path(template_file, template_url)
 
         return Stack(
             parent_stack_path=stack_path,
@@ -202,7 +189,7 @@ class SamLocalStackProvider(SamBaseProvider):
         name: str = "",
         parameter_overrides: Optional[Dict] = None,
         global_parameter_overrides: Optional[Dict] = None,
-    ) -> List[Stack]:
+    ) -> Tuple[List[Stack], List[str]]:
         """
         Recursively extract stacks from a template file.
 
@@ -225,6 +212,8 @@ class SamLocalStackProvider(SamBaseProvider):
         -------
         stacks: List[Stack]
             The list of stacks extracted from template_file
+        remote_stack_full_paths : List[str]
+            The list of full paths of detected remote stacks
         """
         template_dict = get_template_data(template_file)
         stacks = [
@@ -236,24 +225,28 @@ class SamLocalStackProvider(SamBaseProvider):
                 template_dict,
             )
         ]
+        remote_stack_full_paths: List[str] = []
 
         current = SamLocalStackProvider(
             template_file, stack_path, template_dict, parameter_overrides, global_parameter_overrides
         )
+        remote_stack_full_paths.extend(current.remote_stack_full_paths)
+
         for child_stack in current.get_all():
-            stacks.extend(
-                SamLocalStackProvider.get_stacks(
-                    child_stack.location,
-                    os.path.join(stack_path, name),
-                    child_stack.name,
-                    child_stack.parameters,
-                    global_parameter_overrides,
-                )
+            stacks_in_child, remote_stack_full_paths_in_child = SamLocalStackProvider.get_stacks(
+                child_stack.location,
+                os.path.join(stack_path, name),
+                child_stack.name,
+                child_stack.parameters,
+                global_parameter_overrides,
             )
-        return stacks
+            stacks.extend(stacks_in_child)
+            remote_stack_full_paths.extend(remote_stack_full_paths_in_child)
+
+        return stacks, remote_stack_full_paths
 
     @staticmethod
-    def is_remote_url(url: str):
+    def is_remote_url(url: str) -> bool:
         return any([url.startswith(prefix) for prefix in ["s3://", "http://", "https://"]])
 
     @staticmethod
@@ -290,3 +283,60 @@ class SamLocalStackProvider(SamBaseProvider):
         merged_parameter_overrides.update(global_parameter_overrides or {})
         merged_parameter_overrides.update(parameter_overrides or {})
         return merged_parameter_overrides
+
+    @staticmethod
+    def normalize_resource_path(stack_file_path: str, path: str) -> str:
+        """
+        Convert resource paths found in nested stack to ones resolvable from root stack.
+        For example,
+            root stack                -> template.yaml
+            child stack               -> folder/template.yaml
+            a resource in child stack -> folder/resource
+        the resource path is "resource" because it is extracted from child stack, the path is relative to child stack.
+        here we normalize the resource path into relative paths to root stack, which is "folder/resource"
+
+        * since stack_file_path might be a symlink, os.path.join() won't be able to derive the correct path.
+          for example, stack_file_path = 'folder/t.yaml' -> '../folder2/t.yaml' and the path = 'src'
+          the correct normalized path being returned should be '../folder2/t.yaml' but if we don't resolve the
+          symlink first, it would return 'folder/src.'
+
+        * symlinks on Windows might not work properly.
+          https://stackoverflow.com/questions/43333640/python-os-path-realpath-for-symlink-in-windows
+          For example, using Python 3.7, realpath() is a no-op (same as abspath):
+            ```
+            Python 3.7.8 (tags/v3.7.8:4b47a5b6ba, Jun 28 2020, 08:53:46) [MSC v.1916 64 bit (AMD64)] on win32
+            Type "help", "copyright", "credits" or "license" for more information.
+            >>> import os
+            >>> os.symlink('some\\path', 'link1')
+            >>> os.path.realpath('link1')
+            'C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python37\\link1'
+            >>> os.path.islink('link1')
+            True
+            ```
+          For Python 3.8, according to manual tests, 3.8.8 can resolve symlinks correctly while 3.8.0 cannot.
+
+
+        Parameters
+        ----------
+        stack_file_path
+            The file path of the stack containing the resource
+        path
+            the raw path read from the template dict
+
+        Returns
+        -------
+        str
+            the normalized path relative to root stack
+
+        """
+        if os.path.isabs(path):
+            return path
+
+        if os.path.islink(stack_file_path):
+            # os.path.realpath() always returns an absolute path while
+            # the return value of this method will show up in build artifacts,
+            # in case customers move the build artifacts among different machines (e.g., git or file sharing)
+            # absolute paths are not robust as relative paths. So here prefer to use relative path.
+            stack_file_path = os.path.relpath(os.path.realpath(stack_file_path))
+
+        return os.path.normpath(os.path.join(os.path.dirname(stack_file_path), path))

@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import patch, call, ANY, MagicMock
+from unittest.mock import patch, call, ANY, MagicMock, Mock
 from parameterized import parameterized, param
 
 import click
@@ -43,6 +43,7 @@ class TestGuidedContext(TestCase):
     ):
         patched_sam_function_provider.return_value = {}
         patched_get_template_artifacts_format.return_value = [ZIP]
+        patched_get_buildable_stacks.return_value = (Mock(), [])
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [
             ("HelloWorldFunction", True),
@@ -89,6 +90,7 @@ class TestGuidedContext(TestCase):
         patched_signer_config_per_function.return_value = (None, None)
         patched_sam_function_provider.return_value = {}
         patched_get_template_artifacts_format.return_value = [ZIP]
+        patched_get_buildable_stacks.return_value = (Mock(), [])
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
         patched_confirm.side_effect = [True, False, True, False, ""]
@@ -147,6 +149,7 @@ class TestGuidedContext(TestCase):
             functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri="helloworld:v1")}
         )
         patched_get_template_artifacts_format.return_value = [IMAGE]
+        patched_get_buildable_stacks.return_value = (Mock(), [])
         patched_prompt.side_effect = [
             "sam-app",
             "region",
@@ -227,6 +230,7 @@ class TestGuidedContext(TestCase):
             }
         )
         patched_get_template_artifacts_format.return_value = [IMAGE]
+        patched_get_buildable_stacks.return_value = (Mock(), [])
         patched_prompt.side_effect = [
             "sam-app",
             "region",
@@ -300,6 +304,7 @@ class TestGuidedContext(TestCase):
             functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri=None)}
         )
         patched_get_template_artifacts_format.return_value = [IMAGE]
+        patched_get_buildable_stacks.return_value = (Mock(), [])
         patched_prompt.side_effect = [
             "sam-app",
             "region",
@@ -343,6 +348,7 @@ class TestGuidedContext(TestCase):
             functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri="mysamapp:v1")}
         )
         patched_get_template_artifacts_format.return_value = [IMAGE]
+        patched_get_buildable_stacks.return_value = (Mock(), [])
         # set Image repository to be blank.
         patched_prompt.side_effect = [
             "sam-app",
@@ -392,6 +398,7 @@ class TestGuidedContext(TestCase):
         patched_prompt,
     ):
         patched_signer_config_per_function.return_value = ({}, {})
+        patched_get_buildable_stacks.return_value = (Mock(), [])
         self.gc.capabilities = given_capabilities
         # Series of inputs to confirmations so that full range of questions are asked.
         patched_confirm.side_effect = [True, False, "", True]
@@ -434,6 +441,7 @@ class TestGuidedContext(TestCase):
     ):
         patched_sam_function_provider.return_value = {}
         patched_get_template_artifacts_format.return_value = [ZIP]
+        patched_get_buildable_stacks.return_value = (Mock(), [])
         patched_signer_config_per_function.return_value = ({}, {})
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
@@ -490,6 +498,7 @@ class TestGuidedContext(TestCase):
     ):
         patched_sam_function_provider.return_value = {}
         patched_get_template_artifacts_format.return_value = [ZIP]
+        patched_get_buildable_stacks.return_value = (Mock(), [])
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
         patched_confirm.side_effect = [True, False, True, False, ""]
@@ -543,6 +552,7 @@ class TestGuidedContext(TestCase):
     ):
         patched_sam_function_provider.return_value = {}
         patched_get_template_artifacts_format.return_value = [ZIP]
+        patched_get_buildable_stacks.return_value = (Mock(), [])
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
         patched_confirm.side_effect = [True, False, True, False, ""]
@@ -612,6 +622,7 @@ class TestGuidedContext(TestCase):
         patched_sam_function_provider.return_value = {}
         patched_get_template_artifacts_format.return_value = [ZIP]
         patched_signer_config_per_function.return_value = given_code_signing_configs
+        patched_get_buildable_stacks.return_value = (Mock(), [])
         # Series of inputs to confirmations so that full range of questions are asked.
         patched_confirm.side_effect = [True, False, given_sign_packages_flag, "", True]
         self.gc.guided_prompts(parameter_override_keys=None)
@@ -675,6 +686,7 @@ class TestGuidedContext(TestCase):
     ):
         patched_sam_function_provider.return_value = {}
         patched_get_template_artifacts_format.return_value = [ZIP]
+        patched_get_buildable_stacks.return_value = (Mock(), [])
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
         patched_confirm.side_effect = [True, False, True, True, ""]

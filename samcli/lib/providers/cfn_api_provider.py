@@ -1,12 +1,13 @@
 """Parses SAM given a template"""
 import logging
-from typing import List
+from typing import Any, Dict, Optional, Tuple, List, cast
 
 from samcli.commands.local.lib.swagger.integration_uri import LambdaUri
 from samcli.lib.providers.provider import Stack
 from samcli.local.apigw.local_apigw_service import Route
 from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
 from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
+from samcli.lib.providers.api_collector import ApiCollector
 
 LOG = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ class CfnApiProvider(CfnBaseApiProvider):
         APIGATEWAY_V2_STAGE,
     ]
 
-    def extract_resources(self, stacks: List[Stack], collector, cwd=None):
+    def extract_resources(self, stacks: List[Stack], collector: ApiCollector, cwd: Optional[str] = None) -> None:
         """
         Extract the Route Object from a given resource and adds it to the RouteCollector.
 
@@ -47,10 +48,6 @@ class CfnApiProvider(CfnBaseApiProvider):
 
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
-
-        Return
-        -------
-        Returns a list of routes
         """
 
         for stack in stacks:
@@ -75,13 +72,14 @@ class CfnApiProvider(CfnBaseApiProvider):
                 if resource_type == CfnApiProvider.APIGATEWAY_V2_STAGE:
                     self._extract_cfn_gateway_v2_stage(resources, resource, collector)
 
-        all_apis = []
-        for _, apis in collector:
-            all_apis.extend(apis)
-        return all_apis
-
     @staticmethod
-    def _extract_cloud_formation_route(stack_path: str, logical_id, api_resource, collector, cwd=None):
+    def _extract_cloud_formation_route(
+        stack_path: str,
+        logical_id: str,
+        api_resource: Dict[str, Any],
+        collector: ApiCollector,
+        cwd: Optional[str] = None,
+    ) -> None:
         """
         Extract APIs from AWS::ApiGateway::RestApi resource by reading and parsing Swagger documents. The result is
         added to the collector.
@@ -114,7 +112,9 @@ class CfnApiProvider(CfnBaseApiProvider):
         )
 
     @staticmethod
-    def _extract_cloud_formation_stage(resources, stage_resource, collector):
+    def _extract_cloud_formation_stage(
+        resources: Dict[str, Dict], stage_resource: Dict, collector: ApiCollector
+    ) -> None:
         """
          Extract the stage from AWS::ApiGateway::Stage resource by reading and adds it to the collector.
          Parameters
@@ -146,7 +146,14 @@ class CfnApiProvider(CfnBaseApiProvider):
         collector.stage_name = stage_name
         collector.stage_variables = stage_variables
 
-    def _extract_cloud_formation_method(self, stack_path: str, resources, logical_id, method_resource, collector):
+    def _extract_cloud_formation_method(
+        self,
+        stack_path: str,
+        resources: Dict[str, Dict],
+        logical_id: str,
+        method_resource: Dict,
+        collector: ApiCollector,
+    ) -> None:
         """
         Extract APIs from AWS::ApiGateway::Method and work backwards up the tree to resolve and find the true path.
 
@@ -199,7 +206,14 @@ class CfnApiProvider(CfnBaseApiProvider):
         )
         collector.add_routes(rest_api_id, [routes])
 
-    def _extract_cfn_gateway_v2_api(self, stack_path: str, logical_id, api_resource, collector, cwd=None):
+    def _extract_cfn_gateway_v2_api(
+        self,
+        stack_path: str,
+        logical_id: str,
+        api_resource: Dict,
+        collector: ApiCollector,
+        cwd: Optional[str] = None,
+    ) -> None:
         """
         Extract APIs from AWS::ApiGatewayV2::Api resource by reading and parsing Swagger documents. The result is
         added to the collector. If the Swagger documents is not available, it can add a catch-all route based on
@@ -247,7 +261,14 @@ class CfnApiProvider(CfnBaseApiProvider):
             stack_path, logical_id, body, body_s3_location, None, collector, cwd, Route.HTTP
         )
 
-    def _extract_cfn_gateway_v2_route(self, stack_path: str, resources, logical_id, route_resource, collector):
+    def _extract_cfn_gateway_v2_route(
+        self,
+        stack_path: str,
+        resources: Dict[str, Dict],
+        logical_id: str,
+        route_resource: Dict,
+        collector: ApiCollector,
+    ) -> None:
         """
         Extract APIs from AWS::ApiGatewayV2::Route, and link it with the integration resource to get the lambda
         function.
@@ -303,7 +324,12 @@ class CfnApiProvider(CfnBaseApiProvider):
         )
         collector.add_routes(api_id, [routes])
 
-    def resolve_resource_path(self, resources, resource, current_path):
+    def resolve_resource_path(
+        self,
+        resources: Dict[str, Dict],
+        resource: Dict,
+        current_path: str,
+    ) -> str:
         """
         Extract path from the Resource object by going up the tree
 
@@ -320,8 +346,8 @@ class CfnApiProvider(CfnBaseApiProvider):
         """
 
         properties = resource.get("Properties", {})
-        parent_id = properties.get("ParentId")
-        resource_path = properties.get("PathPart")
+        parent_id = cast(str, properties.get("ParentId"))
+        resource_path = cast(str, properties.get("PathPart"))
         parent = resources.get(parent_id)
         if parent:
             return self.resolve_resource_path(resources, parent, "/" + resource_path + current_path)
@@ -331,7 +357,11 @@ class CfnApiProvider(CfnBaseApiProvider):
         return "/" + resource_path + current_path
 
     @staticmethod
-    def _extract_cfn_gateway_v2_stage(resources, stage_resource, collector):
+    def _extract_cfn_gateway_v2_stage(
+        resources: Dict[str, Dict],
+        stage_resource: Dict,
+        collector: ApiCollector,
+    ) -> None:
         """
          Extract the stage from AWS::ApiGatewayV2::Stage resource by reading and adds it to the collector.
          Parameters
@@ -362,7 +392,7 @@ class CfnApiProvider(CfnBaseApiProvider):
         collector.stage_variables = stage_variables
 
     @staticmethod
-    def _get_integration_function_name(integration):
+    def _get_integration_function_name(integration: Dict) -> Optional[str]:
         """
         Tries to parse the Lambda Function name from the Integration defined in the method configuration. Integration
         configuration. We care only about Lambda integrations, which are of type aws_proxy, and ignore the rest.
@@ -382,12 +412,15 @@ class CfnApiProvider(CfnBaseApiProvider):
 
         if integration and isinstance(integration, dict):
             # Integration must be "aws_proxy" otherwise we don't care about it
-            return LambdaUri.get_function_name(integration.get("Uri"))
+            uri: str = cast(str, integration.get("Uri"))
+            return LambdaUri.get_function_name(uri)
 
         return None
 
     @staticmethod
-    def _get_route_function_name(resources, integration_target):
+    def _get_route_function_name(
+        resources: Dict[str, Dict], integration_target: str
+    ) -> Tuple[Optional[str], Optional[str]]:
         """
         Look for the APIGateway integration resource based on the input integration_target, then try to parse the
         lambda function from the the integration resource properties.
@@ -422,7 +455,7 @@ class CfnApiProvider(CfnBaseApiProvider):
         return None, None
 
     @staticmethod
-    def _parse_route_key(route_key):
+    def _parse_route_key(route_key: Optional[str]) -> Tuple[str, str]:
         """
         parse the route key, and return the methods && path.
         route key should be in format "Http_method Path" or to equal "$default"

@@ -7,15 +7,23 @@ import logging
 import os
 import posixpath
 from collections import namedtuple
-from typing import NamedTuple, Optional, List, Dict, Union
+from typing import Set, NamedTuple, Optional, List, Dict, Union, cast, Iterator, TYPE_CHECKING
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, UnsupportedIntrinsic
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 
+if TYPE_CHECKING:
+    # avoid circular import, https://docs.python.org/3/library/typing.html#typing.TYPE_CHECKING
+    from samcli.local.apigw.local_apigw_service import Route
+
 LOG = logging.getLogger(__name__)
 
-# Named Tuple to representing the properties of a Lambda Function
+
 class Function(NamedTuple):
+    """
+    Named Tuple to representing the properties of a Lambda Function
+    """
+
     # Function name or logical ID
     name: str
     # Function name (used in place of logical ID)
@@ -74,30 +82,31 @@ class Function(NamedTuple):
 
 
 class ResourcesToBuildCollector:
-    def __init__(self):
-        self.result = {"Function": [], "Layer": []}
+    def __init__(self) -> None:
+        self._functions: List[Function] = []
+        self._layers: List["LayerVersion"] = []
 
-    def add_function(self, function):
-        self.result.get("Function").append(function)
+    def add_function(self, function: Function) -> None:
+        self._functions.append(function)
 
-    def add_functions(self, functions):
-        self.result.get("Function").extend(functions)
+    def add_functions(self, functions: List[Function]) -> None:
+        self._functions.extend(functions)
 
-    def add_layer(self, layer):
-        self.result.get("Layer").append(layer)
+    def add_layer(self, layer: "LayerVersion") -> None:
+        self._layers.append(layer)
 
-    def add_layers(self, layers):
-        self.result.get("Layer").extend(layers)
-
-    @property
-    def functions(self):
-        return self.result.get("Function")
+    def add_layers(self, layers: List["LayerVersion"]) -> None:
+        self._layers.extend(layers)
 
     @property
-    def layers(self):
-        return self.result.get("Layer")
+    def functions(self) -> List[Function]:
+        return self._functions
 
-    def __eq__(self, other):
+    @property
+    def layers(self) -> List["LayerVersion"]:
+        return self._layers
+
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, type(self)):
             return self.__dict__ == other.__dict__
 
@@ -118,7 +127,7 @@ class LayerVersion:
         compatible_runtimes: Optional[List[str]] = None,
         metadata: Optional[Dict] = None,
         stack_path: str = "",
-    ):
+    ) -> None:
         """
         Parameters
         ----------
@@ -142,11 +151,11 @@ class LayerVersion:
         self.is_defined_within_template = bool(codeuri)
         self._name = LayerVersion._compute_layer_name(self.is_defined_within_template, arn)
         self._version = LayerVersion._compute_layer_version(self.is_defined_within_template, arn)
-        self._build_method = metadata.get("BuildMethod", None)
+        self._build_method = cast(Optional[str], metadata.get("BuildMethod", None))
         self._compatible_runtimes = compatible_runtimes
 
     @staticmethod
-    def _compute_layer_version(is_defined_within_template, arn):
+    def _compute_layer_version(is_defined_within_template: bool, arn: str) -> Optional[int]:
         """
         Parses out the Layer version from the arn
 
@@ -169,14 +178,12 @@ class LayerVersion:
 
         try:
             _, layer_version = arn.rsplit(":", 1)
-            layer_version = int(layer_version)
+            return int(layer_version)
         except ValueError as ex:
             raise InvalidLayerVersionArn(arn + " is an Invalid Layer Arn.") from ex
 
-        return layer_version
-
     @staticmethod
-    def _compute_layer_name(is_defined_within_template, arn):
+    def _compute_layer_name(is_defined_within_template: bool, arn: str) -> str:
         """
         Computes a unique name based on the LayerVersion Arn
 
@@ -215,11 +222,11 @@ class LayerVersion:
         return self._stack_path
 
     @property
-    def arn(self):
+    def arn(self) -> str:
         return self._arn
 
     @property
-    def name(self):
+    def name(self) -> str:
         """
         A unique name from the arn or logical id of the Layer
 
@@ -234,28 +241,28 @@ class LayerVersion:
         return self._name
 
     @property
-    def codeuri(self):
+    def codeuri(self) -> Optional[str]:
         return self._codeuri
 
     @codeuri.setter
-    def codeuri(self, codeuri):
+    def codeuri(self, codeuri: Optional[str]) -> None:
         self._codeuri = codeuri
 
     @property
-    def version(self):
+    def version(self) -> Optional[int]:
         return self._version
 
     @property
-    def layer_arn(self):
+    def layer_arn(self) -> str:
         layer_arn, _ = self.arn.rsplit(":", 1)
         return layer_arn
 
     @property
-    def build_method(self):
+    def build_method(self) -> Optional[str]:
         return self._build_method
 
     @property
-    def compatible_runtimes(self):
+    def compatible_runtimes(self) -> Optional[List[str]]:
         return self._compatible_runtimes
 
     @property
@@ -275,14 +282,14 @@ class LayerVersion:
         """
         return _get_build_dir(self, build_root_dir)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, type(self)):
             return self.__dict__ == other.__dict__
         return False
 
 
 class Api:
-    def __init__(self, routes=None):
+    def __init__(self, routes: Optional[Union[List["Route"], Set[str]]] = None) -> None:
         if routes is None:
             routes = []
         self.routes = routes
@@ -291,21 +298,21 @@ class Api:
         # then API server will automatically respond to OPTIONS HTTP method on this path and respond with appropriate
         # CORS headers based on configuration.
 
-        self.cors = None
+        self.cors: Optional[Cors] = None
         # If this configuration is set, then API server will automatically respond to OPTIONS HTTP method on this
         # path and
 
-        self.binary_media_types_set = set()
+        self.binary_media_types_set: Set[str] = set()
 
-        self.stage_name = None
-        self.stage_variables = None
+        self.stage_name: Optional[str] = None
+        self.stage_variables: Optional[Dict] = None
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         # Other properties are not a part of the hash
         return hash(self.routes) * hash(self.cors) * hash(self.binary_media_types_set)
 
     @property
-    def binary_media_types(self):
+    def binary_media_types(self) -> List[str]:
         return list(self.binary_media_types_set)
 
 
@@ -322,7 +329,7 @@ _CorsTuple.__new__.__defaults__ = (  # type: ignore
 
 class Cors(_CorsTuple):
     @staticmethod
-    def cors_to_headers(cors):
+    def cors_to_headers(cors: Optional["Cors"]) -> Dict[str, Union[int, str]]:
         """
         Convert CORS object to headers dictionary
         Parameters
@@ -352,7 +359,7 @@ class AbstractApiProvider:
     Abstract base class to return APIs and the functions they route to
     """
 
-    def get_all(self):
+    def get_all(self) -> Iterator[Api]:
         """
         Yields all the APIs available.
 

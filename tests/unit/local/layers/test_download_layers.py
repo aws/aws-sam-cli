@@ -62,18 +62,9 @@ class TestDownloadLayers(TestCase):
 
         create_cache_patch.assert_called_once_with("/home")
 
-    @parameterized.expand(
-        [
-            ("/some/custom/path", "/some/custom/path"),  # absolute path no need to be adjusted
-            (os.path.join(".", "some", "custom", "path"), os.path.join("some", "path", "some", "custom", "path")),
-            (os.path.join("some", "custom", "path"), os.path.join("some", "path", "some", "custom", "path")),
-        ]
-    )
     @patch("samcli.local.layers.layer_downloader.resolve_code_path")
     @patch("samcli.local.layers.layer_downloader.LayerDownloader._create_cache")
-    def test_download_layer_that_was_template_defined(
-        self, codeuri, adjusted_codeuri, create_cache_patch, resolve_code_path_patch
-    ):
+    def test_download_layer_that_was_template_defined(self, create_cache_patch, resolve_code_path_patch):
         """
         when the template is not lcoated in working directory, layer's codeuri needs to be adjusted
         """
@@ -87,7 +78,7 @@ class TestDownloadLayers(TestCase):
         layer_mock = Mock()
         layer_mock.is_template_defined = True
         layer_mock.name = "layer1"
-        layer_mock.codeuri = codeuri
+        layer_mock.codeuri = "codeuri"
         layer_mock.stack_path = stack_path_mock
 
         resolve_code_path_return_mock = Mock()
@@ -98,7 +89,7 @@ class TestDownloadLayers(TestCase):
         self.assertEqual(actual.codeuri, resolve_code_path_return_mock)
 
         create_cache_patch.assert_not_called()
-        resolve_code_path_patch.assert_called_once_with(".", adjusted_codeuri)
+        resolve_code_path_patch.assert_called_once_with(".", "codeuri")
 
     @patch("samcli.local.layers.layer_downloader.unzip_from_uri")
     @patch("samcli.local.layers.layer_downloader.LayerDownloader._fetch_layer_uri")

@@ -13,7 +13,7 @@ Resources:
   SubApp:
     Type: AWS::Serverless::Application
     Properties:
-      Location: ./template.yaml
+      Location: ../template.yaml
       Parameters:
         Runtime: !Ref Runtime
         CodeUri: !Ref CodeUri

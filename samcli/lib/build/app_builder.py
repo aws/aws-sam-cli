@@ -6,7 +6,7 @@ import io
 import json
 import logging
 import pathlib
-from typing import List, Optional, Dict, cast
+from typing import List, Optional, Dict, cast, Union
 
 import docker
 import docker.errors
@@ -21,7 +21,7 @@ from samcli.lib.build.build_strategy import (
     ParallelBuildStrategy,
     BuildStrategy,
 )
-from samcli.lib.providers.provider import ResourcesToBuildCollector, Function, get_full_path, Stack
+from samcli.lib.providers.provider import ResourcesToBuildCollector, Function, get_full_path, Stack, LayerVersion
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.lib.utils.colors import Colored
 import samcli.lib.utils.osutils as osutils
@@ -361,10 +361,6 @@ class ApplicationBuilder:
             A generator for the build output.
         function_name str
             Name of the function that is being built
-
-        Returns
-        -------
-        None
         """
         for log in build_logs:
             if log:
@@ -722,7 +718,9 @@ class ApplicationBuilder:
         return cast(Dict, response)
 
     @staticmethod
-    def _make_env_vars(function: Function, file_env_vars: Dict, inline_env_vars: Optional[Dict]) -> Dict:
+    def _make_env_vars(
+        resource: Union[Function, LayerVersion], file_env_vars: Dict, inline_env_vars: Optional[Dict]
+    ) -> Dict:
         """Returns the environment variables configuration for this function
 
         Priority order (high to low):
@@ -733,8 +731,8 @@ class ApplicationBuilder:
 
         Parameters
         ----------
-        function : samcli.lib.providers.provider.Function
-            Lambda function to generate the configuration for
+        resource : Union[Function, LayerVersion]
+            Lambda function or layer to generate the configuration for
         file_env_vars : Dict
             The dictionary of environment variables loaded from the file
         inline_env_vars : Optional[Dict]
@@ -753,7 +751,7 @@ class ApplicationBuilder:
 
         """
 
-        name = function.name
+        name = resource.name
         result = {}
 
         # validate and raise OverridesNotWellDefinedError

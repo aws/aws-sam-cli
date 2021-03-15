@@ -40,7 +40,7 @@ class Route:
 
     def __init__(
         self,
-        function_name: str,
+        function_name: Optional[str],
         path: str,
         methods: List[str],
         event_type: str = API,
@@ -221,9 +221,17 @@ class LocalApigwService(BaseLocalService):
         Generates the key to the _dict_of_routes based on the list of methods
         and path supplied
 
-        :param list(str) methods: List of HTTP Methods
-        :param str path: Path off the base url
-        :return: str of Path:Method
+        Parameters
+        ----------
+        methods : List[str]
+            List of HTTP Methods
+        path : str
+            Path off the base url
+
+        Yields
+        ------
+        route_key : str
+            the route key in the form of "Path:Method"
         """
         for method in methods:
             yield self._route_key(method, path)

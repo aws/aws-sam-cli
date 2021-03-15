@@ -88,7 +88,6 @@ class ECRUploader:
         """
         Stream progress from docker push logs and move the cursor based on the log id.
         :param logs: generator from docker_clent.api.push
-        :return:
         """
         ids = dict()
         for log in logs:
