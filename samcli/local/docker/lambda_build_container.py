@@ -18,7 +18,6 @@ class LambdaBuildContainer(Container):
     and if the build was successful, copies back artifacts to the host filesystem
     """
 
-    _IMAGE_NAME_FORMAT = "{}-{}"  # public.ecr.aws/sam/build-java11
     _IMAGE_URI_PREFIX = "public.ecr.aws/sam/build"
     _BUILDERS_EXECUTABLE = "lambda-builders"
 
@@ -235,7 +234,4 @@ class LambdaBuildContainer(Container):
 
     @staticmethod
     def _get_image(runtime):
-        return LambdaBuildContainer._IMAGE_NAME_FORMAT.format(
-            LambdaBuildContainer._IMAGE_URI_PREFIX,
-            runtime,
-        )
+        return f"{LambdaBuildContainer._IMAGE_URI_PREFIX}-{runtime}"
