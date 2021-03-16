@@ -23,11 +23,11 @@ class TestTemplate(TestCase):
     def test_creating_a_template(self, mock_plugin, mock_preprocessor, mock_postprocessor, mock_interactive_flow):
         # template with required attributes only should set defaults for others
         t = Template(location=self._ANY_LOCATION)
-        assert t._location == self._ANY_LOCATION
-        assert t._interactive_flows == []
-        assert t._preprocessors == []
-        assert t._postprocessors == []
-        assert t._plugins == []
+        self.assertEqual(t._location, self._ANY_LOCATION)
+        self.assertEqual(t._interactive_flows, [])
+        self.assertEqual(t._preprocessors, [])
+        self.assertEqual(t._postprocessors, [])
+        self.assertEqual(t._plugins, [])
         # template with all attributes
         t = Template(
             location=self._ANY_LOCATION,
@@ -36,28 +36,28 @@ class TestTemplate(TestCase):
             postprocessors=[mock_postprocessor],
             plugins=[mock_plugin],
         )
-        assert t._location == self._ANY_LOCATION
-        assert t._interactive_flows[0] == mock_interactive_flow
-        assert t._preprocessors[0] == mock_preprocessor
-        assert t._postprocessors[0] == mock_postprocessor
-        assert t._plugins[0] == mock_plugin
+        self.assertEqual(t._location, self._ANY_LOCATION)
+        self.assertEqual(t._interactive_flows[0], mock_interactive_flow)
+        self.assertEqual(t._preprocessors[0], mock_preprocessor)
+        self.assertEqual(t._postprocessors[0], mock_postprocessor)
+        self.assertEqual(t._plugins[0], mock_plugin)
         t = Template(location=self._ANY_LOCATION, interactive_flows=[mock_interactive_flow])
-        assert t._interactive_flows[0] == mock_interactive_flow
+        self.assertEqual(t._interactive_flows[0], mock_interactive_flow)
         t = Template(location=self._ANY_LOCATION, preprocessors=[mock_preprocessor])
-        assert t._preprocessors[0] == mock_preprocessor
+        self.assertEqual(t._preprocessors[0], mock_preprocessor)
         t = Template(location=self._ANY_LOCATION, postprocessors=[mock_postprocessor])
-        assert t._postprocessors[0] == mock_postprocessor
+        self.assertEqual(t._postprocessors[0], mock_postprocessor)
         t = Template(location=self._ANY_LOCATION, plugins=[mock_plugin])
-        assert t._plugins[0] == mock_plugin
+        self.assertEqual(t._plugins[0], mock_plugin)
         # plugin's interactive flow and processors should be plugged into template's interactive flow and processors
         mock_plugin.interactive_flow = mock_interactive_flow
         mock_plugin.preprocessor = mock_preprocessor
         mock_plugin.postprocessor = mock_postprocessor
         t = Template(location=self._ANY_LOCATION, plugins=[mock_plugin])
-        assert t._interactive_flows[0] == mock_interactive_flow
-        assert t._preprocessors[0] == mock_preprocessor
-        assert t._postprocessors[0] == mock_postprocessor
-        assert t._plugins[0] == mock_plugin
+        self.assertEqual(t._interactive_flows[0], mock_interactive_flow)
+        self.assertEqual(t._preprocessors[0], mock_preprocessor)
+        self.assertEqual(t._postprocessors[0], mock_postprocessor)
+        self.assertEqual(t._plugins[0], mock_plugin)
         # template's location is required
         with self.assertRaises(TypeError):
             Template()
@@ -68,14 +68,14 @@ class TestTemplate(TestCase):
         # Template with no interactive-flows neither direct nor through a plugin
         t = Template(location=self._ANY_LOCATION)
         context = t.run_interactive_flows()
-        assert context == {}
+        self.assertEqual(context, {})
         # Template with direct interactive flow only
         mock_interactive_flow.run.return_value = self._ANY_INTERACTIVE_FLOW_CONTEXT
         mock_plugin.interactive_flow = None
         t = Template(location=self._ANY_LOCATION, interactive_flows=[mock_interactive_flow], plugins=[mock_plugin])
         context = t.run_interactive_flows()
         mock_interactive_flow.run.assert_called_once()
-        assert context == self._ANY_INTERACTIVE_FLOW_CONTEXT
+        self.assertEqual(context, self._ANY_INTERACTIVE_FLOW_CONTEXT)
         # Template with direct interactive flow and a plugin's interactive flow
         mock_interactive_flow.reset_mock()
         mock_plugin.interactive_flow = MagicMock()
@@ -84,7 +84,7 @@ class TestTemplate(TestCase):
         context = t.run_interactive_flows()
         mock_interactive_flow.run.assert_called_once()
         mock_plugin.interactive_flow.run.assert_called_once()
-        assert context == self._ANY_PLUGIN_INTERACTIVE_FLOW_CONTEXT
+        self.assertEqual(context, self._ANY_PLUGIN_INTERACTIVE_FLOW_CONTEXT)
 
     @patch("samcli.lib.cookiecutter.interactive_flow")
     @patch("samcli.lib.cookiecutter.plugin")

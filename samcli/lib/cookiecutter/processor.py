@@ -1,5 +1,5 @@
 """ Define a processor to process the cookiecutter context before/after generating a cookiecutter project"""
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Dict
 
 
@@ -8,6 +8,7 @@ class Processor(ABC):
     An abstract class for defining template's preprocessors and postprocessors
     """
 
+    @abstractmethod
     def run(self, context: Dict):
         """
         the processing logic of this processor
@@ -19,4 +20,3 @@ class Processor(ABC):
 
         Returns: A processed copy of the cookiecutter context
         """
-        raise NotImplementedError("not implemented")

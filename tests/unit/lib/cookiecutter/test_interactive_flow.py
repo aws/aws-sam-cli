@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import patch, ANY
 from samcli.lib.cookiecutter.interactive_flow import InteractiveFlow
 from samcli.lib.cookiecutter.question import Question, QuestionKind
 
@@ -23,16 +23,16 @@ class TestInteractiveFlow(TestCase):
         self.flow = InteractiveFlow(questions=self._QUESTIONS, first_question_key=self._FIRST_QUESTION.key)
 
     def test_create_interactive_flow(self):
-        assert self.flow._questions == self._QUESTIONS
-        assert self.flow._first_question_key == self._FIRST_QUESTION.key
+        self.assertEqual(self.flow._questions, self._QUESTIONS)
+        self.assertEqual(self.flow._first_question_key, self._FIRST_QUESTION.key)
 
     def test_advance_to_next_question(self):
-        assert self.flow.advance_to_next_question() == self._FIRST_QUESTION
-        assert self.flow.advance_to_next_question(self._ANY_ANSWER) == self._SECOND_QUESTION
-        assert self.flow.advance_to_next_question(self._PARTICULAR_ANSWER) == self._FIRST_QUESTION
-        assert self.flow.advance_to_next_question(self._ANY_ANSWER) == self._SECOND_QUESTION
-        assert self.flow.advance_to_next_question(self._ANY_ANSWER) == self._THIRD_QUESTION
-        assert self.flow.advance_to_next_question(self._ANY_ANSWER) is None
+        self.assertEqual(self.flow.advance_to_next_question(), self._FIRST_QUESTION)
+        self.assertEqual(self.flow.advance_to_next_question(self._ANY_ANSWER), self._SECOND_QUESTION)
+        self.assertEqual(self.flow.advance_to_next_question(self._PARTICULAR_ANSWER), self._FIRST_QUESTION)
+        self.assertEqual(self.flow.advance_to_next_question(self._ANY_ANSWER), self._SECOND_QUESTION)
+        self.assertEqual(self.flow.advance_to_next_question(self._ANY_ANSWER), self._THIRD_QUESTION)
+        self.assertIsNone(self.flow.advance_to_next_question(self._ANY_ANSWER))
 
     @patch.object(InteractiveFlow, "_ask_a_question")
     @patch.object(InteractiveFlow, "_ask_a_yes_no_question")
@@ -47,5 +47,36 @@ class TestInteractiveFlow(TestCase):
         mock_ask_a_question.assert_called_once_with(self._FIRST_QUESTION)
         mock_ask_a_yes_no_question.assert_called_once_with(self._SECOND_QUESTION)
         mock_ask_a_multiple_choice_question.assert_called_once_with(self._THIRD_QUESTION)
-        assert expected_context == actual_context
-        assert actual_context is not initial_context  # shouldn't modify the input, it should copy and return new
+        self.assertEqual(expected_context, actual_context)
+        self.assertIsNot(actual_context, initial_context)  # shouldn't modify the input, it should copy and return new
+
+    @patch("samcli.lib.cookiecutter.interactive_flow.click")
+    def test_echo(self, mock_click):
+        self.flow._echo(Question(key="any", text=self._ANY_TEXT))
+        mock_click.echo.assert_called_once_with(message=self._ANY_TEXT)
+
+    @patch("samcli.lib.cookiecutter.interactive_flow.click")
+    def test_ask_a_question(self, mock_click):
+        self.flow._ask_a_question(Question(key="any", text=self._ANY_TEXT))
+        mock_click.prompt.assert_called_once_with(text=self._ANY_TEXT, default="")
+        mock_click.reset_mock()
+        self.flow._ask_a_question(Question(key="any", text=self._ANY_TEXT, is_required=True))
+        mock_click.prompt.assert_called_once_with(text=self._ANY_TEXT, default=None)
+        mock_click.reset_mock()
+        self.flow._ask_a_question(Question(key="any", text=self._ANY_TEXT, default="any default answer"))
+        mock_click.prompt.assert_called_once_with(text=self._ANY_TEXT, default="any default answer")
+
+    @patch("samcli.lib.cookiecutter.interactive_flow.click")
+    def test_ask_a_yes_no_question(self, mock_click):
+        self.flow._ask_a_yes_no_question(Question(key="any", text=self._ANY_TEXT))
+        mock_click.confirm.assert_called_once_with(text=self._ANY_TEXT, default="")
+        mock_click.reset_mock()
+        self.flow._ask_a_yes_no_question(Question(key="any", text=self._ANY_TEXT, is_required=True))
+        mock_click.confirm.assert_called_once_with(text=self._ANY_TEXT, default=None)
+
+    @patch("samcli.lib.cookiecutter.interactive_flow.click.Choice")
+    @patch("samcli.lib.cookiecutter.interactive_flow.click")
+    def test_ask_a_multiple_choice_question(self, mock_click, mock_choice):
+        self.flow._ask_a_multiple_choice_question(Question(key="any", text=self._ANY_TEXT, options=["opt1", "opt2"]))
+        mock_click.prompt.assert_called_once_with(text="Choice", default="", show_choices=False, type=ANY)
+        mock_choice.assert_called_once_with(["1", "2"])

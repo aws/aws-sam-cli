@@ -68,7 +68,7 @@ class InteractiveFlowCreator:
         is_required = question_json.get("isRequired")
         next_question_map = question_json.get("nextQuestion")
         kind_str = question_json.get("kind")
-        kind = QuestionKind[kind_str] if kind_str else None
+        kind = QuestionKind(kind_str) if kind_str else None
         return Question(
             key=key,
             text=text,

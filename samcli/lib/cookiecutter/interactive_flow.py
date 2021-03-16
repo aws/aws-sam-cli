@@ -1,7 +1,7 @@
 """A flow of questions to be asked to the user in an interactive way."""
 from typing import Any, Dict, Optional
 import click
-from .question import Question
+from .question import Question, QuestionKind
 
 
 class InteractiveFlow:
@@ -22,6 +22,10 @@ class InteractiveFlow:
         self._current_question: Optional[Question] = None
 
     @staticmethod
+    def _echo(question: Question) -> Any:
+        return click.echo(message=question.text)
+
+    @staticmethod
     def _ask_a_question(question: Question) -> Any:
         return click.prompt(text=question.text, default=question.default_answer)
 
@@ -34,11 +38,13 @@ class InteractiveFlow:
         click.echo(question.text)
         for index, option in enumerate(question.options):
             click.echo(f"\t{index + 1} - {option}")
+        options_indexes = question.get_options_indexes(base=1)
+        choices = list(map(str, options_indexes))
         choice = click.prompt(
             text="Choice",
             default=question.default_answer,
             show_choices=False,
-            type=click.Choice(question.get_choices_indexes(base=1)),
+            type=click.Choice(choices),
         )
         return question.get_option(int(choice) - 1)
 
@@ -76,17 +82,16 @@ class InteractiveFlow:
                  associated to the key of the corresponding question
         """
         context = context.copy()
+        question_handlers = {
+            QuestionKind.info: InteractiveFlow._echo,
+            QuestionKind.choice: InteractiveFlow._ask_a_multiple_choice_question,
+            QuestionKind.confirm: InteractiveFlow._ask_a_yes_no_question,
+            QuestionKind.default: InteractiveFlow._ask_a_question,
+        }
         question = self.advance_to_next_question()
-        answer: Any = None
         while question:
-            if question.is_info():
-                click.echo(question.text)
-            elif question.is_mcq():
-                answer = InteractiveFlow._ask_a_multiple_choice_question(question)
-            elif question.is_yes_no():
-                answer = InteractiveFlow._ask_a_yes_no_question(question)
-            else:
-                answer = InteractiveFlow._ask_a_question(question)
+            question_handler = question_handlers[question.kind]
+            answer = question_handler(question)
             context[question.key] = answer
             question = self.advance_to_next_question(answer)
         return context

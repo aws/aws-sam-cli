@@ -30,45 +30,44 @@ class TestQuestion(TestCase):
 
     def test_creating_questions(self):
         q = Question(text=self._ANY_TEXT, key=self._ANY_KEY)
-        assert q.text == self._ANY_TEXT
-        assert q.key == self._ANY_KEY
-        assert q.options == []
-        assert q.default_answer == ""
-        assert q.required is False
-        assert q.next_question_map == {}
-        assert q.default_next_question_key is None
-        assert q.kind == QuestionKind.default
+        self.assertEqual(q.text, self._ANY_TEXT)
+        self.assertEqual(q.key, self._ANY_KEY)
+        self.assertIsNone(q.options)
+        self.assertEqual(q.default_answer, "")
+        self.assertFalse(q.required)
+        self.assertEqual(q.next_question_map, {})
+        self.assertIsNone(q.default_next_question_key)
+        self.assertEqual(q.kind, QuestionKind.default)
 
         q = self.question
-        assert q.text == self._ANY_TEXT
-        assert q.key == self._ANY_KEY
-        assert q.options == self._ANY_OPTIONS
-        assert q.default_answer == self._ANY_ANSWER
-        assert q.required is True
-        assert q.next_question_map == self._ANY_NEXT_QUESTION_MAP
-        assert q.default_next_question_key == self._ANY_DEFAULT_NEXT_QUESTION_KEY
-        assert q.kind == self._ANY_KIND
+        self.assertEqual(q.text, self._ANY_TEXT)
+        self.assertEqual(q.key, self._ANY_KEY)
+        self.assertEqual(q.options, self._ANY_OPTIONS)
+        self.assertEqual(q.default_answer, self._ANY_ANSWER)
+        self.assertTrue(q.required)
+        self.assertEqual(q.next_question_map, self._ANY_NEXT_QUESTION_MAP)
+        self.assertEqual(q.default_next_question_key, self._ANY_DEFAULT_NEXT_QUESTION_KEY)
+        self.assertEqual(q.kind, self._ANY_KIND)
 
-    def test_get_choices_indexes_with_different_bases(self):
-        indexes = self.question.get_choices_indexes()
-        assert indexes == ["0", "1", "2"]
-        indexes = self.question.get_choices_indexes(base=1)
-        assert indexes == ["1", "2", "3"]
-
-    def test_question_kind(self):
-        assert self.question.is_mcq() is True
-        self.question = Question(text=self._ANY_TEXT, key=self._ANY_KEY, kind=QuestionKind.confirm)
-        assert self.question.is_yes_no() is True
-        self.question = Question(text=self._ANY_TEXT, key=self._ANY_KEY, kind=QuestionKind.info)
-        assert self.question.is_info() is True
+    def test_get_options_indexes_with_different_bases(self):
+        indexes = self.question.get_options_indexes()
+        self.assertEqual(indexes, [0, 1, 2])
+        indexes = self.question.get_options_indexes(base=1)
+        self.assertEqual(indexes, [1, 2, 3])
+        q = Question(key=self._ANY_KEY, text=self._ANY_TEXT)
+        indexes = q.get_options_indexes()
+        self.assertEqual(indexes, [])
 
     def test_get_option(self):
-        assert self.question.get_option(0) == "option1"
+        self.assertEqual(self.question.get_option(0), "option1")
+        with self.assertRaises(ValueError):
+            q = Question(key=self._ANY_KEY, text=self._ANY_TEXT)
+            q.get_option(0)
 
     def test_get_next_question_key(self):
-        assert self.question.get_next_question_key("option1") == "key1"
-        assert self.question.get_next_question_key("option2") == "key2"
-        assert self.question.get_next_question_key("option3") == "key3"
-        assert self.question.get_next_question_key("any-option") == self._ANY_DEFAULT_NEXT_QUESTION_KEY
+        self.assertEqual(self.question.get_next_question_key("option1"), "key1")
+        self.assertEqual(self.question.get_next_question_key("option2"), "key2")
+        self.assertEqual(self.question.get_next_question_key("option3"), "key3")
+        self.assertEqual(self.question.get_next_question_key("any-option"), self._ANY_DEFAULT_NEXT_QUESTION_KEY)
         self.question.set_default_next_question_key("new_default")
-        assert self.question.get_next_question_key(None) == "new_default"
+        self.assertEqual(self.question.get_next_question_key(None), "new_default")

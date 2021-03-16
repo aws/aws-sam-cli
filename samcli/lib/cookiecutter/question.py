@@ -54,22 +54,22 @@ class Question:
         text: str,
         options: Optional[List[str]] = None,
         default: Optional[str] = None,
-        is_required: Optional[bool] = False,
+        is_required: Optional[bool] = None,
         next_question_map: Optional[Dict[str, str]] = None,
         default_next_question_key: Optional[str] = None,
         kind: Optional[QuestionKind] = None,
     ):
         self._key = key
         self._text = text
-        self._options = options or []
+        self._options = options
         self._required = is_required
         self._default_answer = default
         # if it is an optional question, set an empty default answer to prevent click from keep asking for an answer
         if not self._required and self._default_answer is None:
             self._default_answer = ""
-        self._next_question_map = next_question_map or {}
+        self._next_question_map: Dict[str, str] = next_question_map or {}
         self._default_next_question_key = default_next_question_key
-        self._kind = kind or (QuestionKind.confirm if options else QuestionKind.default)
+        self._kind = kind or (QuestionKind.choice if options else QuestionKind.default)
 
     @property
     def key(self):
@@ -103,32 +103,21 @@ class Question:
     def kind(self):
         return self._kind
 
-    def get_choices_indexes(self, base: int = 0) -> List[str]:
+    def get_options_indexes(self, base: int = 0) -> List[int]:
         if self._options:
-            choices = list(range(base, len(self._options) + base))
-            return list(map(str, choices))
+            return list(range(base, len(self._options) + base))
         return list()
 
     def get_option(self, index) -> Any:
+        if not self._options:
+            raise ValueError("No defined options")
         return self._options[index]
-
-    def is_mcq(self) -> bool:
-        return len(self._options) > 0
-
-    def is_yes_no(self) -> bool:
-        return self._kind == QuestionKind.confirm
-
-    def is_info(self) -> bool:
-        return self._kind == QuestionKind.info
 
     def get_next_question_key(self, answer: Any) -> Optional[str]:
         # _next_question_map is a Dict[str(answer), str(next question key)]
         # so we need to parse the passed argument(answer) to str
         answer = str(answer)
         return self._next_question_map.get(answer, self._default_next_question_key)
-
-    def set_next_question_key(self, answer, next_question_key):
-        self._next_question_map[answer] = next_question_key
 
     def set_default_next_question_key(self, next_question_key):
         self._default_next_question_key = next_question_key

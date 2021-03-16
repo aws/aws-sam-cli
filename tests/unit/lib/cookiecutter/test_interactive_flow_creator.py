@@ -43,12 +43,11 @@ class TestInteractiveFlowCreator(TestCase):
         self.assert_equal(flow._questions["2nd"], expected_flow_questions["2nd"])
         self.assert_equal(flow._questions["3rd"], expected_flow_questions["3rd"])
 
-    @staticmethod
-    def assert_equal(q1: Question, q2: Question):
-        assert q1.key == q2.key
-        assert q1.text == q2.text
-        assert q1.options == q2.options
-        assert q1.default_answer == q2.default_answer
-        assert q1.required == q2.required
-        assert q1.next_question_map == q2.next_question_map
-        assert q1.kind == q2.kind
+    def assert_equal(self, q1: Question, q2: Question):
+        self.assertEqual(q1.key, q2.key)
+        self.assertEqual(q1.text, q2.text)
+        self.assertEqual(q1.options, q2.options)
+        self.assertEqual(q1.default_answer, q2.default_answer)
+        self.assertEqual(q1.required, q2.required)
+        self.assertEqual(q1.next_question_map, q2.next_question_map)
+        self.assertEqual(q1.kind, q2.kind)
