@@ -120,9 +120,16 @@ class BuildIntegBase(TestCase):
             time.sleep(1)
         docker_client = docker.from_env()
         samcli_containers = docker_client.containers.list(
-            all=True, filters={"ancestor": "lambci/lambda:build-{}".format(runtime)}
+            all=True, filters={"ancestor": f"public.ecr.aws/sam/build-{runtime}"}
         )
         self.assertFalse(bool(samcli_containers), "Build containers have not been removed")
+
+    def verify_pulling_only_latest_tag(self, runtime):
+        docker_client = docker.from_env()
+        self.assertTrue(
+            len(docker_client.images.list(name=f"public.ecr.aws/sam/build-{runtime}")) == 1,
+            "Found other versions of build images",
+        )
 
     def _make_parameter_override_arg(self, overrides):
         return " ".join(["ParameterKey={},ParameterValue={}".format(key, value) for key, value in overrides.items()])
@@ -199,6 +206,7 @@ class BuildIntegRubyBase(BuildIntegBase):
         )
 
         self.verify_docker_container_cleanedup(runtime)
+        self.verify_pulling_only_latest_tag(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files, expected_modules):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
