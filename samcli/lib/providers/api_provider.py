@@ -1,19 +1,19 @@
 """Class that provides the Api with a list of routes from a Template"""
 
 import logging
-from typing import List
+from typing import List, Optional, Iterator
 
 from samcli.lib.providers.api_collector import ApiCollector
 from samcli.lib.providers.cfn_api_provider import CfnApiProvider
 from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
-from samcli.lib.providers.provider import AbstractApiProvider, Stack
+from samcli.lib.providers.provider import AbstractApiProvider, Stack, Api
 from samcli.lib.providers.sam_api_provider import SamApiProvider
 
 LOG = logging.getLogger(__name__)
 
 
 class ApiProvider(AbstractApiProvider):
-    def __init__(self, stacks: List[Stack], cwd=None):
+    def __init__(self, stacks: List[Stack], cwd: Optional[str] = None):
         """
         Initialize the class with template data. The template_dict is assumed
         to be valid, normalized and a dictionary. template_dict should be normalized by running any and all
@@ -38,7 +38,7 @@ class ApiProvider(AbstractApiProvider):
         self.routes = self.api.routes
         LOG.debug("%d APIs found in the template", len(self.routes))
 
-    def get_all(self):
+    def get_all(self) -> Iterator[Api]:
         """
         Yields all the Apis in the current Provider
 
@@ -47,7 +47,7 @@ class ApiProvider(AbstractApiProvider):
 
         yield self.api
 
-    def _extract_api(self):
+    def _extract_api(self) -> Api:
         """
         Extracts all the routes by running through the one providers. The provider that has the first type matched
         will be run across all the resources
@@ -65,7 +65,7 @@ class ApiProvider(AbstractApiProvider):
         return collector.get_api()
 
     @staticmethod
-    def find_api_provider(stacks: List[Stack]):
+    def find_api_provider(stacks: List[Stack]) -> CfnBaseApiProvider:
         """
         Finds the ApiProvider given the first api type of the resource
 

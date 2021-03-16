@@ -20,7 +20,7 @@ class SamLayerProvider(SamBaseProvider):
     It may or may not contain a layer.
     """
 
-    def __init__(self, stacks: List[Stack]):
+    def __init__(self, stacks: List[Stack]) -> None:
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
         to be valid, normalized and a dictionary. It should be normalized by running all pre-processing

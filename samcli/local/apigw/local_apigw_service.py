@@ -40,7 +40,7 @@ class Route:
 
     def __init__(
         self,
-        function_name: str,
+        function_name: Optional[str],
         path: str,
         methods: List[str],
         event_type: str = API,

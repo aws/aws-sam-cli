@@ -1,4 +1,6 @@
 import os
+import tempfile
+from pathlib import Path
 from unittest import TestCase, skipIf
 from unittest.mock import patch, Mock
 
@@ -255,3 +257,38 @@ class TestSamBuildableStackProvider(TestCase):
     @skipIf(not IS_WINDOWS, "skip test_normalize_resource_path_windows_* on non-Windows system")
     def test_normalize_resource_path_windows(self, stack_location, path, normalized_path):
         self.assertEqual(SamLocalStackProvider.normalize_resource_path(stack_location, path), normalized_path)
+
+    @skipIf(IS_WINDOWS, "symlink is not resolved consistently on windows")
+    def test_normalize_resource_path_symlink(self):
+        """
+        template: tmp_dir/some/path/template.yaml
+        link1 (tmp_dir/symlinks/link1) -> ../some/path/template.yaml
+        link2 (tmp_dir/symlinks/link1) -> tmp_dir/symlinks/link1
+        resource_path (tmp_dir/some/path/src), raw path is "src"
+        The final expected value is the actual value of resource_path, which is tmp_dir/some/path/src
+
+        Skip the test on windows, due to symlink is not resolved consistently on Python:
+        https://stackoverflow.com/questions/43333640/python-os-path-realpath-for-symlink-in-windows
+        """
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            Path(tmp_dir, "some", "path").mkdir(parents=True)
+            Path(tmp_dir, "symlinks").mkdir(parents=True)
+
+            link1 = os.path.join(tmp_dir, "symlinks", "link1")
+            link2 = os.path.join(tmp_dir, "symlinks", "link2")
+
+            resource_path = "src"
+
+            # on mac, tmp_dir itself could be a symlink
+            real_tmp_dir = os.path.realpath(tmp_dir)
+            # SamLocalStackProvider.normalize_resource_path() always returns a relative path.
+            # so expected is converted to relative path
+            expected = os.path.relpath(os.path.join(real_tmp_dir, os.path.join("some", "path", "src")))
+
+            os.symlink(os.path.join("..", "some", "path", "template.yaml"), link1)
+            os.symlink("link1", link2)
+
+            self.assertEqual(
+                SamLocalStackProvider.normalize_resource_path(link2, resource_path),
+                expected,
+            )
