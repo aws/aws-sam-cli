@@ -296,11 +296,17 @@ class SamFunctionProvider(SamBaseProvider):
         """
         metadata = resource_properties.get("Metadata", None)
         if metadata and "DockerContext" in metadata and not use_raw_codeuri:
+            LOG.debug(
+                "--base-dir is presented not, adjusting uri %s relative to %s",
+                metadata["DockerContext"],
+                stack.location,
+            )
             metadata["DockerContext"] = SamLocalStackProvider.normalize_resource_path(
                 stack.location, metadata["DockerContext"]
             )
 
         if codeuri and not use_raw_codeuri:
+            LOG.debug("--base-dir is presented not, adjusting uri %s relative to %s", codeuri, stack.location)
             codeuri = SamLocalStackProvider.normalize_resource_path(stack.location, codeuri)
 
         return Function(
@@ -403,6 +409,7 @@ class SamFunctionProvider(SamBaseProvider):
                     )
 
                 if codeuri and not use_raw_codeuri:
+                    LOG.debug("--base-dir is presented not, adjusting uri %s relative to %s", codeuri, stack.location)
                     codeuri = SamLocalStackProvider.normalize_resource_path(stack.location, codeuri)
 
                 layers.append(

@@ -106,6 +106,7 @@ class SamLayerProvider(SamBaseProvider):
             codeuri = SamLayerProvider._extract_lambda_function_code(layer_properties, "Content")
 
         if codeuri and not self._use_raw_codeuri:
+            LOG.debug("--base-dir is presented not, adjusting uri %s relative to %s", codeuri, stack.location)
             codeuri = SamLocalStackProvider.normalize_resource_path(stack.location, codeuri)
 
         return LayerVersion(
