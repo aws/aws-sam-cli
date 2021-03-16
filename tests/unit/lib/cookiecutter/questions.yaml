@@ -2,7 +2,7 @@
   "Questions": [
     {
       "key": "1st",
-      "question": "any text",
+      "question": "any text with variable X substitution to %(X)s",
     },
     {
       "key": "2nd",

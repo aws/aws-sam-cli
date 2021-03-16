@@ -1,13 +1,23 @@
 """ This module parses a json/yaml file that defines a flow of questions to fulfill the cookiecutter context"""
 from typing import Dict, Optional, Tuple
-from samcli.commands._utils.template import get_template_data
+import yaml
+from samcli.commands.exceptions import UserException
+from samcli.yamlhelper import parse_yaml_file
 from .interactive_flow import InteractiveFlow
 from .question import Question, QuestionKind
 
 
+class QuestionsNotFoundException(UserException):
+    pass
+
+
+class QuestionsFailedParsingException(UserException):
+    pass
+
+
 class InteractiveFlowCreator:
     @staticmethod
-    def create_flow(flow_definition_path: str):
+    def create_flow(flow_definition_path: str, extra_context: Optional[Dict] = None):
         """
         This method parses the given json/yaml file to create an InteractiveFLow. It expects the file to define
         a list of questions. It parses the questions and add it to the flow in the same order they are defined
@@ -36,20 +46,24 @@ class InteractiveFlowCreator:
                     ...
                 ]
             }
+        extra_context: Dict
+            if the template contains variable($variableName) this parameter provides the values for those variables.
 
         Returns: InteractiveFlow(questions={k1: q1, k2: q2, ...}, first_question_key="first question's key")
         """
-        questions, first_question_key = InteractiveFlowCreator._load_questions(flow_definition_path)
+        questions, first_question_key = InteractiveFlowCreator._load_questions(flow_definition_path, extra_context)
         return InteractiveFlow(questions=questions, first_question_key=first_question_key)
 
     @staticmethod
-    def _load_questions(flow_definition_path: str) -> Tuple[Dict[str, Question], str]:
+    def _load_questions(
+        flow_definition_path: str, extra_context: Optional[Dict] = None
+    ) -> Tuple[Dict[str, Question], str]:
         previous_question: Optional[Question] = None
         first_question_key: str = ""
         questions: Dict[str, Question] = {}
-        template_data = get_template_data(flow_definition_path)
+        questions_definition = InteractiveFlowCreator._parse_questions_definition(flow_definition_path, extra_context)
 
-        for question in template_data.get("Questions"):
+        for question in questions_definition.get("Questions"):
             q = InteractiveFlowCreator._create_question_from_json(question)
             if not first_question_key:
                 first_question_key = q.key
@@ -60,6 +74,35 @@ class InteractiveFlowCreator:
         return questions, first_question_key
 
     @staticmethod
+    def _parse_questions_definition(file_path, extra_context: Optional[Dict] = None):
+        """
+        Read the questions definition file, do variable substitution, parse it as JSON/YAML
+
+        Parameters
+        ----------
+        file_path : string
+            Path to the questions definition to read
+        extra_context : Dict
+            if the file contains variable($variableName) this parameter provides the values for those variables.
+
+        Raises
+        ------
+        QuestionsNotFoundException: if the file_path doesn't exist
+        QuestionsFailedParsingException: if any error occurred during variables substitution or content parsing
+
+        Returns
+        -------
+        questions data as a dictionary
+        """
+
+        try:
+            return parse_yaml_file(file_path=file_path, extra_context=extra_context)
+        except FileNotFoundError as ex:
+            raise QuestionsNotFoundException(f"questions definition file not found at {file_path}") from ex
+        except (KeyError, ValueError, yaml.YAMLError) as ex:
+            raise QuestionsFailedParsingException(f"Failed to parse questions: {str(ex)}") from ex
+
+    @staticmethod
     def _create_question_from_json(question_json: Dict) -> Question:
         key = question_json["key"]
         text = question_json["question"]
@@ -67,6 +110,7 @@ class InteractiveFlowCreator:
         default = question_json.get("default")
         is_required = question_json.get("isRequired")
         next_question_map = question_json.get("nextQuestion")
+        default_next_question = question_json.get("defaultNextQuestion")
         kind_str = question_json.get("kind")
         kind = QuestionKind(kind_str) if kind_str else None
         return Question(
@@ -76,5 +120,6 @@ class InteractiveFlowCreator:
             default=default,
             is_required=is_required,
             next_question_map=next_question_map,
+            default_next_question_key=default_next_question,
             kind=kind,
         )

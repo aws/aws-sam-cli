@@ -5,6 +5,7 @@ from samcli.lib.cookiecutter.question import Question, QuestionKind
 
 
 class TestInteractiveFlow(TestCase):
+    _ANY_KEY = "any key"
     _ANY_TEXT = "any text"
     _ANY_ANSWER = "any answer"
     _PARTICULAR_ANSWER = "particular answer"
@@ -49,6 +50,14 @@ class TestInteractiveFlow(TestCase):
         mock_ask_a_multiple_choice_question.assert_called_once_with(self._THIRD_QUESTION)
         self.assertEqual(expected_context, actual_context)
         self.assertIsNot(actual_context, initial_context)  # shouldn't modify the input, it should copy and return new
+
+    @patch("samcli.lib.cookiecutter.interactive_flow.click")
+    def test_there_is_a_handler_for_each_question_kind(self, mock_click):
+        for kind in QuestionKind:
+            q = Question(key=self._ANY_KEY, text=self._ANY_TEXT, kind=kind, options=["opt1", "opt2"])
+            flow = InteractiveFlow(questions={q.key: q}, first_question_key=self._ANY_KEY)
+            # if a handler of a QuestionKind is missing, then an exception will be raised while running the flow
+            flow.run(context={})
 
     @patch("samcli.lib.cookiecutter.interactive_flow.click")
     def test_echo(self, mock_click):

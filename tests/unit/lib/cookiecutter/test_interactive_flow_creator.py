@@ -1,17 +1,22 @@
 import os
 from unittest import TestCase
-from samcli.lib.cookiecutter.interactive_flow_creator import InteractiveFlowCreator
+from unittest.mock import patch
+from samcli.lib.cookiecutter.interactive_flow_creator import (
+    InteractiveFlowCreator,
+    QuestionsNotFoundException,
+    QuestionsFailedParsingException,
+)
 from samcli.lib.cookiecutter.question import Question, QuestionKind
 
 
 class TestInteractiveFlowCreator(TestCase):
     def test_create_flow(self):
         questions_path = os.path.join(os.path.dirname(__file__), "questions.yaml")
-        flow = InteractiveFlowCreator.create_flow(flow_definition_path=questions_path)
+        flow = InteractiveFlowCreator.create_flow(flow_definition_path=questions_path, extra_context={"X": "xVal"})
         expected_flow_questions = {
             "1st": Question(
                 key="1st",
-                text="any text",
+                text="any text with variable X substitution to xVal",
                 options=None,
                 default="",
                 is_required=None,
@@ -42,6 +47,18 @@ class TestInteractiveFlowCreator(TestCase):
         self.assert_equal(flow._questions["1st"], expected_flow_questions["1st"])
         self.assert_equal(flow._questions["2nd"], expected_flow_questions["2nd"])
         self.assert_equal(flow._questions["3rd"], expected_flow_questions["3rd"])
+
+    def test_questions_definition_file_not_found_exception(self):
+        with self.assertRaises(QuestionsNotFoundException):
+            questions_path = os.path.join(os.path.dirname(__file__), "not-existing-file.yaml")
+            InteractiveFlowCreator.create_flow(flow_definition_path=questions_path)
+
+    @patch("samcli.lib.cookiecutter.interactive_flow_creator.parse_yaml_file")
+    def test_parsing_exceptions_of_questions_definition_parsing(self, mock_parse_yaml_file):
+        with self.assertRaises(QuestionsFailedParsingException):
+            questions_path = os.path.join(os.path.dirname(__file__), "questions.yaml")
+            mock_parse_yaml_file.side_effect = ValueError
+            InteractiveFlowCreator.create_flow(flow_definition_path=questions_path)
 
     def assert_equal(self, q1: Question, q2: Question):
         self.assertEqual(q1.key, q2.key)
