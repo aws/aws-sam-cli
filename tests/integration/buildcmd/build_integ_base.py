@@ -205,8 +205,9 @@ class BuildIntegRubyBase(BuildIntegBase):
             ),
         )
 
-        self.verify_docker_container_cleanedup(runtime)
-        self.verify_pulling_only_latest_tag(runtime)
+        if use_container:
+            self.verify_docker_container_cleanedup(runtime)
+            self.verify_pulling_only_latest_tag(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files, expected_modules):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
