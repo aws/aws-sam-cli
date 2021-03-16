@@ -49,6 +49,10 @@ class BuildContext:
         self._resource_identifier = resource_identifier
         self._template_file = template_file
         self._base_dir = base_dir
+
+        # Note(xinhol): use_raw_codeuri is temporary to fix a bug, and will be removed for a permanent solution.
+        self._use_raw_codeuri = bool(self._base_dir)
+
         self._build_dir = build_dir
         self._cache_dir = cache_dir
         self._manifest_path = manifest_path
@@ -80,8 +84,11 @@ class BuildContext:
                 "\n".join([f"- {full_path}" for full_path in remote_stack_full_paths]),
             )
 
-        self._function_provider = SamFunctionProvider(self.stacks)
-        self._layer_provider = SamLayerProvider(self.stacks)
+        # Note(xinhol): self._use_raw_codeuri is added temporarily to fix issue #2717
+        # when base_dir is provided, codeuri should not be resolved based on template file path.
+        # we will refactor to make all path resolution inside providers intead of in multiple places
+        self._function_provider = SamFunctionProvider(self.stacks, self._use_raw_codeuri)
+        self._layer_provider = SamLayerProvider(self.stacks, self._use_raw_codeuri)
 
         if not self._base_dir:
             # Base directory, if not provided, is the directory containing the template

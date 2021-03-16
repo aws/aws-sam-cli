@@ -1,0 +1,65 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameteres:
+  Runtime:
+    Type: String
+  Handler1:
+    Type: String
+  Handler2:
+    Type: String
+  DockerFile:
+    Type: String
+  Tag:
+    Type: String
+
+
+Resources:
+
+  Function1:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - !Ref Handler1
+      Timeout: 600
+    Metadata:
+      DockerTag: !Ref Tag
+      # this is relative to base-dir-image
+      DockerContext: ../PythonImage
+      Dockerfile: !Ref DockerFile
+      DockerBuildArgs:
+        BASE_RUNTIME: !Ref Runtime
+
+  Function2:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - !Ref Handler2
+      Timeout: 600
+    Metadata:
+      DockerTag: !Ref Tag
+      # this is relative to base-dir-image
+      DockerContext: ../PythonImage
+      Dockerfile: !Ref DockerFile
+      DockerBuildArgs:
+        BASE_RUNTIME: !Ref Runtime
+
+  OtherRelativePathResource:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      BodyS3Location: SomeRelativePath
+
+  GlueResource:
+    Type: AWS::Glue::Job
+    Properties:
+      Command:
+        ScriptLocation: SomeRelativePath
+
+  ExampleNestedStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/examplebucket/exampletemplate.yml
