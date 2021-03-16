@@ -1588,6 +1588,13 @@ class TestBuildWithNestedStacks(NestedBuildIntegBase):
             )
 
 
+@parameterized_class(
+    ("template", "use_base_dir"),
+    [
+        (os.path.join("deep-nested", "template.yaml"), False),
+        (os.path.join("base-dir", "template", "template.yaml"), "use_base_dir"),
+    ],
+)
 class TestBuildWithNestedStacks3Level(NestedBuildIntegBase):
     """
     In this template, it has the same structure as .aws-sam/build
@@ -1610,7 +1617,12 @@ class TestBuildWithNestedStacks3Level(NestedBuildIntegBase):
         if SKIP_DOCKER_TESTS:
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
-        cmdlist = self.get_command_list(use_container=True, cached=True, parallel=True)
+        cmdlist = self.get_command_list(
+            use_container=True,
+            cached=True,
+            parallel=True,
+            base_dir=(os.path.join(self.test_data_path, "base-dir") if self.use_base_dir else None),
+        )
 
         LOG.info("Running Command: %s", cmdlist)
         LOG.info(self.working_dir)
