@@ -1,6 +1,6 @@
 """Class that parses the CloudFormation Api Template"""
 import logging
-from typing import Dict, Union, List, Optional
+from typing import Type, Dict, Union, List, Optional, Any
 
 from samcli.commands.local.lib.swagger.parser import SwaggerParser
 from samcli.commands.local.lib.swagger.reader import SwaggerReader
@@ -16,7 +16,7 @@ LOG = logging.getLogger(__name__)
 class CfnBaseApiProvider:
     RESOURCE_TYPE = "Type"
 
-    def extract_resources(self, stacks: List[Stack], collector, cwd=None):
+    def extract_resources(self, stacks: List[Stack], collector: ApiCollector, cwd: Optional[str] = None) -> None:
         """
         Extract the Route Object from a given resource and adds it to the RouteCollector.
 
@@ -28,10 +28,6 @@ class CfnBaseApiProvider:
             Instance of the API collector that where we will save the API information
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
-
-        Return
-        -------
-        Returns a list of routes
         """
         raise NotImplementedError("not implemented")
 
@@ -44,7 +40,7 @@ class CfnBaseApiProvider:
         binary_media: Optional[List],
         collector: ApiCollector,
         cwd: Optional[str] = None,
-        event_type=Route.API,
+        event_type: str = Route.API,
     ) -> None:
         """
         Parse the Swagger documents and adds it to the ApiCollector.
@@ -80,7 +76,7 @@ class CfnBaseApiProvider:
         collector.add_binary_media_types(logical_id, parser.get_binary_media_types())  # Binary media from swagger
         collector.add_binary_media_types(logical_id, binary_media)  # Binary media specified on resource in template
 
-    def extract_cors(self, cors_prop):
+    def extract_cors(self, cors_prop: Union[Dict, str]) -> Optional[Cors]:
         """
         Extract Cors property from AWS::Serverless::Api resource by reading and parsing Swagger documents. The result
         is added to the Api.
@@ -128,7 +124,7 @@ class CfnBaseApiProvider:
         return cors
 
     @staticmethod
-    def _get_cors_prop(cors_dict, prop_name, allow_bool=False):
+    def _get_cors_prop(cors_dict: Dict, prop_name: str, allow_bool: bool = False) -> Optional[str]:
         """
         Extract cors properties from dictionary and remove extra quotes.
 
@@ -165,7 +161,10 @@ class CfnBaseApiProvider:
             prop = prop.strip("'")
         return prop
 
-    def extract_cors_http(self, cors_prop):
+    def extract_cors_http(
+        self,
+        cors_prop: Union[bool, Dict],
+    ) -> Optional[Cors]:
         """
         Extract Cors property from AWS::Serverless::HttpApi resource by reading and parsing Swagger documents.
         The result is added to the HttpApi.
@@ -214,7 +213,11 @@ class CfnBaseApiProvider:
         return cors
 
     @staticmethod
-    def _get_cors_prop_http(cors_dict, prop_name, expect_type):
+    def _get_cors_prop_http(
+        cors_dict: Dict,
+        prop_name: str,
+        expect_type: Type,
+    ) -> Optional[Any]:
         """
         Extract cors properties from dictionary.
 
@@ -242,7 +245,7 @@ class CfnBaseApiProvider:
         return prop
 
     @staticmethod
-    def normalize_cors_allow_methods(allow_methods):
+    def normalize_cors_allow_methods(allow_methods: Union[str, List[str]]) -> str:
         """
         Normalize cors AllowMethods and Options to the methods if it's missing.
 
