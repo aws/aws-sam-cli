@@ -552,7 +552,6 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
             )
         self.verify_docker_container_cleanedup(runtime)
-        self.verify_pulling_only_latest_tag(runtime)
 
     @parameterized.expand([("dotnetcore2.1", "Dotnetcore2.1"), ("dotnetcore3.1", "Dotnetcore3.1")])
     @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
@@ -640,7 +639,6 @@ class TestBuildCommand_Go_Modules(BuildIntegBase):
             )
 
         self.verify_docker_container_cleanedup(runtime)
-        self.verify_pulling_only_latest_tag(runtime)
 
     @parameterized.expand([("go1.x", "Go")])
     @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)

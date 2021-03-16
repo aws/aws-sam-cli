@@ -126,9 +126,15 @@ class BuildIntegBase(TestCase):
 
     def verify_pulling_only_latest_tag(self, runtime):
         docker_client = docker.from_env()
-        self.assertTrue(
-            len(docker_client.images.list(name=f"public.ecr.aws/sam/build-{runtime}")) == 1,
-            "Found other versions of build images",
+        image_name = f"public.ecr.aws/sam/build-{runtime}"
+        images = docker_client.images.list(name=image_name)
+        self.assertFalse(
+            len(images) == 0,
+            f"Image {image_name} was not pulled",
+        )
+        self.assertFalse(
+            len(images) > 1,
+            f"Other version of the build image {image_name} was pulled",
         )
 
     def _make_parameter_override_arg(self, overrides):
