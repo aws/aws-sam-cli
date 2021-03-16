@@ -84,6 +84,9 @@ class BuildContext:
                 "\n".join([f"- {full_path}" for full_path in remote_stack_full_paths]),
             )
 
+        # Note(xinhol): self._use_raw_codeuri is added temporarily to fix issue #2717
+        # when base_dir is provided, codeuri should not be resolved based on template file path.
+        # we will refactor to make all path resolution inside providers intead of in multiple places
         self._function_provider = SamFunctionProvider(self.stacks, self._use_raw_codeuri)
         self._layer_provider = SamLayerProvider(self.stacks, self._use_raw_codeuri)
 
