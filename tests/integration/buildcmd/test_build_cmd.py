@@ -857,8 +857,9 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             self._verify_invoke_built_function(
                 self.built_template, "FunctionOne", self._make_parameter_override_arg(overrides), expected
             )
-        self.verify_docker_container_cleanedup(runtime)
-        self.verify_pulling_only_latest_tag(runtime)
+        if use_container:
+            self.verify_docker_container_cleanedup(runtime)
+            self.verify_pulling_only_latest_tag(runtime)
 
     @parameterized.expand([("python3.7", False), ("python3.7", "use_container")])
     def test_build_function_with_dependent_layer(self, runtime, use_container):
