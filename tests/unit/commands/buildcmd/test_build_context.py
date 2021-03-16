@@ -79,7 +79,7 @@ class TestBuildContext__enter__(TestCase):
         self.assertTrue(layer1 in resources_to_build.layers)
 
         get_buildable_stacks_mock.assert_called_once_with("template_file", parameter_overrides={"overrides": "value"})
-        SamFunctionProviderMock.assert_called_once_with([stack])
+        SamFunctionProviderMock.assert_called_once_with([stack], False)
         pathlib_mock.Path.assert_called_once_with("template_file")
         setup_build_dir_mock.assert_called_with("build_dir", True)
         ContainerManagerMock.assert_called_once_with(docker_network_id="network", skip_pull_image=True)
@@ -372,7 +372,7 @@ class TestBuildContext__enter__(TestCase):
         self.assertEqual(resources_to_build.functions, [func1, func2])
         self.assertEqual(resources_to_build.layers, [layer1])
         get_buildable_stacks_mock.assert_called_once_with("template_file", parameter_overrides={"overrides": "value"})
-        SamFunctionProviderMock.assert_called_once_with([stack])
+        SamFunctionProviderMock.assert_called_once_with([stack], False)
         pathlib_mock.Path.assert_called_once_with("template_file")
         setup_build_dir_mock.assert_called_with("build_dir", True)
         ContainerManagerMock.assert_called_once_with(docker_network_id="network", skip_pull_image=True)
