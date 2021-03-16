@@ -1724,8 +1724,14 @@ class TestBuildWithNestedStacks3LevelWithSymlink(NestedBuildIntegBase):
             )
 
 
+@parameterized_class(
+    ("template", "use_base_dir"),
+    [
+        (os.path.join("nested-parent", "nested-root-template-image.yaml"), False),
+        (os.path.join("base-dir-image", "template", "template.yaml"), "use_base_dir"),
+    ],
+)
 class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
-    template = os.path.join("nested-parent", "nested-root-template-image.yaml")
 
     EXPECTED_FILES_PROJECT_MANIFEST = {
         "__init__.py",
@@ -1769,7 +1775,11 @@ class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
             "LocalNestedFuncHandler": "main.handler",
         }
         cmdlist = self.get_command_list(
-            use_container=use_container, parameter_overrides=overrides, cached=cached, parallel=parallel
+            use_container=use_container,
+            parameter_overrides=overrides,
+            cached=cached,
+            parallel=parallel,
+            base_dir=(os.path.join(self.test_data_path, "base-dir-image") if self.use_base_dir else None),
         )
 
         LOG.info("Running Command: %s", cmdlist)
