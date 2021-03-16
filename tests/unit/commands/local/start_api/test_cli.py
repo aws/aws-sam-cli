@@ -47,6 +47,8 @@ class TestCli(TestCase):
         self.port = 123
         self.static_dir = "staticdir"
 
+        self.container_host = "localhost"
+
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.lib.local_api_service.LocalApiService")
     def test_cli_must_setup_context_and_start_service(self, local_api_service_mock, invoke_context_mock):
@@ -82,6 +84,7 @@ class TestCli(TestCase):
             warm_container_initialization_mode=self.warm_containers,
             debug_function=self.debug_function,
             shutdown=self.shutdown,
+            container_host=self.container_host,
         )
 
         local_api_service_mock.assert_called_with(
@@ -188,4 +191,5 @@ class TestCli(TestCase):
             warm_containers=self.warm_containers,
             debug_function=self.debug_function,
             shutdown=self.shutdown,
+            container_host=self.container_host,
         )

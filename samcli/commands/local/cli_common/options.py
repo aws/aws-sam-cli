@@ -48,7 +48,12 @@ def local_common_options(f):
             default=False,
             help="If set, will emulate a shutdown event after the invoke completes, "
             "in order to test extension handling of shutdown behavior.",
-        )
+        ),
+        click.option(
+            "--container-host",
+            default="localhost",
+            help="Help to set the host of container so that SAM CLI can run in Docker",
+        ),
     ]
 
     # Reverse the list to maintain ordering of options in help text printed with --help

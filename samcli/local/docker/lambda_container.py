@@ -45,7 +45,7 @@ class LambdaContainer(Container):
         memory_mb=128,
         env_vars=None,
         debug_options=None,
-        localhost=None
+        container_host=None,
     ):
         """
         Initializes the class
@@ -75,8 +75,8 @@ class LambdaContainer(Container):
             Optional. Dictionary containing environment variables passed to container
         debug_options DebugContext
             Optional. Contains container debugging info (port, debugger path)
-        localhost string
-            Optional. Override the localhost to make it running in Docker
+        container_host string
+            Optional. If set, override the localhost to make sure SAM CLI can run in Docker container
         """
         if not Runtime.has_value(runtime) and not packagetype == IMAGE:
             raise ValueError("Unsupported Lambda runtime {}".format(runtime))
@@ -122,7 +122,7 @@ class LambdaContainer(Container):
             env_vars=env_vars,
             container_opts=additional_options,
             additional_volumes=additional_volumes,
-            localhost=localhost,
+            container_host=container_host,
         )
 
     @staticmethod

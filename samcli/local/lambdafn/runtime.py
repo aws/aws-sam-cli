@@ -44,7 +44,7 @@ class LambdaRuntime:
         self._image_builder = image_builder
         self._temp_uncompressed_paths_to_be_cleaned = []
 
-    def create(self, function_config, debug_context=None, localhost=None):
+    def create(self, function_config, debug_context=None, container_host=None):
         """
         Create a new Container for the passed function, then store it in a dictionary using the function name,
         so it can be retrieved later and used in the other functions. Make sure to use the debug_context only
@@ -56,8 +56,8 @@ class LambdaRuntime:
             Configuration of the function to create a new Container for it.
         debug_context DebugContext
             Debugging context for the function (includes port, args, and path)
-        localhost string
-            override of localhost to make it running in Docker
+        container_host string
+            If set, override the localhost to make sure SAM CLI can run in Docker container
 
         Returns
         -------
@@ -80,7 +80,7 @@ class LambdaRuntime:
             memory_mb=function_config.memory,
             env_vars=env_vars,
             debug_options=debug_context,
-            localhost=localhost,
+            container_host=container_host,
         )
         try:
             # create the container.
@@ -135,7 +135,7 @@ class LambdaRuntime:
         debug_context=None,
         stdout: Optional[StreamWriter] = None,
         stderr: Optional[StreamWriter] = None,
-        localhost=None
+        container_host=None,
     ):
         """
         Invoke the given Lambda function locally.
@@ -154,14 +154,15 @@ class LambdaRuntime:
             StreamWriter that receives stdout text from container.
         :param samcli.lib.utils.stream_writer.StreamWriter stderr: Optional.
             StreamWriter that receives stderr text from container.
-        :param string localhost: Optional. Override of localhost to make it running in Docker
+        :param string container_host: Optional.
+            If set, override the localhost to make sure SAM CLI can run in Docker container
         :raises Keyboard
         """
         timer = None
         container = None
         try:
             # Start the container. This call returns immediately after the container starts
-            container = self.create(function_config, debug_context, localhost)
+            container = self.create(function_config, debug_context, container_host)
             container = self.run(container, function_config, debug_context)
             # Setup appropriate interrupt - timeout or Ctrl+C - before function starts executing.
             #
@@ -306,7 +307,7 @@ class WarmLambdaRuntime(LambdaRuntime):
 
         super().__init__(container_manager, image_builder)
 
-    def create(self, function_config, debug_context=None):
+    def create(self, function_config, debug_context=None, container_host=None):
         """
         Create a new Container for the passed function, then store it in a dictionary using the function name,
         so it can be retrieved later and used in the other functions. Make sure to use the debug_context only
@@ -341,7 +342,7 @@ class WarmLambdaRuntime(LambdaRuntime):
             )
             debug_context = None
 
-        container = super().create(function_config, debug_context)
+        container = super().create(function_config, debug_context, container_host)
         self._containers[function_config.name] = container
 
         self._observer.watch(function_config)

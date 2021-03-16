@@ -515,6 +515,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             debug_args="args",
             aws_profile="profile",
             aws_region="region",
+            container_host="localhost",
         )
         self.context.get_cwd = Mock()
         self.context.get_cwd.return_value = cwd
@@ -543,6 +544,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                 env_vars_values=ANY,
                 aws_profile="profile",
                 aws_region="region",
+                container_host="localhost",
             )
 
             result = self.context.local_lambda_runner
@@ -586,6 +588,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             aws_profile="profile",
             aws_region="region",
             warm_container_initialization_mode=ContainersInitializationMode.EAGER,
+            container_host="localhost",
         )
         self.context.get_cwd = Mock()
         self.context.get_cwd.return_value = cwd
@@ -614,6 +617,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                 env_vars_values=ANY,
                 aws_profile="profile",
                 aws_region="region",
+                container_host="localhost",
             )
 
             result = self.context.local_lambda_runner

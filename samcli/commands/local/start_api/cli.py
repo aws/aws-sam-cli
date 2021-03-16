@@ -47,7 +47,6 @@ and point SAM to the directory or file containing build artifacts.
     default="public",
     help="Any static assets (e.g. CSS/Javascript/HTML) files located in this directory " "will be presented at /",
 )
-@click.option("--localhost", help="help set localhost running in Docker")
 @invoke_common_options
 @warm_containers_common_options
 @local_common_options
@@ -82,7 +81,7 @@ def cli(
     warm_containers,
     shutdown,
     debug_function,
-    localhost,
+    container_host,
 ):
     """
     `sam local start-api` command entry point
@@ -110,7 +109,7 @@ def cli(
         warm_containers,
         shutdown,
         debug_function,
-        localhost,
+        container_host,
     )  # pragma: no cover
 
 
@@ -135,7 +134,7 @@ def do_cli(  # pylint: disable=R0914
     warm_containers,
     shutdown,
     debug_function,
-    localhost,
+    container_host,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -176,7 +175,7 @@ def do_cli(  # pylint: disable=R0914
             warm_container_initialization_mode=warm_containers,
             debug_function=debug_function,
             shutdown=shutdown,
-            localhost=localhost,
+            container_host=container_host,
         ) as invoke_context:
 
             service = LocalApiService(lambda_invoke_context=invoke_context, port=port, host=host, static_dir=static_dir)

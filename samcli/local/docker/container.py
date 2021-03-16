@@ -55,7 +55,7 @@ class Container:
         docker_client=None,
         container_opts=None,
         additional_volumes=None,
-        localhost=None,
+        container_host=None,
     ):
         """
         Initializes the class with given configuration. This does not automatically create or run the container.
@@ -72,7 +72,7 @@ class Container:
         :param docker_client: Optional, a docker client to replace the default one loaded from env
         :param container_opts: Optional, a dictionary containing the container options
         :param additional_volumes: Optional list of additional volumes
-        :param string localhost: Optional. Localhost of the docker container.
+        :param string container_host: Optional. Localhost of the docker container.
         """
 
         self._image = image
@@ -99,7 +99,7 @@ class Container:
         self._start_port_range = 5000
         self._end_port_range = 9000
 
-        self._localhost = localhost
+        self._container_host = container_host
 
         try:
             self.rapid_port_host = find_free_port(start=self._start_port_range, end=self._end_port_range)
@@ -272,12 +272,8 @@ class Container:
         # NOTE(sriram-mv): There is a connection timeout set on the http call to `aws-lambda-rie`, however there is not
         # a read time out for the response received from the server.
 
-        # if localhost is not set, we assume it's running on the local machine.
-        if not self._localhost:
-            self._localhost = "localhost"
-
         resp = requests.post(
-            self.URL.format(host=self._localhost, port=self.rapid_port_host, function_name="function"),
+            self.URL.format(host=self._container_host, port=self.rapid_port_host, function_name="function"),
             data=event.encode("utf-8"),
             timeout=(self.RAPID_CONNECTION_TIMEOUT, None),
         )

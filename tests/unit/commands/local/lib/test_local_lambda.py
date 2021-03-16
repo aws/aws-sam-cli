@@ -518,7 +518,7 @@ class TestLocalLambda_invoke(TestCase):
         self.local_lambda.invoke(name, event, stdout, stderr)
 
         self.runtime_mock.invoke.assert_called_with(
-            invoke_config, event, debug_context=None, stdout=stdout, stderr=stderr
+            invoke_config, event, debug_context=None, stdout=stdout, stderr=stderr, container_host=None
         )
 
     def test_must_work_packagetype_ZIP(self):
@@ -536,7 +536,7 @@ class TestLocalLambda_invoke(TestCase):
         self.local_lambda.invoke(name, event, stdout, stderr)
 
         self.runtime_mock.invoke.assert_called_with(
-            invoke_config, event, debug_context=None, stdout=stdout, stderr=stderr
+            invoke_config, event, debug_context=None, stdout=stdout, stderr=stderr, container_host=None
         )
 
     def test_must_raise_if_no_privilege(self):
@@ -609,7 +609,7 @@ class TestLocalLambda_invoke(TestCase):
         self.local_lambda.get_invoke_config.return_value = invoke_config
         self.local_lambda.invoke(name, event, stdout, stderr)
         self.runtime_mock.invoke.assert_called_with(
-            invoke_config, event, debug_context=None, stdout=stdout, stderr=stderr
+            invoke_config, event, debug_context=None, stdout=stdout, stderr=stderr, container_host=None
         )
 
     def test_must_raise_if_imageuri_not_found(self):
