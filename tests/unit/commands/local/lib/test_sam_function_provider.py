@@ -594,7 +594,7 @@ class TestSamFunctionProvider_init(TestCase):
         stack = make_root_stack(template, self.parameter_overrides)
         provider = SamFunctionProvider([stack])
 
-        extract_mock.assert_called_with([stack], False)
+        extract_mock.assert_called_with([stack], False, False)
         get_template_mock.assert_called_with(template, self.parameter_overrides)
         self.assertEqual(provider.functions, extract_result)
 
@@ -609,7 +609,7 @@ class TestSamFunctionProvider_init(TestCase):
         stack = make_root_stack(template, self.parameter_overrides)
         provider = SamFunctionProvider([stack])
 
-        extract_mock.assert_called_with([stack], False)  # Empty Resources value must be passed
+        extract_mock.assert_called_with([stack], False, False)  # Empty Resources value must be passed
         self.assertEqual(provider.functions, extract_result)
 
 
@@ -627,7 +627,7 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         stack = make_root_stack(None)
         result = SamFunctionProvider._extract_functions([stack])
         self.assertEqual(expected, result)
-        convert_mock.assert_called_with(stack, "Func1", {"a": "b"}, [], ignore_code_extraction_warnings=False)
+        convert_mock.assert_called_with(stack, "Func1", {"a": "b"}, [], False, ignore_code_extraction_warnings=False)
 
     @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
     @patch.object(SamFunctionProvider, "_convert_sam_function_resource")
@@ -648,7 +648,7 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         stack = make_root_stack(None)
         result = SamFunctionProvider._extract_functions([stack])
         self.assertEqual(expected, result)
-        convert_mock.assert_called_with(stack, "Func1", {}, [], ignore_code_extraction_warnings=False)
+        convert_mock.assert_called_with(stack, "Func1", {}, [], False, ignore_code_extraction_warnings=False)
 
     @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
     @patch.object(SamFunctionProvider, "_convert_lambda_function_resource")
@@ -664,7 +664,7 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         stack = make_root_stack(None)
         result = SamFunctionProvider._extract_functions([stack])
         self.assertEqual(expected, result)
-        convert_mock.assert_called_with(stack, "Func1", {"a": "b"}, [])
+        convert_mock.assert_called_with(stack, "Func1", {"a": "b"}, [], False)
 
     @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
     def test_must_skip_unknown_resource(self, resources_mock):
@@ -705,8 +705,8 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         self.assertEqual(expected, result)
         convert_mock.assert_has_calls(
             [
-                call(stack_root, "Func1", {"a": "b"}, []),
-                call(stack_child, "Func1", {"a": "b"}, []),
+                call(stack_root, "Func1", {"a": "b"}, [], False),
+                call(stack_child, "Func1", {"a": "b"}, [], False),
             ]
         )
 

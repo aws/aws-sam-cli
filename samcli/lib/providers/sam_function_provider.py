@@ -105,7 +105,7 @@ class SamFunctionProvider(SamBaseProvider):
 
     @staticmethod
     def _extract_functions(
-        stacks: List[Stack], use_raw_codeuri: bool, ignore_code_extraction_warnings: bool
+        stacks: List[Stack], use_raw_codeuri: bool = False, ignore_code_extraction_warnings: bool = False
     ) -> Dict[str, Function]:
         """
         Extracts and returns function information from the given dictionary of SAM/CloudFormation resources. This
@@ -168,7 +168,7 @@ class SamFunctionProvider(SamBaseProvider):
         name: str,
         resource_properties: Dict,
         layers: List[LayerVersion],
-        use_raw_codeuri: bool,
+        use_raw_codeuri: bool = False,
         ignore_code_extraction_warnings: bool = False,
     ) -> Function:
         """
@@ -214,7 +214,7 @@ class SamFunctionProvider(SamBaseProvider):
 
     @staticmethod
     def _convert_lambda_function_resource(
-        stack: Stack, name: str, resource_properties: Dict, layers: List[LayerVersion], use_raw_codeuri: bool
+        stack: Stack, name: str, resource_properties: Dict, layers: List[LayerVersion], use_raw_codeuri: bool = False
     ) -> Function:
         """
         Converts a AWS::Lambda::Function resource to a Function configuration usable by the provider.
@@ -271,7 +271,7 @@ class SamFunctionProvider(SamBaseProvider):
         layers: List,
         inlinecode: Optional[str],
         imageuri: Optional[str],
-        use_raw_codeuri: bool,
+        use_raw_codeuri: bool = False,
     ) -> Function:
         """
         Builds a Function configuration usable by the provider.
@@ -328,7 +328,7 @@ class SamFunctionProvider(SamBaseProvider):
     def _parse_layer_info(
         stack: Stack,
         list_of_layers: List[Any],
-        use_raw_codeuri: bool,
+        use_raw_codeuri: bool = False,
         ignore_code_extraction_warnings: bool = False,
     ) -> List[LayerVersion]:
         """
