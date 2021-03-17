@@ -136,6 +136,7 @@ class BuildIntegBase(TestCase):
             len(images) > 1,
             f"Other version of the build image {image_name} was pulled",
         )
+        self.assertEqual(f"public.ecr.aws/sam/build-{runtime}:latest", images[0].tags[0])
 
     def _make_parameter_override_arg(self, overrides):
         return " ".join(["ParameterKey={},ParameterValue={}".format(key, value) for key, value in overrides.items()])
