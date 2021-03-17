@@ -31,6 +31,8 @@ class Template:
         An optional series of processes to be executed before generating the cookiecutter project. These processes
         are usually used to manipulate the cookiecutter context or doing some bootstrapping before generating
         the cookiecutter project.
+        preprocessors are different than cookiecutter's hooks in the sense that they can mutate the context while
+        the pre_gen_project hooks can't.
     postprocessors: Optional[List[Processor]]
         An optional series of processes to be executed after generating the cookiecutter project. These processes
         are usually used to clean up resources and to print messages to the user after successfully generating
