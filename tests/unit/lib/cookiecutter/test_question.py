@@ -49,6 +49,12 @@ class TestQuestion(TestCase):
         self.assertEqual(q.default_next_question_key, self._ANY_DEFAULT_NEXT_QUESTION_KEY)
         self.assertEqual(q.kind, self._ANY_KIND)
 
+    def test_question_key_and_text_are_required(self):
+        with (self.assertRaises(TypeError)):
+            Question(text=self._ANY_TEXT)
+        with (self.assertRaises(TypeError)):
+            Question(key=self._ANY_KEY)
+
     def test_get_options_indexes_with_different_bases(self):
         indexes = self.question.get_options_indexes()
         self.assertEqual(indexes, [0, 1, 2])
