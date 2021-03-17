@@ -67,6 +67,7 @@ class ApplicationBuilder:
         docker_client: Optional[docker.DockerClient] = None,
         container_env_var: Optional[Dict] = None,
         container_env_var_file: Optional[str] = None,
+        build_images: Optional[dict] = None,
     ) -> None:
         """
         Initialize the class
@@ -122,6 +123,7 @@ class ApplicationBuilder:
         self._colored = Colored()
         self._container_env_var = container_env_var
         self._container_env_var_file = container_env_var_file
+        self._build_images = build_images
 
     def build(self) -> Dict[str, str]:
         """
@@ -520,21 +522,27 @@ class ApplicationBuilder:
 
                 options = ApplicationBuilder._get_build_options(function_name, config.language, handler)
                 # By default prefer to build in-process for speed
-                build_method = self._build_function_in_process
                 if self._container_manager:
-                    build_method = self._build_function_on_container
-                    return build_method(
+                    image = None
+                    if function_name in self._build_images:
+                        image = self._build_images[function_name]
+                    elif None in self._build_images:
+                        image = self._build_images[None]
+
+                    return self._build_function_on_container(
                         config,
                         code_dir,
                         artifact_dir,
-                        scratch_dir,
                         manifest_path,
                         runtime,
                         options,
                         container_env_vars,
+                        build_image=image,
                     )
-
-                return build_method(config, code_dir, artifact_dir, scratch_dir, manifest_path, runtime, options)
+                else:
+                    return self._build_function_in_process(
+                        config, code_dir, artifact_dir, scratch_dir, manifest_path, runtime, options
+                    )
 
         # pylint: disable=fixme
         # FIXME: we need to throw an exception here, packagetype could be something else
@@ -572,7 +580,6 @@ class ApplicationBuilder:
         manifest_path: str,
         runtime: str,
         options: Optional[dict],
-        container_env_vars: Optional[Dict] = None,
     ) -> str:
 
         builder = LambdaBuilder(
@@ -604,11 +611,11 @@ class ApplicationBuilder:
         config: CONFIG,
         source_dir: str,
         artifacts_dir: str,
-        scratch_dir: str,
         manifest_path: str,
         runtime: str,
         options: Optional[Dict],
         container_env_vars: Optional[Dict] = None,
+        build_image=None,
     ) -> str:
         # _build_function_on_container() is only called when self._container_manager if not None
         if not self._container_manager:
@@ -642,6 +649,7 @@ class ApplicationBuilder:
             executable_search_paths=config.executable_search_paths,
             mode=self._mode,
             env_vars=container_env_vars,
+            image=build_image,
         )
 
         try:

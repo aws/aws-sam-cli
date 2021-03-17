@@ -36,6 +36,7 @@ class LambdaBuildContainer(Container):
         log_level=None,
         mode=None,
         env_vars=None,
+        image=None,
     ):
 
         abs_manifest_path = pathlib.Path(manifest_path).resolve()
@@ -74,7 +75,8 @@ class LambdaBuildContainer(Container):
             mode,
         )
 
-        image = LambdaBuildContainer._get_image(runtime)
+        if image is None:
+            image = LambdaBuildContainer._get_image(runtime)
         entry = LambdaBuildContainer._get_entrypoint(request_json)
         cmd = []
 

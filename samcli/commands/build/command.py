@@ -125,6 +125,14 @@ $ sam build MyFunction
     help="Path to environment variable json file (e.g., env_vars.json) to pass into build containers",
 )
 @click.option(
+    "--build-image",
+    "-bi",
+    default=None,
+    multiple=True,  # Can pass in multiple build images
+    required=False,
+    help="",
+)
+@click.option(
     "--parallel",
     "-p",
     is_flag=True,
@@ -175,6 +183,7 @@ def cli(
     docker_network: Optional[str],
     container_env_var: Optional[List[str]],
     container_env_var_file: Optional[str],
+    build_image: Optional[str],
     skip_pull_image: bool,
     parameter_overrides: dict,
     config_file: str,
@@ -204,6 +213,7 @@ def cli(
         mode,
         container_env_var,
         container_env_var_file,
+        build_image,
     )  # pragma: no cover
 
 
@@ -224,6 +234,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     mode: Optional[str],
     container_env_var: Optional[List[str]],
     container_env_var_file: Optional[str],
+    build_image: Optional[List[str]],
 ) -> None:
     """
     Implementation of the ``cli`` method
@@ -250,6 +261,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         LOG.info("Starting Build inside a container")
 
     processed_env_vars = _process_env_var(container_env_var)
+    processed_build_images = _process_image_options(build_image)
 
     with BuildContext(
         function_identifier,
@@ -267,6 +279,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         mode=mode,
         container_env_var=processed_env_vars,
         container_env_var_file=container_env_var_file,
+        build_images=processed_build_images,
     ) as ctx:
         try:
             builder = ApplicationBuilder(
@@ -282,6 +295,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
                 parallel=parallel,
                 container_env_var=processed_env_vars,
                 container_env_var_file=container_env_var_file,
+                build_images=processed_build_images,
             )
         except FunctionNotFound as ex:
             raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
@@ -418,3 +432,33 @@ def _process_env_var(container_env_var: Optional[List[str]]) -> Dict:
             processed_env_vars[location_key][env_var_name] = value
 
     return processed_env_vars
+
+
+def _process_image_options(image_args: Optional[List[str]]) -> Dict:
+    """
+    Parameters
+    ----------
+    image_args : list
+        List of command line image options in the format of
+        Function1=public.ecr.aws/abc/abc:latest or
+        public.ecr.aws/abc/abc:latest
+
+    Returns
+    -------
+    dictionary
+        Function as key and the corresponding image URI as value.
+        Global default image URI is contained in the None key.
+    """
+    build_images: Dict[str, str] = dict()
+    for build_image_string in image_args:
+        if "=" in build_image_string:
+            parts = build_image_string.split("=", 1)
+            function_name = parts[0]
+            image_uri = parts[1]
+        else:
+            function_name = None
+            image_uri = build_image_string
+
+        build_images[function_name] = image_uri
+
+    return build_images
