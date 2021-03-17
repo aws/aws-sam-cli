@@ -30,7 +30,7 @@ class InteractiveFlowCreator:
             A path to a json/yaml file that defines the questions of the flow. the file is expected to be in the
             following format:
             {
-                "Questions": [
+                "questions": [
                     {
                       "key": "key of the corresponding cookiecutter config",
                       "question": "the question to prompt to the user",
@@ -63,7 +63,7 @@ class InteractiveFlowCreator:
         questions: Dict[str, Question] = {}
         questions_definition = InteractiveFlowCreator._parse_questions_definition(flow_definition_path, extra_context)
 
-        for question in questions_definition.get("Questions"):
+        for question in questions_definition.get("questions"):
             q = InteractiveFlowCreator._create_question_from_json(question)
             if not first_question_key:
                 first_question_key = q.key
