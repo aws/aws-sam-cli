@@ -11,7 +11,7 @@ from samcli.lib.cookiecutter.question import Question, QuestionKind
 
 class TestInteractiveFlowCreator(TestCase):
     def test_create_flow(self):
-        questions_path = os.path.join(os.path.dirname(__file__), "questions.yaml")
+        questions_path = os.path.join(os.path.dirname(__file__), "questions.json")
         flow = InteractiveFlowCreator.create_flow(flow_definition_path=questions_path, extra_context={"X": "xVal"})
         expected_flow_questions = {
             "1st": Question(
@@ -44,9 +44,9 @@ class TestInteractiveFlowCreator(TestCase):
             ),
         }
 
-        self.assert_equal(flow._questions["1st"], expected_flow_questions["1st"])
-        self.assert_equal(flow._questions["2nd"], expected_flow_questions["2nd"])
-        self.assert_equal(flow._questions["3rd"], expected_flow_questions["3rd"])
+        self.assertEqual(flow._questions["1st"].__dict__, expected_flow_questions["1st"].__dict__)
+        self.assertEqual(flow._questions["2nd"].__dict__, expected_flow_questions["2nd"].__dict__)
+        self.assertEqual(flow._questions["3rd"].__dict__, expected_flow_questions["3rd"].__dict__)
 
     def test_questions_definition_file_not_found_exception(self):
         with self.assertRaises(QuestionsNotFoundException):
@@ -56,15 +56,6 @@ class TestInteractiveFlowCreator(TestCase):
     @patch("samcli.lib.cookiecutter.interactive_flow_creator.parse_yaml_file")
     def test_parsing_exceptions_of_questions_definition_parsing(self, mock_parse_yaml_file):
         with self.assertRaises(QuestionsFailedParsingException):
-            questions_path = os.path.join(os.path.dirname(__file__), "questions.yaml")
+            questions_path = os.path.join(os.path.dirname(__file__), "questions.json")
             mock_parse_yaml_file.side_effect = ValueError
             InteractiveFlowCreator.create_flow(flow_definition_path=questions_path)
-
-    def assert_equal(self, q1: Question, q2: Question):
-        self.assertEqual(q1.key, q2.key)
-        self.assertEqual(q1.text, q2.text)
-        self.assertEqual(q1.options, q2.options)
-        self.assertEqual(q1.default_answer, q2.default_answer)
-        self.assertEqual(q1.required, q2.required)
-        self.assertEqual(q1.next_question_map, q2.next_question_map)
-        self.assertEqual(q1.kind, q2.kind)
