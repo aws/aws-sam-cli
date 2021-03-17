@@ -2,7 +2,12 @@ from unittest import TestCase
 from unittest.mock import patch, Mock, MagicMock
 from samcli.commands.exceptions import UserException
 from samcli.lib.cookiecutter.template import Template
-from samcli.lib.cookiecutter.exceptions import GenerateProjectFailedError, InvalidLocationError
+from samcli.lib.cookiecutter.exceptions import (
+    GenerateProjectFailedError,
+    InvalidLocationError,
+    PreprocessingError,
+    PostprocessingError,
+)
 from cookiecutter.exceptions import RepositoryNotFound, UnknownRepoType
 
 
@@ -118,16 +123,17 @@ class TestTemplate(TestCase):
         mock_postprocessor.run.assert_called_once_with(self._ANY_PROCESSOR_CONTEXT)
 
     @patch("samcli.lib.cookiecutter.processor")
-    @patch("samcli.lib.cookiecutter.processor")
-    def test_generate_project_processors_exceptions(self, mock_preprocessor, mock_postprocessor):
-        t = Template(
-            location=self._ANY_LOCATION, preprocessors=[mock_preprocessor], postprocessors=[mock_postprocessor]
-        )
-        with self.assertRaises(GenerateProjectFailedError):
+    def test_generate_project_preprocessors_exceptions(self, mock_preprocessor):
+        t = Template(location=self._ANY_LOCATION, preprocessors=[mock_preprocessor])
+        with self.assertRaises(PreprocessingError):
             mock_preprocessor.run.side_effect = Exception("something went wrong")
             t.generate_project({})
-        mock_preprocessor.reset_mock()
-        with self.assertRaises(GenerateProjectFailedError):
+
+    @patch("samcli.lib.cookiecutter.template.cookiecutter")
+    @patch("samcli.lib.cookiecutter.processor")
+    def test_generate_project_postprocessors_exceptions(self, mock_postprocessor, mock_cookiecutter):
+        t = Template(location=self._ANY_LOCATION, postprocessors=[mock_postprocessor])
+        with self.assertRaises(PostprocessingError):
             mock_postprocessor.run.side_effect = Exception("something went wrong")
             t.generate_project({})
 
@@ -139,6 +145,11 @@ class TestTemplate(TestCase):
             mock_cookiecutter.side_effect = UnknownRepoType()
             t.generate_project({})
         mock_cookiecutter.reset_mock()
+        with self.assertRaises(GenerateProjectFailedError):
+            mock_cookiecutter.side_effect = Exception("something went wrong")
+            t.generate_project({})
+        mock_cookiecutter.reset_mock()
+        # if the provided template is not a cookiecutter template, we generate a non cookiecutter template
         mock_cookiecutter.side_effect = RepositoryNotFound()
         t.generate_project({})
         mock_generate_non_cookiecutter_project.assert_called_once()

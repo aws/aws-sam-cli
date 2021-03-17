@@ -11,7 +11,7 @@ from samcli.lib.init.arbitrary_project import generate_non_cookiecutter_project
 from .interactive_flow import InteractiveFlow
 from .plugin import Plugin
 from .processor import Processor
-from .exceptions import GenerateProjectFailedError, InvalidLocationError
+from .exceptions import GenerateProjectFailedError, InvalidLocationError, PreprocessingError, PostprocessingError
 
 LOG = logging.getLogger(__name__)
 
@@ -137,13 +137,12 @@ class Template:
             LOG.debug("preprocessing the cookiecutter context")
             for processor in self._preprocessors:
                 context = processor.run(context)
+        except Exception as e:
+            raise PreprocessingError(template=self._location, provider_error=e) from e
 
+        try:
             LOG.debug("Baking a new template with cookiecutter with all parameters")
             cookiecutter(template=self._location, output_dir=".", no_input=True, extra_context=context)
-
-            LOG.debug("postprocessing the cookiecutter context")
-            for processor in self._postprocessors:
-                context = processor.run(context)
         except RepositoryNotFound as e:
             # cookiecutter.json is not found in the template. Let's just clone it directly without
             # using cookiecutter and call it done.
@@ -155,4 +154,11 @@ class Template:
         except UnknownRepoType as e:
             raise InvalidLocationError(template=self._location) from e
         except Exception as e:
-            raise GenerateProjectFailedError(project=self._location, provider_error=e) from e
+            raise GenerateProjectFailedError(template=self._location, provider_error=e) from e
+
+        try:
+            LOG.debug("postprocessing the cookiecutter context")
+            for processor in self._postprocessors:
+                context = processor.run(context)
+        except Exception as e:
+            raise PostprocessingError(template=self._location, provider_error=e) from e

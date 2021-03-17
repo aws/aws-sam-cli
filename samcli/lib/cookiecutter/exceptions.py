@@ -11,8 +11,16 @@ class CookiecutterErrorException(Exception):
 
 
 class GenerateProjectFailedError(CookiecutterErrorException):
-    fmt = "An error occurred while generating this project {project}: {provider_error}"
+    fmt = "An error occurred while generating project from the template {template}: {provider_error}"
 
 
 class InvalidLocationError(CookiecutterErrorException):
     fmt = "The template location specified is not valid: {template}"
+
+
+class PreprocessingError(CookiecutterErrorException):
+    fmt = "An error occurred while preprocessing {template}: {provider_error}"
+
+
+class PostprocessingError(CookiecutterErrorException):
+    fmt = "An error occurred while postprocessing {template}: {provider_error}"
