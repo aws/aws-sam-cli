@@ -505,6 +505,50 @@ class TestContainer_start(TestCase):
             self.container.start(input_data="some input data")
 
 
+class TestContainer_wait_for_result_with_container_host(TestCase):
+    def setUp(self):
+        self.image = IMAGE
+        self.name = "function_name"
+        self.event = "{}"
+        self.cmd = ["cmd"]
+        self.working_dir = "working_dir"
+        self.host_dir = "host_dir"
+        self.container_host = "host.docker.internal"
+
+        self.mock_docker_client = Mock()
+
+        self.container = Container(
+            self.image,
+            self.cmd,
+            self.working_dir,
+            self.host_dir,
+            docker_client=self.mock_docker_client,
+            container_host=self.container_host,
+        )
+
+        self.container.rapid_port_host = "7077"
+        self.timeout = 1
+
+    @patch("samcli.local.docker.container.requests")
+    def test_wait_for_result_with_container_host(self, mock_requests):
+        stdout_mock = Mock()
+        stderr_mock = Mock()
+
+        self.container.wait_for_result(event=self.event, name=self.name, stdout=stdout_mock, stderr=stderr_mock)
+
+        calls = mock_requests.post.call_args_list
+        self.assertEqual(
+            calls,
+            [
+                call(
+                    "http://host.docker.internal:7077/2015-03-31/functions/function/invocations",
+                    data=b"{}",
+                    timeout=(self.timeout, None),
+                ),
+            ],
+        )
+
+
 class TestContainer_wait_for_result(TestCase):
     def setUp(self):
         self.image = IMAGE
@@ -513,7 +557,6 @@ class TestContainer_wait_for_result(TestCase):
         self.cmd = ["cmd"]
         self.working_dir = "working_dir"
         self.host_dir = "host_dir"
-        self.container_host = "localhost"
 
         self.mock_docker_client = Mock()
         self.mock_docker_client.containers = Mock()
@@ -524,7 +567,6 @@ class TestContainer_wait_for_result(TestCase):
             self.working_dir,
             self.host_dir,
             docker_client=self.mock_docker_client,
-            container_host=self.container_host,
         )
         self.container.id = "someid"
 
@@ -563,7 +605,6 @@ class TestContainer_wait_for_result(TestCase):
         stdout_mock = Mock()
         stderr_mock = Mock()
         self.container.rapid_port_host = "7077"
-        self.container.container_host = "localhost"
         mock_requests.post.side_effect = [RequestException(), RequestException(), RequestException()]
         with self.assertRaises(ContainerResponseException):
             self.container.wait_for_result(event=self.event, name=self.name, stdout=stdout_mock, stderr=stderr_mock)
@@ -574,17 +615,17 @@ class TestContainer_wait_for_result(TestCase):
             calls,
             [
                 call(
-                    "http://localhost:7077/2015-03-31/functions/function/invocations",
+                    "http://None:7077/2015-03-31/functions/function/invocations",
                     data=b"{}",
                     timeout=(self.timeout, None),
                 ),
                 call(
-                    "http://localhost:7077/2015-03-31/functions/function/invocations",
+                    "http://None:7077/2015-03-31/functions/function/invocations",
                     data=b"{}",
                     timeout=(self.timeout, None),
                 ),
                 call(
-                    "http://localhost:7077/2015-03-31/functions/function/invocations",
+                    "http://None:7077/2015-03-31/functions/function/invocations",
                     data=b"{}",
                     timeout=(self.timeout, None),
                 ),

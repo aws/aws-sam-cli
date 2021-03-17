@@ -52,7 +52,7 @@ def local_common_options(f):
         click.option(
             "--container-host",
             default="localhost",
-            help="Help to set the host of container so that SAM CLI can run in Docker",
+            help="Host of locally emulated Lambda container",
         ),
     ]
 
