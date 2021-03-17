@@ -56,8 +56,7 @@ class LocalLambdaRunner:
         :param string aws_region: Optional. AWS Region to use.
         :param dict env_vars_values: Optional. Dictionary containing values of environment variables.
         :param DebugContext debug_context: Optional. Debug context for the function (includes port, args, and path).
-        :param string container_host: Optional. If set, override the localhost to make sure SAM CLI can run in Docker
-            container
+        :param string container_host: Optional. Host of locally emulated Lambda container
         """
 
         self.local_runtime = local_runtime

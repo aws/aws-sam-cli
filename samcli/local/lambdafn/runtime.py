@@ -57,7 +57,7 @@ class LambdaRuntime:
         debug_context DebugContext
             Debugging context for the function (includes port, args, and path)
         container_host string
-            If set, override the localhost to make sure SAM CLI can run in Docker container
+            Host of locally emulated Lambda container
 
         Returns
         -------
@@ -155,7 +155,7 @@ class LambdaRuntime:
         :param samcli.lib.utils.stream_writer.StreamWriter stderr: Optional.
             StreamWriter that receives stderr text from container.
         :param string container_host: Optional.
-            If set, override the localhost to make sure SAM CLI can run in Docker container
+            Host of locally emulated Lambda container
         :raises Keyboard
         """
         timer = None

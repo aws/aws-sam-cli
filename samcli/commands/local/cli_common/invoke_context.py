@@ -123,7 +123,7 @@ class InvokeContext:
         shutdown bool
             Optional. If True, perform a SHUTDOWN event when tearing down containers. Default False.
         container_host string
-            Optional. If set, override the localhost to make sure SAM CLI can run in Docker container
+            Optional. Host of locally emulated Lambda container
         """
         self._template_file = template_file
         self._function_identifier = function_identifier

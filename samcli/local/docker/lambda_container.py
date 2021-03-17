@@ -76,7 +76,7 @@ class LambdaContainer(Container):
         debug_options DebugContext
             Optional. Contains container debugging info (port, debugger path)
         container_host string
-            Optional. If set, override the localhost to make sure SAM CLI can run in Docker container
+            Optional. Host of locally emulated Lambda container
         """
         if not Runtime.has_value(runtime) and not packagetype == IMAGE:
             raise ValueError("Unsupported Lambda runtime {}".format(runtime))

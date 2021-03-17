@@ -72,7 +72,7 @@ class Container:
         :param docker_client: Optional, a docker client to replace the default one loaded from env
         :param container_opts: Optional, a dictionary containing the container options
         :param additional_volumes: Optional list of additional volumes
-        :param string container_host: Optional. Localhost of the docker container.
+        :param string container_host: Optional. Host of locally emulated Lambda container
         """
 
         self._image = image
