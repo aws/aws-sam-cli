@@ -6,7 +6,7 @@ from samcli.lib.cookiecutter.interactive_flow_creator import (
     QuestionsNotFoundException,
     QuestionsFailedParsingException,
 )
-from samcli.lib.cookiecutter.question import Question, QuestionKind
+from samcli.lib.cookiecutter.question import Question, Choice, Confirm
 
 
 class TestInteractiveFlowCreator(TestCase):
@@ -17,13 +17,11 @@ class TestInteractiveFlowCreator(TestCase):
             "1st": Question(
                 key="1st",
                 text="any text with variable X substitution to xVal",
-                options=None,
                 default="",
                 is_required=None,
                 default_next_question_key="2nd",
-                kind=None,
             ),
-            "2nd": Question(
+            "2nd": Choice(
                 key="2nd",
                 text="any text",
                 options=["option1", "option2"],
@@ -31,16 +29,13 @@ class TestInteractiveFlowCreator(TestCase):
                 is_required=None,
                 next_question_map={"option1": "1st"},
                 default_next_question_key="3rd",
-                kind=None,
             ),
-            "3rd": Question(
+            "3rd": Confirm(
                 key="3rd",
                 text="any text",
-                options=None,
                 default=None,
                 is_required=True,
                 next_question_map=None,
-                kind=QuestionKind.confirm,
             ),
         }
 

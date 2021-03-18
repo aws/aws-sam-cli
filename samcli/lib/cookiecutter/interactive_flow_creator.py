@@ -4,7 +4,7 @@ import yaml
 from samcli.commands.exceptions import UserException
 from samcli.yamlhelper import parse_yaml_file
 from .interactive_flow import InteractiveFlow
-from .question import Question, QuestionKind
+from .question import Question, QuestionFactory
 
 
 class QuestionsNotFoundException(UserException):
@@ -64,7 +64,7 @@ class InteractiveFlowCreator:
         questions_definition = InteractiveFlowCreator._parse_questions_definition(flow_definition_path, extra_context)
 
         for question in questions_definition.get("questions"):
-            q = InteractiveFlowCreator._create_question_from_json(question)
+            q = QuestionFactory.create_question_from_json(question)
             if not first_question_key:
                 first_question_key = q.key
             elif previous_question and not previous_question.default_next_question_key:
@@ -101,25 +101,3 @@ class InteractiveFlowCreator:
             raise QuestionsNotFoundException(f"questions definition file not found at {file_path}") from ex
         except (KeyError, ValueError, yaml.YAMLError) as ex:
             raise QuestionsFailedParsingException(f"Failed to parse questions: {str(ex)}") from ex
-
-    @staticmethod
-    def _create_question_from_json(question_json: Dict) -> Question:
-        key = question_json["key"]
-        text = question_json["question"]
-        options = question_json.get("options")
-        default = question_json.get("default")
-        is_required = question_json.get("isRequired")
-        next_question_map = question_json.get("nextQuestion")
-        default_next_question = question_json.get("defaultNextQuestion")
-        kind_str = question_json.get("kind")
-        kind = QuestionKind(kind_str) if kind_str else None
-        return Question(
-            key=key,
-            text=text,
-            options=options,
-            default=default,
-            is_required=is_required,
-            next_question_map=next_question_map,
-            default_next_question_key=default_next_question,
-            kind=kind,
-        )
