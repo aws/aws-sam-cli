@@ -63,7 +63,7 @@ mkdir pyinstaller-output
 mv dist/${binary_name} pyinstaller-output/dist
 cp installer/assets/* pyinstaller-output
 if ! [ "$nightly_build" = "" ]; then
-    echo "Renaming install script name"
+    echo "Building with nightly builds, renaming install script name"
     mv pyinstaller-output/install_nightly_build pyinstaller-output/install
 fi
 chmod 755 pyinstaller-output/install
