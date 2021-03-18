@@ -3,6 +3,8 @@ Init module to scaffold a project app from a template
 """
 import itertools
 import logging
+import platform
+import os
 
 from pathlib import Path
 
@@ -90,6 +92,9 @@ def generate_project(
     try:
         LOG.debug("Baking a new template with cookiecutter with all parameters")
         cookiecutter(**params)
+        # Fix gradlew line ending issue caused by Windows git
+        # Putting it after cookiecutter as it will change the line ending
+        _fix_gradlew_line_ending(output_dir)
     except RepositoryNotFound as e:
         # cookiecutter.json is not found in the template. Let's just clone it directly without using cookiecutter
         # and call it done.
@@ -104,3 +109,22 @@ def generate_project(
         raise InvalidLocationError(template=params["template"]) from e
     except CookiecutterException as e:
         raise GenerateProjectFailedError(project=name, provider_error=e) from e
+
+
+def _fix_gradlew_line_ending(path):
+    if platform.system().lower() != "windows":
+        return
+    for subdirectory, _, files in os.walk(path):
+        for file in files:
+            if file != "gradlew":
+                continue
+            file_path = os.path.join(subdirectory, file)
+            _replace_to_unix_line_ending(file_path)
+
+
+def _replace_to_unix_line_ending(file_path):
+    with open(file_path, "rb") as file:
+        content = file.read()
+    content = content.replace(b"\r\n", b"\n")
+    with open(file_path, "wb") as file:
+        file.write(content)
