@@ -104,6 +104,8 @@ class ApplicationBuilder:
             An optional dictionary of environment variables to pass to the container
         container_env_var_file : Optional[str]
             An optional path to file that contains environment variables to pass to the container
+        build_images : Optional[Dict]
+            An optional dictionary of build images to be used for building functions
         """
         self._resources_to_build = resources_to_build
         self._build_dir = build_dir
@@ -535,10 +537,10 @@ class ApplicationBuilder:
                         container_env_vars,
                         image,
                     )
-                else:
-                    return self._build_function_in_process(
-                        config, code_dir, artifact_dir, scratch_dir, manifest_path, runtime, options
-                    )
+
+                return self._build_function_in_process(
+                    config, code_dir, artifact_dir, scratch_dir, manifest_path, runtime, options
+                )
 
         # pylint: disable=fixme
         # FIXME: we need to throw an exception here, packagetype could be something else

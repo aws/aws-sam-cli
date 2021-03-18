@@ -130,7 +130,13 @@ $ sam build MyFunction
     default=None,
     multiple=True,  # Can pass in multiple build images
     required=False,
-    help="",
+    help="Docker image URIs for building functions."
+    "You can specify for each individual function with "
+    "(--build-image FunctionLogicalID=public.ecr.aws/sam/build-nodejs14.x:latest)."
+    "You can specify for all functions with just the image URI "
+    "(--build-image public.ecr.aws/sam/build-nodejs14.x:latest)."
+    "A combination of the two can be used. If a function does not have build image specified or"
+    "a image uri for all functions, the default SAM CLI build images will be used.",
 )
 @click.option(
     "--parallel",
