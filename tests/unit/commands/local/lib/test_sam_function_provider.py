@@ -594,7 +594,7 @@ class TestSamFunctionProvider_init(TestCase):
         stack = make_root_stack(template, self.parameter_overrides)
         provider = SamFunctionProvider([stack])
 
-        extract_mock.assert_called_with([stack], False, False)
+        extract_mock.assert_called_once()
         get_template_mock.assert_called_with(template, self.parameter_overrides)
         self.assertEqual(provider.functions, extract_result)
 
@@ -609,7 +609,7 @@ class TestSamFunctionProvider_init(TestCase):
         stack = make_root_stack(template, self.parameter_overrides)
         provider = SamFunctionProvider([stack])
 
-        extract_mock.assert_called_with([stack], False, False)  # Empty Resources value must be passed
+        extract_mock.assert_called_once()
         self.assertEqual(provider.functions, extract_result)
 
 
@@ -625,9 +625,9 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         expected = {"A/B/C/Func1": convertion_result}
 
         stack = make_root_stack(None)
-        result = SamFunctionProvider._extract_functions([stack])
+        result = SamFunctionProvider([stack]).functions
         self.assertEqual(expected, result)
-        convert_mock.assert_called_with(stack, "Func1", {"a": "b"}, [], False, ignore_code_extraction_warnings=False)
+        convert_mock.assert_called_with(stack, "Func1", {"a": "b"}, [])
 
     @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
     @patch.object(SamFunctionProvider, "_convert_sam_function_resource")
@@ -646,9 +646,9 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         expected = {"A/B/C/Func1": convertion_result}
 
         stack = make_root_stack(None)
-        result = SamFunctionProvider._extract_functions([stack])
+        result = SamFunctionProvider([stack]).functions
         self.assertEqual(expected, result)
-        convert_mock.assert_called_with(stack, "Func1", {}, [], False, ignore_code_extraction_warnings=False)
+        convert_mock.assert_called_with(stack, "Func1", {}, [])
 
     @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
     @patch.object(SamFunctionProvider, "_convert_lambda_function_resource")
@@ -662,9 +662,9 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         expected = {"A/B/C/Func1": convertion_result}
 
         stack = make_root_stack(None)
-        result = SamFunctionProvider._extract_functions([stack])
+        result = SamFunctionProvider([stack]).functions
         self.assertEqual(expected, result)
-        convert_mock.assert_called_with(stack, "Func1", {"a": "b"}, [], False)
+        convert_mock.assert_called_with(stack, "Func1", {"a": "b"}, [])
 
     @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
     def test_must_skip_unknown_resource(self, resources_mock):
@@ -672,7 +672,7 @@ class TestSamFunctionProvider_extract_functions(TestCase):
 
         expected = {}
 
-        result = SamFunctionProvider._extract_functions([make_root_stack(None)])
+        result = SamFunctionProvider([make_root_stack(None)]).functions
         self.assertEqual(expected, result)
 
     @patch.object(SamFunctionProvider, "_convert_lambda_function_resource")
@@ -701,12 +701,12 @@ class TestSamFunctionProvider_extract_functions(TestCase):
 
         expected = {"Func1": function_root, "C/Func1": function_child}
 
-        result = SamFunctionProvider._extract_functions([stack_root, stack_child])
+        result = SamFunctionProvider([stack_root, stack_child]).functions
         self.assertEqual(expected, result)
         convert_mock.assert_has_calls(
             [
-                call(stack_root, "Func1", {"a": "b"}, [], False),
-                call(stack_child, "Func1", {"a": "b"}, [], False),
+                call(stack_root, "Func1", {"a": "b"}, []),
+                call(stack_child, "Func1", {"a": "b"}, []),
             ]
         )
 
@@ -747,7 +747,9 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             stack_path=STACK_PATH,
         )
 
-        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, ["Layer1", "Layer2"])
+        result = SamFunctionProvider._convert_sam_function_resource(
+            Mock(), STACK, name, properties, ["Layer1", "Layer2"]
+        )
 
         self.assertEqual(expected, result)
 
@@ -787,7 +789,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             stack_path=STACK_PATH,
         )
 
-        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
+        result = SamFunctionProvider._convert_sam_function_resource(Mock(), STACK, name, properties, [])
 
         self.assertEqual(expected, result)
 
@@ -817,7 +819,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             stack_path=STACK_PATH,
         )
 
-        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
+        result = SamFunctionProvider._convert_sam_function_resource(Mock(), STACK, name, properties, [])
 
         self.assertEqual(expected, result)
 
@@ -826,7 +828,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         name = "myname"
         properties = {"Runtime": "myruntime"}
 
-        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
+        result = SamFunctionProvider._convert_sam_function_resource(Mock(), STACK, name, properties, [])
         self.assertEqual(result.codeuri, ".")  # Default value
 
     def test_must_use_inlinecode(self):
@@ -861,7 +863,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             stack_path=STACK_PATH,
         )
 
-        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
+        result = SamFunctionProvider._convert_sam_function_resource(Mock(), STACK, name, properties, [])
 
         self.assertEqual(expected, result)
 
@@ -898,7 +900,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             stack_path=STACK_PATH,
         )
 
-        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
+        result = SamFunctionProvider._convert_sam_function_resource(Mock(), STACK, name, properties, [])
 
         self.assertEqual(expected, result)
 
@@ -912,7 +914,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             }
         }
 
-        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
+        result = SamFunctionProvider._convert_sam_function_resource(Mock(), STACK, name, properties, [])
         self.assertEqual(result.codeuri, ".")  # Default value
 
     def test_must_handle_code_s3_uri(self):
@@ -920,7 +922,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         name = "myname"
         properties = {"CodeUri": "s3://bucket/key"}
 
-        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
+        result = SamFunctionProvider._convert_sam_function_resource(Mock(), STACK, name, properties, [])
         self.assertEqual(result.codeuri, ".")  # Default value
 
 
@@ -960,7 +962,9 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             stack_path=STACK_PATH,
         )
 
-        result = SamFunctionProvider._convert_lambda_function_resource(STACK, name, properties, ["Layer1", "Layer2"])
+        result = SamFunctionProvider._convert_lambda_function_resource(
+            Mock(), STACK, name, properties, ["Layer1", "Layer2"]
+        )
 
         self.assertEqual(expected, result)
 
@@ -997,7 +1001,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             stack_path=STACK_PATH,
         )
 
-        result = SamFunctionProvider._convert_lambda_function_resource(STACK, name, properties, [])
+        result = SamFunctionProvider._convert_lambda_function_resource(Mock(), STACK, name, properties, [])
 
         self.assertEqual(expected, result)
 
@@ -1027,7 +1031,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             stack_path=STACK_PATH,
         )
 
-        result = SamFunctionProvider._convert_lambda_function_resource(STACK, name, properties, [])
+        result = SamFunctionProvider._convert_lambda_function_resource(Mock(), STACK, name, properties, [])
 
         self.assertEqual(expected, result)
 
@@ -1041,7 +1045,7 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
     )
     def test_raise_on_invalid_layer_resource(self, resources, layer_reference):
         with self.assertRaises(InvalidLayerReference):
-            SamFunctionProvider._parse_layer_info(STACK, [layer_reference], resources)
+            SamFunctionProvider._parse_layer_info(Mock(), Mock(resources=resources), [layer_reference])
 
     @parameterized.expand(
         [
@@ -1053,7 +1057,7 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
     )
     def test_raise_on_AmazonLinux1703_layer_provided(self, resources, layer_reference):
         with self.assertRaises(InvalidLayerVersionArn):
-            SamFunctionProvider._parse_layer_info(STACK, [layer_reference], resources)
+            SamFunctionProvider._parse_layer_info(Mock(), Mock(resources=resources), [layer_reference])
 
     def test_must_ignore_opt_in_AmazonLinux1803_layer(self):
         resources = {}
@@ -1063,7 +1067,7 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
             "arn:aws:lambda:::awslayer:AmazonLinux1803",
         ]
         actual = SamFunctionProvider._parse_layer_info(
-            Mock(stack_path=STACK_PATH, location="template.yaml", resources=resources), list_of_layers
+            Mock(), Mock(stack_path=STACK_PATH, location="template.yaml", resources=resources), list_of_layers
         )
 
         for (actual_layer, expected_layer) in zip(
@@ -1084,7 +1088,7 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
             {"NonRef": "Something"},
         ]
         actual = SamFunctionProvider._parse_layer_info(
-            Mock(stack_path=STACK_PATH, location="template.yaml", resources=resources), list_of_layers
+            Mock(), Mock(stack_path=STACK_PATH, location="template.yaml", resources=resources), list_of_layers
         )
 
         for (actual_layer, expected_layer) in zip(
@@ -1101,7 +1105,7 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
         resources = {"Function": {"Type": "AWS::Serverless::Function", "Properties": {}}}
 
         actual = SamFunctionProvider._parse_layer_info(
-            Mock(stack_path=STACK_PATH, location="template.yaml", resources=resources), []
+            Mock(), Mock(stack_path=STACK_PATH, location="template.yaml", resources=resources), []
         )
 
         self.assertEqual(actual, [])
