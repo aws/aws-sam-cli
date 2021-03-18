@@ -13,7 +13,8 @@ if [ "$python_version" = "" ]; then
 fi
 sam_cli_spec_filename="samcli.spec"
 binary_name="sam"
-if [ "$nightly_build" -ne "" ]; then
+
+if [ ! ["$nightly_build" = ""] ]; then
     sam_cli_spec_filename="samcli-nightly.spec"
     binary_name="sam-nightly"
 fi
@@ -61,7 +62,7 @@ mkdir pyinstaller-output
 
 mv dist/${binary_name} pyinstaller-output/dist
 cp installer/assets/* pyinstaller-output
-if [ "$nightly_build" -ne "" ]; then
+if [ ! ["$nightly_build" = ""] ]; then
     echo "Renaming install script name"
     mv pyinstaller-output/install_nightly_build pyinstaller-output/install
 fi
