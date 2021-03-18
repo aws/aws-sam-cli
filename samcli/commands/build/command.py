@@ -4,7 +4,7 @@ CLI command for "build" command
 
 import os
 import logging
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Tuple
 import click
 
 from samcli.cli.context import Context
@@ -181,9 +181,9 @@ def cli(
     parallel: bool,
     manifest: Optional[str],
     docker_network: Optional[str],
-    container_env_var: Optional[List[str]],
+    container_env_var: Optional[Tuple[str]],
     container_env_var_file: Optional[str],
-    build_image: Optional[str],
+    build_image: Optional[Tuple[str]],
     skip_pull_image: bool,
     parameter_overrides: dict,
     config_file: str,
@@ -232,9 +232,9 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     skip_pull_image: bool,
     parameter_overrides: Dict,
     mode: Optional[str],
-    container_env_var: Optional[List[str]],
+    container_env_var: Optional[Tuple[str]],
     container_env_var_file: Optional[str],
-    build_image: Optional[List[str]],
+    build_image: Optional[Tuple[str]],
 ) -> None:
     """
     Implementation of the ``cli`` method
@@ -390,12 +390,12 @@ def _get_mode_value_from_envvar(name: str, choices: List[str]) -> Optional[str]:
     return mode
 
 
-def _process_env_var(container_env_var: Optional[List[str]]) -> Dict:
+def _process_env_var(container_env_var: Optional[Tuple[str]]) -> Dict:
     """
     Parameters
     ----------
-    container_env_var : list
-        the list of command line env vars received from --container-env-var flag
+    container_env_var : Tuple
+        the tuple of command line env vars received from --container-env-var flag
         Each input format needs to be either function specific format (FuncName.VarName=Value)
         or global format (VarName=Value)
 
@@ -434,14 +434,14 @@ def _process_env_var(container_env_var: Optional[List[str]]) -> Dict:
     return processed_env_vars
 
 
-def _process_image_options(image_args: Optional[List[str]]) -> Dict:
+def _process_image_options(image_args: Optional[Tuple[str]]) -> Dict:
     """
     Parameters
     ----------
-    image_args : list
-        List of command line image options in the format of
-        Function1=public.ecr.aws/abc/abc:latest or
-        public.ecr.aws/abc/abc:latest
+    image_args : Tuple
+        Tuple of command line image options in the format of
+        "Function1=public.ecr.aws/abc/abc:latest" or
+        "public.ecr.aws/abc/abc:latest"
 
     Returns
     -------

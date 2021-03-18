@@ -430,9 +430,8 @@ class ApplicationBuilder:
 
             # By default prefer to build in-process for speed
             build_runtime = specified_workflow
-            build_method = self._build_function_in_process
+            options = ApplicationBuilder._get_build_options(layer_name, config.language, None)
             if self._container_manager:
-                build_method = self._build_function_on_container
                 if config.language == "provided":
                     LOG.warning(
                         "For container layer build, first compatible runtime is chosen as build target for container."
@@ -440,18 +439,14 @@ class ApplicationBuilder:
                     # Only set to this value if specified workflow is makefile
                     # which will result in config language as provided
                     build_runtime = compatible_runtimes[0]
-            options = ApplicationBuilder._get_build_options(layer_name, config.language, None)
+                self._build_function_on_container(
+                    config, code_dir, artifact_subdir, manifest_path, build_runtime, options, container_env_vars
+                )
+            else:
+                self._build_function_in_process(
+                    config, code_dir, artifact_subdir, scratch_dir, manifest_path, build_runtime, options
+                )
 
-            build_method(
-                config,
-                code_dir,
-                artifact_subdir,
-                scratch_dir,
-                manifest_path,
-                build_runtime,
-                options,
-                container_env_vars,
-            )
             # Not including subfolder in return so that we copy subfolder, instead of copying artifacts inside it.
             return artifact_dir
 
@@ -524,10 +519,11 @@ class ApplicationBuilder:
                 # By default prefer to build in-process for speed
                 if self._container_manager:
                     image = None
-                    if function_name in self._build_images:
-                        image = self._build_images[function_name]
-                    elif None in self._build_images:
-                        image = self._build_images[None]
+                    if self._build_images is not None:
+                        if function_name in self._build_images:
+                            image = self._build_images[function_name]
+                        elif None in self._build_images:
+                            image = self._build_images[None]
 
                     return self._build_function_on_container(
                         config,
@@ -537,7 +533,7 @@ class ApplicationBuilder:
                         runtime,
                         options,
                         container_env_vars,
-                        build_image=image,
+                        image,
                     )
                 else:
                     return self._build_function_in_process(
