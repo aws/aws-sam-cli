@@ -331,6 +331,11 @@ class IntrinsicsSymbolTable:
                 # here we use a special function "CrossStackRef" to refer a logicalID from other stacks
                 # ".." means the parent stack
                 return {"Ref": {"CrossStackRef": ["..", logical_id_item.get("Ref")]}}
+            if "Fn::Join" in logical_id_item:
+                delimiter, items = logical_id_item.get("Fn::Join")
+                if delimiter == "," and all("Ref" in item for item in items):
+                    return [{"Ref": {"CrossStackRef": ["..", item.get("Ref")]}} for item in items]
+
             LOG.warning('"sam build" currently does not support the resolution of parameter %s.', logical_id_item)
 
         return logical_id_item.get(resource_attributes)
