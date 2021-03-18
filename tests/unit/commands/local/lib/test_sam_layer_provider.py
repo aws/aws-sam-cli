@@ -1,8 +1,11 @@
+import os
+import posixpath
 from unittest import TestCase
+from unittest.mock import patch
 
 from parameterized import parameterized
 
-from samcli.lib.providers.provider import LayerVersion
+from samcli.lib.providers.provider import LayerVersion, Stack
 from samcli.lib.providers.sam_layer_provider import SamLayerProvider
 
 
@@ -68,33 +71,88 @@ class TestSamLayerProvider(TestCase):
                     "Handler": "index.handler",
                 },
             },
+            "ChildStack": {
+                "Type": "AWS::Serverless::Application",
+                "Properties": {
+                    "Location": "./child.yaml",
+                },
+            },
+        }
+    }
+
+    CHILD_TEMPLATE = {
+        "Resources": {
+            "SamLayerInChild": {
+                "Type": "AWS::Serverless::LayerVersion",
+                "Properties": {
+                    "LayerName": "Layer1",
+                    "ContentUri": "PyLayer",
+                    "CompatibleRuntimes": ["python3.8", "python3.6"],
+                },
+                "Metadata": {"BuildMethod": "python3.8"},
+            },
         }
     }
 
     def setUp(self):
         self.parameter_overrides = {}
-        self.provider = SamLayerProvider(self.TEMPLATE, parameter_overrides=self.parameter_overrides)
+        root_stack = Stack("", "", "template.yaml", self.parameter_overrides, self.TEMPLATE)
+        child_stack = Stack("", "ChildStack", "./child/template.yaml", None, self.CHILD_TEMPLATE)
+        with patch("samcli.lib.providers.sam_stack_provider.get_template_data") as get_template_data_mock:
+            get_template_data_mock.side_effect = lambda t: {
+                "template.yaml": self.TEMPLATE,
+                "./child/template.yaml": self.CHILD_TEMPLATE,
+            }
+            self.provider = SamLayerProvider([root_stack, child_stack])
 
     @parameterized.expand(
         [
             (
                 "ServerlessLayer",
-                LayerVersion("ServerlessLayer", "PyLayer/", ["python3.8", "python3.6"], {"BuildMethod": "python3.8"}),
+                LayerVersion(
+                    "ServerlessLayer",
+                    "PyLayer",
+                    ["python3.8", "python3.6"],
+                    {"BuildMethod": "python3.8"},
+                    stack_path="",
+                ),
             ),
             (
                 "LambdaLayer",
-                LayerVersion("LambdaLayer", "PyLayer/", ["python3.8", "python3.6"], {"BuildMethod": "python3.8"}),
+                LayerVersion(
+                    "LambdaLayer",
+                    "PyLayer",
+                    ["python3.8", "python3.6"],
+                    {"BuildMethod": "python3.8"},
+                    stack_path="",
+                ),
             ),
             (
                 "ServerlessLayerNoBuild",
-                LayerVersion("ServerlessLayerNoBuild", "PyLayer/", ["python3.8", "python3.6"], None),
+                LayerVersion("ServerlessLayerNoBuild", "PyLayer", ["python3.8", "python3.6"], None, stack_path=""),
             ),
-            ("LambdaLayerNoBuild", LayerVersion("LambdaLayerNoBuild", "PyLayer/", ["python3.8", "python3.6"], None)),
+            (
+                "LambdaLayerNoBuild",
+                LayerVersion("LambdaLayerNoBuild", "PyLayer", ["python3.8", "python3.6"], None, stack_path=""),
+            ),
             (
                 "ServerlessLayerS3Content",
-                LayerVersion("ServerlessLayerS3Content", ".", ["python3.8", "python3.6"], None),
+                LayerVersion("ServerlessLayerS3Content", ".", ["python3.8", "python3.6"], None, stack_path=""),
             ),
-            ("LambdaLayerS3Content", LayerVersion("LambdaLayerS3Content", ".", ["python3.8", "python3.6"], None)),
+            (
+                "LambdaLayerS3Content",
+                LayerVersion("LambdaLayerS3Content", ".", ["python3.8", "python3.6"], None, stack_path=""),
+            ),
+            (
+                posixpath.join("ChildStack", "SamLayerInChild"),
+                LayerVersion(
+                    "SamLayerInChild",
+                    os.path.join("child", "PyLayer"),
+                    ["python3.8", "python3.6"],
+                    {"BuildMethod": "python3.8"},
+                    stack_path="ChildStack",
+                ),
+            ),
         ]
     )
     def test_get_must_return_each_layer(self, name, expected_output):
@@ -102,7 +160,7 @@ class TestSamLayerProvider(TestCase):
         self.assertEqual(actual, expected_output)
 
     def test_get_all_must_return_all_layers(self):
-        result = [f.arn for f in self.provider.get_all()]
+        result = [posixpath.join(f.stack_path, f.arn) for f in self.provider.get_all()]
         expected = [
             "ServerlessLayer",
             "LambdaLayer",
@@ -110,6 +168,7 @@ class TestSamLayerProvider(TestCase):
             "LambdaLayerNoBuild",
             "ServerlessLayerS3Content",
             "LambdaLayerS3Content",
+            posixpath.join("ChildStack", "SamLayerInChild"),
         ]
 
         self.assertEqual(result, expected)

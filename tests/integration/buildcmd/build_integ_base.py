@@ -1,4 +1,5 @@
 import os
+import posixpath
 import uuid
 import shutil
 import tempfile
@@ -68,6 +69,8 @@ class BuildIntegBase(TestCase):
         cached=False,
         cache_dir=None,
         parallel=False,
+        container_env_var=None,
+        container_env_var_file=None,
     ):
 
         command_list = [self.cmd, "build"]
@@ -103,6 +106,12 @@ class BuildIntegBase(TestCase):
 
         if parallel:
             command_list += ["--parallel"]
+
+        if container_env_var:
+            command_list += ["--container-env-var", container_env_var]
+
+        if container_env_var_file:
+            command_list += ["--container-env-var-file", container_env_var_file]
 
         return command_list
 
@@ -258,3 +267,40 @@ class DedupBuildIntegBase(BuildIntegBase):
 class CachedBuildIntegBase(DedupBuildIntegBase):
     def _verify_cached_artifact(self, cache_dir):
         self.assertTrue(cache_dir.exists(), "Cache directory should be created")
+
+
+class NestedBuildIntegBase(BuildIntegBase):
+    def _verify_build(self, function_full_paths, stack_paths, command_result):
+        self._verify_process_code_and_output(command_result, function_full_paths)
+        for function_full_path in function_full_paths:
+            self._verify_build_artifact(self.default_build_dir, function_full_path)
+        for stack_path in stack_paths:
+            self._verify_move_template(self.default_build_dir, stack_path)
+
+    def _verify_build_artifact(self, build_dir, function_full_path):
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("template.yaml", build_dir_files)
+        # full_path is always posix path
+        path_components = posixpath.split(function_full_path)
+        artifact_path = Path(build_dir, *path_components)
+        self.assertTrue(artifact_path.exists())
+
+    def _verify_move_template(self, build_dir, stack_path):
+        path_components = posixpath.split(stack_path)
+        stack_build_dir_path = Path(build_dir, Path(*path_components), "template.yaml")
+        self.assertTrue(stack_build_dir_path.exists())
+
+    def _verify_process_code_and_output(self, command_result, function_full_paths):
+        self.assertEqual(command_result.process.returncode, 0)
+        # check HelloWorld and HelloMars functions are built in the same build
+        for function_full_path in function_full_paths:
+            self.assertRegex(
+                command_result.stderr.decode("utf-8"),
+                f"Building codeuri: .* runtime: .* metadata: .* functions: \\[.*'{function_full_path}'.*\\]",
+            )
+
+    def _verify_invoke_built_functions(self, template_path, overrides, function_and_expected):
+        for function_identifier, expected in function_and_expected:
+            self._verify_invoke_built_function(template_path, function_identifier, overrides, expected)

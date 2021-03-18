@@ -49,10 +49,14 @@ RESOURCES_WITH_IMAGE_COMPONENT = {
 }
 
 
-def resources_generator():
+def get_packageable_resource_paths():
     """
-    Generator to yield set of resources and their locations that are supported for package operations
-    :return:
+    Resource Types with respective Locations that are package-able.
+
+    Returns
+    ------
+    _resource_property_dict : Dict
+        Resource Dictionary containing packageable resource types and their locations as a list.
     """
     _resource_property_dict = defaultdict(list)
     for _dict in (METADATA_WITH_LOCAL_PATHS, RESOURCES_WITH_LOCAL_PATHS, RESOURCES_WITH_IMAGE_COMPONENT):
@@ -62,7 +66,21 @@ def resources_generator():
             if value not in _resource_property_dict.get(key, []):
                 _resource_property_dict[key].append(value)
 
-    for resource, location_list in _resource_property_dict.items():
+    return _resource_property_dict
+
+
+def resources_generator():
+    """
+    Generator to yield set of resources and their locations that are supported for package operations
+
+    Yields
+    ------
+    resource : Dict
+        The resource dictionary
+    location : str
+        The location of the resource
+    """
+    for resource, location_list in get_packageable_resource_paths().items():
         for locations in location_list:
             for location in locations:
                 yield resource, location

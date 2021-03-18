@@ -5,7 +5,7 @@ import logging
 import pathlib
 import shutil
 from abc import abstractmethod, ABC
-from typing import Callable, Dict, List, Any, Optional
+from typing import Callable, Dict, List, Any, Optional, cast
 
 from samcli.commands.build.exceptions import MissingBuildMethodException
 from samcli.lib.utils import osutils
@@ -87,8 +87,8 @@ class DefaultBuildStrategy(BuildStrategy):
         self,
         build_graph: BuildGraph,
         build_dir: str,
-        build_function: Callable[[str, str, str, str, Optional[str], str, dict], str],
-        build_layer: Callable[[str, str, str, List[str]], str],
+        build_function: Callable[[str, str, str, str, Optional[str], str, dict, dict], str],
+        build_layer: Callable[[str, str, str, List[str], str, dict], str],
     ) -> None:
         super().__init__(build_graph)
         self._build_dir = build_dir
@@ -105,34 +105,43 @@ class DefaultBuildStrategy(BuildStrategy):
             build_definition.codeuri,
             build_definition.runtime,
             build_definition.metadata,
-            [function.name for function in build_definition.functions],
+            [function.full_path for function in build_definition.functions],
         )
 
         # build into one of the functions from this build definition
-        single_function_name = build_definition.get_function_name()
-        single_build_dir = str(pathlib.Path(self._build_dir, single_function_name))
+        single_full_path = build_definition.get_full_path()
+        single_build_dir = build_definition.get_build_dir(self._build_dir)
 
         LOG.debug("Building to following folder %s", single_build_dir)
+
+        # when a function is passed here, it is ZIP function, codeuri and runtime are not None
         result = self._build_function(
             build_definition.get_function_name(),
-            build_definition.codeuri,
+            build_definition.codeuri,  # type: ignore
             build_definition.packagetype,
-            build_definition.runtime,
+            build_definition.runtime,  # type: ignore
             build_definition.get_handler_name(),
             single_build_dir,
             build_definition.metadata,
+            build_definition.env_vars,
         )
-        function_build_results[single_function_name] = result
+        function_build_results[single_full_path] = result
 
         # copy results to other functions
         if build_definition.packagetype == ZIP:
             for function in build_definition.functions:
-                if function.name is not single_function_name:
+                if function.full_path != single_full_path:
+                    # for zip function we need to copy over the artifacts
                     # artifacts directory will be created by the builder
-                    artifacts_dir = str(pathlib.Path(self._build_dir, function.name))
+                    artifacts_dir = function.get_build_dir(self._build_dir)
                     LOG.debug("Copying artifacts from %s to %s", single_build_dir, artifacts_dir)
                     osutils.copytree(single_build_dir, artifacts_dir)
-                    function_build_results[function.name] = artifacts_dir
+                    function_build_results[function.full_path] = artifacts_dir
+        elif build_definition.packagetype == IMAGE:
+            for function in build_definition.functions:
+                if function.full_path != single_full_path:
+                    # for image function, we just need to copy the image tag
+                    function_build_results[function.full_path] = result
 
         return function_build_results
 
@@ -141,12 +150,26 @@ class DefaultBuildStrategy(BuildStrategy):
         Build the unique definition and then copy the artifact to the corresponding layer folder
         """
         layer = layer_definition.layer
-        LOG.info("Building layer '%s'", layer.name)
+        LOG.info("Building layer '%s'", layer.full_path)
         if layer.build_method is None:
             raise MissingBuildMethodException(
-                f"Layer {layer.name} cannot be build without BuildMethod. Please provide BuildMethod in Metadata."
+                f"Layer {layer.full_path} cannot be build without BuildMethod. "
+                f"Please provide BuildMethod in Metadata."
             )
-        return {layer.name: self._build_layer(layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes)}
+
+        single_build_dir = layer.get_build_dir(self._build_dir)
+        # when a layer is passed here, it is ZIP function, codeuri and runtime are not None
+        # codeuri and compatible_runtimes are not None
+        return {
+            layer.full_path: self._build_layer(
+                layer.name,
+                layer.codeuri,  # type: ignore
+                layer.build_method,
+                layer.compatible_runtimes,  # type: ignore
+                single_build_dir,
+                layer_definition.env_vars,
+            )
+        }
 
 
 class CachedBuildStrategy(BuildStrategy):
@@ -190,7 +213,7 @@ class CachedBuildStrategy(BuildStrategy):
         if build_definition.packagetype == IMAGE:
             return self._delegate_build_strategy.build_single_function_definition(build_definition)
 
-        code_dir = str(pathlib.Path(self._base_dir, build_definition.codeuri).resolve())
+        code_dir = str(pathlib.Path(self._base_dir, cast(str, build_definition.codeuri)).resolve())
         source_md5 = dir_checksum(code_dir)
         cache_function_dir = pathlib.Path(self._cache_dir, build_definition.uuid)
         function_build_results = {}
@@ -218,10 +241,10 @@ class CachedBuildStrategy(BuildStrategy):
             )
             for function in build_definition.functions:
                 # artifacts directory will be created by the builder
-                artifacts_dir = str(pathlib.Path(self._build_dir, function.name))
+                artifacts_dir = function.get_build_dir(self._build_dir)
                 LOG.debug("Copying artifacts from %s to %s", cache_function_dir, artifacts_dir)
                 osutils.copytree(cache_function_dir, artifacts_dir)
-                function_build_results[function.name] = artifacts_dir
+                function_build_results[function.full_path] = artifacts_dir
 
         return function_build_results
 
@@ -229,7 +252,7 @@ class CachedBuildStrategy(BuildStrategy):
         """
         Builds single layer definition with caching
         """
-        code_dir = str(pathlib.Path(self._base_dir, layer_definition.codeuri).resolve())
+        code_dir = str(pathlib.Path(self._base_dir, cast(str, layer_definition.codeuri)).resolve())
         source_md5 = dir_checksum(code_dir)
         cache_function_dir = pathlib.Path(self._cache_dir, layer_definition.uuid)
         layer_build_result = {}
@@ -256,10 +279,10 @@ class CachedBuildStrategy(BuildStrategy):
                 layer_definition.uuid,
             )
             # artifacts directory will be created by the builder
-            artifacts_dir = str(pathlib.Path(self._build_dir, layer_definition.layer.name))
+            artifacts_dir = str(pathlib.Path(self._build_dir, layer_definition.layer.full_path))
             LOG.debug("Copying artifacts from %s to %s", cache_function_dir, artifacts_dir)
             osutils.copytree(cache_function_dir, artifacts_dir)
-            layer_build_result[layer_definition.layer.name] = artifacts_dir
+            layer_build_result[layer_definition.layer.full_path] = artifacts_dir
 
         return layer_build_result
 

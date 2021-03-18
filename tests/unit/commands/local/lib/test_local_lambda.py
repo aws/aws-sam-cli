@@ -1,6 +1,7 @@
 """
 Testing local lambda runner
 """
+import os
 from unittest import TestCase
 from unittest.mock import Mock, patch
 from parameterized import parameterized, param
@@ -217,6 +218,7 @@ class TestLocalLambda_make_env_vars(TestCase):
         os_mock.environ = os_environ
 
         function = Function(
+            stack_path="",
             name="function_name",
             functionname="function_name",
             runtime="runtime",
@@ -265,6 +267,7 @@ class TestLocalLambda_make_env_vars(TestCase):
         os_mock.environ = os_environ
 
         function = Function(
+            stack_path="",
             name="function_name",
             functionname="function_name",
             runtime="runtime",
@@ -303,6 +306,7 @@ class TestLocalLambda_make_env_vars(TestCase):
         os_mock.environ = os_environ
 
         function = Function(
+            stack_path="",
             name="function_name",
             functionname="function_name",
             runtime="runtime",
@@ -342,6 +346,11 @@ class TestLocalLambda_get_invoke_config(TestCase):
     def setUp(self):
         self.runtime_mock = Mock()
         self.function_provider_mock = Mock()
+        # assuming there is only 1 root stack
+        self.function_provider_mock.stacks = [
+            Mock(stack_path="", location="template.yaml"),
+            Mock(stack_path="ChildStackX", location=os.path.join("ChildStackX", "template.yaml")),
+        ]
         self.cwd = "/my/current/working/directory"
         self.aws_profile = "myprofile"
         self.debug_context = None
@@ -372,6 +381,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
         layers = ["layer1", "layer2"]
 
         function = Function(
+            stack_path="",
             name="function_name",
             functionname="function_name",
             runtime="runtime",
@@ -416,7 +426,12 @@ class TestLocalLambda_get_invoke_config(TestCase):
     @patch("samcli.commands.local.lib.local_lambda.resolve_code_path")
     @patch("samcli.commands.local.lib.local_lambda.LocalLambdaRunner.is_debugging")
     @patch("samcli.commands.local.lib.local_lambda.FunctionConfig")
-    def test_timeout_set_to_max_during_debugging(self, FunctionConfigMock, is_debugging_mock, resolve_code_path_patch):
+    def test_timeout_set_to_max_during_debugging(
+        self,
+        FunctionConfigMock,
+        is_debugging_mock,
+        resolve_code_path_patch,
+    ):
         is_debugging_mock.return_value = True
 
         env_vars = "envvars"
@@ -427,6 +442,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
         resolve_code_path_patch.return_value = codepath
 
         function = Function(
+            stack_path=Mock(),
             name="function_name",
             functionname="function_name",
             runtime="runtime",
@@ -465,7 +481,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             env_vars=env_vars,
         )
 
-        resolve_code_path_patch.assert_called_with(self.cwd, function.codeuri)
+        resolve_code_path_patch.assert_called_with(self.cwd, "codeuri")
         self.local_lambda._make_env_vars.assert_called_with(function)
 
 

@@ -58,7 +58,7 @@ def _inform_newer_version(force_check=False) -> None:
 
     Parameters
     ----------
-    check_all_always: bool
+    force_check: bool
         When it is True, it will trigger checking new version of SAM CLI. Default value is False
 
     """

@@ -49,6 +49,7 @@ class EnvironmentVariables:
             a) (Required) Function information
             b) (Optional) Environment variable configured on the function
 
+        :param str function_name: The name of the function
         :param integer function_memory: Memory size of the function in megabytes
         :param integer function_timeout: Function's timeout in seconds
         :param string function_handler: Handler of the function

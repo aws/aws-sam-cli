@@ -1,0 +1,39 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  DefaultTimeout:
+    Default: 5
+    Type: Number
+
+  MyRuntimeVersion:
+    Type: String
+
+  StringValueTimeout:
+      Default: "5"
+      Type: Number
+
+  EmptyDefaultParameter:
+    Type: String
+    Default: ""
+
+  FunctionNameParam:
+    Type: String
+    Default: "MyReallyCoolFunction"
+
+  LayerVersion:
+    Type: String
+    Default: "2"
+
+Resources:
+  SubApp:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ../template.yml
+      Parameters:
+        DefaultTimeout: !Ref DefaultTimeout
+        MyRuntimeVersion: !Ref MyRuntimeVersion
+        StringValueTimeout: !Ref StringValueTimeout
+        EmptyDefaultParameter: !Ref EmptyDefaultParameter
+        FunctionNameParam: !Ref FunctionNameParam
+        LayerVersion: !Ref LayerVersion

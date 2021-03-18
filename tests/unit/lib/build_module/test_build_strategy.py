@@ -12,7 +12,7 @@ from samcli.lib.build.build_strategy import (
 from samcli.lib.utils import osutils
 from pathlib import Path
 
-from samcli.lib.utils.packagetype import ZIP
+from samcli.lib.utils.packagetype import ZIP, IMAGE
 
 
 @patch("samcli.lib.build.build_graph.BuildGraph._write")
@@ -24,22 +24,30 @@ class BuildStrategyBaseTest(TestCase):
 
         self.function1_1 = Mock()
         self.function1_1.inlinecode = None
+        self.function1_1.get_build_dir = Mock()
+        self.function1_1.full_path = Mock()
         self.function1_2 = Mock()
         self.function1_2.inlinecode = None
+        self.function1_2.get_build_dir = Mock()
+        self.function1_2.full_path = Mock()
         self.function2 = Mock()
         self.function2.inlinecode = None
+        self.function2.get_build_dir = Mock()
+        self.function2.full_path = Mock()
 
         self.function_build_definition1 = FunctionBuildDefinition("runtime", "codeuri", ZIP, {})
-        self.function_build_definition1.functions = [self.function1_1, self.function1_2]
         self.function_build_definition2 = FunctionBuildDefinition("runtime2", "codeuri", ZIP, {})
-        self.function_build_definition1.functions = [self.function2]
-        self.build_graph.put_function_build_definition(self.function_build_definition1, Mock(packagetype=ZIP))
-        self.build_graph.put_function_build_definition(self.function_build_definition2, Mock(packagetype=ZIP))
+        self.build_graph.put_function_build_definition(self.function_build_definition1, self.function1_1)
+        self.build_graph.put_function_build_definition(self.function_build_definition1, self.function1_2)
+        self.build_graph.put_function_build_definition(self.function_build_definition2, self.function2)
+
+        self.layer1 = Mock()
+        self.layer2 = Mock()
 
         self.layer_build_definition1 = LayerBuildDefinition("layer1", "codeuri", "build_method", [])
         self.layer_build_definition2 = LayerBuildDefinition("layer2", "codeuri", "build_method", [])
-        self.build_graph.put_layer_build_definition(self.layer_build_definition1, Mock())
-        self.build_graph.put_layer_build_definition(self.layer_build_definition2, Mock())
+        self.build_graph.put_layer_build_definition(self.layer_build_definition1, self.layer1)
+        self.build_graph.put_layer_build_definition(self.layer_build_definition2, self.layer2)
 
 
 class _TestBuildStrategy(BuildStrategy):
@@ -107,10 +115,9 @@ class BuildStrategyTest(BuildStrategyBaseTest):
         )
 
 
-@patch("samcli.lib.build.build_strategy.pathlib.Path")
 @patch("samcli.lib.build.build_strategy.osutils.copytree")
 class DefaultBuildStrategyTest(BuildStrategyBaseTest):
-    def test_layer_build_should_fail_when_no_build_method_is_provided(self, mock_copy_tree, mock_path):
+    def test_layer_build_should_fail_when_no_build_method_is_provided(self, mock_copy_tree):
         given_layer = Mock()
         given_layer.build_method = None
         layer_build_definition = LayerBuildDefinition("layer1", "codeuri", "build_method", [])
@@ -125,7 +132,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
 
         self.assertRaises(MissingBuildMethodException, default_build_strategy.build)
 
-    def test_build_layers_and_functions(self, mock_copy_tree, mock_path):
+    def test_build_layers_and_functions(self, mock_copy_tree):
         given_build_function = Mock()
         given_build_function.inlinecode = None
         given_build_layer = Mock()
@@ -145,8 +152,9 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                     ZIP,
                     self.function_build_definition1.runtime,
                     self.function_build_definition1.get_handler_name(),
-                    ANY,
+                    self.function_build_definition1.get_build_dir(given_build_dir),
                     self.function_build_definition1.metadata,
+                    self.function_build_definition1.env_vars,
                 ),
                 call(
                     self.function_build_definition2.get_function_name(),
@@ -154,8 +162,9 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                     ZIP,
                     self.function_build_definition2.runtime,
                     self.function_build_definition2.get_handler_name(),
-                    ANY,
+                    self.function_build_definition2.get_build_dir(given_build_dir),
                     self.function_build_definition2.metadata,
+                    self.function_build_definition2.env_vars,
                 ),
             ]
         )
@@ -164,34 +173,58 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
         given_build_layer.assert_has_calls(
             [
                 call(
-                    self.layer_build_definition1.layer.name,
-                    self.layer_build_definition1.layer.codeuri,
-                    self.layer_build_definition1.layer.build_method,
-                    self.layer_build_definition1.layer.compatible_runtimes,
+                    self.layer1.name,
+                    self.layer1.codeuri,
+                    self.layer1.build_method,
+                    self.layer1.compatible_runtimes,
+                    self.layer1.get_build_dir(given_build_dir),
+                    self.function_build_definition1.env_vars,
                 ),
                 call(
-                    self.layer_build_definition2.layer.name,
-                    self.layer_build_definition2.layer.codeuri,
-                    self.layer_build_definition2.layer.build_method,
-                    self.layer_build_definition2.layer.compatible_runtimes,
+                    self.layer2.name,
+                    self.layer2.codeuri,
+                    self.layer2.build_method,
+                    self.layer2.compatible_runtimes,
+                    self.layer2.get_build_dir(given_build_dir),
+                    self.function_build_definition2.env_vars,
                 ),
             ]
         )
-
-        # assert that mock path has been called
-        mock_path.assert_has_calls(
-            [
-                call(given_build_dir, self.function_build_definition1.get_function_name()),
-                call(given_build_dir, self.function_build_definition2.get_function_name()),
-            ],
-            any_order=True,
-        )
+        # previously we also assert artifact dir here.
+        # since artifact dir is now determined in samcli/lib/providers/provider.py
+        # we will not do assertion here
 
         # assert that function1_2 artifacts have been copied from already built function1_1
         mock_copy_tree.assert_called_with(
-            str(mock_path(given_build_dir, self.function_build_definition1.get_function_name())),
-            str(mock_path(given_build_dir, self.function1_2.name)),
+            self.function_build_definition1.get_build_dir(given_build_dir),
+            self.function1_2.get_build_dir(given_build_dir),
         )
+
+    def test_build_single_function_definition_image_functions_with_same_metadata(self, mock_copy_tree):
+        given_build_function = Mock()
+        built_image = Mock()
+        given_build_function.return_value = built_image
+        given_build_layer = Mock()
+        given_build_dir = "build_dir"
+        default_build_strategy = DefaultBuildStrategy(
+            self.build_graph, given_build_dir, given_build_function, given_build_layer
+        )
+
+        function1 = Mock()
+        function1.name = "Function"
+        function1.full_path = "Function"
+        function1.packagetype = IMAGE
+        function2 = Mock()
+        function2.name = "Function2"
+        function2.full_path = "Function2"
+        function2.packagetype = IMAGE
+        build_definition = FunctionBuildDefinition("3.7", "codeuri", IMAGE, {})
+        # since they have the same metadata, they are put into the same build_definition.
+        build_definition.functions = [function1, function2]
+
+        result = default_build_strategy.build_single_function_definition(build_definition)
+        # both of the function name should show up in results
+        self.assertEqual(result, {"Function": built_image, "Function2": built_image})
 
 
 class CachedBuildStrategyTest(BuildStrategyBaseTest):
@@ -262,9 +295,11 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
             )
             func1 = Mock()
             func1.name = "func1_name"
+            func1.full_path = "func1_full_path"
             func1.inlinecode = None
             func2 = Mock()
             func2.name = "func2_name"
+            func2.full_path = "func2_full_path"
             func2.inlinecode = None
             build_definition = build_graph.get_function_build_definitions()[0]
             layer_definition = build_graph.get_layer_build_definitions()[0]
@@ -272,6 +307,7 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
             build_graph.put_function_build_definition(build_definition, func2)
             layer = Mock()
             layer.name = "layer_name"
+            layer.full_path = "layer_full_path"
             build_graph.put_layer_build_definition(layer_definition, layer)
             cached_build_strategy.build_single_function_definition(build_definition)
             cached_build_strategy.build_single_layer_definition(layer_definition)
