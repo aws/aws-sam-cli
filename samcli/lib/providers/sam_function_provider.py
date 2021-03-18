@@ -362,8 +362,25 @@ class SamFunctionProvider(SamBaseProvider):
             # In the list of layers that is defined within a template, you can reference a LayerVersion resource.
             # When running locally, we need to follow that Ref so we can extract the local path to the layer code.
             if isinstance(layer, dict) and layer.get("Ref"):
-                layer_logical_id = cast(str, layer.get("Ref"))
-                layer_resource = stack.resources.get(layer_logical_id)
+                # Here layer refers to another resources.
+                # in a multi stack system, the layer might locate in the current stack or passed down from parents.
+                # for example, {"Ref": "layerLogicalID"} refers to the "layerLogicalID" in the current stack.
+                # {"Ref": {"CrossStackRef": ["..", "layerLogicalID"]}
+                #   refers to the "layerLogicalID" in the parent stack.
+                # {"Ref": {"CrossStackRef": ["..", {"CrossStackRef": ["..", "layerLogicalID"]})}
+                #   refers to the layer in the grandparent stack.
+                # here we use a while loop to remove all "CrossStackRef" keys
+                # and locate the underlying layer resource ID.
+                ref_stack = stack
+                layer_ref = layer.get("Ref")
+                while isinstance(layer_ref, dict) and "CrossStackRef" in layer_ref:
+                    relative_stack_path, layer_ref = layer_ref["CrossStackRef"]
+                    ref_stack = SamLocalStackProvider.resolve_stack(self.stacks, ref_stack, relative_stack_path)
+
+                layer_logical_id = cast(str, layer_ref)
+                LOG.debug("resolved layer from %s to %s in stack %s", layer, layer_logical_id, ref_stack.stack_path)
+
+                layer_resource = ref_stack.resources.get(layer_logical_id)
                 if not layer_resource or layer_resource.get("Type", "") not in (
                     SamFunctionProvider.SERVERLESS_LAYER,
                     SamFunctionProvider.LAMBDA_LAYER,
@@ -384,8 +401,10 @@ class SamFunctionProvider(SamBaseProvider):
                     )
 
                 if codeuri and not self._use_raw_codeuri:
-                    LOG.debug("--base-dir is presented not, adjusting uri %s relative to %s", codeuri, stack.location)
-                    codeuri = SamLocalStackProvider.normalize_resource_path(stack.location, codeuri)
+                    LOG.debug(
+                        "--base-dir is presented not, adjusting uri %s relative to %s", codeuri, ref_stack.location
+                    )
+                    codeuri = SamLocalStackProvider.normalize_resource_path(ref_stack.location, codeuri)
 
                 layers.append(
                     LayerVersion(
@@ -393,7 +412,7 @@ class SamFunctionProvider(SamBaseProvider):
                         codeuri,
                         compatible_runtimes,
                         layer_resource.get("Metadata", None),
-                        stack_path=stack.stack_path,
+                        stack_path=ref_stack.stack_path,
                     )
                 )
 

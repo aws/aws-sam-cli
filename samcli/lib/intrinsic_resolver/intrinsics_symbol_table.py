@@ -325,6 +325,14 @@ class IntrinsicsSymbolTable:
                 return None
             return logical_id_item
 
+        if logical_id in self._parameters and isinstance(logical_id_item, dict):
+            if "Ref" in logical_id_item:
+                # It is a parameter passed down from the parent
+                # here we use a special function "CrossStackRef" to refer a logicalID from other stacks
+                # ".." means the parent stack
+                return {"Ref": {"CrossStackRef": ["..", logical_id_item.get("Ref")]}}
+            LOG.warning('"sam build" currently does not support the resolution of parameter %s.', logical_id_item)
+
         return logical_id_item.get(resource_attributes)
 
     @staticmethod

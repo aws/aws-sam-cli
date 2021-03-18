@@ -3,6 +3,7 @@ Class that provides all nested stacks from a given SAM template
 """
 import logging
 import os
+import posixpath
 from typing import Optional, Dict, cast, List, Iterator, Tuple
 from urllib.parse import unquote, urlparse
 
@@ -340,3 +341,14 @@ class SamLocalStackProvider(SamBaseProvider):
             stack_file_path = os.path.relpath(os.path.realpath(stack_file_path))
 
         return os.path.normpath(os.path.join(os.path.dirname(stack_file_path), path))
+
+    @staticmethod
+    def resolve_stack(stacks: List[Stack], base_stack: Stack, relative_stack_path: str) -> Stack:
+        target_stack_path = posixpath.normpath(posixpath.join(base_stack.stack_path, relative_stack_path))
+        if target_stack_path == ".":
+            # root stack
+            target_stack_path = ""
+        try:
+            return next(stack for stack in stacks if stack.stack_path == target_stack_path)
+        except StopIteration as ex:
+            raise ValueError(f"Cannot find stack with path {target_stack_path}") from ex
