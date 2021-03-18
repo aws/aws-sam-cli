@@ -2,6 +2,7 @@
 binary_zip_filename=$1
 python_library_zip_filename=$2
 python_version=$3
+nightly_build=$4
 
 if [ "$python_library_zip_filename" = "" ]; then
     python_library_zip_filename="python-libraries.zip";
@@ -9,6 +10,13 @@ fi
 
 if [ "$python_version" = "" ]; then
     python_version="3.7.9";
+fi
+sam_cli_spec_filename="samcli.spec"
+binary_name="sam"
+if ! [ "$nightly_build" = "" ]; then
+    echo "Running with nightly build"
+    sam_cli_spec_filename="samcli-nightly.spec"
+    binary_name="sam-nightly"
 fi
 
 set -eu
@@ -47,13 +55,17 @@ echo "Installing PyInstaller"
 
 echo "Building Binary"
 cd src
-../venv/bin/python -m PyInstaller -D --clean installer/pyinstaller/samcli.spec
+../venv/bin/python -m PyInstaller -D --clean installer/pyinstaller/${sam_cli_spec_filename}
 
 
 mkdir pyinstaller-output
 
-mv dist/sam pyinstaller-output/dist
+mv dist/${binary_name} pyinstaller-output/dist
 cp installer/assets/* pyinstaller-output
+if ! [ "$nightly_build" = "" ]; then
+    echo "Renaming install script name"
+    mv pyinstaller-output/install_nightly_build pyinstaller-output/install
+fi
 chmod 755 pyinstaller-output/install
 
 echo "Copying Binary"
