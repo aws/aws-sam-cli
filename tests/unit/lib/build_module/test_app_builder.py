@@ -349,11 +349,11 @@ class TestApplicationBuilder_build(TestCase):
 
 
 class PathValidator:
-    def __init__(self, path: str):
+    def __init__(self, path):
         self._path = path
 
-    def __eq__(self, other: str):
-        return bool(other.endswith(self._path))
+    def __eq__(self, other):
+        return self._path is None if other is None else other.endswith(self._path)
 
 
 class TestApplicationBuilderForLayerBuild(TestCase):

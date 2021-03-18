@@ -613,7 +613,7 @@ class ApplicationBuilder:
         runtime: str,
         options: Optional[Dict],
         container_env_vars: Optional[Dict] = None,
-        build_image=None,
+        build_image: Optional[str] = None,
     ) -> str:
         # _build_function_on_container() is only called when self._container_manager if not None
         if not self._container_manager:

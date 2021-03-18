@@ -4,7 +4,7 @@ CLI command for "build" command
 
 import os
 import logging
-from typing import List, Optional, Dict, Tuple
+from typing import List, Optional, Dict, Tuple, Union
 import click
 
 from samcli.cli.context import Context
@@ -455,16 +455,17 @@ def _process_image_options(image_args: Optional[Tuple[str]]) -> Dict:
         Function as key and the corresponding image URI as value.
         Global default image URI is contained in the None key.
     """
-    build_images: Dict[str, str] = dict()
-    for build_image_string in image_args:
-        if "=" in build_image_string:
-            parts = build_image_string.split("=", 1)
-            function_name = parts[0]
-            image_uri = parts[1]
-        else:
-            function_name = None
-            image_uri = build_image_string
+    build_images: Dict[Union[str, None], str] = dict()
+    if image_args:
+        for build_image_string in image_args:
+            function_name: Union[str, None] = None
+            if "=" in build_image_string:
+                parts = build_image_string.split("=", 1)
+                function_name = parts[0]
+                image_uri = parts[1]
+            else:
+                image_uri = build_image_string
 
-        build_images[function_name] = image_uri
+            build_images[function_name] = image_uri
 
     return build_images
