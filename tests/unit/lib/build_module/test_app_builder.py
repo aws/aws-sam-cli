@@ -348,6 +348,14 @@ class TestApplicationBuilder_build(TestCase):
         self.assertEqual(result, mock_parallel_build_strategy.build())
 
 
+class PathValidator:
+    def __init__(self, path: str):
+        self._path = path
+
+    def __eq__(self, other: str):
+        return bool(other.endswith(self._path))
+
+
 class TestApplicationBuilderForLayerBuild(TestCase):
     def setUp(self):
         self.layer1 = Mock()
@@ -377,10 +385,10 @@ class TestApplicationBuilderForLayerBuild(TestCase):
 
         build_function_in_process_mock.assert_called_once_with(
             config_mock,
-            f"basedir{os.sep}code_uri",
-            f"full_path{os.sep}python",
-            f"scratch",
-            f"basedir{os.sep}code_uri{os.sep}manifest_name",
+            PathValidator("code_uri"),
+            PathValidator("python"),
+            "scratch",
+            PathValidator("manifest_name"),
             "python3.8",
             None,
         )
@@ -405,9 +413,9 @@ class TestApplicationBuilderForLayerBuild(TestCase):
         self.builder._build_layer("layer_name", "code_uri", "python3.8", ["python3.8"], "full_path")
         build_function_on_container_mock.assert_called_once_with(
             config_mock,
-            f"basedir{os.sep}code_uri",
-            f"full_path{os.sep}python",
-            f"basedir{os.sep}code_uri{os.sep}manifest_name",
+            PathValidator("code_uri"),
+            PathValidator("python"),
+            PathValidator("manifest_name"),
             "python3.8",
             None,
             None,
