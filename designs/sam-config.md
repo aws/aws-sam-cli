@@ -359,8 +359,7 @@ Documentation Changes
 =====================
 
 * Addition of a new `--config-file` parameter per command
-* Addition of a new `--config-prefix` parameter per command
-* Replace `--config-prefix` by `--config-env`
+* Addition of a new `--config-env` parameter per command
 
 Related Open Issues
 ============
