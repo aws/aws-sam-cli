@@ -54,7 +54,7 @@ def local_common_options(f):
             default="localhost",
             show_default=True,
             help="Host of locally emulated Lambda container. "
-            "This option is useful when the containers run on a different host than SAM CLI. "
+            "This option is useful when the container run on a different host than SAM CLI. "
             "For example, if you want to run SAM CLI in a Docker container on macOS, "
             "use this option with host.docker.internal",
         ),

@@ -55,7 +55,7 @@ class Container:
         docker_client=None,
         container_opts=None,
         additional_volumes=None,
-        container_host=None,
+        container_host="localhost",
     ):
         """
         Initializes the class with given configuration. This does not automatically create or run the container.
