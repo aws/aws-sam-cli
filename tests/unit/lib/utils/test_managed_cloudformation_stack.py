@@ -7,10 +7,9 @@ from botocore.exceptions import ClientError, NoCredentialsError, NoRegionError, 
 from botocore.stub import Stubber
 from parameterized import parameterized
 
-from samcli.commands.bootstrap.exceptions import ManagedStackError
 from samcli.commands.exceptions import UserException, CredentialsError, RegionError
 from samcli.lib.bootstrap.bootstrap import _get_stack_template, SAM_CLI_STACK_NAME
-from samcli.lib.utils.managed_cloudformation_stack import manage_stack, _create_or_get_stack
+from samcli.lib.utils.managed_cloudformation_stack import manage_stack, _create_or_get_stack, ManagedStackError
 
 
 class TestManagedCloudFormationStack(TestCase):

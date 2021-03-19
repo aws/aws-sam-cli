@@ -11,12 +11,18 @@ import click
 from botocore.config import Config
 from botocore.exceptions import ClientError, BotoCoreError, NoRegionError, NoCredentialsError, ProfileNotFound
 
-from samcli.commands.bootstrap.exceptions import ManagedStackError
 from samcli.commands.exceptions import UserException, CredentialsError, RegionError
 
 
 SAM_CLI_STACK_PREFIX = "aws-sam-cli-managed-"
 LOG = logging.getLogger(__name__)
+
+
+class ManagedStackError(UserException):
+    def __init__(self, ex):
+        self.ex = ex
+        message_fmt = f"Failed to create managed resources: {ex}"
+        super().__init__(message=message_fmt.format(ex=self.ex))
 
 
 def manage_stack(profile, region, stack_name, template_body):
