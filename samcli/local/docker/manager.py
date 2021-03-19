@@ -126,7 +126,7 @@ class ContainerManager:
             container.stop()
         container.delete()
 
-    def pull_image(self, image_name, tag="latest", stream=None):
+    def pull_image(self, image_name, tag=None, stream=None):
         """
         Ask Docker to pull the container image with given name.
 
@@ -142,6 +142,8 @@ class ContainerManager:
         DockerImagePullFailedException
             If the Docker image was not available in the server
         """
+        if tag is None:
+            tag = image_name.split(":")[1] if ":" in image_name else "latest"
         # use a global lock to get the image lock
         with self._lock:
             image_lock = self._lock_per_image.get(image_name)

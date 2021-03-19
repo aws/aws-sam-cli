@@ -19,6 +19,7 @@ class LambdaBuildContainer(Container):
     """
 
     _IMAGE_URI_PREFIX = "public.ecr.aws/sam/build"
+    _IMAGE_TAG = "latest"
     _BUILDERS_EXECUTABLE = "lambda-builders"
 
     def __init__(  # pylint: disable=too-many-locals
@@ -236,4 +237,4 @@ class LambdaBuildContainer(Container):
 
     @staticmethod
     def _get_image(runtime):
-        return f"{LambdaBuildContainer._IMAGE_URI_PREFIX}-{runtime}"
+        return f"{LambdaBuildContainer._IMAGE_URI_PREFIX}-{runtime}:{LambdaBuildContainer._IMAGE_TAG}"
