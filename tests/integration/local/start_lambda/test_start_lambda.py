@@ -271,7 +271,6 @@ class TestWarmContainersInitialization(TestWarmContainersBaseClass):
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
 
-    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_all_containers_are_initialized_before_any_invoke(self):
         initiated_containers = self.count_running_containers()
@@ -285,7 +284,6 @@ class TestWarmContainersMultipleInvoke(TestWarmContainersBaseClass):
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
 
-    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_no_new_created_containers_after_lambda_function_invoke(self):
 
@@ -320,7 +318,6 @@ class TestLazyContainersInitialization(TestWarmContainersBaseClass):
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
 
-    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_no_container_is_initialized_before_any_invoke(self):
         initiated_containers = self.count_running_containers()
@@ -335,7 +332,6 @@ class TestLazyContainersMultipleInvoke(TestWarmContainersBaseClass):
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
 
-    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_only_one_new_created_containers_after_lambda_function_invoke(self):
         initiated_containers_before_any_invoke = self.count_running_containers()

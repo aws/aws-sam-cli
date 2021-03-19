@@ -9,6 +9,7 @@ import os
 import random
 from pathlib import Path
 
+from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
 from tests.testing_utils import SKIP_DOCKER_MESSAGE, SKIP_DOCKER_TESTS, run_command
 
 
@@ -58,6 +59,7 @@ class StartApiIntegBaseClass(TestCase):
     @classmethod
     def start_api(cls):
         command = "sam"
+        wait_time = 5
         if os.getenv("SAM_CLI_DEV"):
             command = "samdev"
 
@@ -65,13 +67,15 @@ class StartApiIntegBaseClass(TestCase):
 
         if cls.container_mode:
             command_list += ["--warm-containers", cls.container_mode]
+            if cls.container_mode == ContainersInitializationMode.EAGER.value:
+                wait_time = 25
 
         if cls.parameter_overrides:
             command_list += ["--parameter-overrides", cls._make_parameter_override_arg(cls.parameter_overrides)]
 
         cls.start_api_process = Popen(command_list)
         # we need to wait some time for start-api to start, hence the sleep
-        time.sleep(5)
+        time.sleep(wait_time)
 
     @classmethod
     def _make_parameter_override_arg(self, overrides):
