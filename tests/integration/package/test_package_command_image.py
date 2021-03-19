@@ -60,12 +60,16 @@ class TestPackageImage(PackageIntegBase):
         self.assertIn("Error: Missing option '--image-repository'", process_stderr.decode("utf-8"))
         self.assertEqual(2, process.returncode)
 
-    @parameterized.expand(["aws-serverless-function-image.yaml", "aws-lambda-function-image.yaml"])
+    @parameterized.expand(
+        [
+            "aws-serverless-function-image.yaml",
+            "aws-lambda-function-image.yaml",
+            "aws-lambda-function-image-and-api.yaml",
+        ]
+    )
     def test_package_template_with_image_repository(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
-        command_list = self.get_command_list(
-            image_repository=self.ecr_repo_name, template=template_path, resolve_s3=True
-        )
+        command_list = self.get_command_list(image_repository=self.ecr_repo_name, template=template_path)
 
         process = Popen(command_list, stdout=PIPE)
         try:

@@ -49,6 +49,26 @@ RESOURCES_WITH_IMAGE_COMPONENT = {
 }
 
 
+def get_packageable_resource_paths():
+    """
+    Resource Types with respective Locations that are package-able.
+
+    Returns
+    ------
+    _resource_property_dict : Dict
+        Resource Dictionary containing packageable resource types and their locations as a list.
+    """
+    _resource_property_dict = defaultdict(list)
+    for _dict in (METADATA_WITH_LOCAL_PATHS, RESOURCES_WITH_LOCAL_PATHS, RESOURCES_WITH_IMAGE_COMPONENT):
+        for key, value in _dict.items():
+            # Only add values to the list if they are different, same property name could be used with the resource
+            # to package to different locations.
+            if value not in _resource_property_dict.get(key, []):
+                _resource_property_dict[key].append(value)
+
+    return _resource_property_dict
+
+
 def resources_generator():
     """
     Generator to yield set of resources and their locations that are supported for package operations
@@ -60,15 +80,7 @@ def resources_generator():
     location : str
         The location of the resource
     """
-    _resource_property_dict = defaultdict(list)
-    for _dict in (METADATA_WITH_LOCAL_PATHS, RESOURCES_WITH_LOCAL_PATHS, RESOURCES_WITH_IMAGE_COMPONENT):
-        for key, value in _dict.items():
-            # Only add values to the list if they are different, same property name could be used with the resource
-            # to package to different locations.
-            if value not in _resource_property_dict.get(key, []):
-                _resource_property_dict[key].append(value)
-
-    for resource, location_list in _resource_property_dict.items():
+    for resource, location_list in get_packageable_resource_paths().items():
         for locations in location_list:
             for location in locations:
                 yield resource, location
