@@ -92,8 +92,10 @@ def generate_project(
     try:
         LOG.debug("Baking a new template with cookiecutter with all parameters")
         cookiecutter(**params)
-        # Fix gradlew line ending issue caused by Windows git
-        # Putting it after cookiecutter as it will change the line ending
+        # Fixes gradlew line ending issue caused by Windows git
+        # gradlew is a shell script which should not have CR LF line endings
+        # Putting the conversion after cookiecutter as cookiecutter processing will also change the line endings
+        # https://github.com/cookiecutter/cookiecutter/pull/1407
         if platform.system().lower() == "windows":
             osutils.convert_files_to_unix_line_endings(output_dir, ["gradlew"])
     except RepositoryNotFound as e:
