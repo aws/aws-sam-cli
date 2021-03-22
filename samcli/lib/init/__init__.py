@@ -13,6 +13,7 @@ from cookiecutter.main import cookiecutter
 
 from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING
 from samcli.lib.utils.packagetype import ZIP
+from samcli.lib.utils import osutils
 from .exceptions import GenerateProjectFailedError, InvalidLocationError
 from .arbitrary_project import generate_non_cookiecutter_project
 
@@ -94,7 +95,8 @@ def generate_project(
         cookiecutter(**params)
         # Fix gradlew line ending issue caused by Windows git
         # Putting it after cookiecutter as it will change the line ending
-        _fix_gradlew_line_ending(output_dir)
+        if platform.system().lower() == "windows":
+            osutils.convert_files_to_unix_line_endings(output_dir, ["gradlew"])
     except RepositoryNotFound as e:
         # cookiecutter.json is not found in the template. Let's just clone it directly without using cookiecutter
         # and call it done.
@@ -109,22 +111,3 @@ def generate_project(
         raise InvalidLocationError(template=params["template"]) from e
     except CookiecutterException as e:
         raise GenerateProjectFailedError(project=name, provider_error=e) from e
-
-
-def _fix_gradlew_line_ending(path):
-    if platform.system().lower() != "windows":
-        return
-    for subdirectory, _, files in os.walk(path):
-        for file in files:
-            if file != "gradlew":
-                continue
-            file_path = os.path.join(subdirectory, file)
-            _replace_to_unix_line_ending(file_path)
-
-
-def _replace_to_unix_line_ending(file_path):
-    with open(file_path, "rb") as file:
-        content = file.read()
-    content = content.replace(b"\r\n", b"\n")
-    with open(file_path, "wb") as file:
-        file.write(content)
