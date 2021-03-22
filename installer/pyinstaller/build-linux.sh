@@ -50,7 +50,7 @@ echo "Building Binary"
 cd src
 if ! [ "$nightly_build" = "" ]; then
     echo "Updating samcli.spec with nightly build"
-    sed -i "s/\'sam\'/\'sam\-nightly\'/" samcli.spec
+    sed -i "s/\'sam\'/\'sam\-nightly\'/" installer/pyinstaller/samcli.spec
 fi
 echo "samcli.spec content is:"
 cat installer/pyinstaller/samcli.spec
