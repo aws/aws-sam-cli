@@ -18,6 +18,7 @@ class TestSamDeployCommand(TestCase):
             image_repositories=None,
             force_upload=True,
             no_progressbar=False,
+            initial_reporting_sleep=None,
             s3_prefix="s3-prefix",
             kms_key_id="kms-key-id",
             parameter_overrides={"a": "b"},

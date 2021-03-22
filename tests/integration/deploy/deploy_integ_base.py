@@ -38,6 +38,7 @@ class DeployIntegBase(TestCase):
         parameter_overrides=None,
         role_arn=None,
         kms_key_id=None,
+        initial_reporting_sleep=None,
         tags=None,
         profile=None,
         region=None,
@@ -66,6 +67,8 @@ class DeployIntegBase(TestCase):
             command_list = command_list + ["--notification-arns", str(notification_arns)]
         if stack_name:
             command_list = command_list + ["--stack-name", str(stack_name)]
+        if initial_reporting_sleep:
+            initial_reporting_sleep = command_list + ["--initial-reporting-sleep", float(initial_reporting_sleep)]
         if template:
             command_list = command_list + ["--template", str(template)]
         if template_file:

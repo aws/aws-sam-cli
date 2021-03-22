@@ -506,13 +506,16 @@ class TestDeployer(TestCase):
                 ClientError(
                     error_response={"Error": {"Message": "Rate Exceeded"}}, operation_name="describe_stack_events"
                 ),
+                ClientError(
+                    error_response={"Error": {"Message": "Rate Exceeded"}}, operation_name="describe_stack_events"
+                ),
             ]
         )
         # No exception raised, we return with a log message, this is because,
         # the changeset is still getting executed, but displaying them is getting throttled.
         self.deployer.describe_stack_events("test", time.time())
-        self.assertEqual(patched_math.pow.call_count, 3)
-        self.assertEqual(patched_math.pow.call_args_list, [call(2, 1), call(2, 2), call(2, 3)])
+        self.assertEqual(patched_math.pow.call_count, 4)
+        self.assertEqual(patched_math.pow.call_args_list, [call(2, 1), call(2, 2), call(2, 3), call(2, 4)])
 
     @patch("samcli.lib.deploy.deployer.math")
     @patch("time.sleep")

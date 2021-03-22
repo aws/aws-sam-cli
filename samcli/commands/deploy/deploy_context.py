@@ -56,6 +56,7 @@ class DeployContext:
         image_repositories,
         force_upload,
         no_progressbar,
+        initial_reporting_sleep,
         s3_prefix,
         kms_key_id,
         parameter_overrides,
@@ -77,6 +78,7 @@ class DeployContext:
         self.image_repositories = image_repositories
         self.force_upload = force_upload
         self.no_progressbar = no_progressbar
+        self.initial_reporting_sleep = initial_reporting_sleep
         self.s3_prefix = s3_prefix
         self.kms_key_id = kms_key_id
         self.parameter_overrides = parameter_overrides
@@ -133,7 +135,7 @@ class DeployContext:
                 s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload, self.no_progressbar
             )
 
-        self.deployer = Deployer(cloudformation_client)
+        self.deployer = Deployer(cloudformation_client, self.initial_reporting_sleep)
 
         region = s3_client._client_config.region_name if s3_client else self.region  # pylint: disable=W0212
         display_parameter_overrides = hide_noecho_parameter_overrides(template_dict, self.parameter_overrides)

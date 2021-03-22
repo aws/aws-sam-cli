@@ -279,6 +279,20 @@ def no_progressbar_option(f):
     return no_progressbar_click_option()(f)
 
 
+def initial_reporting_sleep_click_option():
+    return click.option(
+        "--initial-reporting-sleep",
+        default=0.5,
+        required=False,
+        help="Optional. Set the initial client sleep number for sam deploy stack updates "
+        "when calling describe-stacks ",
+    )
+
+
+def initial_reporting_sleep_option(f):
+    return initial_reporting_sleep_click_option()(f)
+
+
 def signing_profiles_click_option():
     return click.option(
         "--signing-profiles",

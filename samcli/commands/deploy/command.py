@@ -15,6 +15,7 @@ from samcli.commands._utils.options import (
     notification_arns_override_option,
     parameter_override_option,
     no_progressbar_option,
+    initial_reporting_sleep_option,
     tags_override_option,
     template_click_option,
     signing_profiles_option,
@@ -162,6 +163,7 @@ LOG = logging.getLogger(__name__)
 @parameter_override_option
 @signing_profiles_option
 @no_progressbar_option
+@initial_reporting_sleep_option
 @capabilities_override_option
 @aws_creds_options
 @common_options
@@ -179,6 +181,7 @@ def cli(
     image_repositories,
     force_upload,
     no_progressbar,
+    initial_reporting_sleep,
     s3_prefix,
     kms_key_id,
     parameter_overrides,
@@ -209,6 +212,7 @@ def cli(
         image_repositories,
         force_upload,
         no_progressbar,
+        initial_reporting_sleep,
         s3_prefix,
         kms_key_id,
         parameter_overrides,
@@ -239,6 +243,7 @@ def do_cli(
     image_repositories,
     force_upload,
     no_progressbar,
+    initial_reporting_sleep,
     s3_prefix,
     kms_key_id,
     parameter_overrides,
@@ -324,6 +329,7 @@ def do_cli(
             image_repositories=guided_context.guided_image_repositories if guided else image_repositories,
             force_upload=force_upload,
             no_progressbar=no_progressbar,
+            initial_reporting_sleep=initial_reporting_sleep,
             s3_prefix=guided_context.guided_s3_prefix if guided else s3_prefix,
             kms_key_id=kms_key_id,
             parameter_overrides=sanitize_parameter_overrides(guided_context.guided_parameter_overrides)

@@ -73,15 +73,15 @@ OUTPUTS_TABLE_HEADER_NAME = "CloudFormation outputs from deployed stack"
 
 
 class Deployer:
-    def __init__(self, cloudformation_client, changeset_prefix="samcli-deploy"):
+    def __init__(self, cloudformation_client, initial_reporting_sleep=0.5, changeset_prefix="samcli-deploy"):
         self._client = cloudformation_client
         self.changeset_prefix = changeset_prefix
-        # 500ms of sleep time between stack checks and describe stack events.
-        self.client_sleep = 0.5
+        # 500ms of sleep time between stack checks and describe stack events. Unless otherwise specified by the client
+        self.client_sleep = initial_reporting_sleep
         # 2000ms of backoff time which is exponentially used, when there are exceptions during describe stack events
         self.backoff = 2
         # Maximum number of attempts before raising exception back up the chain.
-        self.max_attempts = 3
+        self.max_attempts = 4
         self.deploy_color = DeployColor()
 
     def has_stack(self, stack_name):
