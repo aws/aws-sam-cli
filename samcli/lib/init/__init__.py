@@ -4,7 +4,6 @@ Init module to scaffold a project app from a template
 import itertools
 import logging
 import platform
-import os
 
 from pathlib import Path
 
