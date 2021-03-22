@@ -50,7 +50,7 @@ echo "Building Binary"
 cd src
 if ! [ "$nightly_build" = "" ]; then
     echo "Updating samcli.spec with nightly build"
-    sed -i "s/\'sam\'/\'sam\-nightly\'/" installer/pyinstaller/samcli.spec
+    sed -i "s/'sam'/'sam-nightly'/g" installer/pyinstaller/samcli.spec
 fi
 echo "samcli.spec content is:"
 cat installer/pyinstaller/samcli.spec
@@ -69,8 +69,8 @@ cp installer/assets/* pyinstaller-output
 chmod 755 pyinstaller-output/install
 if ! [ "$nightly_build" = "" ]; then
     echo "Updating install script with nightly build"
-    sed -i "s/\/usr\/local\/aws\-sam\-cli/\/usr\/local\/aws\-sam\-cli\-nightly/" pyinstaller-output/install
-    sed -i 's/EXE_NAME=\"sam\"/EXE_NAME=\"sam-nightly\"/' pyinstaller-output/install
+    sed -i "s/\/usr\/local\/aws-sam-cli/\/usr\/local\/aws-sam-cli-nightly/g" pyinstaller-output/install
+    sed -i 's/EXE_NAME=\"sam\"/EXE_NAME=\"sam-nightly\"/g' pyinstaller-output/install
 fi
 echo "install script content is:"
 cat pyinstaller-output/install
