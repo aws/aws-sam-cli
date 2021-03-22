@@ -64,7 +64,7 @@ if ! [ "$nightly_build" = "" ]; then
     dist_folder="sam-nightly"
 fi
 echo "dist_folder=$dist_folder"
-mv dist/$binary_name pyinstaller-output/dist
+mv dist/$dist_folder pyinstaller-output/dist
 cp installer/assets/* pyinstaller-output
 chmod 755 pyinstaller-output/install
 if ! [ "$nightly_build" = "" ]; then
