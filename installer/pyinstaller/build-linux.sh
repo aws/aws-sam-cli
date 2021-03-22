@@ -11,13 +11,6 @@ fi
 if [ "$python_version" = "" ]; then
     python_version="3.7.9";
 fi
-sam_cli_spec_filename="samcli.spec"
-binary_name="sam"
-if ! [ "$nightly_build" = "" ]; then
-    echo "Running with nightly build"
-    sam_cli_spec_filename="samcli-nightly.spec"
-    binary_name="sam-nightly"
-fi
 
 set -eu
 
@@ -55,19 +48,32 @@ echo "Installing PyInstaller"
 
 echo "Building Binary"
 cd src
-../venv/bin/python -m PyInstaller -D --clean installer/pyinstaller/${sam_cli_spec_filename}
+if ! [ "$nightly_build" = "" ]; then
+    echo "Updating samcli.spec with nightly build"
+    sed -i "s/\'sam\'/\'sam\-nightly\'/" samcli.spec
+fi
+echo "samcli.spec content is:"
+cat installer/pyinstaller/samcli.spec
+../venv/bin/python -m PyInstaller -D --clean installer/pyinstaller/samcli.spec
 
 
 mkdir pyinstaller-output
-
+dist_folder="sam"
+if ! [ "$nightly_build" = "" ]; then
+    echo "using dist_folder with nightly build"
+    dist_folder="sam-nightly"
+fi
+echo "dist_folder=$dist_folder"
 mv dist/${binary_name} pyinstaller-output/dist
 cp installer/assets/* pyinstaller-output
-if ! [ "$nightly_build" = "" ]; then
-    echo "Building with nightly builds, renaming install script name"
-    mv pyinstaller-output/install_nightly_build pyinstaller-output/install
-fi
 chmod 755 pyinstaller-output/install
-
+if ! [ "$nightly_build" = "" ]; then
+    echo "Updating install script with nightly build"
+    sed -i "s/\/usr\/local\/aws\-sam\-cli/\/usr\/local\/aws\-sam\-cli\-nightly/" pyinstaller-output/install
+    sed -i 's/EXE_NAME=\"sam\"/EXE_NAME=\"sam-nightly\"/' pyinstaller-output/install
+fi
+echo "install script content is:"
+cat pyinstaller-output/install
 echo "Copying Binary"
 cd ..
 cp -r src/pyinstaller-output/* output/pyinstaller-output
