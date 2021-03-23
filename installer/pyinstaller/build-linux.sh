@@ -12,6 +12,13 @@ if [ "$python_version" = "" ]; then
     python_version="3.7.9";
 fi
 
+if ! [ "$nightly_build" = "" ]; then
+    echo "Building native installer with nightly build"
+    is_nightly="true"; else
+    echo "Building native installer with normal build"
+    is_nightly="false"
+fi
+
 set -eu
 
 yum install -y zlib-devel openssl-devel
@@ -48,9 +55,10 @@ echo "Installing PyInstaller"
 
 echo "Building Binary"
 cd src
-if ! [ "$nightly_build" = "" ]; then
+if [ "$is_nightly" = "true" ]; then
     echo "Updating samcli.spec with nightly build"
-    sed -i "s/'sam'/'sam-nightly'/g" installer/pyinstaller/samcli.spec
+    sed -i.bak "s/'sam'/'sam-nightly'/g" installer/pyinstaller/samcli.spec
+    rm installer/pyinstaller/samcli.spec.bak
 fi
 echo "samcli.spec content is:"
 cat installer/pyinstaller/samcli.spec
@@ -59,7 +67,7 @@ cat installer/pyinstaller/samcli.spec
 
 mkdir pyinstaller-output
 dist_folder="sam"
-if ! [ "$nightly_build" = "" ]; then
+if [ "$is_nightly" = "true" ]; then
     echo "using dist_folder with nightly build"
     dist_folder="sam-nightly"
 fi
@@ -67,10 +75,11 @@ echo "dist_folder=$dist_folder"
 mv "dist/$dist_folder" pyinstaller-output/dist
 cp installer/assets/* pyinstaller-output
 chmod 755 pyinstaller-output/install
-if ! [ "$nightly_build" = "" ]; then
+if [ "$is_nightly" = "true" ]; then
     echo "Updating install script with nightly build"
-    sed -i "s/\/usr\/local\/aws-sam-cli/\/usr\/local\/aws-sam-cli-nightly/g" pyinstaller-output/install
-    sed -i 's/EXE_NAME=\"sam\"/EXE_NAME=\"sam-nightly\"/g' pyinstaller-output/install
+    sed -i.bak "s/\/usr\/local\/aws-sam-cli/\/usr\/local\/aws-sam-cli-nightly/g" pyinstaller-output/install
+    sed -i.bak 's/EXE_NAME=\"sam\"/EXE_NAME=\"sam-nightly\"/g' pyinstaller-output/install
+    rm pyinstaller-output/install.bak
 fi
 echo "install script content is:"
 cat pyinstaller-output/install
