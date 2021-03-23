@@ -421,6 +421,16 @@ class SamFunctionProvider(SamBaseProvider):
                         stack_path=stack.stack_path,
                     )
                 )
+            else:
+                # layer is not recognizable, it might be an intrinsic function that we don't support yet.
+                # LayerVersion will raise exceptions in its own methods.
+                layers.append(
+                    LayerVersion(
+                        layer,
+                        None,
+                        stack_path=stack.stack_path,
+                    )
+                )
 
         return layers
 
