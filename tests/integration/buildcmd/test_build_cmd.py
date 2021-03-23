@@ -1837,7 +1837,7 @@ class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
     ],
 )
 class TestBuildPassingLayerAcrossStacks(IntrinsicIntegBase):
-    # @pytest.mark.flaky(reruns=3)
+    @pytest.mark.flaky(reruns=3)
     def test_nested_build(self):
         if SKIP_DOCKER_TESTS:
             self.skipTest(SKIP_DOCKER_MESSAGE)
