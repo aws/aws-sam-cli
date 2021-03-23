@@ -45,7 +45,7 @@ cd ..
 
 echo "Installing Python Libraries"
 python3 -m venv venv
-./venv/bin/pip install -r install --upgrade pip
+./venv/bin/pip install --upgrade pip
 ./venv/bin/pip install -r src/requirements/reproducible-linux.txt
 
 echo "Copying All Python Libraries"
