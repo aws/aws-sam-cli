@@ -4,7 +4,6 @@ CLI command for "build" command
 
 import os
 import logging
-from samcli.commands.build.exceptions import InvalidBuildImageException
 from typing import List, Optional, Dict, Tuple
 import click
 
@@ -20,6 +19,7 @@ from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
+from samcli.commands.build.exceptions import InvalidBuildImageException
 
 LOG = logging.getLogger(__name__)
 
