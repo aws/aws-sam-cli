@@ -387,40 +387,10 @@ class SamFunctionProvider(SamBaseProvider):
             # In the list of layers that is defined within a template, you can reference a LayerVersion resource.
             # When running locally, we need to follow that Ref so we can extract the local path to the layer code.
             if isinstance(layer, dict) and layer.get("Ref"):
-                layer_logical_id = cast(str, layer.get("Ref"))
-                layer_resource = stack.resources.get(layer_logical_id)
-                if not layer_resource or layer_resource.get("Type", "") not in (
-                    SamFunctionProvider.SERVERLESS_LAYER,
-                    SamFunctionProvider.LAMBDA_LAYER,
-                ):
-                    raise InvalidLayerReference()
-
-                layer_properties = layer_resource.get("Properties", {})
-                resource_type = layer_resource.get("Type")
-                compatible_runtimes = layer_properties.get("CompatibleRuntimes")
-                codeuri: Optional[str] = None
-
-                if resource_type == SamFunctionProvider.LAMBDA_LAYER:
-                    codeuri = SamFunctionProvider._extract_lambda_function_code(layer_properties, "Content")
-
-                if resource_type == SamFunctionProvider.SERVERLESS_LAYER:
-                    codeuri = SamFunctionProvider._extract_sam_function_codeuri(
-                        layer_logical_id, layer_properties, "ContentUri", ignore_code_extraction_warnings
-                    )
-
-                if codeuri and not use_raw_codeuri:
-                    LOG.debug("--base-dir is presented not, adjusting uri %s relative to %s", codeuri, stack.location)
-                    codeuri = SamLocalStackProvider.normalize_resource_path(stack.location, codeuri)
-
-                layers.append(
-                    LayerVersion(
-                        layer_logical_id,
-                        codeuri,
-                        compatible_runtimes,
-                        layer_resource.get("Metadata", None),
-                        stack_path=stack.stack_path,
-                    )
+                found_layer = SamFunctionProvider._locate_layer_from_ref(
+                    stack, layer, use_raw_codeuri, ignore_code_extraction_warnings
                 )
+                layers.append(found_layer)
             else:
                 LOG.debug(
                     'layer "%s" is not recognizable, '
@@ -429,6 +399,43 @@ class SamFunctionProvider(SamBaseProvider):
                 )
 
         return layers
+
+    @staticmethod
+    def _locate_layer_from_ref(
+        stack: Stack, layer: Dict, use_raw_codeuri: bool = False, ignore_code_extraction_warnings: bool = False
+    ) -> LayerVersion:
+        layer_logical_id = cast(str, layer.get("Ref"))
+        layer_resource = stack.resources.get(layer_logical_id)
+        if not layer_resource or layer_resource.get("Type", "") not in (
+            SamFunctionProvider.SERVERLESS_LAYER,
+            SamFunctionProvider.LAMBDA_LAYER,
+        ):
+            raise InvalidLayerReference()
+
+        layer_properties = layer_resource.get("Properties", {})
+        resource_type = layer_resource.get("Type")
+        compatible_runtimes = layer_properties.get("CompatibleRuntimes")
+        codeuri: Optional[str] = None
+
+        if resource_type == SamFunctionProvider.LAMBDA_LAYER:
+            codeuri = SamFunctionProvider._extract_lambda_function_code(layer_properties, "Content")
+
+        if resource_type == SamFunctionProvider.SERVERLESS_LAYER:
+            codeuri = SamFunctionProvider._extract_sam_function_codeuri(
+                layer_logical_id, layer_properties, "ContentUri", ignore_code_extraction_warnings
+            )
+
+        if codeuri and not use_raw_codeuri:
+            LOG.debug("--base-dir is presented not, adjusting uri %s relative to %s", codeuri, stack.location)
+            codeuri = SamLocalStackProvider.normalize_resource_path(stack.location, codeuri)
+
+        return LayerVersion(
+            layer_logical_id,
+            codeuri,
+            compatible_runtimes,
+            layer_resource.get("Metadata", None),
+            stack_path=stack.stack_path,
+        )
 
     def get_resources_by_stack_path(self, stack_path: str) -> Dict:
         candidates = [stack.resources for stack in self.stacks if stack.stack_path == stack_path]
