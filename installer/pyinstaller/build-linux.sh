@@ -14,7 +14,8 @@ fi
 
 if ! [ "$nightly_build" = "" ]; then
     echo "Building native installer with nightly build"
-    is_nightly="true"; else
+    is_nightly="true"
+else
     echo "Building native installer with normal build"
     is_nightly="false"
 fi
