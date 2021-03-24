@@ -335,8 +335,6 @@ class TestBuildCommand_Java(BuildIntegBase):
     USING_GRADLEW_PATH = os.path.join("Java", "gradlew")
     USING_GRADLE_KOTLIN_PATH = os.path.join("Java", "gradle-kotlin")
     USING_MAVEN_PATH = os.path.join("Java", "maven")
-    WINDOWS_LINE_ENDING = b"\r\n"
-    UNIX_LINE_ENDING = b"\n"
 
     @parameterized.expand(
         [
@@ -401,7 +399,7 @@ class TestBuildCommand_Java(BuildIntegBase):
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
         cmdlist += ["--skip-pull-image"]
         if code_path == self.USING_GRADLEW_PATH and use_container and IS_WINDOWS:
-            self._change_to_unix_line_ending(os.path.join(self.test_data_path, self.USING_GRADLEW_PATH, "gradlew"))
+            osutils.convert_to_unix_line_ending(os.path.join(self.test_data_path, self.USING_GRADLEW_PATH, "gradlew"))
 
         LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir)
@@ -463,15 +461,6 @@ class TestBuildCommand_Java(BuildIntegBase):
 
         lib_dir_contents = set(os.listdir(str(resource_artifact_dir.joinpath("lib"))))
         self.assertEqual(lib_dir_contents, expected_modules)
-
-    def _change_to_unix_line_ending(self, path):
-        with open(os.path.abspath(path), "rb") as open_file:
-            content = open_file.read()
-
-        content = content.replace(self.WINDOWS_LINE_ENDING, self.UNIX_LINE_ENDING)
-
-        with open(os.path.abspath(path), "wb") as open_file:
-            open_file.write(content)
 
 
 @skipIf(
