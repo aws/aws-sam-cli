@@ -44,6 +44,7 @@ class BuildContext:
         skip_pull_image: bool = False,
         container_env_var: Optional[dict] = None,
         container_env_var_file: Optional[str] = None,
+        build_images: Optional[dict] = None,
     ) -> None:
 
         self._resource_identifier = resource_identifier
@@ -65,6 +66,7 @@ class BuildContext:
         self._cached = cached
         self._container_env_var = container_env_var
         self._container_env_var_file = container_env_var_file
+        self._build_images = build_images
 
         self._function_provider: Optional[SamFunctionProvider] = None
         self._layer_provider: Optional[SamLayerProvider] = None

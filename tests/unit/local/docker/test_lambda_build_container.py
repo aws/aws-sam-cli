@@ -159,8 +159,8 @@ class TestLambdaBuildContainer_get_container_dirs(TestCase):
 class TestLambdaBuildContainer_get_image(TestCase):
     @parameterized.expand(
         [
-            ("myruntime", "public.ecr.aws/sam/build-myruntime"),
-            ("nodejs10.x", "public.ecr.aws/sam/build-nodejs10.x"),
+            ("myruntime", "public.ecr.aws/sam/build-myruntime:latest"),
+            ("nodejs10.x", "public.ecr.aws/sam/build-nodejs10.x:latest"),
         ]
     )
     def test_must_get_image_name(self, runtime, expected_image_name):
