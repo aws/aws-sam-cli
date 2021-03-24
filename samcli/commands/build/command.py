@@ -4,6 +4,7 @@ CLI command for "build" command
 
 import os
 import logging
+from samcli.commands.build.exceptions import InvalidBuildImageException
 from typing import List, Optional, Dict, Tuple
 import click
 
@@ -455,7 +456,7 @@ def _process_image_options(image_args: Optional[Tuple[str]]) -> Dict:
         for build_image_string in image_args:
             function_name, image_uri = _parse_key_value_pair(build_image_string)
             if not image_uri:
-                LOG.error("Invalid command line --build-image input %s, skipped.", build_image_string)
+                raise InvalidBuildImageException(f"Invalid command line --build-image input {build_image_string}.")
             build_images[function_name] = image_uri
 
     return build_images
