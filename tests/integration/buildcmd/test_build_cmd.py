@@ -17,6 +17,7 @@ from .build_integ_base import (
     CachedBuildIntegBase,
     BuildIntegRubyBase,
     NestedBuildIntegBase,
+    IntrinsicIntegBase,
 )
 from tests.testing_utils import (
     IS_WINDOWS,
@@ -1800,4 +1801,60 @@ class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
                     ("Function2", "Hello Mars"),
                     ("LocalNestedStack/Function2", {"pi": "3.14"}),
                 ],
+            )
+
+
+@parameterized_class(
+    ("template", "stack_paths", "layer_full_path", "function_full_paths", "invoke_error_message"),
+    [
+        (
+            os.path.join("nested-with-intrinsic-functions", "template-pass-down.yaml"),
+            ["", "AppUsingRef", "AppUsingJoin"],
+            "MyLayerVersion",
+            ["AppUsingRef/FunctionInChild", "AppUsingJoin/FunctionInChild"],
+            # Note(xinhol), intrinsic function passed by parameter are resolved as string,
+            # therefore it is being treated as an Arn, it is a bug in intrinsic resolver
+            "Invalid Layer Arn",
+        ),
+        (
+            os.path.join("nested-with-intrinsic-functions", "template-pass-up.yaml"),
+            ["", "ChildApp"],
+            "ChildApp/MyLayerVersion",
+            ["FunctionInRoot"],
+            # for this pass-up use case, since we are not sure whether there are valid local invoke cases out there,
+            # so we don't want to block customers from local invoking it.
+            None,
+        ),
+    ],
+)
+class TestBuildPassingLayerAcrossStacks(IntrinsicIntegBase):
+    @pytest.mark.flaky(reruns=3)
+    def test_nested_build(self):
+        if SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        """
+        Build template above and verify that each function call returns as expected
+        """
+        cmdlist = self.get_command_list(
+            use_container=True,
+            cached=True,
+            parallel=True,
+        )
+
+        LOG.info("Running Command: %s", cmdlist)
+        LOG.info(self.working_dir)
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        if not SKIP_DOCKER_TESTS:
+            self._verify_build(
+                self.function_full_paths,
+                self.layer_full_path,
+                self.stack_paths,
+                command_result,
+            )
+
+            self._verify_invoke_built_functions(
+                self.built_template, self.function_full_paths, self.invoke_error_message
             )
