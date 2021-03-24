@@ -41,6 +41,7 @@ class TestCli(TestCase):
         self.shutdown = False
         self.region_name = "region"
         self.profile = "profile"
+        self.container_host = "localhost"
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
@@ -75,6 +76,7 @@ class TestCli(TestCase):
             layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
             shutdown=self.shutdown,
+            container_host=self.container_host,
         )
 
         InvokeContextMock.assert_called_with(
@@ -95,6 +97,7 @@ class TestCli(TestCase):
             shutdown=self.shutdown,
             aws_region=self.region_name,
             aws_profile=self.profile,
+            container_host=self.container_host,
         )
 
         context_mock.local_lambda_runner.invoke.assert_called_with(
@@ -133,6 +136,7 @@ class TestCli(TestCase):
             layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
             shutdown=self.shutdown,
+            container_host=self.container_host,
         )
 
         InvokeContextMock.assert_called_with(
@@ -153,6 +157,7 @@ class TestCli(TestCase):
             shutdown=self.shutdown,
             aws_region=self.region_name,
             aws_profile=self.profile,
+            container_host=self.container_host,
         )
 
         get_event_mock.assert_not_called()
@@ -205,6 +210,7 @@ class TestCli(TestCase):
                 layer_cache_basedir=self.layer_cache_basedir,
                 force_image_build=self.force_image_build,
                 shutdown=self.shutdown,
+                container_host=self.container_host,
             )
 
         msg = str(ex_ctx.exception)
@@ -257,6 +263,7 @@ class TestCli(TestCase):
                 layer_cache_basedir=self.layer_cache_basedir,
                 force_image_build=self.force_image_build,
                 shutdown=self.shutdown,
+                container_host=self.container_host,
             )
 
         msg = str(ex_ctx.exception)
@@ -307,6 +314,7 @@ class TestCli(TestCase):
                 layer_cache_basedir=self.layer_cache_basedir,
                 force_image_build=self.force_image_build,
                 shutdown=self.shutdown,
+                container_host=self.container_host,
             )
 
         msg = str(ex_ctx.exception)
@@ -345,6 +353,7 @@ class TestCli(TestCase):
                 layer_cache_basedir=self.layer_cache_basedir,
                 force_image_build=self.force_image_build,
                 shutdown=self.shutdown,
+                container_host=self.container_host,
             )
 
         msg = str(ex_ctx.exception)
@@ -397,6 +406,7 @@ class TestCli(TestCase):
                 layer_cache_basedir=self.layer_cache_basedir,
                 force_image_build=self.force_image_build,
                 shutdown=self.shutdown,
+                container_host=self.container_host,
             )
 
         msg = str(ex_ctx.exception)

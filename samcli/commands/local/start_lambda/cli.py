@@ -92,6 +92,7 @@ def cli(
     warm_containers,
     shutdown,
     debug_function,
+    container_host,
 ):
     """
     `sam local start-lambda` command entry point
@@ -118,6 +119,7 @@ def cli(
         warm_containers,
         shutdown,
         debug_function,
+        container_host,
     )  # pragma: no cover
 
 
@@ -141,6 +143,7 @@ def do_cli(  # pylint: disable=R0914
     warm_containers,
     shutdown,
     debug_function,
+    container_host,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -180,6 +183,7 @@ def do_cli(  # pylint: disable=R0914
             warm_container_initialization_mode=warm_containers,
             debug_function=debug_function,
             shutdown=shutdown,
+            container_host=container_host,
         ) as invoke_context:
 
             service = LocalLambdaService(lambda_invoke_context=invoke_context, port=port, host=host)

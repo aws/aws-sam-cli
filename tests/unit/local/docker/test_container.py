@@ -513,12 +513,18 @@ class TestContainer_wait_for_result(TestCase):
         self.cmd = ["cmd"]
         self.working_dir = "working_dir"
         self.host_dir = "host_dir"
+        self.container_host = "localhost"
 
         self.mock_docker_client = Mock()
         self.mock_docker_client.containers = Mock()
         self.mock_docker_client.containers.get = Mock()
         self.container = Container(
-            self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
+            self.image,
+            self.cmd,
+            self.working_dir,
+            self.host_dir,
+            docker_client=self.mock_docker_client,
+            container_host=self.container_host,
         )
         self.container.id = "someid"
 
