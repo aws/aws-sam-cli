@@ -1832,7 +1832,9 @@ class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
             ["", "ChildApp"],
             "ChildApp/MyLayerVersion",
             ["FunctionInRoot"],
-            "Unsupported Intrinsic",
+            # for this pass-up use case, since we are not sure whether there are valid local invoke cases out there,
+            # so we don't want to block customers from local invoking it.
+            None,
         ),
     ],
 )
@@ -1864,6 +1866,6 @@ class TestBuildPassingLayerAcrossStacks(IntrinsicIntegBase):
                 command_result,
             )
 
-            self._verify_cannot_invoke_built_functions(
+            self._verify_invoke_built_functions(
                 self.built_template, self.function_full_paths, self.invoke_error_message
             )

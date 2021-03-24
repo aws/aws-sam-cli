@@ -422,14 +422,10 @@ class SamFunctionProvider(SamBaseProvider):
                     )
                 )
             else:
-                # layer is not recognizable, it might be an intrinsic function that we don't support yet.
-                # LayerVersion will raise exceptions in its own methods.
-                layers.append(
-                    LayerVersion(
-                        layer,
-                        None,
-                        stack_path=stack.stack_path,
-                    )
+                LOG.debug(
+                    'layer "%s" is not recognizable, '
+                    "it might be using intrinsic functions that we don't support yet. Skipping.",
+                    str(layer),
                 )
 
         return layers

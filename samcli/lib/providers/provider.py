@@ -145,6 +145,8 @@ class LayerVersion:
             compatible_runtimes = []
         if metadata is None:
             metadata = {}
+        if not isinstance(arn, str):
+            raise UnsupportedIntrinsic("{} is an Unsupported Intrinsic".format(arn))
 
         self._stack_path = stack_path
         self._arn = arn
@@ -222,11 +224,6 @@ class LayerVersion:
 
     @property
     def arn(self) -> str:
-        # because self.arn is only used in local invoke.
-        # here we delay the validation process for self._arn, rather than in __init__() to ensure
-        # customers still have a smooth build experience.
-        if not isinstance(self._arn, str):
-            raise UnsupportedIntrinsic("{} is an Unsupported Intrinsic".format(self._arn))
         return self._arn
 
     @property

@@ -350,7 +350,10 @@ class IntrinsicIntegBase(BuildIntegBase):
             command_result.stderr.decode("utf-8"),
         )
 
-    def _verify_cannot_invoke_built_functions(self, template_path, functions, error_message):
+    def _verify_invoke_built_functions(self, template_path, functions, error_message):
+        """
+        Invoke the function, if error_message is not None, the invoke should fail.
+        """
         for function_logical_id in functions:
             LOG.info("Invoking built function '{}'".format(function_logical_id))
 
@@ -368,5 +371,8 @@ class IntrinsicIntegBase(BuildIntegBase):
             process_execute.process.wait()
 
             process_stderr = process_execute.stderr.decode("utf-8")
-            self.assertNotEqual(0, process_execute.process.returncode)
-            self.assertIn(error_message, process_stderr)
+            if error_message:
+                self.assertNotEqual(0, process_execute.process.returncode)
+                self.assertIn(error_message, process_stderr)
+            else:
+                self.assertEqual(0, process_execute.process.returncode)

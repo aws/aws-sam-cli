@@ -91,6 +91,5 @@ class TestLayerVersion(TestCase):
             "Fn::Sub": ["arn:aws:lambda:region:account-id:layer:{layer_name}:1", {"layer_name": "layer-name"}]
         }
 
-        layer = LayerVersion(intrinsic_arn, ".")  # creation of layer does not raise exception
         with self.assertRaises(UnsupportedIntrinsic):
-            layer.arn
+            LayerVersion(intrinsic_arn, ".")
