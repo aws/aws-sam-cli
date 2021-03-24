@@ -27,6 +27,13 @@ class SamBaseProvider:
     CLOUDFORMATION_STACK = AWS_CLOUDFORMATION_STACK
     DEFAULT_CODEURI = "."
 
+    CODE_PROPERTY_KEYS = {
+        LAMBDA_FUNCTION: "Code",
+        SERVERLESS_FUNCTION: "CodeUri",
+        LAMBDA_LAYER: "Content",
+        SERVERLESS_LAYER: "ContentUri",
+    }
+
     def get(self, name: str) -> Optional[Any]:
         """
         Given name of the function, this method must return the Function object
@@ -45,9 +52,9 @@ class SamBaseProvider:
         raise NotImplementedError("not implemented")
 
     @staticmethod
-    def _extract_lambda_function_code(resource_properties: Dict, code_property_key: str) -> str:
+    def _extract_codeuri(resource_properties: Dict, code_property_key: str) -> str:
         """
-        Extracts the Lambda Function Code from the Resource Properties
+        Extracts the Function/Layer code path from the Resource Properties
 
         Parameters
         ----------
@@ -61,13 +68,27 @@ class SamBaseProvider:
         str
             Representing the local code path
         """
-
         codeuri = resource_properties.get(code_property_key, SamBaseProvider.DEFAULT_CODEURI)
 
         if isinstance(codeuri, dict):
             return SamBaseProvider.DEFAULT_CODEURI
 
         return cast(str, codeuri)
+
+    @staticmethod
+    def _is_code_uri_s3(codeuri: Optional[Any]) -> bool:
+        return (isinstance(codeuri, dict) and ("S3Bucket" in codeuri or "Bucket" in codeuri)) or (
+            isinstance(codeuri, str) and codeuri.startswith("s3://")
+        )
+
+    @staticmethod
+    def _warn_code_extraction(resource_type: str, resource_name: str, code_property: str) -> None:
+        LOG.warning(
+            "%s '%s' has specified S3 location for %s which is unsupported.",
+            resource_type,
+            resource_name,
+            code_property,
+        )
 
     @staticmethod
     def _extract_lambda_function_imageuri(resource_properties: Dict, code_property_key: str) -> Optional[str]:
@@ -106,45 +127,6 @@ class SamBaseProvider:
             Representing the local imageuri
         """
         return resource_properties.get(code_property_key, None)
-
-    @staticmethod
-    def _extract_sam_function_codeuri(
-        name: str,
-        resource_properties: Dict[str, Any],
-        code_property_key: str,
-        ignore_code_extraction_warnings: bool = False,
-    ) -> str:
-        """
-        Extracts the SAM Function CodeUri from the Resource Properties
-
-        Parameters
-        ----------
-        name str
-            LogicalId of the resource
-        resource_properties dict
-            Dictionary representing the Properties of the Resource
-        code_property_key str
-            Property Key of the code on the Resource
-        ignore_code_extraction_warnings
-            Boolean to ignore log statements on code extraction from Resources.
-
-        Returns
-        -------
-        str
-            Representing the local code path
-        """
-        codeuri = resource_properties.get(code_property_key, SamBaseProvider.DEFAULT_CODEURI)
-        # CodeUri can be a dictionary of S3 Bucket/Key or a S3 URI, neither of which are supported
-        if isinstance(codeuri, dict) or (isinstance(codeuri, str) and codeuri.startswith("s3://")):
-            if not ignore_code_extraction_warnings:
-                LOG.warning(
-                    "Lambda function '%s' has specified S3 location for CodeUri which is unsupported. "
-                    "Using default value of '%s' instead",
-                    name,
-                    SamBaseProvider.DEFAULT_CODEURI,
-                )
-            return SamBaseProvider.DEFAULT_CODEURI
-        return cast(str, codeuri)
 
     @staticmethod
     def get_template(template_dict: Dict, parameter_overrides: Optional[Dict[str, str]] = None) -> Dict:

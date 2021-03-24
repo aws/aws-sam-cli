@@ -81,38 +81,60 @@ class SamLayerProvider(SamBaseProvider):
         layers = []
         for stack in self._stacks:
             for name, resource in stack.resources.items():
-                if resource.get("Type") in [self.LAMBDA_LAYER, self.SERVERLESS_LAYER]:
-                    layers.append(self._convert_lambda_layer_resource(stack, name, resource))
+                # In the list of layers that is defined within a template, you can reference a LayerVersion resource.
+                # When running locally, we need to follow that Ref so we can extract the local path to the layer code.
+                resource_type = resource.get("Type")
+                resource_properties = resource.get("Properties", {})
+
+                if resource_type in [SamBaseProvider.LAMBDA_LAYER, SamBaseProvider.SERVERLESS_LAYER]:
+                    code_property_key = SamBaseProvider.CODE_PROPERTY_KEYS[resource_type]
+                    if SamBaseProvider._is_code_uri_s3(resource_properties.get(code_property_key)):
+                        # Content can be a dictionary of S3 Bucket/Key or a S3 URI, neither of which are supported
+                        SamBaseProvider._warn_code_extraction(resource_type, name, code_property_key)
+                        continue
+                    codeuri = SamBaseProvider._extract_codeuri(resource_properties, code_property_key)
+
+                    compatible_runtimes = resource_properties.get("CompatibleRuntimes")
+                    metadata = resource.get("Metadata", None)
+                    layers.append(
+                        self._convert_lambda_layer_resource(stack, name, codeuri, compatible_runtimes, metadata)
+                    )
         return layers
 
-    def _convert_lambda_layer_resource(self, stack: Stack, layer_logical_id: str, layer_resource: Dict) -> LayerVersion:
+    def _convert_lambda_layer_resource(
+        self,
+        stack: Stack,
+        layer_logical_id: str,
+        codeuri: str,
+        compatible_runtimes: Optional[List[str]],
+        metadata: Optional[Dict],
+    ) -> LayerVersion:
         """
         Convert layer resource into {LayerVersion} object.
         Parameters
         ----------
-        layer_logical_id: LogicalID of resource.
-        layer_resource: resource in template.
+        stack
+        layer_logical_id
+            LogicalID of resource.
+        codeuri
+            codeuri of the layer
+        compatible_runtimes
+            list of compatible runtimes
+        metadata
+            dictionary of layer metadata
+        Returns
+        -------
+        LayerVersion
+            The layer object
         """
-        # In the list of layers that is defined within a template, you can reference a LayerVersion resource.
-        # When running locally, we need to follow that Ref so we can extract the local path to the layer code.
-        layer_properties = layer_resource.get("Properties", {})
-        resource_type = layer_resource.get("Type")
-        compatible_runtimes = layer_properties.get("CompatibleRuntimes")
-        codeuri = None
-
-        if resource_type == self.SERVERLESS_LAYER:
-            codeuri = SamLayerProvider._extract_sam_function_codeuri(layer_logical_id, layer_properties, "ContentUri")
-        if resource_type == self.LAMBDA_LAYER:
-            codeuri = SamLayerProvider._extract_lambda_function_code(layer_properties, "Content")
-
         if codeuri and not self._use_raw_codeuri:
-            LOG.debug("--base-dir is presented not, adjusting uri %s relative to %s", codeuri, stack.location)
+            LOG.debug("--base-dir is not presented, adjusting uri %s relative to %s", codeuri, stack.location)
             codeuri = SamLocalStackProvider.normalize_resource_path(stack.location, codeuri)
 
         return LayerVersion(
             layer_logical_id,
             codeuri,
             compatible_runtimes,
-            layer_resource.get("Metadata", None),
+            metadata,
             stack_path=stack.stack_path,
         )
