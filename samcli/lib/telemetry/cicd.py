@@ -21,7 +21,7 @@ class CICDPlatform(Enum):
     Semaphore = auto()
     Appveyor = auto()
     # make sure Unknown is at the bottom, it is the fallback.
-    Unknown = auto()
+    Other = auto()
 
 
 def _is_codeship(environ: Mapping) -> bool:
@@ -70,7 +70,7 @@ _ENV_VAR_OR_CALLABLE_BY_PLATFORM: Dict[CICDPlatform, Union[str, Callable[[Mappin
     CICDPlatform.Semaphore: "SEMAPHORE",
     # https://www.appveyor.com/docs/environment-variables/
     CICDPlatform.Appveyor: "APPVEYOR",
-    CICDPlatform.Unknown: "CI",
+    CICDPlatform.Other: "CI",
 }
 
 

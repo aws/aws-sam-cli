@@ -21,7 +21,7 @@ class TestCICD(TestCase):
             (CICDPlatform.CodeShip, "CI_NAME", "CodeShip"),
             (CICDPlatform.Semaphore, "SEMAPHORE", Mock()),
             (CICDPlatform.Appveyor, "APPVEYOR", Mock()),
-            (CICDPlatform.Unknown, "CI", Mock()),
+            (CICDPlatform.Other, "CI", Mock()),
         ]
     )
     def test_is_cicd_platform(self, cicd_platform, env_var, env_var_value):
