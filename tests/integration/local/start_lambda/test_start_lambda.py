@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time, sleep
 import json
 import docker
-from parameterized import parameterized
+from parameterized import parameterized, parameterized_class
 
 import pytest
 import random
@@ -111,9 +111,14 @@ class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
         self.assertEqual(str(error.exception), expected_error_message)
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/invoke/template.yml",),
+        ("/testdata/invoke/nested-templates/template-parent.yaml",),
+    ],
+)
 class TestLambdaService(StartLambdaIntegBaseClass):
-    template_path = "/testdata/invoke/template.yml"
-
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
         self.lambda_client = boto3.client(
@@ -484,7 +489,7 @@ def handler(event, context):
 
         self._write_file_content(self.code_path, self.code_content_2)
         # wait till SAM got notified that the source code got changed
-        sleep(0.5)
+        sleep(2)
         result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
         self.assertEqual(result.get("StatusCode"), 200)
 
@@ -562,7 +567,7 @@ COPY main.py ./"""
         self._write_file_content(self.code_path, self.code_content_2)
         self.build()
         # wait till SAM got notified that the source code got changed
-        sleep(0.5)
+        sleep(2)
         result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
         self.assertEqual(result.get("StatusCode"), 200)
 
@@ -625,7 +630,7 @@ def handler(event, context):
 
         self._write_file_content(self.code_path, self.code_content_2)
         # wait till SAM got notified that the source code got changed
-        sleep(0.5)
+        sleep(2)
         result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
         self.assertEqual(result.get("StatusCode"), 200)
 
@@ -703,7 +708,7 @@ COPY main.py ./"""
         self._write_file_content(self.code_path, self.code_content_2)
         self.build()
         # wait till SAM got notified that the source code got changed
-        sleep(0.5)
+        sleep(2)
         result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
         self.assertEqual(result.get("StatusCode"), 200)
 

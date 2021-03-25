@@ -103,7 +103,7 @@ class TestSamConfigForAllCommands(TestCase):
     @patch("samcli.commands.build.command.do_cli")
     def test_build(self, do_cli_mock):
         config_values = {
-            "function_identifier": "foo",
+            "resource_logical_id": "foo",
             "template_file": "mytemplate.yaml",
             "base_dir": "basedir",
             "build_dir": "builddir",
@@ -145,12 +145,65 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 {"Key": "Value", "Key2": "Value2"},
                 None,
+                (),
+                None,
+            )
+
+    @patch("samcli.commands.build.command.do_cli")
+    def test_build_with_container_env_vars(self, do_cli_mock):
+        config_values = {
+            "resource_logical_id": "foo",
+            "template_file": "mytemplate.yaml",
+            "base_dir": "basedir",
+            "build_dir": "builddir",
+            "cache_dir": "cachedir",
+            "cache": False,
+            "use_container": True,
+            "manifest": "requirements.txt",
+            "docker_network": "mynetwork",
+            "skip_pull_image": True,
+            "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
+            "container_env_var": (""),
+            "container_env_var_file": "env_vars_file",
+        }
+
+        with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
+
+            from samcli.commands.build.command import cli
+
+            LOG.debug(Path(config_path).read_text())
+            runner = CliRunner()
+            result = runner.invoke(cli, [])
+
+            LOG.info(result.output)
+            LOG.info(result.exception)
+            if result.exception:
+                LOG.exception("Command failed", exc_info=result.exc_info)
+            self.assertIsNone(result.exception)
+
+            do_cli_mock.assert_called_with(
+                "foo",
+                str(Path(os.getcwd(), "mytemplate.yaml")),
+                "basedir",
+                "builddir",
+                "cachedir",
+                True,
+                True,
+                False,
+                False,
+                "requirements.txt",
+                "mynetwork",
+                True,
+                {"Key": "Value", "Key2": "Value2"},
+                None,
+                (),
+                "env_vars_file",
             )
 
     @patch("samcli.commands.local.invoke.cli.do_cli")
     def test_local_invoke(self, do_cli_mock):
         config_values = {
-            "function_identifier": "foo",
+            "function_logical_id": "foo",
             "template_file": "mytemplate.yaml",
             "event": "event",
             "no_event": False,
@@ -203,6 +256,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 True,
                 {"Key": "Value", "Key2": "Value2"},
+                "localhost",
             )
 
     @patch("samcli.commands.local.start_api.cli.do_cli")
@@ -264,6 +318,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 False,
                 None,
+                "localhost",
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
@@ -323,6 +378,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 False,
                 None,
+                "localhost",
             )
 
     @patch("samcli.lib.cli_validation.image_repository_validation.get_template_function_resource_ids")
@@ -740,6 +796,8 @@ class TestSamConfigWithOverrides(TestCase):
                     "--shutdown",
                     "--parameter-overrides",
                     "A=123 C=D E=F12! G=H",
+                    "--container-host",
+                    "localhost",
                 ],
             )
 
@@ -769,6 +827,7 @@ class TestSamConfigWithOverrides(TestCase):
                 None,
                 True,
                 None,
+                "localhost",
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
@@ -860,6 +919,7 @@ class TestSamConfigWithOverrides(TestCase):
                 None,
                 False,
                 None,
+                "localhost",
             )
 
     @patch("samcli.commands.validate.validate.do_cli")

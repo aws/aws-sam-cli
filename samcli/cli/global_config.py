@@ -17,6 +17,7 @@ LOG = logging.getLogger(__name__)
 CONFIG_FILENAME = "metadata.json"
 INSTALLATION_ID_KEY = "installationId"
 TELEMETRY_ENABLED_KEY = "telemetryEnabled"
+LAST_VERSION_CHECK_KEY = "lastVersionCheck"
 
 
 class GlobalConfig:
@@ -28,16 +29,19 @@ class GlobalConfig:
     the base directory, depending on platform.
     """
 
-    def __init__(self, config_dir=None, installation_id=None, telemetry_enabled=None):
+    def __init__(self, config_dir=None, installation_id=None, telemetry_enabled=None, last_version_check=None):
         """
         Initializes the class, with options provided to assist with testing.
 
         :param config_dir: Optional, overrides the default config directory path.
         :param installation_id: Optional, will use this installation id rather than checking config values.
+        :param telemetry_enabled: Optional, set whether telemetry is enabled or not.
+        :param last_version_check: Optional, will be used to check if there is a newer version of SAM CLI available
         """
         self._config_dir = config_dir
         self._installation_id = installation_id
         self._telemetry_enabled = telemetry_enabled
+        self._last_version_check = last_version_check
 
     @property
     def config_dir(self) -> Path:
@@ -137,6 +141,23 @@ class GlobalConfig:
         """
         self._set_value("telemetryEnabled", value)
         self._telemetry_enabled = value
+
+    @property
+    def last_version_check(self):
+        if self._last_version_check is not None:
+            return self._last_version_check
+
+        try:
+            self._last_version_check = self._get_value(LAST_VERSION_CHECK_KEY)
+            return self._last_version_check
+        except (ValueError, IOError, OSError) as ex:
+            LOG.debug("Error when retrieving _last_version_check flag", exc_info=ex)
+            return None
+
+    @last_version_check.setter
+    def last_version_check(self, value):
+        self._set_value(LAST_VERSION_CHECK_KEY, value)
+        self._last_version_check = value
 
     def _get_value(self, key: str) -> Optional[Any]:
         cfg_path = self._get_config_file_path(CONFIG_FILENAME)

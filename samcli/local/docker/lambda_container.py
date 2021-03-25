@@ -2,11 +2,12 @@
 Represents Lambda runtime containers.
 """
 import logging
+from typing import List
 
 from samcli.local.docker.lambda_debug_settings import LambdaDebugSettings
 from samcli.lib.utils.packagetype import IMAGE
 from .container import Container
-from .lambda_image import Runtime
+from .lambda_image import Runtime, LambdaImage
 
 LOG = logging.getLogger(__name__)
 
@@ -44,6 +45,7 @@ class LambdaContainer(Container):
         memory_mb=128,
         env_vars=None,
         debug_options=None,
+        container_host=None,
     ):
         """
         Initializes the class
@@ -73,11 +75,13 @@ class LambdaContainer(Container):
             Optional. Dictionary containing environment variables passed to container
         debug_options DebugContext
             Optional. Contains container debugging info (port, debugger path)
+        container_host string
+            Optional. Host of locally emulated Lambda container
         """
         if not Runtime.has_value(runtime) and not packagetype == IMAGE:
             raise ValueError("Unsupported Lambda runtime {}".format(runtime))
 
-        image = LambdaContainer._get_image(lambda_image, runtime, packagetype, imageuri, layers, debug_options)
+        image = LambdaContainer._get_image(lambda_image, runtime, packagetype, imageuri, layers)
         ports = LambdaContainer._get_exposed_ports(debug_options)
         config = LambdaContainer._get_config(lambda_image, image)
         entry, container_env_vars = LambdaContainer._get_debug_settings(runtime, debug_options)
@@ -118,6 +122,7 @@ class LambdaContainer(Container):
             env_vars=env_vars,
             container_opts=additional_options,
             additional_volumes=additional_volumes,
+            container_host=container_host,
         )
 
     @staticmethod
@@ -145,10 +150,11 @@ class LambdaContainer(Container):
         return ports_map
 
     @staticmethod
-    def _get_additional_options(runtime, debug_options):
+    def _get_additional_options(runtime: str, debug_options):
         """
         Return additional Docker container options. Used by container debug mode to enable certain container
         security options.
+        :param runtime: The runtime string
         :param DebugContext debug_options: DebugContext for the runtime of the container.
         :return dict: Dictionary containing additional arguments to be passed to container creation.
         """
@@ -170,6 +176,7 @@ class LambdaContainer(Container):
         """
         Return additional volumes to be mounted in the Docker container. Used by container debug for mapping
         debugger executable into the container.
+        :param runtime: the runtime string
         :param DebugContext debug_options: DebugContext for the runtime of the container.
         :return dict: Dictionary containing volume map passed to container creation.
         """
@@ -181,7 +188,7 @@ class LambdaContainer(Container):
         return volumes
 
     @staticmethod
-    def _get_image(lambda_image, runtime, packagetype, image, layers, debug_options):
+    def _get_image(lambda_image: LambdaImage, runtime: str, packagetype: str, image: str, layers: List[str]):
         """
         Returns the name of Docker Image for the given runtime
 
@@ -199,8 +206,7 @@ class LambdaContainer(Container):
         str
             Name of Docker Image for the given runtime
         """
-        is_debug = bool(debug_options and debug_options.debugger_path)
-        return lambda_image.build(runtime, packagetype, image, layers, is_debug)
+        return lambda_image.build(runtime, packagetype, image, layers)
 
     @staticmethod
     def _get_config(lambda_image, image):

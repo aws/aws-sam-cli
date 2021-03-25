@@ -2,10 +2,10 @@ import os
 import click
 
 from unittest import TestCase
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, call
 from parameterized import parameterized
 
-from samcli.commands.build.command import do_cli, _get_mode_value_from_envvar
+from samcli.commands.build.command import do_cli, _get_mode_value_from_envvar, _process_env_var
 from samcli.commands.exceptions import UserException
 from samcli.lib.build.app_builder import (
     BuildError,
@@ -29,11 +29,26 @@ class TestDoCli(TestCase):
     def test_must_succeed_build(self, os_mock, move_template_mock, ApplicationBuilderMock, BuildContextMock):
 
         ctx_mock = Mock()
+
+        # create stack mocks
+        root_stack = Mock()
+        root_stack.is_root_stack = True
+        root_stack.get_output_template_path = Mock(return_value="./build_dir/template.yaml")
+        child_stack = Mock()
+        child_stack.get_output_template_path = Mock(return_value="./build_dir/abcd/template.yaml")
+        ctx_mock.stacks = [root_stack, child_stack]
+        stack_output_template_path_by_stack_path = {
+            root_stack.stack_path: "./build_dir/template.yaml",
+            child_stack.stack_path: "./build_dir/abcd/template.yaml",
+        }
+
         BuildContextMock.return_value.__enter__ = Mock()
         BuildContextMock.return_value.__enter__.return_value = ctx_mock
         builder_mock = ApplicationBuilderMock.return_value = Mock()
         artifacts = builder_mock.build.return_value = "artifacts"
-        modified_template = builder_mock.update_template.return_value = "modified template"
+        modified_template_root = "modified template 1"
+        modified_template_child = "modified template 2"
+        builder_mock.update_template.side_effect = [modified_template_root, modified_template_child]
 
         do_cli(
             "function_identifier",
@@ -50,6 +65,8 @@ class TestDoCli(TestCase):
             "skip_pull",
             "parameter_overrides",
             "mode",
+            (""),
+            "container_env_var_file",
         )
 
         ApplicationBuilderMock.assert_called_once_with(
@@ -63,13 +80,39 @@ class TestDoCli(TestCase):
             container_manager=ctx_mock.container_manager,
             mode=ctx_mock.mode,
             parallel="parallel",
+            container_env_var={},
+            container_env_var_file="container_env_var_file",
         )
         builder_mock.build.assert_called_once()
-        builder_mock.update_template.assert_called_once_with(
-            ctx_mock.template_dict, ctx_mock.original_template_path, artifacts
+        builder_mock.update_template.assert_has_calls(
+            [
+                call(
+                    root_stack,
+                    artifacts,
+                    stack_output_template_path_by_stack_path,
+                )
+            ],
+            [
+                call(
+                    child_stack,
+                    artifacts,
+                    stack_output_template_path_by_stack_path,
+                )
+            ],
         )
-        move_template_mock.assert_called_once_with(
-            ctx_mock.original_template_path, ctx_mock.output_template_path, modified_template
+        move_template_mock.assert_has_calls(
+            [
+                call(
+                    root_stack.location,
+                    stack_output_template_path_by_stack_path[root_stack.stack_path],
+                    modified_template_root,
+                ),
+                call(
+                    child_stack.location,
+                    stack_output_template_path_by_stack_path[child_stack.stack_path],
+                    modified_template_child,
+                ),
+            ]
         )
 
     @parameterized.expand(
@@ -111,6 +154,8 @@ class TestDoCli(TestCase):
                 "skip_pull",
                 "parameteroverrides",
                 "mode",
+                (""),
+                "container_env_var_file",
             )
 
         self.assertEqual(str(ctx.exception), str(exception))
@@ -140,6 +185,8 @@ class TestDoCli(TestCase):
                 "skip_pull",
                 "parameteroverrides",
                 "mode",
+                (""),
+                "container_env_var_file",
             )
 
         self.assertEqual(str(ctx.exception), "Function Not Found")
@@ -172,3 +219,41 @@ class TestGetModeValueFromEnvvar(TestCase):
 
         result = _get_mode_value_from_envvar(self.varname, self.choices)
         self.assertIsNone(result)
+
+
+class TestEnvVarParsing(TestCase):
+    def test_process_global_env_var(self):
+        container_env_vars = ["ENV_VAR1=1", "ENV_VAR2=2"]
+
+        result = _process_env_var(container_env_vars)
+        self.assertEqual(result, {"Parameters": {"ENV_VAR1": "1", "ENV_VAR2": "2"}})
+
+    def test_process_function_env_var(self):
+        container_env_vars = ["Function1.ENV_VAR1=1", "Function2.ENV_VAR2=2"]
+
+        result = _process_env_var(container_env_vars)
+        self.assertEqual(result, {"Function1": {"ENV_VAR1": "1"}, "Function2": {"ENV_VAR2": "2"}})
+
+    def test_irregular_env_var_value(self):
+        container_env_vars = ["TEST_VERSION=1.2.3"]
+
+        result = _process_env_var(container_env_vars)
+        self.assertEqual(result, {"Parameters": {"TEST_VERSION": "1.2.3"}})
+
+    def test_invalid_function_env_var(self):
+        container_env_vars = ["Function1.ENV_VAR1=", "Function2.ENV_VAR2=2"]
+
+        result = _process_env_var(container_env_vars)
+        self.assertEqual(result, {"Function2": {"ENV_VAR2": "2"}})
+
+    def test_invalid_global_env_var(self):
+        container_env_vars = ["ENV_VAR1", "Function2.ENV_VAR2=2"]
+
+        result = _process_env_var(container_env_vars)
+        self.assertEqual(result, {"Function2": {"ENV_VAR2": "2"}})
+
+    def test_none_env_var_does_not_error_out(self):
+        container_env_vars = None
+
+        result = _process_env_var(container_env_vars)
+        self.assertEqual(result, {})

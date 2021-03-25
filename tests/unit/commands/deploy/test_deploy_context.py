@@ -1,6 +1,6 @@
 """Test sam deploy command"""
 from unittest import TestCase
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, Mock
 import tempfile
 
 from samcli.lib.deploy.deployer import Deployer
@@ -130,13 +130,14 @@ class TestSamDeployCommand(TestCase):
 
     @patch("boto3.Session")
     @patch("samcli.commands.deploy.deploy_context.auth_per_resource")
-    @patch("samcli.commands.deploy.deploy_context.get_template_data")
+    @patch("samcli.commands.deploy.deploy_context.SamLocalStackProvider.get_stacks")
     @patch.object(Deployer, "create_and_wait_for_changeset", MagicMock(return_value=({"Id": "test"}, "CREATE")))
     @patch.object(Deployer, "execute_changeset", MagicMock())
     @patch.object(Deployer, "wait_for_execute", MagicMock())
     def test_template_valid_execute_changeset_with_parameters(
-        self, patched_template_data, patched_auth_required, patched_boto
+        self, patched_get_buildable_stacks, patched_auth_required, patched_boto
     ):
+        patched_get_buildable_stacks.return_value = (Mock(), [])
         patched_auth_required.return_value = [("HelloWorldFunction", False)]
         with tempfile.NamedTemporaryFile(delete=False) as template_file:
             template_file.write(b'{"Parameters": {"a":"b","c":"d"}}')

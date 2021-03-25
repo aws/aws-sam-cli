@@ -229,7 +229,7 @@ class LogsCommandContext:
 
         Parameters
         ----------
-        cfn_client
+        cfn_client : boto3.session.Session.client
             CloudFormation client provided by AWS SDK
 
         stack_name : str

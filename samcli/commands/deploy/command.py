@@ -6,7 +6,7 @@ import logging
 import click
 
 from samcli.cli.cli_config_file import TomlProvider, configuration_option
-from samcli.cli.main import aws_creds_options, common_options, pass_context
+from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.cli.types import ImageRepositoryType, ImageRepositoriesType
 from samcli.commands._utils.options import (
     capabilities_override_option,
@@ -25,6 +25,7 @@ from samcli.lib.telemetry.metric import track_command
 from samcli.lib.cli_validation.image_repository_validation import image_repository_validation
 from samcli.lib.utils import osutils
 from samcli.lib.bootstrap.bootstrap import manage_stack
+from samcli.lib.utils.version_checker import check_newer_version
 
 SHORT_HELP = "Deploy an AWS SAM application."
 
@@ -167,6 +168,8 @@ LOG = logging.getLogger(__name__)
 @image_repository_validation
 @pass_context
 @track_command
+@check_newer_version
+@print_cmdline_args
 def cli(
     ctx,
     template_file,
@@ -194,7 +197,9 @@ def cli(
     config_file,
     config_env,
 ):
-
+    """
+    `sam deploy` command entry point
+    """
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
     do_cli(
         template_file,
@@ -254,6 +259,9 @@ def do_cli(
     config_file,
     config_env,
 ):
+    """
+    Implementation of the ``cli`` method
+    """
     from samcli.commands.package.package_context import PackageContext
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.deploy.guided_context import GuidedContext
