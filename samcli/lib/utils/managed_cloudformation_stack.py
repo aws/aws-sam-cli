@@ -1,20 +1,17 @@
 """
 Bootstrap's user's development environment by creating cloud resources required by SAM CLI
 """
-
 import logging
+from collections.abc import Collection
+from typing import cast, Dict, List, Optional, Union
 
 import boto3
-
 import click
-
 from botocore.config import Config
 from botocore.exceptions import ClientError, BotoCoreError, NoRegionError, NoCredentialsError, ProfileNotFound
 
 from samcli.commands.exceptions import UserException, CredentialsError, RegionError
 
-
-SAM_CLI_STACK_PREFIX = "aws-sam-cli-managed-"
 LOG = logging.getLogger(__name__)
 
 
@@ -25,10 +22,34 @@ class ManagedStackError(UserException):
         super().__init__(message=message_fmt.format(ex=self.ex))
 
 
-def manage_stack(profile, region, stack_name, template_body):
+def manage_stack(
+    region: str,
+    stack_name: str,
+    template_body: str,
+    profile: Optional[str] = None,
+    parameter_overrides: Optional[Dict[str, Union[str, List[str]]]] = None,
+) -> List[Dict[str, str]]:
+    """
+    get or create a CloudFormation stack
+
+    Parameters
+    ----------
+    region: str
+        AWS region for the CloudFormation stack
+    stack_name: str
+        CloudFormation stack name
+    template_body: str
+        CloudFormation template's content
+    profile: Optional[str]
+        AWS named profile for the AWS account
+    parameter_overrides: Optional[Dict[str, Union[str, List[str]]]]
+        Values of template parameters, if any.
+
+    Returns: Stack output section(list of OutputKey, OutputValue pairs)
+    """
     try:
         if profile:
-            session = boto3.Session(profile_name=profile, region_name=region if region else None)
+            session = boto3.Session(profile_name=profile, region_name=region if region else None)  # type: ignore
             cloudformation_client = session.client("cloudformation")
         else:
             cloudformation_client = boto3.client(
@@ -51,32 +72,41 @@ def manage_stack(profile, region, stack_name, template_body):
             "Error Setting Up Managed Stack Client: Unable to resolve a region. "
             "Please provide a region via the --region parameter or by the AWS_REGION environment variable."
         ) from ex
-    return _create_or_get_stack(cloudformation_client, stack_name, template_body)
+    return _create_or_get_stack(cloudformation_client, stack_name, template_body, parameter_overrides)
 
 
-def _create_or_get_stack(cloudformation_client, stack_name, template_body):
+# Todo Add _update_stack to handle the case when the values of the stack parameter got changed
+def _create_or_get_stack(
+    cloudformation_client,
+    stack_name: str,
+    template_body: str,
+    parameter_overrides: Optional[Dict[str, Union[str, List[str]]]] = None,
+) -> List[Dict[str, str]]:
     try:
         ds_resp = cloudformation_client.describe_stacks(StackName=stack_name)
         stacks = ds_resp["Stacks"]
         stack = stacks[0]
         click.echo("\n\tLooking for resources needed for deployment: Found!")
-        _check_sanity_of_stack(stack, stack_name)
-        return stack["Outputs"]
+        _check_sanity_of_stack(stack)
+        stack_outputs = cast(List[Dict[str, str]], stack["Outputs"])
+        return stack_outputs
     except ClientError:
         click.echo("\n\tLooking for resources needed for deployment: Not found.")
 
     try:
         stack = _create_stack(
-            cloudformation_client, stack_name, template_body
+            cloudformation_client, stack_name, template_body, parameter_overrides
         )  # exceptions are not captured from subcommands
-        _check_sanity_of_stack(stack, stack_name)
-        return stack["Outputs"]
+        _check_sanity_of_stack(stack)
+        stack_outputs = cast(List[Dict[str, str]], stack["Outputs"])
+        return stack_outputs
     except (ClientError, BotoCoreError) as ex:
         LOG.debug("Failed to create managed resources", exc_info=ex)
         raise ManagedStackError(str(ex)) from ex
 
 
-def _check_sanity_of_stack(stack, stack_name):
+def _check_sanity_of_stack(stack):
+    stack_name = stack.get("StackName")
     tags = stack.get("Tags", None)
     outputs = stack.get("Outputs", None)
 
@@ -112,15 +142,23 @@ def _check_sanity_of_stack(stack, stack_name):
         raise UserException(msg) from ex
 
 
-def _create_stack(cloudformation_client, stack_name, template_body):
+def _create_stack(
+    cloudformation_client,
+    stack_name: str,
+    template_body: str,
+    parameter_overrides: Optional[Dict[str, Union[str, List[str]]]] = None,
+):
     click.echo("\tCreating the required resources...")
     change_set_name = "InitialCreation"
+    parameters = _generate_stack_parameters(parameter_overrides)
     change_set_resp = cloudformation_client.create_change_set(
         StackName=stack_name,
         TemplateBody=template_body,
         Tags=[{"Key": "ManagedStackSource", "Value": "AwsSamCli"}],
         ChangeSetType="CREATE",
         ChangeSetName=change_set_name,  # this must be unique for the stack, but we only create so that's fine
+        Capabilities=["CAPABILITY_IAM"],
+        Parameters=parameters,
     )
     stack_id = change_set_resp["StackId"]
     change_waiter = cloudformation_client.get_waiter("change_set_create_complete")
@@ -134,3 +172,15 @@ def _create_stack(cloudformation_client, stack_name, template_body):
     stacks = ds_resp["Stacks"]
     click.echo("\tSuccessfully created!")
     return stacks[0]
+
+
+def _generate_stack_parameters(
+    parameter_overrides: Optional[Dict[str, Union[str, List[str]]]] = None
+) -> List[Dict[str, str]]:
+    parameters = []
+    if parameter_overrides:
+        for key, value in parameter_overrides.items():
+            if isinstance(value, Collection) and not isinstance(value, str):
+                value = ",".join(value)
+            parameters.append({"ParameterKey": key, "ParameterValue": value})
+    return parameters

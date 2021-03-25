@@ -21,6 +21,7 @@ from samcli.commands._utils.template import (
     TemplateFailedParsingException,
     get_template_artifacts_format,
     get_template_function_resource_ids,
+    get_template_function_runtimes,
 )
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 
@@ -336,3 +337,19 @@ class Test_get_template_function_resouce_ids(TestCase):
             }
         }
         self.assertEqual(get_template_function_resource_ids(MagicMock(), IMAGE), ["HelloWorldFunction1"])
+
+
+class Test_get_template_function_runtimes(TestCase):
+    @patch("samcli.commands._utils.template.get_template_data")
+    def test_get_template_function_runtimes(self, mock_get_template_data):
+        mock_get_template_data.return_value = {
+            "Resources": {
+                "HelloWorldFunction1": {"Type": "AWS::Lambda::Function", "Properties": {"PackageType": "Image"}},
+                "HelloWorldFunction2": {"Type": "AWS::Lambda::Function", "Properties": {"Runtime": "python3.8"}},
+                "HelloWorldFunction3": {"Type": "AWS::Serverless::Function", "Properties": {"Runtime": "python3.8"}},
+                "HelloWorldFunction4": {"Type": "AWS::Serverless::Function", "Properties": {"Runtime": "python3.8"}},
+                "HelloWorldFunction5": {"Type": "AWS::Serverless::Function", "Properties": {"Key": "value"}},
+                "HelloWorldApi": {"Type": "AWS::Serverless::Api", "Properties": {"Runtime": "Java8"}},
+            }
+        }
+        self.assertEqual(get_template_function_runtimes(MagicMock()), ["python3.8"])

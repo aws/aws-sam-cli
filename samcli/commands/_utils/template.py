@@ -4,14 +4,12 @@ Utilities to manipulate template
 import itertools
 import os
 import pathlib
+from typing import List
 
 import jmespath
 import yaml
 from botocore.utils import set_value_from_jmespath
 
-from samcli.commands.exceptions import UserException
-from samcli.lib.utils.packagetype import ZIP
-from samcli.yamlhelper import yaml_parse, yaml_dump
 from samcli.commands._utils.resources import (
     METADATA_WITH_LOCAL_PATHS,
     RESOURCES_WITH_LOCAL_PATHS,
@@ -19,6 +17,9 @@ from samcli.commands._utils.resources import (
     AWS_LAMBDA_FUNCTION,
     get_packageable_resource_paths,
 )
+from samcli.commands.exceptions import UserException
+from samcli.lib.utils.packagetype import ZIP
+from samcli.yamlhelper import yaml_parse, yaml_dump
 
 
 class TemplateNotFoundException(UserException):
@@ -300,3 +301,23 @@ def get_template_function_resource_ids(template_file, artifact):
         ]:
             _function_resource_ids.append(resource_id)
     return _function_resource_ids
+
+
+def get_template_function_runtimes(template_file: str) -> List[str]:
+    """
+    Get a list of function runtimes from template file.
+    Function resource types include
+        AWS::Lambda::Function
+        AWS::Serverless::Function
+    :param template_file: template file location.
+    :return: list of runtimes
+    """
+
+    template_dict = get_template_data(template_file=template_file)
+    _function_runtimes = set()
+    for _, resource in template_dict.get("Resources", {}).items():
+        if resource.get("Type") in [AWS_SERVERLESS_FUNCTION, AWS_LAMBDA_FUNCTION]:
+            runtime = resource.get("Properties", {}).get("Runtime")
+            if runtime:  # IMAGE functions don't define a runtime
+                _function_runtimes.add(runtime)
+    return list(_function_runtimes)
