@@ -16,7 +16,7 @@ from samcli.cli.context import Context
 from samcli.cli.global_config import GlobalConfig
 from samcli.lib.warnings.sam_cli_warning import TemplateWarningsChecker
 from samcli.commands.exceptions import UserException
-from samcli.lib.telemetry import cicd
+from samcli.lib.telemetry.cicd import CICDDetector, CICDPlatform
 from .telemetry import Telemetry
 
 LOG = logging.getLogger(__name__)
@@ -302,6 +302,7 @@ class Metric:
             self._session_id = ""
         if should_add_common_attributes:
             self._add_common_metric_attributes()
+        self.cicd_detector = CICDDetector()
 
     def add_list_data(self, key, value):
         if key not in self._data:
@@ -327,7 +328,7 @@ class Metric:
         self._data["installationId"] = self._gc.installation_id
         self._data["sessionId"] = self._session_id
         self._data["executionEnvironment"] = self._get_execution_environment()
-        self._data["ci"] = bool(cicd.platform())
+        self._data["ci"] = bool(self.cicd_detector.platform())
         self._data["pyversion"] = platform.python_version()
         self._data["samcliVersion"] = samcli_version
 
@@ -346,8 +347,7 @@ class Metric:
             LOG.debug("Unable to find Click Context for getting session_id.")
             return None
 
-    @staticmethod
-    def _get_execution_environment() -> str:
+    def _get_execution_environment(self) -> str:
         """
         Returns the environment in which SAM CLI is running. Possible options are:
 
@@ -359,7 +359,7 @@ class Metric:
         str
             Name of the environment where SAM CLI is executed in.
         """
-        cicd_platform = cicd.platform()
+        cicd_platform: Optional[CICDPlatform] = self.cicd_detector.platform()
         if cicd_platform:
             return cicd_platform.name
         return "CLI"

@@ -98,23 +98,23 @@ def _is_cicd_platform(cicd_platform: CICDPlatform, environ: Mapping) -> bool:
     return env_var_or_callable(environ)
 
 
-# detect CI/CD platform. Here we only calculate this value once so platform() can return this value
-# without re-calculating because CICD platform won't change once sam-cli starts.
-try:
-    _cicd_platform: Optional[CICDPlatform] = next(
-        cicd_platform for cicd_platform in CICDPlatform if _is_cicd_platform(cicd_platform, os.environ)
-    )
-except StopIteration:
-    _cicd_platform = None
+class CICDDetector:
+    _cicd_platform: Optional[CICDPlatform]
 
+    def __init__(self):
+        try:
+            self._cicd_platform: Optional[CICDPlatform] = next(
+                cicd_platform for cicd_platform in CICDPlatform if _is_cicd_platform(cicd_platform, os.environ)
+            )
+        except StopIteration:
+            self._cicd_platform = None
 
-def platform() -> Optional[CICDPlatform]:
-    """
-    Identify which CICD platform SAM CLI is running in.
-    Returns
-    -------
-    CICDPlatform
-        an optional CICDPlatform enum indicating the CICD platform.
-    """
-
-    return _cicd_platform
+    def platform(self) -> Optional[CICDPlatform]:
+        """
+        Identify which CICD platform SAM CLI is running in.
+        Returns
+        -------
+        CICDPlatform
+            an optional CICDPlatform enum indicating the CICD platform.
+        """
+        return self._cicd_platform
