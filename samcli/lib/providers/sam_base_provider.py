@@ -84,7 +84,8 @@ class SamBaseProvider:
     @staticmethod
     def _warn_code_extraction(resource_type: str, resource_name: str, code_property: str) -> None:
         LOG.warning(
-            "%s '%s' has specified S3 location for %s which is unsupported.",
+            "The resource %s '%s' has specified S3 location for %s. "
+            "It will not be built and SAM CLI does not support invoking it locally.",
             resource_type,
             resource_name,
             code_property,
