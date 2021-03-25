@@ -47,6 +47,8 @@ from samcli.lib.package.packageable_resources import (
     AppSyncFunctionConfigurationRequestTemplateResource,
     AppSyncFunctionConfigurationResponseTemplateResource,
     GlueJobCommandScriptLocationResource,
+    CloudFormationModuleVersionModulePackage,
+    CloudFormationResourceVersionSchemaHandlerPackage,
     ResourceZip,
     ResourceImage,
 )
@@ -93,6 +95,8 @@ class TestArtifactExporter(unittest.TestCase):
             {"class": ServerlessRepoApplicationLicense, "expected_result": uploaded_s3_url},
             {"class": ServerlessRepoApplicationLicense, "expected_result": uploaded_s3_url},
             {"class": GlueJobCommandScriptLocationResource, "expected_result": {"ScriptLocation": uploaded_s3_url}},
+            {"class": CloudFormationModuleVersionModulePackage, "expected_result": uploaded_s3_url},
+            {"class": CloudFormationResourceVersionSchemaHandlerPackage, "expected_result": uploaded_s3_url},
         ]
 
         with patch("samcli.lib.package.packageable_resources.upload_local_artifacts") as upload_local_artifacts_mock:
