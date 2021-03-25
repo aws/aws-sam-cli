@@ -1,12 +1,12 @@
+from unittest import TestCase
 from unittest.mock import Mock
 
-from libcst.testing.utils import UnitTest
 from parameterized import parameterized
 
 from samcli.lib.telemetry.cicd import CICDPlatform, _is_cicd_platform
 
 
-class TestCICD(UnitTest):
+class TestCICD(TestCase):
     @parameterized.expand(
         [
             (CICDPlatform.Jenkins, "JENKINS_URL", Mock()),
