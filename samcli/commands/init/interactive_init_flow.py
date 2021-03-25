@@ -35,6 +35,10 @@ def do_interactive(
     app_template,
     no_input,
 ):
+    """
+    Implementation of the ``cli`` method when --interactive is provided.
+    It will ask customers a few questions to init a template.
+    """
     if app_template:
         location_opt_choice = "1"
     else:

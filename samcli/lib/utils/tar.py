@@ -19,6 +19,7 @@ def create_tarball(tar_paths, tar_filter=None):
 
     Yields
     ------
+    IO
         The tarball file
     """
     tarballfile = TemporaryFile()

@@ -5,7 +5,7 @@ Context object used by build command
 import logging
 import os
 import shutil
-from typing import Optional, Dict, List
+from typing import Optional, List
 import pathlib
 
 from samcli.lib.providers.provider import ResourcesToBuildCollector, Stack
@@ -42,11 +42,17 @@ class BuildContext:
         parameter_overrides: Optional[dict] = None,
         docker_network: Optional[str] = None,
         skip_pull_image: bool = False,
+        container_env_var: Optional[dict] = None,
+        container_env_var_file: Optional[str] = None,
     ) -> None:
 
         self._resource_identifier = resource_identifier
         self._template_file = template_file
         self._base_dir = base_dir
+
+        # Note(xinhol): use_raw_codeuri is temporary to fix a bug, and will be removed for a permanent solution.
+        self._use_raw_codeuri = bool(self._base_dir)
+
         self._build_dir = build_dir
         self._cache_dir = cache_dir
         self._manifest_path = manifest_path
@@ -57,22 +63,32 @@ class BuildContext:
         self._skip_pull_image = skip_pull_image
         self._mode = mode
         self._cached = cached
+        self._container_env_var = container_env_var
+        self._container_env_var_file = container_env_var_file
 
         self._function_provider: Optional[SamFunctionProvider] = None
         self._layer_provider: Optional[SamLayerProvider] = None
-        self._template_dict: Optional[Dict] = None
         self._container_manager: Optional[ContainerManager] = None
         self._stacks: List[Stack] = []
 
     def __enter__(self) -> "BuildContext":
 
-        self._stacks = SamLocalStackProvider.get_stacks(
+        self._stacks, remote_stack_full_paths = SamLocalStackProvider.get_stacks(
             self._template_file, parameter_overrides=self._parameter_overrides
         )
-        self._template_dict = SamLocalStackProvider.find_root_stack(self.stacks).template_dict
 
-        self._function_provider = SamFunctionProvider(self.stacks)
-        self._layer_provider = SamLayerProvider(self.stacks)
+        if remote_stack_full_paths:
+            LOG.warning(
+                "Below nested stacks(s) specify non-local URL(s), which are unsupported:\n%s\n"
+                "Skipping building resources inside these nested stacks.",
+                "\n".join([f"- {full_path}" for full_path in remote_stack_full_paths]),
+            )
+
+        # Note(xinhol): self._use_raw_codeuri is added temporarily to fix issue #2717
+        # when base_dir is provided, codeuri should not be resolved based on template file path.
+        # we will refactor to make all path resolution inside providers intead of in multiple places
+        self._function_provider = SamFunctionProvider(self.stacks, self._use_raw_codeuri)
+        self._layer_provider = SamLayerProvider(self.stacks, self._use_raw_codeuri)
 
         if not self._base_dir:
             # Base directory, if not provided, is the directory containing the template
@@ -133,11 +149,6 @@ class BuildContext:
     def layer_provider(self) -> SamLayerProvider:
         # same as function_provider()
         return self._layer_provider  # type: ignore
-
-    @property
-    def template_dict(self) -> Dict:
-        # same as function_provider()
-        return self._template_dict  # type: ignore
 
     @property
     def build_dir(self) -> str:
@@ -222,11 +233,6 @@ class BuildContext:
         Parameters
         ----------
         resource_collector: Collector that will be populated with resources.
-
-        Returns
-        -------
-        ResourcesToBuildCollector
-
         """
         function = self.function_provider.get(resource_identifier)
         if not function:

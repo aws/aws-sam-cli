@@ -495,7 +495,7 @@ class TestLambdaContainer_get_debug_settings(TestCase):
 
         elif runtime in RUNTIMES_WITH_DEBUG_ENV_VARS_ONLY:
             result, _ = LambdaContainer._get_debug_settings(runtime, self.debug_options)
-            self.assertEquals(
+            self.assertEqual(
                 ["/var/rapid/aws-lambda-rie", "--log-level", "error"],
                 result,
                 "{} runtime must not override entrypoint".format(runtime),

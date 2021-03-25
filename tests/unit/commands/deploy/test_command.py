@@ -143,7 +143,7 @@ class TestDeployCliCommand(TestCase):
         mock_package_context,
         mock_package_click,
     ):
-
+        mock_get_buildable_stacks.return_value = (Mock(), [])
         mock_sam_function_provider.return_value = {}
         mock_get_template_artifacts_format.return_value = [ZIP]
         context_mock = Mock()
@@ -233,6 +233,7 @@ class TestDeployCliCommand(TestCase):
         mock_package_context,
         mock_package_click,
     ):
+        mock_get_buildable_stacks.return_value = (Mock(), [])
         mock_tag_translation.return_value = "helloworld-123456-v1"
         mock_get_template_function_resource_ids.return_value = ["HelloWorldFunction"]
 
@@ -376,6 +377,7 @@ class TestDeployCliCommand(TestCase):
         mock_package_context,
         mock_package_click,
     ):
+        mock_get_buildable_stacks.return_value = (Mock(), [])
         mock_tag_translation.return_value = "helloworld-123456-v1"
         mock_get_template_function_resource_ids.return_value = ["HelloWorldFunction"]
 
@@ -536,6 +538,7 @@ class TestDeployCliCommand(TestCase):
         mock_package_context,
         mock_package_click,
     ):
+        mock_get_buildable_stacks.return_value = (Mock(), [])
         mock_tag_translation.return_value = "helloworld-123456-v1"
         mock_get_template_function_resource_ids.return_value = ["HelloWorldFunction"]
 
@@ -672,6 +675,7 @@ class TestDeployCliCommand(TestCase):
         mock_package_context,
         mock_package_click,
     ):
+        mock_get_buildable_stacks.return_value = (Mock(), [])
         mock_tag_translation.return_value = "helloworld-123456-v1"
         mock_get_template_function_resource_ids.return_value = ["HelloWorldFunction"]
 

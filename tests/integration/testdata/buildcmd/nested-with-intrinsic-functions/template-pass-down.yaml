@@ -1,0 +1,27 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  MyLayerVersion:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: MyLayerInRoot
+      ContentUri: ../PyLayer
+      CompatibleRuntimes:
+        - python3.8
+    Metadata:
+      BuildMethod: python3.8
+
+  AppUsingRef:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./child-pass-down.yaml
+      Parameters:
+        Layer: !Ref MyLayerVersion
+
+  AppUsingJoin:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./child-pass-down.yaml
+      Parameters:
+        Layer: !Ref MyLayerVersion

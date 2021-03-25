@@ -25,11 +25,13 @@ LOG = logging.getLogger(__name__)
 class TomlProvider:
     """
     A parser for toml configuration files
-    :param cmd: sam command name as defined by click
-    :param section: section defined in the configuration file nested within `cmd`
     """
 
     def __init__(self, section=None):
+        """
+        The constructor for TomlProvider class
+        :param section: section defined in the configuration file nested within `cmd`
+        """
         self.section = section
 
     def __call__(self, config_path, config_env, cmd_names):
@@ -40,7 +42,7 @@ class TomlProvider:
 
         :param config_path: The path of configuration file.
         :param config_env: The name of the sectional config_env within configuration file.
-        :param cmd_names list(str): sam command name as defined by click
+        :param list cmd_names: sam command name as defined by click
         :returns dictionary containing the configuration parameters under specified config_env
         """
 
@@ -158,6 +160,8 @@ def get_ctx_defaults(cmd_name, provider, ctx, config_env_name, config_file=None)
 
 
 def configuration_option(*param_decls, **attrs):
+    # pylint does not understand the docstring with the presence of **attrs
+    # pylint: disable=missing-param-doc,differing-param-doc
     """
     Adds configuration file support to a click application.
 

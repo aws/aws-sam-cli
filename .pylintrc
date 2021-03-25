@@ -20,6 +20,7 @@ load-plugins=
     pylint.extensions.check_elif, # Else If Used checker
     pylint.extensions.emptystring, # compare to empty string
     pylint.extensions.comparetozero, # compare to 0
+    pylint.extensions.docparams, # Parameter documentation checker
 
 # Use multiple processes to speed up Pylint.
 jobs=4
@@ -72,7 +73,25 @@ disable=
     R0904, # Too many public methods (%s/%s)
     R0914, # Too many local variables (%s/%s)
     R0915, # Too many statements
-    C0415  # Import outside toplevel (%s) Used when an import statement is used anywhere other than the module toplevel. Move this import to the top of the file.
+    C0415, # Import outside toplevel (%s) Used when an import statement is used anywhere other than the module toplevel. Move this import to the top of the file.
+    C0115, # missing-class-docstring
+    # below are docstring lint rules, in order to incrementally improve our docstring while
+    # without introduce too much effort at a time, we exclude most of the docstring lint rules.
+    # We will remove them one by one.
+    # W9005, # "%s" has constructor parameters documented in class and __init__
+    W9006, # "%s" not documented as being raised
+    # W9008, # Redundant returns documentation
+    # W9010, # Redundant yields documentation
+    W9011, # Missing return documentation
+    W9012, # Missing return type documentation
+    # W9013, # Missing yield documentation
+    # W9014, # Missing yield type documentation
+    # W9015, # "%s" missing in parameter documentation
+    W9016, # "%s" missing in parameter type documentation
+    # W9017, # "%s" differing in parameter documentation
+    # W9018, # "%s" differing in parameter type documentation
+    # W9019, # "%s" useless ignored parameter documentation
+    # W9020, # "%s" useless ignored parameter type documentation
 
 
 [REPORTS]
@@ -182,11 +201,13 @@ method-name-hint=[a-z_][a-z0-9_]{2,30}$
 
 # Regular expression which should only match function or class names that do
 # not require a docstring.
-no-docstring-rgx=.*
+no-docstring-rgx=^_
 
 # Minimum line length for functions/classes that require docstrings, shorter
 # ones are exempt.
-docstring-min-length=-1
+# To improve our docstring without spending too much effort at a time,
+# here set it to 30 and decrease it gradually in the future.
+docstring-min-length=30
 
 
 [FORMAT]

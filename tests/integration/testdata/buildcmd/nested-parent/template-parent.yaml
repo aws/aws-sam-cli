@@ -1,0 +1,20 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameteres:
+  Runtime:
+    Type: String
+  CodeUri:
+    Type: String
+  Handler:
+    Type: String
+
+Resources:
+  SubApp:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ../template.yaml
+      Parameters:
+        Runtime: !Ref Runtime
+        CodeUri: !Ref CodeUri
+        Handler: !Ref Handler

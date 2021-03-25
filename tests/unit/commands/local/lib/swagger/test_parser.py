@@ -11,17 +11,20 @@ from samcli.local.apigw.local_apigw_service import Route
 
 
 class TestSwaggerParser_get_apis(TestCase):
+    def setUp(self) -> None:
+        self.stack_path = Mock()
+
     def test_with_one_path_method(self):
         function_name = "myfunction"
         swagger = {
             "paths": {"/path1": {"get": {"x-amazon-apigateway-integration": {"type": "aws_proxy", "uri": "someuri"}}}}
         }
 
-        parser = SwaggerParser(swagger)
+        parser = SwaggerParser(self.stack_path, swagger)
         parser._get_integration_function_name = Mock()
         parser._get_integration_function_name.return_value = function_name
 
-        expected = [Route(path="/path1", methods=["get"], function_name=function_name)]
+        expected = [Route(path="/path1", methods=["get"], function_name=function_name, stack_path=self.stack_path)]
         result = parser.get_routes()
 
         self.assertEqual(expected, result)
@@ -41,14 +44,14 @@ class TestSwaggerParser_get_apis(TestCase):
             }
         }
 
-        parser = SwaggerParser(swagger)
+        parser = SwaggerParser(self.stack_path, swagger)
         parser._get_integration_function_name = Mock()
         parser._get_integration_function_name.return_value = function_name
 
         expected = {
-            Route(path="/path1", methods=["get"], function_name=function_name),
-            Route(path="/path1", methods=["delete"], function_name=function_name),
-            Route(path="/path2", methods=["post"], function_name=function_name),
+            Route(path="/path1", methods=["get"], function_name=function_name, stack_path=self.stack_path),
+            Route(path="/path1", methods=["delete"], function_name=function_name, stack_path=self.stack_path),
+            Route(path="/path2", methods=["post"], function_name=function_name, stack_path=self.stack_path),
         }
         result = parser.get_routes()
 
@@ -66,11 +69,11 @@ class TestSwaggerParser_get_apis(TestCase):
             }
         }
 
-        parser = SwaggerParser(swagger)
+        parser = SwaggerParser(self.stack_path, swagger)
         parser._get_integration_function_name = Mock()
         parser._get_integration_function_name.return_value = function_name
 
-        expected = [Route(methods=["ANY"], path="/path1", function_name=function_name)]
+        expected = [Route(methods=["ANY"], path="/path1", function_name=function_name, stack_path=self.stack_path)]
         result = parser.get_routes()
 
         self.assertEqual(expected, result)
@@ -80,7 +83,7 @@ class TestSwaggerParser_get_apis(TestCase):
             "paths": {"/path1": {"post": {"x-amazon-apigateway-integration": {"type": "aws_proxy", "uri": "someuri"}}}}
         }
 
-        parser = SwaggerParser(swagger)
+        parser = SwaggerParser(self.stack_path, swagger)
         parser._get_integration_function_name = Mock()
         parser._get_integration_function_name.return_value = None  # Function Name could not be resolved
 
@@ -114,13 +117,25 @@ class TestSwaggerParser_get_apis(TestCase):
             }
         }
 
-        parser = SwaggerParser(swagger)
+        parser = SwaggerParser(self.stack_path, swagger)
         parser._get_integration_function_name = Mock()
         parser._get_integration_function_name.return_value = function_name
 
         expected = [
-            Route(path="/path1", methods=["get"], function_name=function_name, payload_format_version="1.0"),
-            Route(path="/path2", methods=["get"], function_name=function_name, payload_format_version="2.0"),
+            Route(
+                path="/path1",
+                methods=["get"],
+                function_name=function_name,
+                payload_format_version="1.0",
+                stack_path=self.stack_path,
+            ),
+            Route(
+                path="/path2",
+                methods=["get"],
+                function_name=function_name,
+                payload_format_version="2.0",
+                stack_path=self.stack_path,
+            ),
         ]
         result = parser.get_routes()
 
@@ -136,7 +151,7 @@ class TestSwaggerParser_get_apis(TestCase):
         ]
     )
     def test_invalid_swagger(self, test_case_name, swagger):
-        parser = SwaggerParser(swagger)
+        parser = SwaggerParser(self.stack_path, swagger)
         result = parser.get_routes()
 
         expected = []
@@ -144,6 +159,9 @@ class TestSwaggerParser_get_apis(TestCase):
 
 
 class TestSwaggerParser_get_integration_function_name(TestCase):
+    def setUp(self) -> None:
+        self.stack_path = Mock()
+
     @patch("samcli.commands.local.lib.swagger.parser.LambdaUri")
     def test_valid_integration(self, LambdaUriMock):
         function_name = "name"
@@ -151,7 +169,7 @@ class TestSwaggerParser_get_integration_function_name(TestCase):
 
         method_config = {"x-amazon-apigateway-integration": {"type": "aws_proxy", "uri": "someuri"}}
 
-        parser = SwaggerParser({})
+        parser = SwaggerParser(self.stack_path, {})
         result = parser._get_integration_function_name(method_config)
 
         self.assertEqual(function_name, result)
@@ -171,13 +189,16 @@ class TestSwaggerParser_get_integration_function_name(TestCase):
     def test_invalid_integration(self, test_case_name, method_config, LambdaUriMock):
         LambdaUriMock.get_function_name.return_value = None
 
-        parser = SwaggerParser({})
+        parser = SwaggerParser(self.stack_path, {})
         result = parser._get_integration_function_name(method_config)
 
         self.assertIsNone(result, "must not parse invalid integration")
 
 
 class TestSwaggerParser_get_binary_media_types(TestCase):
+    def setUp(self) -> None:
+        self.stack_path = Mock()
+
     @parameterized.expand(
         [
             param("Swagger was none", None, []),
@@ -190,6 +211,6 @@ class TestSwaggerParser_get_binary_media_types(TestCase):
         ]
     )
     def test_binary_media_type_returned(self, test_case_name, swagger, expected_result):
-        parser = SwaggerParser(swagger)
+        parser = SwaggerParser(self.stack_path, swagger)
 
         self.assertEqual(parser.get_binary_media_types(), expected_result)

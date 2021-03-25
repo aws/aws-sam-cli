@@ -7,6 +7,7 @@ import re
 import logging
 
 from enum import Enum
+from typing import Optional
 
 LOG = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ class LambdaUri:
     _REGEX_SUB_FUNCTION_ARN = r"\$\{([A-Za-z0-9]+)\.(Arn|Alias)\}"
 
     @staticmethod
-    def get_function_name(integration_uri):
+    def get_function_name(integration_uri) -> Optional[str]:
         """
         Gets the name of the function from the Integration URI ARN. This is a best effort service which returns None
         if function name could not be parsed. This can happen when the ARN is an intrinsic function which is too
@@ -137,7 +138,7 @@ class LambdaUri:
         return None
 
     @staticmethod
-    def _get_function_name_from_arn(function_arn):
+    def _get_function_name_from_arn(function_arn) -> Optional[str]:
         """
         Given the integration ARN, extract the Lambda function name from the ARN. If there
         are stage variables, or other unsupported formats, this function will return None.
@@ -162,7 +163,7 @@ class LambdaUri:
             return None
 
         groups = matches.groups()
-        maybe_function_name = groups[0]  # This regex has only one group match
+        maybe_function_name: str = groups[0]  # This regex has only one group match
 
         # Function name could be a real name or a stage variable or some unknown format
         if re.match(LambdaUri._REGEX_STAGE_VARIABLE, maybe_function_name):

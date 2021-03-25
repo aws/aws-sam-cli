@@ -69,6 +69,8 @@ class BuildIntegBase(TestCase):
         cached=False,
         cache_dir=None,
         parallel=False,
+        container_env_var=None,
+        container_env_var_file=None,
     ):
 
         command_list = [self.cmd, "build"]
@@ -104,6 +106,12 @@ class BuildIntegBase(TestCase):
 
         if parallel:
             command_list += ["--parallel"]
+
+        if container_env_var:
+            command_list += ["--container-env-var", container_env_var]
+
+        if container_env_var_file:
+            command_list += ["--container-env-var-file", container_env_var_file]
 
         return command_list
 
@@ -293,36 +301,78 @@ class NestedBuildIntegBase(BuildIntegBase):
                 f"Building codeuri: .* runtime: .* metadata: .* functions: \\[.*'{function_full_path}'.*\\]",
             )
 
-    def _verify_invoke_built_function(self, template_path, function_logical_id, overrides, expected_result):
-        """
-        Note(Xinhol) this _verify_invoke_built_function() is identical to the superclass' one
-        except it add SAM_CLI_ENABLE_NESTED_STACK=1 environment variable to it.
-        Once the nested stack support is completed and SAM_CLI_ENABLE_NESTED_STACK is removed,
-        we can remove this overriding method _verify_invoke_built_function.
-        """
-        LOG.info("Invoking built function '{}'".format(function_logical_id))
-
-        cmdlist = [
-            self.cmd,
-            "local",
-            "invoke",
-            function_logical_id,
-            "-t",
-            str(template_path),
-            "--no-event",
-            "--parameter-overrides",
-            overrides,
-            "--debug",
-        ]
-
-        newenv = os.environ.copy()
-        newenv["SAM_CLI_ENABLE_NESTED_STACK"] = "1"
-        process_execute = run_command(cmdlist, env=newenv)
-        process_execute.process.wait()
-
-        process_stdout = process_execute.stdout.decode("utf-8")
-        self.assertEqual(json.loads(process_stdout), expected_result)
-
     def _verify_invoke_built_functions(self, template_path, overrides, function_and_expected):
         for function_identifier, expected in function_and_expected:
             self._verify_invoke_built_function(template_path, function_identifier, overrides, expected)
+
+
+class IntrinsicIntegBase(BuildIntegBase):
+    """
+    Currently sam-cli does not have great support for intrinsic functions,
+    in this kind of integ tests, there are functions that are buildable but not invocable.
+    """
+
+    def _verify_build(self, function_full_paths, layer_full_path, stack_paths, command_result):
+        """
+        Verify resources have their build artifact folders, stack has their own template.yaml, and command succeeds.
+        """
+        self._verify_process_code_and_output(command_result, function_full_paths, layer_full_path)
+        for function_full_path in function_full_paths:
+            self._verify_build_artifact(self.default_build_dir, function_full_path)
+        for stack_path in stack_paths:
+            self._verify_move_template(self.default_build_dir, stack_path)
+
+    def _verify_build_artifact(self, build_dir, function_full_path):
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("template.yaml", build_dir_files)
+        # full_path is always posix path
+        path_components = posixpath.split(function_full_path)
+        artifact_path = Path(build_dir, *path_components)
+        self.assertTrue(artifact_path.exists())
+
+    def _verify_move_template(self, build_dir, stack_path):
+        path_components = posixpath.split(stack_path)
+        stack_build_dir_path = Path(build_dir, Path(*path_components), "template.yaml")
+        self.assertTrue(stack_build_dir_path.exists())
+
+    def _verify_process_code_and_output(self, command_result, function_full_paths, layer_full_path):
+        self.assertEqual(command_result.process.returncode, 0)
+        # check HelloWorld and HelloMars functions are built in the same build
+        for function_full_path in function_full_paths:
+            self.assertRegex(
+                command_result.stderr.decode("utf-8"),
+                f"Building codeuri: .* runtime: .* metadata: .* functions: \\[.*'{function_full_path}'.*\\]",
+            )
+        self.assertIn(
+            f"Building layer '{layer_full_path}'",
+            command_result.stderr.decode("utf-8"),
+        )
+
+    def _verify_invoke_built_functions(self, template_path, functions, error_message):
+        """
+        Invoke the function, if error_message is not None, the invoke should fail.
+        """
+        for function_logical_id in functions:
+            LOG.info("Invoking built function '{}'".format(function_logical_id))
+
+            cmdlist = [
+                self.cmd,
+                "local",
+                "invoke",
+                function_logical_id,
+                "-t",
+                str(template_path),
+                "--no-event",
+            ]
+
+            process_execute = run_command(cmdlist)
+            process_execute.process.wait()
+
+            process_stderr = process_execute.stderr.decode("utf-8")
+            if error_message:
+                self.assertNotEqual(0, process_execute.process.returncode)
+                self.assertIn(error_message, process_stderr)
+            else:
+                self.assertEqual(0, process_execute.process.returncode)
