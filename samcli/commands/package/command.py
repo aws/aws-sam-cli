@@ -6,7 +6,7 @@ from functools import partial
 import click
 
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
-from samcli.cli.main import pass_context, common_options, aws_creds_options
+from samcli.cli.main import pass_context, common_options, aws_creds_options, print_cmdline_args
 from samcli.cli.types import ImageRepositoryType, ImageRepositoriesType
 from samcli.commands.package.exceptions import PackageResolveS3AndS3SetError, PackageResolveS3AndS3NotSetError
 from samcli.lib.cli_validation.image_repository_validation import image_repository_validation
@@ -21,6 +21,7 @@ from samcli.commands._utils.options import metadata_override_option, template_cl
 from samcli.commands._utils.resources import resources_generator
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.telemetry.metric import track_command, track_template_warnings
+from samcli.lib.utils.version_checker import check_newer_version
 from samcli.lib.warnings.sam_cli_warning import CodeDeployWarning, CodeDeployConditionWarning
 
 SHORT_HELP = "Package an AWS SAM application."
@@ -131,7 +132,9 @@ The following resources and their property locations are supported.
 @image_repository_validation
 @pass_context
 @track_command
+@check_newer_version
 @track_template_warnings([CodeDeployWarning.__name__, CodeDeployConditionWarning.__name__])
+@print_cmdline_args
 def cli(
     ctx,
     template_file,
@@ -150,7 +153,9 @@ def cli(
     config_file,
     config_env,
 ):
-
+    """
+    `sam package` command entry point
+    """
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(
@@ -189,6 +194,10 @@ def do_cli(
     profile,
     resolve_s3,
 ):
+    """
+    Implementation of the ``cli`` method
+    """
+
     from samcli.commands.package.package_context import PackageContext
 
     if resolve_s3:

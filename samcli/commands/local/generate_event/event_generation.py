@@ -10,6 +10,7 @@ import samcli.lib.generated_sample_events.events as events
 from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.options import debug_option
 from samcli.lib.telemetry.metric import track_command
+from samcli.lib.utils.version_checker import check_newer_version
 
 
 class ServiceCommand(click.MultiCommand):
@@ -179,6 +180,7 @@ class EventTypeSubCommand(click.MultiCommand):
 
     @staticmethod
     @track_command
+    @check_newer_version
     def cmd_implementation(
         events_lib: events.Events, top_level_cmd_name: str, subcmd_name: str, *args, **kwargs
     ) -> str:
@@ -188,18 +190,19 @@ class EventTypeSubCommand(click.MultiCommand):
 
         Parameters
         ----------
-        events_lib
-        top_level_cmd_name: string
+        events_lib : events.Events
+            the Events library for generating events
+        top_level_cmd_name : string
             the name of the service
-        subcmd_name: string
+        subcmd_name : string
             the name of the event under the service
-        args: tuple
+        args : tuple
             any arguments passed in before kwargs
-        kwargs: dict
+        kwargs : dict
             the keys and values for substitution in the json
         Returns
         -------
-        event: string
+        event : string
             returns the customized event json as a string
         """
         event = events_lib.generate_event(top_level_cmd_name, subcmd_name, kwargs)

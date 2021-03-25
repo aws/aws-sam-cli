@@ -135,6 +135,9 @@ class Deployer:
         :param cfn_template: CloudFormation template string
         :param parameter_values: Template parameters object
         :param capabilities: Array of capabilities passed to CloudFormation
+        :param role_arn: the Arn of the role to create changeset
+        :param notification_arns: Arns for sending notifications
+        :param s3_uploader: S3Uploader object to upload files to S3 buckets
         :param tags: Array of tags passed to CloudFormation
         :return:
         """
@@ -213,6 +216,7 @@ class Deployer:
 
         :param change_set_id: ID of the changeset
         :param stack_name: Name of the CloudFormation stack
+        :param kwargs: Other arguments to pass to pprint_columns()
         :return: dictionary of changes described in the changeset.
         """
         paginator = self._client.get_paginator("describe_change_set")
@@ -274,7 +278,6 @@ class Deployer:
 
         :param changeset_id: ID or name of the changeset
         :param stack_name:   Stack name
-        :return: Latest status of the create-change-set operation
         """
         sys.stdout.write("\nWaiting for changeset to be created..\n")
         sys.stdout.flush()
@@ -338,7 +341,7 @@ class Deployer:
         Calls CloudFormation to get current stack events
         :param stack_name: Name or ID of the stack
         :param time_stamp_marker: last event time on the stack to start streaming events from.
-        :return:
+        :param kwargs: Other arguments to pass to pprint_columns()
         """
 
         stack_change_in_progress = True
@@ -401,6 +404,17 @@ class Deployer:
         return "COMPLETE" in status and "CLEANUP" not in status
 
     def wait_for_execute(self, stack_name, changeset_type):
+        """
+        Wait for changeset to execute and return when execution completes.
+        If the stack has "Outputs," they will be printed.
+
+        Parameters
+        ----------
+        stack_name : str
+            The name of the stack
+        changeset_type : str
+            The type of the changeset, 'CREATE' or 'UPDATE'
+        """
         sys.stdout.write(
             "\n{} - Waiting for stack create/update "
             "to complete\n".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))

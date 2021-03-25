@@ -6,12 +6,19 @@ import logging
 import random
 from unittest import skipIf
 from pathlib import Path
-from parameterized import parameterized
+from parameterized import parameterized, parameterized_class
 
 import pytest
 
 from samcli.lib.utils import osutils
-from .build_integ_base import BuildIntegBase, DedupBuildIntegBase, CachedBuildIntegBase, BuildIntegRubyBase
+from .build_integ_base import (
+    BuildIntegBase,
+    DedupBuildIntegBase,
+    CachedBuildIntegBase,
+    BuildIntegRubyBase,
+    NestedBuildIntegBase,
+    IntrinsicIntegBase,
+)
 from tests.testing_utils import (
     IS_WINDOWS,
     RUNNING_ON_CI,
@@ -190,7 +197,14 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
 
     @parameterized.expand(
-        [("nodejs10.x", False), ("nodejs12.x", False), ("nodejs10.x", "use_container"), ("nodejs12.x", "use_container")]
+        [
+            ("nodejs10.x", False),
+            ("nodejs12.x", False),
+            ("nodejs14.x", False),
+            ("nodejs10.x", "use_container"),
+            ("nodejs12.x", "use_container"),
+            ("nodejs14.x", "use_container"),
+        ]
     )
     @pytest.mark.flaky(reruns=3)
     def test_with_default_package_json(self, runtime, use_container):
@@ -897,6 +911,13 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         return "python{}.{}".format(sys.version_info.major, sys.version_info.minor)
 
 
+@parameterized_class(
+    ("template", "is_nested_parent"),
+    [
+        (os.path.join("nested-parent", "template-parent.yaml"), "is_nested_parent"),
+        ("template.yaml", False),
+    ],
+)
 class TestBuildCommand_ProvidedFunctions(BuildIntegBase):
     # Test Suite for runtime: provided and where selection of the build workflow is implicitly makefile builder
     # if the makefile is present.
@@ -931,9 +952,14 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegBase):
         # Built using Makefile for a python project.
         run_command(cmdlist, cwd=self.working_dir)
 
-        self._verify_built_artifact(
-            self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
-        )
+        if self.is_nested_parent:
+            self._verify_built_artifact_in_subapp(
+                self.default_build_dir, "SubApp", self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
+            )
+        else:
+            self._verify_built_artifact(
+                self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
+            )
 
         expected = "2.23.0"
         # Building was done with a makefile, but invoke should be checked with corresponding python image.
@@ -954,6 +980,29 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegBase):
 
         template_path = build_dir.joinpath("template.yaml")
         resource_artifact_dir = build_dir.joinpath(function_logical_id)
+
+        # Make sure the template has correct CodeUri for resource
+        self._verify_resource_property(str(template_path), function_logical_id, "CodeUri", function_logical_id)
+
+        all_artifacts = set(os.listdir(str(resource_artifact_dir)))
+        actual_files = all_artifacts.intersection(expected_files)
+        self.assertEqual(actual_files, expected_files)
+
+    def _verify_built_artifact_in_subapp(self, build_dir, subapp_path, function_logical_id, expected_files):
+
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+        subapp_build_dir = Path(build_dir, subapp_path)
+        self.assertTrue(subapp_build_dir.exists(), f"Build directory for sub app {subapp_path} should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("template.yaml", build_dir_files)
+
+        subapp_build_dir_files = os.listdir(str(subapp_build_dir))
+        self.assertIn("template.yaml", subapp_build_dir_files)
+        self.assertIn(function_logical_id, subapp_build_dir_files)
+
+        template_path = subapp_build_dir.joinpath("template.yaml")
+        resource_artifact_dir = subapp_build_dir.joinpath(function_logical_id)
 
         # Make sure the template has correct CodeUri for resource
         self._verify_resource_property(str(template_path), function_logical_id, "CodeUri", function_logical_id)
@@ -1108,12 +1157,12 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
                 "dotnetcore3.1",
             ),
             (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
+            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
             # container
             (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
+            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
         ]
@@ -1143,6 +1192,43 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
         if not SKIP_DOCKER_TESTS:
             self._verify_build_and_invoke_functions(
                 expected_messages, command_result, self._make_parameter_override_arg(overrides)
+            )
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildWithDedupImageBuilds(DedupBuildIntegBase):
+    template = "dedup-functions-image-template.yaml"
+
+    @parameterized.expand([(True,), (False,)])
+    @pytest.mark.flaky(reruns=3)
+    def test_dedup_build(self, use_container):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        """
+        Build template above and verify that each function call returns as expected
+        """
+        overrides = {
+            "Function1Handler": "main.first_function_handler",
+            "Function2Handler": "main.second_function_handler",
+            "FunctionRuntime": "3.7",
+            "DockerFile": "Dockerfile",
+            "Tag": f"{random.randint(1,100)}",
+        }
+        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        run_command(cmdlist, cwd=self.working_dir)
+
+        if not SKIP_DOCKER_TESTS:
+            self._verify_invoke_built_function(
+                self.built_template, "HelloWorldFunction", self._make_parameter_override_arg(overrides), "Hello World"
+            )
+            self._verify_invoke_built_function(
+                self.built_template, "HelloMarsFunction", self._make_parameter_override_arg(overrides), "Hello Mars"
             )
 
 
@@ -1194,12 +1280,12 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
                 "dotnetcore3.1",
             ),
             (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
+            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
             # container
             (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
+            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
         ]
@@ -1250,12 +1336,12 @@ class TestParallelBuilds(DedupBuildIntegBase):
                 "dotnetcore3.1",
             ),
             (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
+            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
             # container
             (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
+            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
         ]
@@ -1285,4 +1371,501 @@ class TestParallelBuilds(DedupBuildIntegBase):
         if not SKIP_DOCKER_TESTS:
             self._verify_build_and_invoke_functions(
                 expected_messages, command_result, self._make_parameter_override_arg(overrides)
+            )
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildWithInlineCode(BuildIntegBase):
+    template = "inline_template.yaml"
+
+    @parameterized.expand(
+        [
+            (False,),
+            ("use_container",),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_inline_not_built(self, use_container):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        cmdlist = self.get_command_list(use_container=use_container)
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        run_command(cmdlist, cwd=self.working_dir)
+
+        self._verify_built_artifact(self.default_build_dir)
+
+        self.verify_docker_container_cleanedup("python3.7")
+
+    def _verify_built_artifact(self, build_dir):
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        codeuri_logical_id = "CodeUriFunction"
+        inline_logical_id = "InlineCodeFunction"
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("template.yaml", build_dir_files)
+        self.assertIn(codeuri_logical_id, build_dir_files)
+        self.assertNotIn(inline_logical_id, build_dir_files)
+
+        template_path = build_dir.joinpath("template.yaml")
+
+        # Make sure the template has correct CodeUri for resource
+        self._verify_resource_property(str(template_path), codeuri_logical_id, "CodeUri", codeuri_logical_id)
+        # Make sure the template has correct InlineCode for resource
+        self._verify_resource_property(str(template_path), inline_logical_id, "InlineCode", "def handler(): pass")
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildWithJsonContainerEnvVars(BuildIntegBase):
+    template = "container_env_vars_template.yml"
+
+    @parameterized.expand(
+        [
+            ("use_container", "env_vars_function.json"),
+            ("use_container", "env_vars_parameters.json"),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_json_env_vars_passed(self, use_container, env_vars_file):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        cmdlist = self.get_command_list(
+            use_container=use_container, container_env_var_file=self.get_env_file(env_vars_file)
+        )
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        run_command(cmdlist, cwd=self.working_dir)
+
+        self._verify_built_env_var(self.default_build_dir)
+
+        self.verify_docker_container_cleanedup("python3.7")
+
+    @staticmethod
+    def get_env_file(filename):
+        test_data_path = Path(__file__).resolve().parents[2].joinpath("integration", "testdata")
+        return str(test_data_path.joinpath("buildcmd", filename))
+
+    def _verify_built_env_var(self, build_dir):
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("CheckEnvVarsFunction", build_dir_files)
+
+        function_files = os.listdir(str(build_dir.joinpath("CheckEnvVarsFunction")))
+        self.assertIn("env_vars_result.txt", function_files)
+
+        output_file = build_dir.joinpath("CheckEnvVarsFunction", "env_vars_result.txt")
+        with open(str(output_file), "r", encoding="utf-8") as r:
+            actual = r.read()
+            self.assertEqual(actual.strip(), "MyVar")
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildWithInlineContainerEnvVars(BuildIntegBase):
+    template = "container_env_vars_template.yml"
+
+    @parameterized.expand(
+        [
+            ("use_container", "TEST_ENV_VAR=MyVar"),
+            ("use_container", "CheckEnvVarsFunction.TEST_ENV_VAR=MyVar"),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_inline_env_vars_passed(self, use_container, inline_env_var):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        cmdlist = self.get_command_list(use_container=use_container, container_env_var=inline_env_var)
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        run_command(cmdlist, cwd=self.working_dir)
+
+        self._verify_built_env_var(self.default_build_dir)
+
+        self.verify_docker_container_cleanedup("python3.7")
+
+    def _verify_built_env_var(self, build_dir):
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("CheckEnvVarsFunction", build_dir_files)
+
+        function_files = os.listdir(str(build_dir.joinpath("CheckEnvVarsFunction")))
+        self.assertIn("env_vars_result.txt", function_files)
+
+        output_file = build_dir.joinpath("CheckEnvVarsFunction", "env_vars_result.txt")
+        with open(str(output_file), "r", encoding="utf-8") as r:
+            actual = r.read()
+            self.assertEqual(actual.strip(), "MyVar")
+
+
+class TestBuildWithNestedStacks(NestedBuildIntegBase):
+    # we put the root template in its own directory to test the scenario where codeuri and children templates
+    # are not located in the same folder.
+    template = os.path.join("nested-parent", "nested-root-template.yaml")
+
+    @parameterized.expand(
+        [
+            (
+                "use_container",
+                True,
+                True,
+            ),
+            (
+                "use_container",
+                False,
+                False,
+            ),
+            (
+                False,
+                True,
+                True,
+            ),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_nested_build(self, use_container, cached, parallel):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        """
+        Build template above and verify that each function call returns as expected
+        """
+        overrides = {
+            "Runtime": "python3.7",
+            "CodeUri": "../Python",  # root stack is one level deeper than the code
+            "ChildStackCodeUri": "./Python",  # chidl stack is in the same folder as the code
+            "LocalNestedFuncHandler": "main.handler",
+        }
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, cached=cached, parallel=parallel
+        )
+
+        LOG.info("Running Command: %s", cmdlist)
+        LOG.info(self.working_dir)
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        # make sure functions are deduplicated properly, in stderr they will show up in the same line.
+        self.assertRegex(command_result.stderr.decode("utf-8"), r"Building .+'Function2',.+LocalNestedStack/Function2")
+
+        function_full_paths = ["Function", "Function2", "LocalNestedStack/Function1", "LocalNestedStack/Function2"]
+        stack_paths = ["", "LocalNestedStack"]
+        if not SKIP_DOCKER_TESTS:
+            self._verify_build(
+                function_full_paths,
+                stack_paths,
+                command_result,
+            )
+
+            overrides = self._make_parameter_override_arg(overrides)
+            self._verify_invoke_built_functions(
+                self.built_template,
+                overrides,
+                [
+                    # invoking function in root stack using function name
+                    ("Function", "Hello World"),
+                    # there is only 1 Function1 in these two stacks, so invoking either by name and by full_path are the same
+                    ("Function1", {"pi": "3.14"}),
+                    ("LocalNestedStack/Function1", {"pi": "3.14"}),
+                    # Function2 appears in both stacks and have different handler:
+                    # - invoking using function name will match the root stack one by default
+                    # - invoking using full path to avoid ambiguity
+                    ("Function2", "Hello Mars"),
+                    ("LocalNestedStack/Function2", {"pi": "3.14"}),
+                ],
+            )
+
+
+@parameterized_class(
+    ("template", "use_base_dir"),
+    [
+        (os.path.join("deep-nested", "template.yaml"), False),
+        (os.path.join("base-dir", "template", "template.yaml"), "use_base_dir"),
+    ],
+)
+class TestBuildWithNestedStacks3Level(NestedBuildIntegBase):
+    """
+    In this template, it has the same structure as .aws-sam/build
+    build
+        - template.yaml
+        - FunctionA
+        - ChildStackX
+            - template.yaml
+            - FunctionB
+            - ChildStackY
+                - template.yaml
+                - FunctionA
+                - MyLayerVersion
+    """
+
+    template = os.path.join("deep-nested", "template.yaml")
+
+    @pytest.mark.flaky(reruns=3)
+    def test_nested_build(self):
+        if SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        cmdlist = self.get_command_list(
+            use_container=True,
+            cached=True,
+            parallel=True,
+            base_dir=(os.path.join(self.test_data_path, "base-dir") if self.use_base_dir else None),
+        )
+
+        LOG.info("Running Command: %s", cmdlist)
+        LOG.info(self.working_dir)
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        function_full_paths = [
+            "FunctionA",
+            "ChildStackX/FunctionB",
+            "ChildStackX/ChildStackY/FunctionA",
+        ]
+        stack_paths = [
+            "",
+            "ChildStackX",
+            "ChildStackX/ChildStackY",
+        ]
+        if not SKIP_DOCKER_TESTS:
+            self._verify_build(
+                function_full_paths,
+                stack_paths,
+                command_result,
+            )
+
+            self._verify_invoke_built_functions(
+                self.built_template,
+                "",
+                [
+                    ("FunctionA", {"body": '{"hello": "a"}', "statusCode": 200}),
+                    ("FunctionB", {"body": '{"hello": "b"}', "statusCode": 200}),
+                    ("ChildStackX/FunctionB", {"body": '{"hello": "b"}', "statusCode": 200}),
+                    ("ChildStackX/ChildStackY/FunctionA", {"body": '{"hello": "a2"}', "statusCode": 200}),
+                ],
+            )
+
+
+@skipIf(IS_WINDOWS, "symlink is not resolved consistently on windows")
+class TestBuildWithNestedStacks3LevelWithSymlink(NestedBuildIntegBase):
+    """
+    In this template, it has the same structure as .aws-sam/build
+    build
+        - template.yaml
+        - child-stack-x-template-symlink.yaml (symlink to ChildStackX/template.yaml)
+        - FunctionA
+        - ChildStackX
+            - template.yaml
+            - FunctionB
+            - ChildStackY
+                - template.yaml
+                - FunctionA
+                - MyLayerVersion
+    """
+
+    template = os.path.join("deep-nested", "template-with-symlink.yaml")
+
+    @pytest.mark.flaky(reruns=3)
+    def test_nested_build(self):
+        if SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        cmdlist = self.get_command_list(use_container=True, cached=True, parallel=True)
+
+        LOG.info("Running Command: %s", cmdlist)
+        LOG.info(self.working_dir)
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        function_full_paths = [
+            "FunctionA",
+            "ChildStackX/FunctionB",
+            "ChildStackX/ChildStackY/FunctionA",
+            "ChildStackXViaSymlink/FunctionB",
+            "ChildStackXViaSymlink/ChildStackY/FunctionA",
+        ]
+        stack_paths = [
+            "",
+            "ChildStackX",
+            "ChildStackX/ChildStackY",
+            "ChildStackXViaSymlink",
+            "ChildStackXViaSymlink/ChildStackY",
+        ]
+        if not SKIP_DOCKER_TESTS:
+            self._verify_build(
+                function_full_paths,
+                stack_paths,
+                command_result,
+            )
+
+            self._verify_invoke_built_functions(
+                self.built_template,
+                "",
+                [
+                    ("FunctionA", {"body": '{"hello": "a"}', "statusCode": 200}),
+                    ("FunctionB", {"body": '{"hello": "b"}', "statusCode": 200}),
+                    ("ChildStackX/FunctionB", {"body": '{"hello": "b"}', "statusCode": 200}),
+                    ("ChildStackX/ChildStackY/FunctionA", {"body": '{"hello": "a2"}', "statusCode": 200}),
+                    ("ChildStackXViaSymlink/FunctionB", {"body": '{"hello": "b"}', "statusCode": 200}),
+                    ("ChildStackXViaSymlink/ChildStackY/FunctionA", {"body": '{"hello": "a2"}', "statusCode": 200}),
+                ],
+            )
+
+
+@parameterized_class(
+    ("template", "use_base_dir"),
+    [
+        (os.path.join("nested-parent", "nested-root-template-image.yaml"), False),
+        (os.path.join("base-dir-image", "template", "template.yaml"), "use_base_dir"),
+    ],
+)
+class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
+
+    EXPECTED_FILES_PROJECT_MANIFEST = {
+        "__init__.py",
+        "main.py",
+        "numpy",
+        # 'cryptography',
+        "requirements.txt",
+    }
+
+    @parameterized.expand(
+        [
+            (
+                "use_container",
+                True,
+                True,
+            ),
+            (
+                "use_container",
+                False,
+                False,
+            ),
+            (
+                False,
+                True,
+                True,
+            ),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_nested_build(self, use_container, cached, parallel):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        """
+        Build template above and verify that each function call returns as expected
+        """
+        overrides = {
+            "Runtime": "3.7",
+            "DockerFile": "Dockerfile",
+            "Tag": f"{random.randint(1,100)}",
+            "LocalNestedFuncHandler": "main.handler",
+        }
+        cmdlist = self.get_command_list(
+            use_container=use_container,
+            parameter_overrides=overrides,
+            cached=cached,
+            parallel=parallel,
+            base_dir=(os.path.join(self.test_data_path, "base-dir-image") if self.use_base_dir else None),
+        )
+
+        LOG.info("Running Command: %s", cmdlist)
+        LOG.info(self.working_dir)
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        stack_paths = ["", "LocalNestedStack"]
+        if not SKIP_DOCKER_TESTS:
+            self._verify_build(
+                [],  # there is no function artifact dirs to check
+                stack_paths,
+                command_result,
+            )
+
+            overrides = self._make_parameter_override_arg(overrides)
+            self._verify_invoke_built_functions(
+                self.built_template,
+                overrides,
+                [
+                    # invoking function in root stack using function name
+                    ("Function", "Hello World"),
+                    # there is only 1 Function1 in these two stacks, so invoking either by name and by full_path are the same
+                    ("Function1", {"pi": "3.14"}),
+                    ("LocalNestedStack/Function1", {"pi": "3.14"}),
+                    # Function2 appears in both stacks and have different handler:
+                    # - invoking using function name will match the root stack one by default
+                    # - invoking using full path to avoid ambiguity
+                    ("Function2", "Hello Mars"),
+                    ("LocalNestedStack/Function2", {"pi": "3.14"}),
+                ],
+            )
+
+
+@parameterized_class(
+    ("template", "stack_paths", "layer_full_path", "function_full_paths", "invoke_error_message"),
+    [
+        (
+            os.path.join("nested-with-intrinsic-functions", "template-pass-down.yaml"),
+            ["", "AppUsingRef", "AppUsingJoin"],
+            "MyLayerVersion",
+            ["AppUsingRef/FunctionInChild", "AppUsingJoin/FunctionInChild"],
+            # Note(xinhol), intrinsic function passed by parameter are resolved as string,
+            # therefore it is being treated as an Arn, it is a bug in intrinsic resolver
+            "Invalid Layer Arn",
+        ),
+        (
+            os.path.join("nested-with-intrinsic-functions", "template-pass-up.yaml"),
+            ["", "ChildApp"],
+            "ChildApp/MyLayerVersion",
+            ["FunctionInRoot"],
+            # for this pass-up use case, since we are not sure whether there are valid local invoke cases out there,
+            # so we don't want to block customers from local invoking it.
+            None,
+        ),
+    ],
+)
+class TestBuildPassingLayerAcrossStacks(IntrinsicIntegBase):
+    @pytest.mark.flaky(reruns=3)
+    def test_nested_build(self):
+        if SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        """
+        Build template above and verify that each function call returns as expected
+        """
+        cmdlist = self.get_command_list(
+            use_container=True,
+            cached=True,
+            parallel=True,
+        )
+
+        LOG.info("Running Command: %s", cmdlist)
+        LOG.info(self.working_dir)
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        if not SKIP_DOCKER_TESTS:
+            self._verify_build(
+                self.function_full_paths,
+                self.layer_full_path,
+                self.stack_paths,
+                command_result,
+            )
+
+            self._verify_invoke_built_functions(
+                self.built_template, self.function_full_paths, self.invoke_error_message
             )

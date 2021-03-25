@@ -22,12 +22,16 @@ from typing import Dict, List
 import boto3
 import click
 
-from samcli.commands._utils.template import get_template_data
 from samcli.commands.deploy import exceptions as deploy_exceptions
 from samcli.commands.deploy.auth_utils import auth_per_resource
-from samcli.commands.deploy.utils import sanitize_parameter_overrides, print_deploy_args
+from samcli.commands.deploy.utils import (
+    sanitize_parameter_overrides,
+    print_deploy_args,
+    hide_noecho_parameter_overrides,
+)
 from samcli.lib.deploy.deployer import Deployer
 from samcli.lib.package.s3_uploader import S3Uploader
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
 from samcli.yamlhelper import yaml_parse
 
@@ -96,6 +100,9 @@ class DeployContext:
         pass
 
     def run(self):
+        """
+        Execute deployment based on the argument provided by customers and samconfig.toml.
+        """
 
         # Parse parameters
         with open(self.template_file, "r") as handle:
@@ -129,13 +136,14 @@ class DeployContext:
         self.deployer = Deployer(cloudformation_client)
 
         region = s3_client._client_config.region_name if s3_client else self.region  # pylint: disable=W0212
+        display_parameter_overrides = hide_noecho_parameter_overrides(template_dict, self.parameter_overrides)
         print_deploy_args(
             self.stack_name,
             self.s3_bucket,
             self.image_repositories if isinstance(self.image_repositories, dict) else self.image_repository,
             region,
             self.capabilities,
-            self.parameter_overrides,
+            display_parameter_overrides,
             self.confirm_changeset,
             self.signing_profiles,
         )
@@ -169,10 +177,42 @@ class DeployContext:
         fail_on_empty_changeset=True,
         confirm_changeset=False,
     ):
+        """
+        Deploy the stack to cloudformation.
+        - if changeset needs confirmation, it will prompt for customers to confirm.
+        - if no_execute_changeset is True, the changeset won't be executed.
 
-        auth_required_per_resource = auth_per_resource(
-            sanitize_parameter_overrides(self.parameter_overrides), get_template_data(self.template_file)
+        Parameters
+        ----------
+        stack_name : str
+            name of the stack
+        template_str : str
+            the string content of the template
+        parameters : List[Dict]
+            List of parameters
+        capabilities : List[str]
+            List of capabilities
+        no_execute_changeset : bool
+            A bool indicating whether to execute changeset
+        role_arn : str
+            the Arn of the role to create changeset
+        notification_arns : List[str]
+            Arns for sending notifications
+        s3_uploader : S3Uploader
+            S3Uploader object to upload files to S3 buckets
+        tags : List[str]
+            List of tags passed to CloudFormation
+        region : str
+            AWS region to deploy the stack to
+        fail_on_empty_changeset : bool
+            Should fail when changeset is empty
+        confirm_changeset : bool
+            Should wait for customer's confirm before executing the changeset
+        """
+        stacks, _ = SamLocalStackProvider.get_stacks(
+            self.template_file, parameter_overrides=sanitize_parameter_overrides(self.parameter_overrides)
         )
+        auth_required_per_resource = auth_per_resource(stacks)
 
         for resource, authorization_required in auth_required_per_resource:
             if not authorization_required:

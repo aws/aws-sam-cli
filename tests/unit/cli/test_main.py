@@ -1,4 +1,4 @@
-from unittest.mock import patch, Mock, PropertyMock
+from unittest.mock import patch, Mock, PropertyMock, call
 
 from unittest import TestCase
 from click.testing import CliRunner
@@ -20,7 +20,6 @@ class TestCliBase(TestCase):
             self.assertTrue("--debug" in result.output, "--debug option must be present in help text")
 
     def test_cli_some_command(self):
-
         mock_cfg = Mock()
         with patch("samcli.cli.main.global_cfg", mock_cfg):
             runner = CliRunner()
@@ -28,7 +27,6 @@ class TestCliBase(TestCase):
             self.assertEqual(result.exit_code, 0)
 
     def test_cli_with_debug(self):
-
         mock_cfg = Mock()
         with patch("samcli.cli.main.global_cfg", mock_cfg):
             runner = CliRunner()

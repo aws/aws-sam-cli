@@ -35,6 +35,10 @@ def do_interactive(
     app_template,
     no_input,
 ):
+    """
+    Implementation of the ``cli`` method when --interactive is provided.
+    It will ask customers a few questions to init a template.
+    """
     if app_template:
         location_opt_choice = "1"
     else:
@@ -42,7 +46,9 @@ def do_interactive(
         click.echo("\t1 - AWS Quick Start Templates\n\t2 - Custom Template Location")
         location_opt_choice = click.prompt("Choice", type=click.Choice(["1", "2"]), show_choices=False)
     if location_opt_choice == "2":
-        _generate_from_location(location, runtime, dependency_manager, output_dir, name, app_template, no_input)
+        _generate_from_location(
+            location, package_type, runtime, dependency_manager, output_dir, name, app_template, no_input
+        )
     else:
         if not pt_explicit:
             click.echo("What package type would you like to use?")
@@ -59,7 +65,9 @@ def do_interactive(
         )
 
 
-def _generate_from_location(location, runtime, dependency_manager, output_dir, name, app_template, no_input):
+def _generate_from_location(
+    location, package_type, runtime, dependency_manager, output_dir, name, app_template, no_input
+):
     location = click.prompt("\nTemplate location (git, mercurial, http(s), zip, path)", type=str)
     summary_msg = """
 -----------------------
@@ -71,7 +79,7 @@ Output Directory: {output_dir}
         location=location, output_dir=output_dir
     )
     click.echo(summary_msg)
-    do_generate(location, runtime, dependency_manager, output_dir, name, no_input, None)
+    do_generate(location, package_type, runtime, dependency_manager, output_dir, name, no_input, None)
 
 
 # pylint: disable=too-many-statements
@@ -135,7 +143,7 @@ def _generate_from_app_template(
         """
 
     click.echo(summary_msg)
-    do_generate(location, runtime, dependency_manager, output_dir, name, no_input, extra_context)
+    do_generate(location, package_type, runtime, dependency_manager, output_dir, name, no_input, extra_context)
     # executing event_bridge logic if call is for Schema dynamic template
     if is_dynamic_schemas_template:
         _package_schemas_code(runtime, schemas_api_caller, schema_template_details, output_dir, name, location)

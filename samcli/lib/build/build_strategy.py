@@ -5,12 +5,14 @@ import logging
 import pathlib
 import shutil
 from abc import abstractmethod, ABC
+from typing import Callable, Dict, List, Any, Optional, cast
 
 from samcli.commands.build.exceptions import MissingBuildMethodException
 from samcli.lib.utils import osutils
 from samcli.lib.utils.async_utils import AsyncContext
 from samcli.lib.utils.hash import dir_checksum
 from samcli.lib.utils.packagetype import ZIP, IMAGE
+from samcli.lib.build.build_graph import BuildGraph, FunctionBuildDefinition, LayerBuildDefinition
 
 LOG = logging.getLogger(__name__)
 
@@ -21,16 +23,16 @@ class BuildStrategy(ABC):
     Keeps basic implementation of build, build_functions and build_layers
     """
 
-    def __init__(self, build_graph):
+    def __init__(self, build_graph: BuildGraph) -> None:
         self._build_graph = build_graph
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         pass
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         pass
 
-    def build(self):
+    def build(self) -> Dict[str, str]:
         """
         Builds all functions and layers in the given build graph
         """
@@ -41,7 +43,7 @@ class BuildStrategy(ABC):
 
         return result
 
-    def _build_functions(self, build_graph):
+    def _build_functions(self, build_graph: BuildGraph) -> Dict[str, str]:
         """
         Iterates through build graph and runs each unique build and copies outcome to the corresponding function folder
         """
@@ -52,13 +54,13 @@ class BuildStrategy(ABC):
         return function_build_results
 
     @abstractmethod
-    def build_single_function_definition(self, build_definition):
+    def build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
         """
         Builds single function definition and returns dictionary which contains function name as key,
         build location as value
         """
 
-    def _build_layers(self, build_graph):
+    def _build_layers(self, build_graph: BuildGraph) -> Dict[str, str]:
         """
         Iterates through build graph and runs each unique build and copies outcome to the corresponding layer folder
         """
@@ -69,7 +71,7 @@ class BuildStrategy(ABC):
         return layer_build_results
 
     @abstractmethod
-    def build_single_layer_definition(self, layer_definition):
+    def build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
         """
         Builds single layer definition and returns dictionary which contains layer name as key,
         build location as value
@@ -81,13 +83,19 @@ class DefaultBuildStrategy(BuildStrategy):
     Default build strategy, loops over given build graph for each function and layer, and builds each of them one by one
     """
 
-    def __init__(self, build_graph, build_dir, build_function, build_layer):
+    def __init__(
+        self,
+        build_graph: BuildGraph,
+        build_dir: str,
+        build_function: Callable[[str, str, str, str, Optional[str], str, dict, dict], str],
+        build_layer: Callable[[str, str, str, List[str], str, dict], str],
+    ) -> None:
         super().__init__(build_graph)
         self._build_dir = build_dir
         self._build_function = build_function
         self._build_layer = build_layer
 
-    def build_single_function_definition(self, build_definition):
+    def build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
         """
         Build the unique definition and then copy the artifact to the corresponding function folder
         """
@@ -97,48 +105,71 @@ class DefaultBuildStrategy(BuildStrategy):
             build_definition.codeuri,
             build_definition.runtime,
             build_definition.metadata,
-            [function.name for function in build_definition.functions],
+            [function.full_path for function in build_definition.functions],
         )
 
         # build into one of the functions from this build definition
-        single_function_name = build_definition.get_function_name()
-        single_build_dir = str(pathlib.Path(self._build_dir, single_function_name))
+        single_full_path = build_definition.get_full_path()
+        single_build_dir = build_definition.get_build_dir(self._build_dir)
 
         LOG.debug("Building to following folder %s", single_build_dir)
+
+        # when a function is passed here, it is ZIP function, codeuri and runtime are not None
         result = self._build_function(
             build_definition.get_function_name(),
-            build_definition.codeuri,
+            build_definition.codeuri,  # type: ignore
             build_definition.packagetype,
-            build_definition.runtime,
+            build_definition.runtime,  # type: ignore
             build_definition.get_handler_name(),
             single_build_dir,
             build_definition.metadata,
+            build_definition.env_vars,
         )
-        function_build_results[single_function_name] = result
+        function_build_results[single_full_path] = result
 
         # copy results to other functions
         if build_definition.packagetype == ZIP:
             for function in build_definition.functions:
-                if function.name is not single_function_name:
+                if function.full_path != single_full_path:
+                    # for zip function we need to copy over the artifacts
                     # artifacts directory will be created by the builder
-                    artifacts_dir = str(pathlib.Path(self._build_dir, function.name))
+                    artifacts_dir = function.get_build_dir(self._build_dir)
                     LOG.debug("Copying artifacts from %s to %s", single_build_dir, artifacts_dir)
                     osutils.copytree(single_build_dir, artifacts_dir)
-                    function_build_results[function.name] = artifacts_dir
+                    function_build_results[function.full_path] = artifacts_dir
+        elif build_definition.packagetype == IMAGE:
+            for function in build_definition.functions:
+                if function.full_path != single_full_path:
+                    # for image function, we just need to copy the image tag
+                    function_build_results[function.full_path] = result
 
         return function_build_results
 
-    def build_single_layer_definition(self, layer_definition):
+    def build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
         """
         Build the unique definition and then copy the artifact to the corresponding layer folder
         """
         layer = layer_definition.layer
-        LOG.info("Building layer '%s'", layer.name)
+        LOG.info("Building layer '%s'", layer.full_path)
         if layer.build_method is None:
             raise MissingBuildMethodException(
-                f"Layer {layer.name} cannot be build without BuildMethod. Please provide BuildMethod in Metadata."
+                f"Layer {layer.full_path} cannot be build without BuildMethod. "
+                f"Please provide BuildMethod in Metadata."
             )
-        return {layer.name: self._build_layer(layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes)}
+
+        single_build_dir = layer.get_build_dir(self._build_dir)
+        # when a layer is passed here, it is ZIP function, codeuri and runtime are not None
+        # codeuri and compatible_runtimes are not None
+        return {
+            layer.full_path: self._build_layer(
+                layer.name,
+                layer.codeuri,  # type: ignore
+                layer.build_method,
+                layer.compatible_runtimes,  # type: ignore
+                single_build_dir,
+                layer_definition.env_vars,
+            )
+        }
 
 
 class CachedBuildStrategy(BuildStrategy):
@@ -151,8 +182,14 @@ class CachedBuildStrategy(BuildStrategy):
     """
 
     def __init__(
-        self, build_graph, delegate_build_strategy, base_dir, build_dir, cache_dir, is_building_specific_resource
-    ):
+        self,
+        build_graph: BuildGraph,
+        delegate_build_strategy: BuildStrategy,
+        base_dir: str,
+        build_dir: str,
+        cache_dir: str,
+        is_building_specific_resource: bool,
+    ) -> None:
         super().__init__(build_graph)
         self._delegate_build_strategy = delegate_build_strategy
         self._base_dir = base_dir
@@ -160,23 +197,23 @@ class CachedBuildStrategy(BuildStrategy):
         self._cache_dir = cache_dir
         self._is_building_specific_resource = is_building_specific_resource
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         self._clean_redundant_cached()
 
-    def build(self):
+    def build(self) -> Dict[str, str]:
         result = {}
         with self, self._delegate_build_strategy:
             result.update(super().build())
         return result
 
-    def build_single_function_definition(self, build_definition):
+    def build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
         """
         Builds single function definition with caching
         """
         if build_definition.packagetype == IMAGE:
             return self._delegate_build_strategy.build_single_function_definition(build_definition)
 
-        code_dir = str(pathlib.Path(self._base_dir, build_definition.codeuri).resolve())
+        code_dir = str(pathlib.Path(self._base_dir, cast(str, build_definition.codeuri)).resolve())
         source_md5 = dir_checksum(code_dir)
         cache_function_dir = pathlib.Path(self._cache_dir, build_definition.uuid)
         function_build_results = {}
@@ -204,18 +241,18 @@ class CachedBuildStrategy(BuildStrategy):
             )
             for function in build_definition.functions:
                 # artifacts directory will be created by the builder
-                artifacts_dir = str(pathlib.Path(self._build_dir, function.name))
+                artifacts_dir = function.get_build_dir(self._build_dir)
                 LOG.debug("Copying artifacts from %s to %s", cache_function_dir, artifacts_dir)
                 osutils.copytree(cache_function_dir, artifacts_dir)
-                function_build_results[function.name] = artifacts_dir
+                function_build_results[function.full_path] = artifacts_dir
 
         return function_build_results
 
-    def build_single_layer_definition(self, layer_definition):
+    def build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
         """
         Builds single layer definition with caching
         """
-        code_dir = str(pathlib.Path(self._base_dir, layer_definition.codeuri).resolve())
+        code_dir = str(pathlib.Path(self._base_dir, cast(str, layer_definition.codeuri)).resolve())
         source_md5 = dir_checksum(code_dir)
         cache_function_dir = pathlib.Path(self._cache_dir, layer_definition.uuid)
         layer_build_result = {}
@@ -242,14 +279,14 @@ class CachedBuildStrategy(BuildStrategy):
                 layer_definition.uuid,
             )
             # artifacts directory will be created by the builder
-            artifacts_dir = str(pathlib.Path(self._build_dir, layer_definition.layer.name))
+            artifacts_dir = str(pathlib.Path(self._build_dir, layer_definition.layer.full_path))
             LOG.debug("Copying artifacts from %s to %s", cache_function_dir, artifacts_dir)
             osutils.copytree(cache_function_dir, artifacts_dir)
-            layer_build_result[layer_definition.layer.name] = artifacts_dir
+            layer_build_result[layer_definition.layer.full_path] = artifacts_dir
 
         return layer_build_result
 
-    def _clean_redundant_cached(self):
+    def _clean_redundant_cached(self) -> None:
         """
         clean the redundant cached folder
         """
@@ -268,12 +305,17 @@ class ParallelBuildStrategy(BuildStrategy):
     For actual build implementation it calls delegate implementation (could be one of the other Build Strategy)
     """
 
-    def __init__(self, build_graph, delegate_build_strategy, async_context=AsyncContext()):
+    def __init__(
+        self,
+        build_graph: BuildGraph,
+        delegate_build_strategy: BuildStrategy,
+        async_context: AsyncContext = AsyncContext(),
+    ) -> None:
         super().__init__(build_graph)
         self._delegate_build_strategy = delegate_build_strategy
         self._async_context = async_context
 
-    def build(self):
+    def build(self) -> Dict[str, str]:
         """
         Runs all build and collects results from async context
         """
@@ -289,7 +331,7 @@ class ParallelBuildStrategy(BuildStrategy):
 
         return result
 
-    def build_single_function_definition(self, build_definition):
+    def build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
         """
         Passes single function build into async context, no actual result returned from this function
         """
@@ -298,7 +340,7 @@ class ParallelBuildStrategy(BuildStrategy):
         )
         return {}
 
-    def build_single_layer_definition(self, layer_definition):
+    def build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
         """
         Passes single layer build into async context, no actual result returned from this function
         """

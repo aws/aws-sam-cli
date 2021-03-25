@@ -25,6 +25,7 @@ LOG = logging.getLogger(__name__)
 class Runtime(Enum):
     nodejs10x = "nodejs10.x"
     nodejs12x = "nodejs12.x"
+    nodejs14x = "nodejs14.x"
     python27 = "python2.7"
     python36 = "python3.6"
     python37 = "python3.7"
@@ -56,7 +57,6 @@ class LambdaImage:
     _INVOKE_REPO_PREFIX = "amazon/aws-sam-cli-emulation-image"
     _SAM_CLI_REPO_NAME = "samcli/lambda"
     _RAPID_SOURCE_PATH = Path(__file__).parent.joinpath("..", "rapid").resolve()
-    _GO_BOOTSTRAP_PATH = Path(__file__).parent.joinpath("..", "go-bootstrap").resolve()
 
     def __init__(self, layer_downloader, skip_pull_image, force_image_build, docker_client=None):
         """
@@ -77,7 +77,7 @@ class LambdaImage:
         self.force_image_build = force_image_build
         self.docker_client = docker_client or docker.from_env()
 
-    def build(self, runtime, packagetype, image, layers, is_debug, stream=None):
+    def build(self, runtime, packagetype, image, layers, stream=None):
         """
         Build the image if one is not already on the system that matches the runtime and layers
 
@@ -124,9 +124,6 @@ class LambdaImage:
             image_tag = f"{self._SAM_CLI_REPO_NAME}:{docker_image_version}"
 
         image_not_found = False
-        is_debug_go = runtime == "go1.x" and is_debug
-        if is_debug_go:
-            image_tag = f"{self._INVOKE_REPO_PREFIX}-{runtime}:debug-{version}"
 
         # If we are not using layers, build anyways to ensure any updates to rapid get added
         try:
@@ -144,9 +141,7 @@ class LambdaImage:
             stream_writer = stream or StreamWriter(sys.stderr)
             stream_writer.write("Building image...")
             stream_writer.flush()
-            self._build_image(
-                image if image else image_name, image_tag, downloaded_layers, is_debug_go, stream=stream_writer
-            )
+            self._build_image(image if image else image_name, image_tag, downloaded_layers, stream=stream_writer)
 
         return image_tag
 
@@ -186,7 +181,7 @@ class LambdaImage:
             runtime + "-" + hashlib.sha256("-".join([layer.name for layer in layers]).encode("utf-8")).hexdigest()[0:25]
         )
 
-    def _build_image(self, base_image, docker_tag, layers, is_debug_go, stream=None):
+    def _build_image(self, base_image, docker_tag, layers, stream=None):
         """
         Builds the image
 
@@ -199,16 +194,12 @@ class LambdaImage:
         layers list(samcli.commands.local.lib.provider.Layer)
             List of Layers to be use to mount in the image
 
-        Returns
-        -------
-        None
-
         Raises
         ------
         samcli.commands.local.cli_common.user_exceptions.ImageBuildException
             When docker fails to build the image
         """
-        dockerfile_content = self._generate_dockerfile(base_image, layers, is_debug_go)
+        dockerfile_content = self._generate_dockerfile(base_image, layers)
 
         # Create dockerfile in the same directory of the layer cache
         dockerfile_name = "dockerfile_" + str(uuid.uuid4())
@@ -221,10 +212,6 @@ class LambdaImage:
 
             # add dockerfile and rapid source paths
             tar_paths = {str(full_dockerfile_path): "Dockerfile", self._RAPID_SOURCE_PATH: "/aws-lambda-rie"}
-
-            if is_debug_go:
-                LOG.debug("Adding custom GO Bootstrap to support debugging")
-                tar_paths[self._GO_BOOTSTRAP_PATH] = "/aws-lambda-go"
 
             for layer in layers:
                 tar_paths[layer.codeuri] = "/" + layer.name
@@ -257,7 +244,7 @@ class LambdaImage:
                 full_dockerfile_path.unlink()
 
     @staticmethod
-    def _generate_dockerfile(base_image, layers, is_debug_go):
+    def _generate_dockerfile(base_image, layers):
         """
         Generate the Dockerfile contents
 
@@ -287,11 +274,6 @@ class LambdaImage:
         dockerfile_content = (
             f"FROM {base_image}\nADD aws-lambda-rie /var/rapid\nRUN chmod +x /var/rapid/aws-lambda-rie\n"
         )
-
-        if is_debug_go:
-            dockerfile_content = (
-                dockerfile_content + "ADD aws-lambda-go /var/runtime\nRUN chmod +x /var/runtime/aws-lambda-go\n"
-            )
 
         for layer in layers:
             dockerfile_content = dockerfile_content + f"ADD {layer.name} {LambdaImage._LAYERS_DIR}\n"

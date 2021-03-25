@@ -509,16 +509,22 @@ class TestContainer_wait_for_result(TestCase):
     def setUp(self):
         self.image = IMAGE
         self.name = "function_name"
-        self.event = {}
+        self.event = "{}"
         self.cmd = ["cmd"]
         self.working_dir = "working_dir"
         self.host_dir = "host_dir"
+        self.container_host = "localhost"
 
         self.mock_docker_client = Mock()
         self.mock_docker_client.containers = Mock()
         self.mock_docker_client.containers.get = Mock()
         self.container = Container(
-            self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
+            self.image,
+            self.cmd,
+            self.working_dir,
+            self.host_dir,
+            docker_client=self.mock_docker_client,
+            container_host=self.container_host,
         )
         self.container.id = "someid"
 
@@ -568,17 +574,17 @@ class TestContainer_wait_for_result(TestCase):
             [
                 call(
                     "http://localhost:7077/2015-03-31/functions/function/invocations",
-                    data={},
+                    data=b"{}",
                     timeout=(self.timeout, None),
                 ),
                 call(
                     "http://localhost:7077/2015-03-31/functions/function/invocations",
-                    data={},
+                    data=b"{}",
                     timeout=(self.timeout, None),
                 ),
                 call(
                     "http://localhost:7077/2015-03-31/functions/function/invocations",
-                    data={},
+                    data=b"{}",
                     timeout=(self.timeout, None),
                 ),
             ],

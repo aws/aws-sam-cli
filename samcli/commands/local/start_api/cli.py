@@ -5,7 +5,7 @@ CLI command for "local start-api" command
 import logging
 import click
 
-from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
+from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands.local.cli_common.options import (
     invoke_common_options,
     service_common_options,
@@ -15,6 +15,7 @@ from samcli.commands.local.cli_common.options import (
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
+from samcli.lib.utils.version_checker import check_newer_version
 from samcli.local.docker.exceptions import ContainerNotStartableException
 
 LOG = logging.getLogger(__name__)
@@ -53,6 +54,8 @@ and point SAM to the directory or file containing build artifacts.
 @aws_creds_options  # pylint: disable=R0914
 @pass_context
 @track_command
+@check_newer_version
+@print_cmdline_args
 def cli(
     ctx,
     # start-api Specific Options
@@ -78,7 +81,11 @@ def cli(
     warm_containers,
     shutdown,
     debug_function,
+    container_host,
 ):
+    """
+    `sam local start-api` command entry point
+    """
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(
@@ -102,6 +109,7 @@ def cli(
         warm_containers,
         shutdown,
         debug_function,
+        container_host,
     )  # pragma: no cover
 
 
@@ -126,6 +134,7 @@ def do_cli(  # pylint: disable=R0914
     warm_containers,
     shutdown,
     debug_function,
+    container_host,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -166,6 +175,7 @@ def do_cli(  # pylint: disable=R0914
             warm_container_initialization_mode=warm_containers,
             debug_function=debug_function,
             shutdown=shutdown,
+            container_host=container_host,
         ) as invoke_context:
 
             service = LocalApiService(lambda_invoke_context=invoke_context, port=port, host=host, static_dir=static_dir)
