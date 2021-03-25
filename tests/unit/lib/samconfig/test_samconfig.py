@@ -5,7 +5,7 @@ from unittest import TestCase
 
 from samcli.lib.config.exceptions import SamConfigVersionException
 from samcli.lib.config.version import VERSION_KEY, SAM_CONFIG_VERSION
-from samcli.lib.config.samconfig import SamConfig, DEFAULT_CONFIG_FILE_NAME
+from samcli.lib.config.samconfig import SamConfig, DEFAULT_CONFIG_FILE_NAME, DEFAULT_GLOBAL_CMDNAME
 
 
 class TestSamConfig(TestCase):
@@ -27,39 +27,30 @@ class TestSamConfig(TestCase):
         self.assertTrue(self.samconfig.sanity_check())
         self.assertEqual(SAM_CONFIG_VERSION, self.samconfig.document.get(VERSION_KEY))
 
+    def _update_samconfig(self, cmd_names, section, key, value, env):
+        self.samconfig.put(cmd_names=cmd_names, section=section, key=key, value=value, env=env)
+        self.samconfig.flush()
+        self._check_config_file()
+
     def test_init(self):
         self.assertEqual(self.samconfig.filepath, Path(self.config_dir, DEFAULT_CONFIG_FILE_NAME))
 
     def test_param_overwrite(self):
-        self.samconfig.put(cmd_names=["myCommand"], section="mySection", key="port", value=5401, env="myEnv")
-        self.samconfig.flush()
-        self._check_config_file()
+        self._update_samconfig(cmd_names=["myCommand"], section="mySection", key="port", value=5401, env="myEnv")
         self.assertEqual(
             {"port": 5401}, self.samconfig.get_all(cmd_names=["myCommand"], section="mySection", env="myEnv")
         )
-        self.samconfig.document = {}
-        self.samconfig.put(cmd_names=["myCommand"], section="mySection", key="port", value=5402, env="myEnv")
-        self.samconfig.flush()
-        self._check_config_file()
-        self.assertEqual(
-            {"port": 5402}, self.samconfig.get_all(cmd_names=["myCommand"], section="mySection", env="myEnv")
-        )
-        self.samconfig.document = {}
+        self._update_samconfig(cmd_names=["myCommand"], section="mySection", key="port", value=5402, env="myEnv")
         self.assertEqual(
             {"port": 5402}, self.samconfig.get_all(cmd_names=["myCommand"], section="mySection", env="myEnv")
         )
 
     def test_add_params_from_different_env(self):
-        self.samconfig.put(cmd_names=["myCommand"], section="mySection", key="port", value=5401, env="myEnvA")
-        self.samconfig.flush()
-        self._check_config_file()
+        self._update_samconfig(cmd_names=["myCommand"], section="mySection", key="port", value=5401, env="myEnvA")
         self.assertEqual(
             {"port": 5401}, self.samconfig.get_all(cmd_names=["myCommand"], section="mySection", env="myEnvA")
         )
-        self.samconfig.document = {}
-        self.samconfig.put(cmd_names=["myCommand"], section="mySection", key="port", value=5402, env="myEnvB")
-        self.samconfig.flush()
-        self._check_config_file()
+        self._update_samconfig(cmd_names=["myCommand"], section="mySection", key="port", value=5402, env="myEnvB")
         self.assertEqual(
             {"port": 5401}, self.samconfig.get_all(cmd_names=["myCommand"], section="mySection", env="myEnvA")
         )
@@ -68,18 +59,13 @@ class TestSamConfig(TestCase):
         )
 
     def test_add_params_from_different_cmd_names(self):
-        self.samconfig.put(cmd_names=["myCommand1"], section="mySection", key="port", value="ABC", env="myEnv")
-        self.samconfig.flush()
-        self._check_config_file()
+        self._update_samconfig(cmd_names=["myCommand1"], section="mySection", key="port", value="ABC", env="myEnv")
         self.assertEqual(
             {"port": "ABC"}, self.samconfig.get_all(cmd_names=["myCommand1"], section="mySection", env="myEnv")
         )
-        self.samconfig.document = {}
-        self.samconfig.put(
+        self._update_samconfig(
             cmd_names=["myCommand2", "mySubCommand"], section="mySection", key="port", value="DEF", env="myEnv"
         )
-        self.samconfig.flush()
-        self._check_config_file()
         self.assertEqual(
             {"port": "ABC"}, self.samconfig.get_all(cmd_names=["myCommand1"], section="mySection", env="myEnv")
         )
@@ -89,16 +75,11 @@ class TestSamConfig(TestCase):
         )
 
     def test_add_params_from_different_sections(self):
-        self.samconfig.put(cmd_names=["myCommand"], section="mySection1", key="testKey1", value=True, env="myEnv")
-        self.samconfig.flush()
-        self._check_config_file()
+        self._update_samconfig(cmd_names=["myCommand"], section="mySection1", key="testKey1", value=True, env="myEnv")
         self.assertEqual(
             {"testKey1": True}, self.samconfig.get_all(cmd_names=["myCommand"], section="mySection1", env="myEnv")
         )
-        self.samconfig.document = {}
-        self.samconfig.put(cmd_names=["myCommand"], section="mySection2", key="testKey2", value=False, env="myEnv")
-        self.samconfig.flush()
-        self._check_config_file()
+        self._update_samconfig(cmd_names=["myCommand"], section="mySection2", key="testKey2", value=False, env="myEnv")
         self.assertEqual(
             {"testKey1": True},
             self.samconfig.get_all(cmd_names=["myCommand"], section="mySection1", env="myEnv"),
@@ -109,19 +90,70 @@ class TestSamConfig(TestCase):
         )
 
     def test_add_params_from_different_keys(self):
-        self.samconfig.put(cmd_names=["myCommand"], section="mySection", key="testKey1", value=True, env="myEnv")
-        self.samconfig.flush()
-        self._check_config_file()
+        self._update_samconfig(cmd_names=["myCommand"], section="mySection", key="testKey1", value=True, env="myEnv")
         self.assertEqual(
             {"testKey1": True}, self.samconfig.get_all(cmd_names=["myCommand"], section="mySection", env="myEnv")
         )
-        self.samconfig.document = {}
-        self.samconfig.put(cmd_names=["myCommand"], section="mySection", key="testKey2", value=321, env="myEnv")
-        self.samconfig.flush()
-        self._check_config_file()
+        self._update_samconfig(cmd_names=["myCommand"], section="mySection", key="testKey2", value=321, env="myEnv")
         self.assertEqual(
             {"testKey1": True, "testKey2": 321},
             self.samconfig.get_all(cmd_names=["myCommand"], section="mySection", env="myEnv"),
+        )
+
+    def test_get_global_param(self):
+        self._update_samconfig(
+            cmd_names=[DEFAULT_GLOBAL_CMDNAME],
+            section="mySection",
+            key="testKey1",
+            value="ValueFromGlobal",
+            env="myEnv",
+        )
+        self.assertEqual(
+            {"testKey1": "ValueFromGlobal"},
+            self.samconfig.get_all(cmd_names=["myCommand"], section="mySection", env="myEnv"),
+        )
+
+    def test_global_param_priority(self):
+        self._update_samconfig(
+            cmd_names=[DEFAULT_GLOBAL_CMDNAME],
+            section="mySection",
+            key="testKey1",
+            value="ValueFromGlobal1",
+            env="myEnv",
+        )
+        self._update_samconfig(
+            cmd_names=["myCommand"], section="mySection", key="testKey1", value="ValueFromCommand", env="myEnv"
+        )
+        self._update_samconfig(
+            cmd_names=[DEFAULT_GLOBAL_CMDNAME],
+            section="mySection",
+            key="testKey1",
+            value="ValueFromGlobal2",
+            env="myEnv",
+        )
+        self.assertEqual(
+            {"testKey1": "ValueFromCommand"},
+            self.samconfig.get_all(cmd_names=["myCommand"], section="mySection", env="myEnv"),
+        )
+
+    def test_dedup_global_param(self):
+        self._update_samconfig(
+            cmd_names=[DEFAULT_GLOBAL_CMDNAME],
+            section="mySection",
+            key="testKey",
+            value="ValueFromGlobal",
+            env="myEnv",
+        )
+        self._update_samconfig(
+            cmd_names=["myCommand"], section="mySection", key="testKey", value="ValueFromGlobal", env="myEnv"
+        )
+        self.assertEqual(
+            {"testKey": "ValueFromGlobal"},
+            self.samconfig.get_all(cmd_names=["myCommand"], section="mySection", env="myEnv"),
+        )
+        self.assertEqual(self.samconfig.document["myEnv"]["myCommand"]["mySection"], {})
+        self.assertEqual(
+            self.samconfig.document["myEnv"][DEFAULT_GLOBAL_CMDNAME]["mySection"], {"testKey": "ValueFromGlobal"}
         )
 
     def test_check_config_get(self):

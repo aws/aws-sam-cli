@@ -13,7 +13,7 @@ from samcli.commands._utils.options import (
     docker_common_options,
     parameter_override_option,
 )
-from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
+from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.lib.build.exceptions import BuildInsideContainerError
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.telemetry.metric import track_command
@@ -155,14 +155,15 @@ $ sam build MyFunction
 @docker_common_options
 @cli_framework_options
 @aws_creds_options
-@click.argument("function_identifier", required=False)
+@click.argument("resource_logical_id", required=False)
 @pass_context
 @track_command
 @check_newer_version
+@print_cmdline_args
 def cli(
     ctx: Context,
     # please keep the type below consistent with @click.options
-    function_identifier: Optional[str],
+    resource_logical_id: Optional[str],
     template_file: str,
     base_dir: Optional[str],
     build_dir: str,
@@ -179,12 +180,15 @@ def cli(
     config_file: str,
     config_env: str,
 ) -> None:
+    """
+    `sam build` command entry point
+    """
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     mode = _get_mode_value_from_envvar("SAM_BUILD_MODE", choices=["debug"])
 
     do_cli(
-        function_identifier,
+        resource_logical_id,
         template_file,
         base_dir,
         build_dir,

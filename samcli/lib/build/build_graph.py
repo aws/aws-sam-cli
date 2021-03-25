@@ -332,9 +332,9 @@ class LayerBuildDefinition(AbstractBuildDefinition):
     def __init__(
         self,
         name: str,
-        codeuri: str,
-        build_method: str,
-        compatible_runtimes: List[str],
+        codeuri: Optional[str],
+        build_method: Optional[str],
+        compatible_runtimes: Optional[List[str]],
         source_md5: str = "",
         env_vars: Optional[Dict] = None,
     ):
@@ -387,8 +387,8 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
 
     def __init__(
         self,
-        runtime: str,
-        codeuri: str,
+        runtime: Optional[str],
+        codeuri: Optional[str],
         packagetype: str,
         metadata: Optional[Dict],
         source_md5: str = "",

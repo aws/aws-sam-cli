@@ -219,7 +219,7 @@ class TestRequestContext(TestCase):
         }
 
         request_context_dict = request_context.to_dict()
-        self.assertEquals(len(request_context_dict["requestId"]), 36)
+        self.assertEqual(len(request_context_dict["requestId"]), 36)
         request_context_dict["requestId"] = ""
         self.assertEqual(request_context_dict, expected)
 
@@ -267,7 +267,7 @@ class TestRequestContextV2(TestCase):
         }
 
         request_context_dict = request_context.to_dict()
-        self.assertEquals(len(request_context_dict["requestId"]), 36)
+        self.assertEqual(len(request_context_dict["requestId"]), 36)
         request_context_dict["requestId"] = ""
         self.assertEqual(request_context_dict, expected)
 

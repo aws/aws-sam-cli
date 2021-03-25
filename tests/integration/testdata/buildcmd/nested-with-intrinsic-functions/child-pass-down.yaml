@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  Layer:
+    Type: String
+
+Resources:
+  FunctionInChild:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../Python
+      Handler: main.handler
+      Runtime: python3.8
+      Layers:
+        - !Ref Layer
