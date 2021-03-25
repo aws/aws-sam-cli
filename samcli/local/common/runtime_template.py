@@ -96,6 +96,21 @@ RUNTIME_TO_DEPENDENCY_MANAGERS = {
     "java8.al2": ["maven", "gradle"],
 }
 
+RUNTIME_TO_BUILD_IMAGE = {
+    "python3.8": "public.ecr.aws/sam/build-python3.8",
+    "python3.7": "public.ecr.aws/sam/build-python3.7",
+    "python3.6": "public.ecr.aws/sam/build-python3.6",
+    "python2.7": "public.ecr.aws/sam/build-python2.7",
+    "ruby2.5": "public.ecr.aws/sam/build-ruby2.5",
+    "ruby2.7": "public.ecr.aws/sam/build-ruby2.7",
+    "nodejs14.x": "public.ecr.aws/sam/build-nodejs14.x",
+    "nodejs12.x": "public.ecr.aws/sam/build-nodejs12.x",
+    "nodejs10.x": "public.ecr.aws/sam/build-nodejs10.x",
+    "java8": "public.ecr.aws/sam/build-java8",
+    "java11": "public.ecr.aws/sam/build-java11",
+    "java8.al2": "public.ecr.aws/sam/build-java8.al2",
+}
+
 SUPPORTED_DEP_MANAGERS: Set[str] = {
     c["dependency_manager"]  # type: ignore
     for c in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values())))
