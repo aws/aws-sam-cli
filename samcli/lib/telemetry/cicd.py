@@ -60,7 +60,7 @@ _ENV_VAR_OR_CALLABLE_BY_PLATFORM: Dict[CICDPlatform, Union[str, Callable[[Mappin
     # https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-env-vars.html
     CICDPlatform.AWSCodeBuild: "CODEBUILD_BUILD_ID",
     # https://www.jetbrains.com/help/teamcity/predefined-build-parameters.html
-    CICDPlatform.TeamCity: "CODEBUILD_BUILD_ID",
+    CICDPlatform.TeamCity: "TEAMCITY_VERSION",
     # https://confluence.atlassian.com/bamboo/bamboo-variables-289277087.html
     CICDPlatform.Bamboo: "bamboo_buildNumber",
     # https://buddy.works/docs/pipelines/environment-variables

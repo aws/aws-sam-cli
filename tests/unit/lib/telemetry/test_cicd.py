@@ -15,7 +15,7 @@ class TestCICD(TestCase):
             (CICDPlatform.TravisCI, "TRAVIS", Mock()),
             (CICDPlatform.CircleCI, "CIRCLECI", Mock()),
             (CICDPlatform.AWSCodeBuild, "CODEBUILD_BUILD_ID", Mock()),
-            (CICDPlatform.TeamCity, "CODEBUILD_BUILD_ID", Mock()),
+            (CICDPlatform.TeamCity, "TEAMCITY_VERSION", Mock()),
             (CICDPlatform.Bamboo, "bamboo_buildNumber", Mock()),
             (CICDPlatform.Buddy, "BUDDY", Mock()),
             (CICDPlatform.CodeShip, "CI_NAME", "CodeShip"),
