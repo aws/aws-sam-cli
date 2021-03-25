@@ -298,11 +298,11 @@ class Metric:
         self._metric_name = metric_name
         self._gc = GlobalConfig()
         self._session_id = self._default_session_id()
+        self._cicd_detector = CICDDetector()
         if not self._session_id:
             self._session_id = ""
         if should_add_common_attributes:
             self._add_common_metric_attributes()
-        self.cicd_detector = CICDDetector()
 
     def add_list_data(self, key, value):
         if key not in self._data:
@@ -328,7 +328,7 @@ class Metric:
         self._data["installationId"] = self._gc.installation_id
         self._data["sessionId"] = self._session_id
         self._data["executionEnvironment"] = self._get_execution_environment()
-        self._data["ci"] = bool(self.cicd_detector.platform())
+        self._data["ci"] = bool(self._cicd_detector.platform())
         self._data["pyversion"] = platform.python_version()
         self._data["samcliVersion"] = samcli_version
 
@@ -359,7 +359,7 @@ class Metric:
         str
             Name of the environment where SAM CLI is executed in.
         """
-        cicd_platform: Optional[CICDPlatform] = self.cicd_detector.platform()
+        cicd_platform: Optional[CICDPlatform] = self._cicd_detector.platform()
         if cicd_platform:
             return cicd_platform.name
         return "CLI"
