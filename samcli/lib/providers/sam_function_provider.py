@@ -421,6 +421,12 @@ class SamFunctionProvider(SamBaseProvider):
                         stack_path=stack.stack_path,
                     )
                 )
+            else:
+                LOG.debug(
+                    'layer "%s" is not recognizable, '
+                    "it might be using intrinsic functions that we don't support yet. Skipping.",
+                    str(layer),
+                )
 
         return layers
 
