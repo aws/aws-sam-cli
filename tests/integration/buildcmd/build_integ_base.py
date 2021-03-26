@@ -71,6 +71,7 @@ class BuildIntegBase(TestCase):
         parallel=False,
         container_env_var=None,
         container_env_var_file=None,
+        build_image=None,
     ):
 
         command_list = [self.cmd, "build"]
@@ -112,6 +113,9 @@ class BuildIntegBase(TestCase):
 
         if container_env_var_file:
             command_list += ["--container-env-var-file", container_env_var_file]
+
+        if build_image:
+            command_list += ["--build-image", build_image]
 
         return command_list
 

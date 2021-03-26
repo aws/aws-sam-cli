@@ -7,6 +7,7 @@ import random
 from unittest import skipIf
 from pathlib import Path
 from parameterized import parameterized, parameterized_class
+from subprocess import Popen, PIPE, TimeoutExpired
 
 import pytest
 
@@ -1837,3 +1838,111 @@ class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
                     ("LocalNestedStack/Function2", {"pi": "3.14"}),
                 ],
             )
+
+@parameterized_class(
+    ("template", "stack_paths", "layer_full_path", "function_full_paths", "invoke_error_message"),
+    [
+        (
+            os.path.join("nested-with-intrinsic-functions", "template-pass-down.yaml"),
+            ["", "AppUsingRef", "AppUsingJoin"],
+            "MyLayerVersion",
+            ["AppUsingRef/FunctionInChild", "AppUsingJoin/FunctionInChild"],
+            # Note(xinhol), intrinsic function passed by parameter are resolved as string,
+            # therefore it is being treated as an Arn, it is a bug in intrinsic resolver
+            "Invalid Layer Arn",
+        ),
+        (
+            os.path.join("nested-with-intrinsic-functions", "template-pass-up.yaml"),
+            ["", "ChildApp"],
+            "ChildApp/MyLayerVersion",
+            ["FunctionInRoot"],
+            # for this pass-up use case, since we are not sure whether there are valid local invoke cases out there,
+            # so we don't want to block customers from local invoking it.
+            None,
+        ),
+    ],
+)
+class TestBuildPassingLayerAcrossStacks(IntrinsicIntegBase):
+    @pytest.mark.flaky(reruns=3)
+    def test_nested_build(self):
+        if SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        """
+        Build template above and verify that each function call returns as expected
+        """
+        cmdlist = self.get_command_list(
+            use_container=True,
+            cached=True,
+            parallel=True,
+        )
+
+        LOG.info("Running Command: %s", cmdlist)
+        LOG.info(self.working_dir)
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        if not SKIP_DOCKER_TESTS:
+            self._verify_build(
+                self.function_full_paths,
+                self.layer_full_path,
+                self.stack_paths,
+                command_result,
+            )
+
+            self._verify_invoke_built_functions(
+                self.built_template, self.function_full_paths, self.invoke_error_message
+            )
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildWithCustomBuildImage(BuildIntegBase):
+    template = "provided_image_function.yaml"
+
+    @parameterized.expand(
+        [
+            ("use_container", None),
+            ("use_container", "amazon/aws-sam-cli-build-image-nodejs10.x"),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_custom_build_image_succeeds(self, use_container, build_image):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        cmdlist = self.get_command_list(use_container=use_container, build_image=build_image)
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        process = Popen(cmdlist, cwd=self.working_dir, stdout=PIPE, stderr=PIPE)
+        try:
+            stdout, stderr = process.communicate(timeout=TIMEOUT)
+            LOG.info(f"Stdout: {stdout.decode('utf-8')}")
+            LOG.info(f"Stderr: {stderr.decode('utf-8')}")
+        except TimeoutExpired:
+            LOG.error(f"Command: {command_list}, TIMED OUT")
+            LOG.error(f"Return Code: {process_execute.returncode}")
+            process.kill()
+            raise
+        process_stderr = stderr.strip()
+
+        self._verify_right_image_pulled(build_image, process_stderr)
+        self._verify_build_succeeds(self.default_build_dir)
+
+        self.verify_docker_container_cleanedup("nodejs10.x")
+
+    def _verify_right_image_pulled(self, build_image, process_stderr):
+        image_name = build_image if build_image is not None else "public.ecr.aws/sam/build-nodejs10.x"
+        processed_name = bytes(image_name, encoding="utf-8")
+        self.assertIn(
+            processed_name,
+            process_stderr,
+        )
+
+    def _verify_build_succeeds(self, build_dir):
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("BuildImageFunction", build_dir_files)
