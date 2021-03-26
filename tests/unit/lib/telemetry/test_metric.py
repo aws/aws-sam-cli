@@ -436,7 +436,7 @@ class TestMetric(TestCase):
         pass
 
     @parameterized.expand([(CICDPlatform.Appveyor, "Appveyor", "ci"), (None, "CLI", False)])
-    @patch("samcli.lib.telemetry.metric.cicd.platform")
+    @patch("samcli.lib.telemetry.metric.CICDDetector.platform")
     @patch("samcli.lib.telemetry.metric.platform")
     @patch("samcli.lib.telemetry.metric.Context")
     @patch("samcli.lib.telemetry.metric.GlobalConfig")
