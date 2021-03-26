@@ -67,7 +67,7 @@ class ApplicationBuilder:
         docker_client: Optional[docker.DockerClient] = None,
         container_env_var: Optional[Dict] = None,
         container_env_var_file: Optional[str] = None,
-        build_images: Optional[dict] = None,
+        build_images: Optional[Dict] = None,
     ) -> None:
         """
         Initialize the class
@@ -577,7 +577,7 @@ class ApplicationBuilder:
         scratch_dir: str,
         manifest_path: str,
         runtime: str,
-        options: Optional[dict],
+        options: Optional[Dict],
     ) -> str:
 
         builder = LambdaBuilder(

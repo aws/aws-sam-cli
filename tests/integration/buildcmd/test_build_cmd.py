@@ -7,6 +7,7 @@ import random
 from unittest import skipIf
 from pathlib import Path
 from parameterized import parameterized, parameterized_class
+from subprocess import Popen, PIPE, TimeoutExpired
 
 import pytest
 
@@ -1894,3 +1895,56 @@ class TestBuildPassingLayerAcrossStacks(IntrinsicIntegBase):
             self._verify_invoke_built_functions(
                 self.built_template, self.function_full_paths, self.invoke_error_message
             )
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildWithCustomBuildImage(BuildIntegBase):
+    template = "provided_image_function.yaml"
+
+    @parameterized.expand(
+        [
+            ("use_container", None),
+            ("use_container", "amazon/aws-sam-cli-build-image-nodejs10.x"),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_custom_build_image_succeeds(self, use_container, build_image):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        cmdlist = self.get_command_list(use_container=use_container, build_image=build_image)
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        process = Popen(cmdlist, cwd=self.working_dir, stdout=PIPE, stderr=PIPE)
+        try:
+            stdout, stderr = process.communicate(timeout=TIMEOUT)
+            LOG.info(f"Stdout: {stdout.decode('utf-8')}")
+            LOG.info(f"Stderr: {stderr.decode('utf-8')}")
+        except TimeoutExpired:
+            LOG.error(f"Command: {command_list}, TIMED OUT")
+            LOG.error(f"Return Code: {process_execute.returncode}")
+            process.kill()
+            raise
+        process_stderr = stderr.strip()
+
+        self._verify_right_image_pulled(build_image, process_stderr)
+        self._verify_build_succeeds(self.default_build_dir)
+
+        self.verify_docker_container_cleanedup("nodejs10.x")
+
+    def _verify_right_image_pulled(self, build_image, process_stderr):
+        image_name = build_image if build_image is not None else "public.ecr.aws/sam/build-nodejs10.x"
+        processed_name = bytes(image_name, encoding="utf-8")
+        self.assertIn(
+            processed_name,
+            process_stderr,
+        )
+
+    def _verify_build_succeeds(self, build_dir):
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("BuildImageFunction", build_dir_files)
