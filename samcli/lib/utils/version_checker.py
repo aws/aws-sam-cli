@@ -89,8 +89,10 @@ def fetch_and_compare_versions() -> None:
     latest_version = result.get("info", {}).get("version", None)
     LOG.debug("Installed version %s, current version %s", installed_version, latest_version)
     if latest_version and installed_version != latest_version:
-        click.secho(f"\nSAM CLI update available ({latest_version}); ({installed_version} installed)", fg="green")
-        click.echo(f"To download: {AWS_SAM_CLI_INSTALL_DOCS}")
+        click.secho(
+            f"\nSAM CLI update available ({latest_version}); ({installed_version} installed)", fg="green", err=True
+        )
+        click.echo(f"To download: {AWS_SAM_CLI_INSTALL_DOCS}", err=True)
 
 
 def update_last_check_time(global_config: Optional[GlobalConfig]) -> None:
