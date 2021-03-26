@@ -102,8 +102,8 @@ class TestVersionChecker(TestCase):
 
         mock_click.assert_has_calls(
             [
-                call.secho("\nSAM CLI update available (1.10.0); (1.9.0 installed)", fg="green"),
-                call.echo(f"To download: {AWS_SAM_CLI_INSTALL_DOCS}"),
+                call.secho("\nSAM CLI update available (1.10.0); (1.9.0 installed)", fg="green", err=True),
+                call.echo(f"To download: {AWS_SAM_CLI_INSTALL_DOCS}", err=True),
             ]
         )
 
