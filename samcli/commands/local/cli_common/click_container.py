@@ -1,5 +1,6 @@
-from typing import List
-
+"""
+Module to check container based cli parameters
+"""
 import click
 
 
