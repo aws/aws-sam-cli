@@ -16,7 +16,7 @@ class Container(click.Option):
 
     def handle_parse_result(self, ctx, opts, args):
         if self.require_container:
-            if "use_container" not in opts:
+            if "use_container" not in opts and opts.get(self.name) is not None:
                 msg = f"""
 Missing required parameter, with --{self.name.replace("_", "-")} set.
 
