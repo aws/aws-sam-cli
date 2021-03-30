@@ -1861,8 +1861,6 @@ class TestBuildPassingLayerAcrossStacks(IntrinsicIntegBase):
 
 
 class TestBuildWithS3FunctionsOrLayers(NestedBuildIntegBase):
-    # Test Suite where `BuildMethod` is explicitly specified.
-
     template = "template-with-s3-code.yaml"
     EXPECTED_FILES_PROJECT_MANIFEST = {
         "__init__.py",
@@ -1894,14 +1892,4 @@ class TestBuildWithS3FunctionsOrLayers(NestedBuildIntegBase):
                 ["ServerlessFunction", "LambdaFunction"],
                 [""],  # there is only one stack
                 command_result,
-            )
-
-            overrides = self._make_parameter_override_arg({})
-            self._verify_invoke_built_functions(
-                self.built_template,
-                overrides,
-                [
-                    ("ServerlessFunction", {"pi": "3.14"}),
-                    ("LambdaFunction", {"pi": "3.14"}),
-                ],
             )
