@@ -20,7 +20,7 @@ from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.commands.build.exceptions import InvalidBuildImageException
-from samcli.commands.local.cli_common.click_container import Container
+from samcli.commands.build.click_container import Container
 
 LOG = logging.getLogger(__name__)
 
