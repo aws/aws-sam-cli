@@ -131,7 +131,7 @@ class SamFunctionProvider(SamBaseProvider):
 
                 if resource_type in [SamFunctionProvider.SERVERLESS_FUNCTION, SamFunctionProvider.LAMBDA_FUNCTION]:
                     code_property_key = SamBaseProvider.CODE_PROPERTY_KEYS[resource_type]
-                    if SamBaseProvider._is_code_uri_s3(resource_properties.get(code_property_key)):
+                    if SamBaseProvider._is_s3_location(resource_properties.get(code_property_key)):
                         # CodeUri can be a dictionary of S3 Bucket/Key or a S3 URI, neither of which are supported
                         if not ignore_code_extraction_warnings:
                             SamFunctionProvider._warn_code_extraction(resource_type, name, code_property_key)
@@ -421,7 +421,7 @@ class SamFunctionProvider(SamBaseProvider):
 
         if resource_type in [SamFunctionProvider.LAMBDA_LAYER, SamFunctionProvider.SERVERLESS_LAYER]:
             code_property_key = SamBaseProvider.CODE_PROPERTY_KEYS[resource_type]
-            if SamBaseProvider._is_code_uri_s3(layer_properties.get(code_property_key)):
+            if SamBaseProvider._is_s3_location(layer_properties.get(code_property_key)):
                 # Content can be a dictionary of S3 Bucket/Key or a S3 URI, neither of which are supported
                 if not ignore_code_extraction_warnings:
                     SamFunctionProvider._warn_code_extraction(resource_type, layer_logical_id, code_property_key)

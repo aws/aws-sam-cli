@@ -76,9 +76,16 @@ class SamBaseProvider:
         return cast(str, codeuri)
 
     @staticmethod
-    def _is_code_uri_s3(codeuri: Optional[Union[str, Dict]]) -> bool:
-        return (isinstance(codeuri, dict) and ("S3Bucket" in codeuri or "Bucket" in codeuri)) or (
-            isinstance(codeuri, str) and codeuri.startswith("s3://")
+    def _is_s3_location(location: Optional[Union[str, Dict]]) -> bool:
+        """
+        the input could be:
+        - CodeUri of Serverless::Function
+        - Code of Lambda::Function
+        - ContentUri of Serverless::LayerVersion
+        - Content of Lambda::LayerVersion
+        """
+        return (isinstance(location, dict) and ("S3Bucket" in location or "Bucket" in location)) or (
+            isinstance(location, str) and location.startswith("s3://")
         )
 
     @staticmethod

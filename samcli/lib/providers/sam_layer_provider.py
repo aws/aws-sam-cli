@@ -88,7 +88,7 @@ class SamLayerProvider(SamBaseProvider):
 
                 if resource_type in [SamBaseProvider.LAMBDA_LAYER, SamBaseProvider.SERVERLESS_LAYER]:
                     code_property_key = SamBaseProvider.CODE_PROPERTY_KEYS[resource_type]
-                    if SamBaseProvider._is_code_uri_s3(resource_properties.get(code_property_key)):
+                    if SamBaseProvider._is_s3_location(resource_properties.get(code_property_key)):
                         # Content can be a dictionary of S3 Bucket/Key or a S3 URI, neither of which are supported
                         SamBaseProvider._warn_code_extraction(resource_type, name, code_property_key)
                         continue
