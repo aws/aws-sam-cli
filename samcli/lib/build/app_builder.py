@@ -441,8 +441,14 @@ class ApplicationBuilder:
                     # Only set to this value if specified workflow is makefile
                     # which will result in config language as provided
                     build_runtime = compatible_runtimes[0]
+                image = None
+                if self._build_images is not None:
+                    if layer_name in self._build_images:
+                        image = self._build_images[layer_name]
+                    elif None in self._build_images:
+                        image = self._build_images[None]
                 self._build_function_on_container(
-                    config, code_dir, artifact_subdir, manifest_path, build_runtime, options, container_env_vars
+                    config, code_dir, artifact_subdir, manifest_path, build_runtime, options, container_env_vars, image
                 )
             else:
                 self._build_function_in_process(
