@@ -1893,3 +1893,9 @@ class TestBuildWithS3FunctionsOrLayers(NestedBuildIntegBase):
                 [""],  # there is only one stack
                 command_result,
             )
+            # these two functions are buildable and `sam build` would build it.
+            # but since the two functions both depends on layers with s3 uri,
+            # sam-cli does support local invoking it but the local invoke is likely
+            # to fail due to missing layers. We don't want to introduce breaking
+            # change so only a warning is added when `local invoke` is used on such functions.
+            # skip the invoke test here because the invoke result is not meaningful.
