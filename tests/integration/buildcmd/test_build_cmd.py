@@ -1858,3 +1858,44 @@ class TestBuildPassingLayerAcrossStacks(IntrinsicIntegBase):
             self._verify_invoke_built_functions(
                 self.built_template, self.function_full_paths, self.invoke_error_message
             )
+
+
+class TestBuildWithS3FunctionsOrLayers(NestedBuildIntegBase):
+    template = "template-with-s3-code.yaml"
+    EXPECTED_FILES_PROJECT_MANIFEST = {
+        "__init__.py",
+        "main.py",
+        "numpy",
+        # 'cryptography',
+        "requirements.txt",
+    }
+
+    @pytest.mark.flaky(reruns=3)
+    def test_functions_layers_with_s3_codeuri(self):
+        if SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        """
+        Build template above and verify that each function call returns as expected
+        """
+        cmdlist = self.get_command_list(
+            use_container=True,
+        )
+
+        LOG.info("Running Command: %s", cmdlist)
+        LOG.info(self.working_dir)
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        if not SKIP_DOCKER_TESTS:
+            self._verify_build(
+                ["ServerlessFunction", "LambdaFunction"],
+                [""],  # there is only one stack
+                command_result,
+            )
+            # these two functions are buildable and `sam build` would build it.
+            # but since the two functions both depends on layers with s3 uri,
+            # sam-cli does support local invoking it but the local invoke is likely
+            # to fail due to missing layers. We don't want to introduce breaking
+            # change so only a warning is added when `local invoke` is used on such functions.
+            # skip the invoke test here because the invoke result is not meaningful.
