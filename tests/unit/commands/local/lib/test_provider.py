@@ -49,8 +49,9 @@ class TestLayerVersion(TestCase):
         ]
     )
     def test_invalid_arn(self, arn):
+        layer = LayerVersion(arn, None)  # creation of layer does not raise exception
         with self.assertRaises(InvalidLayerVersionArn):
-            LayerVersion(arn, None)
+            layer.version, layer.name
 
     def test_layer_version_returned(self):
         layer_version = LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None)
