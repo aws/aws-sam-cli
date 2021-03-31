@@ -36,6 +36,13 @@ class Context:
     PROD_STAGE_NAME: str = "prod"
 
     def __init__(self, context: Dict[str, str]) -> None:
+        """
+
+        Parameters
+        ----------
+        context: dictionary of user's response to the questions defined in the ./questions.json file where
+                 keys are questions' keys and values are user's answers
+        """
 
         testing_stage: Stage = Stage(
             name=Context.TESTING_STAGE_NAME,
