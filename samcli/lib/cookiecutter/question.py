@@ -64,27 +64,27 @@ class Question:
         self._default_next_question_key = default_next_question_key
 
     @property
-    def key(self):
+    def key(self) -> str:
         return self._key
 
     @property
-    def text(self):
+    def text(self) -> str:
         return self._text
 
     @property
-    def default_answer(self):
+    def default_answer(self) -> Optional[str]:
         return self._default_answer
 
     @property
-    def required(self):
+    def required(self) -> Optional[bool]:
         return self._required
 
     @property
-    def next_question_map(self):
+    def next_question_map(self) -> Dict[str, str]:
         return self._next_question_map
 
     @property
-    def default_next_question_key(self):
+    def default_next_question_key(self) -> Optional[str]:
         return self._default_next_question_key
 
     def ask(self) -> Any:
@@ -96,7 +96,7 @@ class Question:
         answer = str(answer)
         return self._next_question_map.get(answer, self._default_next_question_key)
 
-    def set_default_next_question_key(self, next_question_key):
+    def set_default_next_question_key(self, next_question_key: str) -> None:
         self._default_next_question_key = next_question_key
 
 
