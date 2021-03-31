@@ -28,7 +28,7 @@ LOG = logging.getLogger(__name__)
 
 class Preprocessor(Processor):
     """
-    1. Find the appropriate docker build image for the SAM temolate
+    1. Find the appropriate docker build image for the SAM template
     2. Creates the required AWS resources for this pipeline if not already provided by the user.
 
     Methods
