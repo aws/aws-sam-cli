@@ -119,7 +119,7 @@ class Template:
         except Exception as e:
             raise UserException(str(e), wrapped_from=e.__class__.__name__) from e
 
-    def generate_project(self, context: Dict):
+    def generate_project(self, context: Dict) -> None:
         """
         Generates a project based on this cookiecutter template and the given context. The context is first
         processed and manipulated by series of preprocessors(if any) then the project is generated and finally
