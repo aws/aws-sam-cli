@@ -20,14 +20,14 @@ class Postprocessor(Processor):
 
     Attributes
     ----------
-    resources_reused:
+    resources_provided:
         A list of the required AWS resources that got provided by the user.
-    resources_reused:
+    resources_created:
         A list of the required AWS resources that the plugin created on behalf of the user.
     """
 
     def __init__(self) -> None:
-        self.resources_reused: List[Dict[str, str]] = []
+        self.resources_provided: List[Dict[str, str]] = []
         self.resources_created: List[Dict[str, str]] = []
 
     def run(self, context: Dict) -> Dict:
@@ -62,12 +62,12 @@ class Postprocessor(Processor):
             for resource in self.resources_created:
                 click.secho(f"\t{resource['arn']}", fg="yellow")
 
-        if self.resources_reused:
+        if self.resources_provided:
             click.secho(
                 "\nWe have reused the following resources, please make sure it has the required permissions:",
                 fg="yellow",
             )
-            for resource in self.resources_reused:
+            for resource in self.resources_provided:
                 click.secho(f"\n{resource['arn']}", fg="yellow")
                 click.secho(f"Required Permissions: {resource['required_permissions']}", fg="yellow")
             click.echo("\n")
@@ -99,6 +99,6 @@ class Postprocessor(Processor):
             the IAM policies required for the resource to operate correctly.
         """
         if resource.is_user_provided:
-            self.resources_reused.append({"arn": resource.arn, "required_permissions": required_permissions})
+            self.resources_provided.append({"arn": resource.arn, "required_permissions": required_permissions})
         else:
             self.resources_created.append({"arn": resource.arn})

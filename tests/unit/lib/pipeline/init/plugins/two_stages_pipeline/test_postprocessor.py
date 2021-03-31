@@ -62,14 +62,14 @@ class TestPostprocessor(TestCase):
         context = {PLUGIN_NAME: plugin_context}
         postprocessor = Postprocessor()
 
-        self.assertEqual(0, len(postprocessor.resources_reused))
+        self.assertEqual(0, len(postprocessor.resources_provided))
         self.assertEqual(0, len(postprocessor.resources_created))
 
         # trigger
         mutated_context = postprocessor.run(context=context)
 
         # verify
-        reused_resources_arns = list(map(lambda r: r["arn"], postprocessor.resources_reused))
+        reused_resources_arns = list(map(lambda r: r["arn"], postprocessor.resources_provided))
         self.assertEqual(3, len(reused_resources_arns))
         self.assertIn(ANY_TESTING_DEPLOYER_ROLE, reused_resources_arns)
         self.assertIn(ANY_TESTING_CFN_DEPLOYMENT_ROLE, reused_resources_arns)
