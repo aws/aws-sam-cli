@@ -1845,12 +1845,12 @@ class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildWithCustomBuildImage(BuildIntegBase):
-    template = "provided_image_function.yaml"
+    template = "build_image_function.yaml"
 
     @parameterized.expand(
         [
             ("use_container", None),
-            ("use_container", "amazon/aws-sam-cli-build-image-nodejs10.x"),
+            ("use_container", "amazon/aws-sam-cli-build-image-python3.7:latest"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -1876,10 +1876,10 @@ class TestBuildWithCustomBuildImage(BuildIntegBase):
         self._verify_right_image_pulled(build_image, process_stderr)
         self._verify_build_succeeds(self.default_build_dir)
 
-        self.verify_docker_container_cleanedup("nodejs10.x")
+        self.verify_docker_container_cleanedup("python3.7")
 
     def _verify_right_image_pulled(self, build_image, process_stderr):
-        image_name = build_image if build_image is not None else "public.ecr.aws/sam/build-nodejs10.x"
+        image_name = build_image if build_image is not None else "public.ecr.aws/sam/build-python3.7:latest"
         processed_name = bytes(image_name, encoding="utf-8")
         self.assertIn(
             processed_name,

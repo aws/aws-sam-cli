@@ -125,7 +125,7 @@ class ApplicationBuilder:
         self._colored = Colored()
         self._container_env_var = container_env_var
         self._container_env_var_file = container_env_var_file
-        self._build_images = build_images
+        self._build_images = build_images or {}
 
     def build(self) -> Dict[str, str]:
         """
@@ -442,11 +442,10 @@ class ApplicationBuilder:
                     # which will result in config language as provided
                     build_runtime = compatible_runtimes[0]
                 image = None
-                if self._build_images is not None:
-                    if layer_name in self._build_images:
-                        image = self._build_images[layer_name]
-                    elif None in self._build_images:
-                        image = self._build_images[None]
+                if layer_name in self._build_images:
+                    image = self._build_images.get(layer_name)
+                elif None in self._build_images:
+                    image = self._build_images.get(None)
                 self._build_function_on_container(
                     config, code_dir, artifact_subdir, manifest_path, build_runtime, options, container_env_vars, image
                 )
@@ -527,11 +526,10 @@ class ApplicationBuilder:
                 # By default prefer to build in-process for speed
                 if self._container_manager:
                     image = None
-                    if self._build_images is not None:
-                        if function_name in self._build_images:
-                            image = self._build_images[function_name]
-                        elif None in self._build_images:
-                            image = self._build_images[None]
+                    if function_name in self._build_images:
+                        image = self._build_images.get(function_name)
+                    elif None in self._build_images:
+                        image = self._build_images.get(None)
 
                     return self._build_function_on_container(
                         config,

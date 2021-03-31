@@ -10,6 +10,6 @@ Resources:
   BuildImageFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ProvidedWithBuildImage
-      Handler: main.lambdaHandler
-      Runtime: nodejs10.x
+      CodeUri: Python
+      Handler: main.handler
+      Runtime: python3.7
