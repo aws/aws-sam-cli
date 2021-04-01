@@ -422,6 +422,72 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             None,
         )
 
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    @patch("samcli.lib.build.app_builder.get_layer_subfolder")
+    def test_must_build_layer_in_container_with_global_build_image(
+        self, get_layer_subfolder_mock, osutils_mock, get_workflow_config_mock
+    ):
+        self.builder._container_manager = self.container_manager
+        get_layer_subfolder_mock.return_value = "python"
+        config_mock = Mock()
+        config_mock.manifest_name = "manifest_name"
+
+        scratch_dir = "scratch"
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=scratch_dir)
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+
+        get_workflow_config_mock.return_value = config_mock
+        build_function_on_container_mock = Mock()
+
+        build_images = {None: "test_image"}
+        self.builder._build_images = build_images
+        self.builder._build_function_on_container = build_function_on_container_mock
+        self.builder._build_layer("layer_name", "code_uri", "python3.8", ["python3.8"], "full_path")
+        build_function_on_container_mock.assert_called_once_with(
+            config_mock,
+            PathValidator("code_uri"),
+            PathValidator("python"),
+            PathValidator("manifest_name"),
+            "python3.8",
+            None,
+            None,
+            "test_image",
+        )
+
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    @patch("samcli.lib.build.app_builder.get_layer_subfolder")
+    def test_must_build_layer_in_container_with_specific_build_image(
+        self, get_layer_subfolder_mock, osutils_mock, get_workflow_config_mock
+    ):
+        self.builder._container_manager = self.container_manager
+        get_layer_subfolder_mock.return_value = "python"
+        config_mock = Mock()
+        config_mock.manifest_name = "manifest_name"
+
+        scratch_dir = "scratch"
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=scratch_dir)
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+
+        get_workflow_config_mock.return_value = config_mock
+        build_function_on_container_mock = Mock()
+
+        build_images = {"layer_name": "test_image"}
+        self.builder._build_images = build_images
+        self.builder._build_function_on_container = build_function_on_container_mock
+        self.builder._build_layer("layer_name", "code_uri", "python3.8", ["python3.8"], "full_path")
+        build_function_on_container_mock.assert_called_once_with(
+            config_mock,
+            PathValidator("code_uri"),
+            PathValidator("python"),
+            PathValidator("manifest_name"),
+            "python3.8",
+            None,
+            None,
+            "test_image",
+        )
+
 
 class TestApplicationBuilder_update_template(TestCase):
     def make_root_template(self, resource_type, location_property_name):
