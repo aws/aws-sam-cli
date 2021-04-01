@@ -442,11 +442,9 @@ class ApplicationBuilder:
                     # which will result in config language as provided
                     build_runtime = compatible_runtimes[0]
                 image = None
-                if layer_name in self._build_images:
-                    image = self._build_images.get(layer_name)
-                # None represents the global build image for all functions/layers
-                elif None in self._build_images:
-                    image = self._build_images.get(None)
+                # None key represents the global build image for all functions/layers
+                global_image = self._build_images.get(None)
+                image = self._build_images.get(layer_name, global_image)
                 self._build_function_on_container(
                     config, code_dir, artifact_subdir, manifest_path, build_runtime, options, container_env_vars, image
                 )
@@ -527,11 +525,9 @@ class ApplicationBuilder:
                 # By default prefer to build in-process for speed
                 if self._container_manager:
                     image = None
-                    if function_name in self._build_images:
-                        image = self._build_images.get(function_name)
                     # None represents the global build image for all functions/layers
-                    elif None in self._build_images:
-                        image = self._build_images.get(None)
+                    global_image = self._build_images.get(None)
+                    image = self._build_images.get(function_name, global_image)
 
                     return self._build_function_on_container(
                         config,
