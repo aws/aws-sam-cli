@@ -33,7 +33,10 @@ def make_abs_path(directory, path):
     return path
 
 
-def is_s3_url(url):
+def is_s3_protocol_url(url):
+    """
+    Check whether url is a valid path in the form of "s3://..."
+    """
     try:
         S3Uploader.parse_s3_url(url)
         return True
@@ -122,7 +125,7 @@ def upload_local_artifacts(
         # Build the root directory and upload to S3
         local_path = parent_dir
 
-    if is_s3_url(local_path):
+    if is_s3_protocol_url(local_path):
         # A valid CloudFormation template will specify artifacts as S3 URLs.
         # This check is supporting the case where your resource does not
         # refer to local artifacts
