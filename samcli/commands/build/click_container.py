@@ -10,9 +10,9 @@ class ContainerOptions(click.Option):
     """
 
     def handle_parse_result(self, ctx, opts, args):
-        if "use_container" not in opts and opts.get(self.name) is not None:
-            msg = f"""\
-Missing required parameter, must provide the --use-container flag in order to use --{self.name.replace("_", "-")} flag."""
+        if "use_container" not in opts and self.name in opts:
+            opt_name = self.name.replace("_", "-")
+            msg = f"Missing required parameter, need the --use-container flag in order to use --{opt_name} flag."
             raise click.UsageError(msg)
         # To make sure no unser input prompting happens
         self.prompt = None

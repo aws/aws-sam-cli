@@ -125,7 +125,7 @@ class TestSamConfigForAllCommands(TestCase):
 
             LOG.debug(Path(config_path).read_text())
             runner = CliRunner()
-            result = runner.invoke(cli, ["--use-container"])
+            result = runner.invoke(cli, [])
 
             LOG.info(result.output)
             LOG.info(result.exception)
@@ -177,7 +177,7 @@ class TestSamConfigForAllCommands(TestCase):
 
             LOG.debug(Path(config_path).read_text())
             runner = CliRunner()
-            result = runner.invoke(cli, ["--use-container"])
+            result = runner.invoke(cli, [])
 
             LOG.info(result.output)
             LOG.info(result.exception)
@@ -228,7 +228,7 @@ class TestSamConfigForAllCommands(TestCase):
 
             LOG.debug(Path(config_path).read_text())
             runner = CliRunner()
-            result = runner.invoke(cli, ["--use-container"])
+            result = runner.invoke(cli, [])
 
             LOG.info(result.output)
             LOG.info(result.exception)
