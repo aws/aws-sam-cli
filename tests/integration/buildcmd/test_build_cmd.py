@@ -1860,17 +1860,8 @@ class TestBuildWithCustomBuildImage(BuildIntegBase):
 
         cmdlist = self.get_command_list(use_container=use_container, build_image=build_image)
 
-        LOG.info("Running Command: {}".format(cmdlist))
-        process = Popen(cmdlist, cwd=self.working_dir, stdout=PIPE, stderr=PIPE)
-        try:
-            stdout, stderr = process.communicate(timeout=TIMEOUT)
-            LOG.info(f"Stdout: {stdout.decode('utf-8')}")
-            LOG.info(f"Stderr: {stderr.decode('utf-8')}")
-        except TimeoutExpired:
-            LOG.error(f"Command: {command_list}, TIMED OUT")
-            LOG.error(f"Return Code: {process_execute.returncode}")
-            process.kill()
-            raise
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        stderr = command_result.stderr
         process_stderr = stderr.strip()
 
         self._verify_right_image_pulled(build_image, process_stderr)
