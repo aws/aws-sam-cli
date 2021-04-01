@@ -20,8 +20,7 @@ class ContainerOptions(click.Option):
                 msg = f"""\
 Missing required parameter, with --{self.name.replace("_", "-")} set.
 
-Must provide the --use-container flag in order to use --{self.name.replace("_", "-")} flag.\
-                """
+Must provide the --use-container flag in order to use --{self.name.replace("_", "-")} flag."""
                 raise click.UsageError(msg)
             self.prompt = None
         return super().handle_parse_result(ctx, opts, args)
