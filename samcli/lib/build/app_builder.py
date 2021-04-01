@@ -444,6 +444,7 @@ class ApplicationBuilder:
                 image = None
                 if layer_name in self._build_images:
                     image = self._build_images.get(layer_name)
+                # None represents the global build image for all functions/layers
                 elif None in self._build_images:
                     image = self._build_images.get(None)
                 self._build_function_on_container(
@@ -528,6 +529,7 @@ class ApplicationBuilder:
                     image = None
                     if function_name in self._build_images:
                         image = self._build_images.get(function_name)
+                    # None represents the global build image for all functions/layers
                     elif None in self._build_images:
                         image = self._build_images.get(None)
 
