@@ -441,7 +441,6 @@ class ApplicationBuilder:
                     # Only set to this value if specified workflow is makefile
                     # which will result in config language as provided
                     build_runtime = compatible_runtimes[0]
-                image = None
                 # None key represents the global build image for all functions/layers
                 global_image = self._build_images.get(None)
                 image = self._build_images.get(layer_name, global_image)
@@ -524,7 +523,6 @@ class ApplicationBuilder:
                 options = ApplicationBuilder._get_build_options(function_name, config.language, handler)
                 # By default prefer to build in-process for speed
                 if self._container_manager:
-                    image = None
                     # None represents the global build image for all functions/layers
                     global_image = self._build_images.get(None)
                     image = self._build_images.get(function_name, global_image)
