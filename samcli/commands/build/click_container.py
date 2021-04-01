@@ -10,17 +10,14 @@ class ContainerOptions(click.Option):
     """
 
     def __init__(self, *args, **kwargs):
-        self.require_container: bool = kwargs.pop("require_container", False)
-
         super().__init__(*args, **kwargs)
 
     def handle_parse_result(self, ctx, opts, args):
-        if self.require_container:
-            if "use_container" not in opts and opts.get(self.name) is not None:
-                msg = f"""\
+        if "use_container" not in opts and opts.get(self.name) is not None:
+            msg = f"""\
 Missing required parameter, with --{self.name.replace("_", "-")} set.
 
 Must provide the --use-container flag in order to use --{self.name.replace("_", "-")} flag."""
-                raise click.UsageError(msg)
-            self.prompt = None
+            raise click.UsageError(msg)
+        self.prompt = None
         return super().handle_parse_result(ctx, opts, args)

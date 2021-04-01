@@ -119,7 +119,6 @@ $ sam build MyFunction
     "input function specific format (FuncName.VarName=Value) or global format (VarName=Value). e.g., "
     "sam build --use-container --container-env-var Func1.VAR1=value1 --container-env-var VAR2=value2",
     cls=ContainerOptions,
-    require_container=True,
 )
 @click.option(
     "--container-env-var-file",
@@ -128,7 +127,6 @@ $ sam build MyFunction
     type=click.Path(),  # Must be a json file
     help="Path to environment variable json file (e.g., env_vars.json) to pass into build containers",
     cls=ContainerOptions,
-    require_container=True,
 )
 @click.option(
     "--build-image",
@@ -144,7 +142,6 @@ $ sam build MyFunction
     "A combination of the two can be used. If a function does not have build image specified or "
     "an image URI for all functions, the default SAM CLI build images will be used.",
     cls=ContainerOptions,
-    require_container=True,
 )
 @click.option(
     "--parallel",
