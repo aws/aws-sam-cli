@@ -48,7 +48,16 @@ def local_common_options(f):
             default=False,
             help="If set, will emulate a shutdown event after the invoke completes, "
             "in order to test extension handling of shutdown behavior.",
-        )
+        ),
+        click.option(
+            "--container-host",
+            default="localhost",
+            show_default=True,
+            help="Host of locally emulated Lambda container. "
+            "This option is useful when the container runs on a different host than SAM CLI. "
+            "For example, if you want to run SAM CLI in a Docker container on macOS, "
+            "use this option with host.docker.internal",
+        ),
     ]
 
     # Reverse the list to maintain ordering of options in help text printed with --help

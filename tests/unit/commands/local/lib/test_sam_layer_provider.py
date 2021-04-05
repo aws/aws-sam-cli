@@ -135,14 +135,8 @@ class TestSamLayerProvider(TestCase):
                 "LambdaLayerNoBuild",
                 LayerVersion("LambdaLayerNoBuild", "PyLayer", ["python3.8", "python3.6"], None, stack_path=""),
             ),
-            (
-                "ServerlessLayerS3Content",
-                LayerVersion("ServerlessLayerS3Content", ".", ["python3.8", "python3.6"], None, stack_path=""),
-            ),
-            (
-                "LambdaLayerS3Content",
-                LayerVersion("LambdaLayerS3Content", ".", ["python3.8", "python3.6"], None, stack_path=""),
-            ),
+            ("ServerlessLayerS3Content", None),  # codeuri is a s3 location, ignored
+            ("LambdaLayerS3Content", None),  # codeuri is a s3 location, ignored
             (
                 posixpath.join("ChildStack", "SamLayerInChild"),
                 LayerVersion(
@@ -157,7 +151,7 @@ class TestSamLayerProvider(TestCase):
     )
     def test_get_must_return_each_layer(self, name, expected_output):
         actual = self.provider.get(name)
-        self.assertEqual(actual, expected_output)
+        self.assertEqual(expected_output, actual)
 
     def test_get_all_must_return_all_layers(self):
         result = [posixpath.join(f.stack_path, f.arn) for f in self.provider.get_all()]
@@ -166,12 +160,10 @@ class TestSamLayerProvider(TestCase):
             "LambdaLayer",
             "ServerlessLayerNoBuild",
             "LambdaLayerNoBuild",
-            "ServerlessLayerS3Content",
-            "LambdaLayerS3Content",
             posixpath.join("ChildStack", "SamLayerInChild"),
         ]
 
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_provider_ignores_non_layer_resource(self):
         self.assertIsNone(self.provider.get("SamFunc"))

@@ -315,21 +315,32 @@ class TestBuildContext__enter__(TestCase):
         SamFunctionProviderMock,
         get_buildable_stacks_mock,
     ):
+        """
+        In this unit test, we also verify
+        - inlinecode functions are skipped
+        - functions with codeuri pointing to a zip file are skipped
+        - layers without build method are skipped
+        - layers with codeuri pointing to a zip file are skipped
+        """
         template_dict = "template dict"
         stack = Mock()
         stack.template_dict = template_dict
         get_buildable_stacks_mock.return_value = ([stack], [])
         func1 = DummyFunction("func1")
         func2 = DummyFunction("func2")
+        func3_skipped = DummyFunction("func3", inlinecode="def handler(): pass", codeuri=None)
+        func4_skipped = DummyFunction("func4", codeuri="packaged_function.zip")
+
         func_provider_mock = Mock()
-        func_provider_mock.get_all.return_value = [func1, func2]
+        func_provider_mock.get_all.return_value = [func1, func2, func3_skipped, func4_skipped]
         funcprovider = SamFunctionProviderMock.return_value = func_provider_mock
 
         layer1 = DummyLayer("layer1", "buildMethod")
-        layer2 = DummyLayer("layer1", None)
+        layer2_skipped = DummyLayer("layer1", None)
+        layer3_skipped = DummyLayer("layer1", "buildMethod", codeuri="packaged_function.zip")
 
         layer_provider_mock = Mock()
-        layer_provider_mock.get_all.return_value = [layer1, layer2]
+        layer_provider_mock.get_all.return_value = [layer1, layer2_skipped, layer3_skipped]
         layerprovider = SamLayerProviderMock.return_value = layer_provider_mock
 
         base_dir = pathlib_mock.Path.return_value.resolve.return_value.parent = "basedir"
@@ -549,13 +560,17 @@ class TestBuildContext_setup_build_dir(TestCase):
 
 
 class DummyLayer:
-    def __init__(self, name, build_method):
+    def __init__(self, name, build_method, codeuri="layer_src"):
         self.name = name
         self.build_method = build_method
+        self.codeuri = codeuri
+        self.full_path = Mock()
 
 
 class DummyFunction:
-    def __init__(self, name, layers=[], inlinecode=None):
+    def __init__(self, name, layers=[], inlinecode=None, codeuri="src"):
         self.name = name
         self.layers = layers
         self.inlinecode = inlinecode
+        self.codeuri = codeuri
+        self.full_path = Mock()

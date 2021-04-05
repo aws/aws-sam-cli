@@ -50,8 +50,10 @@ class LambdaDebugSettings:
         if not _container_env_vars:
             _container_env_vars = dict()
 
+        # The value of entrypoint_mapping is a callable instead of DebugSettings
+        # so that DebugSetting objects are not always created.
         entrypoint_mapping = {
-            Runtime.java8.value: DebugSettings(
+            Runtime.java8.value: lambda: DebugSettings(
                 entry,
                 container_env_vars={
                     "_JAVA_OPTIONS": "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,"
@@ -61,7 +63,7 @@ class LambdaDebugSettings:
                     **_container_env_vars,
                 },
             ),
-            Runtime.java8al2.value: DebugSettings(
+            Runtime.java8al2.value: lambda: DebugSettings(
                 entry,
                 container_env_vars={
                     "_JAVA_OPTIONS": "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,"
@@ -71,7 +73,7 @@ class LambdaDebugSettings:
                     **_container_env_vars,
                 },
             ),
-            Runtime.java11.value: DebugSettings(
+            Runtime.java11.value: lambda: DebugSettings(
                 entry,
                 container_env_vars={
                     "_JAVA_OPTIONS": "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,"
@@ -81,15 +83,15 @@ class LambdaDebugSettings:
                     **_container_env_vars,
                 },
             ),
-            Runtime.dotnetcore21.value: DebugSettings(
+            Runtime.dotnetcore21.value: lambda: DebugSettings(
                 entry + ["/var/runtime/bootstrap"] + debug_args_list,
                 container_env_vars={"_AWS_LAMBDA_DOTNET_DEBUGGING": "1", **_container_env_vars},
             ),
-            Runtime.dotnetcore31.value: DebugSettings(
+            Runtime.dotnetcore31.value: lambda: DebugSettings(
                 entry + ["/var/runtime/bootstrap"] + debug_args_list,
                 container_env_vars={"_AWS_LAMBDA_DOTNET_DEBUGGING": "1", **_container_env_vars},
             ),
-            Runtime.go1x.value: DebugSettings(
+            Runtime.go1x.value: lambda: DebugSettings(
                 entry,
                 container_env_vars={
                     "_AWS_LAMBDA_GO_DEBUGGING": "1",
@@ -99,7 +101,7 @@ class LambdaDebugSettings:
                     **_container_env_vars,
                 },
             ),
-            Runtime.nodejs10x.value: DebugSettings(
+            Runtime.nodejs10x.value: lambda: DebugSettings(
                 entry
                 + ["/var/lang/bin/node"]
                 + debug_args_list
@@ -112,7 +114,7 @@ class LambdaDebugSettings:
                     **_container_env_vars,
                 },
             ),
-            Runtime.nodejs12x.value: DebugSettings(
+            Runtime.nodejs12x.value: lambda: DebugSettings(
                 entry
                 + ["/var/lang/bin/node"]
                 + debug_args_list
@@ -125,7 +127,7 @@ class LambdaDebugSettings:
                     **_container_env_vars,
                 },
             ),
-            Runtime.nodejs14x.value: DebugSettings(
+            Runtime.nodejs14x.value: lambda: DebugSettings(
                 entry
                 + ["/var/lang/bin/node"]
                 + debug_args_list
@@ -138,25 +140,25 @@ class LambdaDebugSettings:
                     **_container_env_vars,
                 },
             ),
-            Runtime.python27.value: DebugSettings(
+            Runtime.python27.value: lambda: DebugSettings(
                 entry + ["/usr/bin/python2.7"] + debug_args_list + ["/var/runtime/awslambda/bootstrap.py"],
                 container_env_vars=_container_env_vars,
             ),
-            Runtime.python36.value: DebugSettings(
+            Runtime.python36.value: lambda: DebugSettings(
                 entry + ["/var/lang/bin/python3.6"] + debug_args_list + ["/var/runtime/awslambda/bootstrap.py"],
                 container_env_vars=_container_env_vars,
             ),
-            Runtime.python37.value: DebugSettings(
+            Runtime.python37.value: lambda: DebugSettings(
                 entry + ["/var/lang/bin/python3.7"] + debug_args_list + ["/var/runtime/bootstrap"],
                 container_env_vars=_container_env_vars,
             ),
-            Runtime.python38.value: DebugSettings(
+            Runtime.python38.value: lambda: DebugSettings(
                 entry + ["/var/lang/bin/python3.8"] + debug_args_list + ["/var/runtime/bootstrap.py"],
                 container_env_vars=_container_env_vars,
             ),
         }
         try:
-            return entrypoint_mapping[runtime]
+            return entrypoint_mapping[runtime]()
         except KeyError as ex:
             if not runtime:
                 LOG.debug("Passing entrypoint as specified in template")
