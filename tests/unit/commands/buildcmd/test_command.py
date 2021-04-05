@@ -15,6 +15,7 @@ from samcli.lib.build.app_builder import (
 )
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
+from samcli.commands.build.click_container import ContainerOptions
 
 
 class DeepWrap(Exception):
@@ -283,4 +284,30 @@ class TestImageParsing(TestCase):
         self.check(
             ["Function1=image1", "Function2=image2", "image3"],
             {"Function1": "image1", "Function2": "image2", None: "image3"},
+        )
+
+
+@patch("samcli.commands.build.click_container.ContainerOptions")
+class TestContainerOptionsSucceeds(TestCase):
+    ctx_mock = Mock()
+    opts = {"container_env_var": ["hi=in"], "use_container": True, "resource_logical_id": None}
+    ContainerOptionsMock = Mock()
+    ContainerOptionsMock.handle_parse_result.return_value = "value"
+
+    def test_container_options(self, ContainerOptionsMock):
+        self.assertEqual(self.ContainerOptionsMock.handle_parse_result(self.ctx_mock, self.opts, []), "value")
+
+
+class TestContainerOptionsFails(TestCase):
+    ctx_mock = Mock()
+    opts = {"container_env_var": ["hi=in"], "resource_logical_id": None}
+    args = ["--container-env-var"]
+    container_opt = ContainerOptions(args)
+
+    def test_container_options_failure(self):
+        with self.assertRaises(click.UsageError) as err:
+            self.container_opt.handle_parse_result(self.ctx_mock, self.opts, [])
+        self.assertEqual(
+            str(err.exception),
+            "Missing required parameter, need the --use-container flag in order to use --container-env-var flag.",
         )
