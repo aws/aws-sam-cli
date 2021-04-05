@@ -71,6 +71,7 @@ class BuildIntegBase(TestCase):
         parallel=False,
         container_env_var=None,
         container_env_var_file=None,
+        build_image=None,
     ):
 
         command_list = [self.cmd, "build"]
@@ -113,6 +114,9 @@ class BuildIntegBase(TestCase):
         if container_env_var_file:
             command_list += ["--container-env-var-file", container_env_var_file]
 
+        if build_image:
+            command_list += ["--build-image", build_image]
+
         return command_list
 
     def verify_docker_container_cleanedup(self, runtime):
@@ -120,9 +124,23 @@ class BuildIntegBase(TestCase):
             time.sleep(1)
         docker_client = docker.from_env()
         samcli_containers = docker_client.containers.list(
-            all=True, filters={"ancestor": "lambci/lambda:build-{}".format(runtime)}
+            all=True, filters={"ancestor": f"public.ecr.aws/sam/build-{runtime}"}
         )
         self.assertFalse(bool(samcli_containers), "Build containers have not been removed")
+
+    def verify_pulling_only_latest_tag(self, runtime):
+        docker_client = docker.from_env()
+        image_name = f"public.ecr.aws/sam/build-{runtime}"
+        images = docker_client.images.list(name=image_name)
+        self.assertFalse(
+            len(images) == 0,
+            f"Image {image_name} was not pulled",
+        )
+        self.assertFalse(
+            len(images) > 1,
+            f"Other version of the build image {image_name} was pulled",
+        )
+        self.assertEqual(f"public.ecr.aws/sam/build-{runtime}:latest", images[0].tags[0])
 
     def _make_parameter_override_arg(self, overrides):
         return " ".join(["ParameterKey={},ParameterValue={}".format(key, value) for key, value in overrides.items()])
@@ -198,7 +216,9 @@ class BuildIntegRubyBase(BuildIntegBase):
             ),
         )
 
-        self.verify_docker_container_cleanedup(runtime)
+        if use_container:
+            self.verify_docker_container_cleanedup(runtime)
+            self.verify_pulling_only_latest_tag(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files, expected_modules):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
