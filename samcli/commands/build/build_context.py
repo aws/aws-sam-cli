@@ -8,7 +8,7 @@ import shutil
 from typing import Optional, List
 import pathlib
 
-from samcli.lib.providers.provider import ResourcesToBuildCollector, Stack
+from samcli.lib.providers.provider import ResourcesToBuildCollector, Stack, Function, LayerVersion
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.local.docker.manager import ContainerManager
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
@@ -210,8 +210,8 @@ class BuildContext:
                 LOG.info(available_resource_message)
                 raise ResourceNotFound(f"Unable to find a function or layer with name '{self._resource_identifier}'")
             return result
-        result.add_functions([f for f in self.function_provider.get_all() if not f.inlinecode])
-        result.add_layers([l for l in self.layer_provider.get_all() if l.build_method is not None])
+        result.add_functions([f for f in self.function_provider.get_all() if BuildContext._is_function_buildable(f)])
+        result.add_layers([l for l in self.layer_provider.get_all() if BuildContext._is_layer_buildable(l)])
         return result
 
     @property
@@ -265,3 +265,27 @@ class BuildContext:
             raise MissingBuildMethodException(f"Build method missing in layer {resource_identifier}.")
 
         resource_collector.add_layer(layer)
+
+    @staticmethod
+    def _is_function_buildable(function: Function):
+        # no need to build inline functions
+        if function.inlinecode:
+            LOG.debug("Skip building inline function: %s", function.full_path)
+            return False
+        # no need to build functions that are already packaged as a zip file
+        if isinstance(function.codeuri, str) and function.codeuri.endswith(".zip"):
+            LOG.debug("Skip building zip function: %s", function.full_path)
+            return False
+        return True
+
+    @staticmethod
+    def _is_layer_buildable(layer: LayerVersion):
+        # if build method is not specified, it is not buildable
+        if not layer.build_method:
+            LOG.debug("Skip building layer without a build method: %s", layer.full_path)
+            return False
+        # no need to build layers that are already packaged as a zip file
+        if isinstance(layer.codeuri, str) and layer.codeuri.endswith(".zip"):
+            LOG.debug("Skip building zip layer: %s", layer.full_path)
+            return False
+        return True

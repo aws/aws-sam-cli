@@ -8,6 +8,7 @@ import stat
 import sys
 import tempfile
 from contextlib import contextmanager
+from typing import List, Optional
 
 LOG = logging.getLogger(__name__)
 
@@ -154,3 +155,21 @@ def copytree(source, destination, ignore=None):
             copytree(new_source, new_destination, ignore=ignore)
         else:
             shutil.copy2(new_source, new_destination)
+
+
+def convert_files_to_unix_line_endings(path: str, target_files: Optional[List[str]] = None) -> None:
+    for subdirectory, _, files in os.walk(path):
+        for file in files:
+            if target_files is not None and file not in target_files:
+                continue
+
+            file_path = os.path.join(subdirectory, file)
+            convert_to_unix_line_ending(file_path)
+
+
+def convert_to_unix_line_ending(file_path: str) -> None:
+    with open(file_path, "rb") as file:
+        content = file.read()
+    content = content.replace(b"\r\n", b"\n")
+    with open(file_path, "wb") as file:
+        file.write(content)

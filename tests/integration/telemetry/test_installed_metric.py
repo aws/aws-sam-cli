@@ -45,6 +45,7 @@ class TestSendInstalledMetric(IntegBase):
                             "sessionId": ANY,
                             "requestId": ANY,
                             "telemetryEnabled": True,
+                            "ci": ANY,
                         }
                     }
                 ]

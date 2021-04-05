@@ -2,12 +2,16 @@ import pathlib
 import platform
 import time
 import uuid
+
+from parameterized import parameterized
+
 import samcli
 
 from unittest import TestCase
 from unittest.mock import patch, Mock, ANY, call
 
 import samcli.lib.telemetry.metric
+from samcli.lib.telemetry.cicd import CICDPlatform
 from samcli.lib.telemetry.metric import (
     capture_return_value,
     _get_metric,
@@ -431,22 +435,28 @@ class TestMetric(TestCase):
     def tearDown(self):
         pass
 
+    @parameterized.expand([(CICDPlatform.Appveyor, "Appveyor", "ci"), (None, "CLI", False)])
+    @patch("samcli.lib.telemetry.metric.CICDDetector.platform")
     @patch("samcli.lib.telemetry.metric.platform")
     @patch("samcli.lib.telemetry.metric.Context")
     @patch("samcli.lib.telemetry.metric.GlobalConfig")
     @patch("samcli.lib.telemetry.metric.uuid")
-    def test_must_add_common_attributes(self, uuid_mock, gc_mock, context_mock, platform_mock):
+    def test_must_add_common_attributes(
+        self, cicd_platform, execution_env, ci, uuid_mock, gc_mock, context_mock, platform_mock, cicd_platform_mock
+    ):
         request_id = uuid_mock.uuid4.return_value = "fake requestId"
         installation_id = gc_mock.return_value.installation_id = "fake installation id"
         session_id = context_mock.get_current_context.return_value.session_id = "fake installation id"
         python_version = platform_mock.python_version.return_value = "8.8.0"
+        cicd_platform_mock.return_value = cicd_platform
 
         metric = Metric("metric_name")
 
         assert metric.get_data()["requestId"] == request_id
         assert metric.get_data()["installationId"] == installation_id
         assert metric.get_data()["sessionId"] == session_id
-        assert metric.get_data()["executionEnvironment"] == "CLI"
+        assert metric.get_data()["executionEnvironment"] == execution_env
+        assert metric.get_data()["ci"] == bool(ci)
         assert metric.get_data()["pyversion"] == python_version
         assert metric.get_data()["samcliVersion"] == samcli.__version__
 
