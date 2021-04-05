@@ -15,7 +15,6 @@ from samcli.lib.build.app_builder import (
 )
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
-from samcli.commands.build.click_container import ContainerOptions
 
 
 class DeepWrap(Exception):
