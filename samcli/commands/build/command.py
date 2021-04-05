@@ -134,8 +134,8 @@ $ sam build MyFunction
     default=None,
     multiple=True,  # Can pass in multiple build images
     required=False,
-    help="Container image URIs for building functions. "
-    "You can specify for all functions with just the image URI "
+    help="Container image URIs for building functions/layers. "
+    "You can specify for all functions/layers with just the image URI "
     "(--build-image public.ecr.aws/sam/build-nodejs14.x:latest). "
     "You can specify for each individual function with "
     "(--build-image FunctionLogicalID=public.ecr.aws/sam/build-nodejs14.x:latest). "
