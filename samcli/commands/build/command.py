@@ -20,6 +20,7 @@ from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.commands.build.exceptions import InvalidBuildImageException
+from samcli.commands.build.click_container import ContainerOptions
 
 LOG = logging.getLogger(__name__)
 
@@ -117,6 +118,7 @@ $ sam build MyFunction
     help="Input environment variables through command line to pass into build containers, you can either "
     "input function specific format (FuncName.VarName=Value) or global format (VarName=Value). e.g., "
     "sam build --use-container --container-env-var Func1.VAR1=value1 --container-env-var VAR2=value2",
+    cls=ContainerOptions,
 )
 @click.option(
     "--container-env-var-file",
@@ -124,6 +126,7 @@ $ sam build MyFunction
     default=None,
     type=click.Path(),  # Must be a json file
     help="Path to environment variable json file (e.g., env_vars.json) to pass into build containers",
+    cls=ContainerOptions,
 )
 @click.option(
     "--build-image",
@@ -131,13 +134,14 @@ $ sam build MyFunction
     default=None,
     multiple=True,  # Can pass in multiple build images
     required=False,
-    help="Container image URIs for building functions. "
-    "You can specify for all functions with just the image URI "
+    help="Container image URIs for building functions/layers. "
+    "You can specify for all functions/layers with just the image URI "
     "(--build-image public.ecr.aws/sam/build-nodejs14.x:latest). "
     "You can specify for each individual function with "
     "(--build-image FunctionLogicalID=public.ecr.aws/sam/build-nodejs14.x:latest). "
     "A combination of the two can be used. If a function does not have build image specified or "
     "an image URI for all functions, the default SAM CLI build images will be used.",
+    cls=ContainerOptions,
 )
 @click.option(
     "--parallel",

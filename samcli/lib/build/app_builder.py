@@ -67,7 +67,7 @@ class ApplicationBuilder:
         docker_client: Optional[docker.DockerClient] = None,
         container_env_var: Optional[Dict] = None,
         container_env_var_file: Optional[str] = None,
-        build_images: Optional[dict] = None,
+        build_images: Optional[Dict] = None,
     ) -> None:
         """
         Initialize the class
@@ -125,7 +125,7 @@ class ApplicationBuilder:
         self._colored = Colored()
         self._container_env_var = container_env_var
         self._container_env_var_file = container_env_var_file
-        self._build_images = build_images
+        self._build_images = build_images or {}
 
     def build(self) -> Dict[str, str]:
         """
@@ -441,8 +441,11 @@ class ApplicationBuilder:
                     # Only set to this value if specified workflow is makefile
                     # which will result in config language as provided
                     build_runtime = compatible_runtimes[0]
+                # None key represents the global build image for all functions/layers
+                global_image = self._build_images.get(None)
+                image = self._build_images.get(layer_name, global_image)
                 self._build_function_on_container(
-                    config, code_dir, artifact_subdir, manifest_path, build_runtime, options, container_env_vars
+                    config, code_dir, artifact_subdir, manifest_path, build_runtime, options, container_env_vars, image
                 )
             else:
                 self._build_function_in_process(
@@ -520,12 +523,9 @@ class ApplicationBuilder:
                 options = ApplicationBuilder._get_build_options(function_name, config.language, handler)
                 # By default prefer to build in-process for speed
                 if self._container_manager:
-                    image = None
-                    if self._build_images is not None:
-                        if function_name in self._build_images:
-                            image = self._build_images[function_name]
-                        elif None in self._build_images:
-                            image = self._build_images[None]
+                    # None represents the global build image for all functions/layers
+                    global_image = self._build_images.get(None)
+                    image = self._build_images.get(function_name, global_image)
 
                     return self._build_function_on_container(
                         config,
@@ -577,7 +577,7 @@ class ApplicationBuilder:
         scratch_dir: str,
         manifest_path: str,
         runtime: str,
-        options: Optional[dict],
+        options: Optional[Dict],
     ) -> str:
 
         builder = LambdaBuilder(

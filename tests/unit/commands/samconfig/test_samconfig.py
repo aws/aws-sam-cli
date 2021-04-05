@@ -114,6 +114,9 @@ class TestSamConfigForAllCommands(TestCase):
             "docker_network": "mynetwork",
             "skip_pull_image": True,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
+            "container_env_var": (""),
+            "container_env_var_file": "file",
+            "build_image": (""),
         }
 
         with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
@@ -146,7 +149,7 @@ class TestSamConfigForAllCommands(TestCase):
                 {"Key": "Value", "Key2": "Value2"},
                 None,
                 (),
-                None,
+                "file",
                 (),
             )
 
