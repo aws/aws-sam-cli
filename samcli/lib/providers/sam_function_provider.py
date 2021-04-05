@@ -129,6 +129,14 @@ class SamFunctionProvider(SamBaseProvider):
                 if resource_metadata:
                     resource_properties["Metadata"] = resource_metadata
 
+                if resource_type in [SamFunctionProvider.SERVERLESS_FUNCTION, SamFunctionProvider.LAMBDA_FUNCTION]:
+                    code_property_key = SamBaseProvider.CODE_PROPERTY_KEYS[resource_type]
+                    if SamBaseProvider._is_s3_location(resource_properties.get(code_property_key)):
+                        # CodeUri can be a dictionary of S3 Bucket/Key or a S3 URI, neither of which are supported
+                        if not ignore_code_extraction_warnings:
+                            SamFunctionProvider._warn_code_extraction(resource_type, name, code_property_key)
+                        continue
+
                 if resource_type == SamFunctionProvider.SERVERLESS_FUNCTION:
                     layers = SamFunctionProvider._parse_layer_info(
                         stack,
@@ -142,7 +150,6 @@ class SamFunctionProvider(SamBaseProvider):
                         resource_properties,
                         layers,
                         use_raw_codeuri,
-                        ignore_code_extraction_warnings=ignore_code_extraction_warnings,
                     )
                     result[function.full_path] = function
 
@@ -169,7 +176,6 @@ class SamFunctionProvider(SamBaseProvider):
         resource_properties: Dict,
         layers: List[LayerVersion],
         use_raw_codeuri: bool = False,
-        ignore_code_extraction_warnings: bool = False,
     ) -> Function:
         """
         Converts a AWS::Serverless::Function resource to a Function configuration usable by the provider.
@@ -197,12 +203,7 @@ class SamFunctionProvider(SamBaseProvider):
                 LOG.debug("Found Serverless function with name='%s' and InlineCode", name)
                 codeuri = None
             else:
-                codeuri = SamFunctionProvider._extract_sam_function_codeuri(
-                    name,
-                    resource_properties,
-                    "CodeUri",
-                    ignore_code_extraction_warnings=ignore_code_extraction_warnings,
-                )
+                codeuri = SamBaseProvider._extract_codeuri(resource_properties, "CodeUri")
                 LOG.debug("Found Serverless function with name='%s' and CodeUri='%s'", name, codeuri)
         elif packagetype == IMAGE:
             imageuri = SamFunctionProvider._extract_sam_function_imageuri(resource_properties, "ImageUri")
@@ -252,7 +253,7 @@ class SamFunctionProvider(SamBaseProvider):
                 LOG.debug("Found Lambda function with name='%s' and Code ZipFile", name)
                 codeuri = None
             else:
-                codeuri = SamFunctionProvider._extract_lambda_function_code(resource_properties, "Code")
+                codeuri = SamBaseProvider._extract_codeuri(resource_properties, "Code")
                 LOG.debug("Found Lambda function with name='%s' and CodeUri='%s'", name, codeuri)
         elif packagetype == IMAGE:
             imageuri = SamFunctionProvider._extract_lambda_function_imageuri(resource_properties, "Code")
@@ -297,7 +298,7 @@ class SamFunctionProvider(SamBaseProvider):
         metadata = resource_properties.get("Metadata", None)
         if metadata and "DockerContext" in metadata and not use_raw_codeuri:
             LOG.debug(
-                "--base-dir is presented not, adjusting uri %s relative to %s",
+                "--base-dir is not presented, adjusting uri %s relative to %s",
                 metadata["DockerContext"],
                 stack.location,
             )
@@ -306,7 +307,7 @@ class SamFunctionProvider(SamBaseProvider):
             )
 
         if codeuri and not use_raw_codeuri:
-            LOG.debug("--base-dir is presented not, adjusting uri %s relative to %s", codeuri, stack.location)
+            LOG.debug("--base-dir is not presented, adjusting uri %s relative to %s", codeuri, stack.location)
             codeuri = SamLocalStackProvider.normalize_resource_path(stack.location, codeuri)
 
         return Function(
@@ -387,42 +388,57 @@ class SamFunctionProvider(SamBaseProvider):
             # In the list of layers that is defined within a template, you can reference a LayerVersion resource.
             # When running locally, we need to follow that Ref so we can extract the local path to the layer code.
             if isinstance(layer, dict) and layer.get("Ref"):
-                layer_logical_id = cast(str, layer.get("Ref"))
-                layer_resource = stack.resources.get(layer_logical_id)
-                if not layer_resource or layer_resource.get("Type", "") not in (
-                    SamFunctionProvider.SERVERLESS_LAYER,
-                    SamFunctionProvider.LAMBDA_LAYER,
-                ):
-                    raise InvalidLayerReference()
-
-                layer_properties = layer_resource.get("Properties", {})
-                resource_type = layer_resource.get("Type")
-                compatible_runtimes = layer_properties.get("CompatibleRuntimes")
-                codeuri: Optional[str] = None
-
-                if resource_type == SamFunctionProvider.LAMBDA_LAYER:
-                    codeuri = SamFunctionProvider._extract_lambda_function_code(layer_properties, "Content")
-
-                if resource_type == SamFunctionProvider.SERVERLESS_LAYER:
-                    codeuri = SamFunctionProvider._extract_sam_function_codeuri(
-                        layer_logical_id, layer_properties, "ContentUri", ignore_code_extraction_warnings
-                    )
-
-                if codeuri and not use_raw_codeuri:
-                    LOG.debug("--base-dir is presented not, adjusting uri %s relative to %s", codeuri, stack.location)
-                    codeuri = SamLocalStackProvider.normalize_resource_path(stack.location, codeuri)
-
-                layers.append(
-                    LayerVersion(
-                        layer_logical_id,
-                        codeuri,
-                        compatible_runtimes,
-                        layer_resource.get("Metadata", None),
-                        stack_path=stack.stack_path,
-                    )
+                found_layer = SamFunctionProvider._locate_layer_from_ref(
+                    stack, layer, use_raw_codeuri, ignore_code_extraction_warnings
+                )
+                if found_layer:
+                    layers.append(found_layer)
+            else:
+                LOG.debug(
+                    'layer "%s" is not recognizable, '
+                    "it might be using intrinsic functions that we don't support yet. Skipping.",
+                    str(layer),
                 )
 
         return layers
+
+    @staticmethod
+    def _locate_layer_from_ref(
+        stack: Stack, layer: Dict, use_raw_codeuri: bool = False, ignore_code_extraction_warnings: bool = False
+    ) -> Optional[LayerVersion]:
+        layer_logical_id = cast(str, layer.get("Ref"))
+        layer_resource = stack.resources.get(layer_logical_id)
+        if not layer_resource or layer_resource.get("Type", "") not in (
+            SamFunctionProvider.SERVERLESS_LAYER,
+            SamFunctionProvider.LAMBDA_LAYER,
+        ):
+            raise InvalidLayerReference()
+
+        layer_properties = layer_resource.get("Properties", {})
+        resource_type = layer_resource.get("Type")
+        compatible_runtimes = layer_properties.get("CompatibleRuntimes")
+        codeuri: Optional[str] = None
+
+        if resource_type in [SamFunctionProvider.LAMBDA_LAYER, SamFunctionProvider.SERVERLESS_LAYER]:
+            code_property_key = SamBaseProvider.CODE_PROPERTY_KEYS[resource_type]
+            if SamBaseProvider._is_s3_location(layer_properties.get(code_property_key)):
+                # Content can be a dictionary of S3 Bucket/Key or a S3 URI, neither of which are supported
+                if not ignore_code_extraction_warnings:
+                    SamFunctionProvider._warn_code_extraction(resource_type, layer_logical_id, code_property_key)
+                return None
+            codeuri = SamBaseProvider._extract_codeuri(layer_properties, code_property_key)
+
+        if codeuri and not use_raw_codeuri:
+            LOG.debug("--base-dir is not presented, adjusting uri %s relative to %s", codeuri, stack.location)
+            codeuri = SamLocalStackProvider.normalize_resource_path(stack.location, codeuri)
+
+        return LayerVersion(
+            layer_logical_id,
+            codeuri,
+            compatible_runtimes,
+            layer_resource.get("Metadata", None),
+            stack_path=stack.stack_path,
+        )
 
     def get_resources_by_stack_path(self, stack_path: str) -> Dict:
         candidates = [stack.resources for stack in self.stacks if stack.stack_path == stack_path]

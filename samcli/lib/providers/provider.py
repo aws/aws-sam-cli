@@ -120,6 +120,9 @@ class LayerVersion:
 
     LAYER_NAME_DELIMETER = "-"
 
+    _name: Optional[str] = None
+    _version: Optional[int] = None
+
     def __init__(
         self,
         arn: str,
@@ -149,8 +152,6 @@ class LayerVersion:
         self._arn = arn
         self._codeuri = codeuri
         self.is_defined_within_template = bool(codeuri)
-        self._name = LayerVersion._compute_layer_name(self.is_defined_within_template, arn)
-        self._version = LayerVersion._compute_layer_version(self.is_defined_within_template, arn)
         self._build_method = cast(Optional[str], metadata.get("BuildMethod", None))
         self._compatible_runtimes = compatible_runtimes
 
@@ -238,6 +239,11 @@ class LayerVersion:
         str
             A name of the Layer that is used on the system to uniquely identify the layer
         """
+        # because self.name is only used in local invoke.
+        # here we delay the validation process (in _compute_layer_name) rather than in __init__() to ensure
+        # customers still have a smooth build experience.
+        if not self._name:
+            self._name = LayerVersion._compute_layer_name(self.is_defined_within_template, self.arn)
         return self._name
 
     @property
@@ -250,6 +256,11 @@ class LayerVersion:
 
     @property
     def version(self) -> Optional[int]:
+        # because self.version is only used in local invoke.
+        # here we delay the validation process (in _compute_layer_name) rather than in __init__() to ensure
+        # customers still have a smooth build experience.
+        if self._version is None:
+            self._version = LayerVersion._compute_layer_version(self.is_defined_within_template, self.arn)
         return self._version
 
     @property
@@ -284,7 +295,10 @@ class LayerVersion:
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, type(self)):
-            return self.__dict__ == other.__dict__
+            # self._name and self._version are generated from self._arn, and they are initialized as None
+            # and their values are assigned at runtime. Here we exclude them from comparison
+            overrides = {"_name": None, "_version": None}
+            return {**self.__dict__, **overrides} == {**other.__dict__, **overrides}
         return False
 
 
