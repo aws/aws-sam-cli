@@ -18,9 +18,8 @@ class LambdaBuildContainer(Container):
     and if the build was successful, copies back artifacts to the host filesystem
     """
 
-    _IMAGE_OWNER = "amazon"
-    _IMAGE_NAME_PREFIX = "aws-sam-cli-build-image"
-    _IMAGE_NAME_FORMAT = "{}/{}-{}"  # amazon/aws-sam-cli-build-image-nodejs10.x
+    _IMAGE_URI_PREFIX = "public.ecr.aws/sam/build"
+    _IMAGE_TAG = "latest"
     _BUILDERS_EXECUTABLE = "lambda-builders"
 
     def __init__(  # pylint: disable=too-many-locals
@@ -38,6 +37,7 @@ class LambdaBuildContainer(Container):
         log_level=None,
         mode=None,
         env_vars=None,
+        image=None,
     ):
 
         abs_manifest_path = pathlib.Path(manifest_path).resolve()
@@ -76,7 +76,8 @@ class LambdaBuildContainer(Container):
             mode,
         )
 
-        image = LambdaBuildContainer._get_image(runtime)
+        if image is None:
+            image = LambdaBuildContainer._get_image(runtime)
         entry = LambdaBuildContainer._get_entrypoint(request_json)
         cmd = []
 
@@ -236,6 +237,4 @@ class LambdaBuildContainer(Container):
 
     @staticmethod
     def _get_image(runtime):
-        return LambdaBuildContainer._IMAGE_NAME_FORMAT.format(
-            LambdaBuildContainer._IMAGE_OWNER, LambdaBuildContainer._IMAGE_NAME_PREFIX, runtime
-        )
+        return f"{LambdaBuildContainer._IMAGE_URI_PREFIX}-{runtime}:{LambdaBuildContainer._IMAGE_TAG}"
