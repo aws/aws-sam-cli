@@ -1873,6 +1873,7 @@ class TestBuildWithCustomBuildImage(BuildIntegBase):
         build_dir_files = os.listdir(str(build_dir))
         self.assertIn("BuildImageFunction", build_dir_files)
 
+
 @parameterized_class(
     ("template", "stack_paths", "layer_full_path", "function_full_paths", "invoke_error_message"),
     [
@@ -1896,8 +1897,6 @@ class TestBuildWithCustomBuildImage(BuildIntegBase):
         ),
     ],
 )
-
-
 class TestBuildPassingLayerAcrossStacks(IntrinsicIntegBase):
     @pytest.mark.flaky(reruns=3)
     def test_nested_build(self):
