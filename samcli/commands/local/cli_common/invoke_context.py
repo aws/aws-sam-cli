@@ -75,7 +75,6 @@ class InvokeContext:
         warm_container_initialization_mode: Optional[str] = None,
         debug_function: Optional[str] = None,
         shutdown: bool = False,
-        container_host: Optional[str] = None,
     ) -> None:
         """
         Initialize the context
@@ -122,8 +121,6 @@ class InvokeContext:
             option is enabled
         shutdown bool
             Optional. If True, perform a SHUTDOWN event when tearing down containers. Default False.
-        container_host string
-            Optional. Host of locally emulated Lambda container
         """
         self._template_file = template_file
         self._function_identifier = function_identifier
@@ -148,8 +145,6 @@ class InvokeContext:
         self._aws_region = aws_region
         self._aws_profile = aws_profile
         self._shutdown = shutdown
-
-        self._container_host = container_host
 
         self._containers_mode = ContainersMode.COLD
         self._containers_initializing_mode = ContainersInitializationMode.LAZY
@@ -332,7 +327,6 @@ class InvokeContext:
             aws_region=self._aws_region,
             env_vars_values=self._env_vars_value,
             debug_context=self._debug_context,
-            container_host=self._container_host,
         )
         return self._local_lambda_runner
 
