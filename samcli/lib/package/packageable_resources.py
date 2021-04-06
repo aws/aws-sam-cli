@@ -40,6 +40,8 @@ from samcli.commands._utils.resources import (
     AWS_SERVERLESS_LAYERVERSION,
     AWS_GLUE_JOB,
     AWS_STEPFUNCTIONS_STATEMACHINE,
+    AWS_CLOUDFORMATION_MODULEVERSION,
+    AWS_CLOUDFORMATION_RESOURCEVERSION,
     METADATA_WITH_LOCAL_PATHS,
     RESOURCES_WITH_LOCAL_PATHS,
     RESOURCES_WITH_IMAGE_COMPONENT,
@@ -423,6 +425,16 @@ class GlueJobCommandScriptLocationResource(ResourceZip):
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[AWS_GLUE_JOB][0]
 
 
+class CloudFormationModuleVersionModulePackage(ResourceZip):
+    RESOURCE_TYPE = AWS_CLOUDFORMATION_MODULEVERSION
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[AWS_CLOUDFORMATION_MODULEVERSION][0]
+
+
+class CloudFormationResourceVersionSchemaHandlerPackage(ResourceZip):
+    RESOURCE_TYPE = AWS_CLOUDFORMATION_RESOURCEVERSION
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[AWS_CLOUDFORMATION_RESOURCEVERSION][0]
+
+
 RESOURCES_EXPORT_LIST = [
     ServerlessFunctionResource,
     ServerlessFunctionImageResource,
@@ -442,6 +454,8 @@ RESOURCES_EXPORT_LIST = [
     ServerlessLayerVersionResource,
     LambdaLayerVersionResource,
     GlueJobCommandScriptLocationResource,
+    CloudFormationModuleVersionModulePackage,
+    CloudFormationResourceVersionSchemaHandlerPackage,
 ]
 
 METADATA_EXPORT_LIST = [ServerlessRepoApplicationReadme, ServerlessRepoApplicationLicense]

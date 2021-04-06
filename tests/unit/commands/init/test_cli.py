@@ -1089,6 +1089,7 @@ foo
         user_input = """
 1
 2
+1
         """
         args = [
             "--no-input",
