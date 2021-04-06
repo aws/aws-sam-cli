@@ -72,7 +72,6 @@ def cli(
     parameter_overrides,
     config_file,
     config_env,
-    container_host,
 ):
     """
     `sam local invoke` command entry point
@@ -98,7 +97,6 @@ def cli(
         force_image_build,
         shutdown,
         parameter_overrides,
-        container_host,
     )  # pragma: no cover
 
 
@@ -121,7 +119,6 @@ def do_cli(  # pylint: disable=R0914
     force_image_build,
     shutdown,
     parameter_overrides,
-    container_host,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -164,7 +161,6 @@ def do_cli(  # pylint: disable=R0914
             aws_region=ctx.region,
             aws_profile=ctx.profile,
             shutdown=shutdown,
-            container_host=container_host,
         ) as context:
 
             # Invoke the function
