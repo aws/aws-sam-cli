@@ -40,8 +40,6 @@ class TestCli(TestCase):
         self.host = "host"
         self.port = 123
 
-        self.container_host = "localhost"
-
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.lib.local_lambda_service.LocalLambdaService")
     def test_cli_must_setup_context_and_start_service(self, local_lambda_service_mock, invoke_context_mock):
@@ -76,7 +74,6 @@ class TestCli(TestCase):
             warm_container_initialization_mode=self.warm_containers,
             debug_function=self.debug_function,
             shutdown=self.shutdown,
-            container_host=self.container_host,
         )
 
         local_lambda_service_mock.assert_called_with(lambda_invoke_context=context_mock, port=self.port, host=self.host)
@@ -160,5 +157,4 @@ class TestCli(TestCase):
             warm_containers=self.warm_containers,
             debug_function=self.debug_function,
             shutdown=self.shutdown,
-            container_host=self.container_host,
         )
