@@ -23,28 +23,6 @@ from samcli.lib.utils.hash import dir_checksum
 
 LOG = logging.getLogger(__name__)
 
-
-def is_path_value_valid(path):
-    return isinstance(path, str)
-
-
-def make_abs_path(directory, path):
-    if is_path_value_valid(path) and not os.path.isabs(path):
-        return os.path.normpath(os.path.join(directory, path))
-    return path
-
-
-def is_s3_protocol_url(url):
-    """
-    Check whether url is a valid path in the form of "s3://..."
-    """
-    try:
-        S3Uploader.parse_s3_url(url)
-        return True
-    except ValueError:
-        return False
-
-
 # https://docs.aws.amazon.com/AmazonS3/latest/dev-retired/UsingBucket.html
 _REGION_PATTERN = r"[a-zA-Z0-9-]+"
 _DOT_AMAZONAWS_COM_PATTERN = r"\.amazonaws\.com"
@@ -67,6 +45,27 @@ _S3_URL_REGEXS = [
     # - s3://bucket-name/key-name
     re.compile(r"s3://.+/.+"),
 ]
+
+
+def is_path_value_valid(path):
+    return isinstance(path, str)
+
+
+def make_abs_path(directory, path):
+    if is_path_value_valid(path) and not os.path.isabs(path):
+        return os.path.normpath(os.path.join(directory, path))
+    return path
+
+
+def is_s3_protocol_url(url):
+    """
+    Check whether url is a valid path in the form of "s3://..."
+    """
+    try:
+        S3Uploader.parse_s3_url(url)
+        return True
+    except ValueError:
+        return False
 
 
 def is_s3_url(url: str) -> bool:
