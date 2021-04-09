@@ -144,7 +144,9 @@ class Template:
 
         try:
             LOG.debug("Baking a new template with cookiecutter with all parameters")
-            cookiecutter(template=self._location, output_dir=".", no_input=True, extra_context=context)
+            cookiecutter(
+                template=self._location, overwrite_if_exists=True, output_dir=".", no_input=True, extra_context=context
+            )
         except RepositoryNotFound as e:
             # cookiecutter.json is not found in the template. Let's just clone it directly without
             # using cookiecutter and call it done.

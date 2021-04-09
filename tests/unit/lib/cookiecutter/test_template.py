@@ -118,7 +118,11 @@ class TestTemplate(TestCase):
         mock_interactive_flow.run.assert_not_called()
         mock_preprocessor.run.assert_called_once_with(self._ANY_INTERACTIVE_FLOW_CONTEXT)
         mock_cookiecutter.assert_called_with(
-            template=self._ANY_LOCATION, output_dir=".", no_input=True, extra_context=self._ANY_PROCESSOR_CONTEXT
+            template=self._ANY_LOCATION,
+            overwrite_if_exists=True,
+            output_dir=".",
+            no_input=True,
+            extra_context=self._ANY_PROCESSOR_CONTEXT,
         )
         mock_postprocessor.run.assert_called_once_with(self._ANY_PROCESSOR_CONTEXT)
 
