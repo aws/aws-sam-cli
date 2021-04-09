@@ -21,9 +21,15 @@ What will be changed?
 When deploying with guided, SAM CLI will prompt the option to auto create ECR repos for image based functions.
 The auto created ECR repos will reside in a companion stack that gets deployed along with the actual stack. 
 
-During each guided deploy, the functions and repos will be synced. New repos will be created for new functions and repos without an associating function will be prompt for deletion.
+During each guided deploy, the functions and repos will be synced.
 
-There will be an escape hatch to use non SAM CLI managed repos by specifying `--image-repositories` or change `samconfig.toml`.
+
+Each function without an image repo specified will have a corresponding repo created in the companion stack.
+If a function is deleted from the template and has an auto created image repo previously associated with it, the auto created image repo will also be removed.
+
+
+
+There will be an escape hatch to use non SAM CLI managed repos by specifying `--image-repositories` or changing `samconfig.toml`.
 
 Success criteria for the change
 -------------------------------
@@ -33,7 +39,7 @@ Success criteria for the change
 Out-of-Scope
 ------------
 
-* SAM CLI will not manage lifecycles of the created resources outside of SAM CLI, i.e. customer deleting a function from console.
+* SAM CLI will not manage lifecycles, creation and deletion, of the auto created resources outside of SAM CLI. For auto created image repos, modifications to the functions throught other means like console will not modify the associated image repo until the next deployment with SAM CLI.
 * Auto create repo only concerns about guided experience. Repos are assumed to be provided in CI/CD situations. However the option --resolve-image-repos will be added for auto creating repos without going through guided.
 
 User Experience Walkthrough
@@ -157,6 +163,18 @@ Configuring SAM deploy
         Signing Profiles             : {}
 ```
 
+--resolve-image-repos
+---------------------------
+This new option will have the exact behavior as running guided with confirmation for all image repo related prompts.
+
+To be more specific, this option will:
+1. Create image repos for functions are not linked to image repos with the `--image-repositories`
+2. Delete auto created image repos that do not have functions associated with them anymore
+
+Destructive operations are done for the following reasons:
+1. This will keep a consistent behavior as the guided. In guided, SAM CLI will abort deployment if deletion of auto created image repos is denied.
+2. For UX, this will avoid image repos and functions mapping to an invalid state where orphaned image repos exist. For this case, we will also need to track which repos should be kept and makes the sync less robust.
+3. From security perspective, keeping old image repos will increase the impact radius of an information leakage. A customer might expect a sensitive image repo will be deleted as soon as the function itself is also removed like the guided experience.
 
 Implementation
 ==============
@@ -288,7 +306,7 @@ Outputs:
 
 Documentation Changes
 =====================
-* New option `--resolve-image-repos`. This option will auto create repos without the needs of going through guided experience. 
+* New option `--resolve-image-repos`. This option will auto create/delete repos without the needs of going through guided experience. 
 
 Open Issues
 ============
