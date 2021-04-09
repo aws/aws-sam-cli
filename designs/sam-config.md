@@ -86,7 +86,7 @@ export SAM_CLI_CONFIG=~/Users/username/mysamconfig.toml
 
 Users can choose to pass their own configuration file with a `--config-file` command line option.
 
-Users can pass an environment `--config-prefix` for the section that will be scanned within the configuration file to pass parameters through.
+Users can pass an environment `--config-env` for the section that will be scanned within the configuration file to pass parameters through.
 
 By default the `default` section of the configuration is chosen.
 
@@ -120,7 +120,7 @@ profile="srirammv"
 
 If a custom environment is specified, the environment is looked up in `samconfig.toml` file instead.
 
-`sam build --config-prefix dev`
+`sam build --config-env dev`
 
 Sample configuration file
 
@@ -180,7 +180,7 @@ Config file in Git Repos
 
 Optionally, if multiple configuration files are checked in. One can change the `SAM_CLI_CONFIG` environment variable to point a different configuration file.
 
-`--config-prefix` can also be passed in to deal with custom environments defined in the configuration file.
+`--config-env` can also be passed in to deal with custom environments defined in the configuration file.
 
 Error Messages
 ---------------
@@ -188,7 +188,7 @@ Error Messages
 When a custom config prefix is passed in, and such an environment is not found. The error message can highlight all the environments that were found in the given configuration file.
 
 `
-sam build --config-prefix devo
+sam build --config-env devo
 Error: Environment 'devo' was not found in samconfig.toml , Possible environments are : ['default', 'dev', 'prod']
 `
 
@@ -259,7 +259,7 @@ Implemented
 Not Implemented
 ---------------
 * New command line argument for specifying configuration file via `--config-file`.
-* New command line argument per command called `--config-prefix` to be able to specify non default environment section within a config file.
+* New command line argument per command called `--config-env` to be able to specify non default environment section within a config file.
 
 ### Breaking Change
 
@@ -297,7 +297,7 @@ The design can be built in phases.
 
 * No option to specify configuration file or configuration prefix ✅
 * Specify configuration file with an environment variable and with a command line argument `--config-file`
-* Read `--config-prefix` to make sure we can select an appropriate portion in configuration file.
+* Read `--config-env` to make sure we can select an appropriate portion in configuration file.
 
 
 Security
@@ -346,7 +346,7 @@ N/A
 Test Scenarios/Cases
 --------------------
 
-* Integration tests for every command with `--config-file` and `--config-prefix` based overrides, and command line overrides on existing sam configuration file and custom configuration file through environment variables.
+* Integration tests for every command with `--config-file` and `--config-env` based overrides, and command line overrides on existing sam configuration file and custom configuration file through environment variables.
 * Tested to work on all platforms
 
 Expected Results
@@ -359,7 +359,7 @@ Documentation Changes
 =====================
 
 * Addition of a new `--config-file` parameter per command
-* Addition of a new `--config-prefix` parameter per command
+* Addition of a new `--config-env` parameter per command
 
 Related Open Issues
 ============

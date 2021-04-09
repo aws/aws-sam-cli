@@ -4,7 +4,6 @@ import datetime
 from unittest import TestCase
 
 from samcli.lib.utils.time import to_timestamp, timestamp_to_iso, parse_date, to_utc, utc_to_timestamp
-from dateutil.tz import tzutc
 
 
 class TestTimestampToIso(TestCase):

@@ -94,7 +94,9 @@ class IntrinsicsSymbolTable:
         it will generate a default one and save it in the logical_id_translator as a cache for future computation.
         Parameters
         ------------
-        logical_id_translator: dict
+        template : Optional[Dict]
+            An optional dictionary representing the template
+        logical_id_translator : dict
             This will act as the default symbol table resolver. The resolver will first check if the attribute is
             explicitly defined in this dictionary and do the relevant translation.
 
@@ -109,7 +111,7 @@ class IntrinsicsSymbolTable:
                 }
                 "AWS::Region": "us-east-1"
             }
-        default_type_resolver: dict
+        default_type_resolver : dict
             This can be used provide common attributes that are true across all objects of a certain type.
             This can be in the format of
             {
@@ -123,7 +125,7 @@ class IntrinsicsSymbolTable:
                     "RootResourceId": (lambda l, a, p, r: p.get("ResourceId"))
                 }
             }
-        common_attribute_resolver: dict
+        common_attribute_resolver : dict
             This is a clean way of specifying common attributes across all types.
             The value can either be a function of the form string or (logical_id) => string
             {
@@ -428,10 +430,5 @@ class IntrinsicsSymbolTable:
     def handle_pseudo_no_value():
         """
         This resolves AWS::NoValue so that it returns the python None
-
-        Returns
-        --------
-        None
-        :return:
         """
         return None

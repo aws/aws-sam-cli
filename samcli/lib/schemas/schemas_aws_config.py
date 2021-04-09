@@ -15,15 +15,18 @@ def get_aws_configuration_choice():
     profile = session.profile_name
     region = session.region_name
 
-    message = "\nDo you want to use the default AWS profile [%s] and region [%s]?" % (profile, region)
-    choice = click.confirm(message, default=True)
+    message = f"\nDo you want to use the default AWS profile [{profile}] and region [{region}]?"
+    # Avoid prompting if there isn't a region, the user must supply the information
+    needs_edit = (not region) or (not click.confirm(message, default=True))
 
     schemas_available_regions_name = session.get_available_regions("schemas")
 
-    if not choice:
+    if needs_edit:
         available_profiles = session.available_profiles
         profile = _get_aws_profile_choice(available_profiles)
-        region = _get_aws_region_choice(schemas_available_regions_name, region)
+        # Reinitialize the session with the new profile to get the new region
+        session = Session(profile_name=profile)
+        region = _get_aws_region_choice(schemas_available_regions_name, session.region_name)
     else:
         # session.profile_name will return 'default' if no profile is found,
         # but botocore itself will fail if you pass it in, when one is not configured
@@ -74,7 +77,7 @@ def _get_aws_region_choice(available_regions_name, region):
         msg = cli_display_regions[cli_display_region]
         click.echo("# " + msg)
 
-    region_choice = click.prompt("Region " + "[" + region + "]", type=str, show_choices=False)
+    region_choice = click.prompt(f"Region [{region}]", type=str, show_choices=False)
     return region_choice
 
 

@@ -5,10 +5,10 @@ Context object used by build command
 import logging
 import os
 import shutil
-from typing import Optional, Dict, List
+from typing import Optional, List
 import pathlib
 
-from samcli.lib.providers.provider import ResourcesToBuildCollector, Stack
+from samcli.lib.providers.provider import ResourcesToBuildCollector, Stack, Function, LayerVersion
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.local.docker.manager import ContainerManager
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
@@ -44,11 +44,16 @@ class BuildContext:
         skip_pull_image: bool = False,
         container_env_var: Optional[dict] = None,
         container_env_var_file: Optional[str] = None,
+        build_images: Optional[dict] = None,
     ) -> None:
 
         self._resource_identifier = resource_identifier
         self._template_file = template_file
         self._base_dir = base_dir
+
+        # Note(xinhol): use_raw_codeuri is temporary to fix a bug, and will be removed for a permanent solution.
+        self._use_raw_codeuri = bool(self._base_dir)
+
         self._build_dir = build_dir
         self._cache_dir = cache_dir
         self._manifest_path = manifest_path
@@ -61,22 +66,31 @@ class BuildContext:
         self._cached = cached
         self._container_env_var = container_env_var
         self._container_env_var_file = container_env_var_file
+        self._build_images = build_images
 
         self._function_provider: Optional[SamFunctionProvider] = None
         self._layer_provider: Optional[SamLayerProvider] = None
-        self._template_dict: Optional[Dict] = None
         self._container_manager: Optional[ContainerManager] = None
         self._stacks: List[Stack] = []
 
     def __enter__(self) -> "BuildContext":
 
-        self._stacks = SamLocalStackProvider.get_stacks(
+        self._stacks, remote_stack_full_paths = SamLocalStackProvider.get_stacks(
             self._template_file, parameter_overrides=self._parameter_overrides
         )
-        self._template_dict = SamLocalStackProvider.find_root_stack(self.stacks).template_dict
 
-        self._function_provider = SamFunctionProvider(self.stacks)
-        self._layer_provider = SamLayerProvider(self.stacks)
+        if remote_stack_full_paths:
+            LOG.warning(
+                "Below nested stacks(s) specify non-local URL(s), which are unsupported:\n%s\n"
+                "Skipping building resources inside these nested stacks.",
+                "\n".join([f"- {full_path}" for full_path in remote_stack_full_paths]),
+            )
+
+        # Note(xinhol): self._use_raw_codeuri is added temporarily to fix issue #2717
+        # when base_dir is provided, codeuri should not be resolved based on template file path.
+        # we will refactor to make all path resolution inside providers intead of in multiple places
+        self._function_provider = SamFunctionProvider(self.stacks, self._use_raw_codeuri)
+        self._layer_provider = SamLayerProvider(self.stacks, self._use_raw_codeuri)
 
         if not self._base_dir:
             # Base directory, if not provided, is the directory containing the template
@@ -139,11 +153,6 @@ class BuildContext:
         return self._layer_provider  # type: ignore
 
     @property
-    def template_dict(self) -> Dict:
-        # same as function_provider()
-        return self._template_dict  # type: ignore
-
-    @property
     def build_dir(self) -> str:
         return self._build_dir
 
@@ -203,8 +212,8 @@ class BuildContext:
                 LOG.info(available_resource_message)
                 raise ResourceNotFound(f"Unable to find a function or layer with name '{self._resource_identifier}'")
             return result
-        result.add_functions([f for f in self.function_provider.get_all() if not f.inlinecode])
-        result.add_layers([l for l in self.layer_provider.get_all() if l.build_method is not None])
+        result.add_functions([f for f in self.function_provider.get_all() if BuildContext._is_function_buildable(f)])
+        result.add_layers([l for l in self.layer_provider.get_all() if BuildContext._is_layer_buildable(l)])
         return result
 
     @property
@@ -226,11 +235,6 @@ class BuildContext:
         Parameters
         ----------
         resource_collector: Collector that will be populated with resources.
-
-        Returns
-        -------
-        ResourcesToBuildCollector
-
         """
         function = self.function_provider.get(resource_identifier)
         if not function:
@@ -263,3 +267,27 @@ class BuildContext:
             raise MissingBuildMethodException(f"Build method missing in layer {resource_identifier}.")
 
         resource_collector.add_layer(layer)
+
+    @staticmethod
+    def _is_function_buildable(function: Function):
+        # no need to build inline functions
+        if function.inlinecode:
+            LOG.debug("Skip building inline function: %s", function.full_path)
+            return False
+        # no need to build functions that are already packaged as a zip file
+        if isinstance(function.codeuri, str) and function.codeuri.endswith(".zip"):
+            LOG.debug("Skip building zip function: %s", function.full_path)
+            return False
+        return True
+
+    @staticmethod
+    def _is_layer_buildable(layer: LayerVersion):
+        # if build method is not specified, it is not buildable
+        if not layer.build_method:
+            LOG.debug("Skip building layer without a build method: %s", layer.full_path)
+            return False
+        # no need to build layers that are already packaged as a zip file
+        if isinstance(layer.codeuri, str) and layer.codeuri.endswith(".zip"):
+            LOG.debug("Skip building zip layer: %s", layer.full_path)
+            return False
+        return True

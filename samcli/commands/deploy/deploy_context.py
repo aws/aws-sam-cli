@@ -100,6 +100,9 @@ class DeployContext:
         pass
 
     def run(self):
+        """
+        Execute deployment based on the argument provided by customers and samconfig.toml.
+        """
 
         # Parse parameters
         with open(self.template_file, "r") as handle:
@@ -174,7 +177,39 @@ class DeployContext:
         fail_on_empty_changeset=True,
         confirm_changeset=False,
     ):
-        stacks = SamLocalStackProvider.get_stacks(
+        """
+        Deploy the stack to cloudformation.
+        - if changeset needs confirmation, it will prompt for customers to confirm.
+        - if no_execute_changeset is True, the changeset won't be executed.
+
+        Parameters
+        ----------
+        stack_name : str
+            name of the stack
+        template_str : str
+            the string content of the template
+        parameters : List[Dict]
+            List of parameters
+        capabilities : List[str]
+            List of capabilities
+        no_execute_changeset : bool
+            A bool indicating whether to execute changeset
+        role_arn : str
+            the Arn of the role to create changeset
+        notification_arns : List[str]
+            Arns for sending notifications
+        s3_uploader : S3Uploader
+            S3Uploader object to upload files to S3 buckets
+        tags : List[str]
+            List of tags passed to CloudFormation
+        region : str
+            AWS region to deploy the stack to
+        fail_on_empty_changeset : bool
+            Should fail when changeset is empty
+        confirm_changeset : bool
+            Should wait for customer's confirm before executing the changeset
+        """
+        stacks, _ = SamLocalStackProvider.get_stacks(
             self.template_file, parameter_overrides=sanitize_parameter_overrides(self.parameter_overrides)
         )
         auth_required_per_resource = auth_per_resource(stacks)

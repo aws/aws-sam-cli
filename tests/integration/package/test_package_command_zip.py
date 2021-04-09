@@ -1,9 +1,13 @@
+import os
+import pathlib
+import re
 from subprocess import Popen, PIPE, TimeoutExpired
 import tempfile
 
 from unittest import skipIf
 from parameterized import parameterized, param
 
+from samcli.lib.utils.hash import dir_checksum, file_checksum
 from samcli.lib.warnings.sam_cli_warning import CodeDeployWarning
 from .package_integ_base import PackageIntegBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
@@ -48,6 +52,8 @@ class TestPackageZip(PackageIntegBase):
             "aws-lambda-function.yaml",
             "aws-apigateway-restapi.yaml",
             "aws-elasticbeanstalk-applicationversion.yaml",
+            "aws-cloudformation-moduleversion.yaml",
+            "aws-cloudformation-resourceversion.yaml",
             "aws-cloudformation-stack.yaml",
             "aws-serverless-application.yaml",
             "aws-lambda-layerversion.yaml",
@@ -95,6 +101,8 @@ class TestPackageZip(PackageIntegBase):
             "aws-lambda-function.yaml",
             "aws-apigateway-restapi.yaml",
             "aws-elasticbeanstalk-applicationversion.yaml",
+            "aws-cloudformation-moduleversion.yaml",
+            "aws-cloudformation-resourceversion.yaml",
             "aws-cloudformation-stack.yaml",
             "aws-serverless-application.yaml",
             "aws-lambda-layerversion.yaml",
@@ -135,6 +143,8 @@ class TestPackageZip(PackageIntegBase):
             "aws-lambda-function.yaml",
             "aws-apigateway-restapi.yaml",
             "aws-elasticbeanstalk-applicationversion.yaml",
+            "aws-cloudformation-moduleversion.yaml",
+            "aws-cloudformation-resourceversion.yaml",
             "aws-cloudformation-stack.yaml",
             "aws-serverless-application.yaml",
             "aws-lambda-layerversion.yaml",
@@ -187,6 +197,8 @@ class TestPackageZip(PackageIntegBase):
             "aws-lambda-function.yaml",
             "aws-apigateway-restapi.yaml",
             "aws-elasticbeanstalk-applicationversion.yaml",
+            "aws-cloudformation-moduleversion.yaml",
+            "aws-cloudformation-resourceversion.yaml",
             "aws-cloudformation-stack.yaml",
             "aws-serverless-application.yaml",
             "aws-lambda-layerversion.yaml",
@@ -240,6 +252,8 @@ class TestPackageZip(PackageIntegBase):
             "aws-lambda-function.yaml",
             "aws-apigateway-restapi.yaml",
             "aws-elasticbeanstalk-applicationversion.yaml",
+            "aws-cloudformation-moduleversion.yaml",
+            "aws-cloudformation-resourceversion.yaml",
             "aws-cloudformation-stack.yaml",
             "aws-serverless-application.yaml",
             "aws-lambda-layerversion.yaml",
@@ -295,6 +309,8 @@ class TestPackageZip(PackageIntegBase):
             "aws-lambda-function.yaml",
             "aws-apigateway-restapi.yaml",
             "aws-elasticbeanstalk-applicationversion.yaml",
+            "aws-cloudformation-moduleversion.yaml",
+            "aws-cloudformation-resourceversion.yaml",
             "aws-cloudformation-stack.yaml",
             "aws-serverless-application.yaml",
             "aws-lambda-layerversion.yaml",
@@ -348,6 +364,8 @@ class TestPackageZip(PackageIntegBase):
             "aws-lambda-function.yaml",
             "aws-apigateway-restapi.yaml",
             "aws-elasticbeanstalk-applicationversion.yaml",
+            "aws-cloudformation-moduleversion.yaml",
+            "aws-cloudformation-resourceversion.yaml",
             "aws-cloudformation-stack.yaml",
             "aws-serverless-application.yaml",
             "aws-lambda-layerversion.yaml",
@@ -400,6 +418,8 @@ class TestPackageZip(PackageIntegBase):
             "aws-lambda-function.yaml",
             "aws-apigateway-restapi.yaml",
             "aws-elasticbeanstalk-applicationversion.yaml",
+            "aws-cloudformation-moduleversion.yaml",
+            "aws-cloudformation-resourceversion.yaml",
             "aws-cloudformation-stack.yaml",
             "aws-serverless-application.yaml",
             "aws-lambda-layerversion.yaml",
@@ -497,3 +517,49 @@ class TestPackageZip(PackageIntegBase):
         # Not comparing with full warning message because of line ending mismatch on
         # windows and non-windows
         self.assertIn(warning_keyword, process_stdout)
+
+    def test_package_with_deep_nested_template(self):
+        """
+        this template contains two nested stacks:
+        - root
+          - FunctionA
+          - ChildStackX
+            - FunctionB
+            - ChildStackY
+              - FunctionA
+              - MyLayerVersion
+        """
+        template_file = os.path.join("deep-nested", "template.yaml")
+
+        template_path = self.test_data_path.joinpath(template_file)
+        command_list = self.get_command_list(s3_bucket=self.s3_bucket.name, template=template_path, force_upload=True)
+
+        process = Popen(command_list, stdout=PIPE, stderr=PIPE)
+        try:
+            _, stderr = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+        process_stderr = stderr.strip().decode("utf-8")
+
+        # there are in total 3 function dir, 1 layer dir and 2 child templates to upload
+        uploads = re.findall(r"Uploading to.+", process_stderr)
+        self.assertEqual(len(uploads), 6)
+
+        # make sure uploads' checksum match the dirs and child templates
+        build_dir = pathlib.Path(os.path.dirname(__file__)).parent.joinpath("testdata", "package", "deep-nested")
+        dirs = [
+            build_dir.joinpath("FunctionA"),
+            build_dir.joinpath("ChildStackX", "FunctionB"),
+            build_dir.joinpath("ChildStackX", "ChildStackY", "FunctionA"),
+            build_dir.joinpath("ChildStackX", "ChildStackY", "MyLayerVersion"),
+        ]
+        # here we only verify function/layer code dirs' hash
+        # because templates go through some pre-process before being uploaded and the hash can not be determined
+        for dir in dirs:
+            checksum = dir_checksum(dir.absolute())
+            self.assertIn(checksum, process_stderr)
+
+        # verify both child templates are uploaded
+        uploads = re.findall(r"\.template", process_stderr)
+        self.assertEqual(len(uploads), 2)

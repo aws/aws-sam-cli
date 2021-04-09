@@ -96,6 +96,10 @@ class RequestContext:
         :param ContextIdentity identity: Identity for the Request
         :param str extended_request_id:
         :param str path:
+        :param str protocol: Optional, the protocal to make the request
+        :param str domain_name: Optional, the name of the domain
+        :param int request_time_epoch: Optional, an epoch timestamp to override the request time
+        :param datetime request_time: Optional, a datetime object to override the request time
         """
 
         self.resource_id = resource_id

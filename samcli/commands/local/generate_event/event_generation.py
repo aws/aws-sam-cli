@@ -190,18 +190,19 @@ class EventTypeSubCommand(click.MultiCommand):
 
         Parameters
         ----------
-        events_lib
-        top_level_cmd_name: string
+        events_lib : events.Events
+            the Events library for generating events
+        top_level_cmd_name : string
             the name of the service
-        subcmd_name: string
+        subcmd_name : string
             the name of the event under the service
-        args: tuple
+        args : tuple
             any arguments passed in before kwargs
-        kwargs: dict
+        kwargs : dict
             the keys and values for substitution in the json
         Returns
         -------
-        event: string
+        event : string
             returns the customized event json as a string
         """
         event = events_lib.generate_event(top_level_cmd_name, subcmd_name, kwargs)

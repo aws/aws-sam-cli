@@ -17,6 +17,7 @@ LOG = logging.getLogger(__name__)
 
 DEFAULT_CONFIG_FILE_NAME = "samconfig.toml"
 DEFAULT_ENV = "default"
+DEFAULT_GLOBAL_CMDNAME = "global"
 
 
 class SamConfig:
@@ -34,7 +35,6 @@ class SamConfig:
         ----------
         config_dir : string
             Directory where the configuration file needs to be stored
-
         filename : string
             Optional. Name of the configuration file. It is recommended to stick with default so in the future we
             could automatically support auto-resolving multiple config files within same directory.
@@ -49,10 +49,8 @@ class SamConfig:
         ----------
         cmd_names : list(str)
             List of representing the entire command. Ex: ["local", "generate-event", "s3", "put"]
-
         section : str
-            Specific section within the command to look into Ex: `parameters`
-
+            Specific section within the command to look into. e.g. `parameters`
         env : str
             Optional, Name of the environment
 
@@ -73,7 +71,15 @@ class SamConfig:
         env = env or DEFAULT_ENV
 
         self._read()
-        return self.document[env][self._to_key(cmd_names)][section]
+        if isinstance(self.document, dict):
+            toml_content = self.document.get(env, {})
+            params = toml_content.get(self._to_key(cmd_names), {}).get(section, {})
+            if DEFAULT_GLOBAL_CMDNAME in toml_content:
+                global_params = toml_content.get(DEFAULT_GLOBAL_CMDNAME, {}).get(section, {})
+                global_params.update(params.copy())
+                params = global_params.copy()
+            return params
+        return {}
 
     def put(self, cmd_names, section, key, value, env=DEFAULT_ENV):
         """
@@ -85,16 +91,12 @@ class SamConfig:
         ----------
         cmd_names : list(str)
             List of representing the entire command. Ex: ["local", "generate-event", "s3", "put"]
-
         section : str
-            Specific section within the command to look into Ex: `parameters`
-
+            Specific section within the command to look into. e.g. `parameters`
         key : str
             Key to write the data under
-
-        value
+        value : Any
             Value to write. Could be any of the supported TOML types.
-
         env : str
             Optional, Name of the environment
 
@@ -106,19 +108,24 @@ class SamConfig:
 
         if not self.document:
             self._read()
-            # Empty document prepare the initial structure.
-            # self.document is a nested dict, we need to check each layer and add new tables, otherwise duplicated key
-            # in parent layer will override the whole child layer
-            if self.document.get(env, None):
-                if self.document[env].get(self._to_key(cmd_names), None):
-                    if not self.document[env][self._to_key(cmd_names)].get(section, None):
-                        self.document[env][self._to_key(cmd_names)].update({section: {key: value}})
-                else:
-                    self.document[env].update({self._to_key(cmd_names): {section: {key: value}}})
-            else:
-                self.document.update({env: {self._to_key(cmd_names): {section: {key: value}}}})
-        # Only update appropriate key value pairs within a section
-        self.document[env][self._to_key(cmd_names)][section].update({key: value})
+        # Empty document prepare the initial structure.
+        # self.document is a nested dict, we need to check each layer and add new tables, otherwise duplicated key
+        # in parent layer will override the whole child layer
+        cmd_name_key = self._to_key(cmd_names)
+        env_content = self.document.get(env, {})
+        cmd_content = env_content.get(cmd_name_key, {})
+        param_content = cmd_content.get(section, {})
+        if param_content:
+            param_content.update({key: value})
+        elif cmd_content:
+            cmd_content.update({section: {key: value}})
+        elif env_content:
+            env_content.update({cmd_name_key: {section: {key: value}}})
+        else:
+            self.document.update({env: {cmd_name_key: {section: {key: value}}}})
+        # If the value we want to add to samconfig already exist in global section, we don't put it again in
+        # the special command section
+        self._deduplicate_global_parameters(cmd_name_key, section, key, env)
 
     def flush(self):
         """
@@ -189,6 +196,44 @@ class SamConfig:
 
     def _version(self):
         return self.document.get(VERSION_KEY, None)
+
+    def _deduplicate_global_parameters(self, cmd_name_key, section, key, env=DEFAULT_ENV):
+        """
+        In case the global parameters contains the same key-value pair with command parameters,
+        we only keep the entry in global parameters
+
+        Parameters
+        ----------
+        cmd_name_key : str
+            key of command name
+
+        section : str
+            Specific section within the command to look into. e.g. `parameters`
+
+        key : str
+            Key to write the data under
+
+        env : str
+            Optional, Name of the environment
+        """
+        global_params = self.document.get(env, {}).get(DEFAULT_GLOBAL_CMDNAME, {}).get(section, {})
+        command_params = self.document.get(env, {}).get(cmd_name_key, {}).get(section, {})
+        if (
+            cmd_name_key != DEFAULT_GLOBAL_CMDNAME
+            and global_params
+            and command_params
+            and global_params.get(key)
+            and global_params.get(key) == command_params.get(key)
+        ):
+            value = command_params.get(key)
+            save_global_message = (
+                f'\n\tParameter "{key}={value}" in [{env}.{cmd_name_key}.{section}] is defined as a global '
+                f"parameter [{env}.{DEFAULT_GLOBAL_CMDNAME}.{section}].\n\tThis parameter will be only saved "
+                f"under [{env}.{DEFAULT_GLOBAL_CMDNAME}.{section}] in {self.filepath}."
+            )
+            LOG.info(save_global_message)
+            # Only keep the global parameter
+            del self.document[env][cmd_name_key][section][key]
 
     @staticmethod
     def _version_sanity_check(version: Any) -> None:

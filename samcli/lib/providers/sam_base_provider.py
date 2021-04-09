@@ -4,6 +4,7 @@ Base class for SAM Template providers
 
 import logging
 
+from typing import Any, Dict, Optional, cast, Iterable, Union
 from samcli.commands._utils.resources import AWS_SERVERLESS_APPLICATION, AWS_CLOUDFORMATION_STACK
 from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
@@ -26,7 +27,14 @@ class SamBaseProvider:
     CLOUDFORMATION_STACK = AWS_CLOUDFORMATION_STACK
     DEFAULT_CODEURI = "."
 
-    def get(self, name):
+    CODE_PROPERTY_KEYS = {
+        LAMBDA_FUNCTION: "Code",
+        SERVERLESS_FUNCTION: "CodeUri",
+        LAMBDA_LAYER: "Content",
+        SERVERLESS_LAYER: "ContentUri",
+    }
+
+    def get(self, name: str) -> Optional[Any]:
         """
         Given name of the function, this method must return the Function object
 
@@ -35,7 +43,7 @@ class SamBaseProvider:
         """
         raise NotImplementedError("not implemented")
 
-    def get_all(self):
+    def get_all(self) -> Iterable:
         """
         Yields all the Lambda functions available in the provider.
 
@@ -44,9 +52,9 @@ class SamBaseProvider:
         raise NotImplementedError("not implemented")
 
     @staticmethod
-    def _extract_lambda_function_code(resource_properties, code_property_key):
+    def _extract_codeuri(resource_properties: Dict, code_property_key: str) -> str:
         """
-        Extracts the Lambda Function Code from the Resource Properties
+        Extracts the Function/Layer code path from the Resource Properties
 
         Parameters
         ----------
@@ -60,16 +68,38 @@ class SamBaseProvider:
         str
             Representing the local code path
         """
-
         codeuri = resource_properties.get(code_property_key, SamBaseProvider.DEFAULT_CODEURI)
 
         if isinstance(codeuri, dict):
-            codeuri = SamBaseProvider.DEFAULT_CODEURI
+            return SamBaseProvider.DEFAULT_CODEURI
 
-        return codeuri
+        return cast(str, codeuri)
 
     @staticmethod
-    def _extract_lambda_function_imageuri(resource_properties, code_property_key):
+    def _is_s3_location(location: Optional[Union[str, Dict]]) -> bool:
+        """
+        the input could be:
+        - CodeUri of Serverless::Function
+        - Code of Lambda::Function
+        - ContentUri of Serverless::LayerVersion
+        - Content of Lambda::LayerVersion
+        """
+        return (isinstance(location, dict) and ("S3Bucket" in location or "Bucket" in location)) or (
+            isinstance(location, str) and location.startswith("s3://")
+        )
+
+    @staticmethod
+    def _warn_code_extraction(resource_type: str, resource_name: str, code_property: str) -> None:
+        LOG.warning(
+            "The resource %s '%s' has specified S3 location for %s. "
+            "It will not be built and SAM CLI does not support invoking it locally.",
+            resource_type,
+            resource_name,
+            code_property,
+        )
+
+    @staticmethod
+    def _extract_lambda_function_imageuri(resource_properties: Dict, code_property_key: str) -> Optional[str]:
         """
         Extracts the Lambda Function ImageUri from the Resource Properties
 
@@ -85,10 +115,10 @@ class SamBaseProvider:
         str
             Representing the local imageuri
         """
-        return resource_properties.get(code_property_key, dict()).get("ImageUri", None)
+        return cast(Optional[str], resource_properties.get(code_property_key, dict()).get("ImageUri", None))
 
     @staticmethod
-    def _extract_sam_function_imageuri(resource_properties, code_property_key):
+    def _extract_sam_function_imageuri(resource_properties: Dict, code_property_key: str) -> Optional[str]:
         """
         Extracts the Serverless Function ImageUri from the Resource Properties
 
@@ -107,43 +137,7 @@ class SamBaseProvider:
         return resource_properties.get(code_property_key, None)
 
     @staticmethod
-    def _extract_sam_function_codeuri(
-        name, resource_properties, code_property_key, ignore_code_extraction_warnings=False
-    ):
-        """
-        Extracts the SAM Function CodeUri from the Resource Properties
-
-        Parameters
-        ----------
-        name str
-            LogicalId of the resource
-        resource_properties dict
-            Dictionary representing the Properties of the Resource
-        code_property_key str
-            Property Key of the code on the Resource
-        ignore_code_extraction_warnings
-            Boolean to ignore log statements on code extraction from Resources.
-
-        Returns
-        -------
-        str
-            Representing the local code path
-        """
-        codeuri = resource_properties.get(code_property_key, SamBaseProvider.DEFAULT_CODEURI)
-        # CodeUri can be a dictionary of S3 Bucket/Key or a S3 URI, neither of which are supported
-        if isinstance(codeuri, dict) or (isinstance(codeuri, str) and codeuri.startswith("s3://")):
-            codeuri = SamBaseProvider.DEFAULT_CODEURI
-            if not ignore_code_extraction_warnings:
-                LOG.warning(
-                    "Lambda function '%s' has specified S3 location for CodeUri which is unsupported. "
-                    "Using default value of '%s' instead",
-                    name,
-                    codeuri,
-                )
-        return codeuri
-
-    @staticmethod
-    def get_template(template_dict, parameter_overrides=None):
+    def get_template(template_dict: Dict, parameter_overrides: Optional[Dict[str, str]] = None) -> Dict:
         """
         Given a SAM template dictionary, return a cleaned copy of the template where SAM plugins have been run
         and parameter values have been substituted.
@@ -175,7 +169,7 @@ class SamBaseProvider:
         return template_dict
 
     @staticmethod
-    def _get_parameter_values(template_dict, parameter_overrides):
+    def _get_parameter_values(template_dict: Any, parameter_overrides: Optional[Dict]) -> Dict:
         """
         Construct a final list of values for CloudFormation template parameters based on user-supplied values,
         default values provided in template, and sane defaults for pseudo-parameters.
@@ -206,7 +200,7 @@ class SamBaseProvider:
         return parameter_values
 
     @staticmethod
-    def _get_default_parameter_values(sam_template):
+    def _get_default_parameter_values(sam_template: Dict) -> Dict:
         """
         Method to read default values for template parameters and return it
         Example:
@@ -228,7 +222,7 @@ class SamBaseProvider:
         :return dict: Default values for parameters
         """
 
-        default_values = {}
+        default_values: Dict = {}
 
         parameter_definition = sam_template.get("Parameters", None)
         if not parameter_definition or not isinstance(parameter_definition, dict):

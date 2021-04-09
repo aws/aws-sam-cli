@@ -5,7 +5,7 @@ CLI command for "local invoke" command
 import logging
 import click
 
-from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
+from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands.local.cli_common.options import invoke_common_options, local_common_options
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.telemetry.metric import track_command
@@ -46,13 +46,14 @@ STDIN_FILE_NAME = "-"
 @local_common_options
 @cli_framework_options
 @aws_creds_options
-@click.argument("function_identifier", required=False)
+@click.argument("function_logical_id", required=False)
 @pass_context
 @track_command  # pylint: disable=R0914
 @check_newer_version
+@print_cmdline_args
 def cli(
     ctx,
-    function_identifier,
+    function_logical_id,
     template_file,
     event,
     no_event,
@@ -72,12 +73,14 @@ def cli(
     config_file,
     config_env,
 ):
-
+    """
+    `sam local invoke` command entry point
+    """
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(
         ctx,
-        function_identifier,
+        function_logical_id,
         template_file,
         event,
         no_event,
@@ -162,7 +165,7 @@ def do_cli(  # pylint: disable=R0914
 
             # Invoke the function
             context.local_lambda_runner.invoke(
-                context.function_name, event=event_data, stdout=context.stdout, stderr=context.stderr
+                context.function_identifier, event=event_data, stdout=context.stdout, stderr=context.stderr
             )
 
     except FunctionNotFound as ex:

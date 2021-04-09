@@ -1,0 +1,99 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+
+Resources:
+  IgnoreServerlessFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.handler
+      Runtime: python3.8
+      CodeUri: s3://some/path
+      Timeout: 600
+
+  IgnoreServerlessFunction2:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.handler
+      Runtime: python3.8
+      CodeUri:
+        Bucket: some-bucket
+        Key: some-key
+      Timeout: 600
+
+  IgnoreLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: app.handler
+      Runtime: python3.8
+      Code: s3://some/path
+      Timeout: 600
+
+  IgnoreLambdaFunction2:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: app.handler
+      Runtime: python3.8
+      Code:
+        S3Bucket: some-bucket
+        S3Key: some-key
+      Timeout: 600
+
+  IgnoreServerlessLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: s3://some/path
+      CompatibleRuntimes:
+        - python3.8
+
+  IgnoreServerlessLayer2:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri:
+        Bucket: some-bucket
+        Key: some-key
+      CompatibleRuntimes:
+        - python3.8
+
+  IgnoreLambdaLayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      Content: s3://some/path
+      CompatibleRuntimes:
+        - python3.8
+
+  IgnoreLambdaLayer2:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      Content:
+        S3Bucket: some-bucket
+        S3Key: some-key
+      CompatibleRuntimes:
+        - python3.8
+
+  # the two functions below should still be built even all layers are not available
+  ServerlessFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.8
+      CodeUri: Python
+      Timeout: 600
+      Layers:
+        - !Ref IgnoreServerlessLayer
+        - !Ref IgnoreServerlessLayer2
+        - !Ref IgnoreLambdaLayer
+        - !Ref IgnoreLambdaLayer2
+
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.8
+      Code: Python
+      Timeout: 600
+      Layers:
+        - !Ref IgnoreServerlessLayer
+        - !Ref IgnoreServerlessLayer2
+        - !Ref IgnoreLambdaLayer
+        - !Ref IgnoreLambdaLayer2
