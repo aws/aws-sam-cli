@@ -22,13 +22,24 @@ class ManagedStackError(UserException):
         super().__init__(message=message_fmt.format(ex=self.ex))
 
 
+class StackOutput:
+    def __init__(self, stack_output: List[Dict[str, str]]):
+        self._stack_output: List[Dict[str, str]] = stack_output
+
+    def get(self, key) -> Optional[str]:
+        try:
+            return next(o for o in self._stack_output if o.get("OutputKey") == key).get("OutputValue")
+        except StopIteration:
+            return None
+
+
 def manage_stack(
-    region: str,
+    region: Optional[str],
     stack_name: str,
     template_body: str,
     profile: Optional[str] = None,
     parameter_overrides: Optional[Dict[str, Union[str, List[str]]]] = None,
-) -> List[Dict[str, str]]:
+) -> StackOutput:
     """
     get or create a CloudFormation stack
 
@@ -81,7 +92,7 @@ def _create_or_get_stack(
     stack_name: str,
     template_body: str,
     parameter_overrides: Optional[Dict[str, Union[str, List[str]]]] = None,
-) -> List[Dict[str, str]]:
+) -> StackOutput:
     try:
         ds_resp = cloudformation_client.describe_stacks(StackName=stack_name)
         stacks = ds_resp["Stacks"]
@@ -89,7 +100,7 @@ def _create_or_get_stack(
         click.echo("\n\tLooking for resources needed for deployment: Found!")
         _check_sanity_of_stack(stack)
         stack_outputs = cast(List[Dict[str, str]], stack["Outputs"])
-        return stack_outputs
+        return StackOutput(stack_outputs)
     except ClientError:
         click.echo("\n\tLooking for resources needed for deployment: Not found.")
 
@@ -99,7 +110,7 @@ def _create_or_get_stack(
         )  # exceptions are not captured from subcommands
         _check_sanity_of_stack(stack)
         stack_outputs = cast(List[Dict[str, str]], stack["Outputs"])
-        return stack_outputs
+        return StackOutput(stack_outputs)
     except (ClientError, BotoCoreError) as ex:
         LOG.debug("Failed to create managed resources", exc_info=ex)
         raise ManagedStackError(str(ex)) from ex

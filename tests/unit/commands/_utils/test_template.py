@@ -18,7 +18,7 @@ from samcli.commands._utils.template import (
     TemplateNotFoundException,
     TemplateFailedParsingException,
     get_template_artifacts_format,
-    get_template_function_resource_ids
+    get_template_function_resource_ids,
 )
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 
