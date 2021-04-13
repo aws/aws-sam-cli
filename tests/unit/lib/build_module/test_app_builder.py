@@ -348,6 +348,14 @@ class TestApplicationBuilder_build(TestCase):
         self.assertEqual(result, mock_parallel_build_strategy.build())
 
 
+class PathValidator:
+    def __init__(self, path):
+        self._path = path
+
+    def __eq__(self, other):
+        return self._path is None if other is None else other.endswith(self._path)
+
+
 class TestApplicationBuilderForLayerBuild(TestCase):
     def setUp(self):
         self.layer1 = Mock()
@@ -375,9 +383,15 @@ class TestApplicationBuilderForLayerBuild(TestCase):
         self.builder._build_function_in_process = build_function_in_process_mock
         self.builder._build_layer("layer_name", "code_uri", "python3.8", ["python3.8"], "full_path")
 
-        build_function_in_process_mock.assert_called_once()
-        args, _ = build_function_in_process_mock.call_args_list[0]
-        self._validate_build_args(args, config_mock)
+        build_function_in_process_mock.assert_called_once_with(
+            config_mock,
+            PathValidator("code_uri"),
+            PathValidator("python"),
+            "scratch",
+            PathValidator("manifest_name"),
+            "python3.8",
+            None,
+        )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
     @patch("samcli.lib.build.app_builder.osutils")
@@ -397,18 +411,82 @@ class TestApplicationBuilderForLayerBuild(TestCase):
 
         self.builder._build_function_on_container = build_function_on_container_mock
         self.builder._build_layer("layer_name", "code_uri", "python3.8", ["python3.8"], "full_path")
+        build_function_on_container_mock.assert_called_once_with(
+            config_mock,
+            PathValidator("code_uri"),
+            PathValidator("python"),
+            PathValidator("manifest_name"),
+            "python3.8",
+            None,
+            None,
+            None,
+        )
 
-        build_function_on_container_mock.assert_called_once()
-        args, _ = build_function_on_container_mock.call_args_list[0]
-        self._validate_build_args(args, config_mock)
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    @patch("samcli.lib.build.app_builder.get_layer_subfolder")
+    def test_must_build_layer_in_container_with_global_build_image(
+        self, get_layer_subfolder_mock, osutils_mock, get_workflow_config_mock
+    ):
+        self.builder._container_manager = self.container_manager
+        get_layer_subfolder_mock.return_value = "python"
+        config_mock = Mock()
+        config_mock.manifest_name = "manifest_name"
 
-    def _validate_build_args(self, args, config_mock):
-        self.assertEqual(config_mock, args[0])
-        self.assertTrue(args[1].endswith("code_uri"))
-        self.assertTrue(args[2].endswith("python"))
-        self.assertEqual("scratch", args[3])
-        self.assertTrue(args[4].endswith("manifest_name"))
-        self.assertEqual("python3.8", args[5])
+        scratch_dir = "scratch"
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=scratch_dir)
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+
+        get_workflow_config_mock.return_value = config_mock
+        build_function_on_container_mock = Mock()
+
+        build_images = {None: "test_image"}
+        self.builder._build_images = build_images
+        self.builder._build_function_on_container = build_function_on_container_mock
+        self.builder._build_layer("layer_name", "code_uri", "python3.8", ["python3.8"], "full_path")
+        build_function_on_container_mock.assert_called_once_with(
+            config_mock,
+            PathValidator("code_uri"),
+            PathValidator("python"),
+            PathValidator("manifest_name"),
+            "python3.8",
+            None,
+            None,
+            "test_image",
+        )
+
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    @patch("samcli.lib.build.app_builder.get_layer_subfolder")
+    def test_must_build_layer_in_container_with_specific_build_image(
+        self, get_layer_subfolder_mock, osutils_mock, get_workflow_config_mock
+    ):
+        self.builder._container_manager = self.container_manager
+        get_layer_subfolder_mock.return_value = "python"
+        config_mock = Mock()
+        config_mock.manifest_name = "manifest_name"
+
+        scratch_dir = "scratch"
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=scratch_dir)
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+
+        get_workflow_config_mock.return_value = config_mock
+        build_function_on_container_mock = Mock()
+
+        build_images = {"layer_name": "test_image"}
+        self.builder._build_images = build_images
+        self.builder._build_function_on_container = build_function_on_container_mock
+        self.builder._build_layer("layer_name", "code_uri", "python3.8", ["python3.8"], "full_path")
+        build_function_on_container_mock.assert_called_once_with(
+            config_mock,
+            PathValidator("code_uri"),
+            PathValidator("python"),
+            PathValidator("manifest_name"),
+            "python3.8",
+            None,
+            None,
+            "test_image",
+        )
 
 
 class TestApplicationBuilder_update_template(TestCase):
@@ -864,7 +942,7 @@ class TestApplicationBuilder_build_function(TestCase):
         self.builder._build_function(function_name, codeuri, packagetype, runtime, handler, artifacts_dir)
 
         self.builder._build_function_on_container.assert_called_with(
-            config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, None, None
+            config_mock, code_dir, artifacts_dir, manifest_path, runtime, None, None, None
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -896,7 +974,75 @@ class TestApplicationBuilder_build_function(TestCase):
         )
 
         self.builder._build_function_on_container.assert_called_with(
-            config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, None, {"TEST": "test"}
+            config_mock, code_dir, artifacts_dir, manifest_path, runtime, None, {"TEST": "test"}, None
+        )
+
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_must_build_in_container_with_custom_specified_build_image(self, osutils_mock, get_workflow_config_mock):
+        function_name = "function_name"
+        codeuri = "path/to/source"
+        runtime = "runtime"
+        packagetype = ZIP
+        scratch_dir = "scratch"
+        handler = "handler.handle"
+        image_uri = "image uri"
+        build_images = {function_name: image_uri}
+        config_mock = get_workflow_config_mock.return_value = Mock()
+        config_mock.manifest_name = "manifest_name"
+
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=scratch_dir)
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+
+        self.builder._build_function_on_container = Mock()
+
+        code_dir = str(Path("/base/dir/path/to/source").resolve())
+        artifacts_dir = str(Path("/build/dir/function_name"))
+        manifest_path = str(Path(os.path.join(code_dir, config_mock.manifest_name)).resolve())
+
+        # Settting the container manager will make us use the container
+        self.builder._container_manager = Mock()
+        self.builder._build_images = build_images
+        self.builder._build_function(
+            function_name, codeuri, packagetype, runtime, handler, artifacts_dir, container_env_vars=None
+        )
+
+        self.builder._build_function_on_container.assert_called_with(
+            config_mock, code_dir, artifacts_dir, manifest_path, runtime, None, None, image_uri
+        )
+
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_must_build_in_container_with_custom_default_build_image(self, osutils_mock, get_workflow_config_mock):
+        function_name = "function_name"
+        codeuri = "path/to/source"
+        runtime = "runtime"
+        packagetype = ZIP
+        scratch_dir = "scratch"
+        handler = "handler.handle"
+        image_uri = "image uri"
+        build_images = {"abc": "efg", None: image_uri}
+        config_mock = get_workflow_config_mock.return_value = Mock()
+        config_mock.manifest_name = "manifest_name"
+
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=scratch_dir)
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+
+        self.builder._build_function_on_container = Mock()
+
+        code_dir = str(Path("/base/dir/path/to/source").resolve())
+        artifacts_dir = str(Path("/build/dir/function_name"))
+        manifest_path = str(Path(os.path.join(code_dir, config_mock.manifest_name)).resolve())
+
+        # Settting the container manager will make us use the container
+        self.builder._container_manager = Mock()
+        self.builder._build_images = build_images
+        self.builder._build_function(
+            function_name, codeuri, packagetype, runtime, handler, artifacts_dir, container_env_vars=None
+        )
+
+        self.builder._build_function_on_container.assert_called_with(
+            config_mock, code_dir, artifacts_dir, manifest_path, runtime, None, None, image_uri
         )
 
 
@@ -971,7 +1117,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
         self.builder._parse_builder_response.return_value = response
 
         result = self.builder._build_function_on_container(
-            config, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime", None
+            config, "source_dir", "artifacts_dir", "manifest_path", "runtime", None
         )
         self.assertEqual(result, "artifacts_dir")
 
@@ -983,6 +1129,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
             "source_dir",
             "manifest_path",
             "runtime",
+            image=None,
             log_level=log_level,
             optimizations=None,
             options=None,

@@ -245,52 +245,8 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     stack_path="",
                 ),
             ),
-            (
-                "SamFunc2",
-                Function(
-                    name="SamFunc2",
-                    functionname="SamFunc2",
-                    runtime="nodejs4.3",
-                    handler="index.handler",
-                    codeuri=".",
-                    memory=None,
-                    timeout=None,
-                    environment=None,
-                    rolearn=None,
-                    layers=[],
-                    events=None,
-                    metadata=None,
-                    inlinecode=None,
-                    imageuri=None,
-                    imageconfig=None,
-                    packagetype=ZIP,
-                    codesign_config_arn=None,
-                    stack_path="",
-                ),
-            ),
-            (
-                "SamFunc3",
-                Function(
-                    name="SamFunc3",
-                    functionname="SamFunc3",
-                    runtime="nodejs4.3",
-                    handler="index.handler",
-                    codeuri=".",
-                    memory=None,
-                    timeout=None,
-                    environment=None,
-                    rolearn=None,
-                    layers=[],
-                    events=None,
-                    inlinecode=None,
-                    imageuri=None,
-                    imageconfig=None,
-                    packagetype=ZIP,
-                    metadata=None,
-                    codesign_config_arn=None,
-                    stack_path="",
-                ),
-            ),
+            ("SamFunc2", None),  # codeuri is a s3 location, ignored
+            ("SamFunc3", None),  # codeuri is a s3 location, ignored
             (
                 "SamFunc4",
                 Function(
@@ -337,29 +293,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     stack_path="",
                 ),
             ),
-            (
-                "LambdaFunc1",
-                Function(
-                    name="LambdaFunc1",
-                    functionname="LambdaFunc1",
-                    runtime="nodejs4.3",
-                    handler="index.handler",
-                    codeuri=".",
-                    memory=None,
-                    timeout=None,
-                    environment=None,
-                    rolearn=None,
-                    layers=[],
-                    events=None,
-                    metadata=None,
-                    inlinecode=None,
-                    imageuri=None,
-                    imageconfig=None,
-                    packagetype=ZIP,
-                    codesign_config_arn=None,
-                    stack_path="",
-                ),
-            ),
+            ("LambdaFunc1", None),  # codeuri is a s3 location, ignored
             (
                 "LambdaFuncWithInlineCode",
                 Function(
@@ -561,11 +495,8 @@ class TestSamFunctionProviderEndToEnd(TestCase):
         expected = {
             "SamFunctions",
             "SamFuncWithInlineCode",
-            "SamFunc2",
-            "SamFunc3",
             "SamFunc4",
             "SamFuncWithFunctionNameOverride",
-            "LambdaFunc1",
             "LambdaFuncWithInlineCode",
             "LambdaFunc2",
             "LambdaFuncWithLocalPath",
@@ -576,7 +507,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             posixpath.join("ChildStack", "SamImageFunctionsInChild"),
         }
 
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
 
 class TestSamFunctionProvider_init(TestCase):
@@ -627,7 +558,7 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         stack = make_root_stack(None)
         result = SamFunctionProvider._extract_functions([stack])
         self.assertEqual(expected, result)
-        convert_mock.assert_called_with(stack, "Func1", {"a": "b"}, [], False, ignore_code_extraction_warnings=False)
+        convert_mock.assert_called_with(stack, "Func1", {"a": "b"}, [], False)
 
     @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
     @patch.object(SamFunctionProvider, "_convert_sam_function_resource")
@@ -648,7 +579,13 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         stack = make_root_stack(None)
         result = SamFunctionProvider._extract_functions([stack])
         self.assertEqual(expected, result)
-        convert_mock.assert_called_with(stack, "Func1", {}, [], False, ignore_code_extraction_warnings=False)
+        convert_mock.assert_called_with(
+            stack,
+            "Func1",
+            {},
+            [],
+            False,
+        )
 
     @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
     @patch.object(SamFunctionProvider, "_convert_lambda_function_resource")
@@ -915,14 +852,6 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
         self.assertEqual(result.codeuri, ".")  # Default value
 
-    def test_must_handle_code_s3_uri(self):
-
-        name = "myname"
-        properties = {"CodeUri": "s3://bucket/key"}
-
-        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
-        self.assertEqual(result.codeuri, ".")  # Default value
-
 
 class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
     def test_must_convert(self):
@@ -1073,7 +1002,7 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
 
     def test_layers_created_from_template_resources(self):
         resources = {
-            "Layer": {"Type": "AWS::Lambda::LayerVersion", "Properties": {"Content": {"Bucket": "bucket"}}},
+            "Layer": {"Type": "AWS::Lambda::LayerVersion", "Properties": {"Content": "/somepath"}},
             "ServerlessLayer": {"Type": "AWS::Serverless::LayerVersion", "Properties": {"ContentUri": "/somepath"}},
         }
 
@@ -1090,7 +1019,7 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
         for (actual_layer, expected_layer) in zip(
             actual,
             [
-                LayerVersion("Layer", ".", stack_path=STACK_PATH),
+                LayerVersion("Layer", "/somepath", stack_path=STACK_PATH),
                 LayerVersion("ServerlessLayer", "/somepath", stack_path=STACK_PATH),
                 LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None, stack_path=STACK_PATH),
             ],
