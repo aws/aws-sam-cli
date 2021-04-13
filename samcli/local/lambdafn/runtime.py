@@ -91,7 +91,7 @@ class LambdaRuntime:
             LOG.debug("Ctrl+C was pressed. Aborting container creation")
             raise
 
-    def run(self, container, function_config, debug_context):
+    def run(self, container, function_config, debug_context, container_host=None):
         """
         Find the created container for the passed Lambda function, then using the
         ContainerManager run this container.
@@ -105,6 +105,9 @@ class LambdaRuntime:
             Configuration of the function to run its created container.
         debug_context DebugContext
             Debugging context for the function (includes port, args, and path)
+        container_host string
+            Host of locally emulated Lambda container
+
         Returns
         -------
         Container
@@ -112,7 +115,7 @@ class LambdaRuntime:
         """
 
         if not container:
-            container = self.create(function_config, debug_context)
+            container = self.create(function_config, debug_context, container_host)
 
         if container.is_running():
             LOG.info("Lambda function '%s' is already running", function_config.name)

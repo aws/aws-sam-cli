@@ -162,7 +162,7 @@ class LambdaRuntime_run(TestCase):
         create_mock.return_value = container
 
         self.runtime.run(None, self.func_config, debug_context=debug_options)
-        create_mock.assert_called_with(self.func_config, debug_options)
+        create_mock.assert_called_with(self.func_config, debug_options, None)
         self.manager_mock.run.assert_called_with(container)
 
     def test_must_skip_run_running_container(self):

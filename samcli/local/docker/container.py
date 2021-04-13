@@ -155,11 +155,11 @@ class Container:
         if self._env_vars:
             kwargs["environment"] = self._env_vars
 
-        kwargs["ports"] = {self.RAPID_PORT_CONTAINER: ("127.0.0.1", self.rapid_port_host)}
+        kwargs["ports"] = {self.RAPID_PORT_CONTAINER: (self._container_host, self.rapid_port_host)}
 
         if self._exposed_ports:
             kwargs["ports"].update(
-                {container_port: ("127.0.0.1", host_port) for container_port, host_port in self._exposed_ports.items()}
+                {container_port: (self._container_host, host_port) for container_port, host_port in self._exposed_ports.items()}
             )
 
         if self._entrypoint:
