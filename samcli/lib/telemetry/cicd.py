@@ -53,8 +53,14 @@ def _is_jenkins(environ: Mapping) -> bool:
     https://www.jenkins.io/doc/book/pipeline/jenkinsfile/#working-with-your-jenkinsfile
     > BUILD_TAG
     >   String of jenkins-${JOB_NAME}-${BUILD_NUMBER}.
+    > ...
+    > JENKINS_URL
+    >   Full URL of Jenkins, such as https://example.com:port/jenkins/
+    >   (NOTE: only available if Jenkins URL set in "System Configuration")
+
+    Here firstly check JENKINS_URL's presence, if not, then fallback to check BUILD_TAG starts with "jenkins"
     """
-    return bool(environ.get("BUILD_TAG", "").startswith("jenkins-"))
+    return "JENKINS_URL" in environ or environ.get("BUILD_TAG", "").startswith("jenkins-")
 
 
 _ENV_VAR_OR_CALLABLE_BY_PLATFORM: Dict[CICDPlatform, Union[str, Callable[[Mapping], bool]]] = {

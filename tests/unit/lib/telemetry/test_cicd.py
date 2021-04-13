@@ -10,6 +10,7 @@ class TestCICD(TestCase):
     @parameterized.expand(
         [
             (CICDPlatform.Jenkins, "BUILD_TAG", "jenkins-jobname-123"),
+            (CICDPlatform.Jenkins, "JENKINS_URL", Mock()),
             (CICDPlatform.GitLab, "GITLAB_CI", Mock()),
             (CICDPlatform.GitHubAction, "GITHUB_ACTION", Mock()),
             (CICDPlatform.TravisCI, "TRAVIS", Mock()),
