@@ -159,7 +159,10 @@ class Container:
 
         if self._exposed_ports:
             kwargs["ports"].update(
-                {container_port: (self._container_host, host_port) for container_port, host_port in self._exposed_ports.items()}
+                {
+                    container_port: (self._container_host, host_port)
+                    for container_port, host_port in self._exposed_ports.items()
+                }
             )
 
         if self._entrypoint:
