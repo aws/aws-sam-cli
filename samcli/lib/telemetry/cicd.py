@@ -46,9 +46,25 @@ def _is_codeship(environ: Mapping) -> bool:
     return ci_name == "codeship"
 
 
+def _is_jenkins(environ: Mapping) -> bool:
+    """
+    Use environ to determine whether it is running in Jenkins.
+    According to the doc,
+    https://www.jenkins.io/doc/book/pipeline/jenkinsfile/#working-with-your-jenkinsfile
+    > BUILD_TAG
+    >   String of jenkins-${JOB_NAME}-${BUILD_NUMBER}.
+    > ...
+    > JENKINS_URL
+    >   Full URL of Jenkins, such as https://example.com:port/jenkins/
+    >   (NOTE: only available if Jenkins URL set in "System Configuration")
+
+    Here firstly check JENKINS_URL's presence, if not, then fallback to check BUILD_TAG starts with "jenkins"
+    """
+    return "JENKINS_URL" in environ or environ.get("BUILD_TAG", "").startswith("jenkins-")
+
+
 _ENV_VAR_OR_CALLABLE_BY_PLATFORM: Dict[CICDPlatform, Union[str, Callable[[Mapping], bool]]] = {
-    # https://www.jenkins.io/doc/book/pipeline/jenkinsfile/#using-environment-variables
-    CICDPlatform.Jenkins: "JENKINS_URL",
+    CICDPlatform.Jenkins: _is_jenkins,
     # https://docs.gitlab.com/ee/ci/variables/predefined_variables.html
     CICDPlatform.GitLab: "GITLAB_CI",
     # https://docs.github.com/en/actions/reference/environment-variables
