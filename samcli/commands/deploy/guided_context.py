@@ -3,7 +3,7 @@ Class to manage all the prompts during a guided sam deploy
 """
 
 import logging
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 import click
 from botocore.session import get_session
@@ -291,7 +291,7 @@ class GuidedContext:
         self,
         stack_name,
         stacks: List[Stack],
-        image_repositories: Dict[str, str],
+        image_repositories: Optional[Dict[str, str]],
         region: str,
         s3_bucket: str,
         s3_prefix: str,

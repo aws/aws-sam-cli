@@ -103,7 +103,7 @@ class CompanionStackManager:
             )
             waiter = self._cfn_client.get_waiter("stack_create_complete")
 
-        waiter.wait(StackName=stack_name, WaiterConfig=waiter_config)
+        waiter.wait(StackName=stack_name, WaiterConfig=waiter_config)  # type: ignore
 
     def delete_companion_stack(self):
         """
@@ -232,7 +232,7 @@ class CompanionStackManager:
         """
         return repo.get_repo_uri(self._account_id, self._region_name)
 
-    def is_repo_uri(self, repo_uri, function_logical_id) -> bool:
+    def is_repo_uri(self, repo_uri: str, function_logical_id: str) -> bool:
         """
         Check whether repo URI is a companion stack repo
 

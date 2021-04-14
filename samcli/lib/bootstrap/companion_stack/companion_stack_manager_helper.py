@@ -1,7 +1,7 @@
 """
     Help class to bridge CLI functions and CompanionStackManager
 """
-from typing import Dict, List
+from typing import Dict
 
 from samcli.commands._utils.template import (
     get_template_function_resource_ids,
@@ -43,7 +43,7 @@ class CompanionStackManagerHelper:
                 self.auto_ecr_repo_functions.append(function_logical_id)
         self.manager.set_functions(self.missing_repo_functions + self.auto_ecr_repo_functions)
 
-    def remove_unreferenced_repos_from_mapping(self, image_repositories: Dict[str, str]) -> None:
+    def remove_unreferenced_repos_from_mapping(self, image_repositories: Dict[str, str]) -> Dict[str, str]:
         """
         Removes image repos that are not referenced by a function
 
