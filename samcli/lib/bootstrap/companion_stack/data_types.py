@@ -2,7 +2,7 @@
     Date type classes for companion stacks
 """
 import re
-from typing import Optional, cast
+from typing import Optional
 from samcli.lib.utils.hash import str_checksum
 
 
