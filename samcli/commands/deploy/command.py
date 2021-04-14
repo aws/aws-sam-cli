@@ -161,7 +161,7 @@ LOG = logging.getLogger(__name__)
     "--resolve-image-repos",
     required=False,
     is_flag=True,
-    help="Automatically create ECR repos for image based functions in non-guided deployments."
+    help="Automatically create and delete ECR repos for image based functions in non-guided deployments."
     "Auto created image repos will be deleted if the corresponding functions are removed.",
 )
 @metadata_override_option
