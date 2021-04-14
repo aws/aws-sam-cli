@@ -3,20 +3,25 @@ import tempfile
 from collections import OrderedDict
 from unittest import TestCase
 
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 from parameterized import parameterized
 
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.lib.providers.api_provider import ApiProvider
-from samcli.lib.providers.provider import Cors
+from samcli.lib.providers.provider import Cors, Stack
 from samcli.local.apigw.local_apigw_service import Route
+
+
+def make_mock_stacks_from_template(template):
+    stack_mock = Stack("", "", Mock(), parameters=None, template_dict=template)
+    return [stack_mock]
 
 
 class TestSamApiProviderWithImplicitApis(TestCase):
     def test_provider_with_no_resource_properties(self):
         template = {"Resources": {"SamFunc1": {"Type": "AWS::Lambda::Function"}}}
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         self.assertEqual(provider.routes, [])
 
@@ -36,7 +41,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         self.assertEqual(len(provider.routes), 1)
         self.assertEqual(list(provider.routes)[0], Route(path="/path", methods=["GET"], function_name="SamFunc1"))
@@ -59,7 +64,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         api = Route(path="/path", methods=["GET", "POST"], function_name="SamFunc1")
 
@@ -90,7 +95,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         api1 = Route(path="/path", methods=["GET"], function_name="SamFunc1")
         api2 = Route(path="/path", methods=["POST"], function_name="SamFunc2")
@@ -113,7 +118,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         self.assertEqual(provider.routes, [])
 
@@ -131,7 +136,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
             }
         }
 
-        provider1 = ApiProvider(template1)
+        provider1 = ApiProvider(make_mock_stacks_from_template(template))
 
         self.assertEqual(provider1.routes, [])
 
@@ -145,7 +150,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         self.assertEqual(provider.routes, [])
 
@@ -173,7 +178,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         result = [f for f in provider.get_all()]
         routes = result[0].routes
@@ -186,7 +191,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
     def test_provider_get_all_with_no_routes(self):
         template = {}
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         result = [f for f in provider.get_all()]
         routes = result[0].routes
@@ -209,7 +214,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         api1 = Route(
             path="/path", methods=["GET", "DELETE", "PUT", "POST", "HEAD", "OPTIONS", "PATCH"], function_name="SamFunc1"
@@ -236,7 +241,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
             },
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         self.assertEqual(len(provider.routes), 1)
         self.assertEqual(list(provider.routes)[0], Route(path="/path", methods=["GET"], function_name="SamFunc1"))
@@ -270,10 +275,70 @@ class TestSamApiProviderWithImplicitApis(TestCase):
             )
         ]
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         self.assertCountEqual(provider.routes, expected_routes)
         self.assertCountEqual(provider.api.binary_media_types, binary)
+
+    @parameterized.expand([("GET", "/path", "overridden_by_top_level_stack"), ("get", "/path2", False)])
+    def test_provider_with_multiple_stacks(self, method, func2_api_path, overridden_by_top_level_stack):
+        """
+        Here we test func2 has the same path & method and different path/method
+        """
+        template = {
+            "Resources": {
+                "SamFunc1": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "CodeUri": "/usr/foo/bar",
+                        "Runtime": "nodejs4.3",
+                        "Handler": "index.handler",
+                        "Events": {"Event1": {"Type": "Api", "Properties": {"Path": "/path", "Method": method}}},
+                    },
+                }
+            }
+        }
+
+        child_template = {
+            "Resources": {
+                "SamFunc2": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "CodeUri": "/usr/foo/bar",
+                        "Runtime": "nodejs4.3",
+                        "Handler": "index.handler",
+                        "Events": {
+                            "Event1": {"Type": "Api", "Properties": {"Path": func2_api_path, "Method": "GET"}},
+                            "Event2": {
+                                "Type": "Api",
+                                "Properties": {"Path": func2_api_path, "Method": "POST"},
+                            },
+                        },
+                    },
+                }
+            }
+        }
+
+        child_stack = Stack("", "ChildStackX", Mock(), None, child_template)
+        stacks = make_mock_stacks_from_template(template)
+        stacks.append(child_stack)
+        provider = ApiProvider(stacks)
+
+        self.assertEqual(len(provider.routes), 2)
+        self.assertSetEqual(
+            set(provider.routes),
+            {
+                Route(path="/path", methods=["GET"], function_name="SamFunc1"),
+                Route(
+                    path=func2_api_path,
+                    # if func2's API also has the path "/path," func1's "/path:GET" should
+                    # have a higher precedence, while func2's "/path:POST" still survive
+                    methods=["POST"] if overridden_by_top_level_stack else ["GET", "POST"],
+                    function_name="SamFunc2",
+                    stack_path="ChildStackX",
+                ),
+            },
+        )
 
 
 class TestSamApiProviderWithExplicitApis(TestCase):
@@ -289,7 +354,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
     def test_with_no_routes(self):
         template = {"Resources": {"Api1": {"Type": "AWS::Serverless::Api", "Properties": {"StageName": "Prod"}}}}
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         self.assertEqual(provider.routes, [])
 
@@ -303,7 +368,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
         self.assertCountEqual(self.input_routes, provider.routes)
 
     def test_with_swagger_as_local_file(self):
@@ -323,7 +388,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
                 }
             }
 
-            provider = ApiProvider(template)
+            provider = ApiProvider(make_mock_stacks_from_template(template))
             self.assertCountEqual(self.input_routes, provider.routes)
 
     @patch("samcli.lib.providers.cfn_base_api_provider.SwaggerReader")
@@ -343,7 +408,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
         SwaggerReaderMock.return_value.read.return_value = make_swagger(self.input_routes)
 
         cwd = "foo"
-        provider = ApiProvider(template, cwd=cwd)
+        provider = ApiProvider(make_mock_stacks_from_template(template), cwd=cwd)
         self.assertCountEqual(self.input_routes, provider.routes)
         SwaggerReaderMock.assert_called_with(definition_body=body, definition_uri=filename, working_dir=cwd)
 
@@ -367,7 +432,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
         self.assertCountEqual(expected_routes, provider.routes)
 
     def test_with_binary_media_types(self):
@@ -390,7 +455,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
             Route(path="/path3", methods=["DELETE"], function_name="SamFunc1"),
         ]
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
         self.assertCountEqual(expected_routes, provider.routes)
         self.assertCountEqual(provider.api.binary_media_types, expected_binary_types)
 
@@ -414,7 +479,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
         expected_binary_types = sorted(self.binary_types + extra_binary_types)
         expected_routes = [Route(path="/path", methods=["OPTIONS"], function_name="SamFunc1")]
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
         self.assertCountEqual(expected_routes, provider.routes)
         self.assertCountEqual(provider.api.binary_media_types, expected_binary_types)
 
@@ -461,7 +526,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
             Route(path="/path3", methods=["POST"], function_name="ImplicitFunc"),
         ]
 
-        provider = ApiProvider(self.template)
+        provider = ApiProvider(make_mock_stacks_from_template(self.template))
         self.assertCountEqual(expected_routes, provider.routes)
 
     def test_must_prefer_implicit_api_over_explicit(self):
@@ -489,7 +554,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
             Route(path="/path3", methods=["GET"], function_name="explicitfunction"),
         ]
 
-        provider = ApiProvider(self.template)
+        provider = ApiProvider(make_mock_stacks_from_template(self.template))
         self.assertCountEqual(expected_routes, provider.routes)
 
     def test_must_prefer_implicit_with_any_method(self):
@@ -521,7 +586,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
             )
         ]
 
-        provider = ApiProvider(self.template)
+        provider = ApiProvider(make_mock_stacks_from_template(self.template))
         self.assertCountEqual(expected_routes, provider.routes)
 
     def test_with_any_method_on_both(self):
@@ -563,7 +628,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
             Route(path="/path2", methods=["POST"], function_name="explicitfunction"),
         ]
 
-        provider = ApiProvider(self.template)
+        provider = ApiProvider(make_mock_stacks_from_template(self.template))
         self.assertCountEqual(expected_routes, provider.routes)
 
     def test_must_add_explicit_api_when_ref_with_rest_api_id(self):
@@ -599,7 +664,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
             Route(path="/newpath2", methods=["POST"], function_name="ImplicitFunc"),
         ]
 
-        provider = ApiProvider(self.template)
+        provider = ApiProvider(make_mock_stacks_from_template(self.template))
         self.assertCountEqual(expected_routes, provider.routes)
 
     def test_both_routes_must_get_binary_media_types(self):
@@ -629,7 +694,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
             Route(path="/newpath2", methods=["POST"], function_name="ImplicitFunc"),
         ]
 
-        provider = ApiProvider(self.template)
+        provider = ApiProvider(make_mock_stacks_from_template(self.template))
         self.assertCountEqual(expected_routes, provider.routes)
         self.assertCountEqual(provider.api.binary_media_types, expected_explicit_binary_types)
 
@@ -666,7 +731,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
             Route(path="/true-implicit-path", methods=["POST"], function_name="ImplicitFunc"),
         ]
 
-        provider = ApiProvider(self.template)
+        provider = ApiProvider(make_mock_stacks_from_template(self.template))
         self.assertCountEqual(expected_routes, provider.routes)
         self.assertCountEqual(provider.api.binary_media_types, expected_explicit_binary_types)
 
@@ -700,7 +765,7 @@ class TestSamStageValues(TestCase):
                 }
             }
         }
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
         route1 = Route(path="/path", methods=["GET"], function_name="NoApiEventFunction")
 
         self.assertIn(route1, provider.routes)
@@ -736,7 +801,7 @@ class TestSamStageValues(TestCase):
                 }
             }
         }
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
         route1 = Route(path="/path", methods=["GET"], function_name="NoApiEventFunction")
 
         self.assertIn(route1, provider.routes)
@@ -808,7 +873,7 @@ class TestSamStageValues(TestCase):
             },
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         result = [f for f in provider.get_all()]
         routes = result[0].routes
@@ -867,7 +932,7 @@ class TestSamCors(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         routes = provider.routes
         cors = Cors(
@@ -923,7 +988,7 @@ class TestSamCors(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         routes = provider.routes
         cors = Cors(
@@ -984,7 +1049,7 @@ class TestSamCors(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         routes = provider.routes
         cors = Cors(
@@ -1047,7 +1112,7 @@ class TestSamCors(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         routes = provider.routes
         cors = Cors(
@@ -1112,7 +1177,7 @@ class TestSamCors(TestCase):
         with self.assertRaises(
             InvalidSamDocumentException, msg="ApiProvider should fail for Invalid Cors AllowMethods not single quoted"
         ):
-            ApiProvider(template)
+            ApiProvider(make_mock_stacks_from_template(template))
 
     def test_raises_error_when_cors_value_not_single_quoted(self):
         template = {
@@ -1157,7 +1222,7 @@ class TestSamCors(TestCase):
         with self.assertRaises(
             InvalidSamDocumentException, msg="ApiProvider should fail for Invalid Cors value not single quoted"
         ):
-            ApiProvider(template)
+            ApiProvider(make_mock_stacks_from_template(template))
 
     def test_invalid_cors_dict_allow_methods(self):
         template = {
@@ -1207,7 +1272,7 @@ class TestSamCors(TestCase):
         with self.assertRaises(
             InvalidSamDocumentException, msg="ApiProvider should fail for Invalid Cors Allow method"
         ):
-            ApiProvider(template)
+            ApiProvider(make_mock_stacks_from_template(template))
 
     def test_default_cors_dict_prop(self):
         template = {
@@ -1239,7 +1304,7 @@ class TestSamCors(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         routes = provider.routes
         cors = Cors(allow_origin="www.domain.com", allow_methods=",".join(sorted(Route.ANY_HTTP_METHODS)))
@@ -1298,7 +1363,7 @@ class TestSamCors(TestCase):
             },
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         routes = provider.routes
         cors = Cors(
@@ -1358,7 +1423,7 @@ class TestSamHttpApiCors(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         routes = provider.routes
         cors = Cors(
@@ -1414,7 +1479,7 @@ class TestSamHttpApiCors(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         routes = provider.routes
         cors = Cors(
@@ -1470,7 +1535,7 @@ class TestSamHttpApiCors(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         routes = provider.routes
         cors = None
@@ -1528,7 +1593,7 @@ class TestSamHttpApiCors(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         routes = provider.routes
         cors = Cors(
@@ -1591,7 +1656,7 @@ class TestSamHttpApiCors(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         routes = provider.routes
         cors = Cors(
@@ -1656,7 +1721,7 @@ class TestSamHttpApiCors(TestCase):
         with self.assertRaises(
             InvalidSamDocumentException, msg="ApiProvider should fail for Invalid Cors Allow method"
         ):
-            ApiProvider(template)
+            ApiProvider(make_mock_stacks_from_template(template))
 
     def test_default_cors_dict_prop(self):
         template = {
@@ -1688,7 +1753,7 @@ class TestSamHttpApiCors(TestCase):
             }
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         routes = provider.routes
         cors = Cors(allow_origin="www.domain.com", allow_methods=",".join(sorted(Route.ANY_HTTP_METHODS)))
@@ -1747,7 +1812,7 @@ class TestSamHttpApiCors(TestCase):
             },
         }
 
-        provider = ApiProvider(template)
+        provider = ApiProvider(make_mock_stacks_from_template(template))
 
         routes = provider.routes
         cors = Cors(

@@ -1,7 +1,7 @@
 """
 Utilities to manipulate template
 """
-
+import itertools
 import os
 import pathlib
 
@@ -17,6 +17,7 @@ from samcli.commands._utils.resources import (
     RESOURCES_WITH_LOCAL_PATHS,
     AWS_SERVERLESS_FUNCTION,
     AWS_LAMBDA_FUNCTION,
+    get_packageable_resource_paths,
 )
 
 
@@ -253,18 +254,30 @@ def get_template_parameters(template_file):
 
 def get_template_artifacts_format(template_file):
     """
-    Get a list of template artifact formats based on PackageType
+    Get a list of template artifact formats based on PackageType wherever the underlying resource
+    have the actual need to be packaged.
     :param template_file:
     :return: list of artifact formats
     """
 
     template_dict = get_template_data(template_file=template_file)
-    return list(
-        {
-            resource_id: resource.get("Properties", {}).get("PackageType", ZIP)
-            for resource_id, resource in template_dict.get("Resources", {}).items()
-        }.values()
-    )
+
+    # Get a list of Resources where the artifacts format matter for packaging.
+    packageable_resources = get_packageable_resource_paths()
+
+    artifacts = []
+    for _, resource in template_dict.get("Resources", {}).items():
+        # First check if the resources are part of package-able resource types.
+        if resource.get("Type") in packageable_resources.keys():
+            # Flatten list of locations per resource type.
+            locations = list(itertools.chain(*packageable_resources.get(resource.get("Type"))))
+            for location in locations:
+                properties = resource.get("Properties", {})
+                # Search for package-able location within resource properties.
+                if jmespath.search(location, properties):
+                    artifacts.append(properties.get("PackageType", ZIP))
+
+    return artifacts
 
 
 def get_template_function_resource_ids(template_file, artifact):

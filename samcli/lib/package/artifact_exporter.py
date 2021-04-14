@@ -169,9 +169,6 @@ class Template:
         """
         Exports the local artifacts referenced by the metadata section in
         the given template to an export destination.
-
-        :return: The template with references to artifacts that have been
-        exported to export destination.
         """
         if "Metadata" not in self.template_dict:
             return

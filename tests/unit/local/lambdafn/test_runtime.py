@@ -793,14 +793,14 @@ class TestWarmLambdaRuntime_clean_warm_containers_related_resources(TestCase):
     def test_must_container_stopped_when_its_code_dir_got_changed(self, shutil_mock):
 
         self.runtime.clean_running_containers_and_related_resources()
-        self.assertEquals(
+        self.assertEqual(
             self.runtime._container_manager.stop.call_args_list,
             [
                 call(self.func1_container_mock),
                 call(self.func2_container_mock),
             ],
         )
-        self.assertEquals(
+        self.assertEqual(
             shutil_mock.rmtree.call_args_list,
             [
                 call("path1"),

@@ -5,7 +5,7 @@ import logging
 import pathlib
 import shutil
 from abc import abstractmethod, ABC
-from typing import Callable, Dict, List, Any, Optional
+from typing import Callable, Dict, List, Any, Optional, cast
 
 from samcli.commands.build.exceptions import MissingBuildMethodException
 from samcli.lib.utils import osutils
@@ -113,11 +113,13 @@ class DefaultBuildStrategy(BuildStrategy):
         single_build_dir = build_definition.get_build_dir(self._build_dir)
 
         LOG.debug("Building to following folder %s", single_build_dir)
+
+        # when a function is passed here, it is ZIP function, codeuri and runtime are not None
         result = self._build_function(
             build_definition.get_function_name(),
-            build_definition.codeuri,
+            build_definition.codeuri,  # type: ignore
             build_definition.packagetype,
-            build_definition.runtime,
+            build_definition.runtime,  # type: ignore
             build_definition.get_handler_name(),
             single_build_dir,
             build_definition.metadata,
@@ -156,12 +158,14 @@ class DefaultBuildStrategy(BuildStrategy):
             )
 
         single_build_dir = layer.get_build_dir(self._build_dir)
+        # when a layer is passed here, it is ZIP function, codeuri and runtime are not None
+        # codeuri and compatible_runtimes are not None
         return {
             layer.full_path: self._build_layer(
                 layer.name,
-                layer.codeuri,
+                layer.codeuri,  # type: ignore
                 layer.build_method,
-                layer.compatible_runtimes,
+                layer.compatible_runtimes,  # type: ignore
                 single_build_dir,
                 layer_definition.env_vars,
             )
@@ -209,7 +213,7 @@ class CachedBuildStrategy(BuildStrategy):
         if build_definition.packagetype == IMAGE:
             return self._delegate_build_strategy.build_single_function_definition(build_definition)
 
-        code_dir = str(pathlib.Path(self._base_dir, build_definition.codeuri).resolve())
+        code_dir = str(pathlib.Path(self._base_dir, cast(str, build_definition.codeuri)).resolve())
         source_md5 = dir_checksum(code_dir)
         cache_function_dir = pathlib.Path(self._cache_dir, build_definition.uuid)
         function_build_results = {}
@@ -248,7 +252,7 @@ class CachedBuildStrategy(BuildStrategy):
         """
         Builds single layer definition with caching
         """
-        code_dir = str(pathlib.Path(self._base_dir, layer_definition.codeuri).resolve())
+        code_dir = str(pathlib.Path(self._base_dir, cast(str, layer_definition.codeuri)).resolve())
         source_md5 = dir_checksum(code_dir)
         cache_function_dir = pathlib.Path(self._cache_dir, layer_definition.uuid)
         layer_build_result = {}

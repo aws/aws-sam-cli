@@ -6,7 +6,7 @@ import io
 import json
 import logging
 import pathlib
-from typing import List, Optional, Dict, cast
+from typing import List, Optional, Dict, cast, Union
 
 import docker
 import docker.errors
@@ -21,7 +21,7 @@ from samcli.lib.build.build_strategy import (
     ParallelBuildStrategy,
     BuildStrategy,
 )
-from samcli.lib.providers.provider import ResourcesToBuildCollector, Function, get_full_path, Stack
+from samcli.lib.providers.provider import ResourcesToBuildCollector, Function, get_full_path, Stack, LayerVersion
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.lib.utils.colors import Colored
 import samcli.lib.utils.osutils as osutils
@@ -67,6 +67,7 @@ class ApplicationBuilder:
         docker_client: Optional[docker.DockerClient] = None,
         container_env_var: Optional[Dict] = None,
         container_env_var_file: Optional[str] = None,
+        build_images: Optional[Dict] = None,
     ) -> None:
         """
         Initialize the class
@@ -75,32 +76,36 @@ class ApplicationBuilder:
         ----------
         resources_to_build: Iterator
             Iterator that can vend out resources available in the SAM template
-
         build_dir : str
             Path to the directory where we will be storing built artifacts
-
         base_dir : str
             Path to a folder. Use this folder as the root to resolve relative source code paths against
-
         cache_dir : str
             Path to a the directory where we will be caching built artifacts
-
         cached:
             Optional. Set to True to build each function with cache to improve performance
-
         is_building_specific_resource : boolean
             Whether customer requested to build a specific resource alone in isolation,
             by specifying function_identifier to the build command.
             Ex: sam build MyServerlessFunction
-
+        manifest_path_override : Optional[str]
+            Optional path to manifest file to replace the default one
         container_manager : samcli.local.docker.manager.ContainerManager
             Optional. If provided, we will attempt to build inside a Docker Container
-
         parallel : bool
             Optional. Set to True to build each function in parallel to improve performance
-
         mode : str
             Optional, name of the build mode to use ex: 'debug'
+        stream_writer : Optional[StreamWriter]
+            An optional stream writer to accept stderr output
+        docker_client : Optional[docker.DockerClient]
+            An optional Docker client object to replace the default one loaded from env
+        container_env_var : Optional[Dict]
+            An optional dictionary of environment variables to pass to the container
+        container_env_var_file : Optional[str]
+            An optional path to file that contains environment variables to pass to the container
+        build_images : Optional[Dict]
+            An optional dictionary of build images to be used for building functions
         """
         self._resources_to_build = resources_to_build
         self._build_dir = build_dir
@@ -120,6 +125,7 @@ class ApplicationBuilder:
         self._colored = Colored()
         self._container_env_var = container_env_var
         self._container_env_var_file = container_env_var_file
+        self._build_images = build_images or {}
 
     def build(self) -> Dict[str, str]:
         """
@@ -213,6 +219,7 @@ class ApplicationBuilder:
         Parameters
         ----------
         stack: Stack
+            The stack object representing the template
         built_artifacts : dict
             Map of LogicalId of a resource to the path where the the built artifacts for this resource lives
         stack_output_template_path_by_stack_path: Dict[str, str]
@@ -306,7 +313,9 @@ class ApplicationBuilder:
         # Have a default tag if not present.
         tag = metadata.get("DockerTag", "latest")
         docker_tag = f"{function_name.lower()}:{tag}"
+        docker_build_target = metadata.get("DockerBuildTarget", None)
         docker_build_args = metadata.get("DockerBuildArgs", {})
+
         if not isinstance(docker_build_args, dict):
             raise DockerBuildFailed("DockerBuildArgs needs to be a dictionary!")
 
@@ -321,13 +330,17 @@ class ApplicationBuilder:
         if isinstance(docker_build_args, dict):
             LOG.info("Setting DockerBuildArgs: %s for %s function", docker_build_args, function_name)
 
-        build_logs = self._docker_client.api.build(
-            path=str(docker_context_dir),
-            dockerfile=dockerfile,
-            tag=docker_tag,
-            buildargs=docker_build_args,
-            decode=True,
-        )
+        build_args = {
+            "path": str(docker_context_dir),
+            "dockerfile": dockerfile,
+            "tag": docker_tag,
+            "buildargs": docker_build_args,
+            "decode": True,
+        }
+        if docker_build_target:
+            build_args["target"] = cast(str, docker_build_target)
+
+        build_logs = self._docker_client.api.build(**build_args)
 
         # The Docker-py low level api will stream logs back but if an exception is raised by the api
         # this is raised when accessing the generator. So we need to wrap accessing build_logs in a try: except.
@@ -352,10 +365,6 @@ class ApplicationBuilder:
             A generator for the build output.
         function_name str
             Name of the function that is being built
-
-        Returns
-        -------
-        None
         """
         for log in build_logs:
             if log:
@@ -396,9 +405,12 @@ class ApplicationBuilder:
         compatible_runtimes : List[str]
             List of runtimes the layer build is compatible with
 
-        artifact_dir: str
+        artifact_dir : str
             Path to where layer will be build into.
             A subfolder will be created in this directory depending on the specified workflow.
+
+        container_env_vars : Optional[Dict]
+            An optional dictionary of environment variables to pass to the container.
 
         Returns
         -------
@@ -420,9 +432,8 @@ class ApplicationBuilder:
 
             # By default prefer to build in-process for speed
             build_runtime = specified_workflow
-            build_method = self._build_function_in_process
+            options = ApplicationBuilder._get_build_options(layer_name, config.language, None)
             if self._container_manager:
-                build_method = self._build_function_on_container
                 if config.language == "provided":
                     LOG.warning(
                         "For container layer build, first compatible runtime is chosen as build target for container."
@@ -430,18 +441,17 @@ class ApplicationBuilder:
                     # Only set to this value if specified workflow is makefile
                     # which will result in config language as provided
                     build_runtime = compatible_runtimes[0]
-            options = ApplicationBuilder._get_build_options(layer_name, config.language, None)
+                # None key represents the global build image for all functions/layers
+                global_image = self._build_images.get(None)
+                image = self._build_images.get(layer_name, global_image)
+                self._build_function_on_container(
+                    config, code_dir, artifact_subdir, manifest_path, build_runtime, options, container_env_vars, image
+                )
+            else:
+                self._build_function_in_process(
+                    config, code_dir, artifact_subdir, scratch_dir, manifest_path, build_runtime, options
+                )
 
-            build_method(
-                config,
-                code_dir,
-                artifact_subdir,
-                scratch_dir,
-                manifest_path,
-                build_runtime,
-                options,
-                container_env_vars,
-            )
             # Not including subfolder in return so that we copy subfolder, instead of copying artifacts inside it.
             return artifact_dir
 
@@ -464,18 +474,20 @@ class ApplicationBuilder:
         ----------
         function_name : str
             Name or LogicalId of the function
-
         codeuri : str
             Path to where the code lives
-
+        packagetype : str
+            The package type, 'Zip' or 'Image', see samcli/lib/utils/packagetype.py
         runtime : str
             AWS Lambda function runtime
-
+        handler : Optional[str]
+            An optional string to specify which function the handler should be
         artifact_dir: str
             Path to where function will be build into
-
         metadata : dict
             AWS Lambda function metadata
+        container_env_vars : Optional[Dict]
+            An optional dictionary of environment variables to pass to the container.
 
         Returns
         -------
@@ -510,21 +522,25 @@ class ApplicationBuilder:
 
                 options = ApplicationBuilder._get_build_options(function_name, config.language, handler)
                 # By default prefer to build in-process for speed
-                build_method = self._build_function_in_process
                 if self._container_manager:
-                    build_method = self._build_function_on_container
-                    return build_method(
+                    # None represents the global build image for all functions/layers
+                    global_image = self._build_images.get(None)
+                    image = self._build_images.get(function_name, global_image)
+
+                    return self._build_function_on_container(
                         config,
                         code_dir,
                         artifact_dir,
-                        scratch_dir,
                         manifest_path,
                         runtime,
                         options,
                         container_env_vars,
+                        image,
                     )
 
-                return build_method(config, code_dir, artifact_dir, scratch_dir, manifest_path, runtime, options)
+                return self._build_function_in_process(
+                    config, code_dir, artifact_dir, scratch_dir, manifest_path, runtime, options
+                )
 
         # pylint: disable=fixme
         # FIXME: we need to throw an exception here, packagetype could be something else
@@ -561,8 +577,7 @@ class ApplicationBuilder:
         scratch_dir: str,
         manifest_path: str,
         runtime: str,
-        options: Optional[dict],
-        container_env_vars: Optional[Dict] = None,
+        options: Optional[Dict],
     ) -> str:
 
         builder = LambdaBuilder(
@@ -594,11 +609,11 @@ class ApplicationBuilder:
         config: CONFIG,
         source_dir: str,
         artifacts_dir: str,
-        scratch_dir: str,
         manifest_path: str,
         runtime: str,
         options: Optional[Dict],
         container_env_vars: Optional[Dict] = None,
+        build_image: Optional[str] = None,
     ) -> str:
         # _build_function_on_container() is only called when self._container_manager if not None
         if not self._container_manager:
@@ -632,6 +647,7 @@ class ApplicationBuilder:
             executable_search_paths=config.executable_search_paths,
             mode=self._mode,
             env_vars=container_env_vars,
+            image=build_image,
         )
 
         try:
@@ -708,7 +724,9 @@ class ApplicationBuilder:
         return cast(Dict, response)
 
     @staticmethod
-    def _make_env_vars(function: Function, file_env_vars: Dict, inline_env_vars: Optional[Dict]) -> Dict:
+    def _make_env_vars(
+        resource: Union[Function, LayerVersion], file_env_vars: Dict, inline_env_vars: Optional[Dict]
+    ) -> Dict:
         """Returns the environment variables configuration for this function
 
         Priority order (high to low):
@@ -719,8 +737,13 @@ class ApplicationBuilder:
 
         Parameters
         ----------
-        function : samcli.lib.providers.provider.Function
-            Lambda function to generate the configuration for
+        resource : Union[Function, LayerVersion]
+            Lambda function or layer to generate the configuration for
+        file_env_vars : Dict
+            The dictionary of environment variables loaded from the file
+        inline_env_vars : Optional[Dict]
+            The optional dictionary of environment variables defined inline
+
 
         Returns
         -------
@@ -734,7 +757,7 @@ class ApplicationBuilder:
 
         """
 
-        name = function.name
+        name = resource.name
         result = {}
 
         # validate and raise OverridesNotWellDefinedError

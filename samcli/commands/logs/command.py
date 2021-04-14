@@ -5,7 +5,7 @@ CLI command for "logs" command
 import logging
 import click
 
-from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
+from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
@@ -77,6 +77,7 @@ $ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
 @pass_context
 @track_command
 @check_newer_version
+@print_cmdline_args
 def cli(
     ctx,
     name,
@@ -88,6 +89,9 @@ def cli(
     config_file,
     config_env,
 ):  # pylint: disable=redefined-builtin
+    """
+    `sam logs` command entry point
+    """
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(name, stack_name, filter, tail, start_time, end_time)  # pragma: no cover

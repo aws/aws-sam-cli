@@ -59,6 +59,15 @@ def local_common_options(f):
 
 
 def service_common_options(port):
+    """
+    Construct common CLI Options that are shared for service related commands ('start-api' and 'start_lambda')
+
+    Parameters
+    ----------
+    port
+        The port number to listen to
+    """
+
     def construct_options(f):
         """
         Common CLI Options that are shared for service related commands ('start-api' and 'start_lambda')

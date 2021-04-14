@@ -93,6 +93,9 @@ class PackageContext:
         pass
 
     def run(self):
+        """
+        Execute packaging based on the argument provided by customers and samconfig.toml.
+        """
         region_name = self.region if self.region else None
 
         s3_client = boto3.client(

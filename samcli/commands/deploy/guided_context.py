@@ -99,6 +99,14 @@ class GuidedContext:
 
     # pylint: disable=too-many-statements
     def guided_prompts(self, parameter_override_keys):
+        """
+        Start an interactive cli prompt to collection information for deployment
+
+        Parameters
+        ----------
+        parameter_override_keys
+            The keys of parameters to override, for each key, customers will be asked to provide a value
+        """
         default_stack_name = self.stack_name or "sam-app"
         default_region = self.region or get_session().get_config_variable("region") or "us-east-1"
         default_capabilities = self.capabilities[0] or ("CAPABILITY_IAM",)
@@ -121,7 +129,7 @@ class GuidedContext:
         input_parameter_overrides = self.prompt_parameters(
             parameter_override_keys, self.parameter_overrides_from_cmdline, self.start_bold, self.end_bold
         )
-        stacks = SamLocalStackProvider.get_stacks(
+        stacks, _ = SamLocalStackProvider.get_stacks(
             self.template_file, parameter_overrides=sanitize_parameter_overrides(input_parameter_overrides)
         )
 
@@ -195,6 +203,15 @@ class GuidedContext:
                     raise GuidedDeployFailedError(msg="Security Constraints Not Satisfied!")
 
     def prompt_code_signing_settings(self, stacks: List[Stack]):
+        """
+        Prompt code signing settings to ask whether customers want to code sign their code and
+        display signing details.
+
+        Parameters
+        ----------
+        stacks : List[Stack]
+            List of stacks to search functions and layers
+        """
         (functions_with_code_sign, layers_with_code_sign) = signer_config_per_function(stacks)
 
         # if no function or layer definition found with code signing, skip it
@@ -273,6 +290,20 @@ class GuidedContext:
     def prompt_image_repository(
         self, stack_name, stacks: List[Stack], image_repositories: Dict[str, str], region, s3_bucket, s3_prefix
     ):
+        """
+        Prompt for the image repository to push the images.
+        For each image function found in build artifacts, it will prompt for an image repository.
+
+        Parameters
+        ----------
+        stacks : List[Stack]
+            List of stacks to look for image functions.
+
+        Returns
+        -------
+        Dict
+            A dictionary contains image function logical ID as key, image repository as value.
+        """
         image_repositories = image_repositories.copy() if image_repositories is not None else {}
         self.function_provider = SamFunctionProvider(stacks, ignore_code_extraction_warnings=True)
 

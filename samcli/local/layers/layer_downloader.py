@@ -4,10 +4,12 @@ Downloads Layers locally
 
 import logging
 from pathlib import Path
+from typing import List
 
 import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
 
+from samcli.lib.providers.provider import Stack, LayerVersion
 from samcli.lib.utils.codeuri import resolve_code_path
 from samcli.local.lambdafn.zip import unzip_from_uri
 from samcli.commands.local.cli_common.user_exceptions import CredentialsRequired, ResourceNotFound
@@ -17,7 +19,7 @@ LOG = logging.getLogger(__name__)
 
 
 class LayerDownloader:
-    def __init__(self, layer_cache, cwd, lambda_client=None):
+    def __init__(self, layer_cache, cwd, stacks: List[Stack], lambda_client=None):
         """
 
         Parameters
@@ -26,11 +28,14 @@ class LayerDownloader:
             path where to cache layers
         cwd str
             Current working directory
+        stacks List[Stack]
+            List of all stacks
         lambda_client boto3.client('lambda')
             Boto3 Client for AWS Lambda
         """
         self._layer_cache = layer_cache
         self.cwd = cwd
+        self._stacks = stacks
         self._lambda_client = lambda_client
 
     @property
@@ -73,7 +78,7 @@ class LayerDownloader:
 
         return layer_dirs
 
-    def download(self, layer, force=False):
+    def download(self, layer: LayerVersion, force=False) -> LayerVersion:
         """
         Download a given layer to the local cache.
 
@@ -183,10 +188,5 @@ class LayerDownloader:
         ----------
         layer_cache
             Directory to where the layers should be cached
-
-        Returns
-        -------
-        None
-
         """
         Path(layer_cache).mkdir(mode=0o700, parents=True, exist_ok=True)
