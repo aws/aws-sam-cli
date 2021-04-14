@@ -62,6 +62,10 @@ _OUTPUT_TEMPLATE = Template(
 
 
 class CompanionStackBuilder:
+    """
+    CFN template builder for the companion stack
+    """
+
     _parent_stack_name: str
     _companion_stack: CompanionStack
     _repo_mapping: Dict[str, ECRRepo]
@@ -71,12 +75,25 @@ class CompanionStackBuilder:
         self._repo_mapping: Dict[str, ECRRepo] = dict()
 
     def add_function(self, function_logical_id: str) -> None:
+        """
+        Add an ECR repo associated with the function to the companion stack template
+        """
         self._repo_mapping[function_logical_id] = ECRRepo(self._companion_stack, function_logical_id)
 
     def clear_functions(self) -> None:
+        """
+        Remove all functions that need ECR repos
+        """
         self._repo_mapping = dict()
 
     def build(self) -> str:
+        """
+        Build companion stack CFN template with current functions
+        Returns
+        -------
+        str
+            CFN template for companions stack
+        """
         repo_templates = list()
         repo_output_templates = list()
         companion_stack_name = self._companion_stack.stack_name
@@ -107,4 +124,7 @@ class CompanionStackBuilder:
 
     @property
     def repo_mapping(self) -> Dict[str, ECRRepo]:
+        """
+        Repo mapping dictionary with key as function logical ID and value as ECRRepo object
+        """
         return self._repo_mapping

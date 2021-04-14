@@ -17,6 +17,11 @@ from samcli.lib.package.s3_uploader import S3Uploader
 
 
 class CompanionStackManager:
+    """
+    Manager class for a companion stack
+    Used to create/update the remote stack
+    """
+
     _companion_stack: CompanionStack
     _builder: CompanionStackBuilder
     _boto_config: Config
@@ -51,11 +56,23 @@ class CompanionStackManager:
             ) from ex
 
     def set_functions(self, function_logical_ids: List[str]) -> None:
+        """
+        Sets functions that need to have ECR repos created
+
+        Parameters
+        ----------
+        function_logical_ids: List[str]
+            Function logical IDs that need to have ECR repos created
+        """
         self._builder.clear_functions()
         for function_logical_id in function_logical_ids:
             self._builder.add_function(function_logical_id)
 
     def update_companion_stack(self) -> None:
+        """
+        Blocking call to create or update the companion stack based on current functions
+        Companion stack template will be updated to the s3 bucket first before deployment
+        """
         stack_name = self._companion_stack.stack_name
         template = self._builder.build()
 
@@ -89,6 +106,9 @@ class CompanionStackManager:
         waiter.wait(StackName=stack_name, WaiterConfig=waiter_config)
 
     def delete_companion_stack(self):
+        """
+        Blocking call to delte the companion stack
+        """
         stack_name = self._companion_stack.stack_name
         waiter = self._cfn_client.get_waiter("stack_delete_complete")
         waiter_config = {"Delay": 10, "MaxAttempts": 60}
@@ -97,7 +117,14 @@ class CompanionStackManager:
 
     def list_deployed_repos(self) -> List[ECRRepo]:
         """
-        Not using create_change_set as it is slow
+        List deployed ECR repos for this companion stack
+        Not using create_change_set as it is slow.
+
+        Returns
+        -------
+        List[ECRRepo]
+            List of ECR repos deployed for this companion stack
+            Returns empty list if companion stack does not exist
         """
         if not self.does_companion_stack_exist():
             return []
@@ -112,6 +139,15 @@ class CompanionStackManager:
         return repos
 
     def get_unreferenced_repos(self) -> List[ECRRepo]:
+        """
+        List deployed ECR repos that is not referenced by current list of functions
+
+        Returns
+        -------
+        List[ECRRepo]
+            List of deployed ECR repos that is not referenced by current list of functions
+            Returns empty list if companion stack does not exist
+        """
         if not self.does_companion_stack_exist():
             return []
         deployed_repos: List[ECRRepo] = self.list_deployed_repos()
@@ -127,6 +163,9 @@ class CompanionStackManager:
         return unreferenced_repos
 
     def delete_unreferenced_repos(self) -> None:
+        """
+        Blocking call to delete all deployed ECR repos that are unreferenced by a function
+        """
         repos = self.get_unreferenced_repos()
         for repo in repos:
             try:
@@ -135,6 +174,12 @@ class CompanionStackManager:
                 pass
 
     def sync_repos(self) -> None:
+        """
+        Blocking call to sync companion stack with the following actions
+        Create/Update companion stack.
+        Deletes unreferenced repos.
+        Deletes companion stack if there isn't any repo left.
+        """
         exists = self.does_companion_stack_exist()
         has_repo = bool(self.get_repository_mapping())
         if exists:
@@ -147,6 +192,14 @@ class CompanionStackManager:
             self.update_companion_stack()
 
     def does_companion_stack_exist(self) -> bool:
+        """
+        Does companion stack exist
+
+        Returns
+        -------
+        bool
+            Returns True if companion stack exists
+        """
         try:
             self._cfn_client.describe_stacks(StackName=self._companion_stack.stack_name)
             return True
@@ -154,10 +207,46 @@ class CompanionStackManager:
             return False
 
     def get_repository_mapping(self) -> Dict[str, str]:
+        """
+        Get current function to repo mapping
+
+        Returns
+        -------
+        Dict[str, str]
+            Dictionary with key as function logical ID and value as ECR repo URI.
+        """
         return dict((k, self.get_repo_uri(v)) for (k, v) in self._builder.repo_mapping.items())
 
     def get_repo_uri(self, repo: ECRRepo) -> str:
+        """
+        Get repo URI for a ECR repo
+
+        Parameters
+        ----------
+        repo: ECRRepo
+
+        Returns
+        -------
+        str
+            ECR repo URI based on account ID and region.
+        """
         return repo.get_repo_uri(self._account_id, self._region_name)
 
     def is_repo_uri(self, repo_uri, function_logical_id) -> bool:
+        """
+        Check whether repo URI is a companion stack repo
+
+        Parameters
+        ----------
+        repo_uri: str
+            Repo URI to be checked.
+
+        function_logical_id: str
+            Function logical ID associated with the image repo.
+
+        Returns
+        -------
+        bool
+            Returns True if repo_uri is a companion stack repo.
+        """
         return repo_uri == self.get_repo_uri(ECRRepo(self._companion_stack, function_logical_id))

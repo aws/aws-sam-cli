@@ -29,7 +29,7 @@ from samcli.lib.config.samconfig import DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.package.ecr_utils import is_ecr_url
 from samcli.lib.package.image_utils import tag_translation, NonLocalImageException, NoImageFoundException
-from samcli.lib.providers.provider import Stack
+from samcli.lib.providers.provider import Function, Stack
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.packagetype import IMAGE
@@ -288,20 +288,41 @@ class GuidedContext:
         return _prompted_param_overrides
 
     def prompt_image_repository(
-        self, stack_name, stacks: List[Stack], image_repositories: Dict[str, str], region, s3_bucket, s3_prefix
-    ):
+        self,
+        stack_name,
+        stacks: List[Stack],
+        image_repositories: Dict[str, str],
+        region: str,
+        s3_bucket: str,
+        s3_prefix: str,
+    ) -> Dict[str, str]:
         """
         Prompt for the image repository to push the images.
         For each image function found in build artifacts, it will prompt for an image repository.
 
         Parameters
         ----------
+        stack_name : List[Stack]
+            Name of the stack to be deployed.
+
         stacks : List[Stack]
             List of stacks to look for image functions.
 
+        image_repositories: Dict[str, str]
+            Dictionary with function logical ID as key and image repo URI as value.
+
+        region: str
+            Region for the image repos.
+
+        s3_bucket: str
+            s3 bucket URI to be used for uploading companion stack template
+
+        s3_prefix: str
+            s3 prefix to be used for uploading companion stack template
+
         Returns
         -------
-        Dict
+        Dict[str, str]
             A dictionary contains image function logical ID as key, image repository as value.
         """
         image_repositories = image_repositories.copy() if image_repositories is not None else {}
@@ -311,7 +332,71 @@ class GuidedContext:
             stack_name, region, s3_bucket, s3_prefix, self.template_file, image_repositories
         )
 
-        # Prompt for auto create repos
+        create_all_repos = GuidedContext.prompt_create_all_repos(manager_helper)
+        if create_all_repos:
+            image_repositories.update(manager_helper.manager.get_repository_mapping())
+        else:
+            image_repositories = GuidedContext.prompt_specify_repos(
+                manager_helper, image_repositories, self.image_repository
+            )
+            manager_helper.update_sepcified_image_repos(image_repositories)
+
+        image_repositories = GuidedContext.prompt_delete_unreferenced_repos(manager_helper, image_repositories)
+        GuidedContext.verify_images_exist_locally(self.function_provider.functions, image_repositories)
+
+        manager_helper.manager.sync_repos()
+        return image_repositories
+
+    @staticmethod
+    def prompt_specify_repos(
+        manager_helper: CompanionStackManagerHelper,
+        image_repositories: Dict[str, str],
+        default_image_repo,
+    ) -> Dict[str, str]:
+        """
+        Show prompts for each function that isn't associated with a image repo
+
+        Parameters
+        ----------
+        manager_helper: CompanionStackManagerHelper
+            Instance of CompanionStackManagerHelper
+
+        image_repositories: Dict[str, str]
+            Current image repo dictionary with function logical ID as key and image repo URI as value.
+
+        default_image_repo: str
+            Default image repo URI to be shown for each function prompt.
+
+        Returns
+        -------
+        Dict[str, str]
+            Updated image repo dictionary with values(image repo URIs) filled by user input
+        """
+        image_repositories = image_repositories.copy()
+        for function_logical_id in manager_helper.missing_repo_functions:
+            image_uri = prompt(f"\t\tECR repository for {function_logical_id}:", default=default_image_repo)
+            if not is_ecr_url(image_uri):
+                raise GuidedDeployFailedError(f"Invalid Image Repository ECR URI: {image_uri}")
+
+            image_repositories[function_logical_id] = image_uri
+
+        return image_repositories
+
+    @staticmethod
+    def prompt_create_all_repos(manager_helper: CompanionStackManagerHelper) -> bool:
+        """
+        Prompt whether to create all repos
+
+        Parameters
+        ----------
+        manager_helper: CompanionStackManagerHelper
+            Instance of CompanionStackManagerHelper
+
+        Returns
+        -------
+        Boolean
+            Returns False if there is no missing function or denied by prompt
+        """
         if not manager_helper.missing_repo_functions:
             create_all_repos = False
         elif manager_helper.missing_repo_functions == manager_helper.function_logical_ids:
@@ -343,66 +428,83 @@ class GuidedContext:
                 if manager_helper.missing_repo_functions
                 else True
             )
+        return create_all_repos
 
-        # Prompt for image repos
-        if not create_all_repos:
-            for function_logical_id in manager_helper.missing_repo_functions:
-                image_uri = prompt(
-                    f"\t\t{self.start_bold}ECR repository for {function_logical_id}:{self.end_bold}",
-                    default=self.image_repository,
-                )
-                if not is_ecr_url(image_uri):
-                    raise GuidedDeployFailedError(f"Invalid Image Repository ECR URI: {image_uri}")
+    @staticmethod
+    def prompt_delete_unreferenced_repos(
+        manager_helper: CompanionStackManagerHelper, image_repositories: Dict[str, str]
+    ) -> Dict[str, str]:
+        """
+        Prompt user for deleting unreferenced companion stack image repos.
+        Throws GuidedDeployFailedError if delete repos has been denied by the user.
+        This function does not actually remove the functions from the stack.
 
-                image_repositories[function_logical_id] = image_uri
+        Parameters
+        ----------
+        manager_helper: CompanionStackManagerHelper
+            Instance of CompanionStackManagerHelper
 
-            manager_helper.update_sepcified_image_repos(image_repositories)
-        else:
-            image_repositories.update(manager_helper.manager.get_repository_mapping())
+        image_repositories: Dict[str, str]
+            Current image repo dictionary with function logical ID as key and image repo URI as value.
 
-        # Prompt for deleting referenced repos
-        if manager_helper.unreferenced_repos:
+        Returns
+        -------
+        Dict[str, str]
+            Updated image repo dictionary with unreferenced repos removed
+        """
+        if not manager_helper.unreferenced_repos:
+            return image_repositories
+
+        click.echo(
+            "\t\tChecking for unreferenced ECR repositories to clean-up: "
+            f"{len(manager_helper.unreferenced_repos)} found"
+        )
+        for repo in manager_helper.unreferenced_repos:
+            repo_uri = manager_helper.manager.get_repo_uri(repo)
+            click.echo(f"\t\t {repo_uri}")
+        delete_repos = click.confirm(
+            "\t\tDelete the unreferenced repositories listed above when deploying?",
+            default=False,
+        )
+        if not delete_repos:
+            click.echo("\t\tDeployment aborted!")
             click.echo(
-                "\t\tChecking for unreferenced ECR repositories to clean-up: "
-                f"{len(manager_helper.unreferenced_repos)} found"
+                "\t\t#The deployment was aborted to prevent "
+                "unreferenced managed ECR repositories from being deleted."
+                "\t\t#You may remove repositories from the SAMCLI "
+                "managed stack to retain them and resolve this unreferenced check."
+                "\t\thttps://docs.aws.amazon.com/serverless-application-model/latest/developerguide/<page>.html"
             )
-            for repo in manager_helper.unreferenced_repos:
-                repo_uri = manager_helper.manager.get_repo_uri(repo)
-                click.echo(f"\t\t {repo_uri}")
-            delete_repos = click.confirm(
-                "\t\tDelete the unreferenced repositories listed above when deploying?",
-                default=False,
-            )
-            if not delete_repos:
-                click.echo("\t\tDeployment aborted!")
-                click.echo(
-                    "\t\t#The deployment was aborted to prevent "
-                    "unreferenced managed ECR repositories from being deleted."
-                    "\t\t#You may remove repositories from the SAMCLI "
-                    "managed stack to retain them and resolve this unreferenced check."
-                    "\t\thttps://docs.aws.amazon.com/serverless-application-model/latest/developerguide/<page>.html"
-                )
-                raise GuidedDeployFailedError("Unreferenced Auto Created ECR Repos Must Be Deleted.")
+            raise GuidedDeployFailedError("Unreferenced Auto Created ECR Repos Must Be Deleted.")
 
-        image_repositories = manager_helper.remove_unreferenced_repos_from_mapping(image_repositories)
+        return manager_helper.remove_unreferenced_repos_from_mapping(image_repositories)
 
-        # Check images locally exist
-        for resource_id, function_prop in self.function_provider.functions.items():
-            if function_prop.packagetype == IMAGE:
-                image = function_prop.imageuri
-                try:
-                    tag = tag_translation(image)
-                except NonLocalImageException:
-                    pass
-                except NoImageFoundException as ex:
-                    raise GuidedDeployFailedError("No images found to deploy, try running sam build") from ex
-                else:
-                    click.secho(f"\t  {image} to be pushed to {image_repositories.get(resource_id)}:{tag}")
+    @staticmethod
+    def verify_images_exist_locally(functions: Dict[str, Function], image_repositories: Dict[str, str]) -> None:
+        """
+        Verify all images associated with deploying functions exist locally.
+
+        Parameters
+        ----------
+        functions: Dict[str, Function]
+            Dictionary of functions in the stack to be deployed with key as their logical ID.
+
+        image_repositories: Dict[str, str]
+            Image repo dictionary with function logical ID as key and image repo URI as value.
+        """
+        for resource_id, function_prop in functions.items():
+            if function_prop.packagetype != IMAGE:
+                continue
+            image = function_prop.imageuri
+            try:
+                tag = tag_translation(image)
+            except NonLocalImageException:
+                pass
+            except NoImageFoundException as ex:
+                raise GuidedDeployFailedError("No images found to deploy, try running sam build") from ex
+            else:
+                click.secho(f"\t  {image} to be pushed to {image_repositories.get(resource_id)}:{tag}")
         click.secho(nl=True)
-
-        manager_helper.manager.sync_repos()
-
-        return image_repositories
 
     def run(self):
 
