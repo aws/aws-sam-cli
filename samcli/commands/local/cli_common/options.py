@@ -58,6 +58,14 @@ def local_common_options(f):
             "For example, if you want to run SAM CLI in a Docker container on macOS, "
             "use this option with host.docker.internal",
         ),
+        click.option(
+            "--container-host-interface",
+            default="127.0.0.1",
+            show_default=True,
+            help="Interface that Docker host binds ports to. "
+            "This option is useful when users want to bind ports to a different interface. "
+            "Note: the input should be an IP address. ",
+        ),
     ]
 
     # Reverse the list to maintain ordering of options in help text printed with --help
