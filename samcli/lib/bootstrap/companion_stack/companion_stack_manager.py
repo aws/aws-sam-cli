@@ -2,10 +2,9 @@
     Companion stack manager
 """
 from typing import List, Dict
+import typing
 
 import boto3
-from mypy_boto3_cloudformation.client import CloudFormationClient
-from mypy_boto3_s3.client import S3Client
 from botocore.config import Config
 from botocore.exceptions import ClientError, NoRegionError, NoCredentialsError
 
@@ -14,6 +13,13 @@ from samcli.lib.bootstrap.companion_stack.companion_stack_builder import Compani
 from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack, ECRRepo
 from samcli.lib.package.artifact_exporter import mktempfile
 from samcli.lib.package.s3_uploader import S3Uploader
+
+if typing.TYPE_CHECKING:
+    from mypy_boto3_cloudformation.client import CloudFormationClient
+    from mypy_boto3_s3.client import S3Client
+else:
+    CloudFormationClient = object
+    S3Client = object
 
 
 class CompanionStackManager:

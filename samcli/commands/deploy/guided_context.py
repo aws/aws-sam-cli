@@ -405,7 +405,7 @@ class GuidedContext:
                 "\t\t#Managed repositories will be deleted when "
                 "their functions are removed from the template and deployed"
             )
-            create_all_repos = click.confirm("\t\tCreate managed ECR repositories for all functions?", default=True)
+            create_all_repos = confirm("\t\tCreate managed ECR repositories for all functions?", default=True)
         else:
             functions_with_repo_count = len(manager_helper.function_logical_ids) - len(
                 manager_helper.missing_repo_functions
@@ -420,7 +420,7 @@ class GuidedContext:
                 "removed from the template and deployed"
             )
             create_all_repos = (
-                click.confirm(
+                confirm(
                     "\n\t\tCreate managed ECR repositories for the "
                     f"{len(manager_helper.missing_repo_functions)} functions without?",
                     default=True,
@@ -462,7 +462,7 @@ class GuidedContext:
         for repo in manager_helper.unreferenced_repos:
             repo_uri = manager_helper.manager.get_repo_uri(repo)
             click.echo(f"\t\t {repo_uri}")
-        delete_repos = click.confirm(
+        delete_repos = confirm(
             "\t\tDelete the unreferenced repositories listed above when deploying?",
             default=False,
         )
