@@ -9,7 +9,6 @@ from botocore.exceptions import ClientError, WaiterError, BotoCoreError
 from samcli.commands.deploy.exceptions import (
     DeployFailedError,
     ChangeSetError,
-    DeployStackOutPutFailedError,
     DeployBucketInDifferentRegionError,
 )
 from samcli.lib.deploy.deployer import Deployer
@@ -710,17 +709,17 @@ class TestDeployer(TestCase):
 
     def test_get_stack_outputs_no_outputs_no_exception(self):
         outputs = {"Stacks": [{"SomeOtherKey": "Value"}]}
-        self.deployer._client.describe_stacks = MagicMock(return_value=outputs)
+        self.deployer.output._client.describe_stacks = MagicMock(return_value=outputs)
 
         self.assertEqual(None, self.deployer.get_stack_outputs(stack_name="test"))
-        self.deployer._client.describe_stacks.assert_called_with(StackName="test")
+        self.deployer.output._client.describe_stacks.assert_called_with(StackName="test")
 
     def test_get_stack_outputs_exception(self):
-        self.deployer._client.describe_stacks = MagicMock(
+        self.deployer.output._client.describe_stacks = MagicMock(
             side_effect=ClientError(error_response={"Error": {"Message": "Error"}}, operation_name="describe_stacks")
         )
 
-        with self.assertRaises(DeployStackOutPutFailedError):
+        with self.assertRaises(DeployFailedError):
             self.deployer.get_stack_outputs(stack_name="test")
 
     @patch("time.sleep")

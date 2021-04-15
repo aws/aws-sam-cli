@@ -24,19 +24,22 @@ from datetime import datetime
 from typing import Dict, List
 
 import botocore
+from samcli.commands.deploy import exceptions
 
 from samcli.lib.deploy.utils import DeployColor
 from samcli.commands.deploy.exceptions import (
     DeployFailedError,
     ChangeSetError,
-    DeployStackOutPutFailedError,
     DeployBucketInDifferentRegionError,
 )
 from samcli.commands._utils.table_print import pprint_column_names, pprint_columns, newline_per_item, MIN_OFFSET
 from samcli.commands.deploy import exceptions as deploy_exceptions
+from samcli.commands.show.exceptions import ShowStackOutputFailedError
 from samcli.lib.package.artifact_exporter import mktempfile
 from samcli.lib.package.s3_uploader import S3Uploader
+from samcli.lib.show.output import StackOutput
 from samcli.lib.utils.time import utc_to_timestamp
+
 
 LOG = logging.getLogger(__name__)
 
@@ -83,6 +86,7 @@ class Deployer:
         # Maximum number of attempts before raising exception back up the chain.
         self.max_attempts = 3
         self.deploy_color = DeployColor()
+        self.output = StackOutput(cloudformation_client)
 
     def has_stack(self, stack_name):
         """
@@ -92,38 +96,43 @@ class Deployer:
         :return: True if stack exists. False otherwise
         """
         try:
-            resp = self._client.describe_stacks(StackName=stack_name)
-            if not resp["Stacks"]:
-                return False
-
-            # When you run CreateChangeSet on a a stack that does not exist,
-            # CloudFormation will create a stack and set it's status
-            # REVIEW_IN_PROGRESS. However this stack is cannot be manipulated
-            # by "update" commands. Under this circumstances, we treat like
-            # this stack does not exist and call CreateChangeSet will
-            # ChangeSetType set to CREATE and not UPDATE.
-            stack = resp["Stacks"][0]
-            return stack["StackStatus"] != "REVIEW_IN_PROGRESS"
-
-        except botocore.exceptions.ClientError as e:
-            # If a stack does not exist, describe_stacks will throw an
-            # exception. Unfortunately we don't have a better way than parsing
-            # the exception msg to understand the nature of this exception.
-
-            if "Stack with id {0} does not exist".format(stack_name) in str(e):
-                LOG.debug("Stack with id %s does not exist", stack_name)
-                return False
-        except botocore.exceptions.BotoCoreError as e:
-            # If there are credentials, environment errors,
-            # catch that and throw a deploy failed error.
-
-            LOG.debug("Botocore Exception : %s", str(e))
+            return self.output.has_stack(stack_name)
+        except ShowStackOutputFailedError as e:
+            LOG.debug("Failed to fetch stack outout : %s", str(e))
             raise DeployFailedError(stack_name=stack_name, msg=str(e)) from e
+        # try:
+        #     resp = self._client.describe_stacks(StackName=stack_name)
+        #     if not resp["Stacks"]:
+        #         return False
 
-        except Exception as e:
-            # We don't know anything about this exception. Don't handle
-            LOG.debug("Unable to get stack details.", exc_info=e)
-            raise e
+        #     # When you run CreateChangeSet on a a stack that does not exist,
+        #     # CloudFormation will create a stack and set it's status
+        #     # REVIEW_IN_PROGRESS. However this stack is cannot be manipulated
+        #     # by "update" commands. Under this circumstances, we treat like
+        #     # this stack does not exist and call CreateChangeSet will
+        #     # ChangeSetType set to CREATE and not UPDATE.
+        #     stack = resp["Stacks"][0]
+        #     return stack["StackStatus"] != "REVIEW_IN_PROGRESS"
+
+        # except botocore.exceptions.ClientError as e:
+        #     # If a stack does not exist, describe_stacks will throw an
+        #     # exception. Unfortunately we don't have a better way than parsing
+        #     # the exception msg to understand the nature of this exception.
+
+        #     if "Stack with id {0} does not exist".format(stack_name) in str(e):
+        #         LOG.debug("Stack with id %s does not exist", stack_name)
+        #         return False
+        # except botocore.exceptions.BotoCoreError as e:
+        #     # If there are credentials, environment errors,
+        #     # catch that and throw a deploy failed error.
+
+        #     LOG.debug("Botocore Exception : %s", str(e))
+        #     raise DeployFailedError(stack_name=stack_name, msg=str(e)) from e
+
+        # except Exception as e:
+        #     # We don't know anything about this exception. Don't handle
+        #     LOG.debug("Unable to get stack details.", exc_info=e)
+        #     raise e
 
     def create_changeset(
         self, stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
@@ -464,38 +473,43 @@ class Deployer:
         format_string=OUTPUTS_FORMAT_STRING, format_kwargs=OUTPUTS_DEFAULTS_ARGS, table_header=OUTPUTS_TABLE_HEADER_NAME
     )
     def _display_stack_outputs(stack_outputs: List[Dict], **kwargs) -> None:
-        for counter, output in enumerate(stack_outputs):
-            for k, v in [
-                ("Key", output.get("OutputKey")),
-                ("Description", output.get("Description", "-")),
-                ("Value", output.get("OutputValue")),
-            ]:
-                pprint_columns(
-                    columns=["{k:<{0}}{v:<{0}}".format(MIN_OFFSET, k=k, v=v)],
-                    width=kwargs["width"],
-                    margin=kwargs["margin"],
-                    format_string=OUTPUTS_FORMAT_STRING,
-                    format_args=kwargs["format_args"],
-                    columns_dict=OUTPUTS_DEFAULTS_ARGS.copy(),
-                    color="green",
-                    replace_whitespace=False,
-                    break_long_words=False,
-                    drop_whitespace=False,
-                )
-            newline_per_item(stack_outputs, counter)
+        StackOutput.display_stack_outputs(stack_outputs)
+        # for counter, output in enumerate(stack_outputs):
+        #     for k, v in [
+        #         ("Key", output.get("OutputKey")),
+        #         ("Description", output.get("Description", "-")),
+        #         ("Value", output.get("OutputValue")),
+        #     ]:
+        #         pprint_columns(
+        #             columns=["{k:<{0}}{v:<{0}}".format(MIN_OFFSET, k=k, v=v)],
+        #             width=kwargs["width"],
+        #             margin=kwargs["margin"],
+        #             format_string=OUTPUTS_FORMAT_STRING,
+        #             format_args=kwargs["format_args"],
+        #             columns_dict=OUTPUTS_DEFAULTS_ARGS.copy(),
+        #             color="green",
+        #             replace_whitespace=False,
+        #             break_long_words=False,
+        #             drop_whitespace=False,
+        #         )
+        #     newline_per_item(stack_outputs, counter)
 
     def get_stack_outputs(self, stack_name, echo=True):
         try:
-            stacks_description = self._client.describe_stacks(StackName=stack_name)
-            try:
-                outputs = stacks_description["Stacks"][0]["Outputs"]
-                if echo:
-                    sys.stdout.write("\nStack {stack_name} outputs:\n".format(stack_name=stack_name))
-                    sys.stdout.flush()
-                    self._display_stack_outputs(stack_outputs=outputs)
-                return outputs
-            except KeyError:
-                return None
+            return self.output.get_stack_outputs(stack_name, echo=echo)
+        except ShowStackOutputFailedError as ex:
+            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+        # try:
+        #     stacks_description = self._client.describe_stacks(StackName=stack_name)
+        #     try:
+        #         outputs = stacks_description["Stacks"][0]["Outputs"]
+        #         if echo:
+        #             sys.stdout.write("\nStack {stack_name} outputs:\n".format(stack_name=stack_name))
+        #             sys.stdout.flush()
+        #             self._display_stack_outputs(stack_outputs=outputs)
+        #         return outputs
+        #     except KeyError:
+        #         return None
 
-        except botocore.exceptions.ClientError as ex:
-            raise DeployStackOutPutFailedError(stack_name=stack_name, msg=str(ex)) from ex
+        # except botocore.exceptions.ClientError as ex:
+        #     raise DeployStackOutPutFailedError(stack_name=stack_name, msg=str(ex)) from ex

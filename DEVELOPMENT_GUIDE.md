@@ -178,7 +178,7 @@ conventions are best practices that we have learnt over time.
     are raised by Python interpreter and usually signify a bug in your
     code. Your method must not explicitly raise these exceptions because
     the caller has no way of knowing whether it came from a bug or not.
-    Custom exceptions convey are must better at conveying the intent and
+    Custom exceptions better at conveying the intent and
     can be handled appropriately by the caller. In HTTP lingo, custom
     exceptions are equivalent to 4xx (user\'s fault) and built-in
     exceptions are equivalent to 5xx (Service Fault)
