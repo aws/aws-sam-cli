@@ -121,8 +121,7 @@ The following resources and their property locations are supported.
         exc_set=PackageResolveS3AndS3SetError,
         exc_not_set=PackageResolveS3AndS3NotSetError,
     ),
-    help="Automatically resolve s3 bucket for non-guided deployments."
-    "Do not use --s3-guided parameter with this option.",
+    help="Automatically resolve s3 bucket for non-guided deployments.",
 )
 @metadata_override_option
 @signing_profiles_option

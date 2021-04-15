@@ -151,11 +151,7 @@ LOG = logging.getLogger(__name__)
     "the output AWS CloudFormation template. YAML is used by default.",
 )
 @click.option(
-    "--resolve-s3",
-    required=False,
-    is_flag=True,
-    help="Automatically resolve s3 bucket for non-guided deployments."
-    "Do not use --s3-guided parameter with this option.",
+    "--resolve-s3", required=False, is_flag=True, help="Automatically resolve s3 bucket for non-guided deployments."
 )
 @click.option(
     "--resolve-image-repos",
