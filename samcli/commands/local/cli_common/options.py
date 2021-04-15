@@ -64,6 +64,8 @@ def local_common_options(f):
             show_default=True,
             help="Interface that Docker host binds ports to. "
             "This option is useful when users want to bind ports to a different interface. "
+            "It will bind ports to loopback interface by default. "
+            "For example, using 0.0.0.0 will bind ports to all interfaces. "
             "Note: the input should be an IP address. ",
         ),
     ]
