@@ -1,7 +1,8 @@
 """
 CLI command for "pipeline bootstrap", which sets up the require pipeline infrastructure resources
 """
-from typing import Any, Dict, Optional, Tuple
+import os
+from typing import Any, cast, Dict, List, Optional
 
 import click
 
@@ -24,8 +25,8 @@ HELP_TEXT = """Sets up the following infrastructure resources for AWS SAM CI/CD 
 \n\t - ECR repo for the container images of Lambda functions having PackageType property set to Image
 """
 
-DEFAULT_SAMCONFIG_DIR = "samconfig_dir"
-PIPELINE_SAMCONFIG_FILENAME = "pipelineconfig.toml"
+PIPELINE_CONFIG_DIR = os.path.join(".aws-sam", "pipeline")
+PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
 
 
 @click.command("bootstrap", short_help=SHORT_HELP, help=HELP_TEXT, context_settings=dict(max_content_width=120))
@@ -197,8 +198,9 @@ def do_cli(
     stage.print_resources_summary()
 
     try:
-        samconfig_dir, filename, cmd_names = _get_toml_file_metadata()
-        stage.save_config(config_dir=samconfig_dir, filename=filename, cmd_names=cmd_names)
+        stage.save_config(
+            config_dir=PIPELINE_CONFIG_DIR, filename=PIPELINE_CONFIG_FILENAME, cmd_names=_get_command_name()
+        )
     except Exception:
         # Swallow saving exceptions, if any, as the resources are already bootstrapped and the ARNs are already
         # printed out in the screen.
@@ -206,16 +208,14 @@ def do_cli(
 
 
 def _load_saved_pipeline_user() -> Optional[str]:
-    samconfig_dir, filename, cmd_names = _get_toml_file_metadata()
-    samconfig: SamConfig = SamConfig(config_dir=samconfig_dir, filename=filename)
+    samconfig: SamConfig = SamConfig(config_dir=PIPELINE_CONFIG_DIR, filename=PIPELINE_CONFIG_FILENAME)
     if not samconfig.exists():
         return None
-    config: Dict[str, str] = samconfig.get_all(cmd_names=cmd_names, section="parameters")
+    config: Dict[str, str] = samconfig.get_all(cmd_names=_get_command_name(), section="parameters")
     return config.get("pipeline_user")
 
 
-def _get_toml_file_metadata() -> Tuple:
+def _get_command_name() -> List[str]:
     ctx = click.get_current_context()
-    samconfig_dir: str = getattr(ctx, DEFAULT_SAMCONFIG_DIR, SamConfig.config_dir())
-    cmd_names = get_cmd_names(ctx.info_name, ctx)  # ["pipeline", "bootstrap"]
-    return samconfig_dir, PIPELINE_SAMCONFIG_FILENAME, cmd_names
+    cmd_names: List[str] = cast(List[str], get_cmd_names(ctx.info_name, ctx))  # ["pipeline", "bootstrap"]
+    return cmd_names

@@ -1,11 +1,12 @@
 import os
+import shutil
 from pathlib import Path
-
 from unittest import TestCase
 
 from samcli.lib.config.exceptions import SamConfigVersionException
-from samcli.lib.config.version import VERSION_KEY, SAM_CONFIG_VERSION
 from samcli.lib.config.samconfig import SamConfig, DEFAULT_CONFIG_FILE_NAME, DEFAULT_GLOBAL_CMDNAME
+from samcli.lib.config.version import VERSION_KEY, SAM_CONFIG_VERSION
+from samcli.lib.utils import osutils
 
 
 class TestSamConfig(TestCase):
@@ -195,3 +196,18 @@ class TestSamConfig(TestCase):
         self.samconfig.put(cmd_names=["local", "start", "api"], section="parameters", key="skip_pull_image", value=True)
         self.samconfig.sanity_check()
         self.assertEqual(self.samconfig.document.get(VERSION_KEY), 0.2)
+
+    def test_write_config_file_will_create_the_file_if_not_exist(self):
+        with osutils.mkdir_temp(ignore_errors=True) as tempdir:
+            non_existing_dir = os.path.join(tempdir, "non-existing-dir")
+            non_existing_file = "non-existing-file"
+            samconfig = SamConfig(config_dir=non_existing_dir, filename=non_existing_file)
+
+            self.assertFalse(samconfig.exists())
+
+            samconfig.flush()
+            self.assertFalse(samconfig.exists())  # nothing to write, no need to create the file
+
+            samconfig.put(cmd_names=["any", "command"], section="any-section", key="any-key", value="any-value")
+            samconfig.flush()
+            self.assertTrue(samconfig.exists())

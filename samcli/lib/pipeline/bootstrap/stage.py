@@ -12,7 +12,6 @@ from .resource import Resource, IamUser, S3Bucket, EcrRepo
 
 CFN_TEMPLATE_PATH = str(pathlib.Path(os.path.dirname(__file__)))
 STACK_NAME_PREFIX = "aws-sam-cli-managed"
-DEPLOYER_STACK_NAME_SUFFIX = "pipeline-deployer"
 STAGE_RESOURCES_STACK_NAME_SUFFIX = "pipeline-resources"
 
 
