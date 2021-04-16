@@ -18,11 +18,11 @@ from .guided_context import GuidedContext
 SHORT_HELP = "Sets up infrastructure resources for AWS SAM CI/CD pipelines."
 
 HELP_TEXT = """Sets up the following infrastructure resources for AWS SAM CI/CD pipelines:
-\n\t - Pipeline user(IAM User) with AccessKeyId and SecretAccessKey credentials to be shared with the CI/CD provider
-\n\t - Pipeline Execution Role(IAM Role) that is assumed by the Pipeline user to obtain access to the AWS account
-\n\t - CloudFormation Execution Role(IAM Role) that is assumed by CloudFormation to deploy the SAM application
-\n\t - Artifacts bucket(S3 bucket) to store the sam build artifacts
-\n\t - ECR repo for the container images of Lambda functions having PackageType property set to Image
+\n\t - Pipeline IAM user with access key ID and secret access key credentials to be shared with the CI/CD provider
+\n\t - Pipeline execution IAM role assumed by the pipeline user to obtain access to the AWS account
+\n\t - CloudFormation execution IAM role assumed by CloudFormation to deploy the AWS SAM application
+\n\t - Artifacts S3 bucket to store the AWS SAM build artifacts
+\n\t - Optionally, an ECR repository to store container image Lambda deployment packages
 """
 
 PIPELINE_CONFIG_DIR = os.path.join(".aws-sam", "pipeline")
