@@ -1,17 +1,30 @@
 """
     Help class to bridge CLI functions and CompanionStackManager
 """
-from typing import Dict
+from samcli.lib.bootstrap.companion_stack.data_types import ECRRepo
+from typing import Dict, List
 
-from samcli.commands._utils.template import (
-    get_template_function_resource_ids,
-)
+from samcli.commands._utils.template import get_template_function_resource_ids
 from samcli.lib.utils.packagetype import IMAGE
 from samcli.lib.bootstrap.companion_stack.companion_stack_manager import CompanionStackManager
 
 
 class CompanionStackManagerHelper:
-    def __init__(self, stack_name, region, s3_bucket, s3_prefix, template_file, specified_image_repos):
+    missing_repo_functions: List[str]
+    auto_ecr_repo_functions: List[str]
+    deployed_repos: List[ECRRepo]
+    deployed_repo_uris: List[str]
+    unreferenced_repos: List[ECRRepo]
+
+    def __init__(
+        self,
+        stack_name: str,
+        region: str,
+        s3_bucket: str,
+        s3_prefix: str,
+        template_file: str,
+        specified_image_repos: Dict[str, str],
+    ):
         self.function_logical_ids = get_template_function_resource_ids(template_file=template_file, artifact=IMAGE)
         self.missing_repo_functions = list()
         self.auto_ecr_repo_functions = list()

@@ -50,6 +50,23 @@ class TestDeployCliCommand(TestCase):
         self.resolve_image_repos = False
         MOCK_SAM_CONFIG.reset_mock()
 
+        self.companion_stack_manager_helper_patch = patch(
+            "samcli.commands.deploy.guided_context.CompanionStackManagerHelper"
+        )
+        self.companion_stack_manager_helper_mock = self.companion_stack_manager_helper_patch.start()
+        self.companion_stack_manager_helper_mock.return_value.missing_repo_functions = ["HelloWorldFunction"]
+        self.companion_stack_manager_helper_mock.return_value.function_logical_ids = ["HelloWorldFunction"]
+        self.companion_stack_manager_helper_mock.return_value.unreferenced_repos = ["HelloWorldFunctionB"]
+        self.companion_stack_manager_helper_mock.return_value.get_repository_mapping.return_value = {
+            "HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"
+        }
+        self.companion_stack_manager_helper_mock.return_value.remove_unreferenced_repos_from_mapping.return_value = {
+            "HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"
+        }
+
+    def tearDown(self):
+        self.companion_stack_manager_helper_patch.stop()
+
     @patch("samcli.commands.package.command.click")
     @patch("samcli.commands.package.package_context.PackageContext")
     @patch("samcli.commands.deploy.command.click")
@@ -124,7 +141,6 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.deploy.guided_context.get_template_parameters")
     @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
-    @patch("samcli.commands.deploy.guided_context.CompanionStackManagerHelper")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
     @patch.object(GuidedConfig, "get_config_ctx", MagicMock(return_value=(None, get_mock_sam_config())))
     @patch("samcli.commands.deploy.guided_context.prompt")
@@ -134,7 +150,6 @@ class TestDeployCliCommand(TestCase):
         mock_confirm,
         mock_prompt,
         mock_signer_config_per_function,
-        mock_companion_stack_manager_helper,
         mock_sam_function_provider,
         mock_get_buildable_stacks,
         mock_get_template_parameters,
@@ -146,7 +161,7 @@ class TestDeployCliCommand(TestCase):
         mock_package_click,
     ):
         mock_get_buildable_stacks.return_value = (Mock(), [])
-        mock_sam_function_provider.return_value = {}
+        mock_sam_function_provider.return_value.functions = {}
         context_mock = Mock()
         mockauth_per_resource.return_value = [("HelloWorldResource1", False), ("HelloWorldResource2", False)]
         mock_deploy_context.return_value.__enter__.return_value = context_mock
@@ -210,7 +225,6 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.deploy.guided_context.get_template_parameters")
     @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
-    @patch("samcli.commands.deploy.guided_context.CompanionStackManagerHelper")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
     @patch.object(GuidedConfig, "get_config_ctx", MagicMock(return_value=(None, get_mock_sam_config())))
     @patch("samcli.commands.deploy.guided_context.prompt")
@@ -222,7 +236,6 @@ class TestDeployCliCommand(TestCase):
         mock_confirm,
         mock_prompt,
         mock_signer_config_per_function,
-        mock_companion_stack_manager_helper,
         mock_sam_function_provider,
         mock_get_buildable_stacks,
         mock_get_template_parameters,
@@ -240,15 +253,6 @@ class TestDeployCliCommand(TestCase):
         mock_sam_function_provider.return_value = MagicMock(
             functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri="helloworld:v1")}
         )
-        mock_companion_stack_manager_helper.return_value.missing_repo_functions = ["HelloWorldFunction"]
-        mock_companion_stack_manager_helper.return_value.function_logical_ids = ["HelloWorldFunction"]
-        mock_companion_stack_manager_helper.return_value.unreferenced_repos = ["HelloWorldFunctionB"]
-        mock_companion_stack_manager_helper.return_value.get_repository_mapping.return_value = {
-            "HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"
-        }
-        mock_companion_stack_manager_helper.return_value.remove_unreferenced_repos_from_mapping.return_value = {
-            "HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"
-        }
         mockauth_per_resource.return_value = [("HelloWorldResource", False)]
         mock_deploy_context.return_value.__enter__.return_value = context_mock
         mock_confirm.side_effect = [True, False, True, True, True, True]
@@ -355,7 +359,6 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.deploy.guided_context.get_template_parameters")
     @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
-    @patch("samcli.commands.deploy.guided_context.CompanionStackManagerHelper")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
     @patch.object(
         GuidedConfig,
@@ -371,7 +374,6 @@ class TestDeployCliCommand(TestCase):
         mock_confirm,
         mock_prompt,
         mock_signer_config_per_function,
-        mock_companion_stack_manager_helper,
         mock_sam_function_provider,
         mock_get_template_parameters,
         mock_get_buildable_stacks,
@@ -389,15 +391,6 @@ class TestDeployCliCommand(TestCase):
         mock_sam_function_provider.return_value = MagicMock(
             functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri="helloworld:v1")}
         )
-        mock_companion_stack_manager_helper.return_value.missing_repo_functions = ["HelloWorldFunction"]
-        mock_companion_stack_manager_helper.return_value.function_logical_ids = ["HelloWorldFunction"]
-        mock_companion_stack_manager_helper.return_value.unreferenced_repos = ["HelloWorldFunctionB"]
-        mock_companion_stack_manager_helper.return_value.get_repository_mapping.return_value = {
-            "HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"
-        }
-        mock_companion_stack_manager_helper.return_value.remove_unreferenced_repos_from_mapping.return_value = {
-            "HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"
-        }
         mockauth_per_resource.return_value = [("HelloWorldResource", False)]
         mock_get_template_parameters.return_value = {
             "Myparameter": {"Type": "String"},
@@ -518,7 +511,6 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.deploy.guided_context.get_template_parameters")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
     @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
-    @patch("samcli.commands.deploy.guided_context.CompanionStackManagerHelper")
     @patch.object(
         GuidedConfig,
         "get_config_ctx",
@@ -536,7 +528,6 @@ class TestDeployCliCommand(TestCase):
         mock_sam_config,
         mock_confirm,
         mock_prompt,
-        mock_companion_stack_manager_helper,
         mock_sam_function_provider,
         mock_signer_config_per_function,
         mock_get_template_parameters,
@@ -555,15 +546,6 @@ class TestDeployCliCommand(TestCase):
         mock_sam_function_provider.return_value = MagicMock(
             functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri="helloworld:v1")}
         )
-        mock_companion_stack_manager_helper.return_value.missing_repo_functions = ["HelloWorldFunction"]
-        mock_companion_stack_manager_helper.return_value.function_logical_ids = ["HelloWorldFunction"]
-        mock_companion_stack_manager_helper.return_value.unreferenced_repos = ["HelloWorldFunctionB"]
-        mock_companion_stack_manager_helper.return_value.get_repository_mapping.return_value = {
-            "HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"
-        }
-        mock_companion_stack_manager_helper.return_value.remove_unreferenced_repos_from_mapping.return_value = {
-            "HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"
-        }
         mockauth_per_resource.return_value = [("HelloWorldResource", False)]
 
         mock_get_template_parameters.return_value = {}
@@ -667,7 +649,6 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.deploy.guided_context.get_template_parameters")
     @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
-    @patch("samcli.commands.deploy.guided_context.CompanionStackManagerHelper")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
     @patch.object(GuidedConfig, "get_config_ctx", MagicMock(return_value=(None, get_mock_sam_config())))
     @patch("samcli.commands.deploy.guided_context.prompt")
@@ -679,7 +660,6 @@ class TestDeployCliCommand(TestCase):
         mock_confirm,
         mock_prompt,
         mock_signer_config_per_function,
-        mock_companion_stack_manager_helper,
         mock_sam_function_provider,
         mock_get_template_parameters,
         mock_get_buildable_stacks,
@@ -697,15 +677,6 @@ class TestDeployCliCommand(TestCase):
         mock_sam_function_provider.return_value = MagicMock(
             functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri="helloworld:v1")}
         )
-        mock_companion_stack_manager_helper.return_value.missing_repo_functions = ["HelloWorldFunction"]
-        mock_companion_stack_manager_helper.return_value.function_logical_ids = ["HelloWorldFunction"]
-        mock_companion_stack_manager_helper.return_value.unreferenced_repos = ["HelloWorldFunctionB"]
-        mock_companion_stack_manager_helper.return_value.get_repository_mapping.return_value = {
-            "HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"
-        }
-        mock_companion_stack_manager_helper.return_value.remove_unreferenced_repos_from_mapping.return_value = {
-            "HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"
-        }
         mockauth_per_resource.return_value = [("HelloWorldResource", False)]
         mock_get_template_parameters.return_value = {}
         mock_deploy_context.return_value.__enter__.return_value = context_mock

@@ -21,34 +21,54 @@ class TestGuidedContext(TestCase):
             image_repository=None,
             image_repositories={"HelloWorldFunction": "image-repo"},
         )
+        self.companion_stack_manager_helper_patch = patch(
+            "samcli.commands.deploy.guided_context.CompanionStackManagerHelper"
+        )
+        self.companion_stack_manager_helper_mock = self.companion_stack_manager_helper_patch.start()
+        self.companion_stack_manager_helper_mock.return_value.missing_repo_functions = ["HelloWorldFunction"]
+        self.companion_stack_manager_helper_mock.return_value.function_logical_ids = ["HelloWorldFunction"]
+        self.companion_stack_manager_helper_mock.return_value.unreferenced_repos = ["HelloWorldFunctionB"]
+        self.companion_stack_manager_helper_mock.return_value.get_repository_mapping.return_value = {
+            "HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"
+        }
+        self.companion_stack_manager_helper_mock.return_value.remove_unreferenced_repos_from_mapping.return_value = {
+            "HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"
+        }
+        self.companion_stack_manager_helper_mock.return_value.missing_repo_functions = ["HelloWorldFunction"]
+
+        self.verify_image_patch = patch(
+            "samcli.commands.deploy.guided_context.GuidedContext.verify_images_exist_locally"
+        )
+        self.verify_image_mock = self.verify_image_patch.start()
+
+    def tearDown(self):
+        self.companion_stack_manager_helper_patch.stop()
+        self.verify_image_patch.stop()
 
     @patch("samcli.commands.deploy.guided_context.prompt")
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
-    @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
     @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
     def test_guided_prompts_check_defaults_non_public_resources_zips(
         self,
         patched_signer_config_per_function,
         patched_sam_function_provider,
-        patched_get_template_artifacts_format,
         patched_get_buildable_stacks,
-        patchedauth_per_resource,
+        patched_auth_per_resource,
         patched_manage_stack,
         patched_confirm,
         patched_prompt,
     ):
-        patched_sam_function_provider.return_value = {}
-        patched_get_template_artifacts_format.return_value = [ZIP]
+        patched_sam_function_provider.return_value.functions = {}
         patched_get_buildable_stacks.return_value = (Mock(), [])
         # Series of inputs to confirmations so that full range of questions are asked.
-        patchedauth_per_resource.return_value = [
+        patched_auth_per_resource.return_value = [
             ("HelloWorldFunction", True),
         ]
-        patched_confirm.side_effect = [True, False, "", True]
+        patched_confirm.side_effect = [True, False, "", True, True, True]
         patched_manage_stack.return_value = "managed_s3_stack"
         patched_signer_config_per_function.return_value = ({}, {})
         self.gc.guided_prompts(parameter_override_keys=None)
@@ -57,6 +77,14 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
+            call(
+                f"\t {self.gc.start_bold}Create managed ECR repositories for all functions?{self.gc.end_bold}",
+                default=True,
+            ),
+            call(
+                f"\t {self.gc.start_bold}Delete the unreferenced repositories listed above when deploying?{self.gc.end_bold}",
+                default=False,
+            ),
         ]
         self.assertEqual(expected_confirmation_calls, patched_confirm.call_args_list)
 
@@ -73,14 +101,12 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
-    @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
     @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
     def test_guided_prompts_check_defaults_public_resources_zips(
         self,
         patched_signer_config_per_function,
         patched_sam_function_provider,
-        patched_get_template_artifacts_format,
         patched_get_buildable_stacks,
         patchedauth_per_resource,
         patched_manage_stack,
@@ -88,12 +114,11 @@ class TestGuidedContext(TestCase):
         patched_prompt,
     ):
         patched_signer_config_per_function.return_value = (None, None)
-        patched_sam_function_provider.return_value = {}
-        patched_get_template_artifacts_format.return_value = [ZIP]
+        patched_sam_function_provider.return_value.functions = {}
         patched_get_buildable_stacks.return_value = (Mock(), [])
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
-        patched_confirm.side_effect = [True, False, True, False, ""]
+        patched_confirm.side_effect = [True, False, True, False, True, True]
         patched_manage_stack.return_value = "managed_s3_stack"
         self.gc.guided_prompts(parameter_override_keys=None)
         # Now to check for all the defaults on confirmations.
@@ -105,6 +130,14 @@ class TestGuidedContext(TestCase):
                 default=False,
             ),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
+            call(
+                f"\t {self.gc.start_bold}Create managed ECR repositories for all functions?{self.gc.end_bold}",
+                default=True,
+            ),
+            call(
+                f"\t {self.gc.start_bold}Delete the unreferenced repositories listed above when deploying?{self.gc.end_bold}",
+                default=False,
+            ),
         ]
         self.assertEqual(expected_confirmation_calls, patched_confirm.call_args_list)
 
@@ -121,8 +154,6 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
-    @patch("samcli.commands.deploy.guided_context.get_template_function_resource_ids")
-    @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
     @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
     @patch("samcli.commands.deploy.guided_context.click.secho")
     @patch("samcli.commands.deploy.guided_context.tag_translation")
@@ -133,8 +164,6 @@ class TestGuidedContext(TestCase):
         patched_tag_translation,
         patched_click_secho,
         patched_sam_function_provider,
-        patched_get_template_artifacts_format,
-        mock_get_template_function_resource_ids,
         patched_get_buildable_stacks,
         patchedauth_per_resource,
         patched_manage_stack,
@@ -142,23 +171,20 @@ class TestGuidedContext(TestCase):
         patched_prompt,
     ):
 
-        mock_get_template_function_resource_ids.return_value = ["HelloWorldFunction"]
         patched_signer_config_per_function.return_value = (None, None)
         patched_tag_translation.return_value = "helloworld-123456-v1"
         patched_sam_function_provider.return_value = MagicMock(
             functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri="helloworld:v1")}
         )
-        patched_get_template_artifacts_format.return_value = [IMAGE]
         patched_get_buildable_stacks.return_value = (Mock(), [])
         patched_prompt.side_effect = [
             "sam-app",
             "region",
-            "123456789012.dkr.ecr.region.amazonaws.com/myrepo",
             "CAPABILITY_IAM",
         ]
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
-        patched_confirm.side_effect = [True, False, True, False, ""]
+        patched_confirm.side_effect = [True, False, True, False, True, True]
         patched_manage_stack.return_value = "managed_s3_stack"
         self.gc.guided_prompts(parameter_override_keys=None)
         # Now to check for all the defaults on confirmations.
@@ -170,6 +196,14 @@ class TestGuidedContext(TestCase):
                 default=False,
             ),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
+            call(
+                f"\t {self.gc.start_bold}Create managed ECR repositories for all functions?{self.gc.end_bold}",
+                default=True,
+            ),
+            call(
+                f"\t {self.gc.start_bold}Delete the unreferenced repositories listed above when deploying?{self.gc.end_bold}",
+                default=False,
+            ),
         ]
         self.assertEqual(expected_confirmation_calls, patched_confirm.call_args_list)
 
@@ -177,10 +211,6 @@ class TestGuidedContext(TestCase):
         expected_prompt_calls = [
             call(f"\t{self.gc.start_bold}Stack Name{self.gc.end_bold}", default="test", type=click.STRING),
             call(f"\t{self.gc.start_bold}AWS Region{self.gc.end_bold}", default="region", type=click.STRING),
-            call(
-                f"\t{self.gc.start_bold}Image Repository for HelloWorldFunction{self.gc.end_bold}",
-                default="image-repo",
-            ),
             call(f"\t{self.gc.start_bold}Capabilities{self.gc.end_bold}", default=["CAPABILITY_IAM"], type=ANY),
         ]
         self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
@@ -188,10 +218,6 @@ class TestGuidedContext(TestCase):
         print(expected_prompt_calls)
         print(patched_prompt.call_args_list)
         expected_click_secho_calls = [
-            call(
-                f"\t  helloworld:v1 to be pushed to 123456789012.dkr.ecr.region.amazonaws.com/myrepo:helloworld-123456-v1"
-            ),
-            call(nl=True),
             call("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy"),
             call("\t#SAM needs permission to be able to create roles to connect to the resources in your template"),
         ]
@@ -202,8 +228,6 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
-    @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
-    @patch("samcli.commands.deploy.guided_context.get_template_function_resource_ids")
     @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
     @patch("samcli.commands.deploy.guided_context.click.secho")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
@@ -212,16 +236,12 @@ class TestGuidedContext(TestCase):
         patched_signer_config_per_function,
         patched_click_secho,
         patched_sam_function_provider,
-        mock_get_template_function_resource_ids,
-        patched_get_template_artifacts_format,
         patched_get_buildable_stacks,
         patchedauth_per_resource,
         patched_manage_stack,
         patched_confirm,
         patched_prompt,
     ):
-        mock_get_template_function_resource_ids.return_value = ["HelloWorldFunction"]
-
         patched_sam_function_provider.return_value = MagicMock(
             functions={
                 "HelloWorldFunction": MagicMock(
@@ -229,17 +249,16 @@ class TestGuidedContext(TestCase):
                 )
             }
         )
-        patched_get_template_artifacts_format.return_value = [IMAGE]
         patched_get_buildable_stacks.return_value = (Mock(), [])
         patched_prompt.side_effect = [
             "sam-app",
             "region",
-            "123456789012.dkr.ecr.region.amazonaws.com/myrepo",
             "CAPABILITY_IAM",
+            "abc",
         ]
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
-        patched_confirm.side_effect = [True, False, True, False, ""]
+        patched_confirm.side_effect = [True, False, True, False, True, True]
         patched_manage_stack.return_value = "managed_s3_stack"
         patched_signer_config_per_function.return_value = ({}, {})
         self.gc.guided_prompts(parameter_override_keys=None)
@@ -252,6 +271,14 @@ class TestGuidedContext(TestCase):
                 default=False,
             ),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
+            call(
+                f"\t {self.gc.start_bold}Create managed ECR repositories for all functions?{self.gc.end_bold}",
+                default=True,
+            ),
+            call(
+                f"\t {self.gc.start_bold}Delete the unreferenced repositories listed above when deploying?{self.gc.end_bold}",
+                default=False,
+            ),
         ]
         self.assertEqual(expected_confirmation_calls, patched_confirm.call_args_list)
 
@@ -259,16 +286,11 @@ class TestGuidedContext(TestCase):
         expected_prompt_calls = [
             call(f"\t{self.gc.start_bold}Stack Name{self.gc.end_bold}", default="test", type=click.STRING),
             call(f"\t{self.gc.start_bold}AWS Region{self.gc.end_bold}", default="region", type=click.STRING),
-            call(
-                f"\t{self.gc.start_bold}Image Repository for HelloWorldFunction{self.gc.end_bold}",
-                default="image-repo",
-            ),
             call(f"\t{self.gc.start_bold}Capabilities{self.gc.end_bold}", default=["CAPABILITY_IAM"], type=ANY),
         ]
         self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
         # Now to check click secho outputs and no references to images pushed.
         expected_click_secho_calls = [
-            call(nl=True),
             call("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy"),
             call("\t#SAM needs permission to be able to create roles to connect to the resources in your template"),
         ]
@@ -279,41 +301,35 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
-    @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
-    @patch("samcli.commands.deploy.guided_context.get_template_function_resource_ids")
     @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
     @patch("samcli.commands.deploy.guided_context.click.secho")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
-    def test_guided_prompts_images_no_image_uri(
+    def test_guided_prompts_images_illegal_image_uri(
         self,
         patched_signer_config_per_function,
         patched_click_secho,
         patched_sam_function_provider,
-        mock_get_template_function_resource_ids,
-        patched_get_template_artifacts_format,
         patched_get_buildable_stacks,
         patchedauth_per_resource,
         patched_manage_stack,
         patched_confirm,
         patched_prompt,
     ):
-        mock_get_template_function_resource_ids.return_value = ["HelloWorldFunction"]
 
         # Set ImageUri to be None, the sam app was never built.
         patched_sam_function_provider.return_value = MagicMock(
             functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri=None)}
         )
-        patched_get_template_artifacts_format.return_value = [IMAGE]
         patched_get_buildable_stacks.return_value = (Mock(), [])
         patched_prompt.side_effect = [
             "sam-app",
             "region",
-            "123456789012.dkr.ecr.region.amazonaws.com/myrepo",
             "CAPABILITY_IAM",
+            "illegaluri",
         ]
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
-        patched_confirm.side_effect = [True, False, True, False, ""]
+        patched_confirm.side_effect = [True, False, True, False, False, True]
         patched_manage_stack.return_value = "managed_s3_stack"
         patched_signer_config_per_function.return_value = ({}, {})
         with self.assertRaises(GuidedDeployFailedError):
@@ -324,8 +340,192 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
-    @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
-    @patch("samcli.commands.deploy.guided_context.get_template_function_resource_ids")
+    @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
+    @patch("samcli.commands.deploy.guided_context.click.secho")
+    @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
+    def test_guided_prompts_images_missing_repo(
+        self,
+        patched_signer_config_per_function,
+        patched_click_secho,
+        patched_sam_function_provider,
+        patched_get_buildable_stacks,
+        patchedauth_per_resource,
+        patched_manage_stack,
+        patched_confirm,
+        patched_prompt,
+    ):
+
+        self.companion_stack_manager_helper_mock.return_value.function_logical_ids = [
+            "HelloWorldFunction",
+            "GoodbyeWorldFunction",
+        ]
+        # Set ImageUri to be None, the sam app was never built.
+        patched_sam_function_provider.return_value = MagicMock(
+            functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri=None)}
+        )
+        patched_get_buildable_stacks.return_value = (Mock(), [])
+        patched_prompt.side_effect = [
+            "sam-app",
+            "region",
+            "CAPABILITY_IAM",
+        ]
+        # Series of inputs to confirmations so that full range of questions are asked.
+        patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
+        patched_confirm.side_effect = [True, False, True, False, True, True]
+        patched_manage_stack.return_value = "managed_s3_stack"
+        patched_signer_config_per_function.return_value = ({}, {})
+
+        self.gc.guided_prompts(parameter_override_keys=None)
+        # Now to check for all the defaults on confirmations.
+        expected_confirmation_calls = [
+            call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),
+            call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
+            call(
+                f"\t{self.gc.start_bold}HelloWorldFunction may not have authorization defined, Is this okay?{self.gc.end_bold}",
+                default=False,
+            ),
+            call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
+            call(
+                f"\t {self.gc.start_bold}Create managed ECR repositories for the 1 functions without?{self.gc.end_bold}",
+                default=True,
+            ),
+            call(
+                f"\t {self.gc.start_bold}Delete the unreferenced repositories listed above when deploying?{self.gc.end_bold}",
+                default=False,
+            ),
+        ]
+        self.assertEqual(expected_confirmation_calls, patched_confirm.call_args_list)
+
+        # Now to check for all the defaults on prompts.
+        expected_prompt_calls = [
+            call(f"\t{self.gc.start_bold}Stack Name{self.gc.end_bold}", default="test", type=click.STRING),
+            call(f"\t{self.gc.start_bold}AWS Region{self.gc.end_bold}", default="region", type=click.STRING),
+            call(f"\t{self.gc.start_bold}Capabilities{self.gc.end_bold}", default=["CAPABILITY_IAM"], type=ANY),
+        ]
+        self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
+        # Now to check click secho outputs and no references to images pushed.
+        expected_click_secho_calls = [
+            call("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy"),
+            call("\t#SAM needs permission to be able to create roles to connect to the resources in your template"),
+        ]
+        self.assertEqual(expected_click_secho_calls, patched_click_secho.call_args_list)
+
+    @patch("samcli.commands.deploy.guided_context.prompt")
+    @patch("samcli.commands.deploy.guided_context.confirm")
+    @patch("samcli.commands.deploy.guided_context.manage_stack")
+    @patch("samcli.commands.deploy.guided_context.auth_per_resource")
+    @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
+    @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
+    @patch("samcli.commands.deploy.guided_context.click.secho")
+    @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
+    def test_guided_prompts_images_no_repo(
+        self,
+        patched_signer_config_per_function,
+        patched_click_secho,
+        patched_sam_function_provider,
+        patched_get_buildable_stacks,
+        patchedauth_per_resource,
+        patched_manage_stack,
+        patched_confirm,
+        patched_prompt,
+    ):
+
+        self.companion_stack_manager_helper_mock.return_value.function_logical_ids = []
+        # Set ImageUri to be None, the sam app was never built.
+        patched_sam_function_provider.return_value = MagicMock(
+            functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri=None)}
+        )
+        patched_get_buildable_stacks.return_value = (Mock(), [])
+        patched_prompt.side_effect = [
+            "sam-app",
+            "region",
+            "CAPABILITY_IAM",
+            "123456789012.dkr.ecr.region.amazonaws.com/myrepo",
+        ]
+        # Series of inputs to confirmations so that full range of questions are asked.
+        patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
+        patched_confirm.side_effect = [True, False, True, False, True, True]
+        patched_manage_stack.return_value = "managed_s3_stack"
+        patched_signer_config_per_function.return_value = ({}, {})
+
+        self.gc.guided_prompts(parameter_override_keys=None)
+        # Now to check for all the defaults on confirmations.
+        expected_confirmation_calls = [
+            call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),
+            call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
+            call(
+                f"\t{self.gc.start_bold}HelloWorldFunction may not have authorization defined, Is this okay?{self.gc.end_bold}",
+                default=False,
+            ),
+            call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
+            call(
+                f"\t {self.gc.start_bold}Delete the unreferenced repositories listed above when deploying?{self.gc.end_bold}",
+                default=False,
+            ),
+        ]
+        self.assertEqual(expected_confirmation_calls, patched_confirm.call_args_list)
+
+        # Now to check for all the defaults on prompts.
+        expected_prompt_calls = [
+            call(f"\t{self.gc.start_bold}Stack Name{self.gc.end_bold}", default="test", type=click.STRING),
+            call(f"\t{self.gc.start_bold}AWS Region{self.gc.end_bold}", default="region", type=click.STRING),
+            call(f"\t{self.gc.start_bold}Capabilities{self.gc.end_bold}", default=["CAPABILITY_IAM"], type=ANY),
+            call(
+                f"\t {self.gc.start_bold}ECR repository for HelloWorldFunction{self.gc.end_bold}",
+                default=None,
+                type=click.STRING,
+            ),
+        ]
+        self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
+        # Now to check click secho outputs and no references to images pushed.
+        expected_click_secho_calls = [
+            call("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy"),
+            call("\t#SAM needs permission to be able to create roles to connect to the resources in your template"),
+        ]
+        self.assertEqual(expected_click_secho_calls, patched_click_secho.call_args_list)
+
+    @patch("samcli.commands.deploy.guided_context.prompt")
+    @patch("samcli.commands.deploy.guided_context.confirm")
+    @patch("samcli.commands.deploy.guided_context.manage_stack")
+    @patch("samcli.commands.deploy.guided_context.auth_per_resource")
+    @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
+    @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
+    @patch("samcli.commands.deploy.guided_context.click.secho")
+    @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
+    def test_guided_prompts_images_deny_deletion(
+        self,
+        patched_signer_config_per_function,
+        patched_click_secho,
+        patched_sam_function_provider,
+        patched_get_buildable_stacks,
+        patchedauth_per_resource,
+        patched_manage_stack,
+        patched_confirm,
+        patched_prompt,
+    ):
+        # Set ImageUri to be None, the sam app was never built.
+        patched_sam_function_provider.return_value = MagicMock(
+            functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri=None)}
+        )
+        patched_get_buildable_stacks.return_value = (Mock(), [])
+        patched_prompt.side_effect = [
+            "sam-app",
+            "region",
+            "CAPABILITY_IAM",
+        ]
+        # Series of inputs to confirmations so that full range of questions are asked.
+        patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
+        patched_confirm.side_effect = [True, False, True, False, True, False]
+        patched_manage_stack.return_value = "managed_s3_stack"
+        patched_signer_config_per_function.return_value = ({}, {})
+        with self.assertRaises(GuidedDeployFailedError):
+            self.gc.guided_prompts(parameter_override_keys=None)
+
+    @patch("samcli.commands.deploy.guided_context.prompt")
+    @patch("samcli.commands.deploy.guided_context.confirm")
+    @patch("samcli.commands.deploy.guided_context.manage_stack")
+    @patch("samcli.commands.deploy.guided_context.auth_per_resource")
+    @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
     @patch("samcli.commands.deploy.guided_context.click.secho")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
@@ -334,30 +534,26 @@ class TestGuidedContext(TestCase):
         patched_signer_config_per_function,
         patched_click_secho,
         patched_sam_function_provider,
-        mock_get_template_function_resource_ids,
-        patched_get_template_artifacts_format,
         patched_get_buildable_stacks,
         patchedauth_per_resource,
         patched_manage_stack,
         patched_confirm,
         patched_prompt,
     ):
-        mock_get_template_function_resource_ids.return_value = ["HelloWorldFunction"]
-
         patched_sam_function_provider.return_value = MagicMock(
             functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri="mysamapp:v1")}
         )
-        patched_get_template_artifacts_format.return_value = [IMAGE]
         patched_get_buildable_stacks.return_value = (Mock(), [])
         # set Image repository to be blank.
         patched_prompt.side_effect = [
             "sam-app",
             "region",
             "",
+            "",
         ]
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
-        patched_confirm.side_effect = [True, False, True, False, ""]
+        patched_confirm.side_effect = [True, False, True, False, False, True]
         patched_manage_stack.return_value = "managed_s3_stack"
         patched_signer_config_per_function.return_value = ({}, {})
         with self.assertRaises(GuidedDeployFailedError):
@@ -382,7 +578,6 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
-    @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
     @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
     def test_guided_prompts_with_given_capabilities(
@@ -390,7 +585,6 @@ class TestGuidedContext(TestCase):
         given_capabilities,
         patched_signer_config_per_function,
         patched_sam_function_provider,
-        patched_get_template_artifacts_format,
         patched_get_buildable_stacks,
         patchedauth_per_resource,
         patched_manage_stack,
@@ -401,13 +595,21 @@ class TestGuidedContext(TestCase):
         patched_get_buildable_stacks.return_value = (Mock(), [])
         self.gc.capabilities = given_capabilities
         # Series of inputs to confirmations so that full range of questions are asked.
-        patched_confirm.side_effect = [True, False, "", True]
+        patched_confirm.side_effect = [True, False, "", True, True, True]
         self.gc.guided_prompts(parameter_override_keys=None)
         # Now to check for all the defaults on confirmations.
         expected_confirmation_calls = [
             call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
+            call(
+                f"\t {self.gc.start_bold}Create managed ECR repositories for all functions?{self.gc.end_bold}",
+                default=True,
+            ),
+            call(
+                f"\t {self.gc.start_bold}Delete the unreferenced repositories listed above when deploying?{self.gc.end_bold}",
+                default=False,
+            ),
         ]
         self.assertEqual(expected_confirmation_calls, patched_confirm.call_args_list)
 
@@ -425,27 +627,24 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
-    @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
     @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
     def test_guided_prompts_check_configuration_file_prompt_calls(
         self,
         patched_signer_config_per_function,
         patched_sam_function_provider,
-        patched_get_template_artifacts_format,
         patched_get_buildable_stacks,
         patchedauth_per_resource,
         patched_manage_stack,
         patched_confirm,
         patched_prompt,
     ):
-        patched_sam_function_provider.return_value = {}
-        patched_get_template_artifacts_format.return_value = [ZIP]
+        patched_sam_function_provider.return_value.fucntions = {}
         patched_get_buildable_stacks.return_value = (Mock(), [])
         patched_signer_config_per_function.return_value = ({}, {})
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
-        patched_confirm.side_effect = [True, False, True, True, ""]
+        patched_confirm.side_effect = [True, False, True, True, True, True]
         patched_manage_stack.return_value = "managed_s3_stack"
         self.gc.guided_prompts(parameter_override_keys=None)
         # Now to check for all the defaults on confirmations.
@@ -457,6 +656,14 @@ class TestGuidedContext(TestCase):
                 default=False,
             ),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
+            call(
+                f"\t {self.gc.start_bold}Create managed ECR repositories for all functions?{self.gc.end_bold}",
+                default=True,
+            ),
+            call(
+                f"\t {self.gc.start_bold}Delete the unreferenced repositories listed above when deploying?{self.gc.end_bold}",
+                default=False,
+            ),
         ]
         self.assertEqual(expected_confirmation_calls, patched_confirm.call_args_list)
 
@@ -482,26 +689,23 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
-    @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
     @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
     def test_guided_prompts_check_parameter_from_template(
         self,
         patched_signer_config_per_function,
         patched_sam_function_provider,
-        patched_get_template_artifacts_format,
         patched_get_buildable_stacks,
         patchedauth_per_resource,
         patched_manage_stack,
         patched_confirm,
         patched_prompt,
     ):
-        patched_sam_function_provider.return_value = {}
-        patched_get_template_artifacts_format.return_value = [ZIP]
+        patched_sam_function_provider.return_value.functions = {}
         patched_get_buildable_stacks.return_value = (Mock(), [])
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
-        patched_confirm.side_effect = [True, False, True, False, ""]
+        patched_confirm.side_effect = [True, False, True, False, True, True]
         patched_manage_stack.return_value = "managed_s3_stack"
         patched_signer_config_per_function.return_value = ({}, {})
         parameter_override_from_template = {"MyTestKey": {"Default": "MyTemplateDefaultVal"}}
@@ -516,6 +720,14 @@ class TestGuidedContext(TestCase):
                 default=False,
             ),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
+            call(
+                f"\t {self.gc.start_bold}Create managed ECR repositories for all functions?{self.gc.end_bold}",
+                default=True,
+            ),
+            call(
+                f"\t {self.gc.start_bold}Delete the unreferenced repositories listed above when deploying?{self.gc.end_bold}",
+                default=False,
+            ),
         ]
         self.assertEqual(expected_confirmation_calls, patched_confirm.call_args_list)
 
@@ -536,26 +748,23 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
-    @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
     @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
     def test_guided_prompts_check_parameter_from_cmd_or_config(
         self,
         patched_signer_config_per_function,
         patched_sam_function_provider,
-        patched_get_template_artifacts_format,
         patched_get_buildable_stacks,
         patchedauth_per_resource,
         patched_manage_stack,
         patched_confirm,
         patched_prompt,
     ):
-        patched_sam_function_provider.return_value = {}
-        patched_get_template_artifacts_format.return_value = [ZIP]
+        patched_sam_function_provider.return_value.functions = {}
         patched_get_buildable_stacks.return_value = (Mock(), [])
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
-        patched_confirm.side_effect = [True, False, True, False, ""]
+        patched_confirm.side_effect = [True, False, True, False, True, True]
         patched_signer_config_per_function.return_value = ({}, {})
         patched_manage_stack.return_value = "managed_s3_stack"
         parameter_override_from_template = {"MyTestKey": {"Default": "MyTemplateDefaultVal"}}
@@ -570,6 +779,14 @@ class TestGuidedContext(TestCase):
                 default=False,
             ),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
+            call(
+                f"\t {self.gc.start_bold}Create managed ECR repositories for all functions?{self.gc.end_bold}",
+                default=True,
+            ),
+            call(
+                f"\t {self.gc.start_bold}Delete the unreferenced repositories listed above when deploying?{self.gc.end_bold}",
+                default=False,
+            ),
         ]
         self.assertEqual(expected_confirmation_calls, patched_confirm.call_args_list)
 
@@ -601,14 +818,12 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
-    @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
     @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
     def test_guided_prompts_with_code_signing(
         self,
         given_sign_packages_flag,
         given_code_signing_configs,
         patched_sam_function_provider,
-        patched_get_template_artifacts_format,
         patched_signer_config_per_function,
         patched_get_buildable_stacks,
         patchedauth_per_resource,
@@ -619,12 +834,11 @@ class TestGuidedContext(TestCase):
     ):
         # given_sign_packages_flag = True
         # given_code_signing_configs = ({"MyFunction1"}, {"MyLayer1": {"MyFunction1"}, "MyLayer2": {"MyFunction1"}})
-        patched_sam_function_provider.return_value = {}
-        patched_get_template_artifacts_format.return_value = [ZIP]
+        patched_sam_function_provider.return_value.functions = {}
         patched_signer_config_per_function.return_value = given_code_signing_configs
         patched_get_buildable_stacks.return_value = (Mock(), [])
         # Series of inputs to confirmations so that full range of questions are asked.
-        patched_confirm.side_effect = [True, False, given_sign_packages_flag, "", True]
+        patched_confirm.side_effect = [True, False, given_sign_packages_flag, "", True, True, True]
         self.gc.guided_prompts(parameter_override_keys=None)
         # Now to check for all the defaults on confirmations.
         expected_confirmation_calls = [
@@ -635,6 +849,14 @@ class TestGuidedContext(TestCase):
                 default=True,
             ),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
+            call(
+                f"\t {self.gc.start_bold}Create managed ECR repositories for all functions?{self.gc.end_bold}",
+                default=True,
+            ),
+            call(
+                f"\t {self.gc.start_bold}Delete the unreferenced repositories listed above when deploying?{self.gc.end_bold}",
+                default=False,
+            ),
         ]
         self.assertEqual(expected_confirmation_calls, patched_confirm.call_args_list)
 
@@ -669,14 +891,12 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
-    @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
     @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
     def test_guided_prompts_check_default_config_region(
         self,
         patched_signer_config_per_function,
         patched_sam_function_provider,
-        patched_get_template_artifacts_format,
         patched_get_buildable_stacks,
         patchedauth_per_resource,
         patched_manage_stack,
@@ -684,12 +904,11 @@ class TestGuidedContext(TestCase):
         patched_prompt,
         patched_get_session,
     ):
-        patched_sam_function_provider.return_value = {}
-        patched_get_template_artifacts_format.return_value = [ZIP]
+        patched_sam_function_provider.return_value.functions = {}
         patched_get_buildable_stacks.return_value = (Mock(), [])
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
-        patched_confirm.side_effect = [True, False, True, True, ""]
+        patched_confirm.side_effect = [True, False, True, True, True, True]
         patched_signer_config_per_function.return_value = ({}, {})
         patched_manage_stack.return_value = "managed_s3_stack"
         patched_get_session.return_value.get_config_variable.return_value = "default_config_region"
@@ -705,6 +924,14 @@ class TestGuidedContext(TestCase):
                 default=False,
             ),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
+            call(
+                f"\t {self.gc.start_bold}Create managed ECR repositories for all functions?{self.gc.end_bold}",
+                default=True,
+            ),
+            call(
+                f"\t {self.gc.start_bold}Delete the unreferenced repositories listed above when deploying?{self.gc.end_bold}",
+                default=False,
+            ),
         ]
         self.assertEqual(expected_confirmation_calls, patched_confirm.call_args_list)
 

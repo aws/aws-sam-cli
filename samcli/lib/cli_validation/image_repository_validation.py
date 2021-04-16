@@ -57,7 +57,7 @@ def image_repository_validation(func):
                 exception=click.BadOptionUsage(
                     option_name="--image-repositories",
                     ctx=ctx,
-                    message="Missing option '--image-repository', '--image-repositories', or '--resolve_image_repos'",
+                    message="Missing option '--image-repository', '--image-repositories', or '--resolve-image-repos'",
                 ),
             ),
             Validator(

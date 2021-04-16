@@ -14,10 +14,10 @@ from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack, ECRR
 from samcli.lib.package.artifact_exporter import mktempfile
 from samcli.lib.package.s3_uploader import S3Uploader
 
-if typing.TYPE_CHECKING:
+if typing.TYPE_CHECKING:  # pragma: no cover
     from mypy_boto3_cloudformation.client import CloudFormationClient
     from mypy_boto3_s3.client import S3Client
-else:
+else:  # pragma: no cover
     CloudFormationClient = object
     S3Client = object
 

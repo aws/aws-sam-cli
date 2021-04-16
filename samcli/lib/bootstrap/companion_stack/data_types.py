@@ -21,7 +21,7 @@ class CompanionStack:
         self._parent_stack_name = parent_stack_name
         self._escaped_parent_stack_name = re.sub(r"[^a-z0-9]", "", self._parent_stack_name.lower())
         self._parent_stack_hash = str_checksum(self._parent_stack_name)
-        self._stack_name = self._parent_stack_name[:104] + "-" + self._parent_stack_hash[:8] + "-CompanionStack"
+        self._stack_name = f"{self._parent_stack_name[:104]}-{self._parent_stack_hash[:8]}-CompanionStack"
 
     @property
     def parent_stack_name(self) -> str:

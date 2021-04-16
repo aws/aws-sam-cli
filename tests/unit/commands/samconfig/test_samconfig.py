@@ -595,6 +595,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 "samconfig.toml",
                 "default",
+                False,
             )
 
     @patch("samcli.commands.deploy.command.do_cli")
@@ -703,6 +704,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 "samconfig.toml",
                 "default",
+                False,
             )
 
     @patch("samcli.commands.logs.command.do_cli")

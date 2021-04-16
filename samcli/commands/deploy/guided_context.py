@@ -376,6 +376,7 @@ class GuidedContext:
             image_uri = prompt(
                 f"\t {self.start_bold}ECR repository for {function_logical_id}{self.end_bold}",
                 default=default_image_repo,
+                type=click.STRING,
             )
             if not is_ecr_url(image_uri):
                 raise GuidedDeployFailedError(f"Invalid Image Repository ECR URI: {image_uri}")
@@ -410,32 +411,31 @@ class GuidedContext:
             return confirm(
                 f"\t {self.start_bold}Create managed ECR repositories for all functions?{self.end_bold}", default=True
             )
-        else:
-            functions_with_repo_count = len(manager_helper.function_logical_ids) - len(
-                manager_helper.missing_repo_functions
-            )
-            click.echo(
-                "\t Image repositories: "
-                f"Found ({functions_with_repo_count} of {len(manager_helper.function_logical_ids)})"
-                " #Different image repositories can be set in samconfig.toml"
-            )
+        functions_with_repo_count = len(manager_helper.function_logical_ids) - len(
+            manager_helper.missing_repo_functions
+        )
+        click.echo(
+            "\t Image repositories: "
+            f"Found ({functions_with_repo_count} of {len(manager_helper.function_logical_ids)})"
+            " #Different image repositories can be set in samconfig.toml"
+        )
 
-            if not manager_helper.missing_repo_functions:
-                return False
+        if not manager_helper.missing_repo_functions:
+            return False
 
-            click.echo(
-                "\t #Managed repositories will be deleted when their functions are "
-                "removed from the template and deployed"
+        click.echo(
+            "\t #Managed repositories will be deleted when their functions are "
+            "removed from the template and deployed"
+        )
+        return (
+            confirm(
+                f"\t {self.start_bold}Create managed ECR repositories for the "
+                f"{len(manager_helper.missing_repo_functions)} functions without?{self.end_bold}",
+                default=True,
             )
-            return (
-                confirm(
-                    f"\n\t {self.start_bold}Create managed ECR repositories for the "
-                    f"{len(manager_helper.missing_repo_functions)} functions without?{self.end_bold}",
-                    default=True,
-                )
-                if manager_helper.missing_repo_functions
-                else True
-            )
+            if manager_helper.missing_repo_functions
+            else True
+        )
 
     def prompt_delete_unreferenced_repos(
         self, manager_helper: CompanionStackManagerHelper, image_repositories: Dict[str, str]

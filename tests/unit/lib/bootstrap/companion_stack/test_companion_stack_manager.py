@@ -117,10 +117,34 @@ class TestCompanionStackManager(TestCase):
         resources = [resource_a, resource_b, resource_c]
         boto3_resource_mock.return_value.Stack.return_value.resource_summaries.all.return_value = resources
 
+        self.manager.does_companion_stack_exist = lambda: True
+
         repos = self.manager.list_deployed_repos()
         self.assertTrue(len(repos) == 2)
         ecr_repo_mock.assert_any_call(logical_id=repo_a, physical_id=ANY)
         ecr_repo_mock.assert_any_call(logical_id=repo_b, physical_id=ANY)
+
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.ECRRepo")
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.boto3.resource")
+    def test_list_deployed_repos_does_not_exist(self, boto3_resource_mock, ecr_repo_mock):
+        repo_a = "ECRRepoA"
+        repo_b = "ECRRepoB"
+
+        resource_a = Mock()
+        resource_a.resource_type = "AWS::ECR::Repository"
+        resource_a.logical_resource_id = repo_a
+        resource_b = Mock()
+        resource_b.resource_type = "AWS::ECR::Repository"
+        resource_b.logical_resource_id = repo_b
+        resource_c = Mock()
+        resource_c.resource_type = "RandomResource"
+        resources = [resource_a, resource_b, resource_c]
+        boto3_resource_mock.return_value.Stack.return_value.resource_summaries.all.return_value = resources
+
+        self.manager.does_companion_stack_exist = lambda: False
+
+        repos = self.manager.list_deployed_repos()
+        self.assertEqual(repos, [])
 
     @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.ECRRepo")
     def test_get_unreferenced_repos(self, ecr_repo_mock):
@@ -144,6 +168,28 @@ class TestCompanionStackManager(TestCase):
         unreferenced_repos = self.manager.get_unreferenced_repos()
         self.assertEqual(len(unreferenced_repos), 1)
         self.assertEqual(unreferenced_repos[0].logical_id, repo_b_id)
+
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.ECRRepo")
+    def test_get_unreferenced_repos_does_not_exist(self, ecr_repo_mock):
+        repo_a_id = "ECRRepoA"
+        repo_b_id = "ECRRepoB"
+
+        current_repo_a = Mock()
+        current_repo_a.logical_id = repo_a_id
+        current_repos = {"FunctionA": current_repo_a}
+
+        repo_a = Mock()
+        repo_a.logical_id = repo_a_id
+        repo_b = Mock()
+        repo_b.logical_id = repo_b_id
+        deployed_repos = [repo_a, repo_b]
+
+        self.manager.does_companion_stack_exist = lambda: False
+        self.manager.list_deployed_repos = lambda: deployed_repos
+        self.companion_stack_builder_mock.return_value.repo_mapping = current_repos
+
+        unreferenced_repos = self.manager.get_unreferenced_repos()
+        self.assertEqual(unreferenced_repos, [])
 
     def test_delete_unreferenced_repos(self):
         repo_a_id = "ECRRepoA"
