@@ -1,8 +1,9 @@
 """
     Help class to bridge CLI functions and CompanionStackManager
 """
-from samcli.lib.bootstrap.companion_stack.data_types import ECRRepo
 from typing import Dict, List
+
+from samcli.lib.bootstrap.companion_stack.data_types import ECRRepo
 
 from samcli.commands._utils.template import get_template_function_resource_ids
 from samcli.lib.utils.packagetype import IMAGE
