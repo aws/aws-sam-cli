@@ -63,7 +63,7 @@ def local_common_options(f):
             default="127.0.0.1",
             show_default=True,
             help="IP address of the host network interface that container ports should bind to. "
-            "Use 0.0.0.0 to bind to all interfaces."
+            "Use 0.0.0.0 to bind to all interfaces.",
         ),
     ]
 
