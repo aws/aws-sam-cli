@@ -151,14 +151,14 @@ LOG = logging.getLogger(__name__)
     "the output AWS CloudFormation template. YAML is used by default.",
 )
 @click.option(
-    "--resolve-s3", required=False, is_flag=True, help="Automatically resolve s3 bucket for non-guided deployments."
+    "--resolve-s3", required=False, is_flag=True, help="Automatically resolve S3 bucket for non-guided deployments."
 )
 @click.option(
     "--resolve-image-repos",
     required=False,
     is_flag=True,
-    help="Automatically create and delete ECR repos for image based functions in non-guided deployments."
-    "Auto created image repos will be deleted if the corresponding functions are removed.",
+    help="Automatically create and delete ECR repositories for image-based functions in non-guided deployments. "
+    "Automatically created image repositories will be deleted if the corresponding functions are removed.",
 )
 @metadata_override_option
 @notification_arns_override_option
