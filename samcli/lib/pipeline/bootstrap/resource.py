@@ -4,7 +4,7 @@ from typing import List, Optional
 
 class ARNParts:
     """
-    Decompose a given ARN into its parts
+    Decompose a given ARN into its parts https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
 
     Attributes
     ----------

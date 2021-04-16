@@ -21,8 +21,8 @@ HELP_TEXT = """Sets up the following infrastructure resources for AWS SAM CI/CD 
 \n\t - Pipeline IAM user with access key ID and secret access key credentials to be shared with the CI/CD provider
 \n\t - Pipeline execution IAM role assumed by the pipeline user to obtain access to the AWS account
 \n\t - CloudFormation execution IAM role assumed by CloudFormation to deploy the AWS SAM application
-\n\t - Artifacts S3 bucket to store the AWS SAM build artifacts
-\n\t - Optionally, an ECR repository to store container image Lambda deployment packages
+\n\t - Artifacts S3 bucket to hold the AWS SAM build artifacts
+\n\t - Optionally, an ECR repository to hold container image Lambda deployment packages
 """
 
 PIPELINE_CONFIG_DIR = os.path.join(".aws-sam", "pipeline")
@@ -44,20 +44,20 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
 )
 @click.option(
     "--pipeline-user",
-    help="The ARN of the IAM user having its AccessKeyId and SecretAccessKey shared with the CI/CD provider."
+    help="The ARN of the IAM user having its access key ID and secret access key shared with the CI/CD provider."
     "It is used to grant this IAM user the permissions to access the corresponding AWS account."
-    "If not provided, the command will create one along with AccessKeyId and SecretAccessKey credentials.",
+    "If not provided, the command will create one along with access key ID and secret access key credentials.",
     required=False,
 )
 @click.option(
     "--pipeline-execution-role",
-    help="The ARN of an IAM Role to be assumed by the pipeline-user to operate on this stage. "
+    help="The ARN of an IAM Role to be assumed by the pipeline user to operate on this stage. "
     "Provide it only if you want to user your own role, otherwise, the command will create one",
     required=False,
 )
 @click.option(
     "--cloudformation-execution-role",
-    help="The ARN of an IAM Role to be assumed by the CloudFormation service while deploying the application's stack "
+    help="The ARN of an IAM Role to be assumed by the CloudFormation service while deploying the application's stack. "
     "Provide it only if you want to user your own role, otherwise, the command will create one",
     required=False,
 )
@@ -71,19 +71,19 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
     "--create-ecr-repo/--no-create-ecr-repo",
     is_flag=True,
     default=False,
-    help="If set to true and no ecr-repo is provided this command will create an ECR repo to hold the image container "
-    "of the lambda functions having Image package type.",
+    help="If set to true and no ecr-repo is provided this command will create an ECR repository to hold the image "
+         "container of the lambda functions having Image package type.",
 )
 @click.option(
     "--ecr-repo",
-    help="The ARN of an ECR repo to hold the image containers of the lambda functions of image package type. "
+    help="The ARN of an ECR repository to hold the image containers of the lambda functions of image package type. "
     "If Provided, the create-ecr-repo argument is ignored. If not provided and create-ecr-repo is set to true "
-    "The command will create one.",
+    "the command will create one.",
     required=False,
 )
 @click.option(
     "--pipeline-ip-range",
-    help="If provided, all requests coming from outside of the given range(s) are denied.",
+    help="If provided, all requests coming from outside of the given range are denied. Example: 10.24.34.0/24",
     required=False,
 )
 @click.option(
@@ -193,18 +193,19 @@ def do_cli(
         ecr_repo_arn=ecr_repo_arn,
     )
 
-    stage.bootstrap(confirm_changeset=confirm_changeset)
+    bootstrapped: bool = stage.bootstrap(confirm_changeset=confirm_changeset)
 
-    stage.print_resources_summary()
+    if bootstrapped:
+        stage.print_resources_summary()
 
-    try:
-        stage.save_config(
-            config_dir=PIPELINE_CONFIG_DIR, filename=PIPELINE_CONFIG_FILENAME, cmd_names=_get_command_name()
-        )
-    except Exception:
-        # Swallow saving exceptions, if any, as the resources are already bootstrapped and the ARNs are already
-        # printed out in the screen.
-        pass
+        try:
+            stage.save_config(
+                config_dir=PIPELINE_CONFIG_DIR, filename=PIPELINE_CONFIG_FILENAME, cmd_names=_get_command_name()
+            )
+        except Exception:
+            # Swallow saving exceptions, if any, as the resources are already bootstrapped and the ARNs are already
+            # printed out in the screen.
+            pass
 
 
 def _load_saved_pipeline_user() -> Optional[str]:

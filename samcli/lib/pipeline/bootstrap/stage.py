@@ -106,7 +106,7 @@ class Stage:
             missing_resources_msg += "\n\tECR repo."
         return missing_resources_msg
 
-    def bootstrap(self, confirm_changeset: bool = True) -> None:
+    def bootstrap(self, confirm_changeset: bool = True) -> bool:
         """
         Deploys the CFN template(./stage_resources.yaml) which deploys:
             * Pipeline IAM User
@@ -125,18 +125,20 @@ class Stage:
         confirm_changeset: bool
             if set to false, the stage_resources.yaml CFN template will directly be deployed, otherwise, the user will
             be prompted for confirmation
+
+        Returns True if bootstrapped, otherwise False
         """
 
         if self.did_user_provide_all_required_resources():
             click.secho(f"\nAll required resources for the {self.name} stage exist, skipping creation.", fg="yellow")
-            return
+            return True
 
         missing_resources: str = self._get_non_user_provided_resources_msg()
         click.echo(f"This will create the following required resources for the {self.name} stage: {missing_resources}")
         if confirm_changeset:
             confirmed: bool = click.confirm("Should we proceed with the creation?")
             if not confirmed:
-                return
+                return False
 
         stage_name_suffix: str = re.sub("[^0-9a-zA-Z]+", "-", self.name)
         stack_name: str = f"{STACK_NAME_PREFIX}-{stage_name_suffix}-{STAGE_RESOURCES_STACK_NAME_SUFFIX}"
@@ -165,6 +167,7 @@ class Stage:
         self.artifacts_bucket.arn = output.get("ArtifactsBucket")
         self.artifacts_bucket.kms_key_arn = output.get("ArtifactsBucketKMS")
         self.ecr_repo.arn = output.get("EcrRepo")
+        return True
 
     @staticmethod
     def _read_template(template_file_name: str) -> str:
