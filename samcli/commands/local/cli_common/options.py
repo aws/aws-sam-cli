@@ -62,11 +62,8 @@ def local_common_options(f):
             "--container-host-interface",
             default="127.0.0.1",
             show_default=True,
-            help="Interface that Docker host binds ports to. "
-            "This option is useful when users want to bind ports to a different interface. "
-            "It will bind ports to loopback interface by default. "
-            "For example, using 0.0.0.0 will bind ports to all interfaces. "
-            "Note: the input should be an IP address. ",
+            help="IP address of the host network interface that container ports should bind to. "
+            "Use 0.0.0.0 to bind to all interfaces."
         ),
     ]
 
