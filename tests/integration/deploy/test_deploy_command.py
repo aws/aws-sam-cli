@@ -1,4 +1,5 @@
 import os
+from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack
 import shutil
 import tempfile
 import uuid
@@ -6,6 +7,7 @@ import time
 from unittest import skipIf
 
 import boto3
+from botocore.exceptions import ClientError
 import docker
 from parameterized import parameterized
 
@@ -46,7 +48,8 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         DeployIntegBase.setUpClass()
 
     def setUp(self):
-        self.cf_client = boto3.client("cloudformation")
+        self.cfn_client = boto3.client("cloudformation")
+        self.ecr_client = boto3.client("ecr")
         self.sns_arn = os.environ.get("AWS_SNS")
         self.stack_names = []
         time.sleep(CFN_SLEEP)
@@ -57,7 +60,8 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         for stack_name in self.stack_names:
             # because of the termination protection, do not delete aws-sam-cli-managed-default stack
             if stack_name != SAM_CLI_STACK_NAME:
-                self.cf_client.delete_stack(StackName=stack_name)
+                self._delete_companion_stack(self._stack_name_to_companion_stack(stack_name))
+                self.cfn_client.delete_stack(StackName=stack_name)
         super().tearDown()
 
     @parameterized.expand(["aws-serverless-function.yaml"])
@@ -184,6 +188,33 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             no_execute_changeset=False,
             tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+    @parameterized.expand(["aws-serverless-function-image.yaml"])
+    def test_no_package_and_deploy_with_s3_bucket_all_args_resolve_image_repos(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stack_names.append(stack_name)
+
+        # Package and Deploy in one go without confirming change set.
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+            resolve_image_repos=True,
         )
 
         deploy_process_execute = run_command(deploy_command_list)
@@ -543,7 +574,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
 
     @parameterized.expand(["aws-serverless-function-image.yaml"])
-    def test_deploy_guided_image(self, template_file):
+    def test_deploy_guided_image_auto(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
@@ -553,11 +584,39 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
 
         deploy_process_execute = run_command_with_input(
-            deploy_command_list, f"{stack_name}\n\n{self.ecr_repo_name}\n\n\ny\n\n\n\n\n\n".encode()
+            deploy_command_list, f"{stack_name}\n\n\n\ny\n\n\ny\n\n\n\n".encode()
         )
 
         # Deploy should succeed with a managed stack
         self.assertEqual(deploy_process_execute.process.returncode, 0)
+        self.stack_names.append(SAM_CLI_STACK_NAME)
+        # Remove samconfig.toml
+        os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
+
+    @parameterized.expand(["aws-serverless-function-image.yaml"])
+    def test_deploy_guided_image_specify(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stack_names.append(stack_name)
+
+        # Package and Deploy in one go without confirming change set.
+        deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
+
+        deploy_process_execute = run_command_with_input(
+            deploy_command_list, f"{stack_name}\n\n\n\ny\n\n\n\nn\n{self.ecr_repo_name}\n\n\n\n".encode()
+        )
+
+        # Deploy should succeed with a managed stack
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+        # Verify companion stack does not exist
+        try:
+            self.cfn_client.describe_stacks(StackName=self._stack_name_to_companion_stack(stack_name))
+        except ClientError:
+            pass
+        else:
+            self.fail("Companion stack was created. This should not happen with specifying image repos.")
+
         self.stack_names.append(SAM_CLI_STACK_NAME)
         # Remove samconfig.toml
         os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
@@ -764,3 +823,24 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
         method_name = method_name.split(".")[-1]
         return f"{method_name.replace('_', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"
+
+    def _stack_name_to_companion_stack(self, stack_name):
+        return CompanionStack(stack_name).stack_name
+
+    def _delete_companion_stack(self, companion_stack_name):
+        repos = list()
+        try:
+            self.cfn_client.describe_stacks(StackName=companion_stack_name)
+        except ClientError:
+            return
+        stack = boto3.resource("cloudformation").Stack(companion_stack_name)
+        resources = stack.resource_summaries.all()
+        for resource in resources:
+            if resource.resource_type == "AWS::ECR::Repository":
+                repos.append(resource.physical_resource_id)
+        for repo in repos:
+            try:
+                self.ecr_client.delete_repository(repositoryName=repo, force=True)
+            except self.ecr_client.exceptions.RepositoryNotFoundException:
+                pass
+        self.cfn_client.delete_stack(StackName=companion_stack_name)
