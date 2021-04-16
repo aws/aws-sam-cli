@@ -21,6 +21,9 @@ class CompanionStack:
         self._parent_stack_name = parent_stack_name
         self._escaped_parent_stack_name = re.sub(r"[^a-z0-9]", "", self._parent_stack_name.lower())
         self._parent_stack_hash = str_checksum(self._parent_stack_name)
+        # There is max 128 characters limit on the length of stack name.
+        # Using MD5 to avoid collision after trucating
+        # 104 + 1 + 8 + 15 = 128 max char
         self._stack_name = f"{self._parent_stack_name[:104]}-{self._parent_stack_hash[:8]}-CompanionStack"
 
     @property
@@ -96,6 +99,9 @@ class ECRRepo:
     @property
     def logical_id(self) -> Optional[str]:
         if self._logical_id is None and self._function_logical_id and self._function_md5:
+            # MD5 is used to avoid two having the same escaped name with different Lambda Functions
+            # For example: Helloworld and HELLO-WORLD
+            # 52 + 8 + 4 = 64 max char
             self._logical_id = self._function_logical_id[:52] + self._function_md5[:8] + "Repo"
         return self._logical_id
 
@@ -107,6 +113,7 @@ class ECRRepo:
             and self._function_md5
             and self._escaped_function_logical_id
         ):
+            # 128 + 8 + 1 + 64 + 8 + 4 = 213 max char
             self._physical_id = (
                 self._companion_stack.escaped_parent_stack_name
                 + self._companion_stack.parent_stack_hash[:8]
