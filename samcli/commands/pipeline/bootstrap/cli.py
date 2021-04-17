@@ -72,7 +72,7 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
     is_flag=True,
     default=False,
     help="If set to true and no ecr-repo is provided this command will create an ECR repository to hold the image "
-         "container of the lambda functions having Image package type.",
+    "container of the lambda functions having Image package type.",
 )
 @click.option(
     "--ecr-repo",

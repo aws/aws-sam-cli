@@ -133,8 +133,10 @@ class Stage:
             click.secho(f"\nAll required resources for the {self.name} stage exist, skipping creation.", fg="yellow")
             return True
 
-        missing_resources: str = self._get_non_user_provided_resources_msg()
-        click.echo(f"This will create the following required resources for the {self.name} stage: {missing_resources}")
+        missing_resources_msg: str = self._get_non_user_provided_resources_msg()
+        click.echo(
+            "This will create the following required resources for the {self.name} stage: " f"{missing_resources_msg}"
+        )
         if confirm_changeset:
             confirmed: bool = click.confirm("Should we proceed with the creation?")
             if not confirmed:
