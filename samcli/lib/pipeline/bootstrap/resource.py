@@ -21,19 +21,19 @@ class ARNParts:
     resource-type: str
         the resource-type part of the ARN
     """
+    partition: str
+    service: str
+    region: str
+    account_id: str
+    resource_id: str
 
     def __init__(self, arn: str) -> None:
         if not isinstance(arn, str):
             raise ValueError(f"Invalid ARN ({arn}) is not a String")
-
         parts = arn.split(":")
         try:
-            self.partition: str = parts[1]
-            self.service: str = parts[2]
-            self.region: str = parts[3]
-            self.account_id: str = parts[4]
-            self.resource_id: str = parts[5]
-        except IndexError as ex:
+            [_, self.partition, self.service, self.region, self.account_id, self.resource_id] = parts
+        except ValueError as ex:
             raise ValueError(f"Invalid ARN ({arn})") from ex
 
 
