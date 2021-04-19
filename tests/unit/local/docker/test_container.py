@@ -65,6 +65,8 @@ class TestContainer_create(TestCase):
         self.env_vars = {"key": "value"}
         self.container_opts = {"container": "opts"}
         self.additional_volumes = {"/somepath": {"blah": "blah value"}}
+        self.container_host = "localhost"
+        self.container_host_interface = "127.0.0.1"
 
         self.mock_docker_client = Mock()
         self.mock_docker_client.containers = Mock()
@@ -138,6 +140,8 @@ class TestContainer_create(TestCase):
             docker_client=self.mock_docker_client,
             container_opts=self.container_opts,
             additional_volumes=self.additional_volumes,
+            container_host=self.container_host,
+            container_host_interface=self.container_host_interface,
         )
 
         container_id = container.create()
@@ -153,7 +157,7 @@ class TestContainer_create(TestCase):
             use_config_proxy=True,
             environment=self.env_vars,
             ports={
-                container_port: ("127.0.0.1", host_port)
+                container_port: (self.container_host_interface, host_port)
                 for container_port, host_port in {**self.exposed_ports, **self.always_exposed_ports}.items()
             },
             entrypoint=self.entrypoint,
@@ -513,12 +517,18 @@ class TestContainer_wait_for_result(TestCase):
         self.cmd = ["cmd"]
         self.working_dir = "working_dir"
         self.host_dir = "host_dir"
+        self.container_host = "localhost"
 
         self.mock_docker_client = Mock()
         self.mock_docker_client.containers = Mock()
         self.mock_docker_client.containers.get = Mock()
         self.container = Container(
-            self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
+            self.image,
+            self.cmd,
+            self.working_dir,
+            self.host_dir,
+            docker_client=self.mock_docker_client,
+            container_host=self.container_host,
         )
         self.container.id = "someid"
 
