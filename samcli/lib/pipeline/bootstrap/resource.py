@@ -1,5 +1,5 @@
 """ Represents AWS resource"""
-from typing import List, Optional
+from typing import Optional
 
 
 class ARNParts:
@@ -33,14 +33,8 @@ class ARNParts:
             self.region: str = parts[3]
             self.account_id: str = parts[4]
             self.resource_id: str = parts[5]
-            self.resource_type: Optional[str] = None
         except IndexError as ex:
             raise ValueError(f"Invalid ARN ({arn})") from ex
-
-        if "/" in self.resource_id:
-            resource_type_and_id: List[str] = self.resource_id.split("/")
-            self.resource_type = resource_type_and_id[0]
-            self.resource_id = resource_type_and_id[1]
 
 
 class Resource:
@@ -121,13 +115,19 @@ class EcrRepo(Resource):
     def get_uri(self) -> Optional[str]:
         """
         extracts and returns the URI of the given ECR repo from its ARN
+        see https://docs.aws.amazon.com/AmazonECR/latest/userguide/Registries.html
         Raises
         ------
         ValueError if the ARN is invalid
         """
         arn_parts: Optional[ARNParts] = self._get_arn_parts()
-        return (
-            f"{arn_parts.account_id}.dkr.ecr.{arn_parts.region}.amazonaws.com/{arn_parts.resource_id}"
-            if arn_parts
-            else None
-        )
+        if not arn_parts:
+            return None
+        # ECR's resource_id contains the resource-type("resource") which is excluded from the URL
+        # from docs: https://docs.aws.amazon.com/AmazonECR/latest/userguide/security_iam_service-with-iam.html
+        # ECR's ARN: arn:${Partition}:ecr:${Region}:${Account}:repository/${Repository-name}
+        if not "repository/" in arn_parts.resource_id:
+            raise ValueError(f"Invalid ECR ARN: {self.arn}")
+        i = len("repository/")
+        repo_name = arn_parts.resource_id[i:]
+        return f"{arn_parts.account_id}.dkr.ecr.{arn_parts.region}.amazonaws.com/{repo_name}"

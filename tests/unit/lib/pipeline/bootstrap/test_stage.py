@@ -261,7 +261,7 @@ class TestStage(TestCase):
         )
         self.trigger_and_assert_save_config_calls(stage, cmd_names, expected_calls, samconfig_instance_mock.put)
 
-        stage.ecr_repo.arn = "arn:aws:ecr:us-east-2:111111111111:ecr_repo_name"
+        stage.ecr_repo.arn = "arn:aws:ecr:us-east-2:111111111111:repository/ecr_repo_name"
         expected_calls.append(
             call(
                 cmd_names=cmd_names,

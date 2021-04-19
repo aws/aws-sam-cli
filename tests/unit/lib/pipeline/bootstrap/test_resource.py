@@ -4,37 +4,28 @@ from unittest.mock import Mock, patch, call
 from samcli.lib.pipeline.bootstrap.resource import ARNParts, Resource, S3Bucket, IamUser, EcrRepo
 
 VALID_ARN = "arn:partition:service:region:account-id:resource-id"
-VALID_ARN_WITH_RESOURCE_TYPE = "arn:partition:service:region:account-id:resource-type/resource-id"
 INVALID_ARN = "ARN"
 
 
 class TestArnParts(TestCase):
-    def test_arn_parts_of_valid_arn_without_resource_type(self):
+    def test_arn_parts_of_valid_arn(self):
         arn_parts: ARNParts = ARNParts(arn=VALID_ARN)
         self.assertEqual(arn_parts.partition, "partition")
         self.assertEqual(arn_parts.service, "service")
         self.assertEqual(arn_parts.region, "region")
         self.assertEqual(arn_parts.account_id, "account-id")
         self.assertEqual(arn_parts.resource_id, "resource-id")
-        self.assertIsNone(arn_parts.resource_type)
-
-    def test_arn_parts_of_valid_arn_including_resource_type(self):
-        arn_parts: ARNParts = ARNParts(arn=VALID_ARN_WITH_RESOURCE_TYPE)
-        self.assertEqual(arn_parts.partition, "partition")
-        self.assertEqual(arn_parts.service, "service")
-        self.assertEqual(arn_parts.region, "region")
-        self.assertEqual(arn_parts.account_id, "account-id")
-        self.assertEqual(arn_parts.resource_id, "resource-id")
-        self.assertEqual(arn_parts.resource_type, "resource-type")
 
     def test_arn_parts_of_none_arn_is_invalid(self):
         with self.assertRaises(ValueError):
             ARNParts(arn=None)
 
+    def test_arn_parts_of_none_string_arn_is_invalid(self):
         with self.assertRaises(ValueError):
             any_non_string = 1
             ARNParts(arn=any_non_string)
 
+    def test_arn_parts_of_invalid_arn(self):
         with self.assertRaises(ValueError):
             invalid_arn = "invalid_arn"
             ARNParts(arn=invalid_arn)
@@ -85,9 +76,16 @@ class TestS3Bucket(TestCase):
 
 class TestEcrRepo(TestCase):
     def test_get_uri(self):
-        repo: EcrRepo = EcrRepo(arn=VALID_ARN)
-        self.assertEqual(repo.get_uri(), "account-id.dkr.ecr.region.amazonaws.com/resource-id")
+        valid_ecr_arn = "arn:partition:service:region:account-id:repository/repository-name"
+        repo: EcrRepo = EcrRepo(arn=valid_ecr_arn)
+        self.assertEqual(repo.get_uri(), "account-id.dkr.ecr.region.amazonaws.com/repository-name")
 
+        valid_ecr_arn = "arn:partition:service:region:account-id:repository/repository-name"
         repo = EcrRepo(arn=INVALID_ARN)
+        with self.assertRaises(ValueError):
+            repo.get_uri()
+
+        ecr_arn_missing_repository_prefix = "arn:partition:service:region:account-id:repository-name-not-prefixed-with-repository/"
+        repo = EcrRepo(arn=ecr_arn_missing_repository_prefix)
         with self.assertRaises(ValueError):
             repo.get_uri()

@@ -13,7 +13,11 @@ from .resource import Resource, IamUser, S3Bucket, EcrRepo
 CFN_TEMPLATE_PATH = str(pathlib.Path(os.path.dirname(__file__)))
 STACK_NAME_PREFIX = "aws-sam-cli-managed"
 STAGE_RESOURCES_STACK_NAME_SUFFIX = "pipeline-resources"
-
+STAGE_RESOURCES_CFN_TEMPLATE = "stage_resources.yaml"
+PIPELINE_EXECUTION_ROLE = "pipeline_execution_role"
+CLOUDFORMATION_EXECUTION_ROLE = "cloudformation_execution_role"
+ARTIFACTS_BUCKET = "artifacts_bucket"
+ECR_REPO = "ecr_repo"
 
 class Stage:
     """
@@ -144,7 +148,7 @@ class Stage:
 
         stage_name_suffix: str = re.sub("[^0-9a-zA-Z]+", "-", self.name)
         stack_name: str = f"{STACK_NAME_PREFIX}-{stage_name_suffix}-{STAGE_RESOURCES_STACK_NAME_SUFFIX}"
-        stage_resources_template_body = Stage._read_template("stage_resources.yaml")
+        stage_resources_template_body = Stage._read_template(STAGE_RESOURCES_CFN_TEMPLATE)
         output: StackOutput = manage_stack(
             stack_name=stack_name,
             region=self.aws_region,
@@ -206,7 +210,7 @@ class Stage:
             samconfig.put(
                 cmd_names=cmd_names,
                 section="parameters",
-                key="pipeline_execution_role",
+                key=PIPELINE_EXECUTION_ROLE,
                 value=self.pipeline_execution_role.arn,
                 env=self.name,
             )
@@ -215,7 +219,7 @@ class Stage:
             samconfig.put(
                 cmd_names=cmd_names,
                 section="parameters",
-                key="cloudformation_execution_role",
+                key=CLOUDFORMATION_EXECUTION_ROLE,
                 value=self.cloudformation_execution_role.arn,
                 env=self.name,
             )
@@ -224,14 +228,14 @@ class Stage:
             samconfig.put(
                 cmd_names=cmd_names,
                 section="parameters",
-                key="artifacts_bucket",
+                key=ARTIFACTS_BUCKET,
                 value=self.artifacts_bucket.name(),
                 env=self.name,
             )
 
         if self.ecr_repo.get_uri():
             samconfig.put(
-                cmd_names=cmd_names, section="parameters", key="ecr_repo", value=self.ecr_repo.get_uri(), env=self.name
+                cmd_names=cmd_names, section="parameters", key=ECR_REPO, value=self.ecr_repo.get_uri(), env=self.name
             )
 
         samconfig.flush()

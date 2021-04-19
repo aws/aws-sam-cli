@@ -154,9 +154,8 @@ class SamConfig:
         return self.filepath.exists()
 
     def _ensure_exists(self):
-        if not self.exists():
-            self.filepath.parent.mkdir(parents=True, exist_ok=True)
-            open(self.filepath, "a+").close()
+        self.filepath.parent.mkdir(parents=True, exist_ok=True)
+        self.filepath.touch()
 
     def path(self):
         return str(self.filepath)
