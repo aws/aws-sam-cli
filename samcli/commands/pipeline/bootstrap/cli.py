@@ -44,40 +44,40 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
 )
 @click.option(
     "--pipeline-user",
-    help="The ARN of the IAM user having its access key ID and secret access key shared with the CI/CD provider."
-    "It is used to grant this IAM user the permissions to access the corresponding AWS account."
+    help="The ARN of the IAM user having its access key ID and secret access key shared with the CI/CD provider. "
+    "It is used to grant this IAM user the permissions to access the corresponding AWS account. "
     "If not provided, the command will create one along with access key ID and secret access key credentials.",
     required=False,
 )
 @click.option(
     "--pipeline-execution-role",
-    help="The ARN of an IAM Role to be assumed by the pipeline user to operate on this stage. "
+    help="The ARN of an IAM role to be assumed by the pipeline user to operate on this stage. "
     "Provide it only if you want to user your own role, otherwise, the command will create one",
     required=False,
 )
 @click.option(
     "--cloudformation-execution-role",
-    help="The ARN of an IAM Role to be assumed by the CloudFormation service while deploying the application's stack. "
-    "Provide it only if you want to user your own role, otherwise, the command will create one",
+    help="The ARN of an IAM role to be assumed by the CloudFormation service while deploying the application's stack. "
+    "Provide it only if you want to user your own role, otherwise, the command will create one.",
     required=False,
 )
 @click.option(
     "--artifacts-bucket",
     help="The ARN of a S3 bucket to hold the sam build artifacts. "
-    "Provide it only if you want to user your own S3 bucket, otherwise, the command will create one",
+    "Provide it only if you want to user your own S3 bucket, otherwise, the command will create one.",
     required=False,
 )
 @click.option(
     "--create-ecr-repo/--no-create-ecr-repo",
     is_flag=True,
     default=False,
-    help="If set to true and no ecr-repo is provided this command will create an ECR repository to hold the image "
-    "container of the lambda functions having Image package type.",
+    help="If set to true and no ECR repository is provided, this command will create an ECR repository to hold the container "
+    "images of Lambda functions having an Image package type.",
 )
 @click.option(
     "--ecr-repo",
-    help="The ARN of an ECR repository to hold the image containers of the lambda functions of image package type. "
-    "If Provided, the create-ecr-repo argument is ignored. If not provided and create-ecr-repo is set to true "
+    help="The ARN of an ECR repository to hold the containers images of Lambda functions of Image package type. "
+    "If provided, the --create-ecr-repo argument is ignored. If not provided and --create-ecr-repo is set to true, "
     "the command will create one.",
     required=False,
 )

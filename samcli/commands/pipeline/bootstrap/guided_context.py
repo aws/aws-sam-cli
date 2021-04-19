@@ -50,7 +50,7 @@ class GuidedContext:
 
         if not self.pipeline_execution_role_arn:
             self.pipeline_execution_role_arn = click.prompt(
-                "\nPipeline execution role(an IAM Role to be assumed by the pipeline-user to operate on this stage.) "
+                "\nPipeline execution role (an IAM role assumed by the pipeline user to operate on this stage) "
                 "[leave blank to create one]",
                 default="",
                 type=click.STRING,
@@ -58,7 +58,7 @@ class GuidedContext:
 
         if not self.cloudformation_execution_role_arn:
             self.cloudformation_execution_role_arn = click.prompt(
-                "\nCloudFormation execution role(an IAM Role to be assumed by the CloudFormation service to deploy "
+                "\nCloudFormation execution role (an IAM role assumed by CloudFormation to deploy "
                 "the application's stack) [leave blank to create one]",
                 default="",
                 type=click.STRING,
@@ -66,18 +66,18 @@ class GuidedContext:
 
         if not self.artifacts_bucket_arn:
             self.artifacts_bucket_arn = click.prompt(
-                "\nArtifacts bucket(S3 bucket to hold the sam build artifacts) " "[leave blank to create one]",
+                "\nArtifacts bucket (S3 bucket to hold the AWS SAM build artifacts) [leave blank to create one]",
                 default="",
                 type=click.STRING,
             )
         if not self.ecr_repo_arn:
             click.echo(
-                "\nIf your SAM template will include lambda functions of Image package-type, "
-                "then an ECR repo is required, should we create one?"
+                "\nIf your SAM template will include Lambda functions of Image package type, "
+                "then an ECR repository is required. Should we create one?"
             )
-            click.echo("\t1 - No, My SAM Template won't include lambda functions of Image package-type")
-            click.echo("\t2 - Yes, I need a help creating one")
-            click.echo("\t3 - I already have an ECR repo")
+            click.echo("\t1 - No, My SAM template won't include Lambda functions of Image package type")
+            click.echo("\t2 - Yes, I need help creating one")
+            click.echo("\t3 - I already have an ECR repository")
             choice = click.prompt(text="Choice", show_choices=False, type=click.Choice(["1", "2", "3"]))
             if choice == "1":
                 self.create_ecr_repo = False
@@ -88,7 +88,7 @@ class GuidedContext:
                 self.ecr_repo_arn = click.prompt("ECR repo", type=click.STRING)
 
         if not self.pipeline_ip_range:
-            click.echo("\nWe can deny requests if not coming from a recognized IP address.")
+            click.echo("\nWe can deny requests not coming from a recognized IP address range.")
             self.pipeline_ip_range = click.prompt(
                 "Pipeline IP address range [leave blank if you don't know]", default="", type=click.STRING
             )
