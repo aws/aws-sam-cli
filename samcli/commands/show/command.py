@@ -10,7 +10,7 @@ import click
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
-from samcli.commands._utils.options import guided_deploy_stack_name, template_click_option, metadata_override_option
+from samcli.commands._utils.options import guided_deploy_stack_name, template_click_option
 from samcli.lib.utils.version_checker import check_newer_version
 
 LOG = logging.getLogger(__name__)
@@ -24,7 +24,6 @@ Use this command to fetch CloudFormation Output from an existing stack.\n
 @click.option(
     "--stack-name",
     required=False,
-    callback=guided_deploy_stack_name,
     help="The name of the AWS CloudFormation stack you're fetchting output for.",
 )
 @cli_framework_options
@@ -33,7 +32,7 @@ Use this command to fetch CloudFormation Output from an existing stack.\n
 @track_command
 @check_newer_version
 @print_cmdline_args
-def cli(ctx, stack_name, config_file, config_env):
+def cli(ctx, stack_name):
     """
     `sam show` command entry point
     """
