@@ -345,6 +345,8 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 True,
                 {"Key": "Value", "Key2": "Value2"},
+                "localhost",
+                "127.0.0.1",
                 "CFN",
                 iac_mock,
                 project_mock,
@@ -415,6 +417,8 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 False,
                 None,
+                "localhost",
+                "127.0.0.1",
                 "CFN",
                 iac_mock,
                 project_mock,
@@ -483,6 +487,8 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 False,
                 None,
+                "localhost",
+                "127.0.0.1",
                 iac_mock,
                 project_mock,
             )
@@ -928,6 +934,10 @@ class TestSamConfigWithOverrides(TestCase):
                     "--shutdown",
                     "--parameter-overrides",
                     "A=123 C=D E=F12! G=H",
+                    "--container-host",
+                    "localhost",
+                    "--container-host-interface",
+                    "127.0.0.1",
                 ],
             )
 
@@ -957,6 +967,8 @@ class TestSamConfigWithOverrides(TestCase):
                 None,
                 True,
                 None,
+                "localhost",
+                "127.0.0.1",
                 iac_mock,
                 project_mock,
             )
@@ -1056,6 +1068,8 @@ class TestSamConfigWithOverrides(TestCase):
                 None,
                 False,
                 None,
+                "localhost",
+                "127.0.0.1",
                 iac_mock,
                 project_mock,
             )
