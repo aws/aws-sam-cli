@@ -24,9 +24,9 @@ class TestCompanionStackBuilder(TestCase):
 
         builder.add_function(function_a)
         template = builder.build()
-        self.assertIn(f"{repo_logical_id}:", template)
-        self.assertIn(f"RepositoryName: {repo_physical_id}", template)
-        self.assertIn(f"{repo_output_id}:", template)
+        self.assertIn(f'"{repo_logical_id}":', template)
+        self.assertIn(f'"RepositoryName": "{repo_physical_id}"', template)
+        self.assertIn(f'"{repo_output_id}":', template)
 
     @patch("samcli.lib.bootstrap.companion_stack.companion_stack_builder.ECRRepo")
     def test_building_multiple_functions(self, ecr_repo_mock):
@@ -56,9 +56,9 @@ class TestCompanionStackBuilder(TestCase):
             builder.add_function(function_prefix + function_name)
         template = builder.build()
         for function_name in function_names:
-            self.assertIn(f"{repo_logical_id_prefix + function_name}:", template)
-            self.assertIn(f"RepositoryName: {repo_physical_id_prefix + function_name}", template)
-            self.assertIn(f"{repo_output_id_prefix + function_name}:", template)
+            self.assertIn(f'"{repo_logical_id_prefix + function_name}":', template)
+            self.assertIn(f'"RepositoryName": "{repo_physical_id_prefix + function_name}"', template)
+            self.assertIn(f'"{repo_output_id_prefix + function_name}":', template)
 
     @patch("samcli.lib.bootstrap.companion_stack.companion_stack_builder.ECRRepo")
     def test_mapping_multiple_functions(self, ecr_repo_mock):
