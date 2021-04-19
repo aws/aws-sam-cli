@@ -20,6 +20,7 @@ CLOUDFORMATION_EXECUTION_ROLE = "cloudformation_execution_role"
 ARTIFACTS_BUCKET = "artifacts_bucket"
 ECR_REPO = "ecr_repo"
 
+
 class Stage:
     """
     Represents a pipeline stage
@@ -207,14 +208,25 @@ class Stage:
         if self.pipeline_user.arn:
             samconfig.put(cmd_names=cmd_names, section="parameters", key=PIPELINE_USER, value=self.pipeline_user.arn)
 
-        stage_specific_configs: Dict[str, str] = {
+        # Computing Artifacts bucket name and ECR repo URL may through an exception if the ARNs are wrong
+        # Let's swallow such an exception to be able to save the remaining resources
+        try:
+            artifacts_bucket_name: Optional[str] = self.artifacts_bucket.name()
+        except ValueError:
+            artifacts_bucket_name = ""
+        try:
+            ecr_repo_uri: Optional[str] = self.ecr_repo.get_uri()
+        except ValueError:
+            ecr_repo_uri = ""
+
+        stage_specific_configs: Dict[str, Optional[str]] = {
             PIPELINE_EXECUTION_ROLE: self.pipeline_execution_role.arn,
             CLOUDFORMATION_EXECUTION_ROLE: self.cloudformation_execution_role.arn,
-            ARTIFACTS_BUCKET: self.artifacts_bucket.name(),
-            ECR_REPO: self.ecr_repo.get_uri(),
+            ARTIFACTS_BUCKET: artifacts_bucket_name,
+            ECR_REPO: ecr_repo_uri,
         }
 
-        for key, value in enumerate(stage_specific_configs):
+        for key, value in stage_specific_configs.items():
             if value:
                 samconfig.put(
                     cmd_names=cmd_names,

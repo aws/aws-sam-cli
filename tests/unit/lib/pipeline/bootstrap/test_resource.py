@@ -1,5 +1,4 @@
 from unittest import TestCase
-from unittest.mock import Mock, patch, call
 
 from samcli.lib.pipeline.bootstrap.resource import ARNParts, Resource, S3Bucket, IamUser, EcrRepo
 
@@ -75,17 +74,20 @@ class TestS3Bucket(TestCase):
 
 
 class TestEcrRepo(TestCase):
-    def test_get_uri(self):
+    def test_get_uri_with_valid_ecr_arn(self):
         valid_ecr_arn = "arn:partition:service:region:account-id:repository/repository-name"
         repo: EcrRepo = EcrRepo(arn=valid_ecr_arn)
         self.assertEqual(repo.get_uri(), "account-id.dkr.ecr.region.amazonaws.com/repository-name")
 
-        valid_ecr_arn = "arn:partition:service:region:account-id:repository/repository-name"
+    def test_get_uri_with_invalid_ecr_arn(self):
         repo = EcrRepo(arn=INVALID_ARN)
         with self.assertRaises(ValueError):
             repo.get_uri()
 
-        ecr_arn_missing_repository_prefix = "arn:partition:service:region:account-id:repository-name-not-prefixed-with-repository/"
+    def test_get_uri_with_valid_aws_arn_that_is_invalid_ecr_arn(self):
+        ecr_arn_missing_repository_prefix = (
+            "arn:partition:service:region:account-id:repository-name-without-repository/-prefix"
+        )
         repo = EcrRepo(arn=ecr_arn_missing_repository_prefix)
         with self.assertRaises(ValueError):
             repo.get_uri()

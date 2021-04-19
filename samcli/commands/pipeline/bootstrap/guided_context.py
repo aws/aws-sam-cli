@@ -41,8 +41,8 @@ class GuidedContext:
             click.echo(
                 "\nThere must be exactly one pipeline user across all of the pipeline stages. "
                 "If you have ran this command before to bootstrap a previous pipeline stage, please "
-                "provide the ARN of the created pipeline user, otherwise, we will create a new user for you, "
-                "please make sure to configure user's AccessKeyId and SecretAccessKey for the CI/CD provider."
+                "provide the ARN of the created pipeline user, otherwise, we will create a new user for you. "
+                "Please make sure to store the credentials safely with the CI/CD provider."
             )
             self.pipeline_user_arn = click.prompt(
                 "Pipeline user [leave blank to create one]", default="", type=click.STRING
@@ -90,5 +90,7 @@ class GuidedContext:
         if not self.pipeline_ip_range:
             click.echo("\nWe can deny requests not coming from a recognized IP address range.")
             self.pipeline_ip_range = click.prompt(
-                "Pipeline IP address range [leave blank if you don't know]", default="", type=click.STRING
+                "Pipeline IP address range (using CIDR notation) [leave blank if you don't know]",
+                default="",
+                type=click.STRING,
             )

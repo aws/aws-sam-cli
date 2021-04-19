@@ -63,7 +63,7 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
 )
 @click.option(
     "--artifacts-bucket",
-    help="The ARN of a S3 bucket to hold the sam build artifacts. "
+    help="The ARN of an S3 bucket to hold the AWS SAM build artifacts. "
     "Provide it only if you want to user your own S3 bucket, otherwise, the command will create one.",
     required=False,
 )
@@ -71,8 +71,8 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
     "--create-ecr-repo/--no-create-ecr-repo",
     is_flag=True,
     default=False,
-    help="If set to true and no ECR repository is provided, this command will create an ECR repository to hold the container "
-    "images of Lambda functions having an Image package type.",
+    help="If set to true and no ECR repository is provided, this command will create an ECR repository to hold the"
+    " container images of Lambda functions having an Image package type.",
 )
 @click.option(
     "--ecr-repo",
@@ -154,7 +154,7 @@ def do_cli(
     implementation of `sam pipeline bootstrap` command
     """
     if not pipeline_user_arn:
-        pipeline_user_arn = _load_saved_pipeline_user()
+        pipeline_user_arn = _load_saved_pipeline_user_arn()
 
     if interactive:
         guided_context = GuidedContext(
@@ -208,7 +208,7 @@ def do_cli(
             pass
 
 
-def _load_saved_pipeline_user() -> Optional[str]:
+def _load_saved_pipeline_user_arn() -> Optional[str]:
     samconfig: SamConfig = SamConfig(config_dir=PIPELINE_CONFIG_DIR, filename=PIPELINE_CONFIG_FILENAME)
     if not samconfig.exists():
         return None

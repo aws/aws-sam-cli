@@ -210,7 +210,7 @@ class TestStage(TestCase):
         self.assertEqual(ANY_ARN, stage.artifacts_bucket.arn)
 
     @patch("samcli.lib.pipeline.bootstrap.stage.SamConfig")
-    def test_save_config_escapes_non_resources(self, samconfig_mock):
+    def test_save_config_escapes_none_resources(self, samconfig_mock):
         cmd_names = ["any", "commands"]
         samconfig_instance_mock = Mock()
         samconfig_mock.return_value = samconfig_instance_mock
@@ -278,6 +278,24 @@ class TestStage(TestCase):
         self.assertEqual(len(expected_calls), samconfig_put_mock.call_count)
         samconfig_put_mock.assert_has_calls(expected_calls)
         samconfig_put_mock.reset_mock()
+
+    @patch("samcli.lib.pipeline.bootstrap.stage.SamConfig")
+    def test_save_config_ignores_exceptions_thrown_while_calculating_artifacts_bucket_name(self, samconfig_mock):
+        samconfig_instance_mock = Mock()
+        samconfig_mock.return_value = samconfig_instance_mock
+        stage: Stage = Stage(name=ANY_STAGE_NAME, artifacts_bucket_arn="invalid ARN")
+        # calling artifacts_bucket.name() during save_config() will raise a ValueError exception, we need to make sure
+        # this exception is swallowed so that other configs can be safely saved to the pipelineconfig.toml file
+        stage.save_config(config_dir="any_config_dir", filename="any_pipeline.toml", cmd_names=["any", "commands"])
+
+    @patch("samcli.lib.pipeline.bootstrap.stage.SamConfig")
+    def test_save_config_ignores_exceptions_thrown_while_calculating_ecr_repo_uri(self, samconfig_mock):
+        samconfig_instance_mock = Mock()
+        samconfig_mock.return_value = samconfig_instance_mock
+        stage: Stage = Stage(name=ANY_STAGE_NAME, ecr_repo_arn="invalid ARN")
+        # calling ecr_repo.get_uri() during save_config() will raise a ValueError exception, we need to make sure
+        # this exception is swallowed so that other configs can be safely saved to the pipelineconfig.toml file
+        stage.save_config(config_dir="any_config_dir", filename="any_pipeline.toml", cmd_names=["any", "commands"])
 
     @patch("samcli.lib.pipeline.bootstrap.stage.click")
     def test_print_resources_summary_when_no_resources_provided_by_the_user(self, click_mock):

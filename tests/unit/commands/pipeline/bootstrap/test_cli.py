@@ -6,7 +6,7 @@ import click
 from click.testing import CliRunner
 
 from samcli.commands.pipeline.bootstrap.cli import (
-    _load_saved_pipeline_user,
+    _load_saved_pipeline_user_arn,
     _get_command_name,
     PIPELINE_CONFIG_FILENAME,
     PIPELINE_CONFIG_DIR,
@@ -101,18 +101,18 @@ class TestCli(TestCase):
         self.assertEqual(kwargs["artifacts_bucket_arn"], "bucketARN")
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_command_name")
-    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user")
+    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
     @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
     @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
     def test_bootstrapping_normal_interactive_flow(
-        self, guided_context_mock, stage_mock, load_saved_pipeline_user_mock, get_command_name_mock
+        self, guided_context_mock, stage_mock, load_saved_pipeline_user_arn_mock, get_command_name_mock
     ):
         # setup
         gc_instance = Mock()
         guided_context_mock.return_value = gc_instance
         stage_instance = Mock()
         stage_mock.return_value = stage_instance
-        load_saved_pipeline_user_mock.return_value = ANY_PIPELINE_USER_ARN
+        load_saved_pipeline_user_arn_mock.return_value = ANY_PIPELINE_USER_ARN
         self.cli_context["interactive"] = True
         self.cli_context["pipeline_user_arn"] = None
         get_command_name_mock.return_value = PIPELINE_BOOTSTRAP_COMMAND_NAMES
@@ -121,7 +121,7 @@ class TestCli(TestCase):
         bootstrap_cli(**self.cli_context)
 
         # verify
-        load_saved_pipeline_user_mock.assert_called_once()
+        load_saved_pipeline_user_arn_mock.assert_called_once()
         gc_instance.run.assert_called_once()
         stage_instance.bootstrap.assert_called_once_with(confirm_changeset=True)
         stage_instance.print_resources_summary.assert_called_once()
@@ -132,32 +132,32 @@ class TestCli(TestCase):
         )
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_command_name")
-    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user")
+    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
     @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
     @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
     def test_bootstrap_will_not_try_loading_pipeline_user_if_already_provided(
-        self, guided_context_mock, stage_mock, load_saved_pipeline_user_mock, get_command_name_mock
+        self, guided_context_mock, stage_mock, load_saved_pipeline_user_arn_mock, get_command_name_mock
     ):
         bootstrap_cli(**self.cli_context)
-        load_saved_pipeline_user_mock.assert_not_called()
+        load_saved_pipeline_user_arn_mock.assert_not_called()
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_command_name")
-    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user")
+    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
     @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
     @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
     def test_bootstrap_will_try_loading_pipeline_user_if_not_provided(
-        self, guided_context_mock, stage_mock, load_saved_pipeline_user_mock, get_command_name_mock
+        self, guided_context_mock, stage_mock, load_saved_pipeline_user_arn_mock, get_command_name_mock
     ):
         self.cli_context["pipeline_user_arn"] = None
         bootstrap_cli(**self.cli_context)
-        load_saved_pipeline_user_mock.assert_called_once()
+        load_saved_pipeline_user_arn_mock.assert_called_once()
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_command_name")
-    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user")
+    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
     @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
     @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
     def test_stage_name_is_required_to_be_provided_in_case_of_non_interactive_mode(
-        self, guided_context_mock, stage_mock, load_saved_pipeline_user_mock, get_command_name_mock
+        self, guided_context_mock, stage_mock, load_saved_pipeline_user_arn_mock, get_command_name_mock
     ):
         self.cli_context["interactive"] = False
         self.cli_context["stage_name"] = None
@@ -165,22 +165,22 @@ class TestCli(TestCase):
             bootstrap_cli(**self.cli_context)
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_command_name")
-    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user")
+    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
     @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
     @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
     def test_stage_name_is_not_required_to_be_provided_in_case_of_interactive_mode(
-        self, guided_context_mock, stage_mock, load_saved_pipeline_user_mock, get_command_name_mock
+        self, guided_context_mock, stage_mock, load_saved_pipeline_user_arn_mock, get_command_name_mock
     ):
         self.cli_context["interactive"] = True
         self.cli_context["stage_name"] = None
         bootstrap_cli(**self.cli_context)  # No exception is thrown
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_command_name")
-    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user")
+    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
     @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
     @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
     def test_guided_context_will_be_enabled_or_disabled_based_on_the_interactive_mode(
-        self, guided_context_mock, stage_mock, load_saved_pipeline_user_mock, get_command_name_mock
+        self, guided_context_mock, stage_mock, load_saved_pipeline_user_arn_mock, get_command_name_mock
     ):
         gc_instance = Mock()
         guided_context_mock.return_value = gc_instance
@@ -192,11 +192,11 @@ class TestCli(TestCase):
         gc_instance.run.assert_called_once()
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_command_name")
-    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user")
+    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
     @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
     @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
     def test_bootstrapping_will_confirm_before_creating_the_resources_unless_the_user_choose_not_to(
-        self, guided_context_mock, stage_mock, load_saved_pipeline_user_mock, get_command_name_mock
+        self, guided_context_mock, stage_mock, load_saved_pipeline_user_arn_mock, get_command_name_mock
     ):
         stage_instance = Mock()
         stage_mock.return_value = stage_instance
@@ -209,11 +209,11 @@ class TestCli(TestCase):
         stage_instance.bootstrap.assert_called_once_with(confirm_changeset=True)
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_command_name")
-    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user")
+    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
     @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
     @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
     def test_bootstrapping_will_not_fail_if_saving_resources_arns_to_local_toml_file_failed(
-        self, guided_context_mock, stage_mock, load_saved_pipeline_user_mock, get_command_name_mock
+        self, guided_context_mock, stage_mock, load_saved_pipeline_user_arn_mock, get_command_name_mock
     ):
         # setup
         stage_instance = Mock()
@@ -230,7 +230,7 @@ class TestCli(TestCase):
 
     @patch("samcli.commands.pipeline.bootstrap.cli.SamConfig")
     @patch("samcli.commands.pipeline.bootstrap.cli._get_command_name")
-    def test_load_saved_pipeline_user_will_read_from_the_correct_file(self, get_command_name_mock, sam_config_mock):
+    def test_load_saved_pipeline_user_arn_will_read_from_the_correct_file(self, get_command_name_mock, sam_config_mock):
         # setup
         get_command_name_mock.return_value = PIPELINE_BOOTSTRAP_COMMAND_NAMES
         sam_config_instance_mock = Mock()
@@ -238,14 +238,14 @@ class TestCli(TestCase):
         sam_config_instance_mock.exists.return_value = False
 
         # trigger
-        _load_saved_pipeline_user()
+        _load_saved_pipeline_user_arn()
 
         # verify
         sam_config_mock.assert_called_once_with(config_dir=PIPELINE_CONFIG_DIR, filename=PIPELINE_CONFIG_FILENAME)
 
     @patch("samcli.commands.pipeline.bootstrap.cli.SamConfig")
     @patch("samcli.commands.pipeline.bootstrap.cli._get_command_name")
-    def test_load_saved_pipeline_user_will_return_non_if_the_pipeline_toml_file_is_not_found(
+    def test_load_saved_pipeline_user_arn_will_return_non_if_the_pipeline_toml_file_is_not_found(
         self, get_command_name_mock, sam_config_mock
     ):
         # setup
@@ -255,14 +255,14 @@ class TestCli(TestCase):
         sam_config_instance_mock.exists.return_value = False
 
         # trigger
-        pipeline_user_arn = _load_saved_pipeline_user()
+        pipeline_user_arn = _load_saved_pipeline_user_arn()
 
         # verify
         self.assertIsNone(pipeline_user_arn)
 
     @patch("samcli.commands.pipeline.bootstrap.cli.SamConfig")
     @patch("samcli.commands.pipeline.bootstrap.cli._get_command_name")
-    def test_load_saved_pipeline_user_will_return_non_if_the_pipeline_toml_file_does_not_contain_pipeline_user(
+    def test_load_saved_pipeline_user_arn_will_return_non_if_the_pipeline_toml_file_does_not_contain_pipeline_user(
         self, get_command_name_mock, sam_config_mock
     ):
         # setup
@@ -273,14 +273,14 @@ class TestCli(TestCase):
         sam_config_instance_mock.get_all.return_value = {"non-pipeline_user-key": "any_value"}
 
         # trigger
-        pipeline_user_arn = _load_saved_pipeline_user()
+        pipeline_user_arn = _load_saved_pipeline_user_arn()
 
         # verify
         self.assertIsNone(pipeline_user_arn)
 
     @patch("samcli.commands.pipeline.bootstrap.cli.SamConfig")
     @patch("samcli.commands.pipeline.bootstrap.cli._get_command_name")
-    def test_load_saved_pipeline_user_returns_the_pipeline_user_arn_from_the_pipeline_toml_file(
+    def test_load_saved_pipeline_user_arn_returns_the_pipeline_user_arn_from_the_pipeline_toml_file(
         self, get_command_name_mock, sam_config_mock
     ):
         # setup
@@ -291,7 +291,7 @@ class TestCli(TestCase):
         sam_config_instance_mock.get_all.return_value = {"pipeline_user": ANY_PIPELINE_USER_ARN}
 
         # trigger
-        pipeline_user_arn = _load_saved_pipeline_user()
+        pipeline_user_arn = _load_saved_pipeline_user_arn()
 
         # verify
         self.assertEqual(pipeline_user_arn, ANY_PIPELINE_USER_ARN)
