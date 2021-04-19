@@ -2,7 +2,7 @@
 import os
 import pathlib
 import re
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import click
 
@@ -14,6 +14,7 @@ CFN_TEMPLATE_PATH = str(pathlib.Path(os.path.dirname(__file__)))
 STACK_NAME_PREFIX = "aws-sam-cli-managed"
 STAGE_RESOURCES_STACK_NAME_SUFFIX = "pipeline-resources"
 STAGE_RESOURCES_CFN_TEMPLATE = "stage_resources.yaml"
+PIPELINE_USER = "pipeline_user"
 PIPELINE_EXECUTION_ROLE = "pipeline_execution_role"
 CLOUDFORMATION_EXECUTION_ROLE = "cloudformation_execution_role"
 ARTIFACTS_BUCKET = "artifacts_bucket"
@@ -204,39 +205,24 @@ class Stage:
         samconfig: SamConfig = SamConfig(config_dir=config_dir, filename=filename)
 
         if self.pipeline_user.arn:
-            samconfig.put(cmd_names=cmd_names, section="parameters", key="pipeline_user", value=self.pipeline_user.arn)
+            samconfig.put(cmd_names=cmd_names, section="parameters", key=PIPELINE_USER, value=self.pipeline_user.arn)
 
-        if self.pipeline_execution_role.arn:
-            samconfig.put(
-                cmd_names=cmd_names,
-                section="parameters",
-                key=PIPELINE_EXECUTION_ROLE,
-                value=self.pipeline_execution_role.arn,
-                env=self.name,
-            )
+        stage_specific_configs: Dict[str, str] = {
+            PIPELINE_EXECUTION_ROLE: self.pipeline_execution_role.arn,
+            CLOUDFORMATION_EXECUTION_ROLE: self.cloudformation_execution_role.arn,
+            ARTIFACTS_BUCKET: self.artifacts_bucket.name(),
+            ECR_REPO: self.ecr_repo.get_uri(),
+        }
 
-        if self.cloudformation_execution_role.arn:
-            samconfig.put(
-                cmd_names=cmd_names,
-                section="parameters",
-                key=CLOUDFORMATION_EXECUTION_ROLE,
-                value=self.cloudformation_execution_role.arn,
-                env=self.name,
-            )
-
-        if self.artifacts_bucket.name():
-            samconfig.put(
-                cmd_names=cmd_names,
-                section="parameters",
-                key=ARTIFACTS_BUCKET,
-                value=self.artifacts_bucket.name(),
-                env=self.name,
-            )
-
-        if self.ecr_repo.get_uri():
-            samconfig.put(
-                cmd_names=cmd_names, section="parameters", key=ECR_REPO, value=self.ecr_repo.get_uri(), env=self.name
-            )
+        for key, value in enumerate(stage_specific_configs):
+            if value:
+                samconfig.put(
+                    cmd_names=cmd_names,
+                    section="parameters",
+                    key=key,
+                    value=value,
+                    env=self.name,
+                )
 
         samconfig.flush()
 
