@@ -7,6 +7,8 @@ import boto3
 from botocore.exceptions import NoCredentialsError
 import click
 
+from samtranslator.translator.arn_generator import NoRegionFound
+
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands._utils.options import template_option_without_build
 from samcli.lib.telemetry.metric import track_command
@@ -49,13 +51,20 @@ def do_cli(ctx, template):
     sam_template = _read_sam_file(template)
 
     iam_client = boto3.client("iam")
-    validator = SamTemplateValidator(sam_template, ManagedPolicyLoader(iam_client))
+    validator = SamTemplateValidator(
+        sam_template, ManagedPolicyLoader(iam_client), profile=ctx.profile, region=ctx.region
+    )
 
     try:
         validator.is_valid()
     except InvalidSamDocumentException as e:
         click.secho("Template provided at '{}' was invalid SAM Template.".format(template), bg="red")
         raise InvalidSamTemplateException(str(e)) from e
+    except NoRegionFound as no_region_found_e:
+        raise UserException(
+            "AWS Region was not found. Please configure your region through a profile or --region option",
+            wrapped_from=no_region_found_e.__class__.__name__,
+        ) from no_region_found_e
     except NoCredentialsError as e:
         raise UserException(
             "AWS Credentials are required. Please configure your credentials.", wrapped_from=e.__class__.__name__
