@@ -12,7 +12,7 @@ from samcli.lib.utils.packagetype import IMAGE
 def image_repository_validation(func):
     """
     Wrapper Validation function that will run last after the all cli parmaters have been loaded
-    to check for conditions surrounding `--image-repository` and `--image-repositories`. The
+    to check for conditions surrounding `--image-repository`, `--image-repositories`, and `--resolve-image-repos`. The
     reason they are done last instead of in callback functions, is because the options depend
     on each other, and this breaks cyclic dependencies.
 
@@ -30,7 +30,7 @@ def image_repository_validation(func):
             ctx.params.get("t", False) or ctx.params.get("template_file", False) or ctx.params.get("template", False)
         )
 
-        # Check if `--image-repository` or `--image-repositories` are required by
+        # Check if `--image-repository`, `--image-repositories`, or `--resolve-image-repos` are required by
         # looking for resources that have an IMAGE based packagetype.
 
         required = any(
@@ -47,6 +47,15 @@ def image_repository_validation(func):
                     option_name="--image-repositories",
                     ctx=ctx,
                     message="Both '--image-repositories' and '--image-repository' cannot be provided. "
+                    "Do you have both specified in the command or in a configuration file?",
+                ),
+            ),
+            Validator(
+                validation_function=lambda: image_repository and resolve_image_repos,
+                exception=click.BadOptionUsage(
+                    option_name="--resolve-image-repos",
+                    ctx=ctx,
+                    message="Both '--resolve-image-repos' and '--image-repository' cannot be provided. "
                     "Do you have both specified in the command or in a configuration file?",
                 ),
             ),
@@ -70,7 +79,8 @@ def image_repository_validation(func):
                 exception=click.BadOptionUsage(
                     option_name="--image-repositories",
                     ctx=ctx,
-                    message="Incomplete list of function logical ids specified for '--image-repositories'",
+                    message="Incomplete list of function logical ids specified for '--image-repositories'. "
+                    "You can also add --resolve-image-repos to automatically create missing repositories.",
                 ),
             ),
         ]
