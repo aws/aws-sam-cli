@@ -90,13 +90,7 @@ class Stage:
 
     def did_user_provide_all_required_resources(self) -> bool:
         """Check if the user provided all of the stage resources or not"""
-        return (
-            self.pipeline_user.is_user_provided
-            and self.pipeline_execution_role.is_user_provided
-            and self.cloudformation_execution_role.is_user_provided
-            and self.artifacts_bucket.is_user_provided
-            and (not self.create_ecr_repo or self.ecr_repo.is_user_provided)
-        )
+        return all(resource.is_user_provided for resource in self._get_resources())
 
     def _get_non_user_provided_resources_msg(self) -> str:
         missing_resources_msg = ""
