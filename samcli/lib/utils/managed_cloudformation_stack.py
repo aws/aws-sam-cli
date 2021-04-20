@@ -192,6 +192,7 @@ def _generate_stack_parameters(
     if parameter_overrides:
         for key, value in parameter_overrides.items():
             if isinstance(value, Collection) and not isinstance(value, str):
+                # Assumption: values don't include commas or spaces. Need to refactor to handle such a case if needed.
                 value = ",".join(value)
             parameters.append({"ParameterKey": key, "ParameterValue": value})
     return parameters

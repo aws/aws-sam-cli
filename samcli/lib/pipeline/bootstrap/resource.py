@@ -29,8 +29,6 @@ class ARNParts:
     resource_id: str
 
     def __init__(self, arn: str) -> None:
-        if not isinstance(arn, str):
-            raise ValueError(f"Invalid ARN ({arn}) is not a String")
         parts = arn.split(":")
         try:
             [_, self.partition, self.service, self.region, self.account_id, self.resource_id] = parts
@@ -60,9 +58,6 @@ class Resource:
         self.arn: Optional[str] = arn
         self.is_user_provided: bool = bool(arn)
 
-    def _get_arn_parts(self) -> Optional[ARNParts]:
-        return ARNParts(self.arn) if self.arn else None
-
     def name(self) -> Optional[str]:
         """
         extracts and returns the resource name from its ARN
@@ -70,8 +65,10 @@ class Resource:
         ------
         ValueError if the ARN is invalid
         """
-        arn_parts: Optional[ARNParts] = self._get_arn_parts()
-        return arn_parts.resource_id if arn_parts else None
+        if not self.arn:
+            return None
+        arn_parts: ARNParts = ARNParts(arn=self.arn)
+        return arn_parts.resource_id
 
 
 class IamUser(Resource):
@@ -121,9 +118,9 @@ class EcrRepo(Resource):
         ------
         ValueError if the ARN is invalid
         """
-        arn_parts: Optional[ARNParts] = self._get_arn_parts()
-        if not arn_parts:
+        if not self.arn:
             return None
+        arn_parts: ARNParts = ARNParts(self.arn)
         # ECR's resource_id contains the resource-type("resource") which is excluded from the URL
         # from docs: https://docs.aws.amazon.com/AmazonECR/latest/userguide/security_iam_service-with-iam.html
         # ECR's ARN: arn:${Partition}:ecr:${Region}:${Account}:repository/${Repository-name}

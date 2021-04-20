@@ -15,15 +15,6 @@ class TestArnParts(TestCase):
         self.assertEqual(arn_parts.account_id, "account-id")
         self.assertEqual(arn_parts.resource_id, "resource-id")
 
-    def test_arn_parts_of_none_arn_is_invalid(self):
-        with self.assertRaises(ValueError):
-            ARNParts(arn=None)
-
-    def test_arn_parts_of_none_string_arn_is_invalid(self):
-        with self.assertRaises(ValueError):
-            any_non_string = 1
-            ARNParts(arn=any_non_string)
-
     def test_arn_parts_of_invalid_arn(self):
         with self.assertRaises(ValueError):
             invalid_arn = "invalid_arn"
