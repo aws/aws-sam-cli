@@ -284,6 +284,10 @@ class Stage:
                 click.secho(f"\t{resource.arn}", fg="green")
 
         if not self.pipeline_user.is_user_provided:
-            click.secho("Please configure your CI/CD project with the following pipeline user credentials:", fg="green")
+            click.secho(
+                "Please configure your CI/CD project with the following pipeline user credentials and "
+                "make sure to periodically rotate it: ",
+                fg="green",
+            )
             click.secho(f"\tACCESS_KEY_ID: {self.pipeline_user.access_key_id}", fg="green")
             click.secho(f"\tSECRET_ACCESS_KEY: {self.pipeline_user.secret_access_key}", fg="green")
