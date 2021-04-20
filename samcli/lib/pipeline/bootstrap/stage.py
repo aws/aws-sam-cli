@@ -141,7 +141,7 @@ class Stage:
 
         missing_resources_msg: str = self._get_non_user_provided_resources_msg()
         click.echo(
-            "This will create the following required resources for the {self.name} stage: " f"{missing_resources_msg}"
+            f"This will create the following required resources for the {self.name} stage: {missing_resources_msg}"
         )
         if confirm_changeset:
             confirmed: bool = click.confirm("Should we proceed with the creation?")
