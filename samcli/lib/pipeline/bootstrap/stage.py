@@ -286,7 +286,7 @@ class Stage:
         if not self.pipeline_user.is_user_provided:
             click.secho(
                 "Please configure your CI/CD project with the following pipeline user credentials and "
-                "make sure to periodically rotate it: ",
+                "make sure to periodically rotate it:",
                 fg="green",
             )
             click.secho(f"\tACCESS_KEY_ID: {self.pipeline_user.access_key_id}", fg="green")
