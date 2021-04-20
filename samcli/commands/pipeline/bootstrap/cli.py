@@ -198,14 +198,9 @@ def do_cli(
     if bootstrapped:
         stage.print_resources_summary()
 
-        try:
-            stage.save_config(
-                config_dir=PIPELINE_CONFIG_DIR, filename=PIPELINE_CONFIG_FILENAME, cmd_names=_get_command_name()
-            )
-        except Exception:
-            # Swallow saving exceptions, if any, as the resources are already bootstrapped and the ARNs are already
-            # printed out in the screen.
-            pass
+        stage.save_config_safe(
+            config_dir=PIPELINE_CONFIG_DIR, filename=PIPELINE_CONFIG_FILENAME, cmd_names=_get_command_name()
+        )
 
 
 def _load_saved_pipeline_user_arn() -> Optional[str]:

@@ -297,6 +297,13 @@ class TestStage(TestCase):
         # this exception is swallowed so that other configs can be safely saved to the pipelineconfig.toml file
         stage.save_config(config_dir="any_config_dir", filename="any_pipeline.toml", cmd_names=["any", "commands"])
 
+    @patch.object(Stage, "save_config")
+    def test_save_config_safe(self, save_config_mock):
+        save_config_mock.side_effect = Exception
+        stage: Stage = Stage(name=ANY_STAGE_NAME)
+        stage.save_config_safe(config_dir="any_config_dir", filename="any_pipeline.toml", cmd_names=["commands"])
+        save_config_mock.assert_called_once_with("any_config_dir", "any_pipeline.toml", ["commands"])
+
     @patch("samcli.lib.pipeline.bootstrap.stage.click")
     def test_print_resources_summary_when_no_resources_provided_by_the_user(self, click_mock):
         stage: Stage = Stage(name=ANY_STAGE_NAME)

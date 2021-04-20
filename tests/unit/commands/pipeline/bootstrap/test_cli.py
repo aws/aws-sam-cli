@@ -125,7 +125,7 @@ class TestCli(TestCase):
         gc_instance.run.assert_called_once()
         stage_instance.bootstrap.assert_called_once_with(confirm_changeset=True)
         stage_instance.print_resources_summary.assert_called_once()
-        stage_instance.save_config.assert_called_once_with(
+        stage_instance.save_config_safe.assert_called_once_with(
             config_dir=PIPELINE_CONFIG_DIR,
             filename=PIPELINE_CONFIG_FILENAME,
             cmd_names=PIPELINE_BOOTSTRAP_COMMAND_NAMES,
@@ -207,26 +207,6 @@ class TestCli(TestCase):
         self.cli_context["confirm_changeset"] = True
         bootstrap_cli(**self.cli_context)
         stage_instance.bootstrap.assert_called_once_with(confirm_changeset=True)
-
-    @patch("samcli.commands.pipeline.bootstrap.cli._get_command_name")
-    @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
-    @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
-    @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
-    def test_bootstrapping_will_not_fail_if_saving_resources_arns_to_local_toml_file_failed(
-        self, guided_context_mock, stage_mock, load_saved_pipeline_user_arn_mock, get_command_name_mock
-    ):
-        # setup
-        stage_instance = Mock()
-        stage_mock.return_value = stage_instance
-        self.cli_context["interactive"] = False
-        stage_instance.save_config.side_effect = Exception
-        get_command_name_mock.return_value = PIPELINE_BOOTSTRAP_COMMAND_NAMES
-
-        # trigger
-        bootstrap_cli(**self.cli_context)
-
-        # verify
-        stage_instance.save_config.assert_called_once()  # called and the thrown exception got swallowed
 
     @patch("samcli.commands.pipeline.bootstrap.cli.SamConfig")
     @patch("samcli.commands.pipeline.bootstrap.cli._get_command_name")

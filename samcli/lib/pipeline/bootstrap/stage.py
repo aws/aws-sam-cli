@@ -238,6 +238,15 @@ class Stage:
 
         samconfig.flush()
 
+    def save_config_safe(self, config_dir: str, filename: str, cmd_names: List[str]) -> None:
+        """
+        A safe version of save_config method that doesn't raise any exception
+        """
+        try:
+            self.save_config(config_dir, filename, cmd_names)
+        except Exception:
+            pass
+
     def _get_resources(self) -> List[Resource]:
         resources = [
             self.pipeline_user,
