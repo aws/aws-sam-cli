@@ -21,6 +21,7 @@ class ARNParts:
     resource-type: str
         the resource-type part of the ARN
     """
+
     partition: str
     service: str
     region: str

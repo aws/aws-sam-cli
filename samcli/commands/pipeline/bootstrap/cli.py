@@ -2,7 +2,7 @@
 CLI command for "pipeline bootstrap", which sets up the require pipeline infrastructure resources
 """
 import os
-from typing import Any, cast, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import click
 
@@ -218,5 +218,4 @@ def _load_saved_pipeline_user_arn() -> Optional[str]:
 
 def _get_command_name() -> List[str]:
     ctx = click.get_current_context()
-    cmd_names: List[str] = cast(List[str], get_cmd_names(ctx.info_name, ctx))  # ["pipeline", "bootstrap"]
-    return cmd_names
+    return get_cmd_names(ctx.info_name, ctx)  # ["pipeline", "bootstrap"]

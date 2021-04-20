@@ -29,20 +29,26 @@ class Stage:
     ----------
     name: str
         The name of the stage
-    aws_profile: str
+    aws_profile: Optional[str]
         The named AWS profile(in user's machine) of the AWS account to deploy this stage to.
-    aws_region: str
+    aws_region: Optional[str]
         The AWS region to deploy this stage to.
-    pipeline_user: str
+    pipeline_user: IamUser
         The IAM User having its AccessKeyId and SecretAccessKey credentials shared with the CI/CD provider
     pipeline_execution_role: Resource
         The IAM role assumed by the pipeline-user to get access to the AWS account and executes the
         CloudFormation stack.
+    pipeline_ip_range: Optional[str]
+        The IP range (in CIDR format) of the machine running the pipeline instance. If provided, IAM will deny requests
+        not coming from this IP range.
+        https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_examples_aws_deny-ip.html
     cloudformation_execution_role: Resource
         The IAM role assumed by the CloudFormation service to executes the CloudFormation stack.
     artifacts_bucket: S3Bucket
         The S3 bucket to hold the SAM build artifacts of the application's CFN template.
-    ecr_repo: Resource
+    create_ecr_repo: bool
+        A boolean flag that determins whether the user wants to create an ECR repository or not
+    ecr_repo: EcrRepo
         The ECR repo to hold the image container of lambda functions with Image package-type
 
     Methods:
@@ -82,7 +88,7 @@ class Stage:
         self.aws_region: Optional[str] = aws_region
         self.pipeline_user: IamUser = IamUser(arn=pipeline_user_arn)
         self.pipeline_execution_role: Resource = Resource(arn=pipeline_execution_role_arn)
-        self.pipeline_ip_range = pipeline_ip_range
+        self.pipeline_ip_range: Optional[str] = pipeline_ip_range
         self.cloudformation_execution_role: Resource = Resource(arn=cloudformation_execution_role_arn)
         self.artifacts_bucket: S3Bucket = S3Bucket(arn=artifacts_bucket_arn)
         self.create_ecr_repo: bool = create_ecr_repo
@@ -142,8 +148,8 @@ class Stage:
             if not confirmed:
                 return False
 
-        stage_name_suffix: str = re.sub("[^0-9a-zA-Z]+", "-", self.name)
-        stack_name: str = f"{STACK_NAME_PREFIX}-{stage_name_suffix}-{STAGE_RESOURCES_STACK_NAME_SUFFIX}"
+        sanitized_stage_name: str = re.sub("[^0-9a-zA-Z]+", "-", self.name)
+        stack_name: str = f"{STACK_NAME_PREFIX}-{sanitized_stage_name}-{STAGE_RESOURCES_STACK_NAME_SUFFIX}"
         stage_resources_template_body = Stage._read_template(STAGE_RESOURCES_CFN_TEMPLATE)
         output: StackOutput = manage_stack(
             stack_name=stack_name,
