@@ -180,7 +180,7 @@ class Stage:
     @staticmethod
     def _read_template(template_file_name: str) -> str:
         template_path: str = os.path.join(CFN_TEMPLATE_PATH, template_file_name)
-        with open(template_path, "r") as fp:
+        with open(template_path, "r", encoding="utf-8") as fp:
             template_body = fp.read()
         return template_body
 
