@@ -198,6 +198,10 @@ def do_cli(
     if bootstrapped:
         stage.print_resources_summary()
 
+        stage.save_config_safe(
+            config_dir=PIPELINE_CONFIG_DIR, filename=PIPELINE_CONFIG_FILENAME, cmd_names=_get_command_names()
+        )
+
 
 def _load_saved_pipeline_user_arn() -> Optional[str]:
     samconfig: SamConfig = SamConfig(config_dir=PIPELINE_CONFIG_DIR, filename=PIPELINE_CONFIG_FILENAME)

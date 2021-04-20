@@ -124,6 +124,11 @@ class TestCli(TestCase):
         gc_instance.run.assert_called_once()
         stage_instance.bootstrap.assert_called_once_with(confirm_changeset=True)
         stage_instance.print_resources_summary.assert_called_once()
+        stage_instance.save_config_safe.assert_called_once_with(
+            config_dir=PIPELINE_CONFIG_DIR,
+            filename=PIPELINE_CONFIG_FILENAME,
+            cmd_names=PIPELINE_BOOTSTRAP_COMMAND_NAMES,
+        )
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_command_names")
     @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
@@ -204,9 +209,7 @@ class TestCli(TestCase):
 
     @patch("samcli.commands.pipeline.bootstrap.cli.SamConfig")
     @patch("samcli.commands.pipeline.bootstrap.cli._get_command_names")
-    def test_load_saved_pipeline_user_arn_will_read_from_the_correct_file(
-        self, get_command_names_mock, sam_config_mock
-    ):
+    def test_load_saved_pipeline_user_arn_will_read_from_the_correct_file(self, get_command_names_mock, sam_config_mock):
         # setup
         get_command_names_mock.return_value = PIPELINE_BOOTSTRAP_COMMAND_NAMES
         sam_config_instance_mock = Mock()
