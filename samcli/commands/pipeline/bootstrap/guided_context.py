@@ -72,7 +72,7 @@ class GuidedContext:
             )
         if not self.ecr_repo_arn:
             click.echo(
-                "\nIf your SAM template will include Lambda functions of Image package type, "
+                "\nIf your SAM template includes (or going to include) Lambda functions of Image package type, "
                 "then an ECR repository is required. Should we create one?"
             )
             click.echo("\t1 - No, My SAM template won't include Lambda functions of Image package type")

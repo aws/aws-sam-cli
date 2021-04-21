@@ -124,43 +124,6 @@ Resources:
                     - !Ref PipelineIpRange
             - !Ref AWS::NoValue
 
-  ArtifactsBucketKey:
-    Type: AWS::KMS::Key
-    Condition: MissingArtifactsBucket
-    Properties:
-      Tags:
-        - Key: ManagedStackSource
-          Value: AwsSamCli
-      Description: Artifact encryption/decryption cmk
-      EnableKeyRotation: true
-      KeyPolicy:
-        Version: '2012-10-17'
-        Id: !Ref AWS::StackName
-        Statement:
-          - Effect: Allow
-            Principal:
-              AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
-            Action: kms:*
-            Resource: '*'
-          - Effect: Allow
-            Principal:
-              AWS:
-                - Fn::If:
-                  - MissingPipelineExecutionRole
-                  - !GetAtt PipelineExecutionRole.Arn
-                  - !Ref PipelineExecutionRoleArn
-                - Fn::If:
-                  - MissingCloudFormationExecutionRole
-                  - !GetAtt CloudFormationExecutionRole.Arn
-                  - !Ref CloudFormationExecutionRoleArn
-            Action:
-              - kms:Encrypt
-              - kms:Decrypt
-              - kms:ReEncrypt*
-              - kms:GenerateDataKey*
-              - kms:DescribeKey
-            Resource: '*'
-
   ArtifactsBucket:
     Type: AWS::S3::Bucket
     Condition: MissingArtifactsBucket
@@ -174,8 +137,7 @@ Resources:
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
-              KMSMasterKeyID: !GetAtt ArtifactsBucketKey.Arn
-              SSEAlgorithm: aws:kms
+              SSEAlgorithm: AES256
 
   ArtifactsBucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -242,15 +204,6 @@ Resources:
                   - !GetAtt ArtifactsBucket.Arn
                 - - !Join [ '',[ !Ref ArtifactsBucketArn, '/*' ] ]
                   - !Ref ArtifactsBucketArn
-          - Fn::If:
-            - MissingArtifactsBucket
-            - Effect: "Allow"
-              Action:
-                - "kms:Decrypt"
-                - "kms:DescribeKey"
-              Resource:
-                - !GetAtt ArtifactsBucketKey.Arn
-            - !Ref AWS::NoValue
           - Fn::If:
             - EcrRepoRequired
             - Effect: "Allow"
@@ -347,11 +300,6 @@ Outputs:
         - MissingArtifactsBucket
         - !GetAtt ArtifactsBucket.Arn
         - !Ref ArtifactsBucketArn
-
-  ArtifactsBucketKey:
-    Description: ARN of the CMK used for Artifacts bucket encryption/decryption
-    Condition: MissingArtifactsBucket
-    Value: !GetAtt ArtifactsBucketKey.Arn
 
   EcrRepo:
     Description: ARN of the ECR repo

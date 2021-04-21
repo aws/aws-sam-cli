@@ -8,7 +8,7 @@ import click
 
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.utils.managed_cloudformation_stack import manage_stack, StackOutput
-from .resource import Resource, IamUser, S3Bucket, EcrRepo
+from .resource import Resource, IamUser, EcrRepo
 
 CFN_TEMPLATE_PATH = str(pathlib.Path(os.path.dirname(__file__)))
 STACK_NAME_PREFIX = "aws-sam-cli-managed"
@@ -44,7 +44,7 @@ class Stage:
         https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_examples_aws_deny-ip.html
     cloudformation_execution_role: Resource
         The IAM role assumed by the CloudFormation service to executes the CloudFormation stack.
-    artifacts_bucket: S3Bucket
+    artifacts_bucket: Resource
         The S3 bucket to hold the SAM build artifacts of the application's CFN template.
     create_ecr_repo: bool
         A boolean flag that determins whether the user wants to create an ECR repository or not
@@ -90,7 +90,7 @@ class Stage:
         self.pipeline_execution_role: Resource = Resource(arn=pipeline_execution_role_arn)
         self.pipeline_ip_range: Optional[str] = pipeline_ip_range
         self.cloudformation_execution_role: Resource = Resource(arn=cloudformation_execution_role_arn)
-        self.artifacts_bucket: S3Bucket = S3Bucket(arn=artifacts_bucket_arn)
+        self.artifacts_bucket: Resource = Resource(arn=artifacts_bucket_arn)
         self.create_ecr_repo: bool = create_ecr_repo
         self.ecr_repo: EcrRepo = EcrRepo(arn=ecr_repo_arn)
 
@@ -118,7 +118,7 @@ class Stage:
             * Pipeline IAM User
             * Pipeline execution IAM role
             * CloudFormation execution IAM role
-            * Artifacts' S3 Bucket along with KMS encryption key
+            * Artifacts' S3 Bucket
             * ECR Repo
         to the AWS account associated with the given stage. It will not redeploy the stack if already exists.
         This CFN template accepts the ARNs of the resources as parameters and will not create a resource if already
@@ -173,7 +173,6 @@ class Stage:
         self.pipeline_execution_role.arn = output.get("PipelineExecutionRole")
         self.cloudformation_execution_role.arn = output.get("CloudFormationExecutionRole")
         self.artifacts_bucket.arn = output.get("ArtifactsBucket")
-        self.artifacts_bucket.kms_key_arn = output.get("ArtifactsBucketKMS")
         self.ecr_repo.arn = output.get("EcrRepo")
         return True
 

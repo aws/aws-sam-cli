@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from samcli.lib.pipeline.bootstrap.resource import ARNParts, Resource, S3Bucket, IamUser, EcrRepo
+from samcli.lib.pipeline.bootstrap.resource import ARNParts, Resource, IamUser, EcrRepo
 
 VALID_ARN = "arn:partition:service:region:account-id:resource-id"
 INVALID_ARN = "ARN"
@@ -51,17 +51,6 @@ class TestIamUser(TestCase):
         self.assertEquals(user.arn, INVALID_ARN)
         self.assertEquals(user.access_key_id, "any_access_key_id")
         self.assertEquals(user.secret_access_key, "any_secret_access_key")
-
-
-class TestS3Bucket(TestCase):
-    def test_create_s3_bucket(self):
-        bucket: S3Bucket = S3Bucket(arn=VALID_ARN)
-        self.assertEquals(bucket.arn, VALID_ARN)
-        self.assertIsNone(bucket.kms_key_arn)
-
-        bucket = S3Bucket(arn=INVALID_ARN, kms_key_arn="any_kms_key_arn")
-        self.assertEquals(bucket.arn, INVALID_ARN)
-        self.assertEquals(bucket.kms_key_arn, "any_kms_key_arn")
 
 
 class TestEcrRepo(TestCase):
