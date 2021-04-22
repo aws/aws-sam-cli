@@ -9,7 +9,7 @@ from click.testing import CliRunner
 from samcli.commands.exceptions import UserException
 from samcli.commands.init import cli as init_cmd
 from samcli.commands.init import do_cli as init_cli
-from samcli.commands.init.init_templates import InitTemplates
+from samcli.commands.init.init_templates import InitTemplates, APP_TEMPLATES_REPO_URL, APP_TEMPLATES_REPO_NAME
 from samcli.lib.init import GenerateProjectFailedError
 from samcli.lib.utils.git_repo import GitRepo
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -19,8 +19,7 @@ class MockInitTemplates:
     def __init__(self, no_interactive=False):
         self._no_interactive = no_interactive
         self._git_repo: GitRepo = GitRepo(
-            url="https://github.com/awslabs/aws-sam-cli-app-templates.git",
-            name="aws-sam-cli-app-templates",
+            url=APP_TEMPLATES_REPO_URL,
         )
         self._git_repo.clone_attempted = True
         self._git_repo.local_path = Path("repository")

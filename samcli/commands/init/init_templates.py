@@ -18,6 +18,8 @@ from samcli.lib.utils.packagetype import IMAGE
 from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING, get_local_lambda_images_location
 
 LOG = logging.getLogger(__name__)
+APP_TEMPLATES_REPO_URL = "https://github.com/aws/aws-sam-cli-app-templates"
+APP_TEMPLATES_REPO_NAME = "aws-sam-cli-app-templates"
 
 
 class InvalidInitTemplateError(UserException):
@@ -27,10 +29,7 @@ class InvalidInitTemplateError(UserException):
 class InitTemplates:
     def __init__(self, no_interactive=False):
         self._no_interactive = no_interactive
-        self._git_repo: GitRepo = GitRepo(
-            url="https://github.com/aws/aws-sam-cli-app-templates",
-            name="aws-sam-cli-app-templates",
-        )
+        self._git_repo: GitRepo = GitRepo(url=APP_TEMPLATES_REPO_URL)
 
     def prompt_for_location(self, package_type, runtime, base_image, dependency_manager):
         """
@@ -82,7 +81,7 @@ class InitTemplates:
         if template_md.get("init_location") is not None:
             return (template_md["init_location"], template_md["appTemplate"])
         if template_md.get("directory") is not None:
-            return (os.path.join(self._git_repo.local_path, template_md["directory"]), template_md["appTemplate"])
+            return os.path.join(self._git_repo.local_path, template_md["directory"]), template_md["appTemplate"]
         raise InvalidInitTemplateError("Invalid template. This should not be possible, please raise an issue.")
 
     def location_from_app_template(self, package_type, runtime, base_image, dependency_manager, app_template):
@@ -108,12 +107,12 @@ class InitTemplates:
         if not self._git_repo.clone_attempted:
             shared_dir: Path = global_cfg.config_dir
             try:
-                self._git_repo.clone(clone_dir=shared_dir, replace_existing=True)
+                self._git_repo.clone(clone_dir=shared_dir, clone_name=APP_TEMPLATES_REPO_NAME, replace_existing=True)
             except CloneRepoUnstableStateException as ex:
                 raise AppTemplateUpdateException(str(ex)) from ex
             except (OSError, CloneRepoException):
                 # If can't clone, try using an old clone from a previous run if already exist
-                expected_previous_clone_local_path: Path = shared_dir.joinpath(self._git_repo.name)
+                expected_previous_clone_local_path: Path = shared_dir.joinpath(APP_TEMPLATES_REPO_NAME)
                 if expected_previous_clone_local_path.exists():
                     self._git_repo.local_path = expected_previous_clone_local_path
         if self._git_repo.local_path is None:

@@ -32,50 +32,25 @@ class GitRepo:
 
     Attributes
     ----------
-    _url: str
+    url: str
         The URL of this Git repository, example "https://github.com/aws/aws-sam-cli"
-    _name: str
-        The name of this Git repository, example "aws-sam-cli"
-    _local_path: Path
-        The path of the local clone of this Git repository
-    _clone_attempted: bool
-        whether an attempt to clone this Git repository took place or not
+    local_path: Path
+        The path of the last local clone of this Git repository. Can be used in conjunction with clone_attempted
+        to avoid unnecessary multiple cloning of the repository.
+    clone_attempted: bool
+        whether an attempt to clone this Git repository took place or not. Can be used in conjunction with local_path
+        to avoid unnecessary multiple cloning of the repository
 
     Methods
     -------
-    clone(self, clone_dir: Path, clone_name=None, replace_existing=False) -> Path:
-        creates a local clone of this Git repository
+    clone(self, clone_dir: Path, clone_name, replace_existing=False) -> Path:
+        creates a local clone of this Git repository. (more details in the method documentation).
     """
 
-    def __init__(self, url: str, name: str) -> None:
-        self._url: str = url
-        self._name: str = name
-        self._local_path: Optional[Path] = None
-        self._clone_attempted: bool = False
-
-    @property
-    def url(self) -> str:
-        return self._url
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @property
-    def local_path(self) -> Optional[Path]:
-        return self._local_path
-
-    @local_path.setter
-    def local_path(self, value: Path) -> None:
-        self._local_path = value
-
-    @property
-    def clone_attempted(self) -> bool:
-        return self._clone_attempted
-
-    @clone_attempted.setter
-    def clone_attempted(self, value: bool) -> None:
-        self._clone_attempted = value
+    def __init__(self, url: str) -> None:
+        self.url: str = url
+        self.local_path: Optional[Path] = None
+        self.clone_attempted: bool = False
 
     @staticmethod
     def _ensure_clone_directory_exists(clone_dir: Path) -> None:
@@ -102,16 +77,21 @@ class GitRepo:
 
         raise OSError("Cannot find git, was looking at executables: {}".format(executables))
 
-    def clone(self, clone_dir: Path, clone_name: Optional[str] = None, replace_existing: bool = False) -> Path:
+    def clone(self, clone_dir: Path, clone_name: str, replace_existing: bool = False) -> Path:
         """
-        creates a local clone of this Git repository
+        creates a local clone of this Git repository.
+        This method is different from the standard Git clone in the following:
+        1. It accepts the path to clone into as a clone_dir (the parent directory to clone in) and a clone_name (The
+           name of the local folder) instead of accepting the full path (the join of both) in one parameter
+        2. It removes the "*.git" files/directories so the clone is not a GitRepo any more
+        3. It has the option to replace the local folder(destination) if already exists
 
         Parameters
         ----------
         clone_dir: Path
             The directory to create the local clone inside
-        clone_name: Optional[str]
-            The dirname of the local clone, if not provided, repository's name (self._name) will be used
+        clone_name: str
+            The dirname of the local clone
         replace_existing: bool
             Whether to replace the current local clone directory if already exists or not
 
@@ -135,27 +115,26 @@ class GitRepo:
         # clone to temp then move to the destination(repo_local_path)
         with osutils.mkdir_temp(ignore_errors=True) as tempdir:
             try:
-                clone_name = clone_name if clone_name else self._name
                 temp_path = os.path.normpath(os.path.join(tempdir, clone_name))
                 git_executable: str = GitRepo._git_executable()
-                LOG.info("\nCloning from %s", self._url)
+                LOG.info("\nCloning from %s", self.url)
                 subprocess.check_output(
-                    [git_executable, "clone", self._url, clone_name],
+                    [git_executable, "clone", self.url, clone_name],
                     cwd=tempdir,
                     stderr=subprocess.STDOUT,
                 )
-                self._local_path = self._persist_local_repo(temp_path, clone_dir, clone_name, replace_existing)
-                return self._local_path
+                self.local_path = self._persist_local_repo(temp_path, clone_dir, clone_name, replace_existing)
+                return self.local_path
             except OSError as ex:
-                LOG.warning("WARN: Could not clone repo %s", self._url, exc_info=ex)
+                LOG.warning("WARN: Could not clone repo %s", self.url, exc_info=ex)
                 raise
             except subprocess.CalledProcessError as clone_error:
                 output = clone_error.output.decode("utf-8")
                 if "not found" in output.lower():
-                    LOG.warning("WARN: Could not clone repo %s", self._url, exc_info=clone_error)
+                    LOG.warning("WARN: Could not clone repo %s", self.url, exc_info=clone_error)
                 raise CloneRepoException from clone_error
             finally:
-                self._clone_attempted = True
+                self.clone_attempted = True
 
     @staticmethod
     def _persist_local_repo(temp_path: str, dest_dir: Path, dest_name: str, replace_existing: bool) -> Path:
@@ -168,6 +147,7 @@ class GitRepo:
                 shutil.rmtree(dest_path, onerror=rmtree_callback)
 
             LOG.debug("Copying from %s to %s", temp_path, dest_path)
+            # Todo consider not removing the .git files/directories
             shutil.copytree(temp_path, dest_path, ignore=shutil.ignore_patterns("*.git"))
             return Path(dest_path)
         except (OSError, shutil.Error) as ex:
