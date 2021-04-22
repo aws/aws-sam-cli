@@ -2,20 +2,20 @@ import subprocess
 from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch, MagicMock, ANY, call
-
+import os
 from samcli.lib.utils.git_repo import GitRepo, rmtree_callback, CloneRepoException, CloneRepoUnstableStateException
 
 REPO_URL = "REPO URL"
 REPO_NAME = "REPO NAME"
-CLONE_DIR = "/tmp/local/clone/dir"
+CLONE_DIR = os.path.normpath("/tmp/local/clone/dir")
 EXPECTED_DEFAULT_CLONE_PATH = f"{CLONE_DIR}/{REPO_NAME}"
 
 
 class TestGitRepo(TestCase):
     def setUp(self):
-        self.repo = GitRepo(url=REPO_URL, name=REPO_NAME, auto_clone=True)
+        self.repo = GitRepo(url=REPO_URL, name=REPO_NAME)
         self.local_clone_dir = MagicMock()
-        self.local_clone_dir.joinpath.side_effect = lambda sub_dir: f"{CLONE_DIR}/{sub_dir}"
+        self.local_clone_dir.joinpath.side_effect = lambda sub_dir: os.path.normpath(os.path.join(CLONE_DIR, sub_dir))
 
     def test_ensure_clone_directory_exists(self):
         self.repo._ensure_clone_directory_exists(self.local_clone_dir)  # No exception is thrown
@@ -45,14 +45,6 @@ class TestGitRepo(TestCase):
         mock_popen.side_effect = OSError("fail")
         with self.assertRaises(OSError):
             self.repo._git_executable()
-
-    @patch("samcli.lib.utils.git_repo.osutils")
-    @patch("samcli.lib.utils.git_repo.GitRepo._ensure_clone_directory_exists")
-    def test_clone_will_return_immediately_if_auto_clone_flag_is_set_to_false(self, cd_mock, osutils_mock):
-        repo = GitRepo(url=REPO_URL, name=REPO_NAME, auto_clone=False)
-        repo.clone(clone_dir=self.local_clone_dir)
-        cd_mock.assert_not_called()
-        osutils_mock.mkdir_temp.assert_not_called()
 
     @patch("samcli.lib.utils.git_repo.shutil")
     @patch("samcli.lib.utils.git_repo.subprocess.check_output")

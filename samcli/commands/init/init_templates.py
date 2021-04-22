@@ -12,7 +12,7 @@ from typing import Dict
 import click
 
 from samcli.cli.main import global_cfg
-from samcli.commands.exceptions import UserException
+from samcli.commands.exceptions import UserException, AppTemplateUpdateException
 from samcli.lib.utils.git_repo import GitRepo, CloneRepoException, CloneRepoUnstableStateException
 from samcli.lib.utils.packagetype import IMAGE
 from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING, get_local_lambda_images_location
@@ -25,12 +25,11 @@ class InvalidInitTemplateError(UserException):
 
 
 class InitTemplates:
-    def __init__(self, no_interactive=False, auto_clone=True):
+    def __init__(self, no_interactive=False):
         self._no_interactive = no_interactive
         self._git_repo: GitRepo = GitRepo(
             url="https://github.com/aws/aws-sam-cli-app-templates",
             name="aws-sam-cli-app-templates",
-            auto_clone=auto_clone,
         )
 
     def prompt_for_location(self, package_type, runtime, base_image, dependency_manager):
@@ -111,7 +110,7 @@ class InitTemplates:
             try:
                 self._git_repo.clone(clone_dir=shared_dir, replace_existing=True)
             except CloneRepoUnstableStateException as ex:
-                raise UserException(str(ex)) from ex
+                raise AppTemplateUpdateException(str(ex)) from ex
             except (OSError, CloneRepoException):
                 # If can't clone, try using an old clone from a previous run if already exist
                 expected_previous_clone_local_path: Path = shared_dir.joinpath(self._git_repo.name)

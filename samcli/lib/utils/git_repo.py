@@ -40,8 +40,6 @@ class GitRepo:
         The path of the local clone of this Git repository
     _clone_attempted: bool
         whether an attempt to clone this Git repository took place or not
-    _auto_clone: bool
-        Just for unit-testing, set to false to skip cloning
 
     Methods
     -------
@@ -49,12 +47,11 @@ class GitRepo:
         creates a local clone of this Git repository
     """
 
-    def __init__(self, url: str, name: str, auto_clone: bool = True) -> None:
+    def __init__(self, url: str, name: str) -> None:
         self._url: str = url
         self._name: str = name
         self._local_path: Optional[Path] = None
         self._clone_attempted: bool = False
-        self._auto_clone: bool = auto_clone
 
     @property
     def url(self) -> str:
@@ -79,10 +76,6 @@ class GitRepo:
     @clone_attempted.setter
     def clone_attempted(self, value: bool) -> None:
         self._clone_attempted = value
-
-    @property
-    def auto_clone(self) -> bool:
-        return self._auto_clone
 
     @staticmethod
     def _ensure_clone_directory_exists(clone_dir: Path) -> None:
@@ -137,8 +130,7 @@ class GitRepo:
             when reaching unstable state, for example with replace_existing flag set, unstable state can happen
             if removed the current local clone but failed to copy the new one from the temp location to the destination
         """
-        if not self._auto_clone:  # Unit test escape hatch
-            return None  # type: ignore
+
         GitRepo._ensure_clone_directory_exists(clone_dir=clone_dir)
         # clone to temp then move to the destination(repo_local_path)
         with osutils.mkdir_temp(ignore_errors=True) as tempdir:
