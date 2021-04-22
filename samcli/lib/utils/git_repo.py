@@ -176,5 +176,5 @@ class GitRepo:
             raise CloneRepoUnstableStateException(
                 "Unstable state when updating repo. "
                 f"Check that you have permissions to create/delete files in {dest_dir} directory "
-                "or file an issue at https://github.com/awslabs/aws-sam-cli/issues"
+                "or file an issue at https://github.com/aws/aws-sam-cli/issues"
             ) from ex
