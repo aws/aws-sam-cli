@@ -237,6 +237,16 @@ Resources:
       RepositoryPolicyText:
         Version: "2012-10-17"
         Statement:
+          - Sid: LambdaECRImageRetrievalPolicy
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action:
+              - "ecr:GetDownloadUrlForLayer"
+              - "ecr:BatchGetImage"
+              - "ecr:GetRepositoryPolicy"
+              - "ecr:SetRepositoryPolicy"
+              - "ecr:DeleteRepositoryPolicy"
           - Sid: AllowPushPull
             Effect: Allow
             Principal:
