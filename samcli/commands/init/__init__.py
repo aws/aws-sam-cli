@@ -278,7 +278,6 @@ def do_cli(
     extra_context,
     project_type,
     cdk_language,
-    auto_clone=True,
 ):
     """
     Implementation of the ``cli`` method
@@ -297,7 +296,7 @@ def do_cli(
     image_bool = name and pt_explicit and base_image
     if location or zip_bool or image_bool:
         # need to turn app_template into a location before we generate
-        templates = InitTemplates(no_interactive, auto_clone)
+        templates = InitTemplates(no_interactive)
         if package_type == IMAGE and image_bool:
             base_image, runtime = _get_runtime_from_image(base_image)
             options = templates.init_options(
