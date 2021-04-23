@@ -198,9 +198,9 @@ def cli(
     confirm_changeset,
     signing_profiles,
     resolve_s3,
+    resolve_image_repos,
     config_file,
     config_env,
-    resolve_image_repos,
 ):
     """
     `sam deploy` command entry point
