@@ -40,7 +40,7 @@ class Telemetry:
             Defaults to False. Set to True to emit even when telemetry is turned off.
         """
         if bool(GlobalConfig().telemetry_enabled) or force_emit:
-            self._send({metric.get_metric_name(): metric.get_data()})
+            self._send({metric.name: metric.data})
 
     def _send(self, metric, wait_for_response=False):
         """

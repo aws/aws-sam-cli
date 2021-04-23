@@ -1,22 +1,22 @@
 """
 Provides methods to generate and send metrics
 """
-from timeit import default_timer
-from functools import wraps, reduce
-
-import uuid
-import platform
 import logging
+import platform
+import uuid
+from enum import Enum
+from functools import reduce, wraps
+from timeit import default_timer
 from typing import Optional
 
 import click
-
 from samcli import __version__ as samcli_version
 from samcli.cli.context import Context
 from samcli.cli.global_config import GlobalConfig
-from samcli.lib.warnings.sam_cli_warning import TemplateWarningsChecker
 from samcli.commands.exceptions import UserException
 from samcli.lib.telemetry.cicd import CICDDetector, CICDPlatform
+from samcli.lib.warnings.sam_cli_warning import TemplateWarningsChecker
+
 from .telemetry import Telemetry
 
 LOG = logging.getLogger(__name__)
@@ -32,11 +32,29 @@ Decorators should be used to minimize logic involving telemetry.
 _METRICS = dict()
 
 
+class MetricName(Enum):
+    # Metrics that can be reported only once in a session
+    installed = ("installed", 1)
+    templateWarning = ("templateWarning", 1)
+    commandRun = ("commandRun", 1)
+    runtimeMetric = ("runtimeMetric", 1)
+
+    # Metrics that can be reported any number of times during a session
+    # e.g. docker_image_download_status
+
+    def __init__(self, name: str, cardinality: int):
+        self._name = name
+        self.cardinality = cardinality
+
+    def __str__(self) -> str:
+        return self._name
+
+
 def send_installed_metric():
     LOG.debug("Sending Installed Metric")
 
     telemetry = Telemetry()
-    metric = Metric("installed")
+    metric = Metric(MetricName.installed)
     metric.add_data("osPlatform", platform.system())
     metric.add_data("telemetryEnabled", bool(GlobalConfig().telemetry_enabled))
     telemetry.emit(metric, force_emit=True)
@@ -71,7 +89,7 @@ def track_template_warnings(warning_names):
                 return func(*args, **kwargs)
             for warning_name in warning_names:
                 warning_message = template_warning_checker.check_template_for_warning(warning_name, ctx.template_dict)
-                metric = Metric("templateWarning")
+                metric = Metric(MetricName.templateWarning)
                 metric.add_data("awsProfileProvided", bool(ctx.profile))
                 metric.add_data("debugFlagProvided", bool(ctx.debug))
                 metric.add_data("region", ctx.region or "")
@@ -107,7 +125,7 @@ def track_command(func):
 
     def wrapped(*args, **kwargs):
         telemetry = Telemetry()
-        metric = Metric("commandRun")
+        metric = Metric(MetricName.commandRun)
 
         exception = None
         return_value = None
@@ -304,12 +322,19 @@ class Metric:
         if should_add_common_attributes:
             self._add_common_metric_attributes()
 
+    @property
+    def name(self):
+        return str(self._metric_name)
+
+    @property
+    def data(self):
+        return self._data
+
     def add_list_data(self, key, value):
         if key not in self._data:
             self._data[key] = list()
 
         if not isinstance(self._data[key], list):
-            # raise MetricDataNotList()
             return
 
         self._data[key].append(value)
@@ -317,13 +342,8 @@ class Metric:
     def add_data(self, key, value):
         self._data[key] = value
 
-    def get_data(self):
-        return self._data
-
-    def get_metric_name(self):
-        return self._metric_name
-
     def _add_common_metric_attributes(self):
+        # all metrics (e.g. commandRun, installation) will have these universal attributes
         self._data["requestId"] = str(uuid.uuid4())
         self._data["installationId"] = self._gc.installation_id
         self._data["sessionId"] = self._session_id
@@ -331,6 +351,9 @@ class Metric:
         self._data["ci"] = bool(self._cicd_detector.platform())
         self._data["pyversion"] = platform.python_version()
         self._data["samcliVersion"] = samcli_version
+        # metricSpecificAttributes is for holding attributes that are specific for that metric
+        # For example, if we want to track usage of warm containers, the corresponding attribute should go into here
+        self._data["metricSpecificAttributes"] = dict()
 
     @staticmethod
     def _default_session_id() -> Optional[str]:
@@ -363,7 +386,3 @@ class Metric:
         if cicd_platform:
             return cicd_platform.name
         return "CLI"
-
-
-class MetricDataNotList(Exception):
-    pass

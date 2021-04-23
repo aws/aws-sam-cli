@@ -18,8 +18,8 @@ class TestTelemetry(TestCase):
         self.url = "some_test_url"
 
         self.metric_mock = Mock()
-        self.metric_mock.get_metric_name.return_value = "metric_name"
-        self.metric_mock.get_data.return_value = {"a": "1", "b": "2"}
+        self.metric_mock.name = "metric_name"
+        self.metric_mock.data = {"a": "1", "b": "2"}
 
     def tearDown(self):
         self.global_config_patcher.stop()
@@ -32,8 +32,8 @@ class TestTelemetry(TestCase):
         attrs = {"a": 1, "b": 2}
 
         metric_mock = Mock()
-        metric_mock.get_metric_name.return_value = metric_name
-        metric_mock.get_data.return_value = attrs
+        metric_mock.name = metric_name
+        metric_mock.data = attrs
 
         telemetry.emit(metric_mock)
 
