@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from samcli.lib.pipeline.bootstrap.resource import ARNParts, Resource, IamUser, EcrRepo
+from samcli.lib.pipeline.bootstrap.resource import ARNParts, Resource, IAMUser, ECRRepo
 
 VALID_ARN = "arn:partition:service:region:account-id:resource-id"
 INVALID_ARN = "ARN"
@@ -40,27 +40,27 @@ class TestResource(TestCase):
         self.assertIsNone(resource.name())
 
 
-class TestIamUser(TestCase):
+class TestIAMUser(TestCase):
     def test_create_iam_user(self):
-        user: IamUser = IamUser(arn=VALID_ARN)
+        user: IAMUser = IAMUser(arn=VALID_ARN)
         self.assertEquals(user.arn, VALID_ARN)
         self.assertIsNone(user.access_key_id)
         self.assertIsNone(user.secret_access_key)
 
-        user = IamUser(arn=INVALID_ARN, access_key_id="any_access_key_id", secret_access_key="any_secret_access_key")
+        user = IAMUser(arn=INVALID_ARN, access_key_id="any_access_key_id", secret_access_key="any_secret_access_key")
         self.assertEquals(user.arn, INVALID_ARN)
         self.assertEquals(user.access_key_id, "any_access_key_id")
         self.assertEquals(user.secret_access_key, "any_secret_access_key")
 
 
-class TestEcrRepo(TestCase):
+class TestECRRepo(TestCase):
     def test_get_uri_with_valid_ecr_arn(self):
         valid_ecr_arn = "arn:partition:service:region:account-id:repository/repository-name"
-        repo: EcrRepo = EcrRepo(arn=valid_ecr_arn)
+        repo: ECRRepo = ECRRepo(arn=valid_ecr_arn)
         self.assertEqual(repo.get_uri(), "account-id.dkr.ecr.region.amazonaws.com/repository-name")
 
     def test_get_uri_with_invalid_ecr_arn(self):
-        repo = EcrRepo(arn=INVALID_ARN)
+        repo = ECRRepo(arn=INVALID_ARN)
         with self.assertRaises(ValueError):
             repo.get_uri()
 
@@ -68,6 +68,6 @@ class TestEcrRepo(TestCase):
         ecr_arn_missing_repository_prefix = (
             "arn:partition:service:region:account-id:repository-name-without-repository/-prefix"
         )
-        repo = EcrRepo(arn=ecr_arn_missing_repository_prefix)
+        repo = ECRRepo(arn=ecr_arn_missing_repository_prefix)
         with self.assertRaises(ValueError):
             repo.get_uri()

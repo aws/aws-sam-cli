@@ -71,9 +71,9 @@ class Resource:
         return arn_parts.resource_id
 
 
-class IamUser(Resource):
+class IAMUser(Resource):
     """
-    Represents an AWS IamUser resource
+    Represents an AWS IAM User resource
     Attributes
     ----------
     access_key_id: Optional[str]
@@ -104,8 +104,8 @@ class S3Bucket(Resource):
         super().__init__(arn=arn)
 
 
-class EcrRepo(Resource):
-    """ Represents an AWS EcrRepo resource """
+class ECRRepo(Resource):
+    """ Represents an AWS ECR repo resource """
 
     def __init__(self, arn: Optional[str]) -> None:
         super().__init__(arn=arn)

@@ -12,11 +12,11 @@ Parameters:
     Type: String
   ArtifactsBucketArn:
     Type: String
-  CreateEcrRepo:
+  CreateECRRepo:
     Type: String
     Default: false
     AllowedValues: [true, false]
-  EcrRepoArn:
+  ECRRepoArn:
     Type: String
 
 Conditions:
@@ -25,8 +25,8 @@ Conditions:
   HasPipelineIpRange: !Not [!Equals [!Ref PipelineIpRange, ""]]
   MissingCloudFormationExecutionRole: !Equals [!Ref CloudFormationExecutionRoleArn, ""]
   MissingArtifactsBucket: !Equals [!Ref ArtifactsBucketArn, ""]
-  EcrRepoRequired: !Equals [!Ref CreateEcrRepo, "true"]
-  MissingEcrRepo: !And [!Condition EcrRepoRequired, !Equals [!Ref EcrRepoArn, ""]]
+  ECRRepoRequired: !Equals [!Ref CreateECRRepo, "true"]
+  MissingECRRepo: !And [!Condition ECRRepoRequired, !Equals [!Ref ECRRepoArn, ""]]
 
 Resources:
   PipelineUser:
@@ -205,13 +205,13 @@ Resources:
                 - - !Join [ '',[ !Ref ArtifactsBucketArn, '/*' ] ]
                   - !Ref ArtifactsBucketArn
           - Fn::If:
-            - EcrRepoRequired
+            - ECRRepoRequired
             - Effect: "Allow"
               Action: "ecr:GetAuthorizationToken"
               Resource: "*"
             - !Ref AWS::NoValue
           - Fn::If:
-            - EcrRepoRequired
+            - ECRRepoRequired
             - Effect: "Allow"
               Action:
                 - "ecr:GetDownloadUrlForLayer"
@@ -223,16 +223,16 @@ Resources:
                 - "ecr:CompleteLayerUpload"
               Resource:
                 Fn::If:
-                  - MissingEcrRepo
-                  - !GetAtt EcrRepo.Arn
-                  - !Ref EcrRepoArn
+                  - MissingECRRepo
+                  - !GetAtt ECRRepo.Arn
+                  - !Ref ECRRepoArn
             - !Ref AWS::NoValue
       Roles:
         - !Ref PipelineExecutionRole
 
-  EcrRepo:
+  ECRRepo:
     Type: AWS::ECR::Repository
-    Condition: MissingEcrRepo
+    Condition: MissingECRRepo
     Properties:
       RepositoryPolicyText:
         Version: "2012-10-17"
@@ -301,7 +301,7 @@ Outputs:
         - !GetAtt ArtifactsBucket.Arn
         - !Ref ArtifactsBucketArn
 
-  EcrRepo:
+  ECRRepo:
     Description: ARN of the ECR repo
-    Condition: MissingEcrRepo
-    Value: !GetAtt EcrRepo.Arn
+    Condition: MissingECRRepo
+    Value: !GetAtt ECRRepo.Arn

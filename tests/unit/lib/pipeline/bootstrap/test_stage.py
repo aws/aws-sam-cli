@@ -178,8 +178,8 @@ class TestStage(TestCase):
             "PipelineIpRange": "",
             "CloudFormationExecutionRoleArn": "",
             "ArtifactsBucketArn": ANY_ARTIFACTS_BUCKET_ARN,
-            "CreateEcrRepo": "true",
-            "EcrRepoArn": ANY_ECR_REPO_ARN,
+            "CreateECRRepo": "true",
+            "ECRRepoArn": ANY_ECR_REPO_ARN,
         }
         self.assertEqual(expected_parameter_overrides, kwargs["parameter_overrides"])
 

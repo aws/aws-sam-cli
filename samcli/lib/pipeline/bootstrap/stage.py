@@ -8,7 +8,7 @@ import click
 
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.utils.managed_cloudformation_stack import manage_stack, StackOutput
-from .resource import Resource, IamUser, EcrRepo
+from .resource import Resource, IAMUser, ECRRepo
 
 CFN_TEMPLATE_PATH = str(pathlib.Path(os.path.dirname(__file__)))
 STACK_NAME_PREFIX = "aws-sam-cli-managed"
@@ -33,7 +33,7 @@ class Stage:
         The named AWS profile(in user's machine) of the AWS account to deploy this stage to.
     aws_region: Optional[str]
         The AWS region to deploy this stage to.
-    pipeline_user: IamUser
+    pipeline_user: IAMUser
         The IAM User having its AccessKeyId and SecretAccessKey credentials shared with the CI/CD provider
     pipeline_execution_role: Resource
         The IAM role assumed by the pipeline-user to get access to the AWS account and executes the
@@ -48,7 +48,7 @@ class Stage:
         The S3 bucket to hold the SAM build artifacts of the application's CFN template.
     create_ecr_repo: bool
         A boolean flag that determins whether the user wants to create an ECR repository or not
-    ecr_repo: EcrRepo
+    ecr_repo: ECRRepo
         The ECR repo to hold the image container of lambda functions with Image package-type
 
     Methods:
@@ -86,13 +86,13 @@ class Stage:
         self.name: str = name
         self.aws_profile: Optional[str] = aws_profile
         self.aws_region: Optional[str] = aws_region
-        self.pipeline_user: IamUser = IamUser(arn=pipeline_user_arn)
+        self.pipeline_user: IAMUser = IAMUser(arn=pipeline_user_arn)
         self.pipeline_execution_role: Resource = Resource(arn=pipeline_execution_role_arn)
         self.pipeline_ip_range: Optional[str] = pipeline_ip_range
         self.cloudformation_execution_role: Resource = Resource(arn=cloudformation_execution_role_arn)
         self.artifacts_bucket: Resource = Resource(arn=artifacts_bucket_arn)
         self.create_ecr_repo: bool = create_ecr_repo
-        self.ecr_repo: EcrRepo = EcrRepo(arn=ecr_repo_arn)
+        self.ecr_repo: ECRRepo = ECRRepo(arn=ecr_repo_arn)
 
     def did_user_provide_all_required_resources(self) -> bool:
         """Check if the user provided all of the stage resources or not"""
@@ -162,8 +162,8 @@ class Stage:
                 "PipelineIpRange": self.pipeline_ip_range or "",
                 "CloudFormationExecutionRoleArn": self.cloudformation_execution_role.arn or "",
                 "ArtifactsBucketArn": self.artifacts_bucket.arn or "",
-                "CreateEcrRepo": "true" if self.create_ecr_repo else "false",
-                "EcrRepoArn": self.ecr_repo.arn or "",
+                "CreateECRRepo": "true" if self.create_ecr_repo else "false",
+                "ECRRepoArn": self.ecr_repo.arn or "",
             },
         )
 
@@ -173,7 +173,7 @@ class Stage:
         self.pipeline_execution_role.arn = output.get("PipelineExecutionRole")
         self.cloudformation_execution_role.arn = output.get("CloudFormationExecutionRole")
         self.artifacts_bucket.arn = output.get("ArtifactsBucket")
-        self.ecr_repo.arn = output.get("EcrRepo")
+        self.ecr_repo.arn = output.get("ECRRepo")
         return True
 
     @staticmethod
