@@ -21,6 +21,41 @@ This will start a new Gitpod workspace, and immediately kick off a build of the 
 
 Gitpod is free for 50 hours per month - make sure to stop your workspace when you're done (you can always resume it later, and it won't need to run the build again).
 
+5-Minute Tutorial
+-----------------
+
+This tiny tutorial will show you how to make a small change to SAM CLI.
+
+See the rest of this document for a more thorough introduction.
+
+1. Clone SAM CLI:
+
+    ```bash
+    git clone git@github.com:aws/aws-sam-cli.git
+    cd aws-sam-cli
+    ```
+
+2. Create a Python [virtual environment](https://docs.python.org/3/library/venv.html):
+
+    ```bash
+    python3 -m venv .venv
+    source .venv/bin/activate
+    ```
+
+3. Change the [description of `--debug` in `samcli/cli/options.py`](https://github.com/aws/aws-sam-cli/blob/23aa4c9c2b1f28b58ab418acf2c45d2cc8f1b077/samcli/cli/options.py#L28) to whatever you like.
+
+4. Build:
+
+    ```bash
+    make init
+    ```
+
+5. Test your changes:
+
+    ```bash
+    samdev --help
+    ```
+
 Environment Setup
 -----------------
 
