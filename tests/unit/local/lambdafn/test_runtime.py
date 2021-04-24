@@ -81,6 +81,8 @@ class LambdaRuntime_create(TestCase):
             debug_options=debug_options,
             env_vars=self.env_var_value,
             memory_mb=self.DEFAULT_MEMORY,
+            container_host=None,
+            container_host_interface=None,
         )
         # Run the container and get results
         self.manager_mock.create.assert_called_with(container)
@@ -161,7 +163,7 @@ class LambdaRuntime_run(TestCase):
         create_mock.return_value = container
 
         self.runtime.run(None, self.func_config, debug_context=debug_options)
-        create_mock.assert_called_with(self.func_config, debug_options)
+        create_mock.assert_called_with(self.func_config, debug_options, None, None)
         self.manager_mock.run.assert_called_with(container)
 
     def test_must_skip_run_running_container(self):
@@ -269,6 +271,8 @@ class LambdaRuntime_invoke(TestCase):
             debug_options=debug_options,
             env_vars=self.env_var_value,
             memory_mb=self.DEFAULT_MEMORY,
+            container_host=None,
+            container_host_interface=None,
         )
 
         # Run the container and get results
@@ -595,6 +599,8 @@ class TestWarmLambdaRuntime_invoke(TestCase):
             debug_options=debug_options,
             env_vars=self.env_var_value,
             memory_mb=self.DEFAULT_MEMORY,
+            container_host=None,
+            container_host_interface=None,
         )
 
         # Run the container and get results
@@ -672,6 +678,8 @@ class TestWarmLambdaRuntime_create(TestCase):
             debug_options=debug_options,
             env_vars=self.env_var_value,
             memory_mb=self.DEFAULT_MEMORY,
+            container_host=None,
+            container_host_interface=None,
         )
 
         self.manager_mock.create.assert_called_with(container)
@@ -737,6 +745,8 @@ class TestWarmLambdaRuntime_create(TestCase):
             debug_options=None,
             env_vars=self.env_var_value,
             memory_mb=self.DEFAULT_MEMORY,
+            container_host=None,
+            container_host_interface=None,
         )
         self.manager_mock.create.assert_called_with(container)
         # validate that the created container got cached
