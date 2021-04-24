@@ -1,5 +1,4 @@
-DEVELOPMENT GUIDE
-=================
+# DEVELOPMENT GUIDE
 
 **Welcome hacker!**
 
@@ -8,11 +7,8 @@ development environment, IDEs, tests, coding practices, or anything that
 will help you be more productive. If you found something is missing or
 inaccurate, update this guide and send a Pull Request.
 
-**Note**: `pyenv` currently only supports macOS and Linux. If you are a
-Windows users, consider using [pipenv](https://docs.pipenv.org/).
+## 1-Click Ready to Hack IDE (this section might be outdated, to be verified)
 
-1-Click Ready to Hack IDE
--------------------------
 For setting up a local development environment, we recommend using Gitpod - a service that allows you to spin up an in-browser Visual Studio Code-compatible editor, with everything set up and ready to go for development on this project. Just click the button below to create your private workspace:
 
 [![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/awslabs/aws-sam-cli)
@@ -21,93 +17,76 @@ This will start a new Gitpod workspace, and immediately kick off a build of the 
 
 Gitpod is free for 50 hours per month - make sure to stop your workspace when you're done (you can always resume it later, and it won't need to run the build again).
 
-Environment Setup
------------------
+## Environment Setup
+### 1. Prerequisites (Python Virtual Environment)
 
-### 1. Install Python Versions
+AWS SAM CLI is mainly written in Python 3 and we support Python 3.6, 3.7 and 3.8.
+So having a Python environment with aforementioned versions is required.
 
-We support 3.6 and 3.7 versions. Our CI/CD pipeline is setup to run
-unit tests against both Python versions. So make sure you test it
-with both versions before sending a Pull Request.
-See [Unit testing with multiple Python versions](#unit-testing-with-multiple-python-versions).
+Having a dedicated Python virtual environment ensures it won't "pollute" or get "polluted" 
+by other python packages. Here we introduce two ways of setting up a Python virtual environment:
+(1) Python's built in [`venv`](https://docs.python.org/3/tutorial/venv.html) and (2) [`pyenv`](https://github.com/pyenv/pyenv).
 
-[pyenv](https://github.com/pyenv/pyenv) is a great tool to
-easily setup multiple Python versions.
+**Note**: `pyenv` currently only supports macOS and Linux. If you are a
+Windows users, consider using [pipenv](https://docs.pipenv.org/).
 
-> Note: For Windows, type
-> `export PATH="/c/Users/<user>/.pyenv/libexec:$PATH"` to add pyenv to
-> your path.
+|    | `venv`   | `pyenv`      |
+| -- | -------- | ------------ |
+| Pick if you want ... | Easy setup | You want to easily develop and test SAM CLI in different Python versions |
+| Setup | None | `curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer \| bash` |
+| Install a Python version (3.8.9 as example) | N/A | `pyenv install 3.8.9` |
+| Create a virtual environment | `python3 -m venv .venv` | `pyenv virtualenv 3.8.9 samcli38` (you can rename `samcli38` to something else) |
+| Activate the virtual environment | `source .venv/bin/activate` | `pyenv activate samcli38` |
 
-1.  Install PyEnv -
-    `curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash`
-2.  `pyenv install 3.6.8`
-3.  `pyenv install 3.7.2`
-4.  Make Python versions available in the project:
-    `pyenv local 3.6.8 3.7.2`
 
-### 2. Install Additional Tooling
-#### Black
-We format our code using [Black](https://github.com/python/black) and verify the source code is black compliant
-in Appveyor during PRs. Black will be installed automatically with `make init`.
 
-After installing, you can run our formatting through our Makefile by `make black` or integrating Black directly in your favorite IDE (instructions
-can be found [here](https://black.readthedocs.io/en/stable/editor_integration.html))
- 
-##### (workaround) Integrating Black directly in your favorite IDE
-Since black is installed in virtualenv, when you follow [this instruction](https://black.readthedocs.io/en/stable/editor_integration.html), `which black` might give you this
+**For convenience, below we assume the virtual environment is called `samcli38`.**
 
-```bash
-(samcli37) $ where black
-/Users/<username>/.pyenv/shims/black
+### 2. Initialize dependencies and create `samdev` available in `$PATH`
+
+Clone the AWS SAM CLI repository to your local machine if you haven't done that yet.
+
+```sh
+# Using SSH
+$ git clone git@github.com:aws/aws-sam-cli.git
+# Using HTTPS
+$ git clone https://github.com/aws/aws-sam-cli.git
 ```
 
-However, IDEs such PyChaim (using FileWatcher) will have a hard time invoking `/Users/<username>/.pyenv/shims/black` 
-and this will happen:
+(make sure you have virtual environment activated)
 
+```sh
+(samcli38) $ cd aws-sam-cli
+(samcli38) $ make init  # this will put a file `samdev` available in $PATH
 ```
-pyenv: black: command not found
 
-The `black' command exists in these Python versions:
-  3.7.2/envs/samcli37
-  samcli37
-``` 
+Now you can verify whether the dev AWS SAM CLI is available:
 
-A simple workaround is to use `/Users/<username>/.pyenv/versions/samcli37/bin/black` 
-instead of `/Users/<username>/.pyenv/shims/black`.
+```sh
+(samcli38) $ which samdev
+/<some-path>/bin/samdev
+(samcli38) $ samdev --version
+SAM CLI, version x.xx.x
+```
 
-#### Pre-commit
-If you don't wish to manually run black on each pr or install black manually, we have integrated black into git hooks through [pre-commit](https://pre-commit.com/).
-After installing pre-commit, run `pre-commit install` in the root of the project. This will install black for you and run the black formatting on
-commit.
+#### Try out to make change to AWS SAM CLI (Optional)
 
-### 3. Activate Virtualenv
+```sh
+# Change the AWS SAM CLI version to 123.456.789
+(samcli38) $ echo '__version__ = "123.456.789"' >> samcli/__init__.py
+(samcli38) $ samdev --version
+SAM CLI, version 123.456.789
+# Dismiss the change
+(samcli38) $ git checkout -- samcli/__init__.py
+(samcli38) $ samdev --version  # the original version should be printed
+SAM CLI, version x.xx.x
+```
 
-Virtualenv allows you to install required libraries outside of the
-Python installation. A good practice is to setup a different virtualenv
-for each project. [pyenv](https://github.com/pyenv/pyenv) comes with a
-handy plugin that can create virtualenv.
-
-Depending on the python version, the following commands would change to
-be the appropriate python version.
-
-1.  `pyenv virtualenv 3.7.2 samcli37`
-2.  `pyenv activate samcli37` for Python3.7
-
-### 4. Install dev version of SAM CLI
-
-We will install a development version of SAM CLI from source into the
-virtualenv for you to try out the CLI as you make changes. We will
-install in a command called `samdev` to keep it separate from a global
-SAM CLI installation, if any.
-
-1.  Activate Virtualenv: `pyenv activate samcli37`
-2.  Install dev CLI: `make init`
-3.  Make sure installation succeeded: `which samdev`
-
-### 5. (Optional) Install development version of SAM Transformer
+### 3. (Optional) Install development version of SAM Transformer
 
 If you want to run the latest version of [SAM
-Transformer](https://github.com/awslabs/serverless-application-model/),
+Transformer](https://github.com/aws/serverless-application-model/)
+or work on it at the same time, 
 you can clone it locally and install it in your pyenv. This is useful if
 you want to validate your templates against any new, unreleased SAM
 features ahead of time.
@@ -116,30 +95,116 @@ This step is optional and will use the specified version of
 aws-sam-transformer from PyPi by default.
 
 
-``cd ~/projects (cd into the directory where you usually place projects)``
+```sh
+$ cd ~/projects  # cd into the directory where you usually place projects
+# Using SSH
+$ git clone git@github.com:aws/serverless-application-model.git
+# Using HTTPS
+$ git clone https://github.com/aws/serverless-application-model.git
+$ cd serverless-application-model
+$ git checkout develop
+```
 
-``git clone https://github.com/awslabs/serverless-application-model/``
+Make sure you are in the virtual environment. 
+Install the SAM Transformer in editable mode so that 
+all changes you make to the SAM Transformer locally are immediately picked up for SAM CLI. 
 
-``git checkout develop ``
-
-Install the SAM Transformer in editable mode so that all changes you make to the SAM Transformer locally are immediately picked up for SAM CLI. 
-
-``pip install -e . `` 
+```sh
+(samcli38) $ pip install -e .
+```
 
 Move back to your SAM CLI directory and re-run init, If necessary: open requirements/base.txt and replace the version number of aws-sam-translator with the ``version number`` specified in your local version of `serverless-application-model/samtranslator/__init__.py`
 
-``cd ../aws-sam-cli``
- 
-``make init``
+```sh
+# assuming your AWS SAM CLI repository is cloned into ~/projects/aws-sam-cli
+(samcli38) $ cd ~/projects/aws-sam-cli
+(samcli38) $ make init
+```
 
-Running Tests
--------------
+## Making a Pull Request
 
-### Unit testing with one Python version
+Above demonstrates how to setup the environment, which is enough
+to play with the AWS SAM CLI source code. However, if you want to
+contribute to the repository, there are a few more things to consider.
 
-If you're trying to do a quick run, it's ok to use the current python version.  Run `make pr`.
+### Make Sure AWS SAM CLI Work in Multiple Python Versions
 
-### Unit testing with multiple Python versions
+We support 3.6, 3.7 and 3.8 versions. Our CI/CD pipeline is setup to run
+unit tests against all Python versions. So make sure you test it
+with all versions before sending a Pull Request.
+See [Unit testing with multiple Python versions](#unit-testing-with-multiple-python-versions).
+
+If you chose to use `pyenv` in the previous session, setting up a 
+different Python version should be easy:
+
+(assuming you are in virtual environment `samcli38`)
+
+```sh
+(samcli38) $ pyenv deactivate samcli38
+$ pyenv install 3.7.10  # one time setup
+$ pyenv pyenv virtualenv 3.7.10 samcli37   # one time setup
+$ pyenv activate samcli37
+(samcli37) $ python --version
+(samcli37) $ make init  # one time setup
+Python 3.7.10
+```
+
+### Format Python Code
+
+We format our code using [Black](https://github.com/python/black) and verify the source code is
+black compliant in AppVeyor during PRs. Black will be installed automatically with `make init`.
+
+There are generally 3 options to make sure your change is compliant with our formatting standard:
+
+#### (Optional 1) Run `make black`
+
+```sh
+(samcli38) $ make black
+black setup.py samcli tests
+All done! ✨ 🍰 ✨
+446 files left unchanged.
+```
+
+#### (Optional 2) Integrating Black directly in your favorite IDE
+
+Since black is installed in virtualenv, when you follow [this instruction](https://black.readthedocs.io/en/stable/editor_integration.html), `which black` might give you this
+
+```sh
+(samcli38) $ where black
+/Users/<username>/.pyenv/shims/black
+```
+
+However, IDEs such PyChaim (using FileWatcher) will have a hard time 
+invoking `/Users/<username>/.pyenv/shims/black` 
+and this will happen:
+
+```
+pyenv: black: command not found
+
+The `black' command exists in these Python versions:
+  3.8.9/envs/samcli38
+  samcli38
+``` 
+
+A simple workaround is to use `/Users/<username>/.pyenv/versions/samcli37/bin/black` 
+instead of `/Users/<username>/.pyenv/shims/black`.
+
+#### (Optional 3) Pre-commit
+
+We have integrated black into git hooks through [pre-commit](https://pre-commit.com/).
+After installing pre-commit, run `pre-commit install` in the root of the project. This will install black for you and run the black formatting on commit.
+
+### Do a Local PR Check
+
+This commands will run the AWS SAM CLI code through various checks including
+lint, formatter, unit tests, function tests, and so on.
+```sh
+(samcli38) $ make pr
+```
+
+We also suggest to run `make pr` in all Python versions.
+
+#### Unit Testing with Multiple Python Versions (Optional)
 
 Currently, SAM CLI only supports Python3 versions (see setup.py for exact versions). For the most
 part, code that works in Python3.6 will work in Python3.7. You only run into problems if you are
@@ -148,7 +213,7 @@ will not work in Python3.6). If you want to test in many versions, you can creat
 each version and flip between them (sourcing the activate script). Typically, we run all tests in
 one python version locally and then have our ci (appveyor) run all supported versions.
 
-### Integration Test
+#### Integration Test (Optional)
 
 `make integ-test` - To run integration test against global SAM CLI
 installation. It looks for a command named `sam` in your shell.
@@ -158,8 +223,8 @@ development version of SAM CLI. This is useful if you are making changes
 to the CLI and want to verify that it works. It is a good practice to
 run integration tests before submitting a pull request.
 
-Code Conventions
-----------------
+## Other Topics
+### Code Conventions
 
 Please follow these code conventions when making your changes. This will
 align your code to the same conventions used in rest of the package and
@@ -198,8 +263,7 @@ conventions are best practices that we have learnt over time.
     comments.
     
     
-Testing
--------
+### Our Testing Practices
 
 We need thorough test coverage to ensure the code change works today, 
 and continues to work in future. When you make a code change, use the 
@@ -230,8 +294,7 @@ following framework to decide the kinds of tests to write:
   calling AWS APIs, spinning up Docker containers, mutating files etc.
   
 
-Design Document
----------------
+### Design Document
 
 A design document is a written description of the feature/capability you
 are building. We have a [design document
