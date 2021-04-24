@@ -1,5 +1,5 @@
 """ This module parses a json/yaml file that defines a flow of questions to fulfill the cookiecutter context"""
-from typing import Dict, Optional, Tuple
+from typing import cast, Dict, Optional, Tuple
 import yaml
 from samcli.commands.exceptions import UserException
 from samcli.yamlhelper import parse_yaml_file
@@ -17,7 +17,7 @@ class QuestionsFailedParsingException(UserException):
 
 class InteractiveFlowCreator:
     @staticmethod
-    def create_flow(flow_definition_path: str, extra_context: Optional[Dict] = None):
+    def create_flow(flow_definition_path: str, extra_context: Optional[Dict] = None) -> InteractiveFlow:
         """
         This method parses the given json/yaml file to create an InteractiveFLow. It expects the file to define
         a list of questions. It parses the questions and add it to the flow in the same order they are defined
@@ -90,7 +90,7 @@ class InteractiveFlowCreator:
             raise QuestionsFailedParsingException(f"Failed to parse questions: {str(ex)}") from ex
 
     @staticmethod
-    def _parse_questions_definition(file_path, extra_context: Optional[Dict] = None):
+    def _parse_questions_definition(file_path: str, extra_context: Optional[Dict] = None) -> Dict:
         """
         Read the questions definition file, do variable substitution, parse it as JSON/YAML
 
@@ -112,7 +112,7 @@ class InteractiveFlowCreator:
         """
 
         try:
-            return parse_yaml_file(file_path=file_path, extra_context=extra_context)
+            return cast(Dict, parse_yaml_file(file_path=file_path, extra_context=extra_context))
         except FileNotFoundError as ex:
             raise QuestionsNotFoundException(f"questions definition file not found at {file_path}") from ex
         except (KeyError, ValueError, yaml.YAMLError) as ex:

@@ -153,6 +153,10 @@ class SamConfig:
     def exists(self):
         return self.filepath.exists()
 
+    def _ensure_exists(self):
+        self.filepath.parent.mkdir(parents=True, exist_ok=True)
+        self.filepath.touch()
+
     def path(self):
         return str(self.filepath)
 
@@ -183,8 +187,8 @@ class SamConfig:
     def _write(self):
         if not self.document:
             return
-        if not self.exists():
-            open(self.filepath, "a+").close()
+
+        self._ensure_exists()
 
         current_version = self._version() if self._version() else SAM_CONFIG_VERSION
         try:
