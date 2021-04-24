@@ -9,7 +9,7 @@ class Processor(ABC):
     """
 
     @abstractmethod
-    def run(self, context: Dict):
+    def run(self, context: Dict) -> Dict:
         """
         the processing logic of this processor
 
