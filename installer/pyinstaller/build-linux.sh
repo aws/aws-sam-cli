@@ -72,7 +72,7 @@ mkdir pyinstaller-output
 dist_folder="sam"
 if [ "$is_nightly" = "true" ]; then
     echo "using dist_folder with nightly build"
-    dist_folder="sam-nightly"
+    dist_folder=$build_binary_name
 fi
 echo "dist_folder=$dist_folder"
 mv "dist/$dist_folder" pyinstaller-output/dist
