@@ -81,7 +81,7 @@ chmod 755 pyinstaller-output/install
 if [ "$is_nightly" = "true" ]; then
     echo "Updating install script with nightly build"
     sed -i.bak "s/\/usr\/local\/aws-sam-cli/\/usr\/local\/$build_folder/g" pyinstaller-output/install
-    sed -i.bak 's/EXE_NAME=\"sam\"/EXE_NAME=\"$build_binary_name\"/g' pyinstaller-output/install
+    sed -i.bak 's/EXE_NAME=\"sam\"/EXE_NAME=\"'$build_binary_name'\"/g' pyinstaller-output/install
     rm pyinstaller-output/install.bak
 fi
 echo "install script content is:"
