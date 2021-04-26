@@ -113,6 +113,8 @@ class ECRRepo:
             and self._function_md5
             and self._escaped_function_logical_id
         ):
+            # The physical ID is constructed with escaped_stack_name + stack_md5[:8] as prefix/path and
+            # followed by escaped_lambda_logical_id + function_md5[:8] + "repo" to show linkage between the function and the repo
             # 128 + 8 + 1 + 64 + 8 + 4 = 213 max char
             self._physical_id = (
                 self._companion_stack.escaped_parent_stack_name
