@@ -41,6 +41,8 @@ class CompanionStackManager:
         self._companion_stack = CompanionStack(stack_name)
         self._builder = CompanionStackBuilder(self._companion_stack)
         self._boto_config = Config(region_name=region if region else None)
+        self._update_stack_waiter_config = {"Delay": 5, "MaxAttempts": 240}
+        self._delete_stack_waiter_config = {"Delay": 5, "MaxAttempts": 120}
         self._s3_bucket = s3_bucket
         self._s3_prefix = s3_prefix
         try:
@@ -96,7 +98,6 @@ class CompanionStackManager:
             )
 
         template_url = s3_uploader.to_path_style_s3_url(parts["Key"], parts.get("Version", None))
-        waiter_config = {"Delay": 10, "MaxAttempts": 120}
 
         exists = self.does_companion_stack_exist()
         if exists:
@@ -110,7 +111,7 @@ class CompanionStackManager:
             )
             waiter = self._cfn_client.get_waiter("stack_create_complete")
 
-        waiter.wait(StackName=stack_name, WaiterConfig=waiter_config)  # type: ignore
+        waiter.wait(StackName=stack_name, WaiterConfig=self._update_stack_waiter_config)  # type: ignore
 
     def delete_companion_stack(self):
         """
@@ -118,9 +119,8 @@ class CompanionStackManager:
         """
         stack_name = self._companion_stack.stack_name
         waiter = self._cfn_client.get_waiter("stack_delete_complete")
-        waiter_config = {"Delay": 10, "MaxAttempts": 60}
         self._cfn_client.delete_stack(StackName=stack_name)
-        waiter.wait(StackName=stack_name, WaiterConfig=waiter_config)
+        waiter.wait(StackName=stack_name, WaiterConfig=self._delete_stack_waiter_config)
 
     def list_deployed_repos(self) -> List[ECRRepo]:
         """
