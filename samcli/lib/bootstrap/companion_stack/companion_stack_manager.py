@@ -184,8 +184,8 @@ class CompanionStackManager:
     def sync_repos(self) -> None:
         """
         Blocking call to sync companion stack with the following actions
-        Create/Update companion stack.
-        Deletes unreferenced repos.
+        Creates the stack if it does not exist, and updates it if it does.
+        Deletes unreferenced repos if they exist.
         Deletes companion stack if there isn't any repo left.
         """
         exists = self.does_companion_stack_exist()
