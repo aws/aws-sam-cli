@@ -472,7 +472,6 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Capabilities{self.gc.end_bold}", default=["CAPABILITY_IAM"], type=ANY),
             call(
                 f"\t {self.gc.start_bold}ECR repository for HelloWorldFunction{self.gc.end_bold}",
-                default=None,
                 type=click.STRING,
             ),
         ]
