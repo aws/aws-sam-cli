@@ -32,6 +32,8 @@ class CompanionStackManager:
     _companion_stack: CompanionStack
     _builder: CompanionStackBuilder
     _boto_config: Config
+    _update_stack_waiter_config: Dict[str, int]
+    _delete_stack_waiter_config: Dict[str, int]
     _s3_bucket: str
     _s3_prefix: str
     _cfn_client: CloudFormationClient
