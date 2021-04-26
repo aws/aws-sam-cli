@@ -172,6 +172,7 @@ class CompanionStackManager:
     def delete_unreferenced_repos(self) -> None:
         """
         Blocking call to delete all deployed ECR repos that are unreferenced by a function
+        If repo does not exist, this will simply skip it.
         """
         repos = self.get_unreferenced_repos()
         for repo in repos:
