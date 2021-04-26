@@ -32,51 +32,47 @@ def manage_stack(profile, region):
 
 def _get_stack_template():
     gc = GlobalConfig()
-    info = {"version": __version__, "installationId": gc.installation_id if gc.installation_id else "unknown"}
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Transform": "AWS::Serverless-2016-10-31",
+        "Description": "Managed Stack for AWS SAM CLI",
+        "Metadata": {
+            "SamCliInfo": {
+                "version": __version__,
+                "installationId": gc.installation_id if gc.installation_id else "unknown",
+            }
+        },
+        "Resources": {
+            "SamCliSourceBucket": {
+                "Type": "AWS::S3::Bucket",
+                "Properties": {
+                    "VersioningConfiguration": {"Status": "Enabled"},
+                    "Tags": [{"Key": "ManagedStackSource", "Value": "AwsSamCli"}],
+                },
+            },
+            "SamCliSourceBucketBucketPolicy": {
+                "Type": "AWS::S3::BucketPolicy",
+                "Properties": {
+                    "Bucket": "!Ref SamCliSourceBucket",
+                    "PolicyDocument": {
+                        "Statement": [
+                            {
+                                "Action": ["s3:GetObject"],
+                                "Effect": "Allow",
+                                "Resource": {
+                                    "Fn::Join": [
+                                        "",
+                                        ["arn:", "!Ref AWS::Partition", ":s3:::", "!Ref SamCliSourceBucket", "/*"],
+                                    ]
+                                },
+                                "Principal": {"Service": "serverlessrepo.amazonaws.com"},
+                            }
+                        ]
+                    },
+                },
+            },
+        },
+        "Outputs": {"SourceBucket": {"Value": "!Ref SamCliSourceBucket"}},
+    }
 
-    template = """
-    AWSTemplateFormatVersion : '2010-09-09'
-    Transform: AWS::Serverless-2016-10-31
-    Description: Managed Stack for AWS SAM CLI
-
-    Metadata:
-        SamCliInfo: {info}
-
-    Resources:
-      SamCliSourceBucket:
-        Type: AWS::S3::Bucket
-        Properties:
-          VersioningConfiguration:
-            Status: Enabled
-          Tags:
-            - Key: ManagedStackSource
-              Value: AwsSamCli
-
-      SamCliSourceBucketBucketPolicy:
-        Type: AWS::S3::BucketPolicy
-        Properties:
-          Bucket: !Ref SamCliSourceBucket
-          PolicyDocument:
-            Statement:
-              -
-                Action:
-                  - "s3:GetObject"
-                Effect: "Allow"
-                Resource:
-                  Fn::Join:
-                    - ""
-                    -
-                      - "arn:"
-                      - !Ref AWS::Partition
-                      - ":s3:::"
-                      - !Ref SamCliSourceBucket
-                      - "/*"
-                Principal:
-                  Service: serverlessrepo.amazonaws.com
-
-    Outputs:
-      SourceBucket:
-        Value: !Ref SamCliSourceBucket
-    """
-
-    return template.format(info=json.dumps(info))
+    return json.dumps(template)
