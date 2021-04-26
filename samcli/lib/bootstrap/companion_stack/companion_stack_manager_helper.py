@@ -1,5 +1,5 @@
 """
-    Help class to bridge CLI functions and CompanionStackManager
+    Helper class to bridge CLI functions and CompanionStackManager
 """
 from typing import Dict, List
 
