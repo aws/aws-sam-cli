@@ -339,7 +339,7 @@ class GuidedContext:
         if create_all_repos:
             image_repositories.update(manager_helper.manager.get_repository_mapping())
         else:
-            image_repositories = self.prompt_specify_repos(manager_helper, image_repositories, self.image_repository)
+            image_repositories = self.prompt_specify_repos(manager_helper.missing_repo_functions, image_repositories)
             manager_helper.update_sepcified_image_repos(image_repositories)
 
         self.prompt_delete_unreferenced_repos(
@@ -354,23 +354,19 @@ class GuidedContext:
 
     def prompt_specify_repos(
         self,
-        manager_helper: CompanionStackManagerHelper,
+        functions_without_repos: List[str],
         image_repositories: Dict[str, str],
-        default_image_repo,
     ) -> Dict[str, str]:
         """
         Show prompts for each function that isn't associated with a image repo
 
         Parameters
         ----------
-        manager_helper: CompanionStackManagerHelper
-            Instance of CompanionStackManagerHelper
+        functions_without_repos: List[str]
+            List of functions without associating repos
 
         image_repositories: Dict[str, str]
             Current image repo dictionary with function logical ID as key and image repo URI as value.
-
-        default_image_repo: str
-            Default image repo URI to be shown for each function prompt.
 
         Returns
         -------
@@ -378,10 +374,9 @@ class GuidedContext:
             Updated image repo dictionary with values(image repo URIs) filled by user input
         """
         image_repositories = image_repositories.copy()
-        for function_logical_id in manager_helper.missing_repo_functions:
+        for function_logical_id in functions_without_repos:
             image_uri = prompt(
                 f"\t {self.start_bold}ECR repository for {function_logical_id}{self.end_bold}",
-                default=default_image_repo,
                 type=click.STRING,
             )
             if not is_ecr_url(image_uri):
