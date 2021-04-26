@@ -71,7 +71,7 @@ cat installer/pyinstaller/samcli.spec
 mkdir pyinstaller-output
 dist_folder="sam"
 if [ "$is_nightly" = "true" ]; then
-    echo "using dist_folder with nightly build"
+    echo "using dist_folder with nightly/beta build"
     dist_folder=$build_binary_name
 fi
 echo "dist_folder=$dist_folder"
@@ -79,7 +79,7 @@ mv "dist/$dist_folder" pyinstaller-output/dist
 cp installer/assets/* pyinstaller-output
 chmod 755 pyinstaller-output/install
 if [ "$is_nightly" = "true" ]; then
-    echo "Updating install script with nightly build"
+    echo "Updating install script with nightly/beta build"
     sed -i.bak "s/\/usr\/local\/aws-sam-cli/\/usr\/local\/$build_folder/g" pyinstaller-output/install
     sed -i.bak 's/EXE_NAME=\"sam\"/EXE_NAME=\"'$build_binary_name'\"/g' pyinstaller-output/install
     rm pyinstaller-output/install.bak
