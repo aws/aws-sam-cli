@@ -333,15 +333,21 @@ class GuidedContext:
             stack_name, region, s3_bucket, s3_prefix, self.template_file, image_repositories
         )
 
-        create_all_repos = self.prompt_create_all_repos(manager_helper)
+        create_all_repos = self.prompt_create_all_repos(
+            manager_helper.function_logical_ids, manager_helper.missing_repo_functions
+        )
         if create_all_repos:
             image_repositories.update(manager_helper.manager.get_repository_mapping())
         else:
             image_repositories = self.prompt_specify_repos(manager_helper, image_repositories, self.image_repository)
             manager_helper.update_sepcified_image_repos(image_repositories)
 
-        image_repositories = self.prompt_delete_unreferenced_repos(manager_helper, image_repositories)
-        GuidedContext.verify_images_exist_locally(self.function_provider.functions, image_repositories)
+        self.prompt_delete_unreferenced_repos(
+            [manager_helper.manager.get_repo_uri(repo) for repo in manager_helper.unreferenced_repos]
+        )
+
+        image_repositories = manager_helper.remove_unreferenced_repos_from_mapping(image_repositories)
+        GuidedContext.verify_images_exist_locally(self.function_provider.functions)
 
         manager_helper.manager.sync_repos()
         return image_repositories
@@ -385,24 +391,26 @@ class GuidedContext:
 
         return image_repositories
 
-    def prompt_create_all_repos(self, manager_helper: CompanionStackManagerHelper) -> bool:
+    def prompt_create_all_repos(self, functions: List[str], functions_without_repo: List[str]) -> bool:
         """
         Prompt whether to create all repos
 
         Parameters
         ----------
-        manager_helper: CompanionStackManagerHelper
-            Instance of CompanionStackManagerHelper
+        functions: List[str]
+            List of function logical IDs that are image based
+        functions_without_repo: List[str]
+            List of function logical IDs that do not have an ECR image repo specified
 
         Returns
         -------
         Boolean
             Returns False if there is no missing function or denied by prompt
         """
-        if not manager_helper.function_logical_ids:
+        if not functions:
             return False
 
-        if manager_helper.missing_repo_functions == manager_helper.function_logical_ids:
+        if functions == functions_without_repo:
             click.echo("\t Image repositories: Not found.")
             click.echo(
                 "\t #Managed repositories will be deleted when "
@@ -411,16 +419,14 @@ class GuidedContext:
             return confirm(
                 f"\t {self.start_bold}Create managed ECR repositories for all functions?{self.end_bold}", default=True
             )
-        functions_with_repo_count = len(manager_helper.function_logical_ids) - len(
-            manager_helper.missing_repo_functions
-        )
+        functions_with_repo_count = len(functions) - len(functions_without_repo)
         click.echo(
             "\t Image repositories: "
-            f"Found ({functions_with_repo_count} of {len(manager_helper.function_logical_ids)})"
+            f"Found ({functions_with_repo_count} of {len(functions)})"
             " #Different image repositories can be set in samconfig.toml"
         )
 
-        if not manager_helper.missing_repo_functions:
+        if not functions_without_repo:
             return False
 
         click.echo(
@@ -430,16 +436,14 @@ class GuidedContext:
         return (
             confirm(
                 f"\t {self.start_bold}Create managed ECR repositories for the "
-                f"{len(manager_helper.missing_repo_functions)} functions without?{self.end_bold}",
+                f"{len(functions_without_repo)} functions without?{self.end_bold}",
                 default=True,
             )
-            if manager_helper.missing_repo_functions
+            if functions_without_repo
             else True
         )
 
-    def prompt_delete_unreferenced_repos(
-        self, manager_helper: CompanionStackManagerHelper, image_repositories: Dict[str, str]
-    ) -> Dict[str, str]:
+    def prompt_delete_unreferenced_repos(self, unreferenced_repo_uris: List[str]) -> None:
         """
         Prompt user for deleting unreferenced companion stack image repos.
         Throws GuidedDeployFailedError if delete repos has been denied by the user.
@@ -447,26 +451,13 @@ class GuidedContext:
 
         Parameters
         ----------
-        manager_helper: CompanionStackManagerHelper
-            Instance of CompanionStackManagerHelper
 
-        image_repositories: Dict[str, str]
-            Current image repo dictionary with function logical ID as key and image repo URI as value.
-
-        Returns
-        -------
-        Dict[str, str]
-            Updated image repo dictionary with unreferenced repos removed
+        unreferenced_repo_uris: List[str]
+            List of unreferenced image repos that need to be deleted.
         """
-        if not manager_helper.unreferenced_repos:
-            return image_repositories
 
-        click.echo(
-            "\t Checking for unreferenced ECR repositories to clean-up: "
-            f"{len(manager_helper.unreferenced_repos)} found"
-        )
-        for repo in manager_helper.unreferenced_repos:
-            repo_uri = manager_helper.manager.get_repo_uri(repo)
+        click.echo("\t Checking for unreferenced ECR repositories to clean-up: " f"{len(unreferenced_repo_uris)} found")
+        for repo_uri in unreferenced_repo_uris:
             click.echo(f"\t  {repo_uri}")
         delete_repos = confirm(
             f"\t {self.start_bold}Delete the unreferenced repositories listed above when deploying?{self.end_bold}",
@@ -482,10 +473,8 @@ class GuidedContext:
             )
             raise GuidedDeployFailedError("Unreferenced Auto Created ECR Repos Must Be Deleted.")
 
-        return manager_helper.remove_unreferenced_repos_from_mapping(image_repositories)
-
     @staticmethod
-    def verify_images_exist_locally(functions: Dict[str, Function], image_repositories: Dict[str, str]) -> None:
+    def verify_images_exist_locally(functions: Dict[str, Function]) -> None:
         """
         Verify all images associated with deploying functions exist locally.
 
@@ -493,9 +482,6 @@ class GuidedContext:
         ----------
         functions: Dict[str, Function]
             Dictionary of functions in the stack to be deployed with key as their logical ID.
-
-        image_repositories: Dict[str, str]
-            Image repo dictionary with function logical ID as key and image repo URI as value.
         """
         for _, function_prop in functions.items():
             if function_prop.packagetype != IMAGE:
