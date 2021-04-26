@@ -158,6 +158,7 @@ LOG = logging.getLogger(__name__)
     required=False,
     is_flag=True,
     help="Automatically create and delete ECR repositories for image-based functions in non-guided deployments. "
+    "A companion stack containing ECR repos for each function will be deployed along with the template stack. "
     "Automatically created image repositories will be deleted if the corresponding functions are removed.",
 )
 @metadata_override_option
