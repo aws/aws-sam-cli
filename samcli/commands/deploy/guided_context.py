@@ -414,6 +414,7 @@ class GuidedContext:
             return confirm(
                 f"\t {self.start_bold}Create managed ECR repositories for all functions?{self.end_bold}", default=True
             )
+
         functions_with_repo_count = len(functions) - len(functions_without_repo)
         click.echo(
             "\t Image repositories: "
@@ -450,6 +451,8 @@ class GuidedContext:
         unreferenced_repo_uris: List[str]
             List of unreferenced image repos that need to be deleted.
         """
+        if not unreferenced_repo_uris:
+            return
 
         click.echo("\t Checking for unreferenced ECR repositories to clean-up: " f"{len(unreferenced_repo_uris)} found")
         for repo_uri in unreferenced_repo_uris:
