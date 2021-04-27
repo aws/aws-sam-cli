@@ -1,5 +1,5 @@
 """ This module parses a json/yaml file that defines a flow of questions to fulfill the cookiecutter context"""
-from typing import cast, Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple
 import yaml
 from samcli.commands.exceptions import UserException
 from samcli.yamlhelper import parse_yaml_file
@@ -96,7 +96,7 @@ class InteractiveFlowCreator:
         """
 
         try:
-            return cast(Dict, parse_yaml_file(file_path=file_path, extra_context=extra_context))
+            return parse_yaml_file(file_path=file_path, extra_context=extra_context)
         except FileNotFoundError as ex:
             raise QuestionsNotFoundException(f"questions definition file not found at {file_path}") from ex
         except (KeyError, ValueError, yaml.YAMLError) as ex:
