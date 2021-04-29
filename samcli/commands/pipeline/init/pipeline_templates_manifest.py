@@ -2,17 +2,20 @@
 Represents a manifest that lists the available SAM pipeline templates.
 Example:
     providers:
-      - Jenkins
-      - Gitlab
-      - Github Actions
+      - displayName:Jenkins
+        id: jenkins
+      - displayName:Gitlab CI/CD
+        id: gitlab
+      - displayName:Github Actions
+        id: github-actions
     templates:
-      - name: jenkins-two-stages-pipeline
+      - displayName: jenkins-two-stages-pipeline
         provider: Jenkins
         location: templates/cookiecutter-jenkins-two-stages-pipeline
-      - name: gitlab-two-stages-pipeline
+      - displayName: gitlab-two-stages-pipeline
         provider: Gitlab
         location: templates/cookiecutter-gitlab-two-stages-pipeline
-      - name: Github-Actions-two-stages-pipeline
+      - displayName: Github-Actions-two-stages-pipeline
         provider: Github Actions
         location: templates/cookiecutter-github-actions-two-stages-pipeline
 """
