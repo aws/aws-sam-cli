@@ -1,0 +1,34 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+
+Resources:
+  IgnoreServerlessFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.handler
+      Runtime: python3.8
+      CodeUri: /some/path/file.zip
+      Timeout: 600
+
+  IgnoreLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: app.handler
+      Runtime: python3.8
+      Code: some/path/file.zip
+      Timeout: 600
+
+  IgnoreServerlessLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: ./some.zip
+      CompatibleRuntimes:
+        - python3.8
+
+  IgnoreLambdaLayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      Content: some.zip
+      CompatibleRuntimes:
+        - python3.8

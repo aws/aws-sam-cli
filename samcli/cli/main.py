@@ -4,10 +4,11 @@ Entry point for the CLI
 
 import logging
 import json
+import atexit
 import click
 
 from samcli import __version__
-from samcli.lib.telemetry.metrics import send_installed_metric
+from samcli.lib.telemetry.metric import send_installed_metric, emit_all_metrics
 from samcli.lib.utils.sam_logging import (
     LAMBDA_BULDERS_LOGGER_NAME,
     SamCliLogger,
@@ -57,6 +58,40 @@ def print_info(ctx, param, value):
     ctx.exit()
 
 
+def print_cmdline_args(func):
+    """
+    This function format and print out the command line arguments for debugging.
+
+    Parameters
+    ----------
+    func: function reference
+        Actual function (command) which will be executed
+
+    Returns
+    -------
+    function reference:
+        A wrapped function reference which executes original function and checks newer version of SAM CLI
+    """
+
+    def wrapper(*args, **kwargs):
+        if kwargs.get("config_file") and kwargs.get("config_env"):
+            config_file = kwargs["config_file"]
+            config_env = kwargs["config_env"]
+            LOG.debug("Using config file: %s, config environment: %s", config_file, config_env)
+        LOG.debug("Expand command line arguments to:")
+        cmdline_args_log = ""
+        for key, value in kwargs.items():
+            if key not in ["config_file", "config_env"]:
+                if isinstance(value, bool) and value:
+                    cmdline_args_log += f"--{key} "
+                elif value:
+                    cmdline_args_log += f"--{key}={str(value)} "
+        LOG.debug(cmdline_args_log)
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
 # Keep the message to 80chars wide to it prints well on most terminals
 TELEMETRY_PROMPT = """
 \tSAM CLI now collects telemetry to better understand customer needs.
@@ -102,6 +137,8 @@ def cli(ctx):
     sam_cli_logger = logging.getLogger(SAM_CLI_LOGGER_NAME)
     lambda_builders_logger = logging.getLogger(LAMBDA_BULDERS_LOGGER_NAME)
     botocore_logger = logging.getLogger("botocore")
+
+    atexit.register(emit_all_metrics)
 
     SamCliLogger.configure_logger(sam_cli_logger, SAM_CLI_FORMATTER, logging.INFO)
     SamCliLogger.configure_logger(lambda_builders_logger, SAM_CLI_FORMATTER, logging.INFO)

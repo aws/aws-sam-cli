@@ -14,13 +14,15 @@ class SwaggerParser:
     _BINARY_MEDIA_TYPES_EXTENSION_KEY = "x-amazon-apigateway-binary-media-types"  # pylint: disable=C0103
     _ANY_METHOD = "ANY"
 
-    def __init__(self, swagger):
+    def __init__(self, stack_path: str, swagger):
         """
         Constructs an Swagger Parser object
 
+        :param str stack_path: Path of the stack the resource is located
         :param dict swagger: Dictionary representation of a Swagger document
         """
         self.swagger = swagger or {}
+        self.stack_path = stack_path
 
     def get_binary_media_types(self):
         """
@@ -92,6 +94,7 @@ class SwaggerParser:
                     event_type=event_type,
                     payload_format_version=payload_format_version,
                     operation_name=method_config.get("operationId"),
+                    stack_path=self.stack_path,
                 )
                 result.append(route)
         return result

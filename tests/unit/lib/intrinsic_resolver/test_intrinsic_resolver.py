@@ -247,7 +247,10 @@ class TestIntrinsicFnFindInMapResolver(TestCase):
 
     @parameterized.expand(
         [
-            ("The arguments in Fn::FindInMap must fail if the arguments are not in the mappings".format(item), item)
+            (
+                f"The arguments in Fn::FindInMap must fail if the arguments are not in the mappings: {item}",
+                item,
+            )
             for item in [
                 ["<UNKOWN_VALUE>", "Test", "key"],
                 ["Basic", "<UNKOWN_VALUE>", "key"],
@@ -278,7 +281,7 @@ class TestIntrinsicFnAzsResolver(TestCase):
 
     @parameterized.expand(
         [
-            ("Fn::GetAZs should fail if it not given a string type".format(item), item)
+            (f"Fn::GetAZs should fail if it not given a string type: {item}", item)
             for item in [True, False, {}, 42, None]
         ]
     )
@@ -497,7 +500,7 @@ class TestIntrinsicFnSubResolver(TestCase):
 
     @parameterized.expand(
         [
-            ("Fn::Sub arguments must either resolve to a string or a list".format(item), item)
+            (f"Fn::Sub arguments must either resolve to a string or a list: {item}", item)
             for item in [True, False, {}, 42, None]
         ]
     )
@@ -517,7 +520,7 @@ class TestIntrinsicFnSubResolver(TestCase):
 
     @parameterized.expand(
         [
-            ("If Fn::Sub is a list, second argument must resolve to a dictionary".format(item), item)
+            (f"If Fn::Sub is a list, second argument must resolve to a dictionary {item}", item)
             for item in [True, False, "Another str", [], 42, None]
         ]
     )
@@ -527,7 +530,7 @@ class TestIntrinsicFnSubResolver(TestCase):
 
     @parameterized.expand(
         [
-            ("If Fn::Sub is a list, it should only have 2 arguments".format(item), item)
+            (f"If Fn::Sub is a list, it should only have 2 arguments {item}", item)
             for item in [[""] * i for i in [0, 2, 3, 4, 5, 6, 7, 8, 9, 10]]
         ]
     )
@@ -731,10 +734,7 @@ class TestIntrinsicFnAndResolver(TestCase):
             self.resolver.intrinsic_property_resolver({"Fn::And": intrinsic}, True)
 
     @parameterized.expand(
-        [
-            ("Fn:And must have all arguments that resolves to booleans".format(item), item)
-            for item in [{}, 42, None, "test"]
-        ]
+        [(f"Fn:And must have all arguments that resolves to booleans {item}", item) for item in [{}, 42, None, "test"]]
     )
     def test_fn_and_all_arguments_bool(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):

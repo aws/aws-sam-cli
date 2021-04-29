@@ -7,16 +7,17 @@ import click
 import boto3
 from serverlessrepo.publish import CREATE_APPLICATION
 
-from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
+from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands._utils.options import template_common_option
 from samcli.commands._utils.template import get_template_data, TemplateFailedParsingException, TemplateNotFoundException
-from samcli.lib.telemetry.metrics import track_command
+from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
+from samcli.lib.utils.version_checker import check_newer_version
 
 LOG = logging.getLogger(__name__)
 
-SAM_PUBLISH_DOC = "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-template-publishing-applications.html"  # noqa
-SAM_PACKAGE_DOC = "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-package.html"  # noqa
+SAM_PUBLISH_DOC = "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-template-publishing-applications.html"  # pylint: disable=line-too-long # noqa
+SAM_PACKAGE_DOC = "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-package.html"  # pylint: disable=line-too-long # noqa
 HELP_TEXT = """
 Use this command to publish a packaged AWS SAM template to
 the AWS Serverless Application Repository to share within your team,
@@ -48,6 +49,8 @@ SEMANTIC_VERSION = "SemanticVersion"
 @cli_framework_options
 @pass_context
 @track_command
+@check_newer_version
+@print_cmdline_args
 def cli(
     ctx,
     template_file,

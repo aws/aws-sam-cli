@@ -10,6 +10,8 @@ from unittest import mock
 from unittest.mock import patch, Mock
 
 from samcli.commands.package.exceptions import ExportFailedError
+from samcli.lib.package.s3_uploader import S3Uploader
+from samcli.lib.package.uploaders import Destination
 from samcli.lib.package.utils import zip_folder, make_zip
 from samcli.lib.utils.packagetype import ZIP
 from tests.testing_utils import FileCreator
@@ -23,7 +25,6 @@ from samcli.lib.package.artifact_exporter import (
 )
 from samcli.lib.package.packageable_resources import (
     is_s3_url,
-    parse_s3_url,
     is_local_file,
     upload_local_artifacts,
     Resource,
@@ -46,6 +47,8 @@ from samcli.lib.package.packageable_resources import (
     AppSyncFunctionConfigurationRequestTemplateResource,
     AppSyncFunctionConfigurationResponseTemplateResource,
     GlueJobCommandScriptLocationResource,
+    CloudFormationModuleVersionModulePackage,
+    CloudFormationResourceVersionSchemaHandlerPackage,
     ResourceZip,
     ResourceImage,
 )
@@ -53,11 +56,16 @@ from samcli.lib.package.packageable_resources import (
 
 class TestArtifactExporter(unittest.TestCase):
     def setUp(self):
-        self.uploader = {}
         self.s3_uploader_mock = Mock()
         self.s3_uploader_mock.s3.meta.endpoint_url = "https://s3.some-valid-region.amazonaws.com"
         self.ecr_uploader_mock = Mock()
-        self.uploader = {"s3": self.s3_uploader_mock, "ecr": self.ecr_uploader_mock}
+
+        def get_mock(destination: Destination):
+            return {Destination.S3: self.s3_uploader_mock, Destination.ECR: self.ecr_uploader_mock}.get(destination)
+
+        self.uploaders_mock = Mock()
+        self.uploaders_mock.get.side_effect = get_mock
+
         self.code_signer_mock = Mock()
         self.code_signer_mock.should_sign_package.return_value = False
 
@@ -87,6 +95,8 @@ class TestArtifactExporter(unittest.TestCase):
             {"class": ServerlessRepoApplicationLicense, "expected_result": uploaded_s3_url},
             {"class": ServerlessRepoApplicationLicense, "expected_result": uploaded_s3_url},
             {"class": GlueJobCommandScriptLocationResource, "expected_result": {"ScriptLocation": uploaded_s3_url}},
+            {"class": CloudFormationModuleVersionModulePackage, "expected_result": uploaded_s3_url},
+            {"class": CloudFormationResourceVersionSchemaHandlerPackage, "expected_result": uploaded_s3_url},
         ]
 
         with patch("samcli.lib.package.packageable_resources.upload_local_artifacts") as upload_local_artifacts_mock:
@@ -100,7 +110,7 @@ class TestArtifactExporter(unittest.TestCase):
             s3_uploader_mock = Mock()
             code_signer_mock = Mock()
             upload_local_artifacts_mock.reset_mock()
-            resource_obj = ServerlessFunctionResource(uploader=s3_uploader_mock, code_signer=code_signer_mock)
+            resource_obj = ServerlessFunctionResource(uploaders=self.uploaders_mock, code_signer=code_signer_mock)
             resource_id = "id"
             resource_dict = {"InlineCode": "code"}
             parent_dir = "dir"
@@ -117,7 +127,9 @@ class TestArtifactExporter(unittest.TestCase):
         code_signer_mock = Mock()
         code_signer_mock.should_sign_package.return_value = False
         upload_local_artifacts_mock.reset_mock()
-        uploader = {"s3": s3_uploader_mock}
+
+        uploaders_mock = Mock()
+        uploaders_mock.get = Mock(return_value=s3_uploader_mock)
 
         resource_id = "id"
 
@@ -134,7 +146,7 @@ class TestArtifactExporter(unittest.TestCase):
 
         upload_local_artifacts_mock.return_value = uploaded_s3_url
 
-        resource_obj = test_class(uploader=uploader, code_signer=code_signer_mock)
+        resource_obj = test_class(uploaders=uploaders_mock, code_signer=code_signer_mock)
 
         resource_obj.export(resource_id, resource_dict, parent_dir)
 
@@ -145,11 +157,11 @@ class TestArtifactExporter(unittest.TestCase):
             LambdaLayerVersionResource,
         ):
             upload_local_artifacts_mock.assert_called_once_with(
-                resource_id, resource_dict, test_class.PROPERTY_NAME, parent_dir, uploader
+                resource_id, resource_dict, test_class.PROPERTY_NAME, parent_dir, s3_uploader_mock
             )
         else:
             upload_local_artifacts_mock.assert_called_once_with(
-                resource_id, resource_dict, test_class.PROPERTY_NAME, parent_dir, uploader, None
+                resource_id, resource_dict, test_class.PROPERTY_NAME, parent_dir, s3_uploader_mock, None
             )
         code_signer_mock.sign_package.assert_not_called()
         if "." in test_class.PROPERTY_NAME:
@@ -218,7 +230,7 @@ class TestArtifactExporter(unittest.TestCase):
         ]
 
         for config in valid:
-            result = parse_s3_url(
+            result = S3Uploader.parse_s3_url(
                 config["url"], bucket_name_property="Bucket", object_key_property="Key", version_property="VersionId"
             )
 
@@ -226,7 +238,7 @@ class TestArtifactExporter(unittest.TestCase):
 
         for url in invalid:
             with self.assertRaises(ValueError):
-                parse_s3_url(url)
+                S3Uploader.parse_s3_url(url)
 
     def test_is_local_file(self):
         with tempfile.NamedTemporaryFile() as handle:
@@ -381,7 +393,7 @@ class TestArtifactExporter(unittest.TestCase):
         class MockResource(ResourceZip):
             PROPERTY_NAME = "foo"
 
-        resource = MockResource(self.s3_uploader_mock, self.code_signer_mock)
+        resource = MockResource(self.uploaders_mock, self.code_signer_mock)
 
         resource_id = "id"
         resource_dict = {}
@@ -406,7 +418,7 @@ class TestArtifactExporter(unittest.TestCase):
         class MockResource(ResourceImage):
             PROPERTY_NAME = "foo"
 
-        resource = MockResource(self.ecr_uploader_mock, None)
+        resource = MockResource(self.uploaders_mock, None)
 
         resource_id = "id"
         resource_dict = {}
@@ -430,7 +442,7 @@ class TestArtifactExporter(unittest.TestCase):
         class MockResource(ResourceImage):
             PROPERTY_NAME = "foo"
 
-        resource = MockResource(self.ecr_uploader_mock, None)
+        resource = MockResource(self.uploaders_mock, None)
 
         resource_id = "id"
         resource_dict = {}
@@ -450,7 +462,7 @@ class TestArtifactExporter(unittest.TestCase):
         class MockResource(ResourceImage):
             PROPERTY_NAME = "foo"
 
-        resource = MockResource(self.ecr_uploader_mock, None)
+        resource = MockResource(self.uploaders_mock, None)
 
         resource_id = "id"
         resource_dict = {}
@@ -468,7 +480,7 @@ class TestArtifactExporter(unittest.TestCase):
         class MockResource(ResourceImage):
             PROPERTY_NAME = "foo"
 
-        resource = MockResource(self.ecr_uploader_mock, None)
+        resource = MockResource(self.uploaders_mock, None)
 
         resource_id = "id"
         resource_dict = {}
@@ -493,7 +505,7 @@ class TestArtifactExporter(unittest.TestCase):
             PROPERTY_NAME = "foo"
             FORCE_ZIP = True
 
-        resource = MockResource(self.s3_uploader_mock, self.code_signer_mock)
+        resource = MockResource(self.uploaders_mock, self.code_signer_mock)
 
         resource_id = "id"
         resource_dict = {}
@@ -543,7 +555,7 @@ class TestArtifactExporter(unittest.TestCase):
             PROPERTY_NAME = "foo"
             FORCE_ZIP = True
 
-        resource = MockResource(self.s3_uploader_mock, self.code_signer_mock)
+        resource = MockResource(self.uploaders_mock, self.code_signer_mock)
 
         resource_id = "id"
         resource_dict = {}
@@ -587,7 +599,7 @@ class TestArtifactExporter(unittest.TestCase):
         class MockResourceNoForceZip(ResourceZip):
             PROPERTY_NAME = "foo"
 
-        resource = MockResourceNoForceZip(self.s3_uploader_mock, self.code_signer_mock)
+        resource = MockResourceNoForceZip(self.uploaders_mock, self.code_signer_mock)
 
         resource_id = "id"
         resource_dict = {}
@@ -620,7 +632,7 @@ class TestArtifactExporter(unittest.TestCase):
         class MockResource(ResourceZip):
             PROPERTY_NAME = "foo"
 
-        resource = MockResource(self.s3_uploader_mock, self.code_signer_mock)
+        resource = MockResource(self.uploaders_mock, self.code_signer_mock)
 
         resource_id = "id"
         resource_dict = {}
@@ -645,7 +657,7 @@ class TestArtifactExporter(unittest.TestCase):
         class MockResource(ResourceZip):
             PROPERTY_NAME = "foo"
 
-        resource = MockResource(self.s3_uploader_mock, self.code_signer_mock)
+        resource = MockResource(self.uploaders_mock, self.code_signer_mock)
         resource_id = "id"
         resource_dict = {}
         resource_dict[resource.PROPERTY_NAME] = "/path/to/file"
@@ -667,7 +679,7 @@ class TestArtifactExporter(unittest.TestCase):
             PROPERTY_NAME = "foo"
             PACKAGE_NULL_PROPERTY = False
 
-        resource = MockResource(self.s3_uploader_mock, self.code_signer_mock)
+        resource = MockResource(self.uploaders_mock, self.code_signer_mock)
         resource_id = "id"
         resource_dict = {}
         parent_dir = "dir"
@@ -685,7 +697,7 @@ class TestArtifactExporter(unittest.TestCase):
         class MockResource(ResourceZip):
             PROPERTY_NAME = "foo"
 
-        resource = MockResource(self.s3_uploader_mock, self.code_signer_mock)
+        resource = MockResource(self.uploaders_mock, self.code_signer_mock)
         resource_id = "id"
         resource_dict = {}
         resource_dict[resource.PROPERTY_NAME] = "/path/to/file"
@@ -713,7 +725,7 @@ class TestArtifactExporter(unittest.TestCase):
             OBJECT_KEY_PROPERTY = "o"
             VERSION_PROPERTY = "v"
 
-        resource = MockResource(self.s3_uploader_mock, self.code_signer_mock)
+        resource = MockResource(self.uploaders_mock, self.code_signer_mock)
 
         # Case 1: Property value is a path to file
         resource_id = "id"
@@ -744,7 +756,7 @@ class TestArtifactExporter(unittest.TestCase):
         code_signer_mock.sign_package.return_value = "signed_s3_location"
         upload_local_artifacts_mock.return_value = "non_signed_s3_location"
 
-        resource = MockResource(self.s3_uploader_mock, code_signer_mock)
+        resource = MockResource(self.uploaders_mock, code_signer_mock)
 
         resource_id = "id"
         resource_dict = {resource.PROPERTY_NAME: "/path/to/file"}
@@ -754,7 +766,7 @@ class TestArtifactExporter(unittest.TestCase):
 
     @patch("samcli.lib.package.artifact_exporter.Template")
     def test_export_cloudformation_stack(self, TemplateMock):
-        stack_resource = CloudFormationStackResource(self.s3_uploader_mock, self.code_signer_mock)
+        stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock)
 
         resource_id = "id"
         property_name = stack_resource.PROPERTY_NAME
@@ -778,15 +790,13 @@ class TestArtifactExporter(unittest.TestCase):
 
             self.assertEqual(resource_dict[property_name], result_path_style_s3_url)
 
-            TemplateMock.assert_called_once_with(
-                template_path, parent_dir, self.s3_uploader_mock, self.code_signer_mock
-            )
+            TemplateMock.assert_called_once_with(template_path, parent_dir, self.uploaders_mock, self.code_signer_mock)
             template_instance_mock.export.assert_called_once_with()
             self.s3_uploader_mock.upload_with_dedup.assert_called_once_with(mock.ANY, "template")
             self.s3_uploader_mock.to_path_style_s3_url.assert_called_once_with("world", None)
 
     def test_export_cloudformation_stack_no_upload_path_is_s3url(self):
-        stack_resource = CloudFormationStackResource(self.s3_uploader_mock, self.code_signer_mock)
+        stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock)
         resource_id = "id"
         property_name = stack_resource.PROPERTY_NAME
         s3_url = "s3://hello/world"
@@ -798,7 +808,7 @@ class TestArtifactExporter(unittest.TestCase):
         self.s3_uploader_mock.upload_with_dedup.assert_not_called()
 
     def test_export_cloudformation_stack_no_upload_path_is_httpsurl(self):
-        stack_resource = CloudFormationStackResource(self.s3_uploader_mock, self.code_signer_mock)
+        stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock)
         resource_id = "id"
         property_name = stack_resource.PROPERTY_NAME
         s3_url = "https://s3.amazonaws.com/hello/world"
@@ -810,7 +820,7 @@ class TestArtifactExporter(unittest.TestCase):
         self.s3_uploader_mock.upload_with_dedup.assert_not_called()
 
     def test_export_cloudformation_stack_no_upload_path_is_s3_region_httpsurl(self):
-        stack_resource = CloudFormationStackResource(self.s3_uploader_mock, self.code_signer_mock)
+        stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock)
         resource_id = "id"
         property_name = stack_resource.PROPERTY_NAME
 
@@ -822,7 +832,7 @@ class TestArtifactExporter(unittest.TestCase):
         self.s3_uploader_mock.upload_with_dedup.assert_not_called()
 
     def test_export_cloudformation_stack_no_upload_path_is_empty(self):
-        stack_resource = CloudFormationStackResource(self.s3_uploader_mock, self.code_signer_mock)
+        stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock)
         resource_id = "id"
         property_name = stack_resource.PROPERTY_NAME
         s3_url = "s3://hello/world"
@@ -835,7 +845,7 @@ class TestArtifactExporter(unittest.TestCase):
         self.s3_uploader_mock.upload_with_dedup.assert_not_called()
 
     def test_export_cloudformation_stack_no_upload_path_not_file(self):
-        stack_resource = CloudFormationStackResource(self.s3_uploader_mock, self.code_signer_mock)
+        stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock)
         resource_id = "id"
         property_name = stack_resource.PROPERTY_NAME
         s3_url = "s3://hello/world"
@@ -849,7 +859,7 @@ class TestArtifactExporter(unittest.TestCase):
 
     @patch("samcli.lib.package.artifact_exporter.Template")
     def test_export_serverless_application(self, TemplateMock):
-        stack_resource = ServerlessApplicationResource(self.s3_uploader_mock, self.code_signer_mock)
+        stack_resource = ServerlessApplicationResource(self.uploaders_mock, self.code_signer_mock)
 
         resource_id = "id"
         property_name = stack_resource.PROPERTY_NAME
@@ -873,15 +883,13 @@ class TestArtifactExporter(unittest.TestCase):
 
             self.assertEqual(resource_dict[property_name], result_path_style_s3_url)
 
-            TemplateMock.assert_called_once_with(
-                template_path, parent_dir, self.s3_uploader_mock, self.code_signer_mock
-            )
+            TemplateMock.assert_called_once_with(template_path, parent_dir, self.uploaders_mock, self.code_signer_mock)
             template_instance_mock.export.assert_called_once_with()
             self.s3_uploader_mock.upload_with_dedup.assert_called_once_with(mock.ANY, "template")
             self.s3_uploader_mock.to_path_style_s3_url.assert_called_once_with("world", None)
 
     def test_export_serverless_application_no_upload_path_is_s3url(self):
-        stack_resource = ServerlessApplicationResource(self.s3_uploader_mock, self.code_signer_mock)
+        stack_resource = ServerlessApplicationResource(self.uploaders_mock, self.code_signer_mock)
         resource_id = "id"
         property_name = stack_resource.PROPERTY_NAME
         s3_url = "s3://hello/world"
@@ -893,7 +901,7 @@ class TestArtifactExporter(unittest.TestCase):
         self.s3_uploader_mock.upload_with_dedup.assert_not_called()
 
     def test_export_serverless_application_no_upload_path_is_httpsurl(self):
-        stack_resource = ServerlessApplicationResource(self.s3_uploader_mock, self.code_signer_mock)
+        stack_resource = ServerlessApplicationResource(self.uploaders_mock, self.code_signer_mock)
         resource_id = "id"
         property_name = stack_resource.PROPERTY_NAME
         s3_url = "https://s3.amazonaws.com/hello/world"
@@ -905,7 +913,7 @@ class TestArtifactExporter(unittest.TestCase):
         self.s3_uploader_mock.upload_with_dedup.assert_not_called()
 
     def test_export_serverless_application_no_upload_path_is_empty(self):
-        stack_resource = ServerlessApplicationResource(self.s3_uploader_mock, self.code_signer_mock)
+        stack_resource = ServerlessApplicationResource(self.uploaders_mock, self.code_signer_mock)
         resource_id = "id"
         property_name = stack_resource.PROPERTY_NAME
 
@@ -916,7 +924,7 @@ class TestArtifactExporter(unittest.TestCase):
         self.s3_uploader_mock.upload_with_dedup.assert_not_called()
 
     def test_export_serverless_application_no_upload_path_not_file(self):
-        stack_resource = ServerlessApplicationResource(self.s3_uploader_mock, self.code_signer_mock)
+        stack_resource = ServerlessApplicationResource(self.uploaders_mock, self.code_signer_mock)
         resource_id = "id"
         property_name = stack_resource.PROPERTY_NAME
 
@@ -928,7 +936,7 @@ class TestArtifactExporter(unittest.TestCase):
                 self.s3_uploader_mock.upload_with_dedup.assert_not_called()
 
     def test_export_serverless_application_no_upload_path_is_dictionary(self):
-        stack_resource = ServerlessApplicationResource(self.s3_uploader_mock, self.code_signer_mock)
+        stack_resource = ServerlessApplicationResource(self.uploaders_mock, self.code_signer_mock)
         resource_id = "id"
         property_name = stack_resource.PROPERTY_NAME
 
@@ -950,7 +958,7 @@ class TestArtifactExporter(unittest.TestCase):
         metadata_type1_class.RESOURCE_TYPE = "metadata_type1"
         metadata_type1_class.PROPERTY_NAME = "property_1"
         metadata_type1_class.ARTIFACT_TYPE = ZIP
-        metadata_type1_class.EXPORT_DESTINATION = "s3"
+        metadata_type1_class.EXPORT_DESTINATION = Destination.S3
 
         metadata_type1_instance = Mock()
         metadata_type1_class.return_value = metadata_type1_instance
@@ -959,7 +967,7 @@ class TestArtifactExporter(unittest.TestCase):
         metadata_type2_class.RESOURCE_TYPE = "metadata_type2"
         metadata_type2_class.PROPERTY_NAME = "property_2"
         metadata_type2_class.ARTIFACT_TYPE = ZIP
-        metadata_type2_class.EXPORT_DESTINATION = "s3"
+        metadata_type2_class.EXPORT_DESTINATION = Destination.S3
         metadata_type2_instance = Mock()
         metadata_type2_class.return_value = metadata_type2_instance
 
@@ -975,7 +983,7 @@ class TestArtifactExporter(unittest.TestCase):
             template_exporter = Template(
                 template_path,
                 parent_dir,
-                self.uploader,
+                self.uploaders_mock,
                 self.code_signer_mock,
                 metadata_to_export=metadata_to_export,
             )
@@ -986,9 +994,9 @@ class TestArtifactExporter(unittest.TestCase):
 
             self.assertEqual(1, yaml_parse_mock.call_count)
 
-            metadata_type1_class.assert_called_once_with(self.s3_uploader_mock, self.code_signer_mock)
+            metadata_type1_class.assert_called_once_with(self.uploaders_mock, self.code_signer_mock)
             metadata_type1_instance.export.assert_called_once_with("metadata_type1", mock.ANY, template_dir)
-            metadata_type2_class.assert_called_once_with(self.s3_uploader_mock, self.code_signer_mock)
+            metadata_type2_class.assert_called_once_with(self.uploaders_mock, self.code_signer_mock)
             metadata_type2_instance.export.assert_called_once_with("metadata_type2", mock.ANY, template_dir)
 
     @patch("samcli.lib.package.artifact_exporter.yaml_parse")
@@ -1001,13 +1009,13 @@ class TestArtifactExporter(unittest.TestCase):
         resource_type1_class = Mock()
         resource_type1_class.RESOURCE_TYPE = "resource_type1"
         resource_type1_class.ARTIFACT_TYPE = ZIP
-        resource_type1_class.EXPORT_DESTINATION = "s3"
+        resource_type1_class.EXPORT_DESTINATION = Destination.S3
         resource_type1_instance = Mock()
         resource_type1_class.return_value = resource_type1_instance
         resource_type2_class = Mock()
         resource_type2_class.RESOURCE_TYPE = "resource_type2"
         resource_type2_class.ARTIFACT_TYPE = ZIP
-        resource_type2_class.EXPORT_DESTINATION = "s3"
+        resource_type2_class.EXPORT_DESTINATION = Destination.S3
         resource_type2_instance = Mock()
         resource_type2_class.return_value = resource_type2_instance
 
@@ -1029,7 +1037,7 @@ class TestArtifactExporter(unittest.TestCase):
         with patch("samcli.lib.package.artifact_exporter.open", open_mock(read_data=template_str)) as open_mock:
 
             template_exporter = Template(
-                template_path, parent_dir, self.uploader, self.code_signer_mock, resources_to_export
+                template_path, parent_dir, self.uploaders_mock, self.code_signer_mock, resources_to_export
             )
             exported_template = template_exporter.export()
             self.assertEqual(exported_template, template_dict)
@@ -1038,9 +1046,9 @@ class TestArtifactExporter(unittest.TestCase):
 
             self.assertEqual(1, yaml_parse_mock.call_count)
 
-            resource_type1_class.assert_called_once_with(self.s3_uploader_mock, self.code_signer_mock)
+            resource_type1_class.assert_called_once_with(self.uploaders_mock, self.code_signer_mock)
             resource_type1_instance.export.assert_called_once_with("Resource1", mock.ANY, template_dir)
-            resource_type2_class.assert_called_once_with(self.s3_uploader_mock, self.code_signer_mock)
+            resource_type2_class.assert_called_once_with(self.uploaders_mock, self.code_signer_mock)
             resource_type2_instance.export.assert_called_once_with("Resource2", mock.ANY, template_dir)
 
     @patch("samcli.lib.package.artifact_exporter.yaml_parse")
@@ -1053,13 +1061,13 @@ class TestArtifactExporter(unittest.TestCase):
         resource_type1_class = Mock()
         resource_type1_class.RESOURCE_TYPE = "resource_type1"
         resource_type1_class.ARTIFACT_TYPE = ZIP
-        resource_type1_class.EXPORT_DESTINATION = "s3"
+        resource_type1_class.EXPORT_DESTINATION = Destination.S3
         resource_type1_instance = Mock()
         resource_type1_class.return_value = resource_type1_instance
         resource_type2_class = Mock()
         resource_type2_class.RESOURCE_TYPE = "resource_type2"
         resource_type2_class.ARTIFACT_TYPE = ZIP
-        resource_type2_class.EXPORT_DESTINATION = "s3"
+        resource_type2_class.EXPORT_DESTINATION = Destination.S3
         resource_type2_instance = Mock()
         resource_type2_class.return_value = resource_type2_instance
 
@@ -1083,7 +1091,7 @@ class TestArtifactExporter(unittest.TestCase):
         with patch("samcli.lib.package.artifact_exporter.open", open_mock(read_data=template_str)) as open_mock:
 
             template_exporter = Template(
-                template_path, parent_dir, self.uploader, self.code_signer_mock, resources_to_export
+                template_path, parent_dir, self.uploaders_mock, self.code_signer_mock, resources_to_export
             )
             exported_template = template_exporter.export()
             self.assertEqual(exported_template, template_dict)
@@ -1101,13 +1109,13 @@ class TestArtifactExporter(unittest.TestCase):
         resource_type1_class = Mock()
         resource_type1_class.RESOURCE_TYPE = "resource_type1"
         resource_type1_class.ARTIFACT_TYPE = ZIP
-        resource_type1_class.EXPORT_DESTINATION = "s3"
+        resource_type1_class.EXPORT_DESTINATION = Destination.S3
         resource_type1_instance = Mock()
         resource_type1_class.return_value = resource_type1_instance
         resource_type2_class = Mock()
         resource_type2_class.RESOURCE_TYPE = "resource_type2"
         resource_type2_class.ARTIFACT_TYPE = ZIP
-        resource_type2_class.EXPORT_DESTINATION = "s3"
+        resource_type2_class.EXPORT_DESTINATION = Destination.S3
         resource_type2_instance = Mock()
         resource_type2_class.return_value = resource_type2_instance
 
@@ -1132,9 +1140,9 @@ class TestArtifactExporter(unittest.TestCase):
 
         with patch("samcli.lib.package.artifact_exporter.open", open_mock(read_data=template_str)) as open_mock:
             with patch.dict(GLOBAL_EXPORT_DICT, {"Fn::Transform": include_transform_export_handler_mock}):
-                template_exporter = Template(template_path, parent_dir, self.uploader, resources_to_export)
 
-                exported_template = template_exporter.export_global_artifacts(template_exporter.template_dict)
+                template_exporter = Template(template_path, parent_dir, self.uploaders_mock, resources_to_export)
+                exported_template = template_exporter._export_global_artifacts(template_exporter.template_dict)
 
                 first_call_args, kwargs = include_transform_export_handler_mock.call_args_list[0]
                 second_call_args, kwargs = include_transform_export_handler_mock.call_args_list[1]
@@ -1257,12 +1265,13 @@ class TestArtifactExporter(unittest.TestCase):
         template_path = "/path/foo"
         # Set parent_dir to be a non-existent folder
         with self.assertRaises(ValueError):
-            Template(template_path, "somefolder", self.uploader, self.code_signer_mock)
 
+            Template(template_path, "somefolder", self.uploaders_mock, self.code_signer_mock)
         # Set parent_dir to be a real folder, but just a relative path
         with self.make_temp_dir() as dirname:
             with self.assertRaises(ValueError):
-                Template(template_path, os.path.relpath(dirname), self.uploader, self.code_signer_mock)
+
+                Template(template_path, os.path.relpath(dirname), self.uploaders_mock, self.code_signer_mock)
 
     def test_make_zip(self):
         test_file_creator = FileCreator()

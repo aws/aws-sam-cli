@@ -5,11 +5,12 @@ CLI command for "local invoke" command
 import logging
 import click
 
-from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
-from samcli.commands.local.cli_common.options import invoke_common_options
+from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
+from samcli.commands.local.cli_common.options import invoke_common_options, local_common_options
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
-from samcli.lib.telemetry.metrics import track_command
+from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
+from samcli.lib.utils.version_checker import check_newer_version
 from samcli.local.docker.exceptions import ContainerNotStartableException
 
 LOG = logging.getLogger(__name__)
@@ -42,14 +43,17 @@ STDIN_FILE_NAME = "-"
 )
 @click.option("--no-event", is_flag=True, default=True, help="DEPRECATED: By default no event is assumed.", hidden=True)
 @invoke_common_options
+@local_common_options
 @cli_framework_options
 @aws_creds_options
-@click.argument("function_identifier", required=False)
+@click.argument("function_logical_id", required=False)
 @pass_context
 @track_command  # pylint: disable=R0914
+@check_newer_version
+@print_cmdline_args
 def cli(
     ctx,
-    function_identifier,
+    function_logical_id,
     template_file,
     event,
     no_event,
@@ -64,16 +68,21 @@ def cli(
     layer_cache_basedir,
     skip_pull_image,
     force_image_build,
+    shutdown,
     parameter_overrides,
     config_file,
     config_env,
+    container_host,
+    container_host_interface,
 ):
-
+    """
+    `sam local invoke` command entry point
+    """
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(
         ctx,
-        function_identifier,
+        function_logical_id,
         template_file,
         event,
         no_event,
@@ -88,7 +97,10 @@ def cli(
         layer_cache_basedir,
         skip_pull_image,
         force_image_build,
+        shutdown,
         parameter_overrides,
+        container_host,
+        container_host_interface,
     )  # pragma: no cover
 
 
@@ -109,7 +121,10 @@ def do_cli(  # pylint: disable=R0914
     layer_cache_basedir,
     skip_pull_image,
     force_image_build,
+    shutdown,
     parameter_overrides,
+    container_host,
+    container_host_interface,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -151,11 +166,14 @@ def do_cli(  # pylint: disable=R0914
             force_image_build=force_image_build,
             aws_region=ctx.region,
             aws_profile=ctx.profile,
+            shutdown=shutdown,
+            container_host=container_host,
+            container_host_interface=container_host_interface,
         ) as context:
 
             # Invoke the function
             context.local_lambda_runner.invoke(
-                context.function_name, event=event_data, stdout=context.stdout, stderr=context.stderr
+                context.function_identifier, event=event_data, stdout=context.stdout, stderr=context.stderr
             )
 
     except FunctionNotFound as ex:
@@ -191,5 +209,5 @@ def _get_event(event_file_name):
 
     # click.open_file knows to open stdin when filename is '-'. This is safer than manually opening streams, and
     # accidentally closing a standard stream
-    with click.open_file(event_file_name, "r") as fp:
+    with click.open_file(event_file_name, "r", encoding="utf-8") as fp:
         return fp.read()

@@ -9,6 +9,7 @@ import threading
 import docker
 import requests
 
+from docker.errors import NotFound as DockerNetworkNotFound
 from samcli.lib.utils.retry import retry
 from .exceptions import ContainerNotStartableException
 
@@ -37,9 +38,9 @@ class Container:
     _STDOUT_FRAME_TYPE = 1
     _STDERR_FRAME_TYPE = 2
     RAPID_PORT_CONTAINER = "8080"
-    URL = "http://localhost:{port}/2015-03-31/functions/{function_name}/invocations"
-    # NOTE(sriram-mv): 100ms Connection Timeout for http requests talking to `aws-lambda-rie` HTTP APIs
-    RAPID_CONNECTION_TIMEOUT = 0.1
+    URL = "http://{host}:{port}/2015-03-31/functions/{function_name}/invocations"
+    # Set connection timeout to 1 sec to support the large input.
+    RAPID_CONNECTION_TIMEOUT = 1
 
     def __init__(
         self,
@@ -54,19 +55,26 @@ class Container:
         docker_client=None,
         container_opts=None,
         additional_volumes=None,
+        container_host="localhost",
+        container_host_interface="127.0.0.1",
     ):
         """
         Initializes the class with given configuration. This does not automatically create or run the container.
 
-        :param string image: Name of the Docker image to create container with
-        :param string working_dir: Working directory for the container
-        :param string host_dir: Directory in the host operating system that should be mounted to the ``working_dir`` on
+        :param str image: Name of the Docker image to create container with
+        :param str cmd: Command to pass to container
+        :param str working_dir: Working directory for the container
+        :param str host_dir: Directory in the host operating system that should be mounted to the ``working_dir`` on
             container
-        :param list cmd: Command to pass to container
         :param int memory_limit_mb: Optional. Max limit of memory in MegaBytes this Lambda function can use.
         :param dict exposed_ports: Optional. Dict of ports to expose
-        :param list entrypoint: Optional. Entry point process for the container. Defaults to the value in Dockerfile
+        :param dict entrypoint: Optional. Entry point process for the container. Defaults to the value in Dockerfile
         :param dict env_vars: Optional. Dict of environment variables to setup in the container
+        :param docker_client: Optional, a docker client to replace the default one loaded from env
+        :param container_opts: Optional, a dictionary containing the container options
+        :param additional_volumes: Optional list of additional volumes
+        :param string container_host: Optional. Host of locally emulated Lambda container
+        :param string container_host_interface: Optional. Interface that Docker host binds ports to
         """
 
         self._image = image
@@ -80,6 +88,7 @@ class Container:
         self._network_id = None
         self._container_opts = container_opts
         self._additional_volumes = additional_volumes
+        self._logs_thread = None
 
         # Use the given Docker client or create new one
         self.docker_client = docker_client or docker.from_env()
@@ -91,6 +100,10 @@ class Container:
         # selecting the first free port in a range that's not ephemeral.
         self._start_port_range = 5000
         self._end_port_range = 9000
+
+        self._container_host = container_host
+        self._container_host_interface = container_host_interface
+
         try:
             self.rapid_port_host = find_free_port(start=self._start_port_range, end=self._end_port_range)
         except NoFreePortsError as ex:
@@ -145,11 +158,14 @@ class Container:
         if self._env_vars:
             kwargs["environment"] = self._env_vars
 
-        kwargs["ports"] = {self.RAPID_PORT_CONTAINER: ("127.0.0.1", self.rapid_port_host)}
+        kwargs["ports"] = {self.RAPID_PORT_CONTAINER: (self._container_host_interface, self.rapid_port_host)}
 
         if self._exposed_ports:
             kwargs["ports"].update(
-                {container_port: ("127.0.0.1", host_port) for container_port, host_port in self._exposed_ports.items()}
+                {
+                    container_port: (self._container_host_interface, host_port)
+                    for container_port, host_port in self._exposed_ports.items()
+                }
             )
 
         if self._entrypoint:
@@ -165,11 +181,47 @@ class Container:
         real_container = self.docker_client.containers.create(self._image, **kwargs)
         self.id = real_container.id
 
+        self._logs_thread = None
+
         if self.network_id and self.network_id != "host":
-            network = self.docker_client.networks.get(self.network_id)
-            network.connect(self.id)
+            try:
+                network = self.docker_client.networks.get(self.network_id)
+                network.connect(self.id)
+            except DockerNetworkNotFound:
+                # stop and delete the created container before raising the exception
+                real_container.remove(force=True)
+                raise
 
         return self.id
+
+    def stop(self, time=3):
+        """
+        Stop a container, with a given number of seconds between sending SIGTERM and SIGKILL.
+
+        Parameters
+        ----------
+        time
+            Optional. Number of seconds between SIGTERM and SIGKILL. Effectively, the amount of time
+            the container has to perform shutdown steps. Default: 3
+        """
+        if not self.is_created():
+            LOG.debug("Container was not created, cannot run stop.")
+            return
+
+        try:
+            self.docker_client.containers.get(self.id).stop(timeout=time)
+        except docker.errors.NotFound:
+            # Container is already removed
+            LOG.debug("Container with ID %s does not exist. Cannot stop!", self.id)
+        except docker.errors.APIError as ex:
+            msg = str(ex)
+            removal_in_progress = ("removal of container" in msg) and ("is already in progress" in msg)
+
+            # When removal is already started, Docker API will throw an exception
+            # Skip such exceptions and log
+            if not removal_in_progress:
+                raise ex
+            LOG.debug("Container removal is in progress, skipping exception: %s", msg)
 
     def delete(self):
         """
@@ -189,9 +241,10 @@ class Container:
             removal_in_progress = ("removal of container" in msg) and ("is already in progress" in msg)
 
             # When removal is already started, Docker API will throw an exception
-            # Skip such exceptions.
+            # Skip such exceptions and log
             if not removal_in_progress:
                 raise ex
+            LOG.debug("Container removal is in progress, skipping exception: %s", msg)
 
         self.id = None
 
@@ -224,9 +277,10 @@ class Container:
         # TODO(sriram-mv): `aws-lambda-rie` is in a mode where the function_name is always "function"
         # NOTE(sriram-mv): There is a connection timeout set on the http call to `aws-lambda-rie`, however there is not
         # a read time out for the response received from the server.
+
         resp = requests.post(
-            self.URL.format(port=self.rapid_port_host, function_name="function"),
-            data=event,
+            self.URL.format(host=self._container_host, port=self.rapid_port_host, function_name="function"),
+            data=event.encode("utf-8"),
             timeout=(self.RAPID_CONNECTION_TIMEOUT, None),
         )
         stdout.write(resp.content)
@@ -235,8 +289,12 @@ class Container:
         # NOTE(sriram-mv): Let logging happen in its own thread, so that a http request can be sent.
         # NOTE(sriram-mv): All logging is re-directed to stderr, so that only the lambda function return
         # will be written to stdout.
-        logs_thread = threading.Thread(target=self.wait_for_logs, args=(stderr, stderr), daemon=True)
-        logs_thread.start()
+
+        # the log thread will not be closed until the container itself got deleted,
+        # so as long as the container is still there, no need to start a new log thread
+        if not self._logs_thread or not self._logs_thread.is_alive():
+            self._logs_thread = threading.Thread(target=self.wait_for_logs, args=(stderr, stderr), daemon=True)
+            self._logs_thread.start()
 
         self.wait_for_http_response(name, event, stdout)
 
@@ -326,8 +384,32 @@ class Container:
 
     def is_created(self):
         """
-        Checks if a container exists?
+        Checks if the real container exists?
 
-        :return bool: True if the container was created
+        Returns
+        -------
+        bool
+            True if the container is created
         """
-        return self.id is not None
+        if self.id:
+            try:
+                self.docker_client.containers.get(self.id)
+                return True
+            except docker.errors.NotFound:
+                return False
+        return False
+
+    def is_running(self):
+        """
+        Checks if the real container status is running
+
+        Returns
+        -------
+        bool
+            True if the container is running
+        """
+        try:
+            real_container = self.docker_client.containers.get(self.id)
+            return real_container.status == "running"
+        except docker.errors.NotFound:
+            return False

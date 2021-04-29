@@ -14,6 +14,7 @@ class TestECRUploader(TestCase):
     def setUp(self):
         self.ecr_client = MagicMock()
         self.ecr_repo = "mock-image-repo"
+        self.ecr_repo_multi = {"HelloWorldFunction": "mock-image-repo"}
         self.tag = "mock-tag"
         self.stream = "stream"
         self.docker_client = MagicMock()
@@ -25,7 +26,11 @@ class TestECRUploader(TestCase):
 
     def test_ecr_uploader_init(self):
         ecr_uploader = ECRUploader(
-            docker_client=self.docker_client, ecr_client=self.ecr_client, ecr_repo=self.ecr_repo, tag=self.tag
+            docker_client=self.docker_client,
+            ecr_client=self.ecr_client,
+            ecr_repo=self.ecr_repo,
+            ecr_repo_multi=self.ecr_repo_multi,
+            tag=self.tag,
         )
 
         self.assertEqual(ecr_uploader.docker_client, self.docker_client)
@@ -41,7 +46,11 @@ class TestECRUploader(TestCase):
             )
         )
         ecr_uploader = ECRUploader(
-            docker_client=self.docker_client, ecr_client=self.ecr_client, ecr_repo=self.ecr_repo, tag=self.tag
+            docker_client=self.docker_client,
+            ecr_client=self.ecr_client,
+            ecr_repo=self.ecr_repo,
+            ecr_repo_multi=self.ecr_repo_multi,
+            tag=self.tag,
         )
 
         with self.assertRaises(ECRAuthorizationError):
@@ -55,7 +64,11 @@ class TestECRUploader(TestCase):
             "authorizationData": [{"authorizationToken": "auth_token", "proxyEndpoint": "proxy"}]
         }
         ecr_uploader = ECRUploader(
-            docker_client=self.docker_client, ecr_client=self.ecr_client, ecr_repo=self.ecr_repo, tag=self.tag
+            docker_client=self.docker_client,
+            ecr_client=self.ecr_client,
+            ecr_repo=self.ecr_repo,
+            ecr_repo_multi=self.ecr_repo_multi,
+            tag=self.tag,
         )
 
         with self.assertRaises(DockerLoginFailedError):
@@ -69,7 +82,11 @@ class TestECRUploader(TestCase):
             "authorizationData": [{"authorizationToken": "auth_token", "proxyEndpoint": "proxy"}]
         }
         ecr_uploader = ECRUploader(
-            docker_client=self.docker_client, ecr_client=self.ecr_client, ecr_repo=self.ecr_repo, tag=self.tag
+            docker_client=self.docker_client,
+            ecr_client=self.ecr_client,
+            ecr_repo=self.ecr_repo,
+            ecr_repo_multi=self.ecr_repo_multi,
+            tag=self.tag,
         )
 
         ecr_uploader.login()
@@ -78,7 +95,11 @@ class TestECRUploader(TestCase):
     def test_upload_failure(self, error):
         image = "myimage:v1"
         ecr_uploader = ECRUploader(
-            docker_client=self.docker_client, ecr_client=self.ecr_client, ecr_repo=self.ecr_repo, tag=self.tag
+            docker_client=self.docker_client,
+            ecr_client=self.ecr_client,
+            ecr_repo=self.ecr_repo,
+            ecr_repo_multi=self.ecr_repo_multi,
+            tag=self.tag,
         )
 
         ecr_uploader.login = MagicMock()
@@ -86,7 +107,7 @@ class TestECRUploader(TestCase):
         self.docker_client.images.get = MagicMock(side_effect=error(**self.error_args.get(error.__name__)))
 
         with self.assertRaises(DockerPushFailedError):
-            ecr_uploader.upload(image)
+            ecr_uploader.upload(image, resource_name="HelloWorldFunction")
 
     def test_upload_success(self):
         image = "myimage:v1"
@@ -108,12 +129,16 @@ class TestECRUploader(TestCase):
         )
 
         ecr_uploader = ECRUploader(
-            docker_client=self.docker_client, ecr_client=self.ecr_client, ecr_repo=self.ecr_repo, tag=self.tag
+            docker_client=self.docker_client,
+            ecr_client=self.ecr_client,
+            ecr_repo=self.ecr_repo,
+            ecr_repo_multi=self.ecr_repo_multi,
+            tag=self.tag,
         )
 
         ecr_uploader.login = MagicMock()
 
-        ecr_uploader.upload(image)
+        ecr_uploader.upload(image, resource_name="HelloWorldFunction")
 
     def test_upload_failure_while_streaming(self):
         image = "myimage:v1"
@@ -131,9 +156,13 @@ class TestECRUploader(TestCase):
         )
 
         ecr_uploader = ECRUploader(
-            docker_client=self.docker_client, ecr_client=self.ecr_client, ecr_repo=self.ecr_repo, tag=self.tag
+            docker_client=self.docker_client,
+            ecr_client=self.ecr_client,
+            ecr_repo=self.ecr_repo,
+            ecr_repo_multi=self.ecr_repo_multi,
+            tag=self.tag,
         )
 
         ecr_uploader.login = MagicMock()
         with self.assertRaises(DockerPushFailedError):
-            ecr_uploader.upload(image)
+            ecr_uploader.upload(image, resource_name="HelloWorldFunction")

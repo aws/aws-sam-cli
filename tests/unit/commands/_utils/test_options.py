@@ -3,11 +3,14 @@ Test the common CLI options
 """
 
 import os
+from datetime import datetime
 
 from unittest import TestCase
 from unittest.mock import patch, MagicMock
 
 import click
+import pytest
+from tomlkit import parse
 
 from samcli.commands._utils.options import (
     get_or_default_template_file_name,
@@ -15,6 +18,8 @@ from samcli.commands._utils.options import (
     guided_deploy_stack_name,
     artifact_callback,
     resolve_s3_callback,
+    image_repositories_callback,
+    _space_separated_list_func_type,
 )
 from samcli.commands.package.exceptions import PackageResolveS3AndS3SetError, PackageResolveS3AndS3NotSetError
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -98,6 +103,26 @@ class TestGetOrDefaultTemplateFileName(TestCase):
         self.assertEqual(result, expected_result_from_ctx)
 
 
+class TestImageRepositoriesCallBack(TestCase):
+    def test_image_repositories_callback(self):
+        mock_params = MagicMock()
+        result = image_repositories_callback(
+            ctx=MockContext(info_name="test", parent=None, params=mock_params),
+            param=MagicMock(),
+            provided_value=({"a": "b"}, {"c": "d"}),
+        )
+        self.assertEqual(result, {"a": "b", "c": "d"})
+
+    def test_image_repositories_callback_None(self):
+        mock_params = MagicMock()
+        self.assertEqual(
+            image_repositories_callback(
+                ctx=MockContext(info_name="test", parent=None, params=mock_params), param=MagicMock(), provided_value=()
+            ),
+            None,
+        )
+
+
 class TestArtifactBasedOptionRequired(TestCase):
     @patch("samcli.commands._utils.options.get_template_artifacts_format")
     def test_zip_based_artifact_s3_required(self, template_artifacts_mock):
@@ -166,12 +191,19 @@ class TestArtifactBasedOptionRequired(TestCase):
         # implicitly artifacts are zips
         template_artifacts_mock.return_value = [ZIP]
         mock_params = MagicMock()
-        mock_params.get = MagicMock()
+        mock_params.get.side_effect = [
+            MagicMock(),
+            False,
+        ]
+        mock_default_map = MagicMock()
+        mock_default_map.get.side_effect = [False]
+        mock_param = MagicMock(name="s3_bucket")
+        mock_param.name = "s3_bucket"
         s3_bucket = None
         with self.assertRaises(click.BadOptionUsage):
             artifact_callback(
-                ctx=MockContext(info_name="test", parent=None, params=mock_params),
-                param=MagicMock(),
+                ctx=MockContext(info_name="test", parent=None, params=mock_params, default_map=mock_default_map),
+                param=mock_param,
                 provided_value=s3_bucket,
                 artifact=ZIP,
             )
@@ -190,21 +222,6 @@ class TestArtifactBasedOptionRequired(TestCase):
             artifact=IMAGE,
         )
         self.assertEqual(result, image_repository)
-
-    @patch("samcli.commands._utils.options.get_template_artifacts_format")
-    def test_image_based_artifact_image_repo_not_given_error(self, template_artifacts_mock):
-        template_artifacts_mock.return_value = [IMAGE]
-        mock_params = MagicMock()
-        mock_params.get = MagicMock()
-        image_repository = None
-
-        with self.assertRaises(click.BadOptionUsage):
-            artifact_callback(
-                ctx=MockContext(info_name="test", parent=None, params=mock_params),
-                param=MagicMock(),
-                provided_value=image_repository,
-                artifact=IMAGE,
-            )
 
     @patch("samcli.commands._utils.options.get_template_artifacts_format")
     def test_artifact_different_from_required_option(self, template_artifacts_mock):
@@ -392,3 +409,46 @@ class TestGuidedDeployStackName(TestCase):
                 param=MagicMock(),
                 provided_value=stack_name,
             )
+
+
+class TestSpaceSeparatedList(TestCase):
+    elements = [
+        "CAPABILITY_IAM",
+        "CAPABILITY_NAMED_IAM",
+    ]
+
+    def test_value_as_spaced_string(self):
+        result = _space_separated_list_func_type(" ".join(self.elements))
+        self.assertTrue(isinstance(result, list))
+        self.assertEqual(result, self.elements)
+
+    def test_value_as_list(self):
+        result = _space_separated_list_func_type(self.elements)
+        self.assertTrue(isinstance(result, list))
+        self.assertEqual(result, self.elements)
+
+    def test_value_as_tuple(self):
+        result = _space_separated_list_func_type(tuple(self.elements))
+        self.assertTrue(isinstance(result, tuple))
+        self.assertEqual(result, tuple(self.elements))
+
+    def test_value_as_tomlkit_array(self):
+        content = """
+        [test]
+        capabilities = [
+          "CAPABILITY_IAM",
+          "CAPABILITY_NAMED_IAM"
+        ]
+        """
+        doc = parse(content)
+
+        result = _space_separated_list_func_type(doc["test"]["capabilities"])
+        self.assertTrue(isinstance(result, list))
+        self.assertEqual(result, self.elements)
+
+
+@pytest.mark.parametrize("test_input", [1, 1.4, True, datetime.now(), {"test": False}, None])
+class TestSpaceSeparatedListInvalidDataTypes:
+    def test_raise_value_error(self, test_input):
+        with pytest.raises(ValueError):
+            _space_separated_list_func_type(test_input)

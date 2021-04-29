@@ -5,15 +5,6 @@ Format log events produced by CloudWatch Logs
 import json
 import functools
 
-try:
-    # Python2
-    from itertools import imap
-except ImportError:
-    # Python3 already has `map` defined, alias to imap
-    # We do this to prevent accidentally using the built-in ``map`` in Python2. In Python2, ``map`` does a full
-    # evaluation of the iterator whereas imap does a lazy evaluation. For performance reasons, we need to use ``imap``.
-    from builtins import map as imap
-
 
 class LogsFormatter:
     """
@@ -21,6 +12,9 @@ class LogsFormatter:
     """
 
     def __init__(self, colored, formatter_chain=None):
+        # the docstring contains an example function which contains another docstring,
+        # pylint is confused so disable it for this method.
+        # pylint: disable=missing-param-doc,differing-param-doc,differing-type-doc,redundant-returns-doc
         """
 
         ``formatter_chain`` is a list of methods that can format an event. Each method must take an
@@ -70,8 +64,8 @@ class LogsFormatter:
             Terminal. To turn off coloring, set the appropriate property when instantiating the
             ``samcli.lib.utils.colors.Colored`` class.
 
-        formatter_chain : list of formatter methods
-
+        formatter_chain : List[str]
+            list of formatter methods
         """
 
         self.colored = colored
@@ -106,7 +100,7 @@ class LogsFormatter:
 
             # Make sure the operation has access to certain basic objects like colored
             partial_op = functools.partial(operation, colored=self.colored)
-            event_iterable = imap(partial_op, event_iterable)
+            event_iterable = map(partial_op, event_iterable)
 
         return event_iterable
 

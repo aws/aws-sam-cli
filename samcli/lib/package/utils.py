@@ -10,13 +10,14 @@ import uuid
 import zipfile
 import contextlib
 from contextlib import contextmanager
-from urllib.parse import urlparse, parse_qs
+from typing import Dict, Optional, cast
 
 import jmespath
 
 from samcli.commands.package import exceptions
 from samcli.commands.package.exceptions import ImageNotFoundError
 from samcli.lib.package.ecr_utils import is_ecr_url
+from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.hash import dir_checksum
 
 LOG = logging.getLogger(__name__)
@@ -34,7 +35,7 @@ def make_abs_path(directory, path):
 
 def is_s3_url(url):
     try:
-        parse_s3_url(url)
+        S3Uploader.parse_s3_url(url)
         return True
     except ValueError:
         return False
@@ -50,28 +51,6 @@ def is_local_file(path):
 
 def is_zip_file(path):
     return is_path_value_valid(path) and zipfile.is_zipfile(path)
-
-
-def parse_s3_url(url, bucket_name_property="Bucket", object_key_property="Key", version_property=None):
-
-    if isinstance(url, str) and url.startswith("s3://"):
-
-        parsed = urlparse(url)
-        query = parse_qs(parsed.query)
-
-        if parsed.netloc and parsed.path:
-            result = dict()
-            result[bucket_name_property] = parsed.netloc
-            result[object_key_property] = parsed.path.lstrip("/")
-
-            # If there is a query string that has a single versionId field,
-            # set the object version and return
-            if version_property is not None and "versionId" in query and len(query["versionId"]) == 1:
-                result[version_property] = query["versionId"][0]
-
-            return result
-
-    raise ValueError("URL given to the parse method is not a valid S3 url " "{0}".format(url))
 
 
 def upload_local_image_artifacts(resource_id, resource_dict, property_name, parent_dir, uploader):
@@ -102,10 +81,17 @@ def upload_local_image_artifacts(resource_id, resource_dict, property_name, pare
         LOG.debug("Property %s of %s is already an ECR URL", property_name, resource_id)
         return image_path
 
-    return uploader.upload(image_path)
+    return uploader.upload(image_path, resource_id)
 
 
-def upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir, uploader, extension=None):
+def upload_local_artifacts(
+    resource_id: str,
+    resource_dict: Dict,
+    property_name: str,
+    parent_dir: str,
+    uploader: S3Uploader,
+    extension: Optional[str] = None,
+) -> str:
     """
     Upload local artifacts referenced by the property at given resource and
     return S3 URL of the uploaded object. It is the responsibility of callers
@@ -142,7 +128,7 @@ def upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir
         # refer to local artifacts
         # Nothing to do if property value is an S3 URL
         LOG.debug("Property %s of %s is already a S3 URL", property_name, resource_id)
-        return local_path
+        return cast(str, local_path)
 
     local_path = make_abs_path(parent_dir, local_path)
 
@@ -164,7 +150,7 @@ def resource_not_packageable(resource_dict):
     return False
 
 
-def zip_and_upload(local_path, uploader, extension):
+def zip_and_upload(local_path: str, uploader: S3Uploader, extension: Optional[str]) -> str:
     with zip_folder(local_path) as (zip_file, md5_hash):
         return uploader.upload_with_dedup(zip_file, precomputed_md5=md5_hash, extension=extension)
 
@@ -175,8 +161,17 @@ def zip_folder(folder_path):
     Zip the entire folder and return a file to the zip. Use this inside
     a "with" statement to cleanup the zipfile after it is used.
 
-    :param folder_path:
-    :return: Name of the zipfile
+    Parameters
+    ----------
+    folder_path : str
+        The path of the folder to zip
+
+    Yields
+    ------
+    zipfile_name : str
+        Name of the zipfile
+    md5hash : str
+        The md5 hash of the directory
     """
     md5hash = dir_checksum(folder_path, followlinks=True)
     filename = os.path.join(tempfile.gettempdir(), "data-" + md5hash)
@@ -190,10 +185,25 @@ def zip_folder(folder_path):
 
 
 def make_zip(file_name, source_root):
+    """
+    Create a zip file from the source directory
+
+    Parameters
+    ----------
+    file_name : str
+        The basename of the zip file, without .zip
+    source_root : str
+        The path to the source directory
+    Returns
+    -------
+    str
+        The name of the zip file, including .zip extension
+    """
     zipfile_name = "{0}.zip".format(file_name)
     source_root = os.path.abspath(source_root)
+    compression_type = zipfile.ZIP_DEFLATED
     with open(zipfile_name, "wb") as f:
-        zip_file = zipfile.ZipFile(f, "w", zipfile.ZIP_DEFLATED)
+        zip_file = zipfile.ZipFile(f, "w", compression_type)
         with contextlib.closing(zip_file) as zf:
             for root, _, files in os.walk(source_root, followlinks=True):
                 for filename in files:
@@ -209,11 +219,12 @@ def make_zip(file_name, source_root):
                             # Originally set to 0005 in the discussion below
                             # https://github.com/aws/aws-sam-cli/pull/2193#discussion_r513110608
                             # Changed to 0755 due to a regression in https://github.com/aws/aws-sam-cli/issues/2344
-                            # Mimicking Unix permission bits and recommanded permission bits in the Lambda Trouble Shooting Docs
+                            # Mimicking Unix permission bits and recommanded permission bits
+                            # in the Lambda Trouble Shooting Docs
                             info.external_attr = 0o100755 << 16
                             # Set host OS to Unix
                             info.create_system = 3
-                            zf.writestr(info, file_bytes)
+                            zf.writestr(info, file_bytes, compress_type=compression_type)
                     else:
                         zf.write(full_path, relative_path)
 

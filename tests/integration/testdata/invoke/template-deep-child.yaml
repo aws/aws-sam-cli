@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  SubSubApp:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./template-deep-grandchild.yaml
+
+  FunctionA:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.echo_event
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600

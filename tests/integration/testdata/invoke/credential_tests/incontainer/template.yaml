@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: STS Tests
+
+Globals:
+  Function:
+    Timeout: 20
+
+
+Resources:
+  JavaStsExample:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: java8
+      Handler: sts.App::handleRequest
+      Runtime: java8
+      MemorySize: 1024
+  PythonStsExample:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: python
+      Handler: app.lambda_handler
+      Runtime: python3.6
+  RubyStsExample:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ruby
+      Handler: app.lambda_handler
+      Runtime: ruby2.7
+  NodeStsExample:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: nodejs
+      Handler: app.lambdaHandler
+      Runtime: nodejs12.x

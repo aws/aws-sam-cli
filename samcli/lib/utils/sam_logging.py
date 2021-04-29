@@ -24,10 +24,6 @@ class SamCliLogger:
             Logger to configure
         formatter logging.formatter
             Formatter for the logger
-
-        Returns
-        -------
-        None
         """
         handlers = logger.handlers
         if handlers:
@@ -47,16 +43,13 @@ class SamCliLogger:
         """
         Configure a Logger with a NullHandler
 
-        Useful for libraries that do not follow: https://docs.python.org/3.6/howto/logging.html#configuring-logging-for-a-library
+        Useful for libraries that do not follow:
+            https://docs.python.org/3.6/howto/logging.html#configuring-logging-for-a-library
 
         Parameters
         ----------
         logger logging.getLogger
             Logger to configure
-
-        Returns
-        -------
-        None
         """
         logger.propagate = False
         logger.addHandler(logging.NullHandler())

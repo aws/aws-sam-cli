@@ -1,7 +1,7 @@
 """
 Utilities to manipulate template
 """
-
+import itertools
 import os
 import pathlib
 
@@ -15,7 +15,9 @@ from samcli.yamlhelper import yaml_parse, yaml_dump
 from samcli.commands._utils.resources import (
     METADATA_WITH_LOCAL_PATHS,
     RESOURCES_WITH_LOCAL_PATHS,
-    RESOURCES_WITH_IMAGE_COMPONENT,
+    AWS_SERVERLESS_FUNCTION,
+    AWS_LAMBDA_FUNCTION,
+    get_packageable_resource_paths,
 )
 
 
@@ -86,6 +88,9 @@ def move_template(src_template_path, dest_template_path, template_dict):
     # update any relative paths in the template to be relative to the new location.
     modified_template = _update_relative_paths(template_dict, original_root, new_root)
 
+    # if a stack only has image functions, the directory for that directory won't be created.
+    # here we make sure the directory the destination template file to write to exists.
+    os.makedirs(os.path.dirname(dest_template_path), exist_ok=True)
     with open(dest_template_path, "w") as fp:
         fp.write(yaml_dump(modified_template))
 
@@ -249,15 +254,49 @@ def get_template_parameters(template_file):
 
 def get_template_artifacts_format(template_file):
     """
-    Get a list of template artifact formats based on PackageType
+    Get a list of template artifact formats based on PackageType wherever the underlying resource
+    have the actual need to be packaged.
     :param template_file:
     :return: list of artifact formats
     """
 
     template_dict = get_template_data(template_file=template_file)
-    return list(
-        {
-            resource_id: resource.get("Properties", {}).get("PackageType", ZIP)
-            for resource_id, resource in template_dict.get("Resources", {}).items()
-        }.values()
-    )
+
+    # Get a list of Resources where the artifacts format matter for packaging.
+    packageable_resources = get_packageable_resource_paths()
+
+    artifacts = []
+    for _, resource in template_dict.get("Resources", {}).items():
+        # First check if the resources are part of package-able resource types.
+        if resource.get("Type") in packageable_resources.keys():
+            # Flatten list of locations per resource type.
+            locations = list(itertools.chain(*packageable_resources.get(resource.get("Type"))))
+            for location in locations:
+                properties = resource.get("Properties", {})
+                # Search for package-able location within resource properties.
+                if jmespath.search(location, properties):
+                    artifacts.append(properties.get("PackageType", ZIP))
+
+    return artifacts
+
+
+def get_template_function_resource_ids(template_file, artifact):
+    """
+    Get a list of function logical ids from template file.
+    Function resource types include
+        AWS::Lambda::Function
+        AWS::Serverless::Function
+    :param template_file: template file location.
+    :param artifact: artifact of type IMAGE or ZIP
+    :return: list of artifact formats
+    """
+
+    template_dict = get_template_data(template_file=template_file)
+    _function_resource_ids = []
+    for resource_id, resource in template_dict.get("Resources", {}).items():
+        if resource.get("Properties", {}).get("PackageType", ZIP) == artifact and resource.get("Type") in [
+            AWS_SERVERLESS_FUNCTION,
+            AWS_LAMBDA_FUNCTION,
+        ]:
+            _function_resource_ids.append(resource_id)
+    return _function_resource_ids

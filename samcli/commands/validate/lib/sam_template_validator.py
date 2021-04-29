@@ -7,8 +7,9 @@ import functools
 from samtranslator.public.exceptions import InvalidDocumentException
 from samtranslator.parser import parser
 from samtranslator.translator.translator import Translator
+from boto3.session import Session
 
-from samcli.lib.utils.packagetype import ZIP, IMAGE
+from samcli.lib.utils.packagetype import ZIP
 from samcli.yamlhelper import yaml_dump
 from .exceptions import InvalidSamDocumentException
 
@@ -16,7 +17,7 @@ LOG = logging.getLogger(__name__)
 
 
 class SamTemplateValidator:
-    def __init__(self, sam_template, managed_policy_loader):
+    def __init__(self, sam_template, managed_policy_loader, profile=None, region=None):
         """
         Construct a SamTemplateValidator
 
@@ -40,6 +41,7 @@ class SamTemplateValidator:
         self.sam_template = sam_template
         self.managed_policy_loader = managed_policy_loader
         self.sam_parser = parser.Parser()
+        self.boto3_session = Session(profile_name=profile, region_name=region)
 
     def is_valid(self):
         """
@@ -53,7 +55,12 @@ class SamTemplateValidator:
         """
         managed_policy_map = self.managed_policy_loader.load()
 
-        sam_translator = Translator(managed_policy_map=managed_policy_map, sam_parser=self.sam_parser, plugins=[])
+        sam_translator = Translator(
+            managed_policy_map=managed_policy_map,
+            sam_parser=self.sam_parser,
+            plugins=[],
+            boto_session=self.boto3_session,
+        )
 
         self._replace_local_codeuri()
 

@@ -7,10 +7,13 @@ import boto3
 from botocore.exceptions import NoCredentialsError
 import click
 
-from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
+from samtranslator.translator.arn_generator import NoRegionFound
+
+from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands._utils.options import template_option_without_build
-from samcli.lib.telemetry.metrics import track_command
+from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
+from samcli.lib.utils.version_checker import check_newer_version
 
 
 @click.command("validate", short_help="Validate an AWS SAM template.")
@@ -20,6 +23,8 @@ from samcli.cli.cli_config_file import configuration_option, TomlProvider
 @cli_framework_options
 @pass_context
 @track_command
+@check_newer_version
+@print_cmdline_args
 def cli(
     ctx,
     template_file,
@@ -46,13 +51,20 @@ def do_cli(ctx, template):
     sam_template = _read_sam_file(template)
 
     iam_client = boto3.client("iam")
-    validator = SamTemplateValidator(sam_template, ManagedPolicyLoader(iam_client))
+    validator = SamTemplateValidator(
+        sam_template, ManagedPolicyLoader(iam_client), profile=ctx.profile, region=ctx.region
+    )
 
     try:
         validator.is_valid()
     except InvalidSamDocumentException as e:
         click.secho("Template provided at '{}' was invalid SAM Template.".format(template), bg="red")
         raise InvalidSamTemplateException(str(e)) from e
+    except NoRegionFound as no_region_found_e:
+        raise UserException(
+            "AWS Region was not found. Please configure your region through a profile or --region option",
+            wrapped_from=no_region_found_e.__class__.__name__,
+        ) from no_region_found_e
     except NoCredentialsError as e:
         raise UserException(
             "AWS Credentials are required. Please configure your credentials.", wrapped_from=e.__class__.__name__

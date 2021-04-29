@@ -49,6 +49,7 @@ class EnvironmentVariables:
             a) (Required) Function information
             b) (Optional) Environment variable configured on the function
 
+        :param str function_name: The name of the function
         :param integer function_memory: Memory size of the function in megabytes
         :param integer function_timeout: Function's timeout in seconds
         :param string function_handler: Handler of the function
@@ -129,6 +130,10 @@ class EnvironmentVariables:
     def handler(self):
         return self._function["handler"]
 
+    @handler.setter
+    def handler(self, value):
+        self._function["handler"] = value
+
     @property
     def name(self):
         return self._function["name"]
@@ -136,10 +141,6 @@ class EnvironmentVariables:
     @name.setter
     def name(self, value):
         self._function["name"] = value
-
-    @handler.setter
-    def handler(self, value):
-        self._function["handler"] = value
 
     def _get_aws_variables(self):
         """
@@ -191,7 +192,7 @@ class EnvironmentVariables:
         # str(True) will output "True". To maintain backwards compatibility we need to output "true" or "false"
         elif value is True:
             result = "true"
-        elif value is False:
+        elif value is False:  # pylint: disable=compare-to-zero
             result = "false"
 
         # value is a scalar type like int, str which can be stringified

@@ -5,7 +5,7 @@ import copy
 import tempfile
 from unittest import skipIf
 
-from parameterized import parameterized
+from parameterized import parameterized, parameterized_class
 from subprocess import Popen, PIPE, TimeoutExpired
 from timeit import default_timer as timer
 import pytest
@@ -24,13 +24,34 @@ from pathlib import Path
 TIMEOUT = 300
 
 
+@parameterized_class(
+    ("template",),
+    [
+        (Path("template.yml"),),
+        (Path("nested-templates/template-parent.yaml"),),
+    ],
+)
 class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
-    template = Path("template.yml")
-
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returncode_is_zero(self):
         command_list = self.get_command_list(
             "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        self.assertEqual(process.returncode, 0)
+
+    # https://github.com/aws/aws-sam-cli/issues/2494
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_with_utf8_event(self):
+        command_list = self.get_command_list(
+            "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_utf8_path
         )
 
         process = Popen(command_list, stdout=PIPE)
@@ -439,7 +460,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
 
 class TestSamInstrinsicsAndPlugins(InvokeIntegBase):
-    template = "template-pseudo-params.yaml"
+    template = Path("template-pseudo-params.yaml")
 
     @pytest.mark.flaky(reruns=3)
     def test_resolve_instrincs_which_runs_plugins(self):
@@ -643,9 +664,16 @@ class TestUsingConfigFiles(InvokeIntegBase):
         return custom_cred
 
 
+@parameterized_class(
+    ("template",),
+    [
+        (Path("layers", "layer-template.yml"),),
+        (Path("nested-templates", "layer-template-parent.yaml"),),
+        (Path("layers", "some-dir", "layer-template-parent.yaml"),),
+    ],
+)
 @skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
 class TestLayerVersion(InvokeIntegBase):
-    template = Path("layers", "layer-template.yml")
     region = "us-west-2"
     layer_utils = LayerUtils(region=region)
 
@@ -954,3 +982,69 @@ class TestBadLayerVersion(InvokeIntegBase):
         expected_error_output = "Error: arn:aws:lambda:us-west-2:111111111101:layer:layerDoesNotExist:${LayerVersion} is an Invalid Layer Arn."
 
         self.assertIn(expected_error_output, error_output)
+
+
+class TestInvokeWithFunctionFullPathToAvoidAmbiguity(InvokeIntegBase):
+    template = Path("template-deep-root.yaml")
+
+    @parameterized.expand(
+        [
+            ("FunctionA", {"key1": "value1", "key2": "value2", "key3": "value3"}),
+            ("FunctionB", "wrote to stderr"),
+            ("FunctionSomeLogicalID", "wrote to stdout"),
+            ("FunctionNameC", "wrote to stdout"),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_with_function_name_will_call_functions_in_top_level_stacks(self, function_identifier, expected):
+        command_list = self.get_command_list(
+            function_identifier, template_path=self.template_path, event_path=self.event_path
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip()
+
+        self.assertEqual(process.returncode, 0)
+        self.assertEqual(json.loads(process_stdout.decode("utf-8")), expected)
+
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_with_function_full_path_will_call_functions_in_specified_stack(self):
+        command_list = self.get_command_list(
+            "SubApp/SubSubApp/FunctionA", template_path=self.template_path, event_path=self.event_path
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip()
+
+        self.assertEqual(process.returncode, 0)
+        self.assertEqual(process_stdout.decode("utf-8"), '"Hello world"')
+
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_with_non_existent_function_full_path(self):
+        command_list = self.get_command_list(
+            "SubApp/SubSubApp/Function404", template_path=self.template_path, event_path=self.event_path
+        )
+
+        process = Popen(command_list, stdout=PIPE, stderr=PIPE)
+        try:
+            _, stderr = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stderr = stderr.strip()
+
+        self.assertEqual(process.returncode, 1)
+        self.assertIn("not found in template", process_stderr.decode("utf-8"))

@@ -38,8 +38,11 @@ class TestCli(TestCase):
         self.parameter_overrides = {}
         self.layer_cache_basedir = "/some/layers/path"
         self.force_image_build = True
+        self.shutdown = False
         self.region_name = "region"
         self.profile = "profile"
+        self.container_host = "localhost"
+        self.container_host_interface = "127.0.0.1"
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
@@ -73,6 +76,9 @@ class TestCli(TestCase):
             parameter_overrides=self.parameter_overrides,
             layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
+            shutdown=self.shutdown,
+            container_host=self.container_host,
+            container_host_interface=self.container_host_interface,
         )
 
         InvokeContextMock.assert_called_with(
@@ -90,12 +96,15 @@ class TestCli(TestCase):
             parameter_overrides=self.parameter_overrides,
             layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
+            shutdown=self.shutdown,
             aws_region=self.region_name,
             aws_profile=self.profile,
+            container_host=self.container_host,
+            container_host_interface=self.container_host_interface,
         )
 
         context_mock.local_lambda_runner.invoke.assert_called_with(
-            context_mock.function_name, event=event_data, stdout=context_mock.stdout, stderr=context_mock.stderr
+            context_mock.function_identifier, event=event_data, stdout=context_mock.stdout, stderr=context_mock.stderr
         )
         get_event_mock.assert_called_with(self.eventfile)
 
@@ -129,6 +138,9 @@ class TestCli(TestCase):
             parameter_overrides=self.parameter_overrides,
             layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
+            shutdown=self.shutdown,
+            container_host=self.container_host,
+            container_host_interface=self.container_host_interface,
         )
 
         InvokeContextMock.assert_called_with(
@@ -146,13 +158,16 @@ class TestCli(TestCase):
             parameter_overrides=self.parameter_overrides,
             layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
+            shutdown=self.shutdown,
             aws_region=self.region_name,
             aws_profile=self.profile,
+            container_host=self.container_host,
+            container_host_interface=self.container_host_interface,
         )
 
         get_event_mock.assert_not_called()
         context_mock.local_lambda_runner.invoke.assert_called_with(
-            context_mock.function_name, event="{}", stdout=context_mock.stdout, stderr=context_mock.stderr
+            context_mock.function_identifier, event="{}", stdout=context_mock.stdout, stderr=context_mock.stderr
         )
 
     @parameterized.expand(
@@ -199,6 +214,9 @@ class TestCli(TestCase):
                 parameter_overrides=self.parameter_overrides,
                 layer_cache_basedir=self.layer_cache_basedir,
                 force_image_build=self.force_image_build,
+                shutdown=self.shutdown,
+                container_host=self.container_host,
+                container_host_interface=self.container_host_interface,
             )
 
         msg = str(ex_ctx.exception)
@@ -250,6 +268,9 @@ class TestCli(TestCase):
                 parameter_overrides=self.parameter_overrides,
                 layer_cache_basedir=self.layer_cache_basedir,
                 force_image_build=self.force_image_build,
+                shutdown=self.shutdown,
+                container_host=self.container_host,
+                container_host_interface=self.container_host_interface,
             )
 
         msg = str(ex_ctx.exception)
@@ -299,6 +320,9 @@ class TestCli(TestCase):
                 parameter_overrides=self.parameter_overrides,
                 layer_cache_basedir=self.layer_cache_basedir,
                 force_image_build=self.force_image_build,
+                shutdown=self.shutdown,
+                container_host=self.container_host,
+                container_host_interface=self.container_host_interface,
             )
 
         msg = str(ex_ctx.exception)
@@ -336,6 +360,9 @@ class TestCli(TestCase):
                 parameter_overrides=self.parameter_overrides,
                 layer_cache_basedir=self.layer_cache_basedir,
                 force_image_build=self.force_image_build,
+                shutdown=self.shutdown,
+                container_host=self.container_host,
+                container_host_interface=self.container_host_interface,
             )
 
         msg = str(ex_ctx.exception)
@@ -387,6 +414,9 @@ class TestCli(TestCase):
                 parameter_overrides=self.parameter_overrides,
                 layer_cache_basedir=self.layer_cache_basedir,
                 force_image_build=self.force_image_build,
+                shutdown=self.shutdown,
+                container_host=self.container_host,
+                container_host_interface=self.container_host_interface,
             )
 
         msg = str(ex_ctx.exception)

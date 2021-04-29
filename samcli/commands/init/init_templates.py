@@ -4,24 +4,22 @@ Manages the set of application templates.
 
 import itertools
 import json
-import os
 import logging
-import platform
-import shutil
-import subprocess
-
-from pathlib import Path  # must come after Py2.7 deprecation
+import os
+from pathlib import Path
+from typing import Dict
 
 import click
 
 from samcli.cli.main import global_cfg
 from samcli.commands.exceptions import UserException, AppTemplateUpdateException
-from samcli.lib.utils import osutils
-from samcli.lib.utils.osutils import rmtree_callback
+from samcli.lib.utils.git_repo import GitRepo, CloneRepoException, CloneRepoUnstableStateException
+from samcli.lib.utils.packagetype import IMAGE
 from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING, get_local_lambda_images_location
-from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 LOG = logging.getLogger(__name__)
+APP_TEMPLATES_REPO_URL = "https://github.com/aws/aws-sam-cli-app-templates"
+APP_TEMPLATES_REPO_NAME = "aws-sam-cli-app-templates"
 
 
 class InvalidInitTemplateError(UserException):
@@ -29,16 +27,32 @@ class InvalidInitTemplateError(UserException):
 
 
 class InitTemplates:
-    def __init__(self, no_interactive=False, auto_clone=True):
-        self._repo_url = "https://github.com/aws/aws-sam-cli-app-templates"
-        self._repo_name = "aws-sam-cli-app-templates"
-        self._temp_repo_name = "TEMP-aws-sam-cli-app-templates"
-        self.repo_path = None
-        self.clone_attempted = False
+    def __init__(self, no_interactive=False):
         self._no_interactive = no_interactive
-        self._auto_clone = auto_clone
+        self._git_repo: GitRepo = GitRepo(url=APP_TEMPLATES_REPO_URL)
 
     def prompt_for_location(self, package_type, runtime, base_image, dependency_manager):
+        """
+        Prompt for template location based on other information provided in previous steps.
+
+        Parameters
+        ----------
+        package_type : str
+            the package type, 'Zip' or 'Image', see samcli/lib/utils/packagetype.py
+        runtime : str
+            the runtime string
+        base_image : str
+            the base image string
+        dependency_manager : str
+            the dependency manager string
+
+        Returns
+        -------
+        location : str
+            The location of the template
+        app_template : str
+            The name of the template
+        """
         options = self.init_options(package_type, runtime, base_image, dependency_manager)
 
         if len(options) == 1:
@@ -67,7 +81,7 @@ class InitTemplates:
         if template_md.get("init_location") is not None:
             return (template_md["init_location"], template_md["appTemplate"])
         if template_md.get("directory") is not None:
-            return (os.path.join(self.repo_path, template_md["directory"]), template_md["appTemplate"])
+            return os.path.join(self._git_repo.local_path, template_md["directory"]), template_md["appTemplate"]
         raise InvalidInitTemplateError("Invalid template. This should not be possible, please raise an issue.")
 
     def location_from_app_template(self, package_type, runtime, base_image, dependency_manager, app_template):
@@ -77,24 +91,36 @@ class InitTemplates:
             if template.get("init_location") is not None:
                 return template["init_location"]
             if template.get("directory") is not None:
-                return os.path.join(self.repo_path, template["directory"])
+                return os.path.join(self._git_repo.local_path, template["directory"])
             raise InvalidInitTemplateError("Invalid template. This should not be possible, please raise an issue.")
         except StopIteration as ex:
             msg = "Can't find application template " + app_template + " - check valid values in interactive init."
             raise InvalidInitTemplateError(msg) from ex
 
-    def _check_app_template(self, entry, app_template):
-        return entry["appTemplate"] == app_template
+    @staticmethod
+    def _check_app_template(entry: Dict, app_template: str) -> bool:
+        # we need to cast it to bool because entry["appTemplate"] can be Any, and Any's __eq__ can return Any
+        # detail: https://github.com/python/mypy/issues/5697
+        return bool(entry["appTemplate"] == app_template)
 
     def init_options(self, package_type, runtime, base_image, dependency_manager):
-        if self.clone_attempted is False:
-            self._clone_repo()
-        if self.repo_path is None:
+        if not self._git_repo.clone_attempted:
+            shared_dir: Path = global_cfg.config_dir
+            try:
+                self._git_repo.clone(clone_dir=shared_dir, clone_name=APP_TEMPLATES_REPO_NAME, replace_existing=True)
+            except CloneRepoUnstableStateException as ex:
+                raise AppTemplateUpdateException(str(ex)) from ex
+            except (OSError, CloneRepoException):
+                # If can't clone, try using an old clone from a previous run if already exist
+                expected_previous_clone_local_path: Path = shared_dir.joinpath(APP_TEMPLATES_REPO_NAME)
+                if expected_previous_clone_local_path.exists():
+                    self._git_repo.local_path = expected_previous_clone_local_path
+        if self._git_repo.local_path is None:
             return self._init_options_from_bundle(package_type, runtime, dependency_manager)
         return self._init_options_from_manifest(package_type, runtime, base_image, dependency_manager)
 
     def _init_options_from_manifest(self, package_type, runtime, base_image, dependency_manager):
-        manifest_path = os.path.join(self.repo_path, "manifest.json")
+        manifest_path = os.path.join(self._git_repo.local_path, "manifest.json")
         with open(str(manifest_path)) as fp:
             body = fp.read()
             manifest_body = json.loads(body)
@@ -113,7 +139,8 @@ class InitTemplates:
                 return list(templates_by_dep)
             return list(templates)
 
-    def _init_options_from_bundle(self, package_type, runtime, dependency_manager):
+    @staticmethod
+    def _init_options_from_bundle(package_type, runtime, dependency_manager):
         for mapping in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values()))):
             if runtime in mapping["runtimes"] or any([r.startswith(runtime) for r in mapping["runtimes"]]):
                 if not dependency_manager or dependency_manager == mapping["dependency_manager"]:
@@ -128,106 +155,10 @@ class InitTemplates:
         )
         raise InvalidInitTemplateError(msg)
 
-    def _shared_dir_check(self, shared_dir):
-        try:
-            shared_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
-            return True
-        except OSError as ex:
-            LOG.warning("WARN: Unable to create shared directory.", exc_info=ex)
-            return False
-
-    def _clone_repo(self):
-        if not self._auto_clone:
-            return  # Unit test escape hatch
-        # check if we have templates stored already
-        shared_dir = global_cfg.config_dir
-        if not self._shared_dir_check(shared_dir):
-            # Nothing we can do if we can't access the shared config directory, use bundled.
-            return
-        expected_path = os.path.normpath(os.path.join(shared_dir, self._repo_name))
-        if self._template_directory_exists(expected_path):
-            self._overwrite_existing_templates(shared_dir, expected_path)
-        else:
-            # simply create the app templates repo
-            self._clone_new_app_templates(shared_dir, expected_path)
-        self.clone_attempted = True
-
-    def _overwrite_existing_templates(self, shared_dir, expected_path):
-        self.repo_path = expected_path
-        # workflow to clone a copy to a new directory and overwrite
-        with osutils.mkdir_temp(ignore_errors=True) as tempdir:
-            try:
-                expected_temp_path = os.path.normpath(os.path.join(tempdir, self._repo_name))
-                LOG.info("\nCloning app templates from %s", self._repo_url)
-                subprocess.check_output(
-                    [self._git_executable(), "clone", self._repo_url, self._repo_name],
-                    cwd=tempdir,
-                    stderr=subprocess.STDOUT,
-                )
-                # Now we need to delete the old repo and move this one.
-                self._replace_app_templates(expected_temp_path, expected_path)
-                self.repo_path = expected_path
-            except OSError as ex:
-                LOG.warning("WARN: Could not clone app template repo.", exc_info=ex)
-            except subprocess.CalledProcessError as clone_error:
-                output = clone_error.output.decode("utf-8")
-                if "not found" in output.lower():
-                    click.echo("WARN: Could not clone app template repo.")
-
-    def _replace_app_templates(self, temp_path, dest_path):
-        try:
-            LOG.debug("Removing old templates from %s", str(dest_path))
-            shutil.rmtree(dest_path, onerror=rmtree_callback)
-            LOG.debug("Copying templates from %s to %s", str(temp_path), str(dest_path))
-            shutil.copytree(temp_path, dest_path, ignore=shutil.ignore_patterns("*.git"))
-        except (OSError, shutil.Error) as ex:
-            # UNSTABLE STATE - it's difficult to see how this scenario could happen except weird permissions, user will need to debug
-            raise AppTemplateUpdateException(
-                "Unstable state when updating app templates. Check that you have permissions to create/delete files in the AWS SAM shared directory or file an issue at https://github.com/awslabs/aws-sam-cli/issues"
-            ) from ex
-
-    def _clone_new_app_templates(self, shared_dir, expected_path):
-        with osutils.mkdir_temp(ignore_errors=True) as tempdir:
-            expected_temp_path = os.path.normpath(os.path.join(tempdir, self._repo_name))
-            try:
-                LOG.info("\nCloning app templates from %s", self._repo_url)
-                subprocess.check_output(
-                    [self._git_executable(), "clone", self._repo_url],
-                    cwd=tempdir,
-                    stderr=subprocess.STDOUT,
-                )
-                shutil.copytree(expected_temp_path, expected_path, ignore=shutil.ignore_patterns("*.git"))
-                self.repo_path = expected_path
-            except OSError as ex:
-                LOG.warning("WARN: Can't clone app repo, git executable not found", exc_info=ex)
-            except subprocess.CalledProcessError as clone_error:
-                output = clone_error.output.decode("utf-8")
-                if "not found" in output.lower():
-                    click.echo("WARN: Could not clone app template repo.")
-
-    def _template_directory_exists(self, expected_path):
-        path = Path(expected_path)
-        return path.exists()
-
-    def _git_executable(self):
-        execname = "git"
-        if platform.system().lower() == "windows":
-            options = [execname, "{}.cmd".format(execname), "{}.exe".format(execname), "{}.bat".format(execname)]
-        else:
-            options = [execname]
-        for name in options:
-            try:
-                subprocess.Popen([name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                # No exception. Let's pick this
-                return name
-            except OSError as ex:
-                LOG.debug("Unable to find executable %s", name, exc_info=ex)
-        raise OSError("Cannot find git, was looking at executables: {}".format(options))
-
     def is_dynamic_schemas_template(self, package_type, app_template, runtime, base_image, dependency_manager):
         """
         Check if provided template is dynamic template e.g: AWS Schemas template.
-        Currently dynamic templates require different handling e.g: for schema download and merge schema code in sam-app.
+        Currently dynamic templates require different handling e.g: for schema download & merge schema code in sam-app.
         :param package_type:
         :param app_template:
         :param runtime:

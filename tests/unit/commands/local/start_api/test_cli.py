@@ -32,8 +32,12 @@ class TestCli(TestCase):
         self.parameter_overrides = {}
         self.layer_cache_basedir = "/some/layers/path"
         self.force_image_build = True
+        self.shutdown = True
         self.region_name = "region"
         self.profile = "profile"
+
+        self.warm_containers = None
+        self.debug_function = None
 
         self.ctx_mock = Mock()
         self.ctx_mock.region = self.region_name
@@ -42,6 +46,9 @@ class TestCli(TestCase):
         self.host = "host"
         self.port = 123
         self.static_dir = "staticdir"
+
+        self.container_host = "localhost"
+        self.container_host_interface = "127.0.0.1"
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.lib.local_api_service.LocalApiService")
@@ -52,6 +59,9 @@ class TestCli(TestCase):
 
         service_mock = Mock()
         local_api_service_mock.return_value = service_mock
+
+        self.warm_containers = None
+        self.debug_function = None
 
         self.call_cli()
 
@@ -72,6 +82,11 @@ class TestCli(TestCase):
             force_image_build=self.force_image_build,
             aws_region=self.region_name,
             aws_profile=self.profile,
+            warm_container_initialization_mode=self.warm_containers,
+            debug_function=self.debug_function,
+            shutdown=self.shutdown,
+            container_host=self.container_host,
+            container_host_interface=self.container_host_interface,
         )
 
         local_api_service_mock.assert_called_with(
@@ -175,4 +190,9 @@ class TestCli(TestCase):
             parameter_overrides=self.parameter_overrides,
             layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
+            warm_containers=self.warm_containers,
+            debug_function=self.debug_function,
+            shutdown=self.shutdown,
+            container_host=self.container_host,
+            container_host_interface=self.container_host_interface,
         )

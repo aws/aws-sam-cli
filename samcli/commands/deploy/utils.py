@@ -3,6 +3,9 @@ Utilities for sam deploy command
 """
 
 import json
+import textwrap
+import copy
+
 import click
 
 
@@ -40,12 +43,8 @@ def print_deploy_args(
     :param parameter_overrides: Cloudformation parameter overrides to be supplied based on the stack's template
     :param confirm_changeset: Prompt for changeset to be confirmed before going ahead with the deploy.
     :param signing_profiles: Signing profile details which will be used to sign functions/layers
-    :return:
     """
     _parameters = parameter_overrides.copy()
-    for key, value in _parameters.items():
-        if isinstance(value, dict):
-            _parameters[key] = value.get("Value", value) if not value.get("Hidden") else "*" * len(value.get("Value"))
 
     capabilities_string = json.dumps(capabilities)
 
@@ -54,16 +53,26 @@ def print_deploy_args(
         for key, value in signing_profiles.items():
             _signing_profiles[key] = f"{value['profile_name']}:{value['profile_owner']}"
 
+    image_repository_format_text = (
+        json.dumps(image_repository, indent=4) if isinstance(image_repository, dict) else image_repository
+    )
+    parameter_overrides_format_text = json.dumps(_parameters)
+    signing_profiles_format_text = json.dumps(signing_profiles)
+
     click.secho("\n\tDeploying with following values\n\t===============================", fg="yellow")
     click.echo(f"\tStack name                   : {stack_name}")
     click.echo(f"\tRegion                       : {region}")
     click.echo(f"\tConfirm changeset            : {confirm_changeset}")
     if image_repository:
-        click.echo(f"\tDeployment image repository  : {image_repository}")
+        msg = "Deployment image repository  : "
+        # NOTE(sriram-mv): tab length is 8 spaces.
+        prefix_length = len(msg) + 8
+        click.echo(f"\t{msg}")
+        click.echo(f"{textwrap.indent(image_repository_format_text, prefix=' ' * prefix_length)}")
     click.echo(f"\tDeployment s3 bucket         : {s3_bucket}")
     click.echo(f"\tCapabilities                 : {capabilities_string}")
-    click.echo(f"\tParameter overrides          : {_parameters}")
-    click.echo(f"\tSigning Profiles           : {signing_profiles}")
+    click.echo(f"\tParameter overrides          : {parameter_overrides_format_text}")
+    click.echo(f"\tSigning Profiles             : {signing_profiles_format_text}")
 
     click.secho("\nInitiating deployment\n=====================", fg="yellow")
 
@@ -77,3 +86,13 @@ def sanitize_parameter_overrides(parameter_overrides):
     :return:
     """
     return {key: value.get("Value") if isinstance(value, dict) else value for key, value in parameter_overrides.items()}
+
+
+def hide_noecho_parameter_overrides(template_parameters, parameter_overrides):
+    hidden_params = copy.deepcopy(parameter_overrides)
+    params = template_parameters.get("Parameters", None)
+    for key, value in hidden_params.items():
+        if isinstance(params, dict) and key in params and isinstance(params[key], dict):
+            is_hidden = params[key].get("NoEcho", False)
+            hidden_params[key] = value if not is_hidden else "*" * 5
+    return hidden_params

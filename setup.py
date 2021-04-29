@@ -8,7 +8,8 @@ from setuptools import setup, find_packages
 
 def read(*filenames, **kwargs):
     encoding = kwargs.get("encoding", "utf-8")
-    sep = kwargs.get("sep", os.linesep)
+    # io.open defaults to \n as universal line ending no matter on what system
+    sep = kwargs.get("sep", "\n")
     buf = []
     for filename in filenames:
         with io.open(filename, encoding=encoding) as f:
@@ -18,7 +19,16 @@ def read(*filenames, **kwargs):
 
 def read_requirements(req="base.txt"):
     content = read(os.path.join("requirements", req))
-    return [line for line in content.split(os.linesep) if not line.strip().startswith("#")]
+    requirements = list()
+    for line in content.split("\n"):
+        line = line.strip()
+        if line.startswith("#"):
+            continue
+        elif line.startswith("-r"):
+            requirements.extend(read_requirements(line[3:]))
+        else:
+            requirements.append(line)
+    return requirements
 
 
 def read_version():
@@ -47,7 +57,7 @@ setup(
     python_requires=">=3.6, <=4.0, !=4.0",
     entry_points={"console_scripts": ["{}=samcli.cli.main:cli".format(cmd_name)]},
     install_requires=read_requirements("base.txt"),
-    extras_require={"dev": read_requirements("dev.txt")},
+    extras_require={"pre-dev": read_requirements("pre-dev.txt"), "dev": read_requirements("dev.txt")},
     include_package_data=True,
     classifiers=[
         "Development Status :: 5 - Production/Stable",

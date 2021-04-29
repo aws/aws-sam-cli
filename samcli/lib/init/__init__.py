@@ -3,21 +3,31 @@ Init module to scaffold a project app from a template
 """
 import itertools
 import logging
+import platform
 
 from pathlib import Path
 
-from cookiecutter.exceptions import CookiecutterException, RepositoryNotFound
+from cookiecutter.exceptions import CookiecutterException, RepositoryNotFound, UnknownRepoType
 from cookiecutter.main import cookiecutter
 
 from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING
-from .exceptions import GenerateProjectFailedError
+from samcli.lib.utils.packagetype import ZIP
+from samcli.lib.utils import osutils
+from .exceptions import GenerateProjectFailedError, InvalidLocationError
 from .arbitrary_project import generate_non_cookiecutter_project
 
 LOG = logging.getLogger(__name__)
 
 
 def generate_project(
-    location=None, runtime=None, dependency_manager=None, output_dir=".", name=None, no_input=False, extra_context=None
+    location=None,
+    package_type=None,
+    runtime=None,
+    dependency_manager=None,
+    output_dir=".",
+    name=None,
+    no_input=False,
+    extra_context=None,
 ):
     """Generates project using cookiecutter and options given
 
@@ -30,6 +40,8 @@ def generate_project(
     location: Path, optional
         Git, HTTP, Local path or Zip containing cookiecutter template
         (the default is None, which means no custom template)
+    package_type : Optional[str]
+        Optional string representing the package type, 'Zip' or 'Image', see samcli/lib/utils/packagetype.py
     runtime: str
         Lambda Runtime
     dependency_manager: str, optional
@@ -42,6 +54,8 @@ def generate_project(
     no_input : bool, optional
         Whether to prompt for input or to accept default values
         (the default is False, which prompts the user for values it doesn't know for baking)
+    extra_context : Optional[Dict]
+        An optional dictionary, the extra cookiecutter context
 
     Raises
     ------
@@ -51,7 +65,7 @@ def generate_project(
 
     template = None
 
-    if runtime:
+    if runtime and package_type == ZIP:
         for mapping in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values()))):
             if runtime in mapping["runtimes"] or any([r.startswith(runtime) for r in mapping["runtimes"]]):
                 if not dependency_manager or dependency_manager == mapping["dependency_manager"]:
@@ -78,6 +92,12 @@ def generate_project(
     try:
         LOG.debug("Baking a new template with cookiecutter with all parameters")
         cookiecutter(**params)
+        # Fixes gradlew line ending issue caused by Windows git
+        # gradlew is a shell script which should not have CR LF line endings
+        # Putting the conversion after cookiecutter as cookiecutter processing will also change the line endings
+        # https://github.com/cookiecutter/cookiecutter/pull/1407
+        if platform.system().lower() == "windows":
+            osutils.convert_files_to_unix_line_endings(output_dir, ["gradlew"])
     except RepositoryNotFound as e:
         # cookiecutter.json is not found in the template. Let's just clone it directly without using cookiecutter
         # and call it done.
@@ -88,5 +108,7 @@ def generate_project(
         project_output_dir = str(Path(output_dir, name)) if name else output_dir
         generate_non_cookiecutter_project(location=params["template"], output_dir=project_output_dir)
 
+    except UnknownRepoType as e:
+        raise InvalidLocationError(template=params["template"]) from e
     except CookiecutterException as e:
         raise GenerateProjectFailedError(project=name, provider_error=e) from e

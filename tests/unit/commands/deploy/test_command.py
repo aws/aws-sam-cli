@@ -63,6 +63,7 @@ class TestDeployCliCommand(TestCase):
             stack_name=self.stack_name,
             s3_bucket=self.s3_bucket,
             image_repository=self.image_repository,
+            image_repositories=None,
             force_upload=self.force_upload,
             no_progressbar=self.no_progressbar,
             s3_prefix=self.s3_prefix,
@@ -91,6 +92,7 @@ class TestDeployCliCommand(TestCase):
             stack_name=self.stack_name,
             s3_bucket=self.s3_bucket,
             image_repository=self.image_repository,
+            image_repositories=None,
             force_upload=self.force_upload,
             no_progressbar=self.no_progressbar,
             s3_prefix=self.s3_prefix,
@@ -118,9 +120,9 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_parameters")
-    @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
-    @patch("samcli.commands.deploy.guided_context.transform_template")
+    @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
     @patch.object(GuidedConfig, "get_config_ctx", MagicMock(return_value=(None, get_mock_sam_config())))
     @patch("samcli.commands.deploy.guided_context.prompt")
@@ -130,9 +132,9 @@ class TestDeployCliCommand(TestCase):
         mock_confirm,
         mock_prompt,
         mock_signer_config_per_function,
-        mock_transform_template,
+        mock_sam_function_provider,
         mock_get_template_artifacts_format,
-        mock_get_template_data,
+        mock_get_buildable_stacks,
         mock_get_template_parameters,
         mockauth_per_resource,
         mock_managed_stack,
@@ -141,8 +143,8 @@ class TestDeployCliCommand(TestCase):
         mock_package_context,
         mock_package_click,
     ):
-
-        mock_transform_template.return_value = {}
+        mock_get_buildable_stacks.return_value = (Mock(), [])
+        mock_sam_function_provider.return_value = {}
         mock_get_template_artifacts_format.return_value = [ZIP]
         context_mock = Mock()
         mockauth_per_resource.return_value = [("HelloWorldResource1", False), ("HelloWorldResource2", False)]
@@ -173,6 +175,7 @@ class TestDeployCliCommand(TestCase):
                     stack_name=self.stack_name,
                     s3_bucket=None,
                     image_repository=None,
+                    image_repositories=None,
                     force_upload=self.force_upload,
                     no_progressbar=self.no_progressbar,
                     s3_prefix=self.s3_prefix,
@@ -203,9 +206,10 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_parameters")
-    @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
-    @patch("samcli.commands.deploy.guided_context.transform_template")
+    @patch("samcli.commands.deploy.guided_context.get_template_function_resource_ids")
+    @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
     @patch.object(GuidedConfig, "get_config_ctx", MagicMock(return_value=(None, get_mock_sam_config())))
     @patch("samcli.commands.deploy.guided_context.prompt")
@@ -217,9 +221,10 @@ class TestDeployCliCommand(TestCase):
         mock_confirm,
         mock_prompt,
         mock_signer_config_per_function,
-        mock_transform_template,
+        mock_sam_function_provider,
+        mock_get_template_function_resource_ids,
         mock_get_template_artifacts_format,
-        mock_get_template_data,
+        mock_get_buildable_stacks,
         mock_get_template_parameters,
         mockauth_per_resource,
         mock_managed_stack,
@@ -228,10 +233,12 @@ class TestDeployCliCommand(TestCase):
         mock_package_context,
         mock_package_click,
     ):
+        mock_get_buildable_stacks.return_value = (Mock(), [])
         mock_tag_translation.return_value = "helloworld-123456-v1"
+        mock_get_template_function_resource_ids.return_value = ["HelloWorldFunction"]
 
         context_mock = Mock()
-        mock_transform_template.return_value = MagicMock(
+        mock_sam_function_provider.return_value = MagicMock(
             functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri="helloworld:v1")}
         )
         mock_get_template_artifacts_format.return_value = [IMAGE]
@@ -264,6 +271,7 @@ class TestDeployCliCommand(TestCase):
                 stack_name=self.stack_name,
                 s3_bucket=None,
                 image_repository=None,
+                image_repositories=None,
                 force_upload=self.force_upload,
                 no_progressbar=self.no_progressbar,
                 s3_prefix=self.s3_prefix,
@@ -291,7 +299,8 @@ class TestDeployCliCommand(TestCase):
                 template_file=ANY,
                 stack_name="sam-app",
                 s3_bucket="managed-s3-bucket",
-                image_repository="123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
+                image_repository=None,
+                image_repositories={"HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"},
                 force_upload=self.force_upload,
                 no_progressbar=self.no_progressbar,
                 s3_prefix="sam-app",
@@ -322,7 +331,7 @@ class TestDeployCliCommand(TestCase):
                 profile=self.profile,
                 region="us-east-1",
                 s3_bucket="managed-s3-bucket",
-                image_repository="123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
+                image_repositories={"HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"},
                 stack_name="sam-app",
                 s3_prefix="sam-app",
                 signing_profiles=self.signing_profiles,
@@ -336,10 +345,11 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
-    @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.deploy.guided_context.get_template_parameters")
+    @patch("samcli.commands.deploy.guided_context.get_template_function_resource_ids")
     @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
-    @patch("samcli.commands.deploy.guided_context.transform_template")
+    @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
     @patch.object(
         GuidedConfig,
@@ -355,10 +365,11 @@ class TestDeployCliCommand(TestCase):
         mock_confirm,
         mock_prompt,
         mock_signer_config_per_function,
-        mock_transform_template,
+        mock_sam_function_provider,
         mock_get_template_artifacts_format,
+        mock_get_template_function_resource_ids,
         mock_get_template_parameters,
-        mock_get_template_data,
+        mock_get_buildable_stacks,
         mockauth_per_resource,
         mock_managed_stack,
         mock_deploy_context,
@@ -366,10 +377,12 @@ class TestDeployCliCommand(TestCase):
         mock_package_context,
         mock_package_click,
     ):
+        mock_get_buildable_stacks.return_value = (Mock(), [])
         mock_tag_translation.return_value = "helloworld-123456-v1"
+        mock_get_template_function_resource_ids.return_value = ["HelloWorldFunction"]
 
         context_mock = Mock()
-        mock_transform_template.return_value = MagicMock(
+        mock_sam_function_provider.return_value = MagicMock(
             functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri="helloworld:v1")}
         )
         mock_get_template_artifacts_format.return_value = [IMAGE]
@@ -401,6 +414,7 @@ class TestDeployCliCommand(TestCase):
             stack_name=self.stack_name,
             s3_bucket=None,
             image_repository=None,
+            image_repositories=None,
             force_upload=self.force_upload,
             no_progressbar=self.no_progressbar,
             s3_prefix=self.s3_prefix,
@@ -428,7 +442,8 @@ class TestDeployCliCommand(TestCase):
             template_file=ANY,
             stack_name="sam-app",
             s3_bucket="managed-s3-bucket",
-            image_repository="123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
+            image_repository=None,
+            image_repositories={"HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"},
             force_upload=self.force_upload,
             no_progressbar=self.no_progressbar,
             s3_prefix="sam-app",
@@ -461,13 +476,6 @@ class TestDeployCliCommand(TestCase):
                 call(["deploy"], "parameters", "stack_name", "sam-app", env="test-env"),
                 call(["deploy"], "parameters", "s3_bucket", "managed-s3-bucket", env="test-env"),
                 call(["deploy"], "parameters", "s3_prefix", "sam-app", env="test-env"),
-                call(
-                    ["deploy"],
-                    "parameters",
-                    "image_repository",
-                    "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
-                    env="test-env",
-                ),
                 call(["deploy"], "parameters", "region", "us-east-1", env="test-env"),
                 call(["deploy"], "parameters", "confirm_changeset", True, env="test-env"),
                 call(["deploy"], "parameters", "capabilities", "CAPABILITY_IAM", env="test-env"),
@@ -478,6 +486,13 @@ class TestDeployCliCommand(TestCase):
                     'Myparameter="guidedParameter" MyParameterSpaces="guided parameter with spaces"',
                     env="test-env",
                 ),
+                call(
+                    ["deploy"],
+                    "parameters",
+                    "image_repositories",
+                    ["HelloWorldFunction=123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"],
+                    env="test-env",
+                ),
             ],
         )
 
@@ -486,12 +501,13 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.deploy.command.click")
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
-    @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.get_template_parameters")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
     @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
-    @patch("samcli.commands.deploy.guided_context.transform_template")
+    @patch("samcli.commands.deploy.guided_context.get_template_function_resource_ids")
+    @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
     @patch.object(
         GuidedConfig,
         "get_config_ctx",
@@ -509,22 +525,25 @@ class TestDeployCliCommand(TestCase):
         mock_sam_config,
         mock_confirm,
         mock_prompt,
-        mock_transform_template,
+        mock_sam_function_provider,
+        mock_get_template_function_resource_ids,
         mock_get_template_artifacts_format,
         mock_signer_config_per_function,
         mock_get_template_parameters,
         mock_managed_stack,
-        mock_get_template_data,
+        mock_get_buildable_stacks,
         mockauth_per_resource,
         mock_deploy_context,
         mock_deploy_click,
         mock_package_context,
         mock_package_click,
     ):
+        mock_get_buildable_stacks.return_value = (Mock(), [])
         mock_tag_translation.return_value = "helloworld-123456-v1"
+        mock_get_template_function_resource_ids.return_value = ["HelloWorldFunction"]
 
         context_mock = Mock()
-        mock_transform_template.return_value = MagicMock(
+        mock_sam_function_provider.return_value = MagicMock(
             functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri="helloworld:v1")}
         )
         mock_get_template_artifacts_format.return_value = [IMAGE]
@@ -550,6 +569,7 @@ class TestDeployCliCommand(TestCase):
             stack_name=self.stack_name,
             s3_bucket=None,
             image_repository=None,
+            image_repositories=None,
             force_upload=self.force_upload,
             no_progressbar=self.no_progressbar,
             s3_prefix=self.s3_prefix,
@@ -577,7 +597,8 @@ class TestDeployCliCommand(TestCase):
             template_file=ANY,
             stack_name="sam-app",
             s3_bucket="managed-s3-bucket",
-            image_repository="123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
+            image_repository=None,
+            image_repositories={"HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"},
             force_upload=self.force_upload,
             no_progressbar=self.no_progressbar,
             s3_prefix="sam-app",
@@ -606,17 +627,17 @@ class TestDeployCliCommand(TestCase):
                 call(["deploy"], "parameters", "stack_name", "sam-app", env="test-env"),
                 call(["deploy"], "parameters", "s3_bucket", "managed-s3-bucket", env="test-env"),
                 call(["deploy"], "parameters", "s3_prefix", "sam-app", env="test-env"),
-                call(
-                    ["deploy"],
-                    "parameters",
-                    "image_repository",
-                    "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
-                    env="test-env",
-                ),
                 call(["deploy"], "parameters", "region", "us-east-1", env="test-env"),
                 call(["deploy"], "parameters", "confirm_changeset", True, env="test-env"),
                 call(["deploy"], "parameters", "capabilities", "CAPABILITY_IAM", env="test-env"),
                 call(["deploy"], "parameters", "parameter_overrides", 'a="b"', env="test-env"),
+                call(
+                    ["deploy"],
+                    "parameters",
+                    "image_repositories",
+                    ["HelloWorldFunction=123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"],
+                    env="test-env",
+                ),
             ],
         )
 
@@ -626,10 +647,11 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
-    @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.deploy.guided_context.get_template_parameters")
+    @patch("samcli.commands.deploy.guided_context.get_template_function_resource_ids")
     @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
-    @patch("samcli.commands.deploy.guided_context.transform_template")
+    @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
     @patch.object(GuidedConfig, "get_config_ctx", MagicMock(return_value=(None, get_mock_sam_config())))
     @patch("samcli.commands.deploy.guided_context.prompt")
@@ -641,10 +663,11 @@ class TestDeployCliCommand(TestCase):
         mock_confirm,
         mock_prompt,
         mock_signer_config_per_function,
-        mock_transform_template,
+        mock_sam_function_provider,
         mock_get_template_artifacts_format,
+        mock_get_template_function_resource_ids,
         mock_get_template_parameters,
-        mock_get_template_data,
+        mock_get_buildable_stacks,
         mockauth_per_resource,
         mock_managed_stack,
         mock_deploy_context,
@@ -652,10 +675,12 @@ class TestDeployCliCommand(TestCase):
         mock_package_context,
         mock_package_click,
     ):
+        mock_get_buildable_stacks.return_value = (Mock(), [])
         mock_tag_translation.return_value = "helloworld-123456-v1"
+        mock_get_template_function_resource_ids.return_value = ["HelloWorldFunction"]
 
         context_mock = Mock()
-        mock_transform_template.return_value = MagicMock(
+        mock_sam_function_provider.return_value = MagicMock(
             functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri="helloworld:v1")}
         )
         mock_get_template_artifacts_format.return_value = [IMAGE]
@@ -680,6 +705,7 @@ class TestDeployCliCommand(TestCase):
                 stack_name=self.stack_name,
                 s3_bucket=None,
                 image_repository=None,
+                image_repositories=None,
                 force_upload=self.force_upload,
                 no_progressbar=self.no_progressbar,
                 s3_prefix=self.s3_prefix,
@@ -707,7 +733,8 @@ class TestDeployCliCommand(TestCase):
                 template_file=ANY,
                 stack_name="sam-app",
                 s3_bucket="managed-s3-bucket",
-                image_repository="123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
+                image_repository=None,
+                image_repositories={"HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"},
                 force_upload=self.force_upload,
                 no_progressbar=self.no_progressbar,
                 s3_prefix="sam-app",
@@ -747,6 +774,7 @@ class TestDeployCliCommand(TestCase):
             stack_name=self.stack_name,
             s3_bucket=None,
             image_repository=None,
+            image_repositories=None,
             force_upload=self.force_upload,
             no_progressbar=self.no_progressbar,
             s3_prefix=self.s3_prefix,
@@ -776,6 +804,7 @@ class TestDeployCliCommand(TestCase):
             s3_bucket="managed-s3-bucket",
             force_upload=self.force_upload,
             image_repository=None,
+            image_repositories=None,
             no_progressbar=self.no_progressbar,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key_id,
@@ -802,6 +831,7 @@ class TestDeployCliCommand(TestCase):
                 stack_name=self.stack_name,
                 s3_bucket="managed-s3-bucket",
                 image_repository=None,
+                image_repositories=None,
                 force_upload=self.force_upload,
                 no_progressbar=self.no_progressbar,
                 s3_prefix=self.s3_prefix,

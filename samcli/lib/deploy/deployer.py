@@ -21,6 +21,7 @@ from collections import OrderedDict
 import logging
 import time
 from datetime import datetime
+from typing import Dict, List
 
 import botocore
 
@@ -33,7 +34,8 @@ from samcli.commands.deploy.exceptions import (
 )
 from samcli.commands._utils.table_print import pprint_column_names, pprint_columns, newline_per_item, MIN_OFFSET
 from samcli.commands.deploy import exceptions as deploy_exceptions
-from samcli.lib.package.artifact_exporter import mktempfile, parse_s3_url
+from samcli.lib.package.artifact_exporter import mktempfile
+from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.time import utc_to_timestamp
 
 LOG = logging.getLogger(__name__)
@@ -133,6 +135,9 @@ class Deployer:
         :param cfn_template: CloudFormation template string
         :param parameter_values: Template parameters object
         :param capabilities: Array of capabilities passed to CloudFormation
+        :param role_arn: the Arn of the role to create changeset
+        :param notification_arns: Arns for sending notifications
+        :param s3_uploader: S3Uploader object to upload files to S3 buckets
         :param tags: Array of tags passed to CloudFormation
         :return:
         """
@@ -161,7 +166,6 @@ class Deployer:
             "TemplateBody": cfn_template,
             "ChangeSetType": changeset_type,
             "Parameters": parameter_values,
-            "Capabilities": capabilities,
             "Description": "Created by SAM CLI at {0} UTC".format(datetime.utcnow().isoformat()),
             "Tags": tags,
         }
@@ -174,12 +178,14 @@ class Deployer:
                 temporary_file.flush()
 
                 # TemplateUrl property requires S3 URL to be in path-style format
-                parts = parse_s3_url(
+                parts = S3Uploader.parse_s3_url(
                     s3_uploader.upload_with_dedup(temporary_file.name, "template"), version_property="Version"
                 )
                 kwargs["TemplateURL"] = s3_uploader.to_path_style_s3_url(parts["Key"], parts.get("Version", None))
 
         # don't set these arguments if not specified to use existing values
+        if capabilities is not None:
+            kwargs["Capabilities"] = capabilities
         if role_arn is not None:
             kwargs["RoleARN"] = role_arn
         if notification_arns is not None:
@@ -210,6 +216,7 @@ class Deployer:
 
         :param change_set_id: ID of the changeset
         :param stack_name: Name of the CloudFormation stack
+        :param kwargs: Other arguments to pass to pprint_columns()
         :return: dictionary of changes described in the changeset.
         """
         paginator = self._client.get_paginator("describe_change_set")
@@ -271,7 +278,6 @@ class Deployer:
 
         :param changeset_id: ID or name of the changeset
         :param stack_name:   Stack name
-        :return: Latest status of the create-change-set operation
         """
         sys.stdout.write("\nWaiting for changeset to be created..\n")
         sys.stdout.flush()
@@ -335,7 +341,7 @@ class Deployer:
         Calls CloudFormation to get current stack events
         :param stack_name: Name or ID of the stack
         :param time_stamp_marker: last event time on the stack to start streaming events from.
-        :return:
+        :param kwargs: Other arguments to pass to pprint_columns()
         """
 
         stack_change_in_progress = True
@@ -344,9 +350,8 @@ class Deployer:
 
         while stack_change_in_progress and retry_attempts <= self.max_attempts:
             try:
-
                 # Only sleep if there have been no retry_attempts
-                time.sleep(self.client_sleep if retry_attempts == 0 else 0)
+                time.sleep(0 if retry_attempts else self.client_sleep)
                 describe_stacks_resp = self._client.describe_stacks(StackName=stack_name)
                 paginator = self._client.get_paginator("describe_stack_events")
                 response_iterator = paginator.paginate(StackName=stack_name)
@@ -394,10 +399,22 @@ class Deployer:
                 # Sleep in exponential backoff mode
                 time.sleep(math.pow(self.backoff, retry_attempts))
 
-    def _check_stack_complete(self, status):
+    @staticmethod
+    def _check_stack_complete(status: str) -> bool:
         return "COMPLETE" in status and "CLEANUP" not in status
 
     def wait_for_execute(self, stack_name, changeset_type):
+        """
+        Wait for changeset to execute and return when execution completes.
+        If the stack has "Outputs," they will be printed.
+
+        Parameters
+        ----------
+        stack_name : str
+            The name of the stack
+        changeset_type : str
+            The type of the changeset, 'CREATE' or 'UPDATE'
+        """
         sys.stdout.write(
             "\n{} - Waiting for stack create/update "
             "to complete\n".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
@@ -442,10 +459,11 @@ class Deployer:
         except botocore.exceptions.ClientError as ex:
             raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
 
+    @staticmethod
     @pprint_column_names(
         format_string=OUTPUTS_FORMAT_STRING, format_kwargs=OUTPUTS_DEFAULTS_ARGS, table_header=OUTPUTS_TABLE_HEADER_NAME
     )
-    def _display_stack_outputs(self, stack_outputs, **kwargs):
+    def _display_stack_outputs(stack_outputs: List[Dict], **kwargs) -> None:
         for counter, output in enumerate(stack_outputs):
             for k, v in [
                 ("Key", output.get("OutputKey")),

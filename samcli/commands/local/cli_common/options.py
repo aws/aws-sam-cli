@@ -6,6 +6,7 @@ from pathlib import Path
 import click
 
 from samcli.commands._utils.options import template_click_option, docker_click_options, parameter_override_click_option
+from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
 
 
 def get_application_dir():
@@ -34,7 +35,55 @@ def get_default_layer_cache_dir():
     return str(layer_cache_dir)
 
 
+def local_common_options(f):
+    """
+    Common CLI options shared by "local invoke", "local start-api", and "local start-lambda" commands
+
+    :param f: Callback passed by Click
+    """
+    local_options = [
+        click.option(
+            "--shutdown",
+            is_flag=True,
+            default=False,
+            help="If set, will emulate a shutdown event after the invoke completes, "
+            "in order to test extension handling of shutdown behavior.",
+        ),
+        click.option(
+            "--container-host",
+            default="localhost",
+            show_default=True,
+            help="Host of locally emulated Lambda container. "
+            "This option is useful when the container runs on a different host than SAM CLI. "
+            "For example, if you want to run SAM CLI in a Docker container on macOS, "
+            "use this option with host.docker.internal",
+        ),
+        click.option(
+            "--container-host-interface",
+            default="127.0.0.1",
+            show_default=True,
+            help="IP address of the host network interface that container ports should bind to. "
+            "Use 0.0.0.0 to bind to all interfaces.",
+        ),
+    ]
+
+    # Reverse the list to maintain ordering of options in help text printed with --help
+    for option in reversed(local_options):
+        option(f)
+
+    return f
+
+
 def service_common_options(port):
+    """
+    Construct common CLI Options that are shared for service related commands ('start-api' and 'start_lambda')
+
+    Parameters
+    ----------
+    port
+        The port number to listen to
+    """
+
     def construct_options(f):
         """
         Common CLI Options that are shared for service related commands ('start-api' and 'start_lambda')
@@ -137,6 +186,47 @@ def invoke_common_options(f):
 
     # Reverse the list to maintain ordering of options in help text printed with --help
     for option in reversed(invoke_options):
+        option(f)
+
+    return f
+
+
+def warm_containers_common_options(f):
+    """
+    Warm containers related CLI options shared by "local start-api" and "local start_lambda" commands
+
+    :param f: Callback passed by Click
+    """
+
+    warm_containers_options = [
+        click.option(
+            "--warm-containers",
+            help="""
+            \b
+            Optional. Specifies how AWS SAM CLI manages 
+            containers for each function.
+            Two modes are available:
+            EAGER: Containers for all functions are 
+            loaded at startup and persist between 
+            invocations.
+            LAZY:  Containers are only loaded when each 
+            function is first invoked. Those containers 
+            persist for additional invocations.
+            """,
+            type=click.Choice(ContainersInitializationMode.__members__, case_sensitive=False),
+        ),
+        click.option(
+            "--debug-function",
+            help="Optional. Specifies the Lambda Function logicalId to apply debug options to when"
+            " --warm-containers is specified.  This parameter applies to --debug-port, --debugger-path,"
+            " and --debug-args.",
+            type=click.STRING,
+            multiple=False,
+        ),
+    ]
+
+    # Reverse the list to maintain ordering of options in help text printed with --help
+    for option in reversed(warm_containers_options):
         option(f)
 
     return f
