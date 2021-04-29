@@ -38,6 +38,7 @@ class TestSendInstalledMetric(IntegBase):
                     {
                         "installed": {
                             "installationId": self.get_global_config().installation_id,
+                            "metricSpecificAttributes": ANY,
                             "samcliVersion": SAM_CLI_VERSION,
                             "osPlatform": platform.system(),
                             "executionEnvironment": ANY,

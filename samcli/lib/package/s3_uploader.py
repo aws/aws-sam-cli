@@ -139,7 +139,7 @@ class S3Uploader:
         # in multiple places, this will upload only once
         filemd5 = precomputed_md5 or file_checksum(file_name)
         remote_path = filemd5
-        if extension:
+        if extension and remote_path:
             remote_path = remote_path + "." + extension
 
         return self.upload(file_name, remote_path)

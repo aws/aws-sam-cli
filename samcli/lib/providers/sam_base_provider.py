@@ -6,6 +6,7 @@ import logging
 
 from typing import Any, Dict, Optional, cast, Iterable, Union
 from samcli.commands._utils.resources import AWS_SERVERLESS_APPLICATION, AWS_CLOUDFORMATION_STACK
+from samcli.lib.iac.interface import Stack as IacStack
 from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
@@ -137,7 +138,7 @@ class SamBaseProvider:
         return resource_properties.get(code_property_key, None)
 
     @staticmethod
-    def get_template(template_dict: Dict, parameter_overrides: Optional[Dict[str, str]] = None) -> Dict:
+    def get_template(template_dict: IacStack, parameter_overrides: Optional[Dict[str, str]] = None) -> IacStack:
         """
         Given a SAM template dictionary, return a cleaned copy of the template where SAM plugins have been run
         and parameter values have been substituted.
@@ -155,7 +156,7 @@ class SamBaseProvider:
         dict
             Processed SAM template
         """
-        template_dict = template_dict or {}
+        template_dict = template_dict or IacStack()
         parameters_values = SamBaseProvider._get_parameter_values(template_dict, parameter_overrides)
         if template_dict:
             template_dict = SamTranslatorWrapper(template_dict, parameter_values=parameters_values).run_plugins()

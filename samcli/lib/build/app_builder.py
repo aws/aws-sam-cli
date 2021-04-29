@@ -40,6 +40,7 @@ from .exceptions import (
     UnsupportedBuilderLibraryVersionError,
 )
 from .workflow_config import get_workflow_config, get_layer_subfolder, supports_build_in_container, CONFIG
+from ..iac.interface import S3Asset, ImageAsset
 
 LOG = logging.getLogger(__name__)
 
@@ -210,7 +211,6 @@ class ApplicationBuilder:
     def update_template(
         stack: Stack,
         built_artifacts: Dict[str, str],
-        stack_output_template_path_by_stack_path: Dict[str, str],
     ) -> Dict:
         """
         Given the path to built artifacts, update the template to point appropriate resource CodeUris to the artifacts
@@ -222,8 +222,6 @@ class ApplicationBuilder:
             The stack object representing the template
         built_artifacts : dict
             Map of LogicalId of a resource to the path where the the built artifacts for this resource lives
-        stack_output_template_path_by_stack_path: Dict[str, str]
-            A dictionary contains where the template of each stack will be written to
 
         Returns
         -------
@@ -231,17 +229,13 @@ class ApplicationBuilder:
             Updated template
         """
 
-        original_dir = pathlib.Path(stack.location).parent.resolve()
-
         template_dict = stack.template_dict
 
-        for logical_id, resource in template_dict.get("Resources", {}).items():
+        for _, resource in template_dict.get("Resources", {}).items():
 
-            full_path = get_full_path(stack.stack_path, logical_id)
-            has_build_artifact = full_path in built_artifacts
-            is_stack = full_path in stack_output_template_path_by_stack_path
+            full_path = get_full_path(stack.stack_path, resource.item_id)
 
-            if not has_build_artifact and not is_stack:
+            if full_path not in built_artifacts:
                 # this resource was not built or a nested stack.
                 # So skip it because there is no path/uri to update
                 continue
@@ -249,43 +243,67 @@ class ApplicationBuilder:
             resource_type = resource.get("Type")
             properties = resource.setdefault("Properties", {})
 
-            absolute_output_path = pathlib.Path(
-                built_artifacts[full_path]
-                if has_build_artifact
-                else stack_output_template_path_by_stack_path[full_path]
-            ).resolve()
+            absolute_output_path = pathlib.Path(built_artifacts[full_path]).resolve()
             # Default path to absolute path of the artifact
             store_path = str(absolute_output_path)
 
-            # In Windows, if template and artifacts are in two different drives, relpath will fail
-            if original_dir.drive == absolute_output_path.drive:
-                # Artifacts are written relative  the template because it makes the template portable
-                #   Ex: A CI/CD pipeline build stage could zip the output folder and pass to a
-                #   package stage running on a different machine
-                store_path = os.path.relpath(absolute_output_path, original_dir)
+            if resource.assets and isinstance(resource.assets[0], S3Asset):
+                resource.assets[0].updated_source_path = store_path
+            elif resource.assets and isinstance(resource.assets[0], ImageAsset):
+                resource.assets[0].source_local_image = built_artifacts[full_path]
+            else:
+                original_dir = pathlib.Path(stack.origin_dir).resolve()
+                relative_store_path = absolute_output_path
+                if original_dir.drive == absolute_output_path.drive:
+                    # Artifacts are written relative  the template because it makes the template portable
+                    #   Ex: A CI/CD pipeline build stage could zip the output folder and pass to a
+                    #   package stage running on a different machine
+                    relative_store_path = os.path.relpath(absolute_output_path, original_dir)
+                assets = resource.assets or []
 
-            if has_build_artifact:
                 if resource_type == SamBaseProvider.SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == ZIP:
-                    properties["CodeUri"] = store_path
+                    asset = S3Asset(
+                        source_path=properties["CodeUri"], updated_source_path=store_path, source_property="CodeUri"
+                    )
+                    assets.append(asset)
+                    resource.assets = assets
+                    properties["CodeUri"] = relative_store_path
 
                 if resource_type == SamBaseProvider.LAMBDA_FUNCTION and properties.get("PackageType", ZIP) == ZIP:
-                    properties["Code"] = store_path
+                    asset = S3Asset(
+                        source_path=properties["Code"], updated_source_path=store_path, source_property="Code"
+                    )
+                    assets.append(asset)
+                    resource.assets = assets
+                    properties["Code"] = relative_store_path
 
                 if resource_type in [SamBaseProvider.SERVERLESS_LAYER, SamBaseProvider.LAMBDA_LAYER]:
-                    properties["ContentUri"] = store_path
+                    asset = S3Asset(
+                        source_path=properties["ContentUri"],
+                        updated_source_path=store_path,
+                        source_property="ContentUri",
+                    )
+                    assets.append(asset)
+                    resource.assets = assets
+                    properties["ContentUri"] = relative_store_path
 
                 if resource_type == SamBaseProvider.LAMBDA_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
+                    asset = ImageAsset(
+                        source_local_image=built_artifacts[full_path],
+                        source_property="Code",
+                    )
+                    assets.append(asset)
+                    resource.assets = assets
                     properties["Code"] = built_artifacts[full_path]
 
                 if resource_type == SamBaseProvider.SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
+                    asset = ImageAsset(
+                        source_local_image=built_artifacts[full_path],
+                        source_property="ImageUri",
+                    )
+                    assets.append(asset)
+                    resource.assets = assets
                     properties["ImageUri"] = built_artifacts[full_path]
-
-            if is_stack:
-                if resource_type == SamBaseProvider.SERVERLESS_APPLICATION:
-                    properties["Location"] = store_path
-
-                if resource_type == SamBaseProvider.CLOUDFORMATION_STACK:
-                    properties["TemplateURL"] = store_path
 
         return template_dict
 

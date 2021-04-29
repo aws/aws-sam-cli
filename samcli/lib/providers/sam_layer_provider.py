@@ -8,6 +8,7 @@ from typing import List, Dict, Optional
 from .provider import LayerVersion, Stack
 from .sam_base_provider import SamBaseProvider
 from .sam_stack_provider import SamLocalStackProvider
+from ..iac.interface import S3Asset
 
 LOG = logging.getLogger(__name__)
 
@@ -85,25 +86,37 @@ class SamLayerProvider(SamBaseProvider):
                 # When running locally, we need to follow that Ref so we can extract the local path to the layer code.
                 resource_type = resource.get("Type")
                 resource_properties = resource.get("Properties", {})
+                layer_id = resource.item_id
 
                 if resource_type in [SamBaseProvider.LAMBDA_LAYER, SamBaseProvider.SERVERLESS_LAYER]:
                     code_property_key = SamBaseProvider.CODE_PROPERTY_KEYS[resource_type]
-                    if SamBaseProvider._is_s3_location(resource_properties.get(code_property_key)):
+                    assets = resource.assets or []
+                    code_asset_uri = None
+                    for asset in assets:
+                        if isinstance(asset, S3Asset) and asset.source_property == code_property_key:
+                            code_asset_uri = asset.source_path
+                            break
+                    if not code_asset_uri and SamBaseProvider._is_s3_location(
+                        resource_properties.get(code_property_key)
+                    ):
                         # Content can be a dictionary of S3 Bucket/Key or a S3 URI, neither of which are supported
                         SamBaseProvider._warn_code_extraction(resource_type, name, code_property_key)
                         continue
-                    codeuri = SamBaseProvider._extract_codeuri(resource_properties, code_property_key)
+                    codeuri = code_asset_uri or SamBaseProvider._extract_codeuri(resource_properties, code_property_key)
 
                     compatible_runtimes = resource_properties.get("CompatibleRuntimes")
                     metadata = resource.get("Metadata", None)
                     layers.append(
-                        self._convert_lambda_layer_resource(stack, name, codeuri, compatible_runtimes, metadata)
+                        self._convert_lambda_layer_resource(
+                            stack, layer_id, name, codeuri, compatible_runtimes, metadata
+                        )
                     )
         return layers
 
     def _convert_lambda_layer_resource(
         self,
         stack: Stack,
+        layer_id: str,
         layer_logical_id: str,
         codeuri: str,
         compatible_runtimes: Optional[List[str]],
@@ -128,10 +141,11 @@ class SamLayerProvider(SamBaseProvider):
             The layer object
         """
         if codeuri and not self._use_raw_codeuri:
-            LOG.debug("--base-dir is not presented, adjusting uri %s relative to %s", codeuri, stack.location)
-            codeuri = SamLocalStackProvider.normalize_resource_path(stack.location, codeuri)
+            LOG.debug("--base-dir is not presented, adjusting uri %s relative to %s", codeuri, stack.origin_dir)
+            codeuri = SamLocalStackProvider.normalize_resource_path(stack.origin_dir, codeuri)
 
         return LayerVersion(
+            layer_id,
             layer_logical_id,
             codeuri,
             compatible_runtimes,

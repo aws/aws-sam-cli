@@ -40,6 +40,7 @@ class LocalLambdaInvokeService(BaseLocalService):
         """
         self._app = Flask(__name__)
 
+        # path = "/2015-03-31/functions/<path:function_name>/invocations"
         path = "/2015-03-31/functions/<function_name>/invocations"
         self._app.add_url_rule(
             path,
@@ -81,7 +82,6 @@ class LocalLambdaInvokeService(BaseLocalService):
             request_data = b"{}"
 
         request_data = request_data.decode("utf-8")
-
         try:
             json.loads(request_data)
         except ValueError as json_error:
@@ -146,7 +146,6 @@ class LocalLambdaInvokeService(BaseLocalService):
 
         stdout_stream = io.BytesIO()
         stdout_stream_writer = StreamWriter(stdout_stream, self.is_debugging)
-
         try:
             self.lambda_runner.invoke(function_name, request_data, stdout=stdout_stream_writer, stderr=self.stderr)
         except FunctionNotFound:

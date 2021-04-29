@@ -2,11 +2,11 @@ import os
 import tempfile
 from pathlib import Path
 from unittest import TestCase, skipIf
-from unittest.mock import patch, Mock
 
 from parameterized import parameterized
 
 from samcli.commands._utils.resources import AWS_SERVERLESS_APPLICATION, AWS_CLOUDFORMATION_STACK
+from samcli.lib.iac.interface import Stack as IacStack
 from samcli.lib.providers.provider import Stack
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 
@@ -26,11 +26,6 @@ LEAF_TEMPLATE = {
 class TestSamBuildableStackProvider(TestCase):
     template_file = "template_file.yaml"
 
-    def setUp(self):
-        patcher = patch("samcli.lib.providers.sam_stack_provider.get_template_data")
-        self.get_template_data_mock = patcher.start()
-        self.addCleanup(patcher.stop)
-
     @parameterized.expand(
         [
             (AWS_SERVERLESS_APPLICATION, "Location", "./child.yaml", "child.yaml"),
@@ -42,20 +37,22 @@ class TestSamBuildableStackProvider(TestCase):
     def test_sam_nested_stack_should_be_extracted(
         self, resource_type, location_property_name, child_location, child_location_path
     ):
-        template = {
-            "Resources": {
-                "ChildStack": {
-                    "Type": resource_type,
-                    "Properties": {location_property_name: child_location},
+        parent_stack = IacStack(origin_dir=".")
+        parent_stack.update(
+            {
+                "Resources": {
+                    "ChildStack": {
+                        "Type": resource_type,
+                        "Properties": {location_property_name: child_location},
+                    }
                 }
             }
-        }
-        self.get_template_data_mock.side_effect = lambda t: {
-            self.template_file: template,
-            child_location_path: LEAF_TEMPLATE,
-        }.get(t)
+        )
+        child_stack = IacStack(name="ChildStack", origin_dir=parent_stack.origin_dir, is_nested=True)
+        child_stack.update(LEAF_TEMPLATE)
+        parent_stack["Resources"]["ChildStack"].nested_stack = child_stack
         stacks, remote_stack_full_paths = SamLocalStackProvider.get_stacks(
-            self.template_file,
+            [parent_stack],
             "",
             "",
             parameter_overrides=None,
@@ -63,8 +60,8 @@ class TestSamBuildableStackProvider(TestCase):
         self.assertListEqual(
             stacks,
             [
-                Stack("", "", self.template_file, {}, template),
-                Stack("", "ChildStack", child_location_path, {}, LEAF_TEMPLATE),
+                Stack("", "", "", {}, parent_stack),
+                Stack("", "ChildStack", "ChildStack", {}, child_stack),
             ],
         )
         self.assertFalse(remote_stack_full_paths)
@@ -72,29 +69,38 @@ class TestSamBuildableStackProvider(TestCase):
     def test_sam_deep_nested_stack(self):
         child_template_file = "child.yaml"
         grand_child_template_file = "grand-child.yaml"
-        template = {
-            "Resources": {
-                "ChildStack": {
-                    "Type": AWS_SERVERLESS_APPLICATION,
-                    "Properties": {"Location": child_template_file},
+
+        parent_stack = IacStack(origin_dir=".")
+        parent_stack.update(
+            {
+                "Resources": {
+                    "ChildStack": {
+                        "Type": AWS_SERVERLESS_APPLICATION,
+                        "Properties": {"Location": child_template_file},
+                    }
                 }
             }
-        }
-        child_template = {
-            "Resources": {
-                "GrandChildStack": {
-                    "Type": AWS_SERVERLESS_APPLICATION,
-                    "Properties": {"Location": grand_child_template_file},
+        )
+
+        child_stack = IacStack(name="ChildStack", origin_dir=parent_stack.origin_dir, is_nested=True)
+        child_stack.update(
+            {
+                "Resources": {
+                    "GrandChildStack": {
+                        "Type": AWS_SERVERLESS_APPLICATION,
+                        "Properties": {"Location": grand_child_template_file},
+                    }
                 }
             }
-        }
-        self.get_template_data_mock.side_effect = lambda t: {
-            self.template_file: template,
-            child_template_file: child_template,
-            grand_child_template_file: LEAF_TEMPLATE,
-        }.get(t)
+        )
+        parent_stack["Resources"]["ChildStack"].nested_stack = child_stack
+
+        grand_stack = IacStack(name="GrandChildStack", origin_dir=child_stack.origin_dir, is_nested=True)
+        grand_stack.update(LEAF_TEMPLATE)
+        child_stack["Resources"]["GrandChildStack"].nested_stack = grand_stack
+
         stacks, remote_stack_full_paths = SamLocalStackProvider.get_stacks(
-            self.template_file,
+            [parent_stack],
             "",
             "",
             parameter_overrides=None,
@@ -102,28 +108,29 @@ class TestSamBuildableStackProvider(TestCase):
         self.assertListEqual(
             stacks,
             [
-                Stack("", "", self.template_file, {}, template),
-                Stack("", "ChildStack", child_template_file, {}, child_template),
-                Stack("ChildStack", "GrandChildStack", grand_child_template_file, {}, LEAF_TEMPLATE),
+                Stack("", "", "", {}, parent_stack),
+                Stack("", "ChildStack", "ChildStack", {}, child_stack),
+                Stack("ChildStack", "GrandChildStack", "GrandChildStack", {}, grand_stack),
             ],
         )
         self.assertFalse(remote_stack_full_paths)
 
     @parameterized.expand([(AWS_SERVERLESS_APPLICATION, "Location"), (AWS_CLOUDFORMATION_STACK, "TemplateURL")])
     def test_remote_stack_is_skipped(self, resource_type, location_property_name):
-        template = {
-            "Resources": {
-                "ChildStack": {
-                    "Type": resource_type,
-                    "Properties": {location_property_name: "s3://bucket/key"},
+        parent_stack = IacStack(origin_dir=".")
+        parent_stack.update(
+            {
+                "Resources": {
+                    "ChildStack": {
+                        "Type": resource_type,
+                        "Properties": {location_property_name: "s3://bucket/key"},
+                    }
                 }
             }
-        }
-        self.get_template_data_mock.side_effect = lambda t: {
-            self.template_file: template,
-        }.get(t)
+        )
+
         stacks, remote_stack_full_paths = SamLocalStackProvider.get_stacks(
-            self.template_file,
+            [parent_stack],
             "",
             "",
             parameter_overrides=None,
@@ -131,7 +138,7 @@ class TestSamBuildableStackProvider(TestCase):
         self.assertListEqual(
             stacks,
             [
-                Stack("", "", self.template_file, {}, template),
+                Stack("", "", "", {}, parent_stack),
             ],
         )
         self.assertEqual(remote_stack_full_paths, ["ChildStack"])
@@ -150,20 +157,22 @@ class TestSamBuildableStackProvider(TestCase):
         self, resource_type, location_property_name, child_location, child_location_path
     ):
         template_file = "somedir/template.yaml"
-        template = {
-            "Resources": {
-                "ChildStack": {
-                    "Type": resource_type,
-                    "Properties": {location_property_name: child_location},
+        parent_stack = IacStack(origin_dir="somedir")
+        parent_stack.update(
+            {
+                "Resources": {
+                    "ChildStack": {
+                        "Type": resource_type,
+                        "Properties": {location_property_name: child_location},
+                    }
                 }
             }
-        }
-        self.get_template_data_mock.side_effect = lambda t: {
-            template_file: template,
-            child_location_path: LEAF_TEMPLATE,
-        }.get(t)
+        )
+        child_stack = IacStack(name="ChildStack", origin_dir=parent_stack.origin_dir, is_nested=True)
+        child_stack.update(LEAF_TEMPLATE)
+        parent_stack["Resources"]["ChildStack"].nested_stack = child_stack
         stacks, remote_stack_full_paths = SamLocalStackProvider.get_stacks(
-            template_file,
+            [parent_stack],
             "",
             "",
             parameter_overrides=None,
@@ -171,8 +180,8 @@ class TestSamBuildableStackProvider(TestCase):
         self.assertListEqual(
             stacks,
             [
-                Stack("", "", template_file, {}, template),
-                Stack("", "ChildStack", child_location_path, {}, LEAF_TEMPLATE),
+                Stack("", "", "", {}, parent_stack),
+                Stack("", "ChildStack", "ChildStack", {}, child_stack),
             ],
         )
         self.assertFalse(remote_stack_full_paths)
@@ -190,68 +199,69 @@ class TestSamBuildableStackProvider(TestCase):
     def test_global_parameter_overrides_can_be_passed_to_child_stacks(
         self, resource_type, location_property_name, child_location, child_location_path
     ):
-        template_file = "somedir/template.yaml"
-        template = {
-            "Resources": {
-                "ChildStack": {
-                    "Type": resource_type,
-                    "Properties": {location_property_name: child_location},
+        parent_stack = IacStack(origin_dir="somedir")
+        parent_stack.update(
+            {
+                "Resources": {
+                    "ChildStack": {
+                        "Type": resource_type,
+                        "Properties": {location_property_name: child_location},
+                    }
                 }
             }
-        }
-        self.get_template_data_mock.side_effect = lambda t: {
-            template_file: template,
-            child_location_path: LEAF_TEMPLATE,
-        }.get(t)
+        )
+        child_stack = IacStack(name="ChildStack", origin_dir=parent_stack.origin_dir, is_nested=True)
+        child_stack.update(LEAF_TEMPLATE)
+        parent_stack["Resources"]["ChildStack"].nested_stack = child_stack
 
         global_parameter_overrides = {"AWS::Region": "custom_region"}
 
         stacks, remote_stack_full_paths = SamLocalStackProvider.get_stacks(
-            template_file, "", "", parameter_overrides=None, global_parameter_overrides=global_parameter_overrides
+            [parent_stack], "", "", parameter_overrides=None, global_parameter_overrides=global_parameter_overrides
         )
         self.assertListEqual(
             stacks,
             [
-                Stack("", "", template_file, global_parameter_overrides, template),
-                Stack("", "ChildStack", child_location_path, global_parameter_overrides, LEAF_TEMPLATE),
+                Stack("", "", "", global_parameter_overrides, parent_stack),
+                Stack("", "ChildStack", "ChildStack", global_parameter_overrides, LEAF_TEMPLATE),
             ],
         )
         self.assertFalse(remote_stack_full_paths)
 
     @parameterized.expand(
         [
-            ("/path/template.yaml", "./code", "/path/code"),
-            ("/path/template.yaml", "code", "/path/code"),
-            ("/path/template.yaml", "/code", "/code"),
-            ("path/template.yaml", "./code", "path/code"),
-            ("path/template.yaml", "code", "path/code"),
-            ("path/template.yaml", "/code", "/code"),
-            ("./path/template.yaml", "./code", "path/code"),
-            ("./path/template.yaml", "code", "path/code"),
-            ("./path/template.yaml", "/code", "/code"),
-            ("./path/template.yaml", "../../code", "../code"),
-            ("./path/template.yaml", "code/../code", "path/code"),
-            ("./path/template.yaml", "/code", "/code"),
+            ("/path", "./code", "/path/code"),
+            ("/path", "code", "/path/code"),
+            ("/path", "/code", "/code"),
+            ("path", "./code", "path/code"),
+            ("path", "code", "path/code"),
+            ("path", "/code", "/code"),
+            ("./path", "./code", "path/code"),
+            ("./path", "code", "path/code"),
+            ("./path", "/code", "/code"),
+            ("./path", "../../code", "../code"),
+            ("./path", "code/../code", "path/code"),
+            ("./path", "/code", "/code"),
         ]
     )
     @skipIf(IS_WINDOWS, "only run test_normalize_resource_path_windows_* on Windows")
-    def test_normalize_resource_path_poxis(self, stack_location, path, normalized_path):
-        self.assertEqual(SamLocalStackProvider.normalize_resource_path(stack_location, path), normalized_path)
+    def test_normalize_resource_path_poxis(self, stack_location_directory, path, normalized_path):
+        self.assertEqual(SamLocalStackProvider.normalize_resource_path(stack_location_directory, path), normalized_path)
 
     @parameterized.expand(
         [
-            ("C:\\path\\template.yaml", ".\\code", "C:\\path\\code"),
-            ("C:\\path\\template.yaml", "code", "C:\\path\\code"),
-            ("C:\\path\\template.yaml", "D:\\code", "D:\\code"),
-            ("path\\template.yaml", ".\\code", "path\\code"),
-            ("path\\template.yaml", "code", "path\\code"),
-            ("path\\template.yaml", "D:\\code", "D:\\code"),
-            (".\\path\\template.yaml", ".\\code", "path\\code"),
-            (".\\path\\template.yaml", "code", "path\\code"),
-            (".\\path\\template.yaml", "D:\\code", "D:\\code"),
-            (".\\path\\template.yaml", "..\\..\\code", "..\\code"),
-            (".\\path\\template.yaml", "code\\..\\code", "path\\code"),
-            (".\\path\\template.yaml", "D:\\code", "D:\\code"),
+            ("C:\\path", ".\\code", "C:\\path\\code"),
+            ("C:\\path", "code", "C:\\path\\code"),
+            ("C:\\pathl", "D:\\code", "D:\\code"),
+            ("path", ".\\code", "path\\code"),
+            ("path", "code", "path\\code"),
+            ("path", "D:\\code", "D:\\code"),
+            (".\\path", ".\\code", "path\\code"),
+            (".\\path", "code", "path\\code"),
+            (".\\path", "D:\\code", "D:\\code"),
+            (".\\path", "..\\..\\code", "..\\code"),
+            (".\\path", "code\\..\\code", "path\\code"),
+            (".\\path", "D:\\code", "D:\\code"),
         ]
     )
     @skipIf(not IS_WINDOWS, "skip test_normalize_resource_path_windows_* on non-Windows system")
@@ -285,7 +295,7 @@ class TestSamBuildableStackProvider(TestCase):
             # so expected is converted to relative path
             expected = os.path.relpath(os.path.join(real_tmp_dir, os.path.join("some", "path", "src")))
 
-            os.symlink(os.path.join("..", "some", "path", "template.yaml"), link1)
+            os.symlink(os.path.join("..", "some", "path"), link1)
             os.symlink("link1", link2)
 
             self.assertEqual(

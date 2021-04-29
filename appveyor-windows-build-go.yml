@@ -47,6 +47,13 @@ install:
     # Check that GOFLAGS have been set.
     - "go env"
 
+    # To run Nodejs workflow integ tests
+    - "choco install nodejs-lts -y --force"
+    - "refreshenv"
+    - "npm install -g aws-cdk"
+    # Check CDK got installed
+    - "cdk --version"
+
     # Make sure the temp directory exists for Python to use.
     - ps: "mkdir -Force D:\\tmp"
     - "SET PATH=%PYTHON_HOME%;%PATH%"

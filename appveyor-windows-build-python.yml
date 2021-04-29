@@ -41,6 +41,14 @@ install:
     - "choco install python3 --version 3.8.0"
     - "C:\\Python38\\python.exe -m pip freeze"
     - "refreshenv"
+
+    # To run Nodejs workflow integ tests
+    - "choco install nodejs-lts -y --force"
+    - "refreshenv"
+    - "npm install -g aws-cdk"
+    # Check CDK got installed
+    - "cdk --version"
+
     - ps: "mkdir -Force D:\\tmp"
     - "SET PATH=%PYTHON_HOME%;%PATH%;C:\\Python36-x64;C:\\Python27-x64;C:\\Python38"
     - "echo %PYTHON_HOME%"

@@ -118,6 +118,43 @@ class Context:
         return None
 
     @property
+    def command_path_without_sam(self):
+        """
+        Returns the full path of the command as invoked without sam/samdev ex: "local generate-event s3 put". Wrapper to
+        https://click.palletsprojects.com/en/7.x/api/#click.Context.command_path
+
+        Returns
+        -------
+        str
+            Full path of the command invoked
+        """
+
+        # Uses Click's Core Context. Note, this is different from this class, also confusingly named `Context`.
+        # Click's Core Context object is the one that contains command path information.
+        click_core_ctx = click.get_current_context()
+        if click_core_ctx:
+            return click_core_ctx.command_path.split(" ", 1)[1]
+
+        return None
+
+    @property
+    def command_params(self):
+        """
+        Returns command input parameters
+        Returns
+        -------
+        dict
+            dictionary of command input parameters
+        """
+
+        # Uses Click's Core Context. Note, this is different from this class, also confusingly named `Context`.
+        # Click's Core Context object is the one that contains command path information.
+        click_core_ctx = click.get_current_context()
+        if click_core_ctx:
+            return click_core_ctx.params
+        return None
+
+    @property
     def template_dict(self):
         """
         Returns the template_dictionary from click context.

@@ -1,7 +1,9 @@
 """
 Utilities to manipulate template
 """
+from enum import Enum
 import itertools
+import json
 import os
 import pathlib
 
@@ -10,14 +12,17 @@ import yaml
 from botocore.utils import set_value_from_jmespath
 
 from samcli.commands.exceptions import UserException
+from samcli.lib.iac.interface import S3Asset
+from samcli.lib.samlib.resource_metadata_normalizer import METADATA_KEY, ASSET_PATH_METADATA_KEY
 from samcli.lib.utils.packagetype import ZIP
 from samcli.yamlhelper import yaml_parse, yaml_dump
 from samcli.commands._utils.resources import (
     METADATA_WITH_LOCAL_PATHS,
-    RESOURCES_WITH_LOCAL_PATHS,
     AWS_SERVERLESS_FUNCTION,
     AWS_LAMBDA_FUNCTION,
     get_packageable_resource_paths,
+    RESOURCES_WITH_LOCAL_PATHS,
+    RESOURCES_WITH_IMAGE_COMPONENT,
 )
 
 
@@ -27,6 +32,15 @@ class TemplateNotFoundException(UserException):
 
 class TemplateFailedParsingException(UserException):
     pass
+
+
+class TemplateFormatUnsupportedException(Exception):
+    pass
+
+
+class TemplateFormat(Enum):
+    YAML = "yaml"
+    JSON = "json"
 
 
 def get_template_data(template_file):
@@ -53,7 +67,9 @@ def get_template_data(template_file):
             raise TemplateFailedParsingException("Failed to parse template: {}".format(str(ex))) from ex
 
 
-def move_template(src_template_path, dest_template_path, template_dict):
+def move_template(
+    src_template_path, dest_template_path, template_dict, output_format: TemplateFormat = TemplateFormat.YAML
+):
     """
     Move the SAM/CloudFormation template from ``src_template_path`` to ``dest_template_path``. For convenience, this
     method accepts a dictionary of template data ``template_dict`` that will be written to the destination instead of
@@ -79,6 +95,9 @@ def move_template(src_template_path, dest_template_path, template_dict):
 
     template_dict : dict
         Dictionary containing template contents. This dictionary will be updated & written to ``dest`` location.
+
+    output_format: TemplateFormat
+        Format to use to writing the template
     """
 
     original_root = os.path.dirname(src_template_path)
@@ -86,16 +105,19 @@ def move_template(src_template_path, dest_template_path, template_dict):
 
     # Next up, we will be writing the template to a different location. Before doing so, we should
     # update any relative paths in the template to be relative to the new location.
-    modified_template = _update_relative_paths(template_dict, original_root, new_root)
+    modified_template = update_relative_paths(template_dict, original_root, new_root)
 
     # if a stack only has image functions, the directory for that directory won't be created.
     # here we make sure the directory the destination template file to write to exists.
     os.makedirs(os.path.dirname(dest_template_path), exist_ok=True)
     with open(dest_template_path, "w") as fp:
-        fp.write(yaml_dump(modified_template))
+        if output_format == TemplateFormat.YAML:
+            fp.write(yaml_dump(modified_template))
+        elif output_format == TemplateFormat.JSON:
+            fp.write(json.dumps(modified_template, indent=4))
 
 
-def _update_relative_paths(template_dict, original_root, new_root):
+def update_relative_paths(template_dict, original_root, new_root, skip_assets=False):
     """
     SAM/CloudFormation template can contain certain properties whose value is a relative path to a local file/folder.
     This path is usually relative to the template's location. If the template is being moved from original location
@@ -123,12 +145,90 @@ def _update_relative_paths(template_dict, original_root, new_root):
     new_root : str
         Path to the new directory that all paths set relative to after this method completes.
 
+    skip_assets: bool
+        a flag to indicate if we should update the assets relative paths or not
+
     Returns
     -------
     Updated dictionary
 
     """
 
+    _update_metadata_section_relative_paths(new_root, original_root, template_dict)
+
+    _update_resources_section_relative_paths(new_root, original_root, skip_assets, template_dict)
+
+    # AWS::Includes can be anywhere within the template dictionary. Hence we need to recurse through the
+    # dictionary in a separate method to find and update relative paths in there
+    template_dict = _update_aws_include_relative_path(template_dict, original_root, new_root)
+
+    return template_dict
+
+
+def _update_resources_section_relative_paths(new_root, original_root, skip_assets, template_dict):
+    for _, resource in template_dict.get("Resources", {}).items():
+        skip_resources = False
+        if not skip_assets:
+            skip_resources = _update_assets_relative_paths(new_root, resource, skip_resources)
+
+        if skip_resources:
+            continue
+
+        resource_type = resource.get("Type", None)
+        if resource_type in RESOURCES_WITH_LOCAL_PATHS:
+            for path_prop_name in RESOURCES_WITH_LOCAL_PATHS[resource_type]:
+                properties = resource.get("Properties", {})
+
+                path = jmespath.search(path_prop_name, properties)
+                updated_path = _resolve_relative_to(path, original_root, new_root)
+
+                if not updated_path:
+                    # This path does not need to get updated
+                    continue
+
+                set_value_from_jmespath(properties, path_prop_name, updated_path)
+                if ASSET_PATH_METADATA_KEY in resource.get(METADATA_KEY, {}):
+                    resource[METADATA_KEY][ASSET_PATH_METADATA_KEY] = updated_path
+
+        if resource_type not in RESOURCES_WITH_IMAGE_COMPONENT:
+            continue
+
+        metadata = resource.get("Metadata", {})
+        path = metadata.get("DockerContext", None)
+        updated_path = _resolve_relative_to(path, original_root, new_root)
+
+        if not updated_path:
+            # This path does not need to get updated
+            continue
+        metadata["DockerContext"] = updated_path
+
+
+def _update_assets_relative_paths(new_root, resource, skip_resources):
+    assets = resource.assets or []
+    properties = resource.get("Properties", {})
+    for asset in assets:
+        if not isinstance(asset, S3Asset):
+            continue
+        skip_resources = True
+        asset_path = asset.updated_source_path or asset.source_path
+
+        updated_path = os.path.relpath(asset_path, new_root)
+
+        # the path provided by the user in the template
+        original_path = jmespath.search(asset.source_property, properties)
+        if not isinstance(original_path, str) or os.path.isabs(original_path):
+            continue
+        set_value_from_jmespath(properties, asset.source_property, updated_path)
+        if ASSET_PATH_METADATA_KEY in resource.get(METADATA_KEY, {}):
+            resource[METADATA_KEY][ASSET_PATH_METADATA_KEY] = updated_path
+    return skip_resources
+
+
+def _update_metadata_section_relative_paths(new_root, original_root, template_dict):
+    """
+    Update relative paths in metadata section. This directive can be present at any part of the template,
+    and not just within resources.
+    """
     for resource_type, properties in template_dict.get("Metadata", {}).items():
 
         if resource_type not in METADATA_WITH_LOCAL_PATHS:
@@ -144,31 +244,6 @@ def _update_relative_paths(template_dict, original_root, new_root):
                 continue
 
             properties[path_prop_name] = updated_path
-
-    for _, resource in template_dict.get("Resources", {}).items():
-        resource_type = resource.get("Type")
-
-        if resource_type not in RESOURCES_WITH_LOCAL_PATHS:
-            # Unknown resource. Skipping
-            continue
-
-        for path_prop_name in RESOURCES_WITH_LOCAL_PATHS[resource_type]:
-            properties = resource.get("Properties", {})
-
-            path = jmespath.search(path_prop_name, properties)
-            updated_path = _resolve_relative_to(path, original_root, new_root)
-
-            if not updated_path:
-                # This path does not need to get updated
-                continue
-
-            set_value_from_jmespath(properties, path_prop_name, updated_path)
-
-    # AWS::Includes can be anywhere within the template dictionary. Hence we need to recurse through the
-    # dictionary in a separate method to find and update relative paths in there
-    template_dict = _update_aws_include_relative_path(template_dict, original_root, new_root)
-
-    return template_dict
 
 
 def _update_aws_include_relative_path(template_dict, original_root, new_root):

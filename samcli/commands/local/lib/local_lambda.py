@@ -99,7 +99,6 @@ class LocalLambdaRunner:
 
         # Generate the correct configuration based on given inputs
         function = self.provider.get(function_identifier)
-
         if not function:
             all_function_full_paths = [f.full_path for f in self.provider.get_all()]
             available_function_message = "{} not found. Possible options in your template: {}".format(
@@ -235,6 +234,12 @@ class LocalLambdaRunner:
             # Standard format
             LOG.debug("Environment variables overrides data is standard format")
             overrides = self.env_vars_values.get(name, None)
+            if not overrides:
+                # try the function id, then function full_path
+                overrides = self.env_vars_values.get(function.function_id, None)
+            if not overrides:
+                # try the function id, then function full_path
+                overrides = self.env_vars_values.get(function.full_path, None)
 
         shell_env = os.environ
         aws_creds = self.get_aws_creds()

@@ -65,6 +65,13 @@ install:
     - "gradle -v"
     - "mvn --version"
 
+    # To run Nodejs workflow integ tests
+    - "choco install nodejs-lts -y --force"
+    - "refreshenv"
+    - "npm install -g aws-cdk"
+    # Check CDK got installed
+    - "cdk --version"
+
     # Switch to Docker Linux containers
     - ps: Switch-DockerLinux
 

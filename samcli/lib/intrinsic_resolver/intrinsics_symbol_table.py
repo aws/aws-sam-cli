@@ -4,6 +4,7 @@ The symbol table that is used in IntrinsicResolver in order to resolve runtime a
 import logging
 import os
 
+from samcli.lib.iac.interface import Stack as IacStack
 from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
 from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidSymbolException
 
@@ -135,7 +136,7 @@ class IntrinsicsSymbolTable:
         """
         self.logical_id_translator = logical_id_translator or {}
 
-        self._template = template or {}
+        self._template = template or IacStack()
         self._parameters = self._template.get("Parameters", {})
         self._resources = self._template.get("Resources", {})
 

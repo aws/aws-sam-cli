@@ -3,6 +3,7 @@ from collections import OrderedDict
 from unittest import TestCase
 
 from samcli.commands.deploy.auth_utils import auth_per_resource
+from samcli.lib.iac.interface import Stack as IacStack
 from samcli.lib.providers.provider import Stack
 
 
@@ -59,7 +60,9 @@ class TestAuthUtils(TestCase):
         }
 
     def test_auth_per_resource_no_auth(self):
-        _auth_per_resource = auth_per_resource([Stack("", "", "", {}, self.template_dict)])
+        iac_stack = IacStack()
+        iac_stack.update(self.template_dict)
+        _auth_per_resource = auth_per_resource([Stack("", "", "", {}, iac_stack)])
         self.assertEqual(_auth_per_resource, [("HelloWorldFunction", False)])
 
     def test_auth_per_resource_auth_on_event_properties(self):
@@ -71,7 +74,9 @@ class TestAuthUtils(TestCase):
         self.template_dict["Resources"]["HelloWorldFunction"]["Properties"]["Events"]["HelloWorld"][
             "Properties"
         ] = event_properties
-        _auth_per_resource = auth_per_resource([Stack("", "", "", {}, self.template_dict)])
+        iac_stack = IacStack()
+        iac_stack.update(self.template_dict)
+        _auth_per_resource = auth_per_resource([Stack("", "", "", {}, iac_stack)])
         self.assertEqual(_auth_per_resource, [("HelloWorldFunction", True)])
 
     def test_auth_per_resource_defined_on_api_resource(self):
@@ -85,7 +90,9 @@ class TestAuthUtils(TestCase):
         self.template_dict["Resources"]["HelloWorldFunction"]["Properties"]["Events"]["HelloWorld"]["Properties"][
             "RestApiId"
         ] = {"Ref": "HelloWorldApi"}
-        _auth_per_resource = auth_per_resource([Stack("", "", "", {}, self.template_dict)])
+        iac_stack = IacStack()
+        iac_stack.update(self.template_dict)
+        _auth_per_resource = auth_per_resource([Stack("", "", "", {}, iac_stack)])
         self.assertEqual(_auth_per_resource, [("HelloWorldFunction", True)])
 
     def test_auth_supplied_via_definition_body_uri(self):
@@ -114,7 +121,9 @@ class TestAuthUtils(TestCase):
         self.template_dict["Resources"]["HelloWorldFunction"]["Properties"]["Events"]["HelloWorld"]["Properties"][
             "RestApiId"
         ] = {"Ref": "HelloWorldApi"}
-        _auth_per_resource = auth_per_resource([Stack("", "", "", {}, self.template_dict)])
+        iac_stack = IacStack()
+        iac_stack.update(self.template_dict)
+        _auth_per_resource = auth_per_resource([Stack("", "", "", {}, iac_stack)])
 
         self.assertEqual(_auth_per_resource, [("HelloWorldFunction", True)])
 
@@ -146,6 +155,8 @@ class TestAuthUtils(TestCase):
         self.template_dict["Resources"]["HelloWorldFunction"]["Properties"]["Events"]["HelloWorld"]["Properties"][
             "RestApiId"
         ] = {"Ref": "HelloWorldApi"}
-        _auth_per_resource = auth_per_resource([Stack("", "", "", {}, self.template_dict)])
+        iac_stack = IacStack()
+        iac_stack.update(self.template_dict)
+        _auth_per_resource = auth_per_resource([Stack("", "", "", {}, iac_stack)])
 
         self.assertEqual(_auth_per_resource, [("HelloWorldFunction", False)])

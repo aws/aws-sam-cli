@@ -213,7 +213,7 @@ class IntrinsicResolver:
 
         # In this case, it is a dictionary that doesn't directly contain an intrinsic resolver, we must recursively
         # resolve each of it's sub properties.
-        sanitized_dict = {}
+        sanitized_dict = intrinsic
         for key, val in intrinsic.items():
             try:
                 sanitized_key = self.intrinsic_property_resolver(key, ignore_errors, parent_function=parent_function)

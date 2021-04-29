@@ -63,6 +63,14 @@ install:
     - "gem install bundler -v 2.0.2"
     - "refreshenv"
     - "bundler --version"
+
+    # To run Nodejs workflow integ tests
+    - "choco install nodejs-lts -y --force"
+    - "refreshenv"
+    - "npm install -g aws-cdk"
+    # Check CDK got installed
+    - "cdk --version"
+
     - "echo %PATH%"
 
     # Switch to Docker Linux containers

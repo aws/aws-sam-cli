@@ -49,40 +49,44 @@ class TestLayerVersion(TestCase):
         ]
     )
     def test_invalid_arn(self, arn):
-        layer = LayerVersion(arn, None)  # creation of layer does not raise exception
+        layer = LayerVersion("layer-id", arn, None)  # creation of layer does not raise exception
         with self.assertRaises(InvalidLayerVersionArn):
             layer.version, layer.name
 
     def test_layer_version_returned(self):
-        layer_version = LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None)
+        layer_version = LayerVersion("layer-id", "arn:aws:lambda:region:account-id:layer:layer-name:1", None)
 
         self.assertEqual(layer_version.version, 1)
 
     def test_layer_arn_returned(self):
-        layer_version = LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None)
+        layer_version = LayerVersion("layer-id", "arn:aws:lambda:region:account-id:layer:layer-name:1", None)
 
         self.assertEqual(layer_version.layer_arn, "arn:aws:lambda:region:account-id:layer:layer-name")
 
     def test_layer_build_method_returned(self):
         layer_version = LayerVersion(
-            "arn:aws:lambda:region:account-id:layer:layer-name:1", None, [], {"BuildMethod": "dummy_build_method"}
+            "layer-id",
+            "arn:aws:lambda:region:account-id:layer:layer-name:1",
+            None,
+            [],
+            {"BuildMethod": "dummy_build_method"},
         )
 
         self.assertEqual(layer_version.build_method, "dummy_build_method")
 
     def test_codeuri_is_setable(self):
-        layer_version = LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None)
+        layer_version = LayerVersion("layer-id", "arn:aws:lambda:region:account-id:layer:layer-name:1", None)
         layer_version.codeuri = "./some_value"
 
         self.assertEqual(layer_version.codeuri, "./some_value")
 
     def test_name_is_computed(self):
-        layer_version = LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None)
+        layer_version = LayerVersion(None, "arn:aws:lambda:region:account-id:layer:layer-name:1", None)
 
         self.assertEqual(layer_version.name, "layer-name-1-8cebcd0539")
 
     def test_layer_version_is_defined_in_template(self):
-        layer_version = LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", ".")
+        layer_version = LayerVersion("layer-id", "arn:aws:lambda:region:account-id:layer:layer-name:1", ".")
 
         self.assertTrue(layer_version.is_defined_within_template)
 
@@ -92,4 +96,4 @@ class TestLayerVersion(TestCase):
         }
 
         with self.assertRaises(UnsupportedIntrinsic):
-            LayerVersion(intrinsic_arn, ".")
+            LayerVersion("layer-id", intrinsic_arn, ".")

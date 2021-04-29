@@ -60,8 +60,9 @@ class ApiProvider(AbstractApiProvider):
         """
 
         collector = ApiCollector()
-        provider = ApiProvider.find_api_provider(self.stacks)
-        provider.extract_resources(self.stacks, collector, cwd=self.cwd)
+        # provider = ApiProvider.find_api_provider(self.stacks)
+        CfnApiProvider().extract_resources(self.stacks, collector, cwd=self.cwd)
+        SamApiProvider().extract_resources(self.stacks, collector, cwd=self.cwd)
         return collector.get_api()
 
     @staticmethod

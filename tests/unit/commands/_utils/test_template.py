@@ -9,12 +9,11 @@ from unittest import TestCase
 from unittest.mock import patch, mock_open, MagicMock
 from parameterized import parameterized, param
 
-from samcli.commands._utils.resources import AWS_SERVERLESS_FUNCTION, AWS_SERVERLESS_API
+from samcli.commands._utils.resources import AWS_SERVERLESS_FUNCTION, AWS_SERVERLESS_API, RESOURCES_WITH_LOCAL_PATHS
 from samcli.commands._utils.template import (
     get_template_data,
     METADATA_WITH_LOCAL_PATHS,
-    RESOURCES_WITH_LOCAL_PATHS,
-    _update_relative_paths,
+    update_relative_paths,
     move_template,
     get_template_parameters,
     TemplateNotFoundException,
@@ -22,6 +21,7 @@ from samcli.commands._utils.template import (
     get_template_artifacts_format,
     get_template_function_resource_ids,
 )
+from samcli.lib.iac.interface import Stack
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 
@@ -157,7 +157,7 @@ class Test_update_relative_paths(TestCase):
                 if path == self.curpath:
                     expected_template_dict["Metadata"][resource_type][propname] = self.expected_result
 
-                result = _update_relative_paths(template_dict, self.src, self.dest)
+                result = update_relative_paths(template_dict, self.src, self.dest)
 
                 self.maxDiff = None
                 self.assertEqual(result, expected_template_dict)
@@ -165,24 +165,27 @@ class Test_update_relative_paths(TestCase):
     @parameterized.expand([(resource_type, props) for resource_type, props in RESOURCES_WITH_LOCAL_PATHS.items()])
     def test_must_update_relative_resource_paths(self, resource_type, properties):
         for propname in properties:
-            template_dict = {
-                "Resources": {
-                    "MyResourceWithRelativePath": {"Type": resource_type, "Properties": {}},
-                    "MyResourceWithS3Path": {"Type": resource_type, "Properties": {propname: self.s3path}},
-                    "MyResourceWithAbsolutePath": {"Type": resource_type, "Properties": {propname: self.abspath}},
-                    "MyResourceWithInvalidPath": {
-                        "Type": resource_type,
-                        "Properties": {
-                            # Path is not a string
-                            propname: {"foo": "bar"}
+            template_dict = Stack()
+            template_dict.update(
+                {
+                    "Resources": {
+                        "MyResourceWithRelativePath": {"Type": resource_type, "Properties": {}},
+                        "MyResourceWithS3Path": {"Type": resource_type, "Properties": {propname: self.s3path}},
+                        "MyResourceWithAbsolutePath": {"Type": resource_type, "Properties": {propname: self.abspath}},
+                        "MyResourceWithInvalidPath": {
+                            "Type": resource_type,
+                            "Properties": {
+                                # Path is not a string
+                                propname: {"foo": "bar"}
+                            },
                         },
+                        "MyResourceWithoutProperties": {"Type": resource_type},
+                        "UnsupportedResourceType": {"Type": "AWS::Ec2::Instance", "Properties": {"Code": "bar"}},
+                        "ResourceWithoutType": {"foo": "bar"},
                     },
-                    "MyResourceWithoutProperties": {"Type": resource_type},
-                    "UnsupportedResourceType": {"Type": "AWS::Ec2::Instance", "Properties": {"Code": "bar"}},
-                    "ResourceWithoutType": {"foo": "bar"},
-                },
-                "Parameters": {"a": "b"},
-            }
+                    "Parameters": {"a": "b"},
+                }
+            )
 
             set_value_from_jmespath(
                 template_dict, f"Resources.MyResourceWithRelativePath.Properties.{propname}", self.curpath
@@ -196,51 +199,59 @@ class Test_update_relative_paths(TestCase):
                 self.expected_result,
             )
 
-            result = _update_relative_paths(template_dict, self.src, self.dest)
+            result = update_relative_paths(template_dict, self.src, self.dest)
 
             self.maxDiff = None
-            self.assertEqual(result, expected_template_dict)
+            self.assertDictEqual(result, expected_template_dict)
 
     def test_must_update_aws_include_also(self):
-        template_dict = {
-            "Resources": {"Fn::Transform": {"Name": "AWS::Include", "Parameters": {"Location": self.curpath}}},
-            "list_prop": [
-                "a",
-                1,
-                2,
-                3,
-                {"Fn::Transform": {"Name": "AWS::Include", "Parameters": {"Location": self.curpath}}},
-                # S3 path
-                {"Fn::Transform": {"Name": "AWS::Include", "Parameters": {"Location": self.s3path}}},
-            ],
-            "Fn::Transform": {"Name": "AWS::OtherTransform"},
-            "key1": {"Fn::Transform": "Invalid value"},
-            "key2": {"Fn::Transform": {"no": "name"}},
-        }
+        template_dict = Stack()
+        template_dict.update(
+            {
+                "Resources": {"Fn::Transform": {"Name": "AWS::Include", "Parameters": {"Location": self.curpath}}},
+                "list_prop": [
+                    "a",
+                    1,
+                    2,
+                    3,
+                    {"Fn::Transform": {"Name": "AWS::Include", "Parameters": {"Location": self.curpath}}},
+                    # S3 path
+                    {"Fn::Transform": {"Name": "AWS::Include", "Parameters": {"Location": self.s3path}}},
+                ],
+                "Fn::Transform": {"Name": "AWS::OtherTransform"},
+                "key1": {"Fn::Transform": "Invalid value"},
+                "key2": {"Fn::Transform": {"no": "name"}},
+            }
+        )
 
-        expected_template_dict = {
-            "Resources": {"Fn::Transform": {"Name": "AWS::Include", "Parameters": {"Location": self.expected_result}}},
-            "list_prop": [
-                "a",
-                1,
-                2,
-                3,
-                {"Fn::Transform": {"Name": "AWS::Include", "Parameters": {"Location": self.expected_result}}},
-                # S3 path
-                {"Fn::Transform": {"Name": "AWS::Include", "Parameters": {"Location": self.s3path}}},
-            ],
-            "Fn::Transform": {"Name": "AWS::OtherTransform"},
-            "key1": {"Fn::Transform": "Invalid value"},
-            "key2": {"Fn::Transform": {"no": "name"}},
-        }
+        expected_template_dict = Stack()
+        expected_template_dict.update(
+            {
+                "Resources": {
+                    "Fn::Transform": {"Name": "AWS::Include", "Parameters": {"Location": self.expected_result}}
+                },
+                "list_prop": [
+                    "a",
+                    1,
+                    2,
+                    3,
+                    {"Fn::Transform": {"Name": "AWS::Include", "Parameters": {"Location": self.expected_result}}},
+                    # S3 path
+                    {"Fn::Transform": {"Name": "AWS::Include", "Parameters": {"Location": self.s3path}}},
+                ],
+                "Fn::Transform": {"Name": "AWS::OtherTransform"},
+                "key1": {"Fn::Transform": "Invalid value"},
+                "key2": {"Fn::Transform": {"no": "name"}},
+            }
+        )
 
-        result = _update_relative_paths(template_dict, self.src, self.dest)
+        result = update_relative_paths(template_dict, self.src, self.dest)
         self.maxDiff = None
-        self.assertEqual(result, expected_template_dict)
+        self.assertDictEqual(result, expected_template_dict)
 
 
 class Test_move_template(TestCase):
-    @patch("samcli.commands._utils.template._update_relative_paths")
+    @patch("samcli.commands._utils.template.update_relative_paths")
     @patch("samcli.commands._utils.template.yaml_dump")
     def test_must_update_and_write_template(self, yaml_dump_mock, update_relative_paths_mock):
         template_dict = {"a": "b"}

@@ -26,6 +26,8 @@ import yaml
 # TODO: we need to double check whether they are public and stable
 from yaml.resolver import ScalarNode, SequenceNode  # type: ignore
 
+from samcli.lib.iac.interface import Stack, DictSection, DictSectionItem, Resource, Parameter
+
 TAG_STR = "tag:yaml.org,2002:str"
 
 
@@ -99,6 +101,11 @@ def yaml_dump(dict_to_dump):
     :return:
     """
     CfnDumper.add_representer(OrderedDict, _dict_representer)
+    CfnDumper.add_representer(Stack, _dict_representer)
+    CfnDumper.add_representer(DictSection, _dict_representer)
+    CfnDumper.add_representer(DictSectionItem, _dict_representer)
+    CfnDumper.add_representer(Resource, _dict_representer)
+    CfnDumper.add_representer(Parameter, _dict_representer)
     CfnDumper.add_representer(str, string_representer)
     return yaml.dump(dict_to_dump, default_flow_style=False, Dumper=CfnDumper)
 

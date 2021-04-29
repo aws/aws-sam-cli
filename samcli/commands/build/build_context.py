@@ -8,6 +8,7 @@ import shutil
 from typing import Optional, List
 import pathlib
 
+from samcli.lib.iac.interface import IacPlugin, Project
 from samcli.lib.providers.provider import ResourcesToBuildCollector, Stack, Function, LayerVersion
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.local.docker.manager import ContainerManager
@@ -27,12 +28,13 @@ class BuildContext:
     def __init__(
         self,
         resource_identifier: Optional[str],
-        template_file: str,
         base_dir: Optional[str],
         build_dir: str,
         cache_dir: str,
         cached: bool,
         mode: Optional[str],
+        iac: IacPlugin,
+        project: Project,
         manifest_path: Optional[str] = None,
         clean: bool = False,
         use_container: bool = False,
@@ -48,7 +50,6 @@ class BuildContext:
     ) -> None:
 
         self._resource_identifier = resource_identifier
-        self._template_file = template_file
         self._base_dir = base_dir
 
         # Note(xinhol): use_raw_codeuri is temporary to fix a bug, and will be removed for a permanent solution.
@@ -67,6 +68,8 @@ class BuildContext:
         self._container_env_var = container_env_var
         self._container_env_var_file = container_env_var_file
         self._build_images = build_images
+        self._iac = iac
+        self._project = project
 
         self._function_provider: Optional[SamFunctionProvider] = None
         self._layer_provider: Optional[SamLayerProvider] = None
@@ -76,7 +79,7 @@ class BuildContext:
     def __enter__(self) -> "BuildContext":
 
         self._stacks, remote_stack_full_paths = SamLocalStackProvider.get_stacks(
-            self._template_file, parameter_overrides=self._parameter_overrides
+            self._project.stacks, parameter_overrides=self._parameter_overrides
         )
 
         if remote_stack_full_paths:
@@ -94,7 +97,7 @@ class BuildContext:
 
         if not self._base_dir:
             # Base directory, if not provided, is the directory containing the template
-            self._base_dir = str(pathlib.Path(self._template_file).resolve().parent)
+            self._base_dir = str(pathlib.Path(self._project.stacks[0].origin_dir).resolve())
 
         self._build_dir = self._setup_build_dir(self._build_dir, self._clean)
 
@@ -172,6 +175,19 @@ class BuildContext:
     @property
     def use_container(self) -> bool:
         return self._use_container
+
+    @property
+    def project(self) -> Project:
+        self._project.stacks = []
+        stacks_map = {stack.stack_path: stack for stack in self._stacks}
+        for stack in self._stacks:
+            if stack.is_root_stack:
+                self._project.stacks.append(stack.template_dict)
+            else:
+                parent_stack = stacks_map[stack.parent_stack_path]
+                parent_stack.template_dict["Resources"][stack.logical_id].nested_stack = stack.template_dict
+
+        return self._project
 
     @property
     def stacks(self) -> List[Stack]:

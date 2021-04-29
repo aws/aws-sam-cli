@@ -4,7 +4,7 @@ import boto3
 import logging
 
 from unittest import TestCase
-from unittest.mock import patch, ANY
+from unittest.mock import patch, ANY, Mock
 
 from samcli.cli.context import Context
 from samcli.lib.utils.sam_logging import (
@@ -127,3 +127,21 @@ class TestContext(TestCase):
 
         # Context can't be found
         self.assertIsNone(ctx.get_current_context())
+
+    @patch("samcli.cli.context.click")
+    def test_get_command_path(self, click_mock):
+        click_core_ctx = Mock(command_path="sam local test-api")
+        click_mock.get_current_context.return_value = click_core_ctx
+        ctx = Context()
+
+        # Context can't be found
+        self.assertEquals(ctx.command_path, "sam local test-api")
+
+    @patch("samcli.cli.context.click")
+    def test_get_command_path_without_sam(self, click_mock):
+        click_core_ctx = Mock(command_path="sam local test-api")
+        click_mock.get_current_context.return_value = click_core_ctx
+        ctx = Context()
+
+        # Context can't be found
+        self.assertEquals(ctx.command_path_without_sam, "local test-api")

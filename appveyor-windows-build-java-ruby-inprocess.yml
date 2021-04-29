@@ -16,6 +16,12 @@ environment:
   APPVEYOR_CONSOLE_DISABLE_PTY: true
 
 install:
+    # To run Nodejs workflow integ tests
+    - "choco install nodejs-lts -y --force"
+    - "refreshenv"
+    - "npm install -g aws-cdk"
+    # Check CDK got installed
+    - "cdk --version"
 
     # setup Java, Maven and Gradle
     - "refreshenv"

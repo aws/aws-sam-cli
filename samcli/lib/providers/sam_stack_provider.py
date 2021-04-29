@@ -3,10 +3,11 @@ Class that provides all nested stacks from a given SAM template
 """
 import logging
 import os
+import posixpath
 from typing import Optional, Dict, cast, List, Iterator, Tuple
 from urllib.parse import unquote, urlparse
 
-from samcli.commands._utils.template import get_template_data
+from samcli.lib.iac.interface import Stack as IacStack, Resource, S3Asset
 from samcli.lib.providers.exceptions import RemoteStackLocationNotSupported
 from samcli.lib.providers.provider import Stack, get_full_path
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
@@ -23,9 +24,9 @@ class SamLocalStackProvider(SamBaseProvider):
 
     def __init__(
         self,
-        template_file: str,
+        stack_origin_dir: str,
         stack_path: str,
-        template_dict: Dict,
+        template_dict: IacStack,
         parameter_overrides: Optional[Dict] = None,
         global_parameter_overrides: Optional[Dict] = None,
     ):
@@ -37,7 +38,7 @@ class SamLocalStackProvider(SamBaseProvider):
         This class does not perform any syntactic validation of the template.
         After the class is initialized, any changes to the ``template_dict`` will not be reflected in here.
         You need to explicitly update the class with new template, if necessary.
-        :param str template_file: SAM Stack Template file path
+        :param str stack_origin_dir: SAM Stack origin directory
         :param str stack_path: SAM Stack stack_path (See samcli.lib.providers.provider.Stack.stack_path)
         :param dict template_dict: SAM Template as a dictionary
         :param dict parameter_overrides: Optional dictionary of values for SAM template parameters that might want
@@ -46,9 +47,9 @@ class SamLocalStackProvider(SamBaseProvider):
             might want to get substituted within the template and all its child templates
         """
 
-        self._template_file = template_file
+        self._stack_origin_dir = stack_origin_dir
         self._stack_path = stack_path
-        self._template_dict = self.get_template(
+        self._template_dict: IacStack = self.get_template(
             template_dict,
             SamLocalStackProvider.merge_parameter_overrides(parameter_overrides, global_parameter_overrides),
         )
@@ -110,12 +111,14 @@ class SamLocalStackProvider(SamBaseProvider):
             try:
                 if resource_type == SamLocalStackProvider.SERVERLESS_APPLICATION:
                     stack = SamLocalStackProvider._convert_sam_application_resource(
-                        self._template_file, self._stack_path, name, resource_properties
+                        self._stack_origin_dir, self._stack_path, name, resource, resource_properties
                     )
+                    resource.nested_stack = stack.template_dict
                 if resource_type == SamLocalStackProvider.CLOUDFORMATION_STACK:
                     stack = SamLocalStackProvider._convert_cfn_stack_resource(
-                        self._template_file, self._stack_path, name, resource_properties
+                        self._stack_origin_dir, self._stack_path, name, resource, resource_properties
                     )
+                    resource.nested_stack = stack.template_dict
             except RemoteStackLocationNotSupported:
                 self.remote_stack_full_paths.append(get_full_path(self._stack_path, name))
 
@@ -126,13 +129,20 @@ class SamLocalStackProvider(SamBaseProvider):
 
     @staticmethod
     def _convert_sam_application_resource(
-        template_file: str,
+        stack_origin_dir: str,
         stack_path: str,
         name: str,
+        resource: Resource,
         resource_properties: Dict,
         global_parameter_overrides: Optional[Dict] = None,
     ) -> Optional[Stack]:
-        location = resource_properties.get("Location")
+        asset_location = None
+        assets = resource.assets or []
+        for asset in assets:
+            if isinstance(asset, S3Asset) and asset.source_property == "Location":
+                asset_location = asset.source_property
+
+        location = asset_location or resource_properties.get("Location")
 
         if isinstance(location, dict):
             raise RemoteStackLocationNotSupported()
@@ -143,48 +153,55 @@ class SamLocalStackProvider(SamBaseProvider):
         if location.startswith("file://"):
             location = unquote(urlparse(location).path)
         else:
-            location = SamLocalStackProvider.normalize_resource_path(template_file, location)
+            location = SamLocalStackProvider.normalize_resource_path(stack_origin_dir, location)
 
         return Stack(
             parent_stack_path=stack_path,
-            name=name,
-            location=location,
+            name=resource.nested_stack.stack_id,
+            logical_id=name,
             parameters=SamLocalStackProvider.merge_parameter_overrides(
                 resource_properties.get("Parameters", {}), global_parameter_overrides
             ),
-            template_dict=get_template_data(location),
+            template_dict=resource.nested_stack,
         )
 
     @staticmethod
     def _convert_cfn_stack_resource(
-        template_file: str,
+        stack_origin_dir: str,
         stack_path: str,
         name: str,
+        resource: Resource,
         resource_properties: Dict,
         global_parameter_overrides: Optional[Dict] = None,
     ) -> Optional[Stack]:
-        template_url = resource_properties.get("TemplateURL", "")
+        asset_location = None
+        assets = resource.assets or []
+        for asset in assets:
+            if isinstance(asset, S3Asset) and asset.source_property == "TemplateURL":
+                asset_location = asset.source_property
 
-        if SamLocalStackProvider.is_remote_url(template_url):
+        template_url = asset_location or resource_properties.get("TemplateURL", "")
+
+        if not isinstance(template_url, str) or SamLocalStackProvider.is_remote_url(template_url):
             raise RemoteStackLocationNotSupported()
         if template_url.startswith("file://"):
             template_url = unquote(urlparse(template_url).path)
         else:
-            template_url = SamLocalStackProvider.normalize_resource_path(template_file, template_url)
+            template_url = SamLocalStackProvider.normalize_resource_path(stack_origin_dir, template_url)
 
         return Stack(
             parent_stack_path=stack_path,
-            name=name,
-            location=template_url,
+            name=resource.nested_stack.stack_id,
+            logical_id=name,
             parameters=SamLocalStackProvider.merge_parameter_overrides(
                 resource_properties.get("Parameters", {}), global_parameter_overrides
             ),
-            template_dict=get_template_data(template_url),
+            template_dict=resource.nested_stack,
         )
 
     @staticmethod
     def get_stacks(
-        template_file: str,
+        project_stacks: List[IacStack],
         stack_path: str = "",
         name: str = "",
         parameter_overrides: Optional[Dict] = None,
@@ -195,8 +212,8 @@ class SamLocalStackProvider(SamBaseProvider):
 
         Parameters
         ----------
-        template_file: str
-            the file path of the template to extract stacks from
+        project_stacks: List[IacStack]
+            Project stacks
         stack_path: str
             the stack path of the parent stack, for root stack, it is ""
         name: str
@@ -215,33 +232,35 @@ class SamLocalStackProvider(SamBaseProvider):
         remote_stack_full_paths : List[str]
             The list of full paths of detected remote stacks
         """
-        template_dict = get_template_data(template_file)
-        stacks = [
-            Stack(
-                stack_path,
-                name,
-                template_file,
-                SamLocalStackProvider.merge_parameter_overrides(parameter_overrides, global_parameter_overrides),
-                template_dict,
-            )
-        ]
+        stacks: List[Stack] = []
         remote_stack_full_paths: List[str] = []
 
-        current = SamLocalStackProvider(
-            template_file, stack_path, template_dict, parameter_overrides, global_parameter_overrides
-        )
-        remote_stack_full_paths.extend(current.remote_stack_full_paths)
-
-        for child_stack in current.get_all():
-            stacks_in_child, remote_stack_full_paths_in_child = SamLocalStackProvider.get_stacks(
-                child_stack.location,
-                os.path.join(stack_path, name),
-                child_stack.name,
-                child_stack.parameters,
-                global_parameter_overrides,
+        for project_stack in project_stacks:
+            stacks.append(
+                Stack(
+                    stack_path,
+                    project_stack.stack_id,
+                    name,
+                    SamLocalStackProvider.merge_parameter_overrides(parameter_overrides, global_parameter_overrides),
+                    project_stack,
+                )
             )
-            stacks.extend(stacks_in_child)
-            remote_stack_full_paths.extend(remote_stack_full_paths_in_child)
+
+            current = SamLocalStackProvider(
+                project_stack.origin_dir, stack_path, project_stack, parameter_overrides, global_parameter_overrides
+            )
+            remote_stack_full_paths.extend(current.remote_stack_full_paths)
+
+            for child_stack in current.get_all():
+                stacks_in_child, remote_stack_full_paths_in_child = SamLocalStackProvider.get_stacks(
+                    [child_stack.template_dict],
+                    posixpath.join(stack_path, project_stack.stack_id),
+                    child_stack.logical_id,
+                    child_stack.parameters,
+                    global_parameter_overrides,
+                )
+                stacks.extend(stacks_in_child)
+                remote_stack_full_paths.extend(remote_stack_full_paths_in_child)
 
         return stacks, remote_stack_full_paths
 
@@ -285,7 +304,7 @@ class SamLocalStackProvider(SamBaseProvider):
         return merged_parameter_overrides
 
     @staticmethod
-    def normalize_resource_path(stack_file_path: str, path: str) -> str:
+    def normalize_resource_path(stack_origin_dir_path: str, path: str) -> str:
         """
         Convert resource paths found in nested stack to ones resolvable from root stack.
         For example,
@@ -318,8 +337,8 @@ class SamLocalStackProvider(SamBaseProvider):
 
         Parameters
         ----------
-        stack_file_path
-            The file path of the stack containing the resource
+        stack_origin_dir_path
+            The directory path of the stack containing the resource
         path
             the raw path read from the template dict
 
@@ -332,11 +351,23 @@ class SamLocalStackProvider(SamBaseProvider):
         if os.path.isabs(path):
             return path
 
-        if os.path.islink(stack_file_path):
+        if os.path.islink(stack_origin_dir_path):
             # os.path.realpath() always returns an absolute path while
             # the return value of this method will show up in build artifacts,
             # in case customers move the build artifacts among different machines (e.g., git or file sharing)
             # absolute paths are not robust as relative paths. So here prefer to use relative path.
-            stack_file_path = os.path.relpath(os.path.realpath(stack_file_path))
+            stack_origin_dir_path = os.path.relpath(os.path.realpath(stack_origin_dir_path))
 
-        return os.path.normpath(os.path.join(os.path.dirname(stack_file_path), path))
+        return os.path.normpath(os.path.join(stack_origin_dir_path, path))
+
+
+def is_local_path(path: str):
+    return bool(path) and not isinstance(path, dict) and not SamLocalStackProvider.is_remote_url(path)
+
+
+def get_local_path(path: str, parent_path: str):
+    if path.startswith("file://"):
+        path = unquote(urlparse(path).path)
+    else:
+        path = SamLocalStackProvider.normalize_resource_path(parent_path, path)
+    return path

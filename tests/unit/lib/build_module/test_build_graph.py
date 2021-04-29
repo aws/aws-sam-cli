@@ -53,6 +53,7 @@ def generate_function(
 ):
     return Function(
         name,
+        name,
         function_name,
         runtime,
         memory,

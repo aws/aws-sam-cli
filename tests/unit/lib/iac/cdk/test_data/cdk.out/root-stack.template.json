@@ -1,0 +1,437 @@
+{
+  "Resources": {
+    "containerfunctionServiceRole5EB80FD7": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "root-stack/container-function/ServiceRole/Resource"
+      }
+    },
+    "containerfunction2D259B7A": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "ImageUri": {
+            "Fn::Join": [
+              "",
+              [
+                {
+                  "Ref": "AWS::AccountId"
+                },
+                ".dkr.ecr.",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ".",
+                {
+                  "Ref": "AWS::URLSuffix"
+                },
+                "/aws-cdk/assets:8db62da8c9a661a051169ec5710e7c48e471f6eb556b9d853c77e0efd9689d7e"
+              ]
+            ]
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "containerfunctionServiceRole5EB80FD7",
+            "Arn"
+          ]
+        },
+        "ImageConfig": {
+          "Command": [
+            "app.get"
+          ],
+          "EntryPoint": [
+            "/lambda-entrypoint.sh"
+          ]
+        },
+        "PackageType": "Image"
+      },
+      "DependsOn": [
+        "containerfunctionServiceRole5EB80FD7"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "root-stack/container-function/Resource"
+      }
+    },
+    "remotenestedstack": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "s3://bucket/key"
+      },
+      "Metadata": {
+        "aws:cdk:path": "root-stack/remote-nested-stack"
+      }
+    },
+    "nestedstackNestedStacknestedstackNestedStackResource71CDD241": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://s3.",
+              {
+                "Ref": "AWS::Region"
+              },
+              ".",
+              {
+                "Ref": "AWS::URLSuffix"
+              },
+              "/",
+              {
+                "Ref": "AssetParameterscea0926b5be3bb6046b30a8ea948db953b04ce4b21a30e74188220125159d5f4S3Bucket83F43ACA"
+              },
+              "/",
+              {
+                "Fn::Select": [
+                  0,
+                  {
+                    "Fn::Split": [
+                      "||",
+                      {
+                        "Ref": "AssetParameterscea0926b5be3bb6046b30a8ea948db953b04ce4b21a30e74188220125159d5f4S3VersionKeyA88FF806"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "Fn::Select": [
+                  1,
+                  {
+                    "Fn::Split": [
+                      "||",
+                      {
+                        "Ref": "AssetParameterscea0926b5be3bb6046b30a8ea948db953b04ce4b21a30e74188220125159d5f4S3VersionKeyA88FF806"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          ]
+        },
+        "Parameters": {
+          "referencetorootstackAssetParameters97bd9d4f97345f890d541646ecd5ec0348b62d5618cedfd76a6f6dc94f2e4f0eS3Bucket03B77C06Ref": {
+            "Ref": "AssetParameters97bd9d4f97345f890d541646ecd5ec0348b62d5618cedfd76a6f6dc94f2e4f0eS3BucketDD3A7E9A"
+          },
+          "referencetorootstackAssetParameters97bd9d4f97345f890d541646ecd5ec0348b62d5618cedfd76a6f6dc94f2e4f0eS3VersionKey28B3AF03Ref": {
+            "Ref": "AssetParameters97bd9d4f97345f890d541646ecd5ec0348b62d5618cedfd76a6f6dc94f2e4f0eS3VersionKeyCEC49660"
+          },
+          "referencetorootstackAssetParametersf7d2f89c804f1cf09b90ea05ad10131e01a2a2ad020920c5afe1cdac1cd1b4feS3BucketC36646BARef": {
+            "Ref": "AssetParametersf7d2f89c804f1cf09b90ea05ad10131e01a2a2ad020920c5afe1cdac1cd1b4feS3BucketDACC3599"
+          },
+          "referencetorootstackAssetParametersf7d2f89c804f1cf09b90ea05ad10131e01a2a2ad020920c5afe1cdac1cd1b4feS3VersionKey99378EEERef": {
+            "Ref": "AssetParametersf7d2f89c804f1cf09b90ea05ad10131e01a2a2ad020920c5afe1cdac1cd1b4feS3VersionKey7D399835"
+          },
+          "referencetorootstackAssetParametersd16ce44484907b58b64d72fb5346cc81c8d3140f1dfaa78410f4aa51fa8cc08bS3Bucket6689CC79Ref": {
+            "Ref": "AssetParametersd16ce44484907b58b64d72fb5346cc81c8d3140f1dfaa78410f4aa51fa8cc08bS3Bucket0AB99355"
+          },
+          "referencetorootstackAssetParametersd16ce44484907b58b64d72fb5346cc81c8d3140f1dfaa78410f4aa51fa8cc08bS3VersionKeyF814275BRef": {
+            "Ref": "AssetParametersd16ce44484907b58b64d72fb5346cc81c8d3140f1dfaa78410f4aa51fa8cc08bS3VersionKey9750CEDA"
+          }
+        }
+      },
+      "UpdateReplacePolicy": "Delete",
+      "DeletionPolicy": "Delete",
+      "Metadata": {
+        "aws:cdk:path": "root-stack/nested-stack.NestedStack/nested-stack.NestedStackResource"
+      }
+    },
+    "CDKMetadata": {
+      "Type": "AWS::CDK::Metadata",
+      "Properties": {
+        "Analytics": "v2:deflate64:H4sIAAAAAAAAE02OwU4DMQxEv6X3rEuFQO0NKELiVi1fYLLeJd1NjGxHqIry7zTQCk6eGXuevIGy28LN6gG/tPPDvPYsBOXN0M9uz0lNsje3H9MlGtMBBSMZSTM9KWfx1PT5fAgWOFW3u4PNH7M0URaM7wNCeWY/k7xGnOglJ98KrX3V1QWMUHpefqBtVkdeOlQlU/hXf2xJ20FPn6zBWE5PqOT8wnkYWSI2Ily/r+7COLsppKlWdzjZB6f1LWzhfnXUEDrJyUIk6H/nN1bzmIchAQAA"
+      },
+      "Metadata": {
+        "aws:cdk:path": "root-stack/CDKMetadata/Default"
+      },
+      "Condition": "CDKMetadataAvailable"
+    }
+  },
+  "Parameters": {
+    "AssetParameters97bd9d4f97345f890d541646ecd5ec0348b62d5618cedfd76a6f6dc94f2e4f0eS3BucketDD3A7E9A": {
+      "Type": "String",
+      "Description": "S3 bucket for asset \"97bd9d4f97345f890d541646ecd5ec0348b62d5618cedfd76a6f6dc94f2e4f0e\""
+    },
+    "AssetParameters97bd9d4f97345f890d541646ecd5ec0348b62d5618cedfd76a6f6dc94f2e4f0eS3VersionKeyCEC49660": {
+      "Type": "String",
+      "Description": "S3 key for asset version \"97bd9d4f97345f890d541646ecd5ec0348b62d5618cedfd76a6f6dc94f2e4f0e\""
+    },
+    "AssetParameters97bd9d4f97345f890d541646ecd5ec0348b62d5618cedfd76a6f6dc94f2e4f0eArtifactHashBD7218A6": {
+      "Type": "String",
+      "Description": "Artifact hash for asset \"97bd9d4f97345f890d541646ecd5ec0348b62d5618cedfd76a6f6dc94f2e4f0e\""
+    },
+    "AssetParametersf7d2f89c804f1cf09b90ea05ad10131e01a2a2ad020920c5afe1cdac1cd1b4feS3BucketDACC3599": {
+      "Type": "String",
+      "Description": "S3 bucket for asset \"f7d2f89c804f1cf09b90ea05ad10131e01a2a2ad020920c5afe1cdac1cd1b4fe\""
+    },
+    "AssetParametersf7d2f89c804f1cf09b90ea05ad10131e01a2a2ad020920c5afe1cdac1cd1b4feS3VersionKey7D399835": {
+      "Type": "String",
+      "Description": "S3 key for asset version \"f7d2f89c804f1cf09b90ea05ad10131e01a2a2ad020920c5afe1cdac1cd1b4fe\""
+    },
+    "AssetParametersf7d2f89c804f1cf09b90ea05ad10131e01a2a2ad020920c5afe1cdac1cd1b4feArtifactHashAD287F6C": {
+      "Type": "String",
+      "Description": "Artifact hash for asset \"f7d2f89c804f1cf09b90ea05ad10131e01a2a2ad020920c5afe1cdac1cd1b4fe\""
+    },
+    "AssetParametersd16ce44484907b58b64d72fb5346cc81c8d3140f1dfaa78410f4aa51fa8cc08bS3Bucket0AB99355": {
+      "Type": "String",
+      "Description": "S3 bucket for asset \"d16ce44484907b58b64d72fb5346cc81c8d3140f1dfaa78410f4aa51fa8cc08b\""
+    },
+    "AssetParametersd16ce44484907b58b64d72fb5346cc81c8d3140f1dfaa78410f4aa51fa8cc08bS3VersionKey9750CEDA": {
+      "Type": "String",
+      "Description": "S3 key for asset version \"d16ce44484907b58b64d72fb5346cc81c8d3140f1dfaa78410f4aa51fa8cc08b\""
+    },
+    "AssetParametersd16ce44484907b58b64d72fb5346cc81c8d3140f1dfaa78410f4aa51fa8cc08bArtifactHashEAF91849": {
+      "Type": "String",
+      "Description": "Artifact hash for asset \"d16ce44484907b58b64d72fb5346cc81c8d3140f1dfaa78410f4aa51fa8cc08b\""
+    },
+    "AssetParameterscea0926b5be3bb6046b30a8ea948db953b04ce4b21a30e74188220125159d5f4S3Bucket83F43ACA": {
+      "Type": "String",
+      "Description": "S3 bucket for asset \"cea0926b5be3bb6046b30a8ea948db953b04ce4b21a30e74188220125159d5f4\""
+    },
+    "AssetParameterscea0926b5be3bb6046b30a8ea948db953b04ce4b21a30e74188220125159d5f4S3VersionKeyA88FF806": {
+      "Type": "String",
+      "Description": "S3 key for asset version \"cea0926b5be3bb6046b30a8ea948db953b04ce4b21a30e74188220125159d5f4\""
+    },
+    "AssetParameterscea0926b5be3bb6046b30a8ea948db953b04ce4b21a30e74188220125159d5f4ArtifactHashC5496C2F": {
+      "Type": "String",
+      "Description": "Artifact hash for asset \"cea0926b5be3bb6046b30a8ea948db953b04ce4b21a30e74188220125159d5f4\""
+    }
+  },
+  "Conditions": {
+    "CDKMetadataAvailable": {
+      "Fn::Or": [
+        {
+          "Fn::Or": [
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "af-south-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-east-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-northeast-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-northeast-2"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-south-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-southeast-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-southeast-2"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ca-central-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "cn-north-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "cn-northwest-1"
+              ]
+            }
+          ]
+        },
+        {
+          "Fn::Or": [
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-central-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-north-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-south-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-west-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-west-2"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-west-3"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "me-south-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "sa-east-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "us-east-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "us-east-2"
+              ]
+            }
+          ]
+        },
+        {
+          "Fn::Or": [
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "us-west-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "us-west-2"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "Outputs": {
+    "ExportsOutputFnGetAttnestedstackNestedStacknestedstackNestedStackResource71CDD241Outputsrootstacknestedstackcdklambdarole02B24FCFArn729F25B2": {
+      "Value": {
+        "Fn::GetAtt": [
+          "nestedstackNestedStacknestedstackNestedStackResource71CDD241",
+          "Outputs.rootstacknestedstackcdklambdarole02B24FCFArn"
+        ]
+      },
+      "Export": {
+        "Name": "root-stack:ExportsOutputFnGetAttnestedstackNestedStacknestedstackNestedStackResource71CDD241Outputsrootstacknestedstackcdklambdarole02B24FCFArn729F25B2"
+      }
+    }
+  }
+}

@@ -127,8 +127,10 @@ class TestDeployCliCommand(TestCase):
     @patch.object(GuidedConfig, "get_config_ctx", MagicMock(return_value=(None, get_mock_sam_config())))
     @patch("samcli.commands.deploy.guided_context.prompt")
     @patch("samcli.commands.deploy.guided_context.confirm")
+    @patch("samcli.commands.deploy.guided_context.get_template_data")
     def test_all_args_guided_no_to_authorization_confirmation_prompt(
         self,
+        mock_get_template_data,
         mock_confirm,
         mock_prompt,
         mock_signer_config_per_function,
@@ -143,6 +145,7 @@ class TestDeployCliCommand(TestCase):
         mock_package_context,
         mock_package_click,
     ):
+        mock_get_template_data.return_value = {}
         mock_get_buildable_stacks.return_value = (Mock(), [])
         mock_sam_function_provider.return_value = {}
         mock_get_template_artifacts_format.return_value = [ZIP]
@@ -214,10 +217,12 @@ class TestDeployCliCommand(TestCase):
     @patch.object(GuidedConfig, "get_config_ctx", MagicMock(return_value=(None, get_mock_sam_config())))
     @patch("samcli.commands.deploy.guided_context.prompt")
     @patch("samcli.commands.deploy.guided_context.confirm")
+    @patch("samcli.commands.deploy.guided_context.get_template_data")
     @patch("samcli.commands.deploy.guided_context.tag_translation")
     def test_all_args_guided(
         self,
         mock_tag_translation,
+        mock_get_template_data,
         mock_confirm,
         mock_prompt,
         mock_signer_config_per_function,
@@ -233,6 +238,7 @@ class TestDeployCliCommand(TestCase):
         mock_package_context,
         mock_package_click,
     ):
+        mock_get_template_data.return_value = {}
         mock_get_buildable_stacks.return_value = (Mock(), [])
         mock_tag_translation.return_value = "helloworld-123456-v1"
         mock_get_template_function_resource_ids.return_value = ["HelloWorldFunction"]
@@ -358,10 +364,12 @@ class TestDeployCliCommand(TestCase):
     )
     @patch("samcli.commands.deploy.guided_context.prompt")
     @patch("samcli.commands.deploy.guided_context.confirm")
+    @patch("samcli.commands.deploy.guided_context.get_template_data")
     @patch("samcli.commands.deploy.guided_context.tag_translation")
     def test_all_args_guided_no_save_echo_param_to_config(
         self,
         mock_tag_translation,
+        mock_get_template_data,
         mock_confirm,
         mock_prompt,
         mock_signer_config_per_function,
@@ -377,6 +385,7 @@ class TestDeployCliCommand(TestCase):
         mock_package_context,
         mock_package_click,
     ):
+        mock_get_template_data.return_value = {}
         mock_get_buildable_stacks.return_value = (Mock(), [])
         mock_tag_translation.return_value = "helloworld-123456-v1"
         mock_get_template_function_resource_ids.return_value = ["HelloWorldFunction"]
@@ -517,10 +526,12 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.guided_config.SamConfig")
     @patch("samcli.commands.deploy.guided_config.get_cmd_names")
+    @patch("samcli.commands.deploy.guided_context.get_template_data")
     @patch("samcli.commands.deploy.guided_context.tag_translation")
     def test_all_args_guided_no_params_save_config(
         self,
         mock_tag_translation,
+        mock_get_template_data,
         mock_get_cmd_names,
         mock_sam_config,
         mock_confirm,
@@ -538,6 +549,7 @@ class TestDeployCliCommand(TestCase):
         mock_package_context,
         mock_package_click,
     ):
+        mock_get_template_data.return_value = {}
         mock_get_buildable_stacks.return_value = (Mock(), [])
         mock_tag_translation.return_value = "helloworld-123456-v1"
         mock_get_template_function_resource_ids.return_value = ["HelloWorldFunction"]
@@ -656,10 +668,12 @@ class TestDeployCliCommand(TestCase):
     @patch.object(GuidedConfig, "get_config_ctx", MagicMock(return_value=(None, get_mock_sam_config())))
     @patch("samcli.commands.deploy.guided_context.prompt")
     @patch("samcli.commands.deploy.guided_context.confirm")
+    @patch("samcli.commands.deploy.guided_context.get_template_data")
     @patch("samcli.commands.deploy.guided_context.tag_translation")
     def test_all_args_guided_no_params_no_save_config(
         self,
         mock_tag_translation,
+        mock_get_template_data,
         mock_confirm,
         mock_prompt,
         mock_signer_config_per_function,
@@ -675,6 +689,7 @@ class TestDeployCliCommand(TestCase):
         mock_package_context,
         mock_package_click,
     ):
+        mock_get_template_data.return_value = {}
         mock_get_buildable_stacks.return_value = (Mock(), [])
         mock_tag_translation.return_value = "helloworld-123456-v1"
         mock_get_template_function_resource_ids.return_value = ["HelloWorldFunction"]

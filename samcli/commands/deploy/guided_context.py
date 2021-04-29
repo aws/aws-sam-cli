@@ -16,6 +16,7 @@ from samcli.commands._utils.template import (
     get_template_parameters,
     get_template_artifacts_format,
     get_template_function_resource_ids,
+    get_template_data,
 )
 from samcli.commands.deploy.code_signer_utils import (
     signer_config_per_function,
@@ -29,6 +30,7 @@ from samcli.commands.deploy.auth_utils import auth_per_resource
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
 from samcli.lib.config.samconfig import DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.bootstrap.bootstrap import manage_stack
+from samcli.lib.iac.interface import Stack as IacStack
 from samcli.lib.package.ecr_utils import is_ecr_url
 from samcli.lib.package.image_utils import tag_translation, NonLocalImageException, NoImageFoundException
 from samcli.lib.providers.provider import Stack
@@ -130,8 +132,11 @@ class GuidedContext:
         input_parameter_overrides = self.prompt_parameters(
             parameter_override_keys, self.parameter_overrides_from_cmdline, self.start_bold, self.end_bold
         )
+        iac_stack = IacStack()
+        template_dict = get_template_data(self.template_file)
+        iac_stack.update(template_dict)
         stacks, _ = SamLocalStackProvider.get_stacks(
-            self.template_file, parameter_overrides=sanitize_parameter_overrides(input_parameter_overrides)
+            [iac_stack], parameter_overrides=sanitize_parameter_overrides(input_parameter_overrides)
         )
         image_repositories = self.prompt_image_repository(stacks)
 

@@ -10,6 +10,7 @@ from collections import namedtuple
 from typing import Set, NamedTuple, Optional, List, Dict, Union, cast, Iterator, TYPE_CHECKING
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, UnsupportedIntrinsic
+from samcli.lib.iac.interface import Stack as IacStack, DictSection
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 
 if TYPE_CHECKING:
@@ -24,6 +25,8 @@ class Function(NamedTuple):
     Named Tuple to representing the properties of a Lambda Function
     """
 
+    # Function id, can be Logical ID or any function identifier to define a function in specific IaC
+    function_id: str
     # Function name or logical ID
     name: str
     # Function name (used in place of logical ID)
@@ -72,7 +75,7 @@ class Function(NamedTuple):
             "HelloWorldFunction"
             "ChildStackA/GrandChildStackB/AFunctionInNestedStack"
         """
-        return get_full_path(self.stack_path, self.name)
+        return get_full_path(self.stack_path, self.function_id)
 
     def get_build_dir(self, build_root_dir: str) -> str:
         """
@@ -125,6 +128,7 @@ class LayerVersion:
 
     def __init__(
         self,
+        layer_id: str,
         arn: str,
         codeuri: Optional[str],
         compatible_runtimes: Optional[List[str]] = None,
@@ -148,6 +152,7 @@ class LayerVersion:
         if not isinstance(arn, str):
             raise UnsupportedIntrinsic("{} is an Unsupported Intrinsic".format(arn))
 
+        self._layer_id = layer_id
         self._stack_path = stack_path
         self._arn = arn
         self._codeuri = codeuri
@@ -243,7 +248,7 @@ class LayerVersion:
         # here we delay the validation process (in _compute_layer_name) rather than in __init__() to ensure
         # customers still have a smooth build experience.
         if not self._name:
-            self._name = LayerVersion._compute_layer_name(self.is_defined_within_template, self.arn)
+            self._name = self._layer_id or LayerVersion._compute_layer_name(self.is_defined_within_template, self.arn)
         return self._name
 
     @property
@@ -393,13 +398,12 @@ class Stack(NamedTuple):
     parent_stack_path: str
     # The name (logicalID) of the stack, it is empty for root stack
     name: str
-    # The file location of the stack template.
-    location: str
+    logical_id: str
     # The parameter overrides for the stack, if there is global_parameter_overrides,
     # it is also merged into this variable.
     parameters: Optional[Dict]
     # the raw template dict
-    template_dict: Dict
+    template_dict: IacStack
 
     @property
     def stack_path(self) -> str:
@@ -417,17 +421,21 @@ class Stack(NamedTuple):
         """
         Return True if the stack is the root stack.
         """
-        return not self.stack_path
+        return not self.template_dict.is_nested
 
     @property
-    def resources(self) -> Dict:
+    def resources(self) -> DictSection:
         """
         Return the resources dictionary where SAM plugins have been run
         and parameter values have been substituted.
         """
-        processed_template_dict: Dict = SamBaseProvider.get_template(self.template_dict, self.parameters)
-        resources: Dict = processed_template_dict.get("Resources", {})
+        processed_template_dict: IacStack = SamBaseProvider.get_template(self.template_dict, self.parameters)
+        resources: DictSection = processed_template_dict.get("Resources", DictSection())
         return resources
+
+    @property
+    def origin_dir(self) -> Optional[str]:
+        return self.template_dict.origin_dir
 
     def get_output_template_path(self, build_root: str) -> str:
         """
@@ -437,12 +445,12 @@ class Stack(NamedTuple):
         return os.path.join(build_root, self.stack_path.replace(posixpath.sep, os.path.sep), "template.yaml")
 
 
-def get_full_path(stack_path: str, logical_id: str) -> str:
+def get_full_path(stack_path: str, function_id: str) -> str:
     """
     Return the unique posix path-like identifier
     while will used for identify a resource from resources in a multi-stack situation
     """
-    return posixpath.join(stack_path, logical_id)
+    return posixpath.join(stack_path, function_id)
 
 
 def _get_build_dir(resource: Union[Function, LayerVersion], build_root: str) -> str:

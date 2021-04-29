@@ -1,4 +1,3 @@
-import re
 import shutil
 import sys
 import os
@@ -7,7 +6,6 @@ import random
 from unittest import skipIf
 from pathlib import Path
 from parameterized import parameterized, parameterized_class
-from subprocess import Popen, PIPE, TimeoutExpired
 
 import pytest
 

@@ -12,9 +12,13 @@ from samcli.commands._utils.options import (
     template_option_without_build,
     docker_common_options,
     parameter_override_option,
+    project_type_click_option,
+    cdk_click_options,
 )
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.lib.build.exceptions import BuildInsideContainerError
+from samcli.lib.iac.interface import IacPlugin, Project
+from samcli.lib.iac.utils.helpers import inject_iac_plugin
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
@@ -169,6 +173,8 @@ $ sam build MyFunction
     "requests=1.x and the latest request module version changes from 1.1 to 1.2, "
     "SAM will not pull the latest version until you run a non-cached build.",
 )
+@project_type_click_option
+@cdk_click_options
 @template_option_without_build
 @parameter_override_option
 @docker_common_options
@@ -177,6 +183,7 @@ $ sam build MyFunction
 @click.argument("resource_logical_id", required=False)
 @pass_context
 @track_command
+@inject_iac_plugin(with_build=False)
 @check_newer_version
 @print_cmdline_args
 def cli(
@@ -199,14 +206,17 @@ def cli(
     parameter_overrides: dict,
     config_file: str,
     config_env: str,
+    project_type: str,
+    cdk_app: Optional[str],
+    cdk_context: Optional[List[str]],
+    iac: IacPlugin,
+    project: Project,
 ) -> None:
     """
     `sam build` command entry point
     """
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
-
     mode = _get_mode_value_from_envvar("SAM_BUILD_MODE", choices=["debug"])
-
     do_cli(
         resource_logical_id,
         template_file,
@@ -225,6 +235,9 @@ def cli(
         container_env_var,
         container_env_var_file,
         build_image,
+        project_type,
+        iac,
+        project,
     )  # pragma: no cover
 
 
@@ -246,6 +259,9 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     container_env_var: Optional[Tuple[str]],
     container_env_var_file: Optional[str],
     build_image: Optional[Tuple[str]],
+    project_type: str,
+    iac: IacPlugin,
+    project: Project,
 ) -> None:
     """
     Implementation of the ``cli`` method
@@ -262,7 +278,6 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     )
     from samcli.lib.build.workflow_config import UnsupportedRuntimeException
     from samcli.local.lambdafn.exceptions import FunctionNotFound
-    from samcli.commands._utils.template import move_template
     from samcli.lib.build.build_graph import InvalidBuildGraphException
 
     LOG.debug("'build' command is called")
@@ -276,7 +291,6 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
 
     with BuildContext(
         function_identifier,
-        template,
         base_dir,
         build_dir,
         cache_dir,
@@ -291,6 +305,8 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         container_env_var=processed_env_vars,
         container_env_var_file=container_env_var_file,
         build_images=processed_build_images,
+        iac=iac,
+        project=project,
     ) as ctx:
         try:
             builder = ApplicationBuilder(
@@ -314,17 +330,10 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         try:
             artifacts = builder.build()
 
-            stack_output_template_path_by_stack_path = {
-                stack.stack_path: stack.get_output_template_path(ctx.build_dir) for stack in ctx.stacks
-            }
             for stack in ctx.stacks:
-                modified_template = builder.update_template(
-                    stack,
-                    artifacts,
-                    stack_output_template_path_by_stack_path,
-                )
-                move_template(stack.location, stack.get_output_template_path(ctx.build_dir), modified_template)
+                builder.update_template(stack, artifacts)
 
+            iac.write_project(ctx.project, ctx.build_dir)
             click.secho("\nBuild Succeeded", fg="green")
 
             # try to use relpath so the command is easier to understand, however,
@@ -344,6 +353,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
                 build_dir_in_success_message,
                 output_template_path_in_success_message,
                 os.path.abspath(ctx.build_dir) == os.path.abspath(DEFAULT_BUILD_DIR),
+                project_type,
             )
 
             click.secho(msg, fg="yellow")
@@ -365,7 +375,12 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
             raise UserException(str(ex), wrapped_from=wrapped_from) from ex
 
 
-def gen_success_msg(artifacts_dir: str, output_template_path: str, is_default_build_dir: bool) -> str:
+def gen_success_msg(
+    artifacts_dir: str, output_template_path: str, is_default_build_dir: bool, project_type: str
+) -> str:
+    """
+    Generate the build command success message
+    """
 
     invoke_cmd = "sam local invoke"
     if not is_default_build_dir:
@@ -374,7 +389,7 @@ def gen_success_msg(artifacts_dir: str, output_template_path: str, is_default_bu
     deploy_cmd = "sam deploy --guided"
     if not is_default_build_dir:
         deploy_cmd += " --template-file {}".format(output_template_path)
-
+    deploy_cmd = deploy_cmd if project_type == "CFN" else "cdk deploy -a .aws-sam/build"
     msg = """\nBuilt Artifacts  : {artifacts_dir}
 Built Template   : {template}
 
@@ -382,7 +397,16 @@ Commands you can use next
 =========================
 [*] Invoke Function: {invokecmd}
 [*] Deploy: {deploycmd}
-    """.format(
+    """
+    if project_type != "CFN":
+        msg = """\nBuilt Artifacts  : {artifacts_dir}
+
+Commands you can use next
+=========================
+[*] Invoke Function: {invokecmd}
+[*] Deploy: {deploycmd}
+    """
+    msg = msg.format(
         invokecmd=invoke_cmd, deploycmd=deploy_cmd, artifacts_dir=artifacts_dir, template=output_template_path
     )
 

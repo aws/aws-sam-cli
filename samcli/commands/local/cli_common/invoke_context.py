@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, IO, cast, Tuple, Any
 
 import samcli.lib.utils.osutils as osutils
+from samcli.lib.iac.interface import IacPlugin, Project
 from samcli.lib.providers.provider import Stack, Function
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.async_utils import AsyncContext
@@ -57,6 +58,8 @@ class InvokeContext:
     def __init__(
         self,  # pylint: disable=R0914
         template_file: str,
+        iac: IacPlugin,
+        project: Project,
         function_identifier: Optional[str] = None,
         env_vars_file: Optional[str] = None,
         docker_volume_basedir: Optional[str] = None,
@@ -133,6 +136,8 @@ class InvokeContext:
         self._debug_args = debug_args
         self._debugger_path = debugger_path
         self._container_env_vars_file = container_env_vars_file
+        self._iac = iac
+        self._project = project
 
         self._parameter_overrides = parameter_overrides
         # Override certain CloudFormation pseudo-parameters based on values provided by customer
@@ -154,6 +159,8 @@ class InvokeContext:
             self._containers_initializing_mode = ContainersInitializationMode(warm_container_initialization_mode)
 
         self._debug_function = debug_function
+        self._iac = iac
+        self._project = project
 
         # Note(xinhol): despite self._function_provider and self._stacks are initialized as None
         # they will be assigned with a non-None value in __enter__() and
@@ -189,6 +196,7 @@ class InvokeContext:
         # if the provided template only contains one lambda function, so debug-function will be set to this function
         # if the template contains multiple functions, a warning message "that the debugging option will be ignored"
         # will be printed
+        # TODO: Debug function in CDK mode should also use resource id instead of logical id.
         if self._containers_mode == ContainersMode.WARM and self._debug_ports and not self._debug_function:
             if len(self._function_provider.functions) == 1:
                 self._debug_function = list(self._function_provider.functions.keys())[0]
@@ -388,7 +396,7 @@ class InvokeContext:
     def _get_stacks(self) -> List[Stack]:
         try:
             stacks, _ = SamLocalStackProvider.get_stacks(
-                self._template_file,
+                self._project.stacks,
                 parameter_overrides=self._parameter_overrides,
                 global_parameter_overrides=self._global_parameter_overrides,
             )

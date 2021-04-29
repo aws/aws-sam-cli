@@ -13,7 +13,7 @@ from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV
 from click.testing import CliRunner
 
 from unittest import TestCase
-from unittest.mock import patch, ANY
+from unittest.mock import patch, ANY, Mock
 import logging
 
 from samcli.lib.utils.packagetype import ZIP, IMAGE
@@ -101,7 +101,8 @@ class TestSamConfigForAllCommands(TestCase):
             do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")))
 
     @patch("samcli.commands.build.command.do_cli")
-    def test_build(self, do_cli_mock):
+    @patch("samcli.lib.iac.utils.helpers.CfnIacPlugin")
+    def test_build(self, CfnIacPlugin_mock, do_cli_mock):
         config_values = {
             "resource_logical_id": "foo",
             "template_file": "mytemplate.yaml",
@@ -120,10 +121,15 @@ class TestSamConfigForAllCommands(TestCase):
         }
 
         with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
-
             from samcli.commands.build.command import cli
 
             LOG.debug(Path(config_path).read_text())
+
+            iac_mock = Mock()
+            project_mock = Mock()
+            CfnIacPlugin_mock.return_value = iac_mock
+            iac_mock.get_project.return_value = project_mock
+
             runner = CliRunner()
             result = runner.invoke(cli, [])
 
@@ -151,10 +157,14 @@ class TestSamConfigForAllCommands(TestCase):
                 (),
                 "file",
                 (),
+                "CFN",
+                iac_mock,
+                project_mock,
             )
 
     @patch("samcli.commands.build.command.do_cli")
-    def test_build_with_container_env_vars(self, do_cli_mock):
+    @patch("samcli.lib.iac.utils.helpers.CfnIacPlugin")
+    def test_build_with_container_env_vars(self, CfnIacPlugin_mock, do_cli_mock):
         config_values = {
             "resource_logical_id": "foo",
             "template_file": "mytemplate.yaml",
@@ -176,6 +186,10 @@ class TestSamConfigForAllCommands(TestCase):
             from samcli.commands.build.command import cli
 
             LOG.debug(Path(config_path).read_text())
+            iac_mock = Mock()
+            project_mock = Mock()
+            CfnIacPlugin_mock.return_value = iac_mock
+            iac_mock.get_project.return_value = project_mock
             runner = CliRunner()
             result = runner.invoke(cli, [])
 
@@ -203,10 +217,14 @@ class TestSamConfigForAllCommands(TestCase):
                 (),
                 "env_vars_file",
                 (),
+                "CFN",
+                iac_mock,
+                project_mock,
             )
 
     @patch("samcli.commands.build.command.do_cli")
-    def test_build_with_build_images(self, do_cli_mock):
+    @patch("samcli.lib.iac.utils.helpers.CfnIacPlugin")
+    def test_build_with_build_images(self, CfnIacPlugin_mock, do_cli_mock):
         config_values = {
             "resource_logical_id": "foo",
             "template_file": "mytemplate.yaml",
@@ -227,6 +245,12 @@ class TestSamConfigForAllCommands(TestCase):
             from samcli.commands.build.command import cli
 
             LOG.debug(Path(config_path).read_text())
+
+            iac_mock = Mock()
+            project_mock = Mock()
+            CfnIacPlugin_mock.return_value = iac_mock
+            iac_mock.get_project.return_value = project_mock
+
             runner = CliRunner()
             result = runner.invoke(cli, [])
 
@@ -254,10 +278,14 @@ class TestSamConfigForAllCommands(TestCase):
                 (),
                 None,
                 ("Function1=image_1", "image_2"),
+                "CFN",
+                iac_mock,
+                project_mock,
             )
 
     @patch("samcli.commands.local.invoke.cli.do_cli")
-    def test_local_invoke(self, do_cli_mock):
+    @patch("samcli.lib.iac.utils.helpers.CfnIacPlugin")
+    def test_local_invoke(self, CfnIacPlugin_mock, do_cli_mock):
         config_values = {
             "function_logical_id": "foo",
             "template_file": "mytemplate.yaml",
@@ -284,6 +312,12 @@ class TestSamConfigForAllCommands(TestCase):
             from samcli.commands.local.invoke.cli import cli
 
             LOG.debug(Path(config_path).read_text())
+
+            iac_mock = Mock()
+            project_mock = Mock()
+            CfnIacPlugin_mock.return_value = iac_mock
+            iac_mock.get_project.return_value = project_mock
+
             runner = CliRunner()
             result = runner.invoke(cli, [])
 
@@ -312,10 +346,14 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 True,
                 {"Key": "Value", "Key2": "Value2"},
+                "CFN",
+                iac_mock,
+                project_mock,
             )
 
     @patch("samcli.commands.local.start_api.cli.do_cli")
-    def test_local_start_api(self, do_cli_mock):
+    @patch("samcli.lib.iac.utils.helpers.CfnIacPlugin")
+    def test_local_start_api(self, CfnIacPlugin_mock, do_cli_mock):
 
         config_values = {
             "template_file": "mytemplate.yaml",
@@ -343,6 +381,12 @@ class TestSamConfigForAllCommands(TestCase):
             from samcli.commands.local.start_api.cli import cli
 
             LOG.debug(Path(config_path).read_text())
+
+            iac_mock = Mock()
+            project_mock = Mock()
+            CfnIacPlugin_mock.return_value = iac_mock
+            iac_mock.get_project.return_value = project_mock
+
             runner = CliRunner()
             result = runner.invoke(cli, [])
 
@@ -373,10 +417,14 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 False,
                 None,
+                "CFN",
+                iac_mock,
+                project_mock,
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
-    def test_local_start_lambda(self, do_cli_mock):
+    @patch("samcli.lib.iac.utils.helpers.CfnIacPlugin")
+    def test_local_start_lambda(self, CfnIacPlugin_mock, do_cli_mock):
 
         config_values = {
             "template_file": "mytemplate.yaml",
@@ -403,6 +451,12 @@ class TestSamConfigForAllCommands(TestCase):
             from samcli.commands.local.start_lambda.cli import cli
 
             LOG.debug(Path(config_path).read_text())
+
+            iac_mock = Mock()
+            project_mock = Mock()
+            CfnIacPlugin_mock.return_value = iac_mock
+            iac_mock.get_project.return_value = project_mock
+
             runner = CliRunner()
             result = runner.invoke(cli, [])
 
@@ -432,6 +486,8 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 False,
                 None,
+                iac_mock,
+                project_mock,
             )
 
     @patch("samcli.lib.cli_validation.image_repository_validation.get_template_function_resource_ids")
@@ -785,7 +841,8 @@ class TestSamConfigWithOverrides(TestCase):
         self.scratch_dir = None
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
-    def test_override_with_cli_params(self, do_cli_mock):
+    @patch("samcli.lib.iac.utils.helpers.CfnIacPlugin")
+    def test_override_with_cli_params(self, CfnIacPlugin_mock, do_cli_mock):
 
         config_values = {
             "template_file": "mytemplate.yaml",
@@ -812,6 +869,11 @@ class TestSamConfigWithOverrides(TestCase):
             from samcli.commands.local.start_lambda.cli import cli
 
             LOG.debug(Path(config_path).read_text())
+            iac_mock = Mock()
+            project_mock = Mock()
+            CfnIacPlugin_mock.return_value = iac_mock
+            iac_mock.get_project.return_value = project_mock
+
             runner = CliRunner()
             result = runner.invoke(
                 cli,
@@ -878,10 +940,13 @@ class TestSamConfigWithOverrides(TestCase):
                 None,
                 True,
                 None,
+                iac_mock,
+                project_mock,
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
-    def test_override_with_cli_params_and_envvars(self, do_cli_mock):
+    @patch("samcli.lib.iac.utils.helpers.CfnIacPlugin")
+    def test_override_with_cli_params_and_envvars(self, CfnIacPlugin_mock, do_cli_mock):
 
         config_values = {
             "template_file": "mytemplate.yaml",
@@ -907,6 +972,12 @@ class TestSamConfigWithOverrides(TestCase):
             from samcli.commands.local.start_lambda.cli import cli
 
             LOG.debug(Path(config_path).read_text())
+
+            iac_mock = Mock()
+            project_mock = Mock()
+            CfnIacPlugin_mock.return_value = iac_mock
+            iac_mock.get_project.return_value = project_mock
+
             runner = CliRunner()
             result = runner.invoke(
                 cli,
@@ -969,6 +1040,8 @@ class TestSamConfigWithOverrides(TestCase):
                 None,
                 False,
                 None,
+                iac_mock,
+                project_mock,
             )
 
     @patch("samcli.commands.validate.validate.do_cli")

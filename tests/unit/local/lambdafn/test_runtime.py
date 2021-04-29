@@ -833,7 +833,9 @@ class TestWarmLambdaRuntime_on_code_change(TestCase):
         self.common_layer_code_path = "layer1-code-path"
         self.common_layer_arn = "layer1-arn"
         self.common_layers = [
-            LayerVersion(arn=self.common_layer_arn, codeuri=self.common_layer_code_path, compatible_runtimes=self.lang)
+            LayerVersion(
+                None, arn=self.common_layer_arn, codeuri=self.common_layer_code_path, compatible_runtimes=self.lang
+            )
         ]
 
         self.func_config1 = FunctionConfig(

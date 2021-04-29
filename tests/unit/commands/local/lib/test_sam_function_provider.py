@@ -6,6 +6,7 @@ from unittest.mock import patch, PropertyMock, Mock, call
 from parameterized import parameterized
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
+from samcli.lib.iac.interface import Stack as IacStack, DictSection, Resource
 from samcli.lib.providers.provider import Function, LayerVersion, Stack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.exceptions import InvalidLayerReference
@@ -17,7 +18,7 @@ def make_root_stack(template, parameter_overrides=None):
 
 
 STACK_PATH = posixpath.join("this_is_a", "stack_path")
-STACK = Mock(stack_path=STACK_PATH, location="./template.yaml")
+STACK = Mock(stack_path=STACK_PATH, origin_dir=".")
 
 
 class TestSamFunctionProviderEndToEnd(TestCase):
@@ -165,20 +166,20 @@ class TestSamFunctionProviderEndToEnd(TestCase):
 
     def setUp(self):
         self.parameter_overrides = {}
-        root_stack = Stack("", "", "template.yaml", self.parameter_overrides, self.TEMPLATE)
-        child_stack = Stack("", "ChildStack", "./child/template.yaml", None, self.CHILD_TEMPLATE)
-        with patch("samcli.lib.providers.sam_stack_provider.get_template_data") as get_template_data_mock:
-            get_template_data_mock.side_effect = lambda t: {
-                "template.yaml": self.TEMPLATE,
-                "./child/template.yaml": self.CHILD_TEMPLATE,
-            }
-            self.provider = SamFunctionProvider([root_stack, child_stack])
+        root_iac_stack = IacStack(origin_dir=".")
+        root_iac_stack.update(self.TEMPLATE)
+        child_iac_stack = IacStack(origin_dir="./child", is_nested=True)
+        child_iac_stack.update(self.CHILD_TEMPLATE)
+        root_stack = Stack("", "", "", self.parameter_overrides, root_iac_stack)
+        child_stack = Stack("", "ChildStack", "ChildStack", None, child_iac_stack)
+        self.provider = SamFunctionProvider([root_stack, child_stack])
 
     @parameterized.expand(
         [
             (
                 "SamFunc1",
                 Function(
+                    function_id="SamFunctions",
                     name="SamFunctions",
                     functionname="SamFunc1",
                     runtime="nodejs4.3",
@@ -202,6 +203,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "SamFuncWithInlineCode",
                 Function(
+                    function_id="SamFuncWithInlineCode",
                     name="SamFuncWithInlineCode",
                     functionname="SamFuncWithInlineCode",
                     runtime="nodejs4.3",
@@ -225,6 +227,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "SamFunctions",
                 Function(
+                    function_id="SamFunctions",
                     name="SamFunctions",
                     functionname="SamFunc1",
                     runtime="nodejs4.3",
@@ -250,6 +253,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "SamFunc4",
                 Function(
+                    function_id="SamFunc4",
                     name="SamFunc4",
                     functionname="SamFunc4",
                     runtime=None,
@@ -273,6 +277,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "SamFuncWithFunctionNameOverride-x",
                 Function(
+                    function_id="SamFuncWithFunctionNameOverride",
                     name="SamFuncWithFunctionNameOverride",
                     functionname="SamFuncWithFunctionNameOverride-x",
                     runtime="nodejs4.3",
@@ -297,6 +302,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "LambdaFuncWithInlineCode",
                 Function(
+                    function_id="LambdaFuncWithInlineCode",
                     name="LambdaFuncWithInlineCode",
                     functionname="LambdaFuncWithInlineCode",
                     runtime="nodejs4.3",
@@ -320,6 +326,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "LambdaFunc2",
                 Function(
+                    function_id="LambdaFunc2",
                     name="LambdaFunc2",
                     functionname="LambdaFunc2",
                     runtime=None,
@@ -343,6 +350,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "LambdaFuncWithLocalPath",
                 Function(
+                    function_id="LambdaFuncWithLocalPath",
                     name="LambdaFuncWithLocalPath",
                     functionname="LambdaFuncWithLocalPath",
                     runtime="nodejs4.3",
@@ -366,6 +374,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "LambdaFuncWithFunctionNameOverride-x",
                 Function(
+                    function_id="LambdaFuncWithFunctionNameOverride",
                     name="LambdaFuncWithFunctionNameOverride",
                     functionname="LambdaFuncWithFunctionNameOverride-x",
                     runtime="nodejs4.3",
@@ -389,6 +398,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "LambdaFuncWithCodeSignConfig",
                 Function(
+                    function_id="LambdaFuncWithCodeSignConfig",
                     name="LambdaFuncWithCodeSignConfig",
                     functionname="LambdaFuncWithCodeSignConfig",
                     runtime="nodejs4.3",
@@ -412,6 +422,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 posixpath.join("ChildStack", "SamFunctionsInChild"),
                 Function(
+                    function_id="SamFunctionsInChild",
                     name="SamFunctionsInChild",
                     functionname="SamFunctionsInChildName",
                     runtime="nodejs4.3",
@@ -435,6 +446,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 posixpath.join("ChildStack", "SamFunctionsInChildAbsPath"),
                 Function(
+                    function_id="SamFunctionsInChildAbsPath",
                     name="SamFunctionsInChildAbsPath",
                     functionname="SamFunctionsInChildAbsPathName",
                     runtime="nodejs4.3",
@@ -458,6 +470,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 posixpath.join("ChildStack", "SamImageFunctionsInChild"),
                 Function(
+                    function_id="SamImageFunctionsInChild",
                     name="SamImageFunctionsInChild",
                     functionname="SamImageFunctionsInChild",
                     runtime=None,
@@ -552,13 +565,15 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         convertion_result.full_path = "A/B/C/Func1"
         convert_mock.return_value = convertion_result
 
-        resources_mock.return_value = {"Func1": {"Type": "AWS::Serverless::Function", "Properties": {"a": "b"}}}
+        resources = DictSection("Resources")
+        resources.update({"Func1": {"Type": "AWS::Serverless::Function", "Properties": {"a": "b"}}})
+        resources_mock.return_value = resources
         expected = {"A/B/C/Func1": convertion_result}
 
         stack = make_root_stack(None)
         result = SamFunctionProvider._extract_functions([stack])
         self.assertEqual(expected, result)
-        convert_mock.assert_called_with(stack, "Func1", {"a": "b"}, [], False)
+        convert_mock.assert_called_with(stack, "Func1", resources["Func1"], [], False)
 
     @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
     @patch.object(SamFunctionProvider, "_convert_sam_function_resource")
@@ -567,12 +582,16 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         convertion_result.full_path = "A/B/C/Func1"
         convert_mock.return_value = convertion_result
 
-        resources_mock.return_value = {
-            "Func1": {
-                "Type": "AWS::Serverless::Function"
-                # No Properties
+        resources = DictSection("Resources")
+        resources.update(
+            {
+                "Func1": {
+                    "Type": "AWS::Serverless::Function"
+                    # No Properties
+                }
             }
-        }
+        )
+        resources_mock.return_value = resources
 
         expected = {"A/B/C/Func1": convertion_result}
 
@@ -582,7 +601,7 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         convert_mock.assert_called_with(
             stack,
             "Func1",
-            {},
+            resources["Func1"],
             [],
             False,
         )
@@ -594,18 +613,22 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         convertion_result.full_path = "A/B/C/Func1"
         convert_mock.return_value = convertion_result
 
-        resources_mock.return_value = {"Func1": {"Type": "AWS::Lambda::Function", "Properties": {"a": "b"}}}
+        resources = DictSection("Resources")
+        resources.update({"Func1": {"Type": "AWS::Lambda::Function", "Properties": {"a": "b"}}})
+        resources_mock.return_value = resources
 
         expected = {"A/B/C/Func1": convertion_result}
 
         stack = make_root_stack(None)
         result = SamFunctionProvider._extract_functions([stack])
         self.assertEqual(expected, result)
-        convert_mock.assert_called_with(stack, "Func1", {"a": "b"}, [], False)
+        convert_mock.assert_called_with(stack, "Func1", resources["Func1"], [], False)
 
     @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
     def test_must_skip_unknown_resource(self, resources_mock):
-        resources_mock.return_value = {"Func1": {"Type": "AWS::SomeOther::Function", "Properties": {"a": "b"}}}
+        resources = DictSection("Resources")
+        resources.update({"Func1": {"Type": "AWS::SomeOther::Function", "Properties": {"a": "b"}}})
+        resources_mock.return_value = resources
 
         expected = {}
 
@@ -625,14 +648,22 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         function_child.full_path = "C/Func1"
 
         stack_root = Mock()
-        stack_root.resources = {
-            "Func1": {"Type": "AWS::Lambda::Function", "Properties": {"a": "b"}},
-            "C": {"Type": "AWS::Serverless::Application", "Properties": {"Location": "./child.yaml"}},
-        }
+        resources_mock = DictSection("Resources")
+        resources_mock.update(
+            {
+                "Func1": {"Type": "AWS::Lambda::Function", "Properties": {"a": "b"}},
+                "C": {"Type": "AWS::Serverless::Application", "Properties": {"Location": "./child.yaml"}},
+            }
+        )
+        stack_root.resources = resources_mock
         stack_child = Mock()
-        stack_child.resources = {
-            "Func1": {"Type": "AWS::Lambda::Function", "Properties": {"a": "b"}},
-        }
+        child_resources_mock = DictSection("Resources")
+        child_resources_mock.update(
+            {
+                "Func1": {"Type": "AWS::Lambda::Function", "Properties": {"a": "b"}},
+            }
+        )
+        stack_child.resources = child_resources_mock
 
         convert_mock.side_effect = [function_root, function_child]
 
@@ -642,8 +673,8 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         self.assertEqual(expected, result)
         convert_mock.assert_has_calls(
             [
-                call(stack_root, "Func1", {"a": "b"}, [], False),
-                call(stack_child, "Func1", {"a": "b"}, [], False),
+                call(stack_root, "Func1", resources_mock["Func1"], [], False),
+                call(stack_child, "Func1", child_resources_mock["Func1"], [], False),
             ]
         )
 
@@ -652,18 +683,24 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
     def test_must_convert_zip(self):
 
         name = "myname"
-        properties = {
-            "CodeUri": "/usr/local",
-            "Runtime": "myruntime",
-            "MemorySize": "mymemorysize",
-            "Timeout": "30",
-            "Handler": "myhandler",
-            "Environment": "myenvironment",
-            "Role": "myrole",
-            "Layers": ["Layer1", "Layer2"],
-        }
+        resource = Resource(
+            "func1",
+            body={
+                "Properties": {
+                    "CodeUri": "/usr/local",
+                    "Runtime": "myruntime",
+                    "MemorySize": "mymemorysize",
+                    "Timeout": "30",
+                    "Handler": "myhandler",
+                    "Environment": "myenvironment",
+                    "Role": "myrole",
+                    "Layers": ["Layer1", "Layer2"],
+                }
+            },
+        )
 
         expected = Function(
+            function_id="func1",
             name="myname",
             functionname="myname",
             runtime="myruntime",
@@ -684,26 +721,36 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             stack_path=STACK_PATH,
         )
 
-        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, ["Layer1", "Layer2"])
+        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, resource, ["Layer1", "Layer2"])
 
         self.assertEqual(expected, result)
 
     def test_must_convert_image(self):
 
         name = "myname"
-        properties = {
-            "ImageUri": "helloworld:v1",
-            "Runtime": "myruntime",
-            "MemorySize": "mymemorysize",
-            "Timeout": "30",
-            "Handler": "myhandler",
-            "Environment": "myenvironment",
-            "Role": "myrole",
-            "ImageConfig": {"WorkingDirectory": "/var/task", "Command": "/bin/bash", "EntryPoint": "echo Hello!"},
-            "PackageType": IMAGE,
-        }
+        resource = Resource(
+            "func1",
+            body={
+                "Properties": {
+                    "ImageUri": "helloworld:v1",
+                    "Runtime": "myruntime",
+                    "MemorySize": "mymemorysize",
+                    "Timeout": "30",
+                    "Handler": "myhandler",
+                    "Environment": "myenvironment",
+                    "Role": "myrole",
+                    "ImageConfig": {
+                        "WorkingDirectory": "/var/task",
+                        "Command": "/bin/bash",
+                        "EntryPoint": "echo Hello!",
+                    },
+                    "PackageType": IMAGE,
+                }
+            },
+        )
 
         expected = Function(
+            function_id="func1",
             name="myname",
             functionname="myname",
             runtime="myruntime",
@@ -724,16 +771,17 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             stack_path=STACK_PATH,
         )
 
-        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
+        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, resource, [])
 
         self.assertEqual(expected, result)
 
     def test_must_skip_non_existent_properties(self):
 
         name = "myname"
-        properties = {"CodeUri": "/usr/local"}
+        resource = Resource("func1", body={"Properties": {"CodeUri": "/usr/local"}})
 
         expected = Function(
+            function_id="func1",
             name="myname",
             functionname="myname",
             runtime=None,
@@ -754,30 +802,36 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             stack_path=STACK_PATH,
         )
 
-        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
+        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, resource, [])
 
         self.assertEqual(expected, result)
 
     def test_must_default_missing_code_uri(self):
 
         name = "myname"
-        properties = {"Runtime": "myruntime"}
+        resource = Resource("func1", body={"Properties": {"Runtime": "myruntime"}})
 
-        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
+        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, resource, [])
         self.assertEqual(result.codeuri, ".")  # Default value
 
     def test_must_use_inlinecode(self):
 
         name = "myname"
-        properties = {
-            "InlineCode": "testcode",
-            "Runtime": "myruntime",
-            "MemorySize": "mymemorysize",
-            "Timeout": "30",
-            "Handler": "index.handler",
-        }
+        resource = Resource(
+            "func1",
+            body={
+                "Properties": {
+                    "InlineCode": "testcode",
+                    "Runtime": "myruntime",
+                    "MemorySize": "mymemorysize",
+                    "Timeout": "30",
+                    "Handler": "index.handler",
+                }
+            },
+        )
 
         expected = Function(
+            function_id="func1",
             name="myname",
             functionname="myname",
             runtime="myruntime",
@@ -798,23 +852,29 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             stack_path=STACK_PATH,
         )
 
-        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
+        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, resource, [])
 
         self.assertEqual(expected, result)
 
     def test_must_prioritize_inlinecode(self):
 
         name = "myname"
-        properties = {
-            "CodeUri": "/usr/local",
-            "InlineCode": "testcode",
-            "Runtime": "myruntime",
-            "MemorySize": "mymemorysize",
-            "Timeout": "30",
-            "Handler": "index.handler",
-        }
+        resource = Resource(
+            "func1",
+            body={
+                "Properties": {
+                    "CodeUri": "/usr/local",
+                    "InlineCode": "testcode",
+                    "Runtime": "myruntime",
+                    "MemorySize": "mymemorysize",
+                    "Timeout": "30",
+                    "Handler": "index.handler",
+                }
+            },
+        )
 
         expected = Function(
+            function_id="func1",
             name="myname",
             functionname="myname",
             runtime="myruntime",
@@ -835,21 +895,26 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             stack_path=STACK_PATH,
         )
 
-        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
+        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, resource, [])
 
         self.assertEqual(expected, result)
 
     def test_must_handle_code_dict(self):
 
         name = "myname"
-        properties = {
-            "CodeUri": {
-                # CodeUri is some dictionary
-                "a": "b"
-            }
-        }
+        resource = Resource(
+            "func1",
+            body={
+                "Properties": {
+                    "CodeUri": {
+                        # CodeUri is some dictionary
+                        "a": "b"
+                    }
+                }
+            },
+        )
 
-        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
+        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, resource, [])
         self.assertEqual(result.codeuri, ".")  # Default value
 
 
@@ -857,18 +922,24 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
     def test_must_convert(self):
 
         name = "myname"
-        properties = {
-            "Code": {"Bucket": "bucket"},
-            "Runtime": "myruntime",
-            "MemorySize": "mymemorysize",
-            "Timeout": "30",
-            "Handler": "myhandler",
-            "Environment": "myenvironment",
-            "Role": "myrole",
-            "Layers": ["Layer1", "Layer2"],
-        }
+        resource = Resource(
+            "func1",
+            body={
+                "Properties": {
+                    "Code": {"Bucket": "bucket"},
+                    "Runtime": "myruntime",
+                    "MemorySize": "mymemorysize",
+                    "Timeout": "30",
+                    "Handler": "myhandler",
+                    "Environment": "myenvironment",
+                    "Role": "myrole",
+                    "Layers": ["Layer1", "Layer2"],
+                }
+            },
+        )
 
         expected = Function(
+            function_id="func1",
             name="myname",
             functionname="myname",
             runtime="myruntime",
@@ -889,23 +960,29 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             stack_path=STACK_PATH,
         )
 
-        result = SamFunctionProvider._convert_lambda_function_resource(STACK, name, properties, ["Layer1", "Layer2"])
+        result = SamFunctionProvider._convert_lambda_function_resource(STACK, name, resource, ["Layer1", "Layer2"])
 
         self.assertEqual(expected, result)
 
     def test_must_use_inlinecode(self):
 
         name = "myname"
-        properties = {
-            "Code": {"ZipFile": "testcode"},
-            "Runtime": "myruntime",
-            "MemorySize": "mymemorysize",
-            "Timeout": "30",
-            "Handler": "myhandler",
-            "Environment": "myenvironment",
-        }
+        resource = Resource(
+            "func1",
+            body={
+                "Properties": {
+                    "Code": {"ZipFile": "testcode"},
+                    "Runtime": "myruntime",
+                    "MemorySize": "mymemorysize",
+                    "Timeout": "30",
+                    "Handler": "myhandler",
+                    "Environment": "myenvironment",
+                }
+            },
+        )
 
         expected = Function(
+            function_id="func1",
             name="myname",
             functionname="myname",
             runtime="myruntime",
@@ -926,16 +1003,17 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             stack_path=STACK_PATH,
         )
 
-        result = SamFunctionProvider._convert_lambda_function_resource(STACK, name, properties, [])
+        result = SamFunctionProvider._convert_lambda_function_resource(STACK, name, resource, [])
 
         self.assertEqual(expected, result)
 
     def test_must_skip_non_existent_properties(self):
 
         name = "myname"
-        properties = {"Code": {"Bucket": "bucket"}}
+        resource = Resource("func1", body={"Properties": {"Code": {"Bucket": "bucket"}}})
 
         expected = Function(
+            function_id="func1",
             name="myname",
             functionname="myname",
             runtime=None,
@@ -956,7 +1034,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             stack_path=STACK_PATH,
         )
 
-        result = SamFunctionProvider._convert_lambda_function_resource(STACK, name, properties, [])
+        result = SamFunctionProvider._convert_lambda_function_resource(STACK, name, resource, [])
 
         self.assertEqual(expected, result)
 
@@ -985,7 +1063,7 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
             SamFunctionProvider._parse_layer_info(STACK, [layer_reference], resources)
 
     def test_must_ignore_opt_in_AmazonLinux1803_layer(self):
-        resources = {}
+        resources = Resource()
 
         list_of_layers = [
             "arn:aws:lambda:region:account-id:layer:layer-name:1",
@@ -996,15 +1074,19 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
         )
 
         for (actual_layer, expected_layer) in zip(
-            actual, [LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None, stack_path=STACK_PATH)]
+            actual,
+            [LayerVersion(None, "arn:aws:lambda:region:account-id:layer:layer-name:1", None, stack_path=STACK_PATH)],
         ):
             self.assertEqual(actual_layer, expected_layer)
 
     def test_layers_created_from_template_resources(self):
-        resources = {
-            "Layer": {"Type": "AWS::Lambda::LayerVersion", "Properties": {"Content": "/somepath"}},
-            "ServerlessLayer": {"Type": "AWS::Serverless::LayerVersion", "Properties": {"ContentUri": "/somepath"}},
-        }
+        resources = DictSection("Resources")
+        resources.update(
+            {
+                "Layer": {"Type": "AWS::Lambda::LayerVersion", "Properties": {"Content": "/somepath"}},
+                "ServerlessLayer": {"Type": "AWS::Serverless::LayerVersion", "Properties": {"ContentUri": "/somepath"}},
+            }
+        )
 
         list_of_layers = [
             {"Ref": "Layer"},
@@ -1019,9 +1101,9 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
         for (actual_layer, expected_layer) in zip(
             actual,
             [
-                LayerVersion("Layer", "/somepath", stack_path=STACK_PATH),
-                LayerVersion("ServerlessLayer", "/somepath", stack_path=STACK_PATH),
-                LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None, stack_path=STACK_PATH),
+                LayerVersion("Layer", "Layer", "/somepath", stack_path=STACK_PATH),
+                LayerVersion("ServerlessLayer", "ServerlessLayer", "/somepath", stack_path=STACK_PATH),
+                LayerVersion(None, "arn:aws:lambda:region:account-id:layer:layer-name:1", None, stack_path=STACK_PATH),
             ],
         ):
             self.assertEqual(actual_layer, expected_layer)
@@ -1047,6 +1129,7 @@ class TestSamFunctionProvider_get(TestCase):
         provider = SamFunctionProvider([])
         # Cheat a bit here by setting the value of this property directly
         function = Function(
+            function_id="not-value",
             name="not-value",
             functionname="value",
             runtime=None,

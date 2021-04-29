@@ -54,6 +54,8 @@ class TestCli(TestCase):
 
         # Mock the __enter__ method to return a object inside a context manager
         context_mock = Mock()
+        iac_mock = Mock()
+        project_mock = Mock()
         InvokeContextMock.return_value.__enter__.return_value = context_mock
 
         invoke_cli(
@@ -75,6 +77,9 @@ class TestCli(TestCase):
             layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
             shutdown=self.shutdown,
+            project_type="CFN",
+            iac=iac_mock,
+            project=project_mock,
         )
 
         InvokeContextMock.assert_called_with(
@@ -95,6 +100,8 @@ class TestCli(TestCase):
             shutdown=self.shutdown,
             aws_region=self.region_name,
             aws_profile=self.profile,
+            iac=iac_mock,
+            project=project_mock,
         )
 
         context_mock.local_lambda_runner.invoke.assert_called_with(
@@ -113,6 +120,8 @@ class TestCli(TestCase):
 
         # Mock the __enter__ method to return a object inside a context manager
         context_mock = Mock()
+        iac_mock = Mock()
+        project_mock = Mock()
         InvokeContextMock.return_value.__enter__.return_value = context_mock
         invoke_cli(
             ctx=ctx_mock,
@@ -133,6 +142,9 @@ class TestCli(TestCase):
             layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
             shutdown=self.shutdown,
+            project_type="CFN",
+            iac=iac_mock,
+            project=project_mock,
         )
 
         InvokeContextMock.assert_called_with(
@@ -153,6 +165,8 @@ class TestCli(TestCase):
             shutdown=self.shutdown,
             aws_region=self.region_name,
             aws_profile=self.profile,
+            iac=iac_mock,
+            project=project_mock,
         )
 
         get_event_mock.assert_not_called()
@@ -205,6 +219,9 @@ class TestCli(TestCase):
                 layer_cache_basedir=self.layer_cache_basedir,
                 force_image_build=self.force_image_build,
                 shutdown=self.shutdown,
+                project_type="CFN",
+                iac=Mock(),
+                project=Mock(),
             )
 
         msg = str(ex_ctx.exception)
@@ -257,6 +274,9 @@ class TestCli(TestCase):
                 layer_cache_basedir=self.layer_cache_basedir,
                 force_image_build=self.force_image_build,
                 shutdown=self.shutdown,
+                project_type="CFN",
+                iac=Mock(),
+                project=Mock(),
             )
 
         msg = str(ex_ctx.exception)
@@ -307,6 +327,9 @@ class TestCli(TestCase):
                 layer_cache_basedir=self.layer_cache_basedir,
                 force_image_build=self.force_image_build,
                 shutdown=self.shutdown,
+                project_type="CFN",
+                iac=Mock(),
+                project=Mock(),
             )
 
         msg = str(ex_ctx.exception)
@@ -345,6 +368,9 @@ class TestCli(TestCase):
                 layer_cache_basedir=self.layer_cache_basedir,
                 force_image_build=self.force_image_build,
                 shutdown=self.shutdown,
+                project_type="CFN",
+                iac=Mock(),
+                project=Mock(),
             )
 
         msg = str(ex_ctx.exception)
@@ -397,6 +423,9 @@ class TestCli(TestCase):
                 layer_cache_basedir=self.layer_cache_basedir,
                 force_image_build=self.force_image_build,
                 shutdown=self.shutdown,
+                project_type="CFN",
+                iac=Mock(),
+                project=Mock(),
             )
 
         msg = str(ex_ctx.exception)

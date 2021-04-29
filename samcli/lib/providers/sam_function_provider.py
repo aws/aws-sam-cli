@@ -11,6 +11,7 @@ from samcli.lib.utils.packagetype import ZIP, IMAGE
 from .provider import Function, LayerVersion, Stack
 from .sam_base_provider import SamBaseProvider
 from .sam_stack_provider import SamLocalStackProvider
+from ..iac.interface import S3Asset, Resource, ImageAsset
 
 LOG = logging.getLogger(__name__)
 
@@ -121,7 +122,6 @@ class SamFunctionProvider(SamBaseProvider):
         result: Dict[str, Function] = {}  # a dict with full_path as key and extracted function as value
         for stack in stacks:
             for name, resource in stack.resources.items():
-
                 resource_type = resource.get("Type")
                 resource_properties = resource.get("Properties", {})
                 resource_metadata = resource.get("Metadata", None)
@@ -131,7 +131,13 @@ class SamFunctionProvider(SamBaseProvider):
 
                 if resource_type in [SamFunctionProvider.SERVERLESS_FUNCTION, SamFunctionProvider.LAMBDA_FUNCTION]:
                     code_property_key = SamBaseProvider.CODE_PROPERTY_KEYS[resource_type]
-                    if SamBaseProvider._is_s3_location(resource_properties.get(code_property_key)):
+                    assets = resource.assets or []
+                    code_asset_uri = None
+                    for asset in assets:
+                        if isinstance(asset, S3Asset) and asset.source_property == code_property_key:
+                            code_asset_uri = asset.source_path
+                            break
+                    if SamBaseProvider._is_s3_location(code_asset_uri or resource_properties.get(code_property_key)):
                         # CodeUri can be a dictionary of S3 Bucket/Key or a S3 URI, neither of which are supported
                         if not ignore_code_extraction_warnings:
                             SamFunctionProvider._warn_code_extraction(resource_type, name, code_property_key)
@@ -147,7 +153,7 @@ class SamFunctionProvider(SamBaseProvider):
                     function = SamFunctionProvider._convert_sam_function_resource(
                         stack,
                         name,
-                        resource_properties,
+                        resource,
                         layers,
                         use_raw_codeuri,
                     )
@@ -161,7 +167,7 @@ class SamFunctionProvider(SamBaseProvider):
                         ignore_code_extraction_warnings=ignore_code_extraction_warnings,
                     )
                     function = SamFunctionProvider._convert_lambda_function_resource(
-                        stack, name, resource_properties, layers, use_raw_codeuri
+                        stack, name, resource, layers, use_raw_codeuri
                     )
                     result[function.full_path] = function
 
@@ -173,7 +179,7 @@ class SamFunctionProvider(SamBaseProvider):
     def _convert_sam_function_resource(
         stack: Stack,
         name: str,
-        resource_properties: Dict,
+        resource: Resource,
         layers: List[LayerVersion],
         use_raw_codeuri: bool = False,
     ) -> Function:
@@ -195,6 +201,9 @@ class SamFunctionProvider(SamBaseProvider):
             Function configuration
         """
         codeuri: Optional[str] = SamFunctionProvider.DEFAULT_CODEURI
+        function_id = resource.item_id
+        resource_properties = resource.get("Properties", {})
+        assets = resource.assets or []
         inlinecode = resource_properties.get("InlineCode")
         imageuri = None
         packagetype = resource_properties.get("PackageType", ZIP)
@@ -203,19 +212,58 @@ class SamFunctionProvider(SamBaseProvider):
                 LOG.debug("Found Serverless function with name='%s' and InlineCode", name)
                 codeuri = None
             else:
-                codeuri = SamBaseProvider._extract_codeuri(resource_properties, "CodeUri")
+                code_asset_uri = None
+                for asset in assets:
+                    if isinstance(asset, S3Asset) and asset.source_property == "CodeUri":
+                        code_asset = asset
+                        code_asset_uri = code_asset.source_path
+                        break
+
+                codeuri = code_asset_uri or SamBaseProvider._extract_codeuri(resource_properties, "CodeUri")
                 LOG.debug("Found Serverless function with name='%s' and CodeUri='%s'", name, codeuri)
         elif packagetype == IMAGE:
-            imageuri = SamFunctionProvider._extract_sam_function_imageuri(resource_properties, "ImageUri")
+            function_image_uri = None
+            image_asset = None
+            for asset in assets:
+                if isinstance(asset, ImageAsset) and asset.source_property == "ImageUri":
+                    image_asset = asset
+                    function_image_uri = image_asset.source_local_image
+                    break
+            imageuri = function_image_uri or SamFunctionProvider._extract_sam_function_imageuri(
+                resource_properties, "ImageUri"
+            )
+            SamFunctionProvider._set_container_image_build_metadata(image_asset, resource_properties)
+
             LOG.debug("Found Serverless function with name='%s' and ImageUri='%s'", name, imageuri)
 
         return SamFunctionProvider._build_function_configuration(
-            stack, name, codeuri, resource_properties, layers, inlinecode, imageuri, use_raw_codeuri
+            stack, function_id, name, codeuri, resource_properties, layers, inlinecode, imageuri, use_raw_codeuri
         )
 
     @staticmethod
+    def _set_container_image_build_metadata(image_asset, resource_properties):
+        if image_asset:
+            metadata = resource_properties.get("Metadata", {})
+            docker_tag = image_asset.image_tag or metadata.get("DockerTag", None)
+            if docker_tag:
+                metadata["DockerTag"] = docker_tag
+            docker_file = image_asset.docker_file_name or metadata.get("Dockerfile", None)
+            if docker_file:
+                metadata["Dockerfile"] = docker_file
+            docker_context = image_asset.source_path or metadata.get("DockerContext", None)
+            if docker_context:
+                metadata["DockerContext"] = docker_context
+            build_args = image_asset.build_args or metadata.get("DockerBuildArgs", None)
+            if build_args:
+                metadata["DockerBuildArgs"] = build_args
+            target = image_asset.target or metadata.get("DockerBuildTarget", None)
+            if target:
+                metadata["DockerBuildTarget"] = target
+            resource_properties["Metadata"] = metadata
+
+    @staticmethod
     def _convert_lambda_function_resource(
-        stack: Stack, name: str, resource_properties: Dict, layers: List[LayerVersion], use_raw_codeuri: bool = False
+        stack: Stack, name: str, resource: Resource, layers: List[LayerVersion], use_raw_codeuri: bool = False
     ) -> Function:
         """
         Converts a AWS::Lambda::Function resource to a Function configuration usable by the provider.
@@ -242,10 +290,20 @@ class SamFunctionProvider(SamBaseProvider):
         codeuri: Optional[str] = SamFunctionProvider.DEFAULT_CODEURI
         inlinecode = None
         imageuri = None
+        function_id = resource.item_id
+        resource_properties = resource.get("Properties", {})
+        assets = resource.assets or []
         packagetype = resource_properties.get("PackageType", ZIP)
         if packagetype == ZIP:
+            code_asset_uri = None
+            for asset in assets:
+                if isinstance(asset, S3Asset) and asset.source_property == "Code":
+                    code_asset = asset
+                    code_asset_uri = code_asset.source_path
+                    break
             if (
-                "Code" in resource_properties
+                not code_asset_uri
+                and "Code" in resource_properties
                 and isinstance(resource_properties["Code"], dict)
                 and resource_properties["Code"].get("ZipFile")
             ):
@@ -253,19 +311,32 @@ class SamFunctionProvider(SamBaseProvider):
                 LOG.debug("Found Lambda function with name='%s' and Code ZipFile", name)
                 codeuri = None
             else:
-                codeuri = SamBaseProvider._extract_codeuri(resource_properties, "Code")
+                codeuri = code_asset_uri or SamBaseProvider._extract_codeuri(resource_properties, "Code")
                 LOG.debug("Found Lambda function with name='%s' and CodeUri='%s'", name, codeuri)
         elif packagetype == IMAGE:
-            imageuri = SamFunctionProvider._extract_lambda_function_imageuri(resource_properties, "Code")
+            function_image_uri = None
+            image_asset = None
+            for asset in assets:
+                if isinstance(asset, ImageAsset) and asset.source_property.startswith("Code"):
+                    image_asset = asset
+                    function_image_uri = image_asset.source_local_image
+                    break
+
+            imageuri = function_image_uri or SamFunctionProvider._extract_lambda_function_imageuri(
+                resource_properties, "Code"
+            )
             LOG.debug("Found Lambda function with name='%s' and Imageuri='%s'", name, imageuri)
 
+            SamFunctionProvider._set_container_image_build_metadata(image_asset, resource_properties)
+
         return SamFunctionProvider._build_function_configuration(
-            stack, name, codeuri, resource_properties, layers, inlinecode, imageuri, use_raw_codeuri
+            stack, function_id, name, codeuri, resource_properties, layers, inlinecode, imageuri, use_raw_codeuri
         )
 
     @staticmethod
     def _build_function_configuration(
         stack: Stack,
+        function_id: str,
         name: str,
         codeuri: Optional[str],
         resource_properties: Dict,
@@ -300,18 +371,19 @@ class SamFunctionProvider(SamBaseProvider):
             LOG.debug(
                 "--base-dir is not presented, adjusting uri %s relative to %s",
                 metadata["DockerContext"],
-                stack.location,
+                stack.origin_dir,
             )
             metadata["DockerContext"] = SamLocalStackProvider.normalize_resource_path(
-                stack.location, metadata["DockerContext"]
+                stack.origin_dir, metadata["DockerContext"]
             )
 
         if codeuri and not use_raw_codeuri:
-            LOG.debug("--base-dir is not presented, adjusting uri %s relative to %s", codeuri, stack.location)
-            codeuri = SamLocalStackProvider.normalize_resource_path(stack.location, codeuri)
+            LOG.debug("--base-dir is not presented, adjusting uri %s relative to %s", codeuri, stack.origin_dir)
+            codeuri = SamLocalStackProvider.normalize_resource_path(stack.origin_dir, codeuri)
 
         return Function(
             stack_path=stack.stack_path,
+            function_id=function_id,
             name=name,
             functionname=resource_properties.get("FunctionName", name),
             packagetype=resource_properties.get("PackageType", ZIP),
@@ -378,6 +450,7 @@ class SamFunctionProvider(SamBaseProvider):
             if isinstance(layer, str):
                 layers.append(
                     LayerVersion(
+                        None,
                         layer,
                         None,
                         stack_path=stack.stack_path,
@@ -416,23 +489,33 @@ class SamFunctionProvider(SamBaseProvider):
 
         layer_properties = layer_resource.get("Properties", {})
         resource_type = layer_resource.get("Type")
+        layer_id = layer_resource.item_id
         compatible_runtimes = layer_properties.get("CompatibleRuntimes")
         codeuri: Optional[str] = None
 
         if resource_type in [SamFunctionProvider.LAMBDA_LAYER, SamFunctionProvider.SERVERLESS_LAYER]:
             code_property_key = SamBaseProvider.CODE_PROPERTY_KEYS[resource_type]
-            if SamBaseProvider._is_s3_location(layer_properties.get(code_property_key)):
+            assets = layer_resource.assets or []
+            layer_code_asset = None
+            layer_code_uri = None
+            for asset in assets:
+                if isinstance(asset, S3Asset) and asset.source_property == code_property_key:
+                    layer_code_asset = asset
+                    layer_code_uri = asset.source_path
+                    break
+            if not (layer_code_asset) and SamBaseProvider._is_s3_location(layer_properties.get(code_property_key)):
                 # Content can be a dictionary of S3 Bucket/Key or a S3 URI, neither of which are supported
                 if not ignore_code_extraction_warnings:
                     SamFunctionProvider._warn_code_extraction(resource_type, layer_logical_id, code_property_key)
                 return None
-            codeuri = SamBaseProvider._extract_codeuri(layer_properties, code_property_key)
+            codeuri = layer_code_uri or SamBaseProvider._extract_codeuri(layer_properties, code_property_key)
 
         if codeuri and not use_raw_codeuri:
-            LOG.debug("--base-dir is not presented, adjusting uri %s relative to %s", codeuri, stack.location)
-            codeuri = SamLocalStackProvider.normalize_resource_path(stack.location, codeuri)
+            LOG.debug("--base-dir is not presented, adjusting uri %s relative to %s", codeuri, stack.origin_dir)
+            codeuri = SamLocalStackProvider.normalize_resource_path(stack.origin_dir, codeuri)
 
         return LayerVersion(
+            layer_id,
             layer_logical_id,
             codeuri,
             compatible_runtimes,
