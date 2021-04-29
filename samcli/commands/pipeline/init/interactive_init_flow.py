@@ -43,6 +43,7 @@ def do_interactive() -> None:
         _generate_from_custom_location()
     else:
         _generate_from_app_pipeline_templates()
+    click.echo("Successfully created the pipeline configuration file(s)")
 
 
 def _generate_from_app_pipeline_templates() -> None:
