@@ -20,7 +20,7 @@ class TestInteractiveInitFlow(TestCase):
     @patch("samcli.commands.pipeline.init.interactive_init_flow._generate_from_pipeline_template")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.shared_path")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
-    @patch("samcli.commands.pipeline.init.interactive_init_flow.click")
+    @patch("samcli.lib.cookiecutter.question.click")
     def test_app_pipeline_templates_clone_fail_when_an_old_clone_exists(
         self,
         click_mock,
@@ -46,22 +46,16 @@ class TestInteractiveInitFlow(TestCase):
 
         # verify
         clone_mock.assert_called_once_with(
-            clone_dir=shared_path_mock, clone_name=APP_PIPELINE_TEMPLATES_REPO_LOCAL_NAME, replace_existing=True
+            shared_path_mock, APP_PIPELINE_TEMPLATES_REPO_LOCAL_NAME, replace_existing=True
         )
         app_pipeline_templates_path_mock.exists.assert_called_once()
-        read_app_pipeline_templates_manifest_mock.assert_called_once_with(
-            pipeline_templates_dir=app_pipeline_templates_path_mock
-        )
-        select_pipeline_template_mock.assert_called_once_with(
-            pipeline_templates_manifest=pipeline_templates_manifest_mock
-        )
-        generate_from_pipeline_template_mock.assert_called_once_with(
-            pipeline_template_dir=selected_pipeline_template_path_mock
-        )
+        read_app_pipeline_templates_manifest_mock.assert_called_once_with(app_pipeline_templates_path_mock)
+        select_pipeline_template_mock.assert_called_once_with(pipeline_templates_manifest_mock)
+        generate_from_pipeline_template_mock.assert_called_once_with(selected_pipeline_template_path_mock)
 
     @patch("samcli.commands.pipeline.init.interactive_init_flow.shared_path")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
-    @patch("samcli.commands.pipeline.init.interactive_init_flow.click")
+    @patch("samcli.lib.cookiecutter.question.click")
     def test_app_pipeline_templates_clone_fail_when_no_old_clone_exist(self, click_mock, clone_mock, shared_path_mock):
         # setup
         clone_mock.side_effect = CloneRepoException  # clone fail
@@ -76,13 +70,14 @@ class TestInteractiveInitFlow(TestCase):
 
     @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.click")
-    def test_custom_pipeline_template_clone_fail(self, click_mock, clone_mock):
+    @patch("samcli.lib.cookiecutter.question.click")
+    def test_custom_pipeline_template_clone_fail(self, question_click_mock, init_click_mock, clone_mock):
         # setup
         clone_mock.side_effect = CloneRepoException  # clone fail
-        click_mock.prompt.side_effect = [
-            "2",  # Custom pipeline templates
-            "https://github.com/any-custom-pipeline-template-repo.git",  # Custom pipeline template repo URL
-        ]
+        question_click_mock.prompt.return_value = "2"  # Custom pipeline templates
+        init_click_mock.prompt.return_value = (
+            "https://github.com/any-custom-pipeline-template-repo.git"  # Custom pipeline template repo URL
+        )
 
         # trigger
         with self.assertRaises(PipelineTemplateCloneException):
@@ -90,7 +85,7 @@ class TestInteractiveInitFlow(TestCase):
 
     @patch("samcli.commands.pipeline.init.interactive_init_flow._read_app_pipeline_templates_manifest")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
-    @patch("samcli.commands.pipeline.init.interactive_init_flow.click")
+    @patch("samcli.lib.cookiecutter.question.click")
     def test_app_pipeline_templates_with_invalid_manifest(
         self, click_mock, clone_mock, read_app_pipeline_templates_manifest_mock
     ):
@@ -104,12 +99,11 @@ class TestInteractiveInitFlow(TestCase):
         with self.assertRaises(AppPipelineTemplateManifestException):
             do_interactive()
 
-    @patch("samcli.commands.pipeline.init.interactive_init_flow.shutil")
     @patch("samcli.lib.cookiecutter.template.cookiecutter")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.InteractiveFlowCreator.create_flow")
     @patch("samcli.commands.pipeline.init.interactive_init_flow._read_app_pipeline_templates_manifest")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
-    @patch("samcli.commands.pipeline.init.interactive_init_flow.click")
+    @patch("samcli.lib.cookiecutter.question.click")
     def test_generate_pipeline_configuration_file_from_app_pipeline_template_happy_case(
         self,
         click_mock,
@@ -117,7 +111,6 @@ class TestInteractiveInitFlow(TestCase):
         read_app_pipeline_templates_manifest_mock,
         create_interactive_flow_mock,
         cookiecutter_mock,
-        shutil_mock,
     ):
         # setup
         any_app_pipeline_templates_path = Path(
@@ -146,14 +139,10 @@ class TestInteractiveInitFlow(TestCase):
 
         # verify
         expected_cookicutter_template_location = any_app_pipeline_templates_path.joinpath(jenkins_template_location)
-        clone_mock.assert_called_once_with(
-            clone_dir=shared_path, clone_name=APP_PIPELINE_TEMPLATES_REPO_LOCAL_NAME, replace_existing=True
-        )
-        read_app_pipeline_templates_manifest_mock.assert_called_once_with(
-            pipeline_templates_dir=any_app_pipeline_templates_path
-        )
+        clone_mock.assert_called_once_with(shared_path, APP_PIPELINE_TEMPLATES_REPO_LOCAL_NAME, replace_existing=True)
+        read_app_pipeline_templates_manifest_mock.assert_called_once_with(any_app_pipeline_templates_path)
         create_interactive_flow_mock.assert_called_once_with(
-            flow_definition_path=str(expected_cookicutter_template_location.joinpath("questions.json"))
+            str(expected_cookicutter_template_location.joinpath("questions.json"))
         )
         interactive_flow_mock.run.assert_called_once()
         cookiecutter_mock.assert_called_once_with(
@@ -162,18 +151,15 @@ class TestInteractiveInitFlow(TestCase):
             no_input=True,
             extra_context=cookiecutter_context_mock,
         )
-        shutil_mock.rm_tree.assert_not_called()
 
     @patch("samcli.commands.pipeline.init.interactive_init_flow._read_app_pipeline_templates_manifest")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
-    @patch("samcli.commands.pipeline.init.interactive_init_flow.click")
+    @patch("samcli.lib.cookiecutter.question.click")
     def test_generate_pipeline_configuration_file_when_pipeline_template_missing_questions_file(
         self, click_mock, clone_mock, read_app_pipeline_templates_manifest_mock
     ):
         # setup
-        any_app_pipeline_templates_path = Path(
-            os.path.normpath(shared_path.joinpath(APP_PIPELINE_TEMPLATES_REPO_LOCAL_NAME))
-        )
+        any_app_pipeline_templates_path = shared_path.joinpath(APP_PIPELINE_TEMPLATES_REPO_LOCAL_NAME)
         clone_mock.return_value = any_app_pipeline_templates_path
         jenkins_template_location = "some/location"
         jenkins_template_mock = Mock(
@@ -192,38 +178,47 @@ class TestInteractiveInitFlow(TestCase):
         with self.assertRaises(QuestionsNotFoundException):
             do_interactive()
 
-    @patch("samcli.commands.pipeline.init.interactive_init_flow.shutil")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow.osutils")
     @patch("samcli.lib.cookiecutter.template.cookiecutter")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.InteractiveFlowCreator.create_flow")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.click")
+    @patch("samcli.lib.cookiecutter.question.click")
     def test_generate_pipeline_configuration_file_from_custom_pipeline_template_happy_case(
-        self, click_mock, clone_mock, create_interactive_flow_mock, cookiecutter_mock, shutil_mock
+        self,
+        questions_click_mock,
+        init_click_mock,
+        clone_mock,
+        create_interactive_flow_mock,
+        cookiecutter_mock,
+        osutils_mock,
     ):
         # setup
-        any_custom_pipeline_templates_path = Path(
-            os.path.normpath(shared_path.joinpath(CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME))
-        )
+        any_temp_dir = "/tmp/any/dir"
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=any_temp_dir)
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+        any_custom_pipeline_templates_path = Path(os.path.join(any_temp_dir, CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME))
         clone_mock.return_value = any_custom_pipeline_templates_path
         interactive_flow_mock = Mock()
         create_interactive_flow_mock.return_value = interactive_flow_mock
         cookiecutter_context_mock = Mock()
         interactive_flow_mock.run.return_value = cookiecutter_context_mock
 
-        click_mock.prompt.side_effect = [
-            "2",  # Custom pipeline templates
-            "https://github.com/any-custom-pipeline-template-repo.git",  # Custom pipeline template repo URL
-        ]
+        questions_click_mock.prompt.return_value = "2"  # Custom pipeline templates
+        init_click_mock.prompt.return_value = (
+            "https://github.com/any-custom-pipeline-template-repo.git",
+        )  # Custom pipeline template repo URL
 
         # trigger
         do_interactive()
 
         # verify
+        osutils_mock.mkdir_temp.assert_called_once()  # Custom templates are cloned to temp
         clone_mock.assert_called_once_with(
-            clone_dir=shared_path, clone_name=CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME, replace_existing=True
+            Path(any_temp_dir), CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME, replace_existing=True
         )
         create_interactive_flow_mock.assert_called_once_with(
-            flow_definition_path=str(any_custom_pipeline_templates_path.joinpath("questions.json"))
+            str(any_custom_pipeline_templates_path.joinpath("questions.json"))
         )
         interactive_flow_mock.run.assert_called_once()
         cookiecutter_mock.assert_called_once_with(
@@ -232,4 +227,3 @@ class TestInteractiveInitFlow(TestCase):
             no_input=True,
             extra_context=cookiecutter_context_mock,
         )
-        shutil_mock.rmtree.assert_called_once_with(any_custom_pipeline_templates_path, onerror=ANY)

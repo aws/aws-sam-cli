@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from samcli.commands.pipeline.init.pipeline_templates_manifest import (
     PipelineTemplatesManifest,
-    PipelineTemplateManifest,
+    PipelineTemplateMetadata,
     AppPipelineTemplateManifestException,
 )
 from samcli.lib.utils import osutils
@@ -70,7 +70,7 @@ class TestCli(TestCase):
             manifest = PipelineTemplatesManifest(manifest_path=Path(manifest_path))
         self.assertEquals(manifest.providers, ["Jenkins", "Gitlab", "Github Actions"])
         self.assertEquals(len(manifest.templates), 3)
-        gitlab_template: PipelineTemplateManifest = next(t for t in manifest.templates if t.provider == "Gitlab")
+        gitlab_template: PipelineTemplateMetadata = next(t for t in manifest.templates if t.provider == "Gitlab")
         self.assertEquals(gitlab_template.name, "gitlab-two-stages-pipeline")
         self.assertEquals(gitlab_template.provider, "Gitlab")
         self.assertEquals(gitlab_template.location, "templates/cookiecutter-gitlab-two-stages-pipeline")

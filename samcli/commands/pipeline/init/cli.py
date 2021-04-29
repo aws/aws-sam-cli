@@ -10,9 +10,10 @@ from samcli.cli.main import pass_context, common_options as cli_framework_option
 from samcli.commands.pipeline.init.interactive_init_flow import do_interactive
 from samcli.lib.telemetry.metric import track_command
 
-SHORT_HELP = "Generates a CI/CD pipeline configuration file."
+SHORT_HELP = "Generates CI/CD pipeline configuration files."
 HELP_TEXT = """
-Generates a CI/CD pipeline configuration file for a chosen CI/CD provider like Jenkins, Gitlab and Github Actions
+Generates CI/CD pipeline configuration files for a chosen CI/CD provider such as Jenkins, 
+GitLab CI/CD or GitHub Actions
 """
 
 
