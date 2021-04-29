@@ -2,6 +2,7 @@ from unittest import TestCase
 import os
 from pathlib import Path
 from samcli.commands.pipeline.init.pipeline_templates_manifest import (
+    Provider,
     PipelineTemplatesManifest,
     PipelineTemplateMetadata,
     AppPipelineTemplateManifestException,
@@ -24,18 +25,21 @@ Templates:
 
 VALID_MANIFEST = """
 providers:
-  - Jenkins
-  - Gitlab
-  - Github Actions
+  - displayName: Jenkins
+    id: jenkins
+  - displayName: Gitlab CI/CD
+    id: gitlab
+  - displayName: Github Actions
+    id: github-actions
 templates:
-  - name: jenkins-two-stages-pipeline
-    provider: Jenkins
+  - displayName: jenkins-two-stages-pipeline
+    provider: jenkins
     location: templates/cookiecutter-jenkins-two-stages-pipeline
-  - name: gitlab-two-stages-pipeline
-    provider: Gitlab
+  - displayName: gitlab-two-stages-pipeline
+    provider: gitlab
     location: templates/cookiecutter-gitlab-two-stages-pipeline
-  - name: Github-Actions-two-stages-pipeline
-    provider: Github Actions
+  - displayName: Github-Actions-two-stages-pipeline
+    provider: github-actions
     location: templates/cookiecutter-github-actions-two-stages-pipeline
 """
 
@@ -68,9 +72,11 @@ class TestCli(TestCase):
             with open(manifest_path, "w", encoding="utf-8") as fp:
                 fp.write(VALID_MANIFEST)
             manifest = PipelineTemplatesManifest(manifest_path=Path(manifest_path))
-        self.assertEquals(manifest.providers, ["Jenkins", "Gitlab", "Github Actions"])
+        self.assertEquals(len(manifest.providers), 3)
+        gitlab_provider: Provider = next(p for p in manifest.providers if p.id == "gitlab")
+        self.assertEquals(gitlab_provider.display_name, "Gitlab CI/CD")
         self.assertEquals(len(manifest.templates), 3)
-        gitlab_template: PipelineTemplateMetadata = next(t for t in manifest.templates if t.provider == "Gitlab")
-        self.assertEquals(gitlab_template.name, "gitlab-two-stages-pipeline")
-        self.assertEquals(gitlab_template.provider, "Gitlab")
+        gitlab_template: PipelineTemplateMetadata = next(t for t in manifest.templates if t.provider == "gitlab")
+        self.assertEquals(gitlab_template.display_name, "gitlab-two-stages-pipeline")
+        self.assertEquals(gitlab_template.provider, "gitlab")
         self.assertEquals(gitlab_template.location, "templates/cookiecutter-gitlab-two-stages-pipeline")

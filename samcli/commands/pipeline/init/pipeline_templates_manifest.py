@@ -25,11 +25,19 @@ from samcli.commands.exceptions import AppPipelineTemplateManifestException
 from samcli.yamlhelper import parse_yaml_file
 
 
+class Provider:
+    """ CI/CD provider such as Jenkins, Gitlab and GitHub-Actions"""
+
+    def __init__(self, manifest: Dict) -> None:
+        self.id: str = manifest["id"]
+        self.display_name: str = manifest["displayName"]
+
+
 class PipelineTemplateMetadata:
     """ The metadata of a Given pipeline template"""
 
     def __init__(self, manifest: Dict) -> None:
-        self.name: str = manifest["name"]
+        self.display_name: str = manifest["displayName"]
         self.provider: str = manifest["provider"]
         self.location: str = manifest["location"]
 
@@ -40,9 +48,9 @@ class PipelineTemplatesManifest:
     def __init__(self, manifest_path: Path) -> None:
         try:
             manifest: Dict = parse_yaml_file(file_path=str(manifest_path))
-            self.providers: List[str] = manifest["providers"]
+            self.providers: List[Provider] = list(map(Provider, manifest["providers"]))
             self.templates: List[PipelineTemplateMetadata] = list(map(PipelineTemplateMetadata, manifest["templates"]))
-        except (FileNotFoundError, KeyError, yaml.YAMLError) as ex:
+        except (FileNotFoundError, KeyError, TypeError, yaml.YAMLError) as ex:
             raise AppPipelineTemplateManifestException(
                 "SAM pipeline templates manifest file is not found or ill-formatted. This could happen if the file "
                 f"{manifest_path} got deleted or modified."

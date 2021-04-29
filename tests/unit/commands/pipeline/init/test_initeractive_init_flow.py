@@ -16,7 +16,7 @@ from samcli.lib.cookiecutter.interactive_flow_creator import QuestionsNotFoundEx
 
 class TestInteractiveInitFlow(TestCase):
     @patch("samcli.commands.pipeline.init.interactive_init_flow._read_app_pipeline_templates_manifest")
-    @patch("samcli.commands.pipeline.init.interactive_init_flow._select_pipeline_template")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow._prompt_pipeline_template")
     @patch("samcli.commands.pipeline.init.interactive_init_flow._generate_from_pipeline_template")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.shared_path")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
@@ -119,9 +119,15 @@ class TestInteractiveInitFlow(TestCase):
         clone_mock.return_value = any_app_pipeline_templates_path
         jenkins_template_location = "some/location"
         jenkins_template_mock = Mock(
-            name="Jenkins pipeline template", location=jenkins_template_location, provider="Jenkins"
+            display_name="Jenkins pipeline template", location=jenkins_template_location, provider="jenkins"
         )
-        pipeline_templates_manifest_mock = Mock(providers=["Gitlab", "Jenkins"], templates=[jenkins_template_mock])
+        pipeline_templates_manifest_mock = Mock(
+            providers=[
+                Mock(id="gitlab", display_name="Gitlab"),
+                Mock(id="jenkins", display_name="Jenkins"),
+            ],
+            templates=[jenkins_template_mock],
+        )
         read_app_pipeline_templates_manifest_mock.return_value = pipeline_templates_manifest_mock
         interactive_flow_mock = Mock()
         create_interactive_flow_mock.return_value = interactive_flow_mock
@@ -163,9 +169,15 @@ class TestInteractiveInitFlow(TestCase):
         clone_mock.return_value = any_app_pipeline_templates_path
         jenkins_template_location = "some/location"
         jenkins_template_mock = Mock(
-            name="Jenkins pipeline template", location=jenkins_template_location, provider="Jenkins"
+            display_name="Jenkins pipeline template", location=jenkins_template_location, provider="jenkins"
         )
-        pipeline_templates_manifest_mock = Mock(providers=["Gitlab", "Jenkins"], templates=[jenkins_template_mock])
+        pipeline_templates_manifest_mock = Mock(
+            providers=[
+                Mock(id="gitlab", display_name="Gitlab"),
+                Mock(id="jenkins", display_name="Jenkins"),
+            ],
+            templates=[jenkins_template_mock],
+        )
         read_app_pipeline_templates_manifest_mock.return_value = pipeline_templates_manifest_mock
 
         click_mock.prompt.side_effect = [
@@ -178,13 +190,41 @@ class TestInteractiveInitFlow(TestCase):
         with self.assertRaises(QuestionsNotFoundException):
             do_interactive()
 
+    @patch("samcli.commands.pipeline.init.interactive_init_flow.os")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow.osutils")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow._generate_from_pipeline_template")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow.click")
+    @patch("samcli.lib.cookiecutter.question.click")
+    def test_generate_pipeline_configuration_file_from_custom_local_existing_path_will_not_do_git_clone(
+        self,
+        questions_click_mock,
+        init_click_mock,
+        clone_mock,
+        generate_from_pipeline_template_mock,
+        osutils_mock,
+        os_mock,
+    ):
+        # setup
+        local_pipeline_templates_path = "/any/existing/local/path"
+        os_mock.path.exists.return_value = True
+        questions_click_mock.prompt.return_value = "2"  # Custom pipeline templates
+        init_click_mock.prompt.return_value = local_pipeline_templates_path  # git repo path
+        # trigger
+        do_interactive()
+
+        # verify
+        osutils_mock.mkdir_temp.assert_not_called()
+        clone_mock.assert_not_called()
+        generate_from_pipeline_template_mock.assert_called_once_with(Path(local_pipeline_templates_path))
+
     @patch("samcli.commands.pipeline.init.interactive_init_flow.osutils")
     @patch("samcli.lib.cookiecutter.template.cookiecutter")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.InteractiveFlowCreator.create_flow")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.click")
     @patch("samcli.lib.cookiecutter.question.click")
-    def test_generate_pipeline_configuration_file_from_custom_pipeline_template_happy_case(
+    def test_generate_pipeline_configuration_file_from_custom_remote_pipeline_template_happy_case(
         self,
         questions_click_mock,
         init_click_mock,
@@ -205,9 +245,7 @@ class TestInteractiveInitFlow(TestCase):
         interactive_flow_mock.run.return_value = cookiecutter_context_mock
 
         questions_click_mock.prompt.return_value = "2"  # Custom pipeline templates
-        init_click_mock.prompt.return_value = (
-            "https://github.com/any-custom-pipeline-template-repo.git",
-        )  # Custom pipeline template repo URL
+        init_click_mock.prompt.return_value = "https://github.com/any-custom-pipeline-template-repo.git"
 
         # trigger
         do_interactive()

@@ -3,6 +3,7 @@ Interactive flow that prompts that users for pipeline template (cookiecutter tem
 pipeline configuration file
 """
 import logging
+import os
 from pathlib import Path
 from typing import Dict, List
 
@@ -14,14 +15,13 @@ from samcli.lib.cookiecutter.interactive_flow import InteractiveFlow
 from samcli.lib.cookiecutter.interactive_flow_creator import InteractiveFlowCreator
 from samcli.lib.cookiecutter.question import Choice
 from samcli.lib.cookiecutter.template import Template
-from samcli.lib.utils.git_repo import GitRepo, CloneRepoException
 from samcli.lib.utils import osutils
-from .pipeline_templates_manifest import PipelineTemplateMetadata, PipelineTemplatesManifest
+from samcli.lib.utils.git_repo import GitRepo, CloneRepoException
+from .pipeline_templates_manifest import Provider, PipelineTemplateMetadata, PipelineTemplatesManifest
 
 LOG = logging.getLogger(__name__)
 shared_path: Path = global_cfg.config_dir
 APP_PIPELINE_TEMPLATES_REPO_URL = "https://github.com/aws/aws-sam-cli-pipeline-init-templates.git"
-APP_PIPELINE_TEMPLATES_REPO_URL = "https://github.com/elbayaaa/pipeline-templates.git"
 APP_PIPELINE_TEMPLATES_REPO_LOCAL_NAME = "aws-sam-cli-app-pipeline-templates"
 CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME = "custom-pipeline-template"
 SAM_PIPELINE_TEMPLATE_SOURCE = "AWS Quick Start Pipeline Templates"
@@ -56,7 +56,7 @@ def _generate_from_app_pipeline_templates() -> None:
         pipeline_templates_local_dir
     )
     # The manifest contains multiple pipeline-templates so select one
-    selected_pipeline_template_metadata: PipelineTemplateMetadata = _select_pipeline_template(
+    selected_pipeline_template_metadata: PipelineTemplateMetadata = _prompt_pipeline_template(
         pipeline_templates_manifest
     )
     selected_pipeline_template_dir: Path = pipeline_templates_local_dir.joinpath(
@@ -69,16 +69,16 @@ def _generate_from_custom_location() -> None:
     """
     Prompts the user for a custom pipeline template location, downloads locally, then generates the pipeline config file
     """
-    # Unlike app pipeline templates, custom pipeline templates are not shared between different SAM applications
-    # and should be cleaned up from users' machines after generating the pipeline config files, so, we are creating
-    # inside a tem directory
-    with osutils.mkdir_temp(ignore_errors=True) as tempdir:
-        tempdir_path = Path(tempdir)
-        pipeline_template_repo_url: str = click.prompt("Template Git location")
-        pipeline_template_local_dir: Path = _clone_pipeline_templates(
-            pipeline_template_repo_url, tempdir_path, CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME
-        )
-        _generate_from_pipeline_template(pipeline_template_local_dir)
+    pipeline_template_git_location: str = click.prompt("Template Git location")
+    if os.path.exists(pipeline_template_git_location):
+        _generate_from_pipeline_template(Path(pipeline_template_git_location))
+    else:
+        with osutils.mkdir_temp(ignore_errors=True) as tempdir:
+            tempdir_path = Path(tempdir)
+            pipeline_template_local_dir: Path = _clone_pipeline_templates(
+                pipeline_template_git_location, tempdir_path, CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME
+            )
+            _generate_from_pipeline_template(pipeline_template_local_dir)
 
 
 def _generate_from_pipeline_template(pipeline_template_dir: Path) -> None:
@@ -146,11 +146,11 @@ def _read_app_pipeline_templates_manifest(pipeline_templates_dir: Path) -> Pipel
     Returns:
         The manifest of the pipeline templates
     """
-    manifest_path: Path = Path(pipeline_templates_dir.joinpath("manifest.yaml"))
+    manifest_path: Path = pipeline_templates_dir.joinpath("manifest.yaml")
     return PipelineTemplatesManifest(manifest_path)
 
 
-def _select_pipeline_template(pipeline_templates_manifest: PipelineTemplatesManifest) -> PipelineTemplateMetadata:
+def _prompt_pipeline_template(pipeline_templates_manifest: PipelineTemplatesManifest) -> PipelineTemplateMetadata:
     """
     Prompts the user a list of the available CI/CD providers along with associated app pipeline templates to choose
     one of them
@@ -161,37 +161,43 @@ def _select_pipeline_template(pipeline_templates_manifest: PipelineTemplatesMani
     Returns:
          The manifest (A section in the pipeline_templates_manifest) of the chosen pipeline template;
     """
-    provider = _prompt_for_cicd_provider(pipeline_templates_manifest.providers)
+    provider = _prompt_cicd_provider(pipeline_templates_manifest.providers)
     provider_pipeline_templates: List[PipelineTemplateMetadata] = [
-        t for t in pipeline_templates_manifest.templates if t.provider == provider
+        t for t in pipeline_templates_manifest.templates if t.provider == provider.id
     ]
-    selected_template_manifest: PipelineTemplateMetadata = _prompt_for_pipeline_template(provider_pipeline_templates)
+    selected_template_manifest: PipelineTemplateMetadata = _prompt_provider_pipeline_template(
+        provider_pipeline_templates
+    )
     return selected_template_manifest
 
 
-def _prompt_for_cicd_provider(available_providers: List[str]) -> str:
+def _prompt_cicd_provider(available_providers: List[Provider]) -> Provider:
     """
     Prompts the user a list of the available CI/CD providers to choose from
 
     Parameters:
-        available_providers: List of available CI/CD providers like Jenkins, Gitlab and CircleCI
+        available_providers: List of available CI/CD providers such as Jenkins, Gitlab and CircleCI
 
     Returns:
         The chosen provider
     """
-    question_to_choose_provider = Choice(key="provider", text="CI/CD provider", options=available_providers)
-    chosen_provider = question_to_choose_provider.ask()
-    return chosen_provider
+    question_to_choose_provider = Choice(
+        key="provider",
+        text="CI/CD provider",
+        options=[p.display_name for p in available_providers],
+    )
+    chosen_provider_display_name = question_to_choose_provider.ask()
+    return next(p for p in available_providers if p.display_name == chosen_provider_display_name)
 
 
-def _prompt_for_pipeline_template(
-    available_pipeline_templates_metadata: List[PipelineTemplateMetadata],
+def _prompt_provider_pipeline_template(
+    provider_available_pipeline_templates_metadata: List[PipelineTemplateMetadata],
 ) -> PipelineTemplateMetadata:
     """
     Prompts the user a list of the available pipeline templates to choose from
 
     Parameters:
-        available_pipeline_templates_metadata: List of available pipeline templates manifests
+        provider_available_pipeline_templates_metadata: List of available pipeline templates manifests
 
     Returns:
         The chosen pipeline template manifest
@@ -199,10 +205,14 @@ def _prompt_for_pipeline_template(
     question_to_choose_pipeline_template = Choice(
         key="pipeline-template",
         text="Which pipeline template would you like to use?",
-        options=[t.name for t in available_pipeline_templates_metadata],
+        options=[t.display_name for t in provider_available_pipeline_templates_metadata],
     )
-    chosen_pipeline_template_name = question_to_choose_pipeline_template.ask()
-    return next(t for t in available_pipeline_templates_metadata if t.name == chosen_pipeline_template_name)
+    chosen_pipeline_template_display_name = question_to_choose_pipeline_template.ask()
+    return next(
+        t
+        for t in provider_available_pipeline_templates_metadata
+        if t.display_name == chosen_pipeline_template_display_name
+    )
 
 
 def _initialize_pipeline_template(pipeline_template_dir: Path) -> Template:
