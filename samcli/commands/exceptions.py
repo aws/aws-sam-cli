@@ -59,3 +59,16 @@ class ContainersInitializationException(UserException):
     """
     Exception class when SAM is not able to initialize any of the lambda functions containers
     """
+
+
+class PipelineTemplateCloneException(UserException):
+    """
+    Exception class when unable to download pipeline templates from a Git repository during `sam pipeline init`
+    """
+
+
+class AppPipelineTemplateManifestException(UserException):
+    """
+    Exception class when SAM is not able to parse the "manifest.yaml" file located in the SAM pipeline templates
+    Git repo: "github.com/aws/aws-sam-cli-pipeline-init-templates.git
+    """

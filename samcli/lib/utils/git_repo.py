@@ -132,7 +132,7 @@ class GitRepo:
                 output = clone_error.output.decode("utf-8")
                 if "not found" in output.lower():
                     LOG.warning("WARN: Could not clone repo %s", self.url, exc_info=clone_error)
-                raise CloneRepoException from clone_error
+                raise CloneRepoException(output) from clone_error
             finally:
                 self.clone_attempted = True
 
