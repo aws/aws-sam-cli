@@ -3,7 +3,7 @@ from unittest import skipIf
 from parameterized import parameterized
 
 from samcli.lib.pipeline.bootstrap.stage import Stage
-from tests.integration.pipeline.bootstrap_integ_base import BootstrapIntegBase
+from tests.integration.pipeline.base import BootstrapIntegBase
 from tests.testing_utils import run_command_with_input, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 
 # bootstrap tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
@@ -31,7 +31,7 @@ class TestBootstrap(BootstrapIntegBase):
             "y",  # proceed
         ]
 
-        bootstrap_process_execute = run_command_with_input(bootstrap_command_list, ("\n".join(inputs) + "\n").encode())
+        bootstrap_process_execute = self.run_command_with_inputs(bootstrap_command_list, inputs)
 
         self.assertEqual(bootstrap_process_execute.process.returncode, 0)
         stdout = bootstrap_process_execute.stdout.decode()
@@ -64,7 +64,7 @@ class TestBootstrap(BootstrapIntegBase):
             "y",  # proceed
         ]
 
-        bootstrap_process_execute = run_command_with_input(bootstrap_command_list, ("\n".join(inputs) + "\n").encode())
+        bootstrap_process_execute = self.run_command_with_inputs(bootstrap_command_list, inputs)
 
         self.assertEqual(bootstrap_process_execute.process.returncode, 0)
         stdout = bootstrap_process_execute.stdout.decode()
@@ -87,7 +87,7 @@ class TestBootstrap(BootstrapIntegBase):
             "N",  # cancel
         ]
 
-        bootstrap_process_execute = run_command_with_input(bootstrap_command_list, ("\n".join(inputs) + "\n").encode())
+        bootstrap_process_execute = self.run_command_with_inputs(bootstrap_command_list, inputs)
 
         self.assertEqual(bootstrap_process_execute.process.returncode, 0)
         stdout = bootstrap_process_execute.stdout.decode()
@@ -111,7 +111,7 @@ class TestBootstrap(BootstrapIntegBase):
             "y",  # proceed
         ]
 
-        bootstrap_process_execute = run_command_with_input(bootstrap_command_list, ("\n".join(inputs) + "\n").encode())
+        bootstrap_process_execute = self.run_command_with_inputs(bootstrap_command_list, inputs)
 
         self.assertEqual(bootstrap_process_execute.process.returncode, 0)
         stdout = bootstrap_process_execute.stdout.decode()
