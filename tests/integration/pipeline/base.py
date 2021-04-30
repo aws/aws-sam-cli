@@ -38,8 +38,8 @@ class InitIntegBase(PipelineBase):
     def tearDown(self) -> None:
         for generated_file in self.generated_files:
             if generated_file.is_dir():
-                shutil.rmtree(generated_file)
-            else:
+                shutil.rmtree(generated_file, ignore_errors=True)
+            elif generated_file.exists():
                 generated_file.unlink()
         super().tearDown()
 
