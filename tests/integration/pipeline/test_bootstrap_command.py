@@ -1,10 +1,17 @@
+from unittest import skipIf
+
 from parameterized import parameterized
 
 from samcli.lib.pipeline.bootstrap.stage import Stage
 from tests.integration.pipeline.bootstrap_integ_base import BootstrapIntegBase
-from tests.testing_utils import run_command_with_input
+from tests.testing_utils import run_command_with_input, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
+
+# bootstrap tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
+# This is to restrict tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
+SKIP_DEPLOY_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
 
+@skipIf(SKIP_DEPLOY_TESTS, "Skip bootstrap tests in CI/CD only")
 class TestBootstrap(BootstrapIntegBase):
     @parameterized.expand([("create_ecr_repo",), (False,)])
     def test_interactive_with_no_resources_provided(self, create_ecr_repo: bool):
