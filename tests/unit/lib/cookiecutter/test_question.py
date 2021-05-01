@@ -193,13 +193,13 @@ class TestQuestion(TestCase):
     @patch.object(SamConfig, "exists")
     @patch("samcli.lib.cookiecutter.question.click")
     def test_ask_resolves_from_toml_happy_case_when_optional_env_is_not_provided(
-            self, mock_click, mock_samconfig_exists, mock_samconfig_get_all
+        self, mock_click, mock_samconfig_exists, mock_samconfig_get_all
     ):
         # Setup
         mock_samconfig_exists.return_value = True
         mock_samconfig_get_all.return_value = {self._ANY_KEY: self._ANY_TOML_ANSWER}
         question = self.get_question_with_default_from_toml()
-        del question._default_from_toml["env"] # remove the env
+        del question._default_from_toml["env"]  # remove the env
 
         # Trigger
         question.ask(extra_context={self._ANY_EXTRA_CONTEXT_KEY: self._ANY_EXTRA_CONTEXT_VALUE})
