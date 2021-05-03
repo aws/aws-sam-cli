@@ -32,6 +32,10 @@ class Question:
         Whether the user must provide an answer for this question or not.
     _default_answer: Optional[str]
         A default answer that is suggested to the user
+    _default_from_toml: Optional[Dict]]:
+        A default answer that is resolved from a toml file instead of directly provided in "_default_answer".
+        The keys of this dictionary are toml_file, env, cmd_names, section & key key which is used to locate
+        what value to read from which toml file.
     _next_question_map: Optional[Dict[str, str]]
         A simple branching mechanism, it refers to what is the next question to ask the user if he answered
         a particular answer to this question. this map is in the form of {answer: next-question-key}. this
@@ -94,6 +98,16 @@ class Question:
         return self._default_next_question_key
 
     def ask(self, extra_context: Optional[Dict] = None) -> Any:
+        """
+        prompt the user this question
+
+        Parameters:
+            extra_context: dictionary of previous questions' answers. it is used to resolve default answer from toml
+                           for example, the which toml file to read the default answer from, could be already provided
+                           by a previous question.
+        Returns:
+            The user provided answer.
+        """
         resolved_default_answer = self._resolve_default_answer(extra_context)
         return click.prompt(text=self._text, default=resolved_default_answer)
 
@@ -114,6 +128,9 @@ class Question:
         Parameters:
             extra_context: optional context used to resolve the toml lookup keys. For example, instead of providing
                            a value of env to be "production" we can resolve it from extra_context[env]
+
+        Raises:
+            KeyError: if _default_from_toml or extra_context miss a required attribute
 
         Returns:
             optional default answer resolved from toml lookup (high precedence) or default (low precedence), if any.
