@@ -29,13 +29,13 @@ jobs:
 
         # These labels are required
         stale-issue-label: blocked/close-if-inactive
-        exempt-issue-labels: no-autoclose, stage/need-attention
+        exempt-issue-labels: no-autoclose, stage/needs-attention
         stale-pr-label: blocked/close-if-inactive
         exempt-pr-labels: no-autoclose, type/feature
         response-requested-label: blocked/more-info-needed
 
         # Don't set this to not apply a label when closing issues
-        closed-for-staleness-label: closed-for-inactive
+        closed-for-staleness-label: stage/closed-for-inactivity
 
         # Issue timing
         days-before-stale: 14
@@ -50,6 +50,4 @@ jobs:
 
         # need a repo scope token here to make this action can trigger other github actions
         repo-token: ${{ secrets.STALE_BOT_PERSONAL_TOKEN }}
-        #loglevel: DEBUG
-        # Set dry-run to true to not perform label or close actions.
-        #dry-run: true
+

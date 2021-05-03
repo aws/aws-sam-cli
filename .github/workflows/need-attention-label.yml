@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/github-script@v3
         # the login of our bot called 'sam-cli-bot'
-        if: github.event.sender.login != 'sam-cli-bot'
+        if: github.event.sender.login != 'aws-sam-cli-stale-bot'
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
@@ -18,5 +18,5 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              labels: ['stage/need-attention']
+              labels: ['stage/needs-attention']
             })
