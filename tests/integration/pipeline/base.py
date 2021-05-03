@@ -7,7 +7,7 @@ from unittest import TestCase
 
 import boto3
 
-from tests.testing_utils import run_command_with_input
+from tests.testing_utils import run_command_with_input, CommandResult
 
 
 class PipelineBase(TestCase):
@@ -18,7 +18,7 @@ class PipelineBase(TestCase):
 
         return command
 
-    def run_command_with_inputs(self, command_list, inputs: List[str]):
+    def run_command_with_inputs(self, command_list: List[str], inputs: List[str]) -> CommandResult:
         return run_command_with_input(command_list, ("\n".join(inputs) + "\n").encode())
 
 
