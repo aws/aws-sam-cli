@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch, ANY
 
@@ -5,22 +6,23 @@ import botocore.exceptions
 import click
 from click.testing import CliRunner
 
-from samcli.commands.init.init_templates import InitTemplates
+from samcli.commands.exceptions import UserException
 from samcli.commands.init import cli as init_cmd
 from samcli.commands.init import do_cli as init_cli
+from samcli.commands.init.init_templates import InitTemplates, APP_TEMPLATES_REPO_URL, APP_TEMPLATES_REPO_NAME
 from samcli.lib.init import GenerateProjectFailedError
-from samcli.commands.exceptions import UserException
+from samcli.lib.utils.git_repo import GitRepo
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 
 class MockInitTemplates:
-    def __init__(self, no_interactive=False, auto_clone=True):
-        self._repo_url = "https://github.com/awslabs/aws-sam-cli-app-templates.git"
-        self._repo_name = "aws-sam-cli-app-templates"
-        self.repo_path = "repository"
-        self.clone_attempted = True
+    def __init__(self, no_interactive=False):
         self._no_interactive = no_interactive
-        self._auto_clone = auto_clone
+        self._git_repo: GitRepo = GitRepo(
+            url=APP_TEMPLATES_REPO_URL,
+        )
+        self._git_repo.clone_attempted = True
+        self._git_repo.local_path = Path("repository")
 
 
 class TestCli(TestCase):
@@ -40,9 +42,9 @@ class TestCli(TestCase):
         self.extra_context = '{"project_name": "testing project", "runtime": "python3.6"}'
         self.extra_context_as_json = {"project_name": "testing project", "runtime": "python3.6"}
 
-    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
+    @patch("samcli.lib.utils.git_repo.GitRepo.clone")
     @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli(self, generate_project_patch, sd_mock):
+    def test_init_cli(self, generate_project_patch, git_repo_clone_mock):
         # GIVEN generate_project successfully created a project
         # WHEN a project name has been passed
         init_cli(
@@ -59,7 +61,6 @@ class TestCli(TestCase):
             app_template=self.app_template,
             no_input=self.no_input,
             extra_context=None,
-            auto_clone=False,
         )
 
         # THEN we should receive no errors
@@ -75,9 +76,9 @@ class TestCli(TestCase):
             self.extra_context_as_json,
         )
 
-    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
+    @patch("samcli.lib.utils.git_repo.GitRepo.clone")
     @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_image_cli(self, generate_project_patch, sd_mock):
+    def test_init_image_cli(self, generate_project_patch, git_repo_clone_mock):
         # GIVEN generate_project successfully created a project
         # WHEN a project name has been passed
         init_cli(
@@ -94,7 +95,6 @@ class TestCli(TestCase):
             app_template=None,
             no_input=self.no_input,
             extra_context=None,
-            auto_clone=False,
         )
 
         # THEN we should receive no errors
@@ -110,9 +110,9 @@ class TestCli(TestCase):
             {"runtime": "nodejs12.x", "project_name": "testing project"},
         )
 
-    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
+    @patch("samcli.lib.utils.git_repo.GitRepo.clone")
     @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_image_java_cli(self, generate_project_patch, sd_mock):
+    def test_init_image_java_cli(self, generate_project_patch, git_repo_clone_mock):
         # GIVEN generate_project successfully created a project
         # WHEN a project name has been passed
         init_cli(
@@ -129,7 +129,6 @@ class TestCli(TestCase):
             app_template=None,
             no_input=self.no_input,
             extra_context=None,
-            auto_clone=False,
         )
 
         # THEN we should receive no errors
@@ -145,8 +144,8 @@ class TestCli(TestCase):
             {"runtime": "java11", "project_name": "testing project"},
         )
 
-    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
-    def test_init_fails_invalid_template(self, sd_mock):
+    @patch("samcli.lib.utils.git_repo.GitRepo.clone")
+    def test_init_fails_invalid_template(self, git_repo_clone_mock):
         # WHEN an unknown app template is passed in
         # THEN an exception should be raised
         with self.assertRaises(UserException):
@@ -164,11 +163,10 @@ class TestCli(TestCase):
                 app_template="wrong-and-bad",
                 no_input=self.no_input,
                 extra_context=None,
-                auto_clone=False,
             )
 
-    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
-    def test_init_fails_invalid_dep_mgr(self, sd_mock):
+    @patch("samcli.lib.utils.git_repo.GitRepo.clone")
+    def test_init_fails_invalid_dep_mgr(self, git_repo_clone_mock):
         # WHEN an unknown app template is passed in
         # THEN an exception should be raised
         with self.assertRaises(UserException):
@@ -186,12 +184,11 @@ class TestCli(TestCase):
                 app_template=self.app_template,
                 no_input=self.no_input,
                 extra_context=None,
-                auto_clone=False,
             )
 
-    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
+    @patch("samcli.lib.utils.git_repo.GitRepo.clone")
     @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli_generate_project_fails(self, generate_project_patch, sd_mock):
+    def test_init_cli_generate_project_fails(self, generate_project_patch, git_repo_clone_mock):
         # GIVEN generate_project fails to create a project
         generate_project_patch.side_effect = GenerateProjectFailedError(
             project=self.name, provider_error="Something wrong happened"
@@ -214,16 +211,15 @@ class TestCli(TestCase):
                 app_template=None,
                 no_input=self.no_input,
                 extra_context=None,
-                auto_clone=False,
             )
 
             generate_project_patch.assert_called_with(
                 self.location, self.runtime, self.dependency_manager, self.output_dir, self.name, self.no_input
             )
 
-    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
+    @patch("samcli.lib.utils.git_repo.GitRepo.clone")
     @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli_generate_project_image_fails(self, generate_project_patch, sd_mock):
+    def test_init_cli_generate_project_image_fails(self, generate_project_patch, git_repo_clone_mock):
         # GIVEN generate_project fails to create a project
         generate_project_patch.side_effect = GenerateProjectFailedError(
             project=self.name, provider_error="Something wrong happened"
@@ -246,7 +242,6 @@ class TestCli(TestCase):
                 app_template=None,
                 no_input=self.no_input,
                 extra_context=None,
-                auto_clone=False,
             )
 
             generate_project_patch.assert_called_with(
@@ -271,7 +266,6 @@ class TestCli(TestCase):
             app_template=self.app_template,
             no_input=self.no_input,
             extra_context=None,
-            auto_clone=False,
         )
 
         # THEN we should receive no errors
@@ -297,7 +291,6 @@ class TestCli(TestCase):
             app_template=self.app_template,
             no_input=self.no_input,
             extra_context='{"schema_name":"events", "schema_type":"aws"}',
-            auto_clone=False,
         )
 
         # THEN we should receive no errors and right extra_context should be passed
@@ -330,7 +323,6 @@ class TestCli(TestCase):
             app_template=self.app_template,
             no_input=self.no_input,
             extra_context='{"project_name": "my_project", "runtime": "java8", "schema_name":"events", "schema_type": "aws"}',
-            auto_clone=False,
         )
 
         # THEN extra_context should have not overridden default_parameters(name, runtime)
@@ -363,7 +355,6 @@ class TestCli(TestCase):
                 app_template=self.app_template,
                 no_input=self.no_input,
                 extra_context='{"project_name", "my_project", "runtime": "java8", "schema_name":"events", "schema_type": "aws"}',
-                auto_clone=False,
             )
 
     @patch("samcli.commands.init.init_generator.generate_project")
@@ -384,7 +375,6 @@ class TestCli(TestCase):
             app_template=None,
             no_input=None,
             extra_context='{"schema_name":"events", "schema_type": "aws"}',
-            auto_clone=False,
         )
 
         # THEN should set default parameter(name, runtime) as extra_context
@@ -417,7 +407,6 @@ class TestCli(TestCase):
             app_template=None,
             no_input=None,
             extra_context='{"schema_name":"events", "schema_type": "aws"}',
-            auto_clone=False,
         )
 
         # THEN extra_context should be without runtime
@@ -450,7 +439,6 @@ class TestCli(TestCase):
             app_template=None,
             no_input=None,
             extra_context='{"schema_name":"events", "schema_type": "aws"}',
-            auto_clone=False,
         )
 
         # THEN extra_context should be without name
@@ -485,7 +473,6 @@ class TestCli(TestCase):
             # fmt: off
             extra_context='{\"schema_name\":\"events\", \"schema_type\":\"aws\"}',
             # fmt: on
-            auto_clone=False,
         )
 
         # THEN we should receive no errors and right extra_context should be passed
@@ -1035,7 +1022,6 @@ Y
             app_template="eventBridge-schema-app",
             no_input=self.no_input,
             extra_context=None,
-            auto_clone=False,
         )
 
         generate_project_patch.assert_called_once_with(
@@ -1050,9 +1036,9 @@ Y
             self.extra_context_as_json,
         )
 
-    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
+    @patch("samcli.lib.utils.git_repo.GitRepo._ensure_clone_directory_exists")
     @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli_int_from_location(self, generate_project_patch, sd_mock):
+    def test_init_cli_int_from_location(self, generate_project_patch, cd_mock):
         # WHEN the user follows interactive init prompts
 
         # 2: selecting custom location
@@ -1079,9 +1065,9 @@ foo
             None,
         )
 
-    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
+    @patch("samcli.lib.utils.git_repo.GitRepo._ensure_clone_directory_exists")
     @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli_no_package_type(self, generate_project_patch, sd_mock):
+    def test_init_cli_no_package_type(self, generate_project_patch, cd_mock):
         # WHEN the user follows interactive init prompts
 
         # 1: selecting template source

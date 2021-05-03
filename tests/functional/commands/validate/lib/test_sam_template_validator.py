@@ -36,7 +36,7 @@ class TestValidate(TestCase):
         managed_policy_mock = Mock()
         managed_policy_mock.load.return_value = {"PolicyName": "FakePolicy"}
 
-        validator = SamTemplateValidator(template, managed_policy_mock)
+        validator = SamTemplateValidator(template, managed_policy_mock, region="us-east-1")
 
         # Should not throw an exception
         validator.is_valid()
@@ -56,7 +56,7 @@ class TestValidate(TestCase):
         managed_policy_mock = Mock()
         managed_policy_mock.load.return_value = {"PolicyName": "FakePolicy"}
 
-        validator = SamTemplateValidator(template, managed_policy_mock)
+        validator = SamTemplateValidator(template, managed_policy_mock, region="us-east-1")
 
         with self.assertRaises(InvalidSamDocumentException):
             validator.is_valid()
@@ -76,7 +76,7 @@ class TestValidate(TestCase):
         managed_policy_mock = Mock()
         managed_policy_mock.load.return_value = {"PolicyName": "FakePolicy"}
 
-        validator = SamTemplateValidator(template, managed_policy_mock)
+        validator = SamTemplateValidator(template, managed_policy_mock, region="us-east-1")
 
         # Should not throw an exception
         validator.is_valid()
@@ -93,7 +93,7 @@ class TestValidate(TestCase):
         managed_policy_mock = Mock()
         managed_policy_mock.load.return_value = {"PolicyName": "FakePolicy"}
 
-        validator = SamTemplateValidator(template, managed_policy_mock)
+        validator = SamTemplateValidator(template, managed_policy_mock, region="us-east-1")
 
         # Should not throw an exception
         validator.is_valid()
@@ -113,7 +113,7 @@ class TestValidate(TestCase):
         managed_policy_mock = Mock()
         managed_policy_mock.load.return_value = {"PolicyName": "FakePolicy"}
 
-        validator = SamTemplateValidator(template, managed_policy_mock)
+        validator = SamTemplateValidator(template, managed_policy_mock, region="us-east-1")
 
         # Should not throw an exception
         validator.is_valid()
@@ -133,7 +133,7 @@ class TestValidate(TestCase):
         managed_policy_mock = Mock()
         managed_policy_mock.load.return_value = {"PolicyName": "FakePolicy"}
 
-        validator = SamTemplateValidator(template, managed_policy_mock)
+        validator = SamTemplateValidator(template, managed_policy_mock, region="us-east-1")
 
         # Should not throw an exception
         validator.is_valid()
@@ -165,7 +165,7 @@ class TestValidate(TestCase):
         managed_policy_mock = Mock()
         managed_policy_mock.load.return_value = {"PolicyName": "FakePolicy"}
 
-        validator = SamTemplateValidator(template, managed_policy_mock)
+        validator = SamTemplateValidator(template, managed_policy_mock, region="us-east-1")
 
         # Should not throw an exception
         validator.is_valid()
@@ -187,7 +187,7 @@ class TestValidate(TestCase):
         managed_policy_mock = Mock()
         managed_policy_mock.load.return_value = {"PolicyName": "FakePolicy"}
 
-        validator = SamTemplateValidator(template, managed_policy_mock)
+        validator = SamTemplateValidator(template, managed_policy_mock, region="us-east-1")
 
         # Should not throw an exception
         validator.is_valid()
