@@ -63,9 +63,8 @@ class BootstrapIntegBase(PipelineBase):
         super().setUp()
 
     def tearDown(self):
-        if self.stack_names:
-            for stack_name in self.stack_names:
-                self.cf_client.delete_stack(StackName=stack_name)
+        for stack_name in self.stack_names:
+            self.cf_client.delete_stack(StackName=stack_name)
         shutil.rmtree(os.path.join(os.getcwd(), ".aws-sam", "pipeline"), ignore_errors=True)
         super().tearDown()
 
