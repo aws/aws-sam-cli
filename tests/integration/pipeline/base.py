@@ -56,7 +56,6 @@ class BootstrapIntegBase(PipelineBase):
     @classmethod
     def setUpClass(cls):
         cls.cf_client = boto3.client("cloudformation")
-        pass
 
     def setUp(self):
         self.stack_names = []
