@@ -1,8 +1,9 @@
 from unittest import skipIf
+from unittest.mock import Mock
 
 from parameterized import parameterized
 
-from samcli.lib.pipeline.bootstrap.stage import Stage
+from samcli.lib.pipeline.bootstrap.environment import Environment
 from tests.integration.pipeline.base import BootstrapIntegBase
 from tests.testing_utils import run_command_with_input, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 
@@ -16,7 +17,9 @@ class TestBootstrap(BootstrapIntegBase):
     @parameterized.expand([("create_ecr_repo",), (False,)])
     def test_interactive_with_no_resources_provided(self, create_ecr_repo: bool):
         stage_name = self._method_to_stage_name(self.id())
-        self.stack_names = [Stage._get_stack_name(stage_name)]
+        mock_stage = Mock()
+        mock_stage.name = stage_name
+        self.stack_names = [Environment._get_stack_name(mock_stage)]
 
         bootstrap_command_list = self.get_bootstrap_command_list(interactive=True)
 
@@ -48,7 +51,9 @@ class TestBootstrap(BootstrapIntegBase):
 
     def test_interactive_with_all_required_resources_provided(self):
         stage_name = self._method_to_stage_name(self.id())
-        self.stack_names = [Stage._get_stack_name(stage_name)]
+        mock_stage = Mock()
+        mock_stage.name = stage_name
+        self.stack_names = [Environment._get_stack_name(mock_stage)]
 
         bootstrap_command_list = self.get_bootstrap_command_list(interactive=True)
 
@@ -72,7 +77,9 @@ class TestBootstrap(BootstrapIntegBase):
 
     def test_interactive_cancelled_by_user(self):
         stage_name = self._method_to_stage_name(self.id())
-        self.stack_names = [Stage._get_stack_name(stage_name)]
+        mock_stage = Mock()
+        mock_stage.name = stage_name
+        self.stack_names = [Environment._get_stack_name(mock_stage)]
 
         bootstrap_command_list = self.get_bootstrap_command_list(interactive=True)
 
@@ -95,7 +102,9 @@ class TestBootstrap(BootstrapIntegBase):
 
     def test_interactive_with_some_required_resources_provided(self):
         stage_name = self._method_to_stage_name(self.id())
-        self.stack_names = [Stage._get_stack_name(stage_name)]
+        mock_stage = Mock()
+        mock_stage.name = stage_name
+        self.stack_names = [Environment._get_stack_name(mock_stage)]
 
         bootstrap_command_list = self.get_bootstrap_command_list(interactive=True)
 
@@ -130,7 +139,10 @@ class TestBootstrap(BootstrapIntegBase):
             self._method_to_stage_name(self.id() + "2"),
             self._method_to_stage_name(self.id() + "3"),
         ]
-        self.stack_names = [Stage._get_stack_name(stage_name) for stage_name in stage_names]
+        for stage_name in stage_names:
+            mock_stage = Mock()
+            mock_stage.name = stage_name
+            self.stack_names.append(Environment._get_stack_name(mock_stage))
 
         bootstrap_command_list = self.get_bootstrap_command_list(interactive=True)
 

@@ -152,10 +152,9 @@ class Environment:
             if not confirmed:
                 return False
 
-        stack_name = Environment._get_stack_name(self.name)
         environment_resources_template_body = Environment._read_template(ENVIRONMENT_RESOURCES_CFN_TEMPLATE)
         output: StackOutput = manage_stack(
-            stack_name=stack_name,
+            stack_name=self._get_stack_name(),
             region=self.aws_region,
             profile=self.aws_profile,
             template_body=environment_resources_template_body,
@@ -296,7 +295,6 @@ class Environment:
             click.secho(f"\tACCESS_KEY_ID: {self.pipeline_user.access_key_id}", fg="green")
             click.secho(f"\tSECRET_ACCESS_KEY: {self.pipeline_user.secret_access_key}", fg="green")
 
-    @staticmethod
-    def _get_stack_name(stage_name: str) -> str:
-        sanitized_environment_name: str = re.sub("[^0-9a-zA-Z]+", "-", stage_name)
+    def _get_stack_name(self) -> str:
+        sanitized_environment_name: str = re.sub("[^0-9a-zA-Z]+", "-", self.name)
         return f"{STACK_NAME_PREFIX}-{sanitized_environment_name}-{ENVIRONMENT_RESOURCES_STACK_NAME_SUFFIX}"
