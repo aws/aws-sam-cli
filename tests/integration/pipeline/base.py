@@ -69,13 +69,6 @@ class BootstrapIntegBase(PipelineBase):
         shutil.rmtree(os.path.join(os.getcwd(), ".aws-sam", "pipeline"), ignore_errors=True)
         super().tearDown()
 
-    def base_command(self):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
-
-        return command
-
     def get_bootstrap_command_list(
         self,
         # right now we only support interactive mode
