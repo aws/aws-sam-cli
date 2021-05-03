@@ -5,7 +5,13 @@ from parameterized import parameterized
 
 from samcli.lib.pipeline.bootstrap.environment import Environment
 from tests.integration.pipeline.base import BootstrapIntegBase
-from tests.testing_utils import run_command_with_input, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
+from tests.testing_utils import (
+    run_command_with_input,
+    RUNNING_ON_CI,
+    RUNNING_TEST_FOR_MASTER_ON_CI,
+    RUN_BY_CANARY,
+    run_command,
+)
 
 # bootstrap tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
@@ -21,7 +27,7 @@ class TestBootstrap(BootstrapIntegBase):
         mock_stage.name = stage_name
         self.stack_names = [Environment._get_stack_name(mock_stage)]
 
-        bootstrap_command_list = self.get_bootstrap_command_list(interactive=True)
+        bootstrap_command_list = self.get_bootstrap_command_list()
 
         inputs = [
             stage_name,
@@ -49,13 +55,30 @@ class TestBootstrap(BootstrapIntegBase):
             self.assertNotIn("arn:aws:ecr:", stdout)
             self.assertEqual(4, self._count_created_resources(stdout))
 
+    @parameterized.expand([("create_ecr_repo",), (False,)])
+    def test_non_interactive_with_no_resources_provided(self, create_ecr_repo: bool):
+        stage_name = self._method_to_stage_name(self.id())
+        mock_stage = Mock()
+        mock_stage.name = stage_name
+        self.stack_names = [Stage._get_stack_name(mock_stage)]
+
+        bootstrap_command_list = self.get_bootstrap_command_list(
+            no_interactive=True, create_ecr_repo=create_ecr_repo, no_confirm_changeset=True
+        )
+
+        bootstrap_process_execute = run_command(bootstrap_command_list)
+
+        self.assertEqual(bootstrap_process_execute.process.returncode, 2)
+        stderr = bootstrap_process_execute.stderr.decode()
+        self.assertIn("Missing required parameter", stderr)
+
     def test_interactive_with_all_required_resources_provided(self):
         stage_name = self._method_to_stage_name(self.id())
         mock_stage = Mock()
         mock_stage.name = stage_name
         self.stack_names = [Environment._get_stack_name(mock_stage)]
 
-        bootstrap_command_list = self.get_bootstrap_command_list(interactive=True)
+        bootstrap_command_list = self.get_bootstrap_command_list()
 
         inputs = [
             stage_name,
@@ -75,13 +98,44 @@ class TestBootstrap(BootstrapIntegBase):
         stdout = bootstrap_process_execute.stdout.decode()
         self.assertIn("skipping creation", stdout)
 
+    @parameterized.expand([("confirm_changeset",), (False,)])
+    def test_no_interactive_with_all_required_resources_provided(self, confirm_changeset):
+        stage_name = self._method_to_stage_name(self.id())
+        mock_stage = Mock()
+        mock_stage.name = stage_name
+        self.stack_names = [Stage._get_stack_name(mock_stage)]
+
+        bootstrap_command_list = self.get_bootstrap_command_list(
+            no_interactive=True,
+            stage_name=stage_name,
+            pipeline_user="arn:aws:iam::123:user/user-name",  # pipeline user
+            pipeline_execution_role="arn:aws:iam::123:role/role-name",  # Pipeline execution role
+            cloudformation_execution_role="arn:aws:iam::123:role/role-name",  # CloudFormation execution role
+            artifacts_bucket="arn:aws:s3:::bucket-name",  # Artifacts bucket
+            ecr_repo="arn:aws:ecr:::repository/repo-name",  # ecr repo
+            pipeline_ip_range="1.2.3.4/24",  # Pipeline IP address range
+            no_confirm_changeset=confirm_changeset,
+        )
+
+        inputs = [
+            "y",  # proceed
+        ]
+
+        bootstrap_process_execute = self.run_command_with_inputs(
+            bootstrap_command_list, inputs if confirm_changeset else []
+        )
+
+        self.assertEqual(bootstrap_process_execute.process.returncode, 0)
+        stdout = bootstrap_process_execute.stdout.decode()
+        self.assertIn("skipping creation", stdout)
+
     def test_interactive_cancelled_by_user(self):
         stage_name = self._method_to_stage_name(self.id())
         mock_stage = Mock()
         mock_stage.name = stage_name
         self.stack_names = [Environment._get_stack_name(mock_stage)]
 
-        bootstrap_command_list = self.get_bootstrap_command_list(interactive=True)
+        bootstrap_command_list = self.get_bootstrap_command_list()
 
         inputs = [
             stage_name,
@@ -106,7 +160,7 @@ class TestBootstrap(BootstrapIntegBase):
         mock_stage.name = stage_name
         self.stack_names = [Environment._get_stack_name(mock_stage)]
 
-        bootstrap_command_list = self.get_bootstrap_command_list(interactive=True)
+        bootstrap_command_list = self.get_bootstrap_command_list()
 
         inputs = [
             stage_name,
@@ -144,7 +198,7 @@ class TestBootstrap(BootstrapIntegBase):
             mock_stage.name = stage_name
             self.stack_names.append(Environment._get_stack_name(mock_stage))
 
-        bootstrap_command_list = self.get_bootstrap_command_list(interactive=True)
+        bootstrap_command_list = self.get_bootstrap_command_list()
 
         for i, stage_name in enumerate(stage_names):
             inputs = [

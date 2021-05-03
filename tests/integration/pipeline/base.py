@@ -2,7 +2,7 @@ import os
 import re
 import shutil
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 from unittest import TestCase
 
 import boto3
@@ -69,13 +69,40 @@ class BootstrapIntegBase(PipelineBase):
 
     def get_bootstrap_command_list(
         self,
-        # right now we only support interactive mode
-        interactive=True,
+        no_interactive: bool = False,
+        stage_name: Optional[str] = None,
+        pipeline_user: Optional[str] = None,
+        pipeline_execution_role: Optional[str] = None,
+        cloudformation_execution_role: Optional[str] = None,
+        artifacts_bucket: Optional[str] = None,
+        create_ecr_repo: bool = False,
+        ecr_repo: Optional[str] = None,
+        pipeline_ip_range: Optional[str] = None,
+        no_confirm_changeset: bool = False,
     ):
         command_list = [self.base_command(), "pipeline", "bootstrap"]
 
-        if interactive:
-            command_list = command_list + ["--interactive"]
+        if no_interactive:
+            command_list += ["--no-interactive"]
+        if stage_name:
+            command_list += ["--stage-name", stage_name]
+        if pipeline_user:
+            command_list += ["--pipeline-user", pipeline_user]
+        if pipeline_execution_role:
+            command_list += ["--pipeline-execution-role", pipeline_execution_role]
+        if cloudformation_execution_role:
+            command_list += ["--cloudformation-execution-role", cloudformation_execution_role]
+        if artifacts_bucket:
+            command_list += ["--artifacts-bucket", artifacts_bucket]
+        if create_ecr_repo:
+            command_list += ["--create-ecr-repo"]
+        if ecr_repo:
+            command_list += ["--ecr-repo", ecr_repo]
+        if pipeline_ip_range:
+            command_list += ["--pipeline-ip-range", pipeline_ip_range]
+        if no_confirm_changeset:
+            command_list += ["--no-confirm-changeset"]
+
         return command_list
 
     @staticmethod
