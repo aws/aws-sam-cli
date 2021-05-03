@@ -1,0 +1,18 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  MyLayerVersion:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: MyLayerInChild
+      ContentUri: ../PyLayer
+      CompatibleRuntimes:
+        - python3.8
+    Metadata:
+      BuildMethod: python3.8
+
+Outputs:
+  LayerVersion:
+    Value: !Ref MyLayerVersion
+    Description: MyLayerVersion in child.yaml

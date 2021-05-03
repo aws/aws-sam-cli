@@ -181,9 +181,11 @@ class IntrinsicResolver:
 
         Parameters
         ----------
-        intrinsic: dict, str, list, bool, int
+        intrinsic : dict, str, list, bool, int
             This is an intrinsic property or an intermediate step
-        parent_function: str
+        ignore_errors : bool
+            Whether to ignore errors
+        parent_function : str
             In case there is a missing property, this is used to figure out where the property resolved is missing.
         Return
         ---------

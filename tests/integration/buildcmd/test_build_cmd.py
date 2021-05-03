@@ -6,12 +6,20 @@ import logging
 import random
 from unittest import skipIf
 from pathlib import Path
-from parameterized import parameterized
+from parameterized import parameterized, parameterized_class
+from subprocess import Popen, PIPE, TimeoutExpired
 
 import pytest
 
 from samcli.lib.utils import osutils
-from .build_integ_base import BuildIntegBase, DedupBuildIntegBase, CachedBuildIntegBase, BuildIntegRubyBase
+from .build_integ_base import (
+    BuildIntegBase,
+    DedupBuildIntegBase,
+    CachedBuildIntegBase,
+    BuildIntegRubyBase,
+    NestedBuildIntegBase,
+    IntrinsicIntegBase,
+)
 from tests.testing_utils import (
     IS_WINDOWS,
     RUNNING_ON_CI,
@@ -138,7 +146,9 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
             self._verify_invoke_built_function(
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
             )
-        self.verify_docker_container_cleanedup(runtime)
+        if use_container:
+            self.verify_docker_container_cleanedup(runtime)
+            self.verify_pulling_only_latest_tag(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
@@ -237,7 +247,9 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
             ),
         )
 
-        self.verify_docker_container_cleanedup(runtime)
+        if use_container:
+            self.verify_docker_container_cleanedup(runtime)
+            self.verify_pulling_only_latest_tag(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files, expected_modules):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
@@ -329,8 +341,6 @@ class TestBuildCommand_Java(BuildIntegBase):
     USING_GRADLEW_PATH = os.path.join("Java", "gradlew")
     USING_GRADLE_KOTLIN_PATH = os.path.join("Java", "gradle-kotlin")
     USING_MAVEN_PATH = os.path.join("Java", "maven")
-    WINDOWS_LINE_ENDING = b"\r\n"
-    UNIX_LINE_ENDING = b"\n"
 
     @parameterized.expand(
         [
@@ -395,7 +405,7 @@ class TestBuildCommand_Java(BuildIntegBase):
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
         cmdlist += ["--skip-pull-image"]
         if code_path == self.USING_GRADLEW_PATH and use_container and IS_WINDOWS:
-            self._change_to_unix_line_ending(os.path.join(self.test_data_path, self.USING_GRADLEW_PATH, "gradlew"))
+            osutils.convert_to_unix_line_ending(os.path.join(self.test_data_path, self.USING_GRADLEW_PATH, "gradlew"))
 
         LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir)
@@ -436,6 +446,7 @@ class TestBuildCommand_Java(BuildIntegBase):
                 )
 
             self.verify_docker_container_cleanedup(runtime)
+            self.verify_pulling_only_latest_tag(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files, expected_modules):
 
@@ -457,15 +468,6 @@ class TestBuildCommand_Java(BuildIntegBase):
 
         lib_dir_contents = set(os.listdir(str(resource_artifact_dir.joinpath("lib"))))
         self.assertEqual(lib_dir_contents, expected_modules)
-
-    def _change_to_unix_line_ending(self, path):
-        with open(os.path.abspath(path), "rb") as open_file:
-            content = open_file.read()
-
-        content = content.replace(self.WINDOWS_LINE_ENDING, self.UNIX_LINE_ENDING)
-
-        with open(os.path.abspath(path), "wb") as open_file:
-            open_file.write(content)
 
 
 @skipIf(
@@ -540,7 +542,6 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
             self._verify_invoke_built_function(
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
             )
-
         self.verify_docker_container_cleanedup(runtime)
 
     @parameterized.expand([("dotnetcore2.1", "Dotnetcore2.1"), ("dotnetcore3.1", "Dotnetcore3.1")])
@@ -715,7 +716,10 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
             self._verify_invoke_built_function(
                 self.built_template, function_identifier, self._make_parameter_override_arg(overrides), expected
             )
-        self.verify_docker_container_cleanedup(runtime)
+
+        if use_container:
+            self.verify_docker_container_cleanedup(runtime)
+            self.verify_pulling_only_latest_tag(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
@@ -844,7 +848,9 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             self._verify_invoke_built_function(
                 self.built_template, "FunctionOne", self._make_parameter_override_arg(overrides), expected
             )
-        self.verify_docker_container_cleanedup(runtime)
+        if use_container:
+            self.verify_docker_container_cleanedup(runtime)
+            self.verify_pulling_only_latest_tag(runtime)
 
     @parameterized.expand([("python3.7", False), ("python3.7", "use_container")])
     def test_build_function_with_dependent_layer(self, runtime, use_container):
@@ -879,7 +885,9 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             self._verify_invoke_built_function(
                 self.built_template, "FunctionOne", self._make_parameter_override_arg(overrides), expected
             )
-        self.verify_docker_container_cleanedup(runtime)
+        if use_container:
+            self.verify_docker_container_cleanedup(runtime)
+            self.verify_pulling_only_latest_tag(runtime)
 
     def _verify_built_artifact(
         self, build_dir, resource_logical_id, expected_files, code_property_name, artifact_subfolder=""
@@ -904,6 +912,13 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         return "python{}.{}".format(sys.version_info.major, sys.version_info.minor)
 
 
+@parameterized_class(
+    ("template", "is_nested_parent"),
+    [
+        (os.path.join("nested-parent", "template-parent.yaml"), "is_nested_parent"),
+        ("template.yaml", False),
+    ],
+)
 class TestBuildCommand_ProvidedFunctions(BuildIntegBase):
     # Test Suite for runtime: provided and where selection of the build workflow is implicitly makefile builder
     # if the makefile is present.
@@ -938,9 +953,14 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegBase):
         # Built using Makefile for a python project.
         run_command(cmdlist, cwd=self.working_dir)
 
-        self._verify_built_artifact(
-            self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
-        )
+        if self.is_nested_parent:
+            self._verify_built_artifact_in_subapp(
+                self.default_build_dir, "SubApp", self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
+            )
+        else:
+            self._verify_built_artifact(
+                self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
+            )
 
         expected = "2.23.0"
         # Building was done with a makefile, but invoke should be checked with corresponding python image.
@@ -949,7 +969,9 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegBase):
             self._verify_invoke_built_function(
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
             )
-        self.verify_docker_container_cleanedup(runtime)
+        if use_container:
+            self.verify_docker_container_cleanedup(runtime)
+            self.verify_pulling_only_latest_tag(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
 
@@ -961,6 +983,29 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegBase):
 
         template_path = build_dir.joinpath("template.yaml")
         resource_artifact_dir = build_dir.joinpath(function_logical_id)
+
+        # Make sure the template has correct CodeUri for resource
+        self._verify_resource_property(str(template_path), function_logical_id, "CodeUri", function_logical_id)
+
+        all_artifacts = set(os.listdir(str(resource_artifact_dir)))
+        actual_files = all_artifacts.intersection(expected_files)
+        self.assertEqual(actual_files, expected_files)
+
+    def _verify_built_artifact_in_subapp(self, build_dir, subapp_path, function_logical_id, expected_files):
+
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+        subapp_build_dir = Path(build_dir, subapp_path)
+        self.assertTrue(subapp_build_dir.exists(), f"Build directory for sub app {subapp_path} should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("template.yaml", build_dir_files)
+
+        subapp_build_dir_files = os.listdir(str(subapp_build_dir))
+        self.assertIn("template.yaml", subapp_build_dir_files)
+        self.assertIn(function_logical_id, subapp_build_dir_files)
+
+        template_path = subapp_build_dir.joinpath("template.yaml")
+        resource_artifact_dir = subapp_build_dir.joinpath(function_logical_id)
 
         # Make sure the template has correct CodeUri for resource
         self._verify_resource_property(str(template_path), function_logical_id, "CodeUri", function_logical_id)
@@ -1017,7 +1062,10 @@ class TestBuildWithBuildMethod(BuildIntegBase):
             self._verify_invoke_built_function(
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
             )
-        self.verify_docker_container_cleanedup(runtime)
+
+        if use_container:
+            self.verify_docker_container_cleanedup(runtime)
+            self.verify_pulling_only_latest_tag(runtime)
 
     @parameterized.expand([(False,), ("use_container")])
     @pytest.mark.flaky(reruns=3)
@@ -1051,7 +1099,10 @@ class TestBuildWithBuildMethod(BuildIntegBase):
             self._verify_invoke_built_function(
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
             )
-        self.verify_docker_container_cleanedup(runtime)
+
+        if use_container:
+            self.verify_docker_container_cleanedup(runtime)
+            self.verify_pulling_only_latest_tag(runtime)
 
     @parameterized.expand([(False,), ("use_container")])
     @pytest.mark.flaky(reruns=3)
@@ -1150,6 +1201,43 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
         if not SKIP_DOCKER_TESTS:
             self._verify_build_and_invoke_functions(
                 expected_messages, command_result, self._make_parameter_override_arg(overrides)
+            )
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildWithDedupImageBuilds(DedupBuildIntegBase):
+    template = "dedup-functions-image-template.yaml"
+
+    @parameterized.expand([(True,), (False,)])
+    @pytest.mark.flaky(reruns=3)
+    def test_dedup_build(self, use_container):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        """
+        Build template above and verify that each function call returns as expected
+        """
+        overrides = {
+            "Function1Handler": "main.first_function_handler",
+            "Function2Handler": "main.second_function_handler",
+            "FunctionRuntime": "3.7",
+            "DockerFile": "Dockerfile",
+            "Tag": f"{random.randint(1,100)}",
+        }
+        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        run_command(cmdlist, cwd=self.working_dir)
+
+        if not SKIP_DOCKER_TESTS:
+            self._verify_invoke_built_function(
+                self.built_template, "HelloWorldFunction", self._make_parameter_override_arg(overrides), "Hello World"
+            )
+            self._verify_invoke_built_function(
+                self.built_template, "HelloMarsFunction", self._make_parameter_override_arg(overrides), "Hello Mars"
             )
 
 
@@ -1320,7 +1408,9 @@ class TestBuildWithInlineCode(BuildIntegBase):
 
         self._verify_built_artifact(self.default_build_dir)
 
-        self.verify_docker_container_cleanedup("python3.7")
+        if use_container:
+            self.verify_docker_container_cleanedup("python3.7")
+            self.verify_pulling_only_latest_tag("python3.7")
 
     def _verify_built_artifact(self, build_dir):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
@@ -1339,3 +1429,573 @@ class TestBuildWithInlineCode(BuildIntegBase):
         self._verify_resource_property(str(template_path), codeuri_logical_id, "CodeUri", codeuri_logical_id)
         # Make sure the template has correct InlineCode for resource
         self._verify_resource_property(str(template_path), inline_logical_id, "InlineCode", "def handler(): pass")
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildWithJsonContainerEnvVars(BuildIntegBase):
+    template = "container_env_vars_template.yml"
+
+    @parameterized.expand(
+        [
+            ("use_container", "env_vars_function.json"),
+            ("use_container", "env_vars_parameters.json"),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_json_env_vars_passed(self, use_container, env_vars_file):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        cmdlist = self.get_command_list(
+            use_container=use_container, container_env_var_file=self.get_env_file(env_vars_file)
+        )
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        run_command(cmdlist, cwd=self.working_dir)
+
+        self._verify_built_env_var(self.default_build_dir)
+
+        if use_container:
+            self.verify_docker_container_cleanedup("python3.7")
+            self.verify_pulling_only_latest_tag("python3.7")
+
+    @staticmethod
+    def get_env_file(filename):
+        test_data_path = Path(__file__).resolve().parents[2].joinpath("integration", "testdata")
+        return str(test_data_path.joinpath("buildcmd", filename))
+
+    def _verify_built_env_var(self, build_dir):
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("CheckEnvVarsFunction", build_dir_files)
+
+        function_files = os.listdir(str(build_dir.joinpath("CheckEnvVarsFunction")))
+        self.assertIn("env_vars_result.txt", function_files)
+
+        output_file = build_dir.joinpath("CheckEnvVarsFunction", "env_vars_result.txt")
+        with open(str(output_file), "r", encoding="utf-8") as r:
+            actual = r.read()
+            self.assertEqual(actual.strip(), "MyVar")
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildWithInlineContainerEnvVars(BuildIntegBase):
+    template = "container_env_vars_template.yml"
+
+    @parameterized.expand(
+        [
+            ("use_container", "TEST_ENV_VAR=MyVar"),
+            ("use_container", "CheckEnvVarsFunction.TEST_ENV_VAR=MyVar"),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_inline_env_vars_passed(self, use_container, inline_env_var):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        cmdlist = self.get_command_list(use_container=use_container, container_env_var=inline_env_var)
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        run_command(cmdlist, cwd=self.working_dir)
+
+        self._verify_built_env_var(self.default_build_dir)
+
+        if use_container:
+            self.verify_docker_container_cleanedup("python3.7")
+            self.verify_pulling_only_latest_tag("python3.7")
+
+    def _verify_built_env_var(self, build_dir):
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("CheckEnvVarsFunction", build_dir_files)
+
+        function_files = os.listdir(str(build_dir.joinpath("CheckEnvVarsFunction")))
+        self.assertIn("env_vars_result.txt", function_files)
+
+        output_file = build_dir.joinpath("CheckEnvVarsFunction", "env_vars_result.txt")
+        with open(str(output_file), "r", encoding="utf-8") as r:
+            actual = r.read()
+            self.assertEqual(actual.strip(), "MyVar")
+
+
+class TestBuildWithNestedStacks(NestedBuildIntegBase):
+    # we put the root template in its own directory to test the scenario where codeuri and children templates
+    # are not located in the same folder.
+    template = os.path.join("nested-parent", "nested-root-template.yaml")
+
+    @parameterized.expand(
+        [
+            (
+                "use_container",
+                True,
+                True,
+            ),
+            (
+                "use_container",
+                False,
+                False,
+            ),
+            (
+                False,
+                True,
+                True,
+            ),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_nested_build(self, use_container, cached, parallel):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        """
+        Build template above and verify that each function call returns as expected
+        """
+        overrides = {
+            "Runtime": "python3.7",
+            "CodeUri": "../Python",  # root stack is one level deeper than the code
+            "ChildStackCodeUri": "./Python",  # chidl stack is in the same folder as the code
+            "LocalNestedFuncHandler": "main.handler",
+        }
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, cached=cached, parallel=parallel
+        )
+
+        LOG.info("Running Command: %s", cmdlist)
+        LOG.info(self.working_dir)
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        # make sure functions are deduplicated properly, in stderr they will show up in the same line.
+        self.assertRegex(command_result.stderr.decode("utf-8"), r"Building .+'Function2',.+LocalNestedStack/Function2")
+
+        function_full_paths = ["Function", "Function2", "LocalNestedStack/Function1", "LocalNestedStack/Function2"]
+        stack_paths = ["", "LocalNestedStack"]
+        if not SKIP_DOCKER_TESTS:
+            self._verify_build(
+                function_full_paths,
+                stack_paths,
+                command_result,
+            )
+
+            overrides = self._make_parameter_override_arg(overrides)
+            self._verify_invoke_built_functions(
+                self.built_template,
+                overrides,
+                [
+                    # invoking function in root stack using function name
+                    ("Function", "Hello World"),
+                    # there is only 1 Function1 in these two stacks, so invoking either by name and by full_path are the same
+                    ("Function1", {"pi": "3.14"}),
+                    ("LocalNestedStack/Function1", {"pi": "3.14"}),
+                    # Function2 appears in both stacks and have different handler:
+                    # - invoking using function name will match the root stack one by default
+                    # - invoking using full path to avoid ambiguity
+                    ("Function2", "Hello Mars"),
+                    ("LocalNestedStack/Function2", {"pi": "3.14"}),
+                ],
+            )
+
+
+@parameterized_class(
+    ("template", "use_base_dir"),
+    [
+        (os.path.join("deep-nested", "template.yaml"), False),
+        (os.path.join("base-dir", "template", "template.yaml"), "use_base_dir"),
+    ],
+)
+class TestBuildWithNestedStacks3Level(NestedBuildIntegBase):
+    """
+    In this template, it has the same structure as .aws-sam/build
+    build
+        - template.yaml
+        - FunctionA
+        - ChildStackX
+            - template.yaml
+            - FunctionB
+            - ChildStackY
+                - template.yaml
+                - FunctionA
+                - MyLayerVersion
+    """
+
+    template = os.path.join("deep-nested", "template.yaml")
+
+    @pytest.mark.flaky(reruns=3)
+    def test_nested_build(self):
+        if SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        cmdlist = self.get_command_list(
+            use_container=True,
+            cached=True,
+            parallel=True,
+            base_dir=(os.path.join(self.test_data_path, "base-dir") if self.use_base_dir else None),
+        )
+
+        LOG.info("Running Command: %s", cmdlist)
+        LOG.info(self.working_dir)
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        function_full_paths = [
+            "FunctionA",
+            "ChildStackX/FunctionB",
+            "ChildStackX/ChildStackY/FunctionA",
+        ]
+        stack_paths = [
+            "",
+            "ChildStackX",
+            "ChildStackX/ChildStackY",
+        ]
+        if not SKIP_DOCKER_TESTS:
+            self._verify_build(
+                function_full_paths,
+                stack_paths,
+                command_result,
+            )
+
+            self._verify_invoke_built_functions(
+                self.built_template,
+                "",
+                [
+                    ("FunctionA", {"body": '{"hello": "a"}', "statusCode": 200}),
+                    ("FunctionB", {"body": '{"hello": "b"}', "statusCode": 200}),
+                    ("ChildStackX/FunctionB", {"body": '{"hello": "b"}', "statusCode": 200}),
+                    ("ChildStackX/ChildStackY/FunctionA", {"body": '{"hello": "a2"}', "statusCode": 200}),
+                ],
+            )
+
+
+@skipIf(IS_WINDOWS, "symlink is not resolved consistently on windows")
+class TestBuildWithNestedStacks3LevelWithSymlink(NestedBuildIntegBase):
+    """
+    In this template, it has the same structure as .aws-sam/build
+    build
+        - template.yaml
+        - child-stack-x-template-symlink.yaml (symlink to ChildStackX/template.yaml)
+        - FunctionA
+        - ChildStackX
+            - template.yaml
+            - FunctionB
+            - ChildStackY
+                - template.yaml
+                - FunctionA
+                - MyLayerVersion
+    """
+
+    template = os.path.join("deep-nested", "template-with-symlink.yaml")
+
+    @pytest.mark.flaky(reruns=3)
+    def test_nested_build(self):
+        if SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        cmdlist = self.get_command_list(use_container=True, cached=True, parallel=True)
+
+        LOG.info("Running Command: %s", cmdlist)
+        LOG.info(self.working_dir)
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        function_full_paths = [
+            "FunctionA",
+            "ChildStackX/FunctionB",
+            "ChildStackX/ChildStackY/FunctionA",
+            "ChildStackXViaSymlink/FunctionB",
+            "ChildStackXViaSymlink/ChildStackY/FunctionA",
+        ]
+        stack_paths = [
+            "",
+            "ChildStackX",
+            "ChildStackX/ChildStackY",
+            "ChildStackXViaSymlink",
+            "ChildStackXViaSymlink/ChildStackY",
+        ]
+        if not SKIP_DOCKER_TESTS:
+            self._verify_build(
+                function_full_paths,
+                stack_paths,
+                command_result,
+            )
+
+            self._verify_invoke_built_functions(
+                self.built_template,
+                "",
+                [
+                    ("FunctionA", {"body": '{"hello": "a"}', "statusCode": 200}),
+                    ("FunctionB", {"body": '{"hello": "b"}', "statusCode": 200}),
+                    ("ChildStackX/FunctionB", {"body": '{"hello": "b"}', "statusCode": 200}),
+                    ("ChildStackX/ChildStackY/FunctionA", {"body": '{"hello": "a2"}', "statusCode": 200}),
+                    ("ChildStackXViaSymlink/FunctionB", {"body": '{"hello": "b"}', "statusCode": 200}),
+                    ("ChildStackXViaSymlink/ChildStackY/FunctionA", {"body": '{"hello": "a2"}', "statusCode": 200}),
+                ],
+            )
+
+
+@parameterized_class(
+    ("template", "use_base_dir"),
+    [
+        (os.path.join("nested-parent", "nested-root-template-image.yaml"), False),
+        (os.path.join("base-dir-image", "template", "template.yaml"), "use_base_dir"),
+    ],
+)
+class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
+
+    EXPECTED_FILES_PROJECT_MANIFEST = {
+        "__init__.py",
+        "main.py",
+        "numpy",
+        # 'cryptography',
+        "requirements.txt",
+    }
+
+    @parameterized.expand(
+        [
+            (
+                "use_container",
+                True,
+                True,
+            ),
+            (
+                "use_container",
+                False,
+                False,
+            ),
+            (
+                False,
+                True,
+                True,
+            ),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_nested_build(self, use_container, cached, parallel):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        """
+        Build template above and verify that each function call returns as expected
+        """
+        overrides = {
+            "Runtime": "3.7",
+            "DockerFile": "Dockerfile",
+            "Tag": f"{random.randint(1,100)}",
+            "LocalNestedFuncHandler": "main.handler",
+        }
+        cmdlist = self.get_command_list(
+            use_container=use_container,
+            parameter_overrides=overrides,
+            cached=cached,
+            parallel=parallel,
+            base_dir=(os.path.join(self.test_data_path, "base-dir-image") if self.use_base_dir else None),
+        )
+
+        LOG.info("Running Command: %s", cmdlist)
+        LOG.info(self.working_dir)
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        stack_paths = ["", "LocalNestedStack"]
+        if not SKIP_DOCKER_TESTS:
+            self._verify_build(
+                [],  # there is no function artifact dirs to check
+                stack_paths,
+                command_result,
+            )
+
+            overrides = self._make_parameter_override_arg(overrides)
+            self._verify_invoke_built_functions(
+                self.built_template,
+                overrides,
+                [
+                    # invoking function in root stack using function name
+                    ("Function", "Hello World"),
+                    # there is only 1 Function1 in these two stacks, so invoking either by name and by full_path are the same
+                    ("Function1", {"pi": "3.14"}),
+                    ("LocalNestedStack/Function1", {"pi": "3.14"}),
+                    # Function2 appears in both stacks and have different handler:
+                    # - invoking using function name will match the root stack one by default
+                    # - invoking using full path to avoid ambiguity
+                    ("Function2", "Hello Mars"),
+                    ("LocalNestedStack/Function2", {"pi": "3.14"}),
+                ],
+            )
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildWithCustomBuildImage(BuildIntegBase):
+    template = "build_image_function.yaml"
+
+    @parameterized.expand(
+        [
+            ("use_container", None),
+            ("use_container", "amazon/aws-sam-cli-build-image-python3.7:latest"),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_custom_build_image_succeeds(self, use_container, build_image):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        cmdlist = self.get_command_list(use_container=use_container, build_image=build_image)
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        stderr = command_result.stderr
+        process_stderr = stderr.strip()
+
+        self._verify_right_image_pulled(build_image, process_stderr)
+        self._verify_build_succeeds(self.default_build_dir)
+
+        self.verify_docker_container_cleanedup("python3.7")
+
+    def _verify_right_image_pulled(self, build_image, process_stderr):
+        image_name = build_image if build_image is not None else "public.ecr.aws/sam/build-python3.7:latest"
+        processed_name = bytes(image_name, encoding="utf-8")
+        self.assertIn(
+            processed_name,
+            process_stderr,
+        )
+
+    def _verify_build_succeeds(self, build_dir):
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("BuildImageFunction", build_dir_files)
+
+
+@parameterized_class(
+    ("template", "stack_paths", "layer_full_path", "function_full_paths", "invoke_error_message"),
+    [
+        (
+            os.path.join("nested-with-intrinsic-functions", "template-pass-down.yaml"),
+            ["", "AppUsingRef", "AppUsingJoin"],
+            "MyLayerVersion",
+            ["AppUsingRef/FunctionInChild", "AppUsingJoin/FunctionInChild"],
+            # Note(xinhol), intrinsic function passed by parameter are resolved as string,
+            # therefore it is being treated as an Arn, it is a bug in intrinsic resolver
+            "Invalid Layer Arn",
+        ),
+        (
+            os.path.join("nested-with-intrinsic-functions", "template-pass-up.yaml"),
+            ["", "ChildApp"],
+            "ChildApp/MyLayerVersion",
+            ["FunctionInRoot"],
+            # for this pass-up use case, since we are not sure whether there are valid local invoke cases out there,
+            # so we don't want to block customers from local invoking it.
+            None,
+        ),
+    ],
+)
+class TestBuildPassingLayerAcrossStacks(IntrinsicIntegBase):
+    @pytest.mark.flaky(reruns=3)
+    def test_nested_build(self):
+        if SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        """
+        Build template above and verify that each function call returns as expected
+        """
+        cmdlist = self.get_command_list(
+            use_container=True,
+            cached=True,
+            parallel=True,
+        )
+
+        LOG.info("Running Command: %s", cmdlist)
+        LOG.info(self.working_dir)
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        if not SKIP_DOCKER_TESTS:
+            self._verify_build(
+                self.function_full_paths,
+                self.layer_full_path,
+                self.stack_paths,
+                command_result,
+            )
+
+            self._verify_invoke_built_functions(
+                self.built_template, self.function_full_paths, self.invoke_error_message
+            )
+
+
+class TestBuildWithS3FunctionsOrLayers(NestedBuildIntegBase):
+    template = "template-with-s3-code.yaml"
+    EXPECTED_FILES_PROJECT_MANIFEST = {
+        "__init__.py",
+        "main.py",
+        "numpy",
+        # 'cryptography',
+        "requirements.txt",
+    }
+
+    @pytest.mark.flaky(reruns=3)
+    def test_functions_layers_with_s3_codeuri(self):
+        if SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        """
+        Build template above and verify that each function call returns as expected
+        """
+        cmdlist = self.get_command_list(
+            use_container=True,
+        )
+
+        LOG.info("Running Command: %s", cmdlist)
+        LOG.info(self.working_dir)
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        if not SKIP_DOCKER_TESTS:
+            self._verify_build(
+                ["ServerlessFunction", "LambdaFunction"],
+                [""],  # there is only one stack
+                command_result,
+            )
+            # these two functions are buildable and `sam build` would build it.
+            # but since the two functions both depends on layers with s3 uri,
+            # sam-cli does support local invoking it but the local invoke is likely
+            # to fail due to missing layers. We don't want to introduce breaking
+            # change so only a warning is added when `local invoke` is used on such functions.
+            # skip the invoke test here because the invoke result is not meaningful.
+
+
+class TestBuildWithZipFunctionsOrLayers(NestedBuildIntegBase):
+    template = "template-with-zip-code.yaml"
+
+    @pytest.mark.flaky(reruns=3)
+    def test_functions_layers_with_s3_codeuri(self):
+        if SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        """
+        Build template above and verify that each function call returns as expected
+        """
+        cmdlist = self.get_command_list(
+            use_container=True,
+        )
+
+        LOG.info("Running Command: %s", cmdlist)
+        LOG.info(self.working_dir)
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        if not SKIP_DOCKER_TESTS:
+            # no functions/layers should be built since they all have zip code/content
+            # which are
+            self._verify_build(
+                [],
+                [""],  # there is only one stack
+                command_result,
+            )

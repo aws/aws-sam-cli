@@ -18,9 +18,8 @@ class LambdaBuildContainer(Container):
     and if the build was successful, copies back artifacts to the host filesystem
     """
 
-    _IMAGE_OWNER = "amazon"
-    _IMAGE_NAME_PREFIX = "aws-sam-cli-build-image"
-    _IMAGE_NAME_FORMAT = "{}/{}-{}"  # amazon/aws-sam-cli-build-image-nodejs10.x
+    _IMAGE_URI_PREFIX = "public.ecr.aws/sam/build"
+    _IMAGE_TAG = "latest"
     _BUILDERS_EXECUTABLE = "lambda-builders"
 
     def __init__(  # pylint: disable=too-many-locals
@@ -37,6 +36,8 @@ class LambdaBuildContainer(Container):
         executable_search_paths=None,
         log_level=None,
         mode=None,
+        env_vars=None,
+        image=None,
     ):
 
         abs_manifest_path = pathlib.Path(manifest_path).resolve()
@@ -46,6 +47,7 @@ class LambdaBuildContainer(Container):
         source_dir = str(pathlib.Path(source_dir).resolve())
 
         container_dirs = LambdaBuildContainer._get_container_dirs(source_dir, manifest_dir)
+        env_vars = env_vars if env_vars else {}
 
         # `executable_search_paths` are provided as a list of paths on the host file system that needs to passed to
         # the builder. But these paths don't exist within the container. We use the following method to convert the
@@ -74,7 +76,8 @@ class LambdaBuildContainer(Container):
             mode,
         )
 
-        image = LambdaBuildContainer._get_image(runtime)
+        if image is None:
+            image = LambdaBuildContainer._get_image(runtime)
         entry = LambdaBuildContainer._get_entrypoint(request_json)
         cmd = []
 
@@ -84,9 +87,8 @@ class LambdaBuildContainer(Container):
             manifest_dir: {"bind": container_dirs["manifest_dir"], "mode": "ro"}
         }
 
-        env_vars = None
         if log_level:
-            env_vars = {"LAMBDA_BUILDERS_LOG_LEVEL": log_level}
+            env_vars["LAMBDA_BUILDERS_LOG_LEVEL"] = log_level
 
         super().__init__(
             image,
@@ -235,6 +237,4 @@ class LambdaBuildContainer(Container):
 
     @staticmethod
     def _get_image(runtime):
-        return LambdaBuildContainer._IMAGE_NAME_FORMAT.format(
-            LambdaBuildContainer._IMAGE_OWNER, LambdaBuildContainer._IMAGE_NAME_PREFIX, runtime
-        )
+        return f"{LambdaBuildContainer._IMAGE_URI_PREFIX}-{runtime}:{LambdaBuildContainer._IMAGE_TAG}"

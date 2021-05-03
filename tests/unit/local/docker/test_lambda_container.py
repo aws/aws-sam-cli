@@ -495,7 +495,7 @@ class TestLambdaContainer_get_debug_settings(TestCase):
 
         elif runtime in RUNTIMES_WITH_DEBUG_ENV_VARS_ONLY:
             result, _ = LambdaContainer._get_debug_settings(runtime, self.debug_options)
-            self.assertEquals(
+            self.assertEqual(
                 ["/var/rapid/aws-lambda-rie", "--log-level", "error"],
                 result,
                 "{} runtime must not override entrypoint".format(runtime),
@@ -529,7 +529,7 @@ class TestLambdaContainer_get_debug_settings(TestCase):
 
         self.assertIsNotNone(result)
 
-    @parameterized.expand([(2, "-delveApi=2"), (2, "-delveApi 2"), (1, None)])
+    @parameterized.expand([(2, "-delveAPI=2"), (2, "-delveAPI 2"), (1, None)])
     def test_delve_api_version_can_be_read_from_debug_args(self, version, debug_args):
         debug_options = DebugContext(debug_ports=[1235], debug_args=debug_args)
         _, env_vars = LambdaContainer._get_debug_settings(Runtime.go1x.value, debug_options)

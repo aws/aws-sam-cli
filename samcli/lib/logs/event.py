@@ -25,6 +25,8 @@ class LogEvent:
 
         Parameters
         ----------
+        log_group_name : str
+            The log group name
         event_dict : dict
             Dict of log event data returned by CloudWatch Logs API.
             https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_FilteredLogEvent.html

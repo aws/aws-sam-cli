@@ -1,0 +1,28 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  FunctionA:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+
+  FunctionB:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.write_to_stderr
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+
+  FunctionSomeLogicalID:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: FunctionNameC
+      Handler: main.write_to_stdout
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600

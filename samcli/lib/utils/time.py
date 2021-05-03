@@ -5,8 +5,6 @@ Date & Time related utilities
 import datetime
 import dateparser
 
-from dateutil.tz import tzutc
-
 
 def timestamp_to_iso(timestamp):
     """
@@ -92,7 +90,7 @@ def to_utc(some_time):
 
     # Convert timezone aware objects to UTC
     if some_time.tzinfo and some_time.utcoffset():
-        some_time = some_time.astimezone(tzutc())
+        some_time = some_time.astimezone(datetime.timezone.utc)
 
     # Now that time is UTC, simply remove the timezone component.
     return some_time.replace(tzinfo=None)

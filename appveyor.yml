@@ -61,26 +61,49 @@ for:
 
       # Install AWS CLI Globally outside of a venv.
       - "pip install awscli"
+      
+      # Create pre-dev virtual env without installing dev depenencies
+      # This is used for import check for prod code to prevent importing packages from dev.txt
+      - "rm -rf pre-dev-venv"
+      - "python -m virtualenv pre-dev-venv"
+      - "pre-dev-venv\\Scripts\\activate"
+      - "python --version"
+      - "deactivate"
 
-      # Create new virtual environment and activate it
+      # Create dev virtual env
       - "rm -rf venv"
       - "python -m virtualenv venv"
       - "venv\\Scripts\\activate"
       - "python --version"
+      - "deactivate"
 
     build_script:
-      # Activate virtualenv again on windows
+      # Install pre-dev dependencies
+      # This env is currently used for doing import check with Pylint without dev.txt dependencies installed 
+      - "pre-dev-venv\\Scripts\\activate"
+      - "python -c \"import sys; print(sys.executable)\""
+      - "pip install -e \".[pre-dev]\""
+      - "deactivate"
+
+      # Install dev dependencies
       - "venv\\Scripts\\activate"
       - "python -c \"import sys; print(sys.executable)\""
       - "pip install -e \".[dev]\""
+      - "deactivate"
 
     test_script:
-      # Activate virtualenv again on windows
+      # Run pylint on pre-dev env to catch import errors
+      - "pre-dev-venv\\Scripts\\activate"
+      - "pylint --rcfile .pylintrc samcli"
+      - "deactivate"
+
+      # Run tests with dev env
       - "venv\\Scripts\\activate"
       - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
       - "pylint --rcfile .pylintrc samcli"
       - "mypy setup.py samcli tests"
       - "pytest -n 4 tests/functional"
+      - "deactivate"
 
   - 
     matrix:
@@ -88,6 +111,9 @@ for:
         - image: Ubuntu
 
     install:
+      # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
+      - sh: "sudo apt-get update"
+
       - sh: "gvm use go1.13"
       - sh: "echo $PATH"
       - sh: "ls /usr/"
@@ -128,9 +154,14 @@ for:
 
     build_script:
       - "python -c \"import sys; print(sys.executable)\""
-      - "pip install -e \".[dev]\""
 
     test_script:
+      # Pre-dev Tests
+      - "pip install -e \".[pre-dev]\""
+      - "pylint --rcfile .pylintrc samcli"
+      
+      # Dev Tests
+      - "pip install -e \".[dev]\""
       - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
       - "pylint --rcfile .pylintrc samcli"
       - "mypy setup.py samcli tests"

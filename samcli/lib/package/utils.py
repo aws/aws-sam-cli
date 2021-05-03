@@ -161,8 +161,17 @@ def zip_folder(folder_path):
     Zip the entire folder and return a file to the zip. Use this inside
     a "with" statement to cleanup the zipfile after it is used.
 
-    :param folder_path:
-    :return: Name of the zipfile
+    Parameters
+    ----------
+    folder_path : str
+        The path of the folder to zip
+
+    Yields
+    ------
+    zipfile_name : str
+        Name of the zipfile
+    md5hash : str
+        The md5 hash of the directory
     """
     md5hash = dir_checksum(folder_path, followlinks=True)
     filename = os.path.join(tempfile.gettempdir(), "data-" + md5hash)
@@ -176,6 +185,20 @@ def zip_folder(folder_path):
 
 
 def make_zip(file_name, source_root):
+    """
+    Create a zip file from the source directory
+
+    Parameters
+    ----------
+    file_name : str
+        The basename of the zip file, without .zip
+    source_root : str
+        The path to the source directory
+    Returns
+    -------
+    str
+        The name of the zip file, including .zip extension
+    """
     zipfile_name = "{0}.zip".format(file_name)
     source_root = os.path.abspath(source_root)
     compression_type = zipfile.ZIP_DEFLATED

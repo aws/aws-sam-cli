@@ -38,13 +38,10 @@ class LogsFetcher:
         ----------
         log_group_name : string
             Name of CloudWatch Logs Group to query.
-
         start : datetime.datetime
             Optional start time for logs.
-
         end : datetime.datetime
             Optional end time for logs.
-
         filter_pattern : str
             Expression to filter the logs by. This is passed directly to CloudWatch, so any expression supported by
             CloudWatch Logs API is supported here.
@@ -96,18 +93,14 @@ class LogsFetcher:
         ----------
         log_group_name : str
             Name of CloudWatch Logs Group to query.
-
         start : datetime.datetime
             Optional start time for logs. Defaults to '5m ago'
-
         filter_pattern : str
             Expression to filter the logs by. This is passed directly to CloudWatch, so any expression supported by
             CloudWatch Logs API is supported here.
-
         max_retries : int
             When logs are not available, this value determines the number of times to retry fetching logs before giving
             up. This counter is reset every time new logs are available.
-
         poll_interval : float
             Number of fractional seconds wait before polling again. Defaults to 300milliseconds.
             If no new logs available, this method will stop polling after ``max_retries * poll_interval`` seconds

@@ -2,9 +2,12 @@
 Class that provides layers from a given SAM template
 """
 import logging
+import posixpath
+from typing import List, Dict, Optional
 
-from .provider import LayerVersion
+from .provider import LayerVersion, Stack
 from .sam_base_provider import SamBaseProvider
+from .sam_stack_provider import SamLocalStackProvider
 
 LOG = logging.getLogger(__name__)
 
@@ -17,7 +20,7 @@ class SamLayerProvider(SamBaseProvider):
     It may or may not contain a layer.
     """
 
-    def __init__(self, template_dict, parameter_overrides=None):
+    def __init__(self, stacks: List[Stack], use_raw_codeuri: bool = False) -> None:
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
         to be valid, normalized and a dictionary. It should be normalized by running all pre-processing
@@ -30,17 +33,19 @@ class SamLayerProvider(SamBaseProvider):
 
         Parameters
         ----------
-        template_dict: SAM Template as a dictionary
-        parameter_overrides: Optional dictionary of values for SAM template parameters that might want to get
-            substituted within the template
+        :param dict stacks: List of stacks layers are extracted from
+        :param bool use_raw_codeuri: Do not resolve adjust core_uri based on the template path, use the raw uri.
+            Note(xinhol): use_raw_codeuri is temporary to fix a bug, and will be removed for a permanent solution.
         """
-        self._template_dict = SamLayerProvider.get_template(template_dict, parameter_overrides)
-        self._resources = self._template_dict.get("Resources", {})
+        self._stacks = stacks
+        self._use_raw_codeuri = use_raw_codeuri
+
         self._layers = self._extract_layers()
 
-    def get(self, name):
+    def get(self, name: str) -> Optional[LayerVersion]:
         """
         Returns the layer with given name or logical id.
+        If it is in a nested stack, name can be prefixed with stack path to avoid ambiguity
 
         Parameters
         ----------
@@ -55,11 +60,11 @@ class SamLayerProvider(SamBaseProvider):
             raise ValueError("Layer name is required")
 
         for layer in self._layers:
-            if layer.name == name:
+            if posixpath.join(layer.stack_path, layer.name) == name or layer.name == name:
                 return layer
         return None
 
-    def get_all(self):
+    def get_all(self) -> List[LayerVersion]:
         """
         Returns all Layers in template
         Returns
@@ -68,35 +73,68 @@ class SamLayerProvider(SamBaseProvider):
         """
         return self._layers
 
-    def _extract_layers(self):
+    def _extract_layers(self) -> List[LayerVersion]:
         """
         Extracts all resources with Type AWS::Lambda::LayerVersion and AWS::Serverless::LayerVersion and return a list
         of those resources.
         """
         layers = []
-        for name, resource in self._resources.items():
-            if resource.get("Type") in [self.LAMBDA_LAYER, self.SERVERLESS_LAYER]:
-                layers.append(self._convert_lambda_layer_resource(name, resource))
+        for stack in self._stacks:
+            for name, resource in stack.resources.items():
+                # In the list of layers that is defined within a template, you can reference a LayerVersion resource.
+                # When running locally, we need to follow that Ref so we can extract the local path to the layer code.
+                resource_type = resource.get("Type")
+                resource_properties = resource.get("Properties", {})
+
+                if resource_type in [SamBaseProvider.LAMBDA_LAYER, SamBaseProvider.SERVERLESS_LAYER]:
+                    code_property_key = SamBaseProvider.CODE_PROPERTY_KEYS[resource_type]
+                    if SamBaseProvider._is_s3_location(resource_properties.get(code_property_key)):
+                        # Content can be a dictionary of S3 Bucket/Key or a S3 URI, neither of which are supported
+                        SamBaseProvider._warn_code_extraction(resource_type, name, code_property_key)
+                        continue
+                    codeuri = SamBaseProvider._extract_codeuri(resource_properties, code_property_key)
+
+                    compatible_runtimes = resource_properties.get("CompatibleRuntimes")
+                    metadata = resource.get("Metadata", None)
+                    layers.append(
+                        self._convert_lambda_layer_resource(stack, name, codeuri, compatible_runtimes, metadata)
+                    )
         return layers
 
-    def _convert_lambda_layer_resource(self, layer_logical_id, layer_resource):
+    def _convert_lambda_layer_resource(
+        self,
+        stack: Stack,
+        layer_logical_id: str,
+        codeuri: str,
+        compatible_runtimes: Optional[List[str]],
+        metadata: Optional[Dict],
+    ) -> LayerVersion:
         """
         Convert layer resource into {LayerVersion} object.
         Parameters
         ----------
-        layer_logical_id: LogicalID of resource.
-        layer_resource: resource in template.
+        stack
+        layer_logical_id
+            LogicalID of resource.
+        codeuri
+            codeuri of the layer
+        compatible_runtimes
+            list of compatible runtimes
+        metadata
+            dictionary of layer metadata
+        Returns
+        -------
+        LayerVersion
+            The layer object
         """
-        # In the list of layers that is defined within a template, you can reference a LayerVersion resource.
-        # When running locally, we need to follow that Ref so we can extract the local path to the layer code.
-        layer_properties = layer_resource.get("Properties", {})
-        resource_type = layer_resource.get("Type")
-        compatible_runtimes = layer_properties.get("CompatibleRuntimes")
-        codeuri = None
+        if codeuri and not self._use_raw_codeuri:
+            LOG.debug("--base-dir is not presented, adjusting uri %s relative to %s", codeuri, stack.location)
+            codeuri = SamLocalStackProvider.normalize_resource_path(stack.location, codeuri)
 
-        if resource_type == self.SERVERLESS_LAYER:
-            codeuri = SamLayerProvider._extract_sam_function_codeuri(layer_logical_id, layer_properties, "ContentUri")
-        if resource_type == self.LAMBDA_LAYER:
-            codeuri = SamLayerProvider._extract_lambda_function_code(layer_properties, "Content")
-
-        return LayerVersion(layer_logical_id, codeuri, compatible_runtimes, layer_resource.get("Metadata", None))
+        return LayerVersion(
+            layer_logical_id,
+            codeuri,
+            compatible_runtimes,
+            metadata,
+            stack_path=stack.stack_path,
+        )

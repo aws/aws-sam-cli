@@ -9,6 +9,7 @@ from unittest import TestCase
 from unittest.mock import patch, mock_open, MagicMock
 from parameterized import parameterized, param
 
+from samcli.commands._utils.resources import AWS_SERVERLESS_FUNCTION, AWS_SERVERLESS_API
 from samcli.commands._utils.template import (
     get_template_data,
     METADATA_WITH_LOCAL_PATHS,
@@ -268,11 +269,61 @@ class Test_get_template_artifacts_format(TestCase):
     def test_template_get_artifacts_format(self, mock_get_template_data):
         mock_get_template_data.return_value = {
             "Resources": {
-                "HelloWorldFunction1": {"Properties": {"PackageType": IMAGE}},
-                "HelloWorldFunction2": {"Properties": {"PackageType": ZIP}},
+                "HelloWorldFunction1": {
+                    "Type": AWS_SERVERLESS_FUNCTION,
+                    "Properties": {"ImageUri": "myimage", "PackageType": IMAGE},
+                },
+                "HelloWorldFunction2": {
+                    "Type": AWS_SERVERLESS_FUNCTION,
+                    "Properties": {"CodeUri": "mycode", "PackageType": ZIP},
+                },
             }
         }
         self.assertEqual(get_template_artifacts_format(MagicMock()), [IMAGE, ZIP])
+
+    @patch("samcli.commands._utils.template.get_template_data")
+    def test_template_get_artifacts_format_non_packageable(self, mock_get_template_data):
+        mock_get_template_data.return_value = {
+            "Resources": {
+                "HelloWorldFunction1": {
+                    "Type": "SomeType",
+                    "Properties": {"ImageUri": "myimage", "PackageType": IMAGE},
+                },
+            }
+        }
+        self.assertEqual(get_template_artifacts_format(MagicMock()), [])
+
+    @patch("samcli.commands._utils.template.get_template_data")
+    def test_template_get_artifacts_format_only_image(self, mock_get_template_data):
+        mock_get_template_data.return_value = {
+            "Resources": {
+                "HelloWorldFunction1": {
+                    "Type": AWS_SERVERLESS_FUNCTION,
+                    "Properties": {"ImageUri": "myimage", "PackageType": IMAGE},
+                },
+            }
+        }
+        self.assertEqual(get_template_artifacts_format(MagicMock()), [IMAGE])
+
+    @patch("samcli.commands._utils.template.get_template_data")
+    def test_template_get_artifacts_format_only_image_other_resources_present(self, mock_get_template_data):
+        mock_get_template_data.return_value = {
+            "Resources": {
+                "HelloWorldFunction1": {
+                    "Type": AWS_SERVERLESS_FUNCTION,
+                    "Properties": {"ImageUri": "myimage", "PackageType": IMAGE},
+                },
+                "HelloWorldFunction2": {"Type": AWS_SERVERLESS_API, "Properties": {"StageName": "Prod"}},
+            }
+        }
+        self.assertEqual(get_template_artifacts_format(MagicMock()), [IMAGE])
+
+    @patch("samcli.commands._utils.template.get_template_data")
+    def test_template_get_artifacts_format_none_other_resources_present(self, mock_get_template_data):
+        mock_get_template_data.return_value = {
+            "Resources": {"HelloWorldFunction2": {"Type": AWS_SERVERLESS_API, "Properties": {"StageName": "Prod"}}}
+        }
+        self.assertEqual(get_template_artifacts_format(MagicMock()), [])
 
 
 class Test_get_template_function_resouce_ids(TestCase):

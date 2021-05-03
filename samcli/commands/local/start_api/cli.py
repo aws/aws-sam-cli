@@ -5,7 +5,7 @@ CLI command for "local start-api" command
 import logging
 import click
 
-from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
+from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands.local.cli_common.options import (
     invoke_common_options,
     service_common_options,
@@ -55,6 +55,7 @@ and point SAM to the directory or file containing build artifacts.
 @pass_context
 @track_command
 @check_newer_version
+@print_cmdline_args
 def cli(
     ctx,
     # start-api Specific Options
@@ -80,7 +81,12 @@ def cli(
     warm_containers,
     shutdown,
     debug_function,
+    container_host,
+    container_host_interface,
 ):
+    """
+    `sam local start-api` command entry point
+    """
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(
@@ -104,6 +110,8 @@ def cli(
         warm_containers,
         shutdown,
         debug_function,
+        container_host,
+        container_host_interface,
     )  # pragma: no cover
 
 
@@ -128,6 +136,8 @@ def do_cli(  # pylint: disable=R0914
     warm_containers,
     shutdown,
     debug_function,
+    container_host,
+    container_host_interface,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -168,6 +178,8 @@ def do_cli(  # pylint: disable=R0914
             warm_container_initialization_mode=warm_containers,
             debug_function=debug_function,
             shutdown=shutdown,
+            container_host=container_host,
+            container_host_interface=container_host_interface,
         ) as invoke_context:
 
             service = LocalApiService(lambda_invoke_context=invoke_context, port=port, host=host, static_dir=static_dir)

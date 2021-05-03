@@ -43,7 +43,6 @@ def print_deploy_args(
     :param parameter_overrides: Cloudformation parameter overrides to be supplied based on the stack's template
     :param confirm_changeset: Prompt for changeset to be confirmed before going ahead with the deploy.
     :param signing_profiles: Signing profile details which will be used to sign functions/layers
-    :return:
     """
     _parameters = parameter_overrides.copy()
 

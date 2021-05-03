@@ -194,10 +194,6 @@ class LambdaImage:
         layers list(samcli.commands.local.lib.provider.Layer)
             List of Layers to be use to mount in the image
 
-        Returns
-        -------
-        None
-
         Raises
         ------
         samcli.commands.local.cli_common.user_exceptions.ImageBuildException

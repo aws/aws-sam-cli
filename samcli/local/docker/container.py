@@ -38,7 +38,7 @@ class Container:
     _STDOUT_FRAME_TYPE = 1
     _STDERR_FRAME_TYPE = 2
     RAPID_PORT_CONTAINER = "8080"
-    URL = "http://localhost:{port}/2015-03-31/functions/{function_name}/invocations"
+    URL = "http://{host}:{port}/2015-03-31/functions/{function_name}/invocations"
     # Set connection timeout to 1 sec to support the large input.
     RAPID_CONNECTION_TIMEOUT = 1
 
@@ -55,19 +55,26 @@ class Container:
         docker_client=None,
         container_opts=None,
         additional_volumes=None,
+        container_host="localhost",
+        container_host_interface="127.0.0.1",
     ):
         """
         Initializes the class with given configuration. This does not automatically create or run the container.
 
-        :param string image: Name of the Docker image to create container with
-        :param string working_dir: Working directory for the container
-        :param string host_dir: Directory in the host operating system that should be mounted to the ``working_dir`` on
+        :param str image: Name of the Docker image to create container with
+        :param str cmd: Command to pass to container
+        :param str working_dir: Working directory for the container
+        :param str host_dir: Directory in the host operating system that should be mounted to the ``working_dir`` on
             container
-        :param list cmd: Command to pass to container
         :param int memory_limit_mb: Optional. Max limit of memory in MegaBytes this Lambda function can use.
         :param dict exposed_ports: Optional. Dict of ports to expose
-        :param list entrypoint: Optional. Entry point process for the container. Defaults to the value in Dockerfile
+        :param dict entrypoint: Optional. Entry point process for the container. Defaults to the value in Dockerfile
         :param dict env_vars: Optional. Dict of environment variables to setup in the container
+        :param docker_client: Optional, a docker client to replace the default one loaded from env
+        :param container_opts: Optional, a dictionary containing the container options
+        :param additional_volumes: Optional list of additional volumes
+        :param string container_host: Optional. Host of locally emulated Lambda container
+        :param string container_host_interface: Optional. Interface that Docker host binds ports to
         """
 
         self._image = image
@@ -93,6 +100,10 @@ class Container:
         # selecting the first free port in a range that's not ephemeral.
         self._start_port_range = 5000
         self._end_port_range = 9000
+
+        self._container_host = container_host
+        self._container_host_interface = container_host_interface
+
         try:
             self.rapid_port_host = find_free_port(start=self._start_port_range, end=self._end_port_range)
         except NoFreePortsError as ex:
@@ -147,11 +158,14 @@ class Container:
         if self._env_vars:
             kwargs["environment"] = self._env_vars
 
-        kwargs["ports"] = {self.RAPID_PORT_CONTAINER: ("127.0.0.1", self.rapid_port_host)}
+        kwargs["ports"] = {self.RAPID_PORT_CONTAINER: (self._container_host_interface, self.rapid_port_host)}
 
         if self._exposed_ports:
             kwargs["ports"].update(
-                {container_port: ("127.0.0.1", host_port) for container_port, host_port in self._exposed_ports.items()}
+                {
+                    container_port: (self._container_host_interface, host_port)
+                    for container_port, host_port in self._exposed_ports.items()
+                }
             )
 
         if self._entrypoint:
@@ -263,8 +277,9 @@ class Container:
         # TODO(sriram-mv): `aws-lambda-rie` is in a mode where the function_name is always "function"
         # NOTE(sriram-mv): There is a connection timeout set on the http call to `aws-lambda-rie`, however there is not
         # a read time out for the response received from the server.
+
         resp = requests.post(
-            self.URL.format(port=self.rapid_port_host, function_name="function"),
+            self.URL.format(host=self._container_host, port=self.rapid_port_host, function_name="function"),
             data=event.encode("utf-8"),
             timeout=(self.RAPID_CONNECTION_TIMEOUT, None),
         )
