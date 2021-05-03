@@ -49,7 +49,7 @@ jobs:
         minimum-upvotes-to-exempt: 10
 
         # need a repo scope token here to make this action can trigger other github actions
-        repo-token: ${{ secrets.REPO_SCOPED_TOKEN }}
+        repo-token: ${{ secrets.STALE_BOT_PERSONAL_TOKEN }}
         #loglevel: DEBUG
         # Set dry-run to true to not perform label or close actions.
         #dry-run: true
