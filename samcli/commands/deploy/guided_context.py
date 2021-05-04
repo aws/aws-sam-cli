@@ -342,7 +342,7 @@ class GuidedContext:
             updated_repositories = self.prompt_specify_repos(
                 manager_helper.missing_repo_functions, updated_repositories
             )
-            manager_helper.update_sepcified_image_repos(updated_repositories)
+            manager_helper.update_specified_image_repos(updated_repositories)
 
         self.prompt_delete_unreferenced_repos(
             [manager_helper.manager.get_repo_uri(repo) for repo in manager_helper.unreferenced_repos]
