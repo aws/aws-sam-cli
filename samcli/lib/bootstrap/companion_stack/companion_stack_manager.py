@@ -84,6 +84,9 @@ class CompanionStackManager:
         Blocking call to create or update the companion stack based on current functions
         Companion stack template will be updated to the s3 bucket first before deployment
         """
+        if not self._builder.repo_mapping:
+            return
+
         stack_name = self._companion_stack.stack_name
         template = self._builder.build()
 
@@ -107,7 +110,7 @@ class CompanionStackManager:
                 StackName=stack_name, TemplateURL=template_url, Capabilities=["CAPABILITY_AUTO_EXPAND"]
             )
             waiter = self._cfn_client.get_waiter("stack_update_complete")
-        elif self._builder.repo_mapping:
+        else:
             self._cfn_client.create_stack(
                 StackName=stack_name, TemplateURL=template_url, Capabilities=["CAPABILITY_AUTO_EXPAND"]
             )
