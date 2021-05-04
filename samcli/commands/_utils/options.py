@@ -14,7 +14,7 @@ from samcli.cli.types import CfnParameterOverridesType, CfnMetadataType, CfnTags
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 from samcli.commands._utils.template import get_template_artifacts_format
 
-_TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml]"
+_TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml|json]"
 DEFAULT_STACK_NAME = "sam-app"
 
 LOG = logging.getLogger(__name__)
@@ -35,7 +35,7 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
 
     original_template_path = os.path.abspath(provided_value)
 
-    search_paths = ["template.yaml", "template.yml"]
+    search_paths = ["template.yaml", "template.yml", "template.json"]
 
     if include_build:
         search_paths.insert(0, os.path.join(".aws-sam", "build", "template.yaml"))
@@ -43,7 +43,7 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
     if provided_value == _TEMPLATE_OPTION_DEFAULT_VALUE:
         # "--template" is an alias of "--template-file", however, only the first option name "--template-file" in
         # ctx.default_map is used as default value of provided value. Here we add "--template"'s value as second
-        # default value in this option, so that the command line paramerters from config file can load it.
+        # default value in this option, so that the command line parameters from config file can load it.
         if ctx and ctx.default_map.get("template", None):
             provided_value = ctx.default_map.get("template")
         else:
