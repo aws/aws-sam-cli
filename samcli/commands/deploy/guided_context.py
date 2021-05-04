@@ -326,31 +326,33 @@ class GuidedContext:
         Dict[str, str]
             A dictionary contains image function logical ID as key, image repository as value.
         """
-        image_repositories = image_repositories.copy() if image_repositories is not None else {}
+        updated_repositories = image_repositories.copy() if image_repositories is not None else {}
         self.function_provider = SamFunctionProvider(stacks, ignore_code_extraction_warnings=True)
 
         manager_helper = CompanionStackManagerHelper(
-            stack_name, region, s3_bucket, s3_prefix, self.template_file, image_repositories
+            stack_name, region, s3_bucket, s3_prefix, self.template_file, updated_repositories
         )
 
         create_all_repos = self.prompt_create_all_repos(
             manager_helper.function_logical_ids, manager_helper.missing_repo_functions
         )
         if create_all_repos:
-            image_repositories.update(manager_helper.manager.get_repository_mapping())
+            updated_repositories.update(manager_helper.manager.get_repository_mapping())
         else:
-            image_repositories = self.prompt_specify_repos(manager_helper.missing_repo_functions, image_repositories)
-            manager_helper.update_sepcified_image_repos(image_repositories)
+            updated_repositories = self.prompt_specify_repos(
+                manager_helper.missing_repo_functions, updated_repositories
+            )
+            manager_helper.update_sepcified_image_repos(updated_repositories)
 
         self.prompt_delete_unreferenced_repos(
             [manager_helper.manager.get_repo_uri(repo) for repo in manager_helper.unreferenced_repos]
         )
 
-        image_repositories = manager_helper.remove_unreferenced_repos_from_mapping(image_repositories)
+        updated_repositories = manager_helper.remove_unreferenced_repos_from_mapping(updated_repositories)
         GuidedContext.verify_images_exist_locally(self.function_provider.functions)
 
         manager_helper.manager.sync_repos()
-        return image_repositories
+        return updated_repositories
 
     def prompt_specify_repos(
         self,
@@ -373,7 +375,7 @@ class GuidedContext:
         Dict[str, str]
             Updated image repo dictionary with values(image repo URIs) filled by user input
         """
-        image_repositories = image_repositories.copy()
+        updated_repositories = image_repositories.copy()
         for function_logical_id in functions_without_repos:
             image_uri = prompt(
                 f"\t {self.start_bold}ECR repository for {function_logical_id}{self.end_bold}",
@@ -382,9 +384,9 @@ class GuidedContext:
             if not is_ecr_url(image_uri):
                 raise GuidedDeployFailedError(f"Invalid Image Repository ECR URI: {image_uri}")
 
-            image_repositories[function_logical_id] = image_uri
+            updated_repositories[function_logical_id] = image_uri
 
-        return image_repositories
+        return updated_repositories
 
     def prompt_create_all_repos(self, functions: List[str], functions_without_repo: List[str]) -> bool:
         """
