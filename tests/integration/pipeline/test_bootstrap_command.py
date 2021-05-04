@@ -106,7 +106,6 @@ class TestBootstrap(BootstrapIntegBase):
         stdout = bootstrap_process_execute.stdout.decode()
         self.assertIn("skipping creation", stdout)
 
-    @parameterized.expand([("confirm_changeset",), (False,)])
     def test_no_interactive_with_all_required_resources_provided(self, confirm_changeset):
         stage_name, stack_name = self._get_stage_and_stack_name()
         self.stack_names = [stack_name]
@@ -120,7 +119,29 @@ class TestBootstrap(BootstrapIntegBase):
             artifacts_bucket="arn:aws:s3:::bucket-name",  # Artifacts bucket
             ecr_repo="arn:aws:ecr:::repository/repo-name",  # ecr repo
             pipeline_ip_range="1.2.3.4/24",  # Pipeline IP address range
-            no_confirm_changeset=confirm_changeset,
+        )
+
+        bootstrap_process_execute = run_command(bootstrap_command_list)
+
+        self.assertEqual(bootstrap_process_execute.process.returncode, 0)
+        stdout = bootstrap_process_execute.stdout.decode()
+        self.assertIn("skipping creation", stdout)
+
+    @parameterized.expand([("confirm_changeset",), (False,)])
+    def test_no_interactive_with_some_required_resources_provided(self, confirm_changeset):
+        stage_name, stack_name = self._get_stage_and_stack_name()
+        self.stack_names = [stack_name]
+
+        bootstrap_command_list = self.get_bootstrap_command_list(
+            no_interactive=True,
+            stage_name=stage_name,
+            pipeline_user="arn:aws:iam::123:user/user-name",  # pipeline user
+            pipeline_execution_role="arn:aws:iam::123:role/role-name",  # Pipeline execution role
+            # CloudFormation execution role missing
+            artifacts_bucket="arn:aws:s3:::bucket-name",  # Artifacts bucket
+            ecr_repo="arn:aws:ecr:::repository/repo-name",  # ecr repo
+            pipeline_ip_range="1.2.3.4/24",  # Pipeline IP address range
+            no_confirm_changeset=not confirm_changeset,
         )
 
         inputs = [
@@ -133,7 +154,8 @@ class TestBootstrap(BootstrapIntegBase):
 
         self.assertEqual(bootstrap_process_execute.process.returncode, 0)
         stdout = bootstrap_process_execute.stdout.decode()
-        self.assertIn("skipping creation", stdout)
+        self.assertIn("Successfully created!", stdout)
+        self.assertSetEqual({"CloudFormationExecutionRole"}, self._extract_created_resource_logical_ids(stack_name))
 
     def test_interactive_cancelled_by_user(self):
         stage_name, stack_name = self._get_stage_and_stack_name()
