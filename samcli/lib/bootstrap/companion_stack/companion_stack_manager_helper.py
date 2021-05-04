@@ -32,10 +32,10 @@ class CompanionStackManagerHelper:
         self.manager = CompanionStackManager(stack_name, region, s3_bucket, s3_prefix)
         self.deployed_repos = self.manager.list_deployed_repos()
         self.deployed_repo_uris = [self.manager.get_repo_uri(repo) for repo in self.deployed_repos]
-        self.update_sepcified_image_repos(specified_image_repos)
+        self.update_specified_image_repos(specified_image_repos)
         self.unreferenced_repos = self.manager.get_unreferenced_repos()
 
-    def update_sepcified_image_repos(self, specified_image_repos: Dict[str, str]) -> None:
+    def update_specified_image_repos(self, specified_image_repos: Dict[str, str]) -> None:
         """
         Update list of image repos specified for each function.
         updates missing_repo_functions and auto_ecr_repo_functions accordingly.
