@@ -55,7 +55,6 @@ class TestBootstrap(BootstrapIntegBase):
             "PipelineExecutionRolePermissionPolicy",
         }
         if create_ecr_repo:
-            self.assertIn("arn:aws:ecr:", stdout)
             self.assertSetEqual(
                 {
                     *common_resources,
@@ -64,7 +63,6 @@ class TestBootstrap(BootstrapIntegBase):
                 self._extract_created_resource_logical_ids(stack_name),
             )
         else:
-            self.assertNotIn("arn:aws:ecr:", stdout)
             self.assertSetEqual(common_resources, self._extract_created_resource_logical_ids(stack_name))
 
     @parameterized.expand([("create_ecr_repo",), (False,)])
