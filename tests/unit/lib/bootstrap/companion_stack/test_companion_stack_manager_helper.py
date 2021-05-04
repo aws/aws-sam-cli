@@ -36,8 +36,8 @@ class TestCompanionStackManagerHelper(TestCase):
         self.assertEqual(self.manager_helper.missing_repo_functions, [self.function_a_id, self.function_b_id])
         self.assertEqual(len(self.manager_helper.unreferenced_repos), 1)
 
-    def test_update_sepcified_image_repos(self):
-        self.manager_helper.update_sepcified_image_repos({"FunctionA": "abc"})
+    def test_update_specified_image_repos(self):
+        self.manager_helper.update_specified_image_repos({"FunctionA": "abc"})
         self.assertEqual(self.manager_helper.missing_repo_functions, [self.function_b_id])
         self.assertEqual(len(self.manager_helper.unreferenced_repos), 1)
 
