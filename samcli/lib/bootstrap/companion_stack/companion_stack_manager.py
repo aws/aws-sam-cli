@@ -120,7 +120,7 @@ class CompanionStackManager:
 
     def delete_companion_stack(self):
         """
-        Blocking call to delte the companion stack
+        Blocking call to delete the companion stack
         """
         stack_name = self._companion_stack.stack_name
         waiter = self._cfn_client.get_waiter("stack_delete_complete")
