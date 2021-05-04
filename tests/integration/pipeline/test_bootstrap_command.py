@@ -1,9 +1,7 @@
 from unittest import skipIf
-from unittest.mock import Mock
 
 from parameterized import parameterized
 
-from samcli.lib.pipeline.bootstrap.environment import Environment
 from tests.integration.pipeline.base import BootstrapIntegBase
 from tests.testing_utils import (
     run_command_with_input,
@@ -22,10 +20,8 @@ SKIP_DEPLOY_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_
 class TestBootstrap(BootstrapIntegBase):
     @parameterized.expand([("create_ecr_repo",), (False,)])
     def test_interactive_with_no_resources_provided(self, create_ecr_repo: bool):
-        stage_name = self._method_to_stage_name(self.id())
-        mock_stage = Mock()
-        mock_stage.name = stage_name
-        self.stack_names = [Environment._get_stack_name(mock_stage)]
+        stage_name, stack_name = self._get_stage_and_stack_name()
+        self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list()
 
@@ -48,19 +44,33 @@ class TestBootstrap(BootstrapIntegBase):
         # make sure pipeline user's credential is printed
         self.assertIn("ACCESS_KEY_ID", stdout)
         self.assertIn("SECRET_ACCESS_KEY", stdout)
+
+        common_resources = {
+            "PipelineUser",
+            "PipelineUserAccessKey",
+            "CloudFormationExecutionRole",
+            "PipelineExecutionRole",
+            "ArtifactsBucket",
+            "ArtifactsBucketPolicy",
+            "PipelineExecutionRolePermissionPolicy",
+        }
         if create_ecr_repo:
             self.assertIn("arn:aws:ecr:", stdout)
-            self.assertEqual(5, self._count_created_resources(stdout))
+            self.assertSetEqual(
+                {
+                    *common_resources,
+                    "ECRRepo",
+                },
+                self._extract_created_resource_logical_ids(stack_name),
+            )
         else:
             self.assertNotIn("arn:aws:ecr:", stdout)
-            self.assertEqual(4, self._count_created_resources(stdout))
+            self.assertSetEqual(common_resources, self._extract_created_resource_logical_ids(stack_name))
 
     @parameterized.expand([("create_ecr_repo",), (False,)])
     def test_non_interactive_with_no_resources_provided(self, create_ecr_repo: bool):
-        stage_name = self._method_to_stage_name(self.id())
-        mock_stage = Mock()
-        mock_stage.name = stage_name
-        self.stack_names = [Stage._get_stack_name(mock_stage)]
+        stage_name, stack_name = self._get_stage_and_stack_name()
+        self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list(
             no_interactive=True, create_ecr_repo=create_ecr_repo, no_confirm_changeset=True
@@ -73,10 +83,8 @@ class TestBootstrap(BootstrapIntegBase):
         self.assertIn("Missing required parameter", stderr)
 
     def test_interactive_with_all_required_resources_provided(self):
-        stage_name = self._method_to_stage_name(self.id())
-        mock_stage = Mock()
-        mock_stage.name = stage_name
-        self.stack_names = [Environment._get_stack_name(mock_stage)]
+        stage_name, stack_name = self._get_stage_and_stack_name()
+        self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list()
 
@@ -100,10 +108,8 @@ class TestBootstrap(BootstrapIntegBase):
 
     @parameterized.expand([("confirm_changeset",), (False,)])
     def test_no_interactive_with_all_required_resources_provided(self, confirm_changeset):
-        stage_name = self._method_to_stage_name(self.id())
-        mock_stage = Mock()
-        mock_stage.name = stage_name
-        self.stack_names = [Stage._get_stack_name(mock_stage)]
+        stage_name, stack_name = self._get_stage_and_stack_name()
+        self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list(
             no_interactive=True,
@@ -130,10 +136,8 @@ class TestBootstrap(BootstrapIntegBase):
         self.assertIn("skipping creation", stdout)
 
     def test_interactive_cancelled_by_user(self):
-        stage_name = self._method_to_stage_name(self.id())
-        mock_stage = Mock()
-        mock_stage.name = stage_name
-        self.stack_names = [Environment._get_stack_name(mock_stage)]
+        stage_name, stack_name = self._get_stage_and_stack_name()
+        self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list()
 
@@ -155,10 +159,8 @@ class TestBootstrap(BootstrapIntegBase):
         self.assertTrue(stdout.strip().endswith("Should we proceed with the creation? [y/N]:"))
 
     def test_interactive_with_some_required_resources_provided(self):
-        stage_name = self._method_to_stage_name(self.id())
-        mock_stage = Mock()
-        mock_stage.name = stage_name
-        self.stack_names = [Environment._get_stack_name(mock_stage)]
+        stage_name, stack_name = self._get_stage_and_stack_name()
+        self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list()
 
@@ -180,23 +182,18 @@ class TestBootstrap(BootstrapIntegBase):
         stdout = bootstrap_process_execute.stdout.decode()
         self.assertIn("Successfully created!", stdout)
         # make sure the not provided resource is the only resource created.
-        self.assertIn("aws-sam-cli-managed-test-CloudFormationExecution", stdout)
-        self.assertEqual(1, self._count_created_resources(stdout))
+        self.assertSetEqual({"CloudFormationExecutionRole"}, self._extract_created_resource_logical_ids(stack_name))
 
     def test_interactive_pipeline_user_only_created_once(self):
         """
         Create 3 stages, only the first stage resource stack creates
         a pipeline user, and the remaining two share the same pipeline user.
         """
-        stage_names = [
-            self._method_to_stage_name(self.id() + "1"),
-            self._method_to_stage_name(self.id() + "2"),
-            self._method_to_stage_name(self.id() + "3"),
-        ]
-        for stage_name in stage_names:
-            mock_stage = Mock()
-            mock_stage.name = stage_name
-            self.stack_names.append(Environment._get_stack_name(mock_stage))
+        stage_names = []
+        for suffix in ["1", "2", "3"]:
+            stage_name, stack_name = self._get_stage_and_stack_name(suffix)
+            stage_names.append(stage_name)
+            self.stack_names.append(stack_name)
 
         bootstrap_command_list = self.get_bootstrap_command_list()
 
@@ -222,8 +219,9 @@ class TestBootstrap(BootstrapIntegBase):
             # only first stage creates pipeline user
             if i == 0:
                 self.assertIn("We have created the following resources", stdout)
-                self.assertIn("PipelineUser", str(self._extract_created_resources(stdout)))
-                self.assertEqual(1, self._count_created_resources(stdout))
+                self.assertSetEqual(
+                    {"PipelineUser", "PipelineUserAccessKey"},
+                    self._extract_created_resource_logical_ids(self.stack_names[i]),
+                )
             else:
-                self.assertNotIn("PipelineUser", str(self._extract_created_resources(stdout)))
-                self.assertEqual(0, self._count_created_resources(stdout))
+                self.assertIn("skipping creation", stdout)

@@ -1,12 +1,13 @@
 import os
-import re
 import shutil
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Set, Tuple
 from unittest import TestCase
+from unittest.mock import Mock
 
 import boto3
 
+from samcli.lib.pipeline.bootstrap.environment import Environment
 from tests.testing_utils import run_command_with_input, CommandResult
 
 
@@ -105,33 +106,17 @@ class BootstrapIntegBase(PipelineBase):
 
         return command_list
 
-    @staticmethod
-    def _method_to_stage_name(method_name: str) -> str:
-        """
-        Method expects method name which can be a full path. Eg: test.integration.test_bootstrap_command.method_name
-        """
-        method_name = method_name.split(".")[-1]
-        return method_name.replace("_", "-")
+    def _extract_created_resource_logical_ids(self, stack_name: str) -> Set[str]:
+        response = self.cf_client.describe_stack_resources(StackName=stack_name)
+        return {resource["LogicalResourceId"] for resource in response["StackResources"]}
 
-    @staticmethod
-    def _extract_created_resources(stdout: str) -> List[str]:
-        created_start = r"We have created the following resources.+"
-        provided_start = r"You provided the following resources.+"
-        configure_start = r"Please configure your.+"
-        tokens = re.split(created_start, stdout)
-        if len(tokens) == 1:
-            # no resources created
-            return []
+    def _get_stage_and_stack_name(self, suffix: str = "") -> Tuple[str, str]:
+        # Method expects method name which can be a full path. Eg: test.integration.test_bootstrap_command.method_name
+        method_name = self.id().split(".")[-1]
+        stage_name = method_name.replace("_", "-") + suffix
 
-        created_resources_section = tokens[1]
-        # after created resource section, it might be provided resource section,
-        # or configure credential section.
-        # we use two split to find where it ends.
-        created_resources_section = re.split(configure_start, created_resources_section)[0]
-        created_resources_section = re.split(provided_start, created_resources_section)[0]
-        # clean up and return the lines
-        return [line.strip() for line in created_resources_section.split("\n") if line.strip()]
+        mock_env = Mock()
+        mock_env.name = stage_name
+        stack_name = Environment._get_stack_name(mock_env)
 
-    @staticmethod
-    def _count_created_resources(stdout: str) -> int:
-        return len(BootstrapIntegBase._extract_created_resources(stdout))
+        return stage_name, stack_name
