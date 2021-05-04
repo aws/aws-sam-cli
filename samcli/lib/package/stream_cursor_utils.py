@@ -2,13 +2,14 @@
 Stream cursor utilities for moving cursor in the terminal.
 """
 import os
+import platform
 
 # NOTE: ANSI escape codes.
 # NOTE: Still needs investigation on non terminal environments.
 ESC = "\u001B["
 
 # Enables ANSI escape codes on Windows
-if os.name == "nt":
+if platform.system().lower() == "windows":
     try:
         os.system("color")
     except Exception:
