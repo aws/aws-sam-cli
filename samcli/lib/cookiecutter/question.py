@@ -140,6 +140,16 @@ class Question:
         return toml_answer if toml_answer else self._default_answer
 
     def _resolve_default_answer_from_toml(self, extra_context: Optional[Dict]) -> Optional[str]:
+        """
+        computes question's default answer from toml file, it locates the value to read using the following keys from
+        _defaul_from_toml dictionary:
+            toml_file: path to the toml file relative to the project's root directory
+            env: (optional) SAM stores the toml configs in a hierarchy where env is the 1st level of the hierarchy.
+                It represents the running environment when this config got generated (defaults to "default").
+            cmd_names: 2nd level of SamConfig hierarchy. It represents the SAM command that generated this config.
+            section: 3rd level of SamConfig hierarchy. It represents which part of the SAM command this config is used.
+            key: the config key
+        """
 
         if not self._default_from_toml:
             return None
@@ -170,11 +180,11 @@ class Question:
         Parameters:
             value: it could be one of the following:
                 * String: the value of the toml key; For example: value="parameters" => the method returns "parameters"
-                * dictionary with one attribute (valueof) which is a reference to a key in the extra context;
-                   For example; value={'valueof': 'stage_name'}, extra_context = {'stage_name': "prod"} => the method
+                * dictionary with one attribute (key) which is a reference to a key in the extra context;
+                   For example; value={'key': 'stage_name'}, extra_context = {'stage_name': "prod"} => the method
                    returns "prod"
 
-            extra_context: a lookup dictionary to resolve the value of the attribute given through the 'valueof'
+            extra_context: a lookup dictionary to resolve the value of the attribute given through the 'key'
 
         Raises:
              KeyError: if need to resolve the value from the extra_context but the name of the attribute to resolve
@@ -186,10 +196,10 @@ class Question:
         if isinstance(value, str):
             return value
 
-        if "valueof" not in value:
-            raise KeyError(f"Unable to resolve toml key. {value} misses required attribute 'valueof'")
+        if "key" not in value:
+            raise KeyError(f"Unable to resolve toml key. {value} misses required attribute 'key'")
 
-        resolve_from = value["valueof"]
+        resolve_from = value["key"]
         if not extra_context or resolve_from not in extra_context:
             raise KeyError(f"Unable to resolve toml key. {resolve_from} is not found")
 
@@ -258,7 +268,7 @@ class QuestionFactory:
         text = question_json["question"]
         options = question_json.get("options")
         default = question_json.get("default")
-        default_from_toml = question_json.get("default_from_toml")
+        default_from_toml = question_json.get("defaultFromToml")
         is_required = question_json.get("isRequired")
         next_question_map = question_json.get("nextQuestion")
         default_next_question = question_json.get("defaultNextQuestion")

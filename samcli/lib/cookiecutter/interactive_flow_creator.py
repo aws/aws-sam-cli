@@ -43,9 +43,9 @@ class InteractiveFlowCreator:
                         "False": "key of the question to jump to if the user answered 'Yes'",
                       }
                       "default": "default_answer",
-                      "default_from_toml": {
+                      "defaultFromToml": {
                         "toml_file": "path/to/toml/file.toml",
-                        "env": {"valueof": "key-of-another-question-to-resolve-value-from-its-answer"},
+                        "env": {"key": "key-of-another-question-to-resolve-value-from-its-answer"},
                         "cmd_names": "command_names",
                         "section": "parameters",
                         "key": "pipeline_user",
@@ -71,15 +71,18 @@ class InteractiveFlowCreator:
         questions: Dict[str, Question] = {}
         questions_definition = InteractiveFlowCreator._parse_questions_definition(flow_definition_path, extra_context)
 
-        for question in questions_definition.get("questions"):
-            q = QuestionFactory.create_question_from_json(question)
-            if not first_question_key:
-                first_question_key = q.key
-            elif previous_question and not previous_question.default_next_question_key:
-                previous_question.set_default_next_question_key(q.key)
-            questions[q.key] = q
-            previous_question = q
-        return questions, first_question_key
+        try:
+            for question in questions_definition.get("questions"):
+                q = QuestionFactory.create_question_from_json(question)
+                if not first_question_key:
+                    first_question_key = q.key
+                elif previous_question and not previous_question.default_next_question_key:
+                    previous_question.set_default_next_question_key(q.key)
+                questions[q.key] = q
+                previous_question = q
+            return questions, first_question_key
+        except (KeyError, ValueError, AttributeError, TypeError) as ex:
+            raise QuestionsFailedParsingException(f"Failed to parse questions: {str(ex)}") from ex
 
     @staticmethod
     def _parse_questions_definition(file_path, extra_context: Optional[Dict] = None):

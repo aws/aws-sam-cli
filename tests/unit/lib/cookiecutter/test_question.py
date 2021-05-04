@@ -45,7 +45,7 @@ class TestQuestion(TestCase):
             default_next_question_key=self._ANY_DEFAULT_NEXT_QUESTION_KEY,
             default_from_toml={
                 "toml_file": self._ANY_TOML_FILE,
-                "env": {"valueof": self._ANY_EXTRA_CONTEXT_KEY},
+                "env": {"key": self._ANY_EXTRA_CONTEXT_KEY},
                 "cmd_names": self._ANY_COMMAND_NAMES,
                 "section": self._ANY_SECTION,
                 "key": self._ANY_KEY,
@@ -136,7 +136,7 @@ class TestQuestion(TestCase):
 
     @patch("samcli.lib.cookiecutter.question.SamConfig")
     @patch("samcli.lib.cookiecutter.question.click")
-    def test_ask_resolves_from_toml_and_extar_contextwhen_need_valueof_attribute_is_missing(
+    def test_ask_resolves_from_toml_and_extra_context_when_required_key_attribute_is_missing(
         self, mock_click, mock_samconfig
     ):
         # Setup
@@ -144,8 +144,8 @@ class TestQuestion(TestCase):
         mock_samconfig.return_value = toml_mock
         toml_mock.exists.return_value = True
         question = self.get_question_with_default_from_toml()
-        # let's remove the 'valueof' attribute
-        del question._default_from_toml["env"]["valueof"]
+        # let's remove the 'key' attribute
+        del question._default_from_toml["env"]["key"]
 
         # Trigger
         with self.assertRaises(KeyError):
