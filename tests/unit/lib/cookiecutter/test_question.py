@@ -1,7 +1,10 @@
+from typing import List, Union, Dict
 from unittest import TestCase
 from unittest.mock import ANY, patch, Mock
+
+from parameterized import parameterized
+
 from samcli.lib.cookiecutter.question import Question, QuestionKind, Choice, Confirm, Info, QuestionFactory
-from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV
 
 
 class TestQuestion(TestCase):
@@ -18,13 +21,6 @@ class TestQuestion(TestCase):
     _ANY_DEFAULT_NEXT_QUESTION_KEY = "default"
     _ANY_KIND = QuestionKind.default
 
-    _ANY_TOML_FILE = "any/file.toml"
-    _ANY_EXTRA_CONTEXT_KEY = "any key from extra context (previous questions keys)"
-    _ANY_EXTRA_CONTEXT_VALUE = "any value from extra context (previous questions answers)"
-    _ANY_COMMAND_NAMES = "any_command_names"
-    _ANY_SECTION = "any section"
-    _ANY_TOML_ANSWER = "any toml answer"
-
     def setUp(self):
         self.question = Question(
             text=self._ANY_TEXT,
@@ -35,21 +31,14 @@ class TestQuestion(TestCase):
             default_next_question_key=self._ANY_DEFAULT_NEXT_QUESTION_KEY,
         )
 
-    def get_question_with_default_from_toml(self):
+    def get_question_with_default_from_preload_values(self, key_path: List[Union[str, Dict]]) -> Question:
         return Question(
             text=self._ANY_TEXT,
             key=self._ANY_KEY,
-            default=self._ANY_ANSWER,
+            default={"keyPath": key_path},
             is_required=True,
             next_question_map=self._ANY_NEXT_QUESTION_MAP,
             default_next_question_key=self._ANY_DEFAULT_NEXT_QUESTION_KEY,
-            default_from_toml={
-                "toml_file": self._ANY_TOML_FILE,
-                "env": {"key": self._ANY_EXTRA_CONTEXT_KEY},
-                "cmd_names": self._ANY_COMMAND_NAMES,
-                "section": self._ANY_SECTION,
-                "key": self._ANY_KEY,
-            },
         )
 
     def test_creating_questions(self):
@@ -86,131 +75,81 @@ class TestQuestion(TestCase):
     @patch("samcli.lib.cookiecutter.question.click")
     def test_ask(self, mock_click):
         mock_click.prompt.return_value = self._ANY_ANSWER
-        answer = self.question.ask()
+        answer = self.question.ask({})
         self.assertEqual(answer, self._ANY_ANSWER)
         mock_click.prompt.assert_called_once_with(text=self.question.text, default=self.question.default_answer)
 
-    @patch("samcli.lib.cookiecutter.question.SamConfig")
     @patch("samcli.lib.cookiecutter.question.click")
-    def test_ask_resolves_from_toml_when_toml_file_not_found(self, mock_click, mock_samconfig):
+    def test_ask_resolves_from_preload_values(self, mock_click):
         # Setup
-        toml_mock = Mock()
-        mock_samconfig.return_value = toml_mock
-        toml_mock.exists.return_value = False
-        question = self.get_question_with_default_from_toml()
+        expected_default_value = Mock()
+        previous_question_key = Mock()
+        previous_question_answer = Mock()
+        extra_context = {
+            "$PRELOAD": {"x": {previous_question_answer: expected_default_value}},
+            previous_question_key: previous_question_answer,
+        }
+        question = self.get_question_with_default_from_preload_values(["x", {"valueOf": previous_question_key}])
 
         # Trigger
-        question.ask(extra_context={self._ANY_EXTRA_CONTEXT_KEY: self._ANY_EXTRA_CONTEXT_VALUE})
+        question.ask(extra_context=extra_context)
 
         # Verify
-        toml_mock.exists.assert_called_once()
-        # verify used the question's direct default value as there is no toml resolved value
-        mock_click.prompt.assert_called_once_with(text=self.question.text, default=self.question.default_answer)
+        mock_click.prompt.assert_called_once_with(text=self.question.text, default=expected_default_value)
 
-    @patch("samcli.lib.cookiecutter.question.SamConfig")
     @patch("samcli.lib.cookiecutter.question.click")
-    def test_ask_resolves_from_toml_when_missing_required_toml_keys(self, mock_click, mock_samconfig):
+    def test_ask_resolves_from_preload_values_non_exist_key_path(self, mock_click):
         # Setup
-        toml_mock = Mock()
-        mock_samconfig.return_value = toml_mock
-        toml_mock.exists.return_value = True
-        question = self.get_question_with_default_from_toml()
-        del question._default_from_toml["section"]
+        extra_context = {
+            "$PRELOAD": {"x": "some_value"},
+        }
+        question = self.get_question_with_default_from_preload_values(["y"])
 
         # Trigger
-        with self.assertRaises(KeyError):
-            question.ask(extra_context={self._ANY_EXTRA_CONTEXT_KEY: self._ANY_EXTRA_CONTEXT_VALUE})
-
-    @patch("samcli.lib.cookiecutter.question.SamConfig")
-    @patch("samcli.lib.cookiecutter.question.click")
-    def test_ask_resolves_from_toml_when_need_to_resolve_from_missing_extra_context(self, mock_click, mock_samconfig):
-        # Setup
-        toml_mock = Mock()
-        mock_samconfig.return_value = toml_mock
-        toml_mock.exists.return_value = True
-        question = self.get_question_with_default_from_toml()
-
-        # Trigger
-        with self.assertRaises(KeyError):
-            question.ask()  # the env key needs to resolve "key_from_extra_context" but no extra_context given
-
-    @patch("samcli.lib.cookiecutter.question.SamConfig")
-    @patch("samcli.lib.cookiecutter.question.click")
-    def test_ask_resolves_from_toml_and_extra_context_when_required_key_attribute_is_missing(
-        self, mock_click, mock_samconfig
-    ):
-        # Setup
-        toml_mock = Mock()
-        mock_samconfig.return_value = toml_mock
-        toml_mock.exists.return_value = True
-        question = self.get_question_with_default_from_toml()
-        # let's remove the 'key' attribute
-        del question._default_from_toml["env"]["key"]
-
-        # Trigger
-        with self.assertRaises(KeyError):
-            question.ask()  # the env key needs to resolve "key_from_extra_context" but no extra_context given
-
-    @patch("samcli.lib.cookiecutter.question.SamConfig")
-    @patch("samcli.lib.cookiecutter.question.click")
-    def test_ask_resolves_from_toml_when_need_to_resolve_from_missing_extra_context_key(
-        self, mock_click, mock_samconfig
-    ):
-        # Setup
-        toml_mock = Mock()
-        mock_samconfig.return_value = toml_mock
-        toml_mock.exists.return_value = True
-        question = self.get_question_with_default_from_toml()
-
-        # Trigger
-        with self.assertRaises(KeyError):
-            # the env key needs to resolve "key_from_extra_context" but extra_context_doesn't contain this key
-            question.ask(extra_context={"not_key_from_extra_context": "not_value_from_extra_context"})
-
-    @patch("samcli.lib.cookiecutter.question.SamConfig")
-    @patch("samcli.lib.cookiecutter.question.click")
-    def test_ask_resolves_from_toml_happy_case(self, mock_click, mock_samconfig):
-        # Setup
-        toml_mock = Mock()
-        mock_samconfig.return_value = toml_mock
-        toml_mock.exists.return_value = True
-        toml_mock.get.return_value = self._ANY_TOML_ANSWER
-        question = self.get_question_with_default_from_toml()
-
-        # Trigger
-        question.ask(extra_context={self._ANY_EXTRA_CONTEXT_KEY: self._ANY_EXTRA_CONTEXT_VALUE})
+        question.ask(extra_context=extra_context)
 
         # Verify
-        mock_click.prompt.assert_called_once_with(text=self.question.text, default=self._ANY_TOML_ANSWER)
-        toml_mock.get.assert_called_once_with(
-            env=self._ANY_EXTRA_CONTEXT_VALUE,
-            cmd_names=[self._ANY_COMMAND_NAMES],
-            section=self._ANY_SECTION,
-            key=self._ANY_KEY,
-        )
+        mock_click.prompt.assert_called_once_with(text=self.question.text, default=None)
 
-    @patch.object(SamConfig, "get_all")
-    @patch.object(SamConfig, "exists")
-    @patch("samcli.lib.cookiecutter.question.click")
-    def test_ask_resolves_from_toml_happy_case_when_optional_env_is_not_provided(
-        self, mock_click, mock_samconfig_exists, mock_samconfig_get_all
-    ):
+    def test_ask_resolves_from_preload_values_non_exist_question_key(self):
         # Setup
-        mock_samconfig_exists.return_value = True
-        mock_samconfig_get_all.return_value = {self._ANY_KEY: self._ANY_TOML_ANSWER}
-        question = self.get_question_with_default_from_toml()
-        del question._default_from_toml["env"]  # remove the env
+        expected_default_value = Mock()
+        previous_question_key = Mock()
+        previous_question_answer = Mock()
+        extra_context = {
+            "$PRELOAD": {"x": {previous_question_answer: expected_default_value}},
+            previous_question_key: previous_question_answer,
+        }
+        question = self.get_question_with_default_from_preload_values(["x", {"valueOf": "non_exist_question_key"}])
 
         # Trigger
-        question.ask(extra_context={self._ANY_EXTRA_CONTEXT_KEY: self._ANY_EXTRA_CONTEXT_VALUE})
+        with self.assertRaises(KeyError):
+            question.ask(extra_context=extra_context)
 
-        # Verify
-        mock_click.prompt.assert_called_once_with(text=self.question.text, default=self._ANY_TOML_ANSWER)
-        mock_samconfig_get_all.assert_called_once_with(
-            [self._ANY_COMMAND_NAMES],
-            self._ANY_SECTION,
-            DEFAULT_ENV,  # DEFAULT_ENV is used if no env is provided
-        )
+    @parameterized.expand([("this should have been a list"), ([1],), ({},)])
+    def test_ask_resolves_from_preload_values_with_key_path_not_a_list(self, key_path):
+        # Setup
+        extra_context = {
+            "$PRELOAD": {},
+        }
+        question = self.get_question_with_default_from_preload_values(key_path)
+
+        # Trigger
+        with self.assertRaises(ValueError):
+            question.ask(extra_context=extra_context)
+
+    @parameterized.expand([({"keyPath123": Mock()},), ({"keyPath": [{"valueOf123": Mock()}]},)])
+    def test_ask_resolves_from_preload_values_with_default_object_missing_keys(self, default_object):
+        # Setup
+        extra_context = {
+            "$PRELOAD": {},
+        }
+        question = self.get_question_with_default_from_preload_values([])
+        question._default_answer = default_object
+
+        # Trigger
+        with self.assertRaises(KeyError):
+            question.ask(extra_context=extra_context)
 
 
 class TestChoice(TestCase):
@@ -246,7 +185,7 @@ class TestChoice(TestCase):
     @patch("samcli.lib.cookiecutter.question.click")
     def test_ask(self, mock_click, mock_choice):
         mock_click.prompt.return_value = 2
-        answer = self.question.ask()
+        answer = self.question.ask({})
         self.assertEqual(answer, TestQuestion._ANY_OPTIONS[1])  # we deduct one from user's choice (base 1 vs base 0)
         mock_click.prompt.assert_called_once_with(
             text="Choice", default=self.question.default_answer, show_choices=False, type=ANY
@@ -259,7 +198,7 @@ class TestInfo(TestCase):
     def test_ask(self, mock_click):
         q = Info(text=TestQuestion._ANY_TEXT, key=TestQuestion._ANY_KEY)
         mock_click.echo.return_value = None
-        answer = q.ask()
+        answer = q.ask({})
         self.assertIsNone(answer)
         mock_click.echo.assert_called_once_with(message=q.text)
 
@@ -269,7 +208,7 @@ class TestConfirm(TestCase):
     def test_ask(self, mock_click):
         q = Confirm(text=TestQuestion._ANY_TEXT, key=TestQuestion._ANY_KEY)
         mock_click.confirm.return_value = True
-        answer = q.ask()
+        answer = q.ask({})
         self.assertTrue(answer)
         mock_click.confirm.assert_called_once_with(text=q.text)
 

@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch
 from samcli.lib.cookiecutter.interactive_flow import InteractiveFlow
@@ -48,4 +49,33 @@ class TestInteractiveFlow(TestCase):
         mock_2nd_q.assert_called_once()
         mock_3rd_q.assert_called_once()
         self.assertEqual(expected_context, actual_context)
+        self.assertIsNot(actual_context, initial_context)  # shouldn't modify the input, it should copy and return new
+
+    @patch.object(Question, "ask")
+    @patch.object(Confirm, "ask")
+    @patch.object(Choice, "ask")
+    @patch("samcli.lib.cookiecutter.interactive_flow.preload_values_from_toml_file")
+    def test_run_with_preload_values_toml_file(
+        self, preload_values_from_toml_file_mock, mock_3rd_q, mock_2nd_q, mock_1st_q
+    ):
+
+        mock_1st_q.return_value = "answer1"
+        mock_2nd_q.return_value = False
+        mock_3rd_q.return_value = "option1"
+
+        initial_context = {"key": "value"}
+
+        preload_values_from_toml_file_mock.return_value = {"$PRELOAD": {"x": "y"}, "key": "value"}
+        toml_file_path = Path("something.toml")
+
+        actual_context = self.flow.run(initial_context, toml_file_path)
+        preload_values_from_toml_file_mock.assert_called_once_with(toml_file_path, initial_context)
+
+        mock_1st_q.assert_called_once()
+        mock_2nd_q.assert_called_once()
+        mock_3rd_q.assert_called_once()
+
+        self.assertEqual(
+            {"1st": "answer1", "2nd": False, "3rd": "option1", "$PRELOAD": {"x": "y"}, "key": "value"}, actual_context
+        )
         self.assertIsNot(actual_context, initial_context)  # shouldn't modify the input, it should copy and return new

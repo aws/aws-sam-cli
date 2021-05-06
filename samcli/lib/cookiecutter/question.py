@@ -139,6 +139,8 @@ class Question:
             if isinstance(unresolved_key, str):
                 resolved_key_path.append(unresolved_key)
             elif isinstance(unresolved_key, dict):
+                if "valueOf" not in unresolved_key:
+                    raise KeyError(f'Missing key "valueOf" in question default keyPath element "{unresolved_key}".')
                 query_question_key: str = unresolved_key.get("valueOf", "")
                 if query_question_key not in extra_context:
                     raise KeyError(
@@ -174,6 +176,8 @@ class Question:
         """
         if isinstance(self._default_answer, dict):
             # preload value using key path and extra context
+            if "keyPath" not in self._default_answer:
+                raise KeyError(f'Missing key "keyPath" in question default "{self._default_answer}".')
             unresolved_key_path = self._default_answer.get("keyPath", [])
             if not isinstance(unresolved_key_path, list):
                 raise ValueError(f'Invalid default answer "{self._default_answer}" for question {self.key}')
