@@ -43,12 +43,15 @@ class InteractiveFlowCreator:
                         "False": "key of the question to jump to if the user answered 'Yes'",
                       }
                       "default": "default_answer",
-                      "defaultFromToml": {
-                        "toml_file": "path/to/toml/file.toml",
-                        "env": {"key": "key-of-another-question-to-resolve-value-from-its-answer"},
-                        "cmd_names": "command_names",
-                        "section": "parameters",
-                        "key": "pipeline_user",
+                      # the default value can also be loaded from provided values,
+                      #
+                      "default": {
+                        "keyPath": [
+                            {
+                                "valueOf": "key-of-another-question-to-resolve-value-from-its-answer"
+                            },
+                            "pipeline_user"
+                        ]
                       }
                     },
                     ...

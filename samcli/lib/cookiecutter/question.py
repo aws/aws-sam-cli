@@ -1,11 +1,10 @@
 """ This module represents the questions to ask to the user to fulfill the cookiecutter context. """
-import os
 from enum import Enum
 from typing import Any, Dict, List, Optional, Type, Union
 
 import click
 
-from samcli.lib.config.samconfig import SamConfig
+from samcli.lib.cookiecutter.preload_value import get_preload_value
 
 
 class QuestionKind(Enum):
@@ -30,12 +29,10 @@ class Question:
         The text to prompt to the user
     _required: bool
         Whether the user must provide an answer for this question or not.
-    _default_answer: Optional[str]
-        A default answer that is suggested to the user
-    _default_from_toml: Optional[Dict]]:
-        A default answer that is resolved from a toml file instead of directly provided in "_default_answer".
-        The keys of this dictionary are toml_file, env, cmd_names, section & key key which is used to locate
-        what value to read from which toml file.
+    _default_answer: Optional[Union[str, Dict]]
+        A default answer that is suggested to the user,
+        it can be directly provided (a string)
+        or resolved from preloaded values (a Dict, in the form of {"keyPath": [...,]})
     _next_question_map: Optional[Dict[str, str]]
         A simple branching mechanism, it refers to what is the next question to ask the user if he answered
         a particular answer to this question. this map is in the form of {answer: next-question-key}. this
@@ -56,8 +53,7 @@ class Question:
         self,
         key: str,
         text: str,
-        default: Optional[str] = None,
-        default_from_toml: Optional[Dict] = None,
+        default: Optional[Union[str, Dict]] = None,
         is_required: Optional[bool] = None,
         next_question_map: Optional[Dict[str, str]] = None,
         default_next_question_key: Optional[str] = None,
@@ -66,7 +62,6 @@ class Question:
         self._text = text
         self._required = is_required
         self._default_answer = default
-        self._default_from_toml = default_from_toml
         # if it is an optional question, set an empty default answer to prevent click from keep asking for an answer
         if not self._required and self._default_answer is None:
             self._default_answer = ""
@@ -97,16 +92,18 @@ class Question:
     def default_next_question_key(self):
         return self._default_next_question_key
 
-    def ask(self, extra_context: Optional[Dict] = None) -> Any:
+    def ask(self, extra_context: Dict) -> Any:
         """
         prompt the user this question
 
-        Parameters:
-            extra_context: dictionary of previous questions' answers. it is used to resolve default answer from toml
-                           for example, the which toml file to read the default answer from, could be already provided
-                           by a previous question.
-        Returns:
-            The user provided answer.
+        Parameters
+        ----------
+        extra_context
+            The cookiecutter context dictionary containing previous questions' answers and preload values
+
+        Returns
+        -------
+        The user provided answer.
         """
         resolved_default_answer = self._resolve_default_answer(extra_context)
         return click.prompt(text=self._text, default=resolved_default_answer)
@@ -120,99 +117,81 @@ class Question:
     def set_default_next_question_key(self, next_question_key):
         self._default_next_question_key = next_question_key
 
-    def _resolve_default_answer(self, extra_context: Optional[Dict]) -> Optional[str]:
+    def _resolve_preload_value_key_path(self, key_path: List, extra_context: Dict) -> List[str]:
         """
-        a question may have a default answer provided directly through the "default_answer" value or indirectly through
-        a "default_from_toml", i.e. get the default answer from a given toml config file
+        key_path element is a list of str and Dict.
+        When the element is a dict, in the form of { "valueOf": question_key },
+        it means it refers to the answer to another questions.
+        _resolve_preload_value_key_path() will replace such dict with the actual question answer
 
-        Parameters:
-            extra_context: optional context used to resolve the toml lookup keys. For example, instead of providing
-                           a value of env to be "production" we can resolve it from extra_context[env]
+        Parameters
+        ----------
+        key_path
+            The key_path list containing str and dict
+        extra_context
+            The cookiecutter context containing answers to previous answered questions
+        Returns
+        -------
+            The key_path list containing only str
+        """
+        resolved_key_path: List[str] = []
+        for unresolved_key in key_path:
+            if isinstance(unresolved_key, str):
+                resolved_key_path.append(unresolved_key)
+            elif isinstance(unresolved_key, dict):
+                query_question_key: str = unresolved_key.get("valueOf", "")
+                if query_question_key not in extra_context:
+                    raise KeyError(
+                        f'Invalid question key "{query_question_key}" referenced '
+                        f"in default answer of question {self.key}"
+                    )
+                resolved_key_path.append(extra_context[query_question_key])
+            else:
+                raise ValueError(f'Invalid value "{unresolved_key}" in key path')
+        return resolved_key_path
 
-        Raises:
-            KeyError: if _default_from_toml or extra_context miss a required attribute
+    def _resolve_default_answer(self, extra_context: Dict) -> Optional[Any]:
+        """
+        a question may have a default answer provided directly through the "default_answer" value
+        or indirectly from preload values using a key path
 
-        Returns:
-            optional default answer resolved from toml lookup (high precedence) or default (low precedence), if any.
+        Parameters
+        ----------
+        extra_context
+            optional cookiecutter context used to resolve preloaded value.
+
+        Raises
+        ------
+        KeyError
+            When default value depends on the answer to a non-existent question
+        ValueError
+            The default value is malformed
+
+        Returns
+        -------
+        Optional default answer, it might be resolved from preload values using specified key path.
 
         """
-        toml_answer: Optional[str] = self._resolve_default_answer_from_toml(extra_context)
-        return toml_answer if toml_answer else self._default_answer
+        if isinstance(self._default_answer, dict):
+            # preload value using key path and extra context
+            unresolved_key_path = self._default_answer.get("keyPath", [])
+            if not isinstance(unresolved_key_path, list):
+                raise ValueError(f'Invalid default answer "{self._default_answer}" for question {self.key}')
 
-    def _resolve_default_answer_from_toml(self, extra_context: Optional[Dict]) -> Optional[str]:
-        """
-        computes question's default answer from toml file, it locates the value to read using the following keys from
-        _defaul_from_toml dictionary:
-            toml_file: path to the toml file relative to the project's root directory
-            env: (optional) SAM stores the toml configs in a hierarchy where env is the 1st level of the hierarchy.
-                It represents the running environment when this config got generated (defaults to "default").
-            cmd_names: 2nd level of SamConfig hierarchy. It represents the SAM command that generated this config.
-            section: 3rd level of SamConfig hierarchy. It represents which part of the SAM command this config is used.
-            key: the config key
-        """
+            return get_preload_value(
+                extra_context, self._resolve_preload_value_key_path(unresolved_key_path, extra_context)
+            )
 
-        if not self._default_from_toml:
-            return None
-
-        config_file_path: str = Question._resolve_toml_key(self._default_from_toml["toml_file"], extra_context)
-        config_file_path = os.path.normpath(config_file_path)
-        config_dir: str = os.path.dirname(config_file_path)
-        config_filename: str = os.path.basename(config_file_path)
-        config: SamConfig = SamConfig(config_dir=config_dir, filename=config_filename)
-
-        if not config.exists():
-            return None
-
-        cmd_names: str = Question._resolve_toml_key(self._default_from_toml["cmd_names"], extra_context)
-        section: str = Question._resolve_toml_key(self._default_from_toml["section"], extra_context)
-        key: str = Question._resolve_toml_key(self._default_from_toml["key"], extra_context)
-        if "env" in self._default_from_toml:
-            env: str = Question._resolve_toml_key(self._default_from_toml["env"], extra_context)
-            return config.get(env=env, cmd_names=[cmd_names], section=section, key=key)
-        return config.get(cmd_names=[cmd_names], section=section, key=key)
-
-    @staticmethod
-    def _resolve_toml_key(value: Union[str, Dict], extra_context: Optional[Dict[str, str]]) -> str:
-        """
-        the value of the toml key may be provided directly as a string or resolved from the given context as the value
-        of a key inside this context.
-
-        Parameters:
-            value: it could be one of the following:
-                * String: the value of the toml key; For example: value="parameters" => the method returns "parameters"
-                * dictionary with one attribute (key) which is a reference to a key in the extra context;
-                   For example; value={'key': 'stage_name'}, extra_context = {'stage_name': "prod"} => the method
-                   returns "prod"
-
-            extra_context: a lookup dictionary to resolve the value of the attribute given through the 'key'
-
-        Raises:
-             KeyError: if need to resolve the value from the extra_context but the name of the attribute to resolve
-                       from is not given or no extra_context at all or the attribute is not found in the extra_context
-
-        Returns:
-            the resolved value of the toml key
-        """
-        if isinstance(value, str):
-            return value
-
-        if "key" not in value:
-            raise KeyError(f"Unable to resolve toml key. {value} misses required attribute 'key'")
-
-        resolve_from = value["key"]
-        if not extra_context or resolve_from not in extra_context:
-            raise KeyError(f"Unable to resolve toml key. {resolve_from} is not found")
-
-        return extra_context[resolve_from]
+        return self._default_answer
 
 
 class Info(Question):
-    def ask(self, extra_context: Optional[Dict] = None) -> None:
+    def ask(self, extra_context: Dict) -> None:
         return click.echo(message=self._text)
 
 
 class Confirm(Question):
-    def ask(self, extra_context: Optional[Dict] = None) -> bool:
+    def ask(self, extra_context: Dict) -> bool:
         return click.confirm(text=self._text)
 
 
@@ -223,7 +202,6 @@ class Choice(Question):
         text: str,
         options: List[str],
         default: Optional[str] = None,
-        default_from_toml: Optional[Dict] = None,
         is_required: Optional[bool] = None,
         next_question_map: Optional[Dict[str, str]] = None,
         default_next_question_key: Optional[str] = None,
@@ -231,11 +209,9 @@ class Choice(Question):
         if not options:
             raise ValueError("No defined options")
         self._options = options
-        super().__init__(
-            key, text, default, default_from_toml, is_required, next_question_map, default_next_question_key
-        )
+        super().__init__(key, text, default, is_required, next_question_map, default_next_question_key)
 
-    def ask(self, extra_context: Optional[Dict] = None) -> str:
+    def ask(self, extra_context: Dict) -> str:
         resolved_default_answer = self._resolve_default_answer(extra_context)
         click.echo(self._text)
         for index, option in enumerate(self._options):
@@ -268,7 +244,6 @@ class QuestionFactory:
         text = question_json["question"]
         options = question_json.get("options")
         default = question_json.get("default")
-        default_from_toml = question_json.get("defaultFromToml")
         is_required = question_json.get("isRequired")
         next_question_map = question_json.get("nextQuestion")
         default_next_question = question_json.get("defaultNextQuestion")
@@ -280,7 +255,6 @@ class QuestionFactory:
             "key": key,
             "text": text,
             "default": default,
-            "default_from_toml": default_from_toml,
             "is_required": is_required,
             "next_question_map": next_question_map,
             "default_next_question_key": default_next_question,

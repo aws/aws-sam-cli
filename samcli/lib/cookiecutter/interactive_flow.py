@@ -59,8 +59,10 @@ class InteractiveFlow:
         preload_values_toml_file_path: Path
             The toml file path to preload values from
 
-        Returns: A new copy of the context with user's answers added to the copy such that each answer is
-                 associated to the key of the corresponding question
+        Returns
+        -------
+        A new copy of the context with user's answers added to the copy such that each answer is
+             associated to the key of the corresponding question
         """
         context = (
             preload_values_from_toml_file(preload_values_toml_file_path, context)
