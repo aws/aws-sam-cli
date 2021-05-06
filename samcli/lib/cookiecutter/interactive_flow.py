@@ -1,5 +1,8 @@
 """A flow of questions to be asked to the user in an interactive way."""
+from pathlib import Path
 from typing import Any, Dict, Optional
+
+from .preload_value import preload_values_from_toml_file
 from .question import Question
 
 
@@ -40,7 +43,11 @@ class InteractiveFlow:
             self._current_question = self._questions.get(next_question_key) if next_question_key else None
         return self._current_question
 
-    def run(self, context: Dict) -> Dict:
+    def run(
+        self,
+        context: Dict,
+        preload_values_toml_file_path: Optional[Path] = None,
+    ) -> Dict:
         """
         starts the flow, collects user's answers to the question and return a new copy of the passed context
         with the answers appended to the copy
@@ -49,11 +56,17 @@ class InteractiveFlow:
         ----------
         context: Dict
             The cookiecutter context before prompting this flow's questions
+        preload_values_toml_file_path: Path
+            The toml file path to preload values from
 
         Returns: A new copy of the context with user's answers added to the copy such that each answer is
                  associated to the key of the corresponding question
         """
-        context = context.copy()
+        context = (
+            preload_values_from_toml_file(preload_values_toml_file_path, context)
+            if preload_values_toml_file_path
+            else context.copy()
+        )
         question = self.advance_to_next_question()
         while question:
             answer = question.ask(extra_context=context)
