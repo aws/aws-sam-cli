@@ -6,7 +6,7 @@ import os
 import logging
 
 from pathlib import Path
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Iterable
 
 import tomlkit
 
@@ -80,10 +80,6 @@ class SamConfig:
                 params = global_params.copy()
             return params
         return {}
-
-    def get(self, cmd_names, section, key, env=DEFAULT_ENV) -> Optional[str]:
-        params: Dict[str, str] = self.get_all(cmd_names, section, env)
-        return params.get(key)
 
     def put(self, cmd_names, section, key, value, env=DEFAULT_ENV):
         """

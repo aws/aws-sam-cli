@@ -113,20 +113,6 @@ class TestSamConfig(TestCase):
             self.samconfig.get_all(cmd_names=["myCommand"], section="mySection", env="myEnv"),
         )
 
-    def test_get_single_param(self):
-        self._update_samconfig(
-            cmd_names=["myCommand"],
-            section="mySection",
-            key="myKey",
-            value="myValue",
-            env="myEnv",
-        )
-        self.assertIsNone(self.samconfig.get(cmd_names=["myCommand"], section="mySection", key="notMyKey", env="myEnv"))
-        self.assertEqual(
-            "myValue",
-            self.samconfig.get(cmd_names=["myCommand"], section="mySection", key="myKey", env="myEnv"),
-        )
-
     def test_global_param_priority(self):
         self._update_samconfig(
             cmd_names=[DEFAULT_GLOBAL_CMDNAME],
