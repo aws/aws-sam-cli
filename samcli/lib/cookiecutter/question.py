@@ -92,20 +92,20 @@ class Question:
     def default_next_question_key(self):
         return self._default_next_question_key
 
-    def ask(self, extra_context: Dict) -> Any:
+    def ask(self, context: Dict) -> Any:
         """
         prompt the user this question
 
         Parameters
         ----------
-        extra_context
+        context
             The cookiecutter context dictionary containing previous questions' answers and preload values
 
         Returns
         -------
         The user provided answer.
         """
-        resolved_default_answer = self._resolve_default_answer(extra_context)
+        resolved_default_answer = self._resolve_default_answer(context)
         return click.prompt(text=self._text, default=resolved_default_answer)
 
     def get_next_question_key(self, answer: Any) -> Optional[str]:
@@ -117,7 +117,7 @@ class Question:
     def set_default_next_question_key(self, next_question_key):
         self._default_next_question_key = next_question_key
 
-    def _resolve_preload_value_key_path(self, key_path: List, extra_context: Dict) -> List[str]:
+    def _resolve_preload_value_key_path(self, key_path: List, context: Dict) -> List[str]:
         """
         key_path element is a list of str and Dict.
         When the element is a dict, in the form of { "valueOf": question_key },
@@ -128,7 +128,7 @@ class Question:
         ----------
         key_path
             The key_path list containing str and dict
-        extra_context
+        context
             The cookiecutter context containing answers to previous answered questions
         Returns
         -------
@@ -142,25 +142,25 @@ class Question:
                 if "valueOf" not in unresolved_key:
                     raise KeyError(f'Missing key "valueOf" in question default keyPath element "{unresolved_key}".')
                 query_question_key: str = unresolved_key.get("valueOf", "")
-                if query_question_key not in extra_context:
+                if query_question_key not in context:
                     raise KeyError(
                         f'Invalid question key "{query_question_key}" referenced '
                         f"in default answer of question {self.key}"
                     )
-                resolved_key_path.append(extra_context[query_question_key])
+                resolved_key_path.append(context[query_question_key])
             else:
                 raise ValueError(f'Invalid value "{unresolved_key}" in key path')
         return resolved_key_path
 
-    def _resolve_default_answer(self, extra_context: Dict) -> Optional[Any]:
+    def _resolve_default_answer(self, context: Dict) -> Optional[Any]:
         """
         a question may have a default answer provided directly through the "default_answer" value
         or indirectly from preload values using a key path
 
         Parameters
         ----------
-        extra_context
-            optional cookiecutter context used to resolve preloaded value.
+        context
+            Cookiecutter context used to resolve preloaded value and answered questions' answers.
 
         Raises
         ------
@@ -182,20 +182,18 @@ class Question:
             if not isinstance(unresolved_key_path, list):
                 raise ValueError(f'Invalid default answer "{self._default_answer}" for question {self.key}')
 
-            return get_preload_value(
-                extra_context, self._resolve_preload_value_key_path(unresolved_key_path, extra_context)
-            )
+            return get_preload_value(context, self._resolve_preload_value_key_path(unresolved_key_path, context))
 
         return self._default_answer
 
 
 class Info(Question):
-    def ask(self, extra_context: Dict) -> None:
+    def ask(self, context: Dict) -> None:
         return click.echo(message=self._text)
 
 
 class Confirm(Question):
-    def ask(self, extra_context: Dict) -> bool:
+    def ask(self, context: Dict) -> bool:
         return click.confirm(text=self._text)
 
 
@@ -215,8 +213,8 @@ class Choice(Question):
         self._options = options
         super().__init__(key, text, default, is_required, next_question_map, default_next_question_key)
 
-    def ask(self, extra_context: Dict) -> str:
-        resolved_default_answer = self._resolve_default_answer(extra_context)
+    def ask(self, context: Dict) -> str:
+        resolved_default_answer = self._resolve_default_answer(context)
         click.echo(self._text)
         for index, option in enumerate(self._options):
             click.echo(f"\t{index + 1} - {option}")

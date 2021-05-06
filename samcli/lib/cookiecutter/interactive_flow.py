@@ -71,7 +71,7 @@ class InteractiveFlow:
         )
         question = self.advance_to_next_question()
         while question:
-            answer = question.ask(extra_context=context)
+            answer = question.ask(context=context)
             context[question.key] = answer
             question = self.advance_to_next_question(answer)
         return context
