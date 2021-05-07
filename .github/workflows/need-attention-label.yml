@@ -1,0 +1,22 @@
+name: Add need attention label
+
+on:
+  issue_comment:
+    types: [created, edited]
+
+jobs:
+  apply-label:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v3
+        # the login of our bot called 'sam-cli-bot'
+        if: github.event.sender.login != 'aws-sam-cli-stale-bot'
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            github.issues.addLabels({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['stage/needs-attention']
+            })
