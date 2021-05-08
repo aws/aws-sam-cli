@@ -3,13 +3,21 @@ Read and parse CLI args for the Logs Command and setup the context for running t
 """
 
 import logging
+
 import boto3
 import botocore
 
 from samcli.commands.exceptions import UserException
-from samcli.lib.logs.fetcher import LogsFetcher
-from samcli.lib.logs.formatter import LogsFormatter, LambdaLogMsgFormatters, JSONMsgFormatter, KeywordHighlighter
-from samcli.lib.logs.provider import LogGroupProvider
+from samcli.lib.observability.cw_logs.cw_log_consumers import CWTerminalEventConsumer
+from samcli.lib.observability.cw_logs.cw_log_formatters import (
+    CWColorizeErrorsFormatter,
+    CWJsonFormatter,
+    CWKeywordHighlighterFormatter,
+    CWPrettyPrintFormatter,
+)
+from samcli.lib.observability.cw_logs.cw_log_group_provider import LogGroupProvider
+from samcli.lib.observability.cw_logs.cw_log_puller import CWLogPuller
+from samcli.lib.observability.observability_info_puller import ObservabilityEventConsumerDecorator
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.time import to_utc, parse_date
 
@@ -97,26 +105,20 @@ class LogsCommandContext:
 
     @property
     def fetcher(self):
-        return LogsFetcher(self._logs_client)
-
-    @property
-    def formatter(self):
-        """
-        Creates and returns a Formatter capable of nicely formatting Lambda function logs
-
-        Returns
-        -------
-        LogsFormatter
-        """
-        formatter_chain = [
-            LambdaLogMsgFormatters.colorize_errors,
-            # Format JSON "before" highlighting the keywords. Otherwise, JSON will be invalid from all the
-            # ANSI color codes and fail to pretty print
-            JSONMsgFormatter.format_json,
-            KeywordHighlighter(self._filter_pattern).highlight_keywords,
-        ]
-
-        return LogsFormatter(self.colored, formatter_chain)
+        return CWLogPuller(
+            logs_client=self._logs_client,
+            consumer=ObservabilityEventConsumerDecorator(
+                mappers=[
+                    CWColorizeErrorsFormatter(self.colored),
+                    CWJsonFormatter(),
+                    CWKeywordHighlighterFormatter(self.colored, self._filter_pattern),
+                    CWPrettyPrintFormatter(self.colored),
+                ],
+                consumer=CWTerminalEventConsumer(),
+            ),
+            cw_log_group=self.log_group_name,
+            resource_name=self._function_name,
+        )
 
     @property
     def start_time(self):
