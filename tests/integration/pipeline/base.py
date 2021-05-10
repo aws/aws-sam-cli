@@ -1,7 +1,7 @@
 import os
 import shutil
 from pathlib import Path
-from typing import List, Optional, Set, Tuple
+from typing import List, Optional, Set, Tuple, Any
 from unittest import TestCase
 from unittest.mock import Mock
 
@@ -9,7 +9,6 @@ import boto3
 from botocore.exceptions import ClientError
 
 from samcli.lib.pipeline.bootstrap.environment import Environment
-from tests.testing_utils import run_command_with_input, CommandResult
 
 
 class PipelineBase(TestCase):
@@ -51,6 +50,7 @@ class InitIntegBase(PipelineBase):
 
 class BootstrapIntegBase(PipelineBase):
     stack_names: List[str]
+    cf_client: Any
 
     @classmethod
     def setUpClass(cls):
