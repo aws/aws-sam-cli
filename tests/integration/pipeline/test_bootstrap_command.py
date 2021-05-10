@@ -176,6 +176,7 @@ class TestBootstrap(BootstrapIntegBase):
         self.assertEqual(bootstrap_process_execute.process.returncode, 0)
         stdout = bootstrap_process_execute.stdout.decode()
         self.assertTrue(stdout.strip().endswith("Should we proceed with the creation? [y/N]:"))
+        self.assertFalse(self._stack_exists(stack_name))
 
     def test_interactive_with_some_required_resources_provided(self):
         stage_name, stack_name = self._get_stage_and_stack_name()

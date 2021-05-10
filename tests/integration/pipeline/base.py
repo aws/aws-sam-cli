@@ -6,6 +6,7 @@ from unittest import TestCase
 from unittest.mock import Mock
 
 import boto3
+from botocore.exceptions import ClientError
 
 from samcli.lib.pipeline.bootstrap.environment import Environment
 from tests.testing_utils import run_command_with_input, CommandResult
@@ -106,6 +107,15 @@ class BootstrapIntegBase(PipelineBase):
     def _extract_created_resource_logical_ids(self, stack_name: str) -> Set[str]:
         response = self.cf_client.describe_stack_resources(StackName=stack_name)
         return {resource["LogicalResourceId"] for resource in response["StackResources"]}
+
+    def _stack_exists(self, stack_name) -> bool:
+        try:
+            self.cf_client.describe_stacks(StackName=stack_name)
+            return True
+        except ClientError as ex:
+            if "does not exist" in ex.response.get("Error", {}).get("Message", ""):
+                return False
+            raise ex
 
     def _get_stage_and_stack_name(self, suffix: str = "") -> Tuple[str, str]:
         # Method expects method name which can be a full path. Eg: test.integration.test_bootstrap_command.method_name
