@@ -4,8 +4,6 @@ from typing import Any, Dict, List, Optional, Type, Union
 
 import click
 
-from samcli.lib.cookiecutter.preload_value import get_preload_value
-
 
 class QuestionKind(Enum):
     """ An Enum of possible question types. """
@@ -32,7 +30,7 @@ class Question:
     _default_answer: Optional[Union[str, Dict]]
         A default answer that is suggested to the user,
         it can be directly provided (a string)
-        or resolved from preloaded values (a Dict, in the form of {"keyPath": [...,]})
+        or resolved from cookiecutter context (a Dict, in the form of {"keyPath": [...,]})
     _next_question_map: Optional[Dict[str, str]]
         A simple branching mechanism, it refers to what is the next question to ask the user if he answered
         a particular answer to this question. this map is in the form of {answer: next-question-key}. this
@@ -99,7 +97,7 @@ class Question:
         Parameters
         ----------
         context
-            The cookiecutter context dictionary containing previous questions' answers and preload values
+            The cookiecutter context dictionary containing previous questions' answers and default values
 
         Returns
         -------
@@ -117,12 +115,12 @@ class Question:
     def set_default_next_question_key(self, next_question_key):
         self._default_next_question_key = next_question_key
 
-    def _resolve_preload_value_key_path(self, key_path: List, context: Dict) -> List[str]:
+    def _resolve_key_path(self, key_path: List, context: Dict) -> List[str]:
         """
         key_path element is a list of str and Dict.
         When the element is a dict, in the form of { "valueOf": question_key },
         it means it refers to the answer to another questions.
-        _resolve_preload_value_key_path() will replace such dict with the actual question answer
+        _resolve_key_path() will replace such dict with the actual question answer
 
         Parameters
         ----------
@@ -155,12 +153,12 @@ class Question:
     def _resolve_default_answer(self, context: Dict) -> Optional[Any]:
         """
         a question may have a default answer provided directly through the "default_answer" value
-        or indirectly from preload values using a key path
+        or indirectly from cookiecutter context using a key path
 
         Parameters
         ----------
         context
-            Cookiecutter context used to resolve preloaded value and answered questions' answers.
+            Cookiecutter context used to resolve default values and answered questions' answers.
 
         Raises
         ------
@@ -171,18 +169,18 @@ class Question:
 
         Returns
         -------
-        Optional default answer, it might be resolved from preload values using specified key path.
+        Optional default answer, it might be resolved from cookiecutter context using specified key path.
 
         """
         if isinstance(self._default_answer, dict):
-            # preload value using key path and extra context
+            # load value using key path from cookiecutter
             if "keyPath" not in self._default_answer:
                 raise KeyError(f'Missing key "keyPath" in question default "{self._default_answer}".')
             unresolved_key_path = self._default_answer.get("keyPath", [])
             if not isinstance(unresolved_key_path, list):
                 raise ValueError(f'Invalid default answer "{self._default_answer}" for question {self.key}')
 
-            return get_preload_value(context, self._resolve_preload_value_key_path(unresolved_key_path, context))
+            return context.get(str(self._resolve_key_path(unresolved_key_path, context)))
 
         return self._default_answer
 

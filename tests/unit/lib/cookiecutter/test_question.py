@@ -31,7 +31,9 @@ class TestQuestion(TestCase):
             default_next_question_key=self._ANY_DEFAULT_NEXT_QUESTION_KEY,
         )
 
-    def get_question_with_default_from_preload_values(self, key_path: List[Union[str, Dict]]) -> Question:
+    def get_question_with_default_from_cookiecutter_context_using_keypath(
+        self, key_path: List[Union[str, Dict]]
+    ) -> Question:
         return Question(
             text=self._ANY_TEXT,
             key=self._ANY_KEY,
@@ -80,16 +82,18 @@ class TestQuestion(TestCase):
         mock_click.prompt.assert_called_once_with(text=self.question.text, default=self.question.default_answer)
 
     @patch("samcli.lib.cookiecutter.question.click")
-    def test_ask_resolves_from_preload_values(self, mock_click):
+    def test_ask_resolves_from_cookiecutter_context(self, mock_click):
         # Setup
         expected_default_value = Mock()
-        previous_question_key = Mock()
-        previous_question_answer = Mock()
+        previous_question_key = "this is a question"
+        previous_question_answer = "this is an answer"
         context = {
-            "$PRELOAD": {"x": {previous_question_answer: expected_default_value}},
+            "['x', 'this is an answer']": expected_default_value,
             previous_question_key: previous_question_answer,
         }
-        question = self.get_question_with_default_from_preload_values(["x", {"valueOf": previous_question_key}])
+        question = self.get_question_with_default_from_cookiecutter_context_using_keypath(
+            ["x", {"valueOf": previous_question_key}]
+        )
 
         # Trigger
         question.ask(context=context)
@@ -98,12 +102,10 @@ class TestQuestion(TestCase):
         mock_click.prompt.assert_called_once_with(text=self.question.text, default=expected_default_value)
 
     @patch("samcli.lib.cookiecutter.question.click")
-    def test_ask_resolves_from_preload_values_non_exist_key_path(self, mock_click):
+    def test_ask_resolves_from_cookiecutter_context_non_exist_key_path(self, mock_click):
         # Setup
-        context = {
-            "$PRELOAD": {"x": "some_value"},
-        }
-        question = self.get_question_with_default_from_preload_values(["y"])
+        context = {}
+        question = self.get_question_with_default_from_cookiecutter_context_using_keypath(["y"])
 
         # Trigger
         question.ask(context=context)
@@ -111,40 +113,38 @@ class TestQuestion(TestCase):
         # Verify
         mock_click.prompt.assert_called_once_with(text=self.question.text, default=None)
 
-    def test_ask_resolves_from_preload_values_non_exist_question_key(self):
+    def test_ask_resolves_from_cookiecutter_context_non_exist_question_key(self):
         # Setup
         expected_default_value = Mock()
-        previous_question_key = Mock()
-        previous_question_answer = Mock()
+        previous_question_key = "this is a question"
+        previous_question_answer = "this is an answer"
         context = {
-            "$PRELOAD": {"x": {previous_question_answer: expected_default_value}},
+            "['x', 'this is an answer']": expected_default_value,
             previous_question_key: previous_question_answer,
         }
-        question = self.get_question_with_default_from_preload_values(["x", {"valueOf": "non_exist_question_key"}])
+        question = self.get_question_with_default_from_cookiecutter_context_using_keypath(
+            ["x", {"valueOf": "non_exist_question_key"}]
+        )
 
         # Trigger
         with self.assertRaises(KeyError):
             question.ask(context=context)
 
     @parameterized.expand([("this should have been a list"), ([1],), ({},)])
-    def test_ask_resolves_from_preload_values_with_key_path_not_a_list(self, key_path):
+    def test_ask_resolves_from_cookiecutter_context_with_key_path_not_a_list(self, key_path):
         # Setup
-        context = {
-            "$PRELOAD": {},
-        }
-        question = self.get_question_with_default_from_preload_values(key_path)
+        context = {}
+        question = self.get_question_with_default_from_cookiecutter_context_using_keypath(key_path)
 
         # Trigger
         with self.assertRaises(ValueError):
             question.ask(context=context)
 
     @parameterized.expand([({"keyPath123": Mock()},), ({"keyPath": [{"valueOf123": Mock()}]},)])
-    def test_ask_resolves_from_preload_values_with_default_object_missing_keys(self, default_object):
+    def test_ask_resolves_from_cookiecutter_context_with_default_object_missing_keys(self, default_object):
         # Setup
-        context = {
-            "$PRELOAD": {},
-        }
-        question = self.get_question_with_default_from_preload_values([])
+        context = {}
+        question = self.get_question_with_default_from_cookiecutter_context_using_keypath([])
         question._default_answer = default_object
 
         # Trigger
