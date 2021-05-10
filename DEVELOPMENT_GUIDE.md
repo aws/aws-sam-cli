@@ -48,38 +48,39 @@ Clone the AWS SAM CLI repository to your local machine if you haven't done that 
 
 ```sh
 # Using SSH
-$ git clone git@github.com:aws/aws-sam-cli.git
+git clone git@github.com:aws/aws-sam-cli.git
+```
+or
+```sh
 # Using HTTPS
-$ git clone https://github.com/aws/aws-sam-cli.git
+git clone https://github.com/aws/aws-sam-cli.git
 ```
 
 (make sure you have virtual environment activated)
 
 ```sh
-(samcli38) $ cd aws-sam-cli
-(samcli38) $ make init  # this will put a file `samdev` available in $PATH
+cd aws-sam-cli
+make init  # this will put a file `samdev` available in $PATH
 ```
 
 Now you can verify whether the dev AWS SAM CLI is available:
 
 ```sh
-(samcli38) $ which samdev
-/<some-path>/bin/samdev
-(samcli38) $ samdev --version
-SAM CLI, version x.xx.x
+samdev --version  # this will print something like "SAM CLI, version x.xx.x"
 ```
 
 #### Try out to make change to AWS SAM CLI (Optional)
 
 ```sh
 # Change the AWS SAM CLI version to 123.456.789
-(samcli38) $ echo '__version__ = "123.456.789"' >> samcli/__init__.py
-(samcli38) $ samdev --version
-SAM CLI, version 123.456.789
-# Dismiss the change
-(samcli38) $ git checkout -- samcli/__init__.py
-(samcli38) $ samdev --version  # the original version should be printed
-SAM CLI, version x.xx.x
+echo '__version__ = "123.456.789"' >> samcli/__init__.py
+samdev --version  # this will print "SAM CLI, version 123.456.789"
+```
+In case you want to dismiss the change you just made
+
+```sh
+git checkout -- samcli/__init__.py
+samdev --version  # the original version should be printed
 ```
 
 ### 3. (Optional) Install development version of SAM Transformer
@@ -110,15 +111,15 @@ Install the SAM Transformer in editable mode so that
 all changes you make to the SAM Transformer locally are immediately picked up for SAM CLI. 
 
 ```sh
-(samcli38) $ pip install -e .
+pip install -e .
 ```
 
 Move back to your SAM CLI directory and re-run init, If necessary: open requirements/base.txt and replace the version number of aws-sam-translator with the ``version number`` specified in your local version of `serverless-application-model/samtranslator/__init__.py`
 
 ```sh
 # assuming your AWS SAM CLI repository is cloned into ~/projects/aws-sam-cli
-(samcli38) $ cd ~/projects/aws-sam-cli
-(samcli38) $ make init
+cd ~/projects/aws-sam-cli
+make init
 ```
 
 ## Making a Pull Request
@@ -140,13 +141,17 @@ different Python version should be easy:
 (assuming you are in virtual environment `samcli38`)
 
 ```sh
-(samcli38) $ pyenv deactivate samcli38
-$ pyenv install 3.7.10  # one time setup
-$ pyenv pyenv virtualenv 3.7.10 samcli37   # one time setup
-$ pyenv activate samcli37
-(samcli37) $ python --version
-(samcli37) $ make init  # one time setup
-Python 3.7.10
+# Your shell now should looks like "(samcli38) $"
+pyenv deactivate samcli38  # "(samcli38)" will disappear
+pyenv install 3.7.10  # one time setup
+pyenv virtualenv 3.7.10 samcli37  # one time setup
+pyenv activate samcli37
+# Your shell now should looks like "(samcli37) $"
+
+# You can verify the version of Python
+python --version  # Python 3.7.10
+
+make init  # one time setup, this will put a file `samdev` available in $PATH
 ```
 
 ### Format Python Code
@@ -159,18 +164,14 @@ There are generally 3 options to make sure your change is compliant with our for
 #### (Optional 1) Run `make black`
 
 ```sh
-(samcli38) $ make black
-black setup.py samcli tests
-All done! ✨ 🍰 ✨
-446 files left unchanged.
+make black
 ```
 
 #### (Optional 2) Integrating Black directly in your favorite IDE
 
 Since black is installed in virtualenv, when you follow [this instruction](https://black.readthedocs.io/en/stable/editor_integration.html), `which black` might give you this
 
-```sh
-(samcli38) $ where black
+```
 /Users/<username>/.pyenv/shims/black
 ```
 
@@ -199,7 +200,7 @@ After installing pre-commit, run `pre-commit install` in the root of the project
 This commands will run the AWS SAM CLI code through various checks including
 lint, formatter, unit tests, function tests, and so on.
 ```sh
-(samcli38) $ make pr
+make pr
 ```
 
 We also suggest to run `make pr` in all Python versions.
