@@ -283,7 +283,7 @@ def do_cli(
                 elif len(options) > 1:
                     raise LambdaImagesTemplateException(
                         "Multiple lambda image application templates found. "
-                        "This should not be possible, please raise an issue."
+                        "Please specify one using the --app-template parameter."
                     )
 
         if app_template and not location:
