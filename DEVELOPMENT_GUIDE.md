@@ -1,4 +1,4 @@
-# DEVELOPMENT GUIDE
+# AWS SAM CLI Development Guide
 
 **Welcome hacker!**
 
