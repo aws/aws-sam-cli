@@ -43,16 +43,18 @@ class InteractiveFlowCreator:
                         "False": "key of the question to jump to if the user answered 'Yes'",
                       }
                       "default": "default_answer",
-                      # the default value can also be loaded from provided values,
-                      #
+                      # the default value can also be loaded from cookiecutter context
+                      # with a key path whose key path item can be loaded from cookiecutter as well.
                       "default": {
                         "keyPath": [
                             {
-                                "valueOf": "key-of-another-question-to-resolve-value-from-its-answer"
+                                "valueOf": "key-of-another-question"
                             },
                             "pipeline_user"
                         ]
                       }
+                      # assuming the answer of "key-of-another-question" is "ABC"
+                      # the default value will be load from cookiecutter context with key "['ABC', 'pipeline_user]"
                     },
                     ...
                 ]
