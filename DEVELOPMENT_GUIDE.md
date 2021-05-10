@@ -28,19 +28,47 @@ by other python packages. Here we introduce two ways of setting up a Python virt
 (1) Python's built in [`venv`](https://docs.python.org/3/tutorial/venv.html) and (2) [`pyenv`](https://github.com/pyenv/pyenv).
 
 **Note**: `pyenv` currently only supports macOS and Linux. If you are a
-Windows users, consider using [pipenv](https://docs.pipenv.org/).
+Windows users, consider using [pyenv-win](https://github.com/pyenv-win/pyenv-win).
 
 |    | `venv`   | `pyenv`      |
 | -- | -------- | ------------ |
-| Pick if you want ... | Easy setup | You want to easily develop and test SAM CLI in different Python versions |
-| Setup | None | `curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer \| bash` |
-| Install a Python version (3.8.9 as example) | N/A | `pyenv install 3.8.9` |
-| Create a virtual environment | `python3 -m venv .venv` | `pyenv virtualenv 3.8.9 samcli38` (you can rename `samcli38` to something else) |
-| Activate the virtual environment | `source .venv/bin/activate` | `pyenv activate samcli38` |
+| Pick if you want ... | Easy setup | You want to develop and test SAM CLI in different Python versions |
 
 
+#### `venv` setup
 
-**For convenience, below we assume the virtual environment is called `samcli38`.**
+```sh
+python3 -m venv .venv  # one time setup: create a virtual environment to directory .venv
+source .venv/bin/activate  # activate the virtual environment
+```
+#### `pyenv` setup
+
+Install `pyenv` and [`pyenv-virtualenv` plugin](https://github.com/pyenv/pyenv-virtualenv)
+
+On macOS with [Homebrew](https://brew.sh/)
+
+```sh
+brew install pyenv
+brew install pyenv-virtualenv
+```
+
+or using [pyenv-installer](https://github.com/pyenv/pyenv-installer) and git
+
+```sh
+curl https://pyenv.run | bash  # https://github.com/pyenv/pyenv-installer
+exec $SHELL  # restart your shell so the path changes take effect
+git clone https://github.com/pyenv/pyenv-virtualenv.git $(pyenv root)/plugins/pyenv-virtualenv
+exec $SHELL  # restart your shell to enable pyenv-virtualenv
+```
+
+Next, setup a virtual environment and activate it:
+
+```sh
+# Assuming you want to develop AWS SAM CLI in Python 3.8.9
+pyenv install 3.8.9  # install Python 3.8.9 using pyenv
+pyenv virtualenv 3.8.9 samcli38  # create a virtual environment using 3.8.9 named "samcli38"
+pyenv activate samcli38  # activate the virtual environment
+```
 
 ### 2. Initialize dependencies and create `samdev` available in `$PATH`
 
@@ -76,37 +104,31 @@ samdev --version  # this will print something like "SAM CLI, version x.xx.x"
 echo '__version__ = "123.456.789"' >> samcli/__init__.py
 samdev --version  # this will print "SAM CLI, version 123.456.789"
 ```
-In case you want to dismiss the change you just made
-
-```sh
-git checkout -- samcli/__init__.py
-samdev --version  # the original version should be printed
-```
 
 ### 3. (Optional) Install development version of SAM Transformer
 
-If you want to run the latest version of [SAM
-Transformer](https://github.com/aws/serverless-application-model/)
-or work on it at the same time, 
-you can clone it locally and install it in your pyenv. This is useful if
-you want to validate your templates against any new, unreleased SAM
-features ahead of time.
-
-This step is optional and will use the specified version of
-aws-sam-transformer from PyPi by default.
+If you want to run the latest version of [SAM Transformer](https://github.com/aws/serverless-application-model/)
+or work on it at the same time, you can clone it locally and install it in your virtual environment. 
+This is useful if you want to validate your templates against any new, unreleased SAM features ahead of time.
 
 
 ```sh
-$ cd ~/projects  # cd into the directory where you usually place projects
-# Using SSH
-$ git clone git@github.com:aws/serverless-application-model.git
-# Using HTTPS
-$ git clone https://github.com/aws/serverless-application-model.git
-$ cd serverless-application-model
-$ git checkout develop
+# Make sure it is not in AWS SAM CLI repository
+
+# clone the AWS SAM repo
+git clone git@github.com:aws/serverless-application-model.git
+# or using HTTPS: git clone https://github.com/aws/serverless-application-model.git
+
+cd serverless-application-model
 ```
 
-Make sure you are in the virtual environment. 
+Make sure you are in the same virtual environment as the one you are using with SAM CLI.
+```sh
+source <sam-cli-directory-path>/.venv/bin/activate  # if you chose to use venv to setup the virtual environment
+# or
+pyenv activate samcli38  # if you chose to use pyenv to setup the virtual environment
+```
+
 Install the SAM Transformer in editable mode so that 
 all changes you make to the SAM Transformer locally are immediately picked up for SAM CLI. 
 
@@ -117,8 +139,7 @@ pip install -e .
 Move back to your SAM CLI directory and re-run init, If necessary: open requirements/base.txt and replace the version number of aws-sam-translator with the ``version number`` specified in your local version of `serverless-application-model/samtranslator/__init__.py`
 
 ```sh
-# assuming your AWS SAM CLI repository is cloned into ~/projects/aws-sam-cli
-cd ~/projects/aws-sam-cli
+# Make sure you are back to your SAM CLI directory
 make init
 ```
 
@@ -161,13 +182,13 @@ black compliant in AppVeyor during PRs. Black will be installed automatically wi
 
 There are generally 3 options to make sure your change is compliant with our formatting standard:
 
-#### (Optional 1) Run `make black`
+#### (Option 1) Run `make black`
 
 ```sh
 make black
 ```
 
-#### (Optional 2) Integrating Black directly in your favorite IDE
+#### (Option 2) Integrating Black directly in your favorite IDE
 
 Since black is installed in virtualenv, when you follow [this instruction](https://black.readthedocs.io/en/stable/editor_integration.html), `which black` might give you this
 
@@ -190,7 +211,7 @@ The `black' command exists in these Python versions:
 A simple workaround is to use `/Users/<username>/.pyenv/versions/samcli37/bin/black` 
 instead of `/Users/<username>/.pyenv/shims/black`.
 
-#### (Optional 3) Pre-commit
+#### (Option 3) Pre-commit
 
 We have integrated black into git hooks through [pre-commit](https://pre-commit.com/).
 After installing pre-commit, run `pre-commit install` in the root of the project. This will install black for you and run the black formatting on commit.
