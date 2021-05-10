@@ -19,9 +19,6 @@ class PipelineBase(TestCase):
 
         return command
 
-    def run_command_with_inputs(self, command_list: List[str], inputs: List[str]) -> CommandResult:
-        return run_command_with_input(command_list, ("\n".join(inputs) + "\n").encode())
-
 
 class InitIntegBase(PipelineBase):
     generated_files: List[Path] = []

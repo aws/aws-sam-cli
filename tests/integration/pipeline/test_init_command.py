@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from tests.integration.pipeline.base import InitIntegBase
+from tests.testing_utils import run_command_with_inputs
 
 QUICK_START_JENKINS_INPUTS = [
     "1",  # quick start
@@ -34,7 +35,7 @@ class TestInit(InitIntegBase):
         self.generated_files.append(generated_jenkinsfile_path)
 
         init_command_list = self.get_init_command_list()
-        init_process_execute = self.run_command_with_inputs(init_command_list, QUICK_START_JENKINS_INPUTS)
+        init_process_execute = run_command_with_inputs(init_command_list, QUICK_START_JENKINS_INPUTS)
 
         self.assertEqual(init_process_execute.process.returncode, 0)
         self.assertTrue(Path("Jenkinsfile").exists())
@@ -49,7 +50,7 @@ class TestInit(InitIntegBase):
         self.generated_files.append(generated_jenkinsfile_path)
 
         init_command_list = self.get_init_command_list()
-        init_process_execute = self.run_command_with_inputs(init_command_list, QUICK_START_JENKINS_INPUTS)
+        init_process_execute = run_command_with_inputs(init_command_list, QUICK_START_JENKINS_INPUTS)
 
         self.assertEqual(init_process_execute.process.returncode, 1)
         stderr = init_process_execute.stderr.decode()
@@ -63,7 +64,7 @@ class TestInit(InitIntegBase):
         inputs = ["2", str(custom_template_path), "Rainy"]  # custom template
 
         init_command_list = self.get_init_command_list()
-        init_process_execute = self.run_command_with_inputs(init_command_list, inputs)
+        init_process_execute = run_command_with_inputs(init_command_list, inputs)
 
         self.assertEqual(init_process_execute.process.returncode, 0)
 

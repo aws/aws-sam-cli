@@ -9,6 +9,7 @@ from tests.testing_utils import (
     RUNNING_TEST_FOR_MASTER_ON_CI,
     RUN_BY_CANARY,
     run_command,
+    run_command_with_inputs,
 )
 
 # bootstrap tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
@@ -36,7 +37,7 @@ class TestBootstrap(BootstrapIntegBase):
             "y",  # proceed
         ]
 
-        bootstrap_process_execute = self.run_command_with_inputs(bootstrap_command_list, inputs)
+        bootstrap_process_execute = run_command_with_inputs(bootstrap_command_list, inputs)
 
         self.assertEqual(bootstrap_process_execute.process.returncode, 0)
         stdout = bootstrap_process_execute.stdout.decode()
@@ -98,7 +99,7 @@ class TestBootstrap(BootstrapIntegBase):
             "y",  # proceed
         ]
 
-        bootstrap_process_execute = self.run_command_with_inputs(bootstrap_command_list, inputs)
+        bootstrap_process_execute = run_command_with_inputs(bootstrap_command_list, inputs)
 
         self.assertEqual(bootstrap_process_execute.process.returncode, 0)
         stdout = bootstrap_process_execute.stdout.decode()
@@ -146,9 +147,7 @@ class TestBootstrap(BootstrapIntegBase):
             "y",  # proceed
         ]
 
-        bootstrap_process_execute = self.run_command_with_inputs(
-            bootstrap_command_list, inputs if confirm_changeset else []
-        )
+        bootstrap_process_execute = run_command_with_inputs(bootstrap_command_list, inputs if confirm_changeset else [])
 
         self.assertEqual(bootstrap_process_execute.process.returncode, 0)
         stdout = bootstrap_process_execute.stdout.decode()
@@ -172,7 +171,7 @@ class TestBootstrap(BootstrapIntegBase):
             "N",  # cancel
         ]
 
-        bootstrap_process_execute = self.run_command_with_inputs(bootstrap_command_list, inputs)
+        bootstrap_process_execute = run_command_with_inputs(bootstrap_command_list, inputs)
 
         self.assertEqual(bootstrap_process_execute.process.returncode, 0)
         stdout = bootstrap_process_execute.stdout.decode()
@@ -196,7 +195,7 @@ class TestBootstrap(BootstrapIntegBase):
             "y",  # proceed
         ]
 
-        bootstrap_process_execute = self.run_command_with_inputs(bootstrap_command_list, inputs)
+        bootstrap_process_execute = run_command_with_inputs(bootstrap_command_list, inputs)
 
         self.assertEqual(bootstrap_process_execute.process.returncode, 0)
         stdout = bootstrap_process_execute.stdout.decode()
