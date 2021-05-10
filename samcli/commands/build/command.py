@@ -5,8 +5,8 @@ CLI command for "build" command
 import os
 import logging
 from typing import List, Optional, Dict, Tuple
-import click
 
+import click
 from samcli.cli.context import Context
 from samcli.commands._utils.options import (
     template_option_without_build,
@@ -16,7 +16,7 @@ from samcli.commands._utils.options import (
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.lib.build.exceptions import BuildInsideContainerError
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
-from samcli.lib.telemetry.metric import track_command
+from samcli.lib.telemetry.metric import track_command, MetricName, track_metric
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.commands.build.exceptions import InvalidBuildImageException
@@ -205,6 +205,14 @@ def cli(
     """
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
+    track_metric(
+        MetricName.commandRun,
+        {
+            "useContainer": use_container,
+            "parallel": parallel,
+            "cached": cached,
+        },
+    )
     mode = _get_mode_value_from_envvar("SAM_BUILD_MODE", choices=["debug"])
 
     do_cli(

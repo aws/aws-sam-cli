@@ -6,9 +6,10 @@ import logging
 import json
 import atexit
 import click
+import samcli.lib.telemetry.metric as metric
 
 from samcli import __version__
-from samcli.lib.telemetry.metric import send_installed_metric, emit_all_metrics
+from samcli.lib.telemetry.metric import send_installed_metric
 from samcli.lib.utils.sam_logging import (
     LAMBDA_BULDERS_LOGGER_NAME,
     SamCliLogger,
@@ -138,7 +139,7 @@ def cli(ctx):
     lambda_builders_logger = logging.getLogger(LAMBDA_BULDERS_LOGGER_NAME)
     botocore_logger = logging.getLogger("botocore")
 
-    atexit.register(emit_all_metrics)
+    atexit.register(metric.flush)
 
     SamCliLogger.configure_logger(sam_cli_logger, SAM_CLI_FORMATTER, logging.INFO)
     SamCliLogger.configure_logger(lambda_builders_logger, SAM_CLI_FORMATTER, logging.INFO)

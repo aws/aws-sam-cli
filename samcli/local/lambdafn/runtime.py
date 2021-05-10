@@ -13,7 +13,7 @@ from typing import Optional
 from samcli.local.docker.lambda_container import LambdaContainer
 from samcli.lib.utils.file_observer import LambdaFunctionObserver
 from samcli.lib.utils.packagetype import ZIP
-from samcli.lib.telemetry.metric import MetricName, capture_parameter
+from samcli.lib.telemetry.metric import MetricName, track_metric
 from .zip import unzip
 from ...lib.utils.stream_writer import StreamWriter
 
@@ -133,7 +133,6 @@ class LambdaRuntime:
             LOG.debug("Ctrl+C was pressed. Aborting container running")
             raise
 
-    @capture_parameter(MetricName.runtimeMetric, "runtimes", 1, parameter_nested_identifier="runtime", as_list=True)
     def invoke(
         self,
         function_config,
@@ -170,6 +169,12 @@ class LambdaRuntime:
         timer = None
         container = None
         try:
+            # Track runtime
+            track_metric(
+                # NOTE: "runtimes" attr has to be an array
+                MetricName.runtimeMetric,
+                top_level_attrs={"runtimes": [function_config.runtime]},
+            )
             # Start the container. This call returns immediately after the container starts
             container = self.create(function_config, debug_context, container_host, container_host_interface)
             container = self.run(container, function_config, debug_context)

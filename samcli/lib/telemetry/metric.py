@@ -4,10 +4,11 @@ Provides methods to generate and send metrics
 import logging
 import platform
 import uuid
+from collections import defaultdict
+from collections.abc import MutableMapping
 from enum import Enum
-from functools import reduce, wraps
 from timeit import default_timer
-from typing import Optional
+from typing import Any, Dict, Iterator, Optional
 
 import click
 from samcli import __version__ as samcli_version
@@ -29,34 +30,120 @@ This creates a versitile telemetry tracking no matter where in the code. Somethi
 No side effect will result in this as it is write-only for code outside of telemetry.
 Decorators should be used to minimize logic involving telemetry.
 """
-_METRICS = dict()
+_METRICS: Optional[defaultdict] = None
 
 
 class MetricName(Enum):
     # Metrics that can be reported only once in a session
-    installed = ("installed", 1)
-    templateWarning = ("templateWarning", 1)
-    commandRun = ("commandRun", 1)
-    runtimeMetric = ("runtimeMetric", 1)
+    installed = ("installed", True)
+    commandRun = ("commandRun", True)
 
     # Metrics that can be reported any number of times during a session
     # e.g. docker_image_download_status
+    templateWarning = ("templateWarning", False)
+    runtimeMetric = ("runtimeMetric", False)
 
-    def __init__(self, name: str, cardinality: int):
+    def __init__(self, name: str, can_report_once_only: bool):
         self._name = name
-        self.cardinality = cardinality
+        self.can_report_once_only = can_report_once_only
 
     def __str__(self) -> str:
         return self._name
+
+
+def _get_global_metric_sink() -> defaultdict:
+    global _METRICS  # pylint: disable=global-statement
+    if _METRICS is None:
+        _METRICS = defaultdict(list)
+    return _METRICS
+
+
+def flush():
+    """
+    Emits all metrics to telemetry and flush the metric sink
+    """
+    telemetry = Telemetry()
+    metric_sink = _get_global_metric_sink()
+    for metric_list in metric_sink.values():
+        while metric_list:
+            metric = metric_list.pop(0)
+            telemetry.emit(metric)
+
+
+def track_metric(
+    metric_name: MetricName,
+    metric_specific_attrs: Optional[Dict[str, Any]] = None,
+    overwrite_existing_metric_specific_attrs: bool = False,
+    top_level_attrs: Optional[Dict[str, Any]] = None,
+    overwrite_existing_top_level_attrs: bool = False,
+):
+    """
+    Generic metric tracker
+    Metrics tracked by Generic metric tracker will first be collected into the global metric sink,
+    All metrics collected in the global metric sink will be emitted at program exit
+    (by calling flush(), see samcli/cli/main.py)
+
+    Examples
+    --------
+    tracking metric with metric-specific attributes
+    >>> track_metric(MetricName.commandRun, {"foo": "bar"})
+    >>> track_metric(MetricName.commandRun, metric_specific_attrs={"foo": "bar"})
+
+    overwriting exisitng metric-specific attributes
+    (only applicable for metric that can be reported only once, use with caution)
+    >>> track_metric(MetricName.commandRun, {"foo": "bar"}, overwrite_existing_metric_specific_attrs=True)
+
+    tracking metric with top-level attributes
+    >>> track_metric(MetricName.commandRun, top_level_attrs={"foo": "bar"})
+
+    overwriting exisitng top-level attributes
+    (only applicable for metric that can be reported only once, use with caution)
+    >>> track_metric(MetricName.commandRun, top_level_attrs={"foo": "bar"}, overwrite_existing_top_level_attrs=True)
+
+    Parameters
+    ----------
+    metric_name: MetricName
+        an instance of MetricName, e.g. MetricName.commandRun
+    metric_specific_attrs: dict
+        metric specific attributes to track. This is the normally the place where you want to track
+        certain attributes for specific metrics.  e.g. tracking usage of 'use-container' for
+        sam build command.
+    overwrite_existing_metric_specific_attrs: bool
+        If certain attribute is already tracked in metric specific attributes, set this flag to True
+        to overwrite
+    top_level_attrs: dict
+        top level attrs to track. These are the attributes that apply to all metrics.
+    overwrite_existing_top_level_attrs: bool
+        If certain attribute is already tracked in top level attributes, set this flag to True to overwrite
+        Note: normally you don't want to overwrite top level attrs
+    --
+    """
+    metric_sink = _get_global_metric_sink()
+    if metric_name not in metric_sink or not metric_sink[metric_name] or not metric_name.can_report_once_only:
+        metric = Metric(metric_name)
+        metric_sink[metric_name].append(metric)
+    else:
+        metric = metric_sink[metric_name][0]
+
+    metric_specific_attrs = metric_specific_attrs or {}
+    for key, val in metric_specific_attrs.items():
+        if key not in metric["metricSpecificAttributes"] or overwrite_existing_metric_specific_attrs is True:
+            metric["metricSpecificAttributes"][key] = val
+
+    top_level_attrs = top_level_attrs or {}
+    for key, val in top_level_attrs.items():
+        if key not in metric or overwrite_existing_top_level_attrs is True:
+            metric[key] = val
 
 
 def send_installed_metric():
     LOG.debug("Sending Installed Metric")
 
     telemetry = Telemetry()
+    # NOTE: not using track_metric here because we want to emit the metric right away
     metric = Metric(MetricName.installed)
-    metric.add_data("osPlatform", platform.system())
-    metric.add_data("telemetryEnabled", bool(GlobalConfig().telemetry_enabled))
+    metric["osPlatform"] = platform.system()
+    metric["telemetryEnabled"] = bool(GlobalConfig().telemetry_enabled)
     telemetry.emit(metric, force_emit=True)
 
 
@@ -78,7 +165,6 @@ def track_template_warnings(warning_names):
         """
 
         def wrapped(*args, **kwargs):
-            telemetry = Telemetry()
             template_warning_checker = TemplateWarningsChecker()
             ctx = Context.get_current_context()
 
@@ -89,13 +175,16 @@ def track_template_warnings(warning_names):
                 return func(*args, **kwargs)
             for warning_name in warning_names:
                 warning_message = template_warning_checker.check_template_for_warning(warning_name, ctx.template_dict)
-                metric = Metric(MetricName.templateWarning)
-                metric.add_data("awsProfileProvided", bool(ctx.profile))
-                metric.add_data("debugFlagProvided", bool(ctx.debug))
-                metric.add_data("region", ctx.region or "")
-                metric.add_data("warningName", warning_name)
-                metric.add_data("warningCount", 1 if warning_message else 0)  # 1-True or 0-False
-                telemetry.emit(metric)
+                track_metric(
+                    MetricName.templateWarning,
+                    top_level_attrs={
+                        "awsProfileProvided": bool(ctx.profile),
+                        "debugFlagProvided": bool(ctx.debug),
+                        "region": ctx.region or "",
+                        "warningName": warning_name,
+                        "warningCount": 1 if warning_message else 0,  # 1-True or 0-False
+                    },
+                )
 
                 if warning_message:
                     click.secho(WARNING_ANNOUNCEMENT.format(warning_message), fg="yellow")
@@ -124,9 +213,6 @@ def track_command(func):
     """
 
     def wrapped(*args, **kwargs):
-        telemetry = Telemetry()
-        metric = Metric(MetricName.commandRun)
-
         exception = None
         return_value = None
         exit_reason = "success"
@@ -156,15 +242,21 @@ def track_command(func):
 
         try:
             ctx = Context.get_current_context()
-            metric.add_data("awsProfileProvided", bool(ctx.profile))
-            metric.add_data("debugFlagProvided", bool(ctx.debug))
-            metric.add_data("region", ctx.region or "")
-            metric.add_data("commandName", ctx.command_path)  # Full command path. ex: sam local start-api
-            # Metric about command's execution characteristics
-            metric.add_data("duration", duration_fn())
-            metric.add_data("exitReason", exit_reason)
-            metric.add_data("exitCode", exit_code)
-            telemetry.emit(metric)
+            track_metric(
+                MetricName.commandRun,
+                top_level_attrs={
+                    "awsProfileProvided": bool(ctx.profile),
+                    "debugFlagProvided": bool(ctx.debug),
+                    "region": ctx.region or "",
+                    "commandName": ctx.command_path,
+                    "duration": duration_fn(),
+                    "exitReason": exit_reason,
+                    "exitCode": exit_code,
+                },
+                # NOTE: setting overwrite_existing_top_level_attrs to True since this is run after the commd logic runs
+                # the top_level_attrs tracked here takes precedence
+                overwrite_existing_top_level_attrs=True,
+            )
         except RuntimeError:
             LOG.debug("Unable to find Click Context for getting session_id.")
         if exception:
@@ -204,109 +296,7 @@ def _timer():
     return end
 
 
-def _parse_attr(obj, name):
-    """
-    Get attribute from an object.
-    @param obj Object
-    @param name Attribute name to get from the object.
-        Can be nested with "." in between.
-        For example: config.random_field.value
-    """
-    return reduce(getattr, name.split("."), obj)
-
-
-def capture_parameter(metric_name, key, parameter_identifier, parameter_nested_identifier=None, as_list=False):
-    """
-    Decorator for capturing one parameter of the function.
-
-    :param metric_name Name of the metric
-    :param key Key for storing the captured parameter
-    :param parameter_identifier Either a string for named parameter or int for positional parameter.
-        "self" can be accessed with 0.
-    :param parameter_nested_identifier If specified, the attribute pointed by this parameter will be stored instead.
-        Can be in nested format such as config.random_field.value.
-    :param as_list Default to False. Setting to True will append the captured parameter into
-        a list instead of overriding the previous one.
-    """
-
-    def wrap(func):
-        @wraps(func)
-        def wrapped_func(*args, **kwargs):
-            return_value = func(*args, **kwargs)
-            if isinstance(parameter_identifier, int):
-                parameter = args[parameter_identifier]
-            elif isinstance(parameter_identifier, str):
-                parameter = kwargs[parameter_identifier]
-            else:
-                return return_value
-
-            if parameter_nested_identifier:
-                parameter = _parse_attr(parameter, parameter_nested_identifier)
-
-            if as_list:
-                add_metric_list_data(metric_name, key, parameter)
-            else:
-                add_metric_data(metric_name, key, parameter)
-            return return_value
-
-        return wrapped_func
-
-    return wrap
-
-
-def capture_return_value(metric_name, key, as_list=False):
-    """
-    Decorator for capturing the reutrn value of the function.
-
-    :param metric_name Name of the metric
-    :param key Key for storing the captured parameter
-    :param as_list Default to False. Setting to True will append the captured parameter into
-        a list instead of overriding the previous one.
-    """
-
-    def wrap(func):
-        @wraps(func)
-        def wrapped_func(*args, **kwargs):
-            return_value = func(*args, **kwargs)
-            if as_list:
-                add_metric_list_data(metric_name, key, return_value)
-            else:
-                add_metric_data(metric_name, key, return_value)
-            return return_value
-
-        return wrapped_func
-
-    return wrap
-
-
-def add_metric_data(metric_name, key, value):
-    _get_metric(metric_name).add_data(key, value)
-
-
-def add_metric_list_data(metric_name, key, value):
-    _get_metric(metric_name).add_list_data(key, value)
-
-
-def _get_metric(metric_name):
-    if metric_name not in _METRICS:
-        _METRICS[metric_name] = Metric(metric_name)
-    return _METRICS[metric_name]
-
-
-def emit_metric(metric_name):
-    if metric_name not in _METRICS:
-        return
-    telemetry = Telemetry()
-    telemetry.emit(_get_metric(metric_name))
-    _METRICS.pop(metric_name)
-
-
-def emit_all_metrics():
-    for key in list(_METRICS):
-        emit_metric(key)
-
-
-class Metric:
+class Metric(MutableMapping):  # pylint: disable=too-many-ancestors
     """
     Metric class to store metric data and adding common attributes
     """
@@ -329,18 +319,6 @@ class Metric:
     @property
     def data(self):
         return self._data
-
-    def add_list_data(self, key, value):
-        if key not in self._data:
-            self._data[key] = list()
-
-        if not isinstance(self._data[key], list):
-            return
-
-        self._data[key].append(value)
-
-    def add_data(self, key, value):
-        self._data[key] = value
 
     def _add_common_metric_attributes(self):
         # all metrics (e.g. commandRun, installation) will have these universal attributes
@@ -386,3 +364,21 @@ class Metric:
         if cicd_platform:
             return cicd_platform.name
         return "CLI"
+
+    def __setitem__(self, k: str, v: Any) -> None:
+        self._data[k] = v
+
+    def __delitem__(self, v: str) -> None:
+        del self._data[v]
+
+    def __getitem__(self, k: str) -> Any:
+        return self._data[k]
+
+    def __len__(self) -> int:
+        return len(self._data)
+
+    def __iter__(self) -> Iterator:
+        return iter(self._data)
+
+    def __bool__(self):
+        return bool(self._data)
