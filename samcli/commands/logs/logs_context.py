@@ -8,7 +8,7 @@ import boto3
 import botocore
 
 from samcli.commands.exceptions import UserException
-from samcli.lib.observability.cw_logs.cw_log_consumers import CWTerminalEventConsumer
+from samcli.commands.logs.console_consumers import CWConsoleEventConsumer
 from samcli.lib.observability.cw_logs.cw_log_formatters import (
     CWColorizeErrorsFormatter,
     CWJsonFormatter,
@@ -114,7 +114,7 @@ class LogsCommandContext:
                     CWKeywordHighlighterFormatter(self.colored, self._filter_pattern),
                     CWPrettyPrintFormatter(self.colored),
                 ],
-                consumer=CWTerminalEventConsumer(),
+                consumer=CWConsoleEventConsumer(),
             ),
             cw_log_group=self.log_group_name,
             resource_name=self._function_name,

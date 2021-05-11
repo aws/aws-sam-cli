@@ -1,14 +1,14 @@
 from unittest import TestCase
 from unittest.mock import patch, Mock, call
 
-from samcli.lib.observability.cw_logs.cw_log_consumers import CWTerminalEventConsumer
+from samcli.commands.logs.console_consumers import CWConsoleEventConsumer
 
 
-class TestCWTerminalEventConsumer(TestCase):
+class TestCWConsoleEventConsumer(TestCase):
     def setUp(self):
-        self.consumer = CWTerminalEventConsumer()
+        self.consumer = CWConsoleEventConsumer()
 
-    @patch("samcli.lib.observability.cw_logs.cw_log_consumers.click")
+    @patch("samcli.commands.logs.console_consumers.click")
     def test_consume_with_event(self, patched_click):
         event = Mock()
         self.consumer.consume(event)
