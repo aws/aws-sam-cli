@@ -163,8 +163,12 @@ class SamLocalStackProvider(SamBaseProvider):
         resource_properties: Dict,
         global_parameter_overrides: Optional[Dict] = None,
     ) -> Optional[Stack]:
-        template_url = resource_properties.get("TemplateURL", "")
+        template_url = resource_properties.get("TemplateURL")
 
+        if isinstance(template_url, dict):
+            raise RemoteStackLocationNotSupported()
+
+        template_url = cast(str, template_url)
         if SamLocalStackProvider.is_remote_url(template_url):
             raise RemoteStackLocationNotSupported()
         if template_url.startswith("file://"):
