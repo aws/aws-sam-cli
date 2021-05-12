@@ -62,7 +62,7 @@ class TestValidate(TestCase):
     def test_default_template(self, relative_folder: str, expected_file: TemplateFileTypes):
         cwd = f"tests/integration/testdata/validate/{relative_folder}"
         command_result = run_command(self.command_list(), cwd=cwd)
-        pattern = self.patterns[expected_file]
+        pattern = self.patterns[expected_file]  # type: ignore
         output = command_result.stdout.decode("utf-8")
         self.assertEqual(command_result.process.returncode, 0)
         self.assertIsNotNone(pattern.match(output))
