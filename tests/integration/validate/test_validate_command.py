@@ -23,7 +23,7 @@ class TemplateFileTypes(Enum):
     YAML = auto()
 
 
-@skipIf(SKIP_VALIDATE_TESTS, "Skip deploy tests in CI/CD only")
+@skipIf(SKIP_VALIDATE_TESTS, "Skip validate tests in CI/CD only")
 class TestValidate(TestCase):
     @classmethod
     def setUpClass(cls):
