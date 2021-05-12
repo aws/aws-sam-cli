@@ -8,9 +8,16 @@ jobs:
   apply-label:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/github-script@v3
-        # the login of our bot called 'sam-cli-bot'
-        if: github.event.sender.login != 'aws-sam-cli-stale-bot'
+      - uses: tspascoal/get-user-teams-membership@v1
+        id: checkUserMember
+        with:
+         username: ${{ github.actor }}
+         organization: 'aws'
+         team: 'aws-sam-cli-team'
+         GITHUB_TOKEN: ${{ secrets.STALE_BOT_PERSONAL_TOKEN }}
+
+      - if: ${{ steps.checkUserMember.outputs.isTeamMember == 'false'}}
+        uses: actions/github-script@v3
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
