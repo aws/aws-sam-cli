@@ -191,8 +191,18 @@ class ApplicationBuilder:
 
         for function in functions:
             container_env_vars = self._make_env_vars(function, file_env_vars, inline_env_vars)
+
+            # In case of CI env, the project might have inconsistent absolute path,
+            # which will cause build cache to be invalidated.
+            # Here relative paths are always used in FunctionBuildDefinition (#2872).
+            codeuri = (
+                os.path.relpath(function.codeuri)
+                # use os.path.isabs() to opt-out URLs like file:///...
+                if isinstance(function.codeuri, str) and os.path.isabs(function.codeuri)
+                else function.codeuri
+            )
             function_build_details = FunctionBuildDefinition(
-                function.runtime, function.codeuri, function.packagetype, function.metadata, env_vars=container_env_vars
+                function.runtime, codeuri, function.packagetype, function.metadata, env_vars=container_env_vars
             )
             build_graph.put_function_build_definition(function_build_details, function)
 
