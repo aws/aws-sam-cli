@@ -8,9 +8,14 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import List, Optional
 from unittest import TestCase
+from unittest.case import skipIf
 
 from parameterized import parameterized
-from tests.testing_utils import run_command
+from tests.testing_utils import RUN_BY_CANARY, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, run_command
+
+# Validate tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
+# This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
+SKIP_VALIDATE_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
 
 class TemplateFileTypes(Enum):
@@ -18,6 +23,7 @@ class TemplateFileTypes(Enum):
     YAML = auto()
 
 
+@skipIf(SKIP_VALIDATE_TESTS, "Skip deploy tests in CI/CD only")
 class TestValidate(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -45,7 +51,7 @@ class TestValidate(TestCase):
         if region:
             command_list += ["--region", region]
         if config_file:
-            command_list = ["--config_file", str(config_file)]
+            command_list += ["--config_file", str(config_file)]
         return command_list
 
     @parameterized.expand(
@@ -59,10 +65,11 @@ class TestValidate(TestCase):
             ),  # project with template.json and standard build directory .aws-sam/build/template.yaml
         ]
     )
-    def test_default_template(self, relative_folder: str, expected_file: TemplateFileTypes):
-        cwd = f"tests/integration/testdata/validate/{relative_folder}"
-        command_result = run_command(self.command_list(), cwd=cwd)
+    def test_default_template_file_choice(self, relative_folder: str, expected_file: TemplateFileTypes):
+        test_data_path = Path(__file__).resolve().parents[2] / "integration" / "testdata" / "validate"
+        process_dir = test_data_path / relative_folder
+        command_result = run_command(self.command_list(), cwd=str(process_dir))
         pattern = self.patterns[expected_file]  # type: ignore
         output = command_result.stdout.decode("utf-8")
         self.assertEqual(command_result.process.returncode, 0)
-        self.assertIsNotNone(pattern.match(output))
+        self.assertRegex(output, pattern)
