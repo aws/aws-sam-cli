@@ -254,7 +254,7 @@ class LambdaRuntime:
 
     def _get_code_dir(self, code_path: str) -> str:
         """
-        Method to get a path to a directory where the Lambda function code is available. This directory will
+        Method to get a path to a directory where the function/layer code is available. This directory will
         be mounted directly inside the Docker container.
 
         This method handles a few different cases for ``code_path``:
