@@ -166,6 +166,8 @@ class SamLocalStackProvider(SamBaseProvider):
         template_url = resource_properties.get("TemplateURL")
 
         if isinstance(template_url, dict):
+            # This happens when TemplateURL has unresolvable intrinsic functions
+            # and it usually happens in CDK generated template files (#2832).
             raise RemoteStackLocationNotSupported()
 
         template_url = cast(str, template_url)
