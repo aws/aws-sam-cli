@@ -128,6 +128,7 @@ class ObservabilityEventConsumerDecorator(ObservabilityEventConsumer):
         consumer : ObservabilityEventConsumer
             Actual consumer which will handle the events after they are processed by mappers
         """
+        super().__init__()
         self._mappers = mappers
         self._consumer = consumer
 

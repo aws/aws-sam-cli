@@ -43,6 +43,7 @@ class CWColorizeErrorsFormatter(ObservabilityEventMapper[CWLogEvent]):
     Mapper implementation which will colorize some pre-defined error messages
     """
 
+    # couple of pre-defined error messages for lambda functions which will be colorized when getting the logs
     NODEJS_CRASH_MESSAGE = "Process exited before completing request"
     TIMEOUT_MSG = "Task timed out"
 
