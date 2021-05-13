@@ -40,11 +40,11 @@ class TestHash(TestCase):
             mockwalk.return_value = [
                 (
                     self.temp_dir,
-                    (),
-                    (
+                    [],
+                    [
                         file1.name,
                         file2.name,
-                    ),
+                    ],
                 ),
             ]
             dir_checksums["first"] = dir_checksum(self.temp_dir)
@@ -53,11 +53,11 @@ class TestHash(TestCase):
             mockwalk.return_value = [
                 (
                     self.temp_dir,
-                    (),
-                    (
+                    [],
+                    [
                         file2.name,
                         file1.name,
-                    ),
+                    ],
                 ),
             ]
             dir_checksums["second"] = dir_checksum(self.temp_dir)
@@ -72,6 +72,27 @@ class TestHash(TestCase):
         shutil.move(os.path.abspath(_file.name), os.path.join(os.path.dirname(_file.name), "different_name"))
         checksum_after = dir_checksum(os.path.dirname(_file.name))
         self.assertNotEqual(checksum_before, checksum_after)
+
+    def test_dir_hash_with_ignore_list(self):
+        _file = tempfile.NamedTemporaryFile(delete=False, dir=self.temp_dir)
+        _file.write(b"Testfile")
+        _file.close()
+
+        dir_path = os.path.dirname(_file.name)
+        checksum_before = dir_checksum(dir_path)
+
+        # add a file to .aws-sam/
+        aws_sam_dir_path = os.path.join(dir_path, ".aws-sam")
+        os.mkdir(aws_sam_dir_path)
+        _new_file = tempfile.NamedTemporaryFile(delete=False, dir=aws_sam_dir_path)
+        _new_file.write(b"dummy")
+        _new_file.close()
+
+        checksum_after = dir_checksum(os.path.dirname(_file.name))
+        self.assertNotEqual(checksum_before, checksum_after)
+
+        checksum_after_with_ignore_list = dir_checksum(os.path.dirname(_file.name), ignore_list=[".aws-sam"])
+        self.assertEqual(checksum_before, checksum_after_with_ignore_list)
 
     def test_dir_cyclic_links(self):
         _file = tempfile.NamedTemporaryFile(delete=False, dir=self.temp_dir)
