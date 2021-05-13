@@ -514,6 +514,28 @@ class TestLambdaRuntime_get_code_dir(TestCase):
         shutil_mock.rmtree.assert_not_called()
 
 
+class TestLambdaRuntime_unarchived_layer(TestCase):
+    def setUp(self):
+        self.manager_mock = Mock()
+        self.layer_downloader = Mock()
+        self.runtime = LambdaRuntime(self.manager_mock, self.layer_downloader)
+
+    @parameterized.expand([(LayerVersion("arn", "file.zip"),)])
+    @patch("samcli.local.lambdafn.runtime.LambdaRuntime._get_code_dir")
+    def test_unarchived_layer(self, layer, get_code_dir_mock):
+        new_url = get_code_dir_mock.return_value = Mock()
+        result = self.runtime._unarchived_layer(layer)
+        self.assertNotEqual(layer, result)
+        self.assertEqual(new_url, result.codeuri)
+
+    @parameterized.expand([("arn",), (LayerVersion("arn", "folder"),), ({"Name": "hi", "Version": "x.y.z"},)])
+    @patch("samcli.local.lambdafn.runtime.LambdaRuntime._get_code_dir")
+    def test_unarchived_layer_not_local_archive_file(self, layer, get_code_dir_mock):
+        get_code_dir_mock.side_effect = lambda x: x  # directly return the input
+        result = self.runtime._unarchived_layer(layer)
+        self.assertEqual(layer, result)
+
+
 class TestWarmLambdaRuntime_invoke(TestCase):
 
     DEFAULT_MEMORY = 128
