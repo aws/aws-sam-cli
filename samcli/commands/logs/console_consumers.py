@@ -13,5 +13,6 @@ class CWConsoleEventConsumer(ObservabilityEventConsumer[CWLogEvent]):
     Consumer implementation that will consume given event as outputting into console
     """
 
+    # pylint: disable=R0201
     def consume(self, event: CWLogEvent):
         click.echo(event.message, nl=False)
