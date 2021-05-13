@@ -14,7 +14,7 @@ from samcli.commands._utils.template import get_template_data, TemplateNotFoundE
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 from samcli.lib.iac.interface import ProjectTypes
 
-_TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml]"
+_TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml|json]"
 DEFAULT_STACK_NAME = "sam-app"
 
 LOG = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
     """
     original_template_path = os.path.abspath(provided_value)
 
-    search_paths = ["template.yaml", "template.yml"]
+    search_paths = ["template.yaml", "template.yml", "template.json"]
 
     if include_build:
         search_paths.insert(0, os.path.join(".aws-sam", "build", "template.yaml"))
