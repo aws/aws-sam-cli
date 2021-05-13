@@ -24,7 +24,7 @@ from samcli.lib.package.artifact_exporter import (
     ServerlessApplicationResource,
 )
 from samcli.lib.package.packageable_resources import (
-    is_s3_url,
+    is_s3_protocol_url,
     is_local_file,
     upload_local_artifacts,
     Resource,
@@ -198,10 +198,10 @@ class TestArtifactExporter(unittest.TestCase):
             self._assert_is_invalid_s3_url(url)
 
     def _assert_is_valid_s3_url(self, url):
-        self.assertTrue(is_s3_url(url), "{0} should be valid".format(url))
+        self.assertTrue(is_s3_protocol_url(url), "{0} should be valid".format(url))
 
     def _assert_is_invalid_s3_url(self, url):
-        self.assertFalse(is_s3_url(url), "{0} should be valid".format(url))
+        self.assertFalse(is_s3_protocol_url(url), "{0} should be valid".format(url))
 
     def test_parse_s3_url(self):
 
