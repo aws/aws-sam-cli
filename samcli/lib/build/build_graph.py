@@ -3,6 +3,7 @@ Holds classes and utility methods related to build graph
 """
 
 import logging
+import os
 from pathlib import Path
 from typing import Tuple, List, Any, Optional, Dict
 from uuid import uuid4
@@ -460,9 +461,15 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         if self.metadata and self.metadata.get("BuildMethod", None) == "makefile":
             return False
 
+        # In case of CI env, the project might have inconsistent absolute path,
+        # which will cause build cache to be invalidated.
+        # Here relative paths for comparison (#2872).
+        relative_codeuri = os.path.relpath(self.codeuri) if isinstance(self.codeuri, str) else self.codeuri
+        relative_other_codeuri = os.path.relpath(other.codeuri) if isinstance(other.codeuri, str) else other.codeuri
+
         return (
             self.runtime == other.runtime
-            and self.codeuri == other.codeuri
+            and relative_codeuri == relative_other_codeuri
             and self.packagetype == other.packagetype
             and self.metadata == other.metadata
             and self.env_vars == other.env_vars
