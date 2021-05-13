@@ -33,7 +33,7 @@ class TestCWPrettyPrintFormatter(TestCase):
         expected = " ".join([colored_stream_name, colored_timestamp, self.message])
         result = self.pretty_print_formatter.map(event)
 
-        self.assertEqual(expected, result)
+        self.assertEqual(expected, result.message)
         self.colored.yellow.has_calls()
         self.colored.cyan.assert_called_with(self.stream_name)
 

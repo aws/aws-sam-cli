@@ -2,11 +2,15 @@
 Contains all mappers (formatters) for CloudWatch logs
 """
 import json
+import logging
+from json import JSONDecodeError
 
 from samcli.lib.observability.cw_logs.cw_log_event import CWLogEvent
 from samcli.lib.observability.observability_info_puller import ObservabilityEventMapper
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.time import timestamp_to_iso
+
+LOG = logging.getLogger(__name__)
 
 
 class CWKeywordHighlighterFormatter(ObservabilityEventMapper[CWLogEvent]):
@@ -60,13 +64,15 @@ class CWJsonFormatter(ObservabilityEventMapper[CWLogEvent]):
     """
 
     # pylint: disable=R0201
+    # Pylint recommends converting this method to a static one but we want it to stay as it is
+    # since formatters/mappers are combined in an array of ObservabilityEventMapper class
     def map(self, event: CWLogEvent) -> CWLogEvent:
         try:
             if event.message.startswith("{"):
                 msg_dict = json.loads(event.message)
                 event.message = json.dumps(msg_dict, indent=2)
-        except Exception:
-            pass
+        except JSONDecodeError as err:
+            LOG.debug("Can't decode string (%s) as JSON. Error (%s)", event.message, err)
 
         return event
 
@@ -80,8 +86,8 @@ class CWPrettyPrintFormatter(ObservabilityEventMapper[CWLogEvent]):
     def __init__(self, colored: Colored):
         self._colored = colored
 
-    # pylint: disable=R0201
-    def map(self, event: CWLogEvent) -> str:
+    def map(self, event: CWLogEvent) -> CWLogEvent:
         timestamp = self._colored.yellow(timestamp_to_iso(int(event.timestamp)))
         log_stream_name = self._colored.cyan(event.log_stream_name)
-        return f"{log_stream_name} {timestamp} {event.message}"
+        event.message = f"{log_stream_name} {timestamp} {event.message}"
+        return event

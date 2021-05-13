@@ -96,14 +96,14 @@ class ObservabilityEventMapper(Generic[ObservabilityEventType]):
         """
 
 
-class ObservabilityEventConsumer(ABC):
+class ObservabilityEventConsumer(Generic[ObservabilityEventType]):
     """
     Consumer interface, which will consume any event.
     An example is to output event into console.
     """
 
     @abstractmethod
-    def consume(self, event: ObservabilityEvent):
+    def consume(self, event: ObservabilityEventType):
         """
         Parameters
         ----------
