@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch, ANY
@@ -9,7 +10,7 @@ from click.testing import CliRunner
 from samcli.commands.exceptions import UserException
 from samcli.commands.init import cli as init_cmd
 from samcli.commands.init import do_cli as init_cli
-from samcli.commands.init.init_templates import InitTemplates, APP_TEMPLATES_REPO_URL, APP_TEMPLATES_REPO_NAME
+from samcli.commands.init.init_templates import InitTemplates, APP_TEMPLATES_REPO_URL
 from samcli.lib.init import GenerateProjectFailedError
 from samcli.lib.utils.git_repo import GitRepo
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -1183,7 +1184,7 @@ foo
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
     @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
     @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli_image_pool_with_base_image_having_multiple_managed_template_with_matching__app_template_provided(
+    def test_init_cli_image_pool_with_base_image_having_multiple_managed_template_with_matching_app_template_provided(
         self,
         generate_project_patch,
         init_options_from_manifest_mock,
@@ -1220,7 +1221,7 @@ foo
             extra_context=None,
         )
         generate_project_patch.assert_called_once_with(
-            "repository/python3.8-image/cookiecutter-ml-apigw-pytorch",  # location
+            os.path.normpath("repository/python3.8-image/cookiecutter-ml-apigw-pytorch"),  # location
             "Image",  # package_type
             "python3.8",  # runtime
             "pip",  # dependency_manager
@@ -1263,7 +1264,7 @@ foo
             extra_context=None,
         )
         generate_project_patch.assert_called_once_with(
-            "repository/python3.8-image/cookiecutter-ml-apigw-pytorch",  # location
+            os.path.normpath("repository/python3.8-image/cookiecutter-ml-apigw-pytorch"),  # location
             "Image",  # package_type
             "python3.8",  # runtime
             "pip",  # dependency_manager
@@ -1306,7 +1307,7 @@ foo
             extra_context=None,
         )
         generate_project_patch.assert_called_once_with(
-            "repository/python3.8-image/cookiecutter-ml-apigw-pytorch",  # location
+            os.path.normpath("repository/python3.8-image/cookiecutter-ml-apigw-pytorch"),  # location
             "Image",  # package_type
             "python3.8",  # runtime
             "pip",  # dependency_manager
