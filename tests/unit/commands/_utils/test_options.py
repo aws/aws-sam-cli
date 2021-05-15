@@ -53,7 +53,18 @@ class TestGetOrDefaultTemplateFileName(TestCase):
     def test_must_return_yaml_extension(self, os_mock):
         expected = "template.yaml"
 
-        os_mock.path.exists.return_value = True
+        os_mock.path.exists.side_effect = lambda file_name: file_name == expected
+        os_mock.path.abspath.return_value = "absPath"
+
+        result = get_or_default_template_file_name(None, None, _TEMPLATE_OPTION_DEFAULT_VALUE, include_build=False)
+        self.assertEqual(result, "absPath")
+        os_mock.path.abspath.assert_called_with(expected)
+
+    @patch("samcli.commands._utils.options.os")
+    def test_must_return_json_extension(self, os_mock):
+        expected = "template.json"
+
+        os_mock.path.exists.side_effect = lambda file_name: file_name == expected
         os_mock.path.abspath.return_value = "absPath"
 
         result = get_or_default_template_file_name(None, None, _TEMPLATE_OPTION_DEFAULT_VALUE, include_build=False)
