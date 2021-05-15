@@ -72,20 +72,16 @@ def generate_function(
         stack_path,
     )
 
+
 def generate_layer(
     arn="arn:aws:lambda:region:account-id:layer:layer-name:1",
     codeuri="codeuri",
     compatible_runtimes=["runtime"],
     metadata={},
-    stack_path=""
+    stack_path="",
 ):
-    return LayerVersion(
-        arn,
-        codeuri,
-        compatible_runtimes,
-        metadata,
-        stack_path
-    )
+    return LayerVersion(arn, codeuri, compatible_runtimes, metadata, stack_path)
+
 
 class TestConversionFunctions(TestCase):
     def test_function_build_definition_to_toml_table(self):
@@ -214,9 +210,7 @@ class TestBuildGraph(TestCase):
             self.assertEqual(
                 build_graph1.get_function_build_definitions(), build_graph2.get_function_build_definitions()
             )
-            self.assertEqual(
-                build_graph1.get_layer_build_definitions(), build_graph2.get_layer_build_definitions()
-            )
+            self.assertEqual(build_graph1.get_layer_build_definitions(), build_graph2.get_layer_build_definitions())
 
     def test_should_instantiate_first_time_and_update(self):
         with osutils.mkdir_temp() as temp_base_dir:
@@ -246,7 +240,9 @@ class TestBuildGraph(TestCase):
                 TestBuildGraph.ENV_VARS,
             )
             layer1 = generate_layer(
-                compatible_runtimes=[TestBuildGraph.RUNTIME], codeuri=TestBuildGraph.LAYER_CODEURI, metadata=TestBuildGraph.METADATA
+                compatible_runtimes=[TestBuildGraph.RUNTIME],
+                codeuri=TestBuildGraph.LAYER_CODEURI,
+                metadata=TestBuildGraph.METADATA,
             )
             build_graph1.put_layer_build_definition(layer_build_definition1, layer1)
 
@@ -312,7 +308,9 @@ class TestBuildGraph(TestCase):
                 TestBuildGraph.ENV_VARS,
             )
             function1 = generate_function(
-                runtime=TestBuildGraph.RUNTIME, codeuri=TestBuildGraph.CODEURI, metadata=TestBuildGraph.METADATA
+                runtime=TestBuildGraph.RUNTIME,
+                codeuri=TestBuildGraph.CODEURI,
+                metadata=TestBuildGraph.METADATA,
             )
             build_graph.put_function_build_definition(build_definition1, function1)
 
@@ -353,7 +351,9 @@ class TestBuildGraph(TestCase):
                 TestBuildGraph.ENV_VARS,
             )
             layer1 = generate_layer(
-                compatible_runtimes=[TestBuildGraph.RUNTIME], codeuri=TestBuildGraph.LAYER_CODEURI, metadata=TestBuildGraph.METADATA
+                compatible_runtimes=[TestBuildGraph.RUNTIME],
+                codeuri=TestBuildGraph.LAYER_CODEURI,
+                metadata=TestBuildGraph.METADATA,
             )
             build_graph.put_layer_build_definition(build_definition1, layer1)
 
@@ -373,6 +373,7 @@ class TestBuildGraph(TestCase):
             layer2 = generate_layer(arn="arn:aws:lambda:region:account-id:layer:another-layer-name:1")
             build_graph.put_layer_build_definition(build_definition2, layer2)
             self.assertTrue(len(build_graph.get_layer_build_definitions()), 2)
+
 
 class TestBuildDefinition(TestCase):
     def test_single_function_should_return_function_and_handler_name(self):
