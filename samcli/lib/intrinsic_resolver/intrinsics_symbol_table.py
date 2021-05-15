@@ -4,6 +4,7 @@ The symbol table that is used in IntrinsicResolver in order to resolve runtime a
 import logging
 import os
 
+from samcli.cli.context import Context
 from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
 from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidSymbolException
 
@@ -363,8 +364,14 @@ class IntrinsicsSymbolTable:
         -------
         The region from the environment or a default one
         """
+        try:
+            ctx = Context.get_current_context()
+        except RuntimeError:
+            ctx = None
+        ctx_aws_region = ctx.region if ctx else None
         return (
             self.logical_id_translator.get(IntrinsicsSymbolTable.AWS_REGION)
+            or ctx_aws_region
             or os.getenv("AWS_REGION")
             or IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES.get(IntrinsicsSymbolTable.AWS_REGION)
         )

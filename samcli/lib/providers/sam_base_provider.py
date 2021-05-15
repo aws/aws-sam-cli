@@ -3,8 +3,8 @@ Base class for SAM Template providers
 """
 
 import logging
-
 from typing import Any, Dict, Optional, cast, Iterable, Union
+
 from samcli.commands._utils.resources import AWS_SERVERLESS_APPLICATION, AWS_CLOUDFORMATION_STACK
 from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
@@ -194,6 +194,7 @@ class SamBaseProvider:
         # override the defaults
         parameter_values = {}
         parameter_values.update(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)
+        parameter_values[IntrinsicsSymbolTable.AWS_REGION] = IntrinsicsSymbolTable().handle_pseudo_region()
         parameter_values.update(default_values)
         parameter_values.update(parameter_overrides or {})
 
