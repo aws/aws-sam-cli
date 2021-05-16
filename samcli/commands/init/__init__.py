@@ -179,7 +179,7 @@ def non_interactive_validation(func):
     default=None,
     help="Lambda Image of your app",
     cls=Mutex,
-    not_required=["location", "app_template", "runtime"],
+    not_required=["location", "runtime"],
 )
 @click.option(
     "-d",
@@ -198,7 +198,7 @@ def non_interactive_validation(func):
     help="Identifier of the managed application template you want to use. "
     "If not sure, call 'sam init' without options for an interactive workflow.",
     cls=Mutex,
-    not_required=["location", "base_image"],
+    not_required=["location"],
 )
 @click.option(
     "--no-input",
@@ -302,13 +302,14 @@ def do_cli(
             options = templates.init_options(
                 project_type, cdk_language, package_type, runtime, base_image, dependency_manager
             )
-            if len(options) == 1:
-                app_template = options[0].get("appTemplate")
-            elif len(options) > 1:
-                raise LambdaImagesTemplateException(
-                    "Multiple lambda image application templates found. "
-                    "This should not be possible, please raise an issue."
-                )
+            if not app_template:
+                if len(options) == 1:
+                    app_template = options[0].get("appTemplate")
+                elif len(options) > 1:
+                    raise LambdaImagesTemplateException(
+                        "Multiple lambda image application templates found. "
+                        "Please specify one using the --app-template parameter."
+                    )
 
         if app_template and not location:
             location = templates.location_from_app_template(
