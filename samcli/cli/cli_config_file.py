@@ -57,14 +57,12 @@ class TomlProvider:
 
         samconfig = SamConfig(config_file_dir, config_file_name)
 
-        # Enable debug level logging by environment variable "SAM_DEBUG"
-        if os.environ.get("SAM_DEBUG", "").lower() == "true":
-            LOG.setLevel(logging.DEBUG)
-
-        LOG.debug("Config file location: %s", samconfig.path())
-
-        if not samconfig.exists():
-            LOG.debug("Config file '%s' does not exist", samconfig.path())
+        # bringing samconfig file location up to info level,
+        # to improve UX and make it clear where we're looking for samconfig file
+        if samconfig.exists():
+            click.echo(f"Config file location: {samconfig.path()}")
+        else:
+            click.secho(f"Config file '{samconfig.path()}' does not exist", fg="yellow", err=True)
             return resolved_config
 
         try:
@@ -236,8 +234,10 @@ def decorator_customize_config_file(f):
     config_file_param_decls = ("--config-file",)
     config_file_attrs["help"] = (
         "The path and file name of the configuration file containing default parameter values to use. "
-        "Its default value is 'samconfig.toml' in project directory. For more information about configuration files, "
-        "see: "
+        "Its default value is 'samconfig.toml' in project root directory. Project root directory is defined by the "
+        "template file location. When you use config file and specify --template-file SAM CLI expects samconfig.toml "
+        "and the template file to be in the same directory. Alternatively, use --config-file to point to samconfig.toml"
+        "For more information about configuration files, see "
         "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html."
     )
     config_file_attrs["default"] = "samconfig.toml"

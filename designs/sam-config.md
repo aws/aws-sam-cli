@@ -9,7 +9,7 @@ Today users of SAM CLI need to invoke the CLI directly with all parameters suppl
 
 for e.g: `sam build --use-container --debug`
 
-But often, during the lifecycle of building and deploying a serverless application. the same commands get run repeatedly to build, package and deploy, before solidifying into the final application. 
+But often, during the lifecycle of building and deploying a serverless application. The same commands get run repeatedly to build, package and deploy, before solidifying into the final application. 
 
 These CLI commands are often long and have many changing parts.
 
@@ -45,15 +45,32 @@ The suite of commands supported by SAM CLI would be aided by looking for a confi
 
 This configuration would be used for specifiying the parameters that each of SAM CLI commands use and would be in TOML format.
 
-Running a SAM CLI command now automatically looks for `samconfig.toml` file and if its finds it goes ahead with parameter passthroughs to the CLI.
+Running a SAM CLI command now automatically looks for `samconfig.toml` file and if it finds it, it passes parameter through to the CLI.
+
+Every command which uses parameters from the configuration file, prints out the location of `samconfig.toml` file it parses.
 
 ```
 sam build
-Default Config file location: samconfig.toml
+Config file location: /home/xxxxxxxxxx/projects/app-samconfig/samconfig.toml
 ..
 ..
 ..
 ```
+
+If no configuration file can be found at the project root directory, the command output will contain a warning.
+
+```
+sam local invoke -t ./out/build/template.yaml 
+Config file '/home/xxxxxxxxx/projects/app-samconfig/out/build/samconfig.toml' does not exist
+..
+..
+..
+```
+
+Where is my `samconfig.toml`?
+---------------------------------
+
+SAM CLI always expects `samconfig.toml` to be in the project root directory (where the template file is located). When neither template nor config file is specified through cli options, both of them are expected to be in the current working directory where SAM CLI command is running. However, if you use `--template-file` to point to the directory without config file, you need to use `--config-file` option to be able to use `samconfig.toml`.
 
 Why `samconfig.toml` not under `.aws-sam` directory?
 ---------------------------------
