@@ -20,7 +20,7 @@ from samcli.lib.package.utils import (
     copy_to_temp_dir,
     upload_local_artifacts,
     upload_local_image_artifacts,
-    is_s3_url,
+    is_s3_protocol_url,
     is_path_value_valid,
 )
 
@@ -466,7 +466,7 @@ def include_transform_export_handler(template_dict, uploader, parent_dir):
         return template_dict
 
     include_location = template_dict.get("Parameters", {}).get("Location", None)
-    if not include_location or not is_path_value_valid(include_location) or is_s3_url(include_location):
+    if not include_location or not is_path_value_valid(include_location) or is_s3_protocol_url(include_location):
         # `include_location` is either empty, or not a string, or an S3 URI
         return template_dict
 

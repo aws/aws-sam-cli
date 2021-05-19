@@ -111,24 +111,13 @@ def do_cli(function_name, stack_name, filter_pattern, tailing, start_time, end_t
         filter_pattern=filter_pattern,
         start_time=start_time,
         end_time=end_time,
-        # output_file is not yet supported by CLI
-        output_file=None,
     ) as context:
 
         if tailing:
-            events_iterable = context.fetcher.tail(
-                context.log_group_name, filter_pattern=context.filter_pattern, start=context.start_time
-            )
+            context.fetcher.tail(start_time=context.start_time, filter_pattern=context.filter_pattern)
         else:
-            events_iterable = context.fetcher.fetch(
-                context.log_group_name,
+            context.fetcher.load_time_period(
+                start_time=context.start_time,
+                end_time=context.end_time,
                 filter_pattern=context.filter_pattern,
-                start=context.start_time,
-                end=context.end_time,
             )
-
-        formatted_events = context.formatter.do_format(events_iterable)
-
-        for event in formatted_events:
-            # New line is not necessary. It is already in the log events sent by CloudWatch
-            click.echo(event, nl=False)
