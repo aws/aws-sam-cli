@@ -4,6 +4,7 @@ Utilities involved in Packaging.
 import logging
 import os
 import platform
+import re
 import shutil
 import tempfile
 import uuid
@@ -22,6 +23,29 @@ from samcli.lib.utils.hash import dir_checksum
 
 LOG = logging.getLogger(__name__)
 
+# https://docs.aws.amazon.com/AmazonS3/latest/dev-retired/UsingBucket.html
+_REGION_PATTERN = r"[a-zA-Z0-9-]+"
+_DOT_AMAZONAWS_COM_PATTERN = r"\.amazonaws\.com"
+_S3_URL_REGEXS = [
+    # Path-Style (and ipv6 dualstack)
+    # - https://s3.Region.amazonaws.com/bucket-name/key name
+    # - https://s3.amazonaws.com/bucket-name/key name (old, without region)
+    # - https://s3.dualstack.us-west-2.amazonaws.com/...
+    re.compile(rf"http(s)?://s3(.dualstack)?(\.{_REGION_PATTERN})?{_DOT_AMAZONAWS_COM_PATTERN}/.+/.+"),
+    # Virtual Hosted-Style (including two legacies)
+    # https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html
+    # - Virtual Hosted-Style: https://bucket-name.s3.Region.amazonaws.com/key name
+    # - Virtual Hosted-Style (Legacy: a dash between S3 and the Region): https://bucket-name.s3-Region.amazonaws.com/...
+    # - Virtual Hosted-Style (Legacy Global Endpoint): https://my-bucket.s3.amazonaws.com/...
+    re.compile(rf"http(s)?://.+\.s3((.|-){_REGION_PATTERN})?{_DOT_AMAZONAWS_COM_PATTERN}/.+"),
+    # S3 access point:
+    # - https://AccessPointName-AccountId.s3-accesspoint.region.amazonaws.com
+    re.compile(rf"http(s)?://.+-\d+\.s3-accesspoint\.{_REGION_PATTERN}{_DOT_AMAZONAWS_COM_PATTERN}/.+/.+"),
+    # S3 protocol URL:
+    # - s3://bucket-name/key-name
+    re.compile(r"s3://.+/.+"),
+]
+
 
 def is_path_value_valid(path):
     return isinstance(path, str)
@@ -33,12 +57,23 @@ def make_abs_path(directory, path):
     return path
 
 
-def is_s3_url(url):
+def is_s3_protocol_url(url):
+    """
+    Check whether url is a valid path in the form of "s3://..."
+    """
     try:
         S3Uploader.parse_s3_url(url)
         return True
     except ValueError:
         return False
+
+
+def is_s3_url(url: str) -> bool:
+    """
+    Check whether a URL is a S3 access URL
+    specified at https://docs.aws.amazon.com/AmazonS3/latest/dev-retired/UsingBucket.html
+    """
+    return any(regex.match(url) for regex in _S3_URL_REGEXS)
 
 
 def is_local_folder(path):
@@ -122,7 +157,7 @@ def upload_local_artifacts(
         # Build the root directory and upload to S3
         local_path = parent_dir
 
-    if is_s3_url(local_path):
+    if is_s3_protocol_url(local_path):
         # A valid CloudFormation template will specify artifacts as S3 URLs.
         # This check is supporting the case where your resource does not
         # refer to local artifacts

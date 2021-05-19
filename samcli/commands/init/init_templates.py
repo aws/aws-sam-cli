@@ -91,7 +91,7 @@ class InitTemplates:
             if template.get("init_location") is not None:
                 return template["init_location"]
             if template.get("directory") is not None:
-                return os.path.join(self._git_repo.local_path, template["directory"])
+                return os.path.normpath(os.path.join(self._git_repo.local_path, template["directory"]))
             raise InvalidInitTemplateError("Invalid template. This should not be possible, please raise an issue.")
         except StopIteration as ex:
             msg = "Can't find application template " + app_template + " - check valid values in interactive init."
