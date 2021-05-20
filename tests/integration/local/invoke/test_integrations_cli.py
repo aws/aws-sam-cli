@@ -13,7 +13,7 @@ import docker
 
 from tests.integration.local.invoke.layer_utils import LayerUtils
 from .invoke_integ_base import InvokeIntegBase
-from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
+from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, run_command
 
 # Layers tests require credentials and Appveyor will only add credentials to the env if the PR is from the same repo.
 # This is to restrict layers tests to run outside of Appveyor, when the branch is not master and tests are not run by Canary.
@@ -882,6 +882,24 @@ class TestLayerVersion(InvokeIntegBase):
             raise
 
         self.assertEqual(2, len(os.listdir(str(self.layer_cache))))
+
+
+@skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
+class TestLocalZipLayerVersion(InvokeIntegBase):
+    template = Path("layers", "local-zip-layer-template.yml")
+
+    def test_local_zip_layers(
+        self,
+    ):
+        command_list = self.get_command_list(
+            "OneLayerVersionServerlessFunction",
+            template_path=self.template_path,
+            no_event=True,
+        )
+
+        execute = run_command(command_list)
+        self.assertEqual(0, execute.process.returncode)
+        self.assertEqual('"Layer1"', execute.stdout.decode())
 
 
 @skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
