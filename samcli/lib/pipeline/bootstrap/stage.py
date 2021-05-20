@@ -19,6 +19,7 @@ PIPELINE_EXECUTION_ROLE = "pipeline_execution_role"
 CLOUDFORMATION_EXECUTION_ROLE = "cloudformation_execution_role"
 ARTIFACTS_BUCKET = "artifacts_bucket"
 ECR_REPO = "ecr_repo"
+REGION = "region"
 
 
 class Stage:
@@ -223,6 +224,7 @@ class Stage:
             CLOUDFORMATION_EXECUTION_ROLE: self.cloudformation_execution_role.arn,
             ARTIFACTS_BUCKET: artifacts_bucket_name,
             ECR_REPO: ecr_repo_uri,
+            REGION: self.aws_region
         }
 
         for key, value in stage_specific_configs.items():
