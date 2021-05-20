@@ -1,10 +1,9 @@
 import os
-import shutil
 from pathlib import Path
 from unittest import TestCase
 
 from samcli.lib.config.exceptions import SamConfigVersionException
-from samcli.lib.config.samconfig import SamConfig, DEFAULT_CONFIG_FILE_NAME, DEFAULT_GLOBAL_CMDNAME
+from samcli.lib.config.samconfig import SamConfig, DEFAULT_CONFIG_FILE_NAME, DEFAULT_GLOBAL_CMDNAME, DEFAULT_ENV
 from samcli.lib.config.version import VERSION_KEY, SAM_CONFIG_VERSION
 from samcli.lib.utils import osutils
 
@@ -28,13 +27,24 @@ class TestSamConfig(TestCase):
         self.assertTrue(self.samconfig.sanity_check())
         self.assertEqual(SAM_CONFIG_VERSION, self.samconfig.document.get(VERSION_KEY))
 
-    def _update_samconfig(self, cmd_names, section, key, value, env):
-        self.samconfig.put(cmd_names=cmd_names, section=section, key=key, value=value, env=env)
+    def _update_samconfig(self, cmd_names, section, key, value, env=None):
+        if env:
+            self.samconfig.put(cmd_names=cmd_names, section=section, key=key, value=value, env=env)
+        else:
+            self.samconfig.put(cmd_names=cmd_names, section=section, key=key, value=value)
         self.samconfig.flush()
         self._check_config_file()
 
     def test_init(self):
         self.assertEqual(self.samconfig.filepath, Path(self.config_dir, DEFAULT_CONFIG_FILE_NAME))
+
+    def test_get_env_names(self):
+        self.assertEqual(self.samconfig.get_env_names(), [])
+        self._update_samconfig(cmd_names=["myCommand"], section="mySection", key="port", value=5401, env="env1")
+        self._update_samconfig(cmd_names=["myCommand"], section="mySection", key="port", value=5401, env="env2")
+        self.assertEqual(self.samconfig.get_env_names(), ["env1", "env2"])
+        self._update_samconfig(cmd_names=["myCommand"], section="mySection", key="port", value=5401)
+        self.assertEqual(self.samconfig.get_env_names(), ["env1", "env2", DEFAULT_ENV])
 
     def test_param_overwrite(self):
         self._update_samconfig(cmd_names=["myCommand"], section="mySection", key="port", value=5401, env="myEnv")

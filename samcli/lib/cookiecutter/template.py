@@ -3,15 +3,17 @@ This is the core module of the cookiecutter workflow, it defines how to create a
 values of the context and how to generate a project from the given template and provided context
 """
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
+
 from cookiecutter.exceptions import RepositoryNotFound, UnknownRepoType
 from cookiecutter.main import cookiecutter
+
 from samcli.commands.exceptions import UserException
 from samcli.lib.init.arbitrary_project import generate_non_cookiecutter_project
+from .exceptions import GenerateProjectFailedError, InvalidLocationError, PreprocessingError, PostprocessingError
 from .interactive_flow import InteractiveFlow
 from .plugin import Plugin
 from .processor import Processor
-from .exceptions import GenerateProjectFailedError, InvalidLocationError, PreprocessingError, PostprocessingError
 
 LOG = logging.getLogger(__name__)
 
@@ -98,7 +100,7 @@ class Template:
             if plugin.postprocessor:
                 self._postprocessors.append(plugin.postprocessor)
 
-    def run_interactive_flows(self) -> Dict:
+    def run_interactive_flows(self, context: Optional[Dict] = None) -> Dict:
         """
         prompt the user a series of questions' flows and gather the answers to create the cookiecutter context.
         The questions are identified by keys. If multiple questions, whether within the same flow or across
@@ -112,7 +114,7 @@ class Template:
             A Dictionary in the form of {question.key: answer} representing user's answers to the flows' questions
         """
         try:
-            context: Dict[str, Any] = {}
+            context = context if context else {}
             for flow in self._interactive_flows:
                 context = flow.run(context)
             return context
