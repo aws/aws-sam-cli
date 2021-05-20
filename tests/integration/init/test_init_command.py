@@ -225,7 +225,7 @@ Must provide one of the following required parameter combinations:
 You can also re-run without the --no-interactive flag to be prompted for required values.
             """
 
-            self.assertEqual(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertRegex("\n".join(stderr.strip().splitlines()), errmsg.strip())
 
     def test_init_command_no_interactive_apptemplate_location(self):
         stderr = None
@@ -263,7 +263,7 @@ You can run 'sam init' without any options for an interactive initialization flo
     --location
                         """
 
-            self.assertEqual(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertRegex("\n".join(stderr.strip().splitlines()), errmsg.strip())
 
     def test_init_command_no_interactive_runtime_location(self):
         stderr = None
@@ -301,7 +301,7 @@ You can run 'sam init' without any options for an interactive initialization flo
     --location
                         """
 
-            self.assertEqual(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertRegex("\n".join(stderr.strip().splitlines()), errmsg.strip())
 
     def test_init_command_no_interactive_base_image_location(self):
         stderr = None
@@ -339,7 +339,7 @@ You can run 'sam init' without any options for an interactive initialization flo
     --location
                         """
 
-            self.assertEqual(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertRegex("\n".join(stderr.strip().splitlines()), errmsg.strip())
 
     def test_init_command_no_interactive_base_image_no_dependency(self):
         stderr = None
@@ -379,7 +379,7 @@ Must provide one of the following required parameter combinations:
 You can also re-run without the --no-interactive flag to be prompted for required values.
                         """
 
-            self.assertEqual(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertRegex("\n".join(stderr.strip().splitlines()), errmsg.strip())
 
     def test_init_command_no_interactive_packagetype_location(self):
         stderr = None
@@ -417,7 +417,7 @@ You can run 'sam init' without any options for an interactive initialization flo
     --location
                         """
 
-            self.assertEqual(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertRegex("\n".join(stderr.strip().splitlines()), errmsg.strip())
 
     def test_init_command_no_interactive_base_image_no_packagetype(self):
         stderr = None
@@ -455,7 +455,7 @@ Must provide one of the following required parameter combinations:
 You can also re-run without the --no-interactive flag to be prompted for required values.
                         """
 
-            self.assertEqual(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertRegex("\n".join(stderr.strip().splitlines()), errmsg.strip())
 
     def test_init_command_wrong_packagetype(self):
         stderr = None

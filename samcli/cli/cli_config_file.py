@@ -62,7 +62,7 @@ class TomlProvider:
         if samconfig.exists():
             click.echo(f"Config file location: {samconfig.path()}")
         else:
-            click.secho(f"Config file '{samconfig.path()}' does not exist", fg="yellow", err=True)
+            click.secho(f"Config file '{samconfig.path()}' does not exist", fg="yellow")
             return resolved_config
 
         try:
