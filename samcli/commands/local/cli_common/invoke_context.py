@@ -76,6 +76,7 @@ class InvokeContext:
         debug_function: Optional[str] = None,
         shutdown: bool = False,
         container_host: Optional[str] = None,
+        container_host_interface: Optional[str] = None,
     ) -> None:
         """
         Initialize the context
@@ -124,6 +125,8 @@ class InvokeContext:
             Optional. If True, perform a SHUTDOWN event when tearing down containers. Default False.
         container_host string
             Optional. Host of locally emulated Lambda container
+        container_host_interface string
+            Optional. Interface that Docker host binds ports to
         """
         self._template_file = template_file
         self._function_identifier = function_identifier
@@ -150,6 +153,7 @@ class InvokeContext:
         self._shutdown = shutdown
 
         self._container_host = container_host
+        self._container_host_interface = container_host_interface
 
         self._containers_mode = ContainersMode.COLD
         self._containers_initializing_mode = ContainersInitializationMode.LAZY
@@ -248,7 +252,9 @@ class InvokeContext:
 
         def initialize_function_container(function: Function) -> None:
             function_config = self.local_lambda_runner.get_invoke_config(function)
-            self.lambda_runtime.run(None, function_config, self._debug_context)
+            self.lambda_runtime.run(
+                None, function_config, self._debug_context, self._container_host, self._container_host_interface
+            )
 
         try:
             async_context = AsyncContext()
@@ -333,6 +339,7 @@ class InvokeContext:
             env_vars_values=self._env_vars_value,
             debug_context=self._debug_context,
             container_host=self._container_host,
+            container_host_interface=self._container_host_interface,
         )
         return self._local_lambda_runner
 

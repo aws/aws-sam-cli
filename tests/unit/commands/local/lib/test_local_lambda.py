@@ -518,7 +518,13 @@ class TestLocalLambda_invoke(TestCase):
         self.local_lambda.invoke(name, event, stdout, stderr)
 
         self.runtime_mock.invoke.assert_called_with(
-            invoke_config, event, debug_context=None, stdout=stdout, stderr=stderr, container_host=None
+            invoke_config,
+            event,
+            debug_context=None,
+            stdout=stdout,
+            stderr=stderr,
+            container_host=None,
+            container_host_interface=None,
         )
 
     def test_must_work_packagetype_ZIP(self):
@@ -536,7 +542,13 @@ class TestLocalLambda_invoke(TestCase):
         self.local_lambda.invoke(name, event, stdout, stderr)
 
         self.runtime_mock.invoke.assert_called_with(
-            invoke_config, event, debug_context=None, stdout=stdout, stderr=stderr, container_host=None
+            invoke_config,
+            event,
+            debug_context=None,
+            stdout=stdout,
+            stderr=stderr,
+            container_host=None,
+            container_host_interface=None,
         )
 
     def test_must_raise_if_no_privilege(self):
@@ -609,7 +621,13 @@ class TestLocalLambda_invoke(TestCase):
         self.local_lambda.get_invoke_config.return_value = invoke_config
         self.local_lambda.invoke(name, event, stdout, stderr)
         self.runtime_mock.invoke.assert_called_with(
-            invoke_config, event, debug_context=None, stdout=stdout, stderr=stderr, container_host=None
+            invoke_config,
+            event,
+            debug_context=None,
+            stdout=stdout,
+            stderr=stderr,
+            container_host=None,
+            container_host_interface=None,
         )
 
     def test_must_raise_if_imageuri_not_found(self):
@@ -635,6 +653,7 @@ class TestLocalLambda_invoke_with_container_host_option(TestCase):
         self.aws_region = "region"
         self.env_vars_values = {}
         self.container_host = "localhost"
+        self.container_host_interface = "127.0.0.1"
 
         self.local_lambda = LocalLambdaRunner(
             self.runtime_mock,
@@ -643,6 +662,7 @@ class TestLocalLambda_invoke_with_container_host_option(TestCase):
             env_vars_values=self.env_vars_values,
             debug_context=self.debug_context,
             container_host=self.container_host,
+            container_host_interface=self.container_host_interface,
         )
 
     def test_must_work(self):
@@ -660,7 +680,13 @@ class TestLocalLambda_invoke_with_container_host_option(TestCase):
         self.local_lambda.invoke(name, event, stdout, stderr)
 
         self.runtime_mock.invoke.assert_called_with(
-            invoke_config, event, debug_context=None, stdout=stdout, stderr=stderr, container_host="localhost"
+            invoke_config,
+            event,
+            debug_context=None,
+            stdout=stdout,
+            stderr=stderr,
+            container_host="localhost",
+            container_host_interface="127.0.0.1",
         )
 
 

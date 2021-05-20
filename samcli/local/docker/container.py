@@ -56,6 +56,7 @@ class Container:
         container_opts=None,
         additional_volumes=None,
         container_host="localhost",
+        container_host_interface="127.0.0.1",
     ):
         """
         Initializes the class with given configuration. This does not automatically create or run the container.
@@ -73,6 +74,7 @@ class Container:
         :param container_opts: Optional, a dictionary containing the container options
         :param additional_volumes: Optional list of additional volumes
         :param string container_host: Optional. Host of locally emulated Lambda container
+        :param string container_host_interface: Optional. Interface that Docker host binds ports to
         """
 
         self._image = image
@@ -100,6 +102,7 @@ class Container:
         self._end_port_range = 9000
 
         self._container_host = container_host
+        self._container_host_interface = container_host_interface
 
         try:
             self.rapid_port_host = find_free_port(start=self._start_port_range, end=self._end_port_range)
@@ -155,11 +158,14 @@ class Container:
         if self._env_vars:
             kwargs["environment"] = self._env_vars
 
-        kwargs["ports"] = {self.RAPID_PORT_CONTAINER: ("127.0.0.1", self.rapid_port_host)}
+        kwargs["ports"] = {self.RAPID_PORT_CONTAINER: (self._container_host_interface, self.rapid_port_host)}
 
         if self._exposed_ports:
             kwargs["ports"].update(
-                {container_port: ("127.0.0.1", host_port) for container_port, host_port in self._exposed_ports.items()}
+                {
+                    container_port: (self._container_host_interface, host_port)
+                    for container_port, host_port in self._exposed_ports.items()
+                }
             )
 
         if self._entrypoint:

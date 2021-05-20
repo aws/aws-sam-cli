@@ -1,5 +1,6 @@
 """A flow of questions to be asked to the user in an interactive way."""
 from typing import Any, Dict, Optional
+
 from .question import Question
 
 
@@ -40,7 +41,10 @@ class InteractiveFlow:
             self._current_question = self._questions.get(next_question_key) if next_question_key else None
         return self._current_question
 
-    def run(self, context: Dict) -> Dict:
+    def run(
+        self,
+        context: Dict,
+    ) -> Dict:
         """
         starts the flow, collects user's answers to the question and return a new copy of the passed context
         with the answers appended to the copy
@@ -49,14 +53,17 @@ class InteractiveFlow:
         ----------
         context: Dict
             The cookiecutter context before prompting this flow's questions
+            The context can be used to provide default values, and support both str keys and List[str] keys.
 
-        Returns: A new copy of the context with user's answers added to the copy such that each answer is
-                 associated to the key of the corresponding question
+        Returns
+        -------
+        A new copy of the context with user's answers added to the copy such that each answer is
+             associated to the key of the corresponding question
         """
         context = context.copy()
         question = self.advance_to_next_question()
         while question:
-            answer = question.ask()
+            answer = question.ask(context=context)
             context[question.key] = answer
             question = self.advance_to_next_question(answer)
         return context

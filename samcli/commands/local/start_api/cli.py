@@ -82,6 +82,7 @@ def cli(
     shutdown,
     debug_function,
     container_host,
+    container_host_interface,
 ):
     """
     `sam local start-api` command entry point
@@ -110,6 +111,7 @@ def cli(
         shutdown,
         debug_function,
         container_host,
+        container_host_interface,
     )  # pragma: no cover
 
 
@@ -135,6 +137,7 @@ def do_cli(  # pylint: disable=R0914
     shutdown,
     debug_function,
     container_host,
+    container_host_interface,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -176,6 +179,7 @@ def do_cli(  # pylint: disable=R0914
             debug_function=debug_function,
             shutdown=shutdown,
             container_host=container_host,
+            container_host_interface=container_host_interface,
         ) as invoke_context:
 
             service = LocalApiService(lambda_invoke_context=invoke_context, port=port, host=host, static_dir=static_dir)

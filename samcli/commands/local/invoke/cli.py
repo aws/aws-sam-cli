@@ -73,6 +73,7 @@ def cli(
     config_file,
     config_env,
     container_host,
+    container_host_interface,
 ):
     """
     `sam local invoke` command entry point
@@ -99,6 +100,7 @@ def cli(
         shutdown,
         parameter_overrides,
         container_host,
+        container_host_interface,
     )  # pragma: no cover
 
 
@@ -122,6 +124,7 @@ def do_cli(  # pylint: disable=R0914
     shutdown,
     parameter_overrides,
     container_host,
+    container_host_interface,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -165,6 +168,7 @@ def do_cli(  # pylint: disable=R0914
             aws_profile=ctx.profile,
             shutdown=shutdown,
             container_host=container_host,
+            container_host_interface=container_host_interface,
         ) as context:
 
             # Invoke the function

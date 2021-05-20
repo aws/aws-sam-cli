@@ -1,0 +1,19 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: A hello world application.
+
+Resources:
+  LayerOne:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      Content: ../layer_zips/layer1.zip
+
+  OneLayerVersionServerlessFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: layer-main.one_layer_hanlder
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 20
+      Layers:
+        - !Ref LayerOne

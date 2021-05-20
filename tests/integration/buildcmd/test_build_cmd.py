@@ -7,6 +7,7 @@ import random
 from unittest import skipIf
 from pathlib import Path
 from parameterized import parameterized, parameterized_class
+from subprocess import Popen, PIPE, TimeoutExpired
 
 import pytest
 
@@ -145,7 +146,9 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
             self._verify_invoke_built_function(
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
             )
-        self.verify_docker_container_cleanedup(runtime)
+        if use_container:
+            self.verify_docker_container_cleanedup(runtime)
+            self.verify_pulling_only_latest_tag(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
@@ -244,7 +247,9 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
             ),
         )
 
-        self.verify_docker_container_cleanedup(runtime)
+        if use_container:
+            self.verify_docker_container_cleanedup(runtime)
+            self.verify_pulling_only_latest_tag(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files, expected_modules):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
@@ -441,6 +446,7 @@ class TestBuildCommand_Java(BuildIntegBase):
                 )
 
             self.verify_docker_container_cleanedup(runtime)
+            self.verify_pulling_only_latest_tag(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files, expected_modules):
 
@@ -536,7 +542,6 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
             self._verify_invoke_built_function(
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
             )
-
         self.verify_docker_container_cleanedup(runtime)
 
     @parameterized.expand([("dotnetcore2.1", "Dotnetcore2.1"), ("dotnetcore3.1", "Dotnetcore3.1")])
@@ -711,7 +716,10 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
             self._verify_invoke_built_function(
                 self.built_template, function_identifier, self._make_parameter_override_arg(overrides), expected
             )
-        self.verify_docker_container_cleanedup(runtime)
+
+        if use_container:
+            self.verify_docker_container_cleanedup(runtime)
+            self.verify_pulling_only_latest_tag(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
@@ -840,7 +848,9 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             self._verify_invoke_built_function(
                 self.built_template, "FunctionOne", self._make_parameter_override_arg(overrides), expected
             )
-        self.verify_docker_container_cleanedup(runtime)
+        if use_container:
+            self.verify_docker_container_cleanedup(runtime)
+            self.verify_pulling_only_latest_tag(runtime)
 
     @parameterized.expand([("python3.7", False), ("python3.7", "use_container")])
     def test_build_function_with_dependent_layer(self, runtime, use_container):
@@ -875,7 +885,9 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             self._verify_invoke_built_function(
                 self.built_template, "FunctionOne", self._make_parameter_override_arg(overrides), expected
             )
-        self.verify_docker_container_cleanedup(runtime)
+        if use_container:
+            self.verify_docker_container_cleanedup(runtime)
+            self.verify_pulling_only_latest_tag(runtime)
 
     def _verify_built_artifact(
         self, build_dir, resource_logical_id, expected_files, code_property_name, artifact_subfolder=""
@@ -957,7 +969,9 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegBase):
             self._verify_invoke_built_function(
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
             )
-        self.verify_docker_container_cleanedup(runtime)
+        if use_container:
+            self.verify_docker_container_cleanedup(runtime)
+            self.verify_pulling_only_latest_tag(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
 
@@ -1048,7 +1062,10 @@ class TestBuildWithBuildMethod(BuildIntegBase):
             self._verify_invoke_built_function(
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
             )
-        self.verify_docker_container_cleanedup(runtime)
+
+        if use_container:
+            self.verify_docker_container_cleanedup(runtime)
+            self.verify_pulling_only_latest_tag(runtime)
 
     @parameterized.expand([(False,), ("use_container")])
     @pytest.mark.flaky(reruns=3)
@@ -1082,7 +1099,10 @@ class TestBuildWithBuildMethod(BuildIntegBase):
             self._verify_invoke_built_function(
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
             )
-        self.verify_docker_container_cleanedup(runtime)
+
+        if use_container:
+            self.verify_docker_container_cleanedup(runtime)
+            self.verify_pulling_only_latest_tag(runtime)
 
     @parameterized.expand([(False,), ("use_container")])
     @pytest.mark.flaky(reruns=3)
@@ -1388,7 +1408,9 @@ class TestBuildWithInlineCode(BuildIntegBase):
 
         self._verify_built_artifact(self.default_build_dir)
 
-        self.verify_docker_container_cleanedup("python3.7")
+        if use_container:
+            self.verify_docker_container_cleanedup("python3.7")
+            self.verify_pulling_only_latest_tag("python3.7")
 
     def _verify_built_artifact(self, build_dir):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
@@ -1436,7 +1458,9 @@ class TestBuildWithJsonContainerEnvVars(BuildIntegBase):
 
         self._verify_built_env_var(self.default_build_dir)
 
-        self.verify_docker_container_cleanedup("python3.7")
+        if use_container:
+            self.verify_docker_container_cleanedup("python3.7")
+            self.verify_pulling_only_latest_tag("python3.7")
 
     @staticmethod
     def get_env_file(filename):
@@ -1483,7 +1507,9 @@ class TestBuildWithInlineContainerEnvVars(BuildIntegBase):
 
         self._verify_built_env_var(self.default_build_dir)
 
-        self.verify_docker_container_cleanedup("python3.7")
+        if use_container:
+            self.verify_docker_container_cleanedup("python3.7")
+            self.verify_pulling_only_latest_tag("python3.7")
 
     def _verify_built_env_var(self, build_dir):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
@@ -1802,6 +1828,50 @@ class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
                     ("LocalNestedStack/Function2", {"pi": "3.14"}),
                 ],
             )
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildWithCustomBuildImage(BuildIntegBase):
+    template = "build_image_function.yaml"
+
+    @parameterized.expand(
+        [
+            ("use_container", None),
+            ("use_container", "amazon/aws-sam-cli-build-image-python3.7:latest"),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_custom_build_image_succeeds(self, use_container, build_image):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        cmdlist = self.get_command_list(use_container=use_container, build_image=build_image)
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        stderr = command_result.stderr
+        process_stderr = stderr.strip()
+
+        self._verify_right_image_pulled(build_image, process_stderr)
+        self._verify_build_succeeds(self.default_build_dir)
+
+        self.verify_docker_container_cleanedup("python3.7")
+
+    def _verify_right_image_pulled(self, build_image, process_stderr):
+        image_name = build_image if build_image is not None else "public.ecr.aws/sam/build-python3.7:latest"
+        processed_name = bytes(image_name, encoding="utf-8")
+        self.assertIn(
+            processed_name,
+            process_stderr,
+        )
+
+    def _verify_build_succeeds(self, build_dir):
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("BuildImageFunction", build_dir_files)
 
 
 @parameterized_class(

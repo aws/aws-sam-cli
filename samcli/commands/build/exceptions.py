@@ -13,3 +13,9 @@ class MissingBuildMethodException(UserException):
     """
     Exception to be thrown when a layer is tried to build without BuildMethod
     """
+
+
+class InvalidBuildImageException(UserException):
+    """
+    Value provided to --build-image is invalid
+    """

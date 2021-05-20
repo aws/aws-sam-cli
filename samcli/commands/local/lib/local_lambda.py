@@ -44,6 +44,7 @@ class LocalLambdaRunner:
         env_vars_values: Optional[Dict[Any, Any]] = None,
         debug_context: Optional[DebugContext] = None,
         container_host: Optional[str] = None,
+        container_host_interface: Optional[str] = None,
     ) -> None:
         """
         Initializes the class
@@ -57,6 +58,7 @@ class LocalLambdaRunner:
         :param dict env_vars_values: Optional. Dictionary containing values of environment variables.
         :param DebugContext debug_context: Optional. Debug context for the function (includes port, args, and path).
         :param string container_host: Optional. Host of locally emulated Lambda container
+        :param string container_host_interface: Optional. Interface that Docker host binds ports to
         """
 
         self.local_runtime = local_runtime
@@ -69,6 +71,7 @@ class LocalLambdaRunner:
         self._boto3_session_creds: Optional[Dict[str, str]] = None
         self._boto3_region: Optional[str] = None
         self.container_host = container_host
+        self.container_host_interface = container_host_interface
 
     def invoke(
         self,
@@ -131,6 +134,7 @@ class LocalLambdaRunner:
                 stdout=stdout,
                 stderr=stderr,
                 container_host=self.container_host,
+                container_host_interface=self.container_host_interface,
             )
         except ContainerResponseException:
             # NOTE(sriram-mv): This should still result in a exit code zero to avoid regressions.
