@@ -1,6 +1,7 @@
 """ This module represents the questions to ask to the user to fulfill the cookiecutter context. """
 from enum import Enum
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional, Type, Union
+
 import click
 
 
@@ -26,8 +27,10 @@ class Question:
         The text to prompt to the user
     _required: bool
         Whether the user must provide an answer for this question or not.
-    _default_answer: Optional[str]
-        A default answer that is suggested to the user
+    _default_answer: Optional[Union[str, Dict]]
+        A default answer that is suggested to the user,
+        it can be directly provided (a string)
+        or resolved from cookiecutter context (a Dict, in the form of {"keyPath": [...,]})
     _next_question_map: Optional[Dict[str, str]]
         A simple branching mechanism, it refers to what is the next question to ask the user if he answered
         a particular answer to this question. this map is in the form of {answer: next-question-key}. this
@@ -48,7 +51,7 @@ class Question:
         self,
         key: str,
         text: str,
-        default: Optional[str] = None,
+        default: Optional[Union[str, Dict]] = None,
         is_required: Optional[bool] = None,
         next_question_map: Optional[Dict[str, str]] = None,
         default_next_question_key: Optional[str] = None,
@@ -87,8 +90,21 @@ class Question:
     def default_next_question_key(self):
         return self._default_next_question_key
 
-    def ask(self) -> Any:
-        return click.prompt(text=self._text, default=self._default_answer)
+    def ask(self, context: Dict) -> Any:
+        """
+        prompt the user this question
+
+        Parameters
+        ----------
+        context
+            The cookiecutter context dictionary containing previous questions' answers and default values
+
+        Returns
+        -------
+        The user provided answer.
+        """
+        resolved_default_answer = self._resolve_default_answer(context)
+        return click.prompt(text=self._text, default=resolved_default_answer)
 
     def get_next_question_key(self, answer: Any) -> Optional[str]:
         # _next_question_map is a Dict[str(answer), str(next question key)]
@@ -99,14 +115,83 @@ class Question:
     def set_default_next_question_key(self, next_question_key):
         self._default_next_question_key = next_question_key
 
+    def _resolve_key_path(self, key_path: List, context: Dict) -> List[str]:
+        """
+        key_path element is a list of str and Dict.
+        When the element is a dict, in the form of { "valueOf": question_key },
+        it means it refers to the answer to another questions.
+        _resolve_key_path() will replace such dict with the actual question answer
+
+        Parameters
+        ----------
+        key_path
+            The key_path list containing str and dict
+        context
+            The cookiecutter context containing answers to previous answered questions
+        Returns
+        -------
+            The key_path list containing only str
+        """
+        resolved_key_path: List[str] = []
+        for unresolved_key in key_path:
+            if isinstance(unresolved_key, str):
+                resolved_key_path.append(unresolved_key)
+            elif isinstance(unresolved_key, dict):
+                if "valueOf" not in unresolved_key:
+                    raise KeyError(f'Missing key "valueOf" in question default keyPath element "{unresolved_key}".')
+                query_question_key: str = unresolved_key.get("valueOf", "")
+                if query_question_key not in context:
+                    raise KeyError(
+                        f'Invalid question key "{query_question_key}" referenced '
+                        f"in default answer of question {self.key}"
+                    )
+                resolved_key_path.append(context[query_question_key])
+            else:
+                raise ValueError(f'Invalid value "{unresolved_key}" in key path')
+        return resolved_key_path
+
+    def _resolve_default_answer(self, context: Dict) -> Optional[Any]:
+        """
+        a question may have a default answer provided directly through the "default_answer" value
+        or indirectly from cookiecutter context using a key path
+
+        Parameters
+        ----------
+        context
+            Cookiecutter context used to resolve default values and answered questions' answers.
+
+        Raises
+        ------
+        KeyError
+            When default value depends on the answer to a non-existent question
+        ValueError
+            The default value is malformed
+
+        Returns
+        -------
+        Optional default answer, it might be resolved from cookiecutter context using specified key path.
+
+        """
+        if isinstance(self._default_answer, dict):
+            # load value using key path from cookiecutter
+            if "keyPath" not in self._default_answer:
+                raise KeyError(f'Missing key "keyPath" in question default "{self._default_answer}".')
+            unresolved_key_path = self._default_answer.get("keyPath", [])
+            if not isinstance(unresolved_key_path, list):
+                raise ValueError(f'Invalid default answer "{self._default_answer}" for question {self.key}')
+
+            return context.get(str(self._resolve_key_path(unresolved_key_path, context)))
+
+        return self._default_answer
+
 
 class Info(Question):
-    def ask(self) -> None:
+    def ask(self, context: Dict) -> None:
         return click.echo(message=self._text)
 
 
 class Confirm(Question):
-    def ask(self) -> bool:
+    def ask(self, context: Dict) -> bool:
         return click.confirm(text=self._text)
 
 
@@ -126,7 +211,8 @@ class Choice(Question):
         self._options = options
         super().__init__(key, text, default, is_required, next_question_map, default_next_question_key)
 
-    def ask(self) -> str:
+    def ask(self, context: Dict) -> str:
+        resolved_default_answer = self._resolve_default_answer(context)
         click.echo(self._text)
         for index, option in enumerate(self._options):
             click.echo(f"\t{index + 1} - {option}")
@@ -134,7 +220,7 @@ class Choice(Question):
         choices = list(map(str, options_indexes))
         choice = click.prompt(
             text="Choice",
-            default=self._default_answer,
+            default=resolved_default_answer,
             show_choices=False,
             type=click.Choice(choices),
         )
@@ -145,7 +231,6 @@ class Choice(Question):
 
 
 class QuestionFactory:
-
     question_classes: Dict[QuestionKind, Type[Question]] = {
         QuestionKind.info: Info,
         QuestionKind.choice: Choice,
