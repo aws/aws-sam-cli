@@ -11,6 +11,7 @@ import click
 
 from samcli.cli.main import global_cfg
 from samcli.commands.exceptions import PipelineTemplateCloneException
+from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.cookiecutter.interactive_flow import InteractiveFlow
 from samcli.lib.cookiecutter.interactive_flow_creator import InteractiveFlowCreator
 from samcli.lib.cookiecutter.question import Choice
@@ -18,6 +19,7 @@ from samcli.lib.cookiecutter.template import Template
 from samcli.lib.utils import osutils
 from samcli.lib.utils.git_repo import GitRepo, CloneRepoException
 from .pipeline_templates_manifest import Provider, PipelineTemplateMetadata, PipelineTemplatesManifest
+from ..bootstrap.cli import PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME
 
 LOG = logging.getLogger(__name__)
 shared_path: Path = global_cfg.config_dir
@@ -82,12 +84,29 @@ def _generate_from_custom_location() -> None:
             _generate_from_pipeline_template(pipeline_template_local_dir)
 
 
+def _load_pipeline_bootstrap_context() -> Dict:
+    bootstrap_command_names = ["pipeline", "bootstrap"]
+    section = "parameters"
+    context: Dict = {}
+
+    config = SamConfig(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)
+    if not config.exists():
+        return context
+
+    for env in config.get_env_names():
+        for key, value in config.get_all(bootstrap_command_names, section, env).items():
+            context[str([env, key])] = value
+
+    return context
+
+
 def _generate_from_pipeline_template(pipeline_template_dir: Path) -> None:
     """
     Generates a pipeline config file from a given pipeline template local location
     """
     pipeline_template: Template = _initialize_pipeline_template(pipeline_template_dir)
-    context: Dict = pipeline_template.run_interactive_flows()
+    bootstrap_context: Dict = _load_pipeline_bootstrap_context()
+    context: Dict = pipeline_template.run_interactive_flows(bootstrap_context)
     pipeline_template.generate_project(context)
 
 

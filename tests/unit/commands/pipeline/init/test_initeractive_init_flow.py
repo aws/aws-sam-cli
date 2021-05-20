@@ -99,18 +99,20 @@ class TestInteractiveInitFlow(TestCase):
         with self.assertRaises(AppPipelineTemplateManifestException):
             do_interactive()
 
+    @patch("samcli.commands.pipeline.init.interactive_init_flow.SamConfig")
     @patch("samcli.lib.cookiecutter.template.cookiecutter")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.InteractiveFlowCreator.create_flow")
-    @patch("samcli.commands.pipeline.init.interactive_init_flow._read_app_pipeline_templates_manifest")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow.PipelineTemplatesManifest")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
     @patch("samcli.lib.cookiecutter.question.click")
     def test_generate_pipeline_configuration_file_from_app_pipeline_template_happy_case(
         self,
         click_mock,
         clone_mock,
-        read_app_pipeline_templates_manifest_mock,
+        PipelineTemplatesManifest_mock,
         create_interactive_flow_mock,
         cookiecutter_mock,
+        samconfig_mock,
     ):
         # setup
         any_app_pipeline_templates_path = Path(
@@ -128,11 +130,17 @@ class TestInteractiveInitFlow(TestCase):
             ],
             templates=[jenkins_template_mock],
         )
-        read_app_pipeline_templates_manifest_mock.return_value = pipeline_templates_manifest_mock
+        PipelineTemplatesManifest_mock.return_value = pipeline_templates_manifest_mock
         interactive_flow_mock = Mock()
         create_interactive_flow_mock.return_value = interactive_flow_mock
         cookiecutter_context_mock = Mock()
         interactive_flow_mock.run.return_value = cookiecutter_context_mock
+        config_file = Mock()
+        samconfig_mock.return_value = config_file
+        config_file.exists.return_value = True
+        config_file.get_env_names.return_value = ["testing", "prod"]
+        config_file.get_env_names.return_value = ["testing", "prod"]
+        config_file.get_all.return_value = {"pipeline_execution_role": "arn:aws:iam::123456789012:role/execution-role"}
 
         click_mock.prompt.side_effect = [
             "1",  # App pipeline templates
@@ -146,11 +154,16 @@ class TestInteractiveInitFlow(TestCase):
         # verify
         expected_cookicutter_template_location = any_app_pipeline_templates_path.joinpath(jenkins_template_location)
         clone_mock.assert_called_once_with(shared_path, APP_PIPELINE_TEMPLATES_REPO_LOCAL_NAME, replace_existing=True)
-        read_app_pipeline_templates_manifest_mock.assert_called_once_with(any_app_pipeline_templates_path)
+        PipelineTemplatesManifest_mock.assert_called_once()
         create_interactive_flow_mock.assert_called_once_with(
             str(expected_cookicutter_template_location.joinpath("questions.json"))
         )
-        interactive_flow_mock.run.assert_called_once()
+        interactive_flow_mock.run.assert_called_once_with(
+            {
+                str(["testing", "pipeline_execution_role"]): "arn:aws:iam::123456789012:role/execution-role",
+                str(["prod", "pipeline_execution_role"]): "arn:aws:iam::123456789012:role/execution-role",
+            }
+        )
         cookiecutter_mock.assert_called_once_with(
             template=str(expected_cookicutter_template_location),
             output_dir=".",

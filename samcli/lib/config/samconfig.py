@@ -41,6 +41,12 @@ class SamConfig:
         """
         self.filepath = Path(config_dir, filename or DEFAULT_CONFIG_FILE_NAME)
 
+    def get_env_names(self):
+        self._read()
+        if isinstance(self.document, dict):
+            return [env for env, value in self.document.items() if isinstance(value, dict)]
+        return []
+
     def get_all(self, cmd_names, section, env=DEFAULT_ENV):
         """
         Gets a value from the configuration file for the given environment, command and section
