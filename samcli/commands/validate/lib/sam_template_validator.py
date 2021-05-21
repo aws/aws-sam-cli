@@ -10,6 +10,7 @@ from samtranslator.translator.translator import Translator
 from boto3.session import Session
 
 from samcli.lib.utils.packagetype import ZIP, IMAGE
+from samcli.commands._utils.resources import AWS_SERVERLESS_FUNCTION
 from samcli.yamlhelper import yaml_dump
 from .exceptions import InvalidSamDocumentException
 
@@ -131,7 +132,7 @@ class SamTemplateValidator:
             resource_type = resource.get("Type")
             properties = resource.get("Properties", {})
 
-            is_image_function = resource_type == "AWS::Serverless::Function" and properties.get("PackageType") == IMAGE
+            is_image_function = resource_type == AWS_SERVERLESS_FUNCTION and properties.get("PackageType") == IMAGE
             is_local_image = resource.get("Metadata", {}).get("Dockerfile")
 
             if is_image_function and is_local_image:
