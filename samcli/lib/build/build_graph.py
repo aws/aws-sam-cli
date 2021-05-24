@@ -351,7 +351,7 @@ class LayerBuildDefinition(AbstractBuildDefinition):
     def __str__(self) -> str:
         return (
             f"LayerBuildDefinition({self.name}, {self.codeuri}, {self.source_md5}, {self.uuid}, "
-            f"{self.build_method}, {self.compatible_runtimes}, {self.env_vars}, {self.layer.name})"
+            f"{self.build_method}, {self.compatible_runtimes}, {self.env_vars})"
         )
 
     def __eq__(self, other: Any) -> bool:
