@@ -89,22 +89,25 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
 
     @parameterized.expand(
         [
-            ("python2.7", False),
-            ("python3.6", False),
-            ("python3.7", False),
-            ("python3.8", False),
-            ("python2.7", "use_container"),
-            ("python3.6", "use_container"),
-            ("python3.7", "use_container"),
-            ("python3.8", "use_container"),
+            ("python2.7", "Python", False),
+            ("python3.6", "Python", False),
+            ("python3.7", "Python", False),
+            ("python3.8", "Python", False),
+            # numpy 1.20.3 (in PythonPEP600/requirements.txt) only support python 3.7+
+            ("python3.7", "PythonPEP600", False),
+            ("python3.8", "PythonPEP600", False),
+            ("python2.7", "Python", "use_container"),
+            ("python3.6", "Python", "use_container"),
+            ("python3.7", "Python", "use_container"),
+            ("python3.8", "Python", "use_container"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
-    def test_with_default_requirements(self, runtime, use_container):
+    def test_with_default_requirements(self, runtime, codeuri, use_container):
         if use_container and SKIP_DOCKER_TESTS:
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
-        overrides = {"Runtime": runtime, "CodeUri": "Python", "Handler": "main.handler"}
+        overrides = {"Runtime": runtime, "CodeUri": codeuri, "Handler": "main.handler"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
