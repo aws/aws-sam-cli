@@ -1,0 +1,6 @@
+# These are some hard packages to build. Using them here helps us verify that building works on various platforms
+
+# these dependency versions use PEP600
+numpy==1.20.3
+greenlet==1.1.0
+sqlalchemy==1.4.15
