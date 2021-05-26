@@ -121,7 +121,7 @@ def cli(ctx):
     for the config file if necessary.
 
     You can find more in-depth guide about the SAM specification here:
-    https://github.com/awslabs/serverless-application-model.
+    https://github.com/aws/serverless-application-model.
     """
     if global_cfg.telemetry_enabled is None:
         enabled = True
