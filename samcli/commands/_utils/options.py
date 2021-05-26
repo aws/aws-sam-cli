@@ -217,12 +217,12 @@ def template_click_option(include_build=True):
         callback=partial(get_or_default_template_file_name, include_build=include_build),
         show_default=True,
         is_eager=True,
-        help="AWS SAM template which references built artifacts for resources in the template. "
+        help="AWS SAM template which references built artifacts for resources in the template (if applicable). "
         "Template file defines the root directory of the project and allows to point SAM CLI to the directory "
         "for build, local invocation etc. If template file is not specified explicitly SAM CLI expects it to be "
         "in the current working directory (where it is running). When you use config file and specify --template-file "
         "SAM CLI expects samconfig.toml and the template file to be in the same directory."
-        "Alternatively, use --config-file to point to samconfig.toml"
+        "Alternatively, if --config-file is explicitly specified, it can point to a custom samconfig.toml location."
         if include_build
         else "AWS SAM template file.",
     )

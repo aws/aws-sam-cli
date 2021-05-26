@@ -113,7 +113,7 @@ def cli(ctx):
     Amazon API Gateway APIs, AWS Lambda functions, and Amazon DynamoDB tables needed by your serverless application.
 
     SAM CLI commands run in the project root directory which is the directory with SAM template file
-    (template.{yml|yaml|json}). If no template file is specified explicitely, SAM CLI looks it up in the current
+    (template.{yml|yaml|json}). If no template file is specified explicitly, SAM CLI looks it up in the current
     working directory (where SAM CLI is running).
 
     SAM CLI options can be either passed directly to the commands and/or stored in the config file (samconfig.toml),
