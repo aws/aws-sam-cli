@@ -10,12 +10,14 @@ QUICK_START_JENKINS_INPUTS = [
     "credential-id",
     "main",
     "template.yaml",
+    "test",
     "test-stack",
     "test-pipeline-execution-role",
     "test-cfn-execution-role",
     "test-bucket",
-    "",  # no ecr
-    "",  # default region, us-east-2
+    "test-ecr",
+    "us-east-2",
+    "prod",
     "prod-stack",
     "prod-pipeline-execution-role",
     "prod-cfn-execution-role",
