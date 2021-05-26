@@ -18,9 +18,9 @@ MISSING_KEYS_MANIFEST = """
 NotProviders:
   - Jenkins
 Templates:
-  - NotName: jenkins-two-stages-pipeline
+  - NotName: jenkins-two-environments-pipeline
     provider: Jenkins
-    location: templates/cookiecutter-jenkins-two-stages-pipeline
+    location: templates/cookiecutter-jenkins-two-environments-pipeline
 """
 
 VALID_MANIFEST = """
@@ -32,15 +32,15 @@ providers:
   - displayName: Github Actions
     id: github-actions
 templates:
-  - displayName: jenkins-two-stages-pipeline
+  - displayName: jenkins-two-environments-pipeline
     provider: jenkins
-    location: templates/cookiecutter-jenkins-two-stages-pipeline
-  - displayName: gitlab-two-stages-pipeline
+    location: templates/cookiecutter-jenkins-two-environments-pipeline
+  - displayName: gitlab-two-environments-pipeline
     provider: gitlab
-    location: templates/cookiecutter-gitlab-two-stages-pipeline
-  - displayName: Github-Actions-two-stages-pipeline
+    location: templates/cookiecutter-gitlab-two-environments-pipeline
+  - displayName: Github-Actions-two-environments-pipeline
     provider: github-actions
-    location: templates/cookiecutter-github-actions-two-stages-pipeline
+    location: templates/cookiecutter-github-actions-two-environments-pipeline
 """
 
 
@@ -77,6 +77,6 @@ class TestCli(TestCase):
         self.assertEquals(gitlab_provider.display_name, "Gitlab CI/CD")
         self.assertEquals(len(manifest.templates), 3)
         gitlab_template: PipelineTemplateMetadata = next(t for t in manifest.templates if t.provider == "gitlab")
-        self.assertEquals(gitlab_template.display_name, "gitlab-two-stages-pipeline")
+        self.assertEquals(gitlab_template.display_name, "gitlab-two-environments-pipeline")
         self.assertEquals(gitlab_template.provider, "gitlab")
-        self.assertEquals(gitlab_template.location, "templates/cookiecutter-gitlab-two-stages-pipeline")
+        self.assertEquals(gitlab_template.location, "templates/cookiecutter-gitlab-two-environments-pipeline")

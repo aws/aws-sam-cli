@@ -10,7 +10,7 @@ from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.context import get_cmd_names
 from samcli.cli.main import pass_context, common_options, aws_creds_options, print_cmdline_args
 from samcli.lib.config.samconfig import SamConfig
-from samcli.lib.pipeline.bootstrap.stage import Stage
+from samcli.lib.pipeline.bootstrap.environment import Environment
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
 from .guided_context import GuidedContext
@@ -38,8 +38,8 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
     help="Disable interactive prompting for bootstrap parameters, and fail if any required arguments are missing.",
 )
 @click.option(
-    "--stage-name",
-    help="The name of the corresponding pipeline stage. It is used as a suffix for the created resources.",
+    "--environment-name",
+    help="The name of the corresponding environment. It is used as a suffix for the created resources.",
     required=False,
 )
 @click.option(
@@ -51,7 +51,7 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
 )
 @click.option(
     "--pipeline-execution-role",
-    help="The ARN of an IAM role to be assumed by the pipeline user to operate on this stage. "
+    help="The ARN of an IAM role to be assumed by the pipeline user to operate on this environment. "
     "Provide it only if you want to user your own role, otherwise, the command will create one",
     required=False,
 )
@@ -101,7 +101,7 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
 def cli(
     ctx: Any,
     interactive: bool,
-    stage_name: Optional[str],
+    environment_name: Optional[str],
     pipeline_user: Optional[str],
     pipeline_execution_role: Optional[str],
     cloudformation_execution_role: Optional[str],
@@ -120,7 +120,7 @@ def cli(
         region=ctx.region,
         profile=ctx.profile,
         interactive=interactive,
-        stage_name=stage_name,
+        environment_name=environment_name,
         pipeline_user_arn=pipeline_user,
         pipeline_execution_role_arn=pipeline_execution_role,
         cloudformation_execution_role_arn=cloudformation_execution_role,
@@ -138,7 +138,7 @@ def do_cli(
     region: Optional[str],
     profile: Optional[str],
     interactive: bool,
-    stage_name: Optional[str],
+    environment_name: Optional[str],
     pipeline_user_arn: Optional[str],
     pipeline_execution_role_arn: Optional[str],
     cloudformation_execution_role_arn: Optional[str],
@@ -158,7 +158,7 @@ def do_cli(
 
     if interactive:
         guided_context = GuidedContext(
-            stage_name=stage_name,
+            environment_name=environment_name,
             pipeline_user_arn=pipeline_user_arn,
             pipeline_execution_role_arn=pipeline_execution_role_arn,
             cloudformation_execution_role_arn=cloudformation_execution_role_arn,
@@ -168,7 +168,7 @@ def do_cli(
             pipeline_ip_range=pipeline_ip_range,
         )
         guided_context.run()
-        stage_name = guided_context.stage_name
+        environment_name = guided_context.environment_name
         pipeline_user_arn = guided_context.pipeline_user_arn
         pipeline_execution_role_arn = guided_context.pipeline_execution_role_arn
         pipeline_ip_range = guided_context.pipeline_ip_range
@@ -177,11 +177,11 @@ def do_cli(
         create_ecr_repo = guided_context.create_ecr_repo
         ecr_repo_arn = guided_context.ecr_repo_arn
 
-    if not stage_name:
-        raise click.UsageError("Missing required parameter '--stage-name'")
+    if not environment_name:
+        raise click.UsageError("Missing required parameter '--env-name'")
 
-    stage: Stage = Stage(
-        name=stage_name,
+    environment: Environment = Environment(
+        name=environment_name,
         aws_profile=profile,
         aws_region=region,
         pipeline_user_arn=pipeline_user_arn,
@@ -193,12 +193,12 @@ def do_cli(
         ecr_repo_arn=ecr_repo_arn,
     )
 
-    bootstrapped: bool = stage.bootstrap(confirm_changeset=confirm_changeset)
+    bootstrapped: bool = environment.bootstrap(confirm_changeset=confirm_changeset)
 
     if bootstrapped:
-        stage.print_resources_summary()
+        environment.print_resources_summary()
 
-        stage.save_config_safe(
+        environment.save_config_safe(
             config_dir=PIPELINE_CONFIG_DIR, filename=PIPELINE_CONFIG_FILENAME, cmd_names=_get_command_names()
         )
 
