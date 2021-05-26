@@ -394,5 +394,8 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
             raise
 
         process_stderr = stderr.strip()
-        self.assertRegex(process_stderr.decode("utf-8"), 'Error: Error building docker image: pull access denied for non-existing-image')
+        self.assertRegex(
+            process_stderr.decode("utf-8"),
+            "Error: Error building docker image: pull access denied for non-existing-image",
+        )
         self.assertEqual(process.returncode, 1)
