@@ -22,8 +22,8 @@ class TestGuidedContext(TestCase):
             pipeline_execution_role_arn=ANY_PIPELINE_EXECUTION_ROLE_ARN,
             cloudformation_execution_role_arn=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
             artifacts_bucket_arn=ANY_ARTIFACTS_BUCKET_ARN,
-            create_ecr_repo=True,
-            ecr_repo_arn=ANY_ECR_REPO_ARN,
+            create_image_repository=True,
+            image_repository_arn=ANY_ECR_REPO_ARN,
             pipeline_ip_range=ANY_PIPELINE_IP_RANGE,
         )
         gc.run()
@@ -32,7 +32,7 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.pipeline.bootstrap.guided_context.click")
     def test_guided_context_will_prompt_for_fields_that_are_not_provided(self, click_mock):
         gc: GuidedContext = GuidedContext(
-            ecr_repo_arn=ANY_ECR_REPO_ARN  # Exclude ECR repo, it has its own detailed test below
+            image_repository_arn=ANY_ECR_REPO_ARN  # Exclude ECR repo, it has its own detailed test below
         )
         gc.run()
         self.assertTrue(self.did_prompt_text_like("Environment Name", click_mock.prompt))
@@ -58,25 +58,25 @@ class TestGuidedContext(TestCase):
             pipeline_ip_range=ANY_PIPELINE_IP_RANGE,
         )
 
-        self.assertIsNone(gc_without_ecr_info.ecr_repo_arn)
+        self.assertIsNone(gc_without_ecr_info.image_repository_arn)
 
         click_mock.prompt.return_value = "1"  # the user chose to not CREATE an ECR repo
         gc_without_ecr_info.run()
-        self.assertIsNone(gc_without_ecr_info.ecr_repo_arn)
-        self.assertFalse(gc_without_ecr_info.create_ecr_repo)
+        self.assertIsNone(gc_without_ecr_info.image_repository_arn)
+        self.assertFalse(gc_without_ecr_info.create_image_repository)
         self.assertFalse(self.did_prompt_text_like("ECR repo", click_mock.prompt))
 
         click_mock.prompt.return_value = "2"  # the user chose to CREATE an ECR repo
         gc_without_ecr_info.run()
-        self.assertIsNone(gc_without_ecr_info.ecr_repo_arn)
-        self.assertTrue(gc_without_ecr_info.create_ecr_repo)
+        self.assertIsNone(gc_without_ecr_info.image_repository_arn)
+        self.assertTrue(gc_without_ecr_info.create_image_repository)
         self.assertFalse(self.did_prompt_text_like("ECR repo", click_mock.prompt))
 
         click_mock.prompt.side_effect = ["3", ANY_ECR_REPO_ARN]  # the user already has a repo
         gc_without_ecr_info.run()
-        self.assertFalse(gc_without_ecr_info.create_ecr_repo)
+        self.assertFalse(gc_without_ecr_info.create_image_repository)
         self.assertTrue(self.did_prompt_text_like("ECR repo", click_mock.prompt))  # we've asked about it
-        self.assertEqual(gc_without_ecr_info.ecr_repo_arn, ANY_ECR_REPO_ARN)
+        self.assertEqual(gc_without_ecr_info.image_repository_arn, ANY_ECR_REPO_ARN)
 
     @staticmethod
     def did_prompt_text_like(txt, click_prompt_mock):

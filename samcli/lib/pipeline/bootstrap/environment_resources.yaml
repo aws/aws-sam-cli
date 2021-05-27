@@ -12,11 +12,11 @@ Parameters:
     Type: String
   ArtifactsBucketArn:
     Type: String
-  CreateECRRepo:
+  CreateImageRepository:
     Type: String
     Default: false
     AllowedValues: [true, false]
-  ECRRepoArn:
+  ImageRepositoryArn:
     Type: String
 
 Conditions:
@@ -25,8 +25,8 @@ Conditions:
   HasPipelineIpRange: !Not [!Equals [!Ref PipelineIpRange, ""]]
   MissingCloudFormationExecutionRole: !Equals [!Ref CloudFormationExecutionRoleArn, ""]
   MissingArtifactsBucket: !Equals [!Ref ArtifactsBucketArn, ""]
-  ECRRepoRequired: !Equals [!Ref CreateECRRepo, "true"]
-  MissingECRRepo: !And [!Condition ECRRepoRequired, !Equals [!Ref ECRRepoArn, ""]]
+  ShouldHaveImageRepository: !Or [!Equals [!Ref CreateImageRepository, "true"], !Not [!Equals [!Ref ImageRepositoryArn, ""]]]
+  MissingImageRepository: !And [!Condition ShouldHaveImageRepository, !Equals [!Ref ImageRepositoryArn, ""]]
 
 Resources:
   PipelineUser:
@@ -205,13 +205,13 @@ Resources:
                 - - !Join [ '',[ !Ref ArtifactsBucketArn, '/*' ] ]
                   - !Ref ArtifactsBucketArn
           - Fn::If:
-            - ECRRepoRequired
+            - ShouldHaveImageRepository
             - Effect: "Allow"
               Action: "ecr:GetAuthorizationToken"
               Resource: "*"
             - !Ref AWS::NoValue
           - Fn::If:
-            - ECRRepoRequired
+            - ShouldHaveImageRepository
             - Effect: "Allow"
               Action:
                 - "ecr:GetDownloadUrlForLayer"
@@ -223,16 +223,16 @@ Resources:
                 - "ecr:CompleteLayerUpload"
               Resource:
                 Fn::If:
-                  - MissingECRRepo
-                  - !GetAtt ECRRepo.Arn
-                  - !Ref ECRRepoArn
+                  - MissingImageRepository
+                  - !GetAtt ImageRepository.Arn
+                  - !Ref ImageRepositoryArn
             - !Ref AWS::NoValue
       Roles:
         - !Ref PipelineExecutionRole
 
-  ECRRepo:
+  ImageRepository:
     Type: AWS::ECR::Repository
-    Condition: MissingECRRepo
+    Condition: MissingImageRepository
     Properties:
       RepositoryPolicyText:
         Version: "2012-10-17"
@@ -311,7 +311,11 @@ Outputs:
         - !GetAtt ArtifactsBucket.Arn
         - !Ref ArtifactsBucketArn
 
-  ECRRepo:
-    Description: ARN of the ECR repo
-    Condition: MissingECRRepo
-    Value: !GetAtt ECRRepo.Arn
+  ImageRepository:
+    Description: ARN of the ECR image repository
+    Condition: ShouldHaveImageRepository
+    Value:
+      Fn::If:
+        - MissingImageRepository
+        - !GetAtt ImageRepository.Arn
+        - !Ref ImageRepositoryArn

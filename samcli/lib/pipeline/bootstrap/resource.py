@@ -104,8 +104,8 @@ class S3Bucket(Resource):
         super().__init__(arn=arn)
 
 
-class ECRRepo(Resource):
-    """ Represents an AWS ECR repo resource """
+class ECRImageRepository(Resource):
+    """ Represents an AWS ECR image repository resource """
 
     def __init__(self, arn: Optional[str]) -> None:
         super().__init__(arn=arn)

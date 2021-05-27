@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from samcli.lib.pipeline.bootstrap.resource import ARNParts, Resource, IAMUser, ECRRepo
+from samcli.lib.pipeline.bootstrap.resource import ARNParts, Resource, IAMUser, ECRImageRepository
 
 VALID_ARN = "arn:partition:service:region:account-id:resource-id"
 INVALID_ARN = "ARN"
@@ -56,11 +56,11 @@ class TestIAMUser(TestCase):
 class TestECRRepo(TestCase):
     def test_get_uri_with_valid_ecr_arn(self):
         valid_ecr_arn = "arn:partition:service:region:account-id:repository/repository-name"
-        repo: ECRRepo = ECRRepo(arn=valid_ecr_arn)
+        repo: ECRImageRepository = ECRImageRepository(arn=valid_ecr_arn)
         self.assertEqual(repo.get_uri(), "account-id.dkr.ecr.region.amazonaws.com/repository-name")
 
     def test_get_uri_with_invalid_ecr_arn(self):
-        repo = ECRRepo(arn=INVALID_ARN)
+        repo = ECRImageRepository(arn=INVALID_ARN)
         with self.assertRaises(ValueError):
             repo.get_uri()
 
@@ -68,6 +68,6 @@ class TestECRRepo(TestCase):
         ecr_arn_missing_repository_prefix = (
             "arn:partition:service:region:account-id:repository-name-without-repository/-prefix"
         )
-        repo = ECRRepo(arn=ecr_arn_missing_repository_prefix)
+        repo = ECRImageRepository(arn=ecr_arn_missing_repository_prefix)
         with self.assertRaises(ValueError):
             repo.get_uri()
