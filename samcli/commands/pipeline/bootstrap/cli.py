@@ -178,7 +178,7 @@ def do_cli(
         ecr_repo_arn = guided_context.ecr_repo_arn
 
     if not environment_name:
-        raise click.UsageError("Missing required parameter '--env-name'")
+        raise click.UsageError("Missing required parameter '--environment-name'")
 
     environment: Environment = Environment(
         name=environment_name,
