@@ -53,7 +53,7 @@ class TestIAMUser(TestCase):
         self.assertEquals(user.secret_access_key, "any_secret_access_key")
 
 
-class TestECRRepo(TestCase):
+class TestECRImageRepository(TestCase):
     def test_get_uri_with_valid_ecr_arn(self):
         valid_ecr_arn = "arn:partition:service:region:account-id:repository/repository-name"
         repo: ECRImageRepository = ECRImageRepository(arn=valid_ecr_arn)

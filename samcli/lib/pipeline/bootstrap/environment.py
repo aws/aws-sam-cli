@@ -211,7 +211,7 @@ class Environment:
         if self.pipeline_user.arn:
             samconfig.put(cmd_names=cmd_names, section="parameters", key=PIPELINE_USER, value=self.pipeline_user.arn)
 
-        # Computing Artifacts bucket name and ECR repository URL may through an exception if the ARNs are wrong
+        # Computing Artifacts bucket name and ECR image repository URL may through an exception if the ARNs are wrong
         # Let's swallow such an exception to be able to save the remaining resources
         try:
             artifacts_bucket_name: Optional[str] = self.artifacts_bucket.name()

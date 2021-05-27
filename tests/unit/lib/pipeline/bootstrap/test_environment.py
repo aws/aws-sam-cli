@@ -8,7 +8,7 @@ ANY_PIPELINE_USER_ARN = "ANY_PIPELINE_USER_ARN"
 ANY_PIPELINE_EXECUTION_ROLE_ARN = "ANY_PIPELINE_EXECUTION_ROLE_ARN"
 ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN = "ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN"
 ANY_ARTIFACTS_BUCKET_ARN = "ANY_ARTIFACTS_BUCKET_ARN"
-ANY_ECR_REPO_ARN = "ANY_ECR_REPO_ARN"
+ANY_IMAGE_REPOSITORY_ARN = "ANY_IMAGE_REPOSITORY_ARN"
 ANY_ARN = "ANY_ARN"
 
 
@@ -55,7 +55,7 @@ class TestEnvironment(TestCase):
         )
         self.assertFalse(environment.did_user_provide_all_required_resources())
 
-    def test_did_user_provide_all_required_resources_ignore_ecr_repo_if_it_is_not_required(self):
+    def test_did_user_provide_all_required_resources_ignore_image_repository_if_it_is_not_required(self):
         environment: Environment = Environment(
             name=ANY_ENVIRONMENT_NAME,
             pipeline_user_arn=ANY_PIPELINE_USER_ARN,
@@ -66,7 +66,7 @@ class TestEnvironment(TestCase):
         )
         self.assertTrue(environment.did_user_provide_all_required_resources())
 
-    def test_did_user_provide_all_required_resources_when_ecr_repo_is_required(self):
+    def test_did_user_provide_all_required_resources_when_image_repository_is_required(self):
         environment: Environment = Environment(
             name=ANY_ENVIRONMENT_NAME,
             pipeline_user_arn=ANY_PIPELINE_USER_ARN,
@@ -83,7 +83,7 @@ class TestEnvironment(TestCase):
             cloudformation_execution_role_arn=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
             artifacts_bucket_arn=ANY_ARTIFACTS_BUCKET_ARN,
             create_image_repository=True,
-            image_repository_arn=ANY_ECR_REPO_ARN,
+            image_repository_arn=ANY_IMAGE_REPOSITORY_ARN,
         )
         self.assertTrue(environment.did_user_provide_all_required_resources())
 
@@ -167,7 +167,7 @@ class TestEnvironment(TestCase):
             pipeline_user_arn=ANY_PIPELINE_USER_ARN,
             artifacts_bucket_arn=ANY_ARTIFACTS_BUCKET_ARN,
             create_image_repository=True,
-            image_repository_arn=ANY_ECR_REPO_ARN,
+            image_repository_arn=ANY_IMAGE_REPOSITORY_ARN,
         )
         environment.bootstrap()
         manage_stack_mock.assert_called_once()
@@ -178,8 +178,8 @@ class TestEnvironment(TestCase):
             "PipelineIpRange": "",
             "CloudFormationExecutionRoleArn": "",
             "ArtifactsBucketArn": ANY_ARTIFACTS_BUCKET_ARN,
-            "CreateECRRepo": "true",
-            "ECRRepoArn": ANY_ECR_REPO_ARN,
+            "CreateImageRepository": "true",
+            "ImageRepositoryArn": ANY_IMAGE_REPOSITORY_ARN,
         }
         self.assertEqual(expected_parameter_overrides, kwargs["parameter_overrides"])
 
@@ -261,14 +261,14 @@ class TestEnvironment(TestCase):
         )
         self.trigger_and_assert_save_config_calls(environment, cmd_names, expected_calls, samconfig_instance_mock.put)
 
-        environment.image_repository.arn = "arn:aws:ecr:us-east-2:111111111111:repository/ecr_repo_name"
+        environment.image_repository.arn = "arn:aws:ecr:us-east-2:111111111111:repository/image_repository_name"
         expected_calls.append(
             call(
                 cmd_names=cmd_names,
                 section="parameters",
                 env=ANY_ENVIRONMENT_NAME,
-                key="ecr_repo",
-                value="111111111111.dkr.ecr.us-east-2.amazonaws.com/ecr_repo_name",
+                key="image_repository",
+                value="111111111111.dkr.ecr.us-east-2.amazonaws.com/image_repository_name",
             )
         )
         self.trigger_and_assert_save_config_calls(environment, cmd_names, expected_calls, samconfig_instance_mock.put)
@@ -291,12 +291,12 @@ class TestEnvironment(TestCase):
         )
 
     @patch("samcli.lib.pipeline.bootstrap.environment.SamConfig")
-    def test_save_config_ignores_exceptions_thrown_while_calculating_ecr_repo_uri(self, samconfig_mock):
+    def test_save_config_ignores_exceptions_thrown_while_calculating_image_repository_uri(self, samconfig_mock):
         samconfig_instance_mock = Mock()
         samconfig_mock.return_value = samconfig_instance_mock
         environment: Environment = Environment(name=ANY_ENVIRONMENT_NAME, image_repository_arn="invalid ARN")
-        # calling ecr_repo.get_uri() during save_config() will raise a ValueError exception, we need to make sure
-        # this exception is swallowed so that other configs can be safely saved to the pipelineconfig.toml file
+        # calling image_repository.get_uri() during save_config() will raise a ValueError exception, we need to make
+        # sure this exception is swallowed so that other configs can be safely saved to the pipelineconfig.toml file
         environment.save_config(
             config_dir="any_config_dir", filename="any_pipeline.toml", cmd_names=["any", "commands"]
         )
@@ -324,7 +324,7 @@ class TestEnvironment(TestCase):
             cloudformation_execution_role_arn=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
             artifacts_bucket_arn=ANY_ARTIFACTS_BUCKET_ARN,
             create_image_repository=True,
-            image_repository_arn=ANY_ECR_REPO_ARN,
+            image_repository_arn=ANY_IMAGE_REPOSITORY_ARN,
         )
         environment.print_resources_summary()
         self.assert_summary_does_not_have_a_message_like("We have created the following resources", click_mock.secho)
@@ -337,7 +337,7 @@ class TestEnvironment(TestCase):
             pipeline_user_arn=ANY_PIPELINE_USER_ARN,
             artifacts_bucket_arn=ANY_ARTIFACTS_BUCKET_ARN,
             create_image_repository=True,
-            image_repository_arn=ANY_ECR_REPO_ARN,
+            image_repository_arn=ANY_IMAGE_REPOSITORY_ARN,
         )
         environment.print_resources_summary()
         self.assert_summary_has_a_message_like("We have created the following resources", click_mock.secho)

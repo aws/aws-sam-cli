@@ -112,7 +112,7 @@ class ECRImageRepository(Resource):
 
     def get_uri(self) -> Optional[str]:
         """
-        extracts and returns the URI of the given ECR repo from its ARN
+        extracts and returns the URI of the given ECR image repository from its ARN
         see https://docs.aws.amazon.com/AmazonECR/latest/userguide/Registries.html
         Raises
         ------
