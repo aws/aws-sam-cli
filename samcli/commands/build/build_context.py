@@ -9,8 +9,11 @@ import shutil
 from typing import Dict, Optional, List, cast
 
 import click
+
+from samcli.lib.providers.sam_api_provider import SamApiProvider
 from samcli.lib.utils.packagetype import IMAGE
 
+from samcli.commands._utils.template import get_template_data
 from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
 from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NestedStackManager
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
@@ -154,6 +157,11 @@ class BuildContext:
 
     def run(self):
         """Runs the building process by creating an ApplicationBuilder."""
+        template_dict = get_template_data(self._template_file)
+        is_sam_template = template_dict.get("Transform", "").startswith("AWS::Serverless")
+        if is_sam_template:
+            SamApiProvider.check_implicit_api_resource_ids(self.stacks)
+
         try:
             builder = ApplicationBuilder(
                 self.get_resources_to_build(),

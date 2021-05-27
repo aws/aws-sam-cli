@@ -7,6 +7,7 @@ from samcli.lib.providers.api_collector import ApiCollector
 from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.lib.providers.provider import Stack
+from samcli.lib.utils.colors import Colored
 from samcli.local.apigw.local_apigw_service import Route
 from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION, AWS_SERVERLESS_API, AWS_SERVERLESS_HTTPAPI
 
@@ -327,3 +328,20 @@ class SamApiProvider(CfnBaseApiProvider):
         if not route.stack_path:
             return 0
         return route.stack_path.count("/") + 1
+
+    @staticmethod
+    def check_implicit_api_resource_ids(stacks: List[Stack]) -> None:
+        for stack in stacks:
+            for logical_id in stack.resources:
+                if logical_id in (
+                    SamApiProvider.IMPLICIT_API_RESOURCE_ID,
+                    SamApiProvider.IMPLICIT_HTTP_API_RESOURCE_ID,
+                ):
+                    LOG.warning(
+                        Colored().yellow(
+                            'Your template contains a resource with logical ID "%s," '
+                            "which is a reserved logical ID in AWS SAM. "
+                            "It could result in unexpected behaviors and is not recommended."
+                        ),
+                        logical_id,
+                    )
