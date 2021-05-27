@@ -47,10 +47,13 @@ def generate_function(
     layers="layers",
     events="events",
     codesign_config_arn="codesign_config_arn",
-    metadata={},
+    metadata=None,
     inlinecode=None,
     stack_path="",
 ):
+    if metadata is None:
+        metadata = {}
+
     return Function(
         name,
         function_name,
@@ -76,10 +79,15 @@ def generate_function(
 def generate_layer(
     arn="arn:aws:lambda:region:account-id:layer:layer-name:1",
     codeuri="codeuri",
-    compatible_runtimes=["runtime"],
-    metadata={},
+    compatible_runtimes=None,
+    metadata=None,
     stack_path="",
 ):
+    if compatible_runtimes is None:
+        compatible_runtimes = ["runtime"]
+    if metadata is None:
+        metadata = {}
+
     return LayerVersion(arn, codeuri, compatible_runtimes, metadata, stack_path)
 
 
