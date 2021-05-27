@@ -1,4 +1,4 @@
-""" Pipeline stage"""
+""" Application Environment """
 import os
 import pathlib
 import re
@@ -12,8 +12,8 @@ from .resource import Resource, IAMUser, ECRRepo
 
 CFN_TEMPLATE_PATH = str(pathlib.Path(os.path.dirname(__file__)))
 STACK_NAME_PREFIX = "aws-sam-cli-managed"
-STAGE_RESOURCES_STACK_NAME_SUFFIX = "pipeline-resources"
-STAGE_RESOURCES_CFN_TEMPLATE = "stage_resources.yaml"
+ENVIRONMENT_RESOURCES_STACK_NAME_SUFFIX = "pipeline-resources"
+ENVIRONMENT_RESOURCES_CFN_TEMPLATE = "environment_resources.yaml"
 PIPELINE_USER = "pipeline_user"
 PIPELINE_EXECUTION_ROLE = "pipeline_execution_role"
 CLOUDFORMATION_EXECUTION_ROLE = "cloudformation_execution_role"
@@ -22,18 +22,18 @@ ECR_REPO = "ecr_repo"
 REGION = "region"
 
 
-class Stage:
+class Environment:
     """
-    Represents a pipeline stage
+    Represents an application environment: Beta, Gamma, Prod ...etc
 
     Attributes
     ----------
     name: str
-        The name of the stage
+        The name of the environment
     aws_profile: Optional[str]
-        The named AWS profile(in user's machine) of the AWS account to deploy this stage to.
+        The named AWS profile (in user's machine) of the AWS account to deploy this environment to.
     aws_region: Optional[str]
-        The AWS region to deploy this stage to.
+        The AWS region to deploy this environment to.
     pipeline_user: IAMUser
         The IAM User having its AccessKeyId and SecretAccessKey credentials shared with the CI/CD provider
     pipeline_execution_role: Resource
@@ -55,14 +55,14 @@ class Stage:
     Methods:
     --------
     did_user_provide_all_required_resources(self) -> bool:
-        checks if all of the stage required resources(pipeline_user, pipeline_execution_role,
+        checks if all of the environment's required resources (pipeline_user, pipeline_execution_role,
         cloudformation_execution_role, artifacts_bucket and ecr_repo) are provided by the user.
     bootstrap(self, confirm_changeset: bool = True) -> None:
-        deploys the CFN template ./stage_resources.yaml to the AWS account identified by aws_profile and aws_region
-        member fields. if aws_profile is not provided, it will fallback to  default boto3 credentials' resolving.
-        Note that ./stage_resources.yaml template accepts the ARNs of already existing resources(if any) as parameters
-        and it will skip the creation of those resources but will use the ARNs to set the proper permissions of other
-        missing resources(resources created by the template)
+        deploys the CFN template ./environment_resources.yaml to the AWS account identified by aws_profile and
+        aws_region member fields. if aws_profile is not provided, it will fallback to  default boto3 credentials'
+        resolving. Note that ./environment_resources.yaml template accepts the ARNs of already existing resources(if
+        any) as parameters and it will skip the creation of those resources but will use the ARNs to set the proper
+        permissions of other missing resources(resources created by the template)
     save_config(self, config_dir: str, filename: str, cmd_names: List[str]):
         save the Artifacts bucket name, ECR repo URI and ARNs of pipeline_user, pipeline_execution_role and
         cloudformation_execution_role to the "pipelineconfig.toml" file so that it can be auto-filled during
@@ -96,7 +96,7 @@ class Stage:
         self.ecr_repo: ECRRepo = ECRRepo(arn=ecr_repo_arn)
 
     def did_user_provide_all_required_resources(self) -> bool:
-        """Check if the user provided all of the stage resources or not"""
+        """Check if the user provided all of the environment resources or not"""
         return all(resource.is_user_provided for resource in self._get_resources())
 
     def _get_non_user_provided_resources_msg(self) -> str:
@@ -115,13 +115,13 @@ class Stage:
 
     def bootstrap(self, confirm_changeset: bool = True) -> bool:
         """
-        Deploys the CFN template(./stage_resources.yaml) which deploys:
+        Deploys the CFN template(./environment_resources.yaml) which deploys:
             * Pipeline IAM User
             * Pipeline execution IAM role
             * CloudFormation execution IAM role
             * Artifacts' S3 Bucket
             * ECR Repo
-        to the AWS account associated with the given stage. It will not redeploy the stack if already exists.
+        to the AWS account associated with the given environment. It will not redeploy the stack if already exists.
         This CFN template accepts the ARNs of the resources as parameters and will not create a resource if already
         provided, this way we can conditionally create a resource only if the user didn't provide it
 
@@ -130,33 +130,36 @@ class Stage:
         Parameters
         ----------
         confirm_changeset: bool
-            if set to false, the stage_resources.yaml CFN template will directly be deployed, otherwise, the user will
-            be prompted for confirmation
+            if set to false, the environment_resources.yaml CFN template will directly be deployed, otherwise,
+            the user will be prompted for confirmation
 
         Returns True if bootstrapped, otherwise False
         """
 
         if self.did_user_provide_all_required_resources():
-            click.secho(f"\nAll required resources for the {self.name} stage exist, skipping creation.", fg="yellow")
+            click.secho(
+                f"\nAll required resources for the {self.name} environment exist, skipping creation.", fg="yellow"
+            )
             return True
 
         missing_resources_msg: str = self._get_non_user_provided_resources_msg()
         click.echo(
-            f"This will create the following required resources for the {self.name} stage: {missing_resources_msg}"
+            f"This will create the following required resources for the '{self.name}' environment: "
+            f"{missing_resources_msg}"
         )
         if confirm_changeset:
             confirmed: bool = click.confirm("Should we proceed with the creation?")
             if not confirmed:
                 return False
 
-        sanitized_stage_name: str = re.sub("[^0-9a-zA-Z]+", "-", self.name)
-        stack_name: str = f"{STACK_NAME_PREFIX}-{sanitized_stage_name}-{STAGE_RESOURCES_STACK_NAME_SUFFIX}"
-        stage_resources_template_body = Stage._read_template(STAGE_RESOURCES_CFN_TEMPLATE)
+        sanitized_environment_name: str = re.sub("[^0-9a-zA-Z]+", "-", self.name)
+        stack_name: str = f"{STACK_NAME_PREFIX}-{sanitized_environment_name}-{ENVIRONMENT_RESOURCES_STACK_NAME_SUFFIX}"
+        environment_resources_template_body = Environment._read_template(ENVIRONMENT_RESOURCES_CFN_TEMPLATE)
         output: StackOutput = manage_stack(
             stack_name=stack_name,
             region=self.aws_region,
             profile=self.aws_profile,
-            template_body=stage_resources_template_body,
+            template_body=environment_resources_template_body,
             parameter_overrides={
                 "PipelineUserArn": self.pipeline_user.arn or "",
                 "PipelineExecutionRoleArn": self.pipeline_execution_role.arn or "",
@@ -219,7 +222,7 @@ class Stage:
         except ValueError:
             ecr_repo_uri = ""
 
-        stage_specific_configs: Dict[str, Optional[str]] = {
+        environment_specific_configs: Dict[str, Optional[str]] = {
             PIPELINE_EXECUTION_ROLE: self.pipeline_execution_role.arn,
             CLOUDFORMATION_EXECUTION_ROLE: self.cloudformation_execution_role.arn,
             ARTIFACTS_BUCKET: artifacts_bucket_name,
@@ -227,7 +230,7 @@ class Stage:
             REGION: self.aws_region,
         }
 
-        for key, value in stage_specific_configs.items():
+        for key, value in environment_specific_configs.items():
             if value:
                 samconfig.put(
                     cmd_names=cmd_names,
@@ -278,7 +281,8 @@ class Stage:
         if provided_resources:
             click.secho(
                 "\nYou provided the following resources. Please make sure it has the required permissions as shown at "
-                "https://github.com/aws/aws-sam-cli/blob/develop/samcli/lib/pipeline/bootstrap/stage_resources.yaml",
+                "https://github.com/aws/aws-sam-cli/blob/develop/"
+                "samcli/lib/pipeline/bootstrap/environment_resources.yaml",
                 fg="green",
             )
             for resource in provided_resources:

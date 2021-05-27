@@ -1,5 +1,5 @@
 """
-An interactive flow that prompt the user for required information to bootstrap the AWS account of a pipeline stage
+An interactive flow that prompt the user for required information to bootstrap the AWS account of an environment
 with the required infrastructure
 """
 from typing import Optional
@@ -10,7 +10,7 @@ import click
 class GuidedContext:
     def __init__(
         self,
-        stage_name: Optional[str] = None,
+        environment_name: Optional[str] = None,
         pipeline_user_arn: Optional[str] = None,
         pipeline_execution_role_arn: Optional[str] = None,
         cloudformation_execution_role_arn: Optional[str] = None,
@@ -19,7 +19,7 @@ class GuidedContext:
         ecr_repo_arn: Optional[str] = None,
         pipeline_ip_range: Optional[str] = None,
     ) -> None:
-        self.stage_name = stage_name
+        self.environment_name = environment_name
         self.pipeline_user_arn = pipeline_user_arn
         self.pipeline_execution_role_arn = pipeline_execution_role_arn
         self.cloudformation_execution_role_arn = cloudformation_execution_role_arn
@@ -34,13 +34,13 @@ class GuidedContext:
         for the pipeline to work. Users can provide all, none or some resources' ARNs and leave the remaining empty
         and it will be created by the bootstrap command
         """
-        if not self.stage_name:
-            self.stage_name = click.prompt("Stage Name", type=click.STRING)
+        if not self.environment_name:
+            self.environment_name = click.prompt("Environment Name", type=click.STRING)
 
         if not self.pipeline_user_arn:
             click.echo(
-                "\nThere must be exactly one pipeline user across all of the pipeline stages. "
-                "If you have ran this command before to bootstrap a previous pipeline stage, please "
+                "\nThere must be exactly one pipeline user across all of the environments. "
+                "If you have ran this command before to bootstrap a previous environment, please "
                 "provide the ARN of the created pipeline user, otherwise, we will create a new user for you. "
                 "Please make sure to store the credentials safely with the CI/CD provider."
             )
@@ -50,7 +50,7 @@ class GuidedContext:
 
         if not self.pipeline_execution_role_arn:
             self.pipeline_execution_role_arn = click.prompt(
-                "\nPipeline execution role (an IAM role assumed by the pipeline user to operate on this stage) "
+                "\nPipeline execution role (an IAM role assumed by the pipeline user to operate on this environment) "
                 "[leave blank to create one]",
                 default="",
                 type=click.STRING,

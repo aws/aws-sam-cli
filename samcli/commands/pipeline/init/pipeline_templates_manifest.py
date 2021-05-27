@@ -9,15 +9,15 @@ Example:
       - displayName:Github Actions
         id: github-actions
     templates:
-      - displayName: jenkins-two-stages-pipeline
+      - displayName: jenkins-two-environments-pipeline
         provider: Jenkins
-        location: templates/cookiecutter-jenkins-two-stages-pipeline
-      - displayName: gitlab-two-stages-pipeline
+        location: templates/cookiecutter-jenkins-two-environments-pipeline
+      - displayName: gitlab-two-environments-pipeline
         provider: Gitlab
-        location: templates/cookiecutter-gitlab-two-stages-pipeline
-      - displayName: Github-Actions-two-stages-pipeline
+        location: templates/cookiecutter-gitlab-two-environments-pipeline
+      - displayName: Github-Actions-two-environments-pipeline
         provider: Github Actions
-        location: templates/cookiecutter-github-actions-two-stages-pipeline
+        location: templates/cookiecutter-github-actions-two-environments-pipeline
 """
 from pathlib import Path
 from typing import Dict, List

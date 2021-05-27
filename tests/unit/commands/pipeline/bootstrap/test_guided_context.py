@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from samcli.commands.pipeline.bootstrap.guided_context import GuidedContext
 
-ANY_STAGE_NAME = "ANY_STAGE_NAME"
+ANY_ENVIRONMENT_NAME = "ANY_ENVIRONMENT_NAME"
 ANY_PIPELINE_USER_ARN = "ANY_PIPELINE_USER_ARN"
 ANY_PIPELINE_EXECUTION_ROLE_ARN = "ANY_PIPELINE_EXECUTION_ROLE_ARN"
 ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN = "ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN"
@@ -17,7 +17,7 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.pipeline.bootstrap.guided_context.click")
     def test_guided_context_will_not_prompt_for_fields_that_are_already_provided(self, click_mock):
         gc: GuidedContext = GuidedContext(
-            stage_name=ANY_STAGE_NAME,
+            environment_name=ANY_ENVIRONMENT_NAME,
             pipeline_user_arn=ANY_PIPELINE_USER_ARN,
             pipeline_execution_role_arn=ANY_PIPELINE_EXECUTION_ROLE_ARN,
             cloudformation_execution_role_arn=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
@@ -35,7 +35,7 @@ class TestGuidedContext(TestCase):
             ecr_repo_arn=ANY_ECR_REPO_ARN  # Exclude ECR repo, it has its own detailed test below
         )
         gc.run()
-        self.assertTrue(self.did_prompt_text_like("Stage Name", click_mock.prompt))
+        self.assertTrue(self.did_prompt_text_like("Environment Name", click_mock.prompt))
         self.assertTrue(self.did_prompt_text_like("Pipeline user", click_mock.prompt))
         self.assertTrue(self.did_prompt_text_like("Pipeline execution role", click_mock.prompt))
         self.assertTrue(self.did_prompt_text_like("CloudFormation execution role", click_mock.prompt))
@@ -50,7 +50,7 @@ class TestGuidedContext(TestCase):
         # 2 - Yes, I need a help creating one
         # 3 - I already have an ECR repo
         gc_without_ecr_info: GuidedContext = GuidedContext(
-            stage_name=ANY_STAGE_NAME,
+            environment_name=ANY_ENVIRONMENT_NAME,
             pipeline_user_arn=ANY_PIPELINE_USER_ARN,
             pipeline_execution_role_arn=ANY_PIPELINE_EXECUTION_ROLE_ARN,
             cloudformation_execution_role_arn=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
