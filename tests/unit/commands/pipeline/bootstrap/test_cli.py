@@ -93,7 +93,7 @@ class TestCli(TestCase):
         runner: CliRunner = CliRunner()
         runner.invoke(
             bootstrap_cmd,
-            args=["--no-interactive", "--environment-name", "environment1", "--artifacts-bucket", "bucketARN"],
+            args=["--no-interactive", "--environment", "environment1", "--artifacts-bucket", "bucketARN"],
         )
         args, kwargs = do_cli_mock.call_args
         self.assertFalse(kwargs["interactive"])

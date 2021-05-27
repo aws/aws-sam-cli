@@ -38,7 +38,7 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
     help="Disable interactive prompting for bootstrap parameters, and fail if any required arguments are missing.",
 )
 @click.option(
-    "--environment-name",
+    "--environment",
     help="The name of the corresponding environment. It is used as a suffix for the created resources.",
     required=False,
 )
@@ -101,7 +101,7 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
 def cli(
     ctx: Any,
     interactive: bool,
-    environment_name: Optional[str],
+    environment: Optional[str],
     pipeline_user: Optional[str],
     pipeline_execution_role: Optional[str],
     cloudformation_execution_role: Optional[str],
@@ -120,7 +120,7 @@ def cli(
         region=ctx.region,
         profile=ctx.profile,
         interactive=interactive,
-        environment_name=environment_name,
+        environment_name=environment,
         pipeline_user_arn=pipeline_user,
         pipeline_execution_role_arn=pipeline_execution_role,
         cloudformation_execution_role_arn=cloudformation_execution_role,
@@ -178,7 +178,7 @@ def do_cli(
         ecr_repo_arn = guided_context.ecr_repo_arn
 
     if not environment_name:
-        raise click.UsageError("Missing required parameter '--environment-name'")
+        raise click.UsageError("Missing required parameter '--environment'")
 
     environment: Environment = Environment(
         name=environment_name,
