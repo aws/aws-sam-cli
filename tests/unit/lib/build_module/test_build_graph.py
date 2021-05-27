@@ -47,10 +47,13 @@ def generate_function(
     layers="layers",
     events="events",
     codesign_config_arn="codesign_config_arn",
-    metadata={},
+    metadata=None,
     inlinecode=None,
     stack_path="",
 ):
+    if metadata is None:
+        metadata = {}
+
     return Function(
         name,
         function_name,
@@ -76,10 +79,15 @@ def generate_function(
 def generate_layer(
     arn="arn:aws:lambda:region:account-id:layer:layer-name:1",
     codeuri="codeuri",
-    compatible_runtimes=["runtime"],
-    metadata={},
+    compatible_runtimes=None,
+    metadata=None,
     stack_path="",
 ):
+    if compatible_runtimes is None:
+        compatible_runtimes = ["runtime"]
+    if metadata is None:
+        metadata = {}
+
     return LayerVersion(arn, codeuri, compatible_runtimes, metadata, stack_path)
 
 
@@ -314,11 +322,11 @@ class TestBuildGraph(TestCase):
             )
             build_graph.put_function_build_definition(build_definition1, function1)
 
-            self.assertTrue(len(build_graph.get_function_build_definitions()), 1)
-            for build_definition in build_graph.get_function_build_definitions():
-                self.assertTrue(len(build_definition.functions), 1)
-                self.assertTrue(build_definition.functions[0], function1)
-                self.assertEqual(build_definition.uuid, TestBuildGraph.UUID)
+            build_definitions = build_graph.get_function_build_definitions()
+            self.assertEqual(len(build_definitions), 1)
+            self.assertEqual(len(build_definitions[0].functions), 1)
+            self.assertEqual(build_definitions[0].functions[0], function1)
+            self.assertEqual(build_definitions[0].uuid, TestBuildGraph.UUID)
 
             build_definition2 = FunctionBuildDefinition(
                 "another_runtime",
@@ -330,7 +338,11 @@ class TestBuildGraph(TestCase):
             )
             function2 = generate_function(name="another_function")
             build_graph.put_function_build_definition(build_definition2, function2)
-            self.assertTrue(len(build_graph.get_function_build_definitions()), 2)
+
+            build_definitions = build_graph.get_function_build_definitions()
+            self.assertEqual(len(build_definitions), 2)
+            self.assertEqual(len(build_definitions[1].functions), 1)
+            self.assertEqual(build_definitions[1].functions[0], function2)
 
     def test_layers_should_be_added_existing_build_graph(self):
         with osutils.mkdir_temp() as temp_base_dir:
@@ -357,10 +369,10 @@ class TestBuildGraph(TestCase):
             )
             build_graph.put_layer_build_definition(build_definition1, layer1)
 
-            self.assertTrue(len(build_graph.get_layer_build_definitions()), 1)
-            for build_definition in build_graph.get_layer_build_definitions():
-                self.assertTrue(build_definition.layer, layer1)
-                self.assertEqual(build_definition.uuid, TestBuildGraph.LAYER_UUID)
+            build_definitions = build_graph.get_layer_build_definitions()
+            self.assertEqual(len(build_definitions), 1)
+            self.assertEqual(build_definitions[0].layer, layer1)
+            self.assertEqual(build_definitions[0].uuid, TestBuildGraph.LAYER_UUID)
 
             build_definition2 = LayerBuildDefinition(
                 "another_layername",
@@ -372,7 +384,10 @@ class TestBuildGraph(TestCase):
             )
             layer2 = generate_layer(arn="arn:aws:lambda:region:account-id:layer:another-layer-name:1")
             build_graph.put_layer_build_definition(build_definition2, layer2)
-            self.assertTrue(len(build_graph.get_layer_build_definitions()), 2)
+
+            build_definitions = build_graph.get_layer_build_definitions()
+            self.assertEqual(len(build_definitions), 2)
+            self.assertEqual(build_definitions[1].layer, layer2)
 
 
 class TestBuildDefinition(TestCase):
