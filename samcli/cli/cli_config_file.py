@@ -235,7 +235,7 @@ def decorator_customize_config_file(f):
     config_file_attrs["help"] = (
         "The path and file name of the configuration file containing default parameter values to use. "
         "Its default value is 'samconfig.toml' in project root directory. Project root directory is defined by the "
-        "template file location. When you use config file and specify --template-file SAM CLI expects samconfig.toml "
+        "template file location. When using config file and specifing --template-file SAM CLI expects samconfig.toml "
         "and the template file to be in the same directory. Alternatively, if --config-file is explicitly specified, "
         "it can point to a custom samconfig.toml location. For more information about configuration files, see "
         "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html."

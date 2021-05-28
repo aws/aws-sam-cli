@@ -120,7 +120,7 @@ def cli(ctx):
     which is expected to be in the project root directory by default. It is also possible to specify a custom directory
     for the config file if necessary.
 
-    You can find more in-depth guide about the SAM specification here:
+    More in-depth guide about the SAM specification:
     https://github.com/aws/serverless-application-model.
     """
     if global_cfg.telemetry_enabled is None:

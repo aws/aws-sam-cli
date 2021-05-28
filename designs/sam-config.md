@@ -70,7 +70,7 @@ Config file '/home/xxxxxxxxx/projects/app-samconfig/out/build/samconfig.toml' do
 Where is my `samconfig.toml`?
 ---------------------------------
 
-SAM CLI always expects `samconfig.toml` to be in the project root directory (where the template file is located). When neither template nor config file is specified through cli options, both of them are expected to be in the current working directory where SAM CLI command is running. However, if you use `--template-file` to point to the directory without config file, you need to use `--config-file` option to be able to use `samconfig.toml`.
+SAM CLI always expects `samconfig.toml` to be in the project root directory (where the template file is located). When neither template nor config file is specified through cli options, both of them are expected to be in the current working directory where SAM CLI command is running. However, when `--template-file` is used to point to the directory without config file, addition of `--config-file` option enables the use of `samconfig.toml`.
 
 Why `samconfig.toml` not under `.aws-sam` directory?
 ---------------------------------
