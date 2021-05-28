@@ -100,22 +100,22 @@ class TestInteractiveInitFlow(TestCase):
             do_interactive()
 
     @patch("samcli.commands.pipeline.init.interactive_init_flow.SamConfig")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow.osutils")
     @patch("samcli.lib.cookiecutter.template.cookiecutter")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.InteractiveFlowCreator.create_flow")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.PipelineTemplatesManifest")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
-    @patch("samcli.commands.pipeline.init.interactive_init_flow.tempfile.TemporaryDirectory")
     @patch("samcli.commands.pipeline.init.interactive_init_flow._copy_dir_contents_to_cwd_fail_on_exist")
     @patch("samcli.lib.cookiecutter.question.click")
     def test_generate_pipeline_configuration_file_from_app_pipeline_template_happy_case(
         self,
         click_mock,
         _copy_dir_contents_to_cwd_fail_on_exist_mock,
-        TemporaryDirectory_mock,
         clone_mock,
         PipelineTemplatesManifest_mock,
         create_interactive_flow_mock,
         cookiecutter_mock,
+        osutils_mock,
         samconfig_mock,
     ):
         # setup
@@ -135,7 +135,8 @@ class TestInteractiveInitFlow(TestCase):
             templates=[jenkins_template_mock],
         )
         PipelineTemplatesManifest_mock.return_value = pipeline_templates_manifest_mock
-        cookiecutter_output_dir_mock = TemporaryDirectory_mock.return_value.__enter__.return_value = Mock()
+        cookiecutter_output_dir_mock = "/tmp/any/dir2"
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=cookiecutter_output_dir_mock)
         interactive_flow_mock = Mock()
         create_interactive_flow_mock.return_value = interactive_flow_mock
         cookiecutter_context_mock = {"key": "value"}
@@ -157,6 +158,7 @@ class TestInteractiveInitFlow(TestCase):
         do_interactive()
 
         # verify
+        osutils_mock.mkdir_temp.assert_called()  # cookiecutter project is generated to temp
         expected_cookicutter_template_location = any_app_pipeline_templates_path.joinpath(jenkins_template_location)
         clone_mock.assert_called_once_with(shared_path, APP_PIPELINE_TEMPLATES_REPO_LOCAL_NAME, replace_existing=True)
         PipelineTemplatesManifest_mock.assert_called_once()
@@ -242,14 +244,12 @@ class TestInteractiveInitFlow(TestCase):
     @patch("samcli.commands.pipeline.init.interactive_init_flow.InteractiveFlowCreator.create_flow")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.click")
-    @patch("samcli.commands.pipeline.init.interactive_init_flow.tempfile.TemporaryDirectory")
     @patch("samcli.commands.pipeline.init.interactive_init_flow._copy_dir_contents_to_cwd_fail_on_exist")
     @patch("samcli.lib.cookiecutter.question.click")
     def test_generate_pipeline_configuration_file_from_custom_remote_pipeline_template_happy_case(
         self,
         questions_click_mock,
         _copy_dir_contents_to_cwd_fail_on_exist_mock,
-        TemporaryDirectory_mock,
         init_click_mock,
         clone_mock,
         create_interactive_flow_mock,
@@ -258,15 +258,16 @@ class TestInteractiveInitFlow(TestCase):
     ):
         # setup
         any_temp_dir = "/tmp/any/dir"
-        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=any_temp_dir)
+        cookiecutter_output_dir_mock = "/tmp/any/dir2"
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(side_effect=[any_temp_dir, cookiecutter_output_dir_mock])
         osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
         any_custom_pipeline_templates_path = Path(os.path.join(any_temp_dir, CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME))
         clone_mock.return_value = any_custom_pipeline_templates_path
-        cookiecutter_output_dir_mock = TemporaryDirectory_mock.return_value.__enter__.return_value = Mock()
         interactive_flow_mock = Mock()
         create_interactive_flow_mock.return_value = interactive_flow_mock
         cookiecutter_context_mock = {"key": "value"}
         interactive_flow_mock.run.return_value = cookiecutter_context_mock
+        _copy_dir_contents_to_cwd_fail_on_exist_mock.return_value = ["file1"]
 
         questions_click_mock.prompt.return_value = "2"  # Custom pipeline templates
         init_click_mock.prompt.return_value = "https://github.com/any-custom-pipeline-template-repo.git"
@@ -275,7 +276,8 @@ class TestInteractiveInitFlow(TestCase):
         do_interactive()
 
         # verify
-        osutils_mock.mkdir_temp.assert_called_once()  # Custom templates are cloned to temp
+        # Custom templates are cloned to temp; cookiecutter project is generated to temp
+        osutils_mock.mkdir_temp.assert_called()
         clone_mock.assert_called_once_with(
             Path(any_temp_dir), CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME, replace_existing=True
         )
