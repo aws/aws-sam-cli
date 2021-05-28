@@ -81,13 +81,13 @@ def _generate_from_custom_location() -> List[str]:
     pipeline_template_git_location: str = click.prompt("Template Git location")
     if os.path.exists(pipeline_template_git_location):
         return _generate_from_pipeline_template(Path(pipeline_template_git_location))
-    else:
-        with osutils.mkdir_temp(ignore_errors=True) as tempdir:
-            tempdir_path = Path(tempdir)
-            pipeline_template_local_dir: Path = _clone_pipeline_templates(
-                pipeline_template_git_location, tempdir_path, CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME
-            )
-            return _generate_from_pipeline_template(pipeline_template_local_dir)
+
+    with osutils.mkdir_temp(ignore_errors=True) as tempdir:
+        tempdir_path = Path(tempdir)
+        pipeline_template_local_dir: Path = _clone_pipeline_templates(
+            pipeline_template_git_location, tempdir_path, CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME
+        )
+        return _generate_from_pipeline_template(pipeline_template_local_dir)
 
 
 def _load_pipeline_bootstrap_context() -> Dict:
