@@ -4,6 +4,7 @@ pipeline configuration file
 """
 import logging
 import os
+import tempfile
 from pathlib import Path
 from typing import Dict, List
 
@@ -18,6 +19,7 @@ from samcli.lib.cookiecutter.question import Choice
 from samcli.lib.cookiecutter.template import Template
 from samcli.lib.utils import osutils
 from samcli.lib.utils.git_repo import GitRepo, CloneRepoException
+from samcli.lib.utils.osutils import copytree
 from .pipeline_templates_manifest import Provider, PipelineTemplateMetadata, PipelineTemplatesManifest
 from ..bootstrap.cli import PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME
 
@@ -107,7 +109,23 @@ def _generate_from_pipeline_template(pipeline_template_dir: Path) -> None:
     pipeline_template: Template = _initialize_pipeline_template(pipeline_template_dir)
     bootstrap_context: Dict = _load_pipeline_bootstrap_context()
     context: Dict = pipeline_template.run_interactive_flows(bootstrap_context)
-    pipeline_template.generate_project(context)
+    with tempfile.TemporaryDirectory() as tempdir:
+        LOG.debug("Generating pipeline files into %s", tempdir)
+        context["outputDir"] = "."  # prevent cookiecutter from generating a sub-folder
+        pipeline_template.generate_project(context, tempdir)
+        _copy_dir_contents_fail_on_exist(tempdir, ".")
+
+
+def _copy_dir_contents_fail_on_exist(source_dir: str, target_dir: str) -> None:
+    for root, _, files in os.walk(source_dir):
+        for filename in files:
+            file_path = Path(root, filename)
+            target_file_path = Path(target_dir).joinpath(file_path.relative_to(source_dir))
+            LOG.debug("Verify %s does not exist", target_file_path)
+            if target_file_path.exists():
+                raise PipelineFileAlreadyExistsError(target_file_path)
+    LOG.debug("Copy contents of %s to %s", source_dir, target_dir)
+    copytree(source_dir, target_dir)
 
 
 def _clone_app_pipeline_templates() -> Path:
@@ -267,3 +285,10 @@ def _get_pipeline_template_interactive_flow(pipeline_template_dir: Path) -> Inte
     """
     flow_definition_path: Path = pipeline_template_dir.joinpath("questions.json")
     return InteractiveFlowCreator.create_flow(str(flow_definition_path))
+
+
+class PipelineFileAlreadyExistsError(Exception):
+    def __init__(self, file_path: os.PathLike) -> None:
+        Exception.__init__(
+            self, f'Pipeline file "{file_path}" already exists in project root directory, please remove it first.'
+        )
