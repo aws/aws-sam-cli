@@ -23,7 +23,7 @@ from ..bootstrap.cli import PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME
 
 LOG = logging.getLogger(__name__)
 shared_path: Path = global_cfg.config_dir
-APP_PIPELINE_TEMPLATES_REPO_URL = "https://github.com/aws/aws-sam-cli-pipeline-init-templates.git"
+APP_PIPELINE_TEMPLATES_REPO_URL = "https://github.com/elbayaaa/aws-sam-cli-pipeline-init-templates.git"
 APP_PIPELINE_TEMPLATES_REPO_LOCAL_NAME = "aws-sam-cli-app-pipeline-templates"
 CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME = "custom-pipeline-template"
 SAM_PIPELINE_TEMPLATE_SOURCE = "AWS Quick Start Pipeline Templates"
@@ -92,7 +92,6 @@ def _load_pipeline_bootstrap_context() -> Dict:
     config = SamConfig(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)
     if not config.exists():
         return context
-
     for env in config.get_env_names():
         for key, value in config.get_all(bootstrap_command_names, section, env).items():
             context[str([env, key])] = value

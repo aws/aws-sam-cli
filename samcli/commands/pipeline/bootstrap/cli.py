@@ -22,7 +22,7 @@ HELP_TEXT = """Sets up the following infrastructure resources for AWS SAM CI/CD 
 \n\t - Pipeline execution IAM role assumed by the pipeline user to obtain access to the AWS account
 \n\t - CloudFormation execution IAM role assumed by CloudFormation to deploy the AWS SAM application
 \n\t - Artifacts S3 bucket to hold the AWS SAM build artifacts
-\n\t - Optionally, an ECR repository to hold container image Lambda deployment packages
+\n\t - Optionally, an ECR image repository to hold container image Lambda deployment packages
 """
 
 PIPELINE_CONFIG_DIR = os.path.join(".aws-sam", "pipeline")
@@ -71,12 +71,12 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
     "--create-image-repository/--no-create-image-repository",
     is_flag=True,
     default=False,
-    help="If set to true and no ECR repository is provided, this command will create an ECR repository to hold the"
-    " container images of Lambda functions having an Image package type.",
+    help="If set to true and no ECR image repository is provided, this command will create an ECR image repository "
+    "to hold the container images of Lambda functions having an Image package type.",
 )
 @click.option(
     "--image-repository",
-    help="The ARN of an ECR repository to hold the containers images of Lambda functions of Image package type. "
+    help="The ARN of an ECR image repository to hold the containers images of Lambda functions of Image package type. "
     "If provided, the --create-image-repository argument is ignored. If not provided and --create-image-repository is "
     "set to true, the command will create one.",
     required=False,
