@@ -230,8 +230,10 @@ class TestCfnTags(TestCase):
             (("",), {}),
             # list as input
             ([], {}),
-            (["stage=int", "company:application=awesome-service", "company:department=engineering"],
-            {"stage":"int", "company:application":"awesome-service", "company:department":"engineering"})
+            (
+                ["stage=int", "company:application=awesome-service", "company:department=engineering"],
+                {"stage": "int", "company:application": "awesome-service", "company:department": "engineering"},
+            ),
         ]
     )
     def test_successful_parsing(self, input, expected):
