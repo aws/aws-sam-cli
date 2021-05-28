@@ -17,6 +17,7 @@ from samcli.lib.cookiecutter.interactive_flow_creator import InteractiveFlowCrea
 from samcli.lib.cookiecutter.question import Choice
 from samcli.lib.cookiecutter.template import Template
 from samcli.lib.utils import osutils
+from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.git_repo import GitRepo, CloneRepoException
 from samcli.lib.utils.osutils import copytree
 from .pipeline_templates_manifest import Provider, PipelineTemplateMetadata, PipelineTemplatesManifest
@@ -46,9 +47,9 @@ def do_interactive() -> None:
         generated_files = _generate_from_custom_location()
     else:
         generated_files = _generate_from_app_pipeline_templates()
-    click.echo("Successfully created the pipeline configuration file(s):")
+    click.secho(Colored().green("Successfully created the pipeline configuration file(s):"))
     for file in generated_files:
-        click.echo(f"  - {file}")
+        click.secho(Colored().green(f"  - {file}"))
 
 
 def _generate_from_app_pipeline_templates() -> List[str]:
