@@ -121,7 +121,7 @@ class Template:
         except Exception as e:
             raise UserException(str(e), wrapped_from=e.__class__.__name__) from e
 
-    def generate_project(self, context: Dict) -> None:
+    def generate_project(self, context: Dict, output_dir: str) -> None:
         """
         Generates a project based on this cookiecutter template and the given context. The context is first
         processed and manipulated by series of preprocessors(if any) then the project is generated and finally
@@ -131,6 +131,8 @@ class Template:
         ----------
         context: Dict
             the cookiecutter context to fulfill the values of cookiecutter.json keys
+        output_dir: str
+            the directory where project will be generated in
 
         Raise:
         ------
@@ -146,7 +148,13 @@ class Template:
 
         try:
             LOG.debug("Baking a new template with cookiecutter with all parameters")
-            cookiecutter(template=self._location, output_dir=".", no_input=True, extra_context=context)
+            cookiecutter(
+                template=self._location,
+                output_dir=output_dir,
+                no_input=True,
+                extra_context=context,
+                overwrite_if_exists=True,
+            )
         except RepositoryNotFound as e:
             # cookiecutter.json is not found in the template. Let's just clone it directly without
             # using cookiecutter and call it done.
