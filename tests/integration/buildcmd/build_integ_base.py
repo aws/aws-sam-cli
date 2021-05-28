@@ -173,6 +173,8 @@ class BuildIntegBase(TestCase):
         process_execute.process.wait()
 
         process_stdout = process_execute.stdout.decode("utf-8")
+        if process_stdout.startswith("Config file"):
+            *_, process_stdout = process_stdout.partition("\n")
         self.assertEqual(json.loads(process_stdout), expected_result)
 
 
