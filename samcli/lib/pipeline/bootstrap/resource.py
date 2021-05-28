@@ -104,15 +104,15 @@ class S3Bucket(Resource):
         super().__init__(arn=arn)
 
 
-class ECRRepo(Resource):
-    """ Represents an AWS ECR repo resource """
+class ECRImageRepository(Resource):
+    """ Represents an AWS ECR image repository resource """
 
     def __init__(self, arn: Optional[str]) -> None:
         super().__init__(arn=arn)
 
     def get_uri(self) -> Optional[str]:
         """
-        extracts and returns the URI of the given ECR repo from its ARN
+        extracts and returns the URI of the given ECR image repository from its ARN
         see https://docs.aws.amazon.com/AmazonECR/latest/userguide/Registries.html
         Raises
         ------

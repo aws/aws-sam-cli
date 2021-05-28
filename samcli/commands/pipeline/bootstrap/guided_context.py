@@ -15,8 +15,8 @@ class GuidedContext:
         pipeline_execution_role_arn: Optional[str] = None,
         cloudformation_execution_role_arn: Optional[str] = None,
         artifacts_bucket_arn: Optional[str] = None,
-        create_ecr_repo: bool = False,
-        ecr_repo_arn: Optional[str] = None,
+        create_image_repository: bool = False,
+        image_repository_arn: Optional[str] = None,
         pipeline_ip_range: Optional[str] = None,
     ) -> None:
         self.environment_name = environment_name
@@ -24,8 +24,8 @@ class GuidedContext:
         self.pipeline_execution_role_arn = pipeline_execution_role_arn
         self.cloudformation_execution_role_arn = cloudformation_execution_role_arn
         self.artifacts_bucket_arn = artifacts_bucket_arn
-        self.create_ecr_repo = create_ecr_repo
-        self.ecr_repo_arn = ecr_repo_arn
+        self.create_image_repository = create_image_repository
+        self.image_repository_arn = image_repository_arn
         self.pipeline_ip_range = pipeline_ip_range
 
     def run(self) -> None:
@@ -70,22 +70,22 @@ class GuidedContext:
                 default="",
                 type=click.STRING,
             )
-        if not self.ecr_repo_arn:
+        if not self.image_repository_arn:
             click.echo(
                 "\nIf your SAM template includes (or going to include) Lambda functions of Image package type, "
-                "then an ECR repository is required. Should we create one?"
+                "then an ECR image repository is required. Should we create one?"
             )
             click.echo("\t1 - No, My SAM template won't include Lambda functions of Image package type")
             click.echo("\t2 - Yes, I need help creating one")
-            click.echo("\t3 - I already have an ECR repository")
+            click.echo("\t3 - I already have an ECR image repository")
             choice = click.prompt(text="Choice", show_choices=False, type=click.Choice(["1", "2", "3"]))
             if choice == "1":
-                self.create_ecr_repo = False
+                self.create_image_repository = False
             elif choice == "2":
-                self.create_ecr_repo = True
+                self.create_image_repository = True
             else:  # choice == "3"
-                self.create_ecr_repo = False
-                self.ecr_repo_arn = click.prompt("ECR repo", type=click.STRING)
+                self.create_image_repository = False
+                self.image_repository_arn = click.prompt("ECR image repository", type=click.STRING)
 
         if not self.pipeline_ip_range:
             click.echo("\nWe can deny requests not coming from a recognized IP address range.")

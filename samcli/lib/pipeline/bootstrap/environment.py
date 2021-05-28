@@ -8,7 +8,7 @@ import click
 
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.utils.managed_cloudformation_stack import manage_stack, StackOutput
-from .resource import Resource, IAMUser, ECRRepo
+from .resource import Resource, IAMUser, ECRImageRepository
 
 CFN_TEMPLATE_PATH = str(pathlib.Path(os.path.dirname(__file__)))
 STACK_NAME_PREFIX = "aws-sam-cli-managed"
@@ -18,7 +18,7 @@ PIPELINE_USER = "pipeline_user"
 PIPELINE_EXECUTION_ROLE = "pipeline_execution_role"
 CLOUDFORMATION_EXECUTION_ROLE = "cloudformation_execution_role"
 ARTIFACTS_BUCKET = "artifacts_bucket"
-ECR_REPO = "ecr_repo"
+ECR_IMAGE_REPOSITORY = "image_repository"
 REGION = "region"
 
 
@@ -47,16 +47,16 @@ class Environment:
         The IAM role assumed by the CloudFormation service to executes the CloudFormation stack.
     artifacts_bucket: Resource
         The S3 bucket to hold the SAM build artifacts of the application's CFN template.
-    create_ecr_repo: bool
-        A boolean flag that determins whether the user wants to create an ECR repository or not
-    ecr_repo: ECRRepo
-        The ECR repo to hold the image container of lambda functions with Image package-type
+    create_image_repository: bool
+        A boolean flag that determines whether the user wants to create an ECR image repository or not
+    image_repository: ECRImageRepository
+        The ECR image repository to hold the image container of lambda functions with Image package-type
 
     Methods:
     --------
     did_user_provide_all_required_resources(self) -> bool:
         checks if all of the environment's required resources (pipeline_user, pipeline_execution_role,
-        cloudformation_execution_role, artifacts_bucket and ecr_repo) are provided by the user.
+        cloudformation_execution_role, artifacts_bucket and image_repository) are provided by the user.
     bootstrap(self, confirm_changeset: bool = True) -> None:
         deploys the CFN template ./environment_resources.yaml to the AWS account identified by aws_profile and
         aws_region member fields. if aws_profile is not provided, it will fallback to  default boto3 credentials'
@@ -64,7 +64,7 @@ class Environment:
         any) as parameters and it will skip the creation of those resources but will use the ARNs to set the proper
         permissions of other missing resources(resources created by the template)
     save_config(self, config_dir: str, filename: str, cmd_names: List[str]):
-        save the Artifacts bucket name, ECR repo URI and ARNs of pipeline_user, pipeline_execution_role and
+        save the Artifacts bucket name, ECR image repository URI and ARNs of pipeline_user, pipeline_execution_role and
         cloudformation_execution_role to the "pipelineconfig.toml" file so that it can be auto-filled during
         the `sam pipeline init` command.
     print_resources_summary(self) -> None:
@@ -81,8 +81,8 @@ class Environment:
         pipeline_ip_range: Optional[str] = None,
         cloudformation_execution_role_arn: Optional[str] = None,
         artifacts_bucket_arn: Optional[str] = None,
-        create_ecr_repo: bool = False,
-        ecr_repo_arn: Optional[str] = None,
+        create_image_repository: bool = False,
+        image_repository_arn: Optional[str] = None,
     ) -> None:
         self.name: str = name
         self.aws_profile: Optional[str] = aws_profile
@@ -92,8 +92,8 @@ class Environment:
         self.pipeline_ip_range: Optional[str] = pipeline_ip_range
         self.cloudformation_execution_role: Resource = Resource(arn=cloudformation_execution_role_arn)
         self.artifacts_bucket: Resource = Resource(arn=artifacts_bucket_arn)
-        self.create_ecr_repo: bool = create_ecr_repo
-        self.ecr_repo: ECRRepo = ECRRepo(arn=ecr_repo_arn)
+        self.create_image_repository: bool = create_image_repository
+        self.image_repository: ECRImageRepository = ECRImageRepository(arn=image_repository_arn)
 
     def did_user_provide_all_required_resources(self) -> bool:
         """Check if the user provided all of the environment resources or not"""
@@ -109,8 +109,8 @@ class Environment:
             missing_resources_msg += "\n\tCloudFormation execution role."
         if not self.artifacts_bucket.is_user_provided:
             missing_resources_msg += "\n\tArtifacts bucket."
-        if self.create_ecr_repo and not self.ecr_repo.is_user_provided:
-            missing_resources_msg += "\n\tECR repo."
+        if self.create_image_repository and not self.image_repository.is_user_provided:
+            missing_resources_msg += "\n\tECR image repository."
         return missing_resources_msg
 
     def bootstrap(self, confirm_changeset: bool = True) -> bool:
@@ -120,7 +120,7 @@ class Environment:
             * Pipeline execution IAM role
             * CloudFormation execution IAM role
             * Artifacts' S3 Bucket
-            * ECR Repo
+            * ECR image repository
         to the AWS account associated with the given environment. It will not redeploy the stack if already exists.
         This CFN template accepts the ARNs of the resources as parameters and will not create a resource if already
         provided, this way we can conditionally create a resource only if the user didn't provide it
@@ -166,8 +166,8 @@ class Environment:
                 "PipelineIpRange": self.pipeline_ip_range or "",
                 "CloudFormationExecutionRoleArn": self.cloudformation_execution_role.arn or "",
                 "ArtifactsBucketArn": self.artifacts_bucket.arn or "",
-                "CreateECRRepo": "true" if self.create_ecr_repo else "false",
-                "ECRRepoArn": self.ecr_repo.arn or "",
+                "CreateImageRepository": "true" if self.create_image_repository else "false",
+                "ImageRepositoryArn": self.image_repository.arn or "",
             },
         )
 
@@ -177,7 +177,7 @@ class Environment:
         self.pipeline_execution_role.arn = output.get("PipelineExecutionRole")
         self.cloudformation_execution_role.arn = output.get("CloudFormationExecutionRole")
         self.artifacts_bucket.arn = output.get("ArtifactsBucket")
-        self.ecr_repo.arn = output.get("ECRRepo")
+        self.image_repository.arn = output.get("ImageRepository")
         return True
 
     @staticmethod
@@ -189,7 +189,7 @@ class Environment:
 
     def save_config(self, config_dir: str, filename: str, cmd_names: List[str]) -> None:
         """
-        save the Artifacts bucket name, ECR repo URI and ARNs of pipeline_user, pipeline_execution_role and
+        save the Artifacts bucket name, ECR image repository URI and ARNs of pipeline_user, pipeline_execution_role and
         cloudformation_execution_role to the given filename and directory.
 
         Parameters
@@ -203,7 +203,7 @@ class Environment:
 
         Raises
         ------
-        ValueError: if the artifacts_bucket or ecr_repo ARNs are invalid
+        ValueError: if the artifacts_bucket or ImageRepository ARNs are invalid
         """
 
         samconfig: SamConfig = SamConfig(config_dir=config_dir, filename=filename)
@@ -211,22 +211,22 @@ class Environment:
         if self.pipeline_user.arn:
             samconfig.put(cmd_names=cmd_names, section="parameters", key=PIPELINE_USER, value=self.pipeline_user.arn)
 
-        # Computing Artifacts bucket name and ECR repo URL may through an exception if the ARNs are wrong
+        # Computing Artifacts bucket name and ECR image repository URL may through an exception if the ARNs are wrong
         # Let's swallow such an exception to be able to save the remaining resources
         try:
             artifacts_bucket_name: Optional[str] = self.artifacts_bucket.name()
         except ValueError:
             artifacts_bucket_name = ""
         try:
-            ecr_repo_uri: Optional[str] = self.ecr_repo.get_uri()
+            image_repository_uri: Optional[str] = self.image_repository.get_uri()
         except ValueError:
-            ecr_repo_uri = ""
+            image_repository_uri = ""
 
         environment_specific_configs: Dict[str, Optional[str]] = {
             PIPELINE_EXECUTION_ROLE: self.pipeline_execution_role.arn,
             CLOUDFORMATION_EXECUTION_ROLE: self.cloudformation_execution_role.arn,
             ARTIFACTS_BUCKET: artifacts_bucket_name,
-            ECR_REPO: ecr_repo_uri,
+            ECR_IMAGE_REPOSITORY: image_repository_uri,
             REGION: self.aws_region,
         }
 
@@ -258,8 +258,8 @@ class Environment:
             self.cloudformation_execution_role,
             self.artifacts_bucket,
         ]
-        if self.create_ecr_repo:  # ECR Repo is optional
-            resources.append(self.ecr_repo)
+        if self.create_image_repository or self.image_repository.arn:  # Image Repository is optional
+            resources.append(self.image_repository)
         return resources
 
     def print_resources_summary(self) -> None:

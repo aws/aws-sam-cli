@@ -22,7 +22,7 @@ HELP_TEXT = """Sets up the following infrastructure resources for AWS SAM CI/CD 
 \n\t - Pipeline execution IAM role assumed by the pipeline user to obtain access to the AWS account
 \n\t - CloudFormation execution IAM role assumed by CloudFormation to deploy the AWS SAM application
 \n\t - Artifacts S3 bucket to hold the AWS SAM build artifacts
-\n\t - Optionally, an ECR repository to hold container image Lambda deployment packages
+\n\t - Optionally, an ECR image repository to hold container image Lambda deployment packages
 """
 
 PIPELINE_CONFIG_DIR = os.path.join(".aws-sam", "pipeline")
@@ -68,17 +68,17 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
     required=False,
 )
 @click.option(
-    "--create-ecr-repo/--no-create-ecr-repo",
+    "--create-image-repository/--no-create-image-repository",
     is_flag=True,
     default=False,
-    help="If set to true and no ECR repository is provided, this command will create an ECR repository to hold the"
-    " container images of Lambda functions having an Image package type.",
+    help="If set to true and no ECR image repository is provided, this command will create an ECR image repository "
+    "to hold the container images of Lambda functions having an Image package type.",
 )
 @click.option(
-    "--ecr-repo",
-    help="The ARN of an ECR repository to hold the containers images of Lambda functions of Image package type. "
-    "If provided, the --create-ecr-repo argument is ignored. If not provided and --create-ecr-repo is set to true, "
-    "the command will create one.",
+    "--image-repository",
+    help="The ARN of an ECR image repository to hold the containers images of Lambda functions of Image package type. "
+    "If provided, the --create-image-repository argument is ignored. If not provided and --create-image-repository is "
+    "set to true, the command will create one.",
     required=False,
 )
 @click.option(
@@ -106,8 +106,8 @@ def cli(
     pipeline_execution_role: Optional[str],
     cloudformation_execution_role: Optional[str],
     artifacts_bucket: Optional[str],
-    create_ecr_repo: bool,
-    ecr_repo: Optional[str],
+    create_image_repository: bool,
+    image_repository: Optional[str],
     pipeline_ip_range: Optional[str],
     confirm_changeset: bool,
     config_file: Optional[str],
@@ -125,8 +125,8 @@ def cli(
         pipeline_execution_role_arn=pipeline_execution_role,
         cloudformation_execution_role_arn=cloudformation_execution_role,
         artifacts_bucket_arn=artifacts_bucket,
-        create_ecr_repo=create_ecr_repo,
-        ecr_repo_arn=ecr_repo,
+        create_image_repository=create_image_repository,
+        image_repository_arn=image_repository,
         pipeline_ip_range=pipeline_ip_range,
         confirm_changeset=confirm_changeset,
         config_file=config_env,
@@ -143,8 +143,8 @@ def do_cli(
     pipeline_execution_role_arn: Optional[str],
     cloudformation_execution_role_arn: Optional[str],
     artifacts_bucket_arn: Optional[str],
-    create_ecr_repo: bool,
-    ecr_repo_arn: Optional[str],
+    create_image_repository: bool,
+    image_repository_arn: Optional[str],
     pipeline_ip_range: Optional[str],
     confirm_changeset: bool,
     config_file: Optional[str],
@@ -163,8 +163,8 @@ def do_cli(
             pipeline_execution_role_arn=pipeline_execution_role_arn,
             cloudformation_execution_role_arn=cloudformation_execution_role_arn,
             artifacts_bucket_arn=artifacts_bucket_arn,
-            create_ecr_repo=create_ecr_repo,
-            ecr_repo_arn=ecr_repo_arn,
+            create_image_repository=create_image_repository,
+            image_repository_arn=image_repository_arn,
             pipeline_ip_range=pipeline_ip_range,
         )
         guided_context.run()
@@ -174,8 +174,8 @@ def do_cli(
         pipeline_ip_range = guided_context.pipeline_ip_range
         cloudformation_execution_role_arn = guided_context.cloudformation_execution_role_arn
         artifacts_bucket_arn = guided_context.artifacts_bucket_arn
-        create_ecr_repo = guided_context.create_ecr_repo
-        ecr_repo_arn = guided_context.ecr_repo_arn
+        create_image_repository = guided_context.create_image_repository
+        image_repository_arn = guided_context.image_repository_arn
 
     if not environment_name:
         raise click.UsageError("Missing required parameter '--environment'")
@@ -189,8 +189,8 @@ def do_cli(
         pipeline_ip_range=pipeline_ip_range,
         cloudformation_execution_role_arn=cloudformation_execution_role_arn,
         artifacts_bucket_arn=artifacts_bucket_arn,
-        create_ecr_repo=create_ecr_repo,
-        ecr_repo_arn=ecr_repo_arn,
+        create_image_repository=create_image_repository,
+        image_repository_arn=image_repository_arn,
     )
 
     bootstrapped: bool = environment.bootstrap(confirm_changeset=confirm_changeset)

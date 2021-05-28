@@ -92,7 +92,6 @@ def _load_pipeline_bootstrap_context() -> Dict:
     config = SamConfig(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)
     if not config.exists():
         return context
-
     for env in config.get_env_names():
         for key, value in config.get_all(bootstrap_command_names, section, env).items():
             context[str([env, key])] = value
