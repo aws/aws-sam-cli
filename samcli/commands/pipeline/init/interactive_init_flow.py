@@ -43,17 +43,20 @@ def do_interactive() -> None:
     )
     source = pipeline_template_source_question.ask()
     if source == CUSTOM_PIPELINE_TEMPLATE_SOURCE:
-        _generate_from_custom_location()
+        generated_files = _generate_from_custom_location()
     else:
-        _generate_from_app_pipeline_templates()
-    click.echo("Successfully created the pipeline configuration file(s)")
+        generated_files = _generate_from_app_pipeline_templates()
+    click.echo("Successfully created the pipeline configuration file(s):")
+    for file in generated_files:
+        click.echo(f"  - {file}")
 
 
-def _generate_from_app_pipeline_templates() -> None:
+def _generate_from_app_pipeline_templates() -> List[str]:
     """
     Prompts the user to choose a pipeline template from SAM predefined set of pipeline templates hosted in the git
     repository: aws/aws-sam-cli-pipeline-init-templates.git
     downloads locally, then generates the pipeline config file from the selected pipeline template.
+    Finally, return the list of generated files.
     """
     pipeline_templates_local_dir: Path = _clone_app_pipeline_templates()
     pipeline_templates_manifest: PipelineTemplatesManifest = _read_app_pipeline_templates_manifest(
@@ -66,23 +69,24 @@ def _generate_from_app_pipeline_templates() -> None:
     selected_pipeline_template_dir: Path = pipeline_templates_local_dir.joinpath(
         selected_pipeline_template_metadata.location
     )
-    _generate_from_pipeline_template(selected_pipeline_template_dir)
+    return _generate_from_pipeline_template(selected_pipeline_template_dir)
 
 
-def _generate_from_custom_location() -> None:
+def _generate_from_custom_location() -> List[str]:
     """
     Prompts the user for a custom pipeline template location, downloads locally, then generates the pipeline config file
+    and return the list of generated files
     """
     pipeline_template_git_location: str = click.prompt("Template Git location")
     if os.path.exists(pipeline_template_git_location):
-        _generate_from_pipeline_template(Path(pipeline_template_git_location))
+        return _generate_from_pipeline_template(Path(pipeline_template_git_location))
     else:
         with osutils.mkdir_temp(ignore_errors=True) as tempdir:
             tempdir_path = Path(tempdir)
             pipeline_template_local_dir: Path = _clone_pipeline_templates(
                 pipeline_template_git_location, tempdir_path, CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME
             )
-            _generate_from_pipeline_template(pipeline_template_local_dir)
+            return _generate_from_pipeline_template(pipeline_template_local_dir)
 
 
 def _load_pipeline_bootstrap_context() -> Dict:
@@ -101,9 +105,10 @@ def _load_pipeline_bootstrap_context() -> Dict:
     return context
 
 
-def _generate_from_pipeline_template(pipeline_template_dir: Path) -> None:
+def _generate_from_pipeline_template(pipeline_template_dir: Path) -> List[str]:
     """
     Generates a pipeline config file from a given pipeline template local location
+    and return the list of generated files.
     """
     pipeline_template: Template = _initialize_pipeline_template(pipeline_template_dir)
     bootstrap_context: Dict = _load_pipeline_bootstrap_context()
@@ -112,19 +117,22 @@ def _generate_from_pipeline_template(pipeline_template_dir: Path) -> None:
         LOG.debug("Generating pipeline files into %s", generate_dir)
         context["outputDir"] = "."  # prevent cookiecutter from generating a sub-folder
         pipeline_template.generate_project(context, generate_dir)
-        _copy_dir_contents_to_cwd_fail_on_exist(generate_dir)
+        return _copy_dir_contents_to_cwd_fail_on_exist(generate_dir)
 
 
-def _copy_dir_contents_to_cwd_fail_on_exist(source_dir: str) -> None:
+def _copy_dir_contents_to_cwd_fail_on_exist(source_dir: str) -> List[str]:
+    copied_file_paths: List[str] = []
     for root, _, files in os.walk(source_dir):
         for filename in files:
             file_path = Path(root, filename)
-            target_file_path = Path.cwd().joinpath(file_path.relative_to(source_dir))
+            target_file_path = Path(".").joinpath(file_path.relative_to(source_dir))
             LOG.debug("Verify %s does not exist", target_file_path)
             if target_file_path.exists():
                 raise PipelineFileAlreadyExistsError(target_file_path)
+            copied_file_paths.append(str(target_file_path))
     LOG.debug("Copy contents of %s to cwd", source_dir)
-    copytree(source_dir, os.getcwd())
+    copytree(source_dir, ".")
+    return copied_file_paths
 
 
 def _clone_app_pipeline_templates() -> Path:
