@@ -105,12 +105,12 @@ class TestInteractiveInitFlow(TestCase):
     @patch("samcli.commands.pipeline.init.interactive_init_flow.PipelineTemplatesManifest")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.tempfile.TemporaryDirectory")
-    @patch("samcli.commands.pipeline.init.interactive_init_flow._copy_dir_contents_fail_on_exist")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow._copy_dir_contents_to_cwd_fail_on_exist")
     @patch("samcli.lib.cookiecutter.question.click")
     def test_generate_pipeline_configuration_file_from_app_pipeline_template_happy_case(
         self,
         click_mock,
-        _copy_dir_contents_fail_on_exist_mock,
+        _copy_dir_contents_to_cwd_fail_on_exist_mock,
         TemporaryDirectory_mock,
         clone_mock,
         PipelineTemplatesManifest_mock,
@@ -243,12 +243,12 @@ class TestInteractiveInitFlow(TestCase):
     @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.click")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.tempfile.TemporaryDirectory")
-    @patch("samcli.commands.pipeline.init.interactive_init_flow._copy_dir_contents_fail_on_exist")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow._copy_dir_contents_to_cwd_fail_on_exist")
     @patch("samcli.lib.cookiecutter.question.click")
     def test_generate_pipeline_configuration_file_from_custom_remote_pipeline_template_happy_case(
         self,
         questions_click_mock,
-        _copy_dir_contents_fail_on_exist_mock,
+        _copy_dir_contents_to_cwd_fail_on_exist_mock,
         TemporaryDirectory_mock,
         init_click_mock,
         clone_mock,

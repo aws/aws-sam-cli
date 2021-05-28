@@ -112,19 +112,19 @@ def _generate_from_pipeline_template(pipeline_template_dir: Path) -> None:
         LOG.debug("Generating pipeline files into %s", generate_dir)
         context["outputDir"] = "."  # prevent cookiecutter from generating a sub-folder
         pipeline_template.generate_project(context, generate_dir)
-        _copy_dir_contents_fail_on_exist(generate_dir, ".")
+        _copy_dir_contents_to_cwd_fail_on_exist(generate_dir)
 
 
-def _copy_dir_contents_fail_on_exist(source_dir: str, target_dir: str) -> None:
+def _copy_dir_contents_to_cwd_fail_on_exist(source_dir: str) -> None:
     for root, _, files in os.walk(source_dir):
         for filename in files:
             file_path = Path(root, filename)
-            target_file_path = Path(target_dir).joinpath(file_path.relative_to(source_dir))
+            target_file_path = Path.cwd().joinpath(file_path.relative_to(source_dir))
             LOG.debug("Verify %s does not exist", target_file_path)
             if target_file_path.exists():
                 raise PipelineFileAlreadyExistsError(target_file_path)
-    LOG.debug("Copy contents of %s to %s", source_dir, target_dir)
-    copytree(source_dir, target_dir)
+    LOG.debug("Copy contents of %s to cwd", source_dir)
+    copytree(source_dir, os.getcwd())
 
 
 def _clone_app_pipeline_templates() -> Path:
