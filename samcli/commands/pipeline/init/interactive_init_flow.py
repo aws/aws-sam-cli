@@ -49,7 +49,7 @@ def do_interactive() -> None:
         generated_files = _generate_from_app_pipeline_templates()
     click.secho(Colored().green("Successfully created the pipeline configuration file(s):"))
     for file in generated_files:
-        click.secho(Colored().green(f"  - {file}"))
+        click.secho(Colored().green(f"\t- {file}"))
 
 
 def _generate_from_app_pipeline_templates() -> List[str]:
