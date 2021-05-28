@@ -19,7 +19,6 @@ from samcli.lib.cookiecutter.template import Template
 from samcli.lib.utils import osutils
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.git_repo import GitRepo, CloneRepoException
-from samcli.lib.utils.osutils import copytree
 from .pipeline_templates_manifest import Provider, PipelineTemplateMetadata, PipelineTemplatesManifest
 from ..bootstrap.cli import PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME
 
@@ -132,7 +131,7 @@ def _copy_dir_contents_to_cwd_fail_on_exist(source_dir: str) -> List[str]:
                 raise PipelineFileAlreadyExistsError(target_file_path)
             copied_file_paths.append(str(target_file_path))
     LOG.debug("Copy contents of %s to cwd", source_dir)
-    copytree(source_dir, ".")
+    osutils.copytree(source_dir, ".")
     return copied_file_paths
 
 
