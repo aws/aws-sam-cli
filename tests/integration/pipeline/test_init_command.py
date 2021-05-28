@@ -56,11 +56,13 @@ class TestInit(InitIntegBase):
 
         self.assertEqual(init_process_execute.process.returncode, 1)
         stderr = init_process_execute.stderr.decode()
-        self.assertIn("Exception: Jenkinsfile already exists in project root directory. Please remove it first", stderr)
+        self.assertIn(
+            'Pipeline file "Jenkinsfile" already exists in project root directory, please remove it first.', stderr
+        )
 
     def test_custom_template(self):
-        generated_directory = Path("aws-sam-pipeline")
-        self.generated_files.append(generated_directory)
+        generated_file = Path("weather")
+        self.generated_files.append(generated_file)
 
         custom_template_path = Path(__file__).parent.parent.joinpath(Path("testdata", "pipeline", "custom_template"))
         inputs = ["2", str(custom_template_path), "Rainy"]  # custom template
@@ -70,7 +72,6 @@ class TestInit(InitIntegBase):
 
         self.assertEqual(init_process_execute.process.returncode, 0)
 
-        generated_file = Path(generated_directory, "weather")
         self.assertTrue(generated_file.exists())
 
         with open(generated_file, "r") as f:

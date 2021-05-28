@@ -19,20 +19,20 @@ SKIP_BOOTSTRAP_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not R
 
 @skipIf(SKIP_BOOTSTRAP_TESTS, "Skip bootstrap tests in CI/CD only")
 class TestBootstrap(BootstrapIntegBase):
-    @parameterized.expand([("create_ecr_repo",), (False,)])
-    def test_interactive_with_no_resources_provided(self, create_ecr_repo: bool):
-        stage_name, stack_name = self._get_stage_and_stack_name()
+    @parameterized.expand([("create_image_repository",), (False,)])
+    def test_interactive_with_no_resources_provided(self, create_image_repository: bool):
+        env_name, stack_name = self._get_env_and_stack_name()
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list()
 
         inputs = [
-            stage_name,
+            env_name,
             "",  # pipeline user
             "",  # Pipeline execution role
             "",  # CloudFormation execution role
             "",  # Artifacts bucket
-            "2" if create_ecr_repo else "1",  # Should we create ECR repo, 1 - No, 2 - Yes
+            "2" if create_image_repository else "1",  # Should we create ECR repo, 1 - No, 2 - Yes
             "",  # Pipeline IP address range
             "y",  # proceed
         ]
@@ -55,24 +55,24 @@ class TestBootstrap(BootstrapIntegBase):
             "ArtifactsBucketPolicy",
             "PipelineExecutionRolePermissionPolicy",
         }
-        if create_ecr_repo:
+        if create_image_repository:
             self.assertSetEqual(
                 {
                     *common_resources,
-                    "ECRRepo",
+                    "ImageRepository",
                 },
                 self._extract_created_resource_logical_ids(stack_name),
             )
         else:
             self.assertSetEqual(common_resources, self._extract_created_resource_logical_ids(stack_name))
 
-    @parameterized.expand([("create_ecr_repo",), (False,)])
-    def test_non_interactive_with_no_resources_provided(self, create_ecr_repo: bool):
-        stage_name, stack_name = self._get_stage_and_stack_name()
+    @parameterized.expand([("create_image_repository",), (False,)])
+    def test_non_interactive_with_no_resources_provided(self, create_image_repository: bool):
+        env_name, stack_name = self._get_env_and_stack_name()
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list(
-            no_interactive=True, create_ecr_repo=create_ecr_repo, no_confirm_changeset=True
+            no_interactive=True, create_image_repository=create_image_repository, no_confirm_changeset=True
         )
 
         bootstrap_process_execute = run_command(bootstrap_command_list)
@@ -82,13 +82,13 @@ class TestBootstrap(BootstrapIntegBase):
         self.assertIn("Missing required parameter", stderr)
 
     def test_interactive_with_all_required_resources_provided(self):
-        stage_name, stack_name = self._get_stage_and_stack_name()
+        env_name, stack_name = self._get_env_and_stack_name()
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list()
 
         inputs = [
-            stage_name,
+            env_name,
             "arn:aws:iam::123:user/user-name",  # pipeline user
             "arn:aws:iam::123:role/role-name",  # Pipeline execution role
             "arn:aws:iam::123:role/role-name",  # CloudFormation execution role
@@ -105,18 +105,18 @@ class TestBootstrap(BootstrapIntegBase):
         stdout = bootstrap_process_execute.stdout.decode()
         self.assertIn("skipping creation", stdout)
 
-    def test_no_interactive_with_all_required_resources_provided(self, confirm_changeset):
-        stage_name, stack_name = self._get_stage_and_stack_name()
+    def test_no_interactive_with_all_required_resources_provided(self):
+        env_name, stack_name = self._get_env_and_stack_name()
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list(
             no_interactive=True,
-            stage_name=stage_name,
+            env_name=env_name,
             pipeline_user="arn:aws:iam::123:user/user-name",  # pipeline user
             pipeline_execution_role="arn:aws:iam::123:role/role-name",  # Pipeline execution role
             cloudformation_execution_role="arn:aws:iam::123:role/role-name",  # CloudFormation execution role
             artifacts_bucket="arn:aws:s3:::bucket-name",  # Artifacts bucket
-            ecr_repo="arn:aws:ecr:::repository/repo-name",  # ecr repo
+            image_repository="arn:aws:ecr:::repository/repo-name",  # ecr repo
             pipeline_ip_range="1.2.3.4/24",  # Pipeline IP address range
         )
 
@@ -128,17 +128,17 @@ class TestBootstrap(BootstrapIntegBase):
 
     @parameterized.expand([("confirm_changeset",), (False,)])
     def test_no_interactive_with_some_required_resources_provided(self, confirm_changeset):
-        stage_name, stack_name = self._get_stage_and_stack_name()
+        env_name, stack_name = self._get_env_and_stack_name()
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list(
             no_interactive=True,
-            stage_name=stage_name,
+            env_name=env_name,
             pipeline_user="arn:aws:iam::123:user/user-name",  # pipeline user
             pipeline_execution_role="arn:aws:iam::123:role/role-name",  # Pipeline execution role
             # CloudFormation execution role missing
             artifacts_bucket="arn:aws:s3:::bucket-name",  # Artifacts bucket
-            ecr_repo="arn:aws:ecr:::repository/repo-name",  # ecr repo
+            image_repository="arn:aws:ecr:::repository/repo-name",  # ecr repo
             pipeline_ip_range="1.2.3.4/24",  # Pipeline IP address range
             no_confirm_changeset=not confirm_changeset,
         )
@@ -155,13 +155,13 @@ class TestBootstrap(BootstrapIntegBase):
         self.assertSetEqual({"CloudFormationExecutionRole"}, self._extract_created_resource_logical_ids(stack_name))
 
     def test_interactive_cancelled_by_user(self):
-        stage_name, stack_name = self._get_stage_and_stack_name()
+        env_name, stack_name = self._get_env_and_stack_name()
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list()
 
         inputs = [
-            stage_name,
+            env_name,
             "arn:aws:iam::123:user/user-name",  # pipeline user
             "",  # Pipeline execution role
             "",  # CloudFormation execution role
@@ -179,13 +179,13 @@ class TestBootstrap(BootstrapIntegBase):
         self.assertFalse(self._stack_exists(stack_name))
 
     def test_interactive_with_some_required_resources_provided(self):
-        stage_name, stack_name = self._get_stage_and_stack_name()
+        env_name, stack_name = self._get_env_and_stack_name()
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list()
 
         inputs = [
-            stage_name,
+            env_name,
             "arn:aws:iam::123:user/user-name",  # pipeline user
             "arn:aws:iam::123:role/role-name",  # Pipeline execution role
             "",  # CloudFormation execution role
@@ -209,17 +209,17 @@ class TestBootstrap(BootstrapIntegBase):
         Create 3 stages, only the first stage resource stack creates
         a pipeline user, and the remaining two share the same pipeline user.
         """
-        stage_names = []
+        env_names = []
         for suffix in ["1", "2", "3"]:
-            stage_name, stack_name = self._get_stage_and_stack_name(suffix)
-            stage_names.append(stage_name)
+            env_name, stack_name = self._get_env_and_stack_name(suffix)
+            env_names.append(env_name)
             self.stack_names.append(stack_name)
 
         bootstrap_command_list = self.get_bootstrap_command_list()
 
-        for i, stage_name in enumerate(stage_names):
+        for i, env_name in enumerate(env_names):
             inputs = [
-                stage_name,
+                env_name,
                 *([""] if i == 0 else []),  # pipeline user
                 "arn:aws:iam::123:role/role-name",  # Pipeline execution role
                 "arn:aws:iam::123:role/role-name",  # CloudFormation execution role

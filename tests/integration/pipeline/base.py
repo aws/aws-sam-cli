@@ -69,13 +69,13 @@ class BootstrapIntegBase(PipelineBase):
     def get_bootstrap_command_list(
         self,
         no_interactive: bool = False,
-        stage_name: Optional[str] = None,
+        env_name: Optional[str] = None,
         pipeline_user: Optional[str] = None,
         pipeline_execution_role: Optional[str] = None,
         cloudformation_execution_role: Optional[str] = None,
         artifacts_bucket: Optional[str] = None,
-        create_ecr_repo: bool = False,
-        ecr_repo: Optional[str] = None,
+        create_image_repository: bool = False,
+        image_repository: Optional[str] = None,
         pipeline_ip_range: Optional[str] = None,
         no_confirm_changeset: bool = False,
     ):
@@ -83,8 +83,8 @@ class BootstrapIntegBase(PipelineBase):
 
         if no_interactive:
             command_list += ["--no-interactive"]
-        if stage_name:
-            command_list += ["--stage-name", stage_name]
+        if env_name:
+            command_list += ["--environment", env_name]
         if pipeline_user:
             command_list += ["--pipeline-user", pipeline_user]
         if pipeline_execution_role:
@@ -93,10 +93,10 @@ class BootstrapIntegBase(PipelineBase):
             command_list += ["--cloudformation-execution-role", cloudformation_execution_role]
         if artifacts_bucket:
             command_list += ["--artifacts-bucket", artifacts_bucket]
-        if create_ecr_repo:
-            command_list += ["--create-ecr-repo"]
-        if ecr_repo:
-            command_list += ["--ecr-repo", ecr_repo]
+        if create_image_repository:
+            command_list += ["--create-image-repository"]
+        if image_repository:
+            command_list += ["--image-repository", image_repository]
         if pipeline_ip_range:
             command_list += ["--pipeline-ip-range", pipeline_ip_range]
         if no_confirm_changeset:
@@ -117,13 +117,13 @@ class BootstrapIntegBase(PipelineBase):
                 return False
             raise ex
 
-    def _get_stage_and_stack_name(self, suffix: str = "") -> Tuple[str, str]:
+    def _get_env_and_stack_name(self, suffix: str = "") -> Tuple[str, str]:
         # Method expects method name which can be a full path. Eg: test.integration.test_bootstrap_command.method_name
         method_name = self.id().split(".")[-1]
-        stage_name = method_name.replace("_", "-") + suffix
+        env_name = method_name.replace("_", "-") + suffix
 
         mock_env = Mock()
-        mock_env.name = stage_name
+        mock_env.name = env_name
         stack_name = Environment._get_stack_name(mock_env)
 
-        return stage_name, stack_name
+        return env_name, stack_name

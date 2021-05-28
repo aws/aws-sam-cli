@@ -8,13 +8,13 @@ pipeline {
     TESTING_PIPELINE_EXECUTION_ROLE = 'test-pipeline-execution-role'
     TESTING_CLOUDFORMATION_EXECUTION_ROLE = 'test-cfn-execution-role'
     TESTING_ARTIFACTS_BUCKET = 'test-bucket'
-    TESTING_ECR_REPO = 'test-ecr'
+    TESTING_IMAGE_REPOSITORY = 'test-ecr'
     TESTING_REGION = 'us-east-2'
     PROD_STACK_NAME = 'prod-stack'
     PROD_PIPELINE_EXECUTION_ROLE = 'prod-pipeline-execution-role'
     PROD_CLOUDFORMATION_EXECUTION_ROLE = 'prod-cfn-execution-role'
     PROD_ARTIFACTS_BUCKET = 'prod-bucket'
-    PROD_ECR_REPO = 'prod-ecr'
+    PROD_IMAGE_REPOSITORY = 'prod-ecr'
     PROD_REGION = 'us-west-2'
   }
   stages {
@@ -51,7 +51,7 @@ pipeline {
               --capabilities CAPABILITY_IAM \
               --region ${TESTING_REGION} \
               --s3-bucket ${TESTING_ARTIFACTS_BUCKET} \
-              --image-repository ${TESTING_ECR_REPO} \
+              --image-repository ${TESTING_IMAGE_REPOSITORY} \
               --no-fail-on-empty-changeset \
               --role-arn ${TESTING_CLOUDFORMATION_EXECUTION_ROLE}
           '''
@@ -79,7 +79,7 @@ pipeline {
           sh '''
             sam package \
               --s3-bucket ${TESTING_ARTIFACTS_BUCKET} \
-              --image-repository ${TESTING_ECR_REPO} \
+              --image-repository ${TESTING_IMAGE_REPOSITORY} \
               --region ${TESTING_REGION} \
               --output-template-file packaged-testing.yaml
           '''
@@ -93,7 +93,7 @@ pipeline {
           sh '''
             sam package \
               --s3-bucket ${PROD_ARTIFACTS_BUCKET} \
-              --image-repository ${PROD_ECR_REPO} \
+              --image-repository ${PROD_IMAGE_REPOSITORY} \
               --region ${PROD_REGION} \
               --output-template-file packaged-prod.yaml
           '''
@@ -125,7 +125,7 @@ pipeline {
               --capabilities CAPABILITY_IAM \
               --region ${TESTING_REGION} \
               --s3-bucket ${TESTING_ARTIFACTS_BUCKET} \
-              --image-repository ${TESTING_ECR_REPO} \
+              --image-repository ${TESTING_IMAGE_REPOSITORY} \
               --no-fail-on-empty-changeset \
               --role-arn ${TESTING_CLOUDFORMATION_EXECUTION_ROLE}
           '''
@@ -166,7 +166,7 @@ pipeline {
               --capabilities CAPABILITY_IAM \
               --region ${PROD_REGION} \
               --s3-bucket ${PROD_ARTIFACTS_BUCKET} \
-              --image-repository ${PROD_ECR_REPO} \
+              --image-repository ${PROD_IMAGE_REPOSITORY} \
               --no-fail-on-empty-changeset \
               --role-arn ${PROD_CLOUDFORMATION_EXECUTION_ROLE}
           '''
