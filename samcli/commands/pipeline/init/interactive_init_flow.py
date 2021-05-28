@@ -4,7 +4,6 @@ pipeline configuration file
 """
 import logging
 import os
-import tempfile
 from pathlib import Path
 from typing import Dict, List
 
@@ -109,11 +108,11 @@ def _generate_from_pipeline_template(pipeline_template_dir: Path) -> None:
     pipeline_template: Template = _initialize_pipeline_template(pipeline_template_dir)
     bootstrap_context: Dict = _load_pipeline_bootstrap_context()
     context: Dict = pipeline_template.run_interactive_flows(bootstrap_context)
-    with tempfile.TemporaryDirectory() as tempdir:
-        LOG.debug("Generating pipeline files into %s", tempdir)
+    with osutils.mkdir_temp() as generate_dir:
+        LOG.debug("Generating pipeline files into %s", generate_dir)
         context["outputDir"] = "."  # prevent cookiecutter from generating a sub-folder
-        pipeline_template.generate_project(context, tempdir)
-        _copy_dir_contents_fail_on_exist(tempdir, ".")
+        pipeline_template.generate_project(context, generate_dir)
+        _copy_dir_contents_fail_on_exist(generate_dir, ".")
 
 
 def _copy_dir_contents_fail_on_exist(source_dir: str, target_dir: str) -> None:
