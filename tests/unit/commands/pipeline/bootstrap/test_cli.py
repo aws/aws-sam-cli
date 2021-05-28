@@ -20,7 +20,7 @@ ANY_PIPELINE_USER_ARN = "ANY_PIPELINE_USER_ARN"
 ANY_PIPELINE_EXECUTION_ROLE_ARN = "ANY_PIPELINE_EXECUTION_ROLE_ARN"
 ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN = "ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN"
 ANY_ARTIFACTS_BUCKET_ARN = "ANY_ARTIFACTS_BUCKET_ARN"
-ANY_ECR_REPO_ARN = "ANY_ECR_REPO_ARN"
+ANY_IMAGE_REPOSITORY_ARN = "ANY_IMAGE_REPOSITORY_ARN"
 ANY_ARN = "ANY_ARN"
 ANY_PIPELINE_IP_RANGE = "111.222.333.0/24"
 ANY_CONFIG_FILE = "ANY_CONFIG_FILE"
@@ -39,8 +39,8 @@ class TestCli(TestCase):
             "pipeline_execution_role_arn": ANY_PIPELINE_EXECUTION_ROLE_ARN,
             "cloudformation_execution_role_arn": ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
             "artifacts_bucket_arn": ANY_ARTIFACTS_BUCKET_ARN,
-            "create_ecr_repo": True,
-            "ecr_repo_arn": ANY_ECR_REPO_ARN,
+            "create_image_repository": True,
+            "image_repository_arn": ANY_IMAGE_REPOSITORY_ARN,
             "pipeline_ip_range": ANY_PIPELINE_IP_RANGE,
             "confirm_changeset": True,
             "config_file": ANY_CONFIG_FILE,
@@ -53,7 +53,7 @@ class TestCli(TestCase):
         runner.invoke(bootstrap_cmd)
         # Test the defaults are as following:
         # interactive -> True
-        # create_ecr_repo -> False
+        # create_image_repository -> False
         # confirm_changeset -> True
         # region, profile, environment_name and all ARNs are None
         do_cli_mock.assert_called_once_with(
@@ -65,8 +65,8 @@ class TestCli(TestCase):
             pipeline_execution_role_arn=None,
             cloudformation_execution_role_arn=None,
             artifacts_bucket_arn=None,
-            create_ecr_repo=False,
-            ecr_repo_arn=None,
+            create_image_repository=False,
+            image_repository_arn=None,
             pipeline_ip_range=None,
             confirm_changeset=True,
             config_file="default",
@@ -76,16 +76,16 @@ class TestCli(TestCase):
     @patch("samcli.commands.pipeline.bootstrap.cli.do_cli")
     def test_bootstrap_command_flag_arguments(self, do_cli_mock):
         runner: CliRunner = CliRunner()
-        runner.invoke(bootstrap_cmd, args=["--interactive", "--no-create-ecr-repo", "--confirm-changeset"])
+        runner.invoke(bootstrap_cmd, args=["--interactive", "--no-create-image-repository", "--confirm-changeset"])
         args, kwargs = do_cli_mock.call_args
         self.assertTrue(kwargs["interactive"])
-        self.assertFalse(kwargs["create_ecr_repo"])
+        self.assertFalse(kwargs["create_image_repository"])
         self.assertTrue(kwargs["confirm_changeset"])
 
-        runner.invoke(bootstrap_cmd, args=["--no-interactive", "--create-ecr-repo", "--no-confirm-changeset"])
+        runner.invoke(bootstrap_cmd, args=["--no-interactive", "--create-image-repository", "--no-confirm-changeset"])
         args, kwargs = do_cli_mock.call_args
         self.assertFalse(kwargs["interactive"])
-        self.assertTrue(kwargs["create_ecr_repo"])
+        self.assertTrue(kwargs["create_image_repository"])
         self.assertFalse(kwargs["confirm_changeset"])
 
     @patch("samcli.commands.pipeline.bootstrap.cli.do_cli")
