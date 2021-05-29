@@ -2,6 +2,8 @@
 Class containing error conditions that are exposed to the user.
 """
 
+import os
+
 import click
 
 
@@ -72,3 +74,10 @@ class AppPipelineTemplateManifestException(UserException):
     Exception class when SAM is not able to parse the "manifest.yaml" file located in the SAM pipeline templates
     Git repo: "github.com/aws/aws-sam-cli-pipeline-init-templates.git
     """
+
+
+class PipelineFileAlreadyExistsError(UserException):
+    def __init__(self, file_path: os.PathLike) -> None:
+        super().__init__(
+            f'Pipeline file "{file_path}" already exists in project root directory, please remove it first.'
+        )
