@@ -104,6 +104,10 @@ class Question:
         The user provided answer.
         """
         resolved_default_answer = self._resolve_default_answer(context)
+        # if it is an optional question with no default answer,
+        # set an empty default answer to prevent click from keep asking for an answer
+        if not self._required and resolved_default_answer is None:
+            resolved_default_answer = ""
         return click.prompt(text=self._text, default=resolved_default_answer)
 
     def get_next_question_key(self, answer: Any) -> Optional[str]:
