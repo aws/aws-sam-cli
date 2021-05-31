@@ -8,6 +8,8 @@ from samcli.commands.pipeline.init.interactive_init_flow import (
     APP_PIPELINE_TEMPLATES_REPO_LOCAL_NAME,
     shared_path,
     CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME,
+    _prompt_cicd_provider,
+    _prompt_provider_pipeline_template,
 )
 from samcli.commands.pipeline.init.pipeline_templates_manifest import AppPipelineTemplateManifestException
 from samcli.lib.utils.git_repo import CloneRepoException
@@ -292,3 +294,37 @@ class TestInteractiveInitFlow(TestCase):
             extra_context=cookiecutter_context_mock,
             overwrite_if_exists=True,
         )
+
+    @patch("samcli.lib.cookiecutter.question.click")
+    def test_prompt_cicd_provider_will_not_prompt_if_the_list_of_providers_has_only_one_provider(self, click_mock):
+        gitlab_provider = Mock(id="gitlab", display_name="Gitlab CI/CD")
+        providers = [gitlab_provider]
+
+        chosen_provider = _prompt_cicd_provider(providers)
+        click_mock.prompt.assert_not_called()
+        self.assertEqual(chosen_provider, gitlab_provider)
+
+        jenkins_provider = Mock(id="jenkins", display_name="Jenkins")
+        providers.append(jenkins_provider)
+        click_mock.prompt.return_value = "2"
+        chosen_provider = _prompt_cicd_provider(providers)
+        click_mock.prompt.assert_called_once()
+        self.assertEqual(chosen_provider, jenkins_provider)
+
+    @patch("samcli.lib.cookiecutter.question.click")
+    def test_prompt_provider_pipeline_template_will_not_prompt_if_the_list_of_templatess_has_only_one_provider(
+        self, click_mock
+    ):
+        template1 = Mock(display_name="anyName1", location="anyLocation1", provider="a provider")
+        template2 = Mock(display_name="anyName2", location="anyLocation2", provider="a provider")
+        templates = [template1]
+
+        chosen_template = _prompt_provider_pipeline_template(templates)
+        click_mock.prompt.assert_not_called()
+        self.assertEqual(chosen_template, template1)
+
+        templates.append(template2)
+        click_mock.prompt.return_value = "2"
+        chosen_template = _prompt_provider_pipeline_template(templates)
+        click_mock.prompt.assert_called_once()
+        self.assertEqual(chosen_template, template2)
