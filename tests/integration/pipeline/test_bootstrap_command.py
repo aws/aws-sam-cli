@@ -206,7 +206,7 @@ class TestBootstrap(BootstrapIntegBase):
 
     def test_interactive_pipeline_user_only_created_once(self):
         """
-        Create 3 stages, only the first stage resource stack creates
+        Create 3 environments, only the first environment resource stack creates
         a pipeline user, and the remaining two share the same pipeline user.
         """
         env_names = []
@@ -236,7 +236,7 @@ class TestBootstrap(BootstrapIntegBase):
             self.assertEqual(bootstrap_process_execute.process.returncode, 0)
             stdout = bootstrap_process_execute.stdout.decode()
 
-            # only first stage creates pipeline user
+            # Only first environment creates pipeline user
             if i == 0:
                 self.assertIn("We have created the following resources", stdout)
                 self.assertSetEqual(
