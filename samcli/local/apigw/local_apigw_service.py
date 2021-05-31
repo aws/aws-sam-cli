@@ -311,7 +311,7 @@ class LocalApigwService(BaseLocalService):
             return ServiceErrorResponses.lambda_failure_response()
 
         stdout_stream = io.BytesIO()
-        stdout_stream_writer = StreamWriter(stdout_stream, self.is_debugging)
+        stdout_stream_writer = StreamWriter(stdout_stream, auto_flush=True)
 
         try:
             self.lambda_runner.invoke(route.function_name, event, stdout=stdout_stream_writer, stderr=self.stderr)
