@@ -10,7 +10,7 @@ from typing import Dict, List
 import click
 
 from samcli.cli.main import global_cfg
-from samcli.commands.exceptions import PipelineTemplateCloneException
+from samcli.commands.exceptions import PipelineTemplateCloneException, PipelineFileAlreadyExistsError
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.cookiecutter.interactive_flow import InteractiveFlow
 from samcli.lib.cookiecutter.interactive_flow_creator import InteractiveFlowCreator
@@ -225,6 +225,9 @@ def _prompt_cicd_provider(available_providers: List[Provider]) -> Provider:
     Returns:
         The chosen provider
     """
+    if len(available_providers) == 1:
+        return available_providers[0]
+
     question_to_choose_provider = Choice(
         key="provider",
         text="CI/CD provider",
@@ -246,6 +249,8 @@ def _prompt_provider_pipeline_template(
     Returns:
         The chosen pipeline template manifest
     """
+    if len(provider_available_pipeline_templates_metadata) == 1:
+        return provider_available_pipeline_templates_metadata[0]
     question_to_choose_pipeline_template = Choice(
         key="pipeline-template",
         text="Which pipeline template would you like to use?",
@@ -291,10 +296,3 @@ def _get_pipeline_template_interactive_flow(pipeline_template_dir: Path) -> Inte
     """
     flow_definition_path: Path = pipeline_template_dir.joinpath("questions.json")
     return InteractiveFlowCreator.create_flow(str(flow_definition_path))
-
-
-class PipelineFileAlreadyExistsError(Exception):
-    def __init__(self, file_path: os.PathLike) -> None:
-        Exception.__init__(
-            self, f'Pipeline file "{file_path}" already exists in project root directory, please remove it first.'
-        )

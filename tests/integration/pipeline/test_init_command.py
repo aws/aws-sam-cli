@@ -6,7 +6,6 @@ from tests.testing_utils import run_command_with_inputs
 QUICK_START_JENKINS_INPUTS = [
     "1",  # quick start
     "1",  # jenkins, this depends on the template repo.
-    "1",  # two stage pipeline, this depends on the template repo.
     "credential-id",
     "main",
     "template.yaml",

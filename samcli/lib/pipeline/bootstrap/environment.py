@@ -7,6 +7,7 @@ from typing import Dict, List, Optional
 import click
 
 from samcli.lib.config.samconfig import SamConfig
+from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.managed_cloudformation_stack import manage_stack, StackOutput
 from .resource import Resource, IAMUser, ECRImageRepository
 
@@ -94,6 +95,7 @@ class Environment:
         self.artifacts_bucket: Resource = Resource(arn=artifacts_bucket_arn)
         self.create_image_repository: bool = create_image_repository
         self.image_repository: ECRImageRepository = ECRImageRepository(arn=image_repository_arn)
+        self.color = Colored()
 
     def did_user_provide_all_required_resources(self) -> bool:
         """Check if the user provided all of the environment resources or not"""
@@ -138,7 +140,7 @@ class Environment:
 
         if self.did_user_provide_all_required_resources():
             click.secho(
-                f"\nAll required resources for the {self.name} environment exist, skipping creation.", fg="yellow"
+                self.color.yellow(f"\nAll required resources for the {self.name} environment exist, skipping creation.")
             )
             return True
 
@@ -150,6 +152,7 @@ class Environment:
         if confirm_changeset:
             confirmed: bool = click.confirm("Should we proceed with the creation?")
             if not confirmed:
+                click.secho(self.color.red("Canceling pipeline bootstrap creation."))
                 return False
 
         environment_resources_template_body = Environment._read_template(ENVIRONMENT_RESOURCES_CFN_TEMPLATE)
@@ -272,28 +275,30 @@ class Environment:
                 created_resources.append(resource)
 
         if created_resources:
-            click.secho("\nWe have created the following resources:", fg="green")
+            click.secho(self.color.green("\nWe have created the following resources:"))
             for resource in created_resources:
                 click.secho(f"\t{resource.arn}", fg="green")
 
         if provided_resources:
             click.secho(
-                "\nYou provided the following resources. Please make sure it has the required permissions as shown at "
-                "https://github.com/aws/aws-sam-cli/blob/develop/"
-                "samcli/lib/pipeline/bootstrap/environment_resources.yaml",
-                fg="green",
+                self.color.green(
+                    "\nYou provided the following resources. Please make sure it has the required permissions "
+                    "as shown at https://github.com/aws/aws-sam-cli/blob/develop/"
+                    "samcli/lib/pipeline/bootstrap/environment_resources.yaml",
+                )
             )
             for resource in provided_resources:
-                click.secho(f"\t{resource.arn}", fg="green")
+                click.secho(self.color.green(f"\t{resource.arn}"))
 
         if not self.pipeline_user.is_user_provided:
             click.secho(
-                "Please configure your CI/CD project with the following pipeline user credentials and "
-                "make sure to periodically rotate it:",
-                fg="green",
+                self.color.green(
+                    "Please configure your CI/CD project with the following pipeline user credentials and "
+                    "make sure to periodically rotate it:",
+                )
             )
-            click.secho(f"\tACCESS_KEY_ID: {self.pipeline_user.access_key_id}", fg="green")
-            click.secho(f"\tSECRET_ACCESS_KEY: {self.pipeline_user.secret_access_key}", fg="green")
+            click.secho(self.color.green(f"\tACCESS_KEY_ID: {self.pipeline_user.access_key_id}"))
+            click.secho(self.color.green(f"\tSECRET_ACCESS_KEY: {self.pipeline_user.secret_access_key}"))
 
     def _get_stack_name(self) -> str:
         sanitized_environment_name: str = re.sub("[^0-9a-zA-Z]+", "-", self.name)
