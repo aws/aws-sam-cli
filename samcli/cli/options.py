@@ -20,14 +20,8 @@ def debug_option(f):
         state.debug = value
         return value
 
-    # NOTE: --debug option should be eager to be evaluated before other parameters and to set log level to DEBUG
-    # before any other option/parameter processing will require to output debug info.
-    # Otherwise parameters are evaluated according to their order and if --debug is specified at the end of the command
-    # some debug output can be lost
-    # https://click.palletsprojects.com/en/7.x/advanced/#callback-evaluation-order
     return click.option(
         "--debug",
-        is_eager=True,
         expose_value=False,
         is_flag=True,
         envvar="SAM_DEBUG",
