@@ -74,6 +74,10 @@ def print_cmdline_args(func):
     """
 
     def wrapper(*args, **kwargs):
+        if kwargs.get("config_file") and kwargs.get("config_env"):
+            config_file = kwargs["config_file"]
+            config_env = kwargs["config_env"]
+            LOG.debug("Using config file: %s, config environment: %s", config_file, config_env)
         LOG.debug("Expand command line arguments to:")
         cmdline_args_log = ""
         for key, value in kwargs.items():
@@ -111,17 +115,8 @@ def cli(ctx):
 
     The AWS Serverless Application Model extends AWS CloudFormation to provide a simplified way of defining the
     Amazon API Gateway APIs, AWS Lambda functions, and Amazon DynamoDB tables needed by your serverless application.
-
-    SAM CLI commands run in the project root directory which is the directory with SAM template file
-    (template.{yml|yaml|json}). If no template file is specified explicitly, SAM CLI looks it up in the current
-    working directory (where SAM CLI is running).
-
-    SAM CLI options can be either passed directly to the commands and/or stored in the config file (samconfig.toml),
-    which is expected to be in the project root directory by default. It is also possible to specify a custom directory
-    for the config file if necessary.
-
-    More in-depth guide about the SAM specification:
-    https://github.com/aws/serverless-application-model.
+    You can find more in-depth guide about the SAM specification here:
+    https://github.com/awslabs/serverless-application-model.
     """
     if global_cfg.telemetry_enabled is None:
         enabled = True
