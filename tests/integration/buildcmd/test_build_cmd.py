@@ -1,34 +1,32 @@
-"""
-Integration tests for Build comand
-"""
-
-import logging
-import os
-import random
+import re
 import shutil
 import sys
-from pathlib import Path
+import os
+import logging
+import random
 from unittest import skipIf
+from pathlib import Path
+from parameterized import parameterized, parameterized_class
+from subprocess import Popen, PIPE, TimeoutExpired
 
 import pytest
-from parameterized import parameterized, parameterized_class
-from samcli.lib.utils import osutils
-from tests.testing_utils import (
-    CI_OVERRIDE,
-    IS_WINDOWS,
-    RUNNING_ON_CI,
-    SKIP_DOCKER_MESSAGE,
-    SKIP_DOCKER_TESTS,
-    run_command,
-)
 
+from samcli.lib.utils import osutils
 from .build_integ_base import (
     BuildIntegBase,
-    BuildIntegRubyBase,
-    CachedBuildIntegBase,
     DedupBuildIntegBase,
-    IntrinsicIntegBase,
+    CachedBuildIntegBase,
+    BuildIntegRubyBase,
     NestedBuildIntegBase,
+    IntrinsicIntegBase,
+)
+from tests.testing_utils import (
+    IS_WINDOWS,
+    RUNNING_ON_CI,
+    CI_OVERRIDE,
+    run_command,
+    SKIP_DOCKER_TESTS,
+    SKIP_DOCKER_MESSAGE,
 )
 
 LOG = logging.getLogger(__name__)
@@ -190,8 +188,8 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
         LOG.info(cmdlist)
         process_execute = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(1, process_execute.process.returncode)
-        output = "\n".join(process_execute.stdout.decode("utf-8").strip().splitlines())
-        self.assertIn("Build Failed", output)
+
+        self.assertIn("Build Failed", str(process_execute.stdout))
 
 
 @skipIf(
@@ -1143,8 +1141,7 @@ class TestBuildWithBuildMethod(BuildIntegBase):
         # This will error out.
         command = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command.process.returncode, 1)
-        output = "\n".join(command.stdout.decode("utf-8").strip().splitlines())
-        self.assertIn("Build Failed", output)
+        self.assertEqual(command.stdout.strip(), b"Build Failed")
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
 

@@ -1,15 +1,13 @@
-"""
-Integration tests for init command
-"""
-import os
-import shutil
-import tempfile
-from pathlib import Path
-from subprocess import PIPE, Popen, TimeoutExpired
 from unittest import TestCase
 
 from parameterized import parameterized
+from subprocess import Popen, TimeoutExpired, PIPE
+import os
+import shutil
+import tempfile
 from samcli.lib.utils.packagetype import IMAGE, ZIP
+
+from pathlib import Path
 
 TIMEOUT = 300
 
@@ -227,7 +225,7 @@ Must provide one of the following required parameter combinations:
 You can also re-run without the --no-interactive flag to be prompted for required values.
             """
 
-            self.assertIn(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertEqual(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
 
     def test_init_command_no_interactive_apptemplate_location(self):
         stderr = None
@@ -265,7 +263,7 @@ You can run 'sam init' without any options for an interactive initialization flo
     --location
                         """
 
-            self.assertIn(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertEqual(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
 
     def test_init_command_no_interactive_runtime_location(self):
         stderr = None
@@ -303,7 +301,7 @@ You can run 'sam init' without any options for an interactive initialization flo
     --location
                         """
 
-            self.assertIn(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertEqual(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
 
     def test_init_command_no_interactive_base_image_location(self):
         stderr = None
@@ -341,7 +339,7 @@ You can run 'sam init' without any options for an interactive initialization flo
     --location
                         """
 
-            self.assertIn(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertEqual(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
 
     def test_init_command_no_interactive_base_image_no_dependency(self):
         stderr = None
@@ -381,7 +379,7 @@ Must provide one of the following required parameter combinations:
 You can also re-run without the --no-interactive flag to be prompted for required values.
                         """
 
-            self.assertIn(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertEqual(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
 
     def test_init_command_no_interactive_packagetype_location(self):
         stderr = None
@@ -419,7 +417,7 @@ You can run 'sam init' without any options for an interactive initialization flo
     --location
                         """
 
-            self.assertIn(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertEqual(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
 
     def test_init_command_no_interactive_base_image_no_packagetype(self):
         stderr = None
@@ -457,7 +455,7 @@ Must provide one of the following required parameter combinations:
 You can also re-run without the --no-interactive flag to be prompted for required values.
                         """
 
-            self.assertIn(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertEqual(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
 
     def test_init_command_wrong_packagetype(self):
         stderr = None
@@ -491,7 +489,7 @@ Error: Invalid value for '-p' / '--package-type': invalid choice: WrongPT. (choo
                 _get_command()
             )
 
-            self.assertIn(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertEqual(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
 
 
 class TestInitWithArbitraryProject(TestCase):
