@@ -1,20 +1,21 @@
 """
 Classes representing a local Lambda runtime
 """
-
+import copy
 import os
 import shutil
 import tempfile
 import signal
 import logging
 import threading
-from typing import Optional
+from typing import Optional, Union, Dict
 
 from samcli.local.docker.lambda_container import LambdaContainer
 from samcli.lib.utils.file_observer import LambdaFunctionObserver
 from samcli.lib.utils.packagetype import ZIP
 from samcli.lib.telemetry.metric import capture_parameter
 from .zip import unzip
+from ...lib.providers.provider import LayerVersion
 from ...lib.utils.stream_writer import StreamWriter
 
 LOG = logging.getLogger(__name__)
@@ -68,6 +69,7 @@ class LambdaRuntime:
         env_vars = function_config.env_vars.resolve()
 
         code_dir = self._get_code_dir(function_config.code_abs_path)
+        layers = [self._unarchived_layer(layer) for layer in function_config.layers]
         container = LambdaContainer(
             function_config.runtime,
             function_config.imageuri,
@@ -75,7 +77,7 @@ class LambdaRuntime:
             function_config.packagetype,
             function_config.imageconfig,
             code_dir,
-            function_config.layers,
+            layers,
             self._image_builder,
             memory_mb=function_config.memory,
             env_vars=env_vars,
@@ -250,9 +252,9 @@ class LambdaRuntime:
         timer.start()
         return timer
 
-    def _get_code_dir(self, code_path):
+    def _get_code_dir(self, code_path: str) -> str:
         """
-        Method to get a path to a directory where the Lambda function code is available. This directory will
+        Method to get a path to a directory where the function/layer code is available. This directory will
         be mounted directly inside the Docker container.
 
         This method handles a few different cases for ``code_path``:
@@ -274,12 +276,33 @@ class LambdaRuntime:
         """
 
         if code_path and os.path.isfile(code_path) and code_path.endswith(self.SUPPORTED_ARCHIVE_EXTENSIONS):
-            decompressed_dir = _unzip_file(code_path)
+            decompressed_dir: str = _unzip_file(code_path)
             self._temp_uncompressed_paths_to_be_cleaned += [decompressed_dir]
             return decompressed_dir
 
         LOG.debug("Code %s is not a zip/jar file", code_path)
         return code_path
+
+    def _unarchived_layer(self, layer: Union[str, Dict, LayerVersion]) -> Union[str, Dict, LayerVersion]:
+        """
+        If the layer's content uri points to a supported local archive file, use self._get_code_dir() to
+        un-archive it and so that it can be mounted directly inside the Docker container.
+        Parameters
+        ----------
+        layer
+            a str, dict or a LayerVersion object representing a layer
+
+        Returns
+        -------
+            as it is (if no archived file is identified)
+            or a LayerVersion with ContentUri pointing to an unarchived directory
+        """
+        if isinstance(layer, LayerVersion) and isinstance(layer.codeuri, str):
+            unarchived_layer = copy.deepcopy(layer)
+            unarchived_layer.codeuri = self._get_code_dir(layer.codeuri)
+            return unarchived_layer if unarchived_layer.codeuri != layer.codeuri else layer
+
+        return layer
 
     def _clean_decompressed_paths(self):
         """
