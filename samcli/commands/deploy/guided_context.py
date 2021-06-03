@@ -127,11 +127,14 @@ class GuidedContext:
             f"\t{self.start_bold}Stack Name{self.end_bold}", default=default_stack_name, type=click.STRING
         )
         region = prompt(f"\t{self.start_bold}AWS Region{self.end_bold}", default=default_region, type=click.STRING)
+        global_parameter_overrides = {"AWS::Region": region}
         input_parameter_overrides = self.prompt_parameters(
             parameter_override_keys, self.parameter_overrides_from_cmdline, self.start_bold, self.end_bold
         )
         stacks, _ = SamLocalStackProvider.get_stacks(
-            self.template_file, parameter_overrides=sanitize_parameter_overrides(input_parameter_overrides)
+            self.template_file,
+            parameter_overrides=sanitize_parameter_overrides(input_parameter_overrides),
+            global_parameter_overrides=global_parameter_overrides,
         )
         image_repositories = self.prompt_image_repository(stacks)
 

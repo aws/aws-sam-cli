@@ -134,6 +134,7 @@ class TestSamConfigForAllCommands(TestCase):
             self.assertIsNone(result.exception)
 
             do_cli_mock.assert_called_with(
+                ANY,
                 "foo",
                 str(Path(os.getcwd(), "mytemplate.yaml")),
                 "basedir",
@@ -186,6 +187,7 @@ class TestSamConfigForAllCommands(TestCase):
             self.assertIsNone(result.exception)
 
             do_cli_mock.assert_called_with(
+                ANY,
                 "foo",
                 str(Path(os.getcwd(), "mytemplate.yaml")),
                 "basedir",
@@ -237,6 +239,7 @@ class TestSamConfigForAllCommands(TestCase):
             self.assertIsNone(result.exception)
 
             do_cli_mock.assert_called_with(
+                ANY,
                 "foo",
                 str(Path(os.getcwd(), "mytemplate.yaml")),
                 "basedir",
