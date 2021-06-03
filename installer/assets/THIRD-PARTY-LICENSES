@@ -1,17 +1,17 @@
-** arrow; version 0.15.5 -- https://pypi.org/project/arrow/
-** aws-lambda-builders; version 1.1.0 --
+** arrow; version 1.1.0 -- https://pypi.org/project/arrow/
+** aws-lambda-builders; version 1.4.0 --
 https://pypi.org/project/aws-sam-translator/
-** aws-sam-translator; version 1.28.1 --
+** aws-sam-translator; version 1.36.0 --
 https://pypi.org/project/aws-sam-translator/
-** boto3; version 1.14.27 -- https://pypi.org/project/boto3/
-** botocore; version 1.17.27 -- https://github.com/boto/botocore
+** boto3; version 1.17.86 -- https://pypi.org/project/boto3/
+** botocore; version 1.20.86 -- https://github.com/boto/botocore
 ** docker; version 4.2.2 -- https://pypi.org/project/docker/
-** Importlib-metadata; version 1.6.0 --
+** Importlib-metadata; version 4.4.0 --
 https://importlib-metadata.readthedocs.io/en/latest/
-** python-request; version 2.23.0 --
-https://pypi.python.org/pypi/requests/2.23.0
-** s3transfer; version 0.3.3 -- https://github.com/boto/s3transfer
-** serverlessrepo; version 0.1.9 -- https://pypi.org/project/serverlessrepo/
+** python-request; version 2.25.1 --
+https://pypi.python.org/pypi/requests/2.25.1
+** s3transfer; version 0.4.2 -- https://github.com/boto/s3transfer
+** serverlessrepo; version 0.1.10 -- https://pypi.org/project/serverlessrepo/
 
 Apache License
 
@@ -345,7 +345,7 @@ limitations under the License.
 
 ------
 
-** text_unidecode; version 1.2 -- https://github.com/kmike/text-unidecode/
+** text_unidecode; version 1.3 -- https://github.com/kmike/text-unidecode/
 Mikhail Korobov
 
                          The "Artistic License"
@@ -504,7 +504,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ------
 
-** dateparser; version 0.7.4 -- https://pypi.org/project/dateparser/
+** dateparser; version 0.7.6 -- https://pypi.org/project/dateparser/
 Copyright (c) 2014, Scrapinghub
 All rights reserved.
 
@@ -535,7 +535,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ------
 
-** dateutil; version 2.8.0 -- https://github.com/dateutil/dateutil/tree/2.8.0
+** dateutil; version 2.8.1 -- https://github.com/dateutil/dateutil/tree/2.8.0
 Copyright 2017- Paul Ganssle <paul@ganssle.io>
 Copyright 2017- dateutil contributors (see AUTHORS file)
 
@@ -594,7 +594,7 @@ The above BSD License Applies to all code, even that also covered by Apache
 
 ------
 
-** cookiecutter; version 1.6.0 -- https://pypi.org/project/cookiecutter/
+** cookiecutter; version 1.7.3 -- https://pypi.org/project/cookiecutter/
 Copyright (c) 2013-2017, Audrey Roy
 All rights reserved.
 
@@ -630,7 +630,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 ------
 
-** idna; version 2.9 -- https://github.com/kjd/idna
+** idna; version 2.10 -- https://github.com/kjd/idna
 Copyright (c) 2013-2020, Kim Davies. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -663,7 +663,7 @@ modification, are permitted provided that the following conditions are met:
 
 ------
 
-** MarkupSafe; version 1.1.1 -- https://palletsprojects.com/p/markupsafe/
+** MarkupSafe; version 2.0.1 -- https://palletsprojects.com/p/markupsafe/
 Copyright 2010 Pallets
 
 Copyright 2010 Pallets
@@ -697,11 +697,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ------
 
-** click; version 7.1.1 -- https://click.palletsprojects.com/en/7.x/
+** click; version 7.1.2 -- https://click.palletsprojects.com/en/7.x/
 Copyright 2014 Pallets
-** Flask; version 1.0.4 -- https://pypi.org/project/Flask/
+** Flask; version 1.1.4 -- https://pypi.org/project/Flask/
 Copyright 2010 Pallets
-** jinja2; version 2.11.1 -- https://github.com/pallets/jinja
+** jinja2; version 2.11.3 -- https://github.com/pallets/jinja
 Copyright 2007 Pallets
 ** Werkzeug; version 1.0.1 -- https://pypi.org/project/Werkzeug/
 Copyright 2007 Pallets
@@ -1411,7 +1411,7 @@ Apache License 2.0
 
 ------
 
-** websocket-client; version 0.57.0 --
+** websocket-client; version 1.0.1 --
 https://github.com/websocket-client/websocket-client
 Copyright (C) 2010 Hiroki Ohtani(liris)
 
@@ -1433,7 +1433,7 @@ Copyright (C) 2010 Hiroki Ohtani(liris)
 
 ------
 
-** python-chardet; version 3.0.4 -- https://pypi.org/project/chardet/
+** python-chardet; version 4.0.0 -- https://pypi.org/project/chardet/
 The Initial Developer of the Original Code is Netscape Communications
 Corporation. Portions created by the Initial Developer are Copyright (C) 1998
 the Initial Developer. All Rights Reserved.
@@ -2464,7 +2464,7 @@ That's all there is to it!
 
 ------
 
-** chevron; version 0.13.1 -- https://pypi.org/project/chevron/
+** chevron; version 0.14.0 -- https://pypi.org/project/chevron/
 Copyright (c) 2014 Noah Morrison
 ** future; version 0.18.2 -- https://pypi.org/project/future/
 Copyright (c) 2013-2016 Python Charmers Pty Ltd, Australia
@@ -2474,24 +2474,24 @@ Copyright (c) 2015 Raphael Pierzina
 Copyright (c) 2013 Julian Berman
 ** poyo; version 0.5.0 -- https://pypi.org/project/poyo/
 Copyright (c) 2015 Raphael Pierzina
-** pyrsistent; version 0.16.0 -- https://github.com/tobgu/pyrsistent
+** pyrsistent; version 0.17.3 -- https://github.com/tobgu/pyrsistent
 Copyright (c) 2019 Tobias Gustafsson
-** python-six; version 1.15.0 -- https://github.com/JioCloud/python-six
+** python-six; version 1.16.0 -- https://github.com/JioCloud/python-six
 Copyright (c) 2010-2020 Benjamin Peterson
-** python-urllib3; version 1.25.8 -- https://github.com/shazow/urllib3
+** python-urllib3; version 1.26.5 -- https://github.com/shazow/urllib3
 Copyright (c) 2008-2020 Andrey Petrov and contributors (see CONTRIBUTORS.txt)
-** pytz; version 2019.3 -- https://pypi.org/project/pytz/
+** pytz; version 2021.1 -- https://pypi.org/project/pytz/
 Copyright (c) 2003-2019 Stuart Bishop <stuart@stuartbishop.net>
-** pyyaml; version 5.3.1 -- http://pyyaml.org/
+** pyyaml; version 5.4.1 -- http://pyyaml.org/
 Copyright (c) 2006 Kirill Simonov
-** setuptools; version 46.1.3 --
+** setuptools; version 47.1.0 --
 https://github.com/pypa/setuptools/tree/v46.1.3
 Copyright (C) 2016 Jason R Coombs <jaraco@jaraco.com>
-** tomlkit; version 0.5.8 -- https://pypi.org/project/tomlkit/
+** tomlkit; version 0.7.0 -- https://pypi.org/project/tomlkit/
 Copyright (c) 2018 Sébastien Eustace
-** tzlocal; version 2.0.0 -- https://pypi.org/project/tzlocal/
+** tzlocal; version 2.1.0 -- https://pypi.org/project/tzlocal/
 Copyright 2011-2017 Lennart Regebro
-** zipp; version 3.1.0 -- https://github.com/jaraco/zipp
+** zipp; version 3.4.1 -- https://github.com/jaraco/zipp
 Copyright Jason R. Coombs
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -2501,20 +2501,20 @@ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 
 ------
 
-** jmespath; version 0.9.5 -- https://pypi.org/project/jmespath/
+** jmespath; version 0.10.0 -- https://pypi.org/project/jmespath/
 Copyright (c) 2013 Amazon.com, Inc. or its affiliates.  All Rights Reserved
 
 Copyright (c) 2013 Amazon.com, Inc. or its affiliates.  All Rights Reserved
@@ -2540,9 +2540,9 @@ IN THE SOFTWARE.
 
 ------
 
-** attrs; version 19.3.0 -- https://pypi.org/project/attrs/
+** attrs; version 21.2.0 -- https://pypi.org/project/attrs/
 Copyright (c) 2015 Hynek Schlawack
-** wheel; version 0.34.2 -- https://github.com/pypa/wheel
+** wheel; version 0.36.2 -- https://github.com/pypa/wheel
 "wheel" copyright (c) 2012-2014 Daniel Holth <dholth@fastmail.fm> and
 contributors.
 
@@ -2570,7 +2570,7 @@ SOFTWARE.
 
 ------
 
-** certifi; version 2020.4.5.1 -- https://github.com/certifi/python-certifi/
+** certifi; version 2021.5.30 -- https://github.com/certifi/python-certifi/
 (c) 1999 VeriSign, Inc.
 (c) 2007 GeoTrust Inc.
 (c) 2006 VeriSign, Inc.
@@ -2939,7 +2939,7 @@ Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
 
 ------
 
-** python; version 3.6.x, 3.7.x -- https://www.python.org/
+** python; version 3.6.x, 3.7.x, 3.8.x -- https://www.python.org/
 Copyright (c) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011,
 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019 Python Software Foundation.  All
 rights reserved.
@@ -3124,7 +3124,7 @@ THIS SOFTWARE.
 
 ------
 
-** regex; version 2020.4.4 -- https://pypi.org/project/regex/
+** regex; version 2021.4.4 -- https://pypi.org/project/regex/
 Copyright 2019 Matthew Barnett
 
 ** Matthew Barnett - https://bitbucket.org/mrabarnett/mrab-regex/src/default/
