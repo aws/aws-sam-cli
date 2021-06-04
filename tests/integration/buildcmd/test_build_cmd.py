@@ -2011,8 +2011,7 @@ class TestBuildSAR(BuildIntegBase):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         cmdlist = self.get_command_list(
-            use_container=use_container,
-            region="us-east-2"  # the !FindInMap contains an entry for use-east-2 region
+            use_container=use_container, region="us-east-2"  # the !FindInMap contains an entry for use-east-2 region
         )
         LOG.info("Running Command: %s", cmdlist)
         LOG.info(self.working_dir)
@@ -2027,4 +2026,4 @@ class TestBuildSAR(BuildIntegBase):
         LOG.info(self.working_dir)
         process_execute = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(process_execute.process.returncode, 1)
-        self.assertIn("Property \\\'ApplicationId\\\' cannot be resolved.", str(process_execute.stderr))
+        self.assertIn("Property \\'ApplicationId\\' cannot be resolved.", str(process_execute.stderr))
