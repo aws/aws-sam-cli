@@ -10,6 +10,7 @@ from samcli.lib.observability.cw_logs.cw_log_formatters import (
     CWColorizeErrorsFormatter,
     CWKeywordHighlighterFormatter,
     CWJsonFormatter,
+    CWAddNewLineIfItDoesntExist,
 )
 
 
@@ -118,3 +119,38 @@ class TestCWJsonFormatter(TestCase):
 
         result = self.formatter.map(event)
         self.assertEqual(result.message, input_msg)
+
+
+class TestCWAddNewLineIfItDoesntExist(TestCase):
+    def setUp(self) -> None:
+        self.formatter = CWAddNewLineIfItDoesntExist()
+
+    @parameterized.expand(
+        [
+            (CWLogEvent("log_group", {"message": "input"}),),
+            (CWLogEvent("log_group", {"message": "input\n"}),),
+        ]
+    )
+    def test_cw_log_event(self, log_event):
+        mapped_event = self.formatter.map(log_event)
+        self.assertEqual(mapped_event.message, "input\n")
+
+    @parameterized.expand(
+        [
+            ("input",),
+            ("input\n",),
+        ]
+    )
+    def test_str_event(self, str_event):
+        mapped_event = self.formatter.map(str_event)
+        self.assertEqual(mapped_event, "input\n")
+
+    @parameterized.expand(
+        [
+            ({"some": "dict"},),
+            (5,),
+        ]
+    )
+    def test_other_events(self, event):
+        mapped_event = self.formatter.map(event)
+        self.assertEqual(mapped_event, event)

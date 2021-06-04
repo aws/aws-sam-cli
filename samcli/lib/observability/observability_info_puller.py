@@ -4,7 +4,9 @@ Interfaces and generic implementations for observability events (like CW logs)
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import List, Optional, Generic, TypeVar, Any
+from typing import List, Optional, Generic, TypeVar, Any, Sequence
+
+from samcli.lib.utils.async_utils import AsyncContext
 
 LOG = logging.getLogger(__name__)
 
@@ -141,3 +143,47 @@ class ObservabilityEventConsumerDecorator(ObservabilityEventConsumer):
             event = mapper.map(event)
         LOG.debug("Calling consumer (%s) for event (%s)", self._consumer, event)
         self._consumer.consume(event)
+
+
+class ObservabilityCombinedPuller(ObservabilityPuller):
+    """
+    A decorator class which will contain multiple ObservabilityPuller instance and pull information from each of them
+    """
+
+    def __init__(self, pullers: Sequence[ObservabilityPuller]):
+        """
+        Parameters
+        ----------
+        pullers : List[ObservabilityPuller]
+            List of pullers which will be managed by this class
+        """
+        self._pullers = pullers
+
+    def tail(self, start_time: Optional[datetime] = None, filter_pattern: Optional[str] = None):
+        """
+        Implementation of ObservabilityPuller.tail method with AsyncContext.
+        It will create tasks by calling tail methods of all given pullers, and execute them in async
+        """
+        async_context = AsyncContext()
+        for puller in self._pullers:
+            LOG.debug("Adding task 'tail' for puller (%s)", puller)
+            async_context.add_async_task(puller.tail, start_time, filter_pattern)
+        LOG.debug("Running all 'tail' tasks in parallel")
+        async_context.run_async()
+
+    def load_time_period(
+        self,
+        start_time: Optional[datetime] = None,
+        end_time: Optional[datetime] = None,
+        filter_pattern: Optional[str] = None,
+    ):
+        """
+        Implementation of ObservabilityPuller.load_time_period method with AsyncContext.
+        It will create tasks by calling load_time_period methods of all given pullers, and execute them in async
+        """
+        async_context = AsyncContext()
+        for puller in self._pullers:
+            LOG.debug("Adding task 'load_time_period' for puller (%s)", puller)
+            async_context.add_async_task(puller.load_time_period, start_time, end_time, filter_pattern)
+        LOG.debug("Running all 'load_time_period' tasks in parallel")
+        async_context.run_async()

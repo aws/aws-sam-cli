@@ -3,274 +3,142 @@ Read and parse CLI args for the Logs Command and setup the context for running t
 """
 
 import logging
+from typing import List, Optional, Set, Any
 
-import boto3
-import botocore
-
+from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 from samcli.commands.exceptions import UserException
-from samcli.commands.logs.console_consumers import CWConsoleEventConsumer
-from samcli.lib.observability.cw_logs.cw_log_formatters import (
-    CWColorizeErrorsFormatter,
-    CWJsonFormatter,
-    CWKeywordHighlighterFormatter,
-    CWPrettyPrintFormatter,
-)
-from samcli.lib.observability.cw_logs.cw_log_group_provider import LogGroupProvider
-from samcli.lib.observability.cw_logs.cw_log_puller import CWLogPuller
-from samcli.lib.observability.observability_info_puller import ObservabilityEventConsumerDecorator
-from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.time import to_utc, parse_date
 
 LOG = logging.getLogger(__name__)
 
 
 class InvalidTimestampError(UserException):
-    pass
-
-
-class LogsCommandContext:
     """
-    Sets up a context to run the Logs command by parsing the CLI arguments and creating necessary objects to be able
-    to fetch and display logs
-
-    This class **must** be used inside a ``with`` statement as follows:
-
-        with LogsCommandContext(**kwargs) as context:
-            context.fetcher.fetch(...)
+    Used to indicate that given date time string is an invalid timestamp
     """
+
+
+def parse_time(time_str: str, property_name: str):
+    """
+    Parse the time from the given string, convert to UTC, and return the datetime object
+
+    Parameters
+    ----------
+    time_str : str
+        The time to parse
+
+    property_name : str
+        Name of the property where this time came from. Used in the exception raised if time is not parseable
+
+    Returns
+    -------
+    datetime.datetime
+        Parsed datetime object
+
+    Raises
+    ------
+    InvalidTimestampError
+        If the string cannot be parsed as a timestamp
+    """
+    if not time_str:
+        return None
+
+    parsed = parse_date(time_str)
+    if not parsed:
+        raise InvalidTimestampError("Unable to parse the time provided by '{}'".format(property_name))
+
+    return to_utc(parsed)
+
+
+class ResourcePhysicalIdResolver:
+    """
+    Wrapper class that is used to extract information about resources which we can tail their logs for given stack
+    """
+
+    # list of resource types that is supported right now for pulling their logs
+    DEFAULT_SUPPORTED_RESOURCES: Set[str] = {AWS_LAMBDA_FUNCTION}
 
     def __init__(
-        self, function_name, stack_name=None, filter_pattern=None, start_time=None, end_time=None, output_file=None
+        self,
+        cfn_resource: Any,
+        stack_name: str,
+        resource_names: Optional[List[str]] = None,
+        supported_resource_types: Optional[Set[str]] = None,
     ):
-        """
-        Initializes the context
-
-        Parameters
-        ----------
-        function_name : str
-            Name of the function to fetch logs for
-
-        stack_name : str
-            Name of the stack where the function is available
-
-        filter_pattern : str
-            Optional pattern to filter the logs by
-
-        start_time : str
-            Fetch logs starting at this time
-
-        end_time : str
-            Fetch logs up to this time
-
-        output_file : str
-            Write logs to this file instead of Terminal
-        """
-
-        self._function_name = function_name
+        self._cfn_resource = cfn_resource
         self._stack_name = stack_name
-        self._filter_pattern = filter_pattern
-        self._start_time = start_time
-        self._end_time = end_time
-        self._output_file = output_file
-        self._output_file_handle = None
+        if resource_names is None:
+            resource_names = []
+        if supported_resource_types is None:
+            supported_resource_types = ResourcePhysicalIdResolver.DEFAULT_SUPPORTED_RESOURCES
+        self._supported_resource_types: Set[str] = supported_resource_types
+        self._resource_names = set(resource_names)
 
-        # No colors when we write to a file. Otherwise use colors
-        self._must_print_colors = not self._output_file
-
-        self._logs_client = boto3.client("logs")
-        self._cfn_client = boto3.client("cloudformation")
-
-    def __enter__(self):
+    def get_resource_information(self, fetch_all_when_no_resource_name_given: bool = True) -> List[Any]:
         """
-        Performs some basic checks and returns itself when everything is ready to invoke a Lambda function.
-
-        Returns
-        -------
-        LogsCommandContext
-            Returns this object
-        """
-
-        self._output_file_handle = self._setup_output_file(self._output_file)
-
-        return self
-
-    def __exit__(self, *args):
-        """
-        Cleanup any necessary opened files
-        """
-
-        if self._output_file_handle:
-            self._output_file_handle.close()
-            self._output_file_handle = None
-
-    @property
-    def fetcher(self):
-        return CWLogPuller(
-            logs_client=self._logs_client,
-            consumer=ObservabilityEventConsumerDecorator(
-                mappers=[
-                    CWColorizeErrorsFormatter(self.colored),
-                    CWJsonFormatter(),
-                    CWKeywordHighlighterFormatter(self.colored, self._filter_pattern),
-                    CWPrettyPrintFormatter(self.colored),
-                ],
-                consumer=CWConsoleEventConsumer(),
-            ),
-            cw_log_group=self.log_group_name,
-            resource_name=self._function_name,
-        )
-
-    @property
-    def start_time(self):
-        return self._parse_time(self._start_time, "start-time")
-
-    @property
-    def end_time(self):
-        return self._parse_time(self._end_time, "end-time")
-
-    @property
-    def log_group_name(self):
-        """
-        Name of the AWS CloudWatch Log Group that we will be querying. It generates the name based on the
-        Lambda Function name and stack name provided.
-
-        Returns
-        -------
-        str
-            Name of the CloudWatch Log Group
-        """
-
-        function_id = self._function_name
-        if self._stack_name:
-            function_id = self._get_resource_id_from_stack(self._cfn_client, self._stack_name, self._function_name)
-            LOG.debug(
-                "Function with LogicalId '%s' in stack '%s' resolves to actual physical ID '%s'",
-                self._function_name,
-                self._stack_name,
-                function_id,
-            )
-
-        return LogGroupProvider.for_lambda_function(function_id)
-
-    @property
-    def colored(self):
-        """
-        Instance of Colored object to colorize strings
-
-        Returns
-        -------
-        samcli.commands.utils.colors.Colored
-        """
-        # No colors if we are writing output to a file
-        return Colored(colorize=self._must_print_colors)
-
-    @property
-    def filter_pattern(self):
-        return self._filter_pattern
-
-    @property
-    def output_file_handle(self):
-        return self._output_file_handle
-
-    @staticmethod
-    def _setup_output_file(output_file):
-        """
-        Open a log file if necessary and return the file handle. This will create a file if it does not exist
+        Returns the list of resource information for the given stack.
 
         Parameters
         ----------
-        output_file : str
-            Path to a file where the logs should be written to
+        fetch_all_when_no_resource_name_given : bool
+            When given, it will fetch all resources if no specific resource name is provided, default value is True
 
         Returns
         -------
-        Handle to the opened log file, if necessary. None otherwise
+        List[StackResourceSummary]
+            List of resource information, which will be used to fetch the logs
         """
-        if not output_file:
-            return None
+        if self._resource_names:
+            return self._fetch_resources_from_stack(self._resource_names)
+        if fetch_all_when_no_resource_name_given:
+            return self._fetch_resources_from_stack()
+        return []
 
-        return open(output_file, "wb")
-
-    @staticmethod
-    def _parse_time(time_str, property_name):
+    def _fetch_resources_from_stack(self, selected_resource_names: Optional[Set[str]] = None) -> List[Any]:
         """
-        Parse the time from the given string, convert to UTC, and return the datetime object
+        Returns list of all resources from given stack name
+        If any resource is not supported, it will discard them
 
         Parameters
         ----------
-        time_str : str
-            The time to parse
-
-        property_name : str
-            Name of the property where this time came from. Used in the exception raised if time is not parseable
+        selected_resource_names : Optional[Set[str]]
+            An optional set of string parameter, which will filter resource names. If none is given, it will be
+            equal to all resource names in stack, which means there won't be any filtering by resource name.
 
         Returns
         -------
-        datetime.datetime
-            Parsed datetime object
-
-        Raises
-        ------
-        samcli.commands.exceptions.UserException
-            If the string cannot be parsed as a timestamp
+        List[StackResourceSummary]
+            List of resource information, which will be used to fetch the logs
         """
-        if not time_str:
-            return None
+        results = []
+        LOG.debug("Getting logical id of the all resources for stack '%s'", self._stack_name)
+        stack_resources = self._get_stack_resources()
 
-        parsed = parse_date(time_str)
-        if not parsed:
-            raise InvalidTimestampError("Unable to parse the time provided by '{}'".format(property_name))
+        if selected_resource_names is None:
+            selected_resource_names = {stack_resource.logical_id for stack_resource in stack_resources}
 
-        return to_utc(parsed)
+        for resource in stack_resources:
+            # if resource name is not selected, continue
+            if resource.logical_id not in selected_resource_names:
+                LOG.debug("Resource (%s) is not selected with given input", resource.logical_id)
+                continue
+            # if resource type is not supported, continue
+            if not self.is_supported_resource(resource.resource_type):
+                LOG.debug(
+                    "Resource (%s) with type (%s) is not supported, skipping",
+                    resource.logical_id,
+                    resource.resource_type,
+                )
+                continue
+            results.append(resource)
+        return results
 
-    @staticmethod
-    def _get_resource_id_from_stack(cfn_client, stack_name, logical_id):
+    def _get_stack_resources(self) -> Any:
         """
-        Given the LogicalID of a resource, call AWS CloudFormation to get physical ID of the resource within
-        the specified stack.
-
-        Parameters
-        ----------
-        cfn_client : boto3.session.Session.client
-            CloudFormation client provided by AWS SDK
-
-        stack_name : str
-            Name of the stack to query
-
-        logical_id : str
-            LogicalId of the resource
-
-        Returns
-        -------
-        str
-            Physical ID of the resource
-
-        Raises
-        ------
-        samcli.commands.exceptions.UserException
-            If the stack or resource does not exist
+        Fetches all resource information for the given stack, response is type of StackResourceSummariesCollection
         """
+        cfn_stack = self._cfn_resource.Stack(self._stack_name)
+        return cfn_stack.resource_summaries.all()
 
-        LOG.debug(
-            "Getting resource's PhysicalId from AWS CloudFormation stack. StackName=%s, LogicalId=%s",
-            stack_name,
-            logical_id,
-        )
-
-        try:
-            response = cfn_client.describe_stack_resource(StackName=stack_name, LogicalResourceId=logical_id)
-
-            LOG.debug("Response from AWS CloudFormation %s", response)
-            return response["StackResourceDetail"]["PhysicalResourceId"]
-
-        except botocore.exceptions.ClientError as ex:
-            LOG.debug(
-                "Unable to fetch resource name from CloudFormation Stack: "
-                "StackName=%s, ResourceLogicalId=%s, Response=%s",
-                stack_name,
-                logical_id,
-                ex.response,
-            )
-
-            # The exception message already has a well formatted error message that we can surface to user
-            raise UserException(str(ex), wrapped_from=ex.response["Error"]["Code"]) from ex
+    def is_supported_resource(self, resource_type: str) -> bool:
+        return resource_type in self._supported_resource_types

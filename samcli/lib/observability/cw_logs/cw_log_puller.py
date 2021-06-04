@@ -6,6 +6,8 @@ import time
 from datetime import datetime
 from typing import Optional, Any
 
+from botocore.exceptions import ClientError
+
 from samcli.lib.observability.cw_logs.cw_log_event import CWLogEvent
 from samcli.lib.observability.observability_info_puller import ObservabilityPuller, ObservabilityEventConsumer
 from samcli.lib.utils.time import to_timestamp, to_datetime
@@ -30,7 +32,7 @@ class CWLogPuller(ObservabilityPuller):
         """
         Parameters
         ----------
-        logs_client: Any
+        logs_client: CloudWatchLogsClient
             boto3 logs client instance
         consumer : ObservabilityEventConsumer
             Consumer instance that will process pulled events
@@ -61,7 +63,22 @@ class CWLogPuller(ObservabilityPuller):
             LOG.debug("Tailing logs from %s starting at %s", self.cw_log_group, str(self.latest_event_time))
 
             counter -= 1
-            self.load_time_period(to_datetime(self.latest_event_time), filter_pattern=filter_pattern)
+            try:
+                self.load_time_period(to_datetime(self.latest_event_time), filter_pattern=filter_pattern)
+            except ClientError as err:
+                error_code = err.response.get("Error", {}).get("Code")
+                if error_code == "ThrottlingException":
+                    # if throttled, increase poll interval by 1 second each time
+                    self._poll_interval += 1
+                    LOG.warning(
+                        "Throttled by CloudWatch Logs API, consider pulling logs for certain resources. "
+                        "Increasing the poll interval time for resource %s to %s seconds",
+                        self.cw_log_group,
+                        self._poll_interval,
+                    )
+                else:
+                    # if error is other than throttling, re-raise it
+                    raise err
 
             # This poll fetched logs. Reset the retry counter and set the timestamp for next poll
             if self.had_data:
@@ -94,10 +111,10 @@ class CWLogPuller(ObservabilityPuller):
             LOG.debug("Fetching logs from CloudWatch with parameters %s", kwargs)
             result = self.logs_client.filter_log_events(**kwargs)
 
-            # Several events will be returned. Yield one at a time
+            # Several events will be returned. Consume one at a time
             for event in result.get("events", []):
                 self.had_data = True
-                cw_event = CWLogEvent(self.cw_log_group, event, self.resource_name)
+                cw_event = CWLogEvent(self.cw_log_group, dict(event), self.resource_name)
 
                 if cw_event.timestamp > self.latest_event_time:
                     self.latest_event_time = cw_event.timestamp

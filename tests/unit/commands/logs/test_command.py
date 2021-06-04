@@ -1,5 +1,7 @@
 from unittest import TestCase
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, call, ANY
+
+from parameterized import parameterized
 
 from samcli.commands.logs.command import do_cli
 
@@ -12,47 +14,103 @@ class TestLogsCliCommand(TestCase):
         self.filter_pattern = "filter"
         self.start_time = "start"
         self.end_time = "end"
+        self.output_dir = "output_dir"
+        self.region = "region"
 
-    @patch("samcli.commands.logs.logs_context.LogsCommandContext")
-    def test_without_tail(self, logs_command_context_mock):
-        tailing = False
+    @parameterized.expand(
+        [
+            (
+                True,
+                [],
+            ),
+            (
+                False,
+                [],
+            ),
+            (
+                True,
+                ["cw_log_group"],
+            ),
+            (
+                False,
+                ["cw_log_group", "cw_log_group2"],
+            ),
+        ]
+    )
+    @patch("samcli.commands.logs.puller_factory.generate_puller")
+    @patch("samcli.commands.logs.logs_context.ResourcePhysicalIdResolver")
+    @patch("boto3.resource")
+    @patch("samcli.commands.logs.logs_context.parse_time")
+    @patch("samcli.lib.utils.botoconfig.get_boto_config_with_user_agent")
+    def test_logs_command(
+        self,
+        tailing,
+        cw_log_group,
+        patched_config_generator,
+        patched_parse_time,
+        patched_resource,
+        patched_resource_physical_id_resolver,
+        patched_generate_puller,
+    ):
+        mocked_start_time = Mock()
+        mocked_end_time = Mock()
+        patched_parse_time.side_effect = [mocked_start_time, mocked_end_time]
 
-        context_mock = Mock()
-        logs_command_context_mock.return_value.__enter__.return_value = context_mock
+        mocked_cfn_resource = Mock()
+        patched_resource.return_value = mocked_cfn_resource
 
-        do_cli(self.function_name, self.stack_name, self.filter_pattern, tailing, self.start_time, self.end_time)
+        mocked_resource_physical_id_resolver = Mock()
+        mocked_resource_information = Mock()
+        mocked_resource_physical_id_resolver.get_resource_information.return_value = mocked_resource_information
+        patched_resource_physical_id_resolver.return_value = mocked_resource_physical_id_resolver
 
-        logs_command_context_mock.assert_called_with(
+        mocked_puller = Mock()
+        patched_generate_puller.return_value = mocked_puller
+
+        mocked_config = Mock()
+        patched_config_generator.return_value = mocked_config
+
+        do_cli(
             self.function_name,
-            stack_name=self.stack_name,
-            filter_pattern=self.filter_pattern,
-            start_time=self.start_time,
-            end_time=self.end_time,
+            self.stack_name,
+            self.filter_pattern,
+            tailing,
+            self.start_time,
+            self.end_time,
+            cw_log_group,
+            self.output_dir,
+            self.region,
         )
 
-        context_mock.fetcher.load_time_period.assert_called_with(
-            filter_pattern=context_mock.filter_pattern,
-            start_time=context_mock.start_time,
-            end_time=context_mock.end_time,
+        patched_parse_time.assert_has_calls(
+            [
+                call(self.start_time, "start-time"),
+                call(self.end_time, "end-time"),
+            ]
         )
 
-    @patch("samcli.commands.logs.logs_context.LogsCommandContext")
-    def test_with_tailing(self, logs_command_context_mock):
-        tailing = True
+        patched_config_generator.assert_called_with(region_name=self.region)
 
-        context_mock = Mock()
-        logs_command_context_mock.return_value.__enter__.return_value = context_mock
-
-        do_cli(self.function_name, self.stack_name, self.filter_pattern, tailing, self.start_time, self.end_time)
-
-        logs_command_context_mock.assert_called_with(
-            self.function_name,
-            stack_name=self.stack_name,
-            filter_pattern=self.filter_pattern,
-            start_time=self.start_time,
-            end_time=self.end_time,
+        patched_resource.assert_has_calls(
+            [
+                call.resource("cloudformation", config=mocked_config),
+            ]
         )
 
-        context_mock.fetcher.tail.assert_called_with(
-            filter_pattern=context_mock.filter_pattern, start_time=context_mock.start_time
+        patched_resource_physical_id_resolver.assert_called_with(
+            mocked_cfn_resource, self.stack_name, self.function_name
         )
+
+        fetch_param = not bool(len(cw_log_group))
+        mocked_resource_physical_id_resolver.assert_has_calls([call.get_resource_information(fetch_param)])
+
+        patched_generate_puller.assert_called_with(
+            ANY, mocked_resource_information, self.filter_pattern, cw_log_group, self.output_dir
+        )
+
+        if tailing:
+            mocked_puller.assert_has_calls([call.tail(mocked_start_time, self.filter_pattern)])
+        else:
+            mocked_puller.assert_has_calls(
+                [call.load_time_period(mocked_start_time, mocked_end_time, self.filter_pattern)]
+            )

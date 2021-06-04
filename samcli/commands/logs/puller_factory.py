@@ -1,0 +1,175 @@
+"""
+File keeps Factory method to prepare required puller information
+with its producers and consumers
+"""
+import logging
+from typing import List, Optional, Callable, Any
+
+from samcli.commands.exceptions import UserException
+from samcli.commands.logs.console_consumers import CWConsoleEventConsumer
+from samcli.lib.observability.cw_logs.cw_log_consumers import CWFileEventConsumer
+from samcli.lib.observability.cw_logs.cw_log_formatters import (
+    CWColorizeErrorsFormatter,
+    CWJsonFormatter,
+    CWKeywordHighlighterFormatter,
+    CWPrettyPrintFormatter,
+    CWAddNewLineIfItDoesntExist,
+)
+from samcli.lib.observability.cw_logs.cw_log_group_provider import LogGroupProvider
+from samcli.lib.observability.cw_logs.cw_log_puller import CWLogPuller
+from samcli.lib.observability.observability_info_puller import (
+    ObservabilityPuller,
+    ObservabilityEventConsumerDecorator,
+    ObservabilityEventConsumer,
+    ObservabilityCombinedPuller,
+)
+from samcli.lib.utils.colors import Colored
+
+LOG = logging.getLogger(__name__)
+
+
+class NoPullerGeneratedException(UserException):
+    """
+    Used to indicate that no puller information have been generated
+    therefore there is no observability information (logs, xray) to pull
+    """
+
+
+def generate_puller(
+    logs_client_generator: Callable[[], Any],
+    resource_information_list: List[Any],
+    filter_pattern: Optional[str] = None,
+    additional_cw_log_groups: Optional[List[str]] = None,
+    output_dir: Optional[str] = None,
+) -> ObservabilityPuller:
+    """
+    This function will generate generic puller which can be used to
+    pull information from various observability resources.
+
+    Parameters
+    ----------
+    logs_client_generator: Callable[[], CloudWatchLogsClient]
+        CloudWatchLogsClient generator, which will create a new instance of the client with a new session that could be
+        used within different threads/coroutines
+    resource_information_list : List[ResourceInformation]
+        List of resource information, which keeps logical id, physical id and type of the resources
+    filter_pattern : Optional[str]
+        Optional filter pattern which will be used to filter incoming events
+    additional_cw_log_groups : Optional[str]
+        Optional list of additional CloudWatch log groups which will be used to fetch
+        log events from.
+    output_dir : Optional[str]
+        Optional parameter to store output of the events into a file in the given folder
+
+    Returns
+    -------
+        Puller instance that can be used to pull information.
+    """
+    if additional_cw_log_groups is None:
+        additional_cw_log_groups = []
+    pullers = []
+
+    # populate all puller instances for given resources
+    for resource_information in resource_information_list:
+        cw_log_group_name = LogGroupProvider.for_resource(
+            resource_information.resource_type, resource_information.physical_resource_id
+        )
+        if not cw_log_group_name:
+            LOG.warning("Can't find CloudWatch LogGroup name for resource (%s)", resource_information.logical_id)
+            continue
+
+        consumer = generate_consumer(filter_pattern, output_dir, resource_information.logical_id)
+        pullers.append(
+            CWLogPuller(
+                logs_client_generator(),
+                consumer,
+                cw_log_group_name,
+                resource_information.logical_id,
+            )
+        )
+
+    # populate puller instances for the additional CloudWatch log groups
+    for cw_log_group in additional_cw_log_groups:
+        consumer = generate_consumer(filter_pattern, output_dir)
+        pullers.append(
+            CWLogPuller(
+                logs_client_generator(),
+                consumer,
+                cw_log_group,
+            )
+        )
+
+    # if no puller have been collected, raise an exception since there is nothing to pull
+    if not pullers:
+        raise NoPullerGeneratedException("No valid resources find to pull information")
+
+    # return the combined puller instance, which will pull from all pullers collected
+    return ObservabilityCombinedPuller(pullers)
+
+
+def generate_consumer(
+    filter_pattern: Optional[str] = None, output_dir: Optional[str] = None, resource_name: Optional[str] = None
+):
+    """
+    Generates consumer instance with the given variables.
+    If output directory have been provided, then it will return file consumer.
+    If not, it will return console consumer
+    """
+    if output_dir:
+        return generate_file_consumer(output_dir, resource_name)
+
+    return generate_console_consumer(filter_pattern)
+
+
+def generate_file_consumer(
+    output_directory: str,
+    file_prefix: Optional[str],
+) -> ObservabilityEventConsumer:
+    """
+    Creates file event consumer, which is used to store events into a file
+
+    Parameters
+    ----------
+    output_directory : str
+        Output directory where the files will be stored
+    file_prefix : str
+        Prefix of the file, rest of the file name will have unique string
+
+    Returns
+    -------
+        ObservabilityEventConsumer which will store events into a file
+    """
+    return ObservabilityEventConsumerDecorator(
+        [
+            CWJsonFormatter(),
+            CWAddNewLineIfItDoesntExist(),
+        ],
+        CWFileEventConsumer(output_directory, file_prefix),
+    )
+
+
+def generate_console_consumer(filter_pattern: Optional[str]) -> ObservabilityEventConsumer:
+    """
+    Creates a console event consumer, which is used to display events in the user's console
+
+    Parameters
+    ----------
+    filter_pattern : str
+        Filter pattern is used to display certain words in a different pattern then
+        the rest of the messages.
+
+    Returns
+    -------
+        A consumer which will display events into console
+    """
+    colored = Colored()
+    return ObservabilityEventConsumerDecorator(
+        [
+            CWColorizeErrorsFormatter(colored),
+            CWJsonFormatter(),
+            CWKeywordHighlighterFormatter(colored, filter_pattern),
+            CWPrettyPrintFormatter(colored),
+            CWAddNewLineIfItDoesntExist(),
+        ],
+        CWConsoleEventConsumer(),
+    )
