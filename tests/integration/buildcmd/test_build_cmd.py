@@ -23,6 +23,8 @@ from .build_integ_base import (
 from tests.testing_utils import (
     IS_WINDOWS,
     RUNNING_ON_CI,
+    RUNNING_TEST_FOR_MASTER_ON_CI,
+    RUN_BY_CANARY,
     CI_OVERRIDE,
     run_command,
     SKIP_DOCKER_TESTS,
@@ -32,6 +34,9 @@ from tests.testing_utils import (
 LOG = logging.getLogger(__name__)
 
 TIMEOUT = 420  # 7 mins
+
+# SAR tests require credentials. This is to skip running the test where credentials are not available.
+SKIP_SAR_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
 
 @skipIf(
@@ -2001,12 +2006,12 @@ class TestBuildWithZipFunctionsOrLayers(NestedBuildIntegBase):
             )
 
 
+@skipIf(SKIP_SAR_TESTS, "Skip SAR tests")
 class TestBuildSAR(BuildIntegBase):
     template = "aws-serverless-application-with-application-id-map.yaml"
 
     @parameterized.expand(["use_container", (False,)])
     @pytest.mark.flaky(reruns=3)
-    @skip("Temporary skip till we figure out the credeential issue")
     def test_sar_application_with_location_resolved_from_map(self, use_container):
         if use_container and SKIP_DOCKER_TESTS:
             self.skipTest(SKIP_DOCKER_MESSAGE)
