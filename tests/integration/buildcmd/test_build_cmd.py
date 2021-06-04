@@ -1999,3 +1999,32 @@ class TestBuildWithZipFunctionsOrLayers(NestedBuildIntegBase):
                 [""],  # there is only one stack
                 command_result,
             )
+
+
+class TestBuildSAR(BuildIntegBase):
+    template = "aws-serverless-application-with-application-id-map.yaml"
+
+    @parameterized.expand(["use_container", (False,)])
+    @pytest.mark.flaky(reruns=3)
+    def test_sar_application_with_location_resolved_from_map(self, use_container):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        cmdlist = self.get_command_list(
+            use_container=use_container,
+            region="us-east-2"  # the !FindInMap contains an entry for use-east-2 region
+        )
+        LOG.info("Running Command: %s", cmdlist)
+        LOG.info(self.working_dir)
+        process_execute = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(process_execute.process.returncode, 0)
+
+        # Now remove the region (use SAM CLI default us-east-1) and expect the build to fail as there is no mapping
+        cmdlist = self.get_command_list(
+            use_container=use_container,
+        )
+        LOG.info("Running Command: %s", cmdlist)
+        LOG.info(self.working_dir)
+        process_execute = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(process_execute.process.returncode, 1)
+        self.assertIn("Property \\\'ApplicationId\\\' cannot be resolved.", str(process_execute.stderr))

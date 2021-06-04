@@ -1,20 +1,22 @@
 import os
 import shutil
 import tempfile
-import uuid
 import time
+import uuid
+from pathlib import Path
 from unittest import skipIf
 
 import boto3
 import docker
+from botocore.config import Config
 from parameterized import parameterized
 
-from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
+from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.integration.package.package_integ_base import PackageIntegBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
-from tests.testing_utils import CommandResult, run_command, run_command_with_input
+from tests.testing_utils import run_command, run_command_with_input
 
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
@@ -49,6 +51,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         self.cf_client = boto3.client("cloudformation")
         self.sns_arn = os.environ.get("AWS_SNS")
         self.stack_names = []
+        self.stack_names_with_regions = []
         time.sleep(CFN_SLEEP)
         super().setUp()
 
@@ -58,6 +61,15 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             # because of the termination protection, do not delete aws-sam-cli-managed-default stack
             if stack_name != SAM_CLI_STACK_NAME:
                 self.cf_client.delete_stack(StackName=stack_name)
+        for stack_name_with_region in self.stack_names_with_regions:
+            # because of the termination protection, do not delete aws-sam-cli-managed-default stack
+            stack_name = stack_name_with_region['stack_name']
+            if stack_name != SAM_CLI_STACK_NAME:
+                cf_client = self.cf_client
+                region = stack_name_with_region['region']
+                if region:
+                    cf_client = boto3.client("cloudformation", config=Config(region_name=region))
+                cf_client.delete_stack(StackName=stack_name)
         super().tearDown()
 
     @parameterized.expand(["aws-serverless-function.yaml"])
@@ -726,6 +738,52 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             self.assertEqual(deploy_process_execute.process.returncode, 0)
         else:
             self.assertEqual(deploy_process_execute.process.returncode, 1)
+
+    @parameterized.expand([
+        ("aws-serverless-application-with-application-id-map.yaml", None, False),
+        ("aws-serverless-application-with-application-id-map.yaml", "us-east-2", True),
+    ])
+    def test_deploy_sar_with_location_from_map(self, template_file, region, will_succeed):
+        template_path = Path(__file__).resolve().parents[1].joinpath("testdata", "buildcmd", template_file)
+        stack_name = self._method_to_stack_name(self.id())
+        self.stack_names_with_regions.append({'stack_name': stack_name, 'region': region})
+
+        # The default region (us-east-1) has no entry in the map
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities_list=["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
+            region=region  # the !FindInMap has an entry for use-east-2 region only
+        )
+        deploy_process_execute = run_command(deploy_command_list)
+
+        if will_succeed:
+            self.assertEqual(deploy_process_execute.process.returncode, 0)
+        else:
+            self.assertEqual(deploy_process_execute.process.returncode, 1)
+            self.assertIn("Property \\\'ApplicationId\\\' cannot be resolved.", str(deploy_process_execute.stderr))
+
+    @parameterized.expand([
+        ("aws-serverless-application-with-application-id-map.yaml", None, False),
+        ("aws-serverless-application-with-application-id-map.yaml", "us-east-2", True),
+    ])
+    def test_deploy_guided_sar_with_location_from_map(self, template_file, region, will_succeed):
+        template_path = Path(__file__).resolve().parents[1].joinpath("testdata", "buildcmd", template_file)
+        stack_name = self._method_to_stack_name(self.id())
+        self.stack_names_with_regions.append({'stack_name': stack_name, 'region': region})
+
+        # Package and Deploy in one go without confirming change set.
+        deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
+
+        deploy_process_execute = run_command_with_input(
+            deploy_command_list, f"{stack_name}\n{region}\n\nN\nCAPABILITY_IAM CAPABILITY_AUTO_EXPAND\nN\n".encode()
+        )
+
+        if will_succeed:
+            self.assertEqual(deploy_process_execute.process.returncode, 0)
+        else:
+            self.assertEqual(deploy_process_execute.process.returncode, 1)
+            self.assertIn("Property \\\'ApplicationId\\\' cannot be resolved.", str(deploy_process_execute.stderr))
 
     @parameterized.expand(
         [os.path.join("deep-nested", "template.yaml"), os.path.join("deep-nested-image", "template.yaml")]
