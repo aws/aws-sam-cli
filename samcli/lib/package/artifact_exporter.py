@@ -36,7 +36,13 @@ from samcli.lib.package.packageable_resources import (
 )
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Uploaders
-from samcli.lib.package.utils import is_local_folder, make_abs_path, is_s3_url, is_local_file, mktempfile
+from samcli.lib.package.utils import (
+    is_local_folder,
+    make_abs_path,
+    is_local_file,
+    mktempfile,
+    is_s3_url,
+)
 from samcli.lib.utils.packagetype import ZIP
 from samcli.yamlhelper import yaml_parse, yaml_dump
 
@@ -62,12 +68,7 @@ class CloudFormationStackResource(ResourceZip):
 
         template_path = resource_dict.get(self.PROPERTY_NAME, None)
 
-        if (
-            template_path is None
-            or is_s3_url(template_path)
-            or template_path.startswith(self.uploader.s3.meta.endpoint_url)
-            or template_path.startswith("https://s3.amazonaws.com/")
-        ):
+        if template_path is None or is_s3_url(template_path):
             # Nothing to do
             return
 

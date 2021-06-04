@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from samcli.lib.logs.provider import LogGroupProvider
+from samcli.lib.observability.cw_logs.cw_log_group_provider import LogGroupProvider
 
 
 class TestLogGroupProvider_for_lambda_function(TestCase):
