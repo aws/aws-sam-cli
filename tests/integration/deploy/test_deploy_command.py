@@ -675,24 +675,6 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         self.assertEqual(deploy_process_execute.process.returncode, 1)
         self.assertIn("Error reading configuration: Unexpected character", str(deploy_process_execute.stderr))
 
-    @parameterized.expand([("aws-serverless-function.yaml", "samconfig-tags-list.toml")])
-    def test_deploy_with_valid_config_tags_list(self, template_file, config_file):
-        template_path = self.test_data_path.joinpath(template_file)
-        config_path = self.test_data_path.joinpath(config_file)
-
-        deploy_command_list = self.get_deploy_command_list(template_file=template_path, config_file=config_path)
-        deploy_process_execute = run_command(deploy_command_list)
-        self.assertEqual(deploy_process_execute.process.returncode, 0)
-
-    @parameterized.expand([("aws-serverless-function.yaml", "samconfig-tags-string.toml")])
-    def test_deploy_with_valid_config_tags_string(self, template_file, config_file):
-        template_path = self.test_data_path.joinpath(template_file)
-        config_path = self.test_data_path.joinpath(config_file)
-
-        deploy_command_list = self.get_deploy_command_list(template_file=template_path, config_file=config_path)
-        deploy_process_execute = run_command(deploy_command_list)
-        self.assertEqual(deploy_process_execute.process.returncode, 0)
-
     @parameterized.expand([(True, True, True), (False, True, False), (False, False, True), (True, False, True)])
     def test_deploy_with_code_signing_params(self, should_sign, should_enforce, will_succeed):
         """
