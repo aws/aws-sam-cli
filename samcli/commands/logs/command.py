@@ -8,6 +8,7 @@ import click
 
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
+from samcli.commands._utils.options import common_observability_options
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
 
@@ -55,39 +56,13 @@ $ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
     "https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html",
 )
 @click.option(
-    "--start-time",
-    "-s",
-    default="10m ago",
-    help="Fetch logs starting at this time. Time can be relative values like '5mins ago', 'yesterday' or "
-    "formatted timestamp like '2018-01-01 10:10:10'. Defaults to '10mins ago'.",
-)
-@click.option(
-    "--end-time",
-    "-e",
-    default=None,
-    help="Fetch logs up to this time. Time can be relative values like '5mins ago', 'tomorrow' or "
-    "formatted timestamp like '2018-01-01 10:10:10'",
-)
-@click.option(
-    "--tail",
-    "-t",
-    is_flag=True,
-    help="Tail the log output. This will ignore the end time argument and continue to fetch logs as they "
-    "become available.",
-)
-@click.option(
     "--cw-log-group",
     multiple=True,
     help="Additional CloudWatch Log group names that are not auto-discovered based upon --name parameter. "
     "When provided, it will only tail the given CloudWatch Log groups. If you want to tail log groups related "
     "to resources, please also provide their names as well",
 )
-@click.option(
-    "--output-dir",
-    type=click.Path(file_okay=False, dir_okay=True, writable=True, resolve_path=True, exists=True),
-    help="Output directory, when defined all new events will be stored into given directory and each event will be "
-    "separated by a new line feed.",
-)
+@common_observability_options
 @cli_framework_options
 @aws_creds_options
 @pass_context
@@ -102,8 +77,8 @@ def cli(
     tail,
     start_time,
     end_time,
-    cw_log_group,
     output_dir,
+    cw_log_group,
     config_file,
     config_env,
 ):  # pylint: disable=redefined-builtin
@@ -113,11 +88,11 @@ def cli(
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(
-        name, stack_name, filter, tail, start_time, end_time, cw_log_group, output_dir, ctx.region
+        name, stack_name, filter, tail, start_time, end_time, output_dir, cw_log_group, ctx.region
     )  # pragma: no cover
 
 
-def do_cli(names, stack_name, filter_pattern, tailing, start_time, end_time, cw_log_groups, output_directory, region):
+def do_cli(names, stack_name, filter_pattern, tailing, start_time, end_time, output_directory, cw_log_groups, region):
     """
     Implementation of the ``cli`` method
     """

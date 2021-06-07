@@ -744,8 +744,8 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 "starttime",
                 "endtime",
-                ("cw_log_group",),
                 None,
+                ("cw_log_group",),
                 "myregion",
             )
 

@@ -4,7 +4,7 @@ CloudWatch log event puller implementation
 import logging
 import time
 from datetime import datetime
-from typing import Optional, Any
+from typing import Optional, Any, List
 
 from botocore.exceptions import ClientError
 
@@ -69,7 +69,10 @@ class CWLogPuller(ObservabilityPuller):
                 error_code = err.response.get("Error", {}).get("Code")
                 if error_code == "ThrottlingException":
                     # if throttled, increase poll interval by 1 second each time
-                    self._poll_interval += 1
+                    if self._poll_interval == 1:
+                        self._poll_interval += 1
+                    else:
+                        self._poll_interval **= 2
                     LOG.warning(
                         "Throttled by CloudWatch Logs API, consider pulling logs for certain resources. "
                         "Increasing the poll interval time for resource %s to %s seconds",
@@ -78,6 +81,7 @@ class CWLogPuller(ObservabilityPuller):
                     )
                 else:
                     # if error is other than throttling, re-raise it
+                    LOG.error("Failed while fetching new log events", exc_info=err)
                     raise err
 
             # This poll fetched logs. Reset the retry counter and set the timestamp for next poll
@@ -126,3 +130,6 @@ class CWLogPuller(ObservabilityPuller):
             kwargs["nextToken"] = next_token
             if not next_token:
                 break
+
+    def load_events(self, event_ids: List[Any]):
+        LOG.debug("Loading specific events are not supported via CloudWatch Log Group")

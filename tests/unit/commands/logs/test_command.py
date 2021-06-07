@@ -77,8 +77,8 @@ class TestLogsCliCommand(TestCase):
             tailing,
             self.start_time,
             self.end_time,
-            cw_log_group,
             self.output_dir,
+            cw_log_group,
             self.region,
         )
 

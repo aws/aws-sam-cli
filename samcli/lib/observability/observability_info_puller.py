@@ -74,6 +74,17 @@ class ObservabilityPuller(ABC):
             Optional parameter to filter events with given string
         """
 
+    @abstractmethod
+    def load_events(self, event_ids: List[Any]):
+        """
+        This method will load specific events which is given by the event_ids parameter
+
+        Parameters
+        ----------
+        event_ids : List[str]
+            List of event ids that will be pulled
+        """
+
 
 # pylint: disable=fixme
 # fixme add ABC parent class back once we bump the pylint to a version 2.8.2 or higher
@@ -185,5 +196,17 @@ class ObservabilityCombinedPuller(ObservabilityPuller):
         for puller in self._pullers:
             LOG.debug("Adding task 'load_time_period' for puller (%s)", puller)
             async_context.add_async_task(puller.load_time_period, start_time, end_time, filter_pattern)
+        LOG.debug("Running all 'load_time_period' tasks in parallel")
+        async_context.run_async()
+
+    def load_events(self, event_ids: List[Any]):
+        """
+        Implementation of ObservabilityPuller.load_events method with AsyncContext.
+        It will create tasks by calling load_events methods of all given pullers, and execute them in async
+        """
+        async_context = AsyncContext()
+        for puller in self._pullers:
+            LOG.debug("Adding task 'load_events' for puller (%s)", puller)
+            async_context.add_async_task(puller.load_events, event_ids)
         LOG.debug("Running all 'load_time_period' tasks in parallel")
         async_context.run_async()

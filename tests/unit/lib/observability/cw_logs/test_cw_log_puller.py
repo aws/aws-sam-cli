@@ -337,7 +337,7 @@ class TestCWLogPuller_tail(TestCase):
 
         expected_load_time_period_calls = [call(to_datetime(0), filter_pattern=ANY) for _ in range(self.max_retries)]
 
-        expected_time_calls = [call(i + 2) for i in range(self.max_retries)]
+        expected_time_calls = [call(2), call(4), call(16)]
 
         with patch.object(
             self.fetcher, "load_time_period", wraps=self.fetcher.load_time_period

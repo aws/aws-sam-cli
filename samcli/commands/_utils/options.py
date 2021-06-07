@@ -296,6 +296,45 @@ def signing_profiles_option(f):
     return signing_profiles_click_option()(f)
 
 
+def common_observability_click_options():
+    return [
+        click.option(
+            "--start-time",
+            "-s",
+            default="10m ago",
+            help="Fetch events starting at this time. Time can be relative values like '5mins ago', 'yesterday' or "
+            "formatted timestamp like '2018-01-01 10:10:10'. Defaults to '10mins ago'.",
+        ),
+        click.option(
+            "--end-time",
+            "-e",
+            default=None,
+            help="Fetch events up to this time. Time can be relative values like '5mins ago', 'tomorrow' or "
+            "formatted timestamp like '2018-01-01 10:10:10'",
+        ),
+        click.option(
+            "--tail",
+            "-t",
+            is_flag=True,
+            help="Tail events. This will ignore the end time argument and continue to fetch events as they "
+            "become available.",
+        ),
+        click.option(
+            "--output-dir",
+            type=click.Path(file_okay=False, dir_okay=True, writable=True, resolve_path=True, exists=True),
+            help="Output directory, when defined all new events will be stored into given directory and each "
+            "event will be separated by a new line feed.",
+        ),
+    ]
+
+
+def common_observability_options(f):
+    for option in common_observability_click_options():
+        option(f)
+
+    return f
+
+
 def metadata_click_option():
     return click.option(
         "--metadata",
