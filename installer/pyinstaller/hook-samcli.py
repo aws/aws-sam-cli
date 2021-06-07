@@ -17,6 +17,7 @@ hiddenimports = [
     # since pyInstaller 4.0.
     "pkg_resources.py2_warn",
     "aws_lambda_builders.workflows",
+    "configparser",
 ]
 datas = (
     hooks.collect_data_files("samcli")
