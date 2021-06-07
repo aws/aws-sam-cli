@@ -677,19 +677,39 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
 
     @parameterized.expand([("aws-serverless-function.yaml", "samconfig-tags-list.toml")])
     def test_deploy_with_valid_config_tags_list(self, template_file, config_file):
+        stack_name = self._method_to_stack_name(self.id())
+        self.stack_names.append(stack_name)
         template_path = self.test_data_path.joinpath(template_file)
         config_path = self.test_data_path.joinpath(config_file)
 
-        deploy_command_list = self.get_deploy_command_list(template_file=template_path, config_file=config_path)
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            config_file=config_path,
+            s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
+            capabilities="CAPABILITY_IAM",
+        )
+
         deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
     @parameterized.expand([("aws-serverless-function.yaml", "samconfig-tags-string.toml")])
     def test_deploy_with_valid_config_tags_string(self, template_file, config_file):
+        stack_name = self._method_to_stack_name(self.id())
+        self.stack_names.append(stack_name)
         template_path = self.test_data_path.joinpath(template_file)
         config_path = self.test_data_path.joinpath(config_file)
 
-        deploy_command_list = self.get_deploy_command_list(template_file=template_path, config_file=config_path)
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            config_file=config_path,
+            s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
+            capabilities="CAPABILITY_IAM",
+        )
+
         deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
