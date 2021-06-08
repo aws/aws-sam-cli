@@ -1,11 +1,11 @@
 import os
 from unittest import TestCase
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 
 from parameterized import parameterized
 
 
-from samcli.lib.providers.provider import LayerVersion, Stack, _get_build_dir
+from samcli.lib.providers.provider import LayerVersion, ResourceIdentifier, Stack, _get_build_dir, get_resource_by_id
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, UnsupportedIntrinsic
 
 
@@ -93,3 +93,124 @@ class TestLayerVersion(TestCase):
 
         with self.assertRaises(UnsupportedIntrinsic):
             LayerVersion(intrinsic_arn, ".")
+
+
+class TestResourceIdentifier(TestCase):
+    @parameterized.expand(
+        [
+            ("Function1", "", "Function1"),
+            ("NestedStack1/Function1", "NestedStack1", "Function1"),
+            ("NestedStack1/NestedNestedStack2/Function1", "NestedStack1/NestedNestedStack2", "Function1"),
+            ("", "", ""),
+        ]
+    )
+    def test_parser(self, resource_identifier_string, stack_path, logical_id):
+        resource_identifier = ResourceIdentifier(resource_identifier_string)
+        self.assertEqual(resource_identifier.stack_path, stack_path)
+        self.assertEqual(resource_identifier.logical_id, logical_id)
+
+
+class TestGetResourceByID(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.root_stack = MagicMock()
+        self.root_stack.stack_path = ""
+        self.root_stack.resources = {"Function1": "Body1"}
+
+        self.nested_stack = MagicMock()
+        self.nested_stack.stack_path = "NestedStack1"
+        self.nested_stack.resources = {"Function1": "Body2"}
+
+        self.nested_nested_stack = MagicMock()
+        self.nested_nested_stack.stack_path = "NestedStack1/NestedNestedStack1"
+        self.nested_nested_stack.resources = {"Function2": "Body3"}
+
+    def test_get_resource_by_id_explicit_root(
+        self,
+    ):
+
+        resource_identifier = MagicMock()
+        resource_identifier.stack_path = ""
+        resource_identifier.logical_id = "Function1"
+
+        result = get_resource_by_id(
+            [self.root_stack, self.nested_stack, self.nested_nested_stack], resource_identifier, True
+        )
+        self.assertEqual(result, self.root_stack.resources["Function1"])
+
+    def test_get_resource_by_id_explicit_nested(
+        self,
+    ):
+
+        resource_identifier = MagicMock()
+        resource_identifier.stack_path = "NestedStack1"
+        resource_identifier.logical_id = "Function1"
+
+        result = get_resource_by_id(
+            [self.root_stack, self.nested_stack, self.nested_nested_stack], resource_identifier, True
+        )
+        self.assertEqual(result, self.nested_stack.resources["Function1"])
+
+    def test_get_resource_by_id_explicit_nested_nested(
+        self,
+    ):
+
+        resource_identifier = MagicMock()
+        resource_identifier.stack_path = "NestedStack1/NestedNestedStack1"
+        resource_identifier.logical_id = "Function2"
+
+        result = get_resource_by_id(
+            [self.root_stack, self.nested_stack, self.nested_nested_stack], resource_identifier, True
+        )
+        self.assertEqual(result, self.nested_nested_stack.resources["Function2"])
+
+    def test_get_resource_by_id_implicit_root(
+        self,
+    ):
+
+        resource_identifier = MagicMock()
+        resource_identifier.stack_path = ""
+        resource_identifier.logical_id = "Function1"
+
+        result = get_resource_by_id(
+            [self.root_stack, self.nested_stack, self.nested_nested_stack], resource_identifier, False
+        )
+        self.assertEqual(result, self.root_stack.resources["Function1"])
+
+    def test_get_resource_by_id_implicit_nested(
+        self,
+    ):
+
+        resource_identifier = MagicMock()
+        resource_identifier.stack_path = ""
+        resource_identifier.logical_id = "Function2"
+
+        result = get_resource_by_id(
+            [self.root_stack, self.nested_stack, self.nested_nested_stack], resource_identifier, False
+        )
+        self.assertEqual(result, self.nested_nested_stack.resources["Function2"])
+
+    def test_get_resource_by_id_implicit_with_stack_path(
+        self,
+    ):
+
+        resource_identifier = MagicMock()
+        resource_identifier.stack_path = "NestedStack1"
+        resource_identifier.logical_id = "Function1"
+
+        result = get_resource_by_id(
+            [self.root_stack, self.nested_stack, self.nested_nested_stack], resource_identifier, False
+        )
+        self.assertEqual(result, self.nested_stack.resources["Function1"])
+
+    def test_get_resource_by_id_not_found(
+        self,
+    ):
+
+        resource_identifier = MagicMock()
+        resource_identifier.logical_id = "Function3"
+
+        result = get_resource_by_id(
+            [self.root_stack, self.nested_stack, self.nested_nested_stack], resource_identifier, False
+        )
+        self.assertEqual(result, None)

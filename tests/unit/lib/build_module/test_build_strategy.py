@@ -1,7 +1,7 @@
 from unittest import TestCase
 from unittest.mock import Mock, patch, MagicMock, call, ANY
 
-from samcli.commands.build.exceptions import MissingBuildMethodException
+from samcli.lib.build.exceptions import MissingBuildMethodException
 from samcli.lib.build.build_graph import BuildGraph, FunctionBuildDefinition, LayerBuildDefinition
 from samcli.lib.build.build_strategy import (
     ParallelBuildStrategy,

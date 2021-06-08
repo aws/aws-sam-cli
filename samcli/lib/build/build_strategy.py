@@ -7,12 +7,12 @@ import shutil
 from abc import abstractmethod, ABC
 from typing import Callable, Dict, List, Any, Optional, cast
 
-from samcli.commands.build.exceptions import MissingBuildMethodException
 from samcli.lib.utils import osutils
 from samcli.lib.utils.async_utils import AsyncContext
 from samcli.lib.utils.hash import dir_checksum
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.build.build_graph import BuildGraph, FunctionBuildDefinition, LayerBuildDefinition
+from samcli.lib.build.exceptions import MissingBuildMethodException
 
 LOG = logging.getLogger(__name__)
 

@@ -197,21 +197,57 @@ class BuildContext:
         -------
         ResourcesToBuildCollector
         """
+        return (
+            self.collect_build_resources(self._resource_identifier)
+            if self._resource_identifier
+            else self.collect_all_build_resources()
+        )
+
+    def collect_build_resources(self, resource_identifier: str) -> ResourcesToBuildCollector:
+        """Collect a single buildable resource and its dependencies.
+        For a Lambda function, its layers will be included.
+
+        Parameters
+        ----------
+        resource_identifier : str
+            Resource identifier for the resource to be built
+
+        Returns
+        -------
+        ResourcesToBuildCollector
+            ResourcesToBuildCollector containing the buildable resource and its dependencies
+
+        Raises
+        ------
+        ResourceNotFound
+            raises ResourceNotFound is the specified resource cannot be found.
+        """
         result = ResourcesToBuildCollector()
-        if self._resource_identifier:
-            self._collect_single_function_and_dependent_layers(self._resource_identifier, result)
-            self._collect_single_buildable_layer(self._resource_identifier, result)
+        # Get the functions and its layer. Skips if it's inline.
+        self._collect_single_function_and_dependent_layers(resource_identifier, result)
+        self._collect_single_buildable_layer(resource_identifier, result)
 
-            if not result.functions and not result.layers:
-                all_resources = [f.name for f in self.function_provider.get_all() if not f.inlinecode]
-                all_resources.extend([l.name for l in self.layer_provider.get_all()])
+        if not result.functions and not result.layers:
+            # Collect all functions and layers that are not inline
+            all_resources = [f.name for f in self.function_provider.get_all() if not f.inlinecode]
+            all_resources.extend([l.name for l in self.layer_provider.get_all()])
 
-                available_resource_message = (
-                    f"{self._resource_identifier} not found. Possible options in your " f"template: {all_resources}"
-                )
-                LOG.info(available_resource_message)
-                raise ResourceNotFound(f"Unable to find a function or layer with name '{self._resource_identifier}'")
-            return result
+            available_resource_message = (
+                f"{resource_identifier} not found. Possible options in your " f"template: {all_resources}"
+            )
+            LOG.info(available_resource_message)
+            raise ResourceNotFound(f"Unable to find a function or layer with name '{resource_identifier}'")
+        return result
+
+    def collect_all_build_resources(self) -> ResourcesToBuildCollector:
+        """Collect all buildable resources. Including Lambda functions and layers.
+
+        Returns
+        -------
+        ResourcesToBuildCollector
+            ResourcesToBuildCollector that contains all the buildable resources.
+        """
+        result = ResourcesToBuildCollector()
         result.add_functions([f for f in self.function_provider.get_all() if BuildContext._is_function_buildable(f)])
         result.add_layers([l for l in self.layer_provider.get_all() if BuildContext._is_layer_buildable(l)])
         return result

@@ -7,7 +7,7 @@ import logging
 import os
 import posixpath
 from collections import namedtuple
-from typing import Set, NamedTuple, Optional, List, Dict, Union, cast, Iterator, TYPE_CHECKING
+from typing import Any, Set, NamedTuple, Optional, List, Dict, Union, cast, Iterator, TYPE_CHECKING
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, UnsupportedIntrinsic
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
@@ -437,12 +437,86 @@ class Stack(NamedTuple):
         return os.path.join(build_root, self.stack_path.replace(posixpath.sep, os.path.sep), "template.yaml")
 
 
+class ResourceIdentifier:
+    """Resource identifier for representing a resource with nested stack support"""
+
+    _stack_path: str
+    _logical_id: str
+
+    def __init__(self, resource_identifier_str: str):
+        """
+        Parameters
+        ----------
+        resource_identifier_str : str
+            Resource identifier in the format of:
+            Stack1/Stack2/ResourceID
+        """
+        parts = resource_identifier_str.rsplit(posixpath.sep, 1)
+        if len(parts) == 1:
+            self._stack_path = ""
+            self._logical_id = parts[0]
+        else:
+            self._stack_path = parts[0]
+            self._logical_id = parts[1]
+
+    @property
+    def stack_path(self) -> str:
+        """
+        Returns
+        -------
+        str
+            Stack path of the resource.
+            This can be empty string if resource is in the root stack.
+        """
+        return self._stack_path
+
+    @property
+    def logical_id(self) -> str:
+        """
+        Returns
+        -------
+        str
+            Logical ID of the resource.
+        """
+        return self._logical_id
+
+
 def get_full_path(stack_path: str, logical_id: str) -> str:
     """
     Return the unique posix path-like identifier
     while will used for identify a resource from resources in a multi-stack situation
     """
     return posixpath.join(stack_path, logical_id)
+
+
+def get_resource_by_id(
+    stacks: List[Stack], identifier: ResourceIdentifier, explicit_nested: bool = False
+) -> Optional[Dict[str, Any]]:
+    """Seach resource in stacks based on identifier
+
+    Parameters
+    ----------
+    stacks : List[Stack]
+        List of stacks to be searched
+    identifier : ResourceIdentifier
+        Resource identifier for the resource to be returned
+    explicit_nested : bool, optional
+        Set to True to only search in root stack if stack_path does not exist.
+        Otherwise, all stacks will be searched in order to find matching logical ID.
+        If stack_path does exist in identifier, this option will be ignored and behave as if it is True
+
+    Returns
+    -------
+    Dict
+        Resource dict
+    """
+    search_all_stacks = not identifier.stack_path and not explicit_nested
+    for stack in stacks:
+        if stack.stack_path == identifier.stack_path or search_all_stacks:
+            resource = stack.resources.get(identifier.logical_id)
+            if resource:
+                return cast(Dict[str, Any], resource)
+    return None
 
 
 def _get_build_dir(resource: Union[Function, LayerVersion], build_root: str) -> str:
