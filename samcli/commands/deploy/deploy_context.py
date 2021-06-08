@@ -30,6 +30,7 @@ from samcli.commands.deploy.utils import (
     hide_noecho_parameter_overrides,
 )
 from samcli.lib.deploy.deployer import Deployer
+from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
@@ -83,7 +84,7 @@ class DeployContext:
         # Override certain CloudFormation pseudo-parameters based on values provided by customer
         self.global_parameter_overrides: Optional[Dict] = None
         if region:
-            self.global_parameter_overrides = {"AWS::Region": region}
+            self.global_parameter_overrides = {IntrinsicsSymbolTable.AWS_REGION: region}
         self.capabilities = capabilities
         self.no_execute_changeset = no_execute_changeset
         self.role_arn = role_arn
