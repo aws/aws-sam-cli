@@ -28,8 +28,8 @@ class TestValidate(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.patterns = {
-            TemplateFileTypes.JSON: re.compile(r"template\.json is a valid SAM Template$"),
-            TemplateFileTypes.YAML: re.compile(r"template\.yaml is a valid SAM Template$"),
+            TemplateFileTypes.JSON: re.compile(r"template\.json is a valid SAM Template(\r\n)?$"),
+            TemplateFileTypes.YAML: re.compile(r"template\.yaml is a valid SAM Template(\r\n)?$"),
         }
 
     @staticmethod
