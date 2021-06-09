@@ -1,25 +1,15 @@
-import re
+import logging
+import os
+import random
 import shutil
 import sys
-import os
-import logging
-import random
-from unittest import skipIf, skip
 from pathlib import Path
-from parameterized import parameterized, parameterized_class
-from subprocess import Popen, PIPE, TimeoutExpired
+from unittest import skipIf
 
 import pytest
+from parameterized import parameterized, parameterized_class
 
 from samcli.lib.utils import osutils
-from .build_integ_base import (
-    BuildIntegBase,
-    DedupBuildIntegBase,
-    CachedBuildIntegBase,
-    BuildIntegRubyBase,
-    NestedBuildIntegBase,
-    IntrinsicIntegBase,
-)
 from tests.testing_utils import (
     IS_WINDOWS,
     RUNNING_ON_CI,
@@ -29,6 +19,14 @@ from tests.testing_utils import (
     run_command,
     SKIP_DOCKER_TESTS,
     SKIP_DOCKER_MESSAGE,
+)
+from .build_integ_base import (
+    BuildIntegBase,
+    DedupBuildIntegBase,
+    CachedBuildIntegBase,
+    BuildIntegRubyBase,
+    NestedBuildIntegBase,
+    IntrinsicIntegBase,
 )
 
 LOG = logging.getLogger(__name__)
@@ -2027,26 +2025,30 @@ class TestBuildWithZipFunctionsOrLayers(NestedBuildIntegBase):
 class TestBuildSAR(BuildIntegBase):
     template = "aws-serverless-application-with-application-id-map.yaml"
 
-    @parameterized.expand(["use_container", (False,)])
+    @parameterized.expand(
+        [
+            ("use_container", "us-east-2"),
+            ("use_container", "eu-west-1"),
+            ("use_container", None),
+            (False, "us-east-2"),
+            (False, "eu-west-1"),
+            (False, None),
+        ]
+    )
     @pytest.mark.flaky(reruns=3)
-    def test_sar_application_with_location_resolved_from_map(self, use_container):
+    def test_sar_application_with_location_resolved_from_map(self, use_container, region):
         if use_container and SKIP_DOCKER_TESTS:
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
-        cmdlist = self.get_command_list(
-            use_container=use_container, region="us-east-2"  # the !FindInMap contains an entry for use-east-2 region
-        )
+        cmdlist = self.get_command_list(use_container=use_container, region=region)
         LOG.info("Running Command: %s", cmdlist)
         LOG.info(self.working_dir)
         process_execute = run_command(cmdlist, cwd=self.working_dir)
-        self.assertEqual(process_execute.process.returncode, 0)
 
-        # Now remove the region (use SAM CLI default us-east-1) and expect the build to fail as there is no mapping
-        cmdlist = self.get_command_list(
-            use_container=use_container,
-        )
-        LOG.info("Running Command: %s", cmdlist)
-        LOG.info(self.working_dir)
-        process_execute = run_command(cmdlist, cwd=self.working_dir)
-        self.assertEqual(process_execute.process.returncode, 1)
-        self.assertIn("Property \\'ApplicationId\\' cannot be resolved.", str(process_execute.stderr))
+        if region == "us-east-2":  # Success [the !FindInMap contains an entry for use-east-2 region only]
+            self.assertEqual(process_execute.process.returncode, 0)
+        else:
+            # Using other regions or the default SAM CLI region (us-east-1, in case if None region given)
+            # will fail the build as there is no mapping
+            self.assertEqual(process_execute.process.returncode, 1)
+            self.assertIn("Property \\'ApplicationId\\' cannot be resolved.", str(process_execute.stderr))
