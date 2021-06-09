@@ -522,6 +522,21 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
+    def test_deploy_with_toml_config(self):
+        template_file = "aws-serverless-inline.yaml"
+        config_file = "samconfig-read-boolean-tomlkit.toml"
+        template_path = self.test_data_path.joinpath(template_file)
+        config_path = self.test_data_path.joinpath(config_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stack_names.append(stack_name)
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path, stack_name=stack_name, config_file=config_path, capabilities="CAPABILITY_IAM"
+        )
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+
     @parameterized.expand(["aws-serverless-function.yaml"])
     def test_deploy_guided_zip(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
