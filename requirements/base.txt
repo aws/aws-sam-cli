@@ -13,5 +13,5 @@ dateparser~=0.7
 requests==2.25.1
 serverlessrepo==0.1.10
 aws_lambda_builders==1.4.0
-tomlkit==0.7.0
+tomlkit==0.7.2
 watchdog==2.1.2
