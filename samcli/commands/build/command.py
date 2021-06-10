@@ -220,6 +220,7 @@ def cli(
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
     mode = _get_mode_value_from_envvar("SAM_BUILD_MODE", choices=["debug"])
     do_cli(
+        ctx,
         resource_logical_id,
         template_file,
         base_dir,
@@ -244,6 +245,7 @@ def cli(
 
 
 def do_cli(  # pylint: disable=too-many-locals, too-many-statements
+    click_ctx,
     function_identifier: Optional[str],
     template: str,
     base_dir: Optional[str],
@@ -307,6 +309,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         container_env_var=processed_env_vars,
         container_env_var_file=container_env_var_file,
         build_images=processed_build_images,
+        aws_region=click_ctx.region,
         iac=iac,
         project=project,
     ) as ctx:
