@@ -67,6 +67,14 @@ Resources:
                 uri:
                   Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Base64ResponseFunction.Arn}/invocations
 
+          "/nondecodedbase64response":
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Base64ResponseFunctionWithFalseIsBase64EncodedField.Arn}/invocations
+
           "/echobase64eventbody":
             post:
               x-amazon-apigateway-integration:
@@ -120,6 +128,14 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.base64_response
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+
+  Base64ResponseFunctionWithFalseIsBase64EncodedField:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.base64_with_False_isBase64Encoded_response
       Runtime: python3.6
       CodeUri: .
       Timeout: 600
