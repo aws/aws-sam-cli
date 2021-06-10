@@ -33,6 +33,7 @@ from samcli.commands.deploy.utils import (
 from samcli.lib.deploy.deployer import Deployer
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.iac.interface import Stack
+from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
