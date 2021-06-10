@@ -30,6 +30,7 @@ class DeployIntegBase(TestCase):
         template_file=None,
         s3_prefix=None,
         capabilities=None,
+        capabilities_list=None,
         force_upload=False,
         notification_arns=None,
         fail_on_empty_changeset=None,
@@ -58,6 +59,10 @@ class DeployIntegBase(TestCase):
             command_list = command_list + ["--image-repositories", str(image_repositories)]
         if capabilities:
             command_list = command_list + ["--capabilities", str(capabilities)]
+        elif capabilities_list:
+            command_list.append("--capabilities")
+            for capability in capabilities_list:
+                command_list.append(str(capability))
         if parameter_overrides:
             command_list = command_list + ["--parameter-overrides", str(parameter_overrides)]
         if role_arn:
