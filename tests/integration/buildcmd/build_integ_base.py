@@ -72,6 +72,7 @@ class BuildIntegBase(TestCase):
         container_env_var=None,
         container_env_var_file=None,
         build_image=None,
+        region=None,
     ):
 
         command_list = [self.cmd, "build"]
@@ -116,6 +117,9 @@ class BuildIntegBase(TestCase):
 
         if build_image:
             command_list += ["--build-image", build_image]
+
+        if region:
+            command_list += ["--region", region]
 
         return command_list
 
