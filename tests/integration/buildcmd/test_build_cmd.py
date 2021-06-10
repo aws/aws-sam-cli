@@ -1,17 +1,25 @@
-import re
+import logging
+import os
+import random
 import shutil
 import sys
-import os
-import logging
-import random
-from unittest import skipIf
 from pathlib import Path
-from parameterized import parameterized, parameterized_class
-from subprocess import Popen, PIPE, TimeoutExpired
+from unittest import skipIf
 
 import pytest
+from parameterized import parameterized, parameterized_class
 
 from samcli.lib.utils import osutils
+from tests.testing_utils import (
+    IS_WINDOWS,
+    RUNNING_ON_CI,
+    RUNNING_TEST_FOR_MASTER_ON_CI,
+    RUN_BY_CANARY,
+    CI_OVERRIDE,
+    run_command,
+    SKIP_DOCKER_TESTS,
+    SKIP_DOCKER_MESSAGE,
+)
 from .build_integ_base import (
     BuildIntegBase,
     DedupBuildIntegBase,
@@ -20,18 +28,13 @@ from .build_integ_base import (
     NestedBuildIntegBase,
     IntrinsicIntegBase,
 )
-from tests.testing_utils import (
-    IS_WINDOWS,
-    RUNNING_ON_CI,
-    CI_OVERRIDE,
-    run_command,
-    SKIP_DOCKER_TESTS,
-    SKIP_DOCKER_MESSAGE,
-)
 
 LOG = logging.getLogger(__name__)
 
 TIMEOUT = 420  # 7 mins
+
+# SAR tests require credentials. This is to skip running the test where credentials are not available.
+SKIP_SAR_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
 
 @skipIf(
@@ -2016,3 +2019,36 @@ class TestBuildWithZipFunctionsOrLayers(NestedBuildIntegBase):
                 [""],
                 command_result,  # there is only one stack
             )
+
+
+@skipIf(SKIP_SAR_TESTS, "Skip SAR tests")
+class TestBuildSAR(BuildIntegBase):
+    template = "aws-serverless-application-with-application-id-map.yaml"
+
+    @parameterized.expand(
+        [
+            ("use_container", "us-east-2"),
+            ("use_container", "eu-west-1"),
+            ("use_container", None),
+            (False, "us-east-2"),
+            (False, "eu-west-1"),
+            (False, None),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_sar_application_with_location_resolved_from_map(self, use_container, region):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        cmdlist = self.get_command_list(use_container=use_container, region=region)
+        LOG.info("Running Command: %s", cmdlist)
+        LOG.info(self.working_dir)
+        process_execute = run_command(cmdlist, cwd=self.working_dir)
+
+        if region == "us-east-2":  # Success [the !FindInMap contains an entry for use-east-2 region only]
+            self.assertEqual(process_execute.process.returncode, 0)
+        else:
+            # Using other regions or the default SAM CLI region (us-east-1, in case if None region given)
+            # will fail the build as there is no mapping
+            self.assertEqual(process_execute.process.returncode, 1)
+            self.assertIn("Property \\'ApplicationId\\' cannot be resolved.", str(process_execute.stderr))

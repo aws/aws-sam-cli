@@ -7,11 +7,19 @@ from typing import Dict, Any, List
 
 import click
 from botocore.session import get_session
-from click.types import FuncParamType
-from click import prompt
 from click import confirm
+from click import prompt
+from click.types import FuncParamType
 
 from samcli.commands._utils.options import _space_separated_list_func_type, DEFAULT_STACK_NAME
+from samcli.commands.deploy.auth_utils import auth_per_resource
+from samcli.commands._utils.options import _space_separated_list_func_type
+from samcli.commands._utils.template import (
+    get_template_parameters,
+    get_template_artifacts_format,
+    get_template_function_resource_ids,
+)
+from samcli.commands.deploy.auth_utils import auth_per_resource
 from samcli.commands.deploy.code_signer_utils import (
     signer_config_per_function,
     extract_profile_name_and_owner_from_existing,
@@ -20,10 +28,10 @@ from samcli.commands.deploy.code_signer_utils import (
 )
 from samcli.commands.deploy.exceptions import GuidedDeployFailedError
 from samcli.commands.deploy.guided_config import GuidedConfig
-from samcli.commands.deploy.auth_utils import auth_per_resource
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
-from samcli.lib.config.samconfig import DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.bootstrap.bootstrap import manage_stack
+from samcli.lib.config.samconfig import DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
+from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.package.ecr_utils import is_ecr_url
 from samcli.lib.package.image_utils import tag_translation, NonLocalImageException, NoImageFoundException
 from samcli.lib.providers.provider import Stack
@@ -140,11 +148,14 @@ class GuidedContext:
         self._get_iac_stack(stack_name)
         region = prompt(f"\t{self.start_bold}AWS Region{self.end_bold}", default=default_region, type=click.STRING)
         parameter_override_keys = self._iac_stack.get_overrideable_parameters()
+        global_parameter_overrides = {IntrinsicsSymbolTable.AWS_REGION: region}
         input_parameter_overrides = self.prompt_parameters(
             parameter_override_keys, self.parameter_overrides_from_cmdline, self.start_bold, self.end_bold
         )
         stacks, _ = SamLocalStackProvider.get_stacks(
-            [self._iac_stack], parameter_overrides=sanitize_parameter_overrides(input_parameter_overrides)
+            [self._iac_stack],
+            parameter_overrides=sanitize_parameter_overrides(input_parameter_overrides),
+            global_parameter_overrides=global_parameter_overrides,
         )
         image_repositories = self.prompt_image_repository(stacks)
 
