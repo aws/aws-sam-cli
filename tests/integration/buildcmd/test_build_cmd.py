@@ -1358,10 +1358,7 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
             "FunctionRuntime": "python3.8",
         }
         cmdlist = self.get_command_list(
-            use_container=True,
-            parameter_overrides=overrides,
-            cached=True,
-            container_env_var="FOO=BAR"
+            use_container=True, parameter_overrides=overrides, cached=True, container_env_var="FOO=BAR"
         )
 
         LOG.info("Running Command (cache should be invalid): %s", cmdlist)
