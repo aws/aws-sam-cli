@@ -1346,7 +1346,7 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
     @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
     def test_cached_build_with_env_vars(self):
         """
-        Build template above and verify that each function call returns as expected
+        Build 2 times to verify that second time hits the cached build
         """
         overrides = {
             "FunctionCodeUri": "Python",
