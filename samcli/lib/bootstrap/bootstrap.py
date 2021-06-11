@@ -46,6 +46,15 @@ def _get_stack_template():
       SamCliSourceBucket:
         Type: AWS::S3::Bucket
         Properties:
+          PublicAccessBlockConfiguration:
+            BlockPublicPolicy: true
+            BlockPublicAcls: true
+            IgnorePublicAcls: true
+            RestrictPublicBuckets: true
+          BucketEncryption:  
+            ServerSideEncryptionConfiguration:
+              - ServerSideEncryptionByDefault:
+                  SSEAlgorithm: aws:kms
           VersioningConfiguration:
             Status: Enabled
           Tags:
@@ -73,6 +82,23 @@ def _get_stack_template():
                       - "/*"
                 Principal:
                   Service: serverlessrepo.amazonaws.com
+              -
+                Action:
+                  - "s3:*"
+                Effect: "Deny"
+                Resource:  
+                  Fn::Join:
+                    - ""
+                    -
+                      - "arn:"
+                      - !Ref AWS::Partition
+                      - ":s3:::"
+                      - !Ref SamCliSourceBucket
+                      - "/*"
+                Principal: "*"
+                Condition:
+                  Bool:
+                    aws:SecureTransport: "false"                    
 
     Outputs:
       SourceBucket:
