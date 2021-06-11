@@ -56,6 +56,12 @@ $ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
     "https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html",
 )
 @click.option(
+    "--include-traces",
+    "-i",
+    is_flag=True,
+    help="Include the XRay traces in the log output.",
+)
+@click.option(
     "--cw-log-group",
     multiple=True,
     help="Additional CloudWatch Log group names that are not auto-discovered based upon --name parameter. "
@@ -75,6 +81,7 @@ def cli(
     stack_name,
     filter,
     tail,
+    include_traces,
     start_time,
     end_time,
     output_dir,
@@ -88,15 +95,28 @@ def cli(
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(
-        name, stack_name, filter, tail, start_time, end_time, output_dir, cw_log_group, ctx.region
+        name, stack_name, filter, tail, include_traces, start_time, end_time, cw_log_group, output_dir, ctx.region
     )  # pragma: no cover
 
 
-def do_cli(names, stack_name, filter_pattern, tailing, start_time, end_time, output_directory, cw_log_groups, region):
+def do_cli(
+    names,
+    stack_name,
+    filter_pattern,
+    tailing,
+    include_tracing,
+    start_time,
+    end_time,
+    cw_log_groups,
+    output_directory,
+    region,
+):
     """
     Implementation of the ``cli`` method
     """
     import boto3
+
+    from datetime import datetime
     from typing import Callable, Any
 
     from samcli.commands.logs.logs_context import parse_time, ResourcePhysicalIdResolver
@@ -104,21 +124,24 @@ def do_cli(names, stack_name, filter_pattern, tailing, start_time, end_time, out
     from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
 
     sanitized_start_time = parse_time(start_time, "start-time")
-    sanitized_end_time = parse_time(end_time, "end-time")
+    sanitized_end_time = parse_time(end_time, "end-time") or datetime.utcnow()
 
     boto_config = get_boto_config_with_user_agent(region_name=region)
     logs_client_generator: Callable[[], Any] = lambda: boto3.session.Session().client("logs", config=boto_config)
     cfn_resource = boto3.resource("cloudformation", config=boto_config)
+    xray_client = boto3.client("xray", config=boto_config) if include_tracing else None
     resource_logical_id_resolver = ResourcePhysicalIdResolver(cfn_resource, stack_name, names)
 
     # only fetch all resources when no CloudWatch log group defined
     fetch_all_when_no_resource_name_given = not cw_log_groups
     puller = generate_puller(
         logs_client_generator,
+        xray_client,
         resource_logical_id_resolver.get_resource_information(fetch_all_when_no_resource_name_given),
         filter_pattern,
         cw_log_groups,
         output_directory,
+        include_tracing,
     )
 
     if tailing:

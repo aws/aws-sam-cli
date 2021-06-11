@@ -6,6 +6,8 @@ from samcli.commands.logs.logs_context import parse_time, ResourcePhysicalIdReso
 
 AWS_SOME_RESOURCE = "AWS::Some::Resource"
 AWS_LAMBDA_FUNCTION = "AWS::Lambda::Function"
+AWS_APIGATEWAY_RESTAPI = "AWS::ApiGateway::RestApi"
+AWS_APIGATEWAY_HTTPAPI = "AWS::ApiGatewayV2::Api"
 
 
 class TestLogsCommandContext(TestCase):
@@ -80,10 +82,20 @@ class TestResourcePhysicalIdResolver(TestCase):
         actual_return = resource_physical_id_resolver.get_resource_information(False)
         self.assertEqual(actual_return, [])
 
-    def test_default_supported_resource(self):
+    def test_default_supported_resource_lambda_function(self):
         resource_physical_id_resolver = ResourcePhysicalIdResolver(Mock(), "stack_name", [])
-
         self.assertTrue(resource_physical_id_resolver.is_supported_resource(AWS_LAMBDA_FUNCTION))
+
+    def test_default_supported_resource_rest_api(self):
+        resource_physical_id_resolver = ResourcePhysicalIdResolver(Mock(), "stack_name", [])
+        self.assertTrue(resource_physical_id_resolver.is_supported_resource(AWS_APIGATEWAY_RESTAPI))
+
+    def test_default_supported_resource_http_api(self):
+        resource_physical_id_resolver = ResourcePhysicalIdResolver(Mock(), "stack_name", [])
+        self.assertTrue(resource_physical_id_resolver.is_supported_resource(AWS_APIGATEWAY_HTTPAPI))
+
+    def test_default_supported_resource_with_not_supported_resource(self):
+        resource_physical_id_resolver = ResourcePhysicalIdResolver(Mock(), "stack_name", [])
         self.assertFalse(resource_physical_id_resolver.is_supported_resource(AWS_SOME_RESOURCE))
 
     def test_custom_supported_resource(self):
@@ -122,17 +134,23 @@ class TestResourcePhysicalIdResolver(TestCase):
                 Mock(physical_id="physical_id_1", logical_id="logical_id_1", resource_type=AWS_LAMBDA_FUNCTION),
                 Mock(physical_id="physical_id_2", logical_id="logical_id_2", resource_type=AWS_LAMBDA_FUNCTION),
                 Mock(physical_id="physical_id_3", logical_id="logical_id_3", resource_type=AWS_SOME_RESOURCE),
+                Mock(physical_id="physical_id_4", logical_id="logical_id_4", resource_type=AWS_APIGATEWAY_RESTAPI),
+                Mock(physical_id="physical_id_5", logical_id="logical_id_5", resource_type=AWS_APIGATEWAY_HTTPAPI),
             ]
             mocked_get_resources.return_value = mocked_return_value
 
             actual_result = resource_physical_id_resolver._fetch_resources_from_stack()
-            self.assertTrue(len(actual_result), 2)
+            self.assertEqual(len(actual_result), 4)
 
-            expected_results = [item for item in mocked_return_value if item.resource_type == AWS_LAMBDA_FUNCTION]
+            expected_results = [
+                item
+                for item in mocked_return_value
+                if item.resource_type in ResourcePhysicalIdResolver.DEFAULT_SUPPORTED_RESOURCES
+            ]
             self.assertEqual(expected_results, actual_result)
 
     def test_fetch_given_resources(self):
-        given_resources = ["logical_id_1", "logical_id_2", "logical_id_3"]
+        given_resources = ["logical_id_1", "logical_id_2", "logical_id_3", "logical_id_5", "logical_id_6"]
         resource_physical_id_resolver = ResourcePhysicalIdResolver(Mock(), "stack_name", given_resources)
         with mock.patch(
             "samcli.commands.logs.logs_context.ResourcePhysicalIdResolver._get_stack_resources"
@@ -142,15 +160,18 @@ class TestResourcePhysicalIdResolver(TestCase):
                 Mock(physical_id="physical_id_2", logical_id="logical_id_2", resource_type=AWS_LAMBDA_FUNCTION),
                 Mock(physical_id="physical_id_3", logical_id="logical_id_3", resource_type=AWS_SOME_RESOURCE),
                 Mock(physical_id="physical_id_4", logical_id="logical_id_4", resource_type=AWS_LAMBDA_FUNCTION),
+                Mock(physical_id="physical_id_5", logical_id="logical_id_5", resource_type=AWS_APIGATEWAY_RESTAPI),
+                Mock(physical_id="physical_id_6", logical_id="logical_id_6", resource_type=AWS_APIGATEWAY_HTTPAPI),
             ]
             mocked_get_resources.return_value = mocked_return_value
 
             actual_result = resource_physical_id_resolver._fetch_resources_from_stack(set(given_resources))
-            self.assertTrue(len(actual_result), 2)
+            self.assertEqual(len(actual_result), 4)
 
             expected_results = [
                 item
                 for item in mocked_return_value
-                if item.resource_type == AWS_LAMBDA_FUNCTION and item.logical_id in given_resources
+                if item.resource_type in ResourcePhysicalIdResolver.DEFAULT_SUPPORTED_RESOURCES
+                and item.logical_id in given_resources
             ]
             self.assertEqual(expected_results, actual_result)

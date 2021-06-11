@@ -7,6 +7,7 @@ from typing import List, Optional, Callable, Any
 
 from samcli.commands.exceptions import UserException
 from samcli.commands.logs.console_consumers import CWConsoleEventConsumer
+from samcli.commands.traces.traces_puller_factory import generate_trace_puller
 from samcli.lib.observability.cw_logs.cw_log_consumers import CWFileEventConsumer
 from samcli.lib.observability.cw_logs.cw_log_formatters import (
     CWColorizeErrorsFormatter,
@@ -37,10 +38,12 @@ class NoPullerGeneratedException(UserException):
 
 def generate_puller(
     logs_client_generator: Callable[[], Any],
+    xray_client: Any,
     resource_information_list: List[Any],
     filter_pattern: Optional[str] = None,
     additional_cw_log_groups: Optional[List[str]] = None,
     output_dir: Optional[str] = None,
+    include_tracing: bool = False,
 ) -> ObservabilityPuller:
     """
     This function will generate generic puller which can be used to
@@ -51,6 +54,8 @@ def generate_puller(
     logs_client_generator: Callable[[], CloudWatchLogsClient]
         CloudWatchLogsClient generator, which will create a new instance of the client with a new session that could be
         used within different threads/coroutines
+    xray_client: boto3.client
+        Boto3 xray client which will be used to fetch the debug traces
     resource_information_list : List[ResourceInformation]
         List of resource information, which keeps logical id, physical id and type of the resources
     filter_pattern : Optional[str]
@@ -60,6 +65,8 @@ def generate_puller(
         log events from.
     output_dir : Optional[str]
         Optional parameter to store output of the events into a file in the given folder
+    include_tracing: bool
+        A flag to include the xray traces log or not
 
     Returns
     -------
@@ -67,7 +74,7 @@ def generate_puller(
     """
     if additional_cw_log_groups is None:
         additional_cw_log_groups = []
-    pullers = []
+    pullers: List[ObservabilityPuller] = []
 
     # populate all puller instances for given resources
     for resource_information in resource_information_list:
@@ -98,6 +105,11 @@ def generate_puller(
                 cw_log_group,
             )
         )
+
+    # if tracing flag is set, add the xray traces puller to fetch debug traces
+    if include_tracing:
+        trace_puller = generate_trace_puller(xray_client, output_dir)
+        pullers.append(trace_puller)
 
     # if no puller have been collected, raise an exception since there is nothing to pull
     if not pullers:

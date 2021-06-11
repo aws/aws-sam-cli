@@ -113,7 +113,14 @@ class CWLogPuller(ObservabilityPuller):
 
         while True:
             LOG.debug("Fetching logs from CloudWatch with parameters %s", kwargs)
-            result = self.logs_client.filter_log_events(**kwargs)
+            try:
+                result = self.logs_client.filter_log_events(**kwargs)
+            except self.logs_client.exceptions.ResourceNotFoundException:
+                LOG.warning(
+                    "The specified log group %s does not exist. Please make sure logging is enable and log group is "
+                    "created", self.cw_log_group
+                )
+                break
 
             # Several events will be returned. Consume one at a time
             for event in result.get("events", []):

@@ -718,6 +718,7 @@ class TestSamConfigForAllCommands(TestCase):
             "stack_name": "mystack",
             "filter": "myfilter",
             "tail": True,
+            "include_traces": True,
             "start_time": "starttime",
             "end_time": "endtime",
             "cw_log_group": ["cw_log_group"],
@@ -742,10 +743,11 @@ class TestSamConfigForAllCommands(TestCase):
                 "mystack",
                 "myfilter",
                 True,
+                True,
                 "starttime",
                 "endtime",
-                None,
                 ("cw_log_group",),
+                None,
                 "myregion",
             )
 

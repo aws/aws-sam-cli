@@ -21,17 +21,21 @@ class TestLogsCliCommand(TestCase):
         [
             (
                 True,
+                False,
                 [],
             ),
             (
+                False,
                 False,
                 [],
             ),
             (
                 True,
+                False,
                 ["cw_log_group"],
             ),
             (
+                False,
                 False,
                 ["cw_log_group", "cw_log_group2"],
             ),
@@ -45,6 +49,7 @@ class TestLogsCliCommand(TestCase):
     def test_logs_command(
         self,
         tailing,
+        include_tracing,
         cw_log_group,
         patched_config_generator,
         patched_parse_time,
@@ -75,10 +80,11 @@ class TestLogsCliCommand(TestCase):
             self.stack_name,
             self.filter_pattern,
             tailing,
+            include_tracing,
             self.start_time,
             self.end_time,
-            self.output_dir,
             cw_log_group,
+            self.output_dir,
             self.region,
         )
 
@@ -105,7 +111,7 @@ class TestLogsCliCommand(TestCase):
         mocked_resource_physical_id_resolver.assert_has_calls([call.get_resource_information(fetch_param)])
 
         patched_generate_puller.assert_called_with(
-            ANY, mocked_resource_information, self.filter_pattern, cw_log_group, self.output_dir
+            ANY, None, mocked_resource_information, self.filter_pattern, cw_log_group, self.output_dir, False
         )
 
         if tailing:

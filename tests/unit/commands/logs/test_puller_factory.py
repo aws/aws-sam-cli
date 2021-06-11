@@ -27,6 +27,7 @@ class TestPullerFactory(TestCase):
     @patch("samcli.commands.logs.puller_factory.generate_console_consumer")
     @patch("samcli.commands.logs.puller_factory.generate_file_consumer")
     @patch("samcli.commands.logs.puller_factory.CWLogPuller")
+    @patch("samcli.commands.logs.puller_factory.generate_trace_puller")
     @patch("samcli.commands.logs.puller_factory.ObservabilityCombinedPuller")
     def test_generate_puller(
         self,
@@ -34,11 +35,13 @@ class TestPullerFactory(TestCase):
         param_cw_log_groups,
         param_output_dir,
         patched_combined_puller,
+        patched_xray_puller,
         patched_cw_log_puller,
         patched_file_consumer,
         patched_console_consumer,
     ):
         mock_logs_client = Mock()
+        mock_xray_client = Mock()
         mock_logs_client_generator = lambda: mock_logs_client
         mock_resource_info_list = [
             Mock(resource_type=AWS_LAMBDA_FUNCTION),
@@ -56,21 +59,29 @@ class TestPullerFactory(TestCase):
         else:
             patched_console_consumer.side_effect = mocked_consumers
 
+        mocked_xray_puller = Mock()
+        patched_xray_puller.return_value = mocked_xray_puller
         mocked_pullers = [Mock() for _ in mocked_consumers]
+        mocked_pullers.append(mocked_xray_puller)  # add a mock puller for xray puller
         patched_cw_log_puller.side_effect = mocked_pullers
 
         mocked_combined_puller = Mock()
+
         patched_combined_puller.return_value = mocked_combined_puller
 
         puller = generate_puller(
             mock_logs_client_generator,
+            mock_xray_client,
             mock_resource_info_list,
             param_filter_pattern,
             param_cw_log_groups,
             param_output_dir,
+            True,
         )
 
         self.assertEqual(puller, mocked_combined_puller)
+
+        patched_xray_puller.assert_called_once_with(mock_xray_client, param_output_dir)
 
         patched_cw_log_puller.assert_has_calls(
             [call(mock_logs_client, consumer, ANY, ANY) for consumer in mocked_resource_consumers]
@@ -94,7 +105,7 @@ class TestPullerFactory(TestCase):
         mock_resource_information.get_log_group_name.return_value = None
 
         with self.assertRaises(NoPullerGeneratedException):
-            generate_puller(mock_logs_client, [mock_resource_information])
+            generate_puller(mock_logs_client, None, [mock_resource_information])
 
     @patch("samcli.commands.logs.puller_factory.generate_console_consumer")
     @patch("samcli.commands.logs.puller_factory.CWLogPuller")
@@ -115,7 +126,7 @@ class TestPullerFactory(TestCase):
         mocked_combined_puller = Mock()
         patched_combined_puller.return_value = mocked_combined_puller
 
-        puller = generate_puller(mock_logs_client_generator, [], additional_cw_log_groups=mock_cw_log_groups)
+        puller = generate_puller(mock_logs_client_generator, None, [], additional_cw_log_groups=mock_cw_log_groups)
 
         self.assertEqual(puller, mocked_combined_puller)
 
