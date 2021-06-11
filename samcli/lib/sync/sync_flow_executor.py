@@ -8,12 +8,18 @@ from multiprocessing.managers import SyncManager, ValueProxy
 from concurrent.futures import ThreadPoolExecutor, Future, ProcessPoolExecutor
 
 from botocore.exceptions import ClientError
-from samcli.lib.sync.exceptions import MissingPhysicalResourceError
+from samcli.lib.sync.exceptions import (
+    MissingPhysicalResourceError,
+    NoLayerVersionsFoundError,
+    LayerPhysicalIdNotFoundError,
+)
 
 from samcli.lib.utils.lock_distributor import LockDistributor, LockDistributorType
 from samcli.lib.sync.sync_flow import SyncFlow
 
 LOG = logging.getLogger(__name__)
+
+HELP_TEXT_FOR_SYNC_INFRA = " Try sam sync --infra or sam deploy."
 
 
 def default_exception_handler(exception: Exception) -> None:
@@ -31,15 +37,22 @@ def default_exception_handler(exception: Exception) -> None:
         Unhandled exception
     """
     if isinstance(exception, MissingPhysicalResourceError):
-        LOG.error(
-            "Cannot find resource %s in remote. Try sam sync --infra or sam deploy.", exception.resource_identifier
-        )
+        LOG.error("Cannot find resource %s in remote.%s", exception.resource_identifier, HELP_TEXT_FOR_SYNC_INFRA)
     elif (
         isinstance(exception, ClientError)
         and exception.response.get("Error", dict()).get("Code", "") == "ResourceNotFoundException"
     ):
-        LOG.error("Cannot find resource in remote. Try sam sync --infra or sam deploy.")
+        LOG.error("Cannot find resource in remote.%s", HELP_TEXT_FOR_SYNC_INFRA)
         LOG.error(exception.response.get("Error", dict()).get("Message", ""))
+    elif isinstance(exception, NoLayerVersionsFoundError):
+        LOG.error("Cannot find any versions for layer %s.%s", exception.layer_name_arn, HELP_TEXT_FOR_SYNC_INFRA)
+    elif isinstance(exception, LayerPhysicalIdNotFoundError):
+        LOG.error(
+            "Cannot find physical resource id for layer %s in all resources (%s).%s",
+            exception.layer_name,
+            exception.stack_resource_names,
+            HELP_TEXT_FOR_SYNC_INFRA,
+        )
     else:
         raise exception
 

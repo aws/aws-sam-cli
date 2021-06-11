@@ -1,3 +1,5 @@
+from parameterized import parameterized
+
 from samcli.lib.providers.provider import ResourceIdentifier
 from unittest import TestCase
 from unittest.mock import ANY, MagicMock, call, patch
@@ -56,6 +58,13 @@ class TestSyncFlowFactory(TestCase):
         result = factory._create_lambda_flow("Function1", resource)
         self.assertEqual(result, image_function_mock.return_value)
 
+    @patch("samcli.lib.sync.sync_flow_factory.LayerSyncFlow")
+    @patch("samcli.lib.sync.sync_flow_factory.Config")
+    def test_create_layer_flow(self, config_mock, layer_sync_mock):
+        factory = self.create_factory()
+        result = factory._create_layer_flow("Layer1", {})
+        self.assertEqual(result, layer_sync_mock.return_value)
+
     @patch("samcli.lib.sync.sync_flow_factory.ImageFunctionSyncFlow")
     @patch("samcli.lib.sync.sync_flow_factory.ZipFunctionSyncFlow")
     @patch("samcli.lib.sync.sync_flow_factory.Config")
@@ -65,19 +74,25 @@ class TestSyncFlowFactory(TestCase):
         result = factory._create_lambda_flow("Function1", resource)
         self.assertEqual(result, None)
 
+    @parameterized.expand(
+        [
+            "AWS::Lambda::Function",
+            "AWS::Lambda::LayerVersion",
+        ]
+    )
     @patch("samcli.lib.sync.sync_flow_factory.get_resource_by_id")
     @patch("samcli.lib.sync.sync_flow_factory.Config")
-    def test_create_sync_flow_valid(self, config_mock, get_resource_by_id_mock):
-        resource = {"Type": "AWS::Lambda::Function"}
+    def test_create_sync_flow_valid(self, resource_type, config_mock, get_resource_by_id_mock):
+        resource = {"Type": resource_type}
         get_resource_by_id_mock.return_value = resource
 
         factory = self.create_factory()
-        create_lambda_flow_mock = MagicMock()
-        SyncFlowFactory.FLOW_FACTORY_FUNCTIONS["AWS::Lambda::Function"] = create_lambda_flow_mock
-        result = factory.create_sync_flow(ResourceIdentifier("Resource1"))
 
-        create_lambda_flow_mock.assert_called_once_with(factory, "Resource1", resource)
-        self.assertEqual(create_lambda_flow_mock.return_value, result)
+        create_resource_type_flow_mock = MagicMock()
+        SyncFlowFactory.FLOW_FACTORY_FUNCTIONS[resource_type] = create_resource_type_flow_mock
+        result = factory.create_sync_flow(ResourceIdentifier("Resource1"))
+        create_resource_type_flow_mock.assert_called_once_with(factory, "Resource1", resource)
+        self.assertEqual(create_resource_type_flow_mock.return_value, result)
 
     @patch("samcli.lib.sync.sync_flow_factory.get_resource_by_id")
     @patch("samcli.lib.sync.sync_flow_factory.Config")

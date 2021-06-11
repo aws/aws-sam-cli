@@ -9,6 +9,7 @@ from samcli.lib.providers.provider import Stack, get_resource_by_id, ResourceIde
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.lib.providers.sam_api_provider import SamApiProvider
 from samcli.lib.providers.cfn_api_provider import CfnApiProvider
+from samcli.lib.sync.flows.layer_sync_flow import LayerSyncFlow
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 
 from samcli.lib.sync.sync_flow import SyncFlow
@@ -83,7 +84,13 @@ class SyncFlowFactory:
         return None
 
     def _create_layer_flow(self, resource_identifier: str, resource: Dict[str, str]) -> SyncFlow:
-        pass
+        return LayerSyncFlow(
+            resource_identifier,
+            self._build_context,
+            self._deploy_context,
+            self._physical_id_mapping,
+            self._stacks,
+        )
 
     def _create_rest_api_flow(self, resource_identifier: str, resource: Dict[str, str]) -> SyncFlow:
         pass

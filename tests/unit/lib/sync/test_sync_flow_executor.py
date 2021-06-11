@@ -2,7 +2,11 @@ from multiprocessing.managers import ValueProxy
 from queue import Queue
 
 from botocore.exceptions import ClientError
-from samcli.lib.sync.exceptions import MissingPhysicalResourceError
+from samcli.lib.sync.exceptions import (
+    MissingPhysicalResourceError,
+    NoLayerVersionsFoundError,
+    LayerPhysicalIdNotFoundError,
+)
 from samcli.lib.providers.provider import ResourceIdentifier
 from unittest import TestCase
 from unittest.mock import ANY, MagicMock, call, patch
@@ -11,7 +15,7 @@ from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall
 from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow
 from samcli.lib.utils.lock_distributor import LockChain
 
-from samcli.lib.sync.sync_flow_executor import SyncFlowExecutor, default_exception_handler
+from samcli.lib.sync.sync_flow_executor import SyncFlowExecutor, default_exception_handler, HELP_TEXT_FOR_SYNC_INFRA
 
 
 class TestSyncFlowExecutor(TestCase):
@@ -41,7 +45,7 @@ class TestSyncFlowExecutor(TestCase):
         exception.resource_identifier = "Resource1"
         default_exception_handler(exception)
         log_mock.error.assert_called_once_with(
-            "Cannot find resource %s in remote. Try sam sync --infra or sam deploy.", "Resource1"
+            "Cannot find resource %s in remote.%s", "Resource1", HELP_TEXT_FOR_SYNC_INFRA
         )
 
     @patch("samcli.lib.sync.sync_flow_executor.LOG")
@@ -51,7 +55,39 @@ class TestSyncFlowExecutor(TestCase):
         exception.response = {"Error": {"Code": "ResourceNotFoundException", "Message": "MessageContent"}}
         default_exception_handler(exception)
         log_mock.error.assert_has_calls(
-            [call("Cannot find resource in remote. Try sam sync --infra or sam deploy."), call("MessageContent")]
+            [call("Cannot find resource in remote.%s", HELP_TEXT_FOR_SYNC_INFRA), call("MessageContent")]
+        )
+
+    @patch("samcli.lib.sync.sync_flow_executor.LOG")
+    def test_default_exception_no_layer_versions_found(self, log_mock):
+        exception = MagicMock(spec=NoLayerVersionsFoundError)
+        exception.layer_name_arn = "layer_name"
+        default_exception_handler(exception)
+        log_mock.error.assert_has_calls(
+            [
+                call(
+                    "Cannot find any versions for layer %s.%s",
+                    exception.layer_name_arn,
+                    HELP_TEXT_FOR_SYNC_INFRA,
+                )
+            ]
+        )
+
+    @patch("samcli.lib.sync.sync_flow_executor.LOG")
+    def test_default_exception_layer_physical_id_not_found(self, log_mock):
+        exception = MagicMock(spec=LayerPhysicalIdNotFoundError)
+        exception.layer_name = "LayerName"
+        exception.stack_resource_names = ["ResourceA", "ResourceB"]
+        default_exception_handler(exception)
+        log_mock.error.assert_has_calls(
+            [
+                call(
+                    "Cannot find physical resource id for layer %s in all resources (%s).%s",
+                    exception.layer_name,
+                    exception.stack_resource_names,
+                    HELP_TEXT_FOR_SYNC_INFRA,
+                )
+            ]
         )
 
     @patch("samcli.lib.sync.sync_flow_executor.LOG")

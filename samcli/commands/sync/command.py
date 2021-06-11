@@ -39,10 +39,6 @@ if TYPE_CHECKING:
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.package.package_context import PackageContext
     from samcli.commands.build.build_context import BuildContext
-else:
-    DeployContext = object
-    PackageContext = object
-    BuildContext = object
 
 LOG = logging.getLogger(__name__)
 
@@ -250,9 +246,9 @@ def do_cli(
 
 
 def execute_infra_contexts(
-    build_context: BuildContext,
-    package_context: PackageContext,
-    deploy_context: DeployContext,
+    build_context: "BuildContext",
+    package_context: "PackageContext",
+    deploy_context: "DeployContext",
 ) -> None:
     """Executes the sync for infra.
 
@@ -275,8 +271,8 @@ def execute_infra_contexts(
 
 def execute_code_sync(
     template: str,
-    build_context: BuildContext,
-    deploy_context: DeployContext,
+    build_context: "BuildContext",
+    deploy_context: "DeployContext",
     resources_ids: Optional[Tuple[str]],
     resource_types: Optional[Tuple[str]],
 ) -> None:
