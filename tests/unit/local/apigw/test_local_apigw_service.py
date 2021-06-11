@@ -701,8 +701,9 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
         ]
     )
     @patch("samcli.local.apigw.local_apigw_service.LocalApigwService._should_base64_decode_body")
-    def test_parse_returns_decodes_base64_to_binary_for_rest_api(self, encoded_field_name, encoded_response_value,
-                                                                 encoded_parsed_value, should_decode_body_patch):
+    def test_parse_returns_decodes_base64_to_binary_for_rest_api(
+        self, encoded_field_name, encoded_response_value, encoded_parsed_value, should_decode_body_patch
+    ):
         should_decode_body_patch.return_value = True
 
         binary_body = b"011000100110100101101110011000010111001001111001"  # binary in binary
@@ -740,12 +741,13 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
             param("isBase64Encoded", "TRue"),
             param("base64Encoded", "TRue"),
             param("isBase64Encoded", "Any Value"),
-            param("base64Encoded", "Any Value")
+            param("base64Encoded", "Any Value"),
         ]
     )
     @patch("samcli.local.apigw.local_apigw_service.LocalApigwService._should_base64_decode_body")
-    def test_parse_raise_exception_invalide_base64_encoded(self, encoded_field_name, encoded_response_value,
-                                                           should_decode_body_patch):
+    def test_parse_raise_exception_invalide_base64_encoded(
+        self, encoded_field_name, encoded_response_value, should_decode_body_patch
+    ):
         should_decode_body_patch.return_value = True
 
         binary_body = b"011000100110100101101110011000010111001001111001"  # binary in binary
@@ -858,7 +860,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
             param(-1),
             param(10),
             param("TRue"),
-            param("Any Value")
+            param("Any Value"),
         ]
     )
     def test_parse_skip_base_64_encoded_field_http_api(self, encoded_response_value):

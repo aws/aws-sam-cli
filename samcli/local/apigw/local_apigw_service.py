@@ -472,13 +472,13 @@ class LocalApigwService(BaseLocalService):
             field_name = "isBase64Encoded"
 
         if isinstance(is_base_64_encoded, str) and is_base_64_encoded in ["true", "True", "false", "False"]:
-            return is_base_64_encoded in ["true", "True"]
-        elif isinstance(is_base_64_encoded, bool):
-            return is_base_64_encoded
-        else:
+            is_base_64_encoded = is_base_64_encoded in ["true", "True"]
+        elif not isinstance(is_base_64_encoded, bool):
             raise LambdaResponseParseException(
                 f"Invalid API Gateway Response Key: {is_base_64_encoded} is not a valid" f"{field_name}"
             )
+
+        return is_base_64_encoded
 
     @staticmethod
     def _parse_v2_payload_format_lambda_output(lambda_output: str, binary_types, flask_request):
