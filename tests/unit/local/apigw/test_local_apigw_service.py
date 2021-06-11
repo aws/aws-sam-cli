@@ -684,8 +684,25 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
                 lambda_output, binary_types=[], flask_request=Mock(), event_type=event_type
             )
 
+    @parameterized.expand(
+        [
+            param("isBase64Encoded", True, True),
+            param("base64Encoded", True, True),
+            param("isBase64Encoded", False, False),
+            param("base64Encoded", False, False),
+            param("isBase64Encoded", "True", True),
+            param("base64Encoded", "True", True),
+            param("isBase64Encoded", "true", True),
+            param("base64Encoded", "true", True),
+            param("isBase64Encoded", "False", False),
+            param("base64Encoded", "False", False),
+            param("isBase64Encoded", "false", False),
+            param("base64Encoded", "false", False),
+        ]
+    )
     @patch("samcli.local.apigw.local_apigw_service.LocalApigwService._should_base64_decode_body")
-    def test_parse_returns_decodes_base64_to_binary_for_rest_api(self, should_decode_body_patch):
+    def test_parse_returns_decodes_base64_to_binary_for_rest_api(self, encoded_field_name, encoded_response_value,
+                                                                 encoded_parsed_value, should_decode_body_patch):
         should_decode_body_patch.return_value = True
 
         binary_body = b"011000100110100101101110011000010111001001111001"  # binary in binary
@@ -694,7 +711,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
             "statusCode": 200,
             "headers": {"Content-Type": "application/octet-stream"},
             "body": base64_body,
-            "isBase64Encoded": True,
+            encoded_field_name: encoded_response_value,
         }
 
         flask_request_mock = Mock()
@@ -703,12 +720,48 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
         )
 
         should_decode_body_patch.assert_called_with(
-            ["*/*"], flask_request_mock, Headers({"Content-Type": "application/octet-stream"}), True
+            ["*/*"], flask_request_mock, Headers({"Content-Type": "application/octet-stream"}), encoded_parsed_value
         )
 
         self.assertEqual(status_code, 200)
         self.assertEqual(headers, Headers({"Content-Type": "application/octet-stream"}))
         self.assertEqual(body, binary_body)
+
+    @parameterized.expand(
+        [
+            param("isBase64Encoded", 0),
+            param("base64Encoded", 0),
+            param("isBase64Encoded", 1),
+            param("base64Encoded", 1),
+            param("isBase64Encoded", -1),
+            param("base64Encoded", -1),
+            param("isBase64Encoded", 10),
+            param("base64Encoded", 10),
+            param("isBase64Encoded", "TRue"),
+            param("base64Encoded", "TRue"),
+            param("isBase64Encoded", "Any Value"),
+            param("base64Encoded", "Any Value")
+        ]
+    )
+    @patch("samcli.local.apigw.local_apigw_service.LocalApigwService._should_base64_decode_body")
+    def test_parse_raise_exception_invalide_base64_encoded(self, encoded_field_name, encoded_response_value,
+                                                           should_decode_body_patch):
+        should_decode_body_patch.return_value = True
+
+        binary_body = b"011000100110100101101110011000010111001001111001"  # binary in binary
+        base64_body = base64.b64encode(binary_body).decode("utf-8")
+        lambda_output = {
+            "statusCode": 200,
+            "headers": {"Content-Type": "application/octet-stream"},
+            "body": base64_body,
+            encoded_field_name: encoded_response_value,
+        }
+
+        flask_request_mock = Mock()
+        with self.assertRaises(LambdaResponseParseException):
+            LocalApigwService._parse_v1_payload_format_lambda_output(
+                json.dumps(lambda_output), binary_types=["*/*"], flask_request=flask_request_mock, event_type=Route.API
+            )
 
     @patch("samcli.local.apigw.local_apigw_service.LocalApigwService._should_base64_decode_body")
     def test_parse_base64Encoded_field_is_priority(self, should_decode_body_patch):
@@ -737,14 +790,24 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
         self.assertEqual(headers, Headers({"Content-Type": "application/octet-stream"}))
         self.assertEqual(body, binary_body)
 
-    def test_parse_returns_decodes_base64_to_binary_for_http_api(self):
+    @parameterized.expand(
+        [
+            param(True, True),
+            param(False, False),
+            param("True", True),
+            param("true", True),
+            param("False", False),
+            param("false", False),
+        ]
+    )
+    def test_parse_returns_decodes_base64_to_binary_for_http_api(self, encoded_response_value, encoded_parsed_value):
         binary_body = b"011000100110100101101110011000010111001001111001"  # binary in binary
         base64_body = base64.b64encode(binary_body).decode("utf-8")
         lambda_output = {
             "statusCode": 200,
             "headers": {"Content-Type": "application/octet-stream"},
             "body": base64_body,
-            "isBase64Encoded": True,
+            "isBase64Encoded": encoded_response_value,
         }
 
         (status_code, headers, body) = LocalApigwService._parse_v1_payload_format_lambda_output(
@@ -753,7 +816,68 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
 
         self.assertEqual(status_code, 200)
         self.assertEqual(headers, Headers({"Content-Type": "application/octet-stream"}))
-        self.assertEqual(body, binary_body)
+        self.assertEqual(body, binary_body if encoded_parsed_value else base64_body)
+
+    @parameterized.expand(
+        [
+            param(0),
+            param(1),
+            param(-1),
+            param(10),
+            param("TRue"),
+            param("Any Value"),
+        ]
+    )
+    def test_parse_raise_exception_invalide_base64_encoded_for_http_api(self, encoded_response_value):
+
+        binary_body = b"011000100110100101101110011000010111001001111001"  # binary in binary
+        base64_body = base64.b64encode(binary_body).decode("utf-8")
+        lambda_output = {
+            "statusCode": 200,
+            "headers": {"Content-Type": "application/octet-stream"},
+            "body": base64_body,
+            "isBase64Encoded": encoded_response_value,
+        }
+
+        flask_request_mock = Mock()
+        with self.assertRaises(LambdaResponseParseException):
+            LocalApigwService._parse_v1_payload_format_lambda_output(
+                json.dumps(lambda_output), binary_types=["*/*"], flask_request=flask_request_mock, event_type=Route.API
+            )
+
+    @parameterized.expand(
+        [
+            param(True),
+            param(False),
+            param("True"),
+            param("true"),
+            param("False"),
+            param("false"),
+            param(0),
+            param(1),
+            param(-1),
+            param(10),
+            param("TRue"),
+            param("Any Value")
+        ]
+    )
+    def test_parse_skip_base_64_encoded_field_http_api(self, encoded_response_value):
+        binary_body = b"011000100110100101101110011000010111001001111001"  # binary in binary
+        base64_body = base64.b64encode(binary_body).decode("utf-8")
+        lambda_output = {
+            "statusCode": 200,
+            "headers": {"Content-Type": "application/octet-stream"},
+            "body": base64_body,
+            "base64Encoded": encoded_response_value,
+        }
+
+        (status_code, headers, body) = LocalApigwService._parse_v1_payload_format_lambda_output(
+            json.dumps(lambda_output), binary_types=["*/*"], flask_request=Mock(), event_type=Route.HTTP
+        )
+
+        self.assertEqual(status_code, 200)
+        self.assertEqual(headers, Headers({"Content-Type": "application/octet-stream"}))
+        self.assertEqual(body, base64_body)
 
     def test_parse_returns_does_not_decodes_base64_to_binary_for_http_api(self):
         binary_body = b"011000100110100101101110011000010111001001111001"  # binary in binary

@@ -410,13 +410,7 @@ class LocalApigwService(BaseLocalService):
         if body is None:
             LOG.warning("Lambda returned empty body!")
 
-        # Http API gateway checks lambda response for isBase64Encoded field, and ignore base64Encoded
-        # Rest API gateway checks first the field base64Encoded field, if not exist, it checks isBase64Encoded field
-        is_base_64_encoded = (
-            json_output.get("base64Encoded")
-            if event_type == Route.API and json_output.get("base64Encoded") is not None
-            else json_output.get("isBase64Encoded") or False
-        )
+        is_base_64_encoded = LocalApigwService.get_base_64_encoded(event_type, json_output)
 
         try:
             status_code = int(status_code)
@@ -460,6 +454,31 @@ class LocalApigwService(BaseLocalService):
             LambdaResponseParseException(str(ex))
 
         return status_code, headers, body
+
+    @staticmethod
+    def get_base_64_encoded(event_type, json_output):
+        # The following behaviour is undocumented behaviour, and based on some trials
+        # Http API gateway checks lambda response for isBase64Encoded field, and ignore base64Encoded
+        # Rest API gateway checks first the field base64Encoded field, if not exist, it checks isBase64Encoded field
+
+        if event_type == Route.API and json_output.get("base64Encoded") is not None:
+            is_base_64_encoded = json_output.get("base64Encoded")
+            field_name = "base64Encoded"
+        elif json_output.get("isBase64Encoded") is not None:
+            is_base_64_encoded = json_output.get("isBase64Encoded")
+            field_name = "isBase64Encoded"
+        else:
+            is_base_64_encoded = False
+            field_name = "isBase64Encoded"
+
+        if isinstance(is_base_64_encoded, str) and is_base_64_encoded in ["true", "True", "false", "False"]:
+            return is_base_64_encoded in ["true", "True"]
+        elif isinstance(is_base_64_encoded, bool):
+            return is_base_64_encoded
+        else:
+            raise LambdaResponseParseException(
+                f"Invalid API Gateway Response Key: {is_base_64_encoded} is not a valid" f"{field_name}"
+            )
 
     @staticmethod
     def _parse_v2_payload_format_lambda_output(lambda_output: str, binary_types, flask_request):

@@ -553,6 +553,34 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
         self.assertEqual(response.headers.get("Content-Type"), "image/gif")
         self.assertEqual(response.content, expected)
 
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_decoded_binary_response_base64encoded_field(self):
+        """
+        Binary data is returned correctly
+        """
+        expected = self.get_binary_data(self.binary_data_file)
+
+        response = requests.get(self.url + "/decodedbase64responsebas64encoded", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("Content-Type"), "image/gif")
+        self.assertEqual(response.content, expected)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_decoded_binary_response_base64encoded_field_is_priority(self):
+        """
+        Binary data is returned correctly
+        """
+        expected = base64.b64encode(self.get_binary_data(self.binary_data_file))
+
+        response = requests.get(self.url + "/decodedbase64responsebas64encodedpriority", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("Content-Type"), "image/gif")
+        self.assertEqual(response.content, expected)
+
 
 class TestStartApiWithSwaggerHttpApis(StartApiIntegBaseClass):
     template_path = "/testdata/start_api/swagger-template-http-api.yaml"
