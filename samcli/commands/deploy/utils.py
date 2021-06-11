@@ -18,6 +18,7 @@ def print_deploy_args(
     parameter_overrides,
     confirm_changeset,
     signing_profiles,
+    use_changeset,
 ):
     """
     Print a table of the values that are used during a sam deploy.
@@ -43,6 +44,7 @@ def print_deploy_args(
     :param parameter_overrides: Cloudformation parameter overrides to be supplied based on the stack's template
     :param confirm_changeset: Prompt for changeset to be confirmed before going ahead with the deploy.
     :param signing_profiles: Signing profile details which will be used to sign functions/layers
+    :param use_changeset: Flag to use or skip the usage of changesets
     """
     _parameters = parameter_overrides.copy()
 
@@ -62,7 +64,8 @@ def print_deploy_args(
     click.secho("\n\tDeploying with following values\n\t===============================", fg="yellow")
     click.echo(f"\tStack name                   : {stack_name}")
     click.echo(f"\tRegion                       : {region}")
-    click.echo(f"\tConfirm changeset            : {confirm_changeset}")
+    if use_changeset:
+        click.echo(f"\tConfirm changeset            : {confirm_changeset}")
     if image_repository:
         msg = "Deployment image repository  : "
         # NOTE(sriram-mv): tab length is 8 spaces.

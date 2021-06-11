@@ -1,21 +1,21 @@
 """
 CLI command for "package" command
 """
-from functools import partial
-
 import click
 
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, aws_creds_options, print_cmdline_args
-from samcli.cli.types import ImageRepositoryType, ImageRepositoriesType
-from samcli.commands.package.exceptions import PackageResolveS3AndS3SetError, PackageResolveS3AndS3NotSetError
 from samcli.lib.cli_validation.image_repository_validation import image_repository_validation
-from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.commands._utils.options import (
-    artifact_callback,
-    resolve_s3_callback,
     signing_profiles_option,
-    image_repositories_callback,
+    s3_bucket_override_option,
+    image_repository_override_option,
+    image_repositories_override_option,
+    s3_prefix_override_option,
+    kms_key_id_override_option,
+    use_json_override_option,
+    force_upload_override_option,
+    resolve_s3_override_option,
 )
 from samcli.commands._utils.options import metadata_override_option, template_click_option, no_progressbar_option
 from samcli.commands._utils.resources import resources_generator
@@ -55,40 +55,6 @@ The following resources and their property locations are supported.
 @configuration_option(provider=TomlProvider(section="parameters"))
 @template_click_option(include_build=True)
 @click.option(
-    "--s3-bucket",
-    required=False,
-    callback=partial(artifact_callback, artifact=ZIP),
-    help="The name of the S3 bucket where this command uploads the artifacts that are referenced in your template.",
-)
-@click.option(
-    "--image-repository",
-    callback=partial(artifact_callback, artifact=IMAGE),
-    type=ImageRepositoryType(),
-    required=False,
-    help="ECR repo uri where this command uploads the image artifacts that are referenced in your template.",
-)
-@click.option(
-    "--image-repositories",
-    multiple=True,
-    callback=image_repositories_callback,
-    type=ImageRepositoriesType(),
-    required=False,
-    help="Specify mapping of Function Logical ID to ECR Repo uri, of the form Function_Logical_ID=ECR_Repo_Uri."
-    "This option can be specified multiple times.",
-)
-@click.option(
-    "--s3-prefix",
-    required=False,
-    help="A prefix name that the command adds to the artifacts "
-    "name when it uploads them to the S3 bucket. The prefix name is a "
-    "path name (folder name) for the S3 bucket.",
-)
-@click.option(
-    "--kms-key-id",
-    required=False,
-    help="The ID of an AWS KMS key that the command uses to encrypt artifacts that are at rest in the S3 bucket.",
-)
-@click.option(
     "--output-template-file",
     required=False,
     type=click.Path(),
@@ -96,34 +62,14 @@ The following resources and their property locations are supported.
     "writes the output AWS CloudFormation template. If you don't specify a "
     "path, the command writes the template to the standard output.",
 )
-@click.option(
-    "--use-json",
-    required=False,
-    is_flag=True,
-    help="Indicates whether to use JSON as the format for "
-    "the output AWS CloudFormation template. YAML is used by default.",
-)
-@click.option(
-    "--force-upload",
-    required=False,
-    is_flag=True,
-    help="Indicates whether to override existing files "
-    "in the S3 bucket. Specify this flag to upload artifacts even if they "
-    "match existing artifacts in the S3 bucket.",
-)
-@click.option(
-    "--resolve-s3",
-    required=False,
-    is_flag=True,
-    callback=partial(
-        resolve_s3_callback,
-        artifact=ZIP,
-        exc_set=PackageResolveS3AndS3SetError,
-        exc_not_set=PackageResolveS3AndS3NotSetError,
-    ),
-    help="Automatically resolve s3 bucket for non-guided deployments."
-    "Do not use --s3-guided parameter with this option.",
-)
+@s3_bucket_override_option
+@image_repository_override_option
+@image_repositories_override_option
+@s3_prefix_override_option
+@kms_key_id_override_option
+@use_json_override_option
+@force_upload_override_option
+@resolve_s3_override_option
 @metadata_override_option
 @signing_profiles_option
 @no_progressbar_option

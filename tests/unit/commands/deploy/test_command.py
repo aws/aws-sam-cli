@@ -47,6 +47,7 @@ class TestDeployCliCommand(TestCase):
         self.config_env = "mock-default-env"
         self.config_file = "mock-default-filename"
         self.signing_profiles = None
+        self.use_changeset = True
         MOCK_SAM_CONFIG.reset_mock()
 
     @patch("samcli.commands.package.command.click")
@@ -108,6 +109,7 @@ class TestDeployCliCommand(TestCase):
             profile=self.profile,
             confirm_changeset=self.confirm_changeset,
             signing_profiles=self.signing_profiles,
+            use_changeset=self.use_changeset,
         )
 
         context_mock.run.assert_called_with()
@@ -316,6 +318,7 @@ class TestDeployCliCommand(TestCase):
                 profile=self.profile,
                 confirm_changeset=True,
                 signing_profiles=self.signing_profiles,
+                use_changeset=self.use_changeset,
             )
 
             context_mock.run.assert_called_with()
@@ -463,6 +466,7 @@ class TestDeployCliCommand(TestCase):
             profile=self.profile,
             confirm_changeset=True,
             signing_profiles=self.signing_profiles,
+            use_changeset=self.use_changeset,
         )
 
         context_mock.run.assert_called_with()
@@ -614,6 +618,7 @@ class TestDeployCliCommand(TestCase):
             profile=self.profile,
             confirm_changeset=True,
             signing_profiles=self.signing_profiles,
+            use_changeset=self.use_changeset,
         )
 
         context_mock.run.assert_called_with()
@@ -750,6 +755,7 @@ class TestDeployCliCommand(TestCase):
                 profile=self.profile,
                 confirm_changeset=True,
                 signing_profiles=self.signing_profiles,
+                use_changeset=self.use_changeset,
             )
 
             context_mock.run.assert_called_with()
@@ -819,6 +825,7 @@ class TestDeployCliCommand(TestCase):
             profile=self.profile,
             confirm_changeset=self.confirm_changeset,
             signing_profiles=self.signing_profiles,
+            use_changeset=self.use_changeset,
         )
 
         context_mock.run.assert_called_with()

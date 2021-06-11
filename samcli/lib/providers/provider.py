@@ -480,6 +480,15 @@ class ResourceIdentifier:
         """
         return self._logical_id
 
+    def __str__(self) -> str:
+        return self.stack_path + posixpath.sep + self.logical_id if self.stack_path else self.logical_id
+
+    def __eq__(self, other: object) -> bool:
+        return str(self) == str(other) if isinstance(other, ResourceIdentifier) else False
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
 
 def get_full_path(stack_path: str, logical_id: str) -> str:
     """
@@ -517,6 +526,32 @@ def get_resource_by_id(
             if resource:
                 return cast(Dict[str, Any], resource)
     return None
+
+
+def get_resources_by_type(stacks: List[Stack], resource_type: str) -> List[ResourceIdentifier]:
+    """Return list of resource IDs
+
+    Parameters
+    ----------
+    stacks : List[Stack]
+        List of stacks
+    resource_type : str
+        Resource type to be used for searching related resources.
+
+    Returns
+    -------
+    List[ResourceIdentifier]
+        List of ResourceIdentifiers with the type provided
+    """
+    resource_ids: List[ResourceIdentifier] = list()
+    for stack in stacks:
+        for resource_id, resource in stack.resources.items():
+            if resource.get("Type", "") == resource_type:
+                if stack.stack_path:
+                    resource_ids.append(ResourceIdentifier(stack.stack_path + posixpath.sep + resource_id))
+                else:
+                    resource_ids.append(ResourceIdentifier(resource_id))
+    return resource_ids
 
 
 def _get_build_dir(resource: Union[Function, LayerVersion], build_root: str) -> str:

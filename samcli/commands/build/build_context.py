@@ -7,6 +7,7 @@ import os
 import shutil
 from typing import Optional, List
 import pathlib
+import click
 
 from samcli.lib.providers.provider import ResourcesToBuildCollector, Stack, Function, LayerVersion
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
@@ -15,6 +16,21 @@ from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_layer_provider import SamLayerProvider
 from samcli.local.lambdafn.exceptions import ResourceNotFound
 from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
+from samcli.lib.build.exceptions import BuildInsideContainerError
+
+from samcli.commands.exceptions import UserException
+
+from samcli.lib.build.app_builder import (
+    ApplicationBuilder,
+    BuildError,
+    UnsupportedBuilderLibraryVersionError,
+    ContainerBuildNotSupported,
+)
+from samcli.commands._utils.options import DEFAULT_BUILD_DIR
+from samcli.lib.build.workflow_config import UnsupportedRuntimeException
+from samcli.local.lambdafn.exceptions import FunctionNotFound
+from samcli.commands._utils.template import move_template
+from samcli.lib.build.build_graph import InvalidBuildGraphException
 
 LOG = logging.getLogger(__name__)
 
@@ -32,6 +48,7 @@ class BuildContext:
         build_dir: str,
         cache_dir: str,
         cached: bool,
+        parallel: bool,
         mode: Optional[str],
         manifest_path: Optional[str] = None,
         clean: bool = False,
@@ -56,6 +73,7 @@ class BuildContext:
 
         self._build_dir = build_dir
         self._cache_dir = cache_dir
+        self._parallel = parallel
         self._manifest_path = manifest_path
         self._clean = clean
         self._use_container = use_container
@@ -112,6 +130,107 @@ class BuildContext:
 
     def __exit__(self, *args):
         pass
+
+    def get_resources_to_build(self):
+        return self.resources_to_build
+
+    def run(self):
+        """Runs the building process by creating an ApplicationBuilder."""
+        try:
+            builder = ApplicationBuilder(
+                self.get_resources_to_build(),
+                self.build_dir,
+                self.base_dir,
+                self.cache_dir,
+                self.cached,
+                self.is_building_specific_resource,
+                manifest_path_override=self.manifest_path_override,
+                container_manager=self.container_manager,
+                mode=self.mode,
+                parallel=self._parallel,
+                container_env_var=self._container_env_var,
+                container_env_var_file=self._container_env_var_file,
+                build_images=self._build_images,
+            )
+        except FunctionNotFound as ex:
+            raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
+
+        try:
+            artifacts = builder.build()
+
+            stack_output_template_path_by_stack_path = {
+                stack.stack_path: stack.get_output_template_path(self.build_dir) for stack in self.stacks
+            }
+            for stack in self.stacks:
+                modified_template = builder.update_template(
+                    stack,
+                    artifacts,
+                    stack_output_template_path_by_stack_path,
+                )
+                move_template(stack.location, stack.get_output_template_path(self.build_dir), modified_template)
+
+            click.secho("\nBuild Succeeded", fg="green")
+
+            # try to use relpath so the command is easier to understand, however,
+            # under Windows, when SAM and (build_dir or output_template_path) are
+            # on different drive, relpath() fails.
+            root_stack = SamLocalStackProvider.find_root_stack(self.stacks)
+            out_template_path = root_stack.get_output_template_path(self.build_dir)
+            try:
+                build_dir_in_success_message = os.path.relpath(self.build_dir)
+                output_template_path_in_success_message = os.path.relpath(out_template_path)
+            except ValueError:
+                LOG.debug("Failed to retrieve relpath - using the specified path as-is instead")
+                build_dir_in_success_message = self.build_dir
+                output_template_path_in_success_message = out_template_path
+
+            msg = self.gen_success_msg(
+                build_dir_in_success_message,
+                output_template_path_in_success_message,
+                os.path.abspath(self.build_dir) == os.path.abspath(DEFAULT_BUILD_DIR),
+            )
+
+            click.secho(msg, fg="yellow")
+
+        except (
+            UnsupportedRuntimeException,
+            BuildError,
+            BuildInsideContainerError,
+            UnsupportedBuilderLibraryVersionError,
+            ContainerBuildNotSupported,
+            InvalidBuildGraphException,
+        ) as ex:
+            click.secho("\nBuild Failed", fg="red")
+
+            # Some Exceptions have a deeper wrapped exception that needs to be surfaced
+            # from deeper than just one level down.
+            deep_wrap = getattr(ex, "wrapped_from", None)
+            wrapped_from = deep_wrap if deep_wrap else ex.__class__.__name__
+            raise UserException(str(ex), wrapped_from=wrapped_from) from ex
+
+    @staticmethod
+    def gen_success_msg(artifacts_dir: str, output_template_path: str, is_default_build_dir: bool) -> str:
+
+        invoke_cmd = "sam local invoke"
+        if not is_default_build_dir:
+            invoke_cmd += " -t {}".format(output_template_path)
+
+        deploy_cmd = "sam deploy --guided"
+        if not is_default_build_dir:
+            deploy_cmd += " --template-file {}".format(output_template_path)
+
+        msg = """\nBuilt Artifacts  : {artifacts_dir}
+Built Template   : {template}
+
+Commands you can use next
+=========================
+[*] Invoke Function: {invokecmd}
+[*] Deploy: {deploycmd}
+        """.format(
+            invokecmd=invoke_cmd, deploycmd=deploy_cmd, artifacts_dir=artifacts_dir, template=output_template_path
+        )
+
+        return msg
 
     @staticmethod
     def _setup_build_dir(build_dir: str, clean: bool) -> str:

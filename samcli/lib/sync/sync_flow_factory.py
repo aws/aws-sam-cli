@@ -103,12 +103,12 @@ class SyncFlowFactory:
         CfnApiProvider.APIGATEWAY_V2_API: _create_api_flow,
     }
 
-    def create_sync_flow(self, resource_identifier: str) -> Optional[SyncFlow]:
+    def create_sync_flow(self, resource_identifier: ResourceIdentifier) -> Optional[SyncFlow]:
         """Create an appropriate SyncFlow type based on stack resource type
 
         Parameters
         ----------
-        resource_identifier : str
+        resource_identifier : ResourceIdentifier
             Resource identifier of the resource
 
         Returns
@@ -116,7 +116,7 @@ class SyncFlowFactory:
         Optional[SyncFlow]
             SyncFlow for the resource. Returns None if resource cannot be found or have no associating SyncFlow type.
         """
-        resource = get_resource_by_id(self._stacks, ResourceIdentifier(resource_identifier))
+        resource = get_resource_by_id(self._stacks, resource_identifier)
         if not resource:
             return None
 
@@ -126,4 +126,4 @@ class SyncFlowFactory:
 
         LOG.debug("Creating SyncFlow for %s", resource_type)
         factory_function = SyncFlowFactory.FLOW_FACTORY_FUNCTIONS.get(resource_type, None)
-        return factory_function(self, resource_identifier, resource) if factory_function else None
+        return factory_function(self, str(resource_identifier), resource) if factory_function else None

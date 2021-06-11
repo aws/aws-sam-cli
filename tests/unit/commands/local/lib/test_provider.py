@@ -5,7 +5,14 @@ from unittest.mock import MagicMock, Mock
 from parameterized import parameterized
 
 
-from samcli.lib.providers.provider import LayerVersion, ResourceIdentifier, Stack, _get_build_dir, get_resource_by_id
+from samcli.lib.providers.provider import (
+    LayerVersion,
+    ResourceIdentifier,
+    Stack,
+    _get_build_dir,
+    get_resource_by_id,
+    get_resources_by_type,
+)
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, UnsupportedIntrinsic
 
 
@@ -108,6 +115,44 @@ class TestResourceIdentifier(TestCase):
         resource_identifier = ResourceIdentifier(resource_identifier_string)
         self.assertEqual(resource_identifier.stack_path, stack_path)
         self.assertEqual(resource_identifier.logical_id, logical_id)
+
+    @parameterized.expand(
+        [
+            ("Function1", "Function1", True),
+            ("NestedStack1/Function1", "NestedStack1/Function1", True),
+            ("NestedStack1/NestedNestedStack2/Function1", "NestedStack1/NestedNestedStack2/Function2", False),
+            ("NestedStack1/NestedNestedStack3/Function1", "NestedStack1/NestedNestedStack2/Function1", False),
+            ("", "", True),
+        ]
+    )
+    def test_equal(self, resource_identifier_string_1, resource_identifier_string_2, equal):
+        resource_identifier_1 = ResourceIdentifier(resource_identifier_string_1)
+        resource_identifier_2 = ResourceIdentifier(resource_identifier_string_2)
+        self.assertEqual(resource_identifier_1 == resource_identifier_2, equal)
+
+    @parameterized.expand(
+        [
+            ("Function1"),
+            ("NestedStack1/Function1"),
+            ("NestedStack1/NestedNestedStack2/Function1"),
+        ]
+    )
+    def test_hash(self, resource_identifier_string):
+        resource_identifier_1 = ResourceIdentifier(resource_identifier_string)
+        resource_identifier_2 = ResourceIdentifier(resource_identifier_string)
+        self.assertEqual(hash(resource_identifier_1), hash(resource_identifier_2))
+
+    @parameterized.expand(
+        [
+            ("Function1"),
+            ("NestedStack1/Function1"),
+            ("NestedStack1/NestedNestedStack2/Function1"),
+            (""),
+        ]
+    )
+    def test_str(self, resource_identifier_string):
+        resource_identifier = ResourceIdentifier(resource_identifier_string)
+        self.assertEqual(str(resource_identifier), resource_identifier_string)
 
 
 class TestGetResourceByID(TestCase):
@@ -214,3 +259,31 @@ class TestGetResourceByID(TestCase):
             [self.root_stack, self.nested_stack, self.nested_nested_stack], resource_identifier, False
         )
         self.assertEqual(result, None)
+
+
+class TestGetResourcesByType(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.root_stack = MagicMock()
+        self.root_stack.stack_path = ""
+        self.root_stack.resources = {"Function1": {"Type": "TypeA"}}
+
+        self.nested_stack = MagicMock()
+        self.nested_stack.stack_path = "NestedStack1"
+        self.nested_stack.resources = {"Function1": {"Type": "TypeA"}}
+
+        self.nested_nested_stack = MagicMock()
+        self.nested_nested_stack.stack_path = "NestedStack1/NestedNestedStack1"
+        self.nested_nested_stack.resources = {"Function2": {"Type": "TypeB"}}
+
+    def test_get_resources_by_type_single_nested(
+        self,
+    ):
+        result = get_resources_by_type([self.root_stack, self.nested_stack, self.nested_nested_stack], "TypeB")
+        self.assertEqual(result, [ResourceIdentifier("NestedStack1/NestedNestedStack1/Function2")])
+
+    def test_get_resources_by_type_multiple_nested(
+        self,
+    ):
+        result = get_resources_by_type([self.root_stack, self.nested_stack, self.nested_nested_stack], "TypeA")
+        self.assertEqual(result, [ResourceIdentifier("Function1"), ResourceIdentifier("NestedStack1/Function1")])

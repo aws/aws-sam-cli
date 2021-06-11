@@ -74,7 +74,7 @@ class TestSyncFlowFactory(TestCase):
         factory = self.create_factory()
         create_lambda_flow_mock = MagicMock()
         SyncFlowFactory.FLOW_FACTORY_FUNCTIONS["AWS::Lambda::Function"] = create_lambda_flow_mock
-        result = factory.create_sync_flow("Resource1")
+        result = factory.create_sync_flow(ResourceIdentifier("Resource1"))
 
         create_lambda_flow_mock.assert_called_once_with(factory, "Resource1", resource)
         self.assertEqual(create_lambda_flow_mock.return_value, result)
@@ -86,7 +86,7 @@ class TestSyncFlowFactory(TestCase):
         get_resource_by_id_mock.return_value = resource
 
         factory = self.create_factory()
-        result = factory.create_sync_flow("Resource1")
+        result = factory.create_sync_flow(ResourceIdentifier("Resource1"))
 
         self.assertEqual(None, result)
 
@@ -97,6 +97,6 @@ class TestSyncFlowFactory(TestCase):
         get_resource_by_id_mock.return_value = resource
 
         factory = self.create_factory()
-        result = factory.create_sync_flow("Resource1")
+        result = factory.create_sync_flow(ResourceIdentifier("Resource1"))
 
         self.assertEqual(None, result)

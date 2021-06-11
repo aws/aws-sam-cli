@@ -1,4 +1,5 @@
 """Test sam deploy command"""
+from samcli.lib.package.s3_uploader import S3Uploader
 from unittest import TestCase
 from unittest.mock import patch, MagicMock, Mock
 import tempfile
@@ -31,6 +32,7 @@ class TestSamDeployCommand(TestCase):
             profile=None,
             confirm_changeset=False,
             signing_profiles=None,
+            use_changeset=True,
         )
 
     def test_template_improper(self):
@@ -148,4 +150,63 @@ class TestSamDeployCommand(TestCase):
             self.assertEqual(
                 self.deploy_command_context.deployer.create_and_wait_for_changeset.call_args[1]["parameter_values"],
                 [{"ParameterKey": "a", "ParameterValue": "b"}, {"ParameterKey": "c", "UsePreviousValue": True}],
+            )
+
+    @patch("boto3.Session")
+    @patch("samcli.commands.deploy.deploy_context.auth_per_resource")
+    @patch("samcli.commands.deploy.deploy_context.SamLocalStackProvider.get_stacks")
+    @patch.object(Deployer, "sync", MagicMock())
+    def test_sync(self, patched_get_buildable_stacks, patched_auth_required, patched_boto):
+        sync_context = DeployContext(
+            template_file="template-file",
+            stack_name="stack-name",
+            s3_bucket="s3-bucket",
+            image_repository="image-repo",
+            image_repositories=None,
+            force_upload=True,
+            no_progressbar=False,
+            s3_prefix="s3-prefix",
+            kms_key_id="kms-key-id",
+            parameter_overrides={"a": "b"},
+            capabilities="CAPABILITY_IAM",
+            no_execute_changeset=False,
+            role_arn="role-arn",
+            notification_arns=[],
+            fail_on_empty_changeset=False,
+            tags={"a": "b"},
+            region=None,
+            profile=None,
+            confirm_changeset=False,
+            signing_profiles=None,
+            use_changeset=False,
+        )
+        patched_get_buildable_stacks.return_value = (Mock(), [])
+        patched_auth_required.return_value = [("HelloWorldFunction", False)]
+        with tempfile.NamedTemporaryFile(delete=False) as template_file:
+            template_file.write(b'{"Parameters": {"a":"b","c":"d"}}')
+            template_file.flush()
+            sync_context.template_file = template_file.name
+            sync_context.run()
+
+            self.assertEqual(sync_context.deployer.sync.call_count, 1)
+            print(sync_context.deployer.sync.call_args[1])
+            self.assertEqual(
+                sync_context.deployer.sync.call_args[1]["stack_name"],
+                "stack-name",
+            )
+            self.assertEqual(
+                sync_context.deployer.sync.call_args[1]["capabilities"],
+                "CAPABILITY_IAM",
+            )
+            self.assertEqual(
+                sync_context.deployer.sync.call_args[1]["cfn_template"],
+                '{"Parameters": {"a":"b","c":"d"}}',
+            )
+            self.assertEqual(
+                sync_context.deployer.sync.call_args[1]["notification_arns"],
+                [],
+            )
+            self.assertEqual(
+                sync_context.deployer.sync.call_args[1]["role_arn"],
+                "role-arn",
             )

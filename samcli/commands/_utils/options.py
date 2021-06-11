@@ -10,12 +10,22 @@ import click
 from click.types import FuncParamType
 
 from samcli.commands._utils.template import get_template_data, TemplateNotFoundException
-from samcli.cli.types import CfnParameterOverridesType, CfnMetadataType, CfnTags, SigningProfilesOptionType
+from samcli.cli.types import (
+    CfnParameterOverridesType,
+    CfnMetadataType,
+    CfnTags,
+    SigningProfilesOptionType,
+    ImageRepositoryType,
+    ImageRepositoriesType,
+)
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 from samcli.commands._utils.template import get_template_artifacts_format
+from samcli.lib.utils.packagetype import ZIP, IMAGE
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml|json]"
 DEFAULT_STACK_NAME = "sam-app"
+DEFAULT_BUILD_DIR = os.path.join(".aws-sam", "build")
+DEFAULT_CACHE_DIR = os.path.join(".aws-sam", "cache")
 
 LOG = logging.getLogger(__name__)
 
@@ -400,6 +410,233 @@ def notification_arns_click_option():
 
 def notification_arns_override_option(f):
     return notification_arns_click_option()(f)
+
+
+def stack_name_click_option():
+    return click.option(
+        "--stack-name",
+        required=False,
+        help="The name of the AWS CloudFormation stack you're deploying to. "
+        "If you specify an existing stack, the command updates the stack. "
+        "If you specify a new stack, the command creates it.",
+    )
+
+
+def stack_name_override_option(f):
+    return stack_name_click_option()(f)
+
+
+def s3_bucket_click_option():
+    return click.option(
+        "--s3-bucket",
+        required=False,
+        callback=partial(artifact_callback, artifact=ZIP),
+        help="The name of the S3 bucket where this command uploads the artifacts that are referenced in your template.",
+    )
+
+
+def s3_bucket_override_option(f):
+    return s3_bucket_click_option()(f)
+
+
+def build_dir_click_option():
+    return click.option(
+        "--build-dir",
+        "-b",
+        default=DEFAULT_BUILD_DIR,
+        type=click.Path(file_okay=False, dir_okay=True, writable=True),  # Must be a directory
+        help="Path to a folder where the built artifacts will be stored. "
+        "This directory will be first removed before starting a build.",
+    )
+
+
+def build_dir_override_option(f):
+    return build_dir_click_option()(f)
+
+
+def cache_dir_click_option():
+    return click.option(
+        "--cache-dir",
+        "-cd",
+        default=DEFAULT_CACHE_DIR,
+        type=click.Path(file_okay=False, dir_okay=True, writable=True),  # Must be a directory
+        help="The folder where the cache artifacts will be stored when --cached is specified. "
+        "The default cache directory is .aws-sam/cache",
+    )
+
+
+def cache_dir_override_option(f):
+    return cache_dir_click_option()(f)
+
+
+def base_dir_click_option():
+    return click.option(
+        "--base-dir",
+        "-s",
+        default=None,
+        type=click.Path(dir_okay=True, file_okay=False),  # Must be a directory
+        help="Resolve relative paths to function's source code with respect to this folder. Use this if "
+        "SAM template and your source code are not in same enclosing folder. By default, relative paths "
+        "are resolved with respect to the SAM template's location",
+    )
+
+
+def base_dir_override_option(f):
+    return base_dir_click_option()(f)
+
+
+def manifest_click_option():
+    return click.option(
+        "--manifest",
+        "-m",
+        default=None,
+        type=click.Path(),
+        help="Path to a custom dependency manifest (e.g., package.json) to use instead of the default one",
+    )
+
+
+def manifest_override_option(f):
+    return manifest_click_option()(f)
+
+
+def cached_click_option():
+    return click.option(
+        "--cached",
+        "-c",
+        is_flag=True,
+        help="Enable cached builds. Use this flag to reuse build artifacts that have not changed from previous builds. "
+        "AWS SAM evaluates whether you have made any changes to files in your project directory. \n\n"
+        "Note: AWS SAM does not evaluate whether changes have been made to third party modules "
+        "that your project depends on, where you have not provided a specific version. "
+        "For example, if your Python function includes a requirements.txt file with the following entry "
+        "requests=1.x and the latest request module version changes from 1.1 to 1.2, "
+        "SAM will not pull the latest version until you run a non-cached build.",
+    )
+
+
+def cached_override_option(f):
+    return cached_click_option()(f)
+
+
+def image_repository_click_option():
+    return click.option(
+        "--image-repository",
+        callback=partial(artifact_callback, artifact=IMAGE),
+        type=ImageRepositoryType(),
+        required=False,
+        help="ECR repo uri where this command uploads the image artifacts that are referenced in your template.",
+    )
+
+
+def image_repository_override_option(f):
+    return image_repository_click_option()(f)
+
+
+def image_repositories_click_option():
+    return click.option(
+        "--image-repositories",
+        multiple=True,
+        callback=image_repositories_callback,
+        type=ImageRepositoriesType(),
+        required=False,
+        help="Specify mapping of Function Logical ID to ECR Repo uri, of the form Function_Logical_ID=ECR_Repo_Uri."
+        "This option can be specified multiple times.",
+    )
+
+
+def image_repositories_override_option(f):
+    return image_repositories_click_option()(f)
+
+
+def s3_prefix_click_option():
+    return click.option(
+        "--s3-prefix",
+        required=False,
+        help="A prefix name that the command adds to the artifacts "
+        "name when it uploads them to the S3 bucket. The prefix name is a "
+        "path name (folder name) for the S3 bucket.",
+    )
+
+
+def s3_prefix_override_option(f):
+    return s3_prefix_click_option()(f)
+
+
+def kms_key_id_click_option():
+    return click.option(
+        "--kms-key-id",
+        required=False,
+        help="The ID of an AWS KMS key that the command uses to encrypt artifacts that are at rest in the S3 bucket.",
+    )
+
+
+def kms_key_id_override_option(f):
+    return kms_key_id_click_option()(f)
+
+
+def use_json_click_option():
+    return click.option(
+        "--use-json",
+        required=False,
+        is_flag=True,
+        help="Indicates whether to use JSON as the format for "
+        "the output AWS CloudFormation template. YAML is used by default.",
+    )
+
+
+def use_json_override_option(f):
+    return use_json_click_option()(f)
+
+
+def force_upload_click_option():
+    return click.option(
+        "--force-upload",
+        required=False,
+        is_flag=True,
+        help="Indicates whether to override existing files "
+        "in the S3 bucket. Specify this flag to upload artifacts even if they "
+        "match existing artifacts in the S3 bucket.",
+    )
+
+
+def force_upload_override_option(f):
+    return force_upload_click_option()(f)
+
+
+def resolve_s3_click_option():
+    from samcli.commands.package.exceptions import PackageResolveS3AndS3SetError, PackageResolveS3AndS3NotSetError
+
+    return click.option(
+        "--resolve-s3",
+        required=False,
+        is_flag=True,
+        callback=partial(
+            resolve_s3_callback,
+            artifact=ZIP,
+            exc_set=PackageResolveS3AndS3SetError,
+            exc_not_set=PackageResolveS3AndS3NotSetError,
+        ),
+        help="Automatically resolve s3 bucket for non-guided deployments."
+        "Do not use --s3-guided parameter with this option.",
+    )
+
+
+def resolve_s3_override_option(f):
+    return resolve_s3_click_option()(f)
+
+
+def role_arn_click_option():
+    return click.option(
+        "--role-arn",
+        required=False,
+        help="The Amazon Resource Name (ARN) of an  AWS  Identity "
+        "and  Access  Management (IAM) role that AWS CloudFormation assumes when "
+        "executing the change set.",
+    )
+
+
+def role_arn_override_option(f):
+    return role_arn_click_option()(f)
 
 
 def _space_separated_list_func_type(value):
