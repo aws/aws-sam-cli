@@ -17,7 +17,7 @@ Deploy a SAM stack
 
 import logging
 import os
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import boto3
 import click
@@ -30,6 +30,7 @@ from samcli.commands.deploy.utils import (
     hide_noecho_parameter_overrides,
 )
 from samcli.lib.deploy.deployer import Deployer
+from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
@@ -80,6 +81,10 @@ class DeployContext:
         self.s3_prefix = s3_prefix
         self.kms_key_id = kms_key_id
         self.parameter_overrides = parameter_overrides
+        # Override certain CloudFormation pseudo-parameters based on values provided by customer
+        self.global_parameter_overrides: Optional[Dict] = None
+        if region:
+            self.global_parameter_overrides = {IntrinsicsSymbolTable.AWS_REGION: region}
         self.capabilities = capabilities
         self.no_execute_changeset = no_execute_changeset
         self.role_arn = role_arn
@@ -210,7 +215,9 @@ class DeployContext:
             Should wait for customer's confirm before executing the changeset
         """
         stacks, _ = SamLocalStackProvider.get_stacks(
-            self.template_file, parameter_overrides=sanitize_parameter_overrides(self.parameter_overrides)
+            self.template_file,
+            parameter_overrides=sanitize_parameter_overrides(self.parameter_overrides),
+            global_parameter_overrides=self.global_parameter_overrides,
         )
         auth_required_per_resource = auth_per_resource(stacks)
 
