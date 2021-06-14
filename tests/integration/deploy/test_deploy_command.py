@@ -536,7 +536,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         config_path = self.test_data_path.joinpath(config_file)
 
         stack_name = self._method_to_stack_name(self.id())
-        self.stack_names.append(stack_name)
+        self.stacks.append({"name": stack_name})
 
         deploy_command_list = self.get_deploy_command_list(
             template_file=template_path, stack_name=stack_name, config_file=config_path, capabilities="CAPABILITY_IAM"
