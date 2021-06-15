@@ -175,6 +175,15 @@ class InitTemplates:
         return False
 
     def get_preprocessed_manifest(self):
+        """
+        This method get the manifest cloned from the git repo and preprocessed it.
+
+        Raises:
+            InvalidInitTemplateError: Exception raise when template is invalid or missing a parameter
+
+        Returns:
+            dict: This is preprocessed manifest with the use_case as key
+        """
         manifest_dump = requests.get(self._manifest_url)
         if not manifest_dump:
             raise InvalidInitTemplateError(

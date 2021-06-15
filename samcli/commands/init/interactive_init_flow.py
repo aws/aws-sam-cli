@@ -103,7 +103,6 @@ def _generate_from_use_case(
 
     dependency_manager = template_choosen["dependencyManager"]
     location = templates.location_from_app_template(package_type, runtime, base_image, dependency_manager, app_template)
-    
 
     if not name:
         name = click.prompt("\nProject name", type=str, default="sam-app")
