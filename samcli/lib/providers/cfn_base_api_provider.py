@@ -72,6 +72,7 @@ class CfnBaseApiProvider:
         LOG.debug("Found '%s' APIs in resource '%s'", len(routes), logical_id)
 
         collector.add_routes(logical_id, routes)
+        collector.cors = parser.get_cors()
 
         collector.add_binary_media_types(logical_id, parser.get_binary_media_types())  # Binary media from swagger
         collector.add_binary_media_types(logical_id, binary_media)  # Binary media specified on resource in template

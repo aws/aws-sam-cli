@@ -27,7 +27,6 @@ When customers run ```sam local start-api``` with a template that uses raw Cloud
 
 Anything that SAM CLI doesn't currently support in SAM 
 * ApiGateway Authorization such as resource policies, IAM roles/tags/policies, Lambda Authorizers, etc.
-* ApiGateway CORS support 
 * Proper validation of the CloudFormation templates so that it does smart validation and not just yaml parsing.
 
 ## User Experience Walkthrough

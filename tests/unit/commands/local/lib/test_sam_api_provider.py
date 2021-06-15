@@ -1830,7 +1830,7 @@ class TestSamHttpApiCors(TestCase):
         self.assertEqual(provider.api.cors, cors)
 
 
-def make_swagger(routes, binary_media_types=None):
+def make_swagger(routes, binary_media_types=None, cors=None):
     """
     Given a list of API configurations named tuples, returns a Swagger document
 
@@ -1865,5 +1865,8 @@ def make_swagger(routes, binary_media_types=None):
 
     if binary_media_types:
         swagger["x-amazon-apigateway-binary-media-types"] = binary_media_types
+
+    if cors:
+        swagger["x-amazon-apigateway-cors"] = cors
 
     return swagger

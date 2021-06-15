@@ -744,6 +744,37 @@ class TestCloudFormationProviderWithApiGatewayV2(TestCase):
         self.assertCountEqual(self.input_routes, provider.routes)
         SwaggerReaderMock.assert_called_with(definition_body=body, definition_uri=filename, working_dir=cwd)
 
+    def test_swagger_with_cors_extension(self):
+        cors = {
+            "allowOrigins": ["*"],
+            "allowCredentials": False,
+            "maxAge": 3600,
+            "allowMethods": ["GET", "POST"],
+            "allowHeaders": ["X-TEST-HEADER"],
+        }
+
+        expected_cors = Cors(
+            allow_origin="*",
+            allow_credentials=False,
+            max_age=3600,
+            allow_methods="GET,POST",
+            allow_headers="X-TEST-HEADER",
+        )
+
+        template = {
+            "Resources": {
+                "Api1": {
+                    "Type": "AWS::ApiGatewayV2::Api",
+                    "Properties": {"Body": make_swagger(self.input_routes, None, cors)},
+                }
+            }
+        }
+
+        provider = ApiProvider(make_mock_stacks_from_template(template))
+        self.assertEqual(provider.api.cors, expected_cors)
+        for route in provider.routes:
+            self.assertTrue("OPTIONS" in route.methods)
+
     def test_swagger_with_any_method(self):
         routes = [Route(path="$default", methods=["any"], function_name="SamFunc1")]
 

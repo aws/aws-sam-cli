@@ -1,7 +1,9 @@
 """Handles Swagger Parsing"""
 
 import logging
+from typing import Type, Dict, List, Optional, Any
 
+from samcli.lib.providers.provider import Cors
 from samcli.commands.local.lib.swagger.integration_uri import LambdaUri, IntegrationType
 from samcli.local.apigw.local_apigw_service import Route
 
@@ -11,6 +13,7 @@ LOG = logging.getLogger(__name__)
 class SwaggerParser:
     _INTEGRATION_KEY = "x-amazon-apigateway-integration"
     _ANY_METHOD_EXTENSION_KEY = "x-amazon-apigateway-any-method"
+    _CORS_EXTENSION_KEY = "x-amazon-apigateway-cors"
     _BINARY_MEDIA_TYPES_EXTENSION_KEY = "x-amazon-apigateway-binary-media-types"  # pylint: disable=C0103
     _ANY_METHOD = "ANY"
 
@@ -23,6 +26,67 @@ class SwaggerParser:
         """
         self.swagger = swagger or {}
         self.stack_path = stack_path
+
+    def get_cors(self) -> Optional[Cors]:
+        """
+        Get cors configuration
+        """
+        swagger_cors = self.swagger.get(self._CORS_EXTENSION_KEY)
+        if not swagger_cors:
+            return None
+
+        allow_origin = self._get_cors_prop(swagger_cors, "allowOrigins", List)
+        allow_credentials = self._get_cors_prop(swagger_cors, "allowCredentials", bool)
+        max_age = self._get_cors_prop(swagger_cors, "maxAge", int)
+        allow_methods = self._get_cors_prop(swagger_cors, "allowMethods", List)
+        allow_headers = self._get_cors_prop(swagger_cors, "allowHeaders", List)
+
+        if isinstance(allow_origin, list):
+            allow_origin = ",".join(allow_origin)
+        if isinstance(allow_methods, list):
+            allow_methods = ",".join(allow_methods)
+        if isinstance(allow_headers, list):
+            allow_headers = ",".join(allow_headers)
+
+        return Cors(
+            allow_origin=allow_origin,
+            allow_credentials=allow_credentials,
+            max_age=max_age,
+            allow_methods=allow_methods,
+            allow_headers=allow_headers,
+        )
+
+    @staticmethod
+    def _get_cors_prop(
+        cors_dict: Dict,
+        prop_name: str,
+        expect_type: Type,
+    ) -> Optional[Any]:
+        """
+        Extract swagger cors properties from dictionary.
+
+        Parameters
+        ----------
+        cors_dict : dict
+            Resource properties for Cors
+        prop_name : str
+            Property name
+        expect_type : type
+            Expect property type
+
+        Return
+        ------
+        Value with matching type
+        """
+        prop = cors_dict.get(prop_name)
+        if prop:
+            if not isinstance(prop, expect_type):
+                LOG.warning(
+                    "CORS Swagger Property %s was not fully resolved. Will proceed as if the Property was not defined.",
+                    prop_name,
+                )
+                return None
+        return prop
 
     def get_binary_media_types(self):
         """
