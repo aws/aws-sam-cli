@@ -88,9 +88,9 @@ def _generate_from_use_case(
     runtime_options = package_types_options[package_type]
     if package_type == IMAGE:
         click.echo("\nWhich base image would you like to use?")
-        image = _get_choice_from_options("Image", runtime_options)
-        runtime = _get_runtime_from_image(image)
-        template_runtime = image
+        base_image = _get_choice_from_options("Image", runtime_options)
+        runtime = _get_runtime_from_image(base_image)
+        template_runtime = base_image
 
     else:
         click.echo("\nWhich runtime would you like to use?")
@@ -101,8 +101,9 @@ def _generate_from_use_case(
     template_choosen = _get_app_template_choice(template_options)
     app_template = template_choosen["appTemplate"]
 
-    location = templates.get_app_template_location(template_choosen)
     dependency_manager = template_choosen["dependencyManager"]
+    location = templates.location_from_app_template(package_type, runtime, base_image, dependency_manager, app_template)
+    
 
     if not name:
         name = click.prompt("\nProject name", type=str, default="sam-app")
