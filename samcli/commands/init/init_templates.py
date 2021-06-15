@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Dict
 
 import click
+import requests
 
 from samcli.cli.main import global_cfg
 from samcli.commands.exceptions import UserException, AppTemplateUpdateException
@@ -27,7 +28,13 @@ class InvalidInitTemplateError(UserException):
 
 
 class InitTemplates:
-    def __init__(self, no_interactive=False):
+    def __init__(self, no_interactive=False, auto_clone=True):
+        self._repo_url = "https://github.com/aws/aws-sam-cli-app-templates"
+        self._repo_name = "aws-sam-cli-app-templates"
+        self._manifest_url = "https://raw.githubusercontent.com/sapessi/aws-sam-cli-app-templates/master/manifest.json"
+        self._temp_repo_name = "TEMP-aws-sam-cli-app-templates"
+        self.repo_path = None
+        self.clone_attempted = False
         self._no_interactive = no_interactive
         self._git_repo: GitRepo = GitRepo(url=APP_TEMPLATES_REPO_URL)
 
@@ -171,3 +178,41 @@ class InitTemplates:
             if option.get("appTemplate") == app_template:
                 return option.get("isDynamicTemplate", False)
         return False
+
+    def get_app_template_location(self, template):
+        self._clone_repo()
+        return os.path.join(self.repo_path, template["directory"])
+
+    def get_preprocessed_manifest(self):
+        manifest_dump = requests.get(self._manifest_url)
+        if not manifest_dump:
+            raise InvalidInitTemplateError(
+                "Can't retrieve templates manifest from {url}".format(url=self._manifest_url)
+            )
+        use_cases_dict = {}
+        manifest_body = manifest_dump.json()
+
+        for template_runtime in manifest_body:
+            template_list = manifest_body[template_runtime]
+            for template in template_list:
+                if "useCaseName" not in template:
+                    raise InvalidInitTemplateError(
+                        "Template {name} missing use case descriptor".format(name=template["displayName"])
+                    )
+                use_case = template["useCaseName"]
+                if use_case not in use_cases_dict:
+                    use_cases_dict[use_case] = {}
+
+                if "packageType" not in template:
+                    raise InvalidInitTemplateError(
+                        "Template {name} missing the package type value".format(name=template["displayName"])
+                    )
+
+                package_type = template["packageType"]
+                if package_type not in use_cases_dict[use_case]:
+                    use_cases_dict[use_case][package_type] = {}
+
+                if template_runtime not in use_cases_dict[use_case][package_type]:
+                    use_cases_dict[use_case][package_type][template_runtime] = []
+                use_cases_dict[use_case][package_type][template_runtime].append(template)
+        return use_cases_dict

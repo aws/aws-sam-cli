@@ -22,7 +22,12 @@ from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 
 class MockInitTemplates:
-    def __init__(self, no_interactive=False):
+    def __init__(self, no_interactive=False, auto_clone=True):
+        self._manifest_url = "https://raw.githubusercontent.com/sapessi/aws-sam-cli-app-templates/master/manifest.json"
+        self._repo_url = "https://github.com/awslabs/aws-sam-cli-app-templates.git"
+        self._repo_name = "aws-sam-cli-app-templates"
+        self.repo_path = "repository"
+        self.clone_attempted = True
         self._no_interactive = no_interactive
         self._git_repo: GitRepo = GitRepo(
             url=APP_TEMPLATES_REPO_URL,
@@ -584,26 +589,26 @@ class TestCli(TestCase):
         # WHEN the user follows interactive init prompts
 
         # 1: AWS Quick Start Templates
-        # 5: Java Runtime
-        # 1: dependency manager maven
+        # 3: Infrastructure event management - Use case
+        # 1: Zip
+        # 3: Java Runtime
+        # 4: select event-bridge app from scratch
         # test-project: response to name
-        # Y: Don't clone/update the source repo
-        # 2: select event-bridge app from scratch
         # Y: Use default aws configuration
-        # 1: select aws.events as registries
-        # 1: select schema AWSAPICallViaCloudTrail
+        # 1: select schema from cli_paginator
+        # 4: select aws.events as registries
+        # 9: select schema AWSAPICallViaCloudTrail
         user_input = """
 1
+3
 1
-5
-1
+3
+4
 test-project
 Y
-2
-Y
 1
-1
-.
+4
+9
         """
         runner = CliRunner()
         result = runner.invoke(init_cmd, input=user_input)
@@ -651,16 +656,18 @@ Y
         # WHEN the user follows interactive init prompts
 
         # 1: AWS Quick Start Templates
+        # 1: Serverless API - Use case
         # 2: Package type - Image
         # 14: Java8 base image
-        # 1: dependency manager maven
+        # 2: Hello World Lambda Image Example: Maven
         # test-project: response to name
 
         user_input = """
 1
+1
 2
 14
-1
+2
 test-project
             """
         runner = CliRunner()
@@ -738,29 +745,28 @@ test-project
         # WHEN the user follows interactive init prompts
 
         # 1: AWS Quick Start Templates
-        # 5: Java Runtime
-        # 1: dependency manager maven
+        # 3: Infrastructure event management - Use case
+        # 1: Zip
+        # 3: Java Runtime
+        # 4: select event-bridge app from scratch
         # test-project: response to name
-        # Y: Don't clone/update the source repo
-        # 2: select event-bridge app from scratch
         # N: Use default AWS profile
         # 1: Select profile
         # us-east-1: Select region
-        # 1: select aws.events as registries
-        # 1: select schema AWSAPICallViaCloudTrail
+        # 4: select aws.events as registries
+        # 9: select schema AWSAPICallViaCloudTrail
         user_input = """
 1
+3
 1
-5
-1
+3
+4
 test-project
-Y
-2
 N
 1
 us-east-1
-1
-1
+4
+9
 .
         """
         runner = CliRunner()
@@ -821,29 +827,28 @@ us-east-1
         # WHEN the user follows interactive init prompts
 
         # 1: AWS Quick Start Templates
-        # 5: Java Runtime
-        # 1: dependency manager maven
+        # 3: Infrastructure event management - Use case
+        # 1: Zip
+        # 3: Java Runtime
+        # 4: select event-bridge app from scratch
         # test-project: response to name
-        # Y: Don't clone/update the source repo
-        # 2: select event-bridge app from scratch
         # N: Use default AWS profile
         # 1: Select profile
         # invalid-region: Select region
-        # 1: select aws.events as registries
-        # 1: select schema AWSAPICallViaCloudTrail
+        # 4: select aws.events as registries
+        # 9: select schema AWSAPICallViaCloudTrail
         user_input = """
 1
+3
 1
-5
-1
+3
+4
 test-project
-Y
-2
 N
 1
 invalid-region
-1
-1
+4
+9
 .
             """
         runner = CliRunner()
@@ -913,26 +918,26 @@ invalid-region
         # WHEN the user follows interactive init prompts
 
         # 1: AWS Quick Start Templates
-        # 5: Java Runtime
-        # 1: dependency manager maven
+        # 3: Infrastructure event management - Use case
+        # 1: Zip
+        # 3: Java Runtime
+        # 4: select event-bridge app from scratch
         # test-project: response to name
-        # Y: Don't clone/update the source repo
-        # 2: select event-bridge app from scratch
-        # Y: Don't override aws configuration
-        # 1: select aws.events as registries
-        # 1: select schema AWSAPICallViaCloudTrail
+        # Y: Use default aws configuration
+        # 1: select schema from cli_paginator
+        # 4: select aws.events as registries
+        # 9: select schema AWSAPICallViaCloudTrail
         user_input = """
 1
+3
 1
-5
-1
+3
+4
 test-project
 Y
-2
-Y
 1
-1
-.
+4
+9
         """
         runner = CliRunner()
         result = runner.invoke(init_cmd, input=user_input)
@@ -1013,26 +1018,28 @@ Y
             {"Error": {"Code": "ConflictException", "Message": "ConflictException"}}, "operation"
         )
         # WHEN the user follows interactive init prompts
+
         # 1: AWS Quick Start Templates
-        # 5: Java Runtime
-        # 1: dependency manager maven
+        # 3: Infrastructure event management - Use case
+        # 1: Zip
+        # 3: Java Runtime
+        # 4: select event-bridge app from scratch
         # test-project: response to name
-        # Y: Don't clone/update the source repo
-        # 2: select event-bridge app from scratch
-        # Y: Used default aws configuration
-        # 1: select aws.events as registries
-        # 1: select schema AWSAPICallViaCloudTrail
+        # Y: Use default aws configuration
+        # 1: select schema from cli_paginator
+        # 4: select aws.events as registries
+        # 9: select schema AWSAPICallViaCloudTrail
         user_input = """
 1
+3
 1
-5
-1
+3
+4
 test-project
 Y
-2
-Y
 1
-1
+4
+9
         """
         runner = CliRunner()
         result = runner.invoke(init_cmd, input=user_input)
@@ -1112,8 +1119,9 @@ foo
         # 2s: selecting package type
         user_input = """
 1
-2
 1
+2
+3
         """
         args = [
             "--no-input",

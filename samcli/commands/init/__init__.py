@@ -275,7 +275,7 @@ def do_cli(
         # need to turn app_template into a location before we generate
         templates = InitTemplates(no_interactive)
         if package_type == IMAGE and image_bool:
-            base_image, runtime = _get_runtime_from_image(base_image)
+            runtime = _get_runtime_from_image(base_image)
             options = templates.init_options(package_type, runtime, base_image, dependency_manager)
             if not app_template:
                 if len(options) == 1:
