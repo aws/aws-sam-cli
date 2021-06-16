@@ -229,11 +229,20 @@ class LambdaImage:
             with create_tarball(tar_paths, tar_filter=tar_filter) as tarballfile:
                 try:
                     resp_stream = self.docker_client.api.build(
-                        fileobj=tarballfile, custom_context=True, rm=True, tag=docker_tag, pull=not self.skip_pull_image
+                        fileobj=tarballfile,
+                        custom_context=True,
+                        rm=True,
+                        tag=docker_tag,
+                        pull=not self.skip_pull_image,
+                        decode=True,
                     )
-                    for _ in resp_stream:
+                    for log in resp_stream:
                         stream_writer.write(".")
                         stream_writer.flush()
+                        if "error" in log:
+                            stream_writer.write("\n")
+                            LOG.exception("Failed to build Docker Image")
+                            raise ImageBuildException("Error building docker image: {}".format(log["error"]))
                     stream_writer.write("\n")
                 except (docker.errors.BuildError, docker.errors.APIError) as ex:
                     stream_writer.write("\n")
