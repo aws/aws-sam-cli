@@ -700,7 +700,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     @parameterized.expand([("aws-serverless-function.yaml", "samconfig-tags-list.toml")])
     def test_deploy_with_valid_config_tags_list(self, template_file, config_file):
         stack_name = self._method_to_stack_name(self.id())
-        self.stack_names.append(stack_name)
+        self.stacks.append({"name": stack_name})
         template_path = self.test_data_path.joinpath(template_file)
         config_path = self.test_data_path.joinpath(config_file)
 
@@ -719,7 +719,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     @parameterized.expand([("aws-serverless-function.yaml", "samconfig-tags-string.toml")])
     def test_deploy_with_valid_config_tags_string(self, template_file, config_file):
         stack_name = self._method_to_stack_name(self.id())
-        self.stack_names.append(stack_name)
+        self.stacks.append({"name": stack_name})
         template_path = self.test_data_path.joinpath(template_file)
         config_path = self.test_data_path.joinpath(config_file)
 
