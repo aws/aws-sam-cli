@@ -86,15 +86,9 @@ def _get_stack_template():
                 Action:
                   - "s3:*"
                 Effect: "Deny"
-                Resource:  
-                  Fn::Join:
-                    - ""
-                    -
-                      - "arn:"
-                      - !Ref AWS::Partition
-                      - ":s3:::"
-                      - !Ref SamCliSourceBucket
-                      - "/*"
+                Resource:
+                  - !Join ["", ["arn:", !Ref AWS::Partition, ":s3:::", !Ref SamCliSourceBucket, "/", "*"]]
+                  - !Join ["", ["arn:", !Ref AWS::Partition, ":s3:::", !Ref SamCliSourceBucket]]
                 Principal: "*"
                 Condition:
                   Bool:
