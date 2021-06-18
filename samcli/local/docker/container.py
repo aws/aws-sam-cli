@@ -2,6 +2,9 @@
 Representation of a generic Docker container
 """
 import logging
+import os
+import subprocess
+import sys
 import tarfile
 import tempfile
 import threading
@@ -123,8 +126,25 @@ class Container:
 
         _volumes = {}
 
+        # Default volume mount mode and message.
+        mount_mode = "ro,delegated"
+        mount_options_msg = "Mounting %s as %s:ro,delegated inside runtime container"
+
         if self._host_dir:
-            LOG.info("Mounting %s as %s:ro,delegated inside runtime container", self._host_dir, self._working_dir)
+
+            # When SELinux is enabled add the z label to mount the host volume
+            # inside the container.
+            if (
+                sys.platform == "linux"
+                and os.path.isfile("/usr/sbin/sestatus")
+                and "enabled"
+                in subprocess.Popen("/usr/sbin/sestatus", stdout=subprocess.PIPE).stdout.readline().decode("UTF-8")
+            ):
+
+                mount_mode = "z," + mount_mode
+                mount_options_msg = "Mounting %s as %s:z,ro,delegated inside runtime container"
+
+            LOG.info(mount_options_msg, self._host_dir, self._working_dir)
 
             _volumes = {
                 self._host_dir: {
@@ -132,7 +152,7 @@ class Container:
                     # https://docs.docker.com/storage/bind-mounts
                     # Mount the host directory as "read only" inside container
                     "bind": self._working_dir,
-                    "mode": "ro,delegated",
+                    "mode": mount_mode,
                 }
             }
 
