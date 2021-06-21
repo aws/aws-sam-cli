@@ -380,3 +380,22 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
         process_stdout = stdout.strip()
 
         self.assertEqual(process_stdout.decode("utf-8"), '"Hello world"')
+
+    def test_invoke_with_error_during_image_build(self):
+        command_list = self.get_command_list(
+            "ImageDoesntExistFunction", template_path=self.template_path, event_path=self.event_path
+        )
+
+        process = Popen(command_list, stderr=PIPE)
+        try:
+            _, stderr = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stderr = stderr.strip()
+        self.assertRegex(
+            process_stderr.decode("utf-8"),
+            "Error: Error building docker image: pull access denied for non-existing-image",
+        )
+        self.assertEqual(process.returncode, 1)
