@@ -144,6 +144,29 @@ class S3Uploader:
 
         return self.upload(file_name, remote_path)
 
+    def delete_artifact(self, file_name: str, prefix_files=None):
+
+        try:
+            if not self.bucket_name:
+                raise BucketNotSpecifiedError()
+
+            remote_path = file_name
+            if self.prefix:
+                if remote_path:
+                    remote_path = "{0}/{1}".format(self.prefix, file_name)
+                    print("- deleting", remote_path)
+                    self.s3.delete_object(Bucket=self.bucket_name, Key=remote_path)
+                elif prefix_files:
+                    for obj in prefix_files["Contents"]:
+                        print("- deleting", obj["Key"])
+                        self.s3.delete_object(Bucket=self.bucket_name, Key=obj["Key"])
+
+        except botocore.exceptions.ClientError as ex:
+            error_code = ex.response["Error"]["Code"]
+            if error_code == "NoSuchBucket":
+                raise NoSuchBucketError(bucket_name=self.bucket_name) from ex
+            raise ex
+
     def file_exists(self, remote_path: str) -> bool:
         """
         Check if the file we are trying to upload already exists in S3
