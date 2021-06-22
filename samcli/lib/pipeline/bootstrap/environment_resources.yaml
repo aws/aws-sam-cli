@@ -132,6 +132,10 @@ Resources:
       Tags:
         - Key: ManagedStackSource
           Value: AwsSamCli
+      LoggingConfiguration:
+        DestinationBucketName:
+          !Ref ArtifactsLoggingBucket
+        LogFilePrefix: "artifacts-logs"
       VersioningConfiguration:
         Status: Enabled
       BucketEncryption:
@@ -174,6 +178,39 @@ Resources:
                   - MissingCloudFormationExecutionRole
                   - !GetAtt CloudFormationExecutionRole.Arn
                   - !Ref CloudFormationExecutionRoleArn
+
+  ArtifactsLoggingBucket:
+    Type: AWS::S3::Bucket
+    Condition: MissingArtifactsBucket
+    DeletionPolicy: "Retain"
+    Properties:
+      AccessControl: "LogDeliveryWrite"
+      Tags:
+        - Key: ManagedStackSource
+          Value: AwsSamCli
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  ArtifactsLoggingBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Condition: MissingArtifactsBucket
+    Properties:
+      Bucket: !Ref ArtifactsBucket
+      PolicyDocument:
+        Statement:
+          - Effect: "Deny"
+            Action: "s3:*"
+            Principal: "*"
+            Resource:
+              - !Join [ '',[ !GetAtt ArtifactsBucket.Arn, '/*' ] ]
+              - !GetAtt ArtifactsBucket.Arn
+            Condition:
+              Bool:
+                aws:SecureTransport: false
 
   PipelineExecutionRolePermissionPolicy:
     Type: AWS::IAM::Policy
