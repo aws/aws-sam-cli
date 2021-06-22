@@ -146,6 +146,15 @@ Resources:
       Bucket: !Ref ArtifactsBucket
       PolicyDocument:
         Statement:
+          - Effect: "Deny"
+            Action: "s3:*"
+            Principal: "*"
+            Resource:
+              - !Join [ '',[ !GetAtt ArtifactsBucket.Arn, '/*' ] ]
+              - !GetAtt ArtifactsBucket.Arn
+            Condition:
+              Bool:
+                aws:SecureTransport: false
           - Effect: "Allow"
             Action:
               - 's3:GetObject*'
