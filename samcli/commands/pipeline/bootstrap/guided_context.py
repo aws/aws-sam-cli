@@ -35,7 +35,10 @@ class GuidedContext:
         and it will be created by the bootstrap command
         """
         if not self.environment_name:
-            self.environment_name = click.prompt("Environment Name", type=click.STRING)
+            self.environment_name = click.prompt(
+                "Environment Name (A descriptive name for the environment which will be deployed to this AWS account)",
+                type=click.STRING,
+            )
 
         if not self.pipeline_user_arn:
             click.echo(
