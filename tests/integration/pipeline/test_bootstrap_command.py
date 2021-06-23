@@ -11,6 +11,8 @@ from tests.testing_utils import (
     run_command,
     run_command_with_inputs,
 )
+import boto3
+from botocore.exceptions import ClientError
 
 # bootstrap tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
@@ -245,3 +247,71 @@ class TestBootstrap(BootstrapIntegBase):
                 )
             else:
                 self.assertIn("skipping creation", stdout)
+
+    def test_bootstrapped_artifacts_bucket_accepts_ssl_requests_only(self):
+        env_name, stack_name = self._get_env_and_stack_name()
+        self.stack_names = [stack_name]
+
+        bootstrap_command_list = self.get_bootstrap_command_list(
+            env_name=env_name, no_interactive=True, no_confirm_changeset=True
+        )
+
+        bootstrap_process_execute = run_command(bootstrap_command_list)
+
+        self.assertEqual(bootstrap_process_execute.process.returncode, 0)
+
+        stack_resources = self.cf_client.describe_stack_resources(StackName=stack_name)
+        artifacts_bucket = next(
+            resource
+            for resource in stack_resources["StackResources"]
+            if resource["LogicalResourceId"] == "ArtifactsBucket"
+        )
+        artifacts_bucket_name = artifacts_bucket["PhysicalResourceId"]
+        artifacts_bucket_key = "any/testing/key.txt"
+        testing_data = b"any testing binary data"
+
+        s3_ssl_client = boto3.client("s3")
+        s3_non_ssl_client = boto3.client("s3", use_ssl=False)
+
+        # Assert SSL requests are accepted
+        s3_ssl_client.put_object(Body=testing_data, Bucket=artifacts_bucket_name, Key=artifacts_bucket_key)
+        res = s3_ssl_client.get_object(Bucket=artifacts_bucket_name, Key=artifacts_bucket_key)
+        retrieved_data = res["Body"].read()
+        self.assertEqual(retrieved_data, testing_data)
+
+        # Assert non SSl requests are denied
+        with self.assertRaises(ClientError) as error:
+            s3_non_ssl_client.get_object(Bucket=artifacts_bucket_name, Key=artifacts_bucket_key)
+        self.assertEqual(
+            str(error.exception), "An error occurred (AccessDenied) when calling the GetObject operation: Access Denied"
+        )
+
+    def test_bootstrapped_artifacts_bucket_has_server_access_log_enabled(self):
+        env_name, stack_name = self._get_env_and_stack_name()
+        self.stack_names = [stack_name]
+
+        bootstrap_command_list = self.get_bootstrap_command_list(
+            env_name=env_name, no_interactive=True, no_confirm_changeset=True
+        )
+
+        bootstrap_process_execute = run_command(bootstrap_command_list)
+
+        self.assertEqual(bootstrap_process_execute.process.returncode, 0)
+
+        stack_resources = self.cf_client.describe_stack_resources(StackName=stack_name)
+        artifacts_bucket = next(
+            resource
+            for resource in stack_resources["StackResources"]
+            if resource["LogicalResourceId"] == "ArtifactsBucket"
+        )
+        artifacts_bucket_name = artifacts_bucket["PhysicalResourceId"]
+        artifacts_logging_bucket = next(
+            resource
+            for resource in stack_resources["StackResources"]
+            if resource["LogicalResourceId"] == "ArtifactsLoggingBucket"
+        )
+        artifacts_logging_bucket_name = artifacts_logging_bucket["PhysicalResourceId"]
+
+        s3_client = boto3.client("s3")
+        res = s3_client.get_bucket_logging(Bucket=artifacts_bucket_name)
+        self.assertEqual(artifacts_logging_bucket_name, res["LoggingEnabled"]["TargetBucket"])
