@@ -609,11 +609,11 @@ class TestBuildCommand_Go_Modules(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
     EXPECTED_FILES_PROJECT_MANIFEST = {"hello-world"}
 
-    @parameterized.expand([("go1.x", "Go", None), ("go1.x", "Go", "debug")])
+    @parameterized.expand([("go1.x", "Go", None, False), ("go1.x", "Go", "debug", "use_container")])
     @pytest.mark.flaky(reruns=3)
-    def test_with_go(self, runtime, code_uri, mode):
+    def test_with_go(self, runtime, code_uri, mode, use_container):
         overrides = {"Runtime": runtime, "CodeUri": code_uri, "Handler": "hello-world"}
-        cmdlist = self.get_command_list(use_container=False, parameter_overrides=overrides)
+        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         # Need to pass GOPATH ENV variable to match the test directory when running build
 
@@ -649,21 +649,9 @@ class TestBuildCommand_Go_Modules(BuildIntegBase):
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
             )
 
-        self.verify_docker_container_cleanedup(runtime)
-
-    @parameterized.expand([("go1.x", "Go")])
-    @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
-    @pytest.mark.flaky(reruns=3)
-    def test_go_must_fail_with_container(self, runtime, code_uri):
-        use_container = True
-        overrides = {"Runtime": runtime, "CodeUri": code_uri, "Handler": "hello-world"}
-        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
-
-        LOG.info("Running Command: {}".format(cmdlist))
-        process_execute = run_command(cmdlist, cwd=self.working_dir)
-
-        # Must error out, because container builds are not supported
-        self.assertEqual(process_execute.process.returncode, 1)
+        if use_container:
+            self.verify_docker_container_cleanedup(runtime)
+            self.verify_pulling_only_latest_tag(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
