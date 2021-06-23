@@ -36,7 +36,7 @@ class Environment:
     aws_region: Optional[str]
         The AWS region to deploy this environment to.
     pipeline_user: IAMUser
-        The IAM User having its AccessKeyId and SecretAccessKey credentials shared with the CI/CD provider
+        The IAM User having its AccessKeyId and SecretAccessKey credentials shared with the CI/CD system
     pipeline_execution_role: Resource
         The IAM role assumed by the pipeline-user to get access to the AWS account and executes the
         CloudFormation stack.

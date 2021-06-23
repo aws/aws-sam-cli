@@ -12,7 +12,7 @@ from samcli.lib.telemetry.metric import track_command
 
 SHORT_HELP = "Generates CI/CD pipeline configuration files."
 HELP_TEXT = """
-Generates CI/CD pipeline configuration files for a chosen CI/CD provider such as Jenkins, 
+Generates CI/CD pipeline configuration files for a chosen CI/CD system such as Jenkins, 
 GitLab CI/CD or GitHub Actions
 """
 

@@ -18,7 +18,7 @@ from .guided_context import GuidedContext
 SHORT_HELP = "Sets up infrastructure resources for AWS SAM CI/CD pipelines."
 
 HELP_TEXT = """Sets up the following infrastructure resources for AWS SAM CI/CD pipelines:
-\n\t - Pipeline IAM user with access key ID and secret access key credentials to be shared with the CI/CD provider
+\n\t - Pipeline IAM user with access key ID and secret access key credentials to be shared with the CI/CD system
 \n\t - Pipeline execution IAM role assumed by the pipeline user to obtain access to the AWS account
 \n\t - CloudFormation execution IAM role assumed by CloudFormation to deploy the AWS SAM application
 \n\t - Artifacts S3 bucket to hold the AWS SAM build artifacts
@@ -44,7 +44,7 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
 )
 @click.option(
     "--pipeline-user",
-    help="The ARN of the IAM user having its access key ID and secret access key shared with the CI/CD provider. "
+    help="The ARN of the IAM user having its access key ID and secret access key shared with the CI/CD system. "
     "It is used to grant this IAM user the permissions to access the corresponding AWS account. "
     "If not provided, the command will create one along with access key ID and secret access key credentials.",
     required=False,
