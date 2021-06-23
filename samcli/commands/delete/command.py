@@ -1,6 +1,6 @@
-# """
-# CLI command for "delete" command
-# """
+"""
+CLI command for "delete" command
+"""
 
 import logging
 
@@ -70,18 +70,13 @@ def cli(
     do_cli(stack_name, ctx.region, ctx.profile, s3_bucket, s3_prefix)  # pragma: no cover
 
 
-def do_cli(
-    stack_name,
-    region,
-    profile,
-    s3_bucket,
-    s3_prefix
-):
+def do_cli(stack_name, region, profile, s3_bucket, s3_prefix):
     """
     Implementation of the ``cli`` method
     """
     from samcli.commands.delete.delete_context import DeleteContext
 
+    # ctx = click.get_current_context() #This is here if s3_bucket and s3_prefix options are not used
     with DeleteContext(
         stack_name=stack_name, region=region, s3_bucket=s3_bucket, s3_prefix=s3_prefix, profile=profile
     ) as delete_context:
