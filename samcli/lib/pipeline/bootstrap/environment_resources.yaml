@@ -199,15 +199,15 @@ Resources:
     Type: AWS::S3::BucketPolicy
     Condition: MissingArtifactsBucket
     Properties:
-      Bucket: !Ref ArtifactsBucket
+      Bucket: !Ref ArtifactsLoggingBucket
       PolicyDocument:
         Statement:
           - Effect: "Deny"
             Action: "s3:*"
             Principal: "*"
             Resource:
-              - !Join [ '',[ !GetAtt ArtifactsBucket.Arn, '/*' ] ]
-              - !GetAtt ArtifactsBucket.Arn
+              - !Join [ '',[ !GetAtt ArtifactsLoggingBucket.Arn, '/*' ] ]
+              - !GetAtt ArtifactsLoggingBucket.Arn
             Condition:
               Bool:
                 aws:SecureTransport: false

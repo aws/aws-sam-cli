@@ -248,7 +248,8 @@ class TestBootstrap(BootstrapIntegBase):
             else:
                 self.assertIn("skipping creation", stdout)
 
-    def test_bootstrapped_artifacts_bucket_accepts_ssl_requests_only(self):
+    @parameterized.expand([("ArtifactsBucket",), ("ArtifactsLoggingBucket",)])
+    def test_bootstrapped_buckets_accept_ssl_requests_only(self, bucket_logical_id):
         env_name, stack_name = self._get_env_and_stack_name()
         self.stack_names = [stack_name]
 
@@ -261,27 +262,27 @@ class TestBootstrap(BootstrapIntegBase):
         self.assertEqual(bootstrap_process_execute.process.returncode, 0)
 
         stack_resources = self.cf_client.describe_stack_resources(StackName=stack_name)
-        artifacts_bucket = next(
+        bucket = next(
             resource
             for resource in stack_resources["StackResources"]
-            if resource["LogicalResourceId"] == "ArtifactsBucket"
+            if resource["LogicalResourceId"] == bucket_logical_id
         )
-        artifacts_bucket_name = artifacts_bucket["PhysicalResourceId"]
-        artifacts_bucket_key = "any/testing/key.txt"
+        bucket_name = bucket["PhysicalResourceId"]
+        bucket_key = "any/testing/key.txt"
         testing_data = b"any testing binary data"
 
         s3_ssl_client = boto3.client("s3")
         s3_non_ssl_client = boto3.client("s3", use_ssl=False)
 
         # Assert SSL requests are accepted
-        s3_ssl_client.put_object(Body=testing_data, Bucket=artifacts_bucket_name, Key=artifacts_bucket_key)
-        res = s3_ssl_client.get_object(Bucket=artifacts_bucket_name, Key=artifacts_bucket_key)
+        s3_ssl_client.put_object(Body=testing_data, Bucket=bucket_name, Key=bucket_key)
+        res = s3_ssl_client.get_object(Bucket=bucket_name, Key=bucket_key)
         retrieved_data = res["Body"].read()
         self.assertEqual(retrieved_data, testing_data)
 
         # Assert non SSl requests are denied
         with self.assertRaises(ClientError) as error:
-            s3_non_ssl_client.get_object(Bucket=artifacts_bucket_name, Key=artifacts_bucket_key)
+            s3_non_ssl_client.get_object(Bucket=bucket_name, Key=bucket_key)
         self.assertEqual(
             str(error.exception), "An error occurred (AccessDenied) when calling the GetObject operation: Access Denied"
         )
