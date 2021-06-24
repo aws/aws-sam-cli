@@ -196,7 +196,7 @@ def _read_app_pipeline_templates_manifest(pipeline_templates_dir: Path) -> Pipel
 
 def _prompt_pipeline_template(pipeline_templates_manifest: PipelineTemplatesManifest) -> PipelineTemplateMetadata:
     """
-    Prompts the user a list of the available CI/CD providers along with associated app pipeline templates to choose
+    Prompts the user a list of the available CI/CD systems along with associated app pipeline templates to choose
     one of them
 
     Parameters:
@@ -217,10 +217,10 @@ def _prompt_pipeline_template(pipeline_templates_manifest: PipelineTemplatesMani
 
 def _prompt_cicd_provider(available_providers: List[Provider]) -> Provider:
     """
-    Prompts the user a list of the available CI/CD providers to choose from
+    Prompts the user a list of the available CI/CD systems to choose from
 
     Parameters:
-        available_providers: List of available CI/CD providers such as Jenkins, Gitlab and CircleCI
+        available_providers: List of available CI/CD systems such as Jenkins, Gitlab and CircleCI
 
     Returns:
         The chosen provider
@@ -230,7 +230,7 @@ def _prompt_cicd_provider(available_providers: List[Provider]) -> Provider:
 
     question_to_choose_provider = Choice(
         key="provider",
-        text="CI/CD provider",
+        text="CI/CD system",
         options=[p.display_name for p in available_providers],
     )
     chosen_provider_display_name = question_to_choose_provider.ask()

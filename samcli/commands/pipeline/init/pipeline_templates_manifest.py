@@ -29,7 +29,7 @@ from samcli.yamlhelper import parse_yaml_file
 
 
 class Provider:
-    """ CI/CD provider such as Jenkins, Gitlab and GitHub-Actions"""
+    """ CI/CD system such as Jenkins, Gitlab and GitHub-Actions"""
 
     def __init__(self, manifest: Dict) -> None:
         self.id: str = manifest["id"]
@@ -46,7 +46,7 @@ class PipelineTemplateMetadata:
 
 
 class PipelineTemplatesManifest:
-    """ The metadata of the available CI/CD providers and the pipeline templates"""
+    """ The metadata of the available CI/CD systems and the pipeline templates"""
 
     def __init__(self, manifest_path: Path) -> None:
         try:
