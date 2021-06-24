@@ -36,7 +36,7 @@ class GuidedContext:
         """
         if not self.environment_name:
             self.environment_name = click.prompt(
-                "Environment Name (A descriptive name for the environment which will be deployed to this AWS account)",
+                "Environment name (a descriptive name for the environment which will be deployed to this AWS account)",
                 type=click.STRING,
             )
 
