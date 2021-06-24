@@ -74,7 +74,7 @@ class DeleteContext:
             self.s3_uploader = S3Uploader(s3_client=s3_client, bucket_name=self.s3_bucket, prefix=self.s3_prefix)
 
             docker_client = docker.from_env()
-            ecr_uploader = ECRUploader(docker_client, ecr_client, None, None)
+            # ecr_uploader = ECRUploader(docker_client, ecr_client, None, None)
 
             self.cf_utils = CfUtils(cloudformation_client)
 
@@ -87,15 +87,13 @@ class DeleteContext:
 
                 if self.s3_bucket and self.s3_prefix:
                     self.delete_artifacts_folder = confirm(
-                        f"\t{self.start_bold}Are you sure you want to delete the folder {self.s3_prefix} \
-                          in S3 which contains the artifacts?{self.end_bold}",
+                        f"\t{self.start_bold}Are you sure you want to delete the folder {self.s3_prefix} in S3 which contains the artifacts?{self.end_bold}",
                           default=False,
                     )
                     if not self.delete_artifacts_folder:
                         self.cf_template_file_name = get_cf_template_name(template_str, "template")
-                        delete_cf_template_file = confirm(
-                            f"\t{self.start_bold}Do you want to delete the template file \
-                             {self.cf_template_file_name} in S3?{self.end_bold}",
+                        self.delete_cf_template_file = confirm(
+                            f"\t{self.start_bold}Do you want to delete the template file {self.cf_template_file_name} in S3?{self.end_bold}",
                              default=False,
                         )
 
@@ -122,7 +120,7 @@ class DeleteContext:
                 # Delete the ECR companion stack
 
                 if self.cf_template_file_name:
-                    click.echo("- deleting template file {0}".format(self.cf_template_file))
+                    click.echo(f"- deleting template file {self.cf_template_file_name}")
                 click.echo("\n")
                 click.echo("delete complete")
             else:

@@ -37,18 +37,6 @@ LOG = logging.getLogger(__name__)
     required=False,
     help="The name of the AWS CloudFormation stack you want to delete. ",
 )
-@click.option(
-    "--s3-bucket",
-    required=False,
-    help="The name of the S3 bucket where this command delets your " "CloudFormation artifacts.",
-)
-@click.option(
-    "--s3-prefix",
-    required=False,
-    help="A prefix name that the command uses to delete the "
-    "artifacts' that were deployed to the S3 bucket. "
-    "The prefix name is a path name (folder name) for the S3 bucket.",
-)
 @aws_creds_options
 @common_options
 @pass_context
@@ -57,8 +45,6 @@ LOG = logging.getLogger(__name__)
 def cli(
     ctx,
     stack_name,
-    s3_bucket,
-    s3_prefix,
     config_file,
     config_env,
 ):
@@ -67,17 +53,18 @@ def cli(
     """
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
-    do_cli(stack_name, ctx.region, ctx.profile, s3_bucket, s3_prefix)  # pragma: no cover
+    do_cli(stack_name, ctx.region, ctx.profile)  # pragma: no cover
 
 
-def do_cli(stack_name, region, profile, s3_bucket, s3_prefix):
+def do_cli(stack_name, region, profile):
     """
     Implementation of the ``cli`` method
     """
     from samcli.commands.delete.delete_context import DeleteContext
 
-    # ctx = click.get_current_context() #This is here if s3_bucket and s3_prefix options are not used
+    ctx = click.get_current_context()
+
     with DeleteContext(
-        stack_name=stack_name, region=region, s3_bucket=s3_bucket, s3_prefix=s3_prefix, profile=profile
+        stack_name=stack_name, region=region, s3_bucket=ctx.default_map.get("s3_bucket", None), s3_prefix=ctx.default_map.get("s3_prefix", None), profile=profile
     ) as delete_context:
         delete_context.run()
