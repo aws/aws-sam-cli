@@ -35,14 +35,17 @@ class GuidedContext:
         and it will be created by the bootstrap command
         """
         if not self.environment_name:
-            self.environment_name = click.prompt("Environment Name", type=click.STRING)
+            self.environment_name = click.prompt(
+                "Environment name (a descriptive name for the environment which will be deployed to this AWS account)",
+                type=click.STRING,
+            )
 
         if not self.pipeline_user_arn:
             click.echo(
                 "\nThere must be exactly one pipeline user across all of the environments. "
                 "If you have ran this command before to bootstrap a previous environment, please "
                 "provide the ARN of the created pipeline user, otherwise, we will create a new user for you. "
-                "Please make sure to store the credentials safely with the CI/CD provider."
+                "Please make sure to store the credentials safely with the CI/CD system."
             )
             self.pipeline_user_arn = click.prompt(
                 "Pipeline user [leave blank to create one]", default="", type=click.STRING

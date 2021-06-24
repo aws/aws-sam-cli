@@ -152,7 +152,7 @@ class TestInteractiveInitFlow(TestCase):
 
         click_mock.prompt.side_effect = [
             "1",  # App pipeline templates
-            "2",  # choose "Jenkins" when prompt for CI/CD provider. (See pipeline_templates_manifest_mock, Jenkins is the 2nd provider)
+            "2",  # choose "Jenkins" when prompt for CI/CD system. (See pipeline_templates_manifest_mock, Jenkins is the 2nd provider)
             "1",  # choose "Jenkins pipeline template" when prompt for pipeline template
         ]
 
@@ -205,7 +205,7 @@ class TestInteractiveInitFlow(TestCase):
 
         click_mock.prompt.side_effect = [
             "1",  # App pipeline templates
-            "2",  # choose "Jenkins" when prompt for CI/CD provider. (See pipeline_templates_manifest_mock, Jenkins is the 2nd provider)
+            "2",  # choose "Jenkins" when prompt for CI/CD system. (See pipeline_templates_manifest_mock, Jenkins is the 2nd provider)
             "1",  # choose "Jenkins pipeline template" when prompt for pipeline template
         ]
 
