@@ -45,6 +45,9 @@ Resources:
                 Action:
                   - "sts:AssumeRole"
                 Resource: "*"
+                Condition:
+                  StringEquals:
+                    aws:ResourceTag/Role: pipeline-execution-role
               - Fn::If:
                 - HasPipelineIpRange
                 - Effect: Deny
@@ -95,6 +98,8 @@ Resources:
       Tags:
         - Key: ManagedStackSource
           Value: AwsSamCli
+        - Key: Role
+          Value: pipeline-execution-role
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
