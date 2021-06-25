@@ -80,7 +80,7 @@ class TestContainer_create(TestCase):
         :return:
         """
 
-        expected_volumes = {self.host_dir: {"bind": self.working_dir, "mode": "ro,delegated"}}
+        expected_volumes = {self.host_dir: {"bind": self.working_dir, "mode": "ro,delegated,Z"}}
         generated_id = "fooobar"
         self.mock_docker_client.containers.create.return_value = Mock()
         self.mock_docker_client.containers.create.return_value.id = generated_id
@@ -119,7 +119,7 @@ class TestContainer_create(TestCase):
         """
 
         expected_volumes = {
-            self.host_dir: {"bind": self.working_dir, "mode": "ro,delegated"},
+            self.host_dir: {"bind": self.working_dir, "mode": "ro,delegated,Z"},
             "/somepath": {"blah": "blah value"},
         }
         expected_memory = "{}m".format(self.memory_mb)
@@ -178,7 +178,7 @@ class TestContainer_create(TestCase):
         additional_volumes = {"C:\\Users\\Username\\AppData\\Local\\Temp\\tmp1338": {"blah": "blah value"}}
 
         translated_volumes = {
-            "/c/Users/Username/AppData/Local/Temp/tmp1337": {"bind": self.working_dir, "mode": "ro,delegated"}
+            "/c/Users/Username/AppData/Local/Temp/tmp1337": {"bind": self.working_dir, "mode": "ro,delegated,Z"}
         }
 
         translated_additional_volumes = {"/c/Users/Username/AppData/Local/Temp/tmp1338": {"blah": "blah value"}}
@@ -231,7 +231,7 @@ class TestContainer_create(TestCase):
         Create a container with only required values. Optional values are not provided
         :return:
         """
-        expected_volumes = {self.host_dir: {"bind": self.working_dir, "mode": "ro,delegated"}}
+        expected_volumes = {self.host_dir: {"bind": self.working_dir, "mode": "ro,delegated,Z"}}
 
         network_id = "some id"
         generated_id = "fooobar"
@@ -269,7 +269,7 @@ class TestContainer_create(TestCase):
         Create a container with only required values. Optional values are not provided
         :return:
         """
-        expected_volumes = {self.host_dir: {"bind": self.working_dir, "mode": "ro,delegated"}}
+        expected_volumes = {self.host_dir: {"bind": self.working_dir, "mode": "ro,delegated,Z"}}
 
         network_id = "host"
         generated_id = "fooobar"

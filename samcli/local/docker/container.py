@@ -124,7 +124,7 @@ class Container:
         _volumes = {}
 
         if self._host_dir:
-            LOG.info("Mounting %s as %s:ro,delegated inside runtime container", self._host_dir, self._working_dir)
+            LOG.info("Mounting %s as %s:ro,delegated,Z inside runtime container", self._host_dir, self._working_dir)
 
             _volumes = {
                 self._host_dir: {
@@ -132,7 +132,7 @@ class Container:
                     # https://docs.docker.com/storage/bind-mounts
                     # Mount the host directory as "read only" inside container
                     "bind": self._working_dir,
-                    "mode": "ro,delegated",
+                    "mode": "ro,delegated,Z",
                 }
             }
 

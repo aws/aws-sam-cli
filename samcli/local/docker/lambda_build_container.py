@@ -84,7 +84,7 @@ class LambdaBuildContainer(Container):
         additional_volumes = {
             # Manifest is mounted separately in order to support the case where manifest
             # is outside of source directory
-            manifest_dir: {"bind": container_dirs["manifest_dir"], "mode": "ro"}
+            manifest_dir: {"bind": container_dirs["manifest_dir"], "mode": "ro,Z"}
         }
 
         if log_level:

@@ -30,7 +30,7 @@ class LambdaContainer(Container):
     _DEBUG_ENTRYPOINT_OPTIONS = {"delvePath": _DEFAULT_CONTAINER_DBG_GO_PATH}
 
     # This is the dictionary that represents where the debugger_path arg is mounted in docker to as readonly.
-    _DEBUGGER_VOLUME_MOUNT = {"bind": _DEBUGGER_VOLUME_MOUNT_PATH, "mode": "ro"}
+    _DEBUGGER_VOLUME_MOUNT = {"bind": _DEBUGGER_VOLUME_MOUNT_PATH, "mode": "ro,Z"}
 
     def __init__(
         self,  # pylint: disable=R0914

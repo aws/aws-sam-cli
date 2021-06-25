@@ -583,7 +583,7 @@ class TestLambdaContainer_get_additional_volumes(TestCase):
     @parameterized.expand([param(r) for r in RUNTIMES_WITH_ENTRYPOINT if r.startswith("go")])
     def test_additional_volumes_returns_volume_with_debugger_path_is_set(self, runtime):
         expected = {
-            "/somepath": {"bind": "/tmp/lambci_debug_files", "mode": "ro"},
+            "/somepath": {"bind": "/tmp/lambci_debug_files", "mode": "ro,Z"},
         }
 
         debug_options = DebugContext(debug_ports=[1234], debugger_path="/somepath")

@@ -53,7 +53,7 @@ class TestLambdaBuildContainer_init(TestCase):
         self.assertEqual(container._env_vars, {"LAMBDA_BUILDERS_LOG_LEVEL": "log-level"})
         self.assertEqual(
             container._additional_volumes,
-            {str(pathlib.Path("/bar").resolve()): {"bind": container_dirs["manifest_dir"], "mode": "ro"}},
+            {str(pathlib.Path("/bar").resolve()): {"bind": container_dirs["manifest_dir"], "mode": "ro,Z"}},
         )
 
         self.assertEqual(container._exposed_ports, None)
