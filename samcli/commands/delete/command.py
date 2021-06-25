@@ -66,10 +66,6 @@ def do_cli(stack_name, region, profile):
     s3_bucket = ctx.default_map.get("s3_bucket", None)
     s3_prefix = ctx.default_map.get("s3_prefix", None)
     with DeleteContext(
-        stack_name=stack_name,
-        region=region,
-        s3_bucket=s3_bucket,
-        s3_prefix=s3_prefix,
-        profile=profile
+        stack_name=stack_name, region=region, s3_bucket=s3_bucket, s3_prefix=s3_prefix, profile=profile
     ) as delete_context:
         delete_context.run()

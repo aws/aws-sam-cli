@@ -65,7 +65,7 @@ class CfUtils:
 
             return resp["TemplateBody"]
 
-        except (ClientError, BotoCoreError)  as e:
+        except (ClientError, BotoCoreError) as e:
             # If there are credentials, environment errors,
             # catch that and throw a delete failed error.
 
@@ -88,7 +88,7 @@ class CfUtils:
             resp = self._client.delete_stack(StackName=stack_name)
             return resp
 
-        except (ClientError, BotoCoreError)  as e:
+        except (ClientError, BotoCoreError) as e:
             # If there are credentials, environment errors,
             # catch that and throw a delete failed error.
 

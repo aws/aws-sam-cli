@@ -28,7 +28,7 @@ class TestCfUtils(TestCase):
             )
         )
         self.assertEqual(self.cf_utils.has_stack("test"), False)
-    
+
     def test_cf_utils_has_stack_exception_client_error(self):
         self.cf_utils._client.describe_stacks = MagicMock(
             side_effect=ClientError(
@@ -56,10 +56,12 @@ class TestCfUtils(TestCase):
             self.cf_utils.has_stack("test")
 
     def test_cf_utils_get_stack_template_exception_client_error(self):
-        self.cf_utils._client.get_template = MagicMock(side_effect=ClientError(
-            error_response={"Error": {"Message": "Stack with id test does not exist"}},
-            operation_name="stack_status",
-        ))
+        self.cf_utils._client.get_template = MagicMock(
+            side_effect=ClientError(
+                error_response={"Error": {"Message": "Stack with id test does not exist"}},
+                operation_name="stack_status",
+            )
+        )
         with self.assertRaises(DeleteFailedError):
             self.cf_utils.get_stack_template("test", "Original")
 

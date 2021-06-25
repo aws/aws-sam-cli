@@ -3,6 +3,7 @@ Delete a SAM stack
 """
 
 import boto3
+
 # import docker
 import click
 from click import confirm
@@ -12,6 +13,7 @@ from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
 from samcli.lib.delete.cf_utils import CfUtils
 from samcli.lib.delete.utils import get_cf_template_name
 from samcli.lib.package.s3_uploader import S3Uploader
+
 # from samcli.yamlhelper import yaml_parse
 
 # Intentionally commented
@@ -87,16 +89,16 @@ class DeleteContext:
 
                 if self.s3_bucket and self.s3_prefix:
                     self.delete_artifacts_folder = confirm(
-                        f"\t{self.start_bold}Are you sure you want to delete the folder" + \
-                        f"{self.s3_prefix} in S3 which contains the artifacts?{self.end_bold}",
-                          default=False,
+                        f"\t{self.start_bold}Are you sure you want to delete the folder"
+                        + f"{self.s3_prefix} in S3 which contains the artifacts?{self.end_bold}",
+                        default=False,
                     )
                     if not self.delete_artifacts_folder:
                         self.cf_template_file_name = get_cf_template_name(template_str, "template")
                         self.delete_cf_template_file = confirm(
-                            f"\t{self.start_bold}Do you want to delete the template file" + \
-                            f" {self.cf_template_file_name} in S3?{self.end_bold}",
-                             default=False,
+                            f"\t{self.start_bold}Do you want to delete the template file"
+                            + f" {self.cf_template_file_name} in S3?{self.end_bold}",
+                            default=False,
                         )
 
                 click.echo("\n")
