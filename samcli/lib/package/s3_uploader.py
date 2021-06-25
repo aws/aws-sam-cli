@@ -22,6 +22,7 @@ import sys
 from collections import abc
 from typing import Optional, Dict, Any, cast
 from urllib.parse import urlparse, parse_qs
+import click
 
 import botocore
 import botocore.exceptions
@@ -159,7 +160,7 @@ class S3Uploader:
                 key = "{0}/{1}".format(self.prefix, remote_path)
 
             # Deleting Specific file with key
-            print("- deleting", key)
+            click.echo("- deleting S3 file " + key)
             resp = self.s3.delete_object(Bucket=self.bucket_name, Key=key)
             return resp["ResponseMetadata"]
 

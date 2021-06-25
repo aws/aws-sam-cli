@@ -3,7 +3,7 @@ Delete a SAM stack
 """
 
 import boto3
-import docker
+# import docker
 import click
 from click import confirm
 from click import prompt
@@ -12,7 +12,7 @@ from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
 from samcli.lib.delete.cf_utils import CfUtils
 from samcli.lib.delete.utils import get_cf_template_name
 from samcli.lib.package.s3_uploader import S3Uploader
-from samcli.yamlhelper import yaml_parse
+# from samcli.yamlhelper import yaml_parse
 
 # Intentionally commented
 # from samcli.lib.package.artifact_exporter import Template
@@ -69,11 +69,11 @@ class DeleteContext:
             )
 
             s3_client = boto3.client("s3", region_name=self.region if self.region else None, config=boto_config)
-            ecr_client = boto3.client("ecr", region_name=self.region if self.region else None, config=boto_config)
+            # ecr_client = boto3.client("ecr", region_name=self.region if self.region else None, config=boto_config)
 
             self.s3_uploader = S3Uploader(s3_client=s3_client, bucket_name=self.s3_bucket, prefix=self.s3_prefix)
 
-            docker_client = docker.from_env()
+            # docker_client = docker.from_env()
             # ecr_uploader = ECRUploader(docker_client, ecr_client, None, None)
 
             self.cf_utils = CfUtils(cloudformation_client)
@@ -83,17 +83,19 @@ class DeleteContext:
             if is_deployed:
                 template_str = self.cf_utils.get_stack_template(self.stack_name, "Original")
 
-                template_dict = yaml_parse(template_str)
+                # template_dict = yaml_parse(template_str)
 
                 if self.s3_bucket and self.s3_prefix:
                     self.delete_artifacts_folder = confirm(
-                        f"\t{self.start_bold}Are you sure you want to delete the folder {self.s3_prefix} in S3 which contains the artifacts?{self.end_bold}",
+                        f"\t{self.start_bold}Are you sure you want to delete the folder" + \
+                        f"{self.s3_prefix} in S3 which contains the artifacts?{self.end_bold}",
                           default=False,
                     )
                     if not self.delete_artifacts_folder:
                         self.cf_template_file_name = get_cf_template_name(template_str, "template")
                         self.delete_cf_template_file = confirm(
-                            f"\t{self.start_bold}Do you want to delete the template file {self.cf_template_file_name} in S3?{self.end_bold}",
+                            f"\t{self.start_bold}Do you want to delete the template file" + \
+                            f" {self.cf_template_file_name} in S3?{self.end_bold}",
                              default=False,
                         )
 

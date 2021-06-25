@@ -200,7 +200,7 @@ class TestS3Uploader(TestCase):
                 s3_uploader.delete_artifact(f.name)
             self.assertEqual(BucketNotSpecifiedError().message, str(ex))
 
-    def test_s3_upload_bucket_not_found(self):
+    def test_s3_delete_artifact_bucket_not_found(self):
         s3_uploader = S3Uploader(
             s3_client=self.s3,
             bucket_name=self.bucket_name,
