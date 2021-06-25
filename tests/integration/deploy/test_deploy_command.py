@@ -314,7 +314,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         self.assertIn(
             bytes(
                 f"S3 Bucket not specified, use --s3-bucket to specify a bucket name, or use --resolve-s3 \
-                  to create a managed default bucket, or run sam deploy --guided",
+to create a managed default bucket, or run sam deploy --guided",
                 encoding="utf-8",
             ),
             deploy_process_execute.stderr,

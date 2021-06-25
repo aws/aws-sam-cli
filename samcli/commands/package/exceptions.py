@@ -125,7 +125,7 @@ class BucketNotSpecifiedError(UserException):
         self.kwargs = kwargs
 
         message_fmt = "\nS3 Bucket not specified, use --s3-bucket to specify a bucket name, or use --resolve-s3 \
-            to create a managed default bucket, or run sam deploy --guided"
+to create a managed default bucket, or run sam deploy --guided"
 
         super().__init__(message=message_fmt.format(**self.kwargs))
 
