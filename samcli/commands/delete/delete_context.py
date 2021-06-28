@@ -104,6 +104,7 @@ class DeleteContext:
                 # Delete the primary stack
                 click.echo("- deleting Cloudformation stack {0}".format(self.stack_name))
                 self.cf_utils.delete_stack(self.stack_name)
+                self.cf_utils.wait_for_delete(self.stack_name)
 
 
                 # Delete the artifacts
