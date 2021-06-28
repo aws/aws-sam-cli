@@ -79,6 +79,9 @@ class Resource:
     def do_export(self, resource_id, resource_dict, parent_dir):
         pass
 
+    def delete(self, resource_id, resource_dict):
+        pass
+
 
 class ResourceZip(Resource):
     """
@@ -154,6 +157,16 @@ class ResourceZip(Resource):
             )
         set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, uploaded_url)
 
+    def delete(self, resource_id, resource_dict):
+
+        if resource_dict is None:
+            return
+        resource_path = resource_dict[self.PROPERTY_NAME]
+        parsed_s3_url = self.uploader.parse_s3_url(resource_path)
+        print(parsed_s3_url["Key"])
+        if not self.uploader.bucket_name:
+            self.uploader.bucket_name = parsed_s3_url["Bucket"]
+        self.uploader.delete_artifact(parsed_s3_url["Key"], True)
 
 class ResourceImageDict(Resource):
     """
@@ -238,6 +251,8 @@ class ResourceImage(Resource):
         )
         set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, uploaded_url)
 
+    def delete(self, resource_id, resource_dict):
+        self.uploader.delete_artifact(resource_dict["ImageUri"], resource_id, self.PROPERTY_NAME)
 
 class ResourceWithS3UrlDict(ResourceZip):
     """
@@ -268,6 +283,18 @@ class ResourceWithS3UrlDict(ResourceZip):
             version_property=self.VERSION_PROPERTY,
         )
         set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, parsed_url)
+
+    def delete(self, resource_id, resource_dict):
+
+        if resource_dict is None:
+            return
+        resource_path = resource_dict[self.PROPERTY_NAME]
+        s3_bucket = resource_path[self.BUCKET_NAME_PROPERTY]
+        key = resource_path["Key"]
+
+        if not self.uploader.bucket_name:
+            self.uploader.bucket_name = s3_bucket
+        self.uploader.delete_artifact(remote_path=key, is_key=True)
 
 
 class ServerlessFunctionResource(ResourceZip):
