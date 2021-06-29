@@ -18,6 +18,7 @@ class GuidedContext:
         create_image_repository: bool = False,
         image_repository_arn: Optional[str] = None,
         pipeline_ip_range: Optional[str] = None,
+        region: Optional[str] = None,
     ) -> None:
         self.environment_name = environment_name
         self.pipeline_user_arn = pipeline_user_arn
@@ -27,6 +28,7 @@ class GuidedContext:
         self.create_image_repository = create_image_repository
         self.image_repository_arn = image_repository_arn
         self.pipeline_ip_range = pipeline_ip_range
+        self.region = region
 
     def run(self) -> None:
         """
@@ -38,6 +40,13 @@ class GuidedContext:
             self.environment_name = click.prompt(
                 "Environment name (a descriptive name for the environment which will be deployed to this AWS account)",
                 type=click.STRING,
+            )
+
+        if not self.region:
+            self.region = click.prompt(
+                "\nAWS region (the AWS region where the environment infrastructure resources will be deployed to)",
+                type=click.STRING,
+                default="us-east-1",
             )
 
         if not self.pipeline_user_arn:

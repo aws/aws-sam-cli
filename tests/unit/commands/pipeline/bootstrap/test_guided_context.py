@@ -11,6 +11,7 @@ ANY_ARTIFACTS_BUCKET_ARN = "ANY_ARTIFACTS_BUCKET_ARN"
 ANY_IMAGE_REPOSITORY_ARN = "ANY_IMAGE_REPOSITORY_ARN"
 ANY_ARN = "ANY_ARN"
 ANY_PIPELINE_IP_RANGE = "111.222.333.0/24"
+ANY_REGION = "us-east-2"
 
 
 class TestGuidedContext(TestCase):
@@ -25,6 +26,7 @@ class TestGuidedContext(TestCase):
             create_image_repository=True,
             image_repository_arn=ANY_IMAGE_REPOSITORY_ARN,
             pipeline_ip_range=ANY_PIPELINE_IP_RANGE,
+            region=ANY_REGION,
         )
         gc.run()
         click_mock.prompt.assert_not_called()
@@ -40,7 +42,7 @@ class TestGuidedContext(TestCase):
         self.assertTrue(self.did_prompt_text_like("Pipeline execution role", click_mock.prompt))
         self.assertTrue(self.did_prompt_text_like("CloudFormation execution role", click_mock.prompt))
         self.assertTrue(self.did_prompt_text_like("Artifacts bucket", click_mock.prompt))
-        self.assertTrue(self.did_prompt_text_like("Artifacts bucket", click_mock.prompt))
+        self.assertTrue(self.did_prompt_text_like("AWS region", click_mock.prompt))
         self.assertTrue(self.did_prompt_text_like("Pipeline IP address range", click_mock.prompt))
 
     @patch("samcli.commands.pipeline.bootstrap.guided_context.click")
