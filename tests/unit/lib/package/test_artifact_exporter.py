@@ -792,7 +792,7 @@ class TestArtifactExporter(unittest.TestCase):
 
             TemplateMock.assert_called_once_with(template_path, parent_dir, self.uploaders_mock, self.code_signer_mock)
             template_instance_mock.export.assert_called_once_with()
-            self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, "721aad13918f292d25bc9dc7d61b0e9c.template")
+            self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)
             self.s3_uploader_mock.to_path_style_s3_url.assert_called_once_with("world", None)
 
     def test_export_cloudformation_stack_no_upload_path_is_s3url(self):
@@ -885,7 +885,7 @@ class TestArtifactExporter(unittest.TestCase):
 
             TemplateMock.assert_called_once_with(template_path, parent_dir, self.uploaders_mock, self.code_signer_mock)
             template_instance_mock.export.assert_called_once_with()
-            self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, "721aad13918f292d25bc9dc7d61b0e9c.template")
+            self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)
             self.s3_uploader_mock.to_path_style_s3_url.assert_called_once_with("world", None)
 
     def test_export_serverless_application_no_upload_path_is_s3url(self):
