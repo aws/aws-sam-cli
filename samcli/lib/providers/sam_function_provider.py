@@ -130,11 +130,26 @@ class SamFunctionProvider(SamBaseProvider):
                     resource_properties["Metadata"] = resource_metadata
 
                 if resource_type in [SamFunctionProvider.SERVERLESS_FUNCTION, SamFunctionProvider.LAMBDA_FUNCTION]:
+                    resource_package_type = resource_properties.get("PackageType", ZIP)
+
                     code_property_key = SamBaseProvider.CODE_PROPERTY_KEYS[resource_type]
-                    if SamBaseProvider._is_s3_location(resource_properties.get(code_property_key)):
+                    image_property_key = SamBaseProvider.IMAGE_PROPERTY_KEYS[resource_type]
+
+                    if resource_package_type == ZIP and SamBaseProvider._is_s3_location(
+                        resource_properties.get(code_property_key)
+                    ):
+
                         # CodeUri can be a dictionary of S3 Bucket/Key or a S3 URI, neither of which are supported
                         if not ignore_code_extraction_warnings:
                             SamFunctionProvider._warn_code_extraction(resource_type, name, code_property_key)
+                        continue
+
+                    if resource_package_type == IMAGE and SamBaseProvider._is_ecr_uri(
+                        resource_properties.get(image_property_key)
+                    ):
+                        # ImageUri can be an ECR uri, which is not supported
+                        if not ignore_code_extraction_warnings:
+                            SamFunctionProvider._warn_imageuri_extraction(resource_type, name, image_property_key)
                         continue
 
                 if resource_type == SamFunctionProvider.SERVERLESS_FUNCTION:
