@@ -351,14 +351,14 @@ class TestEnvironment(TestCase):
             name=ANY_ENVIRONMENT_NAME, pipeline_user_arn=ANY_PIPELINE_USER_ARN
         )
         environment_with_provided_pipeline_user.print_resources_summary()
-        self.assert_summary_does_not_have_a_message_like("ACCESS_KEY_ID", click_mock.secho)
-        self.assert_summary_does_not_have_a_message_like("SECRET_ACCESS_KEY", click_mock.secho)
+        self.assert_summary_does_not_have_a_message_like("AWS_ACCESS_KEY_ID", click_mock.secho)
+        self.assert_summary_does_not_have_a_message_like("AWS_SECRET_ACCESS_KEY", click_mock.secho)
         click_mock.secho.reset_mock()
 
         environment_without_provided_pipeline_user: Environment = Environment(name=ANY_ENVIRONMENT_NAME)
         environment_without_provided_pipeline_user.print_resources_summary()
-        self.assert_summary_has_a_message_like("ACCESS_KEY_ID", click_mock.secho)
-        self.assert_summary_has_a_message_like("SECRET_ACCESS_KEY", click_mock.secho)
+        self.assert_summary_has_a_message_like("AWS_ACCESS_KEY_ID", click_mock.secho)
+        self.assert_summary_has_a_message_like("AWS_SECRET_ACCESS_KEY", click_mock.secho)
 
     def assert_summary_has_a_message_like(self, msg, click_secho_mock):
         self.assertTrue(
