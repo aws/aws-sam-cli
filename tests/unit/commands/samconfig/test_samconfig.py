@@ -16,6 +16,7 @@ from unittest import TestCase
 from unittest.mock import patch, ANY, Mock, MagicMock
 import logging
 
+from samcli.lib.iac.interface import ProjectTypes
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 
 LOG = logging.getLogger()
@@ -78,6 +79,8 @@ class TestSamConfigForAllCommands(TestCase):
                 "apptemplate",
                 True,
                 '{"key": "value", "key2": "value2"}',
+                None,
+                None,
             )
 
     @patch("samcli.commands.validate.validate.do_cli")

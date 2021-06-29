@@ -231,9 +231,9 @@ class TestArtifactBasedOptionRequired(TestCase):
         mock_params = MagicMock()
         mock_params.get = MagicMock(
             side_effect=[
-                MagicMock(),  # mock_params.get("t")
-                False,  # mock_params.get("resolve_s3")
-            ]
+                MagicMock(),
+                False,
+            ]  # mock_params.get("t")  # mock_params.get("resolve_s3")
         )
         mock_default_map = MagicMock()
         mock_default_map.get = MagicMock(return_value=False)

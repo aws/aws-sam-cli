@@ -10,16 +10,18 @@ from pathlib import Path
 from cookiecutter.exceptions import CookiecutterException, RepositoryNotFound, UnknownRepoType
 from cookiecutter.main import cookiecutter
 
-from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING
+from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING, CDK_RUNTIME_DEP_TEMPLATE_MAPPING
 from samcli.lib.utils.packagetype import ZIP
 from samcli.lib.utils import osutils
 from .exceptions import GenerateProjectFailedError, InvalidLocationError
 from .arbitrary_project import generate_non_cookiecutter_project
+from ..iac.interface import ProjectTypes
 
 LOG = logging.getLogger(__name__)
 
 
 def generate_project(
+    project_type=None,
     location=None,
     package_type=None,
     runtime=None,
@@ -37,6 +39,8 @@ def generate_project(
 
     Parameters
     ----------
+    project_type: ProjectTypes
+        project type, CDK or CFN
     location: Path, optional
         Git, HTTP, Local path or Zip containing cookiecutter template
         (the default is None, which means no custom template)
@@ -65,8 +69,11 @@ def generate_project(
 
     template = None
 
-    if runtime and package_type == ZIP:
-        for mapping in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values()))):
+    if runtime and package_type == ZIP and not location:
+        runtime_dependency_template_mapping = (
+            CDK_RUNTIME_DEP_TEMPLATE_MAPPING if project_type == ProjectTypes.CDK else RUNTIME_DEP_TEMPLATE_MAPPING
+        )
+        for mapping in list(itertools.chain(*(runtime_dependency_template_mapping.values()))):
             if runtime in mapping["runtimes"] or any([r.startswith(runtime) for r in mapping["runtimes"]]):
                 if not dependency_manager or dependency_manager == mapping["dependency_manager"]:
                     template = mapping["init_location"]

@@ -10,8 +10,14 @@ import click
 
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, print_cmdline_args
+from samcli.lib.iac.interface import ProjectTypes
 from samcli.lib.utils.version_checker import check_newer_version
-from samcli.local.common.runtime_template import RUNTIMES, SUPPORTED_DEP_MANAGERS, LAMBDA_IMAGES_RUNTIMES
+from samcli.local.common.runtime_template import (
+    RUNTIMES,
+    SUPPORTED_DEP_MANAGERS,
+    LAMBDA_IMAGES_RUNTIMES,
+    INIT_CDK_LANGUAGES,
+)
 from samcli.lib.telemetry.metric import track_command
 from samcli.commands.init.interactive_init_flow import _get_runtime_from_image
 from samcli.commands.local.cli_common.click_mutex import Mutex
@@ -148,6 +154,16 @@ def non_interactive_validation(func):
     not_required=["location", "base_image"],
 )
 @click.option(
+    "--project-type",
+    help="Project Type of your app, CDK or CFN",
+    type=click.Choice(ProjectTypes.__members__, case_sensitive=False),
+)
+@click.option(
+    "--cdk-language",
+    help="CDK project language of your app, for CDK project only",
+    type=click.Choice(INIT_CDK_LANGUAGES),
+)
+@click.option(
     "-p",
     "--package-type",
     type=click.Choice([ZIP, IMAGE]),
@@ -220,6 +236,8 @@ def cli(
     extra_context,
     config_file,
     config_env,
+    project_type,
+    cdk_language,
 ):
     """
     `sam init` command entry point
@@ -238,6 +256,8 @@ def cli(
         app_template,
         no_input,
         extra_context,
+        project_type,
+        cdk_language,
     )  # pragma: no cover
 
 
@@ -256,6 +276,8 @@ def do_cli(
     app_template,
     no_input,
     extra_context,
+    project_type,
+    cdk_language,
     auto_clone=True,
 ):
     """
@@ -277,7 +299,9 @@ def do_cli(
         templates = InitTemplates(no_interactive, auto_clone)
         if package_type == IMAGE and image_bool:
             base_image, runtime = _get_runtime_from_image(base_image)
-            options = templates.init_options(package_type, runtime, base_image, dependency_manager)
+            options = templates.init_options(
+                project_type, cdk_language, package_type, runtime, base_image, dependency_manager
+            )
             if len(options) == 1:
                 app_template = options[0].get("appTemplate")
             elif len(options) > 1:
@@ -288,17 +312,29 @@ def do_cli(
 
         if app_template and not location:
             location = templates.location_from_app_template(
-                package_type, runtime, base_image, dependency_manager, app_template
+                project_type, cdk_language, package_type, runtime, base_image, dependency_manager, app_template
             )
             no_input = True
         extra_context = _get_cookiecutter_template_context(name, runtime, extra_context)
 
         if not output_dir:
             output_dir = "."
-        do_generate(location, package_type, runtime, dependency_manager, output_dir, name, no_input, extra_context)
+        do_generate(
+            project_type,
+            location,
+            package_type,
+            runtime,
+            dependency_manager,
+            output_dir,
+            name,
+            no_input,
+            extra_context,
+        )
     else:
         # proceed to interactive state machine, which will call do_generate
         do_interactive(
+            project_type,
+            cdk_language,
             location,
             pt_explicit,
             package_type,

@@ -11,6 +11,25 @@ _init_path = str(pathlib.Path(os.path.dirname(__file__)).parent.parent)
 _templates = os.path.join(_init_path, "lib", "init", "templates")
 _lambda_images_templates = os.path.join(_init_path, "lib", "init", "image_templates")
 
+CDK_RUNTIME_DEP_TEMPLATE_MAPPING = {
+    "python": [
+        {
+            "runtimes": ["python3.8"],
+            "dependency_manager": "pip",
+            "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-python"),
+            "build": True,
+        }
+    ],
+    "nodejs": [
+        {
+            "runtimes": ["nodejs14.x"],
+            "dependency_manager": "npm",
+            "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-nodejs"),
+            "build": True,
+        }
+    ],
+}
+
 # Note(TheSriram): The ordering of the runtimes list per language is based on the latest to oldest.
 RUNTIME_DEP_TEMPLATE_MAPPING = {
     "python": [
@@ -107,6 +126,13 @@ RUNTIMES: Set[str] = set(
         *[c["runtimes"] for c in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values())))]  # type: ignore
     )
 )
+
+INIT_CDK_LANGUAGES = ["python", "javascript", "typescript"]
+
+CDK_INIT_RUNTIMES = [
+    "nodejs14.x",
+    "python3.8",
+]
 
 # When adding new Lambda runtimes, please update SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING
 # Order here should be a the group of the latest versions of runtimes followed by runtime groups

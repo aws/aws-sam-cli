@@ -34,9 +34,7 @@ from samcli.lib.iac.cdk.constants import (
     CDK_PATH_DELIMITER,
     CDK_PATH_METADATA_KEY,
 )
-from samcli.lib.iac.cdk.exceptions import (
-    InvalidCloudAssemblyError,
-)
+from samcli.lib.iac.cdk.exceptions import InvalidCloudAssemblyError
 
 LOG = logging.getLogger(__name__)
 
