@@ -37,17 +37,18 @@ class CfUtils:
             if "Stack with id {0} does not exist".format(stack_name) in str(e):
                 LOG.debug("Stack with id %s does not exist", stack_name)
                 return False
+            LOG.error("ClientError Exception : %s", str(e))
             raise DeleteFailedError(stack_name=stack_name, msg=str(e)) from e
         except BotoCoreError as e:
             # If there are credentials, environment errors,
             # catch that and throw a delete failed error.
 
-            LOG.debug("Botocore Exception : %s", str(e))
+            LOG.error("Botocore Exception : %s", str(e))
             raise DeleteFailedError(stack_name=stack_name, msg=str(e)) from e
 
         except Exception as e:
             # We don't know anything about this exception. Don't handle
-            LOG.debug("Unable to get stack details.", exc_info=e)
+            LOG.error("Unable to get stack details.", exc_info=e)
             raise e
 
     def get_stack_template(self, stack_name, stage):
@@ -69,12 +70,12 @@ class CfUtils:
             # If there are credentials, environment errors,
             # catch that and throw a delete failed error.
 
-            LOG.debug("Failed to delete stack : %s", str(e))
+            LOG.error("Failed to delete stack : %s", str(e))
             raise DeleteFailedError(stack_name=stack_name, msg=str(e)) from e
 
         except Exception as e:
             # We don't know anything about this exception. Don't handle
-            LOG.debug("Unable to get stack details.", exc_info=e)
+            LOG.error("Unable to get stack details.", exc_info=e)
             raise e
 
     def delete_stack(self, stack_name):
@@ -92,10 +93,10 @@ class CfUtils:
             # If there are credentials, environment errors,
             # catch that and throw a delete failed error.
 
-            LOG.debug("Failed to delete stack : %s", str(e))
+            LOG.error("Failed to delete stack : %s", str(e))
             raise DeleteFailedError(stack_name=stack_name, msg=str(e)) from e
 
         except Exception as e:
             # We don't know anything about this exception. Don't handle
-            LOG.debug("Unable to get stack details.", exc_info=e)
+            LOG.error("Failed to delete stack. ", exc_info=e)
             raise e
