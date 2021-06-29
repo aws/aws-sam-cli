@@ -297,8 +297,8 @@ class Environment:
                     "make sure to periodically rotate it:",
                 )
             )
-            click.secho(self.color.green(f"\tACCESS_KEY_ID: {self.pipeline_user.access_key_id}"))
-            click.secho(self.color.green(f"\tSECRET_ACCESS_KEY: {self.pipeline_user.secret_access_key}"))
+            click.secho(self.color.green(f"\tAWS_ACCESS_KEY_ID: {self.pipeline_user.access_key_id}"))
+            click.secho(self.color.green(f"\tAWS_SECRET_ACCESS_KEY: {self.pipeline_user.secret_access_key}"))
 
     def _get_stack_name(self) -> str:
         sanitized_environment_name: str = re.sub("[^0-9a-zA-Z]+", "-", self.name)
