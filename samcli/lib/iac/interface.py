@@ -663,6 +663,12 @@ class Stack(MutableMapping, OrderedDict):
                 _function_resources.append(resource)
         return _function_resources
 
+    def get_overrideable_parameters(self):
+        """
+        Return a dict of parameters that are override-able, i.e. not added by iac
+        """
+        return {key: val for key, val in self.get("Parameters", {}).items() if not val.added_by_iac}
+
     def as_dict(self):
         """
         return the stack as a dict for JSON serialization

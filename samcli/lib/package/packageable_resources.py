@@ -108,7 +108,9 @@ class ResourceZip(Resource):
         if not resource.is_packageable():
             return
 
-        # we can safely assume resource.assets contains at lease one asset
+        if not resource.assets:
+            return
+        # resource.assets contains at lease one asset
         asset = resource.assets[0]
 
         if not asset.source_path and not self.PACKAGE_NULL_PROPERTY:
