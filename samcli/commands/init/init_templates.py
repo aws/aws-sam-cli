@@ -29,6 +29,7 @@ LOG = logging.getLogger(__name__)
 class InvalidInitTemplateError(UserException):
     pass
 
+
 class CDKProjectInvalidInitConfigError(UserException):
     pass
 
