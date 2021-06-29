@@ -6,6 +6,8 @@ from typing import Optional
 
 import click
 
+from samcli.lib.utils.defaults import get_default_aws_region
+
 
 class GuidedContext:
     def __init__(
@@ -46,7 +48,7 @@ class GuidedContext:
             self.region = click.prompt(
                 "\nAWS region (the AWS region where the environment infrastructure resources will be deployed to)",
                 type=click.STRING,
-                default="us-east-1",
+                default=get_default_aws_region(),
             )
 
         if not self.pipeline_user_arn:
