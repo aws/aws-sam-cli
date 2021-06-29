@@ -36,15 +36,17 @@ class TestDeleteCliCommand(TestCase):
         do_cli(
             stack_name=self.stack_name,
             region=self.region,
+            config_file=self.config_file,
+            config_env=self.config_env,
             profile=self.profile,
         )
 
         mock_delete_context.assert_called_with(
             stack_name=self.stack_name,
-            s3_bucket=mock_delete_click.get_current_context().default_map.get("s3_bucket", None),
-            s3_prefix=mock_delete_click.get_current_context().default_map.get("s3_prefix", None),
             region=self.region,
             profile=self.profile,
+            config_file=self.config_file,
+            config_env=self.config_env,
         )
 
         context_mock.run.assert_called_with()
