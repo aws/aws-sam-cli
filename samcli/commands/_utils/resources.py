@@ -52,6 +52,11 @@ RESOURCES_WITH_IMAGE_COMPONENT = {
     AWS_LAMBDA_FUNCTION: ["Code"],
 }
 
+NESTED_STACKS_RESOURCES = {
+    AWS_SERVERLESS_APPLICATION: "Location",
+    AWS_CLOUDFORMATION_STACK: "TemplateURL",
+}
+
 
 def get_packageable_resource_paths():
     """

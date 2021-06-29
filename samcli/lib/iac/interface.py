@@ -3,15 +3,25 @@ Provide IAC Plugins Interface && Project representation
 """
 
 import abc
+import logging
 from collections import OrderedDict
 from collections.abc import MutableMapping, Mapping
 from copy import deepcopy
 from enum import Enum
-
 from typing import List, Any, Dict, Iterator, Optional
 from uuid import uuid4
 
-from samcli.cli.context import Context
+from samcli.commands._utils.resources import (
+    AWS_LAMBDA_FUNCTION,
+    AWS_SERVERLESS_FUNCTION,
+    RESOURCES_WITH_IMAGE_COMPONENT,
+    RESOURCES_WITH_LOCAL_PATHS,
+    NESTED_STACKS_RESOURCES,
+)
+from samcli.lib.utils.packagetype import IMAGE, ZIP
+
+
+LOG = logging.getLogger(__name__)
 
 
 class Environment:
@@ -64,6 +74,7 @@ class Asset:
         asset_id: Optional[str] = None,
         destinations: Optional[List[Destination]] = None,
         source_property: Optional[str] = None,
+        extra_details: Optional[Dict[str, Any]] = None,
     ):
         if asset_id is None:
             asset_id = str(uuid4())
@@ -72,6 +83,8 @@ class Asset:
             destinations = []
         self._destinations = destinations
         self._source_property = source_property
+        extra_details = extra_details or {}
+        self._extra_details = extra_details
 
     @property
     def asset_id(self) -> str:
@@ -97,6 +110,14 @@ class Asset:
     def source_property(self, source_property: str) -> None:
         self._source_property = source_property
 
+    @property
+    def extra_details(self) -> Dict[str, Any]:
+        return self._extra_details
+
+    @extra_details.setter
+    def extra_details(self, extra_details: Dict[str, Any]) -> None:
+        self._extra_details = extra_details
+
 
 class S3Asset(Asset):
     """
@@ -114,13 +135,14 @@ class S3Asset(Asset):
         updated_source_path: Optional[str] = None,
         destinations: Optional[List[Destination]] = None,
         source_property: Optional[str] = None,
+        extra_details: Optional[Dict[str, Any]] = None,
     ):
         self._bucket_name = bucket_name
         self._object_key = object_key
         self._object_version = object_version
         self._source_path = source_path
         self._updated_source_path = updated_source_path
-        super().__init__(asset_id, destinations, source_property)
+        super().__init__(asset_id, destinations, source_property, extra_details)
 
     @property
     def bucket_name(self) -> Optional[str]:
@@ -181,6 +203,7 @@ class ImageAsset(Asset):
         destinations: Optional[List[Destination]] = None,
         source_property: Optional[str] = None,
         target: Optional[str] = None,
+        extra_details: Optional[Dict[str, Any]] = None,
     ):
         """
         image uri = <registry>/repository_name:image_tag
@@ -194,7 +217,7 @@ class ImageAsset(Asset):
         self._docker_file_name = docker_file_name
         self._build_args = build_args
         self._target = target
-        super().__init__(asset_id, destinations, source_property)
+        super().__init__(asset_id, destinations, source_property, extra_details)
 
     @property
     def repository_name(self) -> Optional[str]:
@@ -320,7 +343,7 @@ class DictSectionItem(SectionItem, MutableMapping, OrderedDict):
         extra_details: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(key, item_id)
-        self._body = body
+        self._body = body or {}
         if assets is None:
             assets = []
         self._assets = assets
@@ -472,6 +495,24 @@ class Resource(DictSectionItem):
     def nested_stack(self, nested_stack: "Stack") -> None:
         self._nested_stack = nested_stack
 
+    def is_packageable(self):
+        """
+        return if the resource is packageable
+        NOTE: we probably want to include a condition to check if the resource is binded to a local asset
+        But in samcli.lib.package.utils.upload_local_artifacts, we handle a case where local_path is None,
+        we would build the parent_dir. This seems to only apply for CFN/SAM project, we can consider to move
+        that logic to CfnIacPlugin. For now, just keep it as is.
+        """
+        if "InlineCode" in self.get("Properties", {}):
+            return False
+        resource_type = self.get("Type", None)
+        packageable_resources = [
+            NESTED_STACKS_RESOURCES,
+            RESOURCES_WITH_LOCAL_PATHS,
+            RESOURCES_WITH_IMAGE_COMPONENT,
+        ]
+        return any(resource_type in p for p in packageable_resources)
+
 
 class Parameter(DictSectionItem):
     """
@@ -600,6 +641,34 @@ class Stack(MutableMapping, OrderedDict):
     def extra_details(self, extra_details: Dict[str, Any]) -> None:
         self._extra_details = extra_details
 
+    def has_assets_of_package_type(self, package_type: str) -> bool:
+        package_type_to_asset_cls_map = {
+            ZIP: S3Asset,
+            IMAGE: ImageAsset,
+        }
+        return any(isinstance(asset, package_type_to_asset_cls_map[package_type]) for asset in self.assets)
+
+    def find_function_resources_of_package_type(self, package_type: str) -> List[Resource]:
+        package_type_to_asset_cls_map = {
+            ZIP: S3Asset,
+            IMAGE: ImageAsset,
+        }
+        _function_resources = []
+        for _, resource in self.get("Resources", DictSection()).items():
+            if (
+                resource.get("Type", "") in [AWS_SERVERLESS_FUNCTION, AWS_LAMBDA_FUNCTION]
+                and resource.assets
+                and isinstance(resource.assets[0], package_type_to_asset_cls_map[package_type])
+            ):
+                _function_resources.append(resource)
+        return _function_resources
+
+    def as_dict(self):
+        """
+        return the stack as a dict for JSON serialization
+        """
+        return _make_dict(self)
+
     def __setitem__(self, k: str, v: Any) -> None:
         if isinstance(v, dict):
             section = DictSection(section_name=k)
@@ -658,6 +727,12 @@ class Project:
     def extra_details(self, extra_details: Dict[str, Any]) -> None:
         self._extra_details = extra_details
 
+    def find_stack_by_name(self, name: str):
+        for stack in self.stacks:
+            if stack.name == name:
+                return stack
+        return None
+
 
 class LookupPathType(Enum):
     SOURCE = "Source"
@@ -697,8 +772,8 @@ class IacPlugin(metaclass=abc.ABCMeta):
     We only require two methods here - get_project and write_project
     """
 
-    def __init__(self, context: Context):
-        self._context = context
+    def __init__(self, command_params: dict):
+        self._command_params = command_params
 
     @abc.abstractmethod
     def get_project(self, lookup_paths: List[LookupPath]) -> Project:
@@ -713,3 +788,30 @@ class IacPlugin(metaclass=abc.ABCMeta):
         Write project to a template (or a set of templates),
         move the template(s) to build_path
         """
+
+    @abc.abstractmethod
+    def should_update_property_after_package(self, asset: Asset) -> bool:
+        """
+        return if resource property should be updated after packaging
+        """
+
+    @abc.abstractmethod
+    def update_resource_after_packaging(self, resource: Resource) -> None:
+        """
+        Update resource after packaging, e.g. uploaded to S3 or ECR
+        """
+
+    @abc.abstractmethod
+    def update_asset_params_default_values_after_packaging(self, stack: Stack, parameters: DictSection) -> None:
+        """
+        Populate default values for asset parameters
+        """
+
+
+def _make_dict(obj):
+    if not isinstance(obj, MutableMapping):
+        return obj
+    to_return = dict()
+    for key, val in obj.items():
+        to_return[key] = _make_dict(val)
+    return to_return

@@ -1,6 +1,6 @@
 """Test sam package command"""
 from unittest import TestCase
-from unittest.mock import patch, MagicMock, Mock, call, ANY
+from unittest.mock import MagicMixin, patch, MagicMock, Mock, call, ANY
 import tempfile
 
 
@@ -25,11 +25,16 @@ class TestPackageCommand(TestCase):
             metadata={},
             region=None,
             profile=None,
+            project=MagicMock(),
+            iac=MagicMock(),
         )
 
-    @patch.object(Template, "export", MagicMock(sideeffect=OSError))
+    @patch("samcli.commands.package.package_context.Template")
     @patch("boto3.Session")
-    def test_template_permissions_error(self, patched_boto):
+    @patch("json.dumps")
+    def test_template_permissions_error(self, json_dumps_mock, patched_boto, Template_mock):
+        template_instance = Template_mock.return_value
+        template_instance.export.side_effect = OSError
         with self.assertRaises(PackageFailedError):
             self.package_command_context.run()
 
@@ -52,6 +57,8 @@ class TestPackageCommand(TestCase):
                     metadata={},
                     region=None,
                     profile=None,
+                    project=MagicMock(),
+                    iac=MagicMock(),
                 )
                 package_command_context.run()
 
@@ -73,6 +80,8 @@ class TestPackageCommand(TestCase):
                 metadata={},
                 region=None,
                 profile=None,
+                project=MagicMock(),
+                iac=MagicMock(),
             )
             package_command_context.run()
 
@@ -94,6 +103,8 @@ class TestPackageCommand(TestCase):
                 metadata={},
                 region=None,
                 profile=None,
+                project=MagicMock(),
+                iac=MagicMock(),
             )
             package_command_context.run()
 
@@ -102,8 +113,7 @@ class TestPackageCommand(TestCase):
     @patch("boto3.client")
     @patch("samcli.commands.package.package_context.get_boto_config_with_user_agent")
     def test_boto_clients_created_with_config(self, patched_get_config, patched_boto_client, patched_boto_session):
-        with self.assertRaises(PackageFailedError):
-            self.package_command_context.run()
+        self.package_command_context.run()
 
         patched_boto_client.assert_has_calls([call("s3", config=ANY)])
         patched_boto_client.assert_has_calls([call("ecr", config=ANY)])
@@ -112,5 +122,3 @@ class TestPackageCommand(TestCase):
         patched_get_config.assert_has_calls(
             [call(region_name=ANY, signature_version=ANY), call(region_name=ANY), call(region_name=ANY)]
         )
-
-        print("hello")

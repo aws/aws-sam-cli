@@ -80,7 +80,7 @@
       "Metadata": {
         "aws:cdk:path": "root-stack/container-function/Resource",
         "aws:asset:path": "asset.8db62da8c9a661a051169ec5710e7c48e471f6eb556b9d853c77e0efd9689d7e",
-        "aws:asset:property": "Code.ImageUri"
+        "aws:asset:property": "Code"
       }
     },
     "remotenestedstack": {

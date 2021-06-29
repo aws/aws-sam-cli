@@ -257,7 +257,7 @@ class CloudAssemblyStack:
                     asset = self.find_asset_by_id(asset_id)
                     if asset is not None:
                         metadata[ASSET_PATH_METADATA_KEY] = asset["path"]
-                        metadata[ASSET_PROPERTY_METADATA_KEY] = "Code.ImageUri"
+                        metadata[ASSET_PROPERTY_METADATA_KEY] = "Code"
 
         self._template = template_dict
         return template_dict

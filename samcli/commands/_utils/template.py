@@ -12,7 +12,7 @@ import yaml
 from botocore.utils import set_value_from_jmespath
 
 from samcli.commands.exceptions import UserException
-from samcli.lib.iac.interface import S3Asset
+from samcli.lib.iac.interface import S3Asset, Stack as IacStack
 from samcli.lib.samlib.resource_metadata_normalizer import METADATA_KEY, ASSET_PATH_METADATA_KEY
 from samcli.lib.utils.packagetype import ZIP
 from samcli.yamlhelper import yaml_parse, yaml_dump
@@ -114,6 +114,10 @@ def move_template(
         if output_format == TemplateFormat.YAML:
             fp.write(yaml_dump(modified_template))
         elif output_format == TemplateFormat.JSON:
+            if isinstance(modified_template, IacStack):
+                # IacStack inherits MutableMapping, which is not JSON serializable.
+                # We need to convert it into a dict obj
+                modified_template = modified_template.as_dict()
             fp.write(json.dumps(modified_template, indent=4))
 
 

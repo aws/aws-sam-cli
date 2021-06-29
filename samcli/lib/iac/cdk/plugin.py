@@ -52,10 +52,8 @@ from samcli.lib.iac.cdk.cloud_assembly import (
 from samcli.lib.iac.cdk.exceptions import (
     CdkSynthError,
     CdkToolkitNotInstalledError,
-    CdkPluginError,
     InvalidCloudAssemblyError,
 )
-from samcli.cli.context import Context
 from samcli.lib.samlib.resource_metadata_normalizer import (
     METADATA_KEY,
     ASSET_PATH_METADATA_KEY,
@@ -78,8 +76,8 @@ class CdkPlugin(IacPlugin):
     CDK Plugin
     """
 
-    def __init__(self, context: Context):
-        super().__init__(context=context)
+    def __init__(self, command_params: dict):
+        super().__init__(command_params=command_params)
         # create a temp dir to hold synthed/read Cloud Assembly
         # will remove the temp dir once the command exits
         self._source_dir = os.path.abspath(os.curdir)
@@ -90,9 +88,9 @@ class CdkPlugin(IacPlugin):
         """
         Read and parse template of that IaC Platform
         """
-        cdk_app = self._context.command_params.get("cdk_app")
+        cdk_app = self._command_params.get("cdk_app")
         is_cloud_assembly_dir = bool(cdk_app) and os.path.isfile(os.path.join(cdk_app, MANIFEST_FILENAME))
-        cdk_context = self._context.command_params.get("cdk_context")
+        cdk_context = self._command_params.get("cdk_context")
         cloud_assembly_dir = None
         missing_files: List = []
         for lookup_path in lookup_paths:
@@ -129,15 +127,46 @@ class CdkPlugin(IacPlugin):
         for stack in project.stacks:
             _write_stack(stack, self._cloud_assembly_dir, build_dir)
 
-        # p = subprocess.run(["tree", build_dir], capture_output=True)
-        # LOG.info(p)
+    def should_update_property_after_package(self, asset: Asset) -> bool:
+        if isinstance(asset, S3Asset):
+            # S3 Asset is binded with Asset Parameter. Thus, property should not be updated.
+            return False
+        return True
+
+    def update_asset_params_default_values_after_packaging(self, stack: Stack, parameters: DictSection) -> None:
+        """
+        Populate default values for asset parameters
+        """
+        resources = stack.get("Resources", DictSection())
+        for resource in resources.values():
+            # undo normalize resource metadata
+            # update asset param default values
+            if resource.assets and resource.assets[0]:
+                asset = resource.assets[0]
+                if isinstance(asset, S3Asset) and "assetParameters" in asset.extra_details:
+                    _update_asset_params_default_values(asset, parameters)
+
+            # recursively do the same on nested stack
+            if resource.nested_stack:
+                self.update_asset_params_default_values_after_packaging(resource.nested_stack, parameters)
+                resource.assets = []
+                resource.nested_stack = None
+
+    def update_resource_after_packaging(self, resource: Resource) -> None:
+        """
+        Update resource property to reference asset parameters
+        """
+        if resource.assets and resource.assets[0]:
+            asset = resource.assets[0]
+            if isinstance(asset, S3Asset) and "assetParameters" in asset.extra_details:
+                _undo_normalize_resource_metadata(resource)
 
     def _cdk_synth(self, app: Optional[str] = None, context: Optional[List] = None) -> str:
         """
         Run cdk synth to get the cloud assembly
         """
         context = context or []
-        cdk_executable = self._cdk_executable_path
+        cdk_executable = _get_cdk_executable_path()
         LOG.debug("CDK Toolkit found at %s", cdk_executable)
         synth_command = [
             cdk_executable,
@@ -174,31 +203,6 @@ class CdkPlugin(IacPlugin):
         LOG.debug("Cloud assembly synthed at %s", self._cloud_assembly_dir)
         return self._cloud_assembly_dir
 
-    @property
-    def _cdk_executable_path(self) -> str:
-        """
-        Order to look up locally installed CDK Toolkit
-        1. ./node_modules/aws-cdk/bin/cdk (for mac & linux only)
-        2. cdk
-        """
-        if platform.system().lower() == "windows":
-            cdk_executables = ["cdk"]
-        else:
-            cdk_executables = [
-                "./node_modules/aws-cdk/bin/cdk",
-                "cdk",
-            ]
-
-        for executable in cdk_executables:
-            # check if exists and is executable
-            full_executable = shutil.which(executable)
-            if full_executable:
-                return full_executable
-        raise CdkToolkitNotInstalledError(
-            "CDK Toolkit is not found or not installed. Please run `npm i -g aws-cdk@latest` to install the latest CDK "
-            "Toolkit."
-        )
-
     def _get_project_from_cloud_assembly(self, cloud_assembly_dir: str) -> Project:
         """
         create a cdk project from cloud_assembly
@@ -215,6 +219,12 @@ class CdkPlugin(IacPlugin):
         Extract stack from given CloudAssemblyStack
         """
         assets = _collect_assets(ca_stack)
+        LOG.debug("Found assets: %s", str(assets))
+        asset_parameters = {
+            asset_param
+            for asset in assets.values()
+            for asset_param in asset.extra_details.get("assetParameters", {}).values()
+        }
         sections = {}
         for section_key, section_dict in ca_stack.template.items():
             if section_key == "Resources":
@@ -227,6 +237,8 @@ class CdkPlugin(IacPlugin):
                         key=logical_id,
                         body=param_dict,
                     )
+                    if logical_id in asset_parameters:
+                        param.added_by_iac = True
                     section[logical_id] = param
             elif isinstance(section_dict, Mapping):
                 section = DictSection(section_key)
@@ -287,7 +299,12 @@ class CdkPlugin(IacPlugin):
                 # and keep an original copy for writing the project to template(s)
                 original_body = copy.deepcopy(resource_dict)
                 resource.extra_details[RESOURCE_EXTRA_DETAILS_ORIGINAL_BODY_KEY] = original_body
-                ResourceMetadataNormalizer.replace_property(asset_property, asset_path, resource, logical_id)
+                if ASSET_LOCAL_IMAGE_METADATA_KEY in metadata:
+                    ResourceMetadataNormalizer.replace_property(
+                        asset_property, metadata[ASSET_LOCAL_IMAGE_METADATA_KEY], resource, logical_id
+                    )
+                else:
+                    ResourceMetadataNormalizer.replace_property(asset_property, asset_path, resource, logical_id)
 
             if resource_type in NESTED_STACKS_RESOURCES:
                 # hook up and extract nested stacks
@@ -305,15 +322,6 @@ class CdkPlugin(IacPlugin):
             section[logical_id] = resource
 
 
-def _get_app_executable_path_from_config() -> str:
-    with open(CDK_CONFIG_FILENAME, "r") as f:
-        app_json = json.loads(f.read())
-        app: str = app_json.get("app")
-    if app is None:
-        raise CdkPluginError(f"'app' is missing in {CDK_CONFIG_FILENAME}")
-    return app
-
-
 def _collect_assets(
     ca_stack: Union[CloudAssemblyStack, CloudAssemblyNestedStack]
 ) -> Dict[str, Union[S3Asset, ImageAsset]]:
@@ -322,7 +330,16 @@ def _collect_assets(
         if ca_asset["path"] not in assets:
             if ca_asset["packaging"] in [ZIP_ASSET_PACKAGING, FILE_ASSET_PACKAGING]:
                 path = os.path.normpath(os.path.join(ca_stack.directory, ca_asset["path"]))
-                assets[ca_asset["path"]] = S3Asset(asset_id=ca_asset["id"], source_path=path)
+                extra_details = {
+                    "assetParameters": {
+                        "s3BucketParameter": ca_asset["s3BucketParameter"],
+                        "s3KeyParameter": ca_asset["s3KeyParameter"],
+                        "artifactHashParameter": ca_asset["artifactHashParameter"],
+                    }
+                }
+                assets[ca_asset["path"]] = S3Asset(
+                    asset_id=ca_asset["id"], source_path=path, extra_details=extra_details
+                )
             elif ca_asset["packaging"] == CONTAINER_IMAGE_ASSET_PACKAGING:
                 path = os.path.normpath(os.path.join(ca_stack.directory, ca_asset["path"]))
                 repository_name = ca_asset.get("repositoryName", None)
@@ -349,9 +366,7 @@ def _write_stack(stack: Stack, cloud_assembly_dir: str, build_dir: str) -> None:
 
     resources = stack.get("Resources", {})
     for _, resource in resources.items():
-        if RESOURCE_EXTRA_DETAILS_ORIGINAL_BODY_KEY in resource.extra_details:
-            for key, val in resource.extra_details[RESOURCE_EXTRA_DETAILS_ORIGINAL_BODY_KEY].items():
-                resource[key] = val
+        _undo_normalize_resource_metadata(resource)
         if resource.assets:
             asset = resource.assets[0]
             if isinstance(asset, ImageAsset) and asset.source_local_image is not None:
@@ -367,8 +382,14 @@ def _write_stack(stack: Stack, cloud_assembly_dir: str, build_dir: str) -> None:
                         STACK_EXTRA_DETAILS_TEMPLATE_FILENAME_KEY
                     ]
                     asset.updated_source_path = os.path.join(build_dir, nested_stack_file_name)
-                    resource[METADATA_KEY][ASSET_PATH_METADATA_KEY] = updated_path
+                    resource[METADATA_KEY][ASSET_PATH_METADATA_KEY] = asset.updated_source_path
     move_template(src_template_path, stack_build_location, stack, output_format=TemplateFormat.JSON)
+
+
+def _undo_normalize_resource_metadata(resource: Resource) -> None:
+    if RESOURCE_EXTRA_DETAILS_ORIGINAL_BODY_KEY in resource.extra_details:
+        for key, val in resource.extra_details[RESOURCE_EXTRA_DETAILS_ORIGINAL_BODY_KEY].items():
+            resource[key] = val
 
 
 def _collect_stack_assets(stack: Stack) -> Dict[str, Asset]:
@@ -451,3 +472,44 @@ def _collect_project_assets(project):
         assets[stack.name] = _collect_stack_assets(stack)
         root_stack_names.append(stack.name)
     return assets, root_stack_names
+
+
+def _update_asset_params_default_values(asset: S3Asset, parameters: DictSection) -> None:
+    s3_bucket_param_key = asset.extra_details["assetParameters"].get("s3BucketParameter")
+    s3_bucket_param_val = asset.bucket_name
+    if s3_bucket_param_key is not None and s3_bucket_param_val is not None and s3_bucket_param_key in parameters:
+        parameters[s3_bucket_param_key]["Default"] = s3_bucket_param_val
+    s3_key_param_key = asset.extra_details["assetParameters"].get("s3KeyParameter")
+    s3_key_val = asset.object_key
+    s3_version_val = asset.object_version or ""
+    if s3_key_param_key is not None and s3_key_val is not None and s3_key_param_key in parameters:
+        parameters[s3_key_param_key]["Default"] = s3_key_val + "||" + s3_version_val
+    artifact_hash_key = asset.extra_details["assetParameters"].get("artifactHashParameter")
+    artifact_hash_val = asset.asset_id
+    if artifact_hash_key is not None and artifact_hash_val is not None and artifact_hash_key in parameters:
+        parameters[artifact_hash_key]["Default"] = artifact_hash_val
+
+
+def _get_cdk_executable_path() -> str:
+    """
+    Order to look up locally installed CDK Toolkit
+    1. ./node_modules/aws-cdk/bin/cdk (for mac & linux only)
+    2. cdk
+    """
+    if platform.system().lower() == "windows":
+        cdk_executables = ["cdk"]
+    else:
+        cdk_executables = [
+            "./node_modules/aws-cdk/bin/cdk",
+            "cdk",
+        ]
+
+    for executable in cdk_executables:
+        # check if exists and is executable
+        full_executable = shutil.which(executable)
+        if full_executable:
+            return full_executable
+    raise CdkToolkitNotInstalledError(
+        "CDK Toolkit is not found or not installed. Please run `npm i -g aws-cdk@latest` to install the latest CDK "
+        "Toolkit."
+    )

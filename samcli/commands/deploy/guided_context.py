@@ -12,12 +12,6 @@ from click import prompt
 from click import confirm
 
 from samcli.commands._utils.options import _space_separated_list_func_type
-from samcli.commands._utils.template import (
-    get_template_parameters,
-    get_template_artifacts_format,
-    get_template_function_resource_ids,
-    get_template_data,
-)
 from samcli.commands.deploy.code_signer_utils import (
     signer_config_per_function,
     extract_profile_name_and_owner_from_existing,
@@ -30,7 +24,6 @@ from samcli.commands.deploy.auth_utils import auth_per_resource
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
 from samcli.lib.config.samconfig import DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.bootstrap.bootstrap import manage_stack
-from samcli.lib.iac.interface import Stack as IacStack
 from samcli.lib.package.ecr_utils import is_ecr_url
 from samcli.lib.package.image_utils import tag_translation, NonLocalImageException, NoImageFoundException
 from samcli.lib.providers.provider import Stack
@@ -43,14 +36,15 @@ LOG = logging.getLogger(__name__)
 
 
 class GuidedContext:
-    def __init__(
+    def __init__(  # pylint: disable=too-many-statements
         self,
-        template_file,
         stack_name,
         s3_bucket,
         image_repository,
         image_repositories,
         s3_prefix,
+        iac,
+        project,
         region=None,
         profile=None,
         confirm_changeset=None,
@@ -62,7 +56,8 @@ class GuidedContext:
         config_env=None,
         config_file=None,
     ):
-        self.template_file = template_file
+        self._iac = iac
+        self._project = project
         self.stack_name = stack_name
         self.s3_bucket = s3_bucket
         self.image_repository = image_repository
@@ -91,6 +86,7 @@ class GuidedContext:
         self.end_bold = "\033[0m"
         self.color = Colored()
         self.function_provider = None
+        self._get_iac_stack()
 
     @property
     def guided_capabilities(self):
@@ -100,17 +96,41 @@ class GuidedContext:
     def guided_parameter_overrides(self):
         return self._parameter_overrides
 
+    def _get_iac_stack(self):
+        """
+        get iac_stack from project based on stack_name
+        """
+        stack = None
+        if self.stack_name is not None:
+            stack = self._project.find_stack_by_name(self.stack_name)
+            if stack is None:
+                # there is not stack with provided stack name
+                raise GuidedDeployFailedError(
+                    f"There is no stack with name '{self.stack_name}'. "
+                    "If you have specified --stack-name, specify the correct stack name "
+                    "or remove --stack-name to use default."
+                )
+
+        # NOTE: stack can be None because of one of the two reasons:
+        # 1) self.stack_name is None
+        # 2) self.stack_name is not None, but there is not stack with that name
+        # Either case, we select the first stack in the project by default, and update self.stack_name
+        if stack is None:
+            LOG.debug("Using the first stack in the project")
+            stack = self._project.stacks[0]
+            LOG.debug("name of first stack: '%s'", stack.name)
+
+        self._iac_stack = stack
+        self.template_file = stack.origin_dir
+        self.stack_name = self.stack_name or stack.name or "sam-app"
+
     # pylint: disable=too-many-statements
-    def guided_prompts(self, parameter_override_keys):
+    def guided_prompts(self):
         """
         Start an interactive cli prompt to collection information for deployment
 
-        Parameters
-        ----------
-        parameter_override_keys
-            The keys of parameters to override, for each key, customers will be asked to provide a value
         """
-        default_stack_name = self.stack_name or "sam-app"
+        default_stack_name = self.stack_name
         default_region = self.region or get_session().get_config_variable("region") or "us-east-1"
         default_capabilities = self.capabilities[0] or ("CAPABILITY_IAM",)
         default_config_env = self.config_env or DEFAULT_ENV
@@ -129,14 +149,12 @@ class GuidedContext:
             f"\t{self.start_bold}Stack Name{self.end_bold}", default=default_stack_name, type=click.STRING
         )
         region = prompt(f"\t{self.start_bold}AWS Region{self.end_bold}", default=default_region, type=click.STRING)
+        parameter_override_keys = self._iac_stack.get_overrideable_parameters()
         input_parameter_overrides = self.prompt_parameters(
             parameter_override_keys, self.parameter_overrides_from_cmdline, self.start_bold, self.end_bold
         )
-        iac_stack = IacStack()
-        template_dict = get_template_data(self.template_file)
-        iac_stack.update(template_dict)
         stacks, _ = SamLocalStackProvider.get_stacks(
-            [iac_stack], parameter_overrides=sanitize_parameter_overrides(input_parameter_overrides)
+            [self._iac_stack], parameter_overrides=sanitize_parameter_overrides(input_parameter_overrides)
         )
         image_repositories = self.prompt_image_repository(stacks)
 
@@ -306,10 +324,11 @@ class GuidedContext:
             A dictionary contains image function logical ID as key, image repository as value.
         """
         image_repositories = {}
-        artifacts_format = get_template_artifacts_format(template_file=self.template_file)
-        if IMAGE in artifacts_format:
+        if self._iac_stack.has_assets_of_package_type(IMAGE):
             self.function_provider = SamFunctionProvider(stacks, ignore_code_extraction_warnings=True)
-            function_resources = get_template_function_resource_ids(template_file=self.template_file, artifact=IMAGE)
+            function_resources = [
+                resource.item_id for resource in self._iac_stack.find_function_resources_of_package_type(IMAGE)
+            ]
             for resource_id in function_resources:
                 image_repositories[resource_id] = prompt(
                     f"\t{self.start_bold}Image Repository for {resource_id}{self.end_bold}",
@@ -338,18 +357,12 @@ class GuidedContext:
 
     def run(self):
 
-        try:
-            _parameter_override_keys = get_template_parameters(template_file=self.template_file)
-        except ValueError as ex:
-            LOG.debug("Failed to parse SAM template", exc_info=ex)
-            raise GuidedDeployFailedError(str(ex)) from ex
-
         guided_config = GuidedConfig(template_file=self.template_file, section=self.config_section)
         guided_config.read_config_showcase(
             self.config_file or DEFAULT_CONFIG_FILE_NAME,
         )
 
-        self.guided_prompts(_parameter_override_keys)
+        self.guided_prompts()
 
         if self.save_to_config:
             guided_config.save_config(

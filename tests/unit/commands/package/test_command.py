@@ -22,6 +22,10 @@ class TestPackageCliCommand(TestCase):
         self.profile = None
         self.resolve_s3 = False
         self.signing_profiles = {"MyFunction": {"profile_name": "ProfileName", "profile_owner": "Profile Owner"}}
+        self.project_type = "CFN"
+        self.project = Mock()
+        self.iac = Mock()
+        self.stack_name = ""
 
     @patch("samcli.commands.package.command.click")
     @patch("samcli.commands.package.package_context.PackageContext")
@@ -46,6 +50,10 @@ class TestPackageCliCommand(TestCase):
             profile=self.profile,
             resolve_s3=self.resolve_s3,
             signing_profiles=self.signing_profiles,
+            project_type=self.project_type,
+            project=self.project,
+            iac=self.iac,
+            stack_name=self.stack_name,
         )
 
         package_command_context.assert_called_with(
@@ -63,6 +71,9 @@ class TestPackageCliCommand(TestCase):
             region=self.region,
             profile=self.profile,
             signing_profiles=self.signing_profiles,
+            project=self.project,
+            iac=self.iac,
+            stack_name=self.stack_name,
         )
 
         context_mock.run.assert_called_with()
@@ -92,6 +103,10 @@ class TestPackageCliCommand(TestCase):
             profile=self.profile,
             resolve_s3=True,
             signing_profiles=self.signing_profiles,
+            project_type=self.project_type,
+            project=self.project,
+            iac=self.iac,
+            stack_name=self.stack_name,
         )
 
         package_command_context.assert_called_with(
@@ -109,6 +124,9 @@ class TestPackageCliCommand(TestCase):
             region=self.region,
             profile=self.profile,
             signing_profiles=self.signing_profiles,
+            project=self.project,
+            iac=self.iac,
+            stack_name=self.stack_name,
         )
 
         context_mock.run.assert_called_with()

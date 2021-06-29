@@ -9,10 +9,9 @@ from functools import partial
 import click
 from click.types import FuncParamType
 
-from samcli.commands._utils.template import get_template_data, TemplateNotFoundException
 from samcli.cli.types import CfnParameterOverridesType, CfnMetadataType, CfnTags, SigningProfilesOptionType
+from samcli.commands._utils.template import get_template_data, TemplateNotFoundException, get_template_artifacts_format
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
-from samcli.commands._utils.template import get_template_artifacts_format
 from samcli.lib.iac.interface import ProjectTypes
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml]"
@@ -26,7 +25,6 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
     Default value for the template file name option is more complex than what Click can handle.
     This method either returns user provided file name or one of the two default options (template.yaml/template.yml)
     depending on the file that exists
-
     :param ctx: Click Context
     :param param: Param name
     :param provided_value: Value provided by Click. It could either be the default value or provided by user.
@@ -359,59 +357,61 @@ def notification_arns_click_option():
     )
 
 
-def project_type_click_option(f):
-    click.option(
+def notification_arns_override_option(f):
+    return notification_arns_click_option()(f)
+
+
+def _space_separated_list_func_type(value):
+    if isinstance(value, str):
+        return value.split(" ")
+    if isinstance(value, (list, tuple)):
+        return value
+    raise ValueError()
+
+
+_space_separated_list_func_type.__name__ = "LIST"
+
+
+def project_type_click_option(include_build=True):
+    return click.option(
         "--project-type",
         help="Project Type",
-        callback=partial(determine_project_type, include_build=True),
+        is_eager=True,
+        callback=partial(project_type_callback, include_build=include_build),
         type=click.Choice(ProjectTypes.__members__, case_sensitive=False),
-    )(f)
-
-    return f
+    )
 
 
-def cdk_click_options(f):
-    options = [
-        click.option(
-            "--cdk-app",
-            required=False,
-            default=None,
-            help="Executable for your CDK app (e.g. node bin/my-app.js)"
-            "or the path of cloud assembly (e.g. ./cdk.out).",
-        ),
-        click.option(
-            "--cdk-context",
-            required=False,
-            default=[],
-            multiple=True,
-            help="Runtime context in key-value pairs for your CDK app."
-            "e.g. sam build --cdk-context Key1=Value1 --cdk-context Key2=Value2",
-        ),
-    ]
+def project_type_callback(ctx, param, provided_value, include_build):
+    """
+    Callback for `--project-type`
+    """
+    detected_project_type = determine_project_type(include_build)
+    if provided_value is not None:
+        if provided_value != detected_project_type:
+            raise click.BadOptionUsage(
+                option_name=param.name,
+                ctx=ctx,
+                message=f"It seems your project type is {detected_project_type}. "
+                f"However, you specified {provided_value} in --project-type",
+            )
+        LOG.debug("Using customized project type %s.", provided_value)
+        return provided_value
 
-    for option in options:
-        option(f)
-
-    return f
+    return detected_project_type
 
 
-def determine_project_type(ctx, param, provided_value, include_build):
+def determine_project_type(include_build):
     """
     Determine the type of IaC Project to use.
     If SAM template file exists, project_type will be “CFN”
     Else if cdk.json exists in the root directory, project_type will be “CDK”
     Else, project_type will be “CFN”
 
-    :param ctx: Click Context
-    :param param: Param name
-    :param provided_value: Value provided by Click. It could either be the default value or provided by user.
     :param include_build: A boolean to set whether to search build template or not.
     :return: Project type
     """
     LOG.debug("Determining project type...")
-    if provided_value:
-        LOG.debug("Using customized project type %s.", provided_value)
-        return provided_value
 
     if find_cfn_template(include_build):
         LOG.debug("The project is a CFN project.")
@@ -451,16 +451,29 @@ def find_cdk_file():
     return find_in_paths(search_paths)
 
 
-def notification_arns_override_option(f):
-    return notification_arns_click_option()(f)
+def cdk_click_options(f):
+    """
+    click options for specifying cdk related behavior
+    """
+    options = [
+        click.option(
+            "--cdk-app",
+            required=False,
+            default=None,
+            is_eager=True,
+            help="Executable for your CDK app (e.g. node bin/my-app.js)"
+            "or the path of cloud assembly (e.g. ./cdk.out).",
+        ),
+        click.option(
+            "--cdk-context",
+            required=False,
+            multiple=True,
+            help="Runtime context in key-value pairs for your CDK app."
+            "e.g. sam build --cdk-context Key1=Value1 --cdk-context Key2=Value2",
+        ),
+    ]
 
+    for option in options:
+        option(f)
 
-def _space_separated_list_func_type(value):
-    if isinstance(value, str):
-        return value.split(" ")
-    if isinstance(value, (list, tuple)):
-        return value
-    raise ValueError()
-
-
-_space_separated_list_func_type.__name__ = "LIST"
+    return f

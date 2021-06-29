@@ -215,7 +215,9 @@ class DeployContext:
         template_dict = get_template_data(self.template_file)
         iac_stack.update(template_dict)
         stacks, _ = SamLocalStackProvider.get_stacks(
-            [iac_stack], parameter_overrides=sanitize_parameter_overrides(self.parameter_overrides)
+            [iac_stack],
+            parameter_overrides=sanitize_parameter_overrides(self.parameter_overrides),
+            normalize_resource_metadata=False,
         )
         auth_required_per_resource = auth_per_resource(stacks)
 

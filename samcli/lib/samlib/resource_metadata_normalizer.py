@@ -62,6 +62,7 @@ class ResourceMetadataNormalizer:
             while len(nested_keys) > 1:
                 key = nested_keys.pop(0)
                 target_dict[key] = {}
+                target_dict = target_dict[key]
             target_dict[nested_keys[0]] = property_value
         elif property_key or property_value:
             LOG.info(
