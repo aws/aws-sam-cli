@@ -96,10 +96,24 @@ def _load_pipeline_bootstrap_context() -> Dict:
 
     config = SamConfig(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)
     if not config.exists():
+        context[str(["environment_names_message"])] = ""
         return context
-    for env in config.get_env_names():
+
+    # config.get_env_names() will return the list of
+    # bootstrapped env names and "default" which is used to store shared values
+    # we don't want to include "default" here.
+    env_names = [env_name for env_name in config.get_env_names() if env_name != "default"]
+    for env in env_names:
         for key, value in config.get_all(bootstrap_command_names, section, env).items():
             context[str([env, key])] = value
+
+    # pre-load the list of env names detected from pipelineconfig.toml
+    environment_names_message = (
+        "Here are the environment names detected "
+        + f"in {os.path.join(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)}:\n"
+        + "\n".join([f"- {env_name}" for env_name in env_names])
+    )
+    context[str(["environment_names_message"])] = environment_names_message
 
     return context
 

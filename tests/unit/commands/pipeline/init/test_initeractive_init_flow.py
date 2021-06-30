@@ -171,6 +171,8 @@ class TestInteractiveInitFlow(TestCase):
             {
                 str(["testing", "pipeline_execution_role"]): "arn:aws:iam::123456789012:role/execution-role",
                 str(["prod", "pipeline_execution_role"]): "arn:aws:iam::123456789012:role/execution-role",
+                str(["environment_names_message"]): "Here are the environment names detected "
+                "in .aws-sam/pipeline/pipelineconfig.toml:\n- testing\n- prod",
             }
         )
         cookiecutter_mock.assert_called_once_with(
