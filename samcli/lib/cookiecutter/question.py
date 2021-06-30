@@ -108,7 +108,7 @@ class Question:
         # set an empty default answer to prevent click from keep asking for an answer
         if not self._required and resolved_default_answer is None:
             resolved_default_answer = ""
-        return click.prompt(text=self._text, default=resolved_default_answer)
+        return click.prompt(text=self._resolve_text(context), default=resolved_default_answer)
 
     def get_next_question_key(self, answer: Any) -> Optional[str]:
         # _next_question_map is a Dict[str(answer), str(next question key)]
@@ -154,51 +154,59 @@ class Question:
                 raise ValueError(f'Invalid value "{unresolved_key}" in key path')
         return resolved_key_path
 
-    def _resolve_default_answer(self, context: Optional[Dict] = None) -> Optional[Any]:
+    def _resolve_value_from_expression(self, expression: Any, context: Optional[Dict] = None) -> Optional[Any]:
         """
-        a question may have a default answer provided directly through the "default_answer" value
+        a question may have a value provided directly as string or number value
         or indirectly from cookiecutter context using a key path
 
         Parameters
         ----------
         context
-            Cookiecutter context used to resolve default values and answered questions' answers.
+            Cookiecutter context used to resolve values.
 
         Raises
         ------
         KeyError
-            When default value depends on the answer to a non-existent question
+            When an expression depends on the answer to a non-existent question
         ValueError
-            The default value is malformed
+            The expression is malformed
 
         Returns
         -------
-        Optional default answer, it might be resolved from cookiecutter context using specified key path.
+        Optional value, it might be resolved from cookiecutter context using specified key path.
 
         """
-        if isinstance(self._default_answer, dict):
+        if isinstance(expression, dict):
             context = context if context else {}
 
             # load value using key path from cookiecutter
-            if "keyPath" not in self._default_answer:
-                raise KeyError(f'Missing key "keyPath" in question default "{self._default_answer}".')
-            unresolved_key_path = self._default_answer.get("keyPath", [])
+            if "keyPath" not in expression:
+                raise KeyError(f'Missing key "keyPath" in "{expression}".')
+            unresolved_key_path = expression.get("keyPath", [])
             if not isinstance(unresolved_key_path, list):
-                raise ValueError(f'Invalid default answer "{self._default_answer}" for question {self.key}')
+                raise ValueError(f'Invalid expression "{expression}" in question {self.key}')
 
             return context.get(str(self._resolve_key_path(unresolved_key_path, context)))
+        return expression
 
-        return self._default_answer
+    def _resolve_text(self, context: Optional[Dict] = None) -> str:
+        resolved_text = self._resolve_value_from_expression(self._text, context)
+        if not resolved_text:
+            raise ValueError(f"Cannot resolve value from expression: {self._text}")
+        return str(resolved_text)
+
+    def _resolve_default_answer(self, context: Optional[Dict] = None) -> Optional[Any]:
+        return self._resolve_value_from_expression(self._default_answer, context)
 
 
 class Info(Question):
     def ask(self, context: Optional[Dict] = None) -> None:
-        return click.echo(message=self._text)
+        return click.echo(message=self._resolve_text(context))
 
 
 class Confirm(Question):
     def ask(self, context: Optional[Dict] = None) -> bool:
-        return click.confirm(text=self._text)
+        return click.confirm(text=self._resolve_text(context))
 
 
 class Choice(Question):
@@ -219,7 +227,7 @@ class Choice(Question):
 
     def ask(self, context: Optional[Dict] = None) -> str:
         resolved_default_answer = self._resolve_default_answer(context)
-        click.echo(self._text)
+        click.echo(self._resolve_text(context))
         for index, option in enumerate(self._options):
             click.echo(f"\t{index + 1} - {option}")
         options_indexes = self._get_options_indexes(base=1)
