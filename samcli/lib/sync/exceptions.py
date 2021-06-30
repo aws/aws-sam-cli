@@ -84,3 +84,43 @@ class LayerPhysicalIdNotFoundError(Exception):
             List of resource names that is actually deployed into CFN stack
         """
         return self._stack_resource_names
+
+
+class UriNotFoundException(Exception):
+    """Exception used for not having a URI field that the resource requires"""
+
+    _resource_identifier: str
+    _property_name: str
+
+    def __init__(self, resource_identifier: str, property_name: str):
+        """
+        Parameters
+        ----------
+        resource_identifier : str
+            Logical resource identifier
+        property_name: str
+            Property name related to the URI
+        """
+        super().__init__(f"{resource_identifier} doesn't contain the {property_name} field which is required.")
+        self._resource_identifier = resource_identifier
+        self._property_name = property_name
+
+    @property
+    def resource_identifier(self) -> str:
+        """
+        Returns
+        -------
+        str
+            Resource identifier of the resource that does not have a remote/physical counterpart
+        """
+        return self._resource_identifier
+
+    @property
+    def property_name(self) -> str:
+        """
+        Returns
+        -------
+        str
+            Property name related to the URI property required
+        """
+        return self._property_name

@@ -118,7 +118,8 @@ class CWLogPuller(ObservabilityPuller):
             except self.logs_client.exceptions.ResourceNotFoundException:
                 LOG.warning(
                     "The specified log group %s does not exist. Please make sure logging is enable and log group is "
-                    "created", self.cw_log_group
+                    "created",
+                    self.cw_log_group,
                 )
                 break
 

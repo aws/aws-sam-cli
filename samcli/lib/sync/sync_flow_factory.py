@@ -16,6 +16,7 @@ from samcli.lib.sync.sync_flow import SyncFlow
 from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow
 from samcli.lib.sync.flows.zip_function_sync_flow import ZipFunctionSyncFlow
 from samcli.lib.sync.flows.image_function_sync_flow import ImageFunctionSyncFlow
+from samcli.lib.sync.flows.rest_api_sync_flow import RestApiSyncFlow
 
 if TYPE_CHECKING:
     from samcli.commands.deploy.deploy_context import DeployContext
@@ -93,7 +94,13 @@ class SyncFlowFactory:
         )
 
     def _create_rest_api_flow(self, resource_identifier: str, resource: Dict[str, str]) -> SyncFlow:
-        pass
+        return RestApiSyncFlow(
+            resource_identifier,
+            self._build_context,
+            self._deploy_context,
+            self._physical_id_mapping,
+            self._stacks,
+        )
 
     def _create_api_flow(self, resource_identifier: str, resource: Dict[str, str]) -> SyncFlow:
         pass
