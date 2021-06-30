@@ -186,7 +186,7 @@ for:
       # Runs only in Linux, logging docker hub when running canary and docker cred is available
       - sh: "
         if [[ -n $BY_CANARY ]] && [[ -n $DOCKER_USER ]] && [[ -n $DOCKER_PASS ]];
-          then echo Logging in Docker Hub; echo $DOCKER_PASS | docker login --username $DOCKER_USER --password-stdin;
+          then echo Logging in Docker Hub; echo $DOCKER_PASS | docker login --username $DOCKER_USER --password-stdin registry-1.docker.io;
         fi"
       - sh: "
         if [[ -n $BY_CANARY ]];
