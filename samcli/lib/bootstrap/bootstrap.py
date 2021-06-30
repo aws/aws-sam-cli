@@ -31,6 +31,7 @@ def manage_stack(profile, region):
 
 
 def get_current_account_id():
+    """Returns account ID based on used AWS credentials."""
     sts_client = boto3.client("sts")
     caller_identity = sts_client.get_caller_identity()
     if "Account" in caller_identity:
