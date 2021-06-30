@@ -4,6 +4,7 @@ Bootstrap's user's development environment by creating cloud resources required 
 
 import json
 import logging
+import boto3
 from samcli import __version__
 from samcli.cli.global_config import GlobalConfig
 from samcli.commands.exceptions import UserException
@@ -27,6 +28,15 @@ def manage_stack(profile, region):
         raise UserException(msg)
     # This bucket name is what we would write to a config file
     return bucket_name
+
+
+def get_current_account_id():
+    sts_client = boto3.client("sts")
+    caller_identity = sts_client.get_caller_identity()
+    if "Account" in caller_identity:
+        return caller_identity["Account"]
+    # Ideally sts_client itself will throw an exception if called with no credentials
+    return None
 
 
 def _get_stack_template():
