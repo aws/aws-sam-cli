@@ -166,6 +166,7 @@ def do_cli(
             create_image_repository=create_image_repository,
             image_repository_arn=image_repository_arn,
             pipeline_ip_range=pipeline_ip_range,
+            region=region,
         )
         guided_context.run()
         environment_name = guided_context.environment_name
@@ -176,6 +177,7 @@ def do_cli(
         artifacts_bucket_arn = guided_context.artifacts_bucket_arn
         create_image_repository = guided_context.create_image_repository
         image_repository_arn = guided_context.image_repository_arn
+        region = guided_context.region
 
     if not environment_name:
         raise click.UsageError("Missing required parameter '--environment'")
