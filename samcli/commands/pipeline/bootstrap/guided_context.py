@@ -42,8 +42,8 @@ class GuidedContext:
         account_id = bootstrap.get_current_account_id()
         if not self.environment_name:
             self.environment_name = click.prompt(
-                f"""Environment name (a descriptive name for the environment which
-                 will be deployed to AWS account {account_id})""",
+                f"Environment name (a descriptive name for the environment which will be deployed"
+                f" to AWS account {account_id})",
                 type=click.STRING,
             )
 
