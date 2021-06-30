@@ -76,7 +76,7 @@ class BuildIntegBase(TestCase):
         region=None,
     ):
 
-        command_list = [self.cmd, "build --debug"]
+        command_list = [self.cmd, "build"]
 
         if function_identifier:
             command_list += [function_identifier]
