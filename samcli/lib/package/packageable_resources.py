@@ -22,6 +22,7 @@ from samcli.lib.package.utils import (
     upload_local_image_artifacts,
     is_s3_protocol_url,
     is_path_value_valid,
+    is_ecr_url
 )
 
 from samcli.commands._utils.resources import (
@@ -210,6 +211,14 @@ class ResourceImageDict(Resource):
         )
         set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, {self.EXPORT_PROPERTY_CODE_KEY: uploaded_url})
 
+    def delete(self, resource_id, resource_dict):
+        if resource_dict is None:
+            return
+
+        remote_path = resource_dict[self.PROPERTY_NAME][self.EXPORT_PROPERTY_CODE_KEY]
+        if is_ecr_url(remote_path):
+            self.uploader.delete_artifact(remote_path, resource_id, self.PROPERTY_NAME)
+
 
 class ResourceImage(Resource):
     """
@@ -252,7 +261,12 @@ class ResourceImage(Resource):
         set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, uploaded_url)
 
     def delete(self, resource_id, resource_dict):
-        self.uploader.delete_artifact(resource_dict["ImageUri"], resource_id, self.PROPERTY_NAME)
+        if resource_dict is None:
+            return
+
+        remote_path = resource_dict[self.PROPERTY_NAME]
+        if is_ecr_url(remote_path):
+            self.uploader.delete_artifact(remote_path, resource_id, self.PROPERTY_NAME)
 
 class ResourceWithS3UrlDict(ResourceZip):
     """
@@ -290,7 +304,7 @@ class ResourceWithS3UrlDict(ResourceZip):
             return
         resource_path = resource_dict[self.PROPERTY_NAME]
         s3_bucket = resource_path[self.BUCKET_NAME_PROPERTY]
-        key = resource_path["Key"]
+        key = resource_path[self.OBJECT_KEY_PROPERTY]
 
         if not self.uploader.bucket_name:
             self.uploader.bucket_name = s3_bucket

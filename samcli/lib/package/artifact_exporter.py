@@ -249,13 +249,14 @@ class Template:
 
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
-
-            for exporter_class in self.resources_to_export:
-                if exporter_class.RESOURCE_TYPE != resource_type:
-                    continue
-                if resource_dict.get("PackageType", ZIP) != exporter_class.ARTIFACT_TYPE:
-                    continue
-                # Delete code resources
-                exporter = exporter_class(self.uploaders, None)
-                exporter.delete(resource_id, resource_dict)
+            resource_deletion_policy = resource.get("DeletionPolicy", None)
+            if resource_deletion_policy != "Retain":
+                for exporter_class in self.resources_to_export:
+                    if exporter_class.RESOURCE_TYPE != resource_type:
+                        continue
+                    if resource_dict.get("PackageType", ZIP) != exporter_class.ARTIFACT_TYPE:
+                        continue
+                    # Delete code resources
+                    exporter = exporter_class(self.uploaders, None)
+                    exporter.delete(resource_id, resource_dict)
         return self.template_dict
