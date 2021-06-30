@@ -111,7 +111,7 @@ def _load_pipeline_bootstrap_context() -> Dict:
     environment_names_message = (
         "Here are the environment names detected "
         + f"in {os.path.join(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)}:\n"
-        + "\n".join([f"- {env_name}" for env_name in env_names])
+        + "\n".join([f"\t- {env_name}" for env_name in env_names])
     )
     context[str(["environment_names_message"])] = environment_names_message
 
