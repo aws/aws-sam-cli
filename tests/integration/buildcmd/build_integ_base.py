@@ -74,12 +74,12 @@ class BuildIntegBase(TestCase):
         build_image=None,
     ):
 
-        command_list = [self.cmd, "build --debug"]
+        command_list = [self.cmd, "build"]
 
         if function_identifier:
             command_list += [function_identifier]
 
-        command_list += ["-t", self.template_path]
+        command_list += ["-t", self.template_path, "--debug"]
 
         if parameter_overrides:
             command_list += ["--parameter-overrides", self._make_parameter_override_arg(parameter_overrides)]
