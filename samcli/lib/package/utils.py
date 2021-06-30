@@ -25,7 +25,7 @@ LOG = logging.getLogger(__name__)
 
 # https://docs.aws.amazon.com/AmazonS3/latest/dev-retired/UsingBucket.html
 _REGION_PATTERN = r"[a-zA-Z0-9-]+"
-_DOT_AMAZONAWS_COM_PATTERN = r"\.amazonaws\.com"
+_DOT_AMAZONAWS_COM_PATTERN = r"\.amazonaws\.com(\.cn)?"
 _S3_URL_REGEXS = [
     # Path-Style (and ipv6 dualstack)
     # - https://s3.Region.amazonaws.com/bucket-name/key name
