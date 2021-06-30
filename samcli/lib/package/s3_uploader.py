@@ -145,7 +145,7 @@ class S3Uploader:
 
         return self.upload(file_name, remote_path)
 
-    def delete_artifact(self, remote_path: str, is_key=False):
+    def delete_artifact(self, remote_path: str, is_key: Optional[bool] = False):
         """
         Deletes a given file from S3
         :param remote_path: Path to the file that will be deleted
@@ -161,7 +161,7 @@ class S3Uploader:
                 key = "{0}/{1}".format(self.prefix, remote_path)
 
             # Deleting Specific file with key
-            click.echo("- deleting S3 file " + key)
+            click.echo(f"- deleting S3 file {key}")
             resp = self.s3.delete_object(Bucket=self.bucket_name, Key=key)
             LOG.debug("S3 method delete_object is called and returned: %s", resp["ResponseMetadata"])
             return resp["ResponseMetadata"]

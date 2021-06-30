@@ -1,7 +1,7 @@
 from unittest.mock import patch, MagicMock, ANY, call
 from unittest import TestCase
 
-from samcli.commands.delete.exceptions import DeleteFailedError
+from samcli.commands.delete.exceptions import DeleteFailedError, FetchTemplateFailedError
 from botocore.exceptions import ClientError, BotoCoreError
 from samcli.lib.delete.cf_utils import CfUtils
 
@@ -62,12 +62,12 @@ class TestCfUtils(TestCase):
                 operation_name="stack_status",
             )
         )
-        with self.assertRaises(DeleteFailedError):
+        with self.assertRaises(FetchTemplateFailedError):
             self.cf_utils.get_stack_template("test", "Original")
 
     def test_cf_utils_get_stack_template_exception_botocore(self):
         self.cf_utils._client.get_template = MagicMock(side_effect=BotoCoreError())
-        with self.assertRaises(DeleteFailedError):
+        with self.assertRaises(FetchTemplateFailedError):
             self.cf_utils.get_stack_template("test", "Original")
 
     def test_cf_utils_get_stack_template_exception(self):

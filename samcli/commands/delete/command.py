@@ -64,19 +64,21 @@ LOG = logging.getLogger(__name__)
 @print_cmdline_args
 def cli(
     ctx,
-    stack_name,
-    config_file,
-    config_env,
+    stack_name: str,
+    config_file: str,
+    config_env: str,
 ):
     """
     `sam delete` command entry point
     """
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
-    do_cli(stack_name, ctx.region, config_file, config_env, ctx.profile)  # pragma: no cover
+    do_cli(
+        stack_name=stack_name, region=ctx.region, config_file=config_file, config_env=config_env, profile=ctx.profile
+    )  # pragma: no cover
 
 
-def do_cli(stack_name, region, config_file, config_env, profile):
+def do_cli(stack_name: str, region: str, config_file: str, config_env: str, profile: str):
     """
     Implementation of the ``cli`` method
     """

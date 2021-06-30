@@ -5,7 +5,7 @@ Delete Cloudformation stacks and s3 files
 import logging
 
 from botocore.exceptions import ClientError, BotoCoreError
-from samcli.commands.delete.exceptions import DeleteFailedError
+from samcli.commands.delete.exceptions import DeleteFailedError, FetchTemplateFailedError
 
 LOG = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ class CfUtils:
     def __init__(self, cloudformation_client):
         self._client = cloudformation_client
 
-    def has_stack(self, stack_name):
+    def has_stack(self, stack_name: str):
         """
         Checks if a CloudFormation stack with given name exists
 
@@ -27,6 +27,10 @@ class CfUtils:
                 return False
 
             stack = resp["Stacks"][0]
+            # Note: Stacks with REVIEW_IN_PROGRESS can be deleted
+            # using delete_stack but get_template does not return
+            # the template_str for this stack restricting deletion of
+            # artifacts.
             return stack["StackStatus"] != "REVIEW_IN_PROGRESS"
 
         except ClientError as e:
@@ -51,7 +55,7 @@ class CfUtils:
             LOG.error("Unable to get stack details.", exc_info=e)
             raise e
 
-    def get_stack_template(self, stack_name, stage):
+    def get_stack_template(self, stack_name: str, stage: str):
         """
         Return the Cloudformation template of the given stack_name
 
@@ -62,23 +66,22 @@ class CfUtils:
         try:
             resp = self._client.get_template(StackName=stack_name, TemplateStage=stage)
             if not resp["TemplateBody"]:
-                return None
-
+                return ""
             return resp["TemplateBody"]
 
         except (ClientError, BotoCoreError) as e:
             # If there are credentials, environment errors,
             # catch that and throw a delete failed error.
 
-            LOG.error("Failed to delete stack : %s", str(e))
-            raise DeleteFailedError(stack_name=stack_name, msg=str(e)) from e
+            LOG.error("Failed to fetch template for the stack : %s", str(e))
+            raise FetchTemplateFailedError(stack_name=stack_name, msg=str(e)) from e
 
         except Exception as e:
             # We don't know anything about this exception. Don't handle
             LOG.error("Unable to get stack details.", exc_info=e)
             raise e
 
-    def delete_stack(self, stack_name):
+    def delete_stack(self, stack_name: str):
         """
         Delete the Cloudformation stack with the given stack_name
 
