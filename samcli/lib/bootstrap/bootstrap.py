@@ -7,7 +7,7 @@ import logging
 import boto3
 from samcli import __version__
 from samcli.cli.global_config import GlobalConfig
-from samcli.commands.exceptions import UserException
+from samcli.commands.exceptions import UserException, CredentialsError
 from samcli.lib.utils.managed_cloudformation_stack import StackOutput, manage_stack as manage_cloudformation_stack
 
 SAM_CLI_STACK_NAME = "aws-sam-cli-managed-default"
@@ -34,7 +34,9 @@ def get_current_account_id():
     """Returns account ID based on used AWS credentials."""
     sts_client = boto3.client("sts")
     caller_identity = sts_client.get_caller_identity()
-    return caller_identity.get("Account", None)
+    if "Account" not in caller_identity:
+        raise CredentialsError("Cannot identify account based on configured credentials.")
+    return caller_identity["Account"]
 
 
 def _get_stack_template():
