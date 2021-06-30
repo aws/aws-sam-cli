@@ -210,7 +210,7 @@ def do_cli(
                 "\nThe ARNs of created resources have been written to "
                 f"{os.path.join(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)}.\n"
                 f"It will be used next time you run `sam pipeline bootstrap` or "
-                f"`sam pipeline init` commands in this directory."
+                f"`sam pipeline init` in this directory."
             )
         )
 
