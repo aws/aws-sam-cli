@@ -4,6 +4,7 @@ Delete Cloudformation stacks and s3 files
 
 import logging
 
+from typing import Dict
 from botocore.exceptions import ClientError, BotoCoreError
 from samcli.commands.delete.exceptions import DeleteFailedError, FetchTemplateFailedError
 
@@ -14,7 +15,7 @@ class CfUtils:
     def __init__(self, cloudformation_client):
         self._client = cloudformation_client
 
-    def has_stack(self, stack_name: str):
+    def has_stack(self, stack_name: str) -> bool:
         """
         Checks if a CloudFormation stack with given name exists
 
@@ -31,7 +32,7 @@ class CfUtils:
             # using delete_stack but get_template does not return
             # the template_str for this stack restricting deletion of
             # artifacts.
-            return stack["StackStatus"] != "REVIEW_IN_PROGRESS"
+            return bool(stack["StackStatus"] != "REVIEW_IN_PROGRESS")
 
         except ClientError as e:
             # If a stack does not exist, describe_stacks will throw an
@@ -55,7 +56,7 @@ class CfUtils:
             LOG.error("Unable to get stack details.", exc_info=e)
             raise e
 
-    def get_stack_template(self, stack_name: str, stage: str):
+    def get_stack_template(self, stack_name: str, stage: str) -> Dict:
         """
         Return the Cloudformation template of the given stack_name
 
@@ -66,8 +67,8 @@ class CfUtils:
         try:
             resp = self._client.get_template(StackName=stack_name, TemplateStage=stage)
             if not resp["TemplateBody"]:
-                return ""
-            return resp["TemplateBody"]
+                return {}
+            return dict(resp)
 
         except (ClientError, BotoCoreError) as e:
             # If there are credentials, environment errors,
@@ -86,11 +87,9 @@ class CfUtils:
         Delete the Cloudformation stack with the given stack_name
 
         :param stack_name: Name or ID of the stack
-        :return: Status of deletion
         """
         try:
-            resp = self._client.delete_stack(StackName=stack_name)
-            return resp
+            self._client.delete_stack(StackName=stack_name)
 
         except (ClientError, BotoCoreError) as e:
             # If there are credentials, environment errors,

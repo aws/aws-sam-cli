@@ -36,7 +36,6 @@ LOG = logging.getLogger(__name__)
 )
 @click.option(
     "--config-file",
-    required=False,
     help=(
         "The path and file name of the configuration file containing default parameter values to use. "
         "Its default value is 'samconfig.toml' in project directory. For more information about configuration files, "
@@ -45,10 +44,10 @@ LOG = logging.getLogger(__name__)
     ),
     type=click.STRING,
     default="samconfig.toml",
+    show_default=True,
 )
 @click.option(
     "--config-env",
-    required=False,
     help=(
         "The environment name specifying the default parameter values in the configuration file to use. "
         "Its default value is 'default'. For more information about configuration files, see: "
@@ -56,6 +55,7 @@ LOG = logging.getLogger(__name__)
     ),
     type=click.STRING,
     default="default",
+    show_default=True,
 )
 @aws_creds_options
 @common_options

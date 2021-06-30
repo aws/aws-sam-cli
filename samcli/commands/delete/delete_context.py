@@ -70,9 +70,10 @@ class DeleteContext:
         """
         Delete method calls for Cloudformation stacks and S3 and ECR artifacts
         """
-        template_str = self.cf_utils.get_stack_template(self.stack_name, TEMPLATE_STAGE)
+        template = self.cf_utils.get_stack_template(self.stack_name, TEMPLATE_STAGE)
+        template_str = template.get("TemplateBody", None)
 
-        if self.s3_bucket and self.s3_prefix:
+        if self.s3_bucket and self.s3_prefix and template_str:
             self.delete_artifacts_folder = confirm(
                 click.style(
                     "\tAre you sure you want to delete the folder"
@@ -91,11 +92,10 @@ class DeleteContext:
                     default=False,
                 )
 
-        click.echo("\n")
         # Delete the primary stack
         self.cf_utils.delete_stack(stack_name=self.stack_name)
 
-        click.echo(f"- deleting Cloudformation stack {self.stack_name}")
+        click.echo(f"\n\t- Deleting Cloudformation stack {self.stack_name}")
 
         # Delete the CF template file in S3
         if self.delete_cf_template_file:
@@ -134,8 +134,6 @@ class DeleteContext:
 
             if is_deployed:
                 self.delete()
-
-                click.echo("\n")
-                click.echo("delete complete")
+                click.echo("\nDeleted successfully")
             else:
                 click.echo(f"Error: The input stack {self.stack_name} does not exist on Cloudformation")
