@@ -40,8 +40,6 @@ class DeleteContext:
                 click.style("\tEnter stack name you want to delete:", bold=True), type=click.STRING
             )
 
-        if not self.region:
-            self.region = prompt(click.style("\tEnter region you want to delete from:", bold=True), type=click.STRING)
         return self
 
     def __exit__(self, *args):
