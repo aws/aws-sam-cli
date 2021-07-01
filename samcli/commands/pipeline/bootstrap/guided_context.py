@@ -5,7 +5,7 @@ with the required infrastructure
 from typing import Optional
 
 import click
-from samcli.lib.bootstrap import bootstrap
+from samcli.lib.bootstrap.bootstrap import get_current_account_id
 
 from samcli.lib.utils.defaults import get_default_aws_region
 
@@ -39,7 +39,7 @@ class GuidedContext:
         for the pipeline to work. Users can provide all, none or some resources' ARNs and leave the remaining empty
         and it will be created by the bootstrap command
         """
-        account_id = bootstrap.get_current_account_id()
+        account_id = get_current_account_id()
         if not self.environment_name:
             self.environment_name = click.prompt(
                 f"Environment name (a descriptive name for the environment which will be deployed"

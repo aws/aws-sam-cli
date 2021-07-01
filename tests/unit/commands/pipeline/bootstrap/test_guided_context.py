@@ -15,8 +15,10 @@ ANY_REGION = "us-east-2"
 
 
 class TestGuidedContext(TestCase):
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.get_current_account_id")
     @patch("samcli.commands.pipeline.bootstrap.guided_context.click")
-    def test_guided_context_will_not_prompt_for_fields_that_are_already_provided(self, click_mock):
+    def test_guided_context_will_not_prompt_for_fields_that_are_already_provided(self, click_mock, account_id_mock):
+        account_id_mock.return_value = "1234567890"
         gc: GuidedContext = GuidedContext(
             environment_name=ANY_ENVIRONMENT_NAME,
             pipeline_user_arn=ANY_PIPELINE_USER_ARN,
@@ -31,8 +33,10 @@ class TestGuidedContext(TestCase):
         gc.run()
         click_mock.prompt.assert_not_called()
 
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.get_current_account_id")
     @patch("samcli.commands.pipeline.bootstrap.guided_context.click")
-    def test_guided_context_will_prompt_for_fields_that_are_not_provided(self, click_mock):
+    def test_guided_context_will_prompt_for_fields_that_are_not_provided(self, click_mock, account_id_mock):
+        account_id_mock.return_value = "1234567890"
         gc: GuidedContext = GuidedContext(
             image_repository_arn=ANY_IMAGE_REPOSITORY_ARN  # Exclude ECR repo, it has its own detailed test below
         )
@@ -45,10 +49,12 @@ class TestGuidedContext(TestCase):
         self.assertTrue(self.did_prompt_text_like("AWS region", click_mock.prompt))
         self.assertTrue(self.did_prompt_text_like("Pipeline IP address range", click_mock.prompt))
 
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.get_current_account_id")
     @patch("samcli.commands.pipeline.bootstrap.guided_context.click")
     def test_guided_context_will_not_prompt_for_not_provided_image_repository_if_no_image_repository_is_required(
-        self, click_mock
+        self, click_mock, account_id_mock
     ):
+        account_id_mock.return_value = "1234567890"
         # ECR Image Repository choices:
         # 1 - No, My SAM Template won't include lambda functions of Image package-type
         # 2 - Yes, I need a help creating one
