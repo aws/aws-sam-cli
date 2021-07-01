@@ -8,6 +8,7 @@ import boto3
 from samcli import __version__
 from samcli.cli.global_config import GlobalConfig
 from samcli.commands.exceptions import UserException, CredentialsError
+from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
 from samcli.lib.utils.managed_cloudformation_stack import StackOutput, manage_stack as manage_cloudformation_stack
 
 SAM_CLI_STACK_NAME = "aws-sam-cli-managed-default"
