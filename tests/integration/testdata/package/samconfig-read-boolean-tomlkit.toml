@@ -1,0 +1,6 @@
+version = 0.1
+
+[default.global.parameters]
+
+[default.deploy.parameters]
+confirm_changeset = false
