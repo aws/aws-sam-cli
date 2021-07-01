@@ -12,6 +12,7 @@ from samcli.cli.main import pass_context, common_options, aws_creds_options, pri
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.pipeline.bootstrap.environment import Environment
 from samcli.lib.telemetry.metric import track_command
+from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.version_checker import check_newer_version
 from .guided_context import GuidedContext
 
@@ -202,6 +203,15 @@ def do_cli(
 
         environment.save_config_safe(
             config_dir=PIPELINE_CONFIG_DIR, filename=PIPELINE_CONFIG_FILENAME, cmd_names=_get_command_names()
+        )
+
+        click.secho(
+            Colored().green(
+                "\nThe ARNs of created resources have been written to "
+                f"{os.path.join(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)}.\n"
+                f"It will be used next time you run `sam pipeline bootstrap` or "
+                f"`sam pipeline init` in this directory."
+            )
         )
 
 
