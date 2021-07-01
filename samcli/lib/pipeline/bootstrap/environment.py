@@ -11,8 +11,8 @@ import click
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.managed_cloudformation_stack import manage_stack, StackOutput
-from .resource import Resource, IAMUser, ECRImageRepository
-from ...utils.botoconfig import get_boto_config_with_user_agent
+from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
+from samcli.lib.pipeline.bootstrap.resource import Resource, IAMUser, ECRImageRepository
 
 CFN_TEMPLATE_PATH = str(pathlib.Path(os.path.dirname(__file__)))
 STACK_NAME_PREFIX = "aws-sam-cli-managed"
