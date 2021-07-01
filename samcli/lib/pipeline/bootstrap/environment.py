@@ -178,10 +178,11 @@ class Environment:
         pipeline_user_secret_sm_id = output.get("PipelineUserSecretKeys")
 
         self.pipeline_user.arn = output.get("PipelineUser")
-        (
-            self.pipeline_user.access_key_id,
-            self.pipeline_user.secret_access_key,
-        ) = Environment._get_pipeline_user_secret_pair(pipeline_user_secret_sm_id)
+        if pipeline_user_secret_sm_id:
+            (
+                self.pipeline_user.access_key_id,
+                self.pipeline_user.secret_access_key,
+            ) = Environment._get_pipeline_user_secret_pair(pipeline_user_secret_sm_id)
         self.pipeline_execution_role.arn = output.get("PipelineExecutionRole")
         self.cloudformation_execution_role.arn = output.get("CloudFormationExecutionRole")
         self.artifacts_bucket.arn = output.get("ArtifactsBucket")
