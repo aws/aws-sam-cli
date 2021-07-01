@@ -67,7 +67,7 @@ Resources:
       Status: Active
       UserName: !Ref PipelineUser
 
-  PipelineUserSecretKeys:
+  PipelineUserSecretKey:
     Type: AWS::SecretsManager::Secret
     Condition: MissingPipelineUser
     Properties:
@@ -334,10 +334,10 @@ Outputs:
         - !GetAtt PipelineUser.Arn
         - !Ref PipelineUserArn
 
-  PipelineUserSecretKeys:
+  PipelineUserSecretKey:
     Description: AWS Access Key and Secret Key of pipeline user.
     Condition: MissingPipelineUser
-    Value: !Ref PipelineUserSecretKeys
+    Value: !Ref PipelineUserSecretKey
 
   CloudFormationExecutionRole:
     Description: ARN of the IAM Role(CloudFormationExecutionRole)

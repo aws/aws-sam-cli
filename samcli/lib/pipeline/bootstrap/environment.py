@@ -175,7 +175,7 @@ class Environment:
             },
         )
 
-        pipeline_user_secret_sm_id = output.get("PipelineUserSecretKeys")
+        pipeline_user_secret_sm_id = output.get("PipelineUserSecretKey")
 
         self.pipeline_user.arn = output.get("PipelineUser")
         if pipeline_user_secret_sm_id:
