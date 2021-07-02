@@ -9,7 +9,7 @@ from samcli.lib.utils.packagetype import IMAGE
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
-from samcli.commands.deploy.utils import sanitize_parameter_overrides
+from samcli.commands._utils.parameters import sanitize_parameter_overrides
 from samcli.cli.context import Context
 
 

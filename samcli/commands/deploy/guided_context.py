@@ -22,7 +22,7 @@ from samcli.commands.deploy.code_signer_utils import (
 )
 from samcli.commands.deploy.exceptions import GuidedDeployFailedError
 from samcli.commands.deploy.guided_config import GuidedConfig
-from samcli.commands.deploy.utils import sanitize_parameter_overrides
+from samcli.commands._utils.parameters import sanitize_parameter_overrides
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.config.samconfig import DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable

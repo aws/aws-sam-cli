@@ -24,8 +24,8 @@ import click
 
 from samcli.commands.deploy import exceptions as deploy_exceptions
 from samcli.commands.deploy.auth_utils import auth_per_resource
+from samcli.commands._utils.parameters import sanitize_parameter_overrides
 from samcli.commands.deploy.utils import (
-    sanitize_parameter_overrides,
     print_deploy_args,
     hide_noecho_parameter_overrides,
 )
