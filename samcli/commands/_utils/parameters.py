@@ -1,4 +1,3 @@
-import copy
 from typing import Dict, Union, Optional
 
 def sanitize_parameter_overrides(parameter_overrides: Dict[str, Union[Dict[str, str], str]]) -> Dict[str, Optional[str]]:
