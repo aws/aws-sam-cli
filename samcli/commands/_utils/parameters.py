@@ -1,6 +1,13 @@
+"""
+Template parameters utilities shared by various commands
+"""
+
 from typing import Dict, Union, Optional
 
-def sanitize_parameter_overrides(parameter_overrides: Dict[str, Union[Dict[str, str], str]]) -> Dict[str, Optional[str]]:
+
+def sanitize_parameter_overrides(
+    parameter_overrides: Dict[str, Union[Dict[str, str], str]]
+) -> Dict[str, Optional[str]]:
     """
     Get sanitized parameter override values based on if the workflow went via a guided deploy to set the
     parameter overrides for deployment. If a guided deploy was followed the parameter overrides consists
