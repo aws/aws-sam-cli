@@ -5,8 +5,12 @@ This is to be run last after all CLI options have been processed.
 import click
 
 from samcli.commands._utils.option_validator import Validator
-from samcli.commands._utils.template import get_template_function_resource_ids, get_template_artifacts_format
 from samcli.lib.utils.packagetype import IMAGE
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+from samcli.lib.providers.sam_function_provider import SamFunctionProvider
+from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
+from samcli.commands.deploy.utils import sanitize_parameter_overrides
+from samcli.cli.context import Context
 
 
 def image_repository_validation(func):
@@ -22,22 +26,34 @@ def image_repository_validation(func):
 
     def wrapped(*args, **kwargs):
         ctx = click.get_current_context()
+        cli_ctx = Context.get_current_context()
+
         guided = ctx.params.get("guided", False) or ctx.params.get("g", False)
         image_repository = ctx.params.get("image_repository", False)
         image_repositories = ctx.params.get("image_repositories", False) or {}
         template_file = (
             ctx.params.get("t", False) or ctx.params.get("template_file", False) or ctx.params.get("template", False)
         )
+        parameter_overrides = ctx.params.get("parameter_overrides", {})
+
+        stacks, _ = SamLocalStackProvider.get_stacks(
+            template_file,
+            parameter_overrides=sanitize_parameter_overrides(parameter_overrides),
+            global_parameter_overrides={IntrinsicsSymbolTable.AWS_REGION: cli_ctx.region}
+            if cli_ctx is not None
+            else {},
+        )
 
         # Check if `--image-repository` or `--image-repositories` are required by
         # looking for resources that have an IMAGE based packagetype.
 
-        required = any(
-            [
-                _template_artifact == IMAGE
-                for _template_artifact in get_template_artifacts_format(template_file=template_file)
-            ]
-        )
+        packageable_function_ids = [
+            resource_id
+            for resource_id, function in SamFunctionProvider(
+                stacks, ignore_code_extraction_warnings=True
+            ).functions.items()
+            if function.packagetype == IMAGE
+        ]
 
         validators = [
             Validator(
@@ -50,7 +66,9 @@ def image_repository_validation(func):
                 ),
             ),
             Validator(
-                validation_function=lambda: not guided and not (image_repository or image_repositories) and required,
+                validation_function=lambda: not guided
+                and not (image_repository or image_repositories)
+                and packageable_function_ids,
                 exception=click.BadOptionUsage(
                     option_name="--image-repositories",
                     ctx=ctx,
@@ -59,10 +77,7 @@ def image_repository_validation(func):
             ),
             Validator(
                 validation_function=lambda: not guided
-                and (
-                    set(image_repositories.keys()) != set(get_template_function_resource_ids(template_file, IMAGE))
-                    and image_repositories
-                ),
+                and (set(image_repositories.keys()) != set(packageable_function_ids) and image_repositories),
                 exception=click.BadOptionUsage(
                     option_name="--image-repositories",
                     ctx=ctx,

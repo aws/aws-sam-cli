@@ -12,11 +12,7 @@ from click import prompt
 from click.types import FuncParamType
 
 from samcli.commands._utils.options import _space_separated_list_func_type
-from samcli.commands._utils.template import (
-    get_template_parameters,
-    get_template_artifacts_format,
-    get_template_function_resource_ids,
-)
+from samcli.commands._utils.template import get_template_parameters
 from samcli.commands.deploy.auth_utils import auth_per_resource
 from samcli.commands.deploy.code_signer_utils import (
     signer_config_per_function,
@@ -305,33 +301,36 @@ class GuidedContext:
             A dictionary contains image function logical ID as key, image repository as value.
         """
         image_repositories = {}
-        artifacts_format = get_template_artifacts_format(template_file=self.template_file)
-        if IMAGE in artifacts_format:
-            self.function_provider = SamFunctionProvider(stacks, ignore_code_extraction_warnings=True)
-            function_resources = get_template_function_resource_ids(template_file=self.template_file, artifact=IMAGE)
-            for resource_id in function_resources:
-                image_repositories[resource_id] = prompt(
-                    f"\t{self.start_bold}Image Repository for {resource_id}{self.end_bold}",
-                    default=self.image_repositories.get(resource_id, "")
-                    if isinstance(self.image_repositories, dict)
-                    else "" or self.image_repository,
+
+        self.function_provider = SamFunctionProvider(stacks, ignore_code_extraction_warnings=True)
+
+        for resource_id in (
+            resource_id
+            for resource_id, function in self.function_provider.functions.items()
+            if function.packagetype == IMAGE
+        ):
+            image_repositories[resource_id] = prompt(
+                f"\t{self.start_bold}Image Repository for {resource_id}{self.end_bold}",
+                default=self.image_repositories.get(resource_id, "")
+                if isinstance(self.image_repositories, dict)
+                else "" or self.image_repository,
+            )
+            if resource_id not in image_repositories or not is_ecr_url(image_repositories[resource_id]):
+                raise GuidedDeployFailedError(
+                    f"Invalid Image Repository ECR URI: {image_repositories.get(resource_id)}"
                 )
-                if resource_id not in image_repositories or not is_ecr_url(str(image_repositories[resource_id])):
-                    raise GuidedDeployFailedError(
-                        f"Invalid Image Repository ECR URI: {image_repositories.get(resource_id)}"
-                    )
-            for resource_id, function_prop in self.function_provider.functions.items():
-                if function_prop.packagetype == IMAGE:
-                    image = function_prop.imageuri
-                    try:
-                        tag = tag_translation(image)
-                    except NonLocalImageException:
-                        pass
-                    except NoImageFoundException as ex:
-                        raise GuidedDeployFailedError("No images found to deploy, try running sam build") from ex
-                    else:
-                        click.secho(f"\t  {image} to be pushed to {image_repositories.get(resource_id)}:{tag}")
-            click.secho(nl=True)
+        for resource_id, function_prop in self.function_provider.functions.items():
+            if function_prop.packagetype == IMAGE:
+                image = function_prop.imageuri
+                try:
+                    tag = tag_translation(image)
+                except NonLocalImageException:
+                    pass
+                except NoImageFoundException as ex:
+                    raise GuidedDeployFailedError("No images found to deploy, try running sam build") from ex
+                else:
+                    click.secho(f"\t  {image} to be pushed to {image_repositories.get(resource_id)}:{tag}")
+        click.secho(nl=True)
 
         return image_repositories
 

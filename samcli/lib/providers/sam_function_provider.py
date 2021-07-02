@@ -144,8 +144,10 @@ class SamFunctionProvider(SamBaseProvider):
                             SamFunctionProvider._warn_code_extraction(resource_type, name, code_property_key)
                         continue
 
-                    if resource_package_type == IMAGE and SamBaseProvider._is_ecr_uri(
-                        resource_properties.get(image_property_key)
+                    if (
+                        resource_package_type == IMAGE
+                        and ("DockerContext" not in (resource_metadata or {}))
+                        and SamBaseProvider._is_ecr_uri(resource_properties.get(image_property_key))
                     ):
                         # ImageUri can be an ECR uri, which is not supported
                         if not ignore_code_extraction_warnings:
