@@ -119,4 +119,6 @@ class CfUtils:
             status = resp["Status"]
             reason = resp["StatusReason"]
 
-            raise DeleteFailedError(stack_name=stack_name, msg="ex: {0} Status: {1}. Reason: {2}".format(ex, status, reason)) from ex
+            raise DeleteFailedError(
+                stack_name=stack_name, msg="ex: {0} Status: {1}. Reason: {2}".format(ex, status, reason)
+            ) from ex

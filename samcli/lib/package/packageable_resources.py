@@ -22,7 +22,7 @@ from samcli.lib.package.utils import (
     upload_local_image_artifacts,
     is_s3_protocol_url,
     is_path_value_valid,
-    is_ecr_url
+    is_ecr_url,
 )
 
 from samcli.commands._utils.resources import (
@@ -159,15 +159,17 @@ class ResourceZip(Resource):
         set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, uploaded_url)
 
     def delete(self, resource_id, resource_dict):
-
+        """
+        Delete the S3 artifact using S3 url referenced by PROPERTY_NAME
+        """
         if resource_dict is None:
             return
         resource_path = resource_dict[self.PROPERTY_NAME]
         parsed_s3_url = self.uploader.parse_s3_url(resource_path)
-        print(parsed_s3_url["Key"])
         if not self.uploader.bucket_name:
             self.uploader.bucket_name = parsed_s3_url["Bucket"]
         self.uploader.delete_artifact(parsed_s3_url["Key"], True)
+
 
 class ResourceImageDict(Resource):
     """
@@ -212,12 +214,17 @@ class ResourceImageDict(Resource):
         set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, {self.EXPORT_PROPERTY_CODE_KEY: uploaded_url})
 
     def delete(self, resource_id, resource_dict):
+        """
+        Delete the ECR artifact using ECR url in PROPERTY_NAME referenced by EXPORT_PROPERTY_CODE_KEY
+        """
         if resource_dict is None:
             return
 
         remote_path = resource_dict[self.PROPERTY_NAME][self.EXPORT_PROPERTY_CODE_KEY]
         if is_ecr_url(remote_path):
-            self.uploader.delete_artifact(remote_path, resource_id, self.PROPERTY_NAME)
+            self.uploader.delete_artifact(
+                image_uri=remote_path, resource_id=resource_id, property_name=self.PROPERTY_NAME
+            )
 
 
 class ResourceImage(Resource):
@@ -261,12 +268,18 @@ class ResourceImage(Resource):
         set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, uploaded_url)
 
     def delete(self, resource_id, resource_dict):
+        """
+        Delete the ECR artifact using ECR url referenced by property_name
+        """
         if resource_dict is None:
             return
 
         remote_path = resource_dict[self.PROPERTY_NAME]
         if is_ecr_url(remote_path):
-            self.uploader.delete_artifact(remote_path, resource_id, self.PROPERTY_NAME)
+            self.uploader.delete_artifact(
+                image_uri=remote_path, resource_id=resource_id, property_name=self.PROPERTY_NAME
+            )
+
 
 class ResourceWithS3UrlDict(ResourceZip):
     """
@@ -299,7 +312,10 @@ class ResourceWithS3UrlDict(ResourceZip):
         set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, parsed_url)
 
     def delete(self, resource_id, resource_dict):
-
+        """
+        Delete the S3 artifact using S3 url in the dict PROPERTY_NAME
+        using the bucket at BUCKET_NAME_PROPERTY and key at OBJECT_KEY_PROPERTY
+        """
         if resource_dict is None:
             return
         resource_path = resource_dict[self.PROPERTY_NAME]

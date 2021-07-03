@@ -5,6 +5,7 @@ from samcli.commands.delete.exceptions import DeleteFailedError
 from botocore.exceptions import ClientError, BotoCoreError, WaiterError
 from samcli.lib.delete.cf_utils import CfUtils
 
+
 class MockDeleteWaiter:
     def __init__(self, ex=None):
         self.ex = ex
@@ -13,6 +14,7 @@ class MockDeleteWaiter:
         if self.ex:
             raise self.ex
         return
+
 
 class TestCfUtils(TestCase):
     def setUp(self):
@@ -101,6 +103,7 @@ class TestCfUtils(TestCase):
                     reason="unit-test",
                     last_response={"Status": "Failed", "StatusReason": "It's a unit test"},
                 )
-            ))
+            )
+        )
         with self.assertRaises(DeleteFailedError):
             self.cf_utils.wait_for_delete("test")
