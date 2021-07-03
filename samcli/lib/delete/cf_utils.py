@@ -4,9 +4,11 @@ Delete Cloudformation stacks and s3 files
 
 import logging
 
+
 from typing import Dict
-from botocore.exceptions import ClientError, BotoCoreError
+from botocore.exceptions import ClientError, BotoCoreError, WaiterError
 from samcli.commands.delete.exceptions import DeleteFailedError, FetchTemplateFailedError
+
 
 LOG = logging.getLogger(__name__)
 
@@ -102,3 +104,26 @@ class CfUtils:
             # We don't know anything about this exception. Don't handle
             LOG.error("Failed to delete stack. ", exc_info=e)
             raise e
+
+    def wait_for_delete(self, stack_name):
+        """
+        Waits until the delete stack completes
+
+        :param stack_name:   Stack name
+        """
+
+        # Wait for Delete to Finish
+        waiter = self._client.get_waiter("stack_delete_complete")
+        # Poll every 5 seconds.
+        waiter_config = {"Delay": 5}
+        try:
+            waiter.wait(StackName=stack_name, WaiterConfig=waiter_config)
+        except WaiterError as ex:
+
+            resp = ex.last_response
+            status = resp["Status"]
+            reason = resp["StatusReason"]
+
+            raise DeleteFailedError(
+                stack_name=stack_name, msg="ex: {0} Status: {1}. Reason: {2}".format(ex, status, reason)
+            ) from ex

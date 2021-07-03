@@ -4,6 +4,8 @@ Delete a SAM stack
 
 import boto3
 
+
+import docker
 import click
 from click import confirm
 from click import prompt
@@ -13,10 +15,15 @@ from samcli.lib.delete.cf_utils import CfUtils
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.artifact_exporter import mktempfile, get_cf_template_name
 
+from samcli.yamlhelper import yaml_parse
+
+from samcli.lib.package.artifact_exporter import Template
+from samcli.lib.package.ecr_uploader import ECRUploader
+from samcli.lib.package.uploaders import Uploaders
+
 CONFIG_COMMAND = "deploy"
 CONFIG_SECTION = "parameters"
 TEMPLATE_STAGE = "Original"
-
 
 class DeleteContext:
     def __init__(self, stack_name: str, region: str, profile: str, config_file: str, config_env: str):
@@ -29,6 +36,7 @@ class DeleteContext:
         self.s3_prefix = None
         self.cf_utils = None
         self.s3_uploader = None
+        self.uploaders = None
         self.cf_template_file_name = None
         self.delete_artifacts_folder = None
         self.delete_cf_template_file = None
@@ -70,6 +78,7 @@ class DeleteContext:
         """
         template = self.cf_utils.get_stack_template(self.stack_name, TEMPLATE_STAGE)
         template_str = template.get("TemplateBody", None)
+        template_dict = yaml_parse(template_str)
 
         if self.s3_bucket and self.s3_prefix and template_str:
             self.delete_artifacts_folder = confirm(
@@ -92,9 +101,14 @@ class DeleteContext:
 
         # Delete the primary stack
         self.cf_utils.delete_stack(stack_name=self.stack_name)
-
+        self.cf_utils.wait_for_delete(self.stack_name)
+        
         click.echo(f"\n\t- Deleting Cloudformation stack {self.stack_name}")
-
+        
+        # Delete the artifacts
+        template = Template(None, None, self.uploaders, None)
+        template.delete(template_dict)
+              
         # Delete the CF template file in S3
         if self.delete_cf_template_file:
             self.s3_uploader.delete_artifact(remote_path=self.cf_template_file_name)
@@ -124,8 +138,14 @@ class DeleteContext:
             )
 
             s3_client = boto3.client("s3", region_name=self.region if self.region else None, config=boto_config)
+            ecr_client = boto3.client("ecr", region_name=self.region if self.region else None, config=boto_config)
 
             self.s3_uploader = S3Uploader(s3_client=s3_client, bucket_name=self.s3_bucket, prefix=self.s3_prefix)
+
+            docker_client = docker.from_env()
+            ecr_uploader = ECRUploader(docker_client, ecr_client, None, None)
+            
+            self.uploaders = Uploaders(self.s3_uploader, ecr_uploader)
             self.cf_utils = CfUtils(cloudformation_client)
 
             is_deployed = self.cf_utils.has_stack(stack_name=self.stack_name)

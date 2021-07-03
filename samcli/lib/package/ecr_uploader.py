@@ -5,12 +5,19 @@ import logging
 import base64
 import os
 
+import click
 import botocore
 import docker
 
 from docker.errors import BuildError, APIError
 
-from samcli.commands.package.exceptions import DockerPushFailedError, DockerLoginFailedError, ECRAuthorizationError
+from samcli.commands.package.exceptions import (
+    DockerPushFailedError,
+    DockerLoginFailedError,
+    ECRAuthorizationError,
+    ImageNotFoundError,
+    DeleteArtifactFailedError,
+)
 from samcli.lib.package.image_utils import tag_translation
 from samcli.lib.package.stream_cursor_utils import cursor_up, cursor_left, cursor_down, clear_line
 from samcli.lib.utils.osutils import stderr
@@ -82,6 +89,30 @@ class ECRUploader:
             raise DockerPushFailedError(msg=str(ex)) from ex
 
         return f"{repository}:{_tag}"
+
+    def delete_artifact(self, image_uri: str, resource_id: str, property_name: str):
+        try:
+            repo_image_tag = image_uri.split("/")[1].split(":")
+            repository = repo_image_tag[0]
+            image_tag = repo_image_tag[1]
+            resp = self.ecr_client.batch_delete_image(
+                repositoryName=repository,
+                imageIds=[
+                    {"imageTag": image_tag},
+                ],
+            )
+            if resp["failures"]:
+                # Image not found
+                image_details = resp["failures"][0]
+                if image_details["failureCode"] == "ImageNotFound":
+                    LOG.debug("ImageNotFound Exception : ")
+                    raise ImageNotFoundError(resource_id, property_name)
+
+            click.echo(f"- Deleting ECR image {image_tag} in repository {repository}")
+
+        except botocore.exceptions.ClientError as ex:
+            # Handle Client errors such as RepositoryNotFoundException or InvalidParameterException
+            raise DeleteArtifactFailedError(resource_id=resource_id, property_name=property_name, ex=ex) from ex
 
     # TODO: move this to a generic class to allow for streaming logs back from docker.
     def _stream_progress(self, logs):

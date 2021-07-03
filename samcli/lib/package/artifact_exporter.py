@@ -130,21 +130,22 @@ class Template:
         """
         Reads the template and makes it ready for export
         """
-        if not (is_local_folder(parent_dir) and os.path.isabs(parent_dir)):
-            raise ValueError("parent_dir parameter must be " "an absolute path to a folder {0}".format(parent_dir))
+        if template_path and parent_dir:
+            if not (is_local_folder(parent_dir) and os.path.isabs(parent_dir)):
+                raise ValueError("parent_dir parameter must be " "an absolute path to a folder {0}".format(parent_dir))
 
-        abs_template_path = make_abs_path(parent_dir, template_path)
-        template_dir = os.path.dirname(abs_template_path)
+            abs_template_path = make_abs_path(parent_dir, template_path)
+            template_dir = os.path.dirname(abs_template_path)
 
-        with open(abs_template_path, "r") as handle:
-            template_str = handle.read()
+            with open(abs_template_path, "r") as handle:
+                template_str = handle.read()
 
-        self.template_dict = yaml_parse(template_str)
-        self.template_dir = template_dir
+            self.template_dict = yaml_parse(template_str)
+            self.template_dir = template_dir
+            self.code_signer = code_signer
         self.resources_to_export = resources_to_export
         self.metadata_to_export = metadata_to_export
         self.uploaders = uploaders
-        self.code_signer = code_signer
 
     def _export_global_artifacts(self, template_dict: Dict) -> Dict:
         """
@@ -234,4 +235,28 @@ class Template:
                 exporter = exporter_class(self.uploaders, self.code_signer)
                 exporter.export(resource_id, resource_dict, self.template_dir)
 
+        return self.template_dict
+
+    def delete(self, template_dict):
+        self.template_dict = template_dict
+
+        if "Resources" not in self.template_dict:
+            return self.template_dict
+
+        self._apply_global_values()
+
+        for resource_id, resource in self.template_dict["Resources"].items():
+
+            resource_type = resource.get("Type", None)
+            resource_dict = resource.get("Properties", {})
+            resource_deletion_policy = resource.get("DeletionPolicy", None)
+            if resource_deletion_policy != "Retain":
+                for exporter_class in self.resources_to_export:
+                    if exporter_class.RESOURCE_TYPE != resource_type:
+                        continue
+                    if resource_dict.get("PackageType", ZIP) != exporter_class.ARTIFACT_TYPE:
+                        continue
+                    # Delete code resources
+                    exporter = exporter_class(self.uploaders, None)
+                    exporter.delete(resource_id, resource_dict)
         return self.template_dict
