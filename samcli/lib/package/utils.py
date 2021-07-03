@@ -19,7 +19,7 @@ from samcli.commands.package import exceptions
 from samcli.commands.package.exceptions import ImageNotFoundError
 from samcli.lib.package.ecr_utils import is_ecr_url
 from samcli.lib.package.s3_uploader import S3Uploader
-from samcli.lib.utils.hash import dir_checksum
+from samcli.lib.utils.hash import dir_checksum, file_checksum
 
 LOG = logging.getLogger(__name__)
 
@@ -284,3 +284,13 @@ def copy_to_temp_dir(filepath):
     dst = os.path.join(tmp_dir, os.path.basename(filepath))
     shutil.copyfile(filepath, dst)
     return tmp_dir
+
+
+def get_cf_template_name(temp_file, template_str, extension):
+    temp_file.write(template_str)
+    temp_file.flush()
+
+    filemd5 = file_checksum(temp_file.name)
+    remote_path = filemd5 + "." + extension
+
+    return remote_path

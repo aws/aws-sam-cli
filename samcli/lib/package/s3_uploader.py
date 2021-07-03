@@ -145,14 +145,17 @@ class S3Uploader:
 
         return self.upload(file_name, remote_path)
 
-    def delete_artifact(self, remote_path: str, is_key=False):
+    def delete_artifact(self, remote_path: str, is_key: bool = False) -> Dict:
         """
         Deletes a given file from S3
         :param remote_path: Path to the file that will be deleted
         :param is_key: If the given remote_path is the key or a file_name
+
+        :return: metadata dict of the deleted object
         """
         try:
             if not self.bucket_name:
+                LOG.error("Bucket not specified")
                 raise BucketNotSpecifiedError()
 
             key = remote_path
@@ -160,13 +163,15 @@ class S3Uploader:
                 key = "{0}/{1}".format(self.prefix, remote_path)
 
             # Deleting Specific file with key
-            click.echo("- deleting S3 file " + key)
+            click.echo(f"\t- Deleting S3 file {key}")
             resp = self.s3.delete_object(Bucket=self.bucket_name, Key=key)
-            return resp["ResponseMetadata"]
+            LOG.debug("S3 method delete_object is called and returned: %s", resp["ResponseMetadata"])
+            return dict(resp["ResponseMetadata"])
 
         except botocore.exceptions.ClientError as ex:
             error_code = ex.response["Error"]["Code"]
             if error_code == "NoSuchBucket":
+                LOG.error("Provided bucket %s does not exist ", self.bucket_name)
                 raise NoSuchBucketError(bucket_name=self.bucket_name) from ex
             raise ex
 
@@ -175,6 +180,7 @@ class S3Uploader:
         Deletes all the files from the prefix in S3
         """
         if not self.bucket_name:
+            LOG.error("Bucket not specified")
             raise BucketNotSpecifiedError()
         if self.prefix:
             prefix_files = self.s3.list_objects_v2(Bucket=self.bucket_name, Prefix=self.prefix)
