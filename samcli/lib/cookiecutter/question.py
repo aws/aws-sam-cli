@@ -191,7 +191,7 @@ class Question:
 
     def _resolve_text(self, context: Optional[Dict] = None) -> str:
         resolved_text = self._resolve_value_from_expression(self._text, context)
-        if not resolved_text:
+        if resolved_text is None:
             raise ValueError(f"Cannot resolve value from expression: {self._text}")
         return str(resolved_text)
 
