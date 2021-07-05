@@ -59,8 +59,10 @@ class DeleteContext:
             if self.stack_name == config_options["stack_name"]:
                 if not self.region:
                     self.region = config_options.get("region", None)
+                    click.get_current_context().region = self.region
                 if not self.profile:
                     self.profile = config_options.get("profile", None)
+                    click.get_current_context().profile = self.profile
                 self.s3_bucket = config_options.get("s3_bucket", None)
                 self.s3_prefix = config_options.get("s3_prefix", None)
 
