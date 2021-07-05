@@ -56,6 +56,13 @@ class DeleteContext:
         if config_options:
             if not self.stack_name:
                 self.stack_name = config_options.get("stack_name", None)
+
+            if not self.stack_name:
+                self.stack_name = prompt(
+                    click.style("\tEnter stack name you want to delete:", bold=True), type=click.STRING
+                )
+            # If the stack_name is same as the one present in samconfig file,
+            # get the information about parameters if not specified by customer.
             if self.stack_name == config_options["stack_name"]:
                 if not self.region:
                     self.region = config_options.get("region", None)
