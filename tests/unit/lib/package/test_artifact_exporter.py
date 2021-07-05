@@ -1377,3 +1377,38 @@ class TestArtifactExporter(unittest.TestCase):
             Timeout: 20
             Runtime: nodejs4.3
         """
+
+    def test_template_delete(self):
+        template_str = self.example_yaml_template()
+
+        resource_type1_class = Mock()
+        resource_type1_class.RESOURCE_TYPE = "resource_type1"
+        resource_type1_class.ARTIFACT_TYPE = ZIP
+        resource_type1_class.EXPORT_DESTINATION = Destination.S3
+        resource_type1_instance = Mock()
+        resource_type1_class.return_value = resource_type1_instance
+        resource_type2_class = Mock()
+        resource_type2_class.RESOURCE_TYPE = "resource_type2"
+        resource_type2_class.ARTIFACT_TYPE = ZIP
+        resource_type2_class.EXPORT_DESTINATION = Destination.S3
+        resource_type2_instance = Mock()
+        resource_type2_class.return_value = resource_type2_instance
+
+        resources_to_export = [resource_type1_class, resource_type2_class]
+
+        properties = {"foo": "bar"}
+        template_dict = {
+            "Resources": {
+                "Resource1": {"Type": "resource_type1", "Properties": properties},
+                "Resource2": {"Type": "resource_type2", "Properties": properties},
+                "Resource3": {"Type": "some-other-type", "Properties": properties},
+            }
+        }
+
+        template_exporter = Template(None, None, self.uploaders_mock, None, resources_to_export)
+        template_exporter.delete(template_dict)
+
+        resource_type1_class.assert_called_once_with(self.uploaders_mock, None)
+        resource_type1_instance.delete.assert_called_once_with("Resource1", mock.ANY)
+        resource_type2_class.assert_called_once_with(self.uploaders_mock, None)
+        resource_type2_instance.delete.assert_called_once_with("Resource2", mock.ANY)

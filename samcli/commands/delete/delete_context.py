@@ -90,6 +90,7 @@ class DeleteContext:
         s3_client = boto3.client("s3", region_name=self.region if self.region else None, config=boto_config)
         ecr_client = boto3.client("ecr", region_name=self.region if self.region else None, config=boto_config)
 
+        self.region = s3_client._client_config.region_name if s3_client else self.region  # pylint: disable=W0212
         self.s3_uploader = S3Uploader(s3_client=s3_client, bucket_name=self.s3_bucket, prefix=self.s3_prefix)
 
         docker_client = docker.from_env()

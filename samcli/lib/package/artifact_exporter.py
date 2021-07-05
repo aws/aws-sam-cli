@@ -262,4 +262,3 @@ class Template:
                     # Delete code resources
                     exporter = exporter_class(self.uploaders, None)
                     exporter.delete(resource_id, resource_dict)
-
