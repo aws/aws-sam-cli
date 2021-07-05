@@ -25,18 +25,21 @@ CONFIG_COMMAND = "deploy"
 CONFIG_SECTION = "parameters"
 TEMPLATE_STAGE = "Original"
 
+
 class DeleteContext:
-    def __init__(self, stack_name: str, region: str, profile: str, config_file: str, config_env: str):
+    def __init__(self, stack_name: str, region: str, profile: str, config_file: str, config_env: str, force: bool):
         self.stack_name = stack_name
         self.region = region
         self.profile = profile
         self.config_file = config_file
         self.config_env = config_env
+        self.force = force
         self.s3_bucket = None
         self.s3_prefix = None
         self.cf_utils = None
         self.s3_uploader = None
         self.uploaders = None
+        self.template = None
         self.cf_template_file_name = None
         self.delete_artifacts_folder = None
         self.delete_cf_template_file = None
@@ -48,6 +51,7 @@ class DeleteContext:
                 click.style("\tEnter stack name you want to delete:", bold=True), type=click.STRING
             )
 
+        self.init_clients()
         return self
 
     def __exit__(self, *args):
@@ -72,43 +76,85 @@ class DeleteContext:
                 self.s3_bucket = config_options.get("s3_bucket", None)
                 self.s3_prefix = config_options.get("s3_prefix", None)
 
-    def delete(self):
+    def init_clients(self):
         """
-        Delete method calls for Cloudformation stacks and S3 and ECR artifacts
+        Initialize all the clients being used by sam delete.
         """
-        template = self.cf_utils.get_stack_template(self.stack_name, TEMPLATE_STAGE)
-        template_str = template.get("TemplateBody", None)
-        template_dict = yaml_parse(template_str)
+        boto_config = get_boto_config_with_user_agent()
 
-        if self.s3_bucket and self.s3_prefix and template_str:
-            self.delete_artifacts_folder = confirm(
-                click.style(
-                    "\tAre you sure you want to delete the folder"
-                    + f" {self.s3_prefix} in S3 which contains the artifacts?",
-                    bold=True,
-                ),
-                default=False,
-            )
+        # Define cf_client based on the region as different regions can have same stack-names
+        cloudformation_client = boto3.client(
+            "cloudformation", region_name=self.region if self.region else None, config=boto_config
+        )
+
+        s3_client = boto3.client("s3", region_name=self.region if self.region else None, config=boto_config)
+        ecr_client = boto3.client("ecr", region_name=self.region if self.region else None, config=boto_config)
+
+        self.s3_uploader = S3Uploader(s3_client=s3_client, bucket_name=self.s3_bucket, prefix=self.s3_prefix)
+
+        docker_client = docker.from_env()
+        ecr_uploader = ECRUploader(docker_client, ecr_client, None, None)
+
+        self.uploaders = Uploaders(self.s3_uploader, ecr_uploader)
+        self.cf_utils = CfUtils(cloudformation_client)
+        self.template = Template(None, None, self.uploaders, None)
+
+    def guided_prompts(self):
+        """
+        Guided prompts asking customer to delete artifacts
+        """
+        # Note: s3_bucket and s3_prefix information is only
+        # available if a local toml file is present or if
+        # this information is obtained from the template resources and so if this
+        # information is not found, warn the customer that S3 artifacts
+        # will need to be manually deleted.
+
+        if not self.force and self.s3_bucket:
+            if self.s3_prefix:
+                self.delete_artifacts_folder = confirm(
+                    click.style(
+                        "\tAre you sure you want to delete the folder"
+                        + f" {self.s3_prefix} in S3 which contains the artifacts?",
+                        bold=True,
+                    ),
+                    default=False,
+                )
             if not self.delete_artifacts_folder:
-                with mktempfile() as temp_file:
-                    self.cf_template_file_name = get_cf_template_name(temp_file, template_str, "template")
                 self.delete_cf_template_file = confirm(
                     click.style(
                         "\tDo you want to delete the template file" + f" {self.cf_template_file_name} in S3?", bold=True
                     ),
                     default=False,
                 )
+        elif self.s3_bucket:
+            if self.s3_prefix:
+                self.delete_artifacts_folder = True
+            else:
+                self.delete_cf_template_file = True
+
+    def delete(self):
+        """
+        Delete method calls for Cloudformation stacks and S3 and ECR artifacts
+        """
+        # Fetch the template using the stack-name
+        template = self.cf_utils.get_stack_template(self.stack_name, TEMPLATE_STAGE)
+        template_str = template.get("TemplateBody", None)
+        template_dict = yaml_parse(template_str)
+
+        # Get the cloudformation template name using template_str
+        with mktempfile() as temp_file:
+            self.cf_template_file_name = get_cf_template_name(temp_file, template_str, "template")
+
+        self.guided_prompts()
 
         # Delete the primary stack
+        click.echo(f"\n\t- Deleting Cloudformation stack {self.stack_name}")
         self.cf_utils.delete_stack(stack_name=self.stack_name)
         self.cf_utils.wait_for_delete(self.stack_name)
-        
-        click.echo(f"\n\t- Deleting Cloudformation stack {self.stack_name}")
-        
+
         # Delete the artifacts
-        template = Template(None, None, self.uploaders, None)
-        template.delete(template_dict)
-              
+        self.template.delete(template_dict)
+
         # Delete the CF template file in S3
         if self.delete_cf_template_file:
             self.s3_uploader.delete_artifact(remote_path=self.cf_template_file_name)
@@ -117,39 +163,30 @@ class DeleteContext:
         elif self.delete_artifacts_folder:
             self.s3_uploader.delete_prefix_artifacts()
 
+        else:
+            click.secho(
+                "\nWarning: s3_bucket and s3_prefix information cannot be obtained,"
+                " delete the files manually if required",
+                fg="yellow",
+            )
+
     def run(self):
         """
         Delete the stack based on the argument provided by customers and samconfig.toml.
         """
-        delete_stack = confirm(
-            click.style(
-                f"\tAre you sure you want to delete the stack {self.stack_name}" + f" in the region {self.region} ?",
-                bold=True,
-            ),
-            default=False,
-        )
-        # Fetch the template using the stack-name
-        if delete_stack and self.region:
-            boto_config = get_boto_config_with_user_agent()
-
-            # Define cf_client based on the region as different regions can have same stack-names
-            cloudformation_client = boto3.client(
-                "cloudformation", region_name=self.region if self.region else None, config=boto_config
+        if not self.force:
+            delete_stack = confirm(
+                click.style(
+                    f"\tAre you sure you want to delete the stack {self.stack_name}"
+                    + f" in the region {self.region} ?",
+                    bold=True,
+                ),
+                default=False,
             )
 
-            s3_client = boto3.client("s3", region_name=self.region if self.region else None, config=boto_config)
-            ecr_client = boto3.client("ecr", region_name=self.region if self.region else None, config=boto_config)
-
-            self.s3_uploader = S3Uploader(s3_client=s3_client, bucket_name=self.s3_bucket, prefix=self.s3_prefix)
-
-            docker_client = docker.from_env()
-            ecr_uploader = ECRUploader(docker_client, ecr_client, None, None)
-            
-            self.uploaders = Uploaders(self.s3_uploader, ecr_uploader)
-            self.cf_utils = CfUtils(cloudformation_client)
-
+        if self.force or delete_stack:
             is_deployed = self.cf_utils.has_stack(stack_name=self.stack_name)
-
+            # Check if the provided stack-name exists
             if is_deployed:
                 self.delete()
                 click.echo("\nDeleted successfully")

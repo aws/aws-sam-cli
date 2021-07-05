@@ -108,7 +108,7 @@ class ECRUploader:
                     LOG.debug("ImageNotFound Exception : ")
                     raise ImageNotFoundError(resource_id, property_name)
 
-            click.echo(f"- Deleting ECR image {image_tag} in repository {repository}")
+            click.echo(f"\t- Deleting ECR image {image_tag} in repository {repository}")
 
         except botocore.exceptions.ClientError as ex:
             # Handle Client errors such as RepositoryNotFoundException or InvalidParameterException
