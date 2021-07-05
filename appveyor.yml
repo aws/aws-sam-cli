@@ -159,7 +159,7 @@ for:
       # Pre-dev Tests
       - "pip install -e \".[pre-dev]\""
       - "pylint --rcfile .pylintrc samcli"
-      
+
       # Dev Tests
       - "pip install -e \".[dev]\""
       - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
