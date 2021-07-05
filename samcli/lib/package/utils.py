@@ -11,7 +11,7 @@ import uuid
 import zipfile
 import contextlib
 from contextlib import contextmanager
-from typing import Dict, Optional, cast
+from typing import Dict, Optional, cast, TextIO
 
 import jmespath
 
@@ -286,7 +286,7 @@ def copy_to_temp_dir(filepath):
     return tmp_dir
 
 
-def get_cf_template_name(temp_file, template_str, extension):
+def get_cf_template_name(temp_file: TextIO, template_str: str, extension: str) -> str:
     temp_file.write(template_str)
     temp_file.flush()
 

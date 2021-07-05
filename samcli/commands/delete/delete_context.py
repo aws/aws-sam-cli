@@ -84,7 +84,9 @@ class DeleteContext:
             )
             if not self.delete_artifacts_folder:
                 with mktempfile() as temp_file:
-                    self.cf_template_file_name = get_cf_template_name(temp_file, template_str, "template")
+                    self.cf_template_file_name = get_cf_template_name(
+                        temp_file=temp_file, template_str=template_str, extension="template"
+                    )
                 self.delete_cf_template_file = confirm(
                     click.style(
                         "\tDo you want to delete the template file" + f" {self.cf_template_file_name} in S3?", bold=True
