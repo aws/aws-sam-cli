@@ -7,7 +7,7 @@ import unittest
 
 from contextlib import contextmanager, closing
 from unittest import mock
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, MagicMock
 
 from samcli.commands.package.exceptions import ExportFailedError
 from samcli.lib.package.s3_uploader import S3Uploader
@@ -56,7 +56,7 @@ from samcli.lib.package.packageable_resources import (
 
 class TestArtifactExporter(unittest.TestCase):
     def setUp(self):
-        self.s3_uploader_mock = Mock()
+        self.s3_uploader_mock = MagicMock()
         self.s3_uploader_mock.s3.meta.endpoint_url = "https://s3.some-valid-region.amazonaws.com"
         self.ecr_uploader_mock = Mock()
 
@@ -411,6 +411,10 @@ class TestArtifactExporter(unittest.TestCase):
 
         self.assertEqual(resource_dict[resource.PROPERTY_NAME], s3_url)
 
+        self.s3_uploader_mock.delete_artifact = MagicMock()
+        resource.delete(resource_id, resource_dict)
+        self.assertEqual(self.s3_uploader_mock.delete_artifact.call_count, 1)
+        
     @patch("samcli.lib.package.packageable_resources.upload_local_image_artifacts")
     def test_resource_lambda_image(self, upload_local_image_artifacts_mock):
         # Property value is a path to an image
@@ -1393,6 +1397,12 @@ class TestArtifactExporter(unittest.TestCase):
         resource_type2_class.EXPORT_DESTINATION = Destination.S3
         resource_type2_instance = Mock()
         resource_type2_class.return_value = resource_type2_instance
+        resource_type3_class = Mock()
+        resource_type3_class.RESOURCE_TYPE = "resource_type3"
+        resource_type3_class.ARTIFACT_TYPE = ZIP
+        resource_type3_class.EXPORT_DESTINATION = Destination.S3
+        resource_type3_instance = Mock()
+        resource_type3_class.return_value = resource_type3_instance
 
         resources_to_export = [resource_type1_class, resource_type2_class]
 
@@ -1401,7 +1411,7 @@ class TestArtifactExporter(unittest.TestCase):
             "Resources": {
                 "Resource1": {"Type": "resource_type1", "Properties": properties},
                 "Resource2": {"Type": "resource_type2", "Properties": properties},
-                "Resource3": {"Type": "some-other-type", "Properties": properties},
+                "Resource3": {"Type": "some-other-type", "Properties": properties, "DeletionPolicy": "Retain"},
             }
         }
 
@@ -1412,3 +1422,5 @@ class TestArtifactExporter(unittest.TestCase):
         resource_type1_instance.delete.assert_called_once_with("Resource1", mock.ANY)
         resource_type2_class.assert_called_once_with(self.uploaders_mock, None)
         resource_type2_instance.delete.assert_called_once_with("Resource2", mock.ANY)
+        resource_type3_class.assert_not_called()
+        resource_type3_instance.delete.assert_not_called()
