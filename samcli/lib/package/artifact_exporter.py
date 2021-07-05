@@ -238,10 +238,13 @@ class Template:
         return self.template_dict
 
     def delete(self, template_dict):
+        """
+        Deletes all the artifacts referenced by the given Cloudformation template
+        """
         self.template_dict = template_dict
 
         if "Resources" not in self.template_dict:
-            return self.template_dict
+            return
 
         self._apply_global_values()
 
@@ -259,4 +262,4 @@ class Template:
                     # Delete code resources
                     exporter = exporter_class(self.uploaders, None)
                     exporter.delete(resource_id, resource_dict)
-        return self.template_dict
+
