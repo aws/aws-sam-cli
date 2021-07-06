@@ -6,6 +6,8 @@ from textwrap import dedent
 from typing import Optional
 
 import click
+
+from samcli.commands.pipeline.external_links import CONFIG_AWS_CRED_DOC_URL
 from samcli.lib.bootstrap.bootstrap import get_current_account_id
 
 from samcli.lib.utils.defaults import get_default_aws_region
@@ -53,6 +55,11 @@ class GuidedContext:
         )
 
         account_id = get_current_account_id()
+        click.secho("[1] Account details", bold=True)
+        if click.confirm(f"You are bootstrapping resources in Account {account_id}. Do you want to switch accounts?"):
+            click.echo(f"Please refer to this page about configuring credentials: {CONFIG_AWS_CRED_DOC_URL}.")
+            exit(0)
+
         if not self.environment_name:
             self.environment_name = click.prompt(
                 f"Environment name (a descriptive name for the environment which will be deployed"
