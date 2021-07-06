@@ -172,6 +172,51 @@ class TestS3Uploader(TestCase):
                 s3_uploader.upload(f.name, remote_path)
             self.assertEqual(BucketNotSpecifiedError().message, str(ex))
 
+    def test_s3_delete_artifact(self):
+        s3_uploader = S3Uploader(
+            s3_client=self.s3,
+            bucket_name=None,
+            prefix=self.prefix,
+            kms_key_id=self.kms_key_id,
+            force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
+        )
+        s3_uploader.artifact_metadata = {"a": "b"}
+        with self.assertRaises(BucketNotSpecifiedError) as ex:
+            with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
+                self.assertEqual(s3_uploader.delete_artifact(f.name), {"a": "b"})
+
+    def test_s3_delete_artifact_no_bucket(self):
+        s3_uploader = S3Uploader(
+            s3_client=self.s3,
+            bucket_name=None,
+            prefix=self.prefix,
+            kms_key_id=self.kms_key_id,
+            force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
+        )
+        with self.assertRaises(BucketNotSpecifiedError) as ex:
+            with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
+                s3_uploader.delete_artifact(f.name)
+            self.assertEqual(BucketNotSpecifiedError().message, str(ex))
+
+    def test_s3_delete_artifact_bucket_not_found(self):
+        s3_uploader = S3Uploader(
+            s3_client=self.s3,
+            bucket_name=self.bucket_name,
+            prefix=self.prefix,
+            kms_key_id=self.kms_key_id,
+            force_upload=True,
+            no_progressbar=self.no_progressbar,
+        )
+
+        s3_uploader.s3.delete_object = MagicMock(
+            side_effect=ClientError(error_response={"Error": {"Code": "NoSuchBucket"}}, operation_name="create_object")
+        )
+        with tempfile.NamedTemporaryFile() as f:
+            with self.assertRaises(NoSuchBucketError):
+                s3_uploader.delete_artifact(f.name)
+
     def test_s3_upload_with_dedup(self):
         s3_uploader = S3Uploader(
             s3_client=self.s3,

@@ -22,6 +22,7 @@ import sys
 from collections import abc
 from typing import Optional, Dict, Any, cast
 from urllib.parse import urlparse, parse_qs
+import click
 
 import botocore
 import botocore.exceptions
@@ -143,6 +144,49 @@ class S3Uploader:
             remote_path = remote_path + "." + extension
 
         return self.upload(file_name, remote_path)
+
+    def delete_artifact(self, remote_path: str, is_key: bool = False) -> Dict:
+        """
+        Deletes a given file from S3
+        :param remote_path: Path to the file that will be deleted
+        :param is_key: If the given remote_path is the key or a file_name
+
+        :return: metadata dict of the deleted object
+        """
+        try:
+            if not self.bucket_name:
+                LOG.error("Bucket not specified")
+                raise BucketNotSpecifiedError()
+
+            key = remote_path
+            if self.prefix and not is_key:
+                key = "{0}/{1}".format(self.prefix, remote_path)
+
+            # Deleting Specific file with key
+            click.echo(f"\t- Deleting S3 file {key}")
+            resp = self.s3.delete_object(Bucket=self.bucket_name, Key=key)
+            LOG.debug("S3 method delete_object is called and returned: %s", resp["ResponseMetadata"])
+            return dict(resp["ResponseMetadata"])
+
+        except botocore.exceptions.ClientError as ex:
+            error_code = ex.response["Error"]["Code"]
+            if error_code == "NoSuchBucket":
+                LOG.error("Provided bucket %s does not exist ", self.bucket_name)
+                raise NoSuchBucketError(bucket_name=self.bucket_name) from ex
+            raise ex
+
+    def delete_prefix_artifacts(self):
+        """
+        Deletes all the files from the prefix in S3
+        """
+        if not self.bucket_name:
+            LOG.error("Bucket not specified")
+            raise BucketNotSpecifiedError()
+        if self.prefix:
+            prefix_files = self.s3.list_objects_v2(Bucket=self.bucket_name, Prefix=self.prefix)
+
+            for obj in prefix_files["Contents"]:
+                self.delete_artifact(obj["Key"], True)
 
     def file_exists(self, remote_path: str) -> bool:
         """
