@@ -60,16 +60,22 @@ class GuidedContext:
             click.echo(f"Please refer to this page about configuring credentials: {CONFIG_AWS_CRED_DOC_URL}.")
             exit(0)
 
-        if not self.environment_name:
+        click.secho("[2] Stage definition", bold=True)
+        if self.environment_name:
+            click.echo(f"Stage name: {self.environment_name}")
+        else:
+            click.echo(
+                "Enter a name for the stage you want to bootstrap. This will be referenced later "
+                "when generating a Pipeline Config File with Pipeline Init."
+            )
             self.environment_name = click.prompt(
-                f"Environment name (a descriptive name for the environment which will be deployed"
-                f" to AWS account {account_id})",
+                "Stage name",
                 type=click.STRING,
             )
 
         if not self.region:
             self.region = click.prompt(
-                "\nAWS region (the AWS region where the environment infrastructure resources will be deployed to)",
+                "Enter the region you want these resources to create",
                 type=click.STRING,
                 default=get_default_aws_region(),
             )
