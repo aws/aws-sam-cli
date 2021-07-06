@@ -68,11 +68,15 @@ class DeleteContext:
         if config_options:
             if not self.stack_name:
                 self.stack_name = config_options.get("stack_name", None)
-            if self.stack_name == config_options["stack_name"]:
+            # If the stack_name is same as the one present in samconfig file,
+            # get the information about parameters if not specified by customer.
+            if self.stack_name and self.stack_name == config_options.get("stack_name", None):
                 if not self.region:
                     self.region = config_options.get("region", None)
+                    click.get_current_context().region = self.region
                 if not self.profile:
                     self.profile = config_options.get("profile", None)
+                    click.get_current_context().profile = self.profile
                 self.s3_bucket = config_options.get("s3_bucket", None)
                 self.s3_prefix = config_options.get("s3_prefix", None)
 

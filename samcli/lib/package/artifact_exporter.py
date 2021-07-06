@@ -85,7 +85,9 @@ class CloudFormationStackResource(ResourceZip):
 
         with mktempfile() as temporary_file:
 
-            remote_path = get_cf_template_name(temporary_file, exported_template_str, "template")
+            remote_path = get_cf_template_name(
+                temp_file=temporary_file, template_str=exported_template_str, extension="template"
+            )
             url = self.uploader.upload(temporary_file.name, remote_path)
 
             # TemplateUrl property requires S3 URL to be in path-style format

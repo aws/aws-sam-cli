@@ -57,7 +57,9 @@ class TestDeleteContext(TestCase):
             )
         ),
     )
-    def test_delete_context_parse_config_file(self):
+    @patch("samcli.commands.deploy.guided_context.click.get_current_context")
+    def test_delete_context_parse_config_file(self, patched_click_get_current_context):
+        patched_click_get_current_context = MagicMock()
         with DeleteContext(
             stack_name=None,
             region=None,
@@ -92,7 +94,9 @@ class TestDeleteContext(TestCase):
     @patch.object(CfUtils, "delete_stack", MagicMock())
     @patch.object(CfUtils, "wait_for_delete", MagicMock())
     @patch.object(S3Uploader, "delete_prefix_artifacts", MagicMock())
-    def test_delete_context_valid_execute_run(self):
+    @patch("samcli.commands.deploy.guided_context.click.get_current_context")
+    def test_delete_context_valid_execute_run(self, patched_click_get_current_context):
+        patched_click_get_current_context = MagicMock()
         with DeleteContext(
             stack_name=None,
             region=None,

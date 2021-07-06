@@ -175,7 +175,9 @@ class Deployer:
         if s3_uploader:
             with mktempfile() as temporary_file:
 
-                remote_path = get_cf_template_name(temporary_file, kwargs.pop("TemplateBody"), "template")
+                remote_path = get_cf_template_name(
+                    temp_file=temporary_file, template_str=kwargs.pop("TemplateBody"), extension="template"
+                )
                 # TemplateUrl property requires S3 URL to be in path-style format
                 parts = S3Uploader.parse_s3_url(
                     s3_uploader.upload(temporary_file.name, remote_path), version_property="Version"
