@@ -134,10 +134,13 @@ class GuidedContext:
             else:
                 self.create_image_repository = False
 
-        if not self.pipeline_ip_range:
-            click.echo("\nWe can deny requests not coming from a recognized IP address range.")
+        click.secho("[4] Security definition - OPTIONAL", bold=True)
+        if self.pipeline_ip_range:
+            click.echo(f"Pipeline IP address range: {self.pipeline_ip_range}")
+        else:
             self.pipeline_ip_range = click.prompt(
-                "Pipeline IP address range (using CIDR notation) [leave blank if you don't know]",
+                "For added security, you can define the permitted Pipeline IP range. "
+                "Enter the IP addresses to restrict access to",
                 default="",
                 type=click.STRING,
             )
