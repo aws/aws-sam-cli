@@ -9,6 +9,7 @@ import click
 
 from samcli.commands.pipeline.external_links import CONFIG_AWS_CRED_DOC_URL
 from samcli.lib.bootstrap.bootstrap import get_current_account_id
+from samcli.lib.utils.colors import Colored
 
 from samcli.lib.utils.defaults import get_default_aws_region
 
@@ -35,6 +36,7 @@ class GuidedContext:
         self.image_repository_arn = image_repository_arn
         self.pipeline_ip_range = pipeline_ip_range
         self.region = region
+        self.color = Colored()
 
     def _prompt_stage_name(self) -> None:
         click.echo(
@@ -215,8 +217,9 @@ class GuidedContext:
         # Ask customers to confirm the inputs
         while True:
             inputs = self._get_user_inputs()
+            click.secho(self.color.cyan("Below is the summary of the answers:"))
             for i, (text, _) in enumerate(inputs):
-                click.secho(f"  {i + 1}. {text}", fg="cyan")
+                click.secho(self.color.cyan(f"  {i + 1}. {text}"))
             edit_input = click.prompt(
                 text="Press enter to confirm the values above, or select an item to edit the value",
                 default="0",
