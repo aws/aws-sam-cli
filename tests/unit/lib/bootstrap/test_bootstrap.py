@@ -1,8 +1,8 @@
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
-from samcli.commands.exceptions import UserException
-from samcli.lib.bootstrap.bootstrap import manage_stack, StackOutput
+from samcli.commands.exceptions import UserException, CredentialsError
+from samcli.lib.bootstrap.bootstrap import manage_stack, StackOutput, get_current_account_id
 
 
 class TestBootstrapManagedStack(TestCase):
@@ -25,3 +25,19 @@ class TestBootstrapManagedStack(TestCase):
         )
         actual_bucket_name = manage_stack("testProfile", "fakeRegion")
         self.assertEqual(actual_bucket_name, expected_bucket_name)
+
+    @patch("samcli.lib.bootstrap.bootstrap.boto3")
+    def test_get_current_account_id(self, boto3_mock):
+        sts_mock = MagicMock()
+        sts_mock.get_caller_identity.return_value = {"Account": 1234567890}
+        boto3_mock.client.return_value = sts_mock
+        account_id = get_current_account_id()
+        self.assertEqual(account_id, 1234567890)
+
+    @patch("samcli.lib.bootstrap.bootstrap.boto3")
+    def test_get_current_account_id_missing_id(self, boto3_mock):
+        sts_mock = MagicMock()
+        sts_mock.get_caller_identity.return_value = {}
+        boto3_mock.client.return_value = sts_mock
+        with self.assertRaises(CredentialsError):
+            get_current_account_id()
