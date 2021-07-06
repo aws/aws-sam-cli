@@ -80,55 +80,59 @@ class GuidedContext:
                 default=get_default_aws_region(),
             )
 
-        if not self.pipeline_user_arn:
-            click.echo(
-                "\nThere must be exactly one pipeline user across all of the environments. "
-                "If you have ran this command before to bootstrap a previous environment, please "
-                "provide the ARN of the created pipeline user, otherwise, we will create a new user for you. "
-                "Please make sure to store the credentials safely with the CI/CD system."
-            )
+        click.secho("[3] Reference existing resources", bold=True)
+        if self.pipeline_user_arn:
+            click.echo(f"Pipeline IAM User ARN: {self.pipeline_user_arn}")
+        else:
             self.pipeline_user_arn = click.prompt(
-                "Pipeline user [leave blank to create one]", default="", type=click.STRING
+                "Enter the Pipeline IAM User ARN if you have previously created one, or we will create one for you",
+                default="",
+                type=click.STRING,
             )
 
-        if not self.pipeline_execution_role_arn:
+        if self.pipeline_execution_role_arn:
+            click.echo(f"Pipeline execution role ARN: {self.pipeline_execution_role_arn}")
+        else:
             self.pipeline_execution_role_arn = click.prompt(
-                "\nPipeline execution role (an IAM role assumed by the pipeline user to operate on this environment) "
-                "[leave blank to create one]",
+                "Enter the Pipeline execution role ARN if you have previously created one, "
+                "or we will create one for you",
                 default="",
                 type=click.STRING,
             )
 
-        if not self.cloudformation_execution_role_arn:
+        if self.cloudformation_execution_role_arn:
+            click.echo(f"CloudFormation execution role ARN: {self.cloudformation_execution_role_arn}")
+        else:
             self.cloudformation_execution_role_arn = click.prompt(
-                "\nCloudFormation execution role (an IAM role assumed by CloudFormation to deploy "
-                "the application's stack) [leave blank to create one]",
+                "Enter the CloudFormation execution role ARN if you have previously created one, "
+                "or we will create one for you",
                 default="",
                 type=click.STRING,
             )
 
-        if not self.artifacts_bucket_arn:
+        if self.artifacts_bucket_arn:
+            click.echo(f"Artifacts bucket ARN: {self.cloudformation_execution_role_arn}")
+        else:
             self.artifacts_bucket_arn = click.prompt(
-                "\nArtifacts bucket (S3 bucket to hold the AWS SAM build artifacts) [leave blank to create one]",
+                "Please enter the bucket artifact ARN for your Lambda function. "
+                "If you do not have a bucket, we will create one for you",
                 default="",
                 type=click.STRING,
             )
-        if not self.image_repository_arn:
-            click.echo(
-                "\nIf your SAM template includes (or going to include) Lambda functions of Image package type, "
-                "then an ECR image repository is required. Should we create one?"
-            )
-            click.echo("\t1 - No, My SAM template won't include Lambda functions of Image package type")
-            click.echo("\t2 - Yes, I need help creating one")
-            click.echo("\t3 - I already have an ECR image repository")
-            choice = click.prompt(text="Choice", show_choices=False, type=click.Choice(["1", "2", "3"]))
-            if choice == "1":
+
+        if self.image_repository_arn:
+            click.echo(f"ECR image repository ARN: {self.image_repository_arn}")
+        else:
+            if click.confirm("Does your application contain any IMAGE type Lambda functions?"):
+                self.image_repository_arn = click.prompt(
+                    "Please enter the ECR image repository ARN(s) for your IMAGE type function(s)."
+                    "If you do not yet have a repostiory, we will create one for you",
+                    default="",
+                    type=click.STRING,
+                )
+                self.create_image_repository = not bool(self.image_repository_arn)
+            else:
                 self.create_image_repository = False
-            elif choice == "2":
-                self.create_image_repository = True
-            else:  # choice == "3"
-                self.create_image_repository = False
-                self.image_repository_arn = click.prompt("ECR image repository", type=click.STRING)
 
         if not self.pipeline_ip_range:
             click.echo("\nWe can deny requests not coming from a recognized IP address range.")
