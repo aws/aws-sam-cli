@@ -2,6 +2,7 @@
 CLI command for "pipeline bootstrap", which sets up the require pipeline infrastructure resources
 """
 import os
+from textwrap import dedent
 from typing import Any, Dict, List, Optional
 
 import click
@@ -206,13 +207,25 @@ def do_cli(
         )
 
         click.secho(
-            Colored().green(
-                "\nThe ARNs of created resources have been written to "
-                f"{os.path.join(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)}.\n"
-                f"It will be used next time you run `sam pipeline bootstrap` or "
-                f"`sam pipeline init` in this directory."
+            dedent(
+                f"""\
+                View the definition in {os.path.join(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)},
+                run {Colored().bold("sam pipeline bootstrap")} to generate another set of resources, or proceed to
+                {Colored().bold("sam pipeline init")} to create your Pipeline Config file.
+                """
             )
         )
+
+        if not environment.pipeline_user.is_user_provided:
+            click.secho(
+                dedent(
+                    """\
+                    Before running sam pipeline init, we recommend first setting up AWS credentials 
+                    in your CI/CD account. Read more about how to do so with your provider in
+                    [DOCS-LINK].
+                    """
+                )
+            )
 
 
 def _load_saved_pipeline_user_arn() -> Optional[str]:

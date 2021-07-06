@@ -323,12 +323,7 @@ class Environment:
                 click.secho(self.color.green(f"\t{resource.arn}"))
 
         if not self.pipeline_user.is_user_provided:
-            click.secho(
-                self.color.green(
-                    "Please configure your CI/CD project with the following pipeline user credentials and "
-                    "make sure to periodically rotate it:",
-                )
-            )
+            click.secho(self.color.green(f"Pipeline IAM user credential:"))
             click.secho(self.color.green(f"\tAWS_ACCESS_KEY_ID: {self.pipeline_user.access_key_id}"))
             click.secho(self.color.green(f"\tAWS_SECRET_ACCESS_KEY: {self.pipeline_user.secret_access_key}"))
 
