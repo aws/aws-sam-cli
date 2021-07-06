@@ -33,6 +33,7 @@ class SchemaTestDataSetup(TestCase):
         setup_schema_data_for_pagination("test-pagination", schemas_client)
         setup_non_partner_schema_data("other-schema", schemas_client)
         # WHEN the user follows interactive init prompts
+        # 1: SAM type project
         # 1: AWS Quick Start Templates
         # 1: Zip Packagetype
         # 13: Java runtime
@@ -42,6 +43,7 @@ class SchemaTestDataSetup(TestCase):
         # 1: hello world
 
         user_input = """
+1
 1
 1
 13
