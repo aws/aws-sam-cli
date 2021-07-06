@@ -34,7 +34,7 @@ from samcli.commands.deploy.exceptions import (
 )
 from samcli.commands._utils.table_print import pprint_column_names, pprint_columns, newline_per_item, MIN_OFFSET
 from samcli.commands.deploy import exceptions as deploy_exceptions
-from samcli.lib.package.artifact_exporter import mktempfile
+from samcli.lib.package.artifact_exporter import mktempfile, get_cf_template_name
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.time import utc_to_timestamp
 
@@ -174,12 +174,13 @@ class Deployer:
         # TemplateBody. This is required for large templates.
         if s3_uploader:
             with mktempfile() as temporary_file:
-                temporary_file.write(kwargs.pop("TemplateBody"))
-                temporary_file.flush()
 
+                remote_path = get_cf_template_name(
+                    temp_file=temporary_file, template_str=kwargs.pop("TemplateBody"), extension="template"
+                )
                 # TemplateUrl property requires S3 URL to be in path-style format
                 parts = S3Uploader.parse_s3_url(
-                    s3_uploader.upload_with_dedup(temporary_file.name, "template"), version_property="Version"
+                    s3_uploader.upload(temporary_file.name, remote_path), version_property="Version"
                 )
                 kwargs["TemplateURL"] = s3_uploader.to_path_style_s3_url(parts["Key"], parts.get("Version", None))
 

@@ -778,7 +778,7 @@ class TestArtifactExporter(unittest.TestCase):
         TemplateMock.return_value = template_instance_mock
         template_instance_mock.export.return_value = exported_template_dict
 
-        self.s3_uploader_mock.upload_with_dedup.return_value = result_s3_url
+        self.s3_uploader_mock.upload.return_value = result_s3_url
         self.s3_uploader_mock.to_path_style_s3_url.return_value = result_path_style_s3_url
 
         with tempfile.NamedTemporaryFile() as handle:
@@ -792,7 +792,7 @@ class TestArtifactExporter(unittest.TestCase):
 
             TemplateMock.assert_called_once_with(template_path, parent_dir, self.uploaders_mock, self.code_signer_mock)
             template_instance_mock.export.assert_called_once_with()
-            self.s3_uploader_mock.upload_with_dedup.assert_called_once_with(mock.ANY, "template")
+            self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)
             self.s3_uploader_mock.to_path_style_s3_url.assert_called_once_with("world", None)
 
     def test_export_cloudformation_stack_no_upload_path_is_s3url(self):
@@ -805,7 +805,7 @@ class TestArtifactExporter(unittest.TestCase):
         # Case 1: Path is already S3 url
         stack_resource.export(resource_id, resource_dict, "dir")
         self.assertEqual(resource_dict[property_name], s3_url)
-        self.s3_uploader_mock.upload_with_dedup.assert_not_called()
+        self.s3_uploader_mock.upload.assert_not_called()
 
     def test_export_cloudformation_stack_no_upload_path_is_httpsurl(self):
         stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock)
@@ -817,7 +817,7 @@ class TestArtifactExporter(unittest.TestCase):
         # Case 1: Path is already S3 url
         stack_resource.export(resource_id, resource_dict, "dir")
         self.assertEqual(resource_dict[property_name], s3_url)
-        self.s3_uploader_mock.upload_with_dedup.assert_not_called()
+        self.s3_uploader_mock.upload.assert_not_called()
 
     def test_export_cloudformation_stack_no_upload_path_is_s3_region_httpsurl(self):
         stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock)
@@ -829,7 +829,7 @@ class TestArtifactExporter(unittest.TestCase):
 
         stack_resource.export(resource_id, resource_dict, "dir")
         self.assertEqual(resource_dict[property_name], s3_url)
-        self.s3_uploader_mock.upload_with_dedup.assert_not_called()
+        self.s3_uploader_mock.upload.assert_not_called()
 
     def test_export_cloudformation_stack_no_upload_path_is_empty(self):
         stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock)
@@ -842,7 +842,7 @@ class TestArtifactExporter(unittest.TestCase):
         resource_dict = {}
         stack_resource.export(resource_id, resource_dict, "dir")
         self.assertEqual(resource_dict, {})
-        self.s3_uploader_mock.upload_with_dedup.assert_not_called()
+        self.s3_uploader_mock.upload.assert_not_called()
 
     def test_export_cloudformation_stack_no_upload_path_not_file(self):
         stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock)
@@ -855,7 +855,7 @@ class TestArtifactExporter(unittest.TestCase):
             resource_dict = {property_name: dirname}
             with self.assertRaises(exceptions.ExportFailedError):
                 stack_resource.export(resource_id, resource_dict, "dir")
-                self.s3_uploader_mock.upload_with_dedup.assert_not_called()
+                self.s3_uploader_mock.upload.assert_not_called()
 
     @patch("samcli.lib.package.artifact_exporter.Template")
     def test_export_serverless_application(self, TemplateMock):
@@ -871,7 +871,7 @@ class TestArtifactExporter(unittest.TestCase):
         TemplateMock.return_value = template_instance_mock
         template_instance_mock.export.return_value = exported_template_dict
 
-        self.s3_uploader_mock.upload_with_dedup.return_value = result_s3_url
+        self.s3_uploader_mock.upload.return_value = result_s3_url
         self.s3_uploader_mock.to_path_style_s3_url.return_value = result_path_style_s3_url
 
         with tempfile.NamedTemporaryFile() as handle:
@@ -885,7 +885,7 @@ class TestArtifactExporter(unittest.TestCase):
 
             TemplateMock.assert_called_once_with(template_path, parent_dir, self.uploaders_mock, self.code_signer_mock)
             template_instance_mock.export.assert_called_once_with()
-            self.s3_uploader_mock.upload_with_dedup.assert_called_once_with(mock.ANY, "template")
+            self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)
             self.s3_uploader_mock.to_path_style_s3_url.assert_called_once_with("world", None)
 
     def test_export_serverless_application_no_upload_path_is_s3url(self):
@@ -898,7 +898,7 @@ class TestArtifactExporter(unittest.TestCase):
         # Case 1: Path is already S3 url
         stack_resource.export(resource_id, resource_dict, "dir")
         self.assertEqual(resource_dict[property_name], s3_url)
-        self.s3_uploader_mock.upload_with_dedup.assert_not_called()
+        self.s3_uploader_mock.upload.assert_not_called()
 
     def test_export_serverless_application_no_upload_path_is_httpsurl(self):
         stack_resource = ServerlessApplicationResource(self.uploaders_mock, self.code_signer_mock)
@@ -910,7 +910,7 @@ class TestArtifactExporter(unittest.TestCase):
         # Case 1: Path is already S3 url
         stack_resource.export(resource_id, resource_dict, "dir")
         self.assertEqual(resource_dict[property_name], s3_url)
-        self.s3_uploader_mock.upload_with_dedup.assert_not_called()
+        self.s3_uploader_mock.upload.assert_not_called()
 
     def test_export_serverless_application_no_upload_path_is_empty(self):
         stack_resource = ServerlessApplicationResource(self.uploaders_mock, self.code_signer_mock)
@@ -921,7 +921,7 @@ class TestArtifactExporter(unittest.TestCase):
         resource_dict = {}
         stack_resource.export(resource_id, resource_dict, "dir")
         self.assertEqual(resource_dict, {})
-        self.s3_uploader_mock.upload_with_dedup.assert_not_called()
+        self.s3_uploader_mock.upload.assert_not_called()
 
     def test_export_serverless_application_no_upload_path_not_file(self):
         stack_resource = ServerlessApplicationResource(self.uploaders_mock, self.code_signer_mock)
@@ -933,7 +933,7 @@ class TestArtifactExporter(unittest.TestCase):
             resource_dict = {property_name: dirname}
             with self.assertRaises(exceptions.ExportFailedError):
                 stack_resource.export(resource_id, resource_dict, "dir")
-                self.s3_uploader_mock.upload_with_dedup.assert_not_called()
+                self.s3_uploader_mock.upload.assert_not_called()
 
     def test_export_serverless_application_no_upload_path_is_dictionary(self):
         stack_resource = ServerlessApplicationResource(self.uploaders_mock, self.code_signer_mock)
@@ -945,7 +945,7 @@ class TestArtifactExporter(unittest.TestCase):
         resource_dict = {property_name: location}
         stack_resource.export(resource_id, resource_dict, "dir")
         self.assertEqual(resource_dict[property_name], location)
-        self.s3_uploader_mock.upload_with_dedup.assert_not_called()
+        self.s3_uploader_mock.upload.assert_not_called()
 
     @patch("samcli.lib.package.artifact_exporter.yaml_parse")
     def test_template_export_metadata(self, yaml_parse_mock):
