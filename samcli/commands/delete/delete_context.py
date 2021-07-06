@@ -164,7 +164,8 @@ class DeleteContext:
         elif self.delete_artifacts_folder:
             self.s3_uploader.delete_prefix_artifacts()
 
-        else:
+        # If s3_bucket information is not available
+        elif not self.s3_bucket:
             click.secho(
                 "\nWarning: s3_bucket and s3_prefix information cannot be obtained,"
                 " delete the files manually if required",

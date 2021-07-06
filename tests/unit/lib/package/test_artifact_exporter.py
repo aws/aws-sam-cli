@@ -414,7 +414,7 @@ class TestArtifactExporter(unittest.TestCase):
         self.s3_uploader_mock.delete_artifact = MagicMock()
         resource.delete(resource_id, resource_dict)
         self.assertEqual(self.s3_uploader_mock.delete_artifact.call_count, 1)
-        
+
     @patch("samcli.lib.package.packageable_resources.upload_local_image_artifacts")
     def test_resource_lambda_image(self, upload_local_image_artifacts_mock):
         # Property value is a path to an image
@@ -439,6 +439,10 @@ class TestArtifactExporter(unittest.TestCase):
         )
 
         self.assertEqual(resource_dict[resource.PROPERTY_NAME], ecr_url)
+
+        self.ecr_uploader_mock.delete_artifact = MagicMock()
+        resource.delete(resource_id, resource_dict)
+        self.assertEqual(self.ecr_uploader_mock.delete_artifact.call_count, 1)
 
     def test_lambda_image_resource_package_success(self):
         # Property value is set to an image
@@ -749,6 +753,10 @@ class TestArtifactExporter(unittest.TestCase):
         self.assertEqual(
             resource_dict[resource.PROPERTY_NAME], {"b": "bucket", "o": "key1/key2", "v": "SomeVersionNumber"}
         )
+
+        self.s3_uploader_mock.delete_artifact = MagicMock()
+        resource.delete(resource_id, resource_dict)
+        self.s3_uploader_mock.delete_artifact.assert_called_once_with(remote_path="key1/key2", is_key=True)
 
     @patch("samcli.lib.package.packageable_resources.upload_local_artifacts")
     def test_resource_with_signing_configuration(self, upload_local_artifacts_mock):

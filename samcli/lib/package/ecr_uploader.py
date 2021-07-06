@@ -105,13 +105,15 @@ class ECRUploader:
                 # Image not found
                 image_details = resp["failures"][0]
                 if image_details["failureCode"] == "ImageNotFound":
-                    LOG.debug("ImageNotFound Exception : ")
+                    LOG.error("ImageNotFound Exception : ")
                     raise ImageNotFoundError(resource_id, property_name)
 
+            LOG.debug("Deleting ECR image with tag %s", image_tag)
             click.echo(f"\t- Deleting ECR image {image_tag} in repository {repository}")
 
         except botocore.exceptions.ClientError as ex:
             # Handle Client errors such as RepositoryNotFoundException or InvalidParameterException
+            LOG.error("DeleteArtifactFailedError Exception : %s", str(ex))
             raise DeleteArtifactFailedError(resource_id=resource_id, property_name=property_name, ex=ex) from ex
 
     # TODO: move this to a generic class to allow for streaming logs back from docker.

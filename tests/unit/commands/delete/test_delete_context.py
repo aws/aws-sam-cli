@@ -8,7 +8,26 @@ from samcli.cli.cli_config_file import TomlProvider
 from samcli.lib.delete.cf_utils import CfUtils
 from samcli.lib.package.s3_uploader import S3Uploader
 
+
 class TestDeleteContext(TestCase):
+    @patch("samcli.commands.deploy.guided_context.click.echo")
+    @patch.object(CfUtils, "has_stack", MagicMock(return_value=(False)))
+    def test_delete_context_stack_does_not_exist(self, patched_click_echo):
+        with DeleteContext(
+            stack_name="test",
+            region="us-east-1",
+            config_file="samconfig.toml",
+            config_env="default",
+            profile="test",
+            force=True,
+        ) as delete_context:
+
+            delete_context.run()
+            expected_click_echo_calls = [
+                call(f"Error: The input stack test does not exist on Cloudformation"),
+            ]
+            self.assertEqual(expected_click_echo_calls, patched_click_echo.call_args_list)
+
     @patch.object(DeleteContext, "parse_config_file", MagicMock())
     @patch.object(DeleteContext, "init_clients", MagicMock())
     def test_delete_context_enter(self):
@@ -89,3 +108,122 @@ class TestDeleteContext(TestCase):
             self.assertEqual(CfUtils.delete_stack.call_count, 1)
             self.assertEqual(CfUtils.wait_for_delete.call_count, 1)
             self.assertEqual(S3Uploader.delete_prefix_artifacts.call_count, 1)
+
+    @patch("samcli.commands.deploy.guided_context.click.secho")
+    @patch.object(CfUtils, "has_stack", MagicMock(return_value=(True)))
+    @patch.object(CfUtils, "get_stack_template", MagicMock(return_value=({"TemplateBody": "Hello World"})))
+    @patch.object(CfUtils, "delete_stack", MagicMock())
+    @patch.object(CfUtils, "wait_for_delete", MagicMock())
+    def test_delete_context_no_s3_bucket(self, patched_click_secho):
+        with DeleteContext(
+            stack_name="test",
+            region="us-east-1",
+            config_file="samconfig.toml",
+            config_env="default",
+            profile="test",
+            force=True,
+        ) as delete_context:
+
+            delete_context.run()
+            expected_click_secho_calls = [
+                call(
+                    "\nWarning: s3_bucket and s3_prefix information cannot be obtained,"
+                    " delete the files manually if required",
+                    fg="yellow",
+                ),
+            ]
+            self.assertEqual(expected_click_secho_calls, patched_click_secho.call_args_list)
+
+    @patch("samcli.commands.delete.delete_context.confirm")
+    @patch.object(CfUtils, "has_stack", MagicMock(return_value=(True)))
+    @patch.object(CfUtils, "get_stack_template", MagicMock(return_value=({"TemplateBody": "Hello World"})))
+    @patch.object(CfUtils, "delete_stack", MagicMock())
+    @patch.object(CfUtils, "wait_for_delete", MagicMock())
+    @patch.object(S3Uploader, "delete_artifact", MagicMock())
+    def test_guided_prompts_s3_bucket_prefix_present_execute_run(self, patched_confirm):
+
+        with DeleteContext(
+            stack_name="test",
+            region="us-east-1",
+            config_file="samconfig.toml",
+            config_env="default",
+            profile="test",
+            force=None,
+        ) as delete_context:
+            patched_confirm.side_effect = [True, False, True]
+            delete_context.cf_template_file_name = "hello.template"
+            delete_context.s3_bucket = "s3_bucket"
+            delete_context.s3_prefix = "s3_prefix"
+
+            delete_context.run()
+            # Now to check for all the defaults on confirmations.
+            expected_confirmation_calls = [
+                call(
+                    click.style(
+                        f"\tAre you sure you want to delete the stack test" + f" in the region us-east-1 ?",
+                        bold=True,
+                    ),
+                    default=False,
+                ),
+                call(
+                    click.style(
+                        "\tAre you sure you want to delete the folder"
+                        + f" s3_prefix in S3 which contains the artifacts?",
+                        bold=True,
+                    ),
+                    default=False,
+                ),
+                call(
+                    click.style(
+                        "\tDo you want to delete the template file b10a8db164e0754105b7a99be72e3fe5.template in S3?",
+                        bold=True,
+                    ),
+                    default=False,
+                ),
+            ]
+
+            self.assertEqual(expected_confirmation_calls, patched_confirm.call_args_list)
+            self.assertFalse(delete_context.delete_artifacts_folder)
+            self.assertTrue(delete_context.delete_cf_template_file)
+
+    @patch("samcli.commands.delete.delete_context.confirm")
+    @patch.object(CfUtils, "has_stack", MagicMock(return_value=(True)))
+    @patch.object(CfUtils, "get_stack_template", MagicMock(return_value=({"TemplateBody": "Hello World"})))
+    @patch.object(CfUtils, "delete_stack", MagicMock())
+    @patch.object(CfUtils, "wait_for_delete", MagicMock())
+    @patch.object(S3Uploader, "delete_artifact", MagicMock())
+    def test_guided_prompts_s3_bucket_present_no_prefix_execute_run(self, patched_confirm):
+
+        with DeleteContext(
+            stack_name="test",
+            region="us-east-1",
+            config_file="samconfig.toml",
+            config_env="default",
+            profile="test",
+            force=None,
+        ) as delete_context:
+            patched_confirm.side_effect = [True, True]
+            delete_context.cf_template_file_name = "hello.template"
+            delete_context.s3_bucket = "s3_bucket"
+
+            delete_context.run()
+            # Now to check for all the defaults on confirmations.
+            expected_confirmation_calls = [
+                call(
+                    click.style(
+                        f"\tAre you sure you want to delete the stack test" + f" in the region us-east-1 ?",
+                        bold=True,
+                    ),
+                    default=False,
+                ),
+                call(
+                    click.style(
+                        "\tDo you want to delete the template file b10a8db164e0754105b7a99be72e3fe5.template in S3?",
+                        bold=True,
+                    ),
+                    default=False,
+                ),
+            ]
+
+            self.assertEqual(expected_confirmation_calls, patched_confirm.call_args_list)
+            self.assertTrue(delete_context.delete_cf_template_file)
