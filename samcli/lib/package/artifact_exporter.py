@@ -255,6 +255,8 @@ class Template:
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
             resource_deletion_policy = resource.get("DeletionPolicy", None)
+            # If the deletion policy is set to Retain,
+            # do not delete the artifact for the resource.
             if resource_deletion_policy != "Retain":
                 for exporter_class in self.resources_to_export:
                     if exporter_class.RESOURCE_TYPE != resource_type:

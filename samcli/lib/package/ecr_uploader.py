@@ -91,6 +91,14 @@ class ECRUploader:
         return f"{repository}:{_tag}"
 
     def delete_artifact(self, image_uri: str, resource_id: str, property_name: str):
+        """
+        Delete the given ECR image by extracting the repository and image_tag from
+        image_uri
+
+        :param image_uri: image_uri of the image to be deleted
+        :param resource_id: id of the resource for which the image is deleted
+        :param property_name: provided property_name for the resource
+        """
         try:
             repo_image_tag = image_uri.split("/")[1].split(":")
             repository = repo_image_tag[0]
