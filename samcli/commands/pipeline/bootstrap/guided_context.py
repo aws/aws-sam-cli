@@ -216,7 +216,7 @@ class GuidedContext:
         while True:
             inputs = self._get_user_inputs()
             for i, (text, _) in enumerate(inputs):
-                click.secho(f"{i + 1}. {text}", fg="cyan")
+                click.secho(f"  {i + 1}. {text}", fg="cyan")
             edit_input = click.prompt(
                 text="Press enter to confirm the values above, or select an item to edit the value",
                 default="0",
