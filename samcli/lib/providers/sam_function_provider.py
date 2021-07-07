@@ -319,7 +319,11 @@ class SamFunctionProvider(SamBaseProvider):
             for asset in assets:
                 if isinstance(asset, ImageAsset) and asset.source_property.startswith("Code"):
                     image_asset = asset
-                    function_image_uri = image_asset.source_local_image
+                    code = image_asset.source_local_image
+                    if isinstance(code, str):
+                        function_image_uri = cast(Optional[str], code)
+                    else:
+                        function_image_uri = cast(Optional[str], code.get("ImageUri", None))
                     break
 
             imageuri = function_image_uri or SamFunctionProvider._extract_lambda_function_imageuri(
