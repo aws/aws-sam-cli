@@ -1,7 +1,7 @@
 """
 Delete a SAM stack
 """
-
+import logging
 import boto3
 
 
@@ -25,6 +25,8 @@ CONFIG_COMMAND = "deploy"
 CONFIG_SECTION = "parameters"
 TEMPLATE_STAGE = "Original"
 
+LOG = logging.getLogger(__name__)
+
 
 class DeleteContext:
     def __init__(self, stack_name: str, region: str, profile: str, config_file: str, config_env: str, force: bool):
@@ -47,6 +49,7 @@ class DeleteContext:
     def __enter__(self):
         self.parse_config_file()
         if not self.stack_name:
+            LOG.debug("No stack-name input found")
             self.stack_name = prompt(
                 click.style("\tEnter stack name you want to delete:", bold=True), type=click.STRING
             )
@@ -71,6 +74,7 @@ class DeleteContext:
             # If the stack_name is same as the one present in samconfig file,
             # get the information about parameters if not specified by customer.
             if self.stack_name and self.stack_name == config_options.get("stack_name", None):
+                LOG.debug("Local config present and using the defined options")
                 if not self.region:
                     self.region = config_options.get("region", None)
                     click.get_current_context().region = self.region
@@ -125,6 +129,7 @@ class DeleteContext:
                     default=False,
                 )
             if not self.delete_artifacts_folder:
+                LOG.debug("S3 prefix not present or user does not want to delete the prefix folder")
                 self.delete_cf_template_file = confirm(
                     click.style(
                         "\tDo you want to delete the template file" + f" {self.cf_template_file_name} in S3?", bold=True
@@ -156,6 +161,7 @@ class DeleteContext:
         click.echo(f"\n\t- Deleting Cloudformation stack {self.stack_name}")
         self.cf_utils.delete_stack(stack_name=self.stack_name)
         self.cf_utils.wait_for_delete(self.stack_name)
+        LOG.debug("Deleted Cloudformation stack: %s", self.stack_name)
 
         # Delete the artifacts
         self.template.delete(template_dict)
@@ -170,6 +176,7 @@ class DeleteContext:
 
         # If s3_bucket information is not available
         elif not self.s3_bucket:
+            LOG.debug("Cannot delete s3 files as no s3_bucket found")
             click.secho(
                 "\nWarning: s3_bucket and s3_prefix information cannot be obtained,"
                 " delete the files manually if required",
@@ -194,7 +201,9 @@ class DeleteContext:
             is_deployed = self.cf_utils.has_stack(stack_name=self.stack_name)
             # Check if the provided stack-name exists
             if is_deployed:
+                LOG.debug("Input stack is deployed, continue deleting")
                 self.delete()
                 click.echo("\nDeleted successfully")
             else:
+                LOG.debug("Input stack does not exists on Cloudformation")
                 click.echo(f"Error: The input stack {self.stack_name} does not exist on Cloudformation")

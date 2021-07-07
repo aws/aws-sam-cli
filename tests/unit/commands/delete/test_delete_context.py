@@ -10,7 +10,7 @@ from samcli.lib.package.s3_uploader import S3Uploader
 
 
 class TestDeleteContext(TestCase):
-    @patch("samcli.commands.deploy.guided_context.click.echo")
+    @patch("samcli.commands.delete.delete_context.click.echo")
     @patch.object(CfUtils, "has_stack", MagicMock(return_value=(False)))
     def test_delete_context_stack_does_not_exist(self, patched_click_echo):
         with DeleteContext(
@@ -113,12 +113,13 @@ class TestDeleteContext(TestCase):
             self.assertEqual(CfUtils.wait_for_delete.call_count, 1)
             self.assertEqual(S3Uploader.delete_prefix_artifacts.call_count, 1)
 
+    @patch("samcli.commands.delete.delete_context.click.echo")
     @patch("samcli.commands.deploy.guided_context.click.secho")
     @patch.object(CfUtils, "has_stack", MagicMock(return_value=(True)))
     @patch.object(CfUtils, "get_stack_template", MagicMock(return_value=({"TemplateBody": "Hello World"})))
     @patch.object(CfUtils, "delete_stack", MagicMock())
     @patch.object(CfUtils, "wait_for_delete", MagicMock())
-    def test_delete_context_no_s3_bucket(self, patched_click_secho):
+    def test_delete_context_no_s3_bucket(self, patched_click_secho, patched_click_echo):
         with DeleteContext(
             stack_name="test",
             region="us-east-1",
@@ -138,14 +139,22 @@ class TestDeleteContext(TestCase):
             ]
             self.assertEqual(expected_click_secho_calls, patched_click_secho.call_args_list)
 
+            expected_click_echo_calls = [
+                call("\n\t- Deleting Cloudformation stack test"),
+                call("\nDeleted successfully"),
+            ]
+            self.assertEqual(expected_click_echo_calls, patched_click_echo.call_args_list)
+
+    @patch("samcli.commands.delete.delete_context.get_cf_template_name")
     @patch("samcli.commands.delete.delete_context.confirm")
     @patch.object(CfUtils, "has_stack", MagicMock(return_value=(True)))
     @patch.object(CfUtils, "get_stack_template", MagicMock(return_value=({"TemplateBody": "Hello World"})))
     @patch.object(CfUtils, "delete_stack", MagicMock())
     @patch.object(CfUtils, "wait_for_delete", MagicMock())
     @patch.object(S3Uploader, "delete_artifact", MagicMock())
-    def test_guided_prompts_s3_bucket_prefix_present_execute_run(self, patched_confirm):
+    def test_guided_prompts_s3_bucket_prefix_present_execute_run(self, patched_confirm, patched_get_cf_template_name):
 
+        patched_get_cf_template_name.return_value = "hello.template"
         with DeleteContext(
             stack_name="test",
             region="us-east-1",
@@ -179,7 +188,7 @@ class TestDeleteContext(TestCase):
                 ),
                 call(
                     click.style(
-                        "\tDo you want to delete the template file b10a8db164e0754105b7a99be72e3fe5.template in S3?",
+                        "\tDo you want to delete the template file hello.template in S3?",
                         bold=True,
                     ),
                     default=False,
@@ -190,14 +199,18 @@ class TestDeleteContext(TestCase):
             self.assertFalse(delete_context.delete_artifacts_folder)
             self.assertTrue(delete_context.delete_cf_template_file)
 
+    @patch("samcli.commands.delete.delete_context.get_cf_template_name")
     @patch("samcli.commands.delete.delete_context.confirm")
     @patch.object(CfUtils, "has_stack", MagicMock(return_value=(True)))
     @patch.object(CfUtils, "get_stack_template", MagicMock(return_value=({"TemplateBody": "Hello World"})))
     @patch.object(CfUtils, "delete_stack", MagicMock())
     @patch.object(CfUtils, "wait_for_delete", MagicMock())
     @patch.object(S3Uploader, "delete_artifact", MagicMock())
-    def test_guided_prompts_s3_bucket_present_no_prefix_execute_run(self, patched_confirm):
+    def test_guided_prompts_s3_bucket_present_no_prefix_execute_run(
+        self, patched_confirm, patched_get_cf_template_name
+    ):
 
+        patched_get_cf_template_name.return_value = "hello.template"
         with DeleteContext(
             stack_name="test",
             region="us-east-1",
@@ -222,7 +235,7 @@ class TestDeleteContext(TestCase):
                 ),
                 call(
                     click.style(
-                        "\tDo you want to delete the template file b10a8db164e0754105b7a99be72e3fe5.template in S3?",
+                        "\tDo you want to delete the template file hello.template in S3?",
                         bold=True,
                     ),
                     default=False,
