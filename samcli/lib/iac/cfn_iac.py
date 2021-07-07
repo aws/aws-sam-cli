@@ -13,6 +13,7 @@ from samcli.commands._utils.resources import (
     RESOURCES_WITH_LOCAL_PATHS,
     NESTED_STACKS_RESOURCES,
 )
+from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.iac.interface import (
     IacPlugin,
     ImageAsset,
@@ -71,6 +72,7 @@ class CfnIacPlugin(IacPlugin):
             resource_id = resource.item_id
             resource_type = resource.get("Type", None)
             properties = resource.get("Properties", {})
+            package_type = properties.get("PackageType", ZIP)
 
             resource_assets = []
 
@@ -81,7 +83,7 @@ class CfnIacPlugin(IacPlugin):
             if resource_type in RESOURCES_WITH_LOCAL_PATHS:
                 for path_prop_name in RESOURCES_WITH_LOCAL_PATHS[resource_type]:
                     asset_path = jmespath.search(path_prop_name, properties)
-                    if is_local_path(asset_path):
+                    if is_local_path(asset_path) and package_type == ZIP:
                         reference_path = base_dir if resource_type in BASE_DIR_RESOURCES else os.path.dirname(path)
                         asset_path = get_local_path(asset_path, reference_path)
                         asset = S3Asset(source_path=asset_path, source_property=path_prop_name)
@@ -91,7 +93,7 @@ class CfnIacPlugin(IacPlugin):
             if resource_type in RESOURCES_WITH_IMAGE_COMPONENT:
                 for path_prop_name in RESOURCES_WITH_IMAGE_COMPONENT[resource_type]:
                     asset_path = jmespath.search(path_prop_name, properties)
-                    if asset_path:
+                    if asset_path and package_type == IMAGE:
                         asset = ImageAsset(source_local_image=asset_path, source_property=path_prop_name)
                         resource_assets.append(asset)
                         stack.assets.append(asset)
