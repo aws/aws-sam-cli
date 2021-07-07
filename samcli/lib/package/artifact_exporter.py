@@ -40,7 +40,7 @@ from samcli.lib.package.uploaders import Uploaders
 from samcli.lib.package.utils import is_local_folder, mktempfile, is_s3_url, is_local_file, make_abs_path
 from samcli.lib.utils.packagetype import ZIP
 from samcli.yamlhelper import yaml_dump
-from samcli.lib.iac.interface import Stack as IacStack, IacPlugin
+from samcli.lib.iac.interface import Stack as IacStack, IacPlugin, Resource as IacResource, DictSectionItem
 
 
 # NOTE: sriram-mv, A cyclic dependency on `Template` needs to be broken.
@@ -72,7 +72,15 @@ class CloudFormationStackResource(ResourceZip):
         and set property to URL of the uploaded S3 template
         """
 
-        resource_dict = resource.get("Properties", {})
+        resource_dict = None
+        if isinstance(resource, IacResource):
+            resource_dict = resource.get("Properties")
+        elif isinstance(resource, DictSectionItem):
+            resource_dict = resource.body
+
+        if resource_dict is None:
+            return
+
         asset = resource.assets[0]
 
         template_path = asset.source_path

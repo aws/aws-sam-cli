@@ -9,7 +9,7 @@ from typing import Optional, Union
 from botocore.utils import set_value_from_jmespath
 
 from samcli.commands.package import exceptions
-from samcli.lib.iac.interface import S3Asset, ImageAsset
+from samcli.lib.iac.interface import S3Asset, ImageAsset, DictSectionItem, Resource as IacResource
 from samcli.lib.package.ecr_uploader import ECRUploader
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Destination, Uploaders
@@ -100,7 +100,12 @@ class ResourceZip(Resource):
     # FIXME: add type annotation once MRO fixed in Iac interface
     def export(self, resource, parent_dir):
         resource_id = resource.key
-        resource_dict = resource.get("Properties", {})
+        resource_dict = None
+        if isinstance(resource, IacResource):
+            resource_dict = resource.get("Properties")
+        elif isinstance(resource, DictSectionItem):
+            resource_dict = resource.body
+
         if resource_dict is None:
             return
 
@@ -146,7 +151,11 @@ class ResourceZip(Resource):
         # code signer only accepts files which has '.zip' extension in it
         # so package artifact with '.zip' if it is required to be signed
         resource_id = resource.key
-        resource_dict = resource.get("Properties", {})
+        resource_dict = None
+        if isinstance(resource, IacResource):
+            resource_dict = resource.get("Properties")
+        elif isinstance(resource, DictSectionItem):
+            resource_dict = resource.body
 
         if not (resource.assets and isinstance(resource.assets[0], S3Asset)):
             return
@@ -166,7 +175,7 @@ class ResourceZip(Resource):
             uploaded_url = self.code_signer.sign_package(
                 resource_id, uploaded_url, self.uploader.get_version_of_artifact(uploaded_url)
             )
-        if self.iac.should_update_property_after_package:
+        if self.iac.should_update_property_after_package(asset):
             set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, uploaded_url)
 
 
@@ -185,7 +194,12 @@ class ResourceImageDict(Resource):
     # FIXME: add type annotation once MRO fixed in Iac interface
     def export(self, resource, parent_dir):
         resource_id = resource.key
-        resource_dict = resource.get("Properties", {})
+        resource_dict = None
+        if isinstance(resource, IacResource):
+            resource_dict = resource.get("Properties")
+        elif isinstance(resource, DictSectionItem):
+            resource_dict = resource.body
+
         if resource_dict is None:
             return
 
@@ -213,7 +227,11 @@ class ResourceImageDict(Resource):
         uploaded URL.
         """
         resource_id = resource.key
-        resource_dict = resource.get("Properties", {})
+        resource_dict = None
+        if isinstance(resource, IacResource):
+            resource_dict = resource.get("Properties")
+        elif isinstance(resource, DictSectionItem):
+            resource_dict = resource.body
 
         if not (resource.assets and isinstance(resource.assets[0], ImageAsset)):
             return
@@ -240,7 +258,12 @@ class ResourceImage(Resource):
     # FIXME: add type annotation once MRO fixed in Iac interface
     def export(self, resource, parent_dir):
         resource_id = resource.key
-        resource_dict = resource.get("Properties", {})
+        resource_dict = None
+        if isinstance(resource, IacResource):
+            resource_dict = resource.get("Properties")
+        elif isinstance(resource, DictSectionItem):
+            resource_dict = resource.body
+
         if resource_dict is None:
             return
 
@@ -267,7 +290,12 @@ class ResourceImage(Resource):
         URL of the uploaded object
         """
         resource_id = resource.key
-        resource_dict = resource.get("Properties", {})
+        resource_dict = None
+        if isinstance(resource, IacResource):
+            resource_dict = resource.get("Properties")
+        elif isinstance(resource, DictSectionItem):
+            resource_dict = resource.body
+
         uploaded_url = upload_local_image_artifacts(
             resource_id, resource.assets[0], self.PROPERTY_NAME, parent_dir, self.uploader
         )
@@ -295,7 +323,12 @@ class ResourceWithS3UrlDict(ResourceZip):
         of the uploaded object
         """
         resource_id = resource.key
-        resource_dict = resource.get("Properties", {})
+        resource_dict = None
+        if isinstance(resource, IacResource):
+            resource_dict = resource.get("Properties")
+        elif isinstance(resource, DictSectionItem):
+            resource_dict = resource.body
+
         asset = resource.assets[0]
 
         artifact_s3_url = upload_local_artifacts(resource_id, asset, self.PROPERTY_NAME, parent_dir, self.uploader)

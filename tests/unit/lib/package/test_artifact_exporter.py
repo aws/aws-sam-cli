@@ -52,7 +52,7 @@ from samcli.lib.package.packageable_resources import (
     ResourceZip,
     ResourceImage,
 )
-from samcli.lib.iac.interface import Stack as IacStack, S3Asset
+from samcli.lib.iac.interface import Stack as IacStack, S3Asset, Resource as IacResource
 
 
 class TestArtifactExporter(unittest.TestCase):
@@ -71,7 +71,7 @@ class TestArtifactExporter(unittest.TestCase):
         self.code_signer_mock.should_sign_package.return_value = False
 
         self.iac_mock = Mock()
-        self.iac_mock.should_update_property_after_package = True
+        self.iac_mock.should_update_property_after_package.return_value = True
         self.iac_mock.update_resource_after_packaging = Mock()
 
     def test_all_resources_export(self):
@@ -118,7 +118,7 @@ class TestArtifactExporter(unittest.TestCase):
             resource_obj = ServerlessFunctionResource(
                 uploaders=self.uploaders_mock, code_signer=code_signer_mock, iac=self.iac_mock
             )
-            iac_resource_mock = MagicMock()
+            iac_resource_mock = MagicMock(spec=IacResource)
             iac_resource_mock.key = "id"
             iac_resource_mock.get.return_value = {"InlineCode": "code"}
             iac_resource_mock.is_packageable.return_value = False
@@ -141,7 +141,7 @@ class TestArtifactExporter(unittest.TestCase):
         uploaders_mock = Mock()
         uploaders_mock.get = Mock(return_value=s3_uploader_mock)
 
-        iac_resource_mock = MagicMock()
+        iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
         iac_resource_mock.assets = [MagicMock(spec=S3Asset)]
 
@@ -427,7 +427,7 @@ class TestArtifactExporter(unittest.TestCase):
 
         resource = MockResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
 
-        iac_resource_mock = MagicMock()
+        iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
         iac_resource_mock.assets = [MagicMock(spec=S3Asset)]
         asset_mock = iac_resource_mock.assets[0]
@@ -458,7 +458,7 @@ class TestArtifactExporter(unittest.TestCase):
 
         resource = MockResource(self.uploaders_mock, None, self.iac_mock)
 
-        iac_resource_mock = MagicMock()
+        iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
         iac_resource_mock.assets = MagicMock()
         iac_resource_mock.assets[0] = Mock()
@@ -489,7 +489,7 @@ class TestArtifactExporter(unittest.TestCase):
 
         resource = MockResource(self.uploaders_mock, None, self.iac_mock)
 
-        iac_resource_mock = MagicMock()
+        iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
         iac_resource_mock.assets = MagicMock()
         iac_resource_mock.assets[0] = Mock()
@@ -517,7 +517,7 @@ class TestArtifactExporter(unittest.TestCase):
         resource = MockResource(self.uploaders_mock, None, self.iac_mock)
 
         original_image = "123456789.dkr.ecr.us-east-1.amazonaws.com/sam-cli"
-        iac_resource_mock = MagicMock()
+        iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
         iac_resource_mock.assets = MagicMock()
         iac_resource_mock.assets[0] = Mock()
@@ -541,7 +541,7 @@ class TestArtifactExporter(unittest.TestCase):
         resource = MockResource(self.uploaders_mock, None, self.iac_mock)
 
         original_image = None
-        iac_resource_mock = MagicMock()
+        iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
         iac_resource_mock.assets = MagicMock()
         iac_resource_mock.assets[0] = Mock()
@@ -572,7 +572,7 @@ class TestArtifactExporter(unittest.TestCase):
         resource = MockResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
 
         original_path = "/path/to/file"
-        iac_resource_mock = MagicMock()
+        iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
         iac_resource_mock.assets = [MagicMock(spec=S3Asset)]
         asset_mock = iac_resource_mock.assets[0]
@@ -628,7 +628,7 @@ class TestArtifactExporter(unittest.TestCase):
         resource = MockResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
 
         original_path = "/path/to/zip_file"
-        iac_resource_mock = MagicMock()
+        iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
         iac_resource_mock.assets = [MagicMock(spec=S3Asset)]
         asset_mock = iac_resource_mock.assets[0]
@@ -678,7 +678,7 @@ class TestArtifactExporter(unittest.TestCase):
         resource = MockResourceNoForceZip(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
 
         original_path = "/path/to/file"
-        iac_resource_mock = MagicMock()
+        iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
         iac_resource_mock.assets = [MagicMock(spec=S3Asset)]
         asset_mock = iac_resource_mock.assets[0]
@@ -716,7 +716,7 @@ class TestArtifactExporter(unittest.TestCase):
 
         resource = MockResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
 
-        iac_resource_mock = MagicMock()
+        iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
         iac_resource_mock.assets = [MagicMock(spec=S3Asset)]
         asset_mock = iac_resource_mock.assets[0]
@@ -745,7 +745,7 @@ class TestArtifactExporter(unittest.TestCase):
             PACKAGE_NULL_PROPERTY = False
 
         resource = MockResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
-        iac_resource_mock = MagicMock()
+        iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
         iac_resource_mock.assets = MagicMock()
         iac_resource_mock.assets[0] = Mock()
@@ -769,7 +769,7 @@ class TestArtifactExporter(unittest.TestCase):
             PROPERTY_NAME = "foo"
 
         resource = MockResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
-        iac_resource_mock = MagicMock()
+        iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.assets = [MagicMock(spec=S3Asset)]
         iac_resource_mock.key = "id"
         parent_dir = "dir"
@@ -800,7 +800,7 @@ class TestArtifactExporter(unittest.TestCase):
         resource = MockResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
 
         # Case 1: Property value is a path to file
-        iac_resource_mock = MagicMock()
+        iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
         iac_resource_mock.assets = MagicMock()
         iac_resource_mock.assets[0] = Mock()
@@ -837,7 +837,7 @@ class TestArtifactExporter(unittest.TestCase):
 
         resource = MockResource(self.uploaders_mock, code_signer_mock, self.iac_mock)
 
-        iac_resource_mock = MagicMock()
+        iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
         iac_resource_mock.assets = [MagicMock(spec=S3Asset)]
         asset_mock = iac_resource_mock.assets[0]
@@ -853,7 +853,7 @@ class TestArtifactExporter(unittest.TestCase):
     def test_export_cloudformation_stack(self, TemplateMock):
         stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
 
-        iac_resource_mock = MagicMock()
+        iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
         property_name = stack_resource.PROPERTY_NAME
         exported_template_dict = {"foo": "bar"}
@@ -896,7 +896,7 @@ class TestArtifactExporter(unittest.TestCase):
         do_export_mock = Mock()
         stack_resource.do_export = do_export_mock
 
-        iac_resource_mock = MagicMock()
+        iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.nested_stack = None
 
         stack_resource.export(iac_resource_mock, "dir")
@@ -904,7 +904,7 @@ class TestArtifactExporter(unittest.TestCase):
 
     def test_export_cloudformation_stack_no_upload_path_is_s3url(self):
         stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
-        iac_resource_mock = MagicMock()
+        iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
         property_name = stack_resource.PROPERTY_NAME
         s3_url = "s3://hello/world"
@@ -920,7 +920,7 @@ class TestArtifactExporter(unittest.TestCase):
 
     def test_export_cloudformation_stack_no_upload_path_is_httpsurl(self):
         stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
-        iac_resource_mock = MagicMock()
+        iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
         property_name = stack_resource.PROPERTY_NAME
         s3_url = "https://s3.amazonaws.com/hello/world"
@@ -937,7 +937,7 @@ class TestArtifactExporter(unittest.TestCase):
     def test_export_cloudformation_stack_no_upload_path_is_s3_region_httpsurl(self):
         stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
 
-        iac_resource_mock = MagicMock()
+        iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
         property_name = stack_resource.PROPERTY_NAME
         s3_url = "https://s3.some-valid-region.amazonaws.com/hello/world"
@@ -952,7 +952,7 @@ class TestArtifactExporter(unittest.TestCase):
 
     def test_export_cloudformation_stack_no_upload_path_is_empty(self):
         stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
-        iac_resource_mock = MagicMock()
+        iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
         property_name = stack_resource.PROPERTY_NAME
         s3_url = "s3://hello/world"
@@ -969,7 +969,7 @@ class TestArtifactExporter(unittest.TestCase):
 
     def test_export_cloudformation_stack_no_upload_path_not_file(self):
         stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
-        iac_resource_mock = MagicMock()
+        iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
         property_name = stack_resource.PROPERTY_NAME
         s3_url = "s3://hello/world"
@@ -993,7 +993,7 @@ class TestArtifactExporter(unittest.TestCase):
     def test_export_serverless_application(self, TemplateMock):
         stack_resource = ServerlessApplicationResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
 
-        iac_resource_mock = MagicMock()
+        iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
         property_name = stack_resource.PROPERTY_NAME
         iac_resource_mock.assets = MagicMock()
@@ -1033,7 +1033,7 @@ class TestArtifactExporter(unittest.TestCase):
 
     def test_export_serverless_application_no_upload_path_is_s3url(self):
         stack_resource = ServerlessApplicationResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
-        iac_resource_mock = MagicMock()
+        iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
         property_name = stack_resource.PROPERTY_NAME
         s3_url = "s3://hello/world"
@@ -1049,7 +1049,7 @@ class TestArtifactExporter(unittest.TestCase):
 
     def test_export_serverless_application_no_upload_path_is_httpsurl(self):
         stack_resource = ServerlessApplicationResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
-        iac_resource_mock = MagicMock()
+        iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
         property_name = stack_resource.PROPERTY_NAME
         s3_url = "https://s3.amazonaws.com/hello/world"
@@ -1065,7 +1065,7 @@ class TestArtifactExporter(unittest.TestCase):
 
     def test_export_serverless_application_no_upload_path_is_empty(self):
         stack_resource = ServerlessApplicationResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
-        iac_resource_mock = MagicMock()
+        iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
         property_name = stack_resource.PROPERTY_NAME
 
@@ -1080,7 +1080,7 @@ class TestArtifactExporter(unittest.TestCase):
 
     def test_export_serverless_application_no_upload_path_not_file(self):
         stack_resource = ServerlessApplicationResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
-        iac_resource_mock = MagicMock()
+        iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
         iac_resource_mock.assets = MagicMock()
         iac_resource_mock.assets[0] = Mock()
@@ -1101,7 +1101,7 @@ class TestArtifactExporter(unittest.TestCase):
 
     def test_export_serverless_application_no_upload_path_is_dictionary(self):
         stack_resource = ServerlessApplicationResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
-        iac_resource_mock = MagicMock()
+        iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
         property_name = stack_resource.PROPERTY_NAME
 
