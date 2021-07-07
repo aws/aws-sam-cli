@@ -59,7 +59,7 @@ class GuidedContext:
 
     def _prompt_pipeline_user(self) -> None:
         self.pipeline_user_arn = click.prompt(
-            "Enter the Pipeline IAM User ARN if you have previously created one, or we will create one for you",
+            "Enter the pipeline IAM user ARN if you have previously created one, or we will create one for you",
             default="",
             type=click.STRING,
         )
