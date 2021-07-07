@@ -1154,9 +1154,9 @@ class TestArtifactExporter(unittest.TestCase):
         exported_template = template_exporter.export()
         self.assertEqual(exported_template, template_dict)
 
-        metadata_type1_class.assert_called_once_with(self.uploaders_mock, self.code_signer_mock)
+        metadata_type1_class.assert_called_once_with(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
         metadata_type1_instance.export.assert_called_once_with("metadata_type1", mock.ANY, template_dir)
-        metadata_type2_class.assert_called_once_with(self.uploaders_mock, self.code_signer_mock)
+        metadata_type2_class.assert_called_once_with(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
         metadata_type2_instance.export.assert_called_once_with("metadata_type2", mock.ANY, template_dir)
 
     def test_template_export(self):
