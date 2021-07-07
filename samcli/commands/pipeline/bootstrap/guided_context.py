@@ -170,7 +170,7 @@ class GuidedContext:
 
         account_id = get_current_account_id()
         click.secho("[1] Account details", bold=True)
-        if click.confirm(f"You are bootstrapping resources in Account {account_id}. Do you want to switch accounts?"):
+        if click.confirm(f"You are bootstrapping resources in account {account_id}. Do you want to switch accounts?"):
             click.echo(f"Please refer to this page about configuring credentials: {CONFIG_AWS_CRED_DOC_URL}.")
             sys.exit(0)
 
