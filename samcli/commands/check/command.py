@@ -16,7 +16,6 @@ from samcli.commands._utils.options import template_option_without_build
 
 from samtranslator.translator.translator import Translator
 from samtranslator.public.exceptions import InvalidDocumentException
-from .exceptions import InvalidSamDocumentException
 
 import boto3
 from samtranslator.translator.managed_policy_translator import ManagedPolicyLoader
@@ -26,7 +25,6 @@ from samcli.yamlhelper import yaml_dump
 from samcli.lib.utils.packagetype import ZIP
 
 from samcli.lib.replace_uri.replace_uri import ReplaceLocalCodeUri
-
 
 
 SHORT_HELP = "Checks template for bottle necks."
