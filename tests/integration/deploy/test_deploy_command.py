@@ -306,7 +306,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         self.assertEqual(deploy_process_execute.process.returncode, 1)
         self.assertIn(
             bytes(
-                f"S3 Bucket not specified, use --s3-bucket to specify a bucket name or run sam deploy --guided",
+                f"Cannot skip both --resolve-s3 and --s3-bucket parameters. Please provide one of these arguments.",
                 encoding="utf-8",
             ),
             deploy_process_execute.stderr,
