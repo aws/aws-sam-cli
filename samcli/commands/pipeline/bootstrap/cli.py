@@ -211,7 +211,7 @@ def do_cli(
                 f"""\
                 View the definition in {os.path.join(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)},
                 run {Colored().bold("sam pipeline bootstrap")} to generate another set of resources, or proceed to
-                {Colored().bold("sam pipeline init")} to create your Pipeline Config file.
+                {Colored().bold("sam pipeline init")} to create your pipeline configuration file.
                 """
             )
         )
