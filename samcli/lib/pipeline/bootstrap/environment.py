@@ -1,15 +1,18 @@
 """ Application Environment """
+import json
 import os
 import pathlib
 import re
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
+import boto3
 import click
 
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.managed_cloudformation_stack import manage_stack, StackOutput
-from .resource import Resource, IAMUser, ECRImageRepository
+from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
+from samcli.lib.pipeline.bootstrap.resource import Resource, IAMUser, ECRImageRepository
 
 CFN_TEMPLATE_PATH = str(pathlib.Path(os.path.dirname(__file__)))
 STACK_NAME_PREFIX = "aws-sam-cli-managed"
@@ -172,14 +175,43 @@ class Environment:
             },
         )
 
+        pipeline_user_secret_sm_id = output.get("PipelineUserSecretKey")
+
         self.pipeline_user.arn = output.get("PipelineUser")
-        self.pipeline_user.access_key_id = output.get("PipelineUserAccessKeyId")
-        self.pipeline_user.secret_access_key = output.get("PipelineUserSecretAccessKey")
+        if pipeline_user_secret_sm_id:
+            (
+                self.pipeline_user.access_key_id,
+                self.pipeline_user.secret_access_key,
+            ) = Environment._get_pipeline_user_secret_pair(pipeline_user_secret_sm_id)
         self.pipeline_execution_role.arn = output.get("PipelineExecutionRole")
         self.cloudformation_execution_role.arn = output.get("CloudFormationExecutionRole")
         self.artifacts_bucket.arn = output.get("ArtifactsBucket")
         self.image_repository.arn = output.get("ImageRepository")
         return True
+
+    @staticmethod
+    def _get_pipeline_user_secret_pair(secret_manager_arn: str) -> Tuple[str, str]:
+        """
+        Helper method to fetch pipeline user's AWS Credentials from secrets manager.
+        SecretString need to be in following JSON format:
+        {
+          "aws_access_key_id": "AWSSECRETACCESSKEY123",
+          "aws_secret_access_key": "mYSuperSecretDummyKey"
+        }
+        Parameters
+        ----------
+        secret_manager_arn:
+            ARN of secret manager entry which holds pipeline user key.
+
+        Returns tuple of aws_access_key_id and aws_secret_access_key.
+
+        """
+        boto_config = get_boto_config_with_user_agent()
+        secrets_manager_client = boto3.client("secretsmanager", config=boto_config)
+        response = secrets_manager_client.get_secret_value(SecretId=secret_manager_arn)
+        secret_string = response["SecretString"]
+        secret_json = json.loads(secret_string)
+        return secret_json["aws_access_key_id"], secret_json["aws_secret_access_key"]
 
     @staticmethod
     def _read_template(template_file_name: str) -> str:
