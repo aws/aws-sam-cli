@@ -82,7 +82,7 @@ class GuidedContext:
 
     def _prompt_artifacts_bucket(self) -> None:
         self.artifacts_bucket_arn = click.prompt(
-            "Please enter the bucket artifact ARN for your Lambda function. "
+            "Please enter the artifact bucket ARN for your Lambda function. "
             "If you do not have a bucket, we will create one for you",
             default="",
             type=click.STRING,
