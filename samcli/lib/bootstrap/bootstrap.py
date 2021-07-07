@@ -5,6 +5,7 @@ Bootstrap's user's development environment by creating cloud resources required 
 import json
 import logging
 import boto3
+
 from samcli import __version__
 from samcli.cli.global_config import GlobalConfig
 from samcli.commands.exceptions import UserException, CredentialsError

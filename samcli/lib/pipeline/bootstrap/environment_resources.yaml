@@ -67,6 +67,12 @@ Resources:
       Status: Active
       UserName: !Ref PipelineUser
 
+  PipelineUserSecretKey:
+    Type: AWS::SecretsManager::Secret
+    Condition: MissingPipelineUser
+    Properties:
+      SecretString: !Sub '{"aws_access_key_id": "${PipelineUserAccessKey}", "aws_secret_access_key": "${PipelineUserAccessKey.SecretAccessKey}"}'
+
   CloudFormationExecutionRole:
     Type: AWS::IAM::Role
     Condition: MissingCloudFormationExecutionRole
@@ -328,15 +334,10 @@ Outputs:
         - !GetAtt PipelineUser.Arn
         - !Ref PipelineUserArn
 
-  PipelineUserAccessKeyId:
+  PipelineUserSecretKey:
+    Description: AWS Access Key and Secret Key of pipeline user.
     Condition: MissingPipelineUser
-    Description: AccessKeyId of the Pipeline IAM User
-    Value: !Ref PipelineUserAccessKey
-
-  PipelineUserSecretAccessKey:
-    Condition: MissingPipelineUser
-    Description: SecretAccessKey of the Pipeline IAM User
-    Value: !GetAtt PipelineUserAccessKey.SecretAccessKey
+    Value: !Ref PipelineUserSecretKey
 
   CloudFormationExecutionRole:
     Description: ARN of the IAM Role(CloudFormationExecutionRole)

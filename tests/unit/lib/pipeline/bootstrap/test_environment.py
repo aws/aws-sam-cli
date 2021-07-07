@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import Mock, patch, call
+from unittest.mock import Mock, patch, call, MagicMock
 
 from samcli.lib.pipeline.bootstrap.environment import Environment
 
@@ -87,13 +87,15 @@ class TestEnvironment(TestCase):
         )
         self.assertTrue(environment.did_user_provide_all_required_resources())
 
+    @patch("samcli.lib.pipeline.bootstrap.environment.Environment._get_pipeline_user_secret_pair")
     @patch("samcli.lib.pipeline.bootstrap.environment.click")
     @patch("samcli.lib.pipeline.bootstrap.environment.manage_stack")
     def test_did_user_provide_all_required_resources_returns_false_if_the_environment_was_initialized_without_any_of_the_resources_even_if_fulfilled_after_bootstrap(
-        self, manage_stack_mock, click_mock
+        self, manage_stack_mock, click_mock, pipeline_user_secret_pair_mock
     ):
         # setup
         stack_output = Mock()
+        pipeline_user_secret_pair_mock.return_value = ("id", "secret")
         stack_output.get.return_value = ANY_ARN
         manage_stack_mock.return_value = stack_output
         environment: Environment = Environment(name=ANY_ENVIRONMENT_NAME)
@@ -123,12 +125,14 @@ class TestEnvironment(TestCase):
         environment.bootstrap(confirm_changeset=False)
         manage_stack_mock.assert_not_called()
 
+    @patch("samcli.lib.pipeline.bootstrap.environment.Environment._get_pipeline_user_secret_pair")
     @patch("samcli.lib.pipeline.bootstrap.environment.click")
     @patch("samcli.lib.pipeline.bootstrap.environment.manage_stack")
     def test_bootstrap_will_confirm_before_deploying_unless_confirm_changeset_is_disabled(
-        self, manage_stack_mock, click_mock
+        self, manage_stack_mock, click_mock, pipeline_user_secret_pair_mock
     ):
         click_mock.confirm.return_value = False
+        pipeline_user_secret_pair_mock.return_value = ("id", "secret")
         environment: Environment = Environment(name=ANY_ENVIRONMENT_NAME)
         environment.bootstrap(confirm_changeset=False)
         click_mock.confirm.assert_not_called()
@@ -148,20 +152,26 @@ class TestEnvironment(TestCase):
         environment.bootstrap(confirm_changeset=True)
         manage_stack_mock.assert_not_called()
 
+    @patch("samcli.lib.pipeline.bootstrap.environment.Environment._get_pipeline_user_secret_pair")
     @patch("samcli.lib.pipeline.bootstrap.environment.click")
     @patch("samcli.lib.pipeline.bootstrap.environment.manage_stack")
-    def test_bootstrap_will_deploy_the_cfn_template_if_the_user_did_confirm(self, manage_stack_mock, click_mock):
+    def test_bootstrap_will_deploy_the_cfn_template_if_the_user_did_confirm(
+        self, manage_stack_mock, click_mock, pipeline_user_secret_pair_mock
+    ):
         click_mock.confirm.return_value = True
+        pipeline_user_secret_pair_mock.return_value = ("id", "secret")
         environment: Environment = Environment(name=ANY_ENVIRONMENT_NAME)
         environment.bootstrap(confirm_changeset=True)
         manage_stack_mock.assert_called_once()
 
+    @patch("samcli.lib.pipeline.bootstrap.environment.Environment._get_pipeline_user_secret_pair")
     @patch("samcli.lib.pipeline.bootstrap.environment.click")
     @patch("samcli.lib.pipeline.bootstrap.environment.manage_stack")
     def test_bootstrap_will_pass_arns_of_all_user_provided_resources_any_empty_strings_for_other_resources_to_the_cfn_stack(
-        self, manage_stack_mock, click_mock
+        self, manage_stack_mock, click_mock, pipeline_user_secret_pair_mock
     ):
         click_mock.confirm.return_value = True
+        pipeline_user_secret_pair_mock.return_value = ("id", "secret")
         environment: Environment = Environment(
             name=ANY_ENVIRONMENT_NAME,
             pipeline_user_arn=ANY_PIPELINE_USER_ARN,
@@ -183,10 +193,14 @@ class TestEnvironment(TestCase):
         }
         self.assertEqual(expected_parameter_overrides, kwargs["parameter_overrides"])
 
+    @patch("samcli.lib.pipeline.bootstrap.environment.Environment._get_pipeline_user_secret_pair")
     @patch("samcli.lib.pipeline.bootstrap.environment.click")
     @patch("samcli.lib.pipeline.bootstrap.environment.manage_stack")
-    def test_bootstrap_will_fullfill_all_resource_arns(self, manage_stack_mock, click_mock):
+    def test_bootstrap_will_fullfill_all_resource_arns(
+        self, manage_stack_mock, click_mock, pipeline_user_secret_pair_mock
+    ):
         # setup
+        pipeline_user_secret_pair_mock.return_value = ("id", "secret")
         stack_output = Mock()
         stack_output.get.return_value = ANY_ARN
         manage_stack_mock.return_value = stack_output
@@ -278,6 +292,19 @@ class TestEnvironment(TestCase):
         self.assertEqual(len(expected_calls), samconfig_put_mock.call_count)
         samconfig_put_mock.assert_has_calls(expected_calls)
         samconfig_put_mock.reset_mock()
+
+    @patch("samcli.lib.pipeline.bootstrap.environment.boto3")
+    def test_getting_pipeline_user_credentials(self, boto3_mock):
+        sm_client_mock = MagicMock()
+        sm_client_mock.get_secret_value.return_value = {
+            "SecretString": '{"aws_access_key_id": "AccessKeyId", "aws_secret_access_key": "SuperSecretKey"}'
+        }
+        boto3_mock.client.return_value = sm_client_mock
+
+        (key, secret) = Environment._get_pipeline_user_secret_pair("dummy_arn")
+        self.assertEqual(key, "AccessKeyId")
+        self.assertEqual(secret, "SuperSecretKey")
+        sm_client_mock.get_secret_value.assert_called_once_with(SecretId="dummy_arn")
 
     @patch("samcli.lib.pipeline.bootstrap.environment.SamConfig")
     def test_save_config_ignores_exceptions_thrown_while_calculating_artifacts_bucket_name(self, samconfig_mock):
