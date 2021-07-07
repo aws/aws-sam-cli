@@ -66,7 +66,7 @@ class GuidedContext:
 
     def _prompt_pipeline_execution_role(self) -> None:
         self.pipeline_execution_role_arn = click.prompt(
-            "Enter the Pipeline execution role ARN if you have previously created one, "
+            "Enter the pipeline execution role ARN if you have previously created one, "
             "or we will create one for you",
             default="",
             type=click.STRING,
