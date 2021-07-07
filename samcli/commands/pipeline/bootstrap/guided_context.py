@@ -2,6 +2,7 @@
 An interactive flow that prompt the user for required information to bootstrap the AWS account of an environment
 with the required infrastructure
 """
+import sys
 from textwrap import dedent
 from typing import Optional, List, Tuple, Callable
 
@@ -149,7 +150,7 @@ class GuidedContext:
             ),
         ]
 
-    def run(self) -> None:
+    def run(self) -> None:  # pylint: disable=too-many-branches
         """
         Runs an interactive questionnaire to prompt the user for the ARNs of the AWS resources(infrastructure) required
         for the pipeline to work. Users can provide all, none or some resources' ARNs and leave the remaining empty
@@ -159,8 +160,8 @@ class GuidedContext:
             dedent(
                 """\
                 SAM Pipeline Bootstrap generates the necessary AWS resources to connect your
-                CI/CD pipeline tool. We will ask for [1] account details, [2] stage definition, 
-                and [3] references to existing resources in order to bootstrap these pipeline 
+                CI/CD pipeline tool. We will ask for [1] account details, [2] stage definition,
+                and [3] references to existing resources in order to bootstrap these pipeline
                 resources. You can also add optional security parameters.
                 """
             ),
@@ -171,7 +172,7 @@ class GuidedContext:
         click.secho("[1] Account details", bold=True)
         if click.confirm(f"You are bootstrapping resources in Account {account_id}. Do you want to switch accounts?"):
             click.echo(f"Please refer to this page about configuring credentials: {CONFIG_AWS_CRED_DOC_URL}.")
-            exit(0)
+            sys.exit(0)
 
         click.secho("[2] Stage definition", bold=True)
         if self.environment_name:

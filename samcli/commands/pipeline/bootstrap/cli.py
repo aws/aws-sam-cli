@@ -220,7 +220,7 @@ def do_cli(
             click.secho(
                 dedent(
                     """\
-                    Before running sam pipeline init, we recommend first setting up AWS credentials 
+                    Before running sam pipeline init, we recommend first setting up AWS credentials
                     in your CI/CD account. Read more about how to do so with your provider in
                     [DOCS-LINK].
                     """

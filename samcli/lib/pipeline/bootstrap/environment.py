@@ -321,7 +321,7 @@ class Environment:
                 click.secho(self.color.green(f"  - {resource.comment}"))
 
         if not self.pipeline_user.is_user_provided:
-            click.secho(self.color.green(f"Pipeline IAM user credential:"))
+            click.secho(self.color.green("Pipeline IAM user credential:"))
             click.secho(self.color.green(f"\tAWS_ACCESS_KEY_ID: {self.pipeline_user.access_key_id}"))
             click.secho(self.color.green(f"\tAWS_SECRET_ACCESS_KEY: {self.pipeline_user.secret_access_key}"))
 
