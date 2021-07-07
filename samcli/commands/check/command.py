@@ -26,6 +26,11 @@ from samcli.lib.utils.packagetype import ZIP
 
 from samcli.lib.replace_uri.replace_uri import ReplaceLocalCodeUri
 
+from samcli.lib.providers.sam_function_provider import SamFunctionProvider
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+from .bottle_necks import BottleNecks
+from .graph_context import GraphContext
+from .resources.LambdaFunction import LambdaFunction
 
 SHORT_HELP = "Checks template for bottle necks."
 
@@ -115,6 +120,32 @@ def do_cli(ctx, template):
         ) from e
 
     click.echo("... analyzing application template")
+
+    graph = parse_template()
+
+    bottle_necks = BottleNecks(graph)
+    bottle_necks.ask_entry_point_question()
+
+
+def parse_template():
+
+    all_lambda_functions = []
+
+    # template path
+    path = os.path.realpath("template.yaml")
+
+    # Get all lambda functions
+    local_stacks = SamLocalStackProvider.get_stacks(path)[0]
+    function_provider = SamFunctionProvider(local_stacks)
+    functions = function_provider.get_all()  # List of all functions in the stacks
+    for stack_function in functions:
+        new_lambda_function = LambdaFunction(stack_function, "AWS::Lambda::Function")
+        all_lambda_functions.append(new_lambda_function)
+
+    # After all resources have been parsed from template, pass them into the graph
+    graph_context = GraphContext(all_lambda_functions)
+
+    return graph_context.generate()
 
 
 def _read_sam_file(template):
