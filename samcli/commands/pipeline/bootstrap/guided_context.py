@@ -102,7 +102,7 @@ class GuidedContext:
 
     def _prompt_ip_range(self) -> None:
         self.pipeline_ip_range = click.prompt(
-            "For added security, you can define the permitted Pipeline IP range. "
+            "For added security, you can define the permitted pipeline IP range. "
             "Enter the IP addresses to restrict access to",
             default="",
             type=click.STRING,
