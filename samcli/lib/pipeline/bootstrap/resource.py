@@ -44,6 +44,8 @@ class Resource:
     ----------
     arn: str
         the ARN of the resource
+    comment: str
+        the comment of the resource
     is_user_provided: bool
         True if the user provided the ARN of the resource during the initialization. It indicates whether this pipeline-
         resource is provided by the user or created by SAM during `sam pipeline bootstrap`
@@ -54,8 +56,9 @@ class Resource:
         extracts and returns the resource name from its ARN
     """
 
-    def __init__(self, arn: Optional[str]) -> None:
+    def __init__(self, arn: Optional[str], comment: Optional[str]) -> None:
         self.arn: Optional[str] = arn
+        self.comment: Optional[str] = comment
         self.is_user_provided: bool = bool(arn)
 
     def name(self) -> Optional[str]:
@@ -83,11 +86,15 @@ class IAMUser(Resource):
     """
 
     def __init__(
-        self, arn: Optional[str], access_key_id: Optional[str] = None, secret_access_key: Optional[str] = None
+        self,
+        arn: Optional[str],
+        comment: Optional[str],
+        access_key_id: Optional[str] = None,
+        secret_access_key: Optional[str] = None,
     ) -> None:
         self.access_key_id: Optional[str] = access_key_id
         self.secret_access_key: Optional[str] = secret_access_key
-        super().__init__(arn=arn)
+        super().__init__(arn=arn, comment=comment)
 
 
 class S3Bucket(Resource):
@@ -99,16 +106,16 @@ class S3Bucket(Resource):
         The ARN of the KMS key used in encrypting this S3Bucket, if any.
     """
 
-    def __init__(self, arn: Optional[str], kms_key_arn: Optional[str] = None) -> None:
+    def __init__(self, arn: Optional[str], comment: Optional[str], kms_key_arn: Optional[str] = None) -> None:
         self.kms_key_arn: Optional[str] = kms_key_arn
-        super().__init__(arn=arn)
+        super().__init__(arn=arn, comment=comment)
 
 
 class ECRImageRepository(Resource):
     """ Represents an AWS ECR image repository resource """
 
-    def __init__(self, arn: Optional[str]) -> None:
-        super().__init__(arn=arn)
+    def __init__(self, arn: Optional[str], comment: Optional[str]) -> None:
+        super().__init__(arn=arn, comment=comment)
 
     def get_uri(self) -> Optional[str]:
         """

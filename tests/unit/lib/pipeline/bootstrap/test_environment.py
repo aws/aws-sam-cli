@@ -339,8 +339,7 @@ class TestEnvironment(TestCase):
     def test_print_resources_summary_when_no_resources_provided_by_the_user(self, click_mock):
         environment: Environment = Environment(name=ANY_ENVIRONMENT_NAME)
         environment.print_resources_summary()
-        self.assert_summary_has_a_message_like("We have created the following resources", click_mock.secho)
-        self.assert_summary_does_not_have_a_message_like("You provided the following resources", click_mock.secho)
+        self.assert_summary_has_a_message_like("The following resources were created in your account", click_mock.secho)
 
     @patch("samcli.lib.pipeline.bootstrap.environment.click")
     def test_print_resources_summary_when_all_resources_are_provided_by_the_user(self, click_mock):
@@ -354,8 +353,9 @@ class TestEnvironment(TestCase):
             image_repository_arn=ANY_IMAGE_REPOSITORY_ARN,
         )
         environment.print_resources_summary()
-        self.assert_summary_does_not_have_a_message_like("We have created the following resources", click_mock.secho)
-        self.assert_summary_has_a_message_like("You provided the following resources", click_mock.secho)
+        self.assert_summary_does_not_have_a_message_like(
+            "The following resources were created in your account", click_mock.secho
+        )
 
     @patch("samcli.lib.pipeline.bootstrap.environment.click")
     def test_print_resources_summary_when_some_resources_are_provided_by_the_user(self, click_mock):
@@ -367,8 +367,7 @@ class TestEnvironment(TestCase):
             image_repository_arn=ANY_IMAGE_REPOSITORY_ARN,
         )
         environment.print_resources_summary()
-        self.assert_summary_has_a_message_like("We have created the following resources", click_mock.secho)
-        self.assert_summary_has_a_message_like("You provided the following resources", click_mock.secho)
+        self.assert_summary_has_a_message_like("The following resources were created in your account", click_mock.secho)
 
     @patch("samcli.lib.pipeline.bootstrap.environment.click")
     def test_print_resources_summary_prints_the_credentials_of_the_pipeline_user_iff_not_provided_by_the_user(

@@ -23,18 +23,18 @@ class TestArnParts(TestCase):
 
 class TestResource(TestCase):
     def test_resource(self):
-        resource = Resource(arn=VALID_ARN)
+        resource = Resource(arn=VALID_ARN, comment="")
         self.assertEqual(resource.arn, VALID_ARN)
         self.assertTrue(resource.is_user_provided)
         self.assertEqual(resource.name(), "resource-id")
 
-        resource = Resource(arn=INVALID_ARN)
+        resource = Resource(arn=INVALID_ARN, comment="")
         self.assertEqual(resource.arn, INVALID_ARN)
         self.assertTrue(resource.is_user_provided)
         with self.assertRaises(ValueError):
             resource.name()
 
-        resource = Resource(arn=None)
+        resource = Resource(arn=None, comment="")
         self.assertIsNone(resource.arn)
         self.assertFalse(resource.is_user_provided)
         self.assertIsNone(resource.name())
@@ -42,13 +42,20 @@ class TestResource(TestCase):
 
 class TestIAMUser(TestCase):
     def test_create_iam_user(self):
-        user: IAMUser = IAMUser(arn=VALID_ARN)
+        user: IAMUser = IAMUser(arn=VALID_ARN, comment="user")
         self.assertEquals(user.arn, VALID_ARN)
+        self.assertEquals(user.comment, "user")
         self.assertIsNone(user.access_key_id)
         self.assertIsNone(user.secret_access_key)
 
-        user = IAMUser(arn=INVALID_ARN, access_key_id="any_access_key_id", secret_access_key="any_secret_access_key")
+        user = IAMUser(
+            arn=INVALID_ARN,
+            access_key_id="any_access_key_id",
+            secret_access_key="any_secret_access_key",
+            comment="user",
+        )
         self.assertEquals(user.arn, INVALID_ARN)
+        self.assertEquals(user.comment, "user")
         self.assertEquals(user.access_key_id, "any_access_key_id")
         self.assertEquals(user.secret_access_key, "any_secret_access_key")
 
@@ -56,11 +63,12 @@ class TestIAMUser(TestCase):
 class TestECRImageRepository(TestCase):
     def test_get_uri_with_valid_ecr_arn(self):
         valid_ecr_arn = "arn:partition:service:region:account-id:repository/repository-name"
-        repo: ECRImageRepository = ECRImageRepository(arn=valid_ecr_arn)
+        repo: ECRImageRepository = ECRImageRepository(arn=valid_ecr_arn, comment="ecr")
         self.assertEqual(repo.get_uri(), "account-id.dkr.ecr.region.amazonaws.com/repository-name")
+        self.assertEquals("ecr", repo.comment)
 
     def test_get_uri_with_invalid_ecr_arn(self):
-        repo = ECRImageRepository(arn=INVALID_ARN)
+        repo = ECRImageRepository(arn=INVALID_ARN, comment="ecr")
         with self.assertRaises(ValueError):
             repo.get_uri()
 
@@ -68,6 +76,6 @@ class TestECRImageRepository(TestCase):
         ecr_arn_missing_repository_prefix = (
             "arn:partition:service:region:account-id:repository-name-without-repository/-prefix"
         )
-        repo = ECRImageRepository(arn=ecr_arn_missing_repository_prefix)
+        repo = ECRImageRepository(arn=ecr_arn_missing_repository_prefix, comment="ecr")
         with self.assertRaises(ValueError):
             repo.get_uri()

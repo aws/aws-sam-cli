@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 from samcli.commands.pipeline.bootstrap.guided_context import GuidedContext
 
@@ -19,6 +19,8 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.pipeline.bootstrap.guided_context.click")
     def test_guided_context_will_not_prompt_for_fields_that_are_already_provided(self, click_mock, account_id_mock):
         account_id_mock.return_value = "1234567890"
+        click_mock.confirm.return_value = False
+        click_mock.prompt = Mock(return_value="0")
         gc: GuidedContext = GuidedContext(
             environment_name=ANY_ENVIRONMENT_NAME,
             pipeline_user_arn=ANY_PIPELINE_USER_ARN,
@@ -31,23 +33,26 @@ class TestGuidedContext(TestCase):
             region=ANY_REGION,
         )
         gc.run()
-        click_mock.prompt.assert_not_called()
+        # there should only one prompt to ask what values customers want to change
+        click_mock.prompt.assert_called_once()
 
     @patch("samcli.commands.pipeline.bootstrap.guided_context.get_current_account_id")
     @patch("samcli.commands.pipeline.bootstrap.guided_context.click")
     def test_guided_context_will_prompt_for_fields_that_are_not_provided(self, click_mock, account_id_mock):
         account_id_mock.return_value = "1234567890"
+        click_mock.confirm.return_value = False
+        click_mock.prompt = Mock(return_value="0")
         gc: GuidedContext = GuidedContext(
             image_repository_arn=ANY_IMAGE_REPOSITORY_ARN  # Exclude ECR repo, it has its own detailed test below
         )
         gc.run()
-        self.assertTrue(self.did_prompt_text_like("Environment Name", click_mock.prompt))
-        self.assertTrue(self.did_prompt_text_like("Pipeline user", click_mock.prompt))
+        self.assertTrue(self.did_prompt_text_like("Stage Name", click_mock.prompt))
+        self.assertTrue(self.did_prompt_text_like("Pipeline IAM user", click_mock.prompt))
         self.assertTrue(self.did_prompt_text_like("Pipeline execution role", click_mock.prompt))
         self.assertTrue(self.did_prompt_text_like("CloudFormation execution role", click_mock.prompt))
-        self.assertTrue(self.did_prompt_text_like("Artifacts bucket", click_mock.prompt))
-        self.assertTrue(self.did_prompt_text_like("AWS region", click_mock.prompt))
-        self.assertTrue(self.did_prompt_text_like("Pipeline IP address range", click_mock.prompt))
+        self.assertTrue(self.did_prompt_text_like("Artifact bucket", click_mock.prompt))
+        self.assertTrue(self.did_prompt_text_like("region", click_mock.prompt))
+        self.assertTrue(self.did_prompt_text_like("Pipeline IP range", click_mock.prompt))
 
     @patch("samcli.commands.pipeline.bootstrap.guided_context.get_current_account_id")
     @patch("samcli.commands.pipeline.bootstrap.guided_context.click")
@@ -70,22 +75,27 @@ class TestGuidedContext(TestCase):
 
         self.assertIsNone(gc_without_ecr_info.image_repository_arn)
 
-        click_mock.prompt.return_value = "1"  # the user chose to not CREATE an ECR Image repository
+        click_mock.confirm.side_effect = [False, False]  # the user chose to not CREATE an ECR Image repository
+        click_mock.prompt.return_value = "0"
         gc_without_ecr_info.run()
         self.assertIsNone(gc_without_ecr_info.image_repository_arn)
         self.assertFalse(gc_without_ecr_info.create_image_repository)
-        self.assertFalse(self.did_prompt_text_like("ECR image repository", click_mock.prompt))
+        self.assertFalse(self.did_prompt_text_like("Please enter the ECR image repository", click_mock.prompt))
 
-        click_mock.prompt.return_value = "2"  # the user chose to CREATE an ECR Image repository
+        click_mock.confirm.side_effect = [False, True]  # the user chose to CREATE an ECR Image repository
+        click_mock.prompt.side_effect = [None, "0"]
         gc_without_ecr_info.run()
         self.assertIsNone(gc_without_ecr_info.image_repository_arn)
         self.assertTrue(gc_without_ecr_info.create_image_repository)
-        self.assertFalse(self.did_prompt_text_like("ECR image repository", click_mock.prompt))
+        self.assertTrue(self.did_prompt_text_like("Please enter the ECR image repository", click_mock.prompt))
 
-        click_mock.prompt.side_effect = ["3", ANY_IMAGE_REPOSITORY_ARN]  # the user already has a repo
+        click_mock.confirm.side_effect = [False, True]  # the user already has a repo
+        click_mock.prompt.side_effect = [ANY_IMAGE_REPOSITORY_ARN, "0"]
         gc_without_ecr_info.run()
         self.assertFalse(gc_without_ecr_info.create_image_repository)
-        self.assertTrue(self.did_prompt_text_like("ECR image repository", click_mock.prompt))  # we've asked about it
+        self.assertTrue(
+            self.did_prompt_text_like("Please enter the ECR image repository", click_mock.prompt)
+        )  # we've asked about it
         self.assertEqual(gc_without_ecr_info.image_repository_arn, ANY_IMAGE_REPOSITORY_ARN)
 
     @staticmethod
