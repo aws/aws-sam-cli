@@ -91,7 +91,7 @@ class GuidedContext:
     def _prompt_image_repository(self) -> None:
         if click.confirm("Does your application contain any IMAGE type Lambda functions?"):
             self.image_repository_arn = click.prompt(
-                "Please enter the ECR image repository ARN(s) for your IMAGE type function(s)."
+                "Please enter the ECR image repository ARN(s) for your Image type function(s)."
                 "If you do not yet have a repostiory, we will create one for you",
                 default="",
                 type=click.STRING,
