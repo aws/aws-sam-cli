@@ -373,6 +373,12 @@ class DictSectionItem(SectionItem, MutableMapping, OrderedDict):
     def extra_details(self, extra_details: Dict[str, Any]) -> None:
         self._extra_details = extra_details
 
+    def is_packageable(self):
+        """
+        return if the resource is packageable
+        """
+        return bool(self.assets)
+
     def __setitem__(self, k: str, v: Any) -> None:
         self._body[k] = v
 

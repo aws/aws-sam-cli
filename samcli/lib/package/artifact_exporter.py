@@ -197,7 +197,7 @@ class Template:
                     continue
 
                 exporter = exporter_class(self.uploaders, self.code_signer, self.iac)
-                exporter.export(metadata_type, metadata_dict, self.template_dir)
+                exporter.export(metadata_dict, self.template_dir)
 
     def _apply_global_values(self):
         """

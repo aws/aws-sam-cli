@@ -57,7 +57,10 @@ class TestPackageImage(PackageIntegBase):
             raise
         process_stderr = stderr.strip()
 
-        self.assertIn("Error: Cannot skip both --resolve-s3 and --s3-bucket parameters. Please provide one of these arguments.", process_stderr.decode("utf-8"))
+        self.assertIn(
+            "Error: Cannot skip both --resolve-s3 and --s3-bucket parameters. Please provide one of these arguments.",
+            process_stderr.decode("utf-8"),
+        )
         self.assertEqual(2, process.returncode)
 
     @parameterized.expand(

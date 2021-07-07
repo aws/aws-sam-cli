@@ -9,6 +9,7 @@ from urllib.parse import unquote, urlparse
 import jmespath
 
 from samcli.commands._utils.resources import (
+    METADATA_WITH_LOCAL_PATHS,
     RESOURCES_WITH_IMAGE_COMPONENT,
     RESOURCES_WITH_LOCAL_PATHS,
     NESTED_STACKS_RESOURCES,
@@ -53,6 +54,7 @@ class CfnIacPlugin(IacPlugin):
 
         return Project(stacks)
 
+    # pylint: disable=too-many-branches
     def _build_stack(self, path: str, is_nested: bool = False, name: Optional[str] = None) -> Stack:
         assets: List[Asset] = []
 
@@ -99,6 +101,20 @@ class CfnIacPlugin(IacPlugin):
                         stack.assets.append(asset)
 
             resource.assets = resource_assets
+
+        metadata_section = stack.get("Metadata", DictSection())
+        for metadata in metadata_section.section_items:
+            metadata_type = metadata.item_id
+            metadata_body = metadata.body
+            metadata_assets = []
+            if metadata_type in METADATA_WITH_LOCAL_PATHS:
+                for path_prop_name in METADATA_WITH_LOCAL_PATHS[metadata_type]:
+                    asset_path = jmespath.search(path_prop_name, metadata_body)
+                    asset = S3Asset(source_path=asset_path, source_property=path_prop_name)
+                    metadata_assets.append(asset)
+                    stack.assets.append(asset)
+
+            metadata.assets = metadata_assets
 
         stack.extra_details[TEMPLATE_PATH_KEY] = path
         return stack
