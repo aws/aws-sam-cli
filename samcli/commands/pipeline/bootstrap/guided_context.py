@@ -185,7 +185,7 @@ class GuidedContext:
 
         click.secho("[3] Reference existing resources", bold=True)
         if self.pipeline_user_arn:
-            click.echo(f"Pipeline IAM User ARN: {self.pipeline_user_arn}")
+            click.echo(f"Pipeline IAM user ARN: {self.pipeline_user_arn}")
         else:
             self._prompt_pipeline_user()
 
