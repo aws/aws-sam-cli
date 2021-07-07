@@ -219,8 +219,8 @@ def do_cli(
         if not environment.pipeline_user.is_user_provided:
             click.secho(
                 dedent(
-                    """\
-                    Before running sam pipeline init, we recommend first setting up AWS credentials
+                    f"""\
+                    Before running {Colored().bold("sam pipeline init")}, we recommend first setting up AWS credentials
                     in your CI/CD account. Read more about how to do so with your provider in
                     [DOCS-LINK].
                     """
