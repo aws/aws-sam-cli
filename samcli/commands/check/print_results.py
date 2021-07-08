@@ -7,15 +7,15 @@ class PrintResults:
         self.graph = graph
 
     def print_bottle_neck_results(self):
-        print("GREEN WARNINGS")
+        click.secho("Green Flags", fg="green")
         self.print_warnings(self.graph.get_green_warnings())
-        print("YELLOW WARNINGS")
+        click.secho("Yellow Flags", fg="bright_yellow")
         self.print_warnings(self.graph.get_yellow_warnings())
-        print("RED WARNINGS")
+        click.secho("Red Flags", fg="bright_red")
         self.print_warnings(self.graph.get_red_warnings())
-        print("RED BURST WARNINGS")
+        click.secho("Red Burst Flags", fg="bright_red")
         self.print_warnings(self.graph.get_red_burst_warnings())
 
     def print_warnings(self, warnings):
-        for warning in warnings:
-            click.echo(warning.get_message())
+        for wawa in warnings:
+            click.echo(wawa.get_message() + "\n")
