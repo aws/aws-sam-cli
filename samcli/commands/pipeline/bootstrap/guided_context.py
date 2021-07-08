@@ -2,10 +2,15 @@
 An interactive flow that prompt the user for required information to bootstrap the AWS account of an environment
 with the required infrastructure
 """
-from typing import Optional
+import sys
+from textwrap import dedent
+from typing import Optional, List, Tuple, Callable
 
 import click
+
+from samcli.commands.pipeline.external_links import CONFIG_AWS_CRED_DOC_URL
 from samcli.lib.bootstrap.bootstrap import get_current_account_id
+from samcli.lib.utils.colors import Colored
 
 from samcli.lib.utils.defaults import get_default_aws_region
 
@@ -32,82 +37,198 @@ class GuidedContext:
         self.image_repository_arn = image_repository_arn
         self.pipeline_ip_range = pipeline_ip_range
         self.region = region
+        self.color = Colored()
 
-    def run(self) -> None:
+    def _prompt_stage_name(self) -> None:
+        click.echo(
+            "Enter a name for the stage you want to bootstrap. This will be referenced later "
+            "when generating a Pipeline Config File with Pipeline Init."
+        )
+        self.environment_name = click.prompt(
+            "Stage name",
+            default=self.environment_name,
+            type=click.STRING,
+        )
+
+    def _prompt_region_name(self) -> None:
+        self.region = click.prompt(
+            "Enter the region you want these resources to create",
+            type=click.STRING,
+            default=get_default_aws_region(),
+        )
+
+    def _prompt_pipeline_user(self) -> None:
+        self.pipeline_user_arn = click.prompt(
+            "Enter the pipeline IAM user ARN if you have previously created one, or we will create one for you",
+            default="",
+            type=click.STRING,
+        )
+
+    def _prompt_pipeline_execution_role(self) -> None:
+        self.pipeline_execution_role_arn = click.prompt(
+            "Enter the pipeline execution role ARN if you have previously created one, "
+            "or we will create one for you",
+            default="",
+            type=click.STRING,
+        )
+
+    def _prompt_cloudformation_execution_role(self) -> None:
+        self.cloudformation_execution_role_arn = click.prompt(
+            "Enter the CloudFormation execution role ARN if you have previously created one, "
+            "or we will create one for you",
+            default="",
+            type=click.STRING,
+        )
+
+    def _prompt_artifacts_bucket(self) -> None:
+        self.artifacts_bucket_arn = click.prompt(
+            "Please enter the artifact bucket ARN for your Lambda function. "
+            "If you do not have a bucket, we will create one for you",
+            default="",
+            type=click.STRING,
+        )
+
+    def _prompt_image_repository(self) -> None:
+        if click.confirm("Does your application contain any IMAGE type Lambda functions?"):
+            self.image_repository_arn = click.prompt(
+                "Please enter the ECR image repository ARN(s) for your Image type function(s)."
+                "If you do not yet have a repostiory, we will create one for you",
+                default="",
+                type=click.STRING,
+            )
+            self.create_image_repository = not bool(self.image_repository_arn)
+        else:
+            self.create_image_repository = False
+
+    def _prompt_ip_range(self) -> None:
+        self.pipeline_ip_range = click.prompt(
+            "For added security, you can define the permitted pipeline IP range. "
+            "Enter the IP addresses to restrict access to",
+            default="",
+            type=click.STRING,
+        )
+
+    def _get_user_inputs(self) -> List[Tuple[str, Callable[[], None]]]:
+        return [
+            (f"Stage name: {self.environment_name}", self._prompt_stage_name),
+            (f"Region: {self.region}", self._prompt_region_name),
+            (
+                f"Pipeline user ARN: {self.pipeline_user_arn}"
+                if self.pipeline_user_arn
+                else "Pipeline user: to be created",
+                self._prompt_pipeline_user,
+            ),
+            (
+                f"Pipeline execution role ARN: {self.pipeline_execution_role_arn}"
+                if self.pipeline_execution_role_arn
+                else "Pipeline execution role: to be created",
+                self._prompt_pipeline_execution_role,
+            ),
+            (
+                f"CloudFormation execution role ARN: {self.cloudformation_execution_role_arn}"
+                if self.cloudformation_execution_role_arn
+                else "CloudFormation execution role: to be created",
+                self._prompt_cloudformation_execution_role,
+            ),
+            (
+                f"Artifacts bucket ARN: {self.artifacts_bucket_arn}"
+                if self.artifacts_bucket_arn
+                else "Artifacts bucket: to be created",
+                self._prompt_artifacts_bucket,
+            ),
+            (
+                f"ECR image repository ARN: {self.image_repository_arn}"
+                if self.image_repository_arn
+                else f"ECR image repository: {'to be created' if self.create_image_repository else 'skipped'}",
+                self._prompt_image_repository,
+            ),
+            (
+                f"Pipeline IP address range: {self.pipeline_ip_range}"
+                if self.pipeline_ip_range
+                else "Pipeline IP address range: none",
+                self._prompt_ip_range,
+            ),
+        ]
+
+    def run(self) -> None:  # pylint: disable=too-many-branches
         """
         Runs an interactive questionnaire to prompt the user for the ARNs of the AWS resources(infrastructure) required
         for the pipeline to work. Users can provide all, none or some resources' ARNs and leave the remaining empty
         and it will be created by the bootstrap command
         """
+        click.secho(
+            dedent(
+                f"""\
+                {Colored().bold("sam pipeline bootstrap")} generates the necessary AWS resources to connect your
+                CI/CD system. We will ask for [1] account details, [2] stage definition,
+                and [3] references to existing resources in order to bootstrap these pipeline
+                resources. You can also add optional security parameters.
+                """
+            ),
+            fg="cyan",
+        )
+
         account_id = get_current_account_id()
-        if not self.environment_name:
-            self.environment_name = click.prompt(
-                f"Environment name (a descriptive name for the environment which will be deployed"
-                f" to AWS account {account_id})",
-                type=click.STRING,
-            )
+        click.secho("[1] Account details", bold=True)
+        if click.confirm(f"You are bootstrapping resources in account {account_id}. Do you want to switch accounts?"):
+            click.echo(f"Please refer to this page about configuring credentials: {CONFIG_AWS_CRED_DOC_URL}.")
+            sys.exit(0)
+
+        click.secho("[2] Stage definition", bold=True)
+        if self.environment_name:
+            click.echo(f"Stage name: {self.environment_name}")
+        else:
+            self._prompt_stage_name()
 
         if not self.region:
-            self.region = click.prompt(
-                "\nAWS region (the AWS region where the environment infrastructure resources will be deployed to)",
-                type=click.STRING,
-                default=get_default_aws_region(),
-            )
+            self._prompt_region_name()
 
-        if not self.pipeline_user_arn:
-            click.echo(
-                "\nThere must be exactly one pipeline user across all of the environments. "
-                "If you have ran this command before to bootstrap a previous environment, please "
-                "provide the ARN of the created pipeline user, otherwise, we will create a new user for you. "
-                "Please make sure to store the credentials safely with the CI/CD system."
-            )
-            self.pipeline_user_arn = click.prompt(
-                "Pipeline user [leave blank to create one]", default="", type=click.STRING
-            )
+        click.secho("[3] Reference existing resources", bold=True)
+        if self.pipeline_user_arn:
+            click.echo(f"Pipeline IAM user ARN: {self.pipeline_user_arn}")
+        else:
+            self._prompt_pipeline_user()
 
-        if not self.pipeline_execution_role_arn:
-            self.pipeline_execution_role_arn = click.prompt(
-                "\nPipeline execution role (an IAM role assumed by the pipeline user to operate on this environment) "
-                "[leave blank to create one]",
-                default="",
-                type=click.STRING,
-            )
+        if self.pipeline_execution_role_arn:
+            click.echo(f"Pipeline execution role ARN: {self.pipeline_execution_role_arn}")
+        else:
+            self._prompt_pipeline_execution_role()
 
-        if not self.cloudformation_execution_role_arn:
-            self.cloudformation_execution_role_arn = click.prompt(
-                "\nCloudFormation execution role (an IAM role assumed by CloudFormation to deploy "
-                "the application's stack) [leave blank to create one]",
-                default="",
-                type=click.STRING,
-            )
+        if self.cloudformation_execution_role_arn:
+            click.echo(f"CloudFormation execution role ARN: {self.cloudformation_execution_role_arn}")
+        else:
+            self._prompt_cloudformation_execution_role()
 
-        if not self.artifacts_bucket_arn:
-            self.artifacts_bucket_arn = click.prompt(
-                "\nArtifacts bucket (S3 bucket to hold the AWS SAM build artifacts) [leave blank to create one]",
-                default="",
-                type=click.STRING,
-            )
-        if not self.image_repository_arn:
-            click.echo(
-                "\nIf your SAM template includes (or going to include) Lambda functions of Image package type, "
-                "then an ECR image repository is required. Should we create one?"
-            )
-            click.echo("\t1 - No, My SAM template won't include Lambda functions of Image package type")
-            click.echo("\t2 - Yes, I need help creating one")
-            click.echo("\t3 - I already have an ECR image repository")
-            choice = click.prompt(text="Choice", show_choices=False, type=click.Choice(["1", "2", "3"]))
-            if choice == "1":
-                self.create_image_repository = False
-            elif choice == "2":
-                self.create_image_repository = True
-            else:  # choice == "3"
-                self.create_image_repository = False
-                self.image_repository_arn = click.prompt("ECR image repository", type=click.STRING)
+        if self.artifacts_bucket_arn:
+            click.echo(f"Artifacts bucket ARN: {self.cloudformation_execution_role_arn}")
+        else:
+            self._prompt_artifacts_bucket()
 
-        if not self.pipeline_ip_range:
-            click.echo("\nWe can deny requests not coming from a recognized IP address range.")
-            self.pipeline_ip_range = click.prompt(
-                "Pipeline IP address range (using CIDR notation) [leave blank if you don't know]",
-                default="",
-                type=click.STRING,
+        if self.image_repository_arn:
+            click.echo(f"ECR image repository ARN: {self.image_repository_arn}")
+        else:
+            self._prompt_image_repository()
+
+        click.secho("[4] Security definition - OPTIONAL", bold=True)
+        if self.pipeline_ip_range:
+            click.echo(f"Pipeline IP address range: {self.pipeline_ip_range}")
+        else:
+            self._prompt_ip_range()
+
+        # Ask customers to confirm the inputs
+        while True:
+            inputs = self._get_user_inputs()
+            click.secho(self.color.cyan("Below is the summary of the answers:"))
+            for i, (text, _) in enumerate(inputs):
+                click.secho(self.color.cyan(f"  {i + 1}. {text}"))
+            edit_input = click.prompt(
+                text="Press enter to confirm the values above, or select an item to edit the value",
+                default="0",
+                show_choices=False,
+                show_default=False,
+                type=click.Choice(["0"] + [str(i + 1) for i in range(len(inputs))]),
             )
+            if int(edit_input):
+                inputs[int(edit_input) - 1][1]()
+            else:
+                break

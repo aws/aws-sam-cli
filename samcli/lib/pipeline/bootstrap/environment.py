@@ -3,6 +3,7 @@ import json
 import os
 import pathlib
 import re
+from itertools import chain
 from typing import Dict, List, Optional, Tuple
 
 import boto3
@@ -90,13 +91,19 @@ class Environment:
         self.name: str = name
         self.aws_profile: Optional[str] = aws_profile
         self.aws_region: Optional[str] = aws_region
-        self.pipeline_user: IAMUser = IAMUser(arn=pipeline_user_arn)
-        self.pipeline_execution_role: Resource = Resource(arn=pipeline_execution_role_arn)
+        self.pipeline_user: IAMUser = IAMUser(arn=pipeline_user_arn, comment="Pipeline IAM user")
+        self.pipeline_execution_role: Resource = Resource(
+            arn=pipeline_execution_role_arn, comment="Pipeline execution role"
+        )
         self.pipeline_ip_range: Optional[str] = pipeline_ip_range
-        self.cloudformation_execution_role: Resource = Resource(arn=cloudformation_execution_role_arn)
-        self.artifacts_bucket: Resource = Resource(arn=artifacts_bucket_arn)
+        self.cloudformation_execution_role: Resource = Resource(
+            arn=cloudformation_execution_role_arn, comment="CloudFormation execution role"
+        )
+        self.artifacts_bucket: Resource = Resource(arn=artifacts_bucket_arn, comment="Artifact bucket")
         self.create_image_repository: bool = create_image_repository
-        self.image_repository: ECRImageRepository = ECRImageRepository(arn=image_repository_arn)
+        self.image_repository: ECRImageRepository = ECRImageRepository(
+            arn=image_repository_arn, comment="ECR image repository"
+        )
         self.color = Colored()
 
     def did_user_provide_all_required_resources(self) -> bool:
@@ -104,18 +111,20 @@ class Environment:
         return all(resource.is_user_provided for resource in self._get_resources())
 
     def _get_non_user_provided_resources_msg(self) -> str:
-        missing_resources_msg = ""
-        if not self.pipeline_user.is_user_provided:
-            missing_resources_msg += "\n\tPipeline user"
-        if not self.pipeline_execution_role.is_user_provided:
-            missing_resources_msg += "\n\tPipeline execution role."
-        if not self.cloudformation_execution_role.is_user_provided:
-            missing_resources_msg += "\n\tCloudFormation execution role."
-        if not self.artifacts_bucket.is_user_provided:
-            missing_resources_msg += "\n\tArtifacts bucket."
-        if self.create_image_repository and not self.image_repository.is_user_provided:
-            missing_resources_msg += "\n\tECR image repository."
-        return missing_resources_msg
+        resource_comments = chain.from_iterable(
+            [
+                [] if self.pipeline_user.is_user_provided else [self.pipeline_user.comment],
+                [] if self.pipeline_execution_role.is_user_provided else [self.pipeline_execution_role.comment],
+                []
+                if self.cloudformation_execution_role.is_user_provided
+                else [self.cloudformation_execution_role.comment],
+                [] if self.artifacts_bucket.is_user_provided else [self.artifacts_bucket.comment],
+                []
+                if self.image_repository.is_user_provided or not self.create_image_repository
+                else [self.image_repository.comment],
+            ]
+        )
+        return "\n".join([f"  - {comment}" for comment in resource_comments])
 
     def bootstrap(self, confirm_changeset: bool = True) -> bool:
         """
@@ -148,7 +157,7 @@ class Environment:
 
         missing_resources_msg: str = self._get_non_user_provided_resources_msg()
         click.echo(
-            f"This will create the following required resources for the '{self.name}' environment: "
+            f"This will create the following required resources for the '{self.name}' environment: \n"
             f"{missing_resources_msg}"
         )
         if confirm_changeset:
@@ -314,28 +323,12 @@ class Environment:
                 created_resources.append(resource)
 
         if created_resources:
-            click.secho(self.color.green("\nWe have created the following resources:"))
+            click.secho(self.color.green("The following resources were created in your account:"))
             for resource in created_resources:
-                click.secho(f"\t{resource.arn}", fg="green")
-
-        if provided_resources:
-            click.secho(
-                self.color.green(
-                    "\nYou provided the following resources. Please make sure it has the required permissions "
-                    "as shown at https://github.com/aws/aws-sam-cli/blob/develop/"
-                    "samcli/lib/pipeline/bootstrap/environment_resources.yaml",
-                )
-            )
-            for resource in provided_resources:
-                click.secho(self.color.green(f"\t{resource.arn}"))
+                click.secho(self.color.green(f"  - {resource.comment}"))
 
         if not self.pipeline_user.is_user_provided:
-            click.secho(
-                self.color.green(
-                    "Please configure your CI/CD project with the following pipeline user credentials and "
-                    "make sure to periodically rotate it:",
-                )
-            )
+            click.secho(self.color.green("Pipeline IAM user credential:"))
             click.secho(self.color.green(f"\tAWS_ACCESS_KEY_ID: {self.pipeline_user.access_key_id}"))
             click.secho(self.color.green(f"\tAWS_SECRET_ACCESS_KEY: {self.pipeline_user.secret_access_key}"))
 
