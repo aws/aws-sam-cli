@@ -68,6 +68,15 @@ def iac_options_validation(require_stack=False):
                         message="More than one stack found. Use '--stack-name' to specify the stack.",
                     )
 
+            command = ctx.command.name
+            if command == "deploy" and not stack_name and not guided:
+                raise click.BadOptionUsage(
+                    option_name="--stack-name",
+                    ctx=ctx,
+                    message="Missing option '--stack-name', 'sam deploy --guided' can "
+                    "be used to provide and save needed parameters for future deploys.",
+                )
+
             return func(*args, **kwargs)
 
         return wrapped

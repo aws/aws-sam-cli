@@ -47,6 +47,25 @@ class TestIacValidations(TestCase):
         self.func_require_stack(project=project_mock)
 
     @patch("samcli.commands._utils.iac_validations.click")
+    def test_validation_fail_cfn_missing_stack_name_when_deploy(self, click_mock):
+        params = {"project_type": "CFN"}
+        context_mock = MagicMock()
+        context_mock.params.get.side_effect = _make_ctx_params_side_effect_func(params)
+        context_mock.command.name = "deploy"
+        click_mock.get_current_context.return_value = context_mock
+        click_mock.BadOptionUsage = click.BadOptionUsage
+
+        project_mock = Mock()
+        with self.assertRaises(click_mock.BadOptionUsage) as ex:
+            self.func_require_stack(project=project_mock)
+        self.assertEqual(ex.exception.option_name, "--stack-name")
+        self.assertEqual(
+            ex.exception.message,
+            "Missing option '--stack-name', 'sam deploy --guided' can "
+            "be used to provide and save needed parameters for future deploys.",
+        )
+
+    @patch("samcli.commands._utils.iac_validations.click")
     def test_validation_fail_cfn_invalid_options(self, click_mock):
         params = {
             "project_type": "CFN",
