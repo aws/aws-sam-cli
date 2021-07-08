@@ -299,9 +299,11 @@ class TestEnvironment(TestCase):
         sm_client_mock.get_secret_value.return_value = {
             "SecretString": '{"aws_access_key_id": "AccessKeyId", "aws_secret_access_key": "SuperSecretKey"}'
         }
-        boto3_mock.client.return_value = sm_client_mock
+        session_mock = MagicMock()
+        session_mock.client.return_value = sm_client_mock
+        boto3_mock.Session.return_value = session_mock
 
-        (key, secret) = Environment._get_pipeline_user_secret_pair("dummy_arn")
+        (key, secret) = Environment._get_pipeline_user_secret_pair("dummy_arn", None, "dummy-region")
         self.assertEqual(key, "AccessKeyId")
         self.assertEqual(secret, "SuperSecretKey")
         sm_client_mock.get_secret_value.assert_called_once_with(SecretId="dummy_arn")
