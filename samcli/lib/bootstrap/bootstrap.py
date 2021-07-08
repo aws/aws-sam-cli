@@ -4,7 +4,10 @@ Bootstrap's user's development environment by creating cloud resources required 
 
 import json
 import logging
+from typing import Optional
+
 import boto3
+from botocore.exceptions import ClientError
 
 from samcli import __version__
 from samcli.cli.global_config import GlobalConfig
@@ -31,10 +34,16 @@ def manage_stack(profile, region):
     return bucket_name
 
 
-def get_current_account_id():
+def get_current_account_id(profile: Optional[str]):
     """Returns account ID based on used AWS credentials."""
-    sts_client = boto3.client("sts")
-    caller_identity = sts_client.get_caller_identity()
+    session = boto3.Session(profile_name=profile)  # type: ignore
+    sts_client = session.client("sts")
+    try:
+        caller_identity = sts_client.get_caller_identity()
+    except ClientError as ex:
+        if ex.response["Error"]["Code"] == "InvalidClientTokenId":
+            raise CredentialsError("Cannot identify account due to invalid configured credentials.") from ex
+        raise CredentialsError("Cannot identify account based on configured credentials.") from ex
     if "Account" not in caller_identity:
         raise CredentialsError("Cannot identify account based on configured credentials.")
     return caller_identity["Account"]

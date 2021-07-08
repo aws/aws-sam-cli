@@ -167,6 +167,7 @@ def do_cli(
 
     if interactive:
         guided_context = GuidedContext(
+            profile=profile,
             environment_name=environment_name,
             pipeline_user_arn=pipeline_user_arn,
             pipeline_execution_role_arn=pipeline_execution_role_arn,
@@ -187,6 +188,7 @@ def do_cli(
         create_image_repository = guided_context.create_image_repository
         image_repository_arn = guided_context.image_repository_arn
         region = guided_context.region
+        profile = guided_context.profile
 
     if not environment_name:
         raise click.UsageError("Missing required parameter '--environment'")

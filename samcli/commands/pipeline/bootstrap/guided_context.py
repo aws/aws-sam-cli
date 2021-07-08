@@ -2,22 +2,27 @@
 An interactive flow that prompt the user for required information to bootstrap the AWS account of an environment
 with the required infrastructure
 """
+import os
 import sys
 from textwrap import dedent
 from typing import Optional, List, Tuple, Callable
 
 import click
+from botocore.credentials import EnvProvider
 
+from samcli.commands.exceptions import CredentialsError
 from samcli.commands.pipeline.external_links import CONFIG_AWS_CRED_DOC_URL
 from samcli.lib.bootstrap.bootstrap import get_current_account_id
 from samcli.lib.utils.colors import Colored
 
 from samcli.lib.utils.defaults import get_default_aws_region
+from samcli.lib.utils.profile import list_available_profiles
 
 
 class GuidedContext:
     def __init__(
         self,
+        profile: Optional[str] = None,
         environment_name: Optional[str] = None,
         pipeline_user_arn: Optional[str] = None,
         pipeline_execution_role_arn: Optional[str] = None,
@@ -28,6 +33,7 @@ class GuidedContext:
         pipeline_ip_range: Optional[str] = None,
         region: Optional[str] = None,
     ) -> None:
+        self.profile = profile
         self.environment_name = environment_name
         self.pipeline_user_arn = pipeline_user_arn
         self.pipeline_execution_role_arn = pipeline_execution_role_arn
@@ -38,6 +44,46 @@ class GuidedContext:
         self.pipeline_ip_range = pipeline_ip_range
         self.region = region
         self.color = Colored()
+
+    def _prompt_account_id(self) -> None:
+        profiles = list_available_profiles()
+        click.echo("The following AWS credential sources are available to use:")
+        click.echo(
+            self.color.cyan(
+                dedent(
+                    f"""\
+                    To know more about configuration AWS credentials, visit the link below:
+                    {CONFIG_AWS_CRED_DOC_URL}
+                    """
+                )
+            )
+        )
+        if os.getenv(EnvProvider.ACCESS_KEY) and os.getenv(EnvProvider.SECRET_KEY):
+            click.echo(f"  e. Environment variables: {EnvProvider.ACCESS_KEY} and {EnvProvider.SECRET_KEY}")
+        for i, profile in enumerate(profiles):
+            click.echo(f"  {i + 1}. {profile} (named profile)")
+        click.echo("  q. Quit and configure AWS credential myself")
+        answer = click.prompt(
+            "Select an account source to associate with this stage",
+            show_choices=False,
+            show_default=False,
+            type=click.Choice([str(i + 1) for i in range(len(profiles))] + ["q", "e"]),
+        )
+        if answer == "q":
+            sys.exit(0)
+        elif answer == "e":
+            # by default, env variable has higher precedence
+            # https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html#envvars-list
+            self.profile = None
+        else:
+            self.profile = profiles[int(answer) - 1]
+
+        try:
+            account_id = get_current_account_id(self.profile)
+            click.echo(self.color.green(f"Associated account {account_id} with this stage."))
+        except CredentialsError as ex:
+            click.echo(self.color.red(ex.message))
+            self._prompt_account_id()
 
     def _prompt_stage_name(self) -> None:
         click.echo(
@@ -110,6 +156,7 @@ class GuidedContext:
 
     def _get_user_inputs(self) -> List[Tuple[str, Callable[[], None]]]:
         return [
+            (f"Account: {get_current_account_id(self.profile)}", self._prompt_account_id),
             (f"Stage name: {self.environment_name}", self._prompt_stage_name),
             (f"Region: {self.region}", self._prompt_region_name),
             (
@@ -167,11 +214,8 @@ class GuidedContext:
             fg="cyan",
         )
 
-        account_id = get_current_account_id()
         click.secho("[1] Account details", bold=True)
-        if click.confirm(f"You are bootstrapping resources in account {account_id}. Do you want to switch accounts?"):
-            click.echo(f"Please refer to this page about configuring credentials: {CONFIG_AWS_CRED_DOC_URL}.")
-            sys.exit(0)
+        self._prompt_account_id()
 
         click.secho("[2] Stage definition", bold=True)
         if self.environment_name:
