@@ -7,13 +7,13 @@ class PrintResults:
         self.graph = graph
 
     def print_bottle_neck_results(self):
-        click.secho("Green Flags", fg="green")
+        click.secho("No bottleneck concerns", fg="green")
         self.print_warnings(self.graph.get_green_warnings())
-        click.secho("Yellow Flags", fg="bright_yellow")
+        click.secho("Minor bottleneck concerns", fg="bright_yellow")
         self.print_warnings(self.graph.get_yellow_warnings())
-        click.secho("Red Flags", fg="bright_red")
+        click.secho("Major bottleneck concerns", fg="bright_red")
         self.print_warnings(self.graph.get_red_warnings())
-        click.secho("Red Burst Flags", fg="bright_red")
+        click.secho("Bottlenecks found", fg="bright_red")
         self.print_warnings(self.graph.get_red_burst_warnings())
 
     def print_warnings(self, warnings):
