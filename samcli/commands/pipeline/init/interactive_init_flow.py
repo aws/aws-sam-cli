@@ -145,6 +145,7 @@ class InteractiveInitFlow:
                 "Do you want to go through stage setup process now? If you choose no, "
                 "you can still reference other bootstrapped resources."
             ):
+                click.echo(Colored().bold(f"\n*Stage {len(env_names)} Setup*\n"))
                 do_bootstrap(
                     region=None,
                     profile=None,
@@ -184,6 +185,17 @@ class InteractiveInitFlow:
         """
         pipeline_template: Template = _initialize_pipeline_template(pipeline_template_dir)
         required_env_number = 2  # TODO: read from template
+        click.echo(
+            dedent(
+                """\
+                sam pipeline init generates a two-stage pipeline config file that you can use to 
+                connect your AWS account(s) to your CI/CD pipeline too. We will guide you through
+                the process to bootstrap resources for each stage, then walk through the details
+                necessary for creating the Pipeline Config file.
+                """
+            )
+        )
+        _draw_stage_diagram(required_env_number)
         while True:
             env_names, bootstrap_context = self._load_pipeline_bootstrap_resources()
             if len(env_names) < required_env_number and self._prompt_run_bootstrap_within_pipeline_init(
@@ -379,3 +391,19 @@ def _get_pipeline_template_interactive_flow(pipeline_template_dir: Path) -> Inte
     """
     flow_definition_path: Path = pipeline_template_dir.joinpath("questions.json")
     return InteractiveFlowCreator.create_flow(str(flow_definition_path))
+
+
+def _lines_for_stage(stage_index: int) -> List[str]:
+    return [
+        " _________ ",
+        "|         |",
+        f"| Stage {stage_index} |",
+        "|_________|",
+    ]
+
+
+def _draw_stage_diagram(number_of_stages: int) -> None:
+    delimiters = ["  ", "  ", "->", "  "]
+    stage_lines = [_lines_for_stage(i + 1) for i in range(number_of_stages)]
+    for i in range(len(delimiters)):
+        click.echo(delimiters[i].join([stage_lines[stage_i][i] for stage_i in range(number_of_stages)]))
