@@ -12,6 +12,7 @@ import functools
 from typing import Dict
 
 from samtranslator.model import ResourceTypeResolver, sam_resources
+
 # SAM Translator Library Internal module imports #
 from samtranslator.model.exceptions import (
     InvalidDocumentException,
@@ -28,7 +29,6 @@ from .local_uri_plugin import SupportLocalUriPlugin
 
 
 class SamTranslatorWrapper:
-
     def __init__(self, sam_template, parameter_values=None, offline_fallback=True):
         """
 
