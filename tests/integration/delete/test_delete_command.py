@@ -54,10 +54,30 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
         time.sleep(CFN_SLEEP)
         super().setUp()
 
-    @parameterized.expand(["aws-serverless-function.yaml", "aws-serverless-statemachine.yaml"])
+    @parameterized.expand(
+        [
+            "aws-serverless-function.yaml",
+            "aws-serverless-statemachine.yaml",
+            "aws-serverless-api.yaml",
+            "aws-serverless-httpapi.yaml",
+            "aws-appsync-graphqlschema.yaml",
+            "aws-appsync-resolver.yaml",
+            "aws-appsync-functionconfiguration.yaml",
+            "aws-lambda-function.yaml",
+            "aws-apigateway-restapi.yaml",
+            "aws-elasticbeanstalk-applicationversion.yaml",
+            "aws-cloudformation-moduleversion.yaml",
+            "aws-cloudformation-resourceversion.yaml",
+            "aws-cloudformation-stack.yaml",
+            "aws-serverless-application.yaml",
+            "aws-lambda-layerversion.yaml",
+            "aws-serverless-layerversion.yaml",
+            # "aws-glue-job.yaml",
+            "aws-stepfunctions-statemachine.yaml",
+        ]
+    )
     def test_delete_with_s3_bucket_prefix_present(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
-        LOG.info("Hello")
         LOG.info(template_path)
 
         stack_name = self._method_to_stack_name(self.id())
@@ -71,15 +91,19 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
         deploy_process_execute = run_command_with_input(
             deploy_command_list, "{}\n\n\n\n\n\n\n\n\n".format(stack_name).encode()
         )
-        self.assertEqual(deploy_process_execute.process.returncode, 0)
 
         delete_command_list = self.get_delete_command_list(
             stack_name=stack_name, config_file=self.test_data_path.joinpath(config_file_name), force=True
         )
-        # delete_command_list[0] = "samdev"
+
         LOG.info(delete_command_list)
         delete_process_execute = run_command(delete_command_list)
         self.assertEqual(delete_process_execute.process.returncode, 0)
+
+        # Remove the local config file created
+        config_file_path = self.test_data_path.joinpath(config_file_name)
+        if os.path.isfile(config_file_path):
+            os.remove(config_file_path)
 
     def _method_to_stack_name(self, method_name):
         """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
