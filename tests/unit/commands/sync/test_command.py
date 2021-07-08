@@ -224,10 +224,10 @@ class ExecuteCodeSync(TestCase):
     @patch("samcli.commands.sync.command.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.sync.command.SyncFlowFactory")
     @patch("samcli.commands.sync.command.SyncFlowExecutor")
-    @patch("samcli.commands.sync.command.get_resources_by_type")
+    @patch("samcli.commands.sync.command.get_unique_resource_ids")
     def test_execute_code_sync_single_resource(
         self,
-        get_resources_by_type_mock,
+        get_unique_resource_ids_mock,
         sync_flow_executor_mock,
         sync_flow_factory_mock,
         get_stacks_mock,
@@ -237,6 +237,9 @@ class ExecuteCodeSync(TestCase):
         resource_types = []
         sync_flows = [MagicMock()]
         sync_flow_factory_mock.return_value.create_sync_flow.side_effect = sync_flows
+        get_unique_resource_ids_mock.return_value = {
+            ResourceIdentifier("Function1"),
+        }
 
         execute_code_sync(
             self.template_file, self.build_context, self.deploy_context, resource_identifier_strings, resource_types
@@ -245,15 +248,17 @@ class ExecuteCodeSync(TestCase):
         sync_flow_factory_mock.return_value.create_sync_flow.assert_called_once_with(ResourceIdentifier("Function1"))
         sync_flow_executor_mock.return_value.add_sync_flow.assert_called_once_with(sync_flows[0])
 
-        get_resources_by_type_mock.assert_not_called()
+        get_unique_resource_ids_mock.assert_called_once_with(
+            get_stacks_mock.return_value[0], resource_identifier_strings, []
+        )
 
     @patch("samcli.commands.sync.command.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.sync.command.SyncFlowFactory")
     @patch("samcli.commands.sync.command.SyncFlowExecutor")
-    @patch("samcli.commands.sync.command.get_resources_by_type")
+    @patch("samcli.commands.sync.command.get_unique_resource_ids")
     def test_execute_code_sync_multiple_resource(
         self,
-        get_resources_by_type_mock,
+        get_unique_resource_ids_mock,
         sync_flow_executor_mock,
         sync_flow_factory_mock,
         get_stacks_mock,
@@ -263,6 +268,10 @@ class ExecuteCodeSync(TestCase):
         resource_types = []
         sync_flows = [MagicMock(), MagicMock()]
         sync_flow_factory_mock.return_value.create_sync_flow.side_effect = sync_flows
+        get_unique_resource_ids_mock.return_value = {
+            ResourceIdentifier("Function1"),
+            ResourceIdentifier("Function2"),
+        }
 
         execute_code_sync(
             self.template_file, self.build_context, self.deploy_context, resource_identifier_strings, resource_types
@@ -277,15 +286,17 @@ class ExecuteCodeSync(TestCase):
         self.assertEqual(sync_flow_factory_mock.return_value.create_sync_flow.call_count, 2)
         self.assertEqual(sync_flow_executor_mock.return_value.add_sync_flow.call_count, 2)
 
-        get_resources_by_type_mock.assert_not_called()
+        get_unique_resource_ids_mock.assert_called_once_with(
+            get_stacks_mock.return_value[0], resource_identifier_strings, []
+        )
 
     @patch("samcli.commands.sync.command.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.sync.command.SyncFlowFactory")
     @patch("samcli.commands.sync.command.SyncFlowExecutor")
-    @patch("samcli.commands.sync.command.get_resources_by_type")
+    @patch("samcli.commands.sync.command.get_unique_resource_ids")
     def test_execute_code_sync_single_type_resource(
         self,
-        get_resources_by_type_mock,
+        get_unique_resource_ids_mock,
         sync_flow_executor_mock,
         sync_flow_factory_mock,
         get_stacks_mock,
@@ -295,7 +306,11 @@ class ExecuteCodeSync(TestCase):
         resource_types = ["Type1"]
         sync_flows = [MagicMock(), MagicMock(), MagicMock()]
         sync_flow_factory_mock.return_value.create_sync_flow.side_effect = sync_flows
-        get_resources_by_type_mock.side_effect = [[ResourceIdentifier("Function3")]]
+        get_unique_resource_ids_mock.return_value = {
+            ResourceIdentifier("Function1"),
+            ResourceIdentifier("Function2"),
+            ResourceIdentifier("Function3"),
+        }
         execute_code_sync(
             self.template_file, self.build_context, self.deploy_context, resource_identifier_strings, resource_types
         )
@@ -312,15 +327,17 @@ class ExecuteCodeSync(TestCase):
         self.assertEqual(sync_flow_factory_mock.return_value.create_sync_flow.call_count, 3)
         self.assertEqual(sync_flow_executor_mock.return_value.add_sync_flow.call_count, 3)
 
-        get_resources_by_type_mock.assert_called_once_with(get_stacks_mock.return_value[0], "Type1")
+        get_unique_resource_ids_mock.assert_called_once_with(
+            get_stacks_mock.return_value[0], resource_identifier_strings, ["Type1"]
+        )
 
     @patch("samcli.commands.sync.command.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.sync.command.SyncFlowFactory")
     @patch("samcli.commands.sync.command.SyncFlowExecutor")
-    @patch("samcli.commands.sync.command.get_resources_by_type")
+    @patch("samcli.commands.sync.command.get_unique_resource_ids")
     def test_execute_code_sync_multiple_type_resource(
         self,
-        get_resources_by_type_mock,
+        get_unique_resource_ids_mock,
         sync_flow_executor_mock,
         sync_flow_factory_mock,
         get_stacks_mock,
@@ -329,10 +346,12 @@ class ExecuteCodeSync(TestCase):
         resource_types = ["Type1", "Type2"]
         sync_flows = [MagicMock(), MagicMock(), MagicMock(), MagicMock()]
         sync_flow_factory_mock.return_value.create_sync_flow.side_effect = sync_flows
-        get_resources_by_type_mock.side_effect = [
-            [ResourceIdentifier("Function2"), ResourceIdentifier("Function3")],
-            [ResourceIdentifier("Function3"), ResourceIdentifier("Function4")],
-        ]
+        get_unique_resource_ids_mock.return_value = {
+            ResourceIdentifier("Function1"),
+            ResourceIdentifier("Function2"),
+            ResourceIdentifier("Function3"),
+            ResourceIdentifier("Function4"),
+        }
         execute_code_sync(
             self.template_file, self.build_context, self.deploy_context, resource_identifier_strings, resource_types
         )
@@ -352,5 +371,46 @@ class ExecuteCodeSync(TestCase):
         self.assertEqual(sync_flow_factory_mock.return_value.create_sync_flow.call_count, 4)
         self.assertEqual(sync_flow_executor_mock.return_value.add_sync_flow.call_count, 4)
 
-        get_resources_by_type_mock.assert_any_call(get_stacks_mock.return_value[0], "Type1")
-        get_resources_by_type_mock.assert_any_call(get_stacks_mock.return_value[0], "Type2")
+        get_unique_resource_ids_mock.assert_any_call(
+            get_stacks_mock.return_value[0], resource_identifier_strings, ["Type1", "Type2"]
+        )
+
+    @patch("samcli.commands.sync.command.SamLocalStackProvider.get_stacks")
+    @patch("samcli.commands.sync.command.SyncFlowFactory")
+    @patch("samcli.commands.sync.command.SyncFlowExecutor")
+    @patch("samcli.commands.sync.command.get_resource_ids_by_type")
+    @patch("samcli.commands.sync.command.get_all_resource_ids")
+    def test_execute_code_sync_default_all_resources(
+        self,
+        get_all_resource_ids_mock,
+        get_resource_ids_by_type_mock,
+        sync_flow_executor_mock,
+        sync_flow_factory_mock,
+        get_stacks_mock,
+    ):
+        sync_flows = [MagicMock(), MagicMock(), MagicMock(), MagicMock()]
+        sync_flow_factory_mock.return_value.create_sync_flow.side_effect = sync_flows
+        get_all_resource_ids_mock.return_value = [
+            ResourceIdentifier("Function1"),
+            ResourceIdentifier("Function2"),
+            ResourceIdentifier("Function3"),
+            ResourceIdentifier("Function4"),
+        ]
+        execute_code_sync(self.template_file, self.build_context, self.deploy_context, "", [])
+
+        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function1"))
+        sync_flow_executor_mock.return_value.add_sync_flow.assert_any_call(sync_flows[0])
+
+        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function2"))
+        sync_flow_executor_mock.return_value.add_sync_flow.assert_any_call(sync_flows[1])
+
+        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function3"))
+        sync_flow_executor_mock.return_value.add_sync_flow.assert_any_call(sync_flows[2])
+
+        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function4"))
+        sync_flow_executor_mock.return_value.add_sync_flow.assert_any_call(sync_flows[3])
+
+        self.assertEqual(sync_flow_factory_mock.return_value.create_sync_flow.call_count, 4)
+        self.assertEqual(sync_flow_executor_mock.return_value.add_sync_flow.call_count, 4)
+
+        get_all_resource_ids_mock.assert_called_once_with(get_stacks_mock.return_value[0])

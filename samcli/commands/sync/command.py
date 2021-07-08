@@ -31,7 +31,11 @@ from samcli.commands.build.command import _get_mode_value_from_envvar
 from samcli.lib.sync.sync_flow_factory import SyncFlowFactory
 from samcli.lib.sync.sync_flow_executor import SyncFlowExecutor
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
-from samcli.lib.providers.provider import ResourceIdentifier, get_resources_by_type
+from samcli.lib.providers.provider import (
+    ResourceIdentifier,
+    get_all_resource_ids,
+    get_unique_resource_ids,
+)
 from samcli.commands._utils.options import DEFAULT_BUILD_DIR, DEFAULT_CACHE_DIR
 from samcli.cli.context import Context
 
@@ -273,7 +277,7 @@ def execute_code_sync(
     template: str,
     build_context: "BuildContext",
     deploy_context: "DeployContext",
-    resources_ids: Optional[Tuple[str]],
+    resource_ids: Optional[Tuple[str]],
     resource_types: Optional[Tuple[str]],
 ) -> None:
     """Executes the sync flow for code.
@@ -286,7 +290,7 @@ def execute_code_sync(
         BuildContext
     deploy_context : DeployContext
         DeployContext
-    resources_ids : List[str]
+    resource_ids : List[str]
         List of resource IDs to be synced.
     resource_types : List[str]
         List of resource types to be synced.
@@ -296,17 +300,11 @@ def execute_code_sync(
     factory.load_physical_id_mapping()
     executor = SyncFlowExecutor()
 
-    sync_flow_resource_ids: Set[ResourceIdentifier] = set()
-
-    if resources_ids:
-        for resources_id in resources_ids:
-            sync_flow_resource_ids.add(ResourceIdentifier(resources_id))
-
-    if resource_types:
-        for resource_type in resource_types:
-            resource_type_ids = get_resources_by_type(stacks, resource_type)
-            for resource_id in resource_type_ids:
-                sync_flow_resource_ids.add(resource_id)
+    sync_flow_resource_ids: Set[ResourceIdentifier] = (
+        get_unique_resource_ids(stacks, resource_ids, resource_types)
+        if resource_ids or resource_types
+        else set(get_all_resource_ids(stacks))
+    )
 
     for resource_id in sync_flow_resource_ids:
         sync_flow = factory.create_sync_flow(resource_id)

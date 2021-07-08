@@ -7,7 +7,7 @@ import logging
 import os
 import posixpath
 from collections import namedtuple
-from typing import Any, Set, NamedTuple, Optional, List, Dict, Union, cast, Iterator, TYPE_CHECKING
+from typing import Any, Set, NamedTuple, Optional, List, Dict, Tuple, Union, cast, Iterator, TYPE_CHECKING
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, UnsupportedIntrinsic
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
@@ -495,6 +495,8 @@ def get_full_path(stack_path: str, logical_id: str) -> str:
     Return the unique posix path-like identifier
     while will used for identify a resource from resources in a multi-stack situation
     """
+    if not stack_path:
+        return logical_id
     return posixpath.join(stack_path, logical_id)
 
 
@@ -528,7 +530,7 @@ def get_resource_by_id(
     return None
 
 
-def get_resources_by_type(stacks: List[Stack], resource_type: str) -> List[ResourceIdentifier]:
+def get_resource_ids_by_type(stacks: List[Stack], resource_type: str) -> List[ResourceIdentifier]:
     """Return list of resource IDs
 
     Parameters
@@ -547,11 +549,62 @@ def get_resources_by_type(stacks: List[Stack], resource_type: str) -> List[Resou
     for stack in stacks:
         for resource_id, resource in stack.resources.items():
             if resource.get("Type", "") == resource_type:
-                if stack.stack_path:
-                    resource_ids.append(ResourceIdentifier(stack.stack_path + posixpath.sep + resource_id))
-                else:
-                    resource_ids.append(ResourceIdentifier(resource_id))
+                resource_ids.append(ResourceIdentifier(get_full_path(stack.stack_path, resource_id)))
     return resource_ids
+
+
+def get_all_resource_ids(stacks: List[Stack]) -> List[ResourceIdentifier]:
+    """Return all resource IDs in stacks
+
+    Parameters
+    ----------
+    stacks : List[Stack]
+        List of stacks
+
+    Returns
+    -------
+    List[ResourceIdentifier]
+        List of ResourceIdentifiers
+    """
+    resource_ids: List[ResourceIdentifier] = list()
+    for stack in stacks:
+        for resource_id, _ in stack.resources.items():
+            resource_ids.append(ResourceIdentifier(get_full_path(stack.stack_path, resource_id)))
+    return resource_ids
+
+
+def get_unique_resource_ids(
+    stacks: List[Stack],
+    resource_ids: Optional[Union[List[str], Tuple[str]]],
+    resource_types: Optional[Union[List[str], Tuple[str]]],
+) -> Set[ResourceIdentifier]:
+    """Get unique resource IDs for resource_ids and resource_types
+
+    Parameters
+    ----------
+    stacks : List[Stack]
+        Stacks
+    resource_ids : Optional[Union[List[str], Tuple[str]]]
+        Resource ID strings
+    resource_types : Optional[Union[List[str], Tuple[str]]]
+        Resource types
+
+    Returns
+    -------
+    Set[ResourceIdentifier]
+        Set of ResourceIdentifier either in resource_ids or has the type in resource_types
+    """
+    output_resource_ids: Set[ResourceIdentifier] = set()
+    if resource_ids:
+        for resources_id in resource_ids:
+            output_resource_ids.add(ResourceIdentifier(resources_id))
+
+    if resource_types:
+        for resource_type in resource_types:
+            resource_type_ids = get_resource_ids_by_type(stacks, resource_type)
+            for resource_id in resource_type_ids:
+                output_resource_ids.add(resource_id)
+    return output_resource_ids
 
 
 def _get_build_dir(resource: Union[Function, LayerVersion], build_root: str) -> str:
