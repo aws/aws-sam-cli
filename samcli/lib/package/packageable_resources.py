@@ -240,7 +240,7 @@ class ResourceImageDict(Resource):
             resource_id, resource.assets[0], self.PROPERTY_NAME, parent_dir, self.uploader
         )
         self.iac.update_resource_after_packaging(resource)
-        if self.iac.should_update_property_after_package:
+        if self.iac.should_update_property_after_package(resource.assets[0]):
             set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, {self.EXPORT_PROPERTY_CODE_KEY: uploaded_url})
 
 
@@ -296,11 +296,14 @@ class ResourceImage(Resource):
         elif isinstance(resource, DictSectionItem):
             resource_dict = resource.body
 
+        if not (resource.assets and isinstance(resource.assets[0], ImageAsset)):
+            return
+
         uploaded_url = upload_local_image_artifacts(
             resource_id, resource.assets[0], self.PROPERTY_NAME, parent_dir, self.uploader
         )
         self.iac.update_resource_after_packaging(resource)
-        if self.iac.should_update_property_after_package:
+        if self.iac.should_update_property_after_package(resource.assets[0]):
             set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, uploaded_url)
 
 
@@ -343,7 +346,7 @@ class ResourceWithS3UrlDict(ResourceZip):
         asset.object_key = parsed_url[self.OBJECT_KEY_PROPERTY]
         asset.object_version = parsed_url.get(self.VERSION_PROPERTY, None)
         self.iac.update_resource_after_packaging(resource)
-        if self.iac.should_update_property_after_package:
+        if self.iac.should_update_property_after_package(asset):
             set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, parsed_url)
 
 

@@ -6,21 +6,6 @@ from typing import Optional
 from samcli.commands.exceptions import UserException
 
 
-class UnsupportedCloudAssemblySchemaVersionError(Exception):
-    def __init__(self, cloud_assembly_schema_version: str):
-        msg = (
-            "Your cloud assembly schema version '{cloud_assembly_schema_version}' is not supported, "
-            "probably because you are running an old version of CDK. Please upgrade your CDK."
-        )
-        Exception.__init__(self, msg.format(cloud_assembly_schema_version=cloud_assembly_schema_version))
-
-
-class UnsupportedCdkFeatureError(Exception):
-    def __init__(self, reason: str):
-        msg = "You are using a CDK feature that is currently not supported by SAM CLI yet. Reason: '{reason}'"
-        Exception.__init__(self, msg.format(reason=reason))
-
-
 class InvalidCloudAssemblyError(Exception):
     def __init__(self, missing_files: Optional[list] = None):
         if missing_files is None:

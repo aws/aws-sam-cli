@@ -51,8 +51,9 @@ from samcli.lib.package.packageable_resources import (
     CloudFormationResourceVersionSchemaHandlerPackage,
     ResourceZip,
     ResourceImage,
+    ResourceImageDict,
 )
-from samcli.lib.iac.interface import Stack as IacStack, S3Asset, Resource as IacResource
+from samcli.lib.iac.interface import ImageAsset, Stack as IacStack, S3Asset, Resource as IacResource
 
 
 class TestArtifactExporter(unittest.TestCase):
@@ -460,11 +461,10 @@ class TestArtifactExporter(unittest.TestCase):
 
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
-        iac_resource_mock.assets = MagicMock()
-        iac_resource_mock.assets[0] = Mock()
-        asset_mock = iac_resource_mock.assets[0]
+        asset_mock = Mock(spec=ImageAsset)
         asset_mock.source_local_image = "image:latest"
         asset_mock.source_property = resource.PROPERTY_NAME
+        iac_resource_mock.assets = [asset_mock]
         resource_dict = {}
         resource_dict[resource.PROPERTY_NAME] = "image:latest"
         iac_resource_mock.get.return_value = resource_dict
@@ -491,11 +491,10 @@ class TestArtifactExporter(unittest.TestCase):
 
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
-        iac_resource_mock.assets = MagicMock()
-        iac_resource_mock.assets[0] = Mock()
-        asset_mock = iac_resource_mock.assets[0]
+        asset_mock = Mock(spec=ImageAsset)
         asset_mock.source_local_image = "image:latest"
         asset_mock.source_property = resource.PROPERTY_NAME
+        iac_resource_mock.assets = [asset_mock]
         resource_dict = {}
         original_image = "image:latest"
         resource_dict[resource.PROPERTY_NAME] = original_image
@@ -519,10 +518,9 @@ class TestArtifactExporter(unittest.TestCase):
         original_image = "123456789.dkr.ecr.us-east-1.amazonaws.com/sam-cli"
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
-        iac_resource_mock.assets = MagicMock()
-        iac_resource_mock.assets[0] = Mock()
-        asset_mock = iac_resource_mock.assets[0]
+        asset_mock = Mock(spec=ImageAsset)
         asset_mock.source_local_image = original_image
+        iac_resource_mock.assets = [asset_mock]
         resource_dict = {}
         resource_dict[resource.PROPERTY_NAME] = original_image
         iac_resource_mock.get.return_value = resource_dict
@@ -543,10 +541,111 @@ class TestArtifactExporter(unittest.TestCase):
         original_image = None
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
-        iac_resource_mock.assets = MagicMock()
-        iac_resource_mock.assets[0] = Mock()
-        asset_mock = iac_resource_mock.assets[0]
+        asset_mock = Mock(spec=ImageAsset)
         asset_mock.source_local_image = original_image
+        iac_resource_mock.assets = [asset_mock]
+        resource_dict = {}
+        resource_dict[resource.PROPERTY_NAME] = original_image
+        iac_resource_mock.get.return_value = resource_dict
+        parent_dir = "dir"
+
+        with self.assertRaises(ExportFailedError):
+            resource.export(iac_resource_mock, parent_dir)
+
+    @patch("samcli.lib.package.packageable_resources.upload_local_image_artifacts")
+    def test_resource_image_dict(self, upload_local_image_artifacts_mock):
+        # Property value is a path to an image
+
+        class MockResource(ResourceImageDict):
+            PROPERTY_NAME = "foo"
+
+        resource = MockResource(self.uploaders_mock, None, self.iac_mock)
+
+        iac_resource_mock = MagicMock(spec=IacResource)
+        iac_resource_mock.key = "id"
+        asset_mock = Mock(spec=ImageAsset)
+        asset_mock.source_local_image = "image:latest"
+        asset_mock.source_property = resource.PROPERTY_NAME
+        iac_resource_mock.assets = [asset_mock]
+        resource_dict = {}
+        resource_dict[resource.PROPERTY_NAME] = "image:latest"
+        iac_resource_mock.get.return_value = resource_dict
+        parent_dir = "dir"
+        ecr_url = "123456789.dkr.ecr.us-east-1.amazonaws.com/sam-cli"
+
+        upload_local_image_artifacts_mock.return_value = ecr_url
+
+        resource.export(iac_resource_mock, parent_dir)
+
+        upload_local_image_artifacts_mock.assert_called_once_with(
+            iac_resource_mock.key, asset_mock, resource.PROPERTY_NAME, parent_dir, self.ecr_uploader_mock
+        )
+
+        self.assertEqual(resource_dict[resource.PROPERTY_NAME], {"ImageUri": ecr_url})
+
+    def test_resource_image_dict_package_success(self):
+        # Property value is set to an image
+
+        class MockResource(ResourceImageDict):
+            PROPERTY_NAME = "foo"
+
+        resource = MockResource(self.uploaders_mock, None, self.iac_mock)
+
+        iac_resource_mock = MagicMock(spec=IacResource)
+        iac_resource_mock.key = "id"
+        asset_mock = Mock(spec=ImageAsset)
+        asset_mock.source_local_image = "image:latest"
+        asset_mock.source_property = resource.PROPERTY_NAME
+        iac_resource_mock.assets = [asset_mock]
+        resource_dict = {}
+        original_image = "image:latest"
+        resource_dict[resource.PROPERTY_NAME] = original_image
+        iac_resource_mock.get.return_value = resource_dict
+        parent_dir = "dir"
+        ecr_url = "123456789.dkr.ecr.us-east-1.amazonaws.com/sam-cli"
+        self.ecr_uploader_mock.upload.return_value = ecr_url
+
+        resource.export(iac_resource_mock, parent_dir)
+
+        self.assertEqual(resource_dict[resource.PROPERTY_NAME], {"ImageUri": ecr_url})
+
+    def test_resource_image_dict_non_package_image_already_remote(self):
+        # Property value is set to an ecr image
+
+        class MockResource(ResourceImageDict):
+            PROPERTY_NAME = "foo"
+
+        resource = MockResource(self.uploaders_mock, None, self.iac_mock)
+
+        original_image = "123456789.dkr.ecr.us-east-1.amazonaws.com/sam-cli"
+        iac_resource_mock = MagicMock(spec=IacResource)
+        iac_resource_mock.key = "id"
+        asset_mock = Mock(spec=ImageAsset)
+        asset_mock.source_local_image = original_image
+        iac_resource_mock.assets = [asset_mock]
+        resource_dict = {}
+        resource_dict[resource.PROPERTY_NAME] = original_image
+        iac_resource_mock.get.return_value = resource_dict
+        parent_dir = "dir"
+
+        resource.export(iac_resource_mock, parent_dir)
+
+        self.assertEqual(resource_dict[resource.PROPERTY_NAME], {"ImageUri": original_image})
+
+    def test_resource_image_dict_no_image_present(self):
+        # Property value is set to an ecr image
+
+        class MockResource(ResourceImageDict):
+            PROPERTY_NAME = "foo"
+
+        resource = MockResource(self.uploaders_mock, None, self.iac_mock)
+
+        original_image = None
+        iac_resource_mock = MagicMock(spec=IacResource)
+        iac_resource_mock.key = "id"
+        asset_mock = Mock(spec=ImageAsset)
+        asset_mock.source_local_image = original_image
+        iac_resource_mock.assets = [asset_mock]
         resource_dict = {}
         resource_dict[resource.PROPERTY_NAME] = original_image
         iac_resource_mock.get.return_value = resource_dict
