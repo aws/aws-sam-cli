@@ -10,7 +10,7 @@ from samcli.lib.providers.provider import get_resource_by_id
 
 from samcli.lib.providers.provider import ResourceIdentifier, Stack
 from samcli.lib.utils.lock_distributor import LockDistributor, LockChain
-from samcli.lib.sync.exceptions import MissingPhysicalResourceError
+from samcli.lib.sync.exceptions import MissingLockException, MissingPhysicalResourceError
 
 if TYPE_CHECKING:
     from samcli.commands.deploy.deploy_context import DeployContext
@@ -179,7 +179,7 @@ class SyncFlow(ABC):
         """
         return logical_id + "_" + api_call
 
-    def _get_lock_chain(self) -> Optional[LockChain]:
+    def _get_lock_chain(self) -> LockChain:
         """Return a LockChain object for all the locks
 
         Returns
@@ -189,7 +189,7 @@ class SyncFlow(ABC):
         """
         if self._locks:
             return LockChain(self._locks)
-        return None
+        raise MissingLockException("Missing Locks for LockChain")
 
     def _get_resource(self, resource_identifier: str) -> Optional[Dict[str, Any]]:
         """Get a resource dict with resource identifier

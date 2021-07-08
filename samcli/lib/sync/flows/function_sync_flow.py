@@ -1,6 +1,6 @@
 """Base SyncFlow for Lambda Function"""
 import logging
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, cast
+from typing import Any, Dict, List, TYPE_CHECKING, cast
 
 from boto3.session import Session
 
@@ -21,7 +21,7 @@ LOG = logging.getLogger(__name__)
 class FunctionSyncFlow(SyncFlow):
     _function_identifier: str
     _function_provider: SamFunctionProvider
-    _function: Optional[Function]
+    _function: Function
     _lambda_client: Any
     _lambda_waiter: Any
     _lambda_waiter_config: Dict[str, Any]
@@ -57,7 +57,7 @@ class FunctionSyncFlow(SyncFlow):
         )
         self._function_identifier = function_identifier
         self._function_provider = self._build_context.function_provider
-        self._function = self._function_provider.functions.get(self._function_identifier)
+        self._function = cast(Function, self._function_provider.functions.get(self._function_identifier))
         self._lambda_client = None
         self._lambda_waiter = None
         self._lambda_waiter_config = {"Delay": 1, "MaxAttempts": 60}

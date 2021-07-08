@@ -86,6 +86,10 @@ class LayerPhysicalIdNotFoundError(Exception):
         return self._stack_resource_names
 
 
+class MissingLockException(Exception):
+    """Exception for not having an associated lock to be used."""
+
+
 class UriNotFoundException(Exception):
     """Exception used for not having a URI field that the resource requires"""
 

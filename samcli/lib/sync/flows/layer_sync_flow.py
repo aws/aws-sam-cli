@@ -83,19 +83,20 @@ class LayerSyncFlow(SyncFlow):
 
     def gather_resources(self) -> None:
         """Build layer and ZIP it into a temp file in self._zip_file"""
-        builder = ApplicationBuilder(
-            self._build_context.collect_build_resources(self._layer_identifier),
-            self._build_context.build_dir,
-            self._build_context.base_dir,
-            self._build_context.cache_dir,
-            cached=False,
-            is_building_specific_resource=True,
-            manifest_path_override=self._build_context.manifest_path_override,
-            container_manager=self._build_context.container_manager,
-            mode=self._build_context.mode,
-        )
-        LOG.debug("%sBuilding Layer", self.log_prefix)
-        self._artifact_folder = builder.build().get(self._layer_identifier)
+        with self._get_lock_chain():
+            builder = ApplicationBuilder(
+                self._build_context.collect_build_resources(self._layer_identifier),
+                self._build_context.build_dir,
+                self._build_context.base_dir,
+                self._build_context.cache_dir,
+                cached=False,
+                is_building_specific_resource=True,
+                manifest_path_override=self._build_context.manifest_path_override,
+                container_manager=self._build_context.container_manager,
+                mode=self._build_context.mode,
+            )
+            LOG.debug("%sBuilding Layer", self.log_prefix)
+            self._artifact_folder = builder.build().get(self._layer_identifier)
 
         zip_file_path = os.path.join(tempfile.gettempdir(), f"data-{uuid.uuid4().hex}")
         self._zip_file = make_zip(zip_file_path, self._artifact_folder)
@@ -179,7 +180,7 @@ class LayerSyncFlow(SyncFlow):
         return dependencies
 
     def _get_resource_api_calls(self) -> List[ResourceAPICall]:
-        return []
+        return [ResourceAPICall(self._layer_identifier, ["Build"])]
 
     def _get_latest_layer_version(self):
         """Fetches all layer versions from remote and returns the latest one"""

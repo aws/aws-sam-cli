@@ -51,7 +51,7 @@ class Function(NamedTuple):
     # to get credentials to run the container with. This gives a much higher fidelity simulation of cloud Lambda.
     rolearn: Optional[str]
     # List of Layers
-    layers: List
+    layers: List["LayerVersion"]
     # Event
     events: Optional[List]
     # Metadata

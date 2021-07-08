@@ -1,7 +1,7 @@
 import base64
 import hashlib
 from unittest import TestCase
-from unittest.mock import Mock, patch, call, ANY, mock_open, PropertyMock
+from unittest.mock import MagicMock, Mock, patch, call, ANY, mock_open, PropertyMock
 
 from parameterized import parameterized
 
@@ -86,6 +86,8 @@ class TestLayerSyncFlow(TestCase):
         given_file_checksum = Mock()
         patched_file_checksum.return_value = given_file_checksum
 
+        self.layer_sync_flow._get_lock_chain = MagicMock()
+
         self.layer_sync_flow.gather_resources()
 
         self.build_context_mock.collect_build_resources.assert_called_with(self.layer_identifier)
@@ -111,6 +113,10 @@ class TestLayerSyncFlow(TestCase):
         self.assertEqual(self.layer_sync_flow._artifact_folder, given_artifact_folder)
         self.assertEqual(self.layer_sync_flow._zip_file, given_zip_location)
         self.assertEqual(self.layer_sync_flow._local_sha, given_file_checksum)
+
+        self.layer_sync_flow._get_lock_chain.assert_called_once()
+        self.layer_sync_flow._get_lock_chain.return_value.__enter__.assert_called_once()
+        self.layer_sync_flow._get_lock_chain.return_value.__exit__.assert_called_once()
 
     def test_compare_remote(self):
         given_lambda_client = Mock()
@@ -324,6 +330,12 @@ class TestLayerSyncFlow(TestCase):
 
         with self.assertRaises(NoLayerVersionsFoundError):
             self.layer_sync_flow._get_latest_layer_version()
+
+    @patch("samcli.lib.sync.flows.layer_sync_flow.ResourceAPICall")
+    def test_get_resource_api_calls(self, resource_api_call_mock):
+        result = self.layer_sync_flow._get_resource_api_calls()
+        self.assertEqual(len(result), 1)
+        resource_api_call_mock.assert_called_once_with(self.layer_identifier, ["Build"])
 
 
 class TestFunctionLayerReferenceSync(TestCase):
