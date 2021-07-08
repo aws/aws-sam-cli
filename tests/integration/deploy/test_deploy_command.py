@@ -321,6 +321,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             template_file=template_path,
             capabilities="CAPABILITY_IAM",
             s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
             force_upload=True,
             notification_arns=self.sns_arn,
             parameter_overrides="Parameter=Clarity",
