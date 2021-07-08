@@ -31,6 +31,7 @@ from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from .bottle_necks import BottleNecks
 from .graph_context import GraphContext
 from .resources.LambdaFunction import LambdaFunction
+from .exceptions import InvalidSamDocumentException
 
 SHORT_HELP = "Checks template for bottle necks."
 
