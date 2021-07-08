@@ -313,7 +313,8 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         self.assertEqual(deploy_process_execute.process.returncode, 1)
         self.assertIn(
             bytes(
-                f"S3 Bucket not specified, use --s3-bucket to specify a bucket name or run sam deploy --guided",
+                f"S3 Bucket not specified, use --s3-bucket to specify a bucket name, or use --resolve-s3 \
+to create a managed default bucket, or run sam deploy --guided",
                 encoding="utf-8",
             ),
             deploy_process_execute.stderr,
@@ -535,7 +536,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         config_path = self.test_data_path.joinpath(config_file)
 
         stack_name = self._method_to_stack_name(self.id())
-        self.stack_names.append(stack_name)
+        self.stacks.append({"name": stack_name})
 
         deploy_command_list = self.get_deploy_command_list(
             template_file=template_path, stack_name=stack_name, config_file=config_path, capabilities="CAPABILITY_IAM"
@@ -695,6 +696,44 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 1)
         self.assertIn("Error reading configuration: Unexpected character", str(deploy_process_execute.stderr))
+
+    @parameterized.expand([("aws-serverless-function.yaml", "samconfig-tags-list.toml")])
+    def test_deploy_with_valid_config_tags_list(self, template_file, config_file):
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+        template_path = self.test_data_path.joinpath(template_file)
+        config_path = self.test_data_path.joinpath(config_file)
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            config_file=config_path,
+            s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
+            capabilities="CAPABILITY_IAM",
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+    @parameterized.expand([("aws-serverless-function.yaml", "samconfig-tags-string.toml")])
+    def test_deploy_with_valid_config_tags_string(self, template_file, config_file):
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+        template_path = self.test_data_path.joinpath(template_file)
+        config_path = self.test_data_path.joinpath(config_file)
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            config_file=config_path,
+            s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
+            capabilities="CAPABILITY_IAM",
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
 
     @parameterized.expand([(True, True, True), (False, True, False), (False, False, True), (True, False, True)])
     def test_deploy_with_code_signing_params(self, should_sign, should_enforce, will_succeed):
