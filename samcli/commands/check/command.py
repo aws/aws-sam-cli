@@ -33,6 +33,9 @@ from .graph_context import GraphContext
 from .resources.LambdaFunction import LambdaFunction
 from .exceptions import InvalidSamDocumentException
 
+from .calculations import Calculations
+from .print_results import PrintResults
+
 SHORT_HELP = "Checks template for bottle necks."
 
 
@@ -126,6 +129,12 @@ def do_cli(ctx, template):
 
     bottle_necks = BottleNecks(graph)
     bottle_necks.ask_entry_point_question()
+
+    calculations = Calculations(graph)
+    calculations.run_bottle_neck_calculations()
+
+    results = PrintResults(graph)
+    results.print_bottle_neck_results()
 
 
 def parse_template():
