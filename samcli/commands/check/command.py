@@ -25,6 +25,7 @@ from samcli.yamlhelper import yaml_dump
 from samcli.lib.utils.packagetype import ZIP
 
 from samcli.lib.replace_uri.replace_uri import ReplaceLocalCodeUri
+from .exceptions import InvalidSamDocumentException
 
 
 SHORT_HELP = "Checks template for bottle necks."
@@ -83,17 +84,33 @@ def cli(
     do_cli(ctx, template_file)  # pragma: no cover
 
 
-def do_cli(ctx, template):
+def do_cli(ctx, template_path):
     """
     Implementation of the ``cli`` method
 
     Translate template into CloudFormation yaml format
     """
 
-    # acquire template and policies
-    sam_template = _read_sam_file(template)
+    converted_template = transform_template(ctx, template_path)
+
+    click.echo("... analyzing application template")
+
+
+def load_policies():
     iam_client = boto3.client("iam")
-    managed_policy_map = ManagedPolicyLoader(iam_client).load()
+    return ManagedPolicyLoader(iam_client).load()
+
+
+def replace_code_uri(template):
+    uri_replace = ReplaceLocalCodeUri(template)
+    return uri_replace._replace_local_codeuri()
+
+
+def transform_template(ctx, template_path):
+    managed_policy_map = load_policies()
+    original_template = _read_sam_file(template_path)
+
+    updated_template = replace_code_uri(original_template)
 
     sam_translator = Translator(
         managed_policy_map=managed_policy_map,
@@ -102,19 +119,15 @@ def do_cli(ctx, template):
         boto_session=Session(profile_name=ctx.profile, region_name=ctx.region),
     )
 
-    # Convert uri's
-    uri_replace = ReplaceLocalCodeUri(sam_template)
-    sam_template = uri_replace._replace_local_codeuri()
-
     # Translate template
     try:
-        template = sam_translator.translate(sam_template=sam_template, parameter_values={})
+        converted_template = sam_translator.translate(sam_template=updated_template, parameter_values={})
     except InvalidDocumentException as e:
         raise InvalidSamDocumentException(
             functools.reduce(lambda message, error: message + " " + str(error), e.causes, str(e))
         ) from e
 
-    click.echo("... analyzing application template")
+    return converted_template
 
 
 def _read_sam_file(template):
