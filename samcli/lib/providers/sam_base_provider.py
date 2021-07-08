@@ -10,6 +10,8 @@ from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicR
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 from samcli.lib.samlib.wrapper import SamTranslatorWrapper
+from samcli.lib.package.ecr_utils import is_ecr_url
+
 
 LOG = logging.getLogger(__name__)
 
@@ -32,6 +34,11 @@ class SamBaseProvider:
         SERVERLESS_FUNCTION: "CodeUri",
         LAMBDA_LAYER: "Content",
         SERVERLESS_LAYER: "ContentUri",
+    }
+
+    IMAGE_PROPERTY_KEYS = {
+        LAMBDA_FUNCTION: "Code",
+        SERVERLESS_FUNCTION: "ImageUri",
     }
 
     def get(self, name: str) -> Optional[Any]:
@@ -89,6 +96,17 @@ class SamBaseProvider:
         )
 
     @staticmethod
+    def _is_ecr_uri(location: Optional[Union[str, Dict]]) -> bool:
+        """
+        the input could be:
+        - ImageUri of Serverless::Function
+        - Code of Lambda::Function
+        """
+        return location is not None and is_ecr_url(
+            str(location.get("ImageUri", "")) if isinstance(location, dict) else location
+        )
+
+    @staticmethod
     def _warn_code_extraction(resource_type: str, resource_name: str, code_property: str) -> None:
         LOG.warning(
             "The resource %s '%s' has specified S3 location for %s. "
@@ -96,6 +114,16 @@ class SamBaseProvider:
             resource_type,
             resource_name,
             code_property,
+        )
+
+    @staticmethod
+    def _warn_imageuri_extraction(resource_type: str, resource_name: str, image_property: str) -> None:
+        LOG.warning(
+            "The resource %s '%s' has specified ECR registry image for %s. "
+            "It will not be built and SAM CLI does not support invoking it locally.",
+            resource_type,
+            resource_name,
+            image_property,
         )
 
     @staticmethod

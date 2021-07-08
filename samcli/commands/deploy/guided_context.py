@@ -316,7 +316,7 @@ class GuidedContext:
                     if isinstance(self.image_repositories, dict)
                     else "" or self.image_repository,
                 )
-                if not is_ecr_url(image_repositories.get(resource_id)):
+                if resource_id not in image_repositories or not is_ecr_url(str(image_repositories[resource_id])):
                     raise GuidedDeployFailedError(
                         f"Invalid Image Repository ECR URI: {image_repositories.get(resource_id)}"
                     )
