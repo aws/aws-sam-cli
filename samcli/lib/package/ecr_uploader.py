@@ -113,8 +113,22 @@ class ECRUploader:
                 # Image not found
                 image_details = resp["failures"][0]
                 if image_details["failureCode"] == "ImageNotFound":
-                    LOG.error("ImageNotFound Exception : ")
-                    raise ImageNotFoundError(resource_id, property_name)
+                    LOG.error("ImageNotFound Exception")
+                    message_fmt = (
+                        "Could not delete image for {property_name}"
+                        " parameter of {resource_id} resource as it does not exist. \n"
+                    )
+                    raise ImageNotFoundError(resource_id, property_name, message_fmt=message_fmt)
+
+                LOG.error(
+                    "Could not delete the image for the resource %s. FailureCode: %s, FailureReason: %s",
+                    property_name,
+                    image_details["failureCode"],
+                    image_details["failureReason"],
+                )
+                raise DeleteArtifactFailedError(
+                    resource_id=resource_id, property_name=property_name, ex=image_details["failureReason"]
+                )
 
             LOG.debug("Deleting ECR image with tag %s", image_tag)
             click.echo(f"\t- Deleting ECR image {image_tag} in repository {repository}")

@@ -19,7 +19,7 @@ class TestDeleteContext(TestCase):
             config_file="samconfig.toml",
             config_env="default",
             profile="test",
-            force=True,
+            no_prompts=True,
         ) as delete_context:
 
             delete_context.run()
@@ -37,7 +37,7 @@ class TestDeleteContext(TestCase):
             config_file="samconfig.toml",
             config_env="default",
             profile="test",
-            force=True,
+            no_prompts=True,
         ) as delete_context:
             self.assertEqual(delete_context.parse_config_file.call_count, 1)
             self.assertEqual(delete_context.init_clients.call_count, 1)
@@ -66,7 +66,7 @@ class TestDeleteContext(TestCase):
             config_file="samconfig.toml",
             config_env="default",
             profile=None,
-            force=True,
+            no_prompts=True,
         ) as delete_context:
             self.assertEqual(delete_context.stack_name, "test")
             self.assertEqual(delete_context.region, "us-east-1")
@@ -103,7 +103,7 @@ class TestDeleteContext(TestCase):
             config_file="samconfig.toml",
             config_env="default",
             profile=None,
-            force=True,
+            no_prompts=True,
         ) as delete_context:
             delete_context.run()
 
@@ -126,7 +126,7 @@ class TestDeleteContext(TestCase):
             config_file="samconfig.toml",
             config_env="default",
             profile="test",
-            force=True,
+            no_prompts=True,
         ) as delete_context:
 
             delete_context.run()
@@ -161,7 +161,7 @@ class TestDeleteContext(TestCase):
             config_file="samconfig.toml",
             config_env="default",
             profile="test",
-            force=None,
+            no_prompts=None,
         ) as delete_context:
             patched_confirm.side_effect = [True, False, True]
             delete_context.cf_template_file_name = "hello.template"
@@ -217,7 +217,7 @@ class TestDeleteContext(TestCase):
             config_file="samconfig.toml",
             config_env="default",
             profile="test",
-            force=None,
+            no_prompts=None,
         ) as delete_context:
             patched_confirm.side_effect = [True, True]
             delete_context.cf_template_file_name = "hello.template"

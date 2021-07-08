@@ -5,7 +5,6 @@ import logging
 import boto3
 
 
-import docker
 import click
 from click import confirm
 from click import prompt
@@ -29,13 +28,13 @@ LOG = logging.getLogger(__name__)
 
 
 class DeleteContext:
-    def __init__(self, stack_name: str, region: str, profile: str, config_file: str, config_env: str, force: bool):
+    def __init__(self, stack_name: str, region: str, profile: str, config_file: str, config_env: str, no_prompts: bool):
         self.stack_name = stack_name
         self.region = region
         self.profile = profile
         self.config_file = config_file
         self.config_env = config_env
-        self.force = force
+        self.no_prompts = no_prompts
         self.s3_bucket = None
         self.s3_prefix = None
         self.cf_utils = None
@@ -101,8 +100,7 @@ class DeleteContext:
         self.region = s3_client._client_config.region_name if s3_client else self.region  # pylint: disable=W0212
         self.s3_uploader = S3Uploader(s3_client=s3_client, bucket_name=self.s3_bucket, prefix=self.s3_prefix)
 
-        docker_client = docker.from_env()
-        ecr_uploader = ECRUploader(docker_client, ecr_client, None, None)
+        ecr_uploader = ECRUploader(docker_client=None, ecr_client=ecr_client, ecr_repo=None, ecr_repo_multi=None)
 
         self.uploaders = Uploaders(self.s3_uploader, ecr_uploader)
         self.cf_utils = CfUtils(cloudformation_client)
@@ -118,7 +116,7 @@ class DeleteContext:
         # information is not found, warn the customer that S3 artifacts
         # will need to be manually deleted.
 
-        if not self.force and self.s3_bucket:
+        if not self.no_prompts and self.s3_bucket:
             if self.s3_prefix:
                 self.delete_artifacts_folder = confirm(
                     click.style(
@@ -187,7 +185,7 @@ class DeleteContext:
         """
         Delete the stack based on the argument provided by customers and samconfig.toml.
         """
-        if not self.force:
+        if not self.no_prompts:
             delete_stack = confirm(
                 click.style(
                     f"\tAre you sure you want to delete the stack {self.stack_name}"
@@ -197,7 +195,7 @@ class DeleteContext:
                 default=False,
             )
 
-        if self.force or delete_stack:
+        if self.no_prompts or delete_stack:
             is_deployed = self.cf_utils.has_stack(stack_name=self.stack_name)
             # Check if the provided stack-name exists
             if is_deployed:
