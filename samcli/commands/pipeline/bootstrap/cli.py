@@ -151,12 +151,19 @@ def do_cli(
     confirm_changeset: bool,
     config_file: Optional[str],
     config_env: Optional[str],
+    standalone: bool = True,
 ) -> None:
     """
     implementation of `sam pipeline bootstrap` command
     """
     if not pipeline_user_arn:
         pipeline_user_arn = _load_saved_pipeline_user_arn()
+
+    if standalone:
+        click.secho(
+            f'{Colored().bold("sam pipeline bootstrap")} '
+            f"generates the necessary AWS resources to connect your CI/CD system."
+        )
 
     if interactive:
         guided_context = GuidedContext(

@@ -158,9 +158,8 @@ class GuidedContext:
         """
         click.secho(
             dedent(
-                f"""\
-                {Colored().bold("sam pipeline bootstrap")} generates the necessary AWS resources to connect your
-                CI/CD system. We will ask for [1] account details, [2] stage definition,
+                """\
+                We will ask for [1] account details, [2] stage definition,
                 and [3] references to existing resources in order to bootstrap these pipeline
                 resources. You can also add optional security parameters.
                 """

@@ -7,7 +7,7 @@ import click
 
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options as cli_framework_options
-from samcli.commands.pipeline.init.interactive_init_flow import do_interactive
+from samcli.commands.pipeline.init.interactive_init_flow import InteractiveInitFlow
 from samcli.lib.telemetry.metric import track_command
 
 SHORT_HELP = "Generates CI/CD pipeline configuration files."
@@ -19,26 +19,29 @@ GitLab CI/CD or GitHub Actions
 
 @click.command("init", help=HELP_TEXT, short_help=SHORT_HELP)
 @configuration_option(provider=TomlProvider(section="parameters"))
+@click.option(
+    "--bootstrap",
+    is_flag=True,
+    default=False,
+    help="Allow bootstrapping resources.",
+)
 @cli_framework_options
 @pass_context
 @track_command  # pylint: disable=R0914
-def cli(
-    ctx: Any,
-    config_env: Optional[str],
-    config_file: Optional[str],
-) -> None:
+def cli(ctx: Any, config_env: Optional[str], config_file: Optional[str], bootstrap: bool) -> None:
     """
     `sam pipeline init` command entry point
     """
 
     # Currently we support interactive mode only, i.e. the user doesn't provide the required arguments during the call
     # so we call do_cli without any arguments. This will change after supporting the non interactive mode.
-    do_cli()
+    do_cli(bootstrap)
 
 
-def do_cli() -> None:
+def do_cli(bootstrap: bool) -> None:
     """
     implementation of `sam pipeline init` command
     """
     # TODO non-interactive mode
-    do_interactive()
+    init_flow = InteractiveInitFlow(bootstrap)
+    init_flow.do_interactive()
