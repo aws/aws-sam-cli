@@ -88,6 +88,9 @@ Resources:
               Service: cloudformation.amazonaws.com
             Action:
               - 'sts:AssumeRole'
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
       Policies:
         - PolicyName: GrantCloudFormationFullAccess
           PolicyDocument:

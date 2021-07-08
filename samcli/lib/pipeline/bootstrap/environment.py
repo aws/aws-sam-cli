@@ -12,7 +12,6 @@ import click
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.managed_cloudformation_stack import manage_stack, StackOutput
-from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
 from samcli.lib.pipeline.bootstrap.resource import Resource, IAMUser, ECRImageRepository
 
 CFN_TEMPLATE_PATH = str(pathlib.Path(os.path.dirname(__file__)))
@@ -191,7 +190,9 @@ class Environment:
             (
                 self.pipeline_user.access_key_id,
                 self.pipeline_user.secret_access_key,
-            ) = Environment._get_pipeline_user_secret_pair(pipeline_user_secret_sm_id)
+            ) = Environment._get_pipeline_user_secret_pair(
+                pipeline_user_secret_sm_id, self.aws_profile, self.aws_region
+            )
         self.pipeline_execution_role.arn = output.get("PipelineExecutionRole")
         self.cloudformation_execution_role.arn = output.get("CloudFormationExecutionRole")
         self.artifacts_bucket.arn = output.get("ArtifactsBucket")
@@ -199,7 +200,9 @@ class Environment:
         return True
 
     @staticmethod
-    def _get_pipeline_user_secret_pair(secret_manager_arn: str) -> Tuple[str, str]:
+    def _get_pipeline_user_secret_pair(
+        secret_manager_arn: str, profile: Optional[str], region: Optional[str]
+    ) -> Tuple[str, str]:
         """
         Helper method to fetch pipeline user's AWS Credentials from secrets manager.
         SecretString need to be in following JSON format:
@@ -211,12 +214,16 @@ class Environment:
         ----------
         secret_manager_arn:
             ARN of secret manager entry which holds pipeline user key.
+        profile:
+            The named AWS profile (in user's machine) of the AWS account to deploy this environment to.
+        region:
+            The AWS region to deploy this environment to.
 
         Returns tuple of aws_access_key_id and aws_secret_access_key.
 
         """
-        boto_config = get_boto_config_with_user_agent()
-        secrets_manager_client = boto3.client("secretsmanager", config=boto_config)
+        session = boto3.Session(profile_name=profile, region_name=region if region else None)  # type: ignore
+        secrets_manager_client = session.client("secretsmanager")
         response = secrets_manager_client.get_secret_value(SecretId=secret_manager_arn)
         secret_string = response["SecretString"]
         secret_json = json.loads(secret_string)
