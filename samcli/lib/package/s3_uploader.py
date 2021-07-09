@@ -277,7 +277,7 @@ class S3Uploader:
             parsed = urlparse(url)
             result = dict()
             # path would point to /bucket/key
-            s3_bucket_key = parsed.path.split('/', 2)[1:]
+            s3_bucket_key = parsed.path.split("/", 2)[1:]
 
             result[bucket_name_property] = s3_bucket_key[0]
             result[object_key_property] = s3_bucket_key[1]

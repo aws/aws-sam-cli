@@ -243,14 +243,14 @@ class TestArtifactExporter(unittest.TestCase):
 
     def test_parse_path_style_s3_url(self):
         valid = [
-            {"url": "https://s3-eu-west-1.amazonaws.com/bucket/long/key", "result": {"Bucket": "bucket", "Key": "long/key"}},
+            {
+                "url": "https://s3-eu-west-1.amazonaws.com/bucket/long/key",
+                "result": {"Bucket": "bucket", "Key": "long/key"},
+            },
             {"url": "https://s3.us-east-1.amazonaws.com/bucket/key", "result": {"Bucket": "bucket", "Key": "key"}},
         ]
 
-        invalid = [
-            "https://www.amazon.com",
-            "https://bucket-name.s3.Region.amazonaws.com/key"
-        ]
+        invalid = ["https://www.amazon.com", "https://bucket-name.s3.Region.amazonaws.com/key"]
 
         for config in valid:
             result = S3Uploader.parse_path_style_s3_url(
