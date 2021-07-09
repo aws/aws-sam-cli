@@ -1,3 +1,4 @@
+import json
 import tempfile
 import os
 import string
@@ -1422,9 +1423,18 @@ class TestArtifactExporter(unittest.TestCase):
                 "Resource3": {"Type": "some-other-type", "Properties": properties, "DeletionPolicy": "Retain"},
             }
         }
+        template_str = json.dumps(template_dict, indent=4, ensure_ascii=False)
 
-        template_exporter = Template(None, None, self.uploaders_mock, None, resources_to_export)
-        template_exporter.delete(template_dict)
+        template_exporter = Template(
+            template_path=None,
+            parent_dir=None,
+            uploaders=self.uploaders_mock,
+            code_signer=None,
+            resources_to_export=resources_to_export,
+            template_str=template_str,
+        )
+
+        template_exporter.delete()
 
         resource_type1_class.assert_called_once_with(self.uploaders_mock, None)
         resource_type1_instance.delete.assert_called_once_with("Resource1", mock.ANY)

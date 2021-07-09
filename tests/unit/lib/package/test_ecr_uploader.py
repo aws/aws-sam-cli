@@ -243,12 +243,10 @@ class TestECRUploader(TestCase):
             {
                 "url": "mock-image-repo",
                 "result": {"repository": "mock-image-repo", "image_tag": "latest"},
-            }
+            },
         ]
-        
+
         for config in valid:
-            result = ECRUploader.parse_ecr_url(
-                image_uri=config["url"]
-            )
+            result = ECRUploader.parse_ecr_url(image_uri=config["url"])
 
             self.assertEqual(result, config["result"])

@@ -14,7 +14,6 @@ from samcli.lib.delete.cf_utils import CfUtils
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.artifact_exporter import mktempfile, get_cf_template_name
 
-from samcli.yamlhelper import yaml_parse
 
 from samcli.lib.package.artifact_exporter import Template
 from samcli.lib.package.ecr_uploader import ECRUploader
@@ -40,7 +39,6 @@ class DeleteContext:
         self.cf_utils = None
         self.s3_uploader = None
         self.uploaders = None
-        self.template = None
         self.cf_template_file_name = None
         self.delete_artifacts_folder = None
         self.delete_cf_template_file = None
@@ -104,7 +102,6 @@ class DeleteContext:
 
         self.uploaders = Uploaders(self.s3_uploader, ecr_uploader)
         self.cf_utils = CfUtils(cloudformation_client)
-        self.template = Template(None, None, self.uploaders, None)
 
     def guided_prompts(self):
         """
@@ -145,9 +142,8 @@ class DeleteContext:
         Delete method calls for Cloudformation stacks and S3 and ECR artifacts
         """
         # Fetch the template using the stack-name
-        template = self.cf_utils.get_stack_template(self.stack_name, TEMPLATE_STAGE)
-        template_str = template.get("TemplateBody", None)
-        template_dict = yaml_parse(template_str)
+        cf_template = self.cf_utils.get_stack_template(self.stack_name, TEMPLATE_STAGE)
+        template_str = cf_template.get("TemplateBody", None)
 
         # Get the cloudformation template name using template_str
         with mktempfile() as temp_file:
@@ -162,7 +158,10 @@ class DeleteContext:
         LOG.debug("Deleted Cloudformation stack: %s", self.stack_name)
 
         # Delete the artifacts
-        self.template.delete(template_dict)
+        template = Template(
+            template_path=None, parent_dir=None, uploaders=self.uploaders, code_signer=None, template_str=template_str
+        )
+        template.delete()
 
         # Delete the CF template file in S3
         if self.delete_cf_template_file:
