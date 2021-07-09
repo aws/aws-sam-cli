@@ -165,7 +165,14 @@ class ResourceZip(Resource):
         if resource_dict is None:
             return
         resource_path = jmespath.search(self.PROPERTY_NAME, resource_dict)
-        parsed_s3_url = self.uploader.parse_s3_url(resource_path)
+        parsed_s3_url = []
+        if isinstance(resource_path, str) and resource_path.startswith("https://s3"):
+            # Path-style s3 url parsing for resources that return these urls
+            # For resources e.g. CloudFormation::Stack and Serverless::Application
+            parsed_s3_url = self.uploader.parse_path_style_s3_url(resource_path)
+        else:
+            # urls which start with s3://
+            parsed_s3_url = self.uploader.parse_s3_url(resource_path)
         if not self.uploader.bucket_name:
             self.uploader.bucket_name = parsed_s3_url["Bucket"]
         self.uploader.delete_artifact(parsed_s3_url["Key"], True)

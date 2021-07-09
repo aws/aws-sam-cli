@@ -241,6 +241,28 @@ class TestArtifactExporter(unittest.TestCase):
             with self.assertRaises(ValueError):
                 S3Uploader.parse_s3_url(url)
 
+    def test_parse_path_style_s3_url(self):
+        valid = [
+            {"url": "https://s3-eu-west-1.amazonaws.com/bucket/long/key", "result": {"Bucket": "bucket", "Key": "long/key"}},
+            {"url": "https://s3.us-east-1.amazonaws.com/bucket/key", "result": {"Bucket": "bucket", "Key": "key"}},
+        ]
+
+        invalid = [
+            "https://www.amazon.com",
+            "https://bucket-name.s3.Region.amazonaws.com/key"
+        ]
+
+        for config in valid:
+            result = S3Uploader.parse_path_style_s3_url(
+                config["url"], bucket_name_property="Bucket", object_key_property="Key"
+            )
+
+            self.assertEqual(result, config["result"])
+
+        for url in invalid:
+            with self.assertRaises(ValueError):
+                S3Uploader.parse_path_style_s3_url(url)
+
     def test_is_local_file(self):
         with tempfile.NamedTemporaryFile() as handle:
             self.assertTrue(is_local_file(handle.name))

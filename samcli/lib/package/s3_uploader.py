@@ -263,6 +263,28 @@ class S3Uploader:
 
         raise ValueError("URL given to the parse method is not a valid S3 url " "{0}".format(url))
 
+    @staticmethod
+    def parse_path_style_s3_url(
+        url: Any,
+        bucket_name_property: str = "Bucket",
+        object_key_property: str = "Key",
+    ) -> Dict:
+        """
+        Static method for parsing path style s3 urls.
+        e.g. https://s3.us-east-1.amazonaws.com/bucket/key
+        """
+        if isinstance(url, str) and url.startswith("https://s3"):
+            parsed = urlparse(url)
+            result = dict()
+            # path would point to /bucket/key
+            s3_bucket_key = parsed.path.split('/', 2)[1:]
+
+            result[bucket_name_property] = s3_bucket_key[0]
+            result[object_key_property] = s3_bucket_key[1]
+
+            return result
+        raise ValueError("URL given to the parse method is not a valid path-style S3 url " "{0}".format(url))
+
 
 class ProgressPercentage:
     # This class was copied directly from S3Transfer docs
