@@ -5,6 +5,7 @@ import logging
 import base64
 import os
 
+from typing import Dict
 import click
 import botocore
 import docker
@@ -100,9 +101,9 @@ class ECRUploader:
         :param property_name: provided property_name for the resource
         """
         try:
-            repo_image_tag = image_uri.split("/")[1].split(":")
-            repository = repo_image_tag[0]
-            image_tag = repo_image_tag[1]
+            repo_image_tag = self.parse_ecr_url(image_uri=image_uri)
+            repository = repo_image_tag["repository"]
+            image_tag = repo_image_tag["image_tag"]
             resp = self.ecr_client.batch_delete_image(
                 repositoryName=repository,
                 imageIds=[
@@ -137,6 +138,25 @@ class ECRUploader:
             # Handle Client errors such as RepositoryNotFoundException or InvalidParameterException
             LOG.error("DeleteArtifactFailedError Exception : %s", str(ex))
             raise DeleteArtifactFailedError(resource_id=resource_id, property_name=property_name, ex=ex) from ex
+
+    @staticmethod
+    def parse_ecr_url(image_uri: str) -> Dict:
+        result = {}
+        registry_repo_tag = image_uri.split("/")
+        repo_colon_image_tag = None
+        if len(registry_repo_tag) == 1:
+            # If there is no registry specified, e.g. repo:tag
+            repo_colon_image_tag = registry_repo_tag[0]
+        else:
+            # Registry present, e.g. registry/repo:tag
+            repo_colon_image_tag = registry_repo_tag[1]
+        repo_image_tag_split = repo_colon_image_tag.split(":")
+
+        # If no tag is specified, use latest
+        result["repository"] = repo_image_tag_split[0]
+        result["image_tag"] = repo_image_tag_split[1] if len(repo_image_tag_split) > 1 else "latest"
+
+        return result
 
     # TODO: move this to a generic class to allow for streaming logs back from docker.
     def _stream_progress(self, logs):

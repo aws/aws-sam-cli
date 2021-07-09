@@ -225,6 +225,8 @@ class ResourceImageDict(Resource):
             self.uploader.delete_artifact(
                 image_uri=remote_path, resource_id=resource_id, property_name=self.PROPERTY_NAME
             )
+        else:
+            raise ValueError("URL given to the parse method is not a valid ECR url " "{0}".format(remote_path))
 
 
 class ResourceImage(Resource):
@@ -279,6 +281,8 @@ class ResourceImage(Resource):
             self.uploader.delete_artifact(
                 image_uri=remote_path, resource_id=resource_id, property_name=self.PROPERTY_NAME
             )
+        else:
+            raise ValueError("URL given to the parse method is not a valid ECR url " "{0}".format(remote_path))
 
 
 class ResourceWithS3UrlDict(ResourceZip):

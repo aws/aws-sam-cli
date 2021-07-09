@@ -234,3 +234,21 @@ class TestECRUploader(TestCase):
             ecr_uploader.delete_artifact(
                 image_uri=self.image_uri, resource_id=self.resource_id, property_name=self.property_name
             )
+
+    def test_parse_ecr_url(self):
+
+        valid = [
+            {"url": self.image_uri, "result": {"repository": "mock-image-repo", "image_tag": "mock-tag"}},
+            {"url": "mock-image-rep:mock-tag", "result": {"repository": "mock-image-rep", "image_tag": "mock-tag"}},
+            {
+                "url": "mock-image-repo",
+                "result": {"repository": "mock-image-repo", "image_tag": "latest"},
+            }
+        ]
+        
+        for config in valid:
+            result = ECRUploader.parse_ecr_url(
+                image_uri=config["url"]
+            )
+
+            self.assertEqual(result, config["result"])
