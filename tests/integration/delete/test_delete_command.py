@@ -54,6 +54,18 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
         time.sleep(CFN_SLEEP)
         super().setUp()
 
+    def test_delete_command_no_stack_deployed(self):
+
+        stack_name = self._method_to_stack_name(self.id())
+
+        delete_command_list = self.get_delete_command_list(stack_name=stack_name, force=True)
+
+        delete_process_execute = run_command(delete_command_list)
+        self.assertEqual(delete_process_execute.process.returncode, 0)
+        self.assertIn(
+            f"Error: The input stack {stack_name} does not exist on Cloudformation", str(delete_process_execute.stdout)
+        )
+
     @parameterized.expand(
         [
             "aws-serverless-function.yaml",
@@ -69,14 +81,14 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             "aws-cloudformation-moduleversion.yaml",
             "aws-cloudformation-resourceversion.yaml",
             "aws-cloudformation-stack.yaml",
-            "aws-serverless-application.yaml",
+            # "aws-serverless-application.yaml",
             "aws-lambda-layerversion.yaml",
             "aws-serverless-layerversion.yaml",
             # "aws-glue-job.yaml",
             "aws-stepfunctions-statemachine.yaml",
         ]
     )
-    def test_delete_with_s3_bucket_prefix_present(self, template_file):
+    def test_delete_with_s3_prefix_present_zip(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
         LOG.info(template_path)
 
@@ -97,6 +109,41 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
         )
 
         LOG.info(delete_command_list)
+        delete_process_execute = run_command(delete_command_list)
+        self.assertEqual(delete_process_execute.process.returncode, 0)
+
+        # Remove the local config file created
+        config_file_path = self.test_data_path.joinpath(config_file_name)
+        if os.path.isfile(config_file_path):
+            os.remove(config_file_path)
+
+    @parameterized.expand(
+        [
+            "aws-serverless-function-image.yaml",
+        ]
+    )
+    def test_delete_with_s3_prefix_present_image(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+        LOG.info(template_path)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        config_file_name = stack_name + ".toml"
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path, guided=True, config_file=config_file_name
+        )
+
+        deploy_process_execute = run_command_with_input(
+            deploy_command_list, f"{stack_name}\n\n{self.ecr_repo_name}\n\n\ny\n\n\n\n\n\n".encode()
+        )
+
+        delete_command_list = self.get_delete_command_list(
+            stack_name=stack_name, config_file=self.test_data_path.joinpath(config_file_name), force=True
+        )
+
+        LOG.info(delete_command_list)
+        LOG.info(self.ecr_repo_name)
         delete_process_execute = run_command(delete_command_list)
         self.assertEqual(delete_process_execute.process.returncode, 0)
 
