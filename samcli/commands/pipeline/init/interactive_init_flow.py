@@ -39,7 +39,8 @@ class InteractiveInitFlow:
     def do_interactive(self) -> None:
         """
         An interactive flow that prompts the user for pipeline template (cookiecutter template) location, downloads it,
-        runs its specific questionnaire then generates the pipeline config file based on the template and user's responses
+        runs its specific questionnaire then generates the pipeline config file
+        based on the template and user's responses
         """
         pipeline_template_source_question = Choice(
             key="pipeline-template-source",
@@ -81,8 +82,8 @@ class InteractiveInitFlow:
         self,
     ) -> List[str]:
         """
-        Prompts the user for a custom pipeline template location, downloads locally, then generates the pipeline config file
-        and return the list of generated files
+        Prompts the user for a custom pipeline template location, downloads locally,
+        then generates the pipeline config file and return the list of generated files
         """
         pipeline_template_git_location: str = click.prompt("Template Git location")
         if os.path.exists(pipeline_template_git_location):
@@ -94,37 +95,6 @@ class InteractiveInitFlow:
                 pipeline_template_git_location, tempdir_path, CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME
             )
             return self._generate_from_pipeline_template(pipeline_template_local_dir)
-
-    def _load_pipeline_bootstrap_resources(
-        self,
-    ) -> Tuple[List[str], Dict[str, str]]:
-        click.echo("Checking for bootstrapped resources...")
-        bootstrap_command_names = ["pipeline", "bootstrap"]
-        section = "parameters"
-        context: Dict = {}
-
-        config = SamConfig(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)
-        if not config.exists():
-            context[str(["environment_names_message"])] = ""
-            return [], context
-
-        # config.get_env_names() will return the list of
-        # bootstrapped env names and "default" which is used to store shared values
-        # we don't want to include "default" here.
-        env_names = [env_name for env_name in config.get_env_names() if env_name != "default"]
-        for env in env_names:
-            for key, value in config.get_all(bootstrap_command_names, section, env).items():
-                context[str([env, key])] = value
-
-        # pre-load the list of env names detected from pipelineconfig.toml
-        environment_names_message = (
-            "Here are the environment names detected "
-            + f"in {os.path.join(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)}:\n"
-            + "\n".join([f"\t- {env_name}" for env_name in env_names])
-        )
-        context[str(["environment_names_message"])] = environment_names_message
-
-        return env_names, context
 
     def _prompt_run_bootstrap_within_pipeline_init(self, env_names: List[str], required_env_number: int) -> bool:
         """
@@ -188,7 +158,7 @@ class InteractiveInitFlow:
         click.echo(
             dedent(
                 """\
-                sam pipeline init generates a two-stage pipeline config file that you can use to 
+                sam pipeline init generates a two-stage pipeline config file that you can use to
                 connect your AWS account(s) to your CI/CD pipeline too. We will guide you through
                 the process to bootstrap resources for each stage, then walk through the details
                 necessary for creating the Pipeline Config file.
@@ -197,7 +167,7 @@ class InteractiveInitFlow:
         )
         _draw_stage_diagram(required_env_number)
         while True:
-            env_names, bootstrap_context = self._load_pipeline_bootstrap_resources()
+            env_names, bootstrap_context = _load_pipeline_bootstrap_resources()
             if len(env_names) < required_env_number and self._prompt_run_bootstrap_within_pipeline_init(
                 env_names, required_env_number
             ):
@@ -212,6 +182,36 @@ class InteractiveInitFlow:
             context["outputDir"] = "."  # prevent cookiecutter from generating a sub-folder
             pipeline_template.generate_project(context, generate_dir)
             return _copy_dir_contents_to_cwd_fail_on_exist(generate_dir)
+
+
+def _load_pipeline_bootstrap_resources() -> Tuple[List[str], Dict[str, str]]:
+    click.echo("Checking for bootstrapped resources...")
+    bootstrap_command_names = ["pipeline", "bootstrap"]
+    section = "parameters"
+    context: Dict = {}
+
+    config = SamConfig(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)
+    if not config.exists():
+        context[str(["environment_names_message"])] = ""
+        return [], context
+
+    # config.get_env_names() will return the list of
+    # bootstrapped env names and "default" which is used to store shared values
+    # we don't want to include "default" here.
+    env_names = [env_name for env_name in config.get_env_names() if env_name != "default"]
+    for env in env_names:
+        for key, value in config.get_all(bootstrap_command_names, section, env).items():
+            context[str([env, key])] = value
+
+    # pre-load the list of env names detected from pipelineconfig.toml
+    environment_names_message = (
+        "Here are the environment names detected "
+        + f"in {os.path.join(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)}:\n"
+        + "\n".join([f"\t- {env_name}" for env_name in env_names])
+    )
+    context[str(["environment_names_message"])] = environment_names_message
+
+    return env_names, context
 
 
 def _copy_dir_contents_to_cwd_fail_on_exist(source_dir: str) -> List[str]:
@@ -405,5 +405,5 @@ def _lines_for_stage(stage_index: int) -> List[str]:
 def _draw_stage_diagram(number_of_stages: int) -> None:
     delimiters = ["  ", "  ", "->", "  "]
     stage_lines = [_lines_for_stage(i + 1) for i in range(number_of_stages)]
-    for i in range(len(delimiters)):
-        click.echo(delimiters[i].join([stage_lines[stage_i][i] for stage_i in range(number_of_stages)]))
+    for i, delimiter in enumerate(delimiters):
+        click.echo(delimiter.join([stage_lines[stage_i][i] for stage_i in range(number_of_stages)]))
