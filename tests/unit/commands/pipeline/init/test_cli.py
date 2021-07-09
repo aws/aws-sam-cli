@@ -14,9 +14,9 @@ class TestCli(TestCase):
         runner.invoke(init_cmd)
         # Currently we support the interactive mode only, i.e. we don't accept any command arguments,
         # instead we ask the user about the required arguments in an interactive way
-        do_cli_mock.assert_called_once_with()  # Called without arguments
+        do_cli_mock.assert_called_once_with(False)  # Called without arguments
 
-    @patch("samcli.commands.pipeline.init.cli.do_interactive")
+    @patch("samcli.commands.pipeline.init.cli.InteractiveInitFlow.do_interactive")
     def test_do_cli(self, do_interactive_mock):
-        init_cli()
+        init_cli(False)
         do_interactive_mock.assert_called_once_with()  # Called without arguments

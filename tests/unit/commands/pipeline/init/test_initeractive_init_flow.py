@@ -3,7 +3,7 @@ from unittest.mock import patch, Mock, ANY
 import os
 from pathlib import Path
 from samcli.commands.pipeline.init.interactive_init_flow import (
-    do_interactive,
+    InteractiveInitFlow,
     PipelineTemplateCloneException,
     APP_PIPELINE_TEMPLATES_REPO_LOCAL_NAME,
     shared_path,
@@ -19,7 +19,7 @@ from samcli.lib.cookiecutter.interactive_flow_creator import QuestionsNotFoundEx
 class TestInteractiveInitFlow(TestCase):
     @patch("samcli.commands.pipeline.init.interactive_init_flow._read_app_pipeline_templates_manifest")
     @patch("samcli.commands.pipeline.init.interactive_init_flow._prompt_pipeline_template")
-    @patch("samcli.commands.pipeline.init.interactive_init_flow._generate_from_pipeline_template")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow.InteractiveInitFlow._generate_from_pipeline_template")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.shared_path")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
     @patch("samcli.lib.cookiecutter.question.click")
@@ -44,7 +44,7 @@ class TestInteractiveInitFlow(TestCase):
         click_mock.prompt.return_value = "1"  # App pipeline templates
 
         # trigger
-        do_interactive()
+        InteractiveInitFlow(allow_bootstrap=False).do_interactive()
 
         # verify
         clone_mock.assert_called_once_with(
@@ -68,7 +68,7 @@ class TestInteractiveInitFlow(TestCase):
 
         # trigger
         with self.assertRaises(PipelineTemplateCloneException):
-            do_interactive()
+            InteractiveInitFlow(allow_bootstrap=False).do_interactive()
 
     @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.click")
@@ -83,7 +83,7 @@ class TestInteractiveInitFlow(TestCase):
 
         # trigger
         with self.assertRaises(PipelineTemplateCloneException):
-            do_interactive()
+            InteractiveInitFlow(allow_bootstrap=False).do_interactive()
 
     @patch("samcli.commands.pipeline.init.interactive_init_flow._read_app_pipeline_templates_manifest")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
@@ -99,7 +99,7 @@ class TestInteractiveInitFlow(TestCase):
 
         # trigger
         with self.assertRaises(AppPipelineTemplateManifestException):
-            do_interactive()
+            InteractiveInitFlow(allow_bootstrap=False).do_interactive()
 
     @patch("samcli.commands.pipeline.init.interactive_init_flow.SamConfig")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.osutils")
@@ -157,7 +157,7 @@ class TestInteractiveInitFlow(TestCase):
         ]
 
         # trigger
-        do_interactive()
+        InteractiveInitFlow(allow_bootstrap=False).do_interactive()
 
         # verify
         osutils_mock.mkdir_temp.assert_called()  # cookiecutter project is generated to temp
@@ -213,11 +213,11 @@ class TestInteractiveInitFlow(TestCase):
 
         # trigger
         with self.assertRaises(QuestionsNotFoundException):
-            do_interactive()
+            InteractiveInitFlow(allow_bootstrap=False).do_interactive()
 
     @patch("samcli.commands.pipeline.init.interactive_init_flow.os")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.osutils")
-    @patch("samcli.commands.pipeline.init.interactive_init_flow._generate_from_pipeline_template")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow.InteractiveInitFlow._generate_from_pipeline_template")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.click")
     @patch("samcli.lib.cookiecutter.question.click")
@@ -236,7 +236,7 @@ class TestInteractiveInitFlow(TestCase):
         questions_click_mock.prompt.return_value = "2"  # Custom pipeline templates
         init_click_mock.prompt.return_value = local_pipeline_templates_path  # git repo path
         # trigger
-        do_interactive()
+        InteractiveInitFlow(allow_bootstrap=False).do_interactive()
 
         # verify
         osutils_mock.mkdir_temp.assert_not_called()
@@ -277,7 +277,7 @@ class TestInteractiveInitFlow(TestCase):
         init_click_mock.prompt.return_value = "https://github.com/any-custom-pipeline-template-repo.git"
 
         # trigger
-        do_interactive()
+        InteractiveInitFlow(allow_bootstrap=False).do_interactive()
 
         # verify
         # Custom templates are cloned to temp; cookiecutter project is generated to temp

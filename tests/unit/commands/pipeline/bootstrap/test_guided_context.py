@@ -33,8 +33,10 @@ class TestGuidedContext(TestCase):
             region=ANY_REGION,
         )
         gc.run()
-        # there should only one prompt to ask what values customers want to change
-        click_mock.prompt.assert_called_once()
+        # there should only two prompt to ask
+        # 1. which account to use
+        # 2. what values customers want to change
+        self.assertEquals(2, len(click_mock.prompt.mock_calls))
 
     @patch("samcli.commands.pipeline.bootstrap.guided_context.get_current_account_id")
     @patch("samcli.commands.pipeline.bootstrap.guided_context.click")
@@ -75,22 +77,22 @@ class TestGuidedContext(TestCase):
 
         self.assertIsNone(gc_without_ecr_info.image_repository_arn)
 
-        click_mock.confirm.side_effect = [False, False]  # the user chose to not CREATE an ECR Image repository
-        click_mock.prompt.return_value = "0"
+        click_mock.confirm.return_value = False  # the user chose to not CREATE an ECR Image repository
+        click_mock.prompt.side_effect = ["e", None, "0"]
         gc_without_ecr_info.run()
         self.assertIsNone(gc_without_ecr_info.image_repository_arn)
         self.assertFalse(gc_without_ecr_info.create_image_repository)
         self.assertFalse(self.did_prompt_text_like("Please enter the ECR image repository", click_mock.prompt))
 
-        click_mock.confirm.side_effect = [False, True]  # the user chose to CREATE an ECR Image repository
-        click_mock.prompt.side_effect = [None, "0"]
+        click_mock.confirm.return_value = True  # the user chose to CREATE an ECR Image repository
+        click_mock.prompt.side_effect = ["e", None, None, "0"]
         gc_without_ecr_info.run()
         self.assertIsNone(gc_without_ecr_info.image_repository_arn)
         self.assertTrue(gc_without_ecr_info.create_image_repository)
         self.assertTrue(self.did_prompt_text_like("Please enter the ECR image repository", click_mock.prompt))
 
-        click_mock.confirm.side_effect = [False, True]  # the user already has a repo
-        click_mock.prompt.side_effect = [ANY_IMAGE_REPOSITORY_ARN, "0"]
+        click_mock.confirm.return_value = True  # the user already has a repo
+        click_mock.prompt.side_effect = ["e", None, ANY_IMAGE_REPOSITORY_ARN, "0"]
         gc_without_ecr_info.run()
         self.assertFalse(gc_without_ecr_info.create_image_repository)
         self.assertTrue(
