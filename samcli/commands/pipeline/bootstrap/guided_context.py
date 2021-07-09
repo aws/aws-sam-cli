@@ -80,7 +80,7 @@ class GuidedContext:
 
         try:
             account_id = get_current_account_id(self.profile)
-            click.echo(self.color.green(f"Associated account {account_id} with this stage."))
+            click.echo(self.color.green(f"Associated account {account_id} with stage {self.environment_name}."))
         except CredentialsError as ex:
             click.echo(self.color.red(ex.message))
             self._prompt_account_id()
@@ -203,34 +203,24 @@ class GuidedContext:
         for the pipeline to work. Users can provide all, none or some resources' ARNs and leave the remaining empty
         and it will be created by the bootstrap command
         """
-        click.secho(
-            dedent(
-                """\
-                We will ask for [1] account details, [2] stage definition,
-                and [3] references to existing resources in order to bootstrap these pipeline
-                resources. You can also add optional security parameters.
-                """
-            ),
-            fg="cyan",
-        )
-
-        click.secho("[1] Account details", bold=True)
-        self._prompt_account_id()
-
-        click.secho("[2] Stage definition", bold=True)
+        click.secho(self.color.bold("[1] Stage definition"))
         if self.environment_name:
             click.echo(f"Stage name: {self.environment_name}")
         else:
             self._prompt_stage_name()
 
+        click.secho(self.color.bold("[2] Account details"))
+        self._prompt_account_id()
+
         if not self.region:
             self._prompt_region_name()
 
-        click.secho("[3] Reference existing resources", bold=True)
         if self.pipeline_user_arn:
             click.echo(f"Pipeline IAM user ARN: {self.pipeline_user_arn}")
         else:
             self._prompt_pipeline_user()
+
+        click.secho(self.color.bold("[3] Reference application build resources"))
 
         if self.pipeline_execution_role_arn:
             click.echo(f"Pipeline execution role ARN: {self.pipeline_execution_role_arn}")
@@ -252,13 +242,14 @@ class GuidedContext:
         else:
             self._prompt_image_repository()
 
-        click.secho("[4] Security definition - OPTIONAL", bold=True)
+        click.secho(self.color.bold("[4] Security definition - OPTIONAL"))
         if self.pipeline_ip_range:
             click.echo(f"Pipeline IP address range: {self.pipeline_ip_range}")
         else:
             self._prompt_ip_range()
 
         # Ask customers to confirm the inputs
+        click.secho(self.color.bold("[5] Summary"))
         while True:
             inputs = self._get_user_inputs()
             click.secho(self.color.cyan("Below is the summary of the answers:"))

@@ -159,13 +159,19 @@ def do_cli(
     if not pipeline_user_arn:
         pipeline_user_arn = _load_saved_pipeline_user_arn()
 
-    if standalone:
-        click.secho(
-            f'{Colored().bold("sam pipeline bootstrap")} '
-            f"generates the necessary AWS resources to connect your CI/CD system."
-        )
-
     if interactive:
+        if standalone:
+            click.echo(
+                dedent(
+                    f"""\
+                {Colored().bold('sam pipeline bootstrap')} generates the necessary AWS resources to connect a stage in
+                your CI/CD system. We will ask for [1] stage definition, [2] account details, and
+                [3] references to existing resources in order to bootstrap these pipeline
+                resources. You can also add optional security parameters.
+                """
+                ),
+            )
+
         guided_context = GuidedContext(
             profile=profile,
             environment_name=environment_name,

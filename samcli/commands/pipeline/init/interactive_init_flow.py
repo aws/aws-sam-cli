@@ -35,6 +35,7 @@ CUSTOM_PIPELINE_TEMPLATE_SOURCE = "Custom Pipeline Template Location"
 class InteractiveInitFlow:
     def __init__(self, allow_bootstrap: bool):
         self.allow_bootstrap = allow_bootstrap
+        self.color = Colored()
 
     def do_interactive(self) -> None:
         """
@@ -42,9 +43,23 @@ class InteractiveInitFlow:
         runs its specific questionnaire then generates the pipeline config file
         based on the template and user's responses
         """
+        click.echo(
+            dedent(
+                f"""\
+                {self.color.bold('sam pipeline init')} generates a pipeline config file that you can use to connect your
+                AWS account(s) to your CI/CD system. We will guide you through the process to
+                bootstrap resources for each stage, then walk through the details necessary for
+                creating the pipeline config file.
+
+                Please ensure you are in the root folder of your SAM application before you begin.
+                """
+            )
+        )
+
+        click.echo("Select a pipeline structure template to get started:")
         pipeline_template_source_question = Choice(
             key="pipeline-template-source",
-            text="Which pipeline template source would you like to use?",
+            text="Select template",
             options=[SAM_PIPELINE_TEMPLATE_SOURCE, CUSTOM_PIPELINE_TEMPLATE_SOURCE],
         )
         source = pipeline_template_source_question.ask()
@@ -115,7 +130,23 @@ class InteractiveInitFlow:
                 "Do you want to go through stage setup process now? If you choose no, "
                 "you can still reference other bootstrapped resources."
             ):
-                click.echo(Colored().bold(f"\n*Stage {len(env_names)} Setup*\n"))
+                click.secho(
+                    self.color.cyan(
+                        dedent(
+                            """\
+                            For each stage, we will ask for [1] stage definition, [2] account details, and [3]
+                            reference application build resources in order to bootstrap these pipeline
+                            resources. You can also add optional security parameters.
+
+                            We recommend using an individual AWS account profiles for each stage in your
+                            pipeline. You can set these profiles up using [little bit of info on how to do
+                            this/docs].
+                            """
+                        )
+                    ),
+                )
+
+                click.echo(Colored().bold(f"\nStage {len(env_names)} Setup\n"))
                 do_bootstrap(
                     region=None,
                     profile=None,
@@ -155,18 +186,10 @@ class InteractiveInitFlow:
         """
         pipeline_template: Template = _initialize_pipeline_template(pipeline_template_dir)
         required_env_number = 2  # TODO: read from template
-        click.echo(
-            dedent(
-                """\
-                sam pipeline init generates a two-stage pipeline config file that you can use to
-                connect your AWS account(s) to your CI/CD pipeline too. We will guide you through
-                the process to bootstrap resources for each stage, then walk through the details
-                necessary for creating the Pipeline Config file.
-                """
-            )
-        )
+        click.echo(f"You are using the {required_env_number}-stage pipeline template.")
         _draw_stage_diagram(required_env_number)
         while True:
+            click.echo("Checking for bootstrapped resources...")
             env_names, bootstrap_context = _load_pipeline_bootstrap_resources()
             if len(env_names) < required_env_number and self._prompt_run_bootstrap_within_pipeline_init(
                 env_names, required_env_number
@@ -185,7 +208,6 @@ class InteractiveInitFlow:
 
 
 def _load_pipeline_bootstrap_resources() -> Tuple[List[str], Dict[str, str]]:
-    click.echo("Checking for bootstrapped resources...")
     bootstrap_command_names = ["pipeline", "bootstrap"]
     section = "parameters"
     context: Dict = {}
