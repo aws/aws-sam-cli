@@ -164,7 +164,7 @@ class ResourceZip(Resource):
         """
         if resource_dict is None:
             return
-        resource_path = resource_dict[self.PROPERTY_NAME]
+        resource_path = jmespath.search(self.PROPERTY_NAME, resource_dict)
         parsed_s3_url = self.uploader.parse_s3_url(resource_path)
         if not self.uploader.bucket_name:
             self.uploader.bucket_name = parsed_s3_url["Bucket"]
