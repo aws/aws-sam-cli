@@ -77,3 +77,67 @@ class XRayTraceSegment:
                 latest_event_time = sub_segment_latest_time
 
         return latest_event_time
+
+
+class XRayServiceGraphEvent(ObservabilityEvent[dict]):
+    """
+    Represents a result of each XRay service graph event, which is returned by boto3 client by calling
+    'get_service_graph' See XRayServiceGraphPuller
+    """
+
+    def __init__(self, event: dict):
+        self.services: List[XRayGraphServiceInfo] = []
+        self.message = str(event)
+        self._construct_service(event)
+        super().__init__(event, 0)
+
+    def _construct_service(self, event_dict):
+        services = event_dict.get("Services", [])
+        for service in services:
+            self.services.append(XRayGraphServiceInfo(service))
+
+
+class XRayGraphServiceInfo:
+    """
+    Represents each services information for a XRayServiceGraphEvent
+    """
+
+    def __init__(self, service: dict):
+        self.id = service.get("ReferenceId", "")
+        self.document = service
+        self.name = service.get("Name", "")
+        self.is_root = service.get("Root", False)
+        self.type = service.get("Type")
+        self.edge_ids: List[int] = []
+        self.ok_count = 0
+        self.error_count = 0
+        self.fault_count = 0
+        self.total_count = 0
+        self.response_time = 0
+        self._construct_edge_ids(service.get("Edges", []))
+        self._set_summary_statistics(service.get("SummaryStatistics", None))
+
+    def _construct_edge_ids(self, edges):
+        """
+        covert the edges information to a list of edge reference ids
+        """
+        edge_ids: List[int] = []
+        for edge in edges:
+            edge_ids.append(edge.get("ReferenceId", -1))
+        self.edge_ids = edge_ids
+
+    def _set_summary_statistics(self, summary_statistics):
+        """
+        get some useful information from summary statistics
+        """
+        if not summary_statistics:
+            return
+        self.ok_count = summary_statistics.get("OkCount", 0)
+        error_statistics = summary_statistics.get("ErrorStatistics", None)
+        if error_statistics:
+            self.error_count = error_statistics.get("TotalCount", 0)
+        fault_statistics = summary_statistics.get("FaultStatistics", None)
+        if fault_statistics:
+            self.fault_count = fault_statistics.get("TotalCount", 0)
+        self.total_count = summary_statistics.get("TotalCount", 0)
+        self.response_time = summary_statistics.get("TotalResponseTime", 0)
