@@ -165,14 +165,7 @@ class ResourceZip(Resource):
         if resource_dict is None:
             return
         resource_path = jmespath.search(self.PROPERTY_NAME, resource_dict)
-        parsed_s3_url = []
-        if isinstance(resource_path, str) and resource_path.startswith("https://s3"):
-            # Path-style s3 url parsing for resources that return these urls
-            # For resources e.g. CloudFormation::Stack and Serverless::Application
-            parsed_s3_url = self.uploader.parse_path_style_s3_url(resource_path)
-        else:
-            # urls which start with s3://
-            parsed_s3_url = self.uploader.parse_s3_url(resource_path)
+        parsed_s3_url = self.uploader.parse_s3_url(resource_path)
         if not self.uploader.bucket_name:
             self.uploader.bucket_name = parsed_s3_url["Bucket"]
         self.uploader.delete_artifact(parsed_s3_url["Key"], True)
@@ -227,13 +220,13 @@ class ResourceImageDict(Resource):
         if resource_dict is None:
             return
 
-        remote_path = resource_dict[self.PROPERTY_NAME][self.EXPORT_PROPERTY_CODE_KEY]
+        remote_path = resource_dict.get(self.PROPERTY_NAME, {}).get(self.EXPORT_PROPERTY_CODE_KEY)
         if is_ecr_url(remote_path):
             self.uploader.delete_artifact(
                 image_uri=remote_path, resource_id=resource_id, property_name=self.PROPERTY_NAME
             )
         else:
-            raise ValueError("URL given to the parse method is not a valid ECR url " "{0}".format(remote_path))
+            raise ValueError("URL given to the parse method is not a valid ECR url {0}".format(remote_path))
 
 
 class ResourceImage(Resource):
@@ -289,7 +282,7 @@ class ResourceImage(Resource):
                 image_uri=remote_path, resource_id=resource_id, property_name=self.PROPERTY_NAME
             )
         else:
-            raise ValueError("URL given to the parse method is not a valid ECR url " "{0}".format(remote_path))
+            raise ValueError("URL given to the parse method is not a valid ECR url {0}".format(remote_path))
 
 
 class ResourceWithS3UrlDict(ResourceZip):

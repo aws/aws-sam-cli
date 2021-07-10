@@ -181,14 +181,14 @@ class TestArtifactExporter(unittest.TestCase):
             "s3://foo/bar/baz?versionId=abc",
             "s3://www.amazon.com/foo/bar",
             "s3://my-new-bucket/foo/bar?a=1&a=2&a=3&b=1",
+            "https://s3-eu-west-1.amazonaws.com/bucket/key",
+            "https://s3.us-east-1.amazonaws.com/bucket/key",
         ]
 
         invalid = [
             # For purposes of exporter, we need S3 URLs to point to an object
             # and not a bucket
             "s3://foo",
-            # two versionIds is invalid
-            "https://s3-eu-west-1.amazonaws.com/bucket/key",
             "https://www.amazon.com",
         ]
 
@@ -219,15 +219,24 @@ class TestArtifactExporter(unittest.TestCase):
                 "url": "s3://foo/bar/baz?versionId=abc&versionId=123",
                 "result": {"Bucket": "foo", "Key": "bar/baz"},
             },
+            {
+                # Path style url
+                "url": "https://s3-eu-west-1.amazonaws.com/bucket/key",
+                "result": {"Bucket": "bucket", "Key": "key"},
+            },
+            {
+                # Path style url
+                "url": "https://s3.us-east-1.amazonaws.com/bucket/key",
+                "result": {"Bucket": "bucket", "Key": "key"},
+            },
         ]
 
         invalid = [
             # For purposes of exporter, we need S3 URLs to point to an object
             # and not a bucket
             "s3://foo",
-            # two versionIds is invalid
-            "https://s3-eu-west-1.amazonaws.com/bucket/key",
             "https://www.amazon.com",
+            "https://s3.us-east-1.amazonaws.com",
         ]
 
         for config in valid:
@@ -240,28 +249,6 @@ class TestArtifactExporter(unittest.TestCase):
         for url in invalid:
             with self.assertRaises(ValueError):
                 S3Uploader.parse_s3_url(url)
-
-    def test_parse_path_style_s3_url(self):
-        valid = [
-            {
-                "url": "https://s3-eu-west-1.amazonaws.com/bucket/long/key",
-                "result": {"Bucket": "bucket", "Key": "long/key"},
-            },
-            {"url": "https://s3.us-east-1.amazonaws.com/bucket/key", "result": {"Bucket": "bucket", "Key": "key"}},
-        ]
-
-        invalid = ["https://www.amazon.com", "https://bucket-name.s3.Region.amazonaws.com/key"]
-
-        for config in valid:
-            result = S3Uploader.parse_path_style_s3_url(
-                config["url"], bucket_name_property="Bucket", object_key_property="Key"
-            )
-
-            self.assertEqual(result, config["result"])
-
-        for url in invalid:
-            with self.assertRaises(ValueError):
-                S3Uploader.parse_path_style_s3_url(url)
 
     def test_is_local_file(self):
         with tempfile.NamedTemporaryFile() as handle:
