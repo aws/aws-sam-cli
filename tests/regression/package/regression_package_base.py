@@ -112,4 +112,9 @@ class PackageRegressionBase(TestCase):
             output_sam = json.loads(output_sam)
             output_aws = json.loads(output_aws)
 
+        if output_aws != output_sam:
+            print("output_aws and output_sam are different!!!")
+            print(f"output_aws = {output_aws}")
+            print(f"output_sam = {output_sam}")
+
         self.assertEqual(output_sam, output_aws)
