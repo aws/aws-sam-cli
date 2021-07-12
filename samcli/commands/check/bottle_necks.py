@@ -43,8 +43,6 @@ class BottleNecks:
 
             self.graph.add_resource_to_analyze(current_entry_point)
 
-        click.echo("Running calculations...")
-
         return
 
     def ask_bottle_neck_questions(self, resource):

@@ -32,6 +32,7 @@ from .bottle_necks import BottleNecks
 from .graph_context import GraphContext
 from .resources.LambdaFunction import LambdaFunction
 from .resources.Pricing import Pricing
+from .exceptions import InvalidSamDocumentException
 
 SHORT_HELP = "Checks template for bottle necks."
 
@@ -129,6 +130,8 @@ def do_cli(ctx, template):
 
     pricing = Pricing(graph)
     pricing.ask_pricing_questions()
+
+    click.echo("Running calculations...")
 
 
 def parse_template():
