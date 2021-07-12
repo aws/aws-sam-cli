@@ -40,7 +40,7 @@ from samcli.lib.package.uploaders import Uploaders
 from samcli.lib.package.utils import is_local_folder, mktempfile, is_s3_url, is_local_file, make_abs_path
 from samcli.lib.utils.packagetype import ZIP
 from samcli.yamlhelper import yaml_dump
-from samcli.lib.iac.interface import Stack as IacStack, IacPlugin, Resource as IacResource, DictSectionItem
+from samcli.lib.iac.interface import Stack as IacStack, IacPlugin, Resource as IacResource, DictSectionItem, S3Asset
 
 
 # NOTE: sriram-mv, A cyclic dependency on `Template` needs to be broken.
@@ -81,7 +81,9 @@ class CloudFormationStackResource(ResourceZip):
         if resource_dict is None:
             return
 
-        asset = resource.assets[0]
+        asset = resource.find_asset_by_source_property(self.PROPERTY_NAME)
+        if not (asset is not None and isinstance(asset, S3Asset)):
+            return
 
         template_path = asset.source_path
         if (

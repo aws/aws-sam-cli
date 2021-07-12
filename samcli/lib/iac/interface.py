@@ -379,6 +379,14 @@ class DictSectionItem(SectionItem, MutableMapping, OrderedDict):
         """
         return bool(self.assets)
 
+    def find_asset_by_source_property(self, source_property: str) -> Optional[Asset]:
+        if not self.assets:
+            return None
+        for asset in self.assets:
+            if asset.source_property == source_property:
+                return asset
+        return None
+
     def __setitem__(self, k: str, v: Any) -> None:
         self._body[k] = v
 

@@ -115,8 +115,11 @@ class ResourceZip(Resource):
 
         if not resource.assets:
             return
+
         # resource.assets contains at lease one asset
-        asset = resource.assets[0]
+        asset = resource.find_asset_by_source_property(self.PROPERTY_NAME)
+        if not asset:
+            return
 
         if not asset.source_path and not self.PACKAGE_NULL_PROPERTY:
             return
@@ -157,10 +160,10 @@ class ResourceZip(Resource):
         elif isinstance(resource, DictSectionItem):
             resource_dict = resource.body
 
-        if not (resource.assets and isinstance(resource.assets[0], S3Asset)):
+        asset = resource.find_asset_by_source_property(self.PROPERTY_NAME)
+        if not (asset is not None and isinstance(asset, S3Asset)):
             return
 
-        asset = resource.assets[0]
         should_sign_package = self.code_signer.should_sign_package(resource_id)
         artifact_extension = "zip" if should_sign_package else None
         uploaded_url = upload_local_artifacts(
@@ -207,6 +210,10 @@ class ResourceImageDict(Resource):
         if not resource.is_packageable():
             return
 
+        asset = resource.find_asset_by_source_property(self.PROPERTY_NAME)
+        if not (asset is not None and isinstance(asset, ImageAsset)):
+            return
+
         try:
             self.do_export(resource, parent_dir)
 
@@ -215,7 +222,7 @@ class ResourceImageDict(Resource):
             raise exceptions.ExportFailedError(
                 resource_id=resource_id,
                 property_name=self.PROPERTY_NAME,
-                property_value=resource.assets[0].source_local_image,
+                property_value=asset.source_local_image,
                 ex=ex,
             )
 
@@ -233,14 +240,13 @@ class ResourceImageDict(Resource):
         elif isinstance(resource, DictSectionItem):
             resource_dict = resource.body
 
-        if not (resource.assets and isinstance(resource.assets[0], ImageAsset)):
+        asset = resource.find_asset_by_source_property(self.PROPERTY_NAME)
+        if not (asset is not None and isinstance(asset, ImageAsset)):
             return
 
-        uploaded_url = upload_local_image_artifacts(
-            resource_id, resource.assets[0], self.PROPERTY_NAME, parent_dir, self.uploader
-        )
+        uploaded_url = upload_local_image_artifacts(resource_id, asset, self.PROPERTY_NAME, parent_dir, self.uploader)
         self.iac.update_resource_after_packaging(resource)
-        if self.iac.should_update_property_after_package(resource.assets[0]):
+        if self.iac.should_update_property_after_package(asset):
             set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, {self.EXPORT_PROPERTY_CODE_KEY: uploaded_url})
 
 
@@ -271,6 +277,10 @@ class ResourceImage(Resource):
         if not resource.is_packageable():
             return
 
+        asset = resource.find_asset_by_source_property(self.PROPERTY_NAME)
+        if not (asset is not None and isinstance(asset, ImageAsset)):
+            return
+
         try:
             self.do_export(resource, parent_dir)
 
@@ -279,7 +289,7 @@ class ResourceImage(Resource):
             raise exceptions.ExportFailedError(
                 resource_id=resource_id,
                 property_name=self.PROPERTY_NAME,
-                property_value=resource.assets[0].source_local_image,
+                property_value=asset.source_local_image,
                 ex=ex,
             )
 
@@ -296,14 +306,13 @@ class ResourceImage(Resource):
         elif isinstance(resource, DictSectionItem):
             resource_dict = resource.body
 
-        if not (resource.assets and isinstance(resource.assets[0], ImageAsset)):
+        asset = resource.find_asset_by_source_property(self.PROPERTY_NAME)
+        if not (asset is not None and isinstance(asset, ImageAsset)):
             return
 
-        uploaded_url = upload_local_image_artifacts(
-            resource_id, resource.assets[0], self.PROPERTY_NAME, parent_dir, self.uploader
-        )
+        uploaded_url = upload_local_image_artifacts(resource_id, asset, self.PROPERTY_NAME, parent_dir, self.uploader)
         self.iac.update_resource_after_packaging(resource)
-        if self.iac.should_update_property_after_package(resource.assets[0]):
+        if self.iac.should_update_property_after_package(asset):
             set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, uploaded_url)
 
 
@@ -332,7 +341,9 @@ class ResourceWithS3UrlDict(ResourceZip):
         elif isinstance(resource, DictSectionItem):
             resource_dict = resource.body
 
-        asset = resource.assets[0]
+        asset = resource.find_asset_by_source_property(self.PROPERTY_NAME)
+        if not (asset is not None and isinstance(asset, S3Asset)):
+            return
 
         artifact_s3_url = upload_local_artifacts(resource_id, asset, self.PROPERTY_NAME, parent_dir, self.uploader)
 
