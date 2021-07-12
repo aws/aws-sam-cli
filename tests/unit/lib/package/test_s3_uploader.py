@@ -217,6 +217,35 @@ class TestS3Uploader(TestCase):
             with self.assertRaises(NoSuchBucketError):
                 s3_uploader.delete_artifact(f.name)
 
+    def test_delete_prefix_artifacts_no_bucket(self):
+        s3_uploader = S3Uploader(
+            s3_client=self.s3,
+            bucket_name=None,
+            prefix=self.prefix,
+            kms_key_id=self.kms_key_id,
+            force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
+        )
+        with self.assertRaises(BucketNotSpecifiedError):
+            s3_uploader.delete_prefix_artifacts()
+
+    def test_delete_prefix_artifacts_execute(self):
+        s3_uploader = S3Uploader(
+            s3_client=self.s3,
+            bucket_name=self.bucket_name,
+            prefix=self.prefix,
+            kms_key_id=self.kms_key_id,
+            force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
+        )
+
+        s3_uploader.s3.delete_object = MagicMock()
+
+        s3_uploader.s3.list_objects_v2 = MagicMock(return_value={"Contents": [{"Key": "key"}]})
+
+        s3_uploader.delete_prefix_artifacts()
+        s3_uploader.s3.delete_object.assert_called_once_with(Bucket="mock-bucket", Key="key")
+
     def test_s3_upload_with_dedup(self):
         s3_uploader = S3Uploader(
             s3_client=self.s3,
