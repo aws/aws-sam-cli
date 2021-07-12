@@ -35,10 +35,6 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
         cls.docker_client = docker.from_env()
         cls.local_images = [
             ("alpine", "latest"),
-            # below 3 images are for test_deploy_nested_stacks()
-            # ("python", "3.9-slim"),
-            # ("python", "3.8-slim"),
-            # ("python", "3.7-slim"),
         ]
         # setup some images locally by pulling them.
         for repo, tag in cls.local_images:
@@ -50,7 +46,6 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
 
     def setUp(self):
         self.cf_client = boto3.client("cloudformation")
-        self.stacks = []
         time.sleep(CFN_SLEEP)
         super().setUp()
 
@@ -93,7 +88,6 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
         LOG.info(template_path)
 
         stack_name = self._method_to_stack_name(self.id())
-        self.stacks.append({"name": stack_name})
 
         config_file_name = stack_name + ".toml"
         deploy_command_list = self.get_deploy_command_list(
@@ -104,8 +98,9 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             deploy_command_list, "{}\n\n\n\n\n\n\n\n\n".format(stack_name).encode()
         )
 
+        config_file_path = self.test_data_path.joinpath(config_file_name)
         delete_command_list = self.get_delete_command_list(
-            stack_name=stack_name, config_file=self.test_data_path.joinpath(config_file_name), force=True
+            stack_name=stack_name, config_file=config_file_path, force=True
         )
 
         LOG.info(delete_command_list)
@@ -113,7 +108,6 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
         self.assertEqual(delete_process_execute.process.returncode, 0)
 
         # Remove the local config file created
-        config_file_path = self.test_data_path.joinpath(config_file_name)
         if os.path.isfile(config_file_path):
             os.remove(config_file_path)
 
@@ -127,7 +121,6 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
         LOG.info(template_path)
 
         stack_name = self._method_to_stack_name(self.id())
-        self.stacks.append({"name": stack_name})
 
         config_file_name = stack_name + ".toml"
         deploy_command_list = self.get_deploy_command_list(
@@ -138,8 +131,9 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             deploy_command_list, f"{stack_name}\n\n{self.ecr_repo_name}\n\n\ny\n\n\n\n\n\n".encode()
         )
 
+        config_file_path = self.test_data_path.joinpath(config_file_name)
         delete_command_list = self.get_delete_command_list(
-            stack_name=stack_name, config_file=self.test_data_path.joinpath(config_file_name), force=True
+            stack_name=stack_name, config_file=config_file_path, force=True
         )
 
         LOG.info(delete_command_list)
@@ -148,9 +142,61 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
         self.assertEqual(delete_process_execute.process.returncode, 0)
 
         # Remove the local config file created
-        config_file_path = self.test_data_path.joinpath(config_file_name)
         if os.path.isfile(config_file_path):
             os.remove(config_file_path)
+
+    @parameterized.expand(
+        [
+            "aws-serverless-function.yaml",
+        ]
+    )
+    def test_delete_guided_prompts(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+
+        config_file_name = stack_name + ".toml"
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path, guided=True, config_file=config_file_name
+        )
+
+        deploy_process_execute = run_command_with_input(
+            deploy_command_list, "{}\n\n\n\n\n\n\n\n\n".format(stack_name).encode()
+        )
+
+        config_file_path = self.test_data_path.joinpath(config_file_name)
+        delete_command_list = self.get_delete_command_list(stack_name=stack_name, config_file=config_file_path)
+
+        LOG.info(delete_command_list)
+        delete_process_execute = run_command_with_input(delete_command_list, "y\nn\ny\n".encode())
+
+        self.assertEqual(delete_process_execute.process.returncode, 0)
+
+        # Remove the local config file created
+        if os.path.isfile(config_file_path):
+            os.remove(config_file_path)
+
+    @parameterized.expand(
+        [
+            "aws-serverless-function.yaml",
+        ]
+    )
+    def test_delete_no_config_file_zip(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+
+        deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
+
+        deploy_process_execute = run_command_with_input(
+            deploy_command_list, "{}\n\n\n\n\nn\n\n\n".format(stack_name).encode()
+        )
+
+        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region="us-east-1", force=True)
+
+        LOG.info(delete_command_list)
+        delete_process_execute = run_command(delete_command_list)
+        self.assertEqual(delete_process_execute.process.returncode, 0)
 
     def _method_to_stack_name(self, method_name):
         """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
