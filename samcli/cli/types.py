@@ -208,6 +208,11 @@ class CfnTags(click.ParamType):
         if value == ("",):
             return result
 
+        # if value comes in via samconfig file and is a list, it is parsed to string.
+        if isinstance(value, list):
+            if not value:
+                return result
+            value = " ".join(value)
         # if value comes in a via configuration file, it will be a string. So we should still convert it.
         value = (value,) if not isinstance(value, tuple) else value
 

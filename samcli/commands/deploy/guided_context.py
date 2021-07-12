@@ -7,14 +7,15 @@ from typing import Dict, Any, List, Optional
 
 import click
 from botocore.session import get_session
-from click.types import FuncParamType
-from click import prompt
 from click import confirm
+from click import prompt
+from click.types import FuncParamType
 
 from samcli.commands._utils.options import _space_separated_list_func_type
 from samcli.commands._utils.template import (
     get_template_parameters,
 )
+from samcli.commands.deploy.auth_utils import auth_per_resource
 from samcli.commands.deploy.code_signer_utils import (
     signer_config_per_function,
     extract_profile_name_and_owner_from_existing,
@@ -23,10 +24,10 @@ from samcli.commands.deploy.code_signer_utils import (
 )
 from samcli.commands.deploy.exceptions import GuidedDeployFailedError
 from samcli.commands.deploy.guided_config import GuidedConfig
-from samcli.commands.deploy.auth_utils import auth_per_resource
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
-from samcli.lib.config.samconfig import DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.bootstrap.bootstrap import manage_stack
+from samcli.lib.config.samconfig import DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
+from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.package.ecr_utils import is_ecr_url
 from samcli.lib.package.image_utils import tag_translation, NonLocalImageException, NoImageFoundException
 from samcli.lib.providers.provider import Function, Stack
@@ -126,11 +127,14 @@ class GuidedContext:
             f"\t{self.start_bold}Stack Name{self.end_bold}", default=default_stack_name, type=click.STRING
         )
         region = prompt(f"\t{self.start_bold}AWS Region{self.end_bold}", default=default_region, type=click.STRING)
+        global_parameter_overrides = {IntrinsicsSymbolTable.AWS_REGION: region}
         input_parameter_overrides = self.prompt_parameters(
             parameter_override_keys, self.parameter_overrides_from_cmdline, self.start_bold, self.end_bold
         )
         stacks, _ = SamLocalStackProvider.get_stacks(
-            self.template_file, parameter_overrides=sanitize_parameter_overrides(input_parameter_overrides)
+            self.template_file,
+            parameter_overrides=sanitize_parameter_overrides(input_parameter_overrides),
+            global_parameter_overrides=global_parameter_overrides,
         )
 
         click.secho("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy")
@@ -381,7 +385,9 @@ class GuidedContext:
                 f"\t {self.start_bold}ECR repository for {function_logical_id}{self.end_bold}",
                 type=click.STRING,
             )
-            if not is_ecr_url(image_uri):
+            if function_logical_id not in image_repositories or not is_ecr_url(
+                str(image_repositories[function_logical_id])
+            ):
                 raise GuidedDeployFailedError(f"Invalid Image Repository ECR URI: {image_uri}")
 
             updated_repositories[function_logical_id] = image_uri

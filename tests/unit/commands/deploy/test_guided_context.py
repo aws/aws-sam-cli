@@ -95,6 +95,9 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Capabilities{self.gc.end_bold}", default=["CAPABILITY_IAM"], type=ANY),
         ]
         self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
+        patched_get_buildable_stacks.assert_called_once_with(
+            "template", parameter_overrides={}, global_parameter_overrides={"AWS::Region": ANY}
+        )
 
     @patch("samcli.commands.deploy.guided_context.prompt")
     @patch("samcli.commands.deploy.guided_context.confirm")

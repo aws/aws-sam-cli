@@ -66,6 +66,7 @@ def _get_stack_template():
                                     ]
                                 },
                                 "Principal": {"Service": "serverlessrepo.amazonaws.com"},
+                                "Condition": {"StringEquals": {"aws:SourceAccount": "!Ref AWS::AccountId"}},
                             }
                         ]
                     },
@@ -74,5 +75,4 @@ def _get_stack_template():
         },
         "Outputs": {"SourceBucket": {"Value": "!Ref SamCliSourceBucket"}},
     }
-
     return json.dumps(template)
