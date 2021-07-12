@@ -13,7 +13,7 @@ class TestDeleteCliCommand(TestCase):
         self.s3_prefix = "s3-prefix"
         self.region = None
         self.profile = None
-        self.force = None
+        self.no_prompts = None
         self.config_env = "mock-default-env"
         self.config_file = "mock-default-filename"
 
@@ -30,7 +30,7 @@ class TestDeleteCliCommand(TestCase):
             config_file=self.config_file,
             config_env=self.config_env,
             profile=self.profile,
-            force=self.force,
+            no_prompts=self.no_prompts,
         )
 
         mock_delete_context.assert_called_with(
@@ -39,7 +39,7 @@ class TestDeleteCliCommand(TestCase):
             profile=self.profile,
             config_file=self.config_file,
             config_env=self.config_env,
-            force=self.force,
+            no_prompts=self.no_prompts,
         )
 
         context_mock.run.assert_called_with()

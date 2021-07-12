@@ -16,7 +16,7 @@ Exporting resources defined in the cloudformation template to the cloud.
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 import os
-from typing import Dict
+from typing import Dict, Optional
 
 from botocore.utils import set_value_from_jmespath
 
@@ -128,11 +128,12 @@ class Template:
             RESOURCES_EXPORT_LIST + [CloudFormationStackResource, ServerlessApplicationResource]
         ),
         metadata_to_export=frozenset(METADATA_EXPORT_LIST),
+        template_str: Optional[str] = None,
     ):
         """
         Reads the template and makes it ready for export
         """
-        if template_path and parent_dir:
+        if not template_str:
             if not (is_local_folder(parent_dir) and os.path.isabs(parent_dir)):
                 raise ValueError("parent_dir parameter must be " "an absolute path to a folder {0}".format(parent_dir))
 
@@ -142,9 +143,9 @@ class Template:
             with open(abs_template_path, "r") as handle:
                 template_str = handle.read()
 
-            self.template_dict = yaml_parse(template_str)
             self.template_dir = template_dir
             self.code_signer = code_signer
+        self.template_dict = yaml_parse(template_str)
         self.resources_to_export = resources_to_export
         self.metadata_to_export = metadata_to_export
         self.uploaders = uploaders
@@ -239,12 +240,10 @@ class Template:
 
         return self.template_dict
 
-    def delete(self, template_dict):
+    def delete(self):
         """
         Deletes all the artifacts referenced by the given Cloudformation template
         """
-        self.template_dict = template_dict
-
         if "Resources" not in self.template_dict:
             return
 

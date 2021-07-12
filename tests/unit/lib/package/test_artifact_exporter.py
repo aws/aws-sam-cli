@@ -1,3 +1,4 @@
+import json
 import tempfile
 import os
 import string
@@ -180,14 +181,14 @@ class TestArtifactExporter(unittest.TestCase):
             "s3://foo/bar/baz?versionId=abc",
             "s3://www.amazon.com/foo/bar",
             "s3://my-new-bucket/foo/bar?a=1&a=2&a=3&b=1",
+            "https://s3-eu-west-1.amazonaws.com/bucket/key",
+            "https://s3.us-east-1.amazonaws.com/bucket/key",
         ]
 
         invalid = [
             # For purposes of exporter, we need S3 URLs to point to an object
             # and not a bucket
             "s3://foo",
-            # two versionIds is invalid
-            "https://s3-eu-west-1.amazonaws.com/bucket/key",
             "https://www.amazon.com",
         ]
 
@@ -218,15 +219,24 @@ class TestArtifactExporter(unittest.TestCase):
                 "url": "s3://foo/bar/baz?versionId=abc&versionId=123",
                 "result": {"Bucket": "foo", "Key": "bar/baz"},
             },
+            {
+                # Path style url
+                "url": "https://s3-eu-west-1.amazonaws.com/bucket/key",
+                "result": {"Bucket": "bucket", "Key": "key"},
+            },
+            {
+                # Path style url
+                "url": "https://s3.us-east-1.amazonaws.com/bucket/key",
+                "result": {"Bucket": "bucket", "Key": "key"},
+            },
         ]
 
         invalid = [
             # For purposes of exporter, we need S3 URLs to point to an object
             # and not a bucket
             "s3://foo",
-            # two versionIds is invalid
-            "https://s3-eu-west-1.amazonaws.com/bucket/key",
             "https://www.amazon.com",
+            "https://s3.us-east-1.amazonaws.com",
         ]
 
         for config in valid:
@@ -1422,9 +1432,18 @@ class TestArtifactExporter(unittest.TestCase):
                 "Resource3": {"Type": "some-other-type", "Properties": properties, "DeletionPolicy": "Retain"},
             }
         }
+        template_str = json.dumps(template_dict, indent=4, ensure_ascii=False)
 
-        template_exporter = Template(None, None, self.uploaders_mock, None, resources_to_export)
-        template_exporter.delete(template_dict)
+        template_exporter = Template(
+            template_path=None,
+            parent_dir=None,
+            uploaders=self.uploaders_mock,
+            code_signer=None,
+            resources_to_export=resources_to_export,
+            template_str=template_str,
+        )
+
+        template_exporter.delete()
 
         resource_type1_class.assert_called_once_with(self.uploaders_mock, None)
         resource_type1_instance.delete.assert_called_once_with("Resource1", mock.ANY)

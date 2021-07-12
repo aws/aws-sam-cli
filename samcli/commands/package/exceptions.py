@@ -85,11 +85,9 @@ class DeleteArtifactFailedError(UserException):
 
 
 class ImageNotFoundError(UserException):
-    def __init__(self, resource_id, property_name):
+    def __init__(self, resource_id, property_name, message_fmt):
         self.resource_id = resource_id
         self.property_name = property_name
-
-        message_fmt = "Image not found for {property_name} parameter of {resource_id} resource. \n"
 
         super().__init__(
             message=message_fmt.format(

@@ -5,7 +5,6 @@ import logging
 import boto3
 
 
-import docker
 import click
 from click import confirm
 from click import prompt
@@ -15,7 +14,6 @@ from samcli.lib.delete.cf_utils import CfUtils
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.artifact_exporter import mktempfile, get_cf_template_name
 
-from samcli.yamlhelper import yaml_parse
 
 from samcli.lib.package.artifact_exporter import Template
 from samcli.lib.package.ecr_uploader import ECRUploader
@@ -29,19 +27,18 @@ LOG = logging.getLogger(__name__)
 
 
 class DeleteContext:
-    def __init__(self, stack_name: str, region: str, profile: str, config_file: str, config_env: str, force: bool):
+    def __init__(self, stack_name: str, region: str, profile: str, config_file: str, config_env: str, no_prompts: bool):
         self.stack_name = stack_name
         self.region = region
         self.profile = profile
         self.config_file = config_file
         self.config_env = config_env
-        self.force = force
+        self.no_prompts = no_prompts
         self.s3_bucket = None
         self.s3_prefix = None
         self.cf_utils = None
         self.s3_uploader = None
         self.uploaders = None
-        self.template = None
         self.cf_template_file_name = None
         self.delete_artifacts_folder = None
         self.delete_cf_template_file = None
@@ -101,12 +98,10 @@ class DeleteContext:
         self.region = s3_client._client_config.region_name if s3_client else self.region  # pylint: disable=W0212
         self.s3_uploader = S3Uploader(s3_client=s3_client, bucket_name=self.s3_bucket, prefix=self.s3_prefix)
 
-        docker_client = docker.from_env()
-        ecr_uploader = ECRUploader(docker_client, ecr_client, None, None)
+        ecr_uploader = ECRUploader(docker_client=None, ecr_client=ecr_client, ecr_repo=None, ecr_repo_multi=None)
 
         self.uploaders = Uploaders(self.s3_uploader, ecr_uploader)
         self.cf_utils = CfUtils(cloudformation_client)
-        self.template = Template(None, None, self.uploaders, None)
 
     def guided_prompts(self):
         """
@@ -118,7 +113,7 @@ class DeleteContext:
         # information is not found, warn the customer that S3 artifacts
         # will need to be manually deleted.
 
-        if not self.force and self.s3_bucket:
+        if not self.no_prompts and self.s3_bucket:
             if self.s3_prefix:
                 self.delete_artifacts_folder = confirm(
                     click.style(
@@ -147,9 +142,8 @@ class DeleteContext:
         Delete method calls for Cloudformation stacks and S3 and ECR artifacts
         """
         # Fetch the template using the stack-name
-        template = self.cf_utils.get_stack_template(self.stack_name, TEMPLATE_STAGE)
-        template_str = template.get("TemplateBody", None)
-        template_dict = yaml_parse(template_str)
+        cf_template = self.cf_utils.get_stack_template(self.stack_name, TEMPLATE_STAGE)
+        template_str = cf_template.get("TemplateBody", None)
 
         # Get the cloudformation template name using template_str
         with mktempfile() as temp_file:
@@ -164,7 +158,10 @@ class DeleteContext:
         LOG.debug("Deleted Cloudformation stack: %s", self.stack_name)
 
         # Delete the artifacts
-        self.template.delete(template_dict)
+        template = Template(
+            template_path=None, parent_dir=None, uploaders=self.uploaders, code_signer=None, template_str=template_str
+        )
+        template.delete()
 
         # Delete the CF template file in S3
         if self.delete_cf_template_file:
@@ -187,7 +184,7 @@ class DeleteContext:
         """
         Delete the stack based on the argument provided by customers and samconfig.toml.
         """
-        if not self.force:
+        if not self.no_prompts:
             delete_stack = confirm(
                 click.style(
                     f"\tAre you sure you want to delete the stack {self.stack_name}"
@@ -197,7 +194,7 @@ class DeleteContext:
                 default=False,
             )
 
-        if self.force or delete_stack:
+        if self.no_prompts or delete_stack:
             is_deployed = self.cf_utils.has_stack(stack_name=self.stack_name)
             # Check if the provided stack-name exists
             if is_deployed:

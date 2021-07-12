@@ -193,6 +193,29 @@ class TestECRUploader(TestCase):
                 image_uri=self.image_uri, resource_id=self.resource_id, property_name=self.property_name
             )
 
+    def test_delete_artifact_resp_failure(self):
+        ecr_uploader = ECRUploader(
+            docker_client=self.docker_client,
+            ecr_client=self.ecr_client,
+            ecr_repo=self.ecr_repo,
+            ecr_repo_multi=self.ecr_repo_multi,
+            tag=self.tag,
+        )
+        ecr_uploader.ecr_client.batch_delete_image.return_value = {
+            "failures": [
+                {
+                    "imageId": {"imageTag": self.tag},
+                    "failureCode": "Mock response Failure",
+                    "failureReason": "Mock ECR testing",
+                }
+            ]
+        }
+
+        with self.assertRaises(DeleteArtifactFailedError):
+            ecr_uploader.delete_artifact(
+                image_uri=self.image_uri, resource_id=self.resource_id, property_name=self.property_name
+            )
+
     def test_delete_artifact_client_error(self):
         ecr_uploader = ECRUploader(
             docker_client=self.docker_client,
@@ -211,3 +234,19 @@ class TestECRUploader(TestCase):
             ecr_uploader.delete_artifact(
                 image_uri=self.image_uri, resource_id=self.resource_id, property_name=self.property_name
             )
+
+    def test_parse_ecr_url(self):
+
+        valid = [
+            {"url": self.image_uri, "result": {"repository": "mock-image-repo", "image_tag": "mock-tag"}},
+            {"url": "mock-image-rep:mock-tag", "result": {"repository": "mock-image-rep", "image_tag": "mock-tag"}},
+            {
+                "url": "mock-image-repo",
+                "result": {"repository": "mock-image-repo", "image_tag": "latest"},
+            },
+        ]
+
+        for config in valid:
+            result = ECRUploader.parse_ecr_url(image_uri=config["url"])
+
+            self.assertEqual(result, config["result"])

@@ -58,10 +58,9 @@ LOG = logging.getLogger(__name__)
     show_default=True,
 )
 @click.option(
-    "--force",
-    help=("Specify this flag to allow SAM CLI to skip through the guided prompts" ""),
+    "--no-prompts",
+    help=("Specify this flag to allow SAM CLI to skip through the guided prompts."),
     is_flag=True,
-    type=click.BOOL,
     required=False,
 )
 @aws_creds_options
@@ -69,7 +68,7 @@ LOG = logging.getLogger(__name__)
 @pass_context
 @check_newer_version
 @print_cmdline_args
-def cli(ctx, stack_name: str, config_file: str, config_env: str, force: bool):
+def cli(ctx, stack_name: str, config_file: str, config_env: str, no_prompts: bool):
     """
     `sam delete` command entry point
     """
@@ -81,11 +80,11 @@ def cli(ctx, stack_name: str, config_file: str, config_env: str, force: bool):
         config_file=config_file,
         config_env=config_env,
         profile=ctx.profile,
-        force=force,
+        no_prompts=no_prompts,
     )  # pragma: no cover
 
 
-def do_cli(stack_name: str, region: str, config_file: str, config_env: str, profile: str, force: bool):
+def do_cli(stack_name: str, region: str, config_file: str, config_env: str, profile: str, no_prompts: bool):
     """
     Implementation of the ``cli`` method
     """
@@ -97,6 +96,6 @@ def do_cli(stack_name: str, region: str, config_file: str, config_env: str, prof
         profile=profile,
         config_file=config_file,
         config_env=config_env,
-        force=force,
+        no_prompts=no_prompts,
     ) as delete_context:
         delete_context.run()
