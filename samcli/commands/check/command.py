@@ -97,16 +97,25 @@ def do_cli(ctx, template_path):
 
 
 def load_policies():
+    """
+    Load user policies from iam account
+    """
     iam_client = boto3.client("iam")
     return ManagedPolicyLoader(iam_client).load()
 
 
 def replace_code_uri(template):
+    """
+    Replaces the uri's in the template into a format that sam translate can understand
+    """
     uri_replace = ReplaceLocalCodeUri(template)
     return uri_replace._replace_local_codeuri()
 
 
 def transform_template(ctx, template_path):
+    """
+    Takes a sam template or a CFN json template and converts it into a CFN yaml template
+    """
     managed_policy_map = load_policies()
     original_template = _read_sam_file(template_path)
 

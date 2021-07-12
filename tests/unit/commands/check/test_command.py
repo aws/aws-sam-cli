@@ -23,20 +23,19 @@ class TestCheckCli(TestCase):
         boto3_mock.client.return_value = mock_iam_client
 
         expected_policies = Mock()
-        policy_loader_mock.load.return_value = expected_policies
+
+        mock_loader = Mock()
+        policy_loader_mock.return_value = mock_loader
+
+        mock_loader.load.return_value = expected_policies
 
         result = load_policies()
 
         boto3_mock.client.assert_called_with("iam")
         policy_loader_mock.assert_called_with(mock_iam_client)
 
-        # not working
-        # self.assertEqual(result, expected_policies)
-        # policy_loader_mock.load.assert_called_once()
-
-    # def load_policies():
-    #     iam_client = boto3.client("iam")
-    #     return ManagedPolicyLoader(iam_client).load()
+        mock_loader.load.assert_called_once()
+        self.assertEqual(result, expected_policies)
 
     @patch("samcli.commands.check.command.ReplaceLocalCodeUri")
     def test_replace_code_uri(self, patched_replace):
@@ -52,10 +51,6 @@ class TestCheckCli(TestCase):
         self.assertEqual(expected_value, result)
         uri_replace._replace_local_codeuri.assert_called_once()
         patched_replace.assert_called_with(template)
-
-    # def replace_code_uri(template):
-    #     uri_replace = ReplaceLocalCodeUri(template)
-    #     return uri_replace._replace_local_codeuri()
 
     @patch("samcli.commands.check.command.load_policies")
     @patch("samcli.commands.check.command._read_sam_file")
@@ -88,27 +83,3 @@ class TestCheckCli(TestCase):
         patched_read.assert_called_with(template_path)
         patched_replace.assert_called_with(original_template)
         sam_translator.translate.assert_called_with(sam_template=updated_template, parameter_values={})
-
-
-# def transform_template(ctx, template_path):
-#     managed_policy_map = load_policies()
-#     original_template = _read_sam_file(template_path)
-
-#     updated_template = replace_code_uri(original_template)
-
-#     sam_translator = Translator(
-#         managed_policy_map=managed_policy_map,
-#         sam_parser=parser.Parser(),
-#         plugins=[],
-#         boto_session=Session(profile_name=ctx.profile, region_name=ctx.region),
-#     )
-
-#     # Translate template
-#     try:
-#         converted_template = sam_translator.translate(sam_template=updated_template, parameter_values={})
-#     except InvalidDocumentException as e:
-#         raise InvalidSamDocumentException(
-#             functools.reduce(lambda message, error: message + " " + str(error), e.causes, str(e))
-#         ) from e
-
-#     return converted_template
