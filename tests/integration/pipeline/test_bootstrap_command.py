@@ -35,7 +35,6 @@ class TestBootstrap(BootstrapIntegBase):
             "",  # CloudFormation execution role
             "",  # Artifacts bucket
             "2" if create_image_repository else "1",  # Should we create ECR repo, 1 - No, 2 - Yes
-            "",  # Pipeline IP address range
             "y",  # proceed
         ]
 
@@ -97,7 +96,6 @@ class TestBootstrap(BootstrapIntegBase):
             "arn:aws:s3:::bucket-name",  # Artifacts bucket
             "3",  # Should we create ECR repo, 3 - specify one
             "arn:aws:ecr:::repository/repo-name",  # ecr repo
-            "1.2.3.4/24",  # Pipeline IP address range
             "y",  # proceed
         ]
 
@@ -119,7 +117,6 @@ class TestBootstrap(BootstrapIntegBase):
             cloudformation_execution_role="arn:aws:iam::123:role/role-name",  # CloudFormation execution role
             artifacts_bucket="arn:aws:s3:::bucket-name",  # Artifacts bucket
             image_repository="arn:aws:ecr:::repository/repo-name",  # ecr repo
-            pipeline_ip_range="1.2.3.4/24",  # Pipeline IP address range
         )
 
         bootstrap_process_execute = run_command(bootstrap_command_list)
@@ -141,7 +138,6 @@ class TestBootstrap(BootstrapIntegBase):
             # CloudFormation execution role missing
             artifacts_bucket="arn:aws:s3:::bucket-name",  # Artifacts bucket
             image_repository="arn:aws:ecr:::repository/repo-name",  # ecr repo
-            pipeline_ip_range="1.2.3.4/24",  # Pipeline IP address range
             no_confirm_changeset=not confirm_changeset,
         )
 
@@ -169,7 +165,6 @@ class TestBootstrap(BootstrapIntegBase):
             "",  # CloudFormation execution role
             "",  # Artifacts bucket
             "1",  # Should we create ECR repo, 1 - No
-            "",  # Pipeline IP address range
             "N",  # cancel
         ]
 
@@ -194,7 +189,6 @@ class TestBootstrap(BootstrapIntegBase):
             "arn:aws:s3:::bucket-name",  # Artifacts bucket
             "3",  # Should we create ECR repo, 3 - specify one
             "arn:aws:ecr:::repository/repo-name",  # ecr repo
-            "1.2.3.4/24",  # Pipeline IP address range
             "y",  # proceed
         ]
 
@@ -227,7 +221,6 @@ class TestBootstrap(BootstrapIntegBase):
                 "arn:aws:iam::123:role/role-name",  # CloudFormation execution role
                 "arn:aws:s3:::bucket-name",  # Artifacts bucket
                 "1",  # Should we create ECR repo, 1 - No, 2 - Yes
-                "",  # Pipeline IP address range
                 "y",  # proceed
             ]
 

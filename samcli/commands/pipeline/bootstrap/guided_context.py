@@ -30,7 +30,6 @@ class GuidedContext:
         artifacts_bucket_arn: Optional[str] = None,
         create_image_repository: bool = False,
         image_repository_arn: Optional[str] = None,
-        pipeline_ip_range: Optional[str] = None,
         region: Optional[str] = None,
     ) -> None:
         self.profile = profile
@@ -41,7 +40,6 @@ class GuidedContext:
         self.artifacts_bucket_arn = artifacts_bucket_arn
         self.create_image_repository = create_image_repository
         self.image_repository_arn = image_repository_arn
-        self.pipeline_ip_range = pipeline_ip_range
         self.region = region
         self.color = Colored()
 
@@ -143,14 +141,6 @@ class GuidedContext:
         else:
             self.create_image_repository = False
 
-    def _prompt_ip_range(self) -> None:
-        self.pipeline_ip_range = click.prompt(
-            "For added security, you can define the permitted pipeline IP range. "
-            "Enter the IP addresses to restrict access to",
-            default="",
-            type=click.STRING,
-        )
-
     def _get_user_inputs(self) -> List[Tuple[str, Callable[[], None]]]:
         return [
             (f"Account: {get_current_account_id(self.profile)}", self._prompt_account_id),
@@ -185,12 +175,6 @@ class GuidedContext:
                 if self.image_repository_arn
                 else f"ECR image repository: [{'to be created' if self.create_image_repository else 'skipped'}]",
                 self._prompt_image_repository,
-            ),
-            (
-                f"Pipeline IP address range: {self.pipeline_ip_range}"
-                if self.pipeline_ip_range
-                else "Pipeline IP address range: none",
-                self._prompt_ip_range,
             ),
         ]
 
@@ -244,13 +228,6 @@ class GuidedContext:
             click.echo(f"ECR image repository ARN: {self.image_repository_arn}")
         else:
             self._prompt_image_repository()
-        click.echo()
-
-        click.secho(self.color.bold("[4] Security definition - OPTIONAL"))
-        if self.pipeline_ip_range:
-            click.echo(f"Pipeline IP address range: {self.pipeline_ip_range}")
-        else:
-            self._prompt_ip_range()
         click.echo()
 
         # Ask customers to confirm the inputs
