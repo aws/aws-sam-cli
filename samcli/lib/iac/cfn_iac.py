@@ -16,6 +16,7 @@ from samcli.commands._utils.resources import (
 )
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.iac.interface import (
+    DictSectionItem,
     IacPlugin,
     ImageAsset,
     Project,
@@ -104,6 +105,8 @@ class CfnIacPlugin(IacPlugin):
 
         metadata_section = stack.get("Metadata", DictSection())
         for metadata in metadata_section.section_items:
+            if not isinstance(metadata, DictSectionItem):
+                continue
             metadata_type = metadata.item_id
             metadata_body = metadata.body
             metadata_assets = []
