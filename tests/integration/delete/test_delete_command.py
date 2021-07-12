@@ -53,7 +53,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
 
         stack_name = self._method_to_stack_name(self.id())
 
-        delete_command_list = self.get_delete_command_list(stack_name=stack_name, force=True)
+        delete_command_list = self.get_delete_command_list(stack_name=stack_name, no_prompts=True)
 
         delete_process_execute = run_command(delete_command_list)
         self.assertEqual(delete_process_execute.process.returncode, 0)
@@ -65,21 +65,21 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
         [
             "aws-serverless-function.yaml",
             "aws-serverless-statemachine.yaml",
-            "aws-serverless-api.yaml",
-            "aws-serverless-httpapi.yaml",
+            # "aws-serverless-api.yaml",
+            # "aws-serverless-httpapi.yaml",
             "aws-appsync-graphqlschema.yaml",
             "aws-appsync-resolver.yaml",
             "aws-appsync-functionconfiguration.yaml",
-            "aws-lambda-function.yaml",
+            # "aws-lambda-function.yaml",
             "aws-apigateway-restapi.yaml",
             "aws-elasticbeanstalk-applicationversion.yaml",
             "aws-cloudformation-moduleversion.yaml",
             "aws-cloudformation-resourceversion.yaml",
             "aws-cloudformation-stack.yaml",
-            # "aws-serverless-application.yaml",
+            "aws-serverless-application.yaml",
             "aws-lambda-layerversion.yaml",
             "aws-serverless-layerversion.yaml",
-            # "aws-glue-job.yaml",
+            "aws-glue-job.yaml",
             "aws-stepfunctions-statemachine.yaml",
         ]
     )
@@ -100,7 +100,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
 
         config_file_path = self.test_data_path.joinpath(config_file_name)
         delete_command_list = self.get_delete_command_list(
-            stack_name=stack_name, config_file=config_file_path, force=True
+            stack_name=stack_name, config_file=config_file_path, no_prompts=True
         )
 
         LOG.info(delete_command_list)
@@ -133,7 +133,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
 
         config_file_path = self.test_data_path.joinpath(config_file_name)
         delete_command_list = self.get_delete_command_list(
-            stack_name=stack_name, config_file=config_file_path, force=True
+            stack_name=stack_name, config_file=config_file_path, no_prompts=True
         )
 
         LOG.info(delete_command_list)
@@ -192,7 +192,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             deploy_command_list, "{}\n\n\n\n\nn\n\n\n".format(stack_name).encode()
         )
 
-        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region="us-east-1", force=True)
+        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region="us-east-1", no_prompts=True)
 
         LOG.info(delete_command_list)
         delete_process_execute = run_command(delete_command_list)

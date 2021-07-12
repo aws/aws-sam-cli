@@ -21,7 +21,7 @@ class DeleteIntegBase(TestCase):
         return command
 
     def get_delete_command_list(
-        self, stack_name=None, region=None, config_file=None, config_env=None, profile=None, force=None
+        self, stack_name=None, region=None, config_file=None, config_env=None, profile=None, no_prompts=None
     ):
         command_list = [self.base_command(), "delete"]
 
@@ -35,7 +35,7 @@ class DeleteIntegBase(TestCase):
             command_list += ["--config-env", str(config_env)]
         if profile:
             command_list += ["--profile", str(profile)]
-        if force:
-            command_list += ["--force"]
+        if no_prompts:
+            command_list += ["--no-prompts"]
 
         return command_list
