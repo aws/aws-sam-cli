@@ -35,7 +35,7 @@ class Calculations:
 
                 if capacity_used <= 70:
                     warning.set_message(
-                        "For the lambda function [%s], you will not be close to its soft limit of %iTPS."
+                        "For the lambda function [%s], you will not be close to its soft limit of %i concurrent executions."
                         % (resource_name, concurrent_executions)
                     )
                     self.graph.add_green_warning(warning)
@@ -65,23 +65,3 @@ class Calculations:
     def check_limit(self, tps, duration, execution_limit):
         tps_max_limit = (1000 / duration) * execution_limit
         return (tps / tps_max_limit) * 100
-
-
-"""
-1
-tps: 600
-duration: 1000
-
-2
-tps: 950
-duration: 800
-
-3
-tps: 900
-duration: 1100
-
-4
-tps: 1100
-duration: 1500
-
-"""
