@@ -1,5 +1,7 @@
 from unittest import TestCase
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, ANY
+
+from parameterized import parameterized
 
 from samcli.commands.pipeline.bootstrap.guided_context import GuidedContext
 
@@ -121,3 +123,113 @@ class TestGuidedContext(TestCase):
             if txt in text:
                 return True
         return False
+
+
+class TestGuidedContext_prompt_account_id(TestCase):
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.get_current_account_id")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.click")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.os.getenv")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.list_available_profiles")
+    def test_prompt_account_id_can_display_profiles_and_environment(
+        self, list_available_profiles_mock, getenv_mock, click_mock, get_current_account_id_mock
+    ):
+        getenv_mock.return_value = "not None"
+        list_available_profiles_mock.return_value = ["profile1", "profile2"]
+        click_mock.prompt.return_value = "e"  # select environment variable
+        get_current_account_id_mock.return_value = "account_id"
+
+        guided_context_mock = Mock()
+        GuidedContext._prompt_account_id(guided_context_mock)
+
+        click_mock.prompt.assert_called_once_with(
+            ANY, show_choices=False, show_default=False, type=click_mock.Choice(["1", "2", "q", "e"])
+        )
+
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.get_current_account_id")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.click")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.os.getenv")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.list_available_profiles")
+    def test_prompt_account_id_wont_show_environment_option_when_it_doesnt_exist(
+        self, list_available_profiles_mock, getenv_mock, click_mock, get_current_account_id_mock
+    ):
+        getenv_mock.return_value = None
+        list_available_profiles_mock.return_value = ["profile1", "profile2"]
+        click_mock.prompt.return_value = "e"  # select environment variable
+        get_current_account_id_mock.return_value = "account_id"
+
+        guided_context_mock = Mock()
+        GuidedContext._prompt_account_id(guided_context_mock)
+
+        click_mock.prompt.assert_called_once_with(
+            ANY, show_choices=False, show_default=False, type=click_mock.Choice(["1", "2", "q"])
+        )
+
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.get_current_account_id")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.click")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.os.getenv")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.list_available_profiles")
+    def test_prompt_account_id_select_environment_unset_self_profile(
+        self, list_available_profiles_mock, getenv_mock, click_mock, get_current_account_id_mock
+    ):
+        getenv_mock.return_value = "not None"
+        list_available_profiles_mock.return_value = ["profile1", "profile2"]
+        click_mock.prompt.return_value = "e"  # select environment variable
+        get_current_account_id_mock.return_value = "account_id"
+
+        guided_context_mock = Mock()
+        GuidedContext._prompt_account_id(guided_context_mock)
+
+        self.assertEquals(None, guided_context_mock.profile)
+
+    @parameterized.expand(
+        [
+            (
+                "1",
+                "profile1",
+            ),
+            (
+                "2",
+                "profile2",
+            ),
+        ]
+    )
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.get_current_account_id")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.click")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.os.getenv")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.list_available_profiles")
+    def test_prompt_account_id_select_profile_set_profile_to_its_name(
+        self,
+        profile_selection,
+        expected_profile,
+        list_available_profiles_mock,
+        getenv_mock,
+        click_mock,
+        get_current_account_id_mock,
+    ):
+        getenv_mock.return_value = "not None"
+        list_available_profiles_mock.return_value = ["profile1", "profile2"]
+        click_mock.prompt.return_value = profile_selection
+        get_current_account_id_mock.return_value = "account_id"
+
+        guided_context_mock = Mock()
+        GuidedContext._prompt_account_id(guided_context_mock)
+
+        self.assertEquals(expected_profile, guided_context_mock.profile)
+
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.sys.exit")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.get_current_account_id")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.click")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.os.getenv")
+    @patch("samcli.commands.pipeline.bootstrap.guided_context.list_available_profiles")
+    def test_prompt_account_id_select_quit(
+        self, list_available_profiles_mock, getenv_mock, click_mock, get_current_account_id_mock, exit_mock
+    ):
+        getenv_mock.return_value = "not None"
+        list_available_profiles_mock.return_value = ["profile1", "profile2"]
+        click_mock.prompt.return_value = "q"  # quit
+        get_current_account_id_mock.return_value = "account_id"
+
+        guided_context_mock = Mock()
+        GuidedContext._prompt_account_id(guided_context_mock)
+
+        exit_mock.assert_called_once_with(0)
