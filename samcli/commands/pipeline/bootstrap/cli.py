@@ -163,12 +163,12 @@ def do_cli(
         if standalone:
             click.echo(
                 dedent(
-                    f"""\
-                {Colored().bold('sam pipeline bootstrap')} generates the necessary AWS resources to connect a stage in
-                your CI/CD system. We will ask for [1] stage definition, [2] account details, and
-                [3] references to existing resources in order to bootstrap these pipeline
-                resources. You can also add optional security parameters.
-                """
+                    """\
+                    sam pipeline bootstrap generates the necessary AWS resources to connect a stage in
+                    your CI/CD system. We will ask for [1] stage definition, [2] account details, and
+                    [3] references to existing resources in order to bootstrap these pipeline
+                    resources. You can also add optional security parameters.
+                    """
                 ),
             )
 
@@ -225,8 +225,8 @@ def do_cli(
             dedent(
                 f"""\
                 View the definition in {os.path.join(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)},
-                run {Colored().bold("sam pipeline bootstrap")} to generate another set of resources, or proceed to
-                {Colored().bold("sam pipeline init")} to create your pipeline configuration file.
+                run sam pipeline bootstrap to generate another set of resources, or proceed to
+                sam pipeline init to create your pipeline configuration file.
                 """
             )
         )
