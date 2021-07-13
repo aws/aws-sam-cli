@@ -52,7 +52,7 @@ class GuidedContext:
             dedent(
                 f"""\
                 To know more about configuration AWS credentials, visit the link below:
-                {CONFIG_AWS_CRED_DOC_URL}
+                {CONFIG_AWS_CRED_DOC_URL}\
                 """
             )
         )
@@ -206,9 +206,11 @@ class GuidedContext:
             click.echo(f"Stage name: {self.environment_name}")
         else:
             self._prompt_stage_name()
+        click.echo()
 
         click.secho(self.color.bold("[2] Account details"))
         self._prompt_account_id()
+        click.echo()
 
         if not self.region:
             self._prompt_region_name()
@@ -217,6 +219,7 @@ class GuidedContext:
             click.echo(f"Pipeline IAM user ARN: {self.pipeline_user_arn}")
         else:
             self._prompt_pipeline_user()
+        click.echo()
 
         click.secho(self.color.bold("[3] Reference application build resources"))
 
@@ -224,27 +227,32 @@ class GuidedContext:
             click.echo(f"Pipeline execution role ARN: {self.pipeline_execution_role_arn}")
         else:
             self._prompt_pipeline_execution_role()
+        click.echo()
 
         if self.cloudformation_execution_role_arn:
             click.echo(f"CloudFormation execution role ARN: {self.cloudformation_execution_role_arn}")
         else:
             self._prompt_cloudformation_execution_role()
+        click.echo()
 
         if self.artifacts_bucket_arn:
             click.echo(f"Artifacts bucket ARN: {self.cloudformation_execution_role_arn}")
         else:
             self._prompt_artifacts_bucket()
+        click.echo()
 
         if self.image_repository_arn:
             click.echo(f"ECR image repository ARN: {self.image_repository_arn}")
         else:
             self._prompt_image_repository()
+        click.echo()
 
         click.secho(self.color.bold("[4] Security definition - OPTIONAL"))
         if self.pipeline_ip_range:
             click.echo(f"Pipeline IP address range: {self.pipeline_ip_range}")
         else:
             self._prompt_ip_range()
+        click.echo()
 
         # Ask customers to confirm the inputs
         click.secho(self.color.bold("[5] Summary"))
@@ -262,5 +270,6 @@ class GuidedContext:
             )
             if int(edit_input):
                 inputs[int(edit_input) - 1][1]()
+                click.echo()
             else:
                 break
