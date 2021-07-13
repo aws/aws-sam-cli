@@ -118,16 +118,16 @@ class InteractiveInitFlow:
             )
             return self._generate_from_pipeline_template(pipeline_template_local_dir)
 
-    def _prompt_run_bootstrap_within_pipeline_init(self, env_names: List[str], required_env_number: int) -> bool:
+    def _prompt_run_bootstrap_within_pipeline_init(self, stage_names: List[str], required_env_number: int) -> bool:
         """
         Prompt bootstrap if `--bootstrap` flag is provided. Return True if bootstrap process is executed.
         """
-        if not env_names:
+        if not stage_names:
             click.echo(Colored().yellow("No bootstrapped resources were detected."))
         else:
             click.echo(
                 Colored().yellow(
-                    f"Only {len(env_names)} bootstrapped stage(s) were detected, "
+                    f"Only {len(stage_names)} bootstrapped stage(s) were detected, "
                     f"fewer than what the template requires: {required_env_number}."
                 )
             )
@@ -153,12 +153,12 @@ class InteractiveInitFlow:
                     )
                 )
 
-                click.echo(Colored().bold(f"\nStage {len(env_names) + 1} Setup\n"))
+                click.echo(Colored().bold(f"\nStage {len(stage_names) + 1} Setup\n"))
                 do_bootstrap(
                     region=None,
                     profile=None,
                     interactive=True,
-                    environment_name=None,
+                    stage_name=None,
                     pipeline_user_arn=None,
                     pipeline_execution_role_arn=None,
                     cloudformation_execution_role_arn=None,
@@ -196,9 +196,9 @@ class InteractiveInitFlow:
         _draw_stage_diagram(required_env_number)
         while True:
             click.echo("Checking for bootstrapped resources...")
-            env_names, bootstrap_context = _load_pipeline_bootstrap_resources()
-            if len(env_names) < required_env_number and self._prompt_run_bootstrap_within_pipeline_init(
-                env_names, required_env_number
+            stage_names, bootstrap_context = _load_pipeline_bootstrap_resources()
+            if len(stage_names) < required_env_number and self._prompt_run_bootstrap_within_pipeline_init(
+                stage_names, required_env_number
             ):
                 # the customers just went through the bootstrap process,
                 # refresh the pipeline bootstrap resources and see whether bootstrap is still needed
@@ -219,26 +219,26 @@ def _load_pipeline_bootstrap_resources() -> Tuple[List[str], Dict[str, str]]:
 
     config = SamConfig(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)
     if not config.exists():
-        context[str(["environment_names_message"])] = ""
+        context[str(["stage_names_message"])] = ""
         return [], context
 
-    # config.get_env_names() will return the list of
-    # bootstrapped env names and "default" which is used to store shared values
+    # config.get_stage_names() will return the list of
+    # bootstrapped stage names and "default" which is used to store shared values
     # we don't want to include "default" here.
-    env_names = [env_name for env_name in config.get_env_names() if env_name != "default"]
-    for env in env_names:
-        for key, value in config.get_all(_get_bootstrap_command_names(), section, env).items():
-            context[str([env, key])] = value
+    stage_names = [stage_name for stage_name in config.get_stage_names() if stage_name != "default"]
+    for stage in stage_names:
+        for key, value in config.get_all(_get_bootstrap_command_names(), section, stage).items():
+            context[str([stage, key])] = value
 
-    # pre-load the list of env names detected from pipelineconfig.toml
-    environment_names_message = (
-        "Here are the environment names detected "
+    # pre-load the list of stage names detected from pipelineconfig.toml
+    stage_names_message = (
+        "Here are the stage names detected "
         + f"in {os.path.join(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)}:\n"
-        + "\n".join([f"\t- {env_name}" for env_name in env_names])
+        + "\n".join([f"\t- {stage_name}" for stage_name in stage_names])
     )
-    context[str(["environment_names_message"])] = environment_names_message
+    context[str(["stage_names_message"])] = stage_names_message
 
-    return env_names, context
+    return stage_names, context
 
 
 def _copy_dir_contents_to_cwd_fail_on_exist(source_dir: str) -> List[str]:

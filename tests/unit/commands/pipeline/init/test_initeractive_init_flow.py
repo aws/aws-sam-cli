@@ -149,8 +149,8 @@ class TestInteractiveInitFlow(TestCase):
         config_file = Mock()
         samconfig_mock.return_value = config_file
         config_file.exists.return_value = True
-        config_file.get_env_names.return_value = ["testing", "prod"]
-        config_file.get_env_names.return_value = ["testing", "prod"]
+        config_file.get_stage_names.return_value = ["testing", "prod"]
+        config_file.get_stage_names.return_value = ["testing", "prod"]
         config_file.get_all.return_value = {"pipeline_execution_role": "arn:aws:iam::123456789012:role/execution-role"}
 
         click_mock.prompt.side_effect = [
@@ -174,7 +174,7 @@ class TestInteractiveInitFlow(TestCase):
             {
                 str(["testing", "pipeline_execution_role"]): "arn:aws:iam::123456789012:role/execution-role",
                 str(["prod", "pipeline_execution_role"]): "arn:aws:iam::123456789012:role/execution-role",
-                str(["environment_names_message"]): "Here are the environment names detected "
+                str(["stage_names_message"]): "Here are the stage names detected "
                 f'in {os.path.join(".aws-sam", "pipeline", "pipelineconfig.toml")}:\n\t- testing\n\t- prod',
             }
         )
@@ -385,7 +385,7 @@ class TestInteractiveInitFlowWithBootstrap(TestCase):
         config_file = Mock()
         samconfig_mock.return_value = config_file
         config_file.exists.return_value = True
-        config_file.get_env_names.return_value = ["testing"]
+        config_file.get_stage_names.return_value = ["testing"]
         config_file.get_all.return_value = {"pipeline_execution_role": "arn:aws:iam::123456789012:role/execution-role"}
 
         click_mock.prompt.side_effect = [
@@ -422,7 +422,7 @@ class TestInteractiveInitFlowWithBootstrap(TestCase):
     @patch("samcli.lib.cookiecutter.question.click")
     def test_with_bootstrap_answer_yes(
         self,
-        get_env_name_side_effects,
+        get_stage_name_side_effects,
         _prompt_run_bootstrap_expected_calls,
         click_mock,
         _copy_dir_contents_to_cwd_fail_on_exist_mock,
@@ -460,7 +460,7 @@ class TestInteractiveInitFlowWithBootstrap(TestCase):
         config_file = Mock()
         samconfig_mock.return_value = config_file
         config_file.exists.return_value = True
-        config_file.get_env_names.side_effect = get_env_name_side_effects
+        config_file.get_stage_names.side_effect = get_stage_name_side_effects
         config_file.get_all.return_value = {"pipeline_execution_role": "arn:aws:iam::123456789012:role/execution-role"}
 
         click_mock.prompt.side_effect = [

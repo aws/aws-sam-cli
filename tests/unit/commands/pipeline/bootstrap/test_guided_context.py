@@ -5,7 +5,7 @@ from parameterized import parameterized
 
 from samcli.commands.pipeline.bootstrap.guided_context import GuidedContext
 
-ANY_ENVIRONMENT_NAME = "ANY_ENVIRONMENT_NAME"
+ANY_STAGE_NAME = "ANY_STAGE_NAME"
 ANY_PIPELINE_USER_ARN = "ANY_PIPELINE_USER_ARN"
 ANY_PIPELINE_EXECUTION_ROLE_ARN = "ANY_PIPELINE_EXECUTION_ROLE_ARN"
 ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN = "ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN"
@@ -26,7 +26,7 @@ class TestGuidedContext(TestCase):
         click_mock.confirm.return_value = False
         click_mock.prompt = Mock(return_value="0")
         gc: GuidedContext = GuidedContext(
-            environment_name=ANY_ENVIRONMENT_NAME,
+            stage_name=ANY_STAGE_NAME,
             pipeline_user_arn=ANY_PIPELINE_USER_ARN,
             pipeline_execution_role_arn=ANY_PIPELINE_EXECUTION_ROLE_ARN,
             cloudformation_execution_role_arn=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
@@ -75,7 +75,7 @@ class TestGuidedContext(TestCase):
         # 2 - Yes, I need a help creating one
         # 3 - I already have an ECR image repository
         gc_without_ecr_info: GuidedContext = GuidedContext(
-            environment_name=ANY_ENVIRONMENT_NAME,
+            stage_name=ANY_STAGE_NAME,
             pipeline_user_arn=ANY_PIPELINE_USER_ARN,
             pipeline_execution_role_arn=ANY_PIPELINE_EXECUTION_ROLE_ARN,
             cloudformation_execution_role_arn=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,

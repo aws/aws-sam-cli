@@ -8,7 +8,7 @@ from unittest.mock import Mock
 import boto3
 from botocore.exceptions import ClientError
 
-from samcli.lib.pipeline.bootstrap.environment import Environment
+from samcli.lib.pipeline.bootstrap.stage import Stage
 
 
 class PipelineBase(TestCase):
@@ -69,7 +69,7 @@ class BootstrapIntegBase(PipelineBase):
     def get_bootstrap_command_list(
         self,
         no_interactive: bool = False,
-        env_name: Optional[str] = None,
+        stage_name: Optional[str] = None,
         pipeline_user: Optional[str] = None,
         pipeline_execution_role: Optional[str] = None,
         cloudformation_execution_role: Optional[str] = None,
@@ -82,8 +82,8 @@ class BootstrapIntegBase(PipelineBase):
 
         if no_interactive:
             command_list += ["--no-interactive"]
-        if env_name:
-            command_list += ["--environment", env_name]
+        if stage_name:
+            command_list += ["--stage", stage_name]
         if pipeline_user:
             command_list += ["--pipeline-user", pipeline_user]
         if pipeline_execution_role:
@@ -114,13 +114,13 @@ class BootstrapIntegBase(PipelineBase):
                 return False
             raise ex
 
-    def _get_env_and_stack_name(self, suffix: str = "") -> Tuple[str, str]:
+    def _get_stage_and_stack_name(self, suffix: str = "") -> Tuple[str, str]:
         # Method expects method name which can be a full path. Eg: test.integration.test_bootstrap_command.method_name
         method_name = self.id().split(".")[-1]
-        env_name = method_name.replace("_", "-") + suffix
+        stage_name = method_name.replace("_", "-") + suffix
 
         mock_env = Mock()
-        mock_env.name = env_name
-        stack_name = Environment._get_stack_name(mock_env)
+        mock_env.name = stage_name
+        stack_name = Stage._get_stack_name(mock_env)
 
-        return env_name, stack_name
+        return stage_name, stack_name

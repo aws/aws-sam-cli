@@ -23,7 +23,7 @@ class GuidedContext:
     def __init__(
         self,
         profile: Optional[str] = None,
-        environment_name: Optional[str] = None,
+        stage_name: Optional[str] = None,
         pipeline_user_arn: Optional[str] = None,
         pipeline_execution_role_arn: Optional[str] = None,
         cloudformation_execution_role_arn: Optional[str] = None,
@@ -33,7 +33,7 @@ class GuidedContext:
         region: Optional[str] = None,
     ) -> None:
         self.profile = profile
-        self.environment_name = environment_name
+        self.stage_name = stage_name
         self.pipeline_user_arn = pipeline_user_arn
         self.pipeline_execution_role_arn = pipeline_execution_role_arn
         self.cloudformation_execution_role_arn = cloudformation_execution_role_arn
@@ -76,7 +76,7 @@ class GuidedContext:
 
         try:
             account_id = get_current_account_id(self.profile)
-            click.echo(self.color.green(f"Associated account {account_id} with stage {self.environment_name}."))
+            click.echo(self.color.green(f"Associated account {account_id} with stage {self.stage_name}."))
         except CredentialsError as ex:
             click.echo(self.color.red(ex.message))
             self._prompt_account_id()
@@ -85,9 +85,9 @@ class GuidedContext:
         click.echo(
             "Enter a name for this stage. This will be referenced later when you use the sam pipeline init command:"
         )
-        self.environment_name = click.prompt(
+        self.stage_name = click.prompt(
             "Stage name",
-            default=self.environment_name,
+            default=self.stage_name,
             type=click.STRING,
         )
 
@@ -144,7 +144,7 @@ class GuidedContext:
     def _get_user_inputs(self) -> List[Tuple[str, Callable[[], None]]]:
         return [
             (f"Account: {get_current_account_id(self.profile)}", self._prompt_account_id),
-            (f"Stage name: {self.environment_name}", self._prompt_stage_name),
+            (f"Stage name: {self.stage_name}", self._prompt_stage_name),
             (f"Region: {self.region}", self._prompt_region_name),
             (
                 f"Pipeline user ARN: {self.pipeline_user_arn}"
@@ -185,8 +185,8 @@ class GuidedContext:
         and it will be created by the bootstrap command
         """
         click.secho(self.color.bold("[1] Stage definition"))
-        if self.environment_name:
-            click.echo(f"Stage name: {self.environment_name}")
+        if self.stage_name:
+            click.echo(f"Stage name: {self.stage_name}")
         else:
             self._prompt_stage_name()
         click.echo()
