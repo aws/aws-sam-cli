@@ -44,27 +44,24 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
 )
 @click.option(
     "--pipeline-user",
-    help="The ARN of the IAM user having its access key ID and secret access key shared with the CI/CD system. "
-    "It is used to grant this IAM user the permissions to access the corresponding AWS account. "
-    "If not provided, the command will create one along with access key ID and secret access key credentials.",
+    help="An IAM user generated or referenced by sam pipeline bootstrap in order to "
+    "allow the connected CI/CD system to connect to the SAM CLI.",
     required=False,
 )
 @click.option(
     "--pipeline-execution-role",
-    help="The ARN of an IAM role to be assumed by the pipeline user to operate on this environment. "
-    "Provide it only if you want to user your own role, otherwise, the command will create one",
+    help="Execution role that the CI/CD system assumes in order to make changes to resources on your behalf.",
     required=False,
 )
 @click.option(
     "--cloudformation-execution-role",
-    help="The ARN of an IAM role to be assumed by the CloudFormation service while deploying the application's stack. "
-    "Provide it only if you want to user your own role, otherwise, the command will create one.",
+    help="Execution role that CloudFormation assumes in order to make changes to resources on your behalf",
     required=False,
 )
 @click.option(
-    "--artifacts-bucket",
-    help="The ARN of an S3 bucket to hold the AWS SAM build artifacts. "
-    "Provide it only if you want to user your own S3 bucket, otherwise, the command will create one.",
+    "--bucket",
+    help="The name of the S3 bucket where this command uploads your CloudFormation template. This is required for"
+    "deployments of templates sized greater than 51,200 bytes.",
     required=False,
 )
 @click.option(
@@ -76,9 +73,7 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
 )
 @click.option(
     "--image-repository",
-    help="The ARN of an ECR image repository to hold the containers images of Lambda functions of Image package type. "
-    "If provided, the --create-image-repository argument is ignored. If not provided and --create-image-repository is "
-    "set to true, the command will create one.",
+    help="ECR repo uri where this command uploads the image artifacts that are referenced in your template.",
     required=False,
 )
 @click.option(
@@ -105,7 +100,7 @@ def cli(
     pipeline_user: Optional[str],
     pipeline_execution_role: Optional[str],
     cloudformation_execution_role: Optional[str],
-    artifacts_bucket: Optional[str],
+    bucket: Optional[str],
     create_image_repository: bool,
     image_repository: Optional[str],
     pipeline_ip_range: Optional[str],
@@ -124,7 +119,7 @@ def cli(
         pipeline_user_arn=pipeline_user,
         pipeline_execution_role_arn=pipeline_execution_role,
         cloudformation_execution_role_arn=cloudformation_execution_role,
-        artifacts_bucket_arn=artifacts_bucket,
+        artifacts_bucket_arn=bucket,
         create_image_repository=create_image_repository,
         image_repository_arn=image_repository,
         pipeline_ip_range=pipeline_ip_range,
