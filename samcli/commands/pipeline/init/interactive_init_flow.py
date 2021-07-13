@@ -147,7 +147,7 @@ class InteractiveInitFlow:
                     )
                 )
 
-                click.echo(Colored().bold(f"\nStage {len(env_names)} Setup\n"))
+                click.echo(Colored().bold(f"\nStage {len(env_names) + 1} Setup\n"))
                 do_bootstrap(
                     region=None,
                     profile=None,
