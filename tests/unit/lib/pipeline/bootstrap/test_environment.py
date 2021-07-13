@@ -185,7 +185,6 @@ class TestEnvironment(TestCase):
         expected_parameter_overrides = {
             "PipelineUserArn": ANY_PIPELINE_USER_ARN,
             "PipelineExecutionRoleArn": "",
-            "PipelineIpRange": "",
             "CloudFormationExecutionRoleArn": "",
             "ArtifactsBucketArn": ANY_ARTIFACTS_BUCKET_ARN,
             "CreateImageRepository": "true",

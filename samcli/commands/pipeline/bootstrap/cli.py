@@ -77,11 +77,6 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
     required=False,
 )
 @click.option(
-    "--pipeline-ip-range",
-    help="If provided, all requests coming from outside of the given range are denied. Example: 10.24.34.0/24",
-    required=False,
-)
-@click.option(
     "--confirm-changeset/--no-confirm-changeset",
     default=True,
     is_flag=True,
@@ -103,7 +98,6 @@ def cli(
     bucket: Optional[str],
     create_image_repository: bool,
     image_repository: Optional[str],
-    pipeline_ip_range: Optional[str],
     confirm_changeset: bool,
     config_file: Optional[str],
     config_env: Optional[str],
@@ -122,7 +116,6 @@ def cli(
         artifacts_bucket_arn=bucket,
         create_image_repository=create_image_repository,
         image_repository_arn=image_repository,
-        pipeline_ip_range=pipeline_ip_range,
         confirm_changeset=confirm_changeset,
         config_file=config_env,
         config_env=config_file,
@@ -140,7 +133,6 @@ def do_cli(
     artifacts_bucket_arn: Optional[str],
     create_image_repository: bool,
     image_repository_arn: Optional[str],
-    pipeline_ip_range: Optional[str],
     confirm_changeset: bool,
     config_file: Optional[str],
     config_env: Optional[str],
@@ -175,14 +167,12 @@ def do_cli(
             artifacts_bucket_arn=artifacts_bucket_arn,
             create_image_repository=create_image_repository,
             image_repository_arn=image_repository_arn,
-            pipeline_ip_range=pipeline_ip_range,
             region=region,
         )
         guided_context.run()
         environment_name = guided_context.environment_name
         pipeline_user_arn = guided_context.pipeline_user_arn
         pipeline_execution_role_arn = guided_context.pipeline_execution_role_arn
-        pipeline_ip_range = guided_context.pipeline_ip_range
         cloudformation_execution_role_arn = guided_context.cloudformation_execution_role_arn
         artifacts_bucket_arn = guided_context.artifacts_bucket_arn
         create_image_repository = guided_context.create_image_repository
@@ -199,7 +189,6 @@ def do_cli(
         aws_region=region,
         pipeline_user_arn=pipeline_user_arn,
         pipeline_execution_role_arn=pipeline_execution_role_arn,
-        pipeline_ip_range=pipeline_ip_range,
         cloudformation_execution_role_arn=cloudformation_execution_role_arn,
         artifacts_bucket_arn=artifacts_bucket_arn,
         create_image_repository=create_image_repository,

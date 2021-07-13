@@ -6,8 +6,6 @@ Parameters:
     Type: String
   PipelineExecutionRoleArn:
     Type: String
-  PipelineIpRange:
-    Type: String
   CloudFormationExecutionRoleArn:
     Type: String
   ArtifactsBucketArn:
@@ -22,7 +20,6 @@ Parameters:
 Conditions:
   MissingPipelineUser: !Equals [!Ref PipelineUserArn, ""]
   MissingPipelineExecutionRole: !Equals [!Ref PipelineExecutionRoleArn, ""]
-  HasPipelineIpRange: !Not [!Equals [!Ref PipelineIpRange, ""]]
   MissingCloudFormationExecutionRole: !Equals [!Ref CloudFormationExecutionRoleArn, ""]
   MissingArtifactsBucket: !Equals [!Ref ArtifactsBucketArn, ""]
   ShouldHaveImageRepository: !Or [!Equals [!Ref CreateImageRepository, "true"], !Not [!Equals [!Ref ImageRepositoryArn, ""]]]
@@ -48,16 +45,6 @@ Resources:
                 Condition:
                   StringEquals:
                     aws:ResourceTag/Role: pipeline-execution-role
-              - Fn::If:
-                - HasPipelineIpRange
-                - Effect: Deny
-                  Action:
-                    - 'sts:AssumeRole'
-                  Resource: "*"
-                  Condition:
-                    NotIpAddress:
-                      aws:SourceIp: !Ref PipelineIpRange
-                - !Ref AWS::NoValue
 
   PipelineUserAccessKey:
     Type: AWS::IAM::AccessKey
@@ -121,22 +108,6 @@ Resources:
                   - !Ref PipelineUserArn
             Action:
               - 'sts:AssumeRole'
-          - Fn::If:
-            - HasPipelineIpRange
-            - Effect: Deny
-              Principal:
-                AWS:
-                  - Fn::If:
-                    - MissingPipelineUser
-                    - !GetAtt PipelineUser.Arn
-                    - !Ref PipelineUserArn
-              Action:
-                - 'sts:AssumeRole'
-              Condition:
-                NotIpAddress:
-                  aws:SourceIp:
-                    - !Ref PipelineIpRange
-            - !Ref AWS::NoValue
 
   ArtifactsBucket:
     Type: AWS::S3::Bucket

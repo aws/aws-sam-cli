@@ -43,10 +43,6 @@ class Environment:
     pipeline_execution_role: Resource
         The IAM role assumed by the pipeline-user to get access to the AWS account and executes the
         CloudFormation stack.
-    pipeline_ip_range: Optional[str]
-        The IP range (in CIDR format) of the machine running the pipeline instance. If provided, IAM will deny requests
-        not coming from this IP range.
-        https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_examples_aws_deny-ip.html
     cloudformation_execution_role: Resource
         The IAM role assumed by the CloudFormation service to executes the CloudFormation stack.
     artifacts_bucket: Resource
@@ -82,7 +78,6 @@ class Environment:
         aws_region: Optional[str] = None,
         pipeline_user_arn: Optional[str] = None,
         pipeline_execution_role_arn: Optional[str] = None,
-        pipeline_ip_range: Optional[str] = None,
         cloudformation_execution_role_arn: Optional[str] = None,
         artifacts_bucket_arn: Optional[str] = None,
         create_image_repository: bool = False,
@@ -95,7 +90,6 @@ class Environment:
         self.pipeline_execution_role: Resource = Resource(
             arn=pipeline_execution_role_arn, comment="Pipeline execution role"
         )
-        self.pipeline_ip_range: Optional[str] = pipeline_ip_range
         self.cloudformation_execution_role: Resource = Resource(
             arn=cloudformation_execution_role_arn, comment="CloudFormation execution role"
         )
@@ -175,7 +169,6 @@ class Environment:
             parameter_overrides={
                 "PipelineUserArn": self.pipeline_user.arn or "",
                 "PipelineExecutionRoleArn": self.pipeline_execution_role.arn or "",
-                "PipelineIpRange": self.pipeline_ip_range or "",
                 "CloudFormationExecutionRoleArn": self.cloudformation_execution_role.arn or "",
                 "ArtifactsBucketArn": self.artifacts_bucket.arn or "",
                 "CreateImageRepository": "true" if self.create_image_repository else "false",

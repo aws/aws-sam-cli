@@ -76,7 +76,6 @@ class BootstrapIntegBase(PipelineBase):
         artifacts_bucket: Optional[str] = None,
         create_image_repository: bool = False,
         image_repository: Optional[str] = None,
-        pipeline_ip_range: Optional[str] = None,
         no_confirm_changeset: bool = False,
     ):
         command_list = [self.base_command(), "pipeline", "bootstrap"]
@@ -97,8 +96,6 @@ class BootstrapIntegBase(PipelineBase):
             command_list += ["--create-image-repository"]
         if image_repository:
             command_list += ["--image-repository", image_repository]
-        if pipeline_ip_range:
-            command_list += ["--pipeline-ip-range", pipeline_ip_range]
         if no_confirm_changeset:
             command_list += ["--no-confirm-changeset"]
 
