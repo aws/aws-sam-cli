@@ -38,13 +38,13 @@ class TestSamConfig(TestCase):
     def test_init(self):
         self.assertEqual(self.samconfig.filepath, Path(self.config_dir, DEFAULT_CONFIG_FILE_NAME))
 
-    def test_get_env_names(self):
-        self.assertEqual(self.samconfig.get_env_names(), [])
-        self._update_samconfig(cmd_names=["myCommand"], section="mySection", key="port", value=5401, env="env1")
-        self._update_samconfig(cmd_names=["myCommand"], section="mySection", key="port", value=5401, env="env2")
-        self.assertEqual(self.samconfig.get_env_names(), ["env1", "env2"])
+    def test_get_stage_names(self):
+        self.assertEqual(self.samconfig.get_stage_names(), [])
+        self._update_samconfig(cmd_names=["myCommand"], section="mySection", key="port", value=5401, env="stage1")
+        self._update_samconfig(cmd_names=["myCommand"], section="mySection", key="port", value=5401, env="stage2")
+        self.assertEqual(self.samconfig.get_stage_names(), ["stage1", "stage2"])
         self._update_samconfig(cmd_names=["myCommand"], section="mySection", key="port", value=5401)
-        self.assertEqual(self.samconfig.get_env_names(), ["env1", "env2", DEFAULT_ENV])
+        self.assertEqual(self.samconfig.get_stage_names(), ["stage1", "stage2", DEFAULT_ENV])
 
     def test_param_overwrite(self):
         self._update_samconfig(cmd_names=["myCommand"], section="mySection", key="port", value=5401, env="myEnv")
