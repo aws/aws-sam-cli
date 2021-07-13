@@ -8,6 +8,18 @@ from samcli.commands.check.lib.command_context import CheckContext
 
 class TestCommandContext(TestCase):
     @patch("samcli.commands.check.lib.command_context.click")
+    def test_run(self, patch_click):
+        ctx = Mock()
+        path = Mock()
+        context = CheckContext(ctx, path)
+
+        context.transform_template = Mock()
+
+        context.run()
+
+        context.transform_template.assert_called_once()
+
+    @patch("samcli.commands.check.lib.command_context.click")
     @patch("samcli.commands.check.lib.command_context.os.path.exists")
     def test_file_not_found(self, path_exists_patch, click_patch):
         template_path = "path_to_template"
