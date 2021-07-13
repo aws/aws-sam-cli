@@ -45,6 +45,7 @@ class DeleteContext:
         self.s3_prefix = None
         self.cf_utils = None
         self.s3_uploader = None
+        self.ecr_uploader = None
         self.uploaders = None
         self.cf_template_file_name = None
         self.delete_artifacts_folder = None
@@ -109,9 +110,9 @@ class DeleteContext:
         self.region = s3_client._client_config.region_name if s3_client else self.region  # pylint: disable=W0212
         self.s3_uploader = S3Uploader(s3_client=s3_client, bucket_name=self.s3_bucket, prefix=self.s3_prefix)
 
-        ecr_uploader = ECRUploader(docker_client=None, ecr_client=ecr_client, ecr_repo=None, ecr_repo_multi=None)
+        self.ecr_uploader = ECRUploader(docker_client=None, ecr_client=ecr_client, ecr_repo=None, ecr_repo_multi=None)
 
-        self.uploaders = Uploaders(self.s3_uploader, ecr_uploader)
+        self.uploaders = Uploaders(self.s3_uploader, self.ecr_uploader)
         self.cf_utils = CfUtils(cloudformation_client)
 
         self.companion_stack_manager = CompanionStackManager(
@@ -181,7 +182,7 @@ class DeleteContext:
                 if self.delete_ecr_companion_stack_prompt:
                     delete_repo = confirm(
                         click.style(
-                            f"\tECR repository {self.companion_stack_manager.get_repo_uri(repo)}"
+                            f"\tECR repository {repo.physical_id}"
                             + " may not be empty. Do you want to delete the repository and all the images in it ?",
                             bold=True,
                         ),
@@ -243,14 +244,13 @@ class DeleteContext:
             self.companion_stack_manager.delete_companion_stack()
 
         # # Delete the repos created by ECR companion stack if it exists
-        # if ecr_companion_stack_exists and (self.no_prompts or self.delete_companion_stack_prompt):
-        #     for key in self.repos:
-        #         repo = self.repos[key]["repo"]
-        #         is_delete = self.repos[key].get("delete_repo", None)
-        #         if no_prompts or is_delete:
-        #             click.echo(f"\tDeleting ECR repository {repo.get_repo_uri(repo)}"
-        #             "")
-        #             self.ecr_uploader.delete_repository(repo.physical_id)
+        if ecr_companion_stack_exists and (self.no_prompts or self.delete_ecr_companion_stack_prompt):
+            for key in self.ecr_repos:
+                repo = self.ecr_repos[key]["repo"]
+                is_delete = self.ecr_repos[key].get("delete_repo", None)
+                if self.no_prompts or is_delete:
+                    click.echo(f"\tDeleting ECR repository {repo.physical_id}")
+                    self.ecr_uploader.delete_ecr_repository(physical_id=repo.physical_id)
 
     def run(self):
         """

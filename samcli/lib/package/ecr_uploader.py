@@ -139,6 +139,19 @@ class ECRUploader:
             LOG.error("DeleteArtifactFailedError Exception : %s", str(ex))
             raise DeleteArtifactFailedError(resource_id=resource_id, property_name=property_name, ex=ex) from ex
 
+    def delete_ecr_repository(self, physical_id: str):
+        """
+        Delete ECR repository using the physical_id
+
+        :param: physical_id of the repository to be deleted
+        """
+        try:
+            self.ecr_client.delete_repository(repositoryName=physical_id, force=True)
+        except self.ecr_client.exceptions.RepositoryNotFoundException:
+            # If the repository is empty, cloudformation automatically deletes
+            # the repository when cf_client.delete_stack is called.
+            pass
+
     @staticmethod
     def parse_image_url(image_uri: str) -> Dict:
         result = {}
