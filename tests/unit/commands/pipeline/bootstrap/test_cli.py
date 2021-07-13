@@ -6,7 +6,7 @@ from click.testing import CliRunner
 
 from samcli.commands.pipeline.bootstrap.cli import (
     _load_saved_pipeline_user_arn,
-    _get_command_names,
+    _get_bootstrap_command_names,
     PIPELINE_CONFIG_FILENAME,
     PIPELINE_CONFIG_DIR,
 )
@@ -97,7 +97,7 @@ class TestCli(TestCase):
         self.assertEqual(kwargs["environment_name"], "environment1")
         self.assertEqual(kwargs["artifacts_bucket_arn"], "bucketARN")
 
-    @patch("samcli.commands.pipeline.bootstrap.cli._get_command_names")
+    @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
     @patch("samcli.commands.pipeline.bootstrap.cli.Environment")
     @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
@@ -128,7 +128,7 @@ class TestCli(TestCase):
             cmd_names=PIPELINE_BOOTSTRAP_COMMAND_NAMES,
         )
 
-    @patch("samcli.commands.pipeline.bootstrap.cli._get_command_names")
+    @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
     @patch("samcli.commands.pipeline.bootstrap.cli.Environment")
     @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
@@ -138,7 +138,7 @@ class TestCli(TestCase):
         bootstrap_cli(**self.cli_context)
         load_saved_pipeline_user_arn_mock.assert_not_called()
 
-    @patch("samcli.commands.pipeline.bootstrap.cli._get_command_names")
+    @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
     @patch("samcli.commands.pipeline.bootstrap.cli.Environment")
     @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
@@ -149,7 +149,7 @@ class TestCli(TestCase):
         bootstrap_cli(**self.cli_context)
         load_saved_pipeline_user_arn_mock.assert_called_once()
 
-    @patch("samcli.commands.pipeline.bootstrap.cli._get_command_names")
+    @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
     @patch("samcli.commands.pipeline.bootstrap.cli.Environment")
     @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
@@ -161,7 +161,7 @@ class TestCli(TestCase):
         with self.assertRaises(click.UsageError):
             bootstrap_cli(**self.cli_context)
 
-    @patch("samcli.commands.pipeline.bootstrap.cli._get_command_names")
+    @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
     @patch("samcli.commands.pipeline.bootstrap.cli.Environment")
     @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
@@ -172,7 +172,7 @@ class TestCli(TestCase):
         self.cli_context["environment_name"] = None
         bootstrap_cli(**self.cli_context)  # No exception is thrown
 
-    @patch("samcli.commands.pipeline.bootstrap.cli._get_command_names")
+    @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
     @patch("samcli.commands.pipeline.bootstrap.cli.Environment")
     @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
@@ -188,7 +188,7 @@ class TestCli(TestCase):
         bootstrap_cli(**self.cli_context)
         gc_instance.run.assert_called_once()
 
-    @patch("samcli.commands.pipeline.bootstrap.cli._get_command_names")
+    @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
     @patch("samcli.commands.pipeline.bootstrap.cli.Environment")
     @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
@@ -206,7 +206,7 @@ class TestCli(TestCase):
         environment_instance.bootstrap.assert_called_once_with(confirm_changeset=True)
 
     @patch("samcli.commands.pipeline.bootstrap.cli.SamConfig")
-    @patch("samcli.commands.pipeline.bootstrap.cli._get_command_names")
+    @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     def test_load_saved_pipeline_user_arn_will_read_from_the_correct_file(
         self, get_command_names_mock, sam_config_mock
     ):
@@ -223,7 +223,7 @@ class TestCli(TestCase):
         sam_config_mock.assert_called_once_with(config_dir=PIPELINE_CONFIG_DIR, filename=PIPELINE_CONFIG_FILENAME)
 
     @patch("samcli.commands.pipeline.bootstrap.cli.SamConfig")
-    @patch("samcli.commands.pipeline.bootstrap.cli._get_command_names")
+    @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     def test_load_saved_pipeline_user_arn_will_return_non_if_the_pipeline_toml_file_is_not_found(
         self, get_command_names_mock, sam_config_mock
     ):
@@ -240,7 +240,7 @@ class TestCli(TestCase):
         self.assertIsNone(pipeline_user_arn)
 
     @patch("samcli.commands.pipeline.bootstrap.cli.SamConfig")
-    @patch("samcli.commands.pipeline.bootstrap.cli._get_command_names")
+    @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     def test_load_saved_pipeline_user_arn_will_return_non_if_the_pipeline_toml_file_does_not_contain_pipeline_user(
         self, get_command_names_mock, sam_config_mock
     ):
@@ -258,7 +258,7 @@ class TestCli(TestCase):
         self.assertIsNone(pipeline_user_arn)
 
     @patch("samcli.commands.pipeline.bootstrap.cli.SamConfig")
-    @patch("samcli.commands.pipeline.bootstrap.cli._get_command_names")
+    @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
     def test_load_saved_pipeline_user_arn_returns_the_pipeline_user_arn_from_the_pipeline_toml_file(
         self, get_command_names_mock, sam_config_mock
     ):
@@ -274,19 +274,3 @@ class TestCli(TestCase):
 
         # verify
         self.assertEqual(pipeline_user_arn, ANY_PIPELINE_USER_ARN)
-
-    @patch("samcli.commands.pipeline.bootstrap.cli.get_cmd_names")
-    @patch("samcli.commands.pipeline.bootstrap.cli.click")
-    def test_get_command_name(self, click_mock, get_cmd_names_mock):
-        # setup
-        ctx_mock = Mock(spec=["info_name"], info_name="bootstrap")
-        click_mock.get_current_context.return_value = ctx_mock
-        get_cmd_names_mock.return_value = PIPELINE_BOOTSTRAP_COMMAND_NAMES
-
-        # trigger
-        cmd_names = _get_command_names()
-
-        # verify
-        self.assertEqual(cmd_names, PIPELINE_BOOTSTRAP_COMMAND_NAMES)
-        click_mock.get_current_context.assert_called_once()
-        get_cmd_names_mock.assert_called_once_with("bootstrap", ctx_mock)
