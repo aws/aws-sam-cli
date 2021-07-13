@@ -54,25 +54,25 @@ class GuidedContext:
                 """
             )
         )
-        if os.getenv(EnvProvider.ACCESS_KEY) and os.getenv(EnvProvider.SECRET_KEY):
-            click.echo(f"  e. Environment variables: {EnvProvider.ACCESS_KEY} and {EnvProvider.SECRET_KEY}")
+        has_env_creds = os.getenv(EnvProvider.ACCESS_KEY) and os.getenv(EnvProvider.SECRET_KEY)
+        click.echo(f"  1. Environment variables{' (not available)' if not has_env_creds else ''}")
         for i, profile in enumerate(profiles):
-            click.echo(f"  {i + 1}. {profile} (named profile)")
+            click.echo(f"  {i + 2}. {profile} (named profile)")
         click.echo("  q. Quit and configure AWS credential myself")
         answer = click.prompt(
             "Select an account source to associate with this stage",
             show_choices=False,
             show_default=False,
-            type=click.Choice([str(i + 1) for i in range(len(profiles))] + ["q", "e"]),
+            type=click.Choice((["1"] if has_env_creds else []) + [str(i + 2) for i in range(len(profiles))] + ["q"]),
         )
         if answer == "q":
             sys.exit(0)
-        elif answer == "e":
+        elif answer == "1":
             # by default, env variable has higher precedence
             # https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html#envvars-list
             self.profile = None
         else:
-            self.profile = profiles[int(answer) - 1]
+            self.profile = profiles[int(answer) - 2]
 
         try:
             account_id = get_current_account_id(self.profile)
