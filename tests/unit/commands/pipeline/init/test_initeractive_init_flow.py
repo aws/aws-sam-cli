@@ -1,7 +1,10 @@
 from unittest import TestCase
-from unittest.mock import patch, Mock, ANY
+from unittest.mock import patch, Mock, ANY, call
 import os
 from pathlib import Path
+
+from parameterized import parameterized
+
 from samcli.commands.pipeline.init.interactive_init_flow import (
     InteractiveInitFlow,
     PipelineTemplateCloneException,
@@ -330,3 +333,147 @@ class TestInteractiveInitFlow(TestCase):
         chosen_template = _prompt_provider_pipeline_template(templates)
         click_mock.prompt.assert_called_once()
         self.assertEqual(chosen_template, template2)
+
+
+class TestInteractiveInitFlowWithBootstrap(TestCase):
+    @patch("samcli.commands.pipeline.init.interactive_init_flow.SamConfig")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow.osutils")
+    @patch("samcli.lib.cookiecutter.template.cookiecutter")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow.InteractiveFlowCreator.create_flow")
+    @patch(
+        "samcli.commands.pipeline.init.interactive_init_flow.InteractiveInitFlow._prompt_run_bootstrap_within_pipeline_init"
+    )
+    @patch("samcli.commands.pipeline.init.interactive_init_flow.PipelineTemplatesManifest")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow._copy_dir_contents_to_cwd_fail_on_exist")
+    @patch("samcli.lib.cookiecutter.question.click")
+    def test_with_bootstrap_but_answer_no(
+        self,
+        click_mock,
+        _copy_dir_contents_to_cwd_fail_on_exist_mock,
+        clone_mock,
+        PipelineTemplatesManifest_mock,
+        _prompt_run_bootstrap_within_pipeline_init_mock,
+        create_interactive_flow_mock,
+        cookiecutter_mock,
+        osutils_mock,
+        samconfig_mock,
+    ):
+        # setup
+        any_app_pipeline_templates_path = Path(
+            os.path.normpath(shared_path.joinpath(APP_PIPELINE_TEMPLATES_REPO_LOCAL_NAME))
+        )
+        clone_mock.return_value = any_app_pipeline_templates_path
+        jenkins_template_location = "some/location"
+        jenkins_template_mock = Mock(
+            display_name="Jenkins pipeline template", location=jenkins_template_location, provider="jenkins"
+        )
+        pipeline_templates_manifest_mock = Mock(
+            providers=[
+                Mock(id="gitlab", display_name="Gitlab"),
+                Mock(id="jenkins", display_name="Jenkins"),
+            ],
+            templates=[jenkins_template_mock],
+        )
+        PipelineTemplatesManifest_mock.return_value = pipeline_templates_manifest_mock
+        cookiecutter_output_dir_mock = "/tmp/any/dir2"
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=cookiecutter_output_dir_mock)
+        interactive_flow_mock = Mock()
+        create_interactive_flow_mock.return_value = interactive_flow_mock
+        cookiecutter_context_mock = {"key": "value"}
+        interactive_flow_mock.run.return_value = cookiecutter_context_mock
+        config_file = Mock()
+        samconfig_mock.return_value = config_file
+        config_file.exists.return_value = True
+        config_file.get_env_names.return_value = ["testing"]
+        config_file.get_all.return_value = {"pipeline_execution_role": "arn:aws:iam::123456789012:role/execution-role"}
+
+        click_mock.prompt.side_effect = [
+            "1",  # App pipeline templates
+            "2",
+            # choose "Jenkins" when prompt for CI/CD system. (See pipeline_templates_manifest_mock, Jenkins is the 2nd provider)
+            "1",  # choose "Jenkins pipeline template" when prompt for pipeline template
+        ]
+
+        _prompt_run_bootstrap_within_pipeline_init_mock.return_value = False  # not to bootstrap
+
+        # trigger
+        InteractiveInitFlow(allow_bootstrap=True).do_interactive()
+
+        # verify
+        _prompt_run_bootstrap_within_pipeline_init_mock.assert_called_once_with(["testing"], 2)
+
+    @parameterized.expand(
+        [
+            ([["testing"], ["testing", "prod"]], [call(["testing"], 2)]),
+            ([[], ["testing"], ["testing", "prod"]], [call([], 2), call(["testing"], 2)]),
+        ]
+    )
+    @patch("samcli.commands.pipeline.init.interactive_init_flow.SamConfig")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow.osutils")
+    @patch("samcli.lib.cookiecutter.template.cookiecutter")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow.InteractiveFlowCreator.create_flow")
+    @patch(
+        "samcli.commands.pipeline.init.interactive_init_flow.InteractiveInitFlow._prompt_run_bootstrap_within_pipeline_init"
+    )
+    @patch("samcli.commands.pipeline.init.interactive_init_flow.PipelineTemplatesManifest")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow._copy_dir_contents_to_cwd_fail_on_exist")
+    @patch("samcli.lib.cookiecutter.question.click")
+    def test_with_bootstrap_answer_yes(
+        self,
+        get_env_name_side_effects,
+        _prompt_run_bootstrap_expected_calls,
+        click_mock,
+        _copy_dir_contents_to_cwd_fail_on_exist_mock,
+        clone_mock,
+        PipelineTemplatesManifest_mock,
+        _prompt_run_bootstrap_within_pipeline_init_mock,
+        create_interactive_flow_mock,
+        cookiecutter_mock,
+        osutils_mock,
+        samconfig_mock,
+    ):
+        # setup
+        any_app_pipeline_templates_path = Path(
+            os.path.normpath(shared_path.joinpath(APP_PIPELINE_TEMPLATES_REPO_LOCAL_NAME))
+        )
+        clone_mock.return_value = any_app_pipeline_templates_path
+        jenkins_template_location = "some/location"
+        jenkins_template_mock = Mock(
+            display_name="Jenkins pipeline template", location=jenkins_template_location, provider="jenkins"
+        )
+        pipeline_templates_manifest_mock = Mock(
+            providers=[
+                Mock(id="gitlab", display_name="Gitlab"),
+                Mock(id="jenkins", display_name="Jenkins"),
+            ],
+            templates=[jenkins_template_mock],
+        )
+        PipelineTemplatesManifest_mock.return_value = pipeline_templates_manifest_mock
+        cookiecutter_output_dir_mock = "/tmp/any/dir2"
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=cookiecutter_output_dir_mock)
+        interactive_flow_mock = Mock()
+        create_interactive_flow_mock.return_value = interactive_flow_mock
+        cookiecutter_context_mock = {"key": "value"}
+        interactive_flow_mock.run.return_value = cookiecutter_context_mock
+        config_file = Mock()
+        samconfig_mock.return_value = config_file
+        config_file.exists.return_value = True
+        config_file.get_env_names.side_effect = get_env_name_side_effects
+        config_file.get_all.return_value = {"pipeline_execution_role": "arn:aws:iam::123456789012:role/execution-role"}
+
+        click_mock.prompt.side_effect = [
+            "1",  # App pipeline templates
+            "2",
+            # choose "Jenkins" when prompt for CI/CD system. (See pipeline_templates_manifest_mock, Jenkins is the 2nd provider)
+            "1",  # choose "Jenkins pipeline template" when prompt for pipeline template
+        ]
+
+        _prompt_run_bootstrap_within_pipeline_init_mock.return_value = True  # to bootstrap
+
+        # trigger
+        InteractiveInitFlow(allow_bootstrap=True).do_interactive()
+
+        # verify
+        _prompt_run_bootstrap_within_pipeline_init_mock.assert_has_calls(_prompt_run_bootstrap_expected_calls)
