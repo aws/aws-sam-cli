@@ -46,6 +46,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
 
     def setUp(self):
         self.cf_client = boto3.client("cloudformation")
+        self.sns_arn = os.environ.get("AWS_SNS")
         time.sleep(CFN_SLEEP)
         super().setUp()
 
@@ -196,6 +197,76 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
 
         LOG.info(delete_command_list)
         delete_process_execute = run_command(delete_command_list)
+        self.assertEqual(delete_process_execute.process.returncode, 0)
+
+    @parameterized.expand(
+        [
+            "aws-serverless-function.yaml",
+        ]
+    )
+    def test_delete_no_s3_prefix_zip(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_bucket=self.bucket_name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+            region="us-east-1",
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+
+        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region="us-east-1", no_prompts=True)
+
+        LOG.info(delete_command_list)
+        delete_process_execute = run_command(delete_command_list)
+
+        self.assertEqual(delete_process_execute.process.returncode, 0)
+
+    @parameterized.expand(
+        [
+            "aws-serverless-function-image.yaml",
+        ]
+    )
+    def test_delete_no_s3_prefix_image(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+
+        # Try to deploy to another region.
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            image_repository=self.ecr_repo_name,
+            s3_bucket=self.bucket_name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+            region="us-east-1",
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+
+        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region="us-east-1", no_prompts=True)
+
+        LOG.info(delete_command_list)
+        delete_process_execute = run_command(delete_command_list)
+
         self.assertEqual(delete_process_execute.process.returncode, 0)
 
     def _method_to_stack_name(self, method_name):
