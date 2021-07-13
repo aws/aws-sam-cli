@@ -1,4 +1,5 @@
 """ This module represents the questions to ask to the user to fulfill the cookiecutter context. """
+from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, Dict, List, Optional, Type, Union
 
@@ -14,7 +15,18 @@ class QuestionKind(Enum):
     default = "default"
 
 
-class Question:
+class Promptable(ABC):
+    """
+    Abstract class Question, Info, Choice, Confirm implement.
+    These classes need to implement their own prompt() method to prompt differently.
+    """
+
+    @abstractmethod
+    def prompt(self, text: str, default_answer: Optional[Any]) -> Any:
+        pass
+
+
+class Question(Promptable):
     """
     A question to be prompt to the user in an interactive flow where the response is used to fulfill
     the cookiecutter context.
@@ -53,12 +65,14 @@ class Question:
         text: str,
         default: Optional[Union[str, Dict]] = None,
         is_required: Optional[bool] = None,
+        allow_autofill: Optional[bool] = None,
         next_question_map: Optional[Dict[str, str]] = None,
         default_next_question_key: Optional[str] = None,
     ):
         self._key = key
         self._text = text
         self._required = is_required
+        self._allow_autofill = allow_autofill
         self._default_answer = default
         # if it is an optional question, set an empty default answer to prevent click from keep asking for an answer
         if not self._required and self._default_answer is None:
@@ -108,7 +122,15 @@ class Question:
         # set an empty default answer to prevent click from keep asking for an answer
         if not self._required and resolved_default_answer is None:
             resolved_default_answer = ""
-        return click.prompt(text=self._resolve_text(context), default=resolved_default_answer)
+
+        # skip the question and directly use the default value if autofill is allowed.
+        if resolved_default_answer is not None and self._allow_autofill:
+            return resolved_default_answer
+
+        return self.prompt(self._resolve_text(context), resolved_default_answer)
+
+    def prompt(self, text: str, default_answer: Optional[Any]) -> Any:
+        return click.prompt(text=text, default=default_answer)
 
     def get_next_question_key(self, answer: Any) -> Optional[str]:
         # _next_question_map is a Dict[str(answer), str(next question key)]
@@ -200,13 +222,13 @@ class Question:
 
 
 class Info(Question):
-    def ask(self, context: Optional[Dict] = None) -> None:
-        return click.echo(message=self._resolve_text(context))
+    def prompt(self, text: str, default_answer: Optional[Any]) -> Any:
+        return click.echo(message=text)
 
 
 class Confirm(Question):
-    def ask(self, context: Optional[Dict] = None) -> bool:
-        return click.confirm(text=self._resolve_text(context))
+    def prompt(self, text: str, default_answer: Optional[Any]) -> Any:
+        return click.confirm(text=text)
 
 
 class Choice(Question):
@@ -217,27 +239,27 @@ class Choice(Question):
         options: List[str],
         default: Optional[str] = None,
         is_required: Optional[bool] = None,
+        allow_autofill: Optional[bool] = None,
         next_question_map: Optional[Dict[str, str]] = None,
         default_next_question_key: Optional[str] = None,
     ):
         if not options:
             raise ValueError("No defined options")
         self._options = options
-        super().__init__(key, text, default, is_required, next_question_map, default_next_question_key)
+        super().__init__(key, text, default, is_required, allow_autofill, next_question_map, default_next_question_key)
 
-    def ask(self, context: Optional[Dict] = None) -> str:
-        resolved_default_answer = self._resolve_default_answer(context)
-        click.echo(self._resolve_text(context))
+    def prompt(self, text: str, default_answer: Optional[Any]) -> Any:
+        click.echo(text)
         for index, option in enumerate(self._options):
             click.echo(f"\t{index + 1} - {option}")
         options_indexes = self._get_options_indexes(base=1)
         choices = list(map(str, options_indexes))
         choice = click.prompt(
             text="Choice",
-            default=resolved_default_answer,
+            default=default_answer,
             show_choices=False,
             type=click.Choice(choices),
-            show_default=resolved_default_answer is not None,
+            show_default=default_answer is not None,
         )
         return self._options[int(choice) - 1]
 
@@ -260,6 +282,7 @@ class QuestionFactory:
         options = question_json.get("options")
         default = question_json.get("default")
         is_required = question_json.get("isRequired")
+        allow_autofill = question_json.get("allowAutofill")
         next_question_map = question_json.get("nextQuestion")
         default_next_question = question_json.get("defaultNextQuestion")
         kind_str = question_json.get("kind")
@@ -271,6 +294,7 @@ class QuestionFactory:
             "text": text,
             "default": default,
             "is_required": is_required,
+            "allow_autofill": allow_autofill,
             "next_question_map": next_question_map,
             "default_next_question_key": default_next_question,
         }
