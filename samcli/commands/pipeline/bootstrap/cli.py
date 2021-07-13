@@ -8,7 +8,6 @@ from typing import Any, Dict, List, Optional
 import click
 
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
-from samcli.cli.context import get_cmd_names
 from samcli.cli.main import pass_context, common_options, aws_creds_options, print_cmdline_args
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.pipeline.bootstrap.environment import Environment
@@ -201,7 +200,7 @@ def do_cli(
         environment.print_resources_summary()
 
         environment.save_config_safe(
-            config_dir=PIPELINE_CONFIG_DIR, filename=PIPELINE_CONFIG_FILENAME, cmd_names=_get_command_names()
+            config_dir=PIPELINE_CONFIG_DIR, filename=PIPELINE_CONFIG_FILENAME, cmd_names=_get_bootstrap_command_names()
         )
 
         click.secho(
@@ -230,10 +229,9 @@ def _load_saved_pipeline_user_arn() -> Optional[str]:
     samconfig: SamConfig = SamConfig(config_dir=PIPELINE_CONFIG_DIR, filename=PIPELINE_CONFIG_FILENAME)
     if not samconfig.exists():
         return None
-    config: Dict[str, str] = samconfig.get_all(cmd_names=_get_command_names(), section="parameters")
+    config: Dict[str, str] = samconfig.get_all(cmd_names=_get_bootstrap_command_names(), section="parameters")
     return config.get("pipeline_user")
 
 
-def _get_command_names() -> List[str]:
-    ctx = click.get_current_context()
-    return get_cmd_names(ctx.info_name, ctx)  # ["pipeline", "bootstrap"]
+def _get_bootstrap_command_names() -> List[str]:
+    return ["pipeline", "bootstrap"]

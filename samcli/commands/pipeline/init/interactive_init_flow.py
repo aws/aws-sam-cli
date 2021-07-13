@@ -21,7 +21,12 @@ from samcli.lib.utils import osutils
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.git_repo import GitRepo, CloneRepoException
 from .pipeline_templates_manifest import Provider, PipelineTemplateMetadata, PipelineTemplatesManifest
-from ..bootstrap.cli import do_cli as do_bootstrap, PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME
+from ..bootstrap.cli import (
+    do_cli as do_bootstrap,
+    PIPELINE_CONFIG_DIR,
+    PIPELINE_CONFIG_FILENAME,
+    _get_bootstrap_command_names,
+)
 
 LOG = logging.getLogger(__name__)
 shared_path: Path = global_cfg.config_dir
@@ -209,7 +214,6 @@ class InteractiveInitFlow:
 
 
 def _load_pipeline_bootstrap_resources() -> Tuple[List[str], Dict[str, str]]:
-    bootstrap_command_names = ["pipeline", "bootstrap"]
     section = "parameters"
     context: Dict = {}
 
@@ -223,7 +227,7 @@ def _load_pipeline_bootstrap_resources() -> Tuple[List[str], Dict[str, str]]:
     # we don't want to include "default" here.
     env_names = [env_name for env_name in config.get_env_names() if env_name != "default"]
     for env in env_names:
-        for key, value in config.get_all(bootstrap_command_names, section, env).items():
+        for key, value in config.get_all(_get_bootstrap_command_names(), section, env).items():
             context[str([env, key])] = value
 
     # pre-load the list of env names detected from pipelineconfig.toml
