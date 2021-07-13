@@ -195,7 +195,7 @@ class InteractiveInitFlow:
         click.echo(f"You are using the {required_env_number}-stage pipeline template.")
         _draw_stage_diagram(required_env_number)
         while True:
-            click.echo("Checking for bootstrapped resources...")
+            click.echo("Checking for bootstrapped resources...\n")
             stage_names, bootstrap_context = _load_pipeline_bootstrap_resources()
             if len(stage_names) < required_env_number and self._prompt_run_bootstrap_within_pipeline_init(
                 stage_names, required_env_number
