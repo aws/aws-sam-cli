@@ -22,7 +22,6 @@ ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN = "ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN"
 ANY_ARTIFACTS_BUCKET_ARN = "ANY_ARTIFACTS_BUCKET_ARN"
 ANY_IMAGE_REPOSITORY_ARN = "ANY_IMAGE_REPOSITORY_ARN"
 ANY_ARN = "ANY_ARN"
-ANY_PIPELINE_IP_RANGE = "111.222.333.0/24"
 ANY_CONFIG_FILE = "ANY_CONFIG_FILE"
 ANY_CONFIG_ENV = "ANY_CONFIG_ENV"
 PIPELINE_BOOTSTRAP_COMMAND_NAMES = ["pipeline", "bootstrap"]
@@ -41,7 +40,6 @@ class TestCli(TestCase):
             "artifacts_bucket_arn": ANY_ARTIFACTS_BUCKET_ARN,
             "create_image_repository": True,
             "image_repository_arn": ANY_IMAGE_REPOSITORY_ARN,
-            "pipeline_ip_range": ANY_PIPELINE_IP_RANGE,
             "confirm_changeset": True,
             "config_file": ANY_CONFIG_FILE,
             "config_env": ANY_CONFIG_ENV,
@@ -67,7 +65,6 @@ class TestCli(TestCase):
             artifacts_bucket_arn=None,
             create_image_repository=False,
             image_repository_arn=None,
-            pipeline_ip_range=None,
             confirm_changeset=True,
             config_file="default",
             config_env="samconfig.toml",
@@ -93,7 +90,7 @@ class TestCli(TestCase):
         runner: CliRunner = CliRunner()
         runner.invoke(
             bootstrap_cmd,
-            args=["--no-interactive", "--environment", "environment1", "--artifacts-bucket", "bucketARN"],
+            args=["--no-interactive", "--environment", "environment1", "--bucket", "bucketARN"],
         )
         args, kwargs = do_cli_mock.call_args
         self.assertFalse(kwargs["interactive"])

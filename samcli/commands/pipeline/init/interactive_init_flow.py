@@ -160,7 +160,6 @@ class InteractiveInitFlow:
                     artifacts_bucket_arn=None,
                     create_image_repository=False,
                     image_repository_arn=None,
-                    pipeline_ip_range=None,
                     confirm_changeset=True,
                     config_file=None,
                     config_env=None,

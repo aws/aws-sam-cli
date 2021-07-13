@@ -12,7 +12,6 @@ ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN = "ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN"
 ANY_ARTIFACTS_BUCKET_ARN = "ANY_ARTIFACTS_BUCKET_ARN"
 ANY_IMAGE_REPOSITORY_ARN = "ANY_IMAGE_REPOSITORY_ARN"
 ANY_ARN = "ANY_ARN"
-ANY_PIPELINE_IP_RANGE = "111.222.333.0/24"
 ANY_REGION = "us-east-2"
 
 
@@ -34,7 +33,6 @@ class TestGuidedContext(TestCase):
             artifacts_bucket_arn=ANY_ARTIFACTS_BUCKET_ARN,
             create_image_repository=True,
             image_repository_arn=ANY_IMAGE_REPOSITORY_ARN,
-            pipeline_ip_range=ANY_PIPELINE_IP_RANGE,
             region=ANY_REGION,
         )
         gc.run()
@@ -64,7 +62,6 @@ class TestGuidedContext(TestCase):
         self.assertTrue(self.did_prompt_text_like("CloudFormation execution role", click_mock.prompt))
         self.assertTrue(self.did_prompt_text_like("Artifact bucket", click_mock.prompt))
         self.assertTrue(self.did_prompt_text_like("region", click_mock.prompt))
-        self.assertTrue(self.did_prompt_text_like("Pipeline IP range", click_mock.prompt))
 
     @patch("samcli.commands.pipeline.bootstrap.guided_context.get_current_account_id")
     @patch("samcli.commands.pipeline.bootstrap.guided_context.click")
@@ -83,7 +80,6 @@ class TestGuidedContext(TestCase):
             pipeline_execution_role_arn=ANY_PIPELINE_EXECUTION_ROLE_ARN,
             cloudformation_execution_role_arn=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
             artifacts_bucket_arn=ANY_ARTIFACTS_BUCKET_ARN,
-            pipeline_ip_range=ANY_PIPELINE_IP_RANGE,
         )
 
         self.assertIsNone(gc_without_ecr_info.image_repository_arn)
