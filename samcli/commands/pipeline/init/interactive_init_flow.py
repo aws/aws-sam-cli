@@ -432,3 +432,4 @@ def _draw_stage_diagram(number_of_stages: int) -> None:
     stage_lines = [_lines_for_stage(i + 1) for i in range(number_of_stages)]
     for i, delimiter in enumerate(delimiters):
         click.echo(delimiter.join([stage_lines[stage_i][i] for stage_i in range(number_of_stages)]))
+    click.echo("")
