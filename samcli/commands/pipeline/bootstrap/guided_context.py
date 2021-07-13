@@ -49,13 +49,11 @@ class GuidedContext:
         profiles = list_available_profiles()
         click.echo("The following AWS credential sources are available to use:")
         click.echo(
-            self.color.cyan(
-                dedent(
-                    f"""\
-                    To know more about configuration AWS credentials, visit the link below:
-                    {CONFIG_AWS_CRED_DOC_URL}
-                    """
-                )
+            dedent(
+                f"""\
+                To know more about configuration AWS credentials, visit the link below:
+                {CONFIG_AWS_CRED_DOC_URL}
+                """
             )
         )
         if os.getenv(EnvProvider.ACCESS_KEY) and os.getenv(EnvProvider.SECRET_KEY):
@@ -252,9 +250,9 @@ class GuidedContext:
         click.secho(self.color.bold("[5] Summary"))
         while True:
             inputs = self._get_user_inputs()
-            click.secho(self.color.cyan("Below is the summary of the answers:"))
+            click.secho("Below is the summary of the answers:")
             for i, (text, _) in enumerate(inputs):
-                click.secho(self.color.cyan(f"  {i + 1}. {text}"))
+                click.secho(f"  {i + 1}. {text}")
             edit_input = click.prompt(
                 text="Press enter to confirm the values above, or select an item to edit the value",
                 default="0",

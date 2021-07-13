@@ -131,19 +131,17 @@ class InteractiveInitFlow:
                 "you can still reference other bootstrapped resources."
             ):
                 click.secho(
-                    self.color.cyan(
-                        dedent(
-                            """\
-                            For each stage, we will ask for [1] stage definition, [2] account details, and [3]
-                            reference application build resources in order to bootstrap these pipeline
-                            resources. You can also add optional security parameters.
+                    dedent(
+                        """\
+                        For each stage, we will ask for [1] stage definition, [2] account details, and [3]
+                        reference application build resources in order to bootstrap these pipeline
+                        resources. You can also add optional security parameters.
 
-                            We recommend using an individual AWS account profiles for each stage in your
-                            pipeline. You can set these profiles up using [little bit of info on how to do
-                            this/docs].
-                            """
-                        )
-                    ),
+                        We recommend using an individual AWS account profiles for each stage in your
+                        pipeline. You can set these profiles up using [little bit of info on how to do
+                        this/docs].
+                        """
+                    )
                 )
 
                 click.echo(Colored().bold(f"\nStage {len(env_names)} Setup\n"))
