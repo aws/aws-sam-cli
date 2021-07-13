@@ -17,14 +17,12 @@ from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.version_checker import check_newer_version
 from .guided_context import GuidedContext
 
-SHORT_HELP = "Sets up infrastructure resources for AWS SAM CI/CD pipelines."
+SHORT_HELP = "Generates the necessary AWS resources to connect your CI/CD system."
 
-HELP_TEXT = """Sets up the following infrastructure resources for AWS SAM CI/CD pipelines:
-\n\t - Pipeline IAM user with access key ID and secret access key credentials to be shared with the CI/CD system
-\n\t - Pipeline execution IAM role assumed by the pipeline user to obtain access to the AWS account
-\n\t - CloudFormation execution IAM role assumed by CloudFormation to deploy the AWS SAM application
-\n\t - Artifacts S3 bucket to hold the AWS SAM build artifacts
-\n\t - Optionally, an ECR image repository to hold container image Lambda deployment packages
+HELP_TEXT = """
+SAM Pipeline Bootstrap generates the necessary AWS resources to connect your
+CI/CD system. This step must be completed for each pipeline stage prior to
+running sam pipeline init
 """
 
 PIPELINE_CONFIG_DIR = os.path.join(".aws-sam", "pipeline")

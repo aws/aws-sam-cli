@@ -12,8 +12,12 @@ from samcli.lib.telemetry.metric import track_command
 
 SHORT_HELP = "Generates CI/CD pipeline configuration files."
 HELP_TEXT = """
-Generates CI/CD pipeline configuration files for a chosen CI/CD system such as Jenkins, 
-GitLab CI/CD or GitHub Actions
+sam pipeline init generates a pipeline config file that you can use to connect your
+AWS account(s) to your CI/CD system. Before using sam pipeline init, you must
+bootstrap the necessary resources for each stage in your pipeline. You can do this
+by running sam pipeline init --bootstrap to be guided through the setup and config
+file generation process, or refer to resources you have previously created with the
+sam pipeline bootstrap command.
 """
 
 
