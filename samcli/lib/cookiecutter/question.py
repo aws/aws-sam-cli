@@ -237,6 +237,7 @@ class Choice(Question):
             default=resolved_default_answer,
             show_choices=False,
             type=click.Choice(choices),
+            show_default=resolved_default_answer is not None,
         )
         return self._options[int(choice) - 1]
 

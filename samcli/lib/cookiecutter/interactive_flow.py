@@ -1,7 +1,10 @@
 """A flow of questions to be asked to the user in an interactive way."""
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List, Tuple
+
+import click
 
 from .question import Question
+from ..utils.colors import Colored
 
 
 class InteractiveFlow:
@@ -20,6 +23,7 @@ class InteractiveFlow:
         self._questions: Dict[str, Question] = questions
         self._first_question_key: str = first_question_key
         self._current_question: Optional[Question] = None
+        self._color = Colored()
 
     def advance_to_next_question(self, current_answer: Optional[Any] = None) -> Optional[Question]:
         """
@@ -61,9 +65,25 @@ class InteractiveFlow:
              associated to the key of the corresponding question
         """
         context = context.copy()
+        answers: List[Tuple[str, Any]] = []
+
         question = self.advance_to_next_question()
         while question:
             answer = question.ask(context=context)
             context[question.key] = answer
+            answers.append((question.key, answer))
             question = self.advance_to_next_question(answer)
+
+        # print summary
+        click.echo(self._color.bold("SUMMARY"))
+        click.echo("We will generate a pipeline config file based on the following information:")
+
+        for question_key, answer in answers:
+            if answer is None:
+                # ignore unanswered questions
+                continue
+
+            question = self._questions[question_key]
+            click.echo(f"\t{question.text}: {self._color.underline(str(answer))}")
+
         return context

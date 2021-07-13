@@ -188,7 +188,11 @@ class TestChoice(TestCase):
         answer = self.question.ask({})
         self.assertEqual(answer, TestQuestion._ANY_OPTIONS[1])  # we deduct one from user's choice (base 1 vs base 0)
         mock_click.prompt.assert_called_once_with(
-            text="Choice", default=self.question.default_answer, show_choices=False, type=ANY
+            text="Choice",
+            default=self.question.default_answer,
+            show_choices=False,
+            type=ANY,
+            show_default=self.question.default_answer is not None,
         )
         mock_choice.assert_called_once_with(["1", "2", "3"])
 

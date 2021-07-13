@@ -2,22 +2,27 @@
 An interactive flow that prompt the user for required information to bootstrap the AWS account of an environment
 with the required infrastructure
 """
+import os
 import sys
 from textwrap import dedent
 from typing import Optional, List, Tuple, Callable
 
 import click
+from botocore.credentials import EnvProvider
 
+from samcli.commands.exceptions import CredentialsError
 from samcli.commands.pipeline.external_links import CONFIG_AWS_CRED_DOC_URL
 from samcli.lib.bootstrap.bootstrap import get_current_account_id
 from samcli.lib.utils.colors import Colored
 
 from samcli.lib.utils.defaults import get_default_aws_region
+from samcli.lib.utils.profile import list_available_profiles
 
 
 class GuidedContext:
     def __init__(
         self,
+        profile: Optional[str] = None,
         environment_name: Optional[str] = None,
         pipeline_user_arn: Optional[str] = None,
         pipeline_execution_role_arn: Optional[str] = None,
@@ -28,6 +33,7 @@ class GuidedContext:
         pipeline_ip_range: Optional[str] = None,
         region: Optional[str] = None,
     ) -> None:
+        self.profile = profile
         self.environment_name = environment_name
         self.pipeline_user_arn = pipeline_user_arn
         self.pipeline_execution_role_arn = pipeline_execution_role_arn
@@ -39,10 +45,47 @@ class GuidedContext:
         self.region = region
         self.color = Colored()
 
+    def _prompt_account_id(self) -> None:
+        profiles = list_available_profiles()
+        click.echo("The following AWS credential sources are available to use:")
+        click.echo(
+            dedent(
+                f"""\
+                To know more about configuration AWS credentials, visit the link below:
+                {CONFIG_AWS_CRED_DOC_URL}\
+                """
+            )
+        )
+        if os.getenv(EnvProvider.ACCESS_KEY) and os.getenv(EnvProvider.SECRET_KEY):
+            click.echo(f"  e. Environment variables: {EnvProvider.ACCESS_KEY} and {EnvProvider.SECRET_KEY}")
+        for i, profile in enumerate(profiles):
+            click.echo(f"  {i + 1}. {profile} (named profile)")
+        click.echo("  q. Quit and configure AWS credential myself")
+        answer = click.prompt(
+            "Select an account source to associate with this stage",
+            show_choices=False,
+            show_default=False,
+            type=click.Choice([str(i + 1) for i in range(len(profiles))] + ["q", "e"]),
+        )
+        if answer == "q":
+            sys.exit(0)
+        elif answer == "e":
+            # by default, env variable has higher precedence
+            # https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html#envvars-list
+            self.profile = None
+        else:
+            self.profile = profiles[int(answer) - 1]
+
+        try:
+            account_id = get_current_account_id(self.profile)
+            click.echo(self.color.green(f"Associated account {account_id} with stage {self.environment_name}."))
+        except CredentialsError as ex:
+            click.echo(self.color.red(ex.message))
+            self._prompt_account_id()
+
     def _prompt_stage_name(self) -> None:
         click.echo(
-            "Enter a name for the stage you want to bootstrap. This will be referenced later "
-            "when generating a Pipeline Config File with Pipeline Init."
+            "Enter a name for this stage. This will be referenced later when you use the sam pipeline init command:"
         )
         self.environment_name = click.prompt(
             "Stage name",
@@ -52,7 +95,7 @@ class GuidedContext:
 
     def _prompt_region_name(self) -> None:
         self.region = click.prompt(
-            "Enter the region you want these resources to create",
+            "Enter the region in which you want these resources to be created",
             type=click.STRING,
             default=get_default_aws_region(),
         )
@@ -92,7 +135,7 @@ class GuidedContext:
         if click.confirm("Does your application contain any IMAGE type Lambda functions?"):
             self.image_repository_arn = click.prompt(
                 "Please enter the ECR image repository ARN(s) for your Image type function(s)."
-                "If you do not yet have a repostiory, we will create one for you",
+                "If you do not yet have a repository, we will create one for you",
                 default="",
                 type=click.STRING,
             )
@@ -110,36 +153,37 @@ class GuidedContext:
 
     def _get_user_inputs(self) -> List[Tuple[str, Callable[[], None]]]:
         return [
+            (f"Account: {get_current_account_id(self.profile)}", self._prompt_account_id),
             (f"Stage name: {self.environment_name}", self._prompt_stage_name),
             (f"Region: {self.region}", self._prompt_region_name),
             (
                 f"Pipeline user ARN: {self.pipeline_user_arn}"
                 if self.pipeline_user_arn
-                else "Pipeline user: to be created",
+                else "Pipeline user: [to be created]",
                 self._prompt_pipeline_user,
             ),
             (
                 f"Pipeline execution role ARN: {self.pipeline_execution_role_arn}"
                 if self.pipeline_execution_role_arn
-                else "Pipeline execution role: to be created",
+                else "Pipeline execution role: [to be created]",
                 self._prompt_pipeline_execution_role,
             ),
             (
                 f"CloudFormation execution role ARN: {self.cloudformation_execution_role_arn}"
                 if self.cloudformation_execution_role_arn
-                else "CloudFormation execution role: to be created",
+                else "CloudFormation execution role: [to be created]",
                 self._prompt_cloudformation_execution_role,
             ),
             (
                 f"Artifacts bucket ARN: {self.artifacts_bucket_arn}"
                 if self.artifacts_bucket_arn
-                else "Artifacts bucket: to be created",
+                else "Artifacts bucket: [to be created]",
                 self._prompt_artifacts_bucket,
             ),
             (
                 f"ECR image repository ARN: {self.image_repository_arn}"
                 if self.image_repository_arn
-                else f"ECR image repository: {'to be created' if self.create_image_repository else 'skipped'}",
+                else f"ECR image repository: [{'to be created' if self.create_image_repository else 'skipped'}]",
                 self._prompt_image_repository,
             ),
             (
@@ -156,71 +200,66 @@ class GuidedContext:
         for the pipeline to work. Users can provide all, none or some resources' ARNs and leave the remaining empty
         and it will be created by the bootstrap command
         """
-        click.secho(
-            dedent(
-                f"""\
-                {Colored().bold("sam pipeline bootstrap")} generates the necessary AWS resources to connect your
-                CI/CD system. We will ask for [1] account details, [2] stage definition,
-                and [3] references to existing resources in order to bootstrap these pipeline
-                resources. You can also add optional security parameters.
-                """
-            ),
-            fg="cyan",
-        )
-
-        account_id = get_current_account_id()
-        click.secho("[1] Account details", bold=True)
-        if click.confirm(f"You are bootstrapping resources in account {account_id}. Do you want to switch accounts?"):
-            click.echo(f"Please refer to this page about configuring credentials: {CONFIG_AWS_CRED_DOC_URL}.")
-            sys.exit(0)
-
-        click.secho("[2] Stage definition", bold=True)
+        click.secho(self.color.bold("[1] Stage definition"))
         if self.environment_name:
             click.echo(f"Stage name: {self.environment_name}")
         else:
             self._prompt_stage_name()
+        click.echo()
+
+        click.secho(self.color.bold("[2] Account details"))
+        self._prompt_account_id()
+        click.echo()
 
         if not self.region:
             self._prompt_region_name()
 
-        click.secho("[3] Reference existing resources", bold=True)
         if self.pipeline_user_arn:
             click.echo(f"Pipeline IAM user ARN: {self.pipeline_user_arn}")
         else:
             self._prompt_pipeline_user()
+        click.echo()
+
+        click.secho(self.color.bold("[3] Reference application build resources"))
 
         if self.pipeline_execution_role_arn:
             click.echo(f"Pipeline execution role ARN: {self.pipeline_execution_role_arn}")
         else:
             self._prompt_pipeline_execution_role()
+        click.echo()
 
         if self.cloudformation_execution_role_arn:
             click.echo(f"CloudFormation execution role ARN: {self.cloudformation_execution_role_arn}")
         else:
             self._prompt_cloudformation_execution_role()
+        click.echo()
 
         if self.artifacts_bucket_arn:
             click.echo(f"Artifacts bucket ARN: {self.cloudformation_execution_role_arn}")
         else:
             self._prompt_artifacts_bucket()
+        click.echo()
 
         if self.image_repository_arn:
             click.echo(f"ECR image repository ARN: {self.image_repository_arn}")
         else:
             self._prompt_image_repository()
+        click.echo()
 
-        click.secho("[4] Security definition - OPTIONAL", bold=True)
+        click.secho(self.color.bold("[4] Security definition - OPTIONAL"))
         if self.pipeline_ip_range:
             click.echo(f"Pipeline IP address range: {self.pipeline_ip_range}")
         else:
             self._prompt_ip_range()
+        click.echo()
 
         # Ask customers to confirm the inputs
+        click.secho(self.color.bold("[5] Summary"))
         while True:
             inputs = self._get_user_inputs()
-            click.secho(self.color.cyan("Below is the summary of the answers:"))
+            click.secho("Below is the summary of the answers:")
             for i, (text, _) in enumerate(inputs):
-                click.secho(self.color.cyan(f"  {i + 1}. {text}"))
+                click.secho(f"  {i + 1}. {text}")
             edit_input = click.prompt(
                 text="Press enter to confirm the values above, or select an item to edit the value",
                 default="0",
@@ -230,5 +269,6 @@ class GuidedContext:
             )
             if int(edit_input):
                 inputs[int(edit_input) - 1][1]()
+                click.echo()
             else:
                 break
