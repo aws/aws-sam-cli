@@ -9,21 +9,9 @@ from typing import (
     Pattern,
 )
 from collections.abc import Mapping
-from samcli.lib.iac.cdk.constants import CDK_PATH_DELIMITER
+
 
 LOG = logging.getLogger(__name__)
-CDK_PATH_DELIMITER = "/"
-
-
-def nested_stack_resource_path_to_short_path(nested_stack_path: str) -> str:
-    """
-    return short path for given nested stack resource path
-    Example:
-        Root/NS1/NS2.NestedStack/NS2.NestedStackResource -> Root/NS1/NS2
-    """
-    needed_path_parts = nested_stack_path.split(CDK_PATH_DELIMITER)[:-1]
-    needed_path_parts[-1] = needed_path_parts[-1].rsplit(".NestedStack", 1)[0]
-    return CDK_PATH_DELIMITER.join(needed_path_parts)
 
 
 def get_nested_stack_asset_id(nested_stack_resource: Dict) -> Optional[str]:

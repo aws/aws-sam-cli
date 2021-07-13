@@ -87,22 +87,25 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
 
     @parameterized.expand(
         [
-            ("python2.7", False),
-            ("python3.6", False),
-            ("python3.7", False),
-            ("python3.8", False),
-            ("python2.7", "use_container"),
-            ("python3.6", "use_container"),
-            ("python3.7", "use_container"),
-            ("python3.8", "use_container"),
+            ("python2.7", "Python", False),
+            ("python3.6", "Python", False),
+            ("python3.7", "Python", False),
+            ("python3.8", "Python", False),
+            # numpy 1.20.3 (in PythonPEP600/requirements.txt) only support python 3.7+
+            ("python3.7", "PythonPEP600", False),
+            ("python3.8", "PythonPEP600", False),
+            ("python2.7", "Python", "use_container"),
+            ("python3.6", "Python", "use_container"),
+            ("python3.7", "Python", "use_container"),
+            ("python3.8", "Python", "use_container"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
-    def test_with_default_requirements(self, runtime, use_container):
+    def test_with_default_requirements(self, runtime, codeuri, use_container):
         if use_container and SKIP_DOCKER_TESTS:
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
-        overrides = {"Runtime": runtime, "CodeUri": "Python", "Handler": "main.handler"}
+        overrides = {"Runtime": runtime, "CodeUri": codeuri, "Handler": "main.handler"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
@@ -332,7 +335,11 @@ class TestBuildCommand_RubyFunctionsWithGemfileInTheRoot(BuildIntegRubyBase):
 class TestBuildCommand_Java(BuildIntegBase):
     EXPECTED_FILES_PROJECT_MANIFEST_GRADLE = {"aws", "lib", "META-INF"}
     EXPECTED_FILES_PROJECT_MANIFEST_MAVEN = {"aws", "lib"}
-    EXPECTED_DEPENDENCIES = {"annotations-2.1.0.jar", "aws-lambda-java-core-1.1.0.jar"}
+    EXPECTED_GRADLE_DEPENDENCIES = {"annotations-2.1.0.jar", "aws-lambda-java-core-1.1.0.jar"}
+    EXPECTED_MAVEN_DEPENDENCIES = {
+        "software.amazon.awssdk.annotations-2.1.0.jar",
+        "com.amazonaws.aws-lambda-java-core-1.1.0.jar",
+    }
 
     FUNCTION_LOGICAL_ID = "Function"
     USING_GRADLE_PATH = os.path.join("Java", "gradle")
@@ -342,60 +349,70 @@ class TestBuildCommand_Java(BuildIntegBase):
 
     @parameterized.expand(
         [
-            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java8", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN),
-            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java8.al2", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java8.al2", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java8.al2", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN),
-            ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java11", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java11", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java11", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN),
-            ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java8", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
+            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java8.al2", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            (
+                "java8.al2",
+                USING_GRADLE_KOTLIN_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            ("java8.al2", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
+            ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java11", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java11", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java11", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
+            ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
-    def test_building_java_in_container(self, runtime, code_path, expected_files):
-        self._test_with_building_java(runtime, code_path, expected_files, "use_container")
+    def test_building_java_in_container(self, runtime, code_path, expected_files, expected_dependencies):
+        self._test_with_building_java(runtime, code_path, expected_files, expected_dependencies, "use_container")
 
     @parameterized.expand(
         [
-            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java8", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN),
-            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java8.al2", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java8.al2", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java8.al2", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN),
-            ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java8", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
+            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java8.al2", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            (
+                "java8.al2",
+                USING_GRADLE_KOTLIN_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            ("java8.al2", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
+            ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
         ]
     )
     @pytest.mark.flaky(reruns=3)
-    def test_building_java8_in_process(self, runtime, code_path, expected_files):
-        self._test_with_building_java(runtime, code_path, expected_files, False)
+    def test_building_java8_in_process(self, runtime, code_path, expected_files, expected_dependencies):
+        self._test_with_building_java(runtime, code_path, expected_files, expected_dependencies, False)
 
     @parameterized.expand(
         [
-            ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java11", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java11", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java11", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN),
-            ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+            ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java11", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java11", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java11", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
+            ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
         ]
     )
     @pytest.mark.flaky(reruns=3)
-    def test_building_java11_in_process(self, runtime, code_path, expected_files):
-        self._test_with_building_java(runtime, code_path, expected_files, False)
+    def test_building_java11_in_process(self, runtime, code_path, expected_files, expected_dependencies):
+        self._test_with_building_java(runtime, code_path, expected_files, expected_dependencies, False)
 
-    def _test_with_building_java(self, runtime, code_path, expected_files, use_container):
+    def _test_with_building_java(self, runtime, code_path, expected_files, expected_dependencies, use_container):
         if use_container and SKIP_DOCKER_TESTS:
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
@@ -409,7 +426,7 @@ class TestBuildCommand_Java(BuildIntegBase):
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
-            self.default_build_dir, self.FUNCTION_LOGICAL_ID, expected_files, self.EXPECTED_DEPENDENCIES
+            self.default_build_dir, self.FUNCTION_LOGICAL_ID, expected_files, expected_dependencies
         )
 
         self._verify_resource_property(
@@ -1804,9 +1821,9 @@ class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
         stack_paths = ["", "LocalNestedStack"]
         if not SKIP_DOCKER_TESTS:
             self._verify_build(
-                [],  # there is no function artifact dirs to check
+                [],
                 stack_paths,
-                command_result,
+                command_result,  # there is no function artifact dirs to check
             )
 
             overrides = self._make_parameter_override_arg(overrides)
@@ -1958,8 +1975,8 @@ class TestBuildWithS3FunctionsOrLayers(NestedBuildIntegBase):
         if not SKIP_DOCKER_TESTS:
             self._verify_build(
                 ["ServerlessFunction", "LambdaFunction"],
-                [""],  # there is only one stack
-                command_result,
+                [""],
+                command_result,  # there is only one stack
             )
             # these two functions are buildable and `sam build` would build it.
             # but since the two functions both depends on layers with s3 uri,
@@ -1994,6 +2011,6 @@ class TestBuildWithZipFunctionsOrLayers(NestedBuildIntegBase):
             # which are
             self._verify_build(
                 [],
-                [""],  # there is only one stack
-                command_result,
+                [""],
+                command_result,  # there is only one stack
             )

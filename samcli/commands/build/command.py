@@ -8,6 +8,7 @@ from typing import List, Optional, Dict, Tuple
 import click
 
 from samcli.cli.context import Context
+from samcli.commands._utils.iac_validations import iac_options_validation
 from samcli.commands._utils.options import (
     template_option_without_build,
     docker_common_options,
@@ -173,7 +174,7 @@ $ sam build MyFunction
     "requests=1.x and the latest request module version changes from 1.1 to 1.2, "
     "SAM will not pull the latest version until you run a non-cached build.",
 )
-@project_type_click_option
+@project_type_click_option(include_build=False)
 @cdk_click_options
 @template_option_without_build
 @parameter_override_option
@@ -181,9 +182,10 @@ $ sam build MyFunction
 @cli_framework_options
 @aws_creds_options
 @click.argument("resource_logical_id", required=False)
+@inject_iac_plugin(with_build=False)
+@iac_options_validation(require_stack=False)
 @pass_context
 @track_command
-@inject_iac_plugin(with_build=False)
 @check_newer_version
 @print_cmdline_args
 def cli(

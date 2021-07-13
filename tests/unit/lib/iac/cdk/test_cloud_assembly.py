@@ -110,6 +110,11 @@ class TestCloudAssemblyStack(TestCase):
         }
         self.assertEqual(asset, expected)
 
+    def test_find_metadata_by_type(self):
+        stack = self.cloud_assembly.find_stack_by_stack_name("root-stack")
+        metadata = stack.find_metadata_by_type("aws:cdk:asset")
+        self.assertEqual(len(metadata), 5)
+
     def test_find_asset_by_path(self):
         stack = self.cloud_assembly.find_stack_by_stack_name("root-stack")
         asset = stack.find_asset_by_path("asset.97bd9d4f97345f890d541646ecd5ec0348b62d5618cedfd76a6f6dc94f2e4f0e")
@@ -206,6 +211,16 @@ class TestCloudAssemblyTree(TestCase):
         self.assertIsInstance(node, CloudAssemblyTreeNode)
         self.assertEqual(node.id, "Resource")
         self.assertEqual(node.path, "root-stack/container-function/Resource")
+
+    def test_find_node_by_path_abs_path(self):
+        node = self.tree.find_node_by_path("/root-stack/container-function/Resource")
+        self.assertIsInstance(node, CloudAssemblyTreeNode)
+        self.assertEqual(node.id, "Resource")
+        self.assertEqual(node.path, "root-stack/container-function/Resource")
+
+    def test_find_node_by_path_not_found(self):
+        node = self.tree.find_node_by_path("root-stack/faked-resource")
+        self.assertIsNone(node)
 
 
 class TestCloudAssemblyTreeNode(TestCase):

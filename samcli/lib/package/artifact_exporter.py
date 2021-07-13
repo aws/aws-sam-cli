@@ -16,7 +16,8 @@ Exporting resources defined in the cloudformation template to the cloud.
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 import os
-from typing import Dict
+import logging
+from typing import Dict, Union
 
 from botocore.utils import set_value_from_jmespath
 
@@ -36,12 +37,15 @@ from samcli.lib.package.packageable_resources import (
 )
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Uploaders
-from samcli.lib.package.utils import is_local_folder, make_abs_path, is_s3_url, is_local_file, mktempfile
+from samcli.lib.package.utils import is_local_folder, mktempfile, is_s3_url, is_local_file, make_abs_path
 from samcli.lib.utils.packagetype import ZIP
-from samcli.yamlhelper import yaml_parse, yaml_dump
+from samcli.yamlhelper import yaml_dump
+from samcli.lib.iac.interface import Stack as IacStack, IacPlugin, Resource as IacResource, DictSectionItem, S3Asset
 
 
 # NOTE: sriram-mv, A cyclic dependency on `Template` needs to be broken.
+
+LOG = logging.getLogger(__name__)
 
 
 class CloudFormationStackResource(ResourceZip):
@@ -53,15 +57,35 @@ class CloudFormationStackResource(ResourceZip):
     RESOURCE_TYPE = AWS_CLOUDFORMATION_STACK
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
 
-    def do_export(self, resource_id, resource_dict, parent_dir):
+    # pylint: disable=fixme
+    # FIXME: add type annotation once MRO fixed in Iac interface
+    def export(self, resource, parent_dir):
+        if not resource.nested_stack:
+            return
+        super().export(resource, parent_dir)
+
+    # FIXME: add type annotation once MRO fixed in Iac interface
+    def do_export(self, resource, parent_dir):
         """
         If the nested stack template is valid, this method will
         export on the nested template, upload the exported template to S3
         and set property to URL of the uploaded S3 template
         """
 
-        template_path = resource_dict.get(self.PROPERTY_NAME, None)
+        resource_dict = None
+        if isinstance(resource, IacResource):
+            resource_dict = resource.get("Properties")
+        elif isinstance(resource, DictSectionItem):
+            resource_dict = resource.body
 
+        if resource_dict is None:
+            return
+
+        asset = resource.find_asset_by_source_property(self.PROPERTY_NAME)
+        if not (asset is not None and isinstance(asset, S3Asset)):
+            return
+
+        template_path = asset.source_path
         if (
             template_path is None
             or is_s3_url(template_path)
@@ -74,10 +98,12 @@ class CloudFormationStackResource(ResourceZip):
         abs_template_path = make_abs_path(parent_dir, template_path)
         if not is_local_file(abs_template_path):
             raise exceptions.InvalidTemplateUrlParameterError(
-                property_name=self.PROPERTY_NAME, resource_id=resource_id, template_path=abs_template_path
+                property_name=self.PROPERTY_NAME, resource_id=resource.key, template_path=abs_template_path
             )
 
-        exported_template_dict = Template(template_path, parent_dir, self.uploaders, self.code_signer).export()
+        exported_template_dict = Template(
+            resource.nested_stack, parent_dir, self.uploaders, self.code_signer, self.iac
+        ).export()
 
         exported_template_str = yaml_dump(exported_template_dict)
 
@@ -89,8 +115,15 @@ class CloudFormationStackResource(ResourceZip):
 
             # TemplateUrl property requires S3 URL to be in path-style format
             parts = S3Uploader.parse_s3_url(url, version_property="Version")
-            s3_path_url = self.uploader.to_path_style_s3_url(parts["Key"], parts.get("Version", None))
-            set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, s3_path_url)
+            s3_path_url = self.uploader.to_path_style_s3_url(parts.get("Key"), parts.get("Version"))
+
+            asset = resource.assets[0]
+            asset.bucket_name = parts.get("Bucket")
+            asset.object_key = parts.get("Key")
+            asset.object_version = parts.get("Version")
+            self.iac.update_resource_after_packaging(resource)
+            if self.iac.should_update_property_after_package:
+                set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, s3_path_url)
 
 
 class ServerlessApplicationResource(CloudFormationStackResource):
@@ -108,7 +141,7 @@ class Template:
     Class to export a CloudFormation template
     """
 
-    template_dict: Dict
+    template_dict: IacStack
     template_dir: str
     resources_to_export: frozenset
     metadata_to_export: frozenset
@@ -117,10 +150,11 @@ class Template:
 
     def __init__(
         self,
-        template_path: str,
+        template_dict: IacStack,
         parent_dir: str,
         uploaders: Uploaders,
         code_signer: CodeSigner,
+        iac: IacPlugin,
         resources_to_export=frozenset(
             RESOURCES_EXPORT_LIST + [CloudFormationStackResource, ServerlessApplicationResource]
         ),
@@ -132,27 +166,22 @@ class Template:
         if not (is_local_folder(parent_dir) and os.path.isabs(parent_dir)):
             raise ValueError("parent_dir parameter must be " "an absolute path to a folder {0}".format(parent_dir))
 
-        abs_template_path = make_abs_path(parent_dir, template_path)
-        template_dir = os.path.dirname(abs_template_path)
-
-        with open(abs_template_path, "r") as handle:
-            template_str = handle.read()
-
-        self.template_dict = yaml_parse(template_str)
-        self.template_dir = template_dir
+        self.template_dict = template_dict
+        self.template_dir = template_dict.origin_dir
         self.resources_to_export = resources_to_export
         self.metadata_to_export = metadata_to_export
         self.uploaders = uploaders
         self.code_signer = code_signer
+        self.iac = iac
 
-    def _export_global_artifacts(self, template_dict: Dict) -> Dict:
+    def _export_global_artifacts(self, template_dict: Union[IacStack, Dict]):
         """
         Template params such as AWS::Include transforms are not specific to
         any resource type but contain artifacts that should be exported,
         here we iterate through the template dict and export params with a
         handler defined in GLOBAL_EXPORT_DICT
         """
-        for key, val in template_dict.items():
+        for key, val in template_dict.items():  # type: ignore
             if key in GLOBAL_EXPORT_DICT:
                 template_dict[key] = GLOBAL_EXPORT_DICT[key](
                     val, self.uploaders.get(ResourceZip.EXPORT_DESTINATION), self.template_dir
@@ -163,7 +192,6 @@ class Template:
                 for item in val:
                     if isinstance(item, dict):
                         self._export_global_artifacts(item)
-        return template_dict
 
     def _export_metadata(self):
         """
@@ -178,8 +206,8 @@ class Template:
                 if exporter_class.RESOURCE_TYPE != metadata_type:
                     continue
 
-                exporter = exporter_class(self.uploaders, self.code_signer)
-                exporter.export(metadata_type, metadata_dict, self.template_dir)
+                exporter = exporter_class(self.uploaders, self.code_signer, self.iac)
+                exporter.export(metadata_dict, self.template_dir)
 
     def _apply_global_values(self):
         """
@@ -203,7 +231,7 @@ class Template:
                     if code_uri_global is not None and resource_dict is not None:
                         resource_dict["CodeUri"] = code_uri_global
 
-    def export(self) -> Dict:
+    def export(self) -> IacStack:
         """
         Exports the local artifacts referenced by the given template to an
         export destination.
@@ -217,9 +245,9 @@ class Template:
             return self.template_dict
 
         self._apply_global_values()
-        self.template_dict = self._export_global_artifacts(self.template_dict)
+        self._export_global_artifacts(self.template_dict)
 
-        for resource_id, resource in self.template_dict["Resources"].items():
+        for resource in self.template_dict["Resources"].values():  # type: ignore
 
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
@@ -230,7 +258,7 @@ class Template:
                 if resource_dict.get("PackageType", ZIP) != exporter_class.ARTIFACT_TYPE:
                     continue
                 # Export code resources
-                exporter = exporter_class(self.uploaders, self.code_signer)
-                exporter.export(resource_id, resource_dict, self.template_dir)
+                exporter = exporter_class(self.uploaders, self.code_signer, self.iac)
+                exporter.export(resource, self.template_dir)
 
         return self.template_dict

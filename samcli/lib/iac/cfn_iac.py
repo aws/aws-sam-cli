@@ -2,25 +2,39 @@
 Cloud Formation IaC plugin implementation
 """
 import os
+import logging
 from typing import List, Optional
 from urllib.parse import unquote, urlparse
 
 import jmespath
 
-from samcli.cli.context import Context
-from samcli.commands._utils.resources import RESOURCES_WITH_LOCAL_PATHS
-from samcli.lib.iac.interface import IacPlugin, Project, LookupPath, Stack, DictSection, S3Asset, Asset
+from samcli.commands._utils.resources import (
+    METADATA_WITH_LOCAL_PATHS,
+    RESOURCES_WITH_IMAGE_COMPONENT,
+    RESOURCES_WITH_LOCAL_PATHS,
+    NESTED_STACKS_RESOURCES,
+)
+from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.lib.iac.interface import (
+    DictSectionItem,
+    IacPlugin,
+    ImageAsset,
+    Project,
+    LookupPath,
+    Stack,
+    DictSection,
+    S3Asset,
+    Asset,
+    Resource,
+)
 from samcli.commands._utils.template import get_template_data, move_template
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider, is_local_path, get_local_path
+
+LOG = logging.getLogger(__name__)
 
 PARENT_STACK_TEMPLATE_PATH_KEY = "parent_stack_template_path"
 TEMPLATE_PATH_KEY = "template_path"
 TEMPLATE_BUILD_PATH_KEY = "template_build_path"
-
-NESTED_STACKS_RESOURCES = {
-    SamLocalStackProvider.SERVERLESS_APPLICATION: "Location",
-    SamLocalStackProvider.CLOUDFORMATION_STACK: "TemplateURL",
-}
 
 BASE_DIR_RESOURCES = [
     SamLocalStackProvider.SERVERLESS_FUNCTION,
@@ -31,16 +45,17 @@ BASE_DIR_RESOURCES = [
 
 
 class CfnIacPlugin(IacPlugin):
-    def __init__(self, context: Context):
-        self._template_file = context.command_params["template_file"]
-        self._base_dir = context.command_params.get("base_dir", None)
-        super().__init__(context)
+    def __init__(self, command_params: dict):
+        self._template_file = command_params["template_file"]
+        self._base_dir = command_params.get("base_dir", None)
+        super().__init__(command_params)
 
     def get_project(self, lookup_paths: List[LookupPath]) -> Project:
         stacks = [self._build_stack(self._template_file)]
 
         return Project(stacks)
 
+    # pylint: disable=too-many-branches
     def _build_stack(self, path: str, is_nested: bool = False, name: Optional[str] = None) -> Stack:
         assets: List[Asset] = []
 
@@ -60,6 +75,7 @@ class CfnIacPlugin(IacPlugin):
             resource_id = resource.item_id
             resource_type = resource.get("Type", None)
             properties = resource.get("Properties", {})
+            package_type = properties.get("PackageType", ZIP)
 
             resource_assets = []
 
@@ -70,13 +86,38 @@ class CfnIacPlugin(IacPlugin):
             if resource_type in RESOURCES_WITH_LOCAL_PATHS:
                 for path_prop_name in RESOURCES_WITH_LOCAL_PATHS[resource_type]:
                     asset_path = jmespath.search(path_prop_name, properties)
-                    if is_local_path(asset_path):
+                    if is_local_path(asset_path) and package_type == ZIP:
                         reference_path = base_dir if resource_type in BASE_DIR_RESOURCES else os.path.dirname(path)
                         asset_path = get_local_path(asset_path, reference_path)
                         asset = S3Asset(source_path=asset_path, source_property=path_prop_name)
                         resource_assets.append(asset)
+                        stack.assets.append(asset)
+
+            if resource_type in RESOURCES_WITH_IMAGE_COMPONENT:
+                for path_prop_name in RESOURCES_WITH_IMAGE_COMPONENT[resource_type]:
+                    asset_path = jmespath.search(path_prop_name, properties)
+                    if asset_path and package_type == IMAGE:
+                        asset = ImageAsset(source_local_image=asset_path, source_property=path_prop_name)
+                        resource_assets.append(asset)
+                        stack.assets.append(asset)
 
             resource.assets = resource_assets
+
+        metadata_section = stack.get("Metadata", DictSection())
+        for metadata in metadata_section.section_items:
+            if not isinstance(metadata, DictSectionItem):
+                continue
+            metadata_type = metadata.item_id
+            metadata_body = metadata.body
+            metadata_assets = []
+            if metadata_type in METADATA_WITH_LOCAL_PATHS:
+                for path_prop_name in METADATA_WITH_LOCAL_PATHS[metadata_type]:
+                    asset_path = jmespath.search(path_prop_name, metadata_body)
+                    asset = S3Asset(source_path=asset_path, source_property=path_prop_name)
+                    metadata_assets.append(asset)
+                    stack.assets.append(asset)
+
+            metadata.assets = metadata_assets
 
         stack.extra_details[TEMPLATE_PATH_KEY] = path
         return stack
@@ -104,6 +145,15 @@ class CfnIacPlugin(IacPlugin):
     def write_project(self, project: Project, build_dir: str) -> None:
         for stack in project.stacks:
             _write_stack(stack, build_dir)
+
+    def should_update_property_after_package(self, asset: Asset) -> bool:
+        return True
+
+    def update_resource_after_packaging(self, resource: Resource) -> None:
+        pass
+
+    def update_asset_params_default_values_after_packaging(self, stack: Stack, parameters: DictSection) -> None:
+        pass
 
 
 def _write_stack(stack: Stack, build_dir: str):

@@ -10,7 +10,7 @@ import uuid
 import zipfile
 import contextlib
 from contextlib import contextmanager
-from typing import Dict, Optional, cast
+from typing import Optional
 
 import jmespath
 
@@ -19,6 +19,7 @@ from samcli.commands.package.exceptions import ImageNotFoundError
 from samcli.lib.package.ecr_utils import is_ecr_url
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.hash import dir_checksum
+from samcli.lib.iac.interface import S3Asset as IacS3Asset
 
 LOG = logging.getLogger(__name__)
 
@@ -53,7 +54,7 @@ def is_zip_file(path):
     return is_path_value_valid(path) and zipfile.is_zipfile(path)
 
 
-def upload_local_image_artifacts(resource_id, resource_dict, property_name, parent_dir, uploader):
+def upload_local_image_artifacts(resource_id, asset, property_name, parent_dir, uploader):
     """
     Upload local artifacts referenced by the property at given resource and
     return ECR URL of the uploaded object. It is the responsibility of callers
@@ -62,7 +63,7 @@ def upload_local_image_artifacts(resource_id, resource_dict, property_name, pare
     If path is already a path to S3 object, this method does nothing.
 
     :param resource_id:     Id of the CloudFormation resource
-    :param resource_dict:   Dictionary containing resource definition
+    :param asset:           Iac ImageAsset binded to the resource
     :param property_name:   Property name of CloudFormation resource where this
                             local path is present
     :param parent_dir:      Resolve all relative paths with respect to this
@@ -72,7 +73,7 @@ def upload_local_image_artifacts(resource_id, resource_dict, property_name, pare
     :return:                ECR URL of the uploaded object
     """
 
-    image_path = jmespath.search(property_name, resource_dict)
+    image_path = asset.source_local_image
 
     if not image_path:
         raise ImageNotFoundError(property_name=property_name, resource_id=resource_id)
@@ -86,7 +87,7 @@ def upload_local_image_artifacts(resource_id, resource_dict, property_name, pare
 
 def upload_local_artifacts(
     resource_id: str,
-    resource_dict: Dict,
+    asset: IacS3Asset,
     property_name: str,
     parent_dir: str,
     uploader: S3Uploader,
@@ -105,7 +106,7 @@ def upload_local_artifacts(
     If path is already a path to S3 object, this method does nothing.
 
     :param resource_id:     Id of the CloudFormation resource
-    :param resource_dict:   Dictionary containing resource definition
+    :param asset:           Iac S3Asset binded to the resource
     :param property_name:   Property name of CloudFormation resource where this
                             local path is present
     :param parent_dir:      Resolve all relative paths with respect to this
@@ -116,9 +117,9 @@ def upload_local_artifacts(
     :raise:                 ValueError if path is not a S3 URL or a local path
     """
 
-    local_path = jmespath.search(property_name, resource_dict)
+    local_path = asset.source_path or ""
 
-    if local_path is None:
+    if not local_path:
         # Build the root directory and upload to S3
         local_path = parent_dir
 
@@ -128,7 +129,7 @@ def upload_local_artifacts(
         # refer to local artifacts
         # Nothing to do if property value is an S3 URL
         LOG.debug("Property %s of %s is already a S3 URL", property_name, resource_id)
-        return cast(str, local_path)
+        return local_path
 
     local_path = make_abs_path(parent_dir, local_path)
 

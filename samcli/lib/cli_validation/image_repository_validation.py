@@ -2,11 +2,14 @@
 Image Repository Option Validation.
 This is to be run last after all CLI options have been processed.
 """
+import logging
 import click
 
 from samcli.commands._utils.option_validator import Validator
-from samcli.commands._utils.template import get_template_function_resource_ids, get_template_artifacts_format
+from samcli.commands.package.utils import validate_and_get_project_stack
 from samcli.lib.utils.packagetype import IMAGE
+
+LOG = logging.getLogger(__name__)
 
 
 def image_repository_validation(func):
@@ -25,19 +28,12 @@ def image_repository_validation(func):
         guided = ctx.params.get("guided", False) or ctx.params.get("g", False)
         image_repository = ctx.params.get("image_repository", False)
         image_repositories = ctx.params.get("image_repositories", False) or {}
-        template_file = (
-            ctx.params.get("t", False) or ctx.params.get("template_file", False) or ctx.params.get("template", False)
-        )
+        project = kwargs.get("project")
+        stack = validate_and_get_project_stack(project, ctx)
 
         # Check if `--image-repository` or `--image-repositories` are required by
         # looking for resources that have an IMAGE based packagetype.
-
-        required = any(
-            [
-                _template_artifact == IMAGE
-                for _template_artifact in get_template_artifacts_format(template_file=template_file)
-            ]
-        )
+        required = stack.has_assets_of_package_type(IMAGE) if stack is not None else False
 
         validators = [
             Validator(
@@ -60,7 +56,8 @@ def image_repository_validation(func):
             Validator(
                 validation_function=lambda: not guided
                 and (
-                    set(image_repositories.keys()) != set(get_template_function_resource_ids(template_file, IMAGE))
+                    set(image_repositories.keys())
+                    != set(map(lambda r: r.item_id, stack.find_function_resources_of_package_type(IMAGE)))
                     and image_repositories
                 ),
                 exception=click.BadOptionUsage(

@@ -4,17 +4,16 @@ Code for all Package-able resources
 import logging
 import os
 import shutil
-from typing import Optional, Union, Dict
+from typing import Optional, Union
 
-import jmespath
 from botocore.utils import set_value_from_jmespath
 
 from samcli.commands.package import exceptions
+from samcli.lib.iac.interface import S3Asset, ImageAsset, DictSectionItem, Resource as IacResource
 from samcli.lib.package.ecr_uploader import ECRUploader
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Destination, Uploaders
 from samcli.lib.package.utils import (
-    resource_not_packageable,
     is_local_file,
     is_zip_file,
     copy_to_temp_dir,
@@ -52,6 +51,7 @@ from samcli.lib.utils.packagetype import IMAGE, ZIP
 LOG = logging.getLogger(__name__)
 
 
+# pylint: disable=fixme
 class Resource:
     RESOURCE_TYPE: Optional[str] = None
     PROPERTY_NAME: Optional[str] = None
@@ -62,9 +62,10 @@ class Resource:
     EXPORT_DESTINATION: Destination
     ARTIFACT_TYPE: Optional[str] = None
 
-    def __init__(self, uploaders: Uploaders, code_signer):
+    def __init__(self, uploaders: Uploaders, code_signer, iac):
         self.uploaders = uploaders
         self.code_signer = code_signer
+        self.iac = iac
 
     @property
     def uploader(self) -> Union[S3Uploader, ECRUploader]:
@@ -73,10 +74,12 @@ class Resource:
         """
         return self.uploaders.get(self.EXPORT_DESTINATION)
 
-    def export(self, resource_id, resource_dict, parent_dir):
-        self.do_export(resource_id, resource_dict, parent_dir)
+    # FIXME: add type annotation once MRO fixed in Iac interface
+    def export(self, resource, parent_dir):
+        self.do_export(resource, parent_dir)
 
-    def do_export(self, resource_id, resource_dict, parent_dir):
+    # FIXME: add type annotation once MRO fixed in Iac interface
+    def do_export(self, resource, parent_dir):
         pass
 
 
@@ -94,42 +97,54 @@ class ResourceZip(Resource):
     ARTIFACT_TYPE = ZIP
     EXPORT_DESTINATION = Destination.S3
 
-    def export(self, resource_id: str, resource_dict: Optional[Dict], parent_dir: str):
+    # FIXME: add type annotation once MRO fixed in Iac interface
+    def export(self, resource, parent_dir):
+        resource_id = resource.key
+        resource_dict = None
+        if isinstance(resource, IacResource):
+            resource_dict = resource.get("Properties")
+        elif isinstance(resource, DictSectionItem):
+            resource_dict = resource.body
+
         if resource_dict is None:
             return
 
-        if resource_not_packageable(resource_dict):
+        # With IaC, we consider a resource packageable if it has an asset binded
+        if not resource.is_packageable():
             return
 
-        property_value = jmespath.search(self.PROPERTY_NAME, resource_dict)
-
-        if not property_value and not self.PACKAGE_NULL_PROPERTY:
+        if not resource.assets:
             return
 
-        if isinstance(property_value, dict):
-            LOG.debug("Property %s of %s resource is not a URL", self.PROPERTY_NAME, resource_id)
+        # resource.assets contains at lease one asset
+        asset = resource.find_asset_by_source_property(self.PROPERTY_NAME)
+        if not asset:
+            return
+
+        if not asset.source_path and not self.PACKAGE_NULL_PROPERTY:
             return
 
         # If property is a file but not a zip file, place file in temp
         # folder and send the temp folder to be zipped
         temp_dir = None
-        if is_local_file(property_value) and not is_zip_file(property_value) and self.FORCE_ZIP:
-            temp_dir = copy_to_temp_dir(property_value)
-            set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, temp_dir)
+        if is_local_file(asset.source_path) and not is_zip_file(asset.source_path) and self.FORCE_ZIP:
+            temp_dir = copy_to_temp_dir(asset.source_path)
+            asset.source_path = temp_dir
 
         try:
-            self.do_export(resource_id, resource_dict, parent_dir)
+            self.do_export(resource, parent_dir)
 
         except Exception as ex:
             LOG.debug("Unable to export", exc_info=ex)
             raise exceptions.ExportFailedError(
-                resource_id=resource_id, property_name=self.PROPERTY_NAME, property_value=property_value, ex=ex
+                resource_id=resource_id, property_name=self.PROPERTY_NAME, property_value=asset.source_path, ex=ex
             )
         finally:
             if temp_dir:
                 shutil.rmtree(temp_dir)
 
-    def do_export(self, resource_id, resource_dict, parent_dir):
+    # FIXME: add type annotation once MRO fixed in Iac interface
+    def do_export(self, resource, parent_dir):
         """
         Default export action is to upload artifacts and set the property to
         S3 URL of the uploaded object
@@ -138,11 +153,22 @@ class ResourceZip(Resource):
         """
         # code signer only accepts files which has '.zip' extension in it
         # so package artifact with '.zip' if it is required to be signed
+        resource_id = resource.key
+        resource_dict = None
+        if isinstance(resource, IacResource):
+            resource_dict = resource.get("Properties")
+        elif isinstance(resource, DictSectionItem):
+            resource_dict = resource.body
+
+        asset = resource.find_asset_by_source_property(self.PROPERTY_NAME)
+        if not (asset is not None and isinstance(asset, S3Asset)):
+            return
+
         should_sign_package = self.code_signer.should_sign_package(resource_id)
         artifact_extension = "zip" if should_sign_package else None
         uploaded_url = upload_local_artifacts(
             resource_id,
-            resource_dict,
+            asset,
             self.PROPERTY_NAME,
             parent_dir,
             self.uploader,
@@ -152,7 +178,8 @@ class ResourceZip(Resource):
             uploaded_url = self.code_signer.sign_package(
                 resource_id, uploaded_url, self.uploader.get_version_of_artifact(uploaded_url)
             )
-        set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, uploaded_url)
+        if self.iac.should_update_property_after_package(asset):
+            set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, uploaded_url)
 
 
 class ResourceImageDict(Resource):
@@ -167,35 +194,60 @@ class ResourceImageDict(Resource):
     EXPORT_DESTINATION = Destination.ECR
     EXPORT_PROPERTY_CODE_KEY = "ImageUri"
 
-    def export(self, resource_id, resource_dict, parent_dir):
+    # FIXME: add type annotation once MRO fixed in Iac interface
+    def export(self, resource, parent_dir):
+        resource_id = resource.key
+        resource_dict = None
+        if isinstance(resource, IacResource):
+            resource_dict = resource.get("Properties")
+        elif isinstance(resource, DictSectionItem):
+            resource_dict = resource.body
+
         if resource_dict is None:
             return
 
-        property_value = jmespath.search(self.PROPERTY_NAME, resource_dict)
+        # With IaC, we consider a resource packageable if it has an asset binded
+        if not resource.is_packageable():
+            return
 
-        if isinstance(property_value, dict):
-            LOG.debug("Property %s of %s resource is not a URL or a local image", self.PROPERTY_NAME, resource_id)
+        asset = resource.find_asset_by_source_property(self.PROPERTY_NAME)
+        if not (asset is not None and isinstance(asset, ImageAsset)):
             return
 
         try:
-            self.do_export(resource_id, resource_dict, parent_dir)
+            self.do_export(resource, parent_dir)
 
         except Exception as ex:
             LOG.debug("Unable to export", exc_info=ex)
             raise exceptions.ExportFailedError(
-                resource_id=resource_id, property_name=self.PROPERTY_NAME, property_value=property_value, ex=ex
+                resource_id=resource_id,
+                property_name=self.PROPERTY_NAME,
+                property_value=asset.source_local_image,
+                ex=ex,
             )
 
-    def do_export(self, resource_id, resource_dict, parent_dir):
+    # FIXME: add type annotation once MRO fixed in Iac interface
+    def do_export(self, resource, parent_dir):
         """
         Default export action is to upload artifacts and set the property to
         dictionary where the key is EXPORT_PROPERTY_CODE_KEY and value is set to an
         uploaded URL.
         """
-        uploaded_url = upload_local_image_artifacts(
-            resource_id, resource_dict, self.PROPERTY_NAME, parent_dir, self.uploader
-        )
-        set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, {self.EXPORT_PROPERTY_CODE_KEY: uploaded_url})
+        resource_id = resource.key
+        resource_dict = None
+        if isinstance(resource, IacResource):
+            resource_dict = resource.get("Properties")
+        elif isinstance(resource, DictSectionItem):
+            resource_dict = resource.body
+
+        asset = resource.find_asset_by_source_property(self.PROPERTY_NAME)
+        if not (asset is not None and isinstance(asset, ImageAsset)):
+            return
+
+        uploaded_url = upload_local_image_artifacts(resource_id, asset, self.PROPERTY_NAME, parent_dir, self.uploader)
+        self.iac.update_resource_after_packaging(resource)
+        if self.iac.should_update_property_after_package(asset):
+            set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, {self.EXPORT_PROPERTY_CODE_KEY: uploaded_url})
 
 
 class ResourceImage(Resource):
@@ -209,34 +261,59 @@ class ResourceImage(Resource):
     ARTIFACT_TYPE: Optional[str] = IMAGE
     EXPORT_DESTINATION = Destination.ECR
 
-    def export(self, resource_id, resource_dict, parent_dir):
+    # FIXME: add type annotation once MRO fixed in Iac interface
+    def export(self, resource, parent_dir):
+        resource_id = resource.key
+        resource_dict = None
+        if isinstance(resource, IacResource):
+            resource_dict = resource.get("Properties")
+        elif isinstance(resource, DictSectionItem):
+            resource_dict = resource.body
+
         if resource_dict is None:
             return
 
-        property_value = jmespath.search(self.PROPERTY_NAME, resource_dict)
+        # With IaC, we consider a resource packageable if it has an asset binded
+        if not resource.is_packageable():
+            return
 
-        if isinstance(property_value, dict):
-            LOG.debug("Property %s of %s resource is not a URL or a local image", self.PROPERTY_NAME, resource_id)
+        asset = resource.find_asset_by_source_property(self.PROPERTY_NAME)
+        if not (asset is not None and isinstance(asset, ImageAsset)):
             return
 
         try:
-            self.do_export(resource_id, resource_dict, parent_dir)
+            self.do_export(resource, parent_dir)
 
         except Exception as ex:
             LOG.debug("Unable to export", exc_info=ex)
             raise exceptions.ExportFailedError(
-                resource_id=resource_id, property_name=self.PROPERTY_NAME, property_value=property_value, ex=ex
+                resource_id=resource_id,
+                property_name=self.PROPERTY_NAME,
+                property_value=asset.source_local_image,
+                ex=ex,
             )
 
-    def do_export(self, resource_id, resource_dict, parent_dir):
+    # FIXME: add type annotation once MRO fixed in Iac interface
+    def do_export(self, resource, parent_dir):
         """
         Default export action is to upload artifacts and set the property to
         URL of the uploaded object
         """
-        uploaded_url = upload_local_image_artifacts(
-            resource_id, resource_dict, self.PROPERTY_NAME, parent_dir, self.uploader
-        )
-        set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, uploaded_url)
+        resource_id = resource.key
+        resource_dict = None
+        if isinstance(resource, IacResource):
+            resource_dict = resource.get("Properties")
+        elif isinstance(resource, DictSectionItem):
+            resource_dict = resource.body
+
+        asset = resource.find_asset_by_source_property(self.PROPERTY_NAME)
+        if not (asset is not None and isinstance(asset, ImageAsset)):
+            return
+
+        uploaded_url = upload_local_image_artifacts(resource_id, asset, self.PROPERTY_NAME, parent_dir, self.uploader)
+        self.iac.update_resource_after_packaging(resource)
+        if self.iac.should_update_property_after_package(asset):
+            set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, uploaded_url)
 
 
 class ResourceWithS3UrlDict(ResourceZip):
@@ -251,15 +328,24 @@ class ResourceWithS3UrlDict(ResourceZip):
     ARTIFACT_TYPE = ZIP
     EXPORT_DESTINATION = Destination.S3
 
-    def do_export(self, resource_id, resource_dict, parent_dir):
+    # FIXME: add type annotation once MRO fixed in Iac interface
+    def do_export(self, resource, parent_dir):
         """
         Upload to S3 and set property to an dict representing the S3 url
         of the uploaded object
         """
+        resource_id = resource.key
+        resource_dict = None
+        if isinstance(resource, IacResource):
+            resource_dict = resource.get("Properties")
+        elif isinstance(resource, DictSectionItem):
+            resource_dict = resource.body
 
-        artifact_s3_url = upload_local_artifacts(
-            resource_id, resource_dict, self.PROPERTY_NAME, parent_dir, self.uploader
-        )
+        asset = resource.find_asset_by_source_property(self.PROPERTY_NAME)
+        if not (asset is not None and isinstance(asset, S3Asset)):
+            return
+
+        artifact_s3_url = upload_local_artifacts(resource_id, asset, self.PROPERTY_NAME, parent_dir, self.uploader)
 
         parsed_url = S3Uploader.parse_s3_url(
             artifact_s3_url,
@@ -267,7 +353,12 @@ class ResourceWithS3UrlDict(ResourceZip):
             object_key_property=self.OBJECT_KEY_PROPERTY,
             version_property=self.VERSION_PROPERTY,
         )
-        set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, parsed_url)
+        asset.bucket_name = parsed_url[self.BUCKET_NAME_PROPERTY]
+        asset.object_key = parsed_url[self.OBJECT_KEY_PROPERTY]
+        asset.object_version = parsed_url.get(self.VERSION_PROPERTY, None)
+        self.iac.update_resource_after_packaging(resource)
+        if self.iac.should_update_property_after_package(asset):
+            set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, parsed_url)
 
 
 class ServerlessFunctionResource(ResourceZip):

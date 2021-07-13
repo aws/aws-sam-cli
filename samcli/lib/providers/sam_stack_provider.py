@@ -7,7 +7,7 @@ import posixpath
 from typing import Optional, Dict, cast, List, Iterator, Tuple
 from urllib.parse import unquote, urlparse
 
-from samcli.lib.iac.interface import Stack as IacStack, Resource, S3Asset
+from samcli.lib.iac.interface import Stack as IacStack, Resource as IacResource, S3Asset
 from samcli.lib.providers.exceptions import RemoteStackLocationNotSupported
 from samcli.lib.providers.provider import Stack, get_full_path
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
@@ -29,6 +29,7 @@ class SamLocalStackProvider(SamBaseProvider):
         template_dict: IacStack,
         parameter_overrides: Optional[Dict] = None,
         global_parameter_overrides: Optional[Dict] = None,
+        normalize_resource_metadata: bool = True,
     ):
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
@@ -45,6 +46,8 @@ class SamLocalStackProvider(SamBaseProvider):
             to get substituted within the template
         :param dict global_parameter_overrides: Optional dictionary of values for SAM template global parameters that
             might want to get substituted within the template and all its child templates
+        :param bool normalize_resource_metadata: should normalize resource metadata or not. Resource metadata usually
+            exists in CDK-synted templates and is used for build and local testing
         """
 
         self._stack_origin_dir = stack_origin_dir
@@ -52,6 +55,7 @@ class SamLocalStackProvider(SamBaseProvider):
         self._template_dict: IacStack = self.get_template(
             template_dict,
             SamLocalStackProvider.merge_parameter_overrides(parameter_overrides, global_parameter_overrides),
+            normalize_resource_metadata=normalize_resource_metadata,
         )
         self._resources = self._template_dict.get("Resources", {})
         self._global_parameter_overrides = global_parameter_overrides
@@ -132,7 +136,7 @@ class SamLocalStackProvider(SamBaseProvider):
         stack_origin_dir: str,
         stack_path: str,
         name: str,
-        resource: Resource,
+        resource: IacResource,
         resource_properties: Dict,
         global_parameter_overrides: Optional[Dict] = None,
     ) -> Optional[Stack]:
@@ -170,7 +174,7 @@ class SamLocalStackProvider(SamBaseProvider):
         stack_origin_dir: str,
         stack_path: str,
         name: str,
-        resource: Resource,
+        resource: IacResource,
         resource_properties: Dict,
         global_parameter_overrides: Optional[Dict] = None,
     ) -> Optional[Stack]:
@@ -206,6 +210,7 @@ class SamLocalStackProvider(SamBaseProvider):
         name: str = "",
         parameter_overrides: Optional[Dict] = None,
         global_parameter_overrides: Optional[Dict] = None,
+        normalize_resource_metadata: bool = True,
     ) -> Tuple[List[Stack], List[str]]:
         """
         Recursively extract stacks from a template file.
@@ -224,6 +229,9 @@ class SamLocalStackProvider(SamBaseProvider):
         global_parameter_overrides: Optional[Dict]
             Optional dictionary of values for SAM template global parameters
             that might want to get substituted within the template and its child templates
+        normalize_resource_metadata: bool
+            boolean flag to normalize resource metadata or not. Resource metadata usually
+            exists in CDK-synted templates and is used for build and local testing
 
         Returns
         -------
@@ -247,7 +255,12 @@ class SamLocalStackProvider(SamBaseProvider):
             )
 
             current = SamLocalStackProvider(
-                project_stack.origin_dir, stack_path, project_stack, parameter_overrides, global_parameter_overrides
+                project_stack.origin_dir,
+                stack_path,
+                project_stack,
+                parameter_overrides,
+                global_parameter_overrides,
+                normalize_resource_metadata,
             )
             remote_stack_full_paths.extend(current.remote_stack_full_paths)
 
@@ -258,6 +271,7 @@ class SamLocalStackProvider(SamBaseProvider):
                     child_stack.logical_id,
                     child_stack.parameters,
                     global_parameter_overrides,
+                    normalize_resource_metadata,
                 )
                 stacks.extend(stacks_in_child)
                 remote_stack_full_paths.extend(remote_stack_full_paths_in_child)

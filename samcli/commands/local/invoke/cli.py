@@ -6,6 +6,7 @@ import logging
 import click
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
+from samcli.commands._utils.iac_validations import iac_options_validation
 from samcli.commands._utils.options import project_type_click_option, cdk_click_options
 from samcli.commands.local.cli_common.options import invoke_common_options, local_common_options
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
@@ -45,16 +46,17 @@ STDIN_FILE_NAME = "-"
     "is not specified, no event is assumed. Pass in the value '-' to input JSON via stdin",
 )
 @click.option("--no-event", is_flag=True, default=True, help="DEPRECATED: By default no event is assumed.", hidden=True)
-@project_type_click_option
+@project_type_click_option(include_build=True)
 @invoke_common_options
 @local_common_options
 @cli_framework_options
 @aws_creds_options
 @click.argument("function_logical_id", required=False)
-@pass_context
 @cdk_click_options
-@track_command  # pylint: disable=R0914
 @inject_iac_plugin(with_build=True)
+@iac_options_validation(require_stack=False)
+@pass_context
+@track_command  # pylint: disable=R0914
 @check_newer_version
 @print_cmdline_args
 def cli(

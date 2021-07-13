@@ -8,6 +8,7 @@ import base64
 import re
 from collections import OrderedDict
 
+from samcli.lib.iac.interface import Resource, S3Asset, ImageAsset
 from samcli.lib.intrinsic_resolver.invalid_intrinsic_validation import (
     verify_intrinsic_type_list,
     verify_non_null,
@@ -249,10 +250,24 @@ class IntrinsicResolver:
 
         if self._resources:
             processed_template["Resources"] = self.resolve_attribute(self._resources, ignore_errors)
+            self.resolve_resources_assets(ignore_errors)
         if self._outputs:
             processed_template["Outputs"] = self.resolve_attribute(self._outputs, ignore_errors)
 
         return processed_template
+
+    def resolve_resources_assets(self, ignore_errors):
+        for _, resource in self._resources.items():
+            if isinstance(resource, Resource):
+                for asset in resource.assets:
+                    if isinstance(asset, S3Asset):
+                        asset.source_path = self.intrinsic_property_resolver(
+                            asset.source_path, ignore_errors, parent_function=asset.source_property
+                        )
+                    elif isinstance(asset, ImageAsset):
+                        asset.source_local_image = self.intrinsic_property_resolver(
+                            asset.source_local_image, ignore_errors, parent_function=asset.source_property
+                        )
 
     def resolve_attribute(self, cloud_formation_property, ignore_errors=False):
         """

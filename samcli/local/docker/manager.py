@@ -197,7 +197,7 @@ class ContainerManager:
         : return bool: True, if the image name ends with rapid-$SAM_CLI_VERSION. False, otherwise
         """
 
-        if not re.search(r":rapid-\d+\.\d+.\d+$", image_name):
+        if not re.search(r":rapid-\d+\.\d+\.[\w\.]+$", image_name):
             return False
         return True
 

@@ -17,6 +17,7 @@ import click
 
 from samcli.cli.main import global_cfg
 from samcli.commands.exceptions import UserException, AppTemplateUpdateException
+from samcli.lib.iac.interface import ProjectTypes
 from samcli.lib.utils import osutils
 from samcli.lib.utils.osutils import rmtree_callback
 from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING, get_local_lambda_images_location
@@ -29,9 +30,14 @@ class InvalidInitTemplateError(UserException):
     pass
 
 
+class CDKProjectInvalidInitConfigError(UserException):
+    pass
+
+
 class InitTemplates:
     def __init__(self, no_interactive=False, auto_clone=True):
         self._repo_url = "https://github.com/aws/aws-sam-cli-app-templates"
+        self._repo_branch = "cdk-template"
         self._repo_name = "aws-sam-cli-app-templates"
         self._temp_repo_name = "TEMP-aws-sam-cli-app-templates"
         self.repo_path = None
@@ -39,12 +45,16 @@ class InitTemplates:
         self._no_interactive = no_interactive
         self._auto_clone = auto_clone
 
-    def prompt_for_location(self, package_type, runtime, base_image, dependency_manager):
+    def prompt_for_location(self, project_type, cdk_language, package_type, runtime, base_image, dependency_manager):
         """
         Prompt for template location based on other information provided in previous steps.
 
         Parameters
         ----------
+        project_type : ProjectTypes
+            the type of project, CFN or CDK
+        cdk_language : Optional[str]
+            the language of cdk app
         package_type : str
             the package type, 'Zip' or 'Image', see samcli/lib/utils/packagetype.py
         runtime : str
@@ -61,7 +71,7 @@ class InitTemplates:
         app_template : str
             The name of the template
         """
-        options = self.init_options(package_type, runtime, base_image, dependency_manager)
+        options = self.init_options(project_type, cdk_language, package_type, runtime, base_image, dependency_manager)
 
         if len(options) == 1:
             template_md = options[0]
@@ -92,8 +102,10 @@ class InitTemplates:
             return (os.path.join(self.repo_path, template_md["directory"]), template_md["appTemplate"])
         raise InvalidInitTemplateError("Invalid template. This should not be possible, please raise an issue.")
 
-    def location_from_app_template(self, package_type, runtime, base_image, dependency_manager, app_template):
-        options = self.init_options(package_type, runtime, base_image, dependency_manager)
+    def location_from_app_template(
+        self, project_type, cdk_language, package_type, runtime, base_image, dependency_manager, app_template
+    ):
+        options = self.init_options(project_type, cdk_language, package_type, runtime, base_image, dependency_manager)
         try:
             template = next(item for item in options if self._check_app_template(item, app_template))
             if template.get("init_location") is not None:
@@ -111,27 +123,39 @@ class InitTemplates:
         # detail: https://github.com/python/mypy/issues/5697
         return bool(entry["appTemplate"] == app_template)
 
-    def init_options(self, package_type, runtime, base_image, dependency_manager):
+    def init_options(self, project_type, cdk_language, package_type, runtime, base_image, dependency_manager):
         if not self.clone_attempted:
             self._clone_repo()
         if self.repo_path is None:
-            return self._init_options_from_bundle(package_type, runtime, dependency_manager)
-        return self._init_options_from_manifest(package_type, runtime, base_image, dependency_manager)
+            return self._init_options_from_bundle(project_type, cdk_language, package_type, runtime, dependency_manager)
+        return self._init_options_from_manifest(
+            project_type, cdk_language, package_type, runtime, base_image, dependency_manager
+        )
 
-    def _init_options_from_manifest(self, package_type, runtime, base_image, dependency_manager):
+    def _init_options_from_manifest(
+        self, project_type, cdk_language, package_type, runtime, base_image, dependency_manager
+    ):
         manifest_path = os.path.join(self.repo_path, "manifest.json")
         with open(str(manifest_path)) as fp:
             body = fp.read()
             manifest_body = json.loads(body)
             templates = None
-            if base_image:
+            if project_type == ProjectTypes.CDK:
+                if cdk_language and runtime:
+                    templates = manifest_body.get(f"cdk-{cdk_language}", {}).get(runtime)
+                else:
+                    msg = f"CDK language and runtime are necessary in project type: {project_type.value}."
+                    raise CDKProjectInvalidInitConfigError(msg)
+            elif base_image:
                 templates = manifest_body.get(base_image)
             elif runtime:
                 templates = manifest_body.get(runtime)
 
             if templates is None:
                 # Fallback to bundled templates
-                return self._init_options_from_bundle(package_type, runtime, dependency_manager)
+                return self._init_options_from_bundle(
+                    project_type, cdk_language, package_type, runtime, dependency_manager
+                )
 
             if dependency_manager is not None:
                 templates_by_dep = filter(lambda x: x["dependencyManager"] == dependency_manager, list(templates))
@@ -139,8 +163,9 @@ class InitTemplates:
             return list(templates)
 
     @staticmethod
-    def _init_options_from_bundle(package_type, runtime, dependency_manager):
-        for mapping in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values()))):
+    def _init_options_from_bundle(project_type, cdk_language, package_type, runtime, dependency_manager):
+        runtime_dependency_template_mapping = {} if project_type == ProjectTypes.CDK else RUNTIME_DEP_TEMPLATE_MAPPING
+        for mapping in list(itertools.chain(*(runtime_dependency_template_mapping.values()))):
             if runtime in mapping["runtimes"] or any([r.startswith(runtime) for r in mapping["runtimes"]]):
                 if not dependency_manager or dependency_manager == mapping["dependency_manager"]:
                     if package_type == IMAGE:
@@ -187,7 +212,8 @@ class InitTemplates:
                 expected_temp_path = os.path.normpath(os.path.join(tempdir, self._repo_name))
                 LOG.info("\nCloning app templates from %s", self._repo_url)
                 subprocess.check_output(
-                    [self._git_executable(), "clone", self._repo_url, self._repo_name],
+                    # TODO: [UPDATEME] wchengru: We should remove --branch option when making CDK support GA.
+                    [self._git_executable(), "clone", "--branch", self._repo_branch, self._repo_url, self._repo_name],
                     cwd=tempdir,
                     stderr=subprocess.STDOUT,
                 )
@@ -257,18 +283,22 @@ class InitTemplates:
                 LOG.debug("Unable to find executable %s", name, exc_info=ex)
         raise OSError("Cannot find git, was looking at executables: {}".format(options))
 
-    def is_dynamic_schemas_template(self, package_type, app_template, runtime, base_image, dependency_manager):
+    def is_dynamic_schemas_template(
+        self, project_type, cdk_language, package_type, app_template, runtime, base_image, dependency_manager
+    ):
         """
         Check if provided template is dynamic template e.g: AWS Schemas template.
         Currently dynamic templates require different handling e.g: for schema download & merge schema code in sam-app.
-        :param package_type:
-        :param app_template:
-        :param runtime:
-        :param base_image:
-        :param dependency_manager:
+        :param project_type: SAM supported project type, ProjectTypes.CDK or ProjectTypes.CFN
+        :param cdk_language: CDK stacks definition language.
+        :param package_type: Template package type: ZIP or IMAGE.
+        :param app_template: Identifier of the managed application template
+        :param runtime: Lambda funtion runtime
+        :param base_image: Runtime base image
+        :param dependency_manager: Runtime dependency manager.
         :return:
         """
-        options = self.init_options(package_type, runtime, base_image, dependency_manager)
+        options = self.init_options(project_type, cdk_language, package_type, runtime, base_image, dependency_manager)
         for option in options:
             if option.get("appTemplate") == app_template:
                 return option.get("isDynamicTemplate", False)

@@ -6,6 +6,7 @@ import logging
 import click
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
+from samcli.commands._utils.iac_validations import iac_options_validation
 from samcli.commands._utils.options import project_type_click_option, cdk_click_options
 from samcli.commands.local.cli_common.options import (
     invoke_common_options,
@@ -49,16 +50,17 @@ and point SAM to the directory or file containing build artifacts.
     default="public",
     help="Any static assets (e.g. CSS/Javascript/HTML) files located in this directory " "will be presented at /",
 )
-@project_type_click_option
+@project_type_click_option(include_build=True)
 @invoke_common_options
 @warm_containers_common_options
 @local_common_options
 @cli_framework_options
 @aws_creds_options  # pylint: disable=R0914
-@pass_context
 @cdk_click_options
-@track_command
 @inject_iac_plugin(with_build=True)
+@iac_options_validation(require_stack=False)
+@pass_context
+@track_command
 @check_newer_version
 @print_cmdline_args
 def cli(

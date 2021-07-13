@@ -31,6 +31,7 @@ from samcli.lib.package.code_signer import CodeSigner
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Uploaders
 from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
+from samcli.lib.iac.interface import DictSection
 from samcli.yamlhelper import yaml_dump
 
 LOG = logging.getLogger(__name__)
@@ -66,6 +67,9 @@ class PackageContext:
         metadata,
         region,
         profile,
+        iac,
+        project,
+        stack_name=None,
         on_deploy=False,
         signing_profiles=None,
     ):
@@ -85,6 +89,14 @@ class PackageContext:
         self.on_deploy = on_deploy
         self.code_signer = None
         self.signing_profiles = signing_profiles
+        self._iac = iac
+        self._project = project
+        # during validation, stack_name is required if project contains more than one stack
+        # we can safely assume project contains at least one stack as of now
+        if stack_name is not None and len(project.stacks) > 1:
+            self._stack = project.find_stack_by_name(stack_name)
+        else:
+            self._stack = project.stacks[0]
 
     def __enter__(self):
         return self
@@ -119,7 +131,7 @@ class PackageContext:
         self.code_signer = CodeSigner(code_signer_client, self.signing_profiles)
 
         try:
-            exported_str = self._export(self.template_file, self.use_json)
+            exported_str = self._export(self.use_json)
 
             self.write_output(self.output_template_file, exported_str)
 
@@ -132,9 +144,12 @@ class PackageContext:
         except OSError as ex:
             raise PackageFailedError(template_file=self.template_file, ex=str(ex)) from ex
 
-    def _export(self, template_path, use_json):
-        template = Template(template_path, os.getcwd(), self.uploaders, self.code_signer)
+    def _export(self, use_json):
+        template = Template(self._stack, os.getcwd(), self.uploaders, self.code_signer, self._iac)
         exported_template = template.export()
+        self._iac.update_asset_params_default_values_after_packaging(
+            exported_template, exported_template.get("Parameters", DictSection())
+        )
 
         if use_json:
             exported_str = json.dumps(exported_template, indent=4, ensure_ascii=False)

@@ -18,6 +18,7 @@ SKIP_SCHEMA_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_
 class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
     def test_init_interactive_with_event_bridge_app_aws_registry(self):
         # WHEN the user follows interactive init prompts
+        # 1: SAM type project
         # 1: AWS Quick Start Templates
         # 1: Zip Packagetype
         # 14: Java runtime
@@ -29,6 +30,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
         # 1: select aws schema
 
         user_input = """
+1
 1
 1
 14
@@ -54,6 +56,7 @@ Y
     def test_init_interactive_with_event_bridge_app_partner_registry(self):
         # setup schema data
         # WHEN the user follows interactive init prompts
+        # 1: SAM type project
         # 1: AWS Quick Start Templates
         # 1: Zip Packagetype
         # 14: Java runtime
@@ -65,6 +68,7 @@ Y
         # 1: select aws schema
 
         user_input = """
+1
 1
 1
 14
@@ -101,6 +105,7 @@ Y
 
     def test_init_interactive_with_event_bridge_app_pagination(self):
         # WHEN the user follows interactive init prompts
+        # 1: SAM type project
         # 1: AWS Quick Start Templates
         # 1: Zip Packagetype
         # 14: Java Runtime
@@ -114,6 +119,7 @@ Y
         # select 2nd schema
 
         user_input = """
+1
 1
 1
 14
@@ -141,6 +147,7 @@ P
 
     def test_init_interactive_with_event_bridge_app_customer_registry(self):
         # WHEN the user follows interactive init prompts
+        # 1: SAM type project
         # 1: AWS Quick Start Templates
         # 1: Zip Packagetype
         # 14: Java Runtime
@@ -152,6 +159,7 @@ P
         # 1: select 1 schema
 
         user_input = """
+1
 1
 1
 14
@@ -188,6 +196,7 @@ Y
 
     def test_init_interactive_with_event_bridge_app_aws_schemas_python(self):
         # WHEN the user follows interactive init prompts
+        # 1: SAM type project
         # 1: AWS Quick Start Templates
         # 1: Zip Packagetype
         # 9: Python 3.7
@@ -198,6 +207,7 @@ Y
         # 1: select aws schema
 
         user_input = """
+1
 1
 1
 9
@@ -220,6 +230,7 @@ Y
     def test_init_interactive_with_event_bridge_app_non_default_profile_selection(self):
         self._init_custom_config("mynewprofile", "us-west-2")
         # WHEN the user follows interactive init prompts
+        # 1: SAM type project
         # 1: AWS Quick Start Templates
         # 1: Zip Packagetype
         # 9: Python 3.7
@@ -232,6 +243,7 @@ Y
         # 1: select aws schema
 
         user_input = """
+1
 1
 1
 9
@@ -258,6 +270,7 @@ us-east-1
     def test_init_interactive_with_event_bridge_app_non_supported_schemas_region(self):
         self._init_custom_config("default", "cn-north-1")
         # WHEN the user follows interactive init prompts
+        # 1: SAM type project
         # 1: AWS Quick Start Templates
         # 1: Zip Pacakgetype
         # 9: Python 3.7
@@ -268,6 +281,7 @@ us-east-1
         # 1: select aws schema
 
         user_input = """
+1
 1
 1
 9

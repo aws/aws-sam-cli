@@ -8,9 +8,10 @@ import click
 from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.cli.types import ImageRepositoryType, ImageRepositoriesType
+from samcli.commands.package.validations import package_option_validation
+from samcli.commands._utils.iac_validations import iac_options_validation
 from samcli.commands._utils.options import (
     capabilities_override_option,
-    guided_deploy_stack_name,
     metadata_override_option,
     notification_arns_override_option,
     parameter_override_option,
@@ -19,6 +20,8 @@ from samcli.commands._utils.options import (
     template_click_option,
     signing_profiles_option,
     image_repositories_callback,
+    cdk_click_options,
+    project_type_click_option,
 )
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
 from samcli.lib.telemetry.metric import track_command
@@ -26,6 +29,7 @@ from samcli.lib.cli_validation.image_repository_validation import image_reposito
 from samcli.lib.utils import osutils
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.utils.version_checker import check_newer_version
+from samcli.lib.iac.utils.helpers import inject_iac_plugin
 
 SHORT_HELP = "Deploy an AWS SAM application."
 
@@ -49,6 +53,7 @@ LOG = logging.getLogger(__name__)
     help=HELP_TEXT,
 )
 @configuration_option(provider=TomlProvider(section=CONFIG_SECTION))
+@project_type_click_option(include_build=True)
 @click.option(
     "--guided",
     "-g",
@@ -61,10 +66,10 @@ LOG = logging.getLogger(__name__)
 @click.option(
     "--stack-name",
     required=False,
-    callback=guided_deploy_stack_name,
     help="The name of the AWS CloudFormation stack you're deploying to. "
     "If you specify an existing stack, the command updates the stack. "
-    "If you specify a new stack, the command creates it.",
+    "If you specify a new stack, the command creates it."
+    "If your project type is CDK, this option also specifies the stack to deploy.",
 )
 @click.option(
     "--s3-bucket",
@@ -165,6 +170,10 @@ LOG = logging.getLogger(__name__)
 @capabilities_override_option
 @aws_creds_options
 @common_options
+@cdk_click_options
+@inject_iac_plugin(with_build=True)
+@iac_options_validation(require_stack=True)
+@package_option_validation
 @image_repository_validation
 @pass_context
 @track_command
@@ -196,6 +205,11 @@ def cli(
     resolve_s3,
     config_file,
     config_env,
+    project_type,
+    cdk_app,
+    cdk_context,
+    iac,
+    project,
 ):
     """
     `sam deploy` command entry point
@@ -228,6 +242,9 @@ def cli(
         resolve_s3,
         config_file,
         config_env,
+        project_type,
+        iac,
+        project,
     )  # pragma: no cover
 
 
@@ -258,6 +275,9 @@ def do_cli(
     resolve_s3,
     config_file,
     config_env,
+    project_type,
+    iac,
+    project,
 ):
     """
     Implementation of the ``cli`` method
@@ -270,7 +290,6 @@ def do_cli(
     if guided:
         # Allow for a guided deploy to prompt and save those details.
         guided_context = GuidedContext(
-            template_file=template_file,
             stack_name=stack_name,
             s3_bucket=s3_bucket,
             image_repository=image_repository,
@@ -285,6 +304,8 @@ def do_cli(
             config_section=CONFIG_SECTION,
             config_env=config_env,
             config_file=config_file,
+            iac=iac,
+            project=project,
         )
         guided_context.run()
     elif resolve_s3 and bool(s3_bucket):
@@ -313,6 +334,8 @@ def do_cli(
             region=guided_context.guided_region if guided else region,
             profile=profile,
             signing_profiles=guided_context.signing_profiles if guided else signing_profiles,
+            iac=iac,
+            project=project,
         ) as package_context:
             package_context.run()
 
