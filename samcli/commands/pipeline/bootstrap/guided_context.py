@@ -85,8 +85,7 @@ class GuidedContext:
 
     def _prompt_stage_name(self) -> None:
         click.echo(
-            "Enter a name for the stage you want to bootstrap. This will be referenced later "
-            "when generating a Pipeline Config File with Pipeline Init."
+            "Enter a name for this stage. This will be referenced later when you use the sam pipeline init command:"
         )
         self.environment_name = click.prompt(
             "Stage name",
@@ -96,7 +95,7 @@ class GuidedContext:
 
     def _prompt_region_name(self) -> None:
         self.region = click.prompt(
-            "Enter the region you want these resources to create",
+            "Enter the region in which you want these resources to be created",
             type=click.STRING,
             default=get_default_aws_region(),
         )
@@ -136,7 +135,7 @@ class GuidedContext:
         if click.confirm("Does your application contain any IMAGE type Lambda functions?"):
             self.image_repository_arn = click.prompt(
                 "Please enter the ECR image repository ARN(s) for your Image type function(s)."
-                "If you do not yet have a repostiory, we will create one for you",
+                "If you do not yet have a repository, we will create one for you",
                 default="",
                 type=click.STRING,
             )
@@ -160,31 +159,31 @@ class GuidedContext:
             (
                 f"Pipeline user ARN: {self.pipeline_user_arn}"
                 if self.pipeline_user_arn
-                else "Pipeline user: to be created",
+                else "Pipeline user: [to be created]",
                 self._prompt_pipeline_user,
             ),
             (
                 f"Pipeline execution role ARN: {self.pipeline_execution_role_arn}"
                 if self.pipeline_execution_role_arn
-                else "Pipeline execution role: to be created",
+                else "Pipeline execution role: [to be created]",
                 self._prompt_pipeline_execution_role,
             ),
             (
                 f"CloudFormation execution role ARN: {self.cloudformation_execution_role_arn}"
                 if self.cloudformation_execution_role_arn
-                else "CloudFormation execution role: to be created",
+                else "CloudFormation execution role: [to be created]",
                 self._prompt_cloudformation_execution_role,
             ),
             (
                 f"Artifacts bucket ARN: {self.artifacts_bucket_arn}"
                 if self.artifacts_bucket_arn
-                else "Artifacts bucket: to be created",
+                else "Artifacts bucket: [to be created]",
                 self._prompt_artifacts_bucket,
             ),
             (
                 f"ECR image repository ARN: {self.image_repository_arn}"
                 if self.image_repository_arn
-                else f"ECR image repository: {'to be created' if self.create_image_repository else 'skipped'}",
+                else f"ECR image repository: [{'to be created' if self.create_image_repository else 'skipped'}]",
                 self._prompt_image_repository,
             ),
             (
