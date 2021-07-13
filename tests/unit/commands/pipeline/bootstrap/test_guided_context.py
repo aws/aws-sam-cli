@@ -131,14 +131,14 @@ class TestGuidedContext_prompt_account_id(TestCase):
     ):
         getenv_mock.return_value = "not None"
         list_available_profiles_mock.return_value = ["profile1", "profile2"]
-        click_mock.prompt.return_value = "e"  # select environment variable
+        click_mock.prompt.return_value = "1"  # select environment variable
         get_current_account_id_mock.return_value = "account_id"
 
         guided_context_mock = Mock()
         GuidedContext._prompt_account_id(guided_context_mock)
 
         click_mock.prompt.assert_called_once_with(
-            ANY, show_choices=False, show_default=False, type=click_mock.Choice(["1", "2", "q", "e"])
+            ANY, show_choices=False, show_default=False, type=click_mock.Choice(["1", "2", "3", "q"])
         )
 
     @patch("samcli.commands.pipeline.bootstrap.guided_context.get_current_account_id")
@@ -150,14 +150,14 @@ class TestGuidedContext_prompt_account_id(TestCase):
     ):
         getenv_mock.return_value = None
         list_available_profiles_mock.return_value = ["profile1", "profile2"]
-        click_mock.prompt.return_value = "e"  # select environment variable
+        click_mock.prompt.return_value = "1"  # select environment variable
         get_current_account_id_mock.return_value = "account_id"
 
         guided_context_mock = Mock()
         GuidedContext._prompt_account_id(guided_context_mock)
 
         click_mock.prompt.assert_called_once_with(
-            ANY, show_choices=False, show_default=False, type=click_mock.Choice(["1", "2", "q"])
+            ANY, show_choices=False, show_default=False, type=click_mock.Choice(["2", "3", "q"])
         )
 
     @patch("samcli.commands.pipeline.bootstrap.guided_context.get_current_account_id")
@@ -169,7 +169,7 @@ class TestGuidedContext_prompt_account_id(TestCase):
     ):
         getenv_mock.return_value = "not None"
         list_available_profiles_mock.return_value = ["profile1", "profile2"]
-        click_mock.prompt.return_value = "e"  # select environment variable
+        click_mock.prompt.return_value = "1"  # select environment variable
         get_current_account_id_mock.return_value = "account_id"
 
         guided_context_mock = Mock()
@@ -180,11 +180,11 @@ class TestGuidedContext_prompt_account_id(TestCase):
     @parameterized.expand(
         [
             (
-                "1",
+                "2",
                 "profile1",
             ),
             (
-                "2",
+                "3",
                 "profile2",
             ),
         ]
