@@ -23,13 +23,13 @@ SKIP_BOOTSTRAP_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not R
 class TestBootstrap(BootstrapIntegBase):
     @parameterized.expand([("create_image_repository",), (False,)])
     def test_interactive_with_no_resources_provided(self, create_image_repository: bool):
-        env_name, stack_name = self._get_env_and_stack_name()
+        stage_name, stack_name = self._get_stage_and_stack_name()
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list()
 
         inputs = [
-            env_name,
+            stage_name,
             "",  # pipeline user
             "",  # Pipeline execution role
             "",  # CloudFormation execution role
@@ -69,7 +69,7 @@ class TestBootstrap(BootstrapIntegBase):
 
     @parameterized.expand([("create_image_repository",), (False,)])
     def test_non_interactive_with_no_resources_provided(self, create_image_repository: bool):
-        env_name, stack_name = self._get_env_and_stack_name()
+        stage_name, stack_name = self._get_stage_and_stack_name()
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list(
@@ -83,13 +83,13 @@ class TestBootstrap(BootstrapIntegBase):
         self.assertIn("Missing required parameter", stderr)
 
     def test_interactive_with_all_required_resources_provided(self):
-        env_name, stack_name = self._get_env_and_stack_name()
+        stage_name, stack_name = self._get_stage_and_stack_name()
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list()
 
         inputs = [
-            env_name,
+            stage_name,
             "arn:aws:iam::123:user/user-name",  # pipeline user
             "arn:aws:iam::123:role/role-name",  # Pipeline execution role
             "arn:aws:iam::123:role/role-name",  # CloudFormation execution role
@@ -106,12 +106,12 @@ class TestBootstrap(BootstrapIntegBase):
         self.assertIn("skipping creation", stdout)
 
     def test_no_interactive_with_all_required_resources_provided(self):
-        env_name, stack_name = self._get_env_and_stack_name()
+        stage_name, stack_name = self._get_stage_and_stack_name()
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list(
             no_interactive=True,
-            env_name=env_name,
+            stage_name=stage_name,
             pipeline_user="arn:aws:iam::123:user/user-name",  # pipeline user
             pipeline_execution_role="arn:aws:iam::123:role/role-name",  # Pipeline execution role
             cloudformation_execution_role="arn:aws:iam::123:role/role-name",  # CloudFormation execution role
@@ -127,12 +127,12 @@ class TestBootstrap(BootstrapIntegBase):
 
     @parameterized.expand([("confirm_changeset",), (False,)])
     def test_no_interactive_with_some_required_resources_provided(self, confirm_changeset):
-        env_name, stack_name = self._get_env_and_stack_name()
+        stage_name, stack_name = self._get_stage_and_stack_name()
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list(
             no_interactive=True,
-            env_name=env_name,
+            stage_name=stage_name,
             pipeline_user="arn:aws:iam::123:user/user-name",  # pipeline user
             pipeline_execution_role="arn:aws:iam::123:role/role-name",  # Pipeline execution role
             # CloudFormation execution role missing
@@ -153,13 +153,13 @@ class TestBootstrap(BootstrapIntegBase):
         self.assertSetEqual({"CloudFormationExecutionRole"}, self._extract_created_resource_logical_ids(stack_name))
 
     def test_interactive_cancelled_by_user(self):
-        env_name, stack_name = self._get_env_and_stack_name()
+        stage_name, stack_name = self._get_stage_and_stack_name()
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list()
 
         inputs = [
-            env_name,
+            stage_name,
             "arn:aws:iam::123:user/user-name",  # pipeline user
             "",  # Pipeline execution role
             "",  # CloudFormation execution role
@@ -176,13 +176,13 @@ class TestBootstrap(BootstrapIntegBase):
         self.assertFalse(self._stack_exists(stack_name))
 
     def test_interactive_with_some_required_resources_provided(self):
-        env_name, stack_name = self._get_env_and_stack_name()
+        stage_name, stack_name = self._get_stage_and_stack_name()
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list()
 
         inputs = [
-            env_name,
+            stage_name,
             "arn:aws:iam::123:user/user-name",  # pipeline user
             "arn:aws:iam::123:role/role-name",  # Pipeline execution role
             "",  # CloudFormation execution role
@@ -202,20 +202,20 @@ class TestBootstrap(BootstrapIntegBase):
 
     def test_interactive_pipeline_user_only_created_once(self):
         """
-        Create 3 environments, only the first environment resource stack creates
+        Create 3 stages, only the first stage resource stack creates
         a pipeline user, and the remaining two share the same pipeline user.
         """
-        env_names = []
+        stage_names = []
         for suffix in ["1", "2", "3"]:
-            env_name, stack_name = self._get_env_and_stack_name(suffix)
-            env_names.append(env_name)
+            stage_name, stack_name = self._get_stage_and_stack_name(suffix)
+            stage_names.append(stage_name)
             self.stack_names.append(stack_name)
 
         bootstrap_command_list = self.get_bootstrap_command_list()
 
-        for i, env_name in enumerate(env_names):
+        for i, stage_name in enumerate(stage_names):
             inputs = [
-                env_name,
+                stage_name,
                 *([""] if i == 0 else []),  # pipeline user
                 "arn:aws:iam::123:role/role-name",  # Pipeline execution role
                 "arn:aws:iam::123:role/role-name",  # CloudFormation execution role
@@ -243,11 +243,11 @@ class TestBootstrap(BootstrapIntegBase):
 
     @parameterized.expand([("ArtifactsBucket",), ("ArtifactsLoggingBucket",)])
     def test_bootstrapped_buckets_accept_ssl_requests_only(self, bucket_logical_id):
-        env_name, stack_name = self._get_env_and_stack_name()
+        stage_name, stack_name = self._get_stage_and_stack_name()
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list(
-            env_name=env_name, no_interactive=True, no_confirm_changeset=True
+            stage_name=stage_name, no_interactive=True, no_confirm_changeset=True
         )
 
         bootstrap_process_execute = run_command(bootstrap_command_list)
@@ -281,11 +281,11 @@ class TestBootstrap(BootstrapIntegBase):
         )
 
     def test_bootstrapped_artifacts_bucket_has_server_access_log_enabled(self):
-        env_name, stack_name = self._get_env_and_stack_name()
+        stage_name, stack_name = self._get_stage_and_stack_name()
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list(
-            env_name=env_name, no_interactive=True, no_confirm_changeset=True
+            stage_name=stage_name, no_interactive=True, no_confirm_changeset=True
         )
 
         bootstrap_process_execute = run_command(bootstrap_command_list)

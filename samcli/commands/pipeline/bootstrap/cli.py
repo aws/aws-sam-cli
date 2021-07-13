@@ -10,7 +10,7 @@ import click
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, aws_creds_options, print_cmdline_args
 from samcli.lib.config.samconfig import SamConfig
-from samcli.lib.pipeline.bootstrap.environment import Environment
+from samcli.lib.pipeline.bootstrap.stage import Stage
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.version_checker import check_newer_version
@@ -37,8 +37,8 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
     help="Disable interactive prompting for bootstrap parameters, and fail if any required arguments are missing.",
 )
 @click.option(
-    "--environment",
-    help="The name of the corresponding environment. It is used as a suffix for the created resources.",
+    "--stage",
+    help="The name of the corresponding stage. It is used as a suffix for the created resources.",
     required=False,
 )
 @click.option(
@@ -90,7 +90,7 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
 def cli(
     ctx: Any,
     interactive: bool,
-    environment: Optional[str],
+    stage: Optional[str],
     pipeline_user: Optional[str],
     pipeline_execution_role: Optional[str],
     cloudformation_execution_role: Optional[str],
@@ -108,7 +108,7 @@ def cli(
         region=ctx.region,
         profile=ctx.profile,
         interactive=interactive,
-        environment_name=environment,
+        stage_name=stage,
         pipeline_user_arn=pipeline_user,
         pipeline_execution_role_arn=pipeline_execution_role,
         cloudformation_execution_role_arn=cloudformation_execution_role,
@@ -125,7 +125,7 @@ def do_cli(
     region: Optional[str],
     profile: Optional[str],
     interactive: bool,
-    environment_name: Optional[str],
+    stage_name: Optional[str],
     pipeline_user_arn: Optional[str],
     pipeline_execution_role_arn: Optional[str],
     cloudformation_execution_role_arn: Optional[str],
@@ -159,7 +159,7 @@ def do_cli(
 
         guided_context = GuidedContext(
             profile=profile,
-            environment_name=environment_name,
+            stage_name=stage_name,
             pipeline_user_arn=pipeline_user_arn,
             pipeline_execution_role_arn=pipeline_execution_role_arn,
             cloudformation_execution_role_arn=cloudformation_execution_role_arn,
@@ -169,7 +169,7 @@ def do_cli(
             region=region,
         )
         guided_context.run()
-        environment_name = guided_context.environment_name
+        stage_name = guided_context.stage_name
         pipeline_user_arn = guided_context.pipeline_user_arn
         pipeline_execution_role_arn = guided_context.pipeline_execution_role_arn
         cloudformation_execution_role_arn = guided_context.cloudformation_execution_role_arn
@@ -179,11 +179,11 @@ def do_cli(
         region = guided_context.region
         profile = guided_context.profile
 
-    if not environment_name:
-        raise click.UsageError("Missing required parameter '--environment'")
+    if not stage_name:
+        raise click.UsageError("Missing required parameter '--stage'")
 
-    environment: Environment = Environment(
-        name=environment_name,
+    environment: Stage = Stage(
+        name=stage_name,
         aws_profile=profile,
         aws_region=region,
         pipeline_user_arn=pipeline_user_arn,

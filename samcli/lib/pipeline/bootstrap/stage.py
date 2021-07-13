@@ -16,8 +16,8 @@ from samcli.lib.pipeline.bootstrap.resource import Resource, IAMUser, ECRImageRe
 
 CFN_TEMPLATE_PATH = str(pathlib.Path(os.path.dirname(__file__)))
 STACK_NAME_PREFIX = "aws-sam-cli-managed"
-ENVIRONMENT_RESOURCES_STACK_NAME_SUFFIX = "pipeline-resources"
-ENVIRONMENT_RESOURCES_CFN_TEMPLATE = "environment_resources.yaml"
+STAGE_RESOURCES_STACK_NAME_SUFFIX = "pipeline-resources"
+STAGE_RESOURCES_CFN_TEMPLATE = "stage_resources.yaml"
 PIPELINE_USER = "pipeline_user"
 PIPELINE_EXECUTION_ROLE = "pipeline_execution_role"
 CLOUDFORMATION_EXECUTION_ROLE = "cloudformation_execution_role"
@@ -26,9 +26,9 @@ ECR_IMAGE_REPOSITORY = "image_repository"
 REGION = "region"
 
 
-class Environment:
+class Stage:
     """
-    Represents an application environment: Beta, Gamma, Prod ...etc
+    Represents an application stage: Beta, Gamma, Prod ...etc
 
     Attributes
     ----------
@@ -58,9 +58,9 @@ class Environment:
         checks if all of the environment's required resources (pipeline_user, pipeline_execution_role,
         cloudformation_execution_role, artifacts_bucket and image_repository) are provided by the user.
     bootstrap(self, confirm_changeset: bool = True) -> None:
-        deploys the CFN template ./environment_resources.yaml to the AWS account identified by aws_profile and
+        deploys the CFN template ./stage_resources.yaml to the AWS account identified by aws_profile and
         aws_region member fields. if aws_profile is not provided, it will fallback to  default boto3 credentials'
-        resolving. Note that ./environment_resources.yaml template accepts the ARNs of already existing resources(if
+        resolving. Note that ./stage_resources.yaml template accepts the ARNs of already existing resources(if
         any) as parameters and it will skip the creation of those resources but will use the ARNs to set the proper
         permissions of other missing resources(resources created by the template)
     save_config(self, config_dir: str, filename: str, cmd_names: List[str]):
@@ -122,7 +122,7 @@ class Environment:
 
     def bootstrap(self, confirm_changeset: bool = True) -> bool:
         """
-        Deploys the CFN template(./environment_resources.yaml) which deploys:
+        Deploys the CFN template(./stage_resources.yaml) which deploys:
             * Pipeline IAM User
             * Pipeline execution IAM role
             * CloudFormation execution IAM role
@@ -137,7 +137,7 @@ class Environment:
         Parameters
         ----------
         confirm_changeset: bool
-            if set to false, the environment_resources.yaml CFN template will directly be deployed, otherwise,
+            if set to false, the stage_resources.yaml CFN template will directly be deployed, otherwise,
             the user will be prompted for confirmation
 
         Returns True if bootstrapped, otherwise False
@@ -160,7 +160,7 @@ class Environment:
                 click.secho(self.color.red("Canceling pipeline bootstrap creation."))
                 return False
 
-        environment_resources_template_body = Environment._read_template(ENVIRONMENT_RESOURCES_CFN_TEMPLATE)
+        environment_resources_template_body = Stage._read_template(STAGE_RESOURCES_CFN_TEMPLATE)
         output: StackOutput = manage_stack(
             stack_name=self._get_stack_name(),
             region=self.aws_region,
@@ -183,9 +183,7 @@ class Environment:
             (
                 self.pipeline_user.access_key_id,
                 self.pipeline_user.secret_access_key,
-            ) = Environment._get_pipeline_user_secret_pair(
-                pipeline_user_secret_sm_id, self.aws_profile, self.aws_region
-            )
+            ) = Stage._get_pipeline_user_secret_pair(pipeline_user_secret_sm_id, self.aws_profile, self.aws_region)
         self.pipeline_execution_role.arn = output.get("PipelineExecutionRole")
         self.cloudformation_execution_role.arn = output.get("CloudFormationExecutionRole")
         self.artifacts_bucket.arn = output.get("ArtifactsBucket")
@@ -326,5 +324,5 @@ class Environment:
             click.secho(self.color.green(f"\tAWS_SECRET_ACCESS_KEY: {self.pipeline_user.secret_access_key}"))
 
     def _get_stack_name(self) -> str:
-        sanitized_environment_name: str = re.sub("[^0-9a-zA-Z]+", "-", self.name)
-        return f"{STACK_NAME_PREFIX}-{sanitized_environment_name}-{ENVIRONMENT_RESOURCES_STACK_NAME_SUFFIX}"
+        sanitized_stage_name: str = re.sub("[^0-9a-zA-Z]+", "-", self.name)
+        return f"{STACK_NAME_PREFIX}-{sanitized_stage_name}-{STAGE_RESOURCES_STACK_NAME_SUFFIX}"
