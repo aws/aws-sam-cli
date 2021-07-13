@@ -45,7 +45,8 @@ class InteractiveInitFlow:
         """
         click.echo(
             dedent(
-                f"""\
+                """\
+
                 sam pipeline init generates a pipeline config file that you can use to connect your
                 AWS account(s) to your CI/CD system. We will guide you through the process to
                 bootstrap resources for each stage, then walk through the details necessary for
