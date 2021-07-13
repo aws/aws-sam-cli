@@ -142,7 +142,7 @@ class ECRUploader:
     @staticmethod
     def parse_image_url(image_uri: str) -> Dict:
         result = {}
-        registry_repo_tag = image_uri.split("/")
+        registry_repo_tag = image_uri.split("/", 1)
         repo_colon_image_tag = None
         if len(registry_repo_tag) == 1:
             # If there is no registry specified, e.g. repo:tag

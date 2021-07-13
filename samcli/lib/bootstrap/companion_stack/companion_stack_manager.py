@@ -263,3 +263,14 @@ class CompanionStackManager:
             Returns True if repo_uri is a companion stack repo.
         """
         return repo_uri == self.get_repo_uri(ECRRepo(self._companion_stack, function_logical_id))
+
+    def get_companion_stack_name(self):
+        """
+        Returns the name of the companion stack
+
+        Returns
+        -------
+        str
+            Name of the companion stack
+        """
+        return self._companion_stack.stack_name

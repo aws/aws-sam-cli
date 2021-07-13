@@ -2,6 +2,7 @@
 Delete a SAM stack
 """
 import logging
+from typing import Union, Dict
 import boto3
 
 
@@ -11,8 +12,11 @@ from click import prompt
 from samcli.cli.cli_config_file import TomlProvider
 from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
 from samcli.lib.delete.cf_utils import CfUtils
+
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.artifact_exporter import mktempfile, get_cf_template_name
+from samcli.lib.bootstrap.companion_stack.data_types import ECRRepo
+from samcli.lib.bootstrap.companion_stack.companion_stack_manager import CompanionStackManager
 
 
 from samcli.lib.package.artifact_exporter import Template
@@ -27,6 +31,9 @@ LOG = logging.getLogger(__name__)
 
 
 class DeleteContext:
+
+    ecr_repos: Dict[str, Dict[str, Union[str, ECRRepo]]]
+
     def __init__(self, stack_name: str, region: str, profile: str, config_file: str, config_env: str, no_prompts: bool):
         self.stack_name = stack_name
         self.region = region
@@ -42,6 +49,10 @@ class DeleteContext:
         self.cf_template_file_name = None
         self.delete_artifacts_folder = None
         self.delete_cf_template_file = None
+        self.companion_stack_manager = None
+        self.companion_stack_name = None
+        self.delete_ecr_companion_stack_prompt = None
+        self.ecr_repos = {}
 
     def __enter__(self):
         self.parse_config_file()
@@ -103,6 +114,10 @@ class DeleteContext:
         self.uploaders = Uploaders(self.s3_uploader, ecr_uploader)
         self.cf_utils = CfUtils(cloudformation_client)
 
+        self.companion_stack_manager = CompanionStackManager(
+            stack_name=self.stack_name, region=self.region, s3_bucket=self.s3_bucket, s3_prefix=self.s3_prefix
+        )
+
     def guided_prompts(self):
         """
         Guided prompts asking customer to delete artifacts
@@ -137,6 +152,43 @@ class DeleteContext:
             else:
                 self.delete_cf_template_file = True
 
+    def ecr_companion_stack_prompts(self):
+        """
+        Guided prompts asking customer to delete ECR companion stack
+        and the related artifacts.
+        """
+        self.companion_stack_name = self.companion_stack_manager.get_companion_stack_name()
+        click.echo(f"\tFound ECR Companion Stack {self.companion_stack_name}")
+        if not self.no_prompts:
+            self.delete_ecr_companion_stack_prompt = confirm(
+                click.style(
+                    "\tDo you you want to delete the ECR companion stack"
+                    + f" {self.companion_stack_name} in the region {self.region} ?",
+                    bold=True,
+                ),
+                default=False,
+            )
+        if self.no_prompts or self.delete_ecr_companion_stack_prompt:
+            ecr_repos = self.companion_stack_manager.list_deployed_repos()
+            if ecr_repos:
+                click.echo("\t#Note: Empty repositories created by SAM CLI will be deleted automatically.")
+
+            for repo in ecr_repos:
+                # Get all the repos from the companion stack
+                repo_logical_id = repo.logical_id
+                self.ecr_repos[repo_logical_id] = {"repo": repo}
+
+                if self.delete_ecr_companion_stack_prompt:
+                    delete_repo = confirm(
+                        click.style(
+                            f"\tECR repository {self.companion_stack_manager.get_repo_uri(repo)}"
+                            + " may not be empty. Do you want to delete the repository and all the images in it ?",
+                            bold=True,
+                        ),
+                        default=False,
+                    )
+                    self.ecr_repos[repo_logical_id]["delete_repo"] = delete_repo
+
     def delete(self):
         """
         Delete method calls for Cloudformation stacks and S3 and ECR artifacts
@@ -150,6 +202,11 @@ class DeleteContext:
             self.cf_template_file_name = get_cf_template_name(temp_file, template_str, "template")
 
         self.guided_prompts()
+
+        # ECR companion stack delete prompts, if it exists
+        ecr_companion_stack_exists = self.companion_stack_manager.does_companion_stack_exist()
+        if ecr_companion_stack_exists:
+            self.ecr_companion_stack_prompts()
 
         # Delete the primary stack
         click.echo(f"\n\t- Deleting Cloudformation stack {self.stack_name}")
@@ -179,6 +236,21 @@ class DeleteContext:
                 " delete the files manually if required",
                 fg="yellow",
             )
+
+        # Delete the ECR companion stack if it exists
+        if ecr_companion_stack_exists:
+            click.echo(f"\t- Deleting ECR Companion Stack {self.companion_stack_name}")
+            self.companion_stack_manager.delete_companion_stack()
+
+        # # Delete the repos created by ECR companion stack if it exists
+        # if ecr_companion_stack_exists and (self.no_prompts or self.delete_companion_stack_prompt):
+        #     for key in self.repos:
+        #         repo = self.repos[key]["repo"]
+        #         is_delete = self.repos[key].get("delete_repo", None)
+        #         if no_prompts or is_delete:
+        #             click.echo(f"\tDeleting ECR repository {repo.get_repo_uri(repo)}"
+        #             "")
+        #             self.ecr_uploader.delete_repository(repo.physical_id)
 
     def run(self):
         """
