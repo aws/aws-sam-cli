@@ -61,6 +61,7 @@ class InteractiveInitFlow:
             key="pipeline-template-source",
             text="Select template",
             options=[SAM_PIPELINE_TEMPLATE_SOURCE, CUSTOM_PIPELINE_TEMPLATE_SOURCE],
+            is_required=True,
         )
         source = pipeline_template_source_question.ask()
         if source == CUSTOM_PIPELINE_TEMPLATE_SOURCE:
@@ -344,9 +345,7 @@ def _prompt_cicd_provider(available_providers: List[Provider]) -> Provider:
         return available_providers[0]
 
     question_to_choose_provider = Choice(
-        key="provider",
-        text="CI/CD system",
-        options=[p.display_name for p in available_providers],
+        key="provider", text="CI/CD system", options=[p.display_name for p in available_providers], is_required=True
     )
     chosen_provider_display_name = question_to_choose_provider.ask()
     return next(p for p in available_providers if p.display_name == chosen_provider_display_name)
