@@ -28,16 +28,18 @@ class TestBootstrapManagedStack(TestCase):
 
     @patch("samcli.lib.bootstrap.bootstrap.boto3")
     def test_get_current_account_id(self, boto3_mock):
+        session_mock = boto3_mock.Session.return_value = MagicMock()
         sts_mock = MagicMock()
         sts_mock.get_caller_identity.return_value = {"Account": 1234567890}
-        boto3_mock.client.return_value = sts_mock
+        session_mock.client.return_value = sts_mock
         account_id = get_current_account_id()
         self.assertEqual(account_id, 1234567890)
 
     @patch("samcli.lib.bootstrap.bootstrap.boto3")
     def test_get_current_account_id_missing_id(self, boto3_mock):
+        session_mock = boto3_mock.Session.return_value = MagicMock()
         sts_mock = MagicMock()
         sts_mock.get_caller_identity.return_value = {}
-        boto3_mock.client.return_value = sts_mock
+        session_mock.client.return_value = sts_mock
         with self.assertRaises(CredentialsError):
             get_current_account_id()

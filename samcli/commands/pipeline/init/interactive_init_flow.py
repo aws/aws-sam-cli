@@ -5,7 +5,8 @@ pipeline configuration file
 import logging
 import os
 from pathlib import Path
-from typing import Dict, List
+from textwrap import dedent
+from typing import Dict, List, Tuple
 
 import click
 
@@ -20,7 +21,7 @@ from samcli.lib.utils import osutils
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.git_repo import GitRepo, CloneRepoException
 from .pipeline_templates_manifest import Provider, PipelineTemplateMetadata, PipelineTemplatesManifest
-from ..bootstrap.cli import PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME
+from ..bootstrap.cli import do_cli as do_bootstrap, PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME
 
 LOG = logging.getLogger(__name__)
 shared_path: Path = global_cfg.config_dir
@@ -31,65 +32,184 @@ SAM_PIPELINE_TEMPLATE_SOURCE = "AWS Quick Start Pipeline Templates"
 CUSTOM_PIPELINE_TEMPLATE_SOURCE = "Custom Pipeline Template Location"
 
 
-def do_interactive() -> None:
-    """
-    An interactive flow that prompts the user for pipeline template (cookiecutter template) location, downloads it,
-    runs its specific questionnaire then generates the pipeline config file based on the template and user's responses
-    """
-    pipeline_template_source_question = Choice(
-        key="pipeline-template-source",
-        text="Which pipeline template source would you like to use?",
-        options=[SAM_PIPELINE_TEMPLATE_SOURCE, CUSTOM_PIPELINE_TEMPLATE_SOURCE],
-    )
-    source = pipeline_template_source_question.ask()
-    if source == CUSTOM_PIPELINE_TEMPLATE_SOURCE:
-        generated_files = _generate_from_custom_location()
-    else:
-        generated_files = _generate_from_app_pipeline_templates()
-    click.secho(Colored().green("Successfully created the pipeline configuration file(s):"))
-    for file in generated_files:
-        click.secho(Colored().green(f"\t- {file}"))
+class InteractiveInitFlow:
+    def __init__(self, allow_bootstrap: bool):
+        self.allow_bootstrap = allow_bootstrap
+        self.color = Colored()
 
+    def do_interactive(self) -> None:
+        """
+        An interactive flow that prompts the user for pipeline template (cookiecutter template) location, downloads it,
+        runs its specific questionnaire then generates the pipeline config file
+        based on the template and user's responses
+        """
+        click.echo(
+            dedent(
+                """\
 
-def _generate_from_app_pipeline_templates() -> List[str]:
-    """
-    Prompts the user to choose a pipeline template from SAM predefined set of pipeline templates hosted in the git
-    repository: aws/aws-sam-cli-pipeline-init-templates.git
-    downloads locally, then generates the pipeline config file from the selected pipeline template.
-    Finally, return the list of generated files.
-    """
-    pipeline_templates_local_dir: Path = _clone_app_pipeline_templates()
-    pipeline_templates_manifest: PipelineTemplatesManifest = _read_app_pipeline_templates_manifest(
-        pipeline_templates_local_dir
-    )
-    # The manifest contains multiple pipeline-templates so select one
-    selected_pipeline_template_metadata: PipelineTemplateMetadata = _prompt_pipeline_template(
-        pipeline_templates_manifest
-    )
-    selected_pipeline_template_dir: Path = pipeline_templates_local_dir.joinpath(
-        selected_pipeline_template_metadata.location
-    )
-    return _generate_from_pipeline_template(selected_pipeline_template_dir)
+                sam pipeline init generates a pipeline config file that you can use to connect your
+                AWS account(s) to your CI/CD system. We will guide you through the process to
+                bootstrap resources for each stage, then walk through the details necessary for
+                creating the pipeline config file.
 
-
-def _generate_from_custom_location() -> List[str]:
-    """
-    Prompts the user for a custom pipeline template location, downloads locally, then generates the pipeline config file
-    and return the list of generated files
-    """
-    pipeline_template_git_location: str = click.prompt("Template Git location")
-    if os.path.exists(pipeline_template_git_location):
-        return _generate_from_pipeline_template(Path(pipeline_template_git_location))
-
-    with osutils.mkdir_temp(ignore_errors=True) as tempdir:
-        tempdir_path = Path(tempdir)
-        pipeline_template_local_dir: Path = _clone_pipeline_templates(
-            pipeline_template_git_location, tempdir_path, CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME
+                Please ensure you are in the root folder of your SAM application before you begin.
+                """
+            )
         )
-        return _generate_from_pipeline_template(pipeline_template_local_dir)
+
+        click.echo("Select a pipeline structure template to get started:")
+        pipeline_template_source_question = Choice(
+            key="pipeline-template-source",
+            text="Select template",
+            options=[SAM_PIPELINE_TEMPLATE_SOURCE, CUSTOM_PIPELINE_TEMPLATE_SOURCE],
+            is_required=True,
+        )
+        source = pipeline_template_source_question.ask()
+        if source == CUSTOM_PIPELINE_TEMPLATE_SOURCE:
+            generated_files = self._generate_from_custom_location()
+        else:
+            generated_files = self._generate_from_app_pipeline_templates()
+        click.secho(Colored().green("Successfully created the pipeline configuration file(s):"))
+        for file in generated_files:
+            click.secho(Colored().green(f"\t- {file}"))
+
+    def _generate_from_app_pipeline_templates(
+        self,
+    ) -> List[str]:
+        """
+        Prompts the user to choose a pipeline template from SAM predefined set of pipeline templates hosted in the git
+        repository: aws/aws-sam-cli-pipeline-init-templates.git
+        downloads locally, then generates the pipeline config file from the selected pipeline template.
+        Finally, return the list of generated files.
+        """
+        pipeline_templates_local_dir: Path = _clone_app_pipeline_templates()
+        pipeline_templates_manifest: PipelineTemplatesManifest = _read_app_pipeline_templates_manifest(
+            pipeline_templates_local_dir
+        )
+        # The manifest contains multiple pipeline-templates so select one
+        selected_pipeline_template_metadata: PipelineTemplateMetadata = _prompt_pipeline_template(
+            pipeline_templates_manifest
+        )
+        selected_pipeline_template_dir: Path = pipeline_templates_local_dir.joinpath(
+            selected_pipeline_template_metadata.location
+        )
+        return self._generate_from_pipeline_template(selected_pipeline_template_dir)
+
+    def _generate_from_custom_location(
+        self,
+    ) -> List[str]:
+        """
+        Prompts the user for a custom pipeline template location, downloads locally,
+        then generates the pipeline config file and return the list of generated files
+        """
+        pipeline_template_git_location: str = click.prompt("Template Git location")
+        if os.path.exists(pipeline_template_git_location):
+            return self._generate_from_pipeline_template(Path(pipeline_template_git_location))
+
+        with osutils.mkdir_temp(ignore_errors=True) as tempdir:
+            tempdir_path = Path(tempdir)
+            pipeline_template_local_dir: Path = _clone_pipeline_templates(
+                pipeline_template_git_location, tempdir_path, CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME
+            )
+            return self._generate_from_pipeline_template(pipeline_template_local_dir)
+
+    def _prompt_run_bootstrap_within_pipeline_init(self, env_names: List[str], required_env_number: int) -> bool:
+        """
+        Prompt bootstrap if `--bootstrap` flag is provided. Return True if bootstrap process is executed.
+        """
+        if not env_names:
+            click.echo(Colored().yellow("No bootstrapped resources were detected."))
+        else:
+            click.echo(
+                Colored().yellow(
+                    f"Only {len(env_names)} bootstrapped stage(s) were detected, "
+                    f"fewer than what the template requires: {required_env_number}."
+                )
+            )
+        click.echo()
+
+        if self.allow_bootstrap:
+            if click.confirm(
+                "Do you want to go through stage setup process now? If you choose no, "
+                "you can still reference other bootstrapped resources."
+            ):
+                click.secho(
+                    dedent(
+                        """\
+
+                        For each stage, we will ask for [1] stage definition, [2] account details, and [3]
+                        reference application build resources in order to bootstrap these pipeline
+                        resources. You can also add optional security parameters.
+
+                        We recommend using an individual AWS account profiles for each stage in your
+                        pipeline. You can set these profiles up using [little bit of info on how to do
+                        this/docs].
+                        """
+                    )
+                )
+
+                click.echo(Colored().bold(f"\nStage {len(env_names) + 1} Setup\n"))
+                do_bootstrap(
+                    region=None,
+                    profile=None,
+                    interactive=True,
+                    environment_name=None,
+                    pipeline_user_arn=None,
+                    pipeline_execution_role_arn=None,
+                    cloudformation_execution_role_arn=None,
+                    artifacts_bucket_arn=None,
+                    create_image_repository=False,
+                    image_repository_arn=None,
+                    pipeline_ip_range=None,
+                    confirm_changeset=True,
+                    config_file=None,
+                    config_env=None,
+                    standalone=False,
+                )
+                return True
+        else:
+            click.echo(
+                Colored().yellow(
+                    dedent(
+                        f"""\
+                        If you want to setup stages before proceed, please quit the process using Ctrl+C.
+                        Then you can either run {Colored().bold('sam pipeline bootstrap')} to setup a stage
+                        or re-run this command with option {Colored().bold('--bootstrap')} to enable stage setup.
+                        """
+                    )
+                )
+            )
+        return False
+
+    def _generate_from_pipeline_template(self, pipeline_template_dir: Path) -> List[str]:
+        """
+        Generates a pipeline config file from a given pipeline template local location
+        and return the list of generated files.
+        """
+        pipeline_template: Template = _initialize_pipeline_template(pipeline_template_dir)
+        required_env_number = 2  # TODO: read from template
+        click.echo(f"You are using the {required_env_number}-stage pipeline template.")
+        _draw_stage_diagram(required_env_number)
+        while True:
+            click.echo("Checking for bootstrapped resources...")
+            env_names, bootstrap_context = _load_pipeline_bootstrap_resources()
+            if len(env_names) < required_env_number and self._prompt_run_bootstrap_within_pipeline_init(
+                env_names, required_env_number
+            ):
+                # the customers just went through the bootstrap process,
+                # refresh the pipeline bootstrap resources and see whether bootstrap is still needed
+                continue
+            break
+
+        context: Dict = pipeline_template.run_interactive_flows(bootstrap_context)
+        with osutils.mkdir_temp() as generate_dir:
+            LOG.debug("Generating pipeline files into %s", generate_dir)
+            context["outputDir"] = "."  # prevent cookiecutter from generating a sub-folder
+            pipeline_template.generate_project(context, generate_dir)
+            return _copy_dir_contents_to_cwd_fail_on_exist(generate_dir)
 
 
-def _load_pipeline_bootstrap_context() -> Dict:
+def _load_pipeline_bootstrap_resources() -> Tuple[List[str], Dict[str, str]]:
     bootstrap_command_names = ["pipeline", "bootstrap"]
     section = "parameters"
     context: Dict = {}
@@ -97,7 +217,7 @@ def _load_pipeline_bootstrap_context() -> Dict:
     config = SamConfig(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)
     if not config.exists():
         context[str(["environment_names_message"])] = ""
-        return context
+        return [], context
 
     # config.get_env_names() will return the list of
     # bootstrapped env names and "default" which is used to store shared values
@@ -115,22 +235,7 @@ def _load_pipeline_bootstrap_context() -> Dict:
     )
     context[str(["environment_names_message"])] = environment_names_message
 
-    return context
-
-
-def _generate_from_pipeline_template(pipeline_template_dir: Path) -> List[str]:
-    """
-    Generates a pipeline config file from a given pipeline template local location
-    and return the list of generated files.
-    """
-    pipeline_template: Template = _initialize_pipeline_template(pipeline_template_dir)
-    bootstrap_context: Dict = _load_pipeline_bootstrap_context()
-    context: Dict = pipeline_template.run_interactive_flows(bootstrap_context)
-    with osutils.mkdir_temp() as generate_dir:
-        LOG.debug("Generating pipeline files into %s", generate_dir)
-        context["outputDir"] = "."  # prevent cookiecutter from generating a sub-folder
-        pipeline_template.generate_project(context, generate_dir)
-        return _copy_dir_contents_to_cwd_fail_on_exist(generate_dir)
+    return env_names, context
 
 
 def _copy_dir_contents_to_cwd_fail_on_exist(source_dir: str) -> List[str]:
@@ -243,9 +348,7 @@ def _prompt_cicd_provider(available_providers: List[Provider]) -> Provider:
         return available_providers[0]
 
     question_to_choose_provider = Choice(
-        key="provider",
-        text="CI/CD system",
-        options=[p.display_name for p in available_providers],
+        key="provider", text="CI/CD system", options=[p.display_name for p in available_providers], is_required=True
     )
     chosen_provider_display_name = question_to_choose_provider.ask()
     return next(p for p in available_providers if p.display_name == chosen_provider_display_name)
@@ -310,3 +413,19 @@ def _get_pipeline_template_interactive_flow(pipeline_template_dir: Path) -> Inte
     """
     flow_definition_path: Path = pipeline_template_dir.joinpath("questions.json")
     return InteractiveFlowCreator.create_flow(str(flow_definition_path))
+
+
+def _lines_for_stage(stage_index: int) -> List[str]:
+    return [
+        " _________ ",
+        "|         |",
+        f"| Stage {stage_index} |",
+        "|_________|",
+    ]
+
+
+def _draw_stage_diagram(number_of_stages: int) -> None:
+    delimiters = ["  ", "  ", "->", "  "]
+    stage_lines = [_lines_for_stage(i + 1) for i in range(number_of_stages)]
+    for i, delimiter in enumerate(delimiters):
+        click.echo(delimiter.join([stage_lines[stage_i][i] for stage_i in range(number_of_stages)]))
