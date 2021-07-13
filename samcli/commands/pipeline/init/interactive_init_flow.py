@@ -125,6 +125,7 @@ class InteractiveInitFlow:
                     f"fewer than what the template requires: {required_env_number}."
                 )
             )
+        click.echo()
 
         if self.allow_bootstrap:
             if click.confirm(
@@ -134,6 +135,7 @@ class InteractiveInitFlow:
                 click.secho(
                     dedent(
                         """\
+
                         For each stage, we will ask for [1] stage definition, [2] account details, and [3]
                         reference application build resources in order to bootstrap these pipeline
                         resources. You can also add optional security parameters.
