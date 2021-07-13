@@ -58,7 +58,7 @@ class GuidedContext:
         click.echo(f"  1. Environment variables{' (not available)' if not has_env_creds else ''}")
         for i, profile in enumerate(profiles):
             click.echo(f"  {i + 2}. {profile} (named profile)")
-        click.echo("  q. Quit and configure AWS credential myself")
+        click.echo("  q. Quit and configure AWS credentials")
         answer = click.prompt(
             "Select an account source to associate with this stage",
             show_choices=False,
