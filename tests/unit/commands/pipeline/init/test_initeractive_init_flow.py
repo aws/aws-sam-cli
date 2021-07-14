@@ -173,9 +173,11 @@ class TestInteractiveInitFlow(TestCase):
         interactive_flow_mock.run.assert_called_once_with(
             {
                 str(["testing", "pipeline_execution_role"]): "arn:aws:iam::123456789012:role/execution-role",
+                str(["1", "pipeline_execution_role"]): "arn:aws:iam::123456789012:role/execution-role",
                 str(["prod", "pipeline_execution_role"]): "arn:aws:iam::123456789012:role/execution-role",
+                str(["2", "pipeline_execution_role"]): "arn:aws:iam::123456789012:role/execution-role",
                 str(["stage_names_message"]): "Here are the stage names detected "
-                f'in {os.path.join(".aws-sam", "pipeline", "pipelineconfig.toml")}:\n\t- testing\n\t- prod',
+                f'in {os.path.join(".aws-sam", "pipeline", "pipelineconfig.toml")}:\n\t1 - testing\n\t2 - prod',
             }
         )
         cookiecutter_mock.assert_called_once_with(

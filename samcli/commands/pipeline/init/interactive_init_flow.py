@@ -226,15 +226,18 @@ def _load_pipeline_bootstrap_resources() -> Tuple[List[str], Dict[str, str]]:
     # bootstrapped stage names and "default" which is used to store shared values
     # we don't want to include "default" here.
     stage_names = [stage_name for stage_name in config.get_stage_names() if stage_name != "default"]
-    for stage in stage_names:
+    for index, stage in enumerate(stage_names):
         for key, value in config.get_all(_get_bootstrap_command_names(), section, stage).items():
             context[str([stage, key])] = value
+            # create an index alias for each stage name
+            # so that if customers type "1," it is equivalent to the first stage name
+            context[str([str(index + 1), key])] = value
 
     # pre-load the list of stage names detected from pipelineconfig.toml
     stage_names_message = (
         "Here are the stage names detected "
         + f"in {os.path.join(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)}:\n"
-        + "\n".join([f"\t- {stage_name}" for stage_name in stage_names])
+        + "\n".join([f"\t{index + 1} - {stage_name}" for index, stage_name in enumerate(stage_names)])
     )
     context[str(["stage_names_message"])] = stage_names_message
 
