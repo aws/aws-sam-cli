@@ -27,6 +27,7 @@ class TestQuestion(TestCase):
             key=self._ANY_KEY,
             default=self._ANY_ANSWER,
             is_required=True,
+            allow_autofill=False,
             next_question_map=self._ANY_NEXT_QUESTION_MAP,
             default_next_question_key=self._ANY_DEFAULT_NEXT_QUESTION_KEY,
         )
@@ -150,6 +151,16 @@ class TestQuestion(TestCase):
         # Trigger
         with self.assertRaises(KeyError):
             question.ask(context=context)
+
+    def test_question_allow_autofill_with_default_value(self):
+        q = Question(text=self._ANY_TEXT, key=self._ANY_KEY, is_required=True, allow_autofill=True, default="123")
+        self.assertEquals("123", q.ask())
+
+    @patch("samcli.lib.cookiecutter.question.click")
+    def test_question_allow_autofill_without_default_value(self, click_mock):
+        answer_mock = click_mock.prompt.return_value = Mock()
+        q = Question(text=self._ANY_TEXT, key=self._ANY_KEY, is_required=True, allow_autofill=True)
+        self.assertEquals(answer_mock, q.ask())
 
 
 class TestChoice(TestCase):
