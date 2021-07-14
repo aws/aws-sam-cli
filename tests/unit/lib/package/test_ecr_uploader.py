@@ -235,7 +235,7 @@ class TestECRUploader(TestCase):
                 image_uri=self.image_uri, resource_id=self.resource_id, property_name=self.property_name
             )
 
-    def test_parse_ecr_url(self):
+    def test_parse_image_url(self):
 
         valid = [
             {"url": self.image_uri, "result": {"repository": "mock-image-repo", "image_tag": "mock-tag"}},
@@ -247,6 +247,6 @@ class TestECRUploader(TestCase):
         ]
 
         for config in valid:
-            result = ECRUploader.parse_ecr_url(image_uri=config["url"])
+            result = ECRUploader.parse_image_url(image_uri=config["url"])
 
             self.assertEqual(result, config["result"])
