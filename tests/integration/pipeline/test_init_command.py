@@ -34,7 +34,9 @@ class TestInit(InitIntegBase):
 
     def setUp(self) -> None:
         # make sure there is no pipelineconfig.toml, otherwise the autofill could affect the question flow
-        Path(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME).unlink(missing_ok=True)
+        pipelineconfig_file = Path(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)
+        if pipelineconfig_file.exists():
+            pipelineconfig_file.unlink()
 
     def test_quick_start(self):
         generated_jenkinsfile_path = Path("Jenkinsfile")

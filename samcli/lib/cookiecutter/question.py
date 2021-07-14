@@ -118,14 +118,15 @@ class Question(Promptable):
         The user provided answer.
         """
         resolved_default_answer = self._resolve_default_answer(context)
-        # if it is an optional question with no default answer,
-        # set an empty default answer to prevent click from keep asking for an answer
-        if not self._required and resolved_default_answer is None:
-            resolved_default_answer = ""
 
         # skip the question and directly use the default value if autofill is allowed.
         if resolved_default_answer is not None and self._allow_autofill:
             return resolved_default_answer
+
+        # if it is an optional question with no default answer,
+        # set an empty default answer to prevent click from keep asking for an answer
+        if not self._required and resolved_default_answer is None:
+            resolved_default_answer = ""
 
         return self.prompt(self._resolve_text(context), resolved_default_answer)
 
