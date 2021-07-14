@@ -118,7 +118,7 @@ class Stage:
                 else [self.image_repository.comment],
             ]
         )
-        return "\n".join([f"  - {comment}" for comment in resource_comments])
+        return "\n".join([f"\t- {comment}" for comment in resource_comments])
 
     def bootstrap(self, confirm_changeset: bool = True) -> bool:
         """
@@ -316,7 +316,7 @@ class Stage:
         if created_resources:
             click.secho(self.color.green("The following resources were created in your account:"))
             for resource in created_resources:
-                click.secho(self.color.green(f"  - {resource.comment}"))
+                click.secho(self.color.green(f"\t- {resource.comment}"))
 
         if not self.pipeline_user.is_user_provided:
             click.secho(self.color.green("Pipeline IAM user credential:"))

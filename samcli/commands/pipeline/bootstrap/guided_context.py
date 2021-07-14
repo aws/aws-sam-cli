@@ -78,7 +78,7 @@ class GuidedContext:
             account_id = get_current_account_id(self.profile)
             click.echo(self.color.green(f"Associated account {account_id} with stage {self.stage_name}."))
         except CredentialsError as ex:
-            click.echo(self.color.red(ex.message))
+            click.echo(f"{self.color.red(ex.message)}\n")
             self._prompt_account_id()
 
     def _prompt_stage_name(self) -> None:
@@ -210,19 +210,16 @@ class GuidedContext:
             click.echo(f"Pipeline execution role ARN: {self.pipeline_execution_role_arn}")
         else:
             self._prompt_pipeline_execution_role()
-        click.echo()
 
         if self.cloudformation_execution_role_arn:
             click.echo(f"CloudFormation execution role ARN: {self.cloudformation_execution_role_arn}")
         else:
             self._prompt_cloudformation_execution_role()
-        click.echo()
 
         if self.artifacts_bucket_arn:
             click.echo(f"Artifacts bucket ARN: {self.cloudformation_execution_role_arn}")
         else:
             self._prompt_artifacts_bucket()
-        click.echo()
 
         if self.image_repository_arn:
             click.echo(f"ECR image repository ARN: {self.image_repository_arn}")
@@ -244,6 +241,7 @@ class GuidedContext:
                 show_default=False,
                 type=click.Choice(["0"] + [str(i + 1) for i in range(len(inputs))]),
             )
+            click.echo()
             if int(edit_input):
                 inputs[int(edit_input) - 1][1]()
                 click.echo()
