@@ -86,7 +86,7 @@ class S3Uploader:
 
         # Check if a file with same data exists
         if not self.force_upload and self.file_exists(remote_path):
-            LOG.debug("File with same data is already exists at %s. " "Skipping upload", remote_path)
+            LOG.info("File with same data already exists at %s, skipping upload", remote_path)
             return self.make_url(remote_path)
 
         try:
@@ -243,25 +243,70 @@ class S3Uploader:
         object_key_property: str = "Key",
         version_property: Optional[str] = None,
     ) -> Dict:
-
         if isinstance(url, str) and url.startswith("s3://"):
 
-            parsed = urlparse(url)
-            query = parse_qs(parsed.query)
+            return S3Uploader._parse_s3_format_url(
+                url=url,
+                bucket_name_property=bucket_name_property,
+                object_key_property=object_key_property,
+                version_property=version_property,
+            )
 
-            if parsed.netloc and parsed.path:
-                result = dict()
-                result[bucket_name_property] = parsed.netloc
-                result[object_key_property] = parsed.path.lstrip("/")
+        if isinstance(url, str) and url.startswith("https://s3"):
+            return S3Uploader._parse_path_style_s3_url(
+                url=url, bucket_name_property=bucket_name_property, object_key_property=object_key_property
+            )
 
-                # If there is a query string that has a single versionId field,
-                # set the object version and return
-                if version_property is not None and "versionId" in query and len(query["versionId"]) == 1:
-                    result[version_property] = query["versionId"][0]
+        raise ValueError("URL given to the parse method is not a valid S3 url {0}".format(url))
 
-                return result
+    @staticmethod
+    def _parse_s3_format_url(
+        url: Any,
+        bucket_name_property: str = "Bucket",
+        object_key_property: str = "Key",
+        version_property: Optional[str] = None,
+    ) -> Dict:
+        """
+        Method for parsing s3 urls that begin with s3://
+        e.g. s3://bucket/key
+        """
+        parsed = urlparse(url)
+        query = parse_qs(parsed.query)
+        if parsed.netloc and parsed.path:
+            result = dict()
+            result[bucket_name_property] = parsed.netloc
+            result[object_key_property] = parsed.path.lstrip("/")
 
-        raise ValueError("URL given to the parse method is not a valid S3 url " "{0}".format(url))
+            # If there is a query string that has a single versionId field,
+            # set the object version and return
+            if version_property is not None and "versionId" in query and len(query["versionId"]) == 1:
+                result[version_property] = query["versionId"][0]
+
+            return result
+
+        raise ValueError("URL given to the parse method is not a valid S3 url {0}".format(url))
+
+    @staticmethod
+    def _parse_path_style_s3_url(
+        url: Any,
+        bucket_name_property: str = "Bucket",
+        object_key_property: str = "Key",
+    ) -> Dict:
+        """
+        Static method for parsing path style s3 urls.
+        e.g. https://s3.us-east-1.amazonaws.com/bucket/key
+        """
+        parsed = urlparse(url)
+        result = dict()
+        # parsed.path would point to /bucket/key
+        if parsed.path:
+            s3_bucket_key = parsed.path.split("/", 2)[1:]
+
+            result[bucket_name_property] = s3_bucket_key[0]
+            result[object_key_property] = s3_bucket_key[1]
+
+            return result
+        raise ValueError("URL given to the parse method is not a valid S3 url {0}".format(url))
 
 
 class ProgressPercentage:
