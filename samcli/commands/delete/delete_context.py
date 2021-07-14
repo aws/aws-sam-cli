@@ -201,7 +201,7 @@ class DeleteContext:
         template_str = cf_template.get("TemplateBody", None)
 
         if isinstance(template_str, dict):
-            template_str = json.dumps(cf_template.get("TemplateBody", None), indent=4, ensure_ascii=False)
+            template_str = json.dumps(template_str, indent=4, ensure_ascii=False)
 
         # Get the cloudformation template name using template_str
         with mktempfile() as temp_file:
@@ -243,11 +243,6 @@ class DeleteContext:
                 fg="yellow",
             )
 
-        # Delete the ECR companion stack if it exists
-        if ecr_companion_stack_exists:
-            click.echo(f"\t- Deleting ECR Companion Stack {self.companion_stack_name}")
-            self.companion_stack_manager.delete_companion_stack()
-
         # # Delete the repos created by ECR companion stack if it exists
         if ecr_companion_stack_exists and (self.no_prompts or self.delete_ecr_companion_stack_prompt):
             for key in self.ecr_repos:
@@ -256,6 +251,11 @@ class DeleteContext:
                 if self.no_prompts or is_delete:
                     click.echo(f"\tDeleting ECR repository {repo.physical_id}")
                     self.ecr_uploader.delete_ecr_repository(physical_id=repo.physical_id)
+
+        # Delete the ECR companion stack if it exists
+        if ecr_companion_stack_exists:
+            click.echo(f"\t- Deleting ECR Companion Stack {self.companion_stack_name}")
+            self.companion_stack_manager.delete_companion_stack()
 
     def run(self):
         """
