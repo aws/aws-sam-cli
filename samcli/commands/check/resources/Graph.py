@@ -21,7 +21,7 @@ class Graph:
 
     def add_resource_to_analyze(self, resource):
         self.resources_to_analyze.append(resource)
-
+        
     def add_green_warning(self, warning):
         self.green_warnings.append(warning)
 
@@ -45,3 +45,4 @@ class Graph:
 
     def get_red_burst_warnings(self):
         return self.red_burst_warnings
+

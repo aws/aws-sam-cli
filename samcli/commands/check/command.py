@@ -31,10 +31,13 @@ from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from .bottle_necks import BottleNecks
 from .graph_context import GraphContext
 from .resources.LambdaFunction import LambdaFunction
+
+from .resources.Pricing import Pricing
 from .exceptions import InvalidSamDocumentException
 
 from .calculations import Calculations
 from .print_results import PrintResults
+
 
 SHORT_HELP = "Checks template for bottle necks."
 
@@ -130,11 +133,17 @@ def do_cli(ctx, template):
     bottle_necks = BottleNecks(graph)
     bottle_necks.ask_entry_point_question()
 
+    pricing = Pricing(graph)
+    pricing.ask_pricing_questions()
+
+    click.echo("Running calculations...")
+
     calculations = Calculations(graph)
     calculations.run_bottle_neck_calculations()
 
     results = PrintResults(graph)
     results.print_bottle_neck_results()
+
 
 
 def parse_template():
