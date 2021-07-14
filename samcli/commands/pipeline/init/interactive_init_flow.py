@@ -144,7 +144,7 @@ class InteractiveInitFlow:
 
                         For each stage, we will ask for [1] stage definition, [2] account details, and [3]
                         reference application build resources in order to bootstrap these pipeline
-                        resources. You can also add optional security parameters.
+                        resources.
 
                         We recommend using an individual AWS account profiles for each stage in your
                         pipeline. You can set these profiles up using [little bit of info on how to do
