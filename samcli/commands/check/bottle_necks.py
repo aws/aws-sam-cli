@@ -3,10 +3,13 @@ import click
 from click import confirm
 from click import prompt
 
+from .resources.Pricing import Pricing
+
 
 class BottleNecks:
     def __init__(self, graph):
         self.graph = graph
+        self.pricing = Pricing(graph)
 
     def ask(self, question, min=1, max=float("inf")):
         valid_user_input = False
@@ -42,6 +45,8 @@ class BottleNecks:
             current_entry_point = entry_points.pop(user_input - 1)
 
             self.ask_bottle_neck_questions(current_entry_point)
+
+            self.pricing.ask_pricing_question(current_entry_point)
 
             self.graph.add_resource_to_analyze(current_entry_point)
 

@@ -1,11 +1,11 @@
 from unittest import TestCase
 from unittest.mock import MagicMock, Mock, patch
 
-from samcli.commands.check.calculations import Calculations
+from samcli.commands.check.bottle_neck_calculations import BottleNeckCalculations
 
 
 class TestCalculations(TestCase):
-    @patch("samcli.commands.check.calculations.Warning")
+    @patch("samcli.commands.check.bottle_neck_calculations.Warning")
     def test_generate_warning_message(self, patch_warning):
         """
         Other than capacity, the specific values (strings and ints) used in the parameter variables for
@@ -22,7 +22,7 @@ class TestCalculations(TestCase):
         graph_mock.add_red_warning = Mock()
         graph_mock.add_red_burst_warning = Mock()
 
-        calculations = Calculations(graph_mock)
+        calculations = BottleNeckCalculations(graph_mock)
 
         # Capacity <= 70
         capacity_used = 60
@@ -99,9 +99,9 @@ class TestCalculations(TestCase):
         )
         graph_mock.add_red_burst_warning.assert_called_once_with(warning_instance_mock)
 
-    @patch("samcli.commands.check.calculations.click")
-    @patch("samcli.commands.check.calculations.boto3")
-    def test_run_bottle_neck_calculations(self, patch_boto3, patch_click):
+    @patch("samcli.commands.check.bottle_neck_calculations.click")
+    @patch("samcli.commands.check.bottle_neck_calculations.boto3")
+    def test_run_calculations(self, patch_boto3, patch_click):
         # pass
         # Cannot mock client. Need to find a way around it.
         graph_mock = Mock()
@@ -118,7 +118,7 @@ class TestCalculations(TestCase):
 
         patch_boto3.client.return_value = client_mock
 
-        calculations = Calculations(graph_mock)
+        calculations = BottleNeckCalculations(graph_mock)
         calculations.check_limit = Mock()
         calculations.check_limit.return_value = Mock()
         calculations.generate_warning_message = Mock()
@@ -140,7 +140,7 @@ class TestCalculations(TestCase):
             ServiceCode="lambda", QuotaCode="L-B99A9384"
         ).return_value["Quota"]["Value"]
 
-        calculations.run_bottle_neck_calculations()
+        calculations.run_calculations()
 
         patch_boto3.client.assert_called_once_with("service-quotas")
         calculations.check_limit.assert_called_once_with(
@@ -152,7 +152,7 @@ class TestCalculations(TestCase):
     def test_check_limit(self):
         graph_mock = Mock()
 
-        calculations = Calculations(graph_mock)
+        calculations = BottleNeckCalculations(graph_mock)
 
         result1 = calculations.check_limit(300, 200, 1000)
         result2 = calculations.check_limit(300, 1500, 2000)

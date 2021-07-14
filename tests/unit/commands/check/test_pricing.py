@@ -108,11 +108,15 @@ class TestPricing(TestCase):
         self_mock = Mock()
         resource_mock = Mock()
         resource_mock.get_resource_type.return_value = "AWS::Lambda::Function"
-        self_mock.graph.get_resources_to_analyze.return_value = [resource_mock]
+        self_mock.asked_lambda_questions.return_value = False
 
-        result = Pricing.ask_pricing_questions(self_mock)
+        pricing = Pricing(self_mock)
 
-        self_mock.ask_lambda_function_questions.assert_called_with(resource_mock)
+        pricing.ask_lambda_function_questions = Mock()
+
+        pricing.ask_pricing_question(resource_mock)
+
+        pricing.ask_lambda_function_questions.assert_called_once_with(resource_mock)
 
     @patch("samcli.commands.check.resources.Pricing.LambdaFunctionPricing")
     def test_ask_lambda_function_questions(self, patch_LFPricing):
@@ -138,4 +142,4 @@ class TestPricing(TestCase):
         pricing_instance_mock.set_average_duration.assert_called_once_with(pricing.ask.return_value)
         pricing_instance_mock.set_allocated_memory.assert_called_once_with(memory_mock)
         pricing_instance_mock.set_allocated_memory_unit.assert_called_once_with(unit_mock)
-        lambda_function_mock.set_pricing_info.assert_called_once_with(pricing_instance_mock)
+        graph_mock.set_lambda_function_pricing_info.assert_called_once_with(pricing_instance_mock)

@@ -6,6 +6,7 @@ from .LambdaFunctionPricing import LambdaFunctionPricing
 class Pricing:
     def __init__(self, graph):
         self.graph = graph
+        self.asked_lambda_questions = False
 
     def ask(self, question, min=1, max=float("inf")):
         valid_user_input = False
@@ -63,14 +64,11 @@ class Pricing:
 
         return True
 
-    def ask_pricing_questions(self):
-        asked_lambda_questions = False
+    def ask_pricing_question(self, resource):
         print("PRICING QUESTIONS")
-        for resource in self.graph.get_resources_to_analyze():
-            # Only ask lambda quetions once for all lambda functions
-            if resource.get_resource_type() == "AWS::Lambda::Function" and asked_lambda_questions == False:
-                asked_lambda_questions = True
-                self.ask_lambda_function_questions(resource)
+        if resource.get_resource_type() == "AWS::Lambda::Function" and self.asked_lambda_questions == False:
+            self.asked_lambda_questions = True
+            self.ask_lambda_function_questions(resource)
 
     def ask_lambda_function_questions(self, lambda_function):
         lambda_funciton_pricing = LambdaFunctionPricing()
@@ -92,4 +90,4 @@ class Pricing:
         lambda_funciton_pricing.set_allocated_memory(user_input_memory)
         lambda_funciton_pricing.set_allocated_memory_unit(user_input_unit)
 
-        lambda_function.set_pricing_info(lambda_funciton_pricing)
+        self.graph.set_lambda_function_pricing_info(lambda_funciton_pricing)

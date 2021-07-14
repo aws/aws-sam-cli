@@ -5,7 +5,7 @@ from .resources.Warning import Warning
 import boto3
 
 
-class Calculations:
+class BottleNeckCalculations:
     def __init__(self, graph):
         self.graph = graph
 
@@ -43,7 +43,7 @@ class Calculations:
             )
             self.graph.add_red_burst_warning(warning)
 
-    def run_bottle_neck_calculations(self):
+    def run_calculations(self):
         click.echo("Running calculations...")
 
         for resource in self.graph.get_resources_to_analyze():

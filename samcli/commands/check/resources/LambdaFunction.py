@@ -8,7 +8,6 @@ class LambdaFunction(TemplateResource):
         self.tps = None
         self.parents = []
         self.children = []
-        self.pricing_info = None
 
     def add_child(self, child_node):
         self.children.append(child_node)
@@ -33,9 +32,3 @@ class LambdaFunction(TemplateResource):
 
     def get_duration(self):
         return self.duration
-
-    def set_pricing_info(self, pricing_info):
-        self.pricing_info = pricing_info
-
-    def get_pricing_info(self):
-        return self.pricing_info

@@ -9,6 +9,7 @@ class Graph:
         self.yellow_warnings = []
         self.red_warnings = []
         self.red_burst_warnings = []
+        self.lambda_function_pricing_info = None
 
     def add_entry_point(self, node):
         self.entry_points.append(node)
@@ -21,7 +22,7 @@ class Graph:
 
     def add_resource_to_analyze(self, resource):
         self.resources_to_analyze.append(resource)
-        
+
     def add_green_warning(self, warning):
         self.green_warnings.append(warning)
 
@@ -46,3 +47,8 @@ class Graph:
     def get_red_burst_warnings(self):
         return self.red_burst_warnings
 
+    def get_lambda_function_pricing_info(self):
+        return self.lambda_function_pricing_info
+
+    def set_lambda_function_pricing_info(self, info):
+        self.lambda_function_pricing_info = info
