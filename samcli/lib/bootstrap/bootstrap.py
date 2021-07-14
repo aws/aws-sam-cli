@@ -72,6 +72,9 @@ def _get_stack_template():
                       - "/*"
                 Principal:
                   Service: serverlessrepo.amazonaws.com
+                Condition:
+                  StringEquals:
+                    aws:SourceAccount: !Ref AWS::AccountId
 
     Outputs:
       SourceBucket:
