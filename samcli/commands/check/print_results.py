@@ -17,5 +17,5 @@ class PrintResults:
         self.print_warnings(self.graph.get_red_burst_warnings())
 
     def print_warnings(self, warnings):
-        for wawa in warnings:
-            click.echo(wawa.get_message() + "\n")
+        for warning in warnings:
+            click.echo(warning.get_message() + "\n")
