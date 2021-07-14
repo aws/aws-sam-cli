@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from samcli.commands.pipeline.bootstrap.cli import PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME
 from tests.integration.pipeline.base import InitIntegBase
 from tests.testing_utils import run_command_with_inputs
 
@@ -30,6 +31,10 @@ class TestInit(InitIntegBase):
     """
     Here we use Jenkins template for testing
     """
+
+    def setUp(self) -> None:
+        # make sure there is no pipelineconfig.toml, otherwise the autofill could affect the question flow
+        Path(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME).unlink(missing_ok=True)
 
     def test_quick_start(self):
         generated_jenkinsfile_path = Path("Jenkinsfile")
