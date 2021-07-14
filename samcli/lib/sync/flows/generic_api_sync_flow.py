@@ -84,3 +84,6 @@ class GenericApiSyncFlow(SyncFlow):
 
     def _get_resource_api_calls(self) -> List[ResourceAPICall]:
         return []
+
+    def _equality_keys(self) -> Any:
+        return self._api_identifier

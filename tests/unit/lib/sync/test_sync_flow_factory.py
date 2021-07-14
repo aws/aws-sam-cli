@@ -1,12 +1,5 @@
-from parameterized import parameterized
-
-from samcli.lib.providers.provider import ResourceIdentifier
 from unittest import TestCase
 from unittest.mock import ANY, MagicMock, call, patch
-
-from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall
-from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow
-from samcli.lib.utils.lock_distributor import LockChain
 
 from samcli.lib.sync.sync_flow_factory import SyncFlowFactory
 
@@ -74,44 +67,37 @@ class TestSyncFlowFactory(TestCase):
         result = factory._create_lambda_flow("Function1", resource)
         self.assertEqual(result, None)
 
-    @parameterized.expand(
-        [
-            "AWS::Lambda::Function",
-            "AWS::Lambda::LayerVersion",
-        ]
-    )
-    @patch("samcli.lib.sync.sync_flow_factory.get_resource_by_id")
+    @patch("samcli.lib.sync.sync_flow_factory.RestApiSyncFlow")
     @patch("samcli.lib.sync.sync_flow_factory.Config")
-    def test_create_sync_flow_valid(self, resource_type, config_mock, get_resource_by_id_mock):
-        resource = {"Type": resource_type}
-        get_resource_by_id_mock.return_value = resource
-
+    def test_create_api_flow(self, config_mock, rest_api_sync_mock):
         factory = self.create_factory()
+        result = factory._create_rest_api_flow("API1", {})
+        self.assertEqual(result, rest_api_sync_mock.return_value)
 
-        create_resource_type_flow_mock = MagicMock()
-        SyncFlowFactory.FLOW_FACTORY_FUNCTIONS[resource_type] = create_resource_type_flow_mock
-        result = factory.create_sync_flow(ResourceIdentifier("Resource1"))
-        create_resource_type_flow_mock.assert_called_once_with(factory, "Resource1", resource)
-        self.assertEqual(create_resource_type_flow_mock.return_value, result)
+    @patch("samcli.lib.sync.sync_flow_factory.HttpApiSyncFlow")
+    @patch("samcli.lib.sync.sync_flow_factory.Config")
+    def test_create_api_flow(self, config_mock, http_api_sync_mock):
+        factory = self.create_factory()
+        result = factory._create_api_flow("API1", {})
+        self.assertEqual(result, http_api_sync_mock.return_value)
 
     @patch("samcli.lib.sync.sync_flow_factory.get_resource_by_id")
     @patch("samcli.lib.sync.sync_flow_factory.Config")
-    def test_create_sync_flow_unknown_type(self, config_mock, get_resource_by_id_mock):
-        resource = {"Type": "AWS::Unknown::Type"}
-        get_resource_by_id_mock.return_value = resource
-
+    def test_create_sync_flow(self, config_mock, get_resource_by_id_mock):
         factory = self.create_factory()
-        result = factory.create_sync_flow(ResourceIdentifier("Resource1"))
 
-        self.assertEqual(None, result)
+        sync_flow = MagicMock()
+        resource_identifier = MagicMock()
+        get_resource_by_id = MagicMock()
+        get_resource_by_id_mock.return_value = get_resource_by_id
+        generator_mock = MagicMock()
+        generator_mock.return_value = sync_flow
 
-    @patch("samcli.lib.sync.sync_flow_factory.get_resource_by_id")
-    @patch("samcli.lib.sync.sync_flow_factory.Config")
-    def test_create_sync_flow_no_type(self, config_mock, get_resource_by_id_mock):
-        resource = {"Properties": {}}
-        get_resource_by_id_mock.return_value = resource
+        get_generator_function_mock = MagicMock()
+        get_generator_function_mock.return_value = generator_mock
+        factory._get_generator_function = get_generator_function_mock
 
-        factory = self.create_factory()
-        result = factory.create_sync_flow(ResourceIdentifier("Resource1"))
+        result = factory.create_sync_flow(resource_identifier)
 
-        self.assertEqual(None, result)
+        self.assertEqual(result, sync_flow)
+        generator_mock.assert_called_once_with(factory, resource_identifier, get_resource_by_id)

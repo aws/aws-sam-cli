@@ -309,11 +309,11 @@ class ParallelBuildStrategy(BuildStrategy):
         self,
         build_graph: BuildGraph,
         delegate_build_strategy: BuildStrategy,
-        async_context: AsyncContext = AsyncContext(),
+        async_context: Optional[AsyncContext] = None,
     ) -> None:
         super().__init__(build_graph)
         self._delegate_build_strategy = delegate_build_strategy
-        self._async_context = async_context
+        self._async_context = async_context if async_context else AsyncContext()
 
     def build(self) -> Dict[str, str]:
         """

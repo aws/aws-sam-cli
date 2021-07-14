@@ -13,7 +13,7 @@ from samcli.lib.build.app_builder import ApplicationBuilder
 from samcli.lib.package.utils import make_zip
 from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_by_id
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
-from samcli.lib.sync.exceptions import NoLayerVersionsFoundError, LayerPhysicalIdNotFoundError
+from samcli.lib.sync.exceptions import MissingPhysicalResourceError, NoLayerVersionsFoundError
 from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall
 from samcli.lib.sync.sync_flow_executor import HELP_TEXT_FOR_SYNC_INFRA
 from samcli.lib.utils.hash import file_checksum
@@ -73,9 +73,9 @@ class LayerSyncFlow(SyncFlow):
                 LOG.debug("%sLayer physical name has been set to %s", self.log_prefix, self._layer_identifier)
                 break
             else:
-                raise LayerPhysicalIdNotFoundError(
+                raise MissingPhysicalResourceError(
                     self._layer_identifier,
-                    list(self._physical_id_mapping.keys()),
+                    self._physical_id_mapping,
                 )
         else:
             self._layer_physical_name = self.get_physical_id(self._layer_identifier).rsplit(":", 1)[0]
@@ -191,6 +191,9 @@ class LayerSyncFlow(SyncFlow):
             raise NoLayerVersionsFoundError(self._layer_physical_name)
         return layer_versions[0].get("Version")
 
+    def _equality_keys(self) -> Any:
+        return self._layer_identifier
+
 
 class FunctionLayerReferenceSync(SyncFlow):
     """
@@ -295,3 +298,6 @@ class FunctionLayerReferenceSync(SyncFlow):
 
     def gather_dependencies(self) -> List["SyncFlow"]:
         return []
+
+    def _equality_keys(self) -> Any:
+        return self._function_identifier, self._layer_physical_name, self._new_layer_version

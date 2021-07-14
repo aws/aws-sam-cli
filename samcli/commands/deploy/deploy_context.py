@@ -273,6 +273,7 @@ class DeployContext:
 
             except deploy_exceptions.DeployFailedError as ex:
                 LOG.error(str(ex))
+                raise
 
     @staticmethod
     def merge_parameters(template_dict: Dict, parameter_overrides: Dict) -> List[Dict]:

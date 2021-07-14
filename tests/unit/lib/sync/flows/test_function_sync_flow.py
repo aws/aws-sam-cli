@@ -43,3 +43,8 @@ class TestFunctionSyncFlow(TestCase):
 
         sync_flow._lambda_waiter.wait.assert_called_once_with(FunctionName="PhysicalFunction1", WaiterConfig=ANY)
         self.assertEqual(result, [alias_version_mock.return_value])
+
+    @patch.multiple(FunctionSyncFlow, __abstractmethods__=set())
+    def test_equality_keys(self):
+        sync_flow = self.create_function_sync_flow()
+        self.assertEqual(sync_flow._equality_keys(), "Function1")

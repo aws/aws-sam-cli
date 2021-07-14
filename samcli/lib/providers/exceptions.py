@@ -16,3 +16,11 @@ class InvalidLayerReference(Exception):
 
 class RemoteStackLocationNotSupported(Exception):
     pass
+
+
+class MissingCodeUri(Exception):
+    """Exception when Function or Lambda resources do not have CodeUri specified"""
+
+
+class MissingDefinitionUri(Exception):
+    """Exception when APIGW resources do not have DefinitionUri specified"""

@@ -92,7 +92,12 @@ class BuildContext:
         self._stacks: List[Stack] = []
 
     def __enter__(self) -> "BuildContext":
+        self.set_up()
+        return self
 
+    def set_up(self) -> None:
+        """Set up class members used for building
+        This should be called each time before run() if stacks are changed."""
         self._stacks, remote_stack_full_paths = SamLocalStackProvider.get_stacks(
             self._template_file, parameter_overrides=self._parameter_overrides
         )
@@ -125,8 +130,6 @@ class BuildContext:
             self._container_manager = ContainerManager(
                 docker_network_id=self._docker_network, skip_pull_image=self._skip_pull_image
             )
-
-        return self
 
     def __exit__(self, *args):
         pass

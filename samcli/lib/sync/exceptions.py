@@ -1,24 +1,61 @@
 """Exceptions related to sync functionalities"""
-from typing import List
+from typing import Dict, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from samcli.lib.sync.sync_flow import SyncFlow
+
+
+class SyncFlowException(Exception):
+    """Exception wrapper for exceptions raised in SyncFlows"""
+
+    _sync_flow: "SyncFlow"
+    _exception: Exception
+
+    def __init__(self, sync_flow: "SyncFlow", exception: Exception):
+        """
+        Parameters
+        ----------
+        sync_flow : SyncFlow
+            SyncFlow that raised the exception
+        exception : Exception
+            exception raised
+        """
+        super().__init__(f"SyncFlow Exception for {sync_flow.log_name}")
+        self._sync_flow = sync_flow
+        self._exception = exception
+
+    @property
+    def sync_flow(self) -> "SyncFlow":
+        return self._sync_flow
+
+    @property
+    def exception(self) -> Exception:
+        return self._exception
 
 
 class MissingPhysicalResourceError(Exception):
     """Exception used for not having a remote/physical counterpart for a local stack resource"""
 
-    _resource_identifier: str
+    _resource_identifier: Optional[str]
+    _physical_resource_mapping: Optional[Dict[str, str]]
 
-    def __init__(self, resource_identifier: str):
+    def __init__(
+        self, resource_identifier: Optional[str] = None, physical_resource_mapping: Optional[Dict[str, str]] = None
+    ):
         """
         Parameters
         ----------
         resource_identifier : str
             Logical resource identifier
+        physical_resource_mapping: Dict[str, str]
+            Current mapping between logical and physical IDs
         """
         super().__init__(f"{resource_identifier} is not found in remote.")
         self._resource_identifier = resource_identifier
+        self._physical_resource_mapping = physical_resource_mapping
 
     @property
-    def resource_identifier(self) -> str:
+    def resource_identifier(self) -> Optional[str]:
         """
         Returns
         -------
@@ -26,6 +63,16 @@ class MissingPhysicalResourceError(Exception):
             Resource identifier of the resource that does not have a remote/physical counterpart
         """
         return self._resource_identifier
+
+    @property
+    def physical_resource_mapping(self) -> Optional[Dict[str, str]]:
+        """
+        Returns
+        -------
+        Optional[Dict[str, str]]
+            Physical ID mapping for resources when the excecption was raised
+        """
+        return self._physical_resource_mapping
 
 
 class NoLayerVersionsFoundError(Exception):
@@ -52,38 +99,6 @@ class NoLayerVersionsFoundError(Exception):
             Layer ARN without version info at the end of it
         """
         return self._layer_name_arn
-
-
-class LayerPhysicalIdNotFoundError(Exception):
-    """This is used when we can't find physical id of a given layer resource"""
-
-    _layer_name: str
-    _stack_resource_names: List[str]
-
-    def __init__(self, layer_name: str, stack_resource_names: List[str]):
-        super().__init__(f"Can't find {layer_name} in stack resources {stack_resource_names}")
-        self._layer_name = layer_name
-        self._stack_resource_names = stack_resource_names
-
-    @property
-    def layer_name(self) -> str:
-        """
-        Returns
-        -------
-        str
-            Layer name as it is written in template file
-        """
-        return self._layer_name
-
-    @property
-    def stack_resource_names(self) -> List[str]:
-        """
-        Returns
-        -------
-        List[str]
-            List of resource names that is actually deployed into CFN stack
-        """
-        return self._stack_resource_names
 
 
 class MissingLockException(Exception):

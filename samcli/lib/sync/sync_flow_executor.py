@@ -3,15 +3,19 @@ import logging
 import time
 
 from queue import Queue
-from typing import Callable, List, Optional, Union
-from multiprocessing.managers import SyncManager, ValueProxy
-from concurrent.futures import ThreadPoolExecutor, Future, ProcessPoolExecutor
+from typing import Callable, List, Optional, Set
+from dataclasses import dataclass
+
+from threading import RLock
+from concurrent.futures import ThreadPoolExecutor, Future
 
 from botocore.exceptions import ClientError
+
+from samcli.lib.utils.colors import Colored
 from samcli.lib.sync.exceptions import (
     MissingPhysicalResourceError,
     NoLayerVersionsFoundError,
-    LayerPhysicalIdNotFoundError,
+    SyncFlowException,
 )
 
 from samcli.lib.utils.lock_distributor import LockDistributor, LockDistributorType
@@ -22,20 +26,48 @@ LOG = logging.getLogger(__name__)
 HELP_TEXT_FOR_SYNC_INFRA = " Try sam sync --infra or sam deploy."
 
 
-def default_exception_handler(exception: Exception) -> None:
+@dataclass(frozen=True, eq=True)
+class SyncFlowTask:
+    """Data struct for individual SyncFlow execution tasks"""
+
+    # SyncFlow to be executed
+    sync_flow: SyncFlow
+
+    # Should this task be ignored if there is a sync flow in the queue that's the same
+    dedup: bool
+
+
+@dataclass(frozen=True, eq=True)
+class SyncFlowResult:
+    """Data struct for SyncFlow results"""
+
+    sync_flow: SyncFlow
+    dependent_sync_flows: List[SyncFlow]
+
+
+@dataclass(frozen=True, eq=True)
+class SyncFlowFuture:
+    """Data struct for SyncFlow futures"""
+
+    sync_flow: SyncFlow
+    future: Future
+
+
+def default_exception_handler(sync_flow_exception: SyncFlowException) -> None:
     """Default exception handler for SyncFlowExecutor
     This will try log and parse common SyncFlow exceptions.
 
     Parameters
     ----------
-    exception : Exception
-        Exception to be handled
+    sync_flow_exception : SyncFlowException
+        SyncFlowException containing exception to be handled and SyncFlow that raised it
 
     Raises
     ------
     exception
         Unhandled exception
     """
+    exception = sync_flow_exception.exception
     if isinstance(exception, MissingPhysicalResourceError):
         LOG.error("Cannot find resource %s in remote.%s", exception.resource_identifier, HELP_TEXT_FOR_SYNC_INFRA)
     elif (
@@ -46,13 +78,6 @@ def default_exception_handler(exception: Exception) -> None:
         LOG.error(exception.response.get("Error", dict()).get("Message", ""))
     elif isinstance(exception, NoLayerVersionsFoundError):
         LOG.error("Cannot find any versions for layer %s.%s", exception.layer_name_arn, HELP_TEXT_FOR_SYNC_INFRA)
-    elif isinstance(exception, LayerPhysicalIdNotFoundError):
-        LOG.error(
-            "Cannot find physical resource id for layer %s in all resources (%s).%s",
-            exception.layer_name,
-            exception.stack_resource_names,
-            HELP_TEXT_FOR_SYNC_INFRA,
-        )
     else:
         raise exception
 
@@ -63,42 +88,40 @@ class SyncFlowExecutor:
     """
 
     _flow_queue: Queue
-    _executor: Union[ThreadPoolExecutor, ProcessPoolExecutor]
+    _flow_queue_lock: RLock
     _lock_distributor: LockDistributor
-    _manager: Optional[SyncManager]
-    _persistent: bool
-    _exit_flag: Union[bool, ValueProxy]
+    _running_flag: bool
+    _color: Colored
+    _running_futures: Set[SyncFlowFuture]
 
     def __init__(
         self,
-        executor: Optional[ThreadPoolExecutor] = None,
-        lock_distributor: Optional[LockDistributor] = None,
-        manager: Optional[SyncManager] = None,
-        flow_queue: Optional[Queue] = None,
-        persistent: bool = False,
     ) -> None:
-        """
+        self._flow_queue = Queue()
+        self._lock_distributor = LockDistributor(LockDistributorType.THREAD)
+        self._running_flag = False
+        self._flow_queue_lock = RLock()
+        self._color = Colored()
+        self._running_futures = set()
+
+    def _add_sync_flow_task(self, task: SyncFlowTask) -> None:
+        """Add SyncFlowTask to the queue
+
         Parameters
         ----------
-        executor : ThreadPoolExecutor, optional
-            Can be ThreadPoolExecutor or ProcessPoolExecutor, by default ThreadPoolExecutor()
-        lock_distributor : LockDistributor, optional
-            LockDistributor, by default LockDistributor(LockDistributorType.THREAD)
-        manager : Optional[SyncManager], optional
-            SyncManager to be used for cross process communication, by default None
-        flow_queue : Queue, optional
-            Queue for storing unexecuted SyncFlows, by default Queue()
-        persistent : bool, optional
-            Should executor stay running after finishing all SyncFlows in the queue, by default False
+        task : SyncFlowTask
+            SyncFlowTask to be added.
         """
-        self._flow_queue = flow_queue if flow_queue else Queue()
-        self._executor = executor if executor else ThreadPoolExecutor()
-        self._lock_distributor = lock_distributor if lock_distributor else LockDistributor(LockDistributorType.THREAD)
-        self._manager = manager
-        self._persistent = persistent
-        self._exit_flag = manager.Value("i", 0) if manager else False
+        # Lock flow_queue as check dedup and add is not atomic
+        with self._flow_queue_lock:
+            if task.dedup and task.sync_flow in [task.sync_flow for task in self._flow_queue.queue]:
+                LOG.debug("Found the same SyncFlow in queue. Skip adding.")
+                return
 
-    def add_sync_flow(self, sync_flow: SyncFlow) -> None:
+            task.sync_flow.set_locks_with_distributor(self._lock_distributor)
+            self._flow_queue.put(task)
+
+    def add_sync_flow(self, sync_flow: SyncFlow, dedup: bool = True) -> None:
         """Add a SyncFlow to queue to be executed
         Locks will be set with LockDistributor
 
@@ -106,34 +129,33 @@ class SyncFlowExecutor:
         ----------
         sync_flow : SyncFlow
             SyncFlow to be executed
+        dedup : bool
+            SyncFlow will not be added if this flag is True and has a duplicate in the queue
         """
-        sync_flow.set_locks_with_distributor(self._lock_distributor)
-        self._flow_queue.put(sync_flow)
+        self._add_sync_flow_task(SyncFlowTask(sync_flow, dedup))
 
-    def exit(self, should_exit: bool = True) -> None:
-        """Stop executor on the next available time.
-
-        Parameters
-        ----------
-        should_exit : bool, optional
-            True to stop the executor, False otherwise, by default True
-        """
-        if isinstance(self._exit_flag, ValueProxy):
-            self._exit_flag.value = int(should_exit)
-        else:
-            self._exit_flag = should_exit
-
-    def should_exit(self) -> bool:
+    def is_running(self) -> bool:
         """
         Returns
         -------
         bool
-            Should executor stop execution on the next available time.
+            Is executor running
         """
-        return bool(self._exit_flag.value) if isinstance(self._exit_flag, ValueProxy) else self._exit_flag
+        return self._running_flag
 
-    def execute(self, exception_handler: Optional[Callable[[Exception], None]] = default_exception_handler) -> None:
-        """Stop blocking execution of the SyncFlows
+    def _can_exit(self) -> bool:
+        """
+        Returns
+        -------
+        bool
+            Can executor be safely exited
+        """
+        return not self._running_futures and self._flow_queue.empty()
+
+    def execute(
+        self, exception_handler: Optional[Callable[[SyncFlowException], None]] = default_exception_handler
+    ) -> None:
+        """Blocking execution of the SyncFlows
 
         Parameters
         ----------
@@ -141,42 +163,156 @@ class SyncFlowExecutor:
             Function to be called if an exception is raised during the execution of a SyncFlow,
             by default default_exception_handler.__func__
         """
-        with self._executor:
-            running_futures: List[Future] = list()
-
+        self._running_flag = True
+        with ThreadPoolExecutor() as executor:
+            self._running_futures.clear()
             while True:
-                # Execute all pending sync flows
-                while not self._flow_queue.empty():
-                    sync_flow = self._flow_queue.get()
-                    running_futures.append(self._executor.submit(sync_flow.execute))
-                    LOG.debug("Syncing %s...", sync_flow.log_name)
 
-                # Check for finished sync flows
-                for future in list(running_futures):
-                    if not future.done():
-                        continue
-
-                    exception = future.exception()
-                    if exception and isinstance(exception, Exception) and exception_handler:
-                        # Exception Handling
-                        exception_handler(exception)
-                    else:
-                        # Add depentency sync flows to queue
-                        dependent_sync_flows = future.result()
-                        for dependent_sync_flow in dependent_sync_flows:
-                            self.add_sync_flow(dependent_sync_flow)
-
-                    running_futures.remove(future)
+                self._execute_step(executor, exception_handler)
 
                 # Exit execution if there are no running and pending sync flows
-                if not self._persistent and not running_futures and self._flow_queue.empty():
-                    LOG.debug("Not more SyncFlows in executor. Exiting.")
-                    break
-
-                if self.should_exit():
-                    self.exit(should_exit=False)
-                    LOG.debug("Exiting SyncFlow Executor due to exit flag.")
+                if self._can_exit():
+                    LOG.debug("No more SyncFlows in executor. Stopping.")
                     break
 
                 # Sleep for a bit to cut down CPU utilization of this busy wait loop
                 time.sleep(0.1)
+        self._running_flag = False
+
+    def _execute_step(
+        self,
+        executor: ThreadPoolExecutor,
+        exception_handler: Optional[Callable[[SyncFlowException], None]],
+    ) -> None:
+        """A single step in the execution flow
+
+        Parameters
+        ----------
+        executor : ThreadPoolExecutor
+            THreadPoolExecutor to be used for execution
+        exception_handler : Optional[Callable[[SyncFlowException], None]]
+            Exception handler
+        """
+        # Execute all pending sync flows
+        with self._flow_queue_lock:
+            # Putting nonsubmitted tasks into this deferred tasks list
+            # to avoid modifying the queue while emptying it
+            deferred_tasks = list()
+
+            # Go through all queued tasks and try to execute them
+            while not self._flow_queue.empty():
+                sync_flow_task: SyncFlowTask = self._flow_queue.get()
+
+                sync_flow_future = self._submit_sync_flow_task(executor, sync_flow_task)
+
+                # sync_flow_future can be None if the task cannot be submitted currently
+                # Put it into deferred_tasks and add all of them at the end to avoid endless loop
+                if sync_flow_future:
+                    self._running_futures.add(sync_flow_future)
+                    LOG.info(self._color.cyan(f"Syncing {sync_flow_future.sync_flow.log_name}..."))
+                else:
+                    deferred_tasks.append(sync_flow_task)
+
+            # Add tasks that cannot be executed yet
+            for task in deferred_tasks:
+                self._add_sync_flow_task(task)
+
+        # Check for finished sync flows
+        for sync_flow_future in set(self._running_futures):
+            if self._handle_result(sync_flow_future, exception_handler):
+                self._running_futures.remove(sync_flow_future)
+
+    def _submit_sync_flow_task(
+        self, executor: ThreadPoolExecutor, sync_flow_task: SyncFlowTask
+    ) -> Optional[SyncFlowFuture]:
+        """Submit SyncFlowTask to be executed by ThreadPoolExecutor
+        and return its future
+
+        Parameters
+        ----------
+        executor : ThreadPoolExecutor
+            THreadPoolExecutor to be used for execution
+        sync_flow_task : SyncFlowTask
+            SyncFlowTask to be executed.
+
+        Returns
+        -------
+        Optional[SyncFlowFuture]
+            Returns SyncFlowFuture generated by the SyncFlowTask.
+            Can be None if the task cannot be executed yet.
+        """
+        sync_flow = sync_flow_task.sync_flow
+
+        # Check whether the same sync flow is already running or not
+        if sync_flow in [future.sync_flow for future in self._running_futures]:
+            return None
+
+        sync_flow_future = SyncFlowFuture(
+            sync_flow=sync_flow, future=executor.submit(SyncFlowExecutor._sync_flow_execute_wrapper, sync_flow)
+        )
+
+        return sync_flow_future
+
+    def _handle_result(
+        self, sync_flow_future: SyncFlowFuture, exception_handler: Optional[Callable[[SyncFlowException], None]]
+    ) -> bool:
+        """Checks and handles the result of a SyncFlowFuture
+
+        Parameters
+        ----------
+        sync_flow_future : SyncFlowFuture
+            The SyncFlowFuture that needs to be handled
+        exception_handler : Optional[Callable[[SyncFlowException], None]]
+            Exception handler that will be called if an exception is raised within the SyncFlow
+
+        Returns
+        -------
+        bool
+            Returns True if the SyncFlowFuture was finished and successfully handled, False otherwise.
+        """
+        future = sync_flow_future.future
+
+        if not future.done():
+            return False
+
+        exception = future.exception()
+
+        if exception and isinstance(exception, SyncFlowException) and exception_handler:
+            # Exception handling
+            exception_handler(exception)
+        else:
+            # Add dependency sync flows to queue
+            sync_flow_result: SyncFlowResult = future.result()
+            for dependent_sync_flow in sync_flow_result.dependent_sync_flows:
+                self.add_sync_flow(dependent_sync_flow)
+            LOG.info(self._color.green(f"Finished syncing {sync_flow_result.sync_flow.log_name}."))
+        return True
+
+    @staticmethod
+    def _sync_flow_execute_wrapper(sync_flow: SyncFlow) -> SyncFlowResult:
+        """Simple wrapper method for executing SyncFlow and converting all Exceptions into SyncFlowException
+
+        Parameters
+        ----------
+        sync_flow : SyncFlow
+            SyncFlow to be executed
+
+        Returns
+        -------
+        SyncFlowResult
+            SyncFlowResult for the SyncFlow executed
+
+        Raises
+        ------
+        SyncFlowException
+        """
+        dependent_sync_flows = []
+        try:
+            dependent_sync_flows = sync_flow.execute()
+        except ClientError as e:
+            if e.response.get("Error", dict()).get("Code", "") == "ResourceNotFoundException":
+                raise SyncFlowException(sync_flow, MissingPhysicalResourceError()) from e
+            raise SyncFlowException(sync_flow, e) from e
+        except Exception as e:
+            raise SyncFlowException(sync_flow, e) from e
+        return SyncFlowResult(sync_flow=sync_flow, dependent_sync_flows=dependent_sync_flows)

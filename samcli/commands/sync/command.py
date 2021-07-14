@@ -38,6 +38,7 @@ from samcli.lib.providers.provider import (
 )
 from samcli.commands._utils.options import DEFAULT_BUILD_DIR, DEFAULT_CACHE_DIR
 from samcli.cli.context import Context
+from samcli.lib.sync.watch_manager import WatchManager
 
 if TYPE_CHECKING:
     from samcli.commands.deploy.deploy_context import DeployContext
@@ -66,6 +67,11 @@ DEFAULT_TEMPLATE_NAME = "template.yaml"
     "--code",
     is_flag=True,
     help="Sync code resoures. This includes Lambda Functions, API Gateway, and Step Functions.",
+)
+@click.option(
+    "--watch",
+    is_flag=True,
+    help="Watch local files and automatically sync with remote.",
 )
 @click.option(
     "--resource-id",
@@ -102,6 +108,7 @@ def cli(
     template_file: str,
     infra: bool,
     code: bool,
+    watch: bool,
     resource_id: Optional[Tuple[str]],
     resource: Optional[Tuple[str]],
     stack_name: str,
@@ -129,6 +136,7 @@ def cli(
         template_file,
         infra,
         code,
+        watch,
         resource_id,
         resource,
         stack_name,
@@ -155,6 +163,7 @@ def do_cli(
     template_file: str,
     infra: bool,
     code: bool,
+    watch: bool,
     resource_id: Optional[Tuple[str]],
     resource: Optional[Tuple[str]],
     stack_name: str,
@@ -243,7 +252,9 @@ def do_cli(
                     force_upload=True,
                     signing_profiles=None,
                 ) as deploy_context:
-                    if code:
+                    if watch:
+                        execute_watch(template_file, build_context, package_context, deploy_context)
+                    elif code:
                         execute_code_sync(template_file, build_context, deploy_context, resource_id, resource)
                     else:
                         execute_infra_contexts(build_context, package_context, deploy_context)
@@ -313,3 +324,26 @@ def execute_code_sync(
         else:
             LOG.warning("Cannot create SyncFlow for %s. Skipping.", resource_id)
     executor.execute()
+
+
+def execute_watch(
+    template: str,
+    build_context: "BuildContext",
+    package_context: "PackageContext",
+    deploy_context: "DeployContext",
+):
+    """Start sync watch execution
+
+    Parameters
+    ----------
+    template : str
+        Template file path
+    build_context : BuildContext
+        BuildContext
+    package_context : PackageContext
+        PackageContext
+    deploy_context : DeployContext
+        DeployContext
+    """
+    watch_manager = WatchManager(template, build_context, package_context, deploy_context)
+    watch_manager.start()

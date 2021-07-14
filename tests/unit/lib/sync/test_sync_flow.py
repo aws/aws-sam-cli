@@ -90,3 +90,30 @@ class TestSyncFlow(TestCase):
         sync_flow = self.create_sync_flow()
         sync_flow._log_name = "A"
         self.assertEqual(sync_flow.log_prefix, "SyncFlow [A]: ")
+
+    @patch.multiple(SyncFlow, __abstractmethods__=set())
+    def test_eq_true(self):
+        sync_flow_1 = self.create_sync_flow()
+        sync_flow_1._equality_keys = MagicMock()
+        sync_flow_1._equality_keys.return_value = "A"
+        sync_flow_2 = self.create_sync_flow()
+        sync_flow_2._equality_keys = MagicMock()
+        sync_flow_2._equality_keys.return_value = "A"
+        self.assertTrue(sync_flow_1 == sync_flow_2)
+
+    @patch.multiple(SyncFlow, __abstractmethods__=set())
+    def test_eq_false(self):
+        sync_flow_1 = self.create_sync_flow()
+        sync_flow_1._equality_keys = MagicMock()
+        sync_flow_1._equality_keys.return_value = "A"
+        sync_flow_2 = self.create_sync_flow()
+        sync_flow_2._equality_keys = MagicMock()
+        sync_flow_2._equality_keys.return_value = "B"
+        self.assertFalse(sync_flow_1 == sync_flow_2)
+
+    @patch.multiple(SyncFlow, __abstractmethods__=set())
+    def test_hash(self):
+        sync_flow = self.create_sync_flow()
+        sync_flow._equality_keys = MagicMock()
+        sync_flow._equality_keys.return_value = "A"
+        self.assertEqual(hash(sync_flow), hash((type(sync_flow), "A")))

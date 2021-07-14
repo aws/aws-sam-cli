@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, Mock, patch, call, ANY, mock_open, Property
 
 from parameterized import parameterized
 
-from samcli.lib.sync.exceptions import LayerPhysicalIdNotFoundError, NoLayerVersionsFoundError
+from samcli.lib.sync.exceptions import MissingPhysicalResourceError, NoLayerVersionsFoundError
 from samcli.lib.sync.flows.layer_sync_flow import LayerSyncFlow, FunctionLayerReferenceSync
 from samcli.lib.sync.sync_flow import SyncFlow
 
@@ -61,7 +61,7 @@ class TestLayerSyncFlow(TestCase):
         self.layer_sync_flow._physical_id_mapping = {given_layer_name_with_hashes: "layer_version_arn"}
         with patch.object(self.layer_sync_flow, "_session") as _:
             with patch.object(SyncFlow, "set_up") as _:
-                with self.assertRaises(LayerPhysicalIdNotFoundError):
+                with self.assertRaises(MissingPhysicalResourceError):
                     self.layer_sync_flow.set_up()
 
     @patch("samcli.lib.sync.flows.layer_sync_flow.ApplicationBuilder")
@@ -331,6 +331,9 @@ class TestLayerSyncFlow(TestCase):
         with self.assertRaises(NoLayerVersionsFoundError):
             self.layer_sync_flow._get_latest_layer_version()
 
+    def test_equality_keys(self):
+        self.assertEqual(self.layer_sync_flow._equality_keys(), self.layer_identifier)
+
     @patch("samcli.lib.sync.flows.layer_sync_flow.ResourceAPICall")
     def test_get_resource_api_calls(self, resource_api_call_mock):
         result = self.layer_sync_flow._get_resource_api_calls()
@@ -415,3 +418,9 @@ class TestFunctionLayerReferenceSync(TestCase):
                 given_lambda_client.get_function.assert_called_with(FunctionName=given_physical_id)
 
                 given_lambda_client.update_function_configuration.assert_not_called()
+
+    def test_equality_keys(self):
+        self.assertEqual(
+            self.function_layer_sync._equality_keys(),
+            (self.function_identifier, self.layer_name, self.new_layer_version),
+        )

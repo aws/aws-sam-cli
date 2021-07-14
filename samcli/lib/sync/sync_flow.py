@@ -3,7 +3,7 @@ import logging
 
 from abc import ABC, abstractmethod
 from threading import Lock
-from typing import Any, Dict, List, NamedTuple, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, NamedTuple, Optional, TYPE_CHECKING, cast
 from boto3.session import Session
 
 from samcli.lib.providers.provider import get_resource_by_id
@@ -231,12 +231,44 @@ class SyncFlow(ABC):
 
         return physical_id
 
+    @abstractmethod
+    def _equality_keys(self) -> Any:
+        """This method needs to be overridden to distinguish between multiple instances of SyncFlows
+        If the return values of two instances are the same, then those two instances will be assumed to be equal.
+
+        Returns
+        -------
+        Any
+            Anything that can be hashed and compared with "=="
+        """
+        raise NotImplementedError("_equality_keys is not implemented.")
+
+    def __hash__(self) -> int:
+        return hash((type(self), self._equality_keys()))
+
+    def __eq__(self, o: object) -> bool:
+        if type(o) is not type(self):
+            return False
+        return cast(bool, self._equality_keys() == cast(SyncFlow, o)._equality_keys())
+
     @property
-    def log_name(self):
+    def log_name(self) -> str:
+        """
+        Returns
+        -------
+        str
+            Human readable name/identifier for logging purposes
+        """
         return self._log_name
 
     @property
-    def log_prefix(self):
+    def log_prefix(self) -> str:
+        """
+        Returns
+        -------
+        str
+            Log prefix to be used for logging.
+        """
         return f"SyncFlow [{self.log_name}]: "
 
     def execute(self) -> List["SyncFlow"]:

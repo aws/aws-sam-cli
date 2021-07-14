@@ -83,3 +83,7 @@ class AliasVersionSyncFlow(SyncFlow):
 
     def _get_resource_api_calls(self) -> List[ResourceAPICall]:
         return []
+
+    def _equality_keys(self) -> Any:
+        """Combination of function identifier and alias name can used to identify each unique SyncFlow"""
+        return self._function_identifier, self._alias_name

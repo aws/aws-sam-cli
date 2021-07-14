@@ -44,3 +44,7 @@ class TestAliasVersionSyncFlow(TestCase):
         sync_flow._lambda_client.update_alias.assert_called_once_with(
             FunctionName="PhysicalFunction1", Name="Alias1", FunctionVersion="2"
         )
+
+    def test_equality_keys(self):
+        sync_flow = self.create_sync_flow()
+        self.assertEqual(sync_flow._equality_keys(), ("Function1", "Alias1"))

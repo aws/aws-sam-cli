@@ -2,7 +2,7 @@ from unittest import TestCase
 from unittest.mock import ANY, MagicMock, Mock, patch
 from parameterized import parameterized
 
-from samcli.commands.sync.command import do_cli, execute_code_sync
+from samcli.commands.sync.command import do_cli, execute_code_sync, execute_watch
 from samcli.lib.providers.provider import ResourceIdentifier
 from samcli.commands._utils.options import DEFAULT_BUILD_DIR, DEFAULT_CACHE_DIR
 
@@ -16,7 +16,7 @@ def get_mock_sam_config():
 MOCK_SAM_CONFIG = get_mock_sam_config()
 
 
-class TestSyncCliCommand(TestCase):
+class TestDoCli(TestCase):
     def setUp(self):
 
         self.template_file = "input-template-file"
@@ -42,7 +42,7 @@ class TestSyncCliCommand(TestCase):
         self.config_file = "mock-default-filename"
         MOCK_SAM_CONFIG.reset_mock()
 
-    @parameterized.expand([(True, False), (False, False)])
+    @parameterized.expand([(True, False, False), (False, False, False)])
     @patch("samcli.commands.sync.command.execute_code_sync")
     @patch("samcli.commands.build.command.click")
     @patch("samcli.commands.build.build_context.BuildContext")
@@ -55,6 +55,7 @@ class TestSyncCliCommand(TestCase):
         self,
         infra,
         code,
+        watch,
         os_mock,
         DeployContextMock,
         mock_deploy_click,
@@ -76,6 +77,7 @@ class TestSyncCliCommand(TestCase):
             self.template_file,
             infra,
             code,
+            watch,
             self.resource_id,
             self.resource,
             self.stack_name,
@@ -150,13 +152,125 @@ class TestSyncCliCommand(TestCase):
             force_upload=True,
             signing_profiles=None,
         )
-        package_context_mock.run.assert_called_with()
-        self.assertEqual(package_context_mock.run.call_count, 1)
-        deploy_context_mock.run.assert_called_with()
-        self.assertEqual(deploy_context_mock.run.call_count, 1)
+        package_context_mock.run.assert_called_once_with()
+        deploy_context_mock.run.assert_called_once_with()
         execute_code_sync_mock.assert_not_called()
 
-    @parameterized.expand([(False, True)])
+    @parameterized.expand([(False, False, True)])
+    @patch("samcli.commands.sync.command.execute_watch")
+    @patch("samcli.commands.build.command.click")
+    @patch("samcli.commands.build.build_context.BuildContext")
+    @patch("samcli.commands.package.command.click")
+    @patch("samcli.commands.package.package_context.PackageContext")
+    @patch("samcli.commands.deploy.command.click")
+    @patch("samcli.commands.deploy.deploy_context.DeployContext")
+    @patch("samcli.commands.build.command.os")
+    def test_watch_must_succeed_sync(
+        self,
+        infra,
+        code,
+        watch,
+        os_mock,
+        DeployContextMock,
+        mock_deploy_click,
+        PackageContextMock,
+        mock_package_click,
+        BuildContextMock,
+        mock_build_click,
+        execute_watch_mock,
+    ):
+
+        build_context_mock = Mock()
+        BuildContextMock.return_value.__enter__.return_value = build_context_mock
+        package_context_mock = Mock()
+        PackageContextMock.return_value.__enter__.return_value = package_context_mock
+        deploy_context_mock = Mock()
+        DeployContextMock.return_value.__enter__.return_value = deploy_context_mock
+
+        do_cli(
+            self.template_file,
+            infra,
+            code,
+            watch,
+            self.resource_id,
+            self.resource,
+            self.stack_name,
+            self.region,
+            self.profile,
+            self.base_dir,
+            self.parameter_overrides,
+            self.mode,
+            self.image_repository,
+            self.image_repositories,
+            self.s3_prefix,
+            self.kms_key_id,
+            self.capabilities,
+            self.role_arn,
+            self.notification_arns,
+            self.tags,
+            self.metadata,
+            self.config_file,
+            self.config_env,
+        )
+
+        BuildContextMock.assert_called_with(
+            resource_identifier=None,
+            template_file=self.template_file,
+            base_dir=self.base_dir,
+            build_dir=DEFAULT_BUILD_DIR,
+            cache_dir=DEFAULT_CACHE_DIR,
+            clean=True,
+            use_container=False,
+            parallel=True,
+            parameter_overrides=self.parameter_overrides,
+            mode=self.mode,
+            cached=True,
+        )
+
+        PackageContextMock.assert_called_with(
+            template_file=ANY,
+            s3_bucket=ANY,
+            image_repository=self.image_repository,
+            image_repositories=self.image_repositories,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key_id,
+            output_template_file=ANY,
+            no_progressbar=True,
+            metadata=self.metadata,
+            region=self.region,
+            profile=self.profile,
+            use_json=False,
+            force_upload=True,
+        )
+
+        DeployContextMock.assert_called_with(
+            template_file=ANY,
+            stack_name=self.stack_name,
+            s3_bucket=ANY,
+            image_repository=self.image_repository,
+            image_repositories=self.image_repositories,
+            no_progressbar=True,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key_id,
+            parameter_overrides=self.parameter_overrides,
+            capabilities=self.capabilities,
+            role_arn=self.role_arn,
+            notification_arns=self.notification_arns,
+            tags=self.tags,
+            region=self.region,
+            profile=self.profile,
+            no_execute_changeset=True,
+            fail_on_empty_changeset=True,
+            confirm_changeset=False,
+            use_changeset=False,
+            force_upload=True,
+            signing_profiles=None,
+        )
+        execute_watch_mock.assert_called_once_with(
+            self.template_file, build_context_mock, package_context_mock, deploy_context_mock
+        )
+
+    @parameterized.expand([(False, True, False)])
     @patch("samcli.commands.sync.command.execute_code_sync")
     @patch("samcli.commands.build.command.click")
     @patch("samcli.commands.build.build_context.BuildContext")
@@ -169,6 +283,7 @@ class TestSyncCliCommand(TestCase):
         self,
         infra,
         code,
+        watch,
         os_mock,
         DeployContextMock,
         mock_deploy_click,
@@ -190,6 +305,7 @@ class TestSyncCliCommand(TestCase):
             self.template_file,
             infra,
             code,
+            watch,
             self.resource_id,
             self.resource,
             self.stack_name,
@@ -215,7 +331,7 @@ class TestSyncCliCommand(TestCase):
         )
 
 
-class ExecuteCodeSync(TestCase):
+class TestSyncCode(TestCase):
     def setUp(self) -> None:
         self.template_file = "template.yaml"
         self.build_context = MagicMock()
@@ -378,12 +494,10 @@ class ExecuteCodeSync(TestCase):
     @patch("samcli.commands.sync.command.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.sync.command.SyncFlowFactory")
     @patch("samcli.commands.sync.command.SyncFlowExecutor")
-    @patch("samcli.commands.sync.command.get_resource_ids_by_type")
     @patch("samcli.commands.sync.command.get_all_resource_ids")
     def test_execute_code_sync_default_all_resources(
         self,
         get_all_resource_ids_mock,
-        get_resource_ids_by_type_mock,
         sync_flow_executor_mock,
         sync_flow_factory_mock,
         get_stacks_mock,
@@ -414,3 +528,23 @@ class ExecuteCodeSync(TestCase):
         self.assertEqual(sync_flow_executor_mock.return_value.add_sync_flow.call_count, 4)
 
         get_all_resource_ids_mock.assert_called_once_with(get_stacks_mock.return_value[0])
+
+
+class TestWatch(TestCase):
+    def setUp(self) -> None:
+        self.template_file = "template.yaml"
+        self.build_context = MagicMock()
+        self.package_context = MagicMock()
+        self.deploy_context = MagicMock()
+
+    @patch("samcli.commands.sync.command.WatchManager")
+    def test_execute_watch(
+        self,
+        watch_manager_mock,
+    ):
+        execute_watch(self.template_file, self.build_context, self.package_context, self.deploy_context)
+
+        watch_manager_mock.assert_called_once_with(
+            self.template_file, self.build_context, self.package_context, self.deploy_context
+        )
+        watch_manager_mock.return_value.start.assert_called_once_with()

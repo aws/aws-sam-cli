@@ -99,3 +99,6 @@ class FunctionSyncFlow(SyncFlow):
             LOG.debug("%sCreated  Alias and Version SyncFlow", self.log_prefix)
 
         return sync_flows
+
+    def _equality_keys(self):
+        return self._function_identifier
