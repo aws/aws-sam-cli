@@ -55,10 +55,10 @@ class GuidedContext:
             )
         )
         has_env_creds = os.getenv(EnvProvider.ACCESS_KEY) and os.getenv(EnvProvider.SECRET_KEY)
-        click.echo(f"  1. Environment variables{' (not available)' if not has_env_creds else ''}")
+        click.echo(f"\t1 - Environment variables{' (not available)' if not has_env_creds else ''}")
         for i, profile in enumerate(profiles):
-            click.echo(f"  {i + 2}. {profile} (named profile)")
-        click.echo("  q. Quit and configure AWS credentials")
+            click.echo(f"\t{i + 2} - {profile} (named profile)")
+        click.echo("\tq - Quit and configure AWS credentials")
         answer = click.prompt(
             "Select a credential source to associate with this stage",
             show_choices=False,
@@ -231,12 +231,12 @@ class GuidedContext:
         click.echo()
 
         # Ask customers to confirm the inputs
-        click.secho(self.color.bold("[5] Summary"))
+        click.secho(self.color.bold("[4] Summary"))
         while True:
             inputs = self._get_user_inputs()
             click.secho("Below is the summary of the answers:")
             for i, (text, _) in enumerate(inputs):
-                click.secho(f"  {i + 1}. {text}")
+                click.secho(f"\t{i + 1} - {text}")
             edit_input = click.prompt(
                 text="Press enter to confirm the values above, or select an item to edit the value",
                 default="0",
