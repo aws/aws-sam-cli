@@ -60,7 +60,7 @@ class GuidedContext:
             click.echo(f"  {i + 2}. {profile} (named profile)")
         click.echo("  q. Quit and configure AWS credentials")
         answer = click.prompt(
-            "Select an account source to associate with this stage",
+            "Select a credential source to associate with this stage",
             show_choices=False,
             show_default=False,
             type=click.Choice((["1"] if has_env_creds else []) + [str(i + 2) for i in range(len(profiles))] + ["q"]),
