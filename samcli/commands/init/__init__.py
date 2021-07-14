@@ -290,7 +290,8 @@ def do_cli(
     from samcli.commands.exceptions import LambdaImagesTemplateException
 
     _deprecate_notification(runtime)
-
+    if project_type:
+        project_type = ProjectTypes(project_type)
     # check for required parameters
     zip_bool = name and runtime and dependency_manager and app_template
     image_bool = name and pt_explicit and base_image
