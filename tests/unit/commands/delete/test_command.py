@@ -5,15 +5,6 @@ from samcli.commands.delete.command import do_cli
 from tests.unit.cli.test_cli_config_file import MockContext
 
 
-def get_mock_sam_config():
-    mock_sam_config = MagicMock()
-    mock_sam_config.exists = MagicMock(return_value=True)
-    return mock_sam_config
-
-
-MOCK_SAM_CONFIG = get_mock_sam_config()
-
-
 class TestDeleteCliCommand(TestCase):
     def setUp(self):
 
@@ -22,9 +13,9 @@ class TestDeleteCliCommand(TestCase):
         self.s3_prefix = "s3-prefix"
         self.region = None
         self.profile = None
+        self.no_prompts = None
         self.config_env = "mock-default-env"
         self.config_file = "mock-default-filename"
-        MOCK_SAM_CONFIG.reset_mock()
 
     @patch("samcli.commands.delete.command.click")
     @patch("samcli.commands.delete.delete_context.DeleteContext")
@@ -39,6 +30,7 @@ class TestDeleteCliCommand(TestCase):
             config_file=self.config_file,
             config_env=self.config_env,
             profile=self.profile,
+            no_prompts=self.no_prompts,
         )
 
         mock_delete_context.assert_called_with(
@@ -47,6 +39,7 @@ class TestDeleteCliCommand(TestCase):
             profile=self.profile,
             config_file=self.config_file,
             config_env=self.config_env,
+            no_prompts=self.no_prompts,
         )
 
         context_mock.run.assert_called_with()

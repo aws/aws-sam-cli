@@ -110,7 +110,8 @@ def upload_local_image_artifacts(resource_id, resource_dict, property_name, pare
     image_path = jmespath.search(property_name, resource_dict)
 
     if not image_path:
-        raise ImageNotFoundError(property_name=property_name, resource_id=resource_id)
+        message_fmt = "Image not found for {property_name} parameter of {resource_id} resource. \n"
+        raise ImageNotFoundError(property_name=property_name, resource_id=resource_id, message_fmt=message_fmt)
 
     if is_ecr_url(image_path):
         LOG.debug("Property %s of %s is already an ECR URL", property_name, resource_id)

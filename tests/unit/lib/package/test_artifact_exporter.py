@@ -1,3 +1,4 @@
+import json
 import tempfile
 import os
 import string
@@ -7,7 +8,7 @@ import unittest
 
 from contextlib import contextmanager, closing
 from unittest import mock
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, MagicMock
 
 from samcli.commands.package.exceptions import ExportFailedError
 from samcli.lib.package.s3_uploader import S3Uploader
@@ -56,7 +57,7 @@ from samcli.lib.package.packageable_resources import (
 
 class TestArtifactExporter(unittest.TestCase):
     def setUp(self):
-        self.s3_uploader_mock = Mock()
+        self.s3_uploader_mock = MagicMock()
         self.s3_uploader_mock.s3.meta.endpoint_url = "https://s3.some-valid-region.amazonaws.com"
         self.ecr_uploader_mock = Mock()
 
@@ -180,14 +181,14 @@ class TestArtifactExporter(unittest.TestCase):
             "s3://foo/bar/baz?versionId=abc",
             "s3://www.amazon.com/foo/bar",
             "s3://my-new-bucket/foo/bar?a=1&a=2&a=3&b=1",
+            "https://s3-eu-west-1.amazonaws.com/bucket/key",
+            "https://s3.us-east-1.amazonaws.com/bucket/key",
         ]
 
         invalid = [
             # For purposes of exporter, we need S3 URLs to point to an object
             # and not a bucket
             "s3://foo",
-            # two versionIds is invalid
-            "https://s3-eu-west-1.amazonaws.com/bucket/key",
             "https://www.amazon.com",
         ]
 
@@ -218,15 +219,24 @@ class TestArtifactExporter(unittest.TestCase):
                 "url": "s3://foo/bar/baz?versionId=abc&versionId=123",
                 "result": {"Bucket": "foo", "Key": "bar/baz"},
             },
+            {
+                # Path style url
+                "url": "https://s3-eu-west-1.amazonaws.com/bucket/key",
+                "result": {"Bucket": "bucket", "Key": "key"},
+            },
+            {
+                # Path style url
+                "url": "https://s3.us-east-1.amazonaws.com/bucket/key",
+                "result": {"Bucket": "bucket", "Key": "key"},
+            },
         ]
 
         invalid = [
             # For purposes of exporter, we need S3 URLs to point to an object
             # and not a bucket
             "s3://foo",
-            # two versionIds is invalid
-            "https://s3-eu-west-1.amazonaws.com/bucket/key",
             "https://www.amazon.com",
+            "https://s3.us-east-1.amazonaws.com",
         ]
 
         for config in valid:
@@ -411,6 +421,10 @@ class TestArtifactExporter(unittest.TestCase):
 
         self.assertEqual(resource_dict[resource.PROPERTY_NAME], s3_url)
 
+        self.s3_uploader_mock.delete_artifact = MagicMock()
+        resource.delete(resource_id, resource_dict)
+        self.assertEqual(self.s3_uploader_mock.delete_artifact.call_count, 1)
+
     @patch("samcli.lib.package.packageable_resources.upload_local_image_artifacts")
     def test_resource_lambda_image(self, upload_local_image_artifacts_mock):
         # Property value is a path to an image
@@ -435,6 +449,10 @@ class TestArtifactExporter(unittest.TestCase):
         )
 
         self.assertEqual(resource_dict[resource.PROPERTY_NAME], ecr_url)
+
+        self.ecr_uploader_mock.delete_artifact = MagicMock()
+        resource.delete(resource_id, resource_dict)
+        self.assertEqual(self.ecr_uploader_mock.delete_artifact.call_count, 1)
 
     def test_lambda_image_resource_package_success(self):
         # Property value is set to an image
@@ -745,6 +763,10 @@ class TestArtifactExporter(unittest.TestCase):
         self.assertEqual(
             resource_dict[resource.PROPERTY_NAME], {"b": "bucket", "o": "key1/key2", "v": "SomeVersionNumber"}
         )
+
+        self.s3_uploader_mock.delete_artifact = MagicMock()
+        resource.delete(resource_id, resource_dict)
+        self.s3_uploader_mock.delete_artifact.assert_called_once_with(remote_path="key1/key2", is_key=True)
 
     @patch("samcli.lib.package.packageable_resources.upload_local_artifacts")
     def test_resource_with_signing_configuration(self, upload_local_artifacts_mock):
@@ -1377,3 +1399,55 @@ class TestArtifactExporter(unittest.TestCase):
             Timeout: 20
             Runtime: nodejs4.3
         """
+
+    def test_template_delete(self):
+        template_str = self.example_yaml_template()
+
+        resource_type1_class = Mock()
+        resource_type1_class.RESOURCE_TYPE = "resource_type1"
+        resource_type1_class.ARTIFACT_TYPE = ZIP
+        resource_type1_class.EXPORT_DESTINATION = Destination.S3
+        resource_type1_instance = Mock()
+        resource_type1_class.return_value = resource_type1_instance
+        resource_type2_class = Mock()
+        resource_type2_class.RESOURCE_TYPE = "resource_type2"
+        resource_type2_class.ARTIFACT_TYPE = ZIP
+        resource_type2_class.EXPORT_DESTINATION = Destination.S3
+        resource_type2_instance = Mock()
+        resource_type2_class.return_value = resource_type2_instance
+        resource_type3_class = Mock()
+        resource_type3_class.RESOURCE_TYPE = "resource_type3"
+        resource_type3_class.ARTIFACT_TYPE = ZIP
+        resource_type3_class.EXPORT_DESTINATION = Destination.S3
+        resource_type3_instance = Mock()
+        resource_type3_class.return_value = resource_type3_instance
+
+        resources_to_export = [resource_type1_class, resource_type2_class]
+
+        properties = {"foo": "bar"}
+        template_dict = {
+            "Resources": {
+                "Resource1": {"Type": "resource_type1", "Properties": properties},
+                "Resource2": {"Type": "resource_type2", "Properties": properties},
+                "Resource3": {"Type": "some-other-type", "Properties": properties, "DeletionPolicy": "Retain"},
+            }
+        }
+        template_str = json.dumps(template_dict, indent=4, ensure_ascii=False)
+
+        template_exporter = Template(
+            template_path=None,
+            parent_dir=None,
+            uploaders=self.uploaders_mock,
+            code_signer=None,
+            resources_to_export=resources_to_export,
+            template_str=template_str,
+        )
+
+        template_exporter.delete()
+
+        resource_type1_class.assert_called_once_with(self.uploaders_mock, None)
+        resource_type1_instance.delete.assert_called_once_with("Resource1", mock.ANY)
+        resource_type2_class.assert_called_once_with(self.uploaders_mock, None)
+        resource_type2_instance.delete.assert_called_once_with("Resource2", mock.ANY)
+        resource_type3_class.assert_not_called()
+        resource_type3_instance.delete.assert_not_called()

@@ -1,9 +1,21 @@
 from unittest.mock import patch, MagicMock, ANY, call
 from unittest import TestCase
 
+
 from samcli.commands.delete.exceptions import DeleteFailedError, FetchTemplateFailedError
-from botocore.exceptions import ClientError, BotoCoreError
+from botocore.exceptions import ClientError, BotoCoreError, WaiterError
+
 from samcli.lib.delete.cf_utils import CfUtils
+
+
+class MockDeleteWaiter:
+    def __init__(self, ex=None):
+        self.ex = ex
+
+    def wait(self, StackName, WaiterConfig):
+        if self.ex:
+            raise self.ex
+        return
 
 
 class TestCfUtils(TestCase):
@@ -20,7 +32,7 @@ class TestCfUtils(TestCase):
         self.cf_utils._client.describe_stacks = MagicMock(return_value={"Stacks": []})
         self.assertEqual(self.cf_utils.has_stack("test"), False)
 
-    def test_cf_utils_has_stack_exception_non_exsistent(self):
+    def test_cf_utils_has_stack_exception_non_existent(self):
         self.cf_utils._client.describe_stacks = MagicMock(
             side_effect=ClientError(
                 error_response={"Error": {"Message": "Stack with id test does not exist"}},
@@ -84,3 +96,16 @@ class TestCfUtils(TestCase):
         self.cf_utils._client.delete_stack = MagicMock(side_effect=Exception())
         with self.assertRaises(Exception):
             self.cf_utils.delete_stack("test")
+
+    def test_cf_utils_wait_for_delete_exception(self):
+        self.cf_utils._client.get_waiter = MagicMock(
+            return_value=MockDeleteWaiter(
+                ex=WaiterError(
+                    name="wait_for_delete",
+                    reason="unit-test",
+                    last_response={"Status": "Failed", "StatusReason": "It's a unit test"},
+                )
+            )
+        )
+        with self.assertRaises(DeleteFailedError):
+            self.cf_utils.wait_for_delete("test")
