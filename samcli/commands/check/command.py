@@ -140,7 +140,8 @@ def do_cli(ctx, template):
     pricing_calculations = PricingCalculations(graph)
     pricing_calculations.run_calculations()
 
-    results = PrintResults(graph)
+    results = PrintResults(graph, pricing_calculations.get_lambda_pricing_results())
+    results.print_all_pricing_results()
     results.print_bottle_neck_results()
 
 

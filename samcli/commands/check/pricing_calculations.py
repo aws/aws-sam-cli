@@ -12,6 +12,7 @@ import ast
 class PricingCalculations:
     def __init__(self, graph):
         self.graph = graph
+        self.lambda_pricing_results = None
         self.max_num_of_free_requests = None
         self.max_free_GBs = None
         self.monthly_compute_charge = None
@@ -37,11 +38,13 @@ class PricingCalculations:
             "GU2ZS9HVP6QTQ7KE.JRTCKXETXF.6YS6EN2CT7",
         ]
 
+    def get_lambda_pricing_results(self):
+        return self.lambda_pricing_results
+
     def run_calculations(self):
-        print("RUNNING PRICING CALCULATIONS")
         aws_lambda_pricing_info = self.get_aws_lambda_pricing_info()
         self.get_charge_and_request_amounts(aws_lambda_pricing_info)
-        self.determine_cost()
+        self.determine_lambda_cost()
 
     def get_charge_and_request_amounts(self, aws_lambda_pricing_info):
         self.monthly_compute_charge = float(
@@ -81,7 +84,7 @@ class PricingCalculations:
             else:
                 raise Exception()
 
-    def determine_cost(self):
+    def determine_lambda_cost(self):
         template_lambda_pricing_info = self.graph.get_lambda_function_pricing_info()
 
         memory_amount = float(template_lambda_pricing_info.get_allocated_memory())
@@ -114,5 +117,4 @@ class PricingCalculations:
 
         monthly_lambda_costs = round(monthly_compute_amount + monthly_request_amount, 2)
 
-        print("FINAL AMOUNT")
-        print(monthly_lambda_costs)
+        self.lambda_pricing_results = monthly_lambda_costs
