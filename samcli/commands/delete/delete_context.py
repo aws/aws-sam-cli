@@ -7,8 +7,10 @@ import boto3
 
 
 import click
+import json
 from click import confirm
 from click import prompt
+
 from samcli.cli.cli_config_file import TomlProvider
 from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
 from samcli.lib.delete.cf_utils import CfUtils
@@ -197,6 +199,9 @@ class DeleteContext:
         # Fetch the template using the stack-name
         cf_template = self.cf_utils.get_stack_template(self.stack_name, TEMPLATE_STAGE)
         template_str = cf_template.get("TemplateBody", None)
+
+        if isinstance(template_str, dict):
+            template_str = json.dumps(cf_template.get("TemplateBody", None), indent=4, ensure_ascii=False)
 
         # Get the cloudformation template name using template_str
         with mktempfile() as temp_file:
