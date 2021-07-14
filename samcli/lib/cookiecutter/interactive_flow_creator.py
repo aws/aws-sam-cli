@@ -77,7 +77,7 @@ class InteractiveFlowCreator:
         questions_definition = InteractiveFlowCreator._parse_questions_definition(flow_definition_path, extra_context)
 
         try:
-            for question in questions_definition.get("questions"):
+            for question in questions_definition.get("questions", []):
                 q = QuestionFactory.create_question_from_json(question)
                 if not first_question_key:
                     first_question_key = q.key
