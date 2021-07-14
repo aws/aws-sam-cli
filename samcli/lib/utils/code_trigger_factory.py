@@ -23,7 +23,7 @@ from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resourc
 LOG = logging.getLogger(__name__)
 
 
-class CodeTriggerFactory(ResourceTypeBasedFactory[CodeResourceTrigger]):
+class CodeTriggerFactory(ResourceTypeBasedFactory[CodeResourceTrigger]):  # pylint: disable=E1136
     _stacks: List[Stack]
 
     def _create_lambda_trigger(

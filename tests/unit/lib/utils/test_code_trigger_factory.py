@@ -6,7 +6,7 @@ from samcli.lib.utils.code_trigger_factory import CodeTriggerFactory
 
 
 class TestCodeTriggerFactory(TestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         self.stacks = [MagicMock(), MagicMock()]
         self.factory = CodeTriggerFactory(self.stacks)
 

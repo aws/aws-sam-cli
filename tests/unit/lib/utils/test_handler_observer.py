@@ -1,3 +1,4 @@
+import re
 from unittest.case import TestCase
 from unittest.mock import MagicMock, patch, ANY
 from samcli.lib.utils.path_observer import HandlerObserver, PathHandler, StaticFolderWrapper
@@ -66,8 +67,9 @@ class TestStaticFolderWrapper(TestCase):
 
         self.assertEqual(result, path_handler)
         path_handler_mock.assert_called_once_with(path="/parent/", event_handler=event_handler)
+        escaped_path = re.escape("/parent/dir/")
         event_handler_mock.assert_called_once_with(
-            regexes=["^\\/parent\\/dir\\/$"], ignore_regexes=[], ignore_directories=False, case_sensitive=True
+            regexes=[f"^{escaped_path}$"], ignore_regexes=[], ignore_directories=False, case_sensitive=True
         )
 
 

@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 LOG = logging.getLogger(__name__)
 
 
-class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):
+class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1136
     """Factory class for SyncFlow
     Creates appropriate SyncFlow types based on stack resource types
     """

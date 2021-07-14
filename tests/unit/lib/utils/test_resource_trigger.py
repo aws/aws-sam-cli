@@ -1,3 +1,4 @@
+import re
 from samcli.lib.providers.provider import ResourceIdentifier
 from parameterized import parameterized
 from unittest.case import TestCase
@@ -36,8 +37,9 @@ class TestResourceTrigger(TestCase):
         ResourceTrigger.get_single_file_path_handler("/parent/file")
 
         path_mock.assert_called_once_with("/parent/file")
+        escaped_path = re.escape("/parent/file")
         handler_mock.assert_called_once_with(
-            regexes=["^\\/parent\\/file$"], ignore_regexes=[], ignore_directories=True, case_sensitive=True
+            regexes=[f"^{escaped_path}$"], ignore_regexes=[], ignore_directories=True, case_sensitive=True
         )
         bundle_mock.assert_called_once_with(path=parent_path, event_handler=handler_mock.return_value, recursive=False)
 

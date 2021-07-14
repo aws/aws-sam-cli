@@ -5,7 +5,7 @@ from unittest.mock import ANY, MagicMock, call, patch
 
 
 class TestResourceTypeBasedFactory(TestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         self.abstract_method_patch = patch.multiple(ResourceTypeBasedFactory, __abstractmethods__=set())
         self.abstract_method_patch.start()
         self.stacks = [MagicMock(), MagicMock()]
@@ -18,7 +18,7 @@ class TestResourceTypeBasedFactory(TestCase):
             "AWS::Lambda::LayerVersion": self.layer_generator_mock,
         }
 
-    def tearDown(self) -> None:
+    def tearDown(self):
         self.abstract_method_patch.stop()
 
     @patch("samcli.lib.utils.resource_type_based_factory.get_resource_by_id")

@@ -69,7 +69,7 @@ class TestSyncFlowFactory(TestCase):
 
     @patch("samcli.lib.sync.sync_flow_factory.RestApiSyncFlow")
     @patch("samcli.lib.sync.sync_flow_factory.Config")
-    def test_create_api_flow(self, config_mock, rest_api_sync_mock):
+    def test_create_rest_api_flow(self, config_mock, rest_api_sync_mock):
         factory = self.create_factory()
         result = factory._create_rest_api_flow("API1", {})
         self.assertEqual(result, rest_api_sync_mock.return_value)
