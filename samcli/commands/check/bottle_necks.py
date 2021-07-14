@@ -37,11 +37,15 @@ class BottleNecks:
             entry_point_question += "\nWhere should the simulation start?"
             user_input = self.ask(entry_point_question, 1, item_number - 1)
 
+            click.echo("")
+
             current_entry_point = entry_points.pop(user_input - 1)
 
             self.ask_bottle_neck_questions(current_entry_point)
 
             self.graph.add_resource_to_analyze(current_entry_point)
+
+            click.echo("")
 
         return
 
