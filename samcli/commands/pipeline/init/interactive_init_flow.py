@@ -175,7 +175,7 @@ class InteractiveInitFlow:
             click.echo(
                 Colored().yellow(
                     dedent(
-                        f"""\
+                        """\
                         If you want to setup stages before proceed, please quit the process using Ctrl+C.
                         Then you can either run 'sam pipeline bootstrap' to setup a stage
                         or re-run this command with option '--bootstrap' to enable stage setup.
