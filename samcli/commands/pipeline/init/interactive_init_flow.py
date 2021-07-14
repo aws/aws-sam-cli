@@ -52,7 +52,7 @@ class InteractiveInitFlow:
             dedent(
                 """\
 
-                sam pipeline init generates a pipeline config file that you can use to connect your
+                sam pipeline init generates a pipeline configuration file that you can use to connect your
                 AWS account(s) to your CI/CD system. We will guide you through the process to
                 bootstrap resources for each stage, then walk through the details necessary for
                 creating the pipeline config file.
@@ -84,7 +84,7 @@ class InteractiveInitFlow:
         """
         Prompts the user to choose a pipeline template from SAM predefined set of pipeline templates hosted in the git
         repository: aws/aws-sam-cli-pipeline-init-templates.git
-        downloads locally, then generates the pipeline config file from the selected pipeline template.
+        downloads locally, then generates the pipeline configuration file from the selected pipeline template.
         Finally, return the list of generated files.
         """
         pipeline_templates_local_dir: Path = _clone_app_pipeline_templates()
