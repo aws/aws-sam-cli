@@ -52,7 +52,7 @@ class InteractiveInitFlow:
             dedent(
                 """\
 
-                sam pipeline init generates a pipeline config file that you can use to connect your
+                sam pipeline init generates a pipeline configuration file that you can use to connect your
                 AWS account(s) to your CI/CD system. We will guide you through the process to
                 bootstrap resources for each stage, then walk through the details necessary for
                 creating the pipeline config file.
@@ -84,7 +84,7 @@ class InteractiveInitFlow:
         """
         Prompts the user to choose a pipeline template from SAM predefined set of pipeline templates hosted in the git
         repository: aws/aws-sam-cli-pipeline-init-templates.git
-        downloads locally, then generates the pipeline config file from the selected pipeline template.
+        downloads locally, then generates the pipeline configuration file from the selected pipeline template.
         Finally, return the list of generated files.
         """
         pipeline_templates_local_dir: Path = _clone_app_pipeline_templates()
@@ -144,7 +144,7 @@ class InteractiveInitFlow:
 
                         For each stage, we will ask for [1] stage definition, [2] account details, and [3]
                         reference application build resources in order to bootstrap these pipeline
-                        resources. You can also add optional security parameters.
+                        resources.
 
                         We recommend using an individual AWS account profiles for each stage in your
                         pipeline. You can set these profiles up using [little bit of info on how to do
@@ -175,10 +175,10 @@ class InteractiveInitFlow:
             click.echo(
                 Colored().yellow(
                     dedent(
-                        f"""\
+                        """\
                         If you want to setup stages before proceed, please quit the process using Ctrl+C.
-                        Then you can either run {Colored().bold('sam pipeline bootstrap')} to setup a stage
-                        or re-run this command with option {Colored().bold('--bootstrap')} to enable stage setup.
+                        Then you can either run 'sam pipeline bootstrap' to setup a stage
+                        or re-run this command with option '--bootstrap' to enable stage setup.
                         """
                     )
                 )
@@ -195,7 +195,7 @@ class InteractiveInitFlow:
         click.echo(f"You are using the {required_env_number}-stage pipeline template.")
         _draw_stage_diagram(required_env_number)
         while True:
-            click.echo("Checking for bootstrapped resources...")
+            click.echo("Checking for bootstrapped resources...\n")
             stage_names, bootstrap_context = _load_pipeline_bootstrap_resources()
             if len(stage_names) < required_env_number and self._prompt_run_bootstrap_within_pipeline_init(
                 stage_names, required_env_number
@@ -432,3 +432,4 @@ def _draw_stage_diagram(number_of_stages: int) -> None:
     stage_lines = [_lines_for_stage(i + 1) for i in range(number_of_stages)]
     for i, delimiter in enumerate(delimiters):
         click.echo(delimiter.join([stage_lines[stage_i][i] for stage_i in range(number_of_stages)]))
+    click.echo("")

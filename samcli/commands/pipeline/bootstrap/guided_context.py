@@ -55,12 +55,12 @@ class GuidedContext:
             )
         )
         has_env_creds = os.getenv(EnvProvider.ACCESS_KEY) and os.getenv(EnvProvider.SECRET_KEY)
-        click.echo(f"  1. Environment variables{' (not available)' if not has_env_creds else ''}")
+        click.echo(f"\t1 - Environment variables{' (not available)' if not has_env_creds else ''}")
         for i, profile in enumerate(profiles):
-            click.echo(f"  {i + 2}. {profile} (named profile)")
-        click.echo("  q. Quit and configure AWS credential myself")
+            click.echo(f"\t{i + 2} - {profile} (named profile)")
+        click.echo("\tq - Quit and configure AWS credentials")
         answer = click.prompt(
-            "Select an account source to associate with this stage",
+            "Select a credential source to associate with this stage",
             show_choices=False,
             show_default=False,
             type=click.Choice((["1"] if has_env_creds else []) + [str(i + 2) for i in range(len(profiles))] + ["q"]),
@@ -78,7 +78,7 @@ class GuidedContext:
             account_id = get_current_account_id(self.profile)
             click.echo(self.color.green(f"Associated account {account_id} with stage {self.stage_name}."))
         except CredentialsError as ex:
-            click.echo(self.color.red(ex.message))
+            click.echo(f"{self.color.red(ex.message)}\n")
             self._prompt_account_id()
 
     def _prompt_stage_name(self) -> None:
@@ -210,19 +210,16 @@ class GuidedContext:
             click.echo(f"Pipeline execution role ARN: {self.pipeline_execution_role_arn}")
         else:
             self._prompt_pipeline_execution_role()
-        click.echo()
 
         if self.cloudformation_execution_role_arn:
             click.echo(f"CloudFormation execution role ARN: {self.cloudformation_execution_role_arn}")
         else:
             self._prompt_cloudformation_execution_role()
-        click.echo()
 
         if self.artifacts_bucket_arn:
             click.echo(f"Artifacts bucket ARN: {self.cloudformation_execution_role_arn}")
         else:
             self._prompt_artifacts_bucket()
-        click.echo()
 
         if self.image_repository_arn:
             click.echo(f"ECR image repository ARN: {self.image_repository_arn}")
@@ -231,12 +228,12 @@ class GuidedContext:
         click.echo()
 
         # Ask customers to confirm the inputs
-        click.secho(self.color.bold("[5] Summary"))
+        click.secho(self.color.bold("[4] Summary"))
         while True:
             inputs = self._get_user_inputs()
             click.secho("Below is the summary of the answers:")
             for i, (text, _) in enumerate(inputs):
-                click.secho(f"  {i + 1}. {text}")
+                click.secho(f"\t{i + 1} - {text}")
             edit_input = click.prompt(
                 text="Press enter to confirm the values above, or select an item to edit the value",
                 default="0",
@@ -244,6 +241,7 @@ class GuidedContext:
                 show_default=False,
                 type=click.Choice(["0"] + [str(i + 1) for i in range(len(inputs))]),
             )
+            click.echo()
             if int(edit_input):
                 inputs[int(edit_input) - 1][1]()
                 click.echo()

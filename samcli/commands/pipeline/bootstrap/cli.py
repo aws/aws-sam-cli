@@ -152,7 +152,7 @@ def do_cli(
                     sam pipeline bootstrap generates the necessary AWS resources to connect a stage in
                     your CI/CD system. We will ask for [1] stage definition, [2] account details, and
                     [3] references to existing resources in order to bootstrap these pipeline
-                    resources. You can also add optional security parameters.
+                    resources.
                     """
                 ),
             )
