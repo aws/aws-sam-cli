@@ -123,11 +123,11 @@ class InteractiveInitFlow:
         Prompt bootstrap if `--bootstrap` flag is provided. Return True if bootstrap process is executed.
         """
         if not stage_names:
-            click.echo(Colored().yellow("No bootstrapped resources were detected."))
+            click.echo("[!] None detected in this account.")
         else:
             click.echo(
                 Colored().yellow(
-                    f"Only {len(stage_names)} bootstrapped stage(s) were detected, "
+                    f"Only {len(stage_names)} stage(s) were detected, "
                     f"fewer than what the template requires: {required_env_number}."
                 )
             )
@@ -173,15 +173,16 @@ class InteractiveInitFlow:
                 return True
         else:
             click.echo(
-                Colored().yellow(
-                    dedent(
-                        """\
-                        If you want to setup stages before proceed, please quit the process using Ctrl+C.
-                        Then you can either run 'sam pipeline bootstrap' to setup a stage
-                        or re-run this command with option '--bootstrap' to enable stage setup.
-                        """
-                    )
+                dedent(
+                    """\
+                    To set up stage(s), please quit the process using Ctrl+C and use one of the following commands:
+                    sam pipeline init --bootstrap       To be guided through the stage and config file creation process.
+                    sam pipeline bootstrap              To specify details for an individual stage.
+                    """
                 )
+            )
+            click.prompt(
+                "To reference stage resources bootstrapped in a different account, press enter to proceed", default=""
             )
         return False
 
@@ -195,7 +196,7 @@ class InteractiveInitFlow:
         click.echo(f"You are using the {required_env_number}-stage pipeline template.")
         _draw_stage_diagram(required_env_number)
         while True:
-            click.echo("Checking for bootstrapped resources...\n")
+            click.echo("Checking for existing stages...\n")
             stage_names, bootstrap_context = _load_pipeline_bootstrap_resources()
             if len(stage_names) < required_env_number and self._prompt_run_bootstrap_within_pipeline_init(
                 stage_names, required_env_number
