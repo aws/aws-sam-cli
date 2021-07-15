@@ -10,6 +10,7 @@ import boto3
 import docker
 from botocore.config import Config
 from parameterized import parameterized
+from botocore.exceptions import ClientError
 
 from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
@@ -66,12 +67,9 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
         [
             "aws-serverless-function.yaml",
             "aws-serverless-statemachine.yaml",
-            # "aws-serverless-api.yaml",
-            # "aws-serverless-httpapi.yaml",
             "aws-appsync-graphqlschema.yaml",
             "aws-appsync-resolver.yaml",
             "aws-appsync-functionconfiguration.yaml",
-            # "aws-lambda-function.yaml",
             "aws-apigateway-restapi.yaml",
             "aws-elasticbeanstalk-applicationversion.yaml",
             "aws-cloudformation-moduleversion.yaml",
@@ -86,7 +84,6 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
     )
     def test_delete_with_s3_prefix_present_zip(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
-        LOG.info(template_path)
 
         stack_name = self._method_to_stack_name(self.id())
 
@@ -104,9 +101,13 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             stack_name=stack_name, config_file=config_file_path, no_prompts=True
         )
 
-        LOG.info(delete_command_list)
         delete_process_execute = run_command(delete_command_list)
         self.assertEqual(delete_process_execute.process.returncode, 0)
+
+        try:
+            resp = self.cf_client.describe_stacks(StackName=stack_name)
+        except ClientError as ex:
+            self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
 
         # Remove the local config file created
         if os.path.isfile(config_file_path):
@@ -119,7 +120,6 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
     )
     def test_delete_with_s3_prefix_present_image(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
-        LOG.info(template_path)
 
         stack_name = self._method_to_stack_name(self.id())
 
@@ -137,10 +137,13 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             stack_name=stack_name, config_file=config_file_path, no_prompts=True
         )
 
-        LOG.info(delete_command_list)
-        LOG.info(self.ecr_repo_name)
         delete_process_execute = run_command(delete_command_list)
         self.assertEqual(delete_process_execute.process.returncode, 0)
+
+        try:
+            resp = self.cf_client.describe_stacks(StackName=stack_name)
+        except ClientError as ex:
+            self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
 
         # Remove the local config file created
         if os.path.isfile(config_file_path):
@@ -173,6 +176,11 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
 
         self.assertEqual(delete_process_execute.process.returncode, 0)
 
+        try:
+            resp = self.cf_client.describe_stacks(StackName=stack_name)
+        except ClientError as ex:
+            self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
+
         # Remove the local config file created
         if os.path.isfile(config_file_path):
             os.remove(config_file_path)
@@ -195,9 +203,13 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
 
         delete_command_list = self.get_delete_command_list(stack_name=stack_name, region="us-east-1", no_prompts=True)
 
-        LOG.info(delete_command_list)
         delete_process_execute = run_command(delete_command_list)
         self.assertEqual(delete_process_execute.process.returncode, 0)
+
+        try:
+            resp = self.cf_client.describe_stacks(StackName=stack_name)
+        except ClientError as ex:
+            self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
 
     @parameterized.expand(
         [
@@ -228,10 +240,14 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
 
         delete_command_list = self.get_delete_command_list(stack_name=stack_name, region="us-east-1", no_prompts=True)
 
-        LOG.info(delete_command_list)
         delete_process_execute = run_command(delete_command_list)
 
         self.assertEqual(delete_process_execute.process.returncode, 0)
+
+        try:
+            resp = self.cf_client.describe_stacks(StackName=stack_name)
+        except ClientError as ex:
+            self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
 
     @parameterized.expand(
         [
@@ -264,10 +280,14 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
 
         delete_command_list = self.get_delete_command_list(stack_name=stack_name, region="us-east-1", no_prompts=True)
 
-        LOG.info(delete_command_list)
         delete_process_execute = run_command(delete_command_list)
 
         self.assertEqual(delete_process_execute.process.returncode, 0)
+
+        try:
+            resp = self.cf_client.describe_stacks(StackName=stack_name)
+        except ClientError as ex:
+            self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
 
     def _method_to_stack_name(self, method_name):
         """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
