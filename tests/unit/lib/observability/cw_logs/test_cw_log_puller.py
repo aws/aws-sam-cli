@@ -100,6 +100,39 @@ class TestCWLogPuller_load_time_period(TestCase):
             for event in self.expected_events:
                 self.assertIn(event, call_args)
 
+    @patch("samcli.lib.observability.cw_logs.cw_log_puller.LOG")
+    def test_must_print_resource_not_found_only_once(self, patched_log):
+        pattern = "foobar"
+        start = datetime.utcnow()
+        end = datetime.utcnow()
+
+        expected_params = {
+            "logGroupName": self.log_group_name,
+            "interleaved": True,
+            "startTime": to_timestamp(start),
+            "endTime": to_timestamp(end),
+            "filterPattern": pattern,
+        }
+
+        self.client_stubber.add_client_error(
+            "filter_log_events", expected_params=expected_params, service_error_code="ResourceNotFoundException"
+        )
+        self.client_stubber.add_client_error(
+            "filter_log_events", expected_params=expected_params, service_error_code="ResourceNotFoundException"
+        )
+        self.client_stubber.add_response("filter_log_events", self.mock_api_response, expected_params)
+
+        with self.client_stubber:
+            self.assertFalse(self.fetcher._invalid_log_group)
+            self.fetcher.load_time_period(start_time=start, end_time=end, filter_pattern=pattern)
+            self.assertTrue(self.fetcher._invalid_log_group)
+            self.fetcher.load_time_period(start_time=start, end_time=end, filter_pattern=pattern)
+            self.assertTrue(self.fetcher._invalid_log_group)
+            self.fetcher.load_time_period(start_time=start, end_time=end, filter_pattern=pattern)
+            self.assertFalse(self.fetcher._invalid_log_group)
+
+        patched_log.warning.assert_called_once()
+
     def test_must_paginate_using_next_token(self):
         """Make three API calls, first two returns a nextToken and last does not."""
         token = "token"

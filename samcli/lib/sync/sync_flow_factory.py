@@ -2,9 +2,6 @@
 import logging
 from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, cast
 
-import boto3
-from botocore.config import Config
-
 from samcli.lib.providers.provider import Stack, get_resource_by_id, ResourceIdentifier
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.lib.providers.sam_api_provider import SamApiProvider
@@ -19,6 +16,8 @@ from samcli.lib.sync.flows.zip_function_sync_flow import ZipFunctionSyncFlow
 from samcli.lib.sync.flows.image_function_sync_flow import ImageFunctionSyncFlow
 from samcli.lib.sync.flows.rest_api_sync_flow import RestApiSyncFlow
 from samcli.lib.sync.flows.http_api_sync_flow import HttpApiSyncFlow
+from samcli.lib.utils.boto_utils import get_boto_resource_provider_with_config
+from samcli.lib.utils.cloudformation import get_physical_id_mapping
 
 if TYPE_CHECKING:
     from samcli.commands.deploy.deploy_context import DeployContext
@@ -34,7 +33,6 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
 
     _deploy_context: "DeployContext"
     _build_context: "BuildContext"
-    _boto_config: Config
     _physical_id_mapping: Dict[str, str]
 
     def __init__(self, build_context: "BuildContext", deploy_context: "DeployContext", stacks: List[Stack]) -> None:
@@ -51,19 +49,17 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
         super().__init__(stacks)
         self._deploy_context = deploy_context
         self._build_context = build_context
-
-        self._boto_config = Config(region_name=self._deploy_context.region if self._deploy_context.region else None)
-
         self._physical_id_mapping = dict()
 
     def load_physical_id_mapping(self) -> None:
         """Load physical IDs of the stack resources from remote"""
         LOG.debug("Loading physical ID mapping")
-        self._physical_id_mapping.clear()
-        stack = boto3.resource("cloudformation", config=self._boto_config).Stack(self._deploy_context.stack_name)
-        resources = stack.resource_summaries.all()
-        for resource in resources:
-            self._physical_id_mapping[resource.logical_resource_id] = resource.physical_resource_id
+        self._physical_id_mapping = get_physical_id_mapping(
+            get_boto_resource_provider_with_config(
+                region_name=self._deploy_context.region if self._deploy_context.region else None
+            ),
+            self._deploy_context.stack_name,
+        )
 
     def _create_lambda_flow(
         self, resource_identifier: ResourceIdentifier, resource: Dict[str, Any]

@@ -32,7 +32,7 @@ from samcli.commands.deploy.utils import (
 from samcli.lib.deploy.deployer import Deployer
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
-from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
+from samcli.lib.utils.boto_utils import get_boto_config_with_user_agent
 from samcli.yamlhelper import yaml_parse
 
 LOG = logging.getLogger(__name__)

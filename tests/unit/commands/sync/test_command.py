@@ -51,11 +51,13 @@ class TestDoCli(TestCase):
     @patch("samcli.commands.deploy.command.click")
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
     @patch("samcli.commands.build.command.os")
+    @patch("samcli.commands.sync.command.manage_stack")
     def test_infra_must_succeed_sync(
         self,
         infra,
         code,
         watch,
+        manage_stack_mock,
         os_mock,
         DeployContextMock,
         mock_deploy_click,
@@ -165,11 +167,13 @@ class TestDoCli(TestCase):
     @patch("samcli.commands.deploy.command.click")
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
     @patch("samcli.commands.build.command.os")
+    @patch("samcli.commands.sync.command.manage_stack")
     def test_watch_must_succeed_sync(
         self,
         infra,
         code,
         watch,
+        manage_stack_mock,
         os_mock,
         DeployContextMock,
         mock_deploy_click,
@@ -279,11 +283,13 @@ class TestDoCli(TestCase):
     @patch("samcli.commands.deploy.command.click")
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
     @patch("samcli.commands.build.command.os")
+    @patch("samcli.commands.sync.command.manage_stack")
     def test_code_must_succeed_sync(
         self,
         infra,
         code,
         watch,
+        manage_stack_mock,
         os_mock,
         DeployContextMock,
         mock_deploy_click,

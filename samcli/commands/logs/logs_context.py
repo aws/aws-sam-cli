@@ -7,6 +7,8 @@ from typing import List, Optional, Set, Any
 
 from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION, AWS_APIGATEWAY_RESTAPI, AWS_APIGATEWAY_HTTPAPI
 from samcli.commands.exceptions import UserException
+from samcli.lib.utils.boto_utils import BotoProviderType
+from samcli.lib.utils.cloudformation import get_resource_summaries
 from samcli.lib.utils.time import to_utc, parse_date
 
 LOG = logging.getLogger(__name__)
@@ -60,12 +62,12 @@ class ResourcePhysicalIdResolver:
 
     def __init__(
         self,
-        cfn_resource: Any,
+        boto_resource_provider: BotoProviderType,
         stack_name: str,
         resource_names: Optional[List[str]] = None,
         supported_resource_types: Optional[Set[str]] = None,
     ):
-        self._cfn_resource = cfn_resource
+        self._boto_resource_provider = boto_resource_provider
         self._stack_name = stack_name
         if resource_names is None:
             resource_names = []
@@ -112,33 +114,17 @@ class ResourcePhysicalIdResolver:
         """
         results = []
         LOG.debug("Getting logical id of the all resources for stack '%s'", self._stack_name)
-        stack_resources = self._get_stack_resources()
+        stack_resources = get_resource_summaries(
+            self._boto_resource_provider, self._stack_name, ResourcePhysicalIdResolver.DEFAULT_SUPPORTED_RESOURCES
+        )
 
         if selected_resource_names is None:
-            selected_resource_names = {stack_resource.logical_id for stack_resource in stack_resources}
+            selected_resource_names = {stack_resource.logical_resource_id for stack_resource in stack_resources}
 
         for resource in stack_resources:
             # if resource name is not selected, continue
-            if resource.logical_id not in selected_resource_names:
-                LOG.debug("Resource (%s) is not selected with given input", resource.logical_id)
-                continue
-            # if resource type is not supported, continue
-            if not self.is_supported_resource(resource.resource_type):
-                LOG.debug(
-                    "Resource (%s) with type (%s) is not supported, skipping",
-                    resource.logical_id,
-                    resource.resource_type,
-                )
+            if resource.logical_resource_id not in selected_resource_names:
+                LOG.debug("Resource (%s) is not selected with given input", resource.logical_resource_id)
                 continue
             results.append(resource)
         return results
-
-    def _get_stack_resources(self) -> Any:
-        """
-        Fetches all resource information for the given stack, response is type of StackResourceSummariesCollection
-        """
-        cfn_stack = self._cfn_resource.Stack(self._stack_name)
-        return cfn_stack.resource_summaries.all()
-
-    def is_supported_resource(self, resource_type: str) -> bool:
-        return resource_type in self._supported_resource_types

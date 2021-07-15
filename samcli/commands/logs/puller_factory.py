@@ -3,7 +3,7 @@ File keeps Factory method to prepare required puller information
 with its producers and consumers
 """
 import logging
-from typing import List, Optional, Callable, Any
+from typing import List, Optional
 
 from samcli.commands.exceptions import UserException
 from samcli.commands.logs.console_consumers import CWConsoleEventConsumer
@@ -24,6 +24,8 @@ from samcli.lib.observability.observability_info_puller import (
     ObservabilityEventConsumer,
     ObservabilityCombinedPuller,
 )
+from samcli.lib.utils.boto_utils import BotoProviderType
+from samcli.lib.utils.cloudformation import CloudFormationResourceSummary
 from samcli.lib.utils.colors import Colored
 
 LOG = logging.getLogger(__name__)
@@ -37,9 +39,8 @@ class NoPullerGeneratedException(UserException):
 
 
 def generate_puller(
-    logs_client_generator: Callable[[], Any],
-    xray_client: Any,
-    resource_information_list: List[Any],
+    boto_client_provider: BotoProviderType,
+    resource_information_list: List[CloudFormationResourceSummary],
     filter_pattern: Optional[str] = None,
     additional_cw_log_groups: Optional[List[str]] = None,
     output_dir: Optional[str] = None,
@@ -51,12 +52,10 @@ def generate_puller(
 
     Parameters
     ----------
-    logs_client_generator: Callable[[], CloudWatchLogsClient]
-        CloudWatchLogsClient generator, which will create a new instance of the client with a new session that could be
+    boto_client_provider: BotoProviderType
+        Boto3 client generator, which will create a new instance of the client with a new session that could be
         used within different threads/coroutines
-    xray_client: boto3.client
-        Boto3 xray client which will be used to fetch the debug traces
-    resource_information_list : List[ResourceInformation]
+    resource_information_list : List[CloudFormationResourceSummary]
         List of resource information, which keeps logical id, physical id and type of the resources
     filter_pattern : Optional[str]
         Optional filter pattern which will be used to filter incoming events
@@ -82,16 +81,18 @@ def generate_puller(
             resource_information.resource_type, resource_information.physical_resource_id
         )
         if not cw_log_group_name:
-            LOG.warning("Can't find CloudWatch LogGroup name for resource (%s)", resource_information.logical_id)
+            LOG.warning(
+                "Can't find CloudWatch LogGroup name for resource (%s)", resource_information.logical_resource_id
+            )
             continue
 
-        consumer = generate_consumer(filter_pattern, output_dir, resource_information.logical_id)
+        consumer = generate_consumer(filter_pattern, output_dir, resource_information.logical_resource_id)
         pullers.append(
             CWLogPuller(
-                logs_client_generator(),
+                boto_client_provider("logs"),
                 consumer,
                 cw_log_group_name,
-                resource_information.logical_id,
+                resource_information.logical_resource_id,
             )
         )
 
@@ -100,7 +101,7 @@ def generate_puller(
         consumer = generate_consumer(filter_pattern, output_dir)
         pullers.append(
             CWLogPuller(
-                logs_client_generator(),
+                boto_client_provider("logs"),
                 consumer,
                 cw_log_group,
             )
@@ -108,7 +109,7 @@ def generate_puller(
 
     # if tracing flag is set, add the xray traces puller to fetch debug traces
     if include_tracing:
-        trace_puller = generate_trace_puller(xray_client, output_dir)
+        trace_puller = generate_trace_puller(boto_client_provider("xray"), output_dir)
         pullers.append(trace_puller)
 
     # if no puller have been collected, raise an exception since there is nothing to pull

@@ -114,29 +114,24 @@ def do_cli(
     """
     Implementation of the ``cli`` method
     """
-    import boto3
 
     from datetime import datetime
-    from typing import Callable, Any
 
     from samcli.commands.logs.logs_context import parse_time, ResourcePhysicalIdResolver
     from samcli.commands.logs.puller_factory import generate_puller
-    from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
+    from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config, get_boto_resource_provider_with_config
 
     sanitized_start_time = parse_time(start_time, "start-time")
     sanitized_end_time = parse_time(end_time, "end-time") or datetime.utcnow()
 
-    boto_config = get_boto_config_with_user_agent(region_name=region)
-    logs_client_generator: Callable[[], Any] = lambda: boto3.session.Session().client("logs", config=boto_config)
-    cfn_resource = boto3.resource("cloudformation", config=boto_config)
-    xray_client = boto3.client("xray", config=boto_config) if include_tracing else None
-    resource_logical_id_resolver = ResourcePhysicalIdResolver(cfn_resource, stack_name, names)
+    boto_client_provider = get_boto_client_provider_with_config(region_name=region)
+    boto_resource_provider = get_boto_resource_provider_with_config(region_name=region)
+    resource_logical_id_resolver = ResourcePhysicalIdResolver(boto_resource_provider, stack_name, names)
 
     # only fetch all resources when no CloudWatch log group defined
     fetch_all_when_no_resource_name_given = not cw_log_groups
     puller = generate_puller(
-        logs_client_generator,
-        xray_client,
+        boto_client_provider,
         resource_logical_id_resolver.get_resource_information(fetch_all_when_no_resource_name_given),
         filter_pattern,
         cw_log_groups,

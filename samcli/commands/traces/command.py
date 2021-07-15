@@ -57,7 +57,7 @@ def do_cli(trace_ids, start_time, end_time, tailing, output_dir, region):
     import boto3
     from samcli.commands.logs.logs_context import parse_time
     from samcli.commands.traces.traces_puller_factory import generate_trace_puller
-    from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
+    from samcli.lib.utils.boto_utils import get_boto_config_with_user_agent
 
     sanitized_start_time = parse_time(start_time, "start-time")
     sanitized_end_time = parse_time(end_time, "end-time") or datetime.utcnow()

@@ -42,7 +42,9 @@ class TestPullerFactory(TestCase):
     ):
         mock_logs_client = Mock()
         mock_xray_client = Mock()
-        mock_logs_client_generator = lambda: mock_logs_client
+
+        mock_client_provider = lambda client_name: mock_logs_client if client_name == "logs" else mock_xray_client
+
         mock_resource_info_list = [
             Mock(resource_type=AWS_LAMBDA_FUNCTION),
             Mock(resource_type=AWS_LAMBDA_FUNCTION),
@@ -70,8 +72,7 @@ class TestPullerFactory(TestCase):
         patched_combined_puller.return_value = mocked_combined_puller
 
         puller = generate_puller(
-            mock_logs_client_generator,
-            mock_xray_client,
+            mock_client_provider,
             mock_resource_info_list,
             param_filter_pattern,
             param_cw_log_groups,
@@ -105,7 +106,7 @@ class TestPullerFactory(TestCase):
         mock_resource_information.get_log_group_name.return_value = None
 
         with self.assertRaises(NoPullerGeneratedException):
-            generate_puller(mock_logs_client, None, [mock_resource_information])
+            generate_puller(mock_logs_client, [mock_resource_information])
 
     @patch("samcli.commands.logs.puller_factory.generate_console_consumer")
     @patch("samcli.commands.logs.puller_factory.CWLogPuller")
@@ -114,7 +115,7 @@ class TestPullerFactory(TestCase):
         self, patched_combined_puller, patched_cw_log_puller, patched_console_consumer
     ):
         mock_logs_client = Mock()
-        mock_logs_client_generator = lambda: mock_logs_client
+        mock_logs_client_generator = lambda client: mock_logs_client
         mock_cw_log_groups = [Mock(), Mock(), Mock()]
 
         mocked_consumers = [Mock() for _ in mock_cw_log_groups]
@@ -126,7 +127,7 @@ class TestPullerFactory(TestCase):
         mocked_combined_puller = Mock()
         patched_combined_puller.return_value = mocked_combined_puller
 
-        puller = generate_puller(mock_logs_client_generator, None, [], additional_cw_log_groups=mock_cw_log_groups)
+        puller = generate_puller(mock_logs_client_generator, [], additional_cw_log_groups=mock_cw_log_groups)
 
         self.assertEqual(puller, mocked_combined_puller)
 

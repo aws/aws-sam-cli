@@ -43,26 +43,23 @@ class TestLogsCliCommand(TestCase):
     )
     @patch("samcli.commands.logs.puller_factory.generate_puller")
     @patch("samcli.commands.logs.logs_context.ResourcePhysicalIdResolver")
-    @patch("boto3.resource")
     @patch("samcli.commands.logs.logs_context.parse_time")
-    @patch("samcli.lib.utils.botoconfig.get_boto_config_with_user_agent")
+    @patch("samcli.lib.utils.boto_utils.get_boto_client_provider_with_config")
+    @patch("samcli.lib.utils.boto_utils.get_boto_resource_provider_with_config")
     def test_logs_command(
         self,
         tailing,
         include_tracing,
         cw_log_group,
-        patched_config_generator,
+        patched_boto_resource_provider,
+        patched_boto_client_provider,
         patched_parse_time,
-        patched_resource,
         patched_resource_physical_id_resolver,
         patched_generate_puller,
     ):
         mocked_start_time = Mock()
         mocked_end_time = Mock()
         patched_parse_time.side_effect = [mocked_start_time, mocked_end_time]
-
-        mocked_cfn_resource = Mock()
-        patched_resource.return_value = mocked_cfn_resource
 
         mocked_resource_physical_id_resolver = Mock()
         mocked_resource_information = Mock()
@@ -72,8 +69,11 @@ class TestLogsCliCommand(TestCase):
         mocked_puller = Mock()
         patched_generate_puller.return_value = mocked_puller
 
-        mocked_config = Mock()
-        patched_config_generator.return_value = mocked_config
+        mocked_client_provider = Mock()
+        patched_boto_client_provider.return_value = mocked_client_provider
+
+        mocked_resource_provider = Mock()
+        patched_boto_resource_provider.return_value = mocked_resource_provider
 
         do_cli(
             self.function_name,
@@ -95,23 +95,23 @@ class TestLogsCliCommand(TestCase):
             ]
         )
 
-        patched_config_generator.assert_called_with(region_name=self.region)
-
-        patched_resource.assert_has_calls(
-            [
-                call.resource("cloudformation", config=mocked_config),
-            ]
-        )
+        patched_boto_client_provider.assert_called_with(region_name=self.region)
+        patched_boto_resource_provider.assert_called_with(region_name=self.region)
 
         patched_resource_physical_id_resolver.assert_called_with(
-            mocked_cfn_resource, self.stack_name, self.function_name
+            mocked_resource_provider, self.stack_name, self.function_name
         )
 
         fetch_param = not bool(len(cw_log_group))
         mocked_resource_physical_id_resolver.assert_has_calls([call.get_resource_information(fetch_param)])
 
         patched_generate_puller.assert_called_with(
-            ANY, None, mocked_resource_information, self.filter_pattern, cw_log_group, self.output_dir, False
+            mocked_client_provider,
+            mocked_resource_information,
+            self.filter_pattern,
+            cw_log_group,
+            self.output_dir,
+            False,
         )
 
         if tailing:

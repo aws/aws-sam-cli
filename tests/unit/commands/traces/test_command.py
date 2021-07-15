@@ -21,7 +21,7 @@ class TestTracesCommand(TestCase):
         ]
     )
     @patch("samcli.commands.logs.logs_context.parse_time")
-    @patch("samcli.lib.utils.botoconfig.get_boto_config_with_user_agent")
+    @patch("samcli.lib.utils.boto_utils.get_boto_config_with_user_agent")
     @patch("boto3.client")
     @patch("samcli.commands.traces.traces_puller_factory.generate_trace_puller")
     def test_traces_command(

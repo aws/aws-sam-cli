@@ -53,6 +53,7 @@ class CWLogPuller(ObservabilityPuller):
         self._poll_interval = poll_interval
         self.latest_event_time = 0
         self.had_data = False
+        self._invalid_log_group = False
 
     def tail(self, start_time: Optional[datetime] = None, filter_pattern: Optional[str] = None):
         if start_time:
@@ -115,12 +116,15 @@ class CWLogPuller(ObservabilityPuller):
             LOG.debug("Fetching logs from CloudWatch with parameters %s", kwargs)
             try:
                 result = self.logs_client.filter_log_events(**kwargs)
+                self._invalid_log_group = False
             except self.logs_client.exceptions.ResourceNotFoundException:
-                LOG.warning(
-                    "The specified log group %s does not exist. Please make sure logging is enable and log group is "
-                    "created",
-                    self.cw_log_group,
-                )
+                if not self._invalid_log_group:
+                    LOG.warning(
+                        "The specified log group %s does not exist. "
+                        "Please make sure logging is enable and log group is created",
+                        self.cw_log_group,
+                    )
+                    self._invalid_log_group = True
                 break
 
             # Several events will be returned. Consume one at a time
