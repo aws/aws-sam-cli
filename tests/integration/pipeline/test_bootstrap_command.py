@@ -21,8 +21,8 @@ SKIP_BOOTSTRAP_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not R
 
 @skipIf(SKIP_BOOTSTRAP_TESTS, "Skip bootstrap tests in CI/CD only")
 class TestBootstrap(BootstrapIntegBase):
-    @parameterized.expand([(True,), (False,)])
-    def test_interactive_with_no_resources_provided(self, create_image_repository: bool):
+    @parameterized.expand([("create_image_repository",), (False,)])
+    def test_interactive_with_no_resources_provided(self, create_image_repository):
         stage_name, stack_name = self._get_stage_and_stack_name()
         self.stack_names = [stack_name]
 
@@ -76,8 +76,8 @@ class TestBootstrap(BootstrapIntegBase):
         else:
             self.assertSetEqual(common_resources, set(self._extract_created_resource_logical_ids(stack_name)))
 
-    @parameterized.expand([(True,), (False,)])
-    def test_non_interactive_with_no_resources_provided(self, create_image_repository: bool):
+    @parameterized.expand([("create_image_repository",), (False,)])
+    def test_non_interactive_with_no_resources_provided(self, create_image_repository):
         stage_name, stack_name = self._get_stage_and_stack_name()
         self.stack_names = [stack_name]
 
@@ -135,7 +135,7 @@ class TestBootstrap(BootstrapIntegBase):
         stdout = bootstrap_process_execute.stdout.decode()
         self.assertIn("skipping creation", stdout)
 
-    @parameterized.expand([(True,), (False,)])
+    @parameterized.expand([("confirm_changeset",), (False,)])
     def test_no_interactive_with_some_required_resources_provided(self, confirm_changeset: bool):
         stage_name, stack_name = self._get_stage_and_stack_name()
         self.stack_names = [stack_name]
@@ -253,7 +253,6 @@ class TestBootstrap(BootstrapIntegBase):
             if i == 0:
                 self.assertIn("The following resources were created in your account:", stdout)
                 resources = self._extract_created_resource_logical_ids(self.stack_names[i])
-                print(f"RESOURCES: {resources}")
                 self.assertTrue("PipelineUser" in resources)
                 self.assertTrue("PipelineUserAccessKey" in resources)
                 self.assertTrue("PipelineUserSecretKey" in resources)
