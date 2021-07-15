@@ -176,8 +176,8 @@ class InteractiveInitFlow:
                 dedent(
                     """\
                     To set up stage(s), please quit the process using Ctrl+C and use one of the following commands:
-                    sam pipeline init --bootstrap		To be guided through the stage and config file creation process.
-                    sam pipeline bootstrap				To specify details for an individual stage.
+                    sam pipeline init --bootstrap       To be guided through the stage and config file creation process.
+                    sam pipeline bootstrap              To specify details for an individual stage.
                     """
                 )
             )
