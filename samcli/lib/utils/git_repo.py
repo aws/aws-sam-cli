@@ -6,6 +6,7 @@ import platform
 import shutil
 import subprocess
 from pathlib import Path
+from subprocess import check_output
 from typing import Optional
 
 from samcli.lib.utils import osutils
@@ -118,7 +119,7 @@ class GitRepo:
                 temp_path = os.path.normpath(os.path.join(tempdir, clone_name))
                 git_executable: str = GitRepo._git_executable()
                 LOG.info("\nCloning from %s", self.url)
-                subprocess.check_output(
+                check_output(
                     [git_executable, "clone", self.url, clone_name],
                     cwd=tempdir,
                     stderr=subprocess.STDOUT,
