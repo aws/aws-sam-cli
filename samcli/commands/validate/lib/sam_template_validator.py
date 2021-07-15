@@ -12,7 +12,6 @@ from boto3.session import Session
 from samcli.lib.replace_uri.replace_uri import _replace_local_codeuri as external__replace_local_codeuri
 from samcli.lib.replace_uri.replace_uri import is_s3_uri as external_is_s3_uri
 
-from samcli.lib.utils.packagetype import ZIP
 from samcli.yamlhelper import yaml_dump
 from .exceptions import InvalidSamDocumentException
 

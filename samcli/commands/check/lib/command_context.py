@@ -1,5 +1,6 @@
 import os
 import functools
+from samcli.commands.check.command import LOG
 
 import click
 import boto3
@@ -18,8 +19,16 @@ from ..exceptions import InvalidSamDocumentException
 
 
 class CheckContext:
-    def __init__(self, ctx, template_path):
-        self.ctx = ctx
+    """
+    This class translates a template (SAM or CFN json) into a CFN yaml format. Evenchually
+    this class will also contain the major function calls for sam check, such as
+    "ask_bottle_neck_quesions", "calculate_bottle_necks", "calculate_pricing", and
+    "print_results"
+    """
+
+    def __init__(self, region, profile, template_path):
+        self.region = region
+        self.profile = profile
         self.template_path = template_path
 
     def run(self):
@@ -40,7 +49,7 @@ class CheckContext:
             managed_policy_map=managed_policy_map,
             sam_parser=parser.Parser(),
             plugins=[],
-            boto_session=Session(profile_name=self.ctx.profile, region_name=self.ctx.region),
+            boto_session=Session(profile_name=self.profile, region_name=self.region),
         )
 
         # Translate template
@@ -63,6 +72,7 @@ class CheckContext:
     def _read_sam_file(self):
         """
         Reads the file (json and yaml supported) provided and returns the dictionary representation of the file.
+        The file will be a sam application template file in SAM yaml, CFN json, or CFN yaml format
 
         :param str template: Path to the template file
         :return dict: Dictionary representing the SAM Template
@@ -70,7 +80,7 @@ class CheckContext:
         """
 
         if not os.path.exists(self.template_path):
-            click.secho("SAM Template Not Found", bg="red")
+            LOG.error("SAM Template Not Found")
             raise SamTemplateNotFoundException("Template at {} is not found".format(self.template_path))
 
         with click.open_file(self.template_path, "r", encoding="utf-8") as sam_template:

@@ -1,3 +1,7 @@
+"""
+Class for replacing the code uri's in a sam template so that it can be translated
+into  CloudFormation yaml template
+"""
 from samcli.lib.utils.packagetype import ZIP
 
 

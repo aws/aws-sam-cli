@@ -9,9 +9,10 @@ from samcli.commands.check.lib.command_context import CheckContext
 class TestCommandContext(TestCase):
     @patch("samcli.commands.check.lib.command_context.click")
     def test_run(self, patch_click):
-        ctx = Mock()
+        region = Mock()
+        profile = Mock()
         path = Mock()
-        context = CheckContext(ctx, path)
+        context = CheckContext(region, profile, path)
 
         context.transform_template = Mock()
 
@@ -26,8 +27,9 @@ class TestCommandContext(TestCase):
 
         path_exists_patch.return_value = False
 
-        ctx = Mock()
-        context = CheckContext(ctx, template_path)
+        region = Mock()
+        profile = Mock()
+        context = CheckContext(region, profile, template_path)
 
         with self.assertRaises(SamTemplateNotFoundException):
             context._read_sam_file()

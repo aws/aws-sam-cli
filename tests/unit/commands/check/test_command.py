@@ -5,18 +5,21 @@ from samcli.commands.check.command import do_cli
 
 
 class TestCheckCli(TestCase):
-    @patch("samcli.commands.check.command.CheckContext")
-    def test_do_cli(self, patched_context):
-        ctx = Mock()
-        template_path = Mock()
+    def test_do_cli(self):
+        with patch("samcli.commands.check.lib.command_context.CheckContext") as patched_context:
+            ctx = Mock()
+            ctx.region.return_value = Mock()
+            ctx.profile.return_value = Mock()
 
-        check_context = Mock()
+            template_path = Mock()
 
-        patched_context.return_value = check_context
+            check_context = Mock()
 
-        check_context.run = Mock()
+            patched_context.return_value = check_context
 
-        do_cli(ctx, template_path)
+            check_context.run = Mock()
 
-        patched_context.assert_called_once_with(ctx, template_path)
-        check_context.run.assert_called_once()
+            do_cli(ctx, template_path)
+
+            patched_context.assert_called_once_with(ctx.region, ctx.profile, template_path)
+            check_context.run.assert_called_once()
