@@ -124,7 +124,7 @@ class InteractiveInitFlow:
             )
             return self._generate_from_pipeline_template(pipeline_template_local_dir)
 
-    def _prompt_run_bootstrap_within_pipeline_init(self, stage_names: List[str], required_env_number: int) -> bool:
+    def _prompt_run_bootstrap_within_pipeline_init(self, stage_names: List[str], number_of_stages: int) -> bool:
         """
         Prompt bootstrap if `--bootstrap` flag is provided. Return True if bootstrap process is executed.
         """
@@ -134,7 +134,7 @@ class InteractiveInitFlow:
             click.echo(
                 Colored().yellow(
                     f"Only {len(stage_names)} stage(s) were detected, "
-                    f"fewer than what the template requires: {required_env_number}."
+                    f"fewer than what the template requires: {number_of_stages}."
                 )
             )
         click.echo()
@@ -198,14 +198,17 @@ class InteractiveInitFlow:
         and return the list of generated files.
         """
         pipeline_template: Template = _initialize_pipeline_template(pipeline_template_dir)
-        required_env_number = (pipeline_template.metadata or {}).get("number_of_stages", 2)
-        click.echo(f"You are using the {required_env_number}-stage pipeline template.")
-        _draw_stage_diagram(required_env_number)
+        number_of_stages = (pipeline_template.metadata or {}).get("number_of_stages")
+        if not number_of_stages:
+            LOG.debug("Cannot find number_of_stages from template's metadata, set to default 2.")
+            number_of_stages = 2
+        click.echo(f"You are using the {number_of_stages}-stage pipeline template.")
+        _draw_stage_diagram(number_of_stages)
         while True:
             click.echo("Checking for existing stages...\n")
             stage_names, bootstrap_context = _load_pipeline_bootstrap_resources()
-            if len(stage_names) < required_env_number and self._prompt_run_bootstrap_within_pipeline_init(
-                stage_names, required_env_number
+            if len(stage_names) < number_of_stages and self._prompt_run_bootstrap_within_pipeline_init(
+                stage_names, number_of_stages
             ):
                 # the customers just went through the bootstrap process,
                 # refresh the pipeline bootstrap resources and see whether bootstrap is still needed
