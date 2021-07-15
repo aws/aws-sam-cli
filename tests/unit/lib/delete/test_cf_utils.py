@@ -2,7 +2,7 @@ from unittest.mock import patch, MagicMock, ANY, call
 from unittest import TestCase
 
 
-from samcli.commands.delete.exceptions import DeleteFailedError, FetchTemplateFailedError
+from samcli.commands.delete.exceptions import DeleteFailedError, FetchTemplateFailedError, CfDeleteFailedStatusError
 from botocore.exceptions import ClientError, BotoCoreError, WaiterError
 
 from samcli.lib.delete.cf_utils import CfUtils
@@ -22,11 +22,13 @@ class TestCfUtils(TestCase):
     def setUp(self):
         self.session = MagicMock()
         self.cloudformation_client = self.session.client("cloudformation")
+        self.cloudformation_resource_client = self.session.resource("cloudformation")
         self.s3_client = self.session.client("s3")
-        self.cf_utils = CfUtils(self.cloudformation_client)
+        self.cf_utils = CfUtils(self.cloudformation_client, self.cloudformation_resource_client)
 
     def test_cf_utils_init(self):
         self.assertEqual(self.cf_utils._client, self.cloudformation_client)
+        self.assertEqual(self.cf_utils._resource_client, self.cloudformation_resource_client)
 
     def test_cf_utils_has_no_stack(self):
         self.cf_utils._client.describe_stacks = MagicMock(return_value={"Stacks": []})
@@ -120,5 +122,5 @@ class TestCfUtils(TestCase):
                 )
             )
         )
-        with self.assertRaises(ValueError):
+        with self.assertRaises(CfDeleteFailedStatusError):
             self.cf_utils.wait_for_delete("test")

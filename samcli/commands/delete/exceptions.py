@@ -14,6 +14,16 @@ class DeleteFailedError(UserException):
         super().__init__(message=message_fmt.format(stack_name=self.stack_name, msg=msg))
 
 
+class CfDeleteFailedStatusError(UserException):
+    def __init__(self, stack_name, msg):
+        self.stack_name = stack_name
+        self.msg = msg
+
+        message_fmt = "Stack could not be deleted as it encountered DELETE_FAILED status: {stack_name}, {msg}"
+
+        super().__init__(message=message_fmt.format(stack_name=self.stack_name, msg=msg))
+
+
 class FetchTemplateFailedError(UserException):
     def __init__(self, stack_name, msg):
         self.stack_name = stack_name
