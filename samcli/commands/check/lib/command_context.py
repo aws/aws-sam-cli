@@ -1,15 +1,15 @@
 import os
 import functools
-from samcli.commands.check.command import LOG
 
 import click
 import boto3
+from boto3.session import Session
 
+from samcli.commands.check.command import LOG
 from samtranslator.translator.managed_policy_translator import ManagedPolicyLoader
 from samtranslator.translator.translator import Translator
 from samtranslator.public.exceptions import InvalidDocumentException
 from samtranslator.parser import parser
-from boto3.session import Session
 
 from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
 from samcli.yamlhelper import yaml_parse
