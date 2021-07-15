@@ -2,8 +2,10 @@
 Interactive flow that prompts that users for pipeline template (cookiecutter template) and used it to generate
 pipeline configuration file
 """
+import json
 import logging
 import os
+from json import JSONDecodeError
 from pathlib import Path
 from textwrap import dedent
 from typing import Dict, List, Tuple
@@ -11,7 +13,11 @@ from typing import Dict, List, Tuple
 import click
 
 from samcli.cli.main import global_cfg
-from samcli.commands.exceptions import PipelineTemplateCloneException, PipelineFileAlreadyExistsError
+from samcli.commands.exceptions import (
+    PipelineTemplateCloneException,
+    PipelineFileAlreadyExistsError,
+    AppPipelineTemplateMetadataException,
+)
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.cookiecutter.interactive_flow import InteractiveFlow
 from samcli.lib.cookiecutter.interactive_flow_creator import InteractiveFlowCreator
@@ -192,7 +198,7 @@ class InteractiveInitFlow:
         and return the list of generated files.
         """
         pipeline_template: Template = _initialize_pipeline_template(pipeline_template_dir)
-        required_env_number = 2  # TODO: read from template
+        required_env_number = (pipeline_template.metadata or {}).get("number_of_stages", 2)
         click.echo(f"You are using the {required_env_number}-stage pipeline template.")
         _draw_stage_diagram(required_env_number)
         while True:
@@ -399,7 +405,26 @@ def _initialize_pipeline_template(pipeline_template_dir: Path) -> Template:
         The initialized pipeline's cookiecutter template
     """
     interactive_flow = _get_pipeline_template_interactive_flow(pipeline_template_dir)
-    return Template(location=str(pipeline_template_dir), interactive_flows=[interactive_flow])
+    metadata = _get_pipeline_template_metadata(pipeline_template_dir)
+    return Template(location=str(pipeline_template_dir), interactive_flows=[interactive_flow], metadata=metadata)
+
+
+def _get_pipeline_template_metadata(pipeline_template_dir: Path) -> Dict:
+    """
+    Load the metadata from the file metadata.json located in the template directory,
+    raise an exception if anything wrong.
+    """
+    metadata_path = Path(pipeline_template_dir, "metadata.json")
+    if not metadata_path.exists():
+        raise AppPipelineTemplateMetadataException(f"Cannot find metadata file {metadata_path}")
+    try:
+        with open(metadata_path, "r") as file:
+            metadata = json.load(file)
+            if isinstance(metadata, dict):
+                return metadata
+            raise AppPipelineTemplateMetadataException(f"Invalid content found in {metadata_path}")
+    except JSONDecodeError as ex:
+        raise AppPipelineTemplateMetadataException(f"Invalid JSON found in {metadata_path}") from ex
 
 
 def _get_pipeline_template_interactive_flow(pipeline_template_dir: Path) -> InteractiveFlow:

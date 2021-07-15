@@ -1,3 +1,5 @@
+import json
+import tempfile
 from unittest import TestCase
 from unittest.mock import patch, Mock, ANY, call
 import os
@@ -5,6 +7,7 @@ from pathlib import Path
 
 from parameterized import parameterized
 
+from samcli.commands.exceptions import AppPipelineTemplateMetadataException
 from samcli.commands.pipeline.init.interactive_init_flow import (
     InteractiveInitFlow,
     PipelineTemplateCloneException,
@@ -13,6 +16,7 @@ from samcli.commands.pipeline.init.interactive_init_flow import (
     CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME,
     _prompt_cicd_provider,
     _prompt_provider_pipeline_template,
+    _get_pipeline_template_metadata,
 )
 from samcli.commands.pipeline.init.pipeline_templates_manifest import AppPipelineTemplateManifestException
 from samcli.lib.utils.git_repo import CloneRepoException
@@ -111,10 +115,12 @@ class TestInteractiveInitFlow(TestCase):
     @patch("samcli.commands.pipeline.init.interactive_init_flow.PipelineTemplatesManifest")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
     @patch("samcli.commands.pipeline.init.interactive_init_flow._copy_dir_contents_to_cwd_fail_on_exist")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow._get_pipeline_template_metadata")
     @patch("samcli.lib.cookiecutter.question.click")
     def test_generate_pipeline_configuration_file_from_app_pipeline_template_happy_case(
         self,
         click_mock,
+        _get_pipeline_template_metadata_mock,
         _copy_dir_contents_to_cwd_fail_on_exist_mock,
         clone_mock,
         PipelineTemplatesManifest_mock,
@@ -158,6 +164,7 @@ class TestInteractiveInitFlow(TestCase):
             "2",  # choose "Jenkins" when prompt for CI/CD system. (See pipeline_templates_manifest_mock, Jenkins is the 2nd provider)
             "1",  # choose "Jenkins pipeline template" when prompt for pipeline template
         ]
+        _get_pipeline_template_metadata_mock.return_value = {"number_of_stages": 2}
 
         # trigger
         InteractiveInitFlow(allow_bootstrap=False).do_interactive()
@@ -254,10 +261,12 @@ class TestInteractiveInitFlow(TestCase):
     @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.click")
     @patch("samcli.commands.pipeline.init.interactive_init_flow._copy_dir_contents_to_cwd_fail_on_exist")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow._get_pipeline_template_metadata")
     @patch("samcli.lib.cookiecutter.question.click")
     def test_generate_pipeline_configuration_file_from_custom_remote_pipeline_template_happy_case(
         self,
         questions_click_mock,
+        _get_pipeline_template_metadata_mock,
         _copy_dir_contents_to_cwd_fail_on_exist_mock,
         init_click_mock,
         clone_mock,
@@ -280,6 +289,7 @@ class TestInteractiveInitFlow(TestCase):
 
         questions_click_mock.prompt.return_value = "2"  # Custom pipeline templates
         init_click_mock.prompt.return_value = "https://github.com/any-custom-pipeline-template-repo.git"
+        _get_pipeline_template_metadata_mock.return_value = {"number_of_stages": 2}
 
         # trigger
         InteractiveInitFlow(allow_bootstrap=False).do_interactive()
@@ -336,6 +346,31 @@ class TestInteractiveInitFlow(TestCase):
         click_mock.prompt.assert_called_once()
         self.assertEqual(chosen_template, template2)
 
+    def test_get_pipeline_template_metadata_can_load(self):
+        with tempfile.TemporaryDirectory() as dir:
+            metadata = {"number_of_stages": 2}
+            with open(Path(dir, "metadata.json"), "w") as f:
+                json.dump(metadata, f)
+            self.assertEquals(metadata, _get_pipeline_template_metadata(dir))
+
+    def test_get_pipeline_template_metadata_not_exist(self):
+        with tempfile.TemporaryDirectory() as dir:
+            with self.assertRaises(AppPipelineTemplateMetadataException):
+                _get_pipeline_template_metadata(dir)
+
+    @parameterized.expand(
+        [
+            ('["not_a_dict"]',),
+            ("not a json"),
+        ]
+    )
+    def test_get_pipeline_template_metadata_not_valid(self, metadata_str):
+        with tempfile.TemporaryDirectory() as dir:
+            with open(Path(dir, "metadata.json"), "w") as f:
+                f.write(metadata_str)
+            with self.assertRaises(AppPipelineTemplateMetadataException):
+                _get_pipeline_template_metadata(dir)
+
 
 class TestInteractiveInitFlowWithBootstrap(TestCase):
     @patch("samcli.commands.pipeline.init.interactive_init_flow.SamConfig")
@@ -348,10 +383,12 @@ class TestInteractiveInitFlowWithBootstrap(TestCase):
     @patch("samcli.commands.pipeline.init.interactive_init_flow.PipelineTemplatesManifest")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
     @patch("samcli.commands.pipeline.init.interactive_init_flow._copy_dir_contents_to_cwd_fail_on_exist")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow._get_pipeline_template_metadata")
     @patch("samcli.lib.cookiecutter.question.click")
     def test_with_bootstrap_but_answer_no(
         self,
         click_mock,
+        _get_pipeline_template_metadata_mock,
         _copy_dir_contents_to_cwd_fail_on_exist_mock,
         clone_mock,
         PipelineTemplatesManifest_mock,
@@ -389,6 +426,7 @@ class TestInteractiveInitFlowWithBootstrap(TestCase):
         config_file.exists.return_value = True
         config_file.get_stage_names.return_value = ["testing"]
         config_file.get_all.return_value = {"pipeline_execution_role": "arn:aws:iam::123456789012:role/execution-role"}
+        _get_pipeline_template_metadata_mock.return_value = {"number_of_stages": 2}
 
         click_mock.prompt.side_effect = [
             "1",  # App pipeline templates
@@ -421,12 +459,14 @@ class TestInteractiveInitFlowWithBootstrap(TestCase):
     @patch("samcli.commands.pipeline.init.interactive_init_flow.PipelineTemplatesManifest")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
     @patch("samcli.commands.pipeline.init.interactive_init_flow._copy_dir_contents_to_cwd_fail_on_exist")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow._get_pipeline_template_metadata")
     @patch("samcli.lib.cookiecutter.question.click")
     def test_with_bootstrap_answer_yes(
         self,
         get_stage_name_side_effects,
         _prompt_run_bootstrap_expected_calls,
         click_mock,
+        _get_pipeline_template_metadata_mock,
         _copy_dir_contents_to_cwd_fail_on_exist_mock,
         clone_mock,
         PipelineTemplatesManifest_mock,
@@ -464,6 +504,7 @@ class TestInteractiveInitFlowWithBootstrap(TestCase):
         config_file.exists.return_value = True
         config_file.get_stage_names.side_effect = get_stage_name_side_effects
         config_file.get_all.return_value = {"pipeline_execution_role": "arn:aws:iam::123456789012:role/execution-role"}
+        _get_pipeline_template_metadata_mock.return_value = {"number_of_stages": 2}
 
         click_mock.prompt.side_effect = [
             "1",  # App pipeline templates
