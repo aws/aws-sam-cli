@@ -45,7 +45,7 @@ class XRayServiceGraphPuller(ObservabilityPuller):
         self._max_retries = max_retries
         self._poll_interval = poll_interval
         self._had_data = False
-        self._previous_trace_ids: Set[str] = set()
+        self._previous_xray_service_graphs: Set[str] = set()
 
     def tail(self, start_time: Optional[datetime] = None, filter_pattern: Optional[str] = None):
         if start_time:
@@ -101,14 +101,16 @@ class XRayServiceGraphPuller(ObservabilityPuller):
                 # update latest fetched event
                 event_end_time = result.get("EndTime", None)
                 if event_end_time:
-                    # end_time is in local time zone, need to convert to utc first
                     utc_end_time = to_utc(event_end_time)
                     latest_event_time = utc_to_timestamp(utc_end_time)
                     if latest_event_time > self.latest_event_time:
                         self.latest_event_time = latest_event_time + 1
+
                 self._had_data = True
                 xray_service_graph_event = XRayServiceGraphEvent(result)
-                self.consumer.consume(xray_service_graph_event)
+                if xray_service_graph_event.get_hash() not in self._previous_xray_service_graphs:
+                    self.consumer.consume(xray_service_graph_event)
+                self._previous_xray_service_graphs.add(xray_service_graph_event.get_hash())
 
     def load_events(self, event_ids: List[str]):
         LOG.debug("Loading specific service graph events are not supported via XRay Service Graph")

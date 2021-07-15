@@ -70,7 +70,10 @@ class XRayServiceGraphConsoleMapper(ObservabilityEventMapper[XRayServiceGraphEve
 
     def map(self, event: XRayServiceGraphEvent) -> XRayServiceGraphEvent:
         formatted_services = self.format_services(event.services)
-        mapped_message = f"\nNew XRay Service Graph" f"{formatted_services}"
+        mapped_message = "\nNew XRay Service Graph"
+        mapped_message += f"\n  Start time: {event.start_time}"
+        mapped_message += f"\n  End time: {event.end_time}"
+        mapped_message += formatted_services
         event.message = mapped_message
 
         return event

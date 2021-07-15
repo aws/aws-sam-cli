@@ -1,6 +1,7 @@
 """
 Keeps XRay event definitions
 """
+import hashlib
 import json
 from typing import List
 
@@ -89,12 +90,21 @@ class XRayServiceGraphEvent(ObservabilityEvent[dict]):
         self.services: List[XRayGraphServiceInfo] = []
         self.message = str(event)
         self._construct_service(event)
+        self.start_time = event.get("StartTime", None)
+        self.end_time = event.get("EndTime", None)
         super().__init__(event, 0)
 
     def _construct_service(self, event_dict):
         services = event_dict.get("Services", [])
         for service in services:
             self.services.append(XRayGraphServiceInfo(service))
+
+    def get_hash(self):
+        """
+        get the hash of the containing services
+        """
+        services = self.event.get("Services", [])
+        return hashlib.sha1(str(services).encode('utf-8')).hexdigest()
 
 
 class XRayGraphServiceInfo:
