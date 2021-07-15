@@ -421,7 +421,7 @@ def _get_pipeline_template_metadata(pipeline_template_dir: Path) -> Dict:
     if not metadata_path.exists():
         raise AppPipelineTemplateMetadataException(f"Cannot find metadata file {metadata_path}")
     try:
-        with open(metadata_path, "r") as file:
+        with open(metadata_path, "r", encoding="utf-8") as file:
             metadata = json.load(file)
             if isinstance(metadata, dict):
                 return metadata
