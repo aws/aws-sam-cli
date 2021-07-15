@@ -95,7 +95,7 @@ class TestCfUtils(TestCase):
     def test_cf_utils_delete_stack_exception(self):
         self.cf_utils._client.delete_stack = MagicMock(side_effect=Exception())
         with self.assertRaises(Exception):
-            self.cf_utils.delete_stack("test")
+            self.cf_utils.delete_stack("test", ["retain_logical_id"])
 
     def test_cf_utils_wait_for_delete_exception(self):
         self.cf_utils._client.get_waiter = MagicMock(
@@ -108,4 +108,17 @@ class TestCfUtils(TestCase):
             )
         )
         with self.assertRaises(DeleteFailedError):
+            self.cf_utils.wait_for_delete("test")
+
+    def test_cf_utils_wait_for_delete_failed_status(self):
+        self.cf_utils._client.get_waiter = MagicMock(
+            return_value=MockDeleteWaiter(
+                ex=WaiterError(
+                    name="wait_for_delete",
+                    reason="DELETE_FAILED ",
+                    last_response={"Status": "Failed", "StatusReason": "It's a unit test"},
+                )
+            )
+        )
+        with self.assertRaises(ValueError):
             self.cf_utils.wait_for_delete("test")

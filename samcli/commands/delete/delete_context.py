@@ -243,19 +243,27 @@ class DeleteContext:
                 fg="yellow",
             )
 
-        # # Delete the repos created by ECR companion stack if it exists
+        # Delete the repos created by ECR companion stack if it exists
         if ecr_companion_stack_exists and (self.no_prompts or self.delete_ecr_companion_stack_prompt):
+            retain_repos = []
             for key in self.ecr_repos:
                 repo = self.ecr_repos[key]["repo"]
                 is_delete = self.ecr_repos[key].get("delete_repo", None)
                 if self.no_prompts or is_delete:
                     click.echo(f"\tDeleting ECR repository {repo.physical_id}")
                     self.ecr_uploader.delete_ecr_repository(physical_id=repo.physical_id)
+                else:
+                    retain_repos.append(repo.logical_id)
 
-        # Delete the ECR companion stack if it exists
-        if ecr_companion_stack_exists:
+            # Delete the ECR companion stack if it exists
             click.echo(f"\t- Deleting ECR Companion Stack {self.companion_stack_name}")
-            self.companion_stack_manager.delete_companion_stack()
+            try:
+                # If delete_stack fails and its status changes to DELETE_FAILED, retain
+                # the user input repositories and delete the stack.
+                self.cf_utils.delete_stack(stack_name=self.companion_stack_name)
+                self.cf_utils.wait_for_delete(stack_name=self.companion_stack_name)
+            except ValueError as ex:
+                self.cf_utils.delete_stack(stack_name=self.companion_stack_name, retain_repos=retain_repos)
 
     def run(self):
         """

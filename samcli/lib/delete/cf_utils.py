@@ -5,7 +5,7 @@ Delete Cloudformation stacks and s3 files
 import logging
 
 
-from typing import Dict
+from typing import Dict, List
 from botocore.exceptions import ClientError, BotoCoreError, WaiterError
 from samcli.commands.delete.exceptions import DeleteFailedError, FetchTemplateFailedError
 
@@ -84,14 +84,14 @@ class CfUtils:
             LOG.error("Unable to get stack details.", exc_info=e)
             raise e
 
-    def delete_stack(self, stack_name: str):
+    def delete_stack(self, stack_name: str, retain_repos: List = []):
         """
         Delete the Cloudformation stack with the given stack_name
 
         :param stack_name: Name or ID of the stack
         """
         try:
-            self._client.delete_stack(StackName=stack_name)
+            self._client.delete_stack(StackName=stack_name, RetainResources=retain_repos)
 
         except (ClientError, BotoCoreError) as e:
             # If there are credentials, environment errors,
@@ -120,10 +120,7 @@ class CfUtils:
             waiter.wait(StackName=stack_name, WaiterConfig=waiter_config)
         except WaiterError as ex:
 
-            resp = ex.last_response
-            status = resp["Status"]
-            reason = resp["StatusReason"]
+            if "DELETE_FAILED" in str(ex):
+                raise ValueError
 
-            raise DeleteFailedError(
-                stack_name=stack_name, msg="ex: {0} Status: {1}. Reason: {2}".format(ex, status, reason)
-            ) from ex
+            raise DeleteFailedError(stack_name=stack_name, msg="ex: {0}".format(ex)) from ex
