@@ -204,7 +204,7 @@ class DeleteContext:
             physical_id = repo["physical_id"]
             is_delete = repo.get("delete_repo", None)
             if self.no_prompts or is_delete:
-                click.echo(f"\tDeleting ECR repository {physical_id}")
+                click.echo(f"\t- Deleting ECR repository {physical_id}")
                 self.ecr_uploader.delete_ecr_repository(physical_id=physical_id)
             else:
                 retain_repos.append(logical_id)
@@ -223,6 +223,7 @@ class DeleteContext:
             metadata_stack_name = template_str.get("Metadata", {}).get("CompanionStackname", None)
             # Check if the input stack is ecr companion stack
             if metadata_stack_name == self.stack_name:
+                LOG.debug("Input stack name is ecr companion stack for an unknown stack")
                 ecr_companion_stack_exists = True
                 self.companion_stack_name = self.stack_name
 
@@ -245,6 +246,7 @@ class DeleteContext:
             possible_companion_stack_name = f"{self.stack_name[:104]}-{parent_stack_hash[:8]}-CompanionStack"
             ecr_companion_stack_exists = self.cf_utils.has_stack(stack_name=possible_companion_stack_name)
             if ecr_companion_stack_exists:
+                LOG.debug("ECR Companion stack found for the input stack")
                 self.companion_stack_name = possible_companion_stack_name
                 self.ecr_companion_stack_prompts()
                 self.ecr_repos_prompts()
@@ -287,6 +289,7 @@ class DeleteContext:
                 self.cf_utils.delete_stack(stack_name=self.companion_stack_name)
                 self.cf_utils.wait_for_delete(stack_name=self.companion_stack_name)
             except CfDeleteFailedStatusError:
+                LOG.debug("delete_stack resulted failed and so re-try with retain_resources")
                 self.cf_utils.delete_stack(stack_name=self.companion_stack_name, retain_repos=retain_repos)
 
         # If s3_bucket information is not available, warn the user

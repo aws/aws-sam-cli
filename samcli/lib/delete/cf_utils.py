@@ -146,9 +146,7 @@ class CfUtils:
         resources = stack.resource_summaries.all()
         for resource in resources:
             if resource.resource_type == "AWS::ECR::Repository":
-                logical_id = resource.logical_resource_id
+                logical_id = resource.logical_id
                 physical_id = resource.physical_resource_id
-
                 repos[logical_id] = {"physical_id": physical_id}
-
         return repos
