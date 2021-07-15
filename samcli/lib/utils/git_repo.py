@@ -6,6 +6,9 @@ import platform
 import shutil
 import subprocess
 from pathlib import Path
+
+# import check_output alone so that it can be patched without affecting
+# other parts of subprocess.
 from subprocess import check_output
 from typing import Optional
 
