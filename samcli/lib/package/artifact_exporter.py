@@ -18,7 +18,6 @@ Exporting resources defined in the cloudformation template to the cloud.
 import os
 from typing import Dict, Optional
 
-# import logging
 from botocore.utils import set_value_from_jmespath
 
 from samcli.commands._utils.resources import (
@@ -48,7 +47,6 @@ from samcli.lib.package.utils import (
 from samcli.lib.utils.packagetype import ZIP
 from samcli.yamlhelper import yaml_parse, yaml_dump
 
-# LOG = logging.getLogger(__name__)
 # NOTE: sriram-mv, A cyclic dependency on `Template` needs to be broken.
 
 
@@ -272,7 +270,8 @@ class Template:
         Iterates the template_dict resources with S3 EXPORT_DESTINATION to get the
         s3_bucket and s3_prefix information for the purpose of deletion.
         Method finds the first resource with s3 information, extracts the information
-        and then terminates.
+        and then terminates. It is safe to assume that all the packaged files using the
+        commands package and deploy are in the same s3 bucket with the same s3 prefix.
         """
         result = {"s3_bucket": None, "s3_prefix": None}
         if "Resources" not in self.template_dict:
