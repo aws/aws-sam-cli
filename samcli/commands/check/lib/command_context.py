@@ -42,7 +42,7 @@ class CheckContext:
         """
         Takes a sam template or a CFN json template and converts it into a CFN yaml template
         """
-        managed_policy_map = self.load_policies()
+        managed_policy_map = load_policies()
         original_template = self._read_sam_file()
 
         updated_template = external_replace_local_codeuri(original_template)
@@ -64,19 +64,11 @@ class CheckContext:
 
         return converted_template
 
-    def load_policies(self):
-        """
-        Load user policies from iam account
-        """
-        iam_client = boto3.client("iam")
-        return ManagedPolicyLoader(iam_client).load()
-
     def _read_sam_file(self):
         """
         Reads the file (json and yaml supported) provided and returns the dictionary representation of the file.
         The file will be a sam application template file in SAM yaml, CFN json, or CFN yaml format
 
-        :param str template: Path to the template file
         :return dict: Dictionary representing the SAM Template
         :raises: SamTemplateNotFoundException when the template file does not exist
         """
@@ -89,3 +81,11 @@ class CheckContext:
             sam_template = yaml_parse(sam_template.read())
 
         return sam_template
+
+
+def load_policies():
+    """
+    Load user policies from iam account
+    """
+    iam_client = boto3.client("iam")
+    return ManagedPolicyLoader(iam_client).load()
