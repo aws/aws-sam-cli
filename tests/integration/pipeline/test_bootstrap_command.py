@@ -18,11 +18,14 @@ from botocore.exceptions import ClientError
 # This is to restrict tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
 SKIP_BOOTSTRAP_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
+# In order to run bootstrap integration test locally make sure your test account is configured as `default` account.
+CREDENTIAL_PROFILE = "2" if not RUN_BY_CANARY else "1"
+
 
 @skipIf(SKIP_BOOTSTRAP_TESTS, "Skip bootstrap tests in CI/CD only")
 class TestBootstrap(BootstrapIntegBase):
     @parameterized.expand([("create_image_repository",), (False,)])
-    def test_interactive_with_no_resources_provided(self, create_image_repository: bool):
+    def test_interactive_with_no_resources_provided(self, create_image_repository):
         stage_name, stack_name = self._get_stage_and_stack_name()
         self.stack_names = [stack_name]
 
@@ -30,19 +33,25 @@ class TestBootstrap(BootstrapIntegBase):
 
         inputs = [
             stage_name,
+            CREDENTIAL_PROFILE,
+            "us-east-1",  # region
             "",  # pipeline user
             "",  # Pipeline execution role
             "",  # CloudFormation execution role
             "",  # Artifacts bucket
-            "2" if create_image_repository else "1",  # Should we create ECR repo, 1 - No, 2 - Yes
-            "y",  # proceed
+            "y" if create_image_repository else "N",  # Should we create ECR repo
         ]
+
+        if create_image_repository:
+            inputs.append("")  # Create image repository
+
+        inputs.append("")  # Confirm summary
+        inputs.append("y")  # Create resources
 
         bootstrap_process_execute = run_command_with_inputs(bootstrap_command_list, inputs)
 
         self.assertEqual(bootstrap_process_execute.process.returncode, 0)
         stdout = bootstrap_process_execute.stdout.decode()
-        self.assertIn("We have created the following resources", stdout)
         # make sure pipeline user's credential is printed
         self.assertIn("ACCESS_KEY_ID", stdout)
         self.assertIn("SECRET_ACCESS_KEY", stdout)
@@ -50,9 +59,12 @@ class TestBootstrap(BootstrapIntegBase):
         common_resources = {
             "PipelineUser",
             "PipelineUserAccessKey",
+            "PipelineUserSecretKey",
             "CloudFormationExecutionRole",
             "PipelineExecutionRole",
             "ArtifactsBucket",
+            "ArtifactsLoggingBucket",
+            "ArtifactsLoggingBucketPolicy",
             "ArtifactsBucketPolicy",
             "PipelineExecutionRolePermissionPolicy",
         }
@@ -62,13 +74,13 @@ class TestBootstrap(BootstrapIntegBase):
                     *common_resources,
                     "ImageRepository",
                 },
-                self._extract_created_resource_logical_ids(stack_name),
+                set(self._extract_created_resource_logical_ids(stack_name)),
             )
         else:
-            self.assertSetEqual(common_resources, self._extract_created_resource_logical_ids(stack_name))
+            self.assertSetEqual(common_resources, set(self._extract_created_resource_logical_ids(stack_name)))
 
     @parameterized.expand([("create_image_repository",), (False,)])
-    def test_non_interactive_with_no_resources_provided(self, create_image_repository: bool):
+    def test_non_interactive_with_no_resources_provided(self, create_image_repository):
         stage_name, stack_name = self._get_stage_and_stack_name()
         self.stack_names = [stack_name]
 
@@ -90,13 +102,14 @@ class TestBootstrap(BootstrapIntegBase):
 
         inputs = [
             stage_name,
+            CREDENTIAL_PROFILE,
+            "us-east-1",  # region
             "arn:aws:iam::123:user/user-name",  # pipeline user
             "arn:aws:iam::123:role/role-name",  # Pipeline execution role
             "arn:aws:iam::123:role/role-name",  # CloudFormation execution role
             "arn:aws:s3:::bucket-name",  # Artifacts bucket
-            "3",  # Should we create ECR repo, 3 - specify one
-            "arn:aws:ecr:::repository/repo-name",  # ecr repo
-            "y",  # proceed
+            "N",  # Should we create ECR repo, 3 - specify one
+            "",
         ]
 
         bootstrap_process_execute = run_command_with_inputs(bootstrap_command_list, inputs)
@@ -115,7 +128,7 @@ class TestBootstrap(BootstrapIntegBase):
             pipeline_user="arn:aws:iam::123:user/user-name",  # pipeline user
             pipeline_execution_role="arn:aws:iam::123:role/role-name",  # Pipeline execution role
             cloudformation_execution_role="arn:aws:iam::123:role/role-name",  # CloudFormation execution role
-            artifacts_bucket="arn:aws:s3:::bucket-name",  # Artifacts bucket
+            bucket="arn:aws:s3:::bucket-name",  # Artifacts bucket
             image_repository="arn:aws:ecr:::repository/repo-name",  # ecr repo
         )
 
@@ -126,7 +139,7 @@ class TestBootstrap(BootstrapIntegBase):
         self.assertIn("skipping creation", stdout)
 
     @parameterized.expand([("confirm_changeset",), (False,)])
-    def test_no_interactive_with_some_required_resources_provided(self, confirm_changeset):
+    def test_no_interactive_with_some_required_resources_provided(self, confirm_changeset: bool):
         stage_name, stack_name = self._get_stage_and_stack_name()
         self.stack_names = [stack_name]
 
@@ -136,7 +149,7 @@ class TestBootstrap(BootstrapIntegBase):
             pipeline_user="arn:aws:iam::123:user/user-name",  # pipeline user
             pipeline_execution_role="arn:aws:iam::123:role/role-name",  # Pipeline execution role
             # CloudFormation execution role missing
-            artifacts_bucket="arn:aws:s3:::bucket-name",  # Artifacts bucket
+            bucket="arn:aws:s3:::bucket-name",  # Artifacts bucket
             image_repository="arn:aws:ecr:::repository/repo-name",  # ecr repo
             no_confirm_changeset=not confirm_changeset,
         )
@@ -150,7 +163,7 @@ class TestBootstrap(BootstrapIntegBase):
         self.assertEqual(bootstrap_process_execute.process.returncode, 0)
         stdout = bootstrap_process_execute.stdout.decode()
         self.assertIn("Successfully created!", stdout)
-        self.assertSetEqual({"CloudFormationExecutionRole"}, self._extract_created_resource_logical_ids(stack_name))
+        self.assertIn("CloudFormationExecutionRole", self._extract_created_resource_logical_ids(stack_name))
 
     def test_interactive_cancelled_by_user(self):
         stage_name, stack_name = self._get_stage_and_stack_name()
@@ -160,19 +173,22 @@ class TestBootstrap(BootstrapIntegBase):
 
         inputs = [
             stage_name,
+            CREDENTIAL_PROFILE,
+            "us-east-1",  # region
             "arn:aws:iam::123:user/user-name",  # pipeline user
-            "",  # Pipeline execution role
+            "arn:aws:iam::123:role/role-name",  # Pipeline execution role
             "",  # CloudFormation execution role
-            "",  # Artifacts bucket
-            "1",  # Should we create ECR repo, 1 - No
-            "N",  # cancel
+            "arn:aws:s3:::bucket-name",  # Artifacts bucket
+            "N",  # Do you have Lambda with package type Image
+            "",
+            "",  # Create resources confirmation
         ]
 
         bootstrap_process_execute = run_command_with_inputs(bootstrap_command_list, inputs)
 
         self.assertEqual(bootstrap_process_execute.process.returncode, 0)
         stdout = bootstrap_process_execute.stdout.decode()
-        self.assertTrue(stdout.strip().endswith("Should we proceed with the creation? [y/N]:"))
+        self.assertTrue(stdout.strip().endswith("Canceling pipeline bootstrap creation."))
         self.assertFalse(self._stack_exists(stack_name))
 
     def test_interactive_with_some_required_resources_provided(self):
@@ -183,13 +199,15 @@ class TestBootstrap(BootstrapIntegBase):
 
         inputs = [
             stage_name,
+            CREDENTIAL_PROFILE,
+            "us-east-1",  # region
             "arn:aws:iam::123:user/user-name",  # pipeline user
             "arn:aws:iam::123:role/role-name",  # Pipeline execution role
             "",  # CloudFormation execution role
             "arn:aws:s3:::bucket-name",  # Artifacts bucket
-            "3",  # Should we create ECR repo, 3 - specify one
-            "arn:aws:ecr:::repository/repo-name",  # ecr repo
-            "y",  # proceed
+            "N",  # Do you have Lambda with package type Image
+            "",
+            "y",  # Create resources confirmation
         ]
 
         bootstrap_process_execute = run_command_with_inputs(bootstrap_command_list, inputs)
@@ -198,7 +216,7 @@ class TestBootstrap(BootstrapIntegBase):
         stdout = bootstrap_process_execute.stdout.decode()
         self.assertIn("Successfully created!", stdout)
         # make sure the not provided resource is the only resource created.
-        self.assertSetEqual({"CloudFormationExecutionRole"}, self._extract_created_resource_logical_ids(stack_name))
+        self.assertIn("CloudFormationExecutionRole", self._extract_created_resource_logical_ids(stack_name))
 
     def test_interactive_pipeline_user_only_created_once(self):
         """
@@ -216,12 +234,15 @@ class TestBootstrap(BootstrapIntegBase):
         for i, stage_name in enumerate(stage_names):
             inputs = [
                 stage_name,
+                CREDENTIAL_PROFILE,
+                "us-east-1",  # region
                 *([""] if i == 0 else []),  # pipeline user
                 "arn:aws:iam::123:role/role-name",  # Pipeline execution role
                 "arn:aws:iam::123:role/role-name",  # CloudFormation execution role
                 "arn:aws:s3:::bucket-name",  # Artifacts bucket
-                "1",  # Should we create ECR repo, 1 - No, 2 - Yes
-                "y",  # proceed
+                "N",  # Should we create ECR repo, 3 - specify one
+                "",
+                "y",  # Create resources confirmation
             ]
 
             bootstrap_process_execute = run_command_with_input(
@@ -233,11 +254,11 @@ class TestBootstrap(BootstrapIntegBase):
 
             # Only first environment creates pipeline user
             if i == 0:
-                self.assertIn("We have created the following resources", stdout)
-                self.assertSetEqual(
-                    {"PipelineUser", "PipelineUserAccessKey"},
-                    self._extract_created_resource_logical_ids(self.stack_names[i]),
-                )
+                self.assertIn("The following resources were created in your account:", stdout)
+                resources = self._extract_created_resource_logical_ids(self.stack_names[i])
+                self.assertTrue("PipelineUser" in resources)
+                self.assertTrue("PipelineUserAccessKey" in resources)
+                self.assertTrue("PipelineUserSecretKey" in resources)
             else:
                 self.assertIn("skipping creation", stdout)
 

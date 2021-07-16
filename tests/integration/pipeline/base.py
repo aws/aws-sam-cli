@@ -1,11 +1,13 @@
 import os
 import shutil
+import logging
 from pathlib import Path
 from typing import List, Optional, Set, Tuple, Any
 from unittest import TestCase
 from unittest.mock import Mock
 
 import boto3
+import botocore.exceptions
 from botocore.exceptions import ClientError
 
 from samcli.lib.pipeline.bootstrap.stage import Stage
@@ -59,21 +61,39 @@ class BootstrapIntegBase(PipelineBase):
     def setUp(self):
         self.stack_names = []
         super().setUp()
+        shutil.rmtree(os.path.join(os.getcwd(), ".aws-sam", "pipeline"), ignore_errors=True)
 
     def tearDown(self):
         for stack_name in self.stack_names:
+            self._cleanup_s3_buckets(stack_name)
             self.cf_client.delete_stack(StackName=stack_name)
         shutil.rmtree(os.path.join(os.getcwd(), ".aws-sam", "pipeline"), ignore_errors=True)
         super().tearDown()
+
+    def _cleanup_s3_buckets(self, stack_name):
+        try:
+            stack_resources = self.cf_client.describe_stack_resources(StackName=stack_name)
+            buckets = [
+                resource
+                for resource in stack_resources["StackResources"]
+                if resource["ResourceType"] == "AWS::S3::Bucket"
+            ]
+            s3_client = boto3.client("s3")
+            for bucket in buckets:
+                s3_client.delete_bucket(Bucket=bucket.get("PhysicalResourceId"))
+        except botocore.exceptions.ClientError:
+            """No need to fail in cleanup"""
 
     def get_bootstrap_command_list(
         self,
         no_interactive: bool = False,
         stage_name: Optional[str] = None,
+        profile_name: Optional[str] = None,
+        region: Optional[str] = None,
         pipeline_user: Optional[str] = None,
         pipeline_execution_role: Optional[str] = None,
         cloudformation_execution_role: Optional[str] = None,
-        artifacts_bucket: Optional[str] = None,
+        bucket: Optional[str] = None,
         create_image_repository: bool = False,
         image_repository: Optional[str] = None,
         no_confirm_changeset: bool = False,
@@ -84,14 +104,18 @@ class BootstrapIntegBase(PipelineBase):
             command_list += ["--no-interactive"]
         if stage_name:
             command_list += ["--stage", stage_name]
+        if profile_name:
+            command_list += ["--profile", profile_name]
+        if region:
+            command_list += ["--region", region]
         if pipeline_user:
             command_list += ["--pipeline-user", pipeline_user]
         if pipeline_execution_role:
             command_list += ["--pipeline-execution-role", pipeline_execution_role]
         if cloudformation_execution_role:
             command_list += ["--cloudformation-execution-role", cloudformation_execution_role]
-        if artifacts_bucket:
-            command_list += ["--artifacts-bucket", artifacts_bucket]
+        if bucket:
+            command_list += ["--bucket", bucket]
         if create_image_repository:
             command_list += ["--create-image-repository"]
         if image_repository:
@@ -101,9 +125,9 @@ class BootstrapIntegBase(PipelineBase):
 
         return command_list
 
-    def _extract_created_resource_logical_ids(self, stack_name: str) -> Set[str]:
+    def _extract_created_resource_logical_ids(self, stack_name: str) -> List[str]:
         response = self.cf_client.describe_stack_resources(StackName=stack_name)
-        return {resource["LogicalResourceId"] for resource in response["StackResources"]}
+        return [resource["LogicalResourceId"] for resource in response["StackResources"]]
 
     def _stack_exists(self, stack_name) -> bool:
         try:
