@@ -34,7 +34,7 @@ class TestBootstrap(BootstrapIntegBase):
         inputs = [
             stage_name,
             CREDENTIAL_PROFILE,
-            "us-east-1",  # region
+            self.region,  # region
             "",  # pipeline user
             "",  # Pipeline execution role
             "",  # CloudFormation execution role
@@ -103,7 +103,7 @@ class TestBootstrap(BootstrapIntegBase):
         inputs = [
             stage_name,
             CREDENTIAL_PROFILE,
-            "us-east-1",  # region
+            self.region,  # region
             "arn:aws:iam::123:user/user-name",  # pipeline user
             "arn:aws:iam::123:role/role-name",  # Pipeline execution role
             "arn:aws:iam::123:role/role-name",  # CloudFormation execution role
@@ -174,7 +174,7 @@ class TestBootstrap(BootstrapIntegBase):
         inputs = [
             stage_name,
             CREDENTIAL_PROFILE,
-            "us-east-1",  # region
+            self.region,  # region
             "arn:aws:iam::123:user/user-name",  # pipeline user
             "arn:aws:iam::123:role/role-name",  # Pipeline execution role
             "",  # CloudFormation execution role
@@ -200,7 +200,7 @@ class TestBootstrap(BootstrapIntegBase):
         inputs = [
             stage_name,
             CREDENTIAL_PROFILE,
-            "us-east-1",  # region
+            self.region,  # region
             "arn:aws:iam::123:user/user-name",  # pipeline user
             "arn:aws:iam::123:role/role-name",  # Pipeline execution role
             "",  # CloudFormation execution role
@@ -235,7 +235,7 @@ class TestBootstrap(BootstrapIntegBase):
             inputs = [
                 stage_name,
                 CREDENTIAL_PROFILE,
-                "us-east-1",  # region
+                self.region,  # region
                 *([""] if i == 0 else []),  # pipeline user
                 "arn:aws:iam::123:role/role-name",  # Pipeline execution role
                 "arn:aws:iam::123:role/role-name",  # CloudFormation execution role
@@ -285,8 +285,8 @@ class TestBootstrap(BootstrapIntegBase):
         bucket_key = "any/testing/key.txt"
         testing_data = b"any testing binary data"
 
-        s3_ssl_client = boto3.client("s3")
-        s3_non_ssl_client = boto3.client("s3", use_ssl=False)
+        s3_ssl_client = boto3.client("s3", region_name=self.region)
+        s3_non_ssl_client = boto3.client("s3", use_ssl=False, region_name=self.region)
 
         # Assert SSL requests are accepted
         s3_ssl_client.put_object(Body=testing_data, Bucket=bucket_name, Key=bucket_key)
@@ -327,6 +327,6 @@ class TestBootstrap(BootstrapIntegBase):
         )
         artifacts_logging_bucket_name = artifacts_logging_bucket["PhysicalResourceId"]
 
-        s3_client = boto3.client("s3")
+        s3_client = boto3.client("s3", region_name=self.region)
         res = s3_client.get_bucket_logging(Bucket=artifacts_bucket_name)
         self.assertEqual(artifacts_logging_bucket_name, res["LoggingEnabled"]["TargetBucket"])
