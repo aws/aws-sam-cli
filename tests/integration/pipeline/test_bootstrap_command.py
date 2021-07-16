@@ -17,6 +17,7 @@ from botocore.exceptions import ClientError
 # bootstrap tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
 SKIP_BOOTSTRAP_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
+CREDENTIAL_PROFILE = "2" if not RUN_BY_CANARY else "1"  # this is to allow integ test run on local
 
 
 @skipIf(SKIP_BOOTSTRAP_TESTS, "Skip bootstrap tests in CI/CD only")
@@ -30,7 +31,7 @@ class TestBootstrap(BootstrapIntegBase):
 
         inputs = [
             stage_name,
-            "2",  # always use default credentials for integ test
+            CREDENTIAL_PROFILE,
             "us-east-1",  # region
             "",  # pipeline user
             "",  # Pipeline execution role
@@ -99,7 +100,7 @@ class TestBootstrap(BootstrapIntegBase):
 
         inputs = [
             stage_name,
-            "2",  # always use default credentials for integ test
+            CREDENTIAL_PROFILE,
             "us-east-1",  # region
             "arn:aws:iam::123:user/user-name",  # pipeline user
             "arn:aws:iam::123:role/role-name",  # Pipeline execution role
@@ -170,7 +171,7 @@ class TestBootstrap(BootstrapIntegBase):
 
         inputs = [
             stage_name,
-            "2",  # always use default credentials for integ test
+            CREDENTIAL_PROFILE,
             "us-east-1",  # region
             "arn:aws:iam::123:user/user-name",  # pipeline user
             "arn:aws:iam::123:role/role-name",  # Pipeline execution role
@@ -196,7 +197,7 @@ class TestBootstrap(BootstrapIntegBase):
 
         inputs = [
             stage_name,
-            "2",  # always use default credentials for integ test
+            CREDENTIAL_PROFILE,
             "us-east-1",  # region
             "arn:aws:iam::123:user/user-name",  # pipeline user
             "arn:aws:iam::123:role/role-name",  # Pipeline execution role
@@ -231,7 +232,7 @@ class TestBootstrap(BootstrapIntegBase):
         for i, stage_name in enumerate(stage_names):
             inputs = [
                 stage_name,
-                "2",  # always use default credentials for integ test
+                CREDENTIAL_PROFILE,
                 "us-east-1",  # region
                 *([""] if i == 0 else []),  # pipeline user
                 "arn:aws:iam::123:role/role-name",  # Pipeline execution role
