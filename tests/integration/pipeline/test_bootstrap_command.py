@@ -17,7 +17,9 @@ from botocore.exceptions import ClientError
 # bootstrap tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
 SKIP_BOOTSTRAP_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
-CREDENTIAL_PROFILE = "2" if not RUN_BY_CANARY else "1"  # this is to allow integ test run on local
+
+# In order to run bootstrap integration test locally make sure your test account is configured as `default` account.
+CREDENTIAL_PROFILE = "2" if not RUN_BY_CANARY else "1"
 
 
 @skipIf(SKIP_BOOTSTRAP_TESTS, "Skip bootstrap tests in CI/CD only")
