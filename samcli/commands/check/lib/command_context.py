@@ -3,8 +3,8 @@ A center hub for checker logic
 """
 import os
 import functools
+import logging
 
-import click
 import boto3
 from boto3.session import Session
 
@@ -12,12 +12,13 @@ from samtranslator.translator.managed_policy_translator import ManagedPolicyLoad
 from samtranslator.translator.translator import Translator
 from samtranslator.public.exceptions import InvalidDocumentException
 from samtranslator.parser import parser
-from samcli.commands.check.command import LOG
 from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
 from samcli.yamlhelper import yaml_parse
 
 from samcli.lib.replace_uri.replace_uri import _replace_local_codeuri as external_replace_local_codeuri
 from ..exceptions import InvalidSamDocumentException
+
+LOG = logging.getLogger(__name__)
 
 
 class CheckContext:
@@ -36,14 +37,14 @@ class CheckContext:
     def run(self):
         self.transform_template()
 
-        click.echo("... analyzing application template")
+        LOG.info("... analyzing application template")
 
     def transform_template(self):
         """
         Takes a sam template or a CFN json template and converts it into a CFN yaml template
         """
         managed_policy_map = load_policies()
-        original_template = self._read_sam_file()
+        original_template = self.read_sam_file()
 
         updated_template = external_replace_local_codeuri(original_template)
 
@@ -64,7 +65,7 @@ class CheckContext:
 
         return converted_template
 
-    def _read_sam_file(self):
+    def read_sam_file(self):
         """
         Reads the file (json and yaml supported) provided and returns the dictionary representation of the file.
         The file will be a sam application template file in SAM yaml, CFN json, or CFN yaml format
@@ -77,7 +78,7 @@ class CheckContext:
             LOG.error("SAM Template Not Found")
             raise SamTemplateNotFoundException("Template at {} is not found".format(self.template_path))
 
-        with click.open_file(self.template_path, "r", encoding="utf-8") as sam_template:
+        with open(self.template_path, "r", encoding="utf-8") as sam_template:
             sam_template = yaml_parse(sam_template.read())
 
         return sam_template

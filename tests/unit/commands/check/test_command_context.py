@@ -1,14 +1,16 @@
+"""
+Tests for command_context.py
+"""
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
-from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException, InvalidSamTemplateException
+from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
 
-from samcli.commands.check.lib.command_context import CheckContext
+from samcli.commands.check.lib.command_context import CheckContext, load_policies
 
 
 class TestCommandContext(TestCase):
-    @patch("samcli.commands.check.lib.command_context.click")
-    def test_run(self, patch_click):
+    def test_run(self):
         region = Mock()
         profile = Mock()
         path = Mock()
@@ -20,9 +22,9 @@ class TestCommandContext(TestCase):
 
         context.transform_template.assert_called_once()
 
-    @patch("samcli.commands.check.lib.command_context.click")
+    @patch("samcli.commands.check.lib.command_context.logging")
     @patch("samcli.commands.check.lib.command_context.os.path.exists")
-    def test_file_not_found(self, path_exists_patch, click_patch):
+    def test_file_not_found(self, path_exists_patch, log_patch):
         template_path = "path_to_template"
 
         path_exists_patch.return_value = False
@@ -32,7 +34,7 @@ class TestCommandContext(TestCase):
         context = CheckContext(region, profile, template_path)
 
         with self.assertRaises(SamTemplateNotFoundException):
-            context._read_sam_file()
+            context.read_sam_file()
 
     @patch("samcli.commands.check.lib.command_context.boto3")
     @patch("samcli.commands.check.lib.command_context.ManagedPolicyLoader")
@@ -47,7 +49,7 @@ class TestCommandContext(TestCase):
 
         mock_loader.load.return_value = expected_policies
 
-        result = CheckContext.load_policies(Mock())
+        result = load_policies()
 
         boto3_mock.client.assert_called_with("iam")
         policy_loader_mock.assert_called_with(mock_iam_client)
@@ -63,10 +65,10 @@ class TestCommandContext(TestCase):
         self_mock = Mock()
 
         given_policies = Mock()
-        self_mock.load_policies.return_value = given_policies
+        load_policies.return_value = given_policies
 
         original_template = Mock()
-        self_mock._read_sam_file.return_value = original_template
+        self_mock.read_sam_file.return_value = original_template
 
         updated_template = Mock()
         patch_replace.return_value = updated_template

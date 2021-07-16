@@ -9,7 +9,7 @@ from samtranslator.parser import parser
 from samtranslator.translator.translator import Translator
 from boto3.session import Session
 
-from samcli.lib.replace_uri.replace_uri import _replace_local_codeuri as external__replace_local_codeuri
+from samcli.lib.replace_uri.replace_uri import _replace_local_codeuri as external_replace_local_codeuri
 from samcli.lib.replace_uri.replace_uri import is_s3_uri as external_is_s3_uri
 
 from samcli.yamlhelper import yaml_dump
@@ -75,7 +75,7 @@ class SamTemplateValidator:
             ) from e
 
     def _replace_local_codeuri(self):
-        return external__replace_local_codeuri(self.sam_template)
+        return external_replace_local_codeuri(self.sam_template)
 
     @staticmethod
     def is_s3_uri(uri):
