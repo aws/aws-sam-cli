@@ -1,3 +1,6 @@
+"""
+A center hub for checker logic
+"""
 import os
 import functools
 
@@ -5,12 +8,11 @@ import click
 import boto3
 from boto3.session import Session
 
-from samcli.commands.check.command import LOG
 from samtranslator.translator.managed_policy_translator import ManagedPolicyLoader
 from samtranslator.translator.translator import Translator
 from samtranslator.public.exceptions import InvalidDocumentException
 from samtranslator.parser import parser
-
+from samcli.commands.check.command import LOG
 from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
 from samcli.yamlhelper import yaml_parse
 
@@ -32,7 +34,7 @@ class CheckContext:
         self.template_path = template_path
 
     def run(self):
-        converted_template = self.transform_template()
+        self.transform_template()
 
         click.echo("... analyzing application template")
 
