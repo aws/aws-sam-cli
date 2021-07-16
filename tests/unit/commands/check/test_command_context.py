@@ -62,13 +62,21 @@ class TestCommandContext(TestCase):
     @patch("samcli.commands.check.lib.command_context.Session")
     @patch("samcli.commands.check.lib.command_context.parser")
     def test_transform_template(self, patched_parser, patched_session, patched_translator, patch_replace):
-        self_mock = Mock()
+        """
+        read_sam_file needs to be cast as a mock through context
+        """
+        region = Mock()
+        profile = Mock()
+        template_path = Mock()
+
+        context = CheckContext(region, profile, template_path)
 
         given_policies = Mock()
         load_policies.return_value = given_policies
 
         original_template = Mock()
-        self_mock.read_sam_file.return_value = original_template
+        context.read_sam_file = Mock()
+        context.read_sam_file.return_value = original_template
 
         updated_template = Mock()
         patch_replace.return_value = updated_template
@@ -79,7 +87,7 @@ class TestCommandContext(TestCase):
         converted_template = Mock()
         sam_translator.translate.return_value = converted_template
 
-        result = CheckContext.transform_template(self_mock)
+        result = context.transform_template()
 
         self.assertEqual(result, converted_template)
         patch_replace.assert_called_with(original_template)
