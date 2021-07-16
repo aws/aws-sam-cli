@@ -19,6 +19,9 @@ from samcli.lib.delete.cf_utils import CfUtils
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.artifact_exporter import mktempfile, get_cf_template_name
 
+from samcli.lib.schemas.schemas_aws_config import get_aws_configuration_choice
+from samcli.cli.context import Context
+
 from samcli.commands.delete.exceptions import CfDeleteFailedStatusError
 
 from samcli.lib.package.artifact_exporter import Template
@@ -87,10 +90,10 @@ class DeleteContext:
                 LOG.debug("Local config present and using the defined options")
                 if not self.region:
                     self.region = config_options.get("region", None)
-                    click.get_current_context().region = self.region
+                    Context.get_current_context().region = self.region
                 if not self.profile:
                     self.profile = config_options.get("profile", None)
-                    click.get_current_context().profile = self.profile
+                    Context.get_current_context().profile = self.profile
                 self.s3_bucket = config_options.get("s3_bucket", None)
                 self.s3_prefix = config_options.get("s3_prefix", None)
 
@@ -98,6 +101,13 @@ class DeleteContext:
         """
         Initialize all the clients being used by sam delete.
         """
+        if not self.region:
+            aws_config = get_aws_configuration_choice()
+            self.region = aws_config["region"]
+            self.profile = aws_config["profile"]
+            Context.get_current_context().region = self.region
+            Context.get_current_context().profile = self.profile
+
         boto_config = get_boto_config_with_user_agent()
 
         # Define cf_client based on the region as different regions can have same stack-names
@@ -111,7 +121,6 @@ class DeleteContext:
         s3_client = boto3.client("s3", region_name=self.region if self.region else None, config=boto_config)
         ecr_client = boto3.client("ecr", region_name=self.region if self.region else None, config=boto_config)
 
-        self.region = s3_client._client_config.region_name if s3_client else self.region  # pylint: disable=W0212
         self.s3_uploader = S3Uploader(s3_client=s3_client, bucket_name=self.s3_bucket, prefix=self.s3_prefix)
 
         self.ecr_uploader = ECRUploader(docker_client=None, ecr_client=ecr_client, ecr_repo=None, ecr_repo_multi=None)
@@ -324,4 +333,7 @@ class DeleteContext:
                 click.echo("\nDeleted successfully")
             else:
                 LOG.debug("Input stack does not exists on Cloudformation")
-                click.echo(f"Error: The input stack {self.stack_name} does not exist on Cloudformation")
+                click.echo(
+                    f"Error: The input stack {self.stack_name} does"
+                    + f" not exist on Cloudformation in the region {self.region}"
+                )

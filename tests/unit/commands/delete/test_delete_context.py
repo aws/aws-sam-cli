@@ -25,7 +25,7 @@ class TestDeleteContext(TestCase):
 
             delete_context.run()
             expected_click_echo_calls = [
-                call(f"Error: The input stack test does not exist on Cloudformation"),
+                call(f"Error: The input stack test does" + f" not exist on Cloudformation in the region us-east-1"),
             ]
             self.assertEqual(expected_click_echo_calls, patched_click_echo.call_args_list)
 
