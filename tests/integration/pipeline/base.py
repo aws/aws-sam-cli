@@ -127,10 +127,7 @@ class BootstrapIntegBase(PipelineBase):
 
     def _extract_created_resource_logical_ids(self, stack_name: str) -> List[str]:
         response = self.cf_client.describe_stack_resources(StackName=stack_name)
-        resources = []
-        for resource in response["StackResources"]:
-            resources.append(resource["LogicalResourceId"])
-        return resources
+        return [resource["LogicalResourceId"] for resource in response["StackResources"]]
 
     def _stack_exists(self, stack_name) -> bool:
         try:
