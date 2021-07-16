@@ -57,13 +57,17 @@ class TestCommandContext(TestCase):
         mock_loader.load.assert_called_once()
         self.assertEqual(result, expected_policies)
 
+    @patch("samcli.commands.check.lib.command_context.load_policies")
     @patch("samcli.commands.check.lib.command_context.external_replace_local_codeuri")
     @patch("samcli.commands.check.lib.command_context.Translator")
     @patch("samcli.commands.check.lib.command_context.Session")
     @patch("samcli.commands.check.lib.command_context.parser")
-    def test_transform_template(self, patched_parser, patched_session, patched_translator, patch_replace):
+    def test_transform_template(
+        self, patched_parser, patched_session, patched_translator, patch_replace, patch_policies
+    ):
         """
         read_sam_file needs to be cast as a mock through context
+        load_policies needs to be mocked through @patch
         """
         region = Mock()
         profile = Mock()
@@ -72,7 +76,7 @@ class TestCommandContext(TestCase):
         context = CheckContext(region, profile, template_path)
 
         given_policies = Mock()
-        load_policies.return_value = given_policies
+        patch_policies.return_value = given_policies
 
         original_template = Mock()
         context.read_sam_file = Mock()
