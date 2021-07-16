@@ -4,9 +4,10 @@ from samcli.commands.pipeline.bootstrap.cli import PIPELINE_CONFIG_DIR, PIPELINE
 from tests.integration.pipeline.base import InitIntegBase
 from tests.testing_utils import run_command_with_inputs
 
-QUICK_START_JENKINS_INPUTS = [
+QUICK_START_JENKINS_INPUTS_WITHOUT_AUTO_FILL = [
     "1",  # quick start
     "1",  # jenkins, this depends on the template repo.
+    "",
     "credential-id",
     "main",
     "template.yaml",
@@ -43,7 +44,7 @@ class TestInit(InitIntegBase):
         self.generated_files.append(generated_jenkinsfile_path)
 
         init_command_list = self.get_init_command_list()
-        init_process_execute = run_command_with_inputs(init_command_list, QUICK_START_JENKINS_INPUTS)
+        init_process_execute = run_command_with_inputs(init_command_list, QUICK_START_JENKINS_INPUTS_WITHOUT_AUTO_FILL)
 
         self.assertEqual(init_process_execute.process.returncode, 0)
         self.assertTrue(Path("Jenkinsfile").exists())
@@ -58,7 +59,7 @@ class TestInit(InitIntegBase):
         self.generated_files.append(generated_jenkinsfile_path)
 
         init_command_list = self.get_init_command_list()
-        init_process_execute = run_command_with_inputs(init_command_list, QUICK_START_JENKINS_INPUTS)
+        init_process_execute = run_command_with_inputs(init_command_list, QUICK_START_JENKINS_INPUTS_WITHOUT_AUTO_FILL)
 
         self.assertEqual(init_process_execute.process.returncode, 1)
         stderr = init_process_execute.stderr.decode()
@@ -71,7 +72,7 @@ class TestInit(InitIntegBase):
         self.generated_files.append(generated_file)
 
         custom_template_path = Path(__file__).parent.parent.joinpath(Path("testdata", "pipeline", "custom_template"))
-        inputs = ["2", str(custom_template_path), "Rainy"]  # custom template
+        inputs = ["2", str(custom_template_path), "", "Rainy"]  # custom template
 
         init_command_list = self.get_init_command_list()
         init_process_execute = run_command_with_inputs(init_command_list, inputs)
