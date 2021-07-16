@@ -229,14 +229,26 @@ class TestStage(TestCase):
         samconfig_mock.return_value = samconfig_instance_mock
         stage: Stage = Stage(name=ANY_STAGE_NAME)
 
+        empty_ecr_call = call(
+            cmd_names=cmd_names,
+            section="parameters",
+            env=ANY_STAGE_NAME,
+            key="image_repository",
+            value="",
+        )
+
         expected_calls = []
-        self.trigger_and_assert_save_config_calls(stage, cmd_names, expected_calls, samconfig_instance_mock.put)
+        self.trigger_and_assert_save_config_calls(
+            stage, cmd_names, expected_calls + [empty_ecr_call], samconfig_instance_mock.put
+        )
 
         stage.pipeline_user.arn = ANY_PIPELINE_USER_ARN
         expected_calls.append(
             call(cmd_names=cmd_names, section="parameters", key="pipeline_user", value=ANY_PIPELINE_USER_ARN)
         )
-        self.trigger_and_assert_save_config_calls(stage, cmd_names, expected_calls, samconfig_instance_mock.put)
+        self.trigger_and_assert_save_config_calls(
+            stage, cmd_names, expected_calls + [empty_ecr_call], samconfig_instance_mock.put
+        )
 
         stage.pipeline_execution_role.arn = ANY_PIPELINE_EXECUTION_ROLE_ARN
         expected_calls.append(
@@ -246,9 +258,11 @@ class TestStage(TestCase):
                 env=ANY_STAGE_NAME,
                 key="pipeline_execution_role",
                 value=ANY_PIPELINE_EXECUTION_ROLE_ARN,
-            )
+            ),
         )
-        self.trigger_and_assert_save_config_calls(stage, cmd_names, expected_calls, samconfig_instance_mock.put)
+        self.trigger_and_assert_save_config_calls(
+            stage, cmd_names, expected_calls + [empty_ecr_call], samconfig_instance_mock.put
+        )
 
         stage.cloudformation_execution_role.arn = ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN
         expected_calls.append(
@@ -258,9 +272,11 @@ class TestStage(TestCase):
                 env=ANY_STAGE_NAME,
                 key="cloudformation_execution_role",
                 value=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
-            )
+            ),
         )
-        self.trigger_and_assert_save_config_calls(stage, cmd_names, expected_calls, samconfig_instance_mock.put)
+        self.trigger_and_assert_save_config_calls(
+            stage, cmd_names, expected_calls + [empty_ecr_call], samconfig_instance_mock.put
+        )
 
         stage.artifacts_bucket.arn = "arn:aws:s3:::artifact_bucket_name"
         expected_calls.append(
@@ -270,9 +286,11 @@ class TestStage(TestCase):
                 env=ANY_STAGE_NAME,
                 key="artifacts_bucket",
                 value="artifact_bucket_name",
-            )
+            ),
         )
-        self.trigger_and_assert_save_config_calls(stage, cmd_names, expected_calls, samconfig_instance_mock.put)
+        self.trigger_and_assert_save_config_calls(
+            stage, cmd_names, expected_calls + [empty_ecr_call], samconfig_instance_mock.put
+        )
 
         stage.image_repository.arn = "arn:aws:ecr:us-east-2:111111111111:repository/image_repository_name"
         expected_calls.append(
@@ -289,7 +307,7 @@ class TestStage(TestCase):
     def trigger_and_assert_save_config_calls(self, stage, cmd_names, expected_calls, samconfig_put_mock):
         stage.save_config(config_dir="any_config_dir", filename="any_pipeline.toml", cmd_names=cmd_names)
         self.assertEqual(len(expected_calls), samconfig_put_mock.call_count)
-        samconfig_put_mock.assert_has_calls(expected_calls)
+        samconfig_put_mock.assert_has_calls(expected_calls, any_order=True)
         samconfig_put_mock.reset_mock()
 
     @patch("samcli.lib.pipeline.bootstrap.stage.boto3")
