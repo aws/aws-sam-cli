@@ -85,7 +85,10 @@ class TestBootstrap(BootstrapIntegBase):
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list(
-            no_interactive=True, create_image_repository=create_image_repository, no_confirm_changeset=True
+            no_interactive=True,
+            create_image_repository=create_image_repository,
+            no_confirm_changeset=True,
+            region=self.region,
         )
 
         bootstrap_process_execute = run_command(bootstrap_command_list)
@@ -130,6 +133,7 @@ class TestBootstrap(BootstrapIntegBase):
             cloudformation_execution_role="arn:aws:iam::123:role/role-name",  # CloudFormation execution role
             bucket="arn:aws:s3:::bucket-name",  # Artifacts bucket
             image_repository="arn:aws:ecr:::repository/repo-name",  # ecr repo
+            region=self.region,
         )
 
         bootstrap_process_execute = run_command(bootstrap_command_list)
@@ -152,6 +156,7 @@ class TestBootstrap(BootstrapIntegBase):
             bucket="arn:aws:s3:::bucket-name",  # Artifacts bucket
             image_repository="arn:aws:ecr:::repository/repo-name",  # ecr repo
             no_confirm_changeset=not confirm_changeset,
+            region=self.region,
         )
 
         inputs = [
@@ -268,7 +273,7 @@ class TestBootstrap(BootstrapIntegBase):
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list(
-            stage_name=stage_name, no_interactive=True, no_confirm_changeset=True
+            stage_name=stage_name, no_interactive=True, no_confirm_changeset=True, region=self.region
         )
 
         bootstrap_process_execute = run_command(bootstrap_command_list)
@@ -306,7 +311,7 @@ class TestBootstrap(BootstrapIntegBase):
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list(
-            stage_name=stage_name, no_interactive=True, no_confirm_changeset=True
+            stage_name=stage_name, no_interactive=True, no_confirm_changeset=True, region=self.region
         )
 
         bootstrap_process_execute = run_command(bootstrap_command_list)
