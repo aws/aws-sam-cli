@@ -2,6 +2,8 @@ from unittest import skipIf
 
 from parameterized import parameterized
 
+from samcli.commands.pipeline.bootstrap.cli import PIPELINE_CONFIG_FILENAME, PIPELINE_CONFIG_DIR
+from samcli.lib.config.samconfig import SamConfig
 from tests.integration.pipeline.base import BootstrapIntegBase
 from tests.testing_utils import (
     run_command_with_input,
@@ -20,6 +22,13 @@ SKIP_BOOTSTRAP_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not R
 
 # In order to run bootstrap integration test locally make sure your test account is configured as `default` account.
 CREDENTIAL_PROFILE = "2" if not RUN_BY_CANARY else "1"
+
+CFN_OUTPUT_TO_CONFIG_KEY = {
+    "ArtifactsBucket": "artifacts_bucket",
+    "CloudFormationExecutionRole": "cloudformation_execution_role",
+    "PipelineExecutionRole": "pipeline_execution_role",
+    "PipelineUser": "pipeline_user",
+}
 
 
 @skipIf(SKIP_BOOTSTRAP_TESTS, "Skip bootstrap tests in CI/CD only")
@@ -142,6 +151,25 @@ class TestBootstrap(BootstrapIntegBase):
         stdout = bootstrap_process_execute.stdout.decode()
         self.assertIn("skipping creation", stdout)
 
+    def validate_pipeline_config(self, stack_name, stage_name):
+        # Get output values from cloudformation
+        response = self.cf_client.describe_stacks(StackName=stack_name)
+        stacks = response["Stacks"]
+        self.assertTrue(len(stacks) > 0)  # in case stack name is invalid
+        stack_outputs = stacks[0]["Outputs"]
+        output_values = {}
+        for value in stack_outputs:
+            output_values[value["OutputKey"]] = value["OutputValue"]
+
+        # Get values saved in config file
+        config = SamConfig(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)
+        config_values = config.get_all(["pipeline", "bootstrap"], "parameters", stage_name)
+        config_values = {**config_values, **config.get_all(["pipeline", "bootstrap"], "parameters")}
+
+        for key in CFN_OUTPUT_TO_CONFIG_KEY:
+            value = CFN_OUTPUT_TO_CONFIG_KEY[key]
+            self.assertTrue(output_values[key].endswith(config_values[value]))
+
     @parameterized.expand([("confirm_changeset",), (False,)])
     def test_no_interactive_with_some_required_resources_provided(self, confirm_changeset: bool):
         stage_name, stack_name = self._get_stage_and_stack_name()
@@ -222,6 +250,7 @@ class TestBootstrap(BootstrapIntegBase):
         self.assertIn("Successfully created!", stdout)
         # make sure the not provided resource is the only resource created.
         self.assertIn("CloudFormationExecutionRole", self._extract_created_resource_logical_ids(stack_name))
+        self.validate_pipeline_config(stack_name, stage_name)
 
     def test_interactive_pipeline_user_only_created_once(self):
         """
