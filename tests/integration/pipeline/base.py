@@ -51,12 +51,13 @@ class InitIntegBase(PipelineBase):
 
 
 class BootstrapIntegBase(PipelineBase):
+    region = "us-east-1"
     stack_names: List[str]
     cf_client: Any
 
     @classmethod
     def setUpClass(cls):
-        cls.cf_client = boto3.client("cloudformation")
+        cls.cf_client = boto3.client("cloudformation", region_name=cls.region)
 
     def setUp(self):
         self.stack_names = []
