@@ -181,10 +181,26 @@ class TestS3Uploader(TestCase):
             force_upload=self.force_upload,
             no_progressbar=self.no_progressbar,
         )
-        s3_uploader.artifact_metadata = {"a": "b"}
+        self.s3.delete_object = MagicMock()
+        self.s3.head_object = MagicMock()
         with self.assertRaises(BucketNotSpecifiedError) as ex:
             with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
-                self.assertEqual(s3_uploader.delete_artifact(f.name), {"a": "b"})
+                self.assertTrue(s3_uploader.delete_artifact(f.name))
+
+    def test_s3_delete_non_existant_artifact(self):
+        s3_uploader = S3Uploader(
+            s3_client=self.s3,
+            bucket_name=None,
+            prefix=self.prefix,
+            kms_key_id=self.kms_key_id,
+            force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
+        )
+        self.s3.delete_object = MagicMock()
+        self.s3.head_object = MagicMock(side_effect=ClientError(error_response={}, operation_name="head_object"))
+        with self.assertRaises(BucketNotSpecifiedError) as ex:
+            with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
+                self.assertFalse(s3_uploader.delete_artifact(f.name))
 
     def test_s3_delete_artifact_no_bucket(self):
         s3_uploader = S3Uploader(

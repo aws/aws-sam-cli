@@ -166,7 +166,8 @@ class ResourceZip(Resource):
             return
 
         s3_info = self.get_s3_info(resource_dict)
-        self.uploader.delete_artifact(s3_info["Key"], True)
+        if s3_info["Key"]:
+            self.uploader.delete_artifact(s3_info["Key"], True)
 
     def get_s3_info(self, resource_dict):
         """
@@ -176,7 +177,9 @@ class ResourceZip(Resource):
             return {"Bucket": None, "Key": None}
 
         resource_path = jmespath.search(self.PROPERTY_NAME, resource_dict)
-        return self.uploader.parse_s3_url(resource_path)
+        if resource_path:
+            return self.uploader.parse_s3_url(resource_path)
+        return {"Bucket": None, "Key": None}
 
 
 class ResourceImageDict(Resource):
@@ -332,7 +335,8 @@ class ResourceWithS3UrlDict(ResourceZip):
             return
 
         s3_info = self.get_s3_info(resource_dict)
-        self.uploader.delete_artifact(remote_path=s3_info["Key"], is_key=True)
+        if s3_info["Key"]:
+            self.uploader.delete_artifact(remote_path=s3_info["Key"], is_key=True)
 
     def get_s3_info(self, resource_dict):
         """
@@ -341,10 +345,10 @@ class ResourceWithS3UrlDict(ResourceZip):
         if resource_dict is None:
             return {"Bucket": None, "Key": None}
 
-        resource_path = resource_dict[self.PROPERTY_NAME]
-        s3_bucket = resource_path[self.BUCKET_NAME_PROPERTY]
+        resource_path = resource_dict.get(self.PROPERTY_NAME, {})
+        s3_bucket = resource_path.get(self.BUCKET_NAME_PROPERTY, None)
 
-        key = resource_path[self.OBJECT_KEY_PROPERTY]
+        key = resource_path.get(self.OBJECT_KEY_PROPERTY, None)
         return {"Bucket": s3_bucket, "Key": key}
 
 

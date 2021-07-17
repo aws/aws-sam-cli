@@ -145,7 +145,7 @@ class S3Uploader:
 
         return self.upload(file_name, remote_path)
 
-    def delete_artifact(self, remote_path: str, is_key: bool = False) -> Dict:
+    def delete_artifact(self, remote_path: str, is_key: bool = False) -> bool:
         """
         Deletes a given file from S3
         :param remote_path: Path to the file that will be deleted
@@ -163,10 +163,16 @@ class S3Uploader:
                 key = "{0}/{1}".format(self.prefix, remote_path)
 
             # Deleting Specific file with key
-            click.echo(f"\t- Deleting S3 file {key}")
-            resp = self.s3.delete_object(Bucket=self.bucket_name, Key=key)
-            LOG.debug("S3 method delete_object is called and returned: %s", resp["ResponseMetadata"])
-            return dict(resp["ResponseMetadata"])
+            if self.file_exists(remote_path=key):
+                click.echo(f"\t- Deleting S3 object with key {key} in the bucket {self.bucket_name}")
+                self.s3.delete_object(Bucket=self.bucket_name, Key=key)
+                LOG.debug("Deleted s3 object with key %s successfully", key)
+                return True
+
+            # Given s3 object key does not exist
+            LOG.debug("Could not find the S3 file with the key %s", key)
+            click.echo(f"\t- Could not find and delete the S3 object with the key {key}")
+            return False
 
         except botocore.exceptions.ClientError as ex:
             error_code = ex.response["Error"]["Code"]
