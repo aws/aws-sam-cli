@@ -46,6 +46,10 @@ class TestInit(InitIntegBase):
         if pipelineconfig_file.exists():
             pipelineconfig_file.unlink()
 
+    def tearDown(self) -> None:
+        super().tearDown()
+        shutil.rmtree(PIPELINE_CONFIG_DIR, ignore_errors=True)
+
     def test_quick_start(self):
         generated_jenkinsfile_path = Path("Jenkinsfile")
         self.generated_files.append(generated_jenkinsfile_path)
@@ -96,6 +100,7 @@ class TestInit(InitIntegBase):
         generated_jenkinsfile_path = Path("Jenkinsfile")
         self.generated_files.append(generated_jenkinsfile_path)
 
+        Path(PIPELINE_CONFIG_DIR).mkdir(parents=True, exist_ok=True)
         pipelineconfig_path = Path(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)
         with open(pipelineconfig_path, "w") as f:
             f.write(
