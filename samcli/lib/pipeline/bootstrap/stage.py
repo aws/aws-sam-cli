@@ -258,7 +258,7 @@ class Stage:
         except ValueError:
             artifacts_bucket_name = ""
         try:
-            image_repository_uri: Optional[str] = self.image_repository.get_uri()
+            image_repository_uri: Optional[str] = self.image_repository.get_uri() or ""
         except ValueError:
             image_repository_uri = ""
 
@@ -266,12 +266,14 @@ class Stage:
             PIPELINE_EXECUTION_ROLE: self.pipeline_execution_role.arn,
             CLOUDFORMATION_EXECUTION_ROLE: self.cloudformation_execution_role.arn,
             ARTIFACTS_BUCKET: artifacts_bucket_name,
+            # even image repository can be None, we want to save it as empty string
+            # so that pipeline init command can pick it up
             ECR_IMAGE_REPOSITORY: image_repository_uri,
             REGION: self.aws_region,
         }
 
         for key, value in environment_specific_configs.items():
-            if value:
+            if value is not None:
                 samconfig.put(
                     cmd_names=cmd_names,
                     section="parameters",

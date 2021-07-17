@@ -43,10 +43,10 @@ class InitIntegBase(PipelineBase):
                 generated_file.unlink()
         super().tearDown()
 
-    def get_init_command_list(
-        self,
-    ):
+    def get_init_command_list(self, with_bootstrap=False):
         command_list = [self.base_command(), "pipeline", "init"]
+        if with_bootstrap:
+            command_list.append("--bootstrap")
         return command_list
 
 
