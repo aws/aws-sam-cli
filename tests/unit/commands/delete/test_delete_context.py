@@ -254,6 +254,7 @@ class TestDeleteContext(TestCase):
     @patch.object(CfUtils, "delete_stack", MagicMock())
     @patch.object(CfUtils, "wait_for_delete", MagicMock())
     @patch.object(S3Uploader, "delete_artifact", MagicMock())
+    @patch.object(ECRUploader, "delete_ecr_repository", MagicMock())
     @patch.object(CfUtils, "get_deployed_repos", MagicMock(return_value=({"logical_id": {"physical_id": "test_id"}})))
     def test_guided_prompts_ecr_companion_stack_present_execute_run(
         self, patched_confirm, patched_get_cf_template_name
@@ -326,6 +327,7 @@ class TestDeleteContext(TestCase):
     @patch.object(CfUtils, "delete_stack", MagicMock())
     @patch.object(CfUtils, "wait_for_delete", MagicMock())
     @patch.object(S3Uploader, "delete_prefix_artifacts", MagicMock())
+    @patch.object(ECRUploader, "delete_ecr_repository", MagicMock())
     @patch.object(CfUtils, "get_deployed_repos", MagicMock(return_value=({"logical_id": {"physical_id": "test_id"}})))
     def test_no_prompts_input_is_ecr_companion_stack_present_execute_run(
         self, patched_click_echo, patched_get_cf_template_name

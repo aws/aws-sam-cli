@@ -102,11 +102,10 @@ class DeleteContext:
         Initialize all the clients being used by sam delete.
         """
         if not self.region:
-            aws_config = get_aws_configuration_choice()
-            self.region = aws_config["region"]
-            self.profile = aws_config["profile"]
+            session = boto3.Session()
+            region = session.region_name
+            self.region = region if region else "us-east-1"
             Context.get_current_context().region = self.region
-            Context.get_current_context().profile = self.profile
 
         boto_config = get_boto_config_with_user_agent()
 
