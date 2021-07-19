@@ -1,10 +1,11 @@
 from unittest import TestCase
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, call
 
 from botocore.exceptions import ClientError
 from docker.errors import APIError, BuildError
 from parameterized import parameterized
 
+# import click
 from samcli.commands.package.exceptions import (
     DockerLoginFailedError,
     DockerPushFailedError,
@@ -176,7 +177,8 @@ class TestECRUploader(TestCase):
         with self.assertRaises(DockerPushFailedError):
             ecr_uploader.upload(image, resource_name="HelloWorldFunction")
 
-    def test_delete_artifact_no_image_error(self):
+    @patch("samcli.lib.package.ecr_uploader.click.echo")
+    def test_delete_artifact_no_image_error(self, patched_click_echo):
         ecr_uploader = ECRUploader(
             docker_client=self.docker_client,
             ecr_client=self.ecr_client,
@@ -188,12 +190,17 @@ class TestECRUploader(TestCase):
             "failures": [{"imageId": {"imageTag": self.tag}, "failureCode": "ImageNotFound"}]
         }
 
-        with self.assertRaises(ImageNotFoundError):
-            ecr_uploader.delete_artifact(
-                image_uri=self.image_uri, resource_id=self.resource_id, property_name=self.property_name
-            )
+        ecr_uploader.delete_artifact(
+            image_uri=self.image_uri, resource_id=self.resource_id, property_name=self.property_name
+        )
 
-    def test_delete_artifact_resp_failure(self):
+        expected_click_echo_calls = [
+            call(f"\t- Could not find image with tag {self.tag} in repository mock-image-repo"),
+        ]
+        self.assertEqual(expected_click_echo_calls, patched_click_echo.call_args_list)
+
+    @patch("samcli.lib.package.ecr_uploader.click.echo")
+    def test_delete_artifact_resp_failure(self, patched_click_echo):
         ecr_uploader = ECRUploader(
             docker_client=self.docker_client,
             ecr_client=self.ecr_client,
@@ -211,10 +218,14 @@ class TestECRUploader(TestCase):
             ]
         }
 
-        with self.assertRaises(DeleteArtifactFailedError):
-            ecr_uploader.delete_artifact(
-                image_uri=self.image_uri, resource_id=self.resource_id, property_name=self.property_name
-            )
+        ecr_uploader.delete_artifact(
+            image_uri=self.image_uri, resource_id=self.resource_id, property_name=self.property_name
+        )
+
+        expected_click_echo_calls = [
+            call(f"\t- Could not delete image with tag {self.tag} in repository mock-image-repo"),
+        ]
+        self.assertEqual(expected_click_echo_calls, patched_click_echo.call_args_list)
 
     def test_delete_artifact_client_error(self):
         ecr_uploader = ECRUploader(
