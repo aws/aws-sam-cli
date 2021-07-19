@@ -164,7 +164,7 @@ class S3Uploader:
 
             # Deleting Specific file with key
             if self.file_exists(remote_path=key):
-                click.echo(f"\t- Deleting S3 object with key {key} in the bucket {self.bucket_name}")
+                click.echo(f"\t- Deleting S3 object with key {key}")
                 self.s3.delete_object(Bucket=self.bucket_name, Key=key)
                 LOG.debug("Deleted s3 object with key %s successfully", key)
                 return True
@@ -189,9 +189,9 @@ class S3Uploader:
             LOG.error("Bucket not specified")
             raise BucketNotSpecifiedError()
         if self.prefix:
-            prefix_files = self.s3.list_objects_v2(Bucket=self.bucket_name, Prefix=self.prefix)
-
-            for obj in prefix_files["Contents"]:
+            response = self.s3.list_objects_v2(Bucket=self.bucket_name, Prefix=self.prefix)
+            prefix_files = response.get("Contents", [])
+            for obj in prefix_files:
                 self.delete_artifact(obj["Key"], True)
 
     def file_exists(self, remote_path: str) -> bool:

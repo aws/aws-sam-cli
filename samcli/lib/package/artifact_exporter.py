@@ -294,7 +294,7 @@ class Template:
                     continue
 
                 exporter = exporter_class(self.uploaders, None)
-                s3_info = exporter.get_s3_info(resource_dict)
+                s3_info = exporter.get_property_value(resource_dict)
 
                 result["s3_bucket"] = s3_info["Bucket"]
                 s3_key = s3_info["Key"]

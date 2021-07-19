@@ -165,13 +165,13 @@ class ResourceZip(Resource):
         if resource_dict is None:
             return
 
-        s3_info = self.get_s3_info(resource_dict)
+        s3_info = self.get_property_value(resource_dict)
         if s3_info["Key"]:
             self.uploader.delete_artifact(s3_info["Key"], True)
 
-    def get_s3_info(self, resource_dict):
+    def get_property_value(self, resource_dict):
         """
-        Get the s3 information from this resource
+        Get the s3 property value for this resource
         """
         if resource_dict is None:
             return {"Bucket": None, "Key": None}
@@ -334,13 +334,13 @@ class ResourceWithS3UrlDict(ResourceZip):
         if resource_dict is None:
             return
 
-        s3_info = self.get_s3_info(resource_dict)
+        s3_info = self.get_property_value(resource_dict)
         if s3_info["Key"]:
             self.uploader.delete_artifact(remote_path=s3_info["Key"], is_key=True)
 
-    def get_s3_info(self, resource_dict):
+    def get_property_value(self, resource_dict):
         """
-        Get the s3 information from this resource
+        Get the s3 property value for this resource
         """
         if resource_dict is None:
             return {"Bucket": None, "Key": None}

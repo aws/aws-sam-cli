@@ -1460,8 +1460,8 @@ class TestArtifactExporter(unittest.TestCase):
         resource_type1_class.EXPORT_DESTINATION = Destination.S3
         resource_type1_instance = Mock()
         resource_type1_class.return_value = resource_type1_instance
-        resource_type1_instance.get_s3_info = Mock()
-        resource_type1_instance.get_s3_info.return_value = {"Bucket": "bucket", "Key": "prefix/file"}
+        resource_type1_instance.get_property_value = Mock()
+        resource_type1_instance.get_property_value.return_value = {"Bucket": "bucket", "Key": "prefix/file"}
 
         resource_type2_class = Mock()
         resource_type2_class.RESOURCE_TYPE = "resource_type2"
@@ -1498,4 +1498,4 @@ class TestArtifactExporter(unittest.TestCase):
 
         s3_info = template_exporter.get_s3_info()
         self.assertEqual(s3_info, {"s3_bucket": "bucket", "s3_prefix": "prefix"})
-        resource_type1_instance.get_s3_info.assert_called_once_with(properties)
+        resource_type1_instance.get_property_value.assert_called_once_with(properties)
