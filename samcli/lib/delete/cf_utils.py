@@ -14,9 +14,9 @@ LOG = logging.getLogger(__name__)
 
 
 class CfUtils:
-    def __init__(self, cloudformation_client, cloudformation_resource_client):
+    def __init__(self, cloudformation_client):
         self._client = cloudformation_client
-        self._resource_client = cloudformation_resource_client
+        # self._resource_client = cloudformation_resource_client
 
     def has_stack(self, stack_name: str) -> bool:
         """
@@ -85,17 +85,17 @@ class CfUtils:
             LOG.error("Unable to get stack details.", exc_info=e)
             raise e
 
-    def delete_stack(self, stack_name: str, retain_repos: Optional[List] = None):
+    def delete_stack(self, stack_name: str, retain_resources: Optional[List] = None):
         """
         Delete the Cloudformation stack with the given stack_name
 
         :param stack_name: Name or ID of the stack
-        :param retain_repos: List of repositories to retain if the stack has DELETE_FAILED status.
+        :param retain_resources: List of repositories to retain if the stack has DELETE_FAILED status.
         """
-        if not retain_repos:
-            retain_repos = []
+        if not retain_resources:
+            retain_resources = []
         try:
-            self._client.delete_stack(StackName=stack_name, RetainResources=retain_repos)
+            self._client.delete_stack(StackName=stack_name, RetainResources=retain_resources)
 
         except (ClientError, BotoCoreError) as e:
             # If there are credentials, environment errors,
@@ -128,25 +128,3 @@ class CfUtils:
                 raise CfDeleteFailedStatusError(stack_name=stack_name, msg="ex: {0}".format(ex)) from ex
 
             raise DeleteFailedError(stack_name=stack_name, msg="ex: {0}".format(ex)) from ex
-
-    def get_deployed_repos(self, stack_name: str) -> Dict[str, Dict[str, str]]:
-        """
-        List deployed ECR repos for this companion stack and return as a dict
-
-        :param stack_name:   Stack name
-
-        Returns
-        -------
-        Dict[str, Dict[str, str]]
-            List of ECR repos deployed for this companion stack
-            Returns empty list if companion stack does not exist
-        """
-        repos = dict()
-        stack = self._resource_client.Stack(stack_name)
-        resources = stack.resource_summaries.all()
-        for resource in resources:
-            if resource.resource_type == "AWS::ECR::Repository":
-                logical_id = resource.logical_id
-                physical_id = resource.physical_resource_id
-                repos[logical_id] = {"physical_id": physical_id}
-        return repos

@@ -146,6 +146,7 @@ class ECRUploader:
         :param: physical_id of the repository to be deleted
         """
         try:
+            click.echo(f"\t- Deleting ECR repository {physical_id}")
             self.ecr_client.delete_repository(repositoryName=physical_id, force=True)
         except self.ecr_client.exceptions.RepositoryNotFoundException:
             # If the repository is empty, cloudformation automatically deletes

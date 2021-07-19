@@ -46,6 +46,7 @@ from samcli.commands._utils.resources import (
     METADATA_WITH_LOCAL_PATHS,
     RESOURCES_WITH_LOCAL_PATHS,
     RESOURCES_WITH_IMAGE_COMPONENT,
+    AWS_ECR_REPOSITORY,
 )
 
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -496,6 +497,27 @@ class CloudFormationResourceVersionSchemaHandlerPackage(ResourceZip):
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[AWS_CLOUDFORMATION_RESOURCEVERSION][0]
 
 
+class ECRResource(Resource):
+    RESOURCE_TYPE = AWS_ECR_REPOSITORY
+    PROPERTY_NAME = RESOURCES_WITH_IMAGE_COMPONENT[RESOURCE_TYPE][0]
+    ARTIFACT_TYPE = ZIP
+    EXPORT_DESTINATION = Destination.ECR
+
+    def delete(self, resource_id, resource_dict):
+        if resource_dict is None:
+            return
+
+        repository_name = self.get_property_value(resource_dict)
+        if repository_name:
+            self.uploader.delete_ecr_repository(physical_id=repository_name)
+
+    def get_property_value(self, resource_dict):
+        if resource_dict is None:
+            return None
+
+        return jmespath.search(self.PROPERTY_NAME, resource_dict)
+
+
 RESOURCES_EXPORT_LIST = [
     ServerlessFunctionResource,
     ServerlessFunctionImageResource,
@@ -517,6 +539,7 @@ RESOURCES_EXPORT_LIST = [
     GlueJobCommandScriptLocationResource,
     CloudFormationModuleVersionModulePackage,
     CloudFormationResourceVersionSchemaHandlerPackage,
+    ECRResource,
 ]
 
 METADATA_EXPORT_LIST = [ServerlessRepoApplicationReadme, ServerlessRepoApplicationLicense]
