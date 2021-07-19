@@ -52,6 +52,7 @@ from samcli.lib.package.packageable_resources import (
     CloudFormationResourceVersionSchemaHandlerPackage,
     ResourceZip,
     ResourceImage,
+    ECRResource,
 )
 
 
@@ -768,6 +769,25 @@ class TestArtifactExporter(unittest.TestCase):
         resource.delete(resource_id, resource_dict)
         self.s3_uploader_mock.delete_artifact.assert_called_once_with(remote_path="key1/key2", is_key=True)
 
+    def test_ecr_resource_delete(self):
+        # Property value is set to an image
+
+        class MockResource(ECRResource):
+            PROPERTY_NAME = "foo"
+
+        resource = MockResource(self.uploaders_mock, None)
+
+        resource_id = "id"
+        resource_dict = {}
+        repository = "repository"
+        resource_dict[resource.PROPERTY_NAME] = repository
+
+        self.ecr_uploader_mock.delete_ecr_repository = Mock()
+
+        resource.delete(resource_id, resource_dict)
+
+        self.ecr_uploader_mock.delete_ecr_repository.assert_called_once_with(physical_id="repository")
+
     @patch("samcli.lib.package.packageable_resources.upload_local_artifacts")
     def test_resource_with_signing_configuration(self, upload_local_artifacts_mock):
         class MockResource(ResourceZip):
@@ -1443,7 +1463,7 @@ class TestArtifactExporter(unittest.TestCase):
             template_str=template_str,
         )
 
-        template_exporter.delete()
+        template_exporter.delete(retain_resources=[])
 
         resource_type1_class.assert_called_once_with(self.uploaders_mock, None)
         resource_type1_instance.delete.assert_called_once_with("Resource1", mock.ANY)
@@ -1451,3 +1471,28 @@ class TestArtifactExporter(unittest.TestCase):
         resource_type2_instance.delete.assert_called_once_with("Resource2", mock.ANY)
         resource_type3_class.assert_not_called()
         resource_type3_instance.delete.assert_not_called()
+
+    def test_get_ecr_repos(self):
+        resources_to_export = [ECRResource]
+
+        properties = {"RepositoryName": "test_repo"}
+        template_dict = {
+            "Resources": {
+                "Resource1": {"Type": "AWS::ECR::Repository", "Properties": properties},
+                "Resource2": {"Type": "resource_type1", "Properties": properties},
+                "Resource3": {"Type": "AWS::ECR::Repository", "Properties": properties, "DeletionPolicy": "Retain"},
+            }
+        }
+        template_str = json.dumps(template_dict, indent=4, ensure_ascii=False)
+
+        template_exporter = Template(
+            template_path=None,
+            parent_dir=None,
+            uploaders=self.uploaders_mock,
+            code_signer=None,
+            resources_to_export=resources_to_export,
+            template_str=template_str,
+        )
+
+        repos = template_exporter.get_ecr_repos()
+        self.assertEqual(repos, {"Resource1": {"Repository": "test_repo"}})

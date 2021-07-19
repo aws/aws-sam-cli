@@ -22,13 +22,11 @@ class TestCfUtils(TestCase):
     def setUp(self):
         self.session = MagicMock()
         self.cloudformation_client = self.session.client("cloudformation")
-        self.cloudformation_resource_client = self.session.resource("cloudformation")
         self.s3_client = self.session.client("s3")
-        self.cf_utils = CfUtils(self.cloudformation_client, self.cloudformation_resource_client)
+        self.cf_utils = CfUtils(self.cloudformation_client)
 
     def test_cf_utils_init(self):
         self.assertEqual(self.cf_utils._client, self.cloudformation_client)
-        self.assertEqual(self.cf_utils._resource_client, self.cloudformation_resource_client)
 
     def test_cf_utils_has_no_stack(self):
         self.cf_utils._client.describe_stacks = MagicMock(return_value={"Stacks": []})
@@ -88,6 +86,12 @@ class TestCfUtils(TestCase):
         self.cf_utils._client.get_template = MagicMock(side_effect=Exception())
         with self.assertRaises(Exception):
             self.cf_utils.get_stack_template("test", "Original")
+
+    def test_cf_utils_get_stack_template_success(self):
+        self.cf_utils._client.get_template = MagicMock(return_value=({"TemplateBody": "Hello World"}))
+
+        response = self.cf_utils.get_stack_template("test", "Original")
+        self.assertEqual(response, {"TemplateBody": "Hello World"})
 
     def test_cf_utils_delete_stack_exception_botocore(self):
         self.cf_utils._client.delete_stack = MagicMock(side_effect=BotoCoreError())

@@ -4,6 +4,7 @@ from unittest.mock import patch, call, MagicMock
 import click
 
 from samcli.commands.delete.delete_context import DeleteContext
+from samcli.lib.package.artifact_exporter import Template
 from samcli.cli.cli_config_file import TomlProvider
 from samcli.lib.delete.cf_utils import CfUtils
 from samcli.lib.package.s3_uploader import S3Uploader
@@ -94,7 +95,7 @@ class TestDeleteContext(TestCase):
     @patch.object(CfUtils, "get_stack_template", MagicMock(return_value=({"TemplateBody": "Hello World"})))
     @patch.object(CfUtils, "delete_stack", MagicMock())
     @patch.object(CfUtils, "wait_for_delete", MagicMock())
-    @patch.object(CfUtils, "get_deployed_repos", MagicMock(return_value=({})))
+    @patch.object(Template, "get_ecr_repos", MagicMock(return_value=({"logical_id": {"Repository": "test_id"}})))
     @patch.object(S3Uploader, "delete_prefix_artifacts", MagicMock())
     @patch("samcli.commands.deploy.guided_context.click.get_current_context")
     def test_delete_context_valid_execute_run(self, patched_click_get_current_context):
@@ -110,11 +111,11 @@ class TestDeleteContext(TestCase):
             delete_context.run()
 
             self.assertEqual(CfUtils.has_stack.call_count, 2)
-            self.assertEqual(CfUtils.get_stack_template.call_count, 1)
+            self.assertEqual(CfUtils.get_stack_template.call_count, 2)
             self.assertEqual(CfUtils.delete_stack.call_count, 2)
             self.assertEqual(CfUtils.wait_for_delete.call_count, 2)
             self.assertEqual(S3Uploader.delete_prefix_artifacts.call_count, 1)
-            self.assertEqual(CfUtils.get_deployed_repos.call_count, 1)
+            self.assertEqual(Template.get_ecr_repos.call_count, 2)
 
     @patch("samcli.commands.delete.delete_context.click.echo")
     @patch("samcli.commands.deploy.guided_context.click.secho")
@@ -143,7 +144,7 @@ class TestDeleteContext(TestCase):
             self.assertEqual(expected_click_secho_calls, patched_click_secho.call_args_list)
 
             expected_click_echo_calls = [
-                call("\n\t- Deleting Cloudformation stack test"),
+                call("\t- Deleting Cloudformation stack test"),
                 call("\nDeleted successfully"),
             ]
             self.assertEqual(expected_click_echo_calls, patched_click_echo.call_args_list)
@@ -255,7 +256,7 @@ class TestDeleteContext(TestCase):
     @patch.object(CfUtils, "wait_for_delete", MagicMock())
     @patch.object(S3Uploader, "delete_artifact", MagicMock())
     @patch.object(ECRUploader, "delete_ecr_repository", MagicMock())
-    @patch.object(CfUtils, "get_deployed_repos", MagicMock(return_value=({"logical_id": {"physical_id": "test_id"}})))
+    @patch.object(Template, "get_ecr_repos", MagicMock(side_effect=({}, {"logical_id": {"Repository": "test_id"}})))
     def test_guided_prompts_ecr_companion_stack_present_execute_run(
         self, patched_confirm, patched_get_cf_template_name
     ):
@@ -278,7 +279,7 @@ class TestDeleteContext(TestCase):
             expected_confirmation_calls = [
                 call(
                     click.style(
-                        f"\tAre you sure you want to delete the stack test" + f" in the region us-east-1 ?",
+                        f"\tAre you sure you want to delete the stack test in the region us-east-1 ?",
                         bold=True,
                     ),
                     default=False,
@@ -286,7 +287,7 @@ class TestDeleteContext(TestCase):
                 call(
                     click.style(
                         "\tAre you sure you want to delete the folder"
-                        + f" s3_prefix in S3 which contains the artifacts?",
+                        + " s3_prefix in S3 which contains the artifacts?",
                         bold=True,
                     ),
                     default=False,
@@ -322,13 +323,13 @@ class TestDeleteContext(TestCase):
 
     @patch("samcli.commands.delete.delete_context.get_cf_template_name")
     @patch("samcli.commands.delete.delete_context.click.echo")
-    @patch.object(CfUtils, "has_stack", MagicMock(side_effect=(True, True)))
+    @patch.object(CfUtils, "has_stack", MagicMock(side_effect=(True, False)))
     @patch.object(CfUtils, "get_stack_template", MagicMock(return_value=({"TemplateBody": "Hello World"})))
     @patch.object(CfUtils, "delete_stack", MagicMock())
     @patch.object(CfUtils, "wait_for_delete", MagicMock())
     @patch.object(S3Uploader, "delete_prefix_artifacts", MagicMock())
     @patch.object(ECRUploader, "delete_ecr_repository", MagicMock())
-    @patch.object(CfUtils, "get_deployed_repos", MagicMock(return_value=({"logical_id": {"physical_id": "test_id"}})))
+    @patch.object(Template, "get_ecr_repos", MagicMock(return_value=({"logical_id": {"Repository": "test_id"}})))
     def test_no_prompts_input_is_ecr_companion_stack_present_execute_run(
         self, patched_click_echo, patched_get_cf_template_name
     ):
@@ -349,9 +350,7 @@ class TestDeleteContext(TestCase):
 
             delete_context.run()
             expected_click_echo_calls = [
-                call("\t#Note: Empty repositories created by SAM CLI will be deleted automatically."),
-                call("\t- Deleting ECR repository test_id"),
-                call("\t- Deleting ECR Companion Stack test-098f6bcd-CompanionStack"),
+                call("\t- Deleting Cloudformation stack test-098f6bcd-CompanionStack"),
                 call("\nDeleted successfully"),
             ]
             self.assertEqual(expected_click_echo_calls, patched_click_echo.call_args_list)

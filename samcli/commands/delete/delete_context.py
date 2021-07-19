@@ -82,7 +82,7 @@ class DeleteContext:
             if not self.stack_name:
                 self.stack_name = config_options.get("stack_name", None)
             # If the stack_name is same as the one present in samconfig file,
-            # get the information about parameters if not specified by customer.
+            # get the information about parameters if not specified by user.
             if self.stack_name and self.stack_name == config_options.get("stack_name", None):
                 LOG.debug("Local config present and using the defined options")
                 if not self.region:
@@ -123,12 +123,12 @@ class DeleteContext:
 
     def s3_prompts(self):
         """
-        Guided prompts asking customer to delete artifacts
+        Guided prompts asking user to delete s3 artifacts
         """
         # Note: s3_bucket and s3_prefix information is only
         # available if a local toml file is present or if
         # this information is obtained from the template resources and so if this
-        # information is not found, warn the customer that S3 artifacts
+        # information is not found, warn the user that S3 artifacts
         # will need to be manually deleted.
 
         if not self.no_prompts and self.s3_bucket:
@@ -174,12 +174,13 @@ class DeleteContext:
 
     def ecr_repos_prompts(self, template: Template):
         """
-        User prompts to delete the ECR repositories.
+        User prompts to delete the ECR repositories for the given template.
+
+        :param template: Template to get the ECR repositories.
         """
         retain_repos = []
         ecr_repos = template.get_ecr_repos()
-        if ecr_repos:
-            click.echo("\t#Note: Empty repositories created by SAM CLI will be deleted automatically.")
+
         if not self.no_prompts:
             for logical_id in ecr_repos:
                 # Get all the repos from the companion stack
@@ -199,6 +200,10 @@ class DeleteContext:
         return retain_repos
 
     def delete_ecr_companion_stack(self):
+        """
+        Delete the ECR companion stack and ECR repositories based
+        on user input.
+        """
         delete_ecr_companion_stack_prompt = self.ecr_companion_stack_prompts()
         if delete_ecr_companion_stack_prompt or self.no_prompts:
             cf_ecr_companion_stack = self.cf_utils.get_stack_template(self.companion_stack_name, TEMPLATE_STAGE)
@@ -213,9 +218,9 @@ class DeleteContext:
                 template_str=ecr_stack_template_str,
             )
 
-            # Delete the repos created by ECR companion stack and the stack
             retain_repos = self.ecr_repos_prompts(ecr_companion_stack_template)
 
+            # Delete the repos created by ECR companion stack if not retained
             ecr_companion_stack_template.delete(retain_resources=retain_repos)
 
             click.echo(f"\t- Deleting ECR Companion Stack {self.companion_stack_name}")
@@ -224,6 +229,7 @@ class DeleteContext:
                 # the user input repositories and delete the stack.
                 self.cf_utils.delete_stack(stack_name=self.companion_stack_name)
                 self.cf_utils.wait_for_delete(stack_name=self.companion_stack_name)
+                LOG.debug("Deleted ECR Companion Stack: %s", self.companion_stack_name)
             except CfDeleteFailedStatusError:
                 LOG.debug("delete_stack resulted failed and so re-try with retain_resources")
                 self.cf_utils.delete_stack(stack_name=self.companion_stack_name, retain_resources=retain_repos)
@@ -245,7 +251,6 @@ class DeleteContext:
 
         self.s3_prompts()
 
-        # Delete the artifacts
         template = Template(
             template_path=None,
             parent_dir=None,
@@ -254,7 +259,7 @@ class DeleteContext:
             template_str=template_str,
         )
 
-        retain_repos = self.ecr_repos_prompts(template)
+        retain_resources = self.ecr_repos_prompts(template)
 
         # ECR companion stack delete prompts, if it exists
         parent_stack_hash = str_checksum(self.stack_name)
@@ -265,7 +270,8 @@ class DeleteContext:
             self.companion_stack_name = possible_companion_stack_name
             self.delete_ecr_companion_stack()
 
-        template.delete(retain_resources=retain_repos)
+        # Delete the artifacts and retain resources user selected not to delete
+        template.delete(retain_resources=retain_resources)
 
         # Delete the CF template file in S3
         if self.delete_cf_template_file:
@@ -275,7 +281,7 @@ class DeleteContext:
         elif self.delete_artifacts_folder:
             self.s3_uploader.delete_prefix_artifacts()
 
-        # Delete the primary stack
+        # Delete the primary input stack
         try:
             click.echo(f"\t- Deleting Cloudformation stack {self.stack_name}")
             self.cf_utils.delete_stack(stack_name=self.stack_name)
@@ -283,7 +289,7 @@ class DeleteContext:
             LOG.debug("Deleted Cloudformation stack: %s", self.stack_name)
         except CfDeleteFailedStatusError:
             LOG.debug("delete_stack resulted failed and so re-try with retain_resources")
-            self.cf_utils.delete_stack(stack_name=self.stack_name, retain_resources=retain_repos)
+            self.cf_utils.delete_stack(stack_name=self.stack_name, retain_resources=retain_resources)
 
         # If s3_bucket information is not available, warn the user
         if not self.s3_bucket:
@@ -296,7 +302,7 @@ class DeleteContext:
 
     def run(self):
         """
-        Delete the stack based on the argument provided by customers and samconfig.toml.
+        Delete the stack based on the argument provided by user and samconfig.toml.
         """
         if not self.no_prompts:
             delete_stack = confirm(
