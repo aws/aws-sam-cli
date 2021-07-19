@@ -289,6 +289,45 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
         except ClientError as ex:
             self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
 
+    @parameterized.expand(
+        [os.path.join("deep-nested", "template.yaml"), os.path.join("deep-nested-image", "template.yaml")]
+    )
+    def test_delete_nested_stacks(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+
+        # Package and Deploy in one go without confirming change set.
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            # Note(xinhol): --capabilities does not allow passing multiple, we need to fix it
+            # here we use samconfig-deep-nested.toml as a workaround
+            config_file=self.test_data_path.joinpath("samconfig-deep-nested.toml"),
+            s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+            image_repository=self.ecr_repo_name,
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+
+        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region="us-east-1", no_prompts=True)
+
+        delete_process_execute = run_command(delete_command_list)
+
+        self.assertEqual(delete_process_execute.process.returncode, 0)
+
+        try:
+            resp = self.cf_client.describe_stacks(StackName=stack_name)
+        except ClientError as ex:
+            self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
+
     def _method_to_stack_name(self, method_name):
         """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
         method_name = method_name.split(".")[-1]
