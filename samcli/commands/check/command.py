@@ -2,9 +2,12 @@
 CLI command for "deploy" command
 """
 import os
+import ast
+import yaml
 
 import logging
 import functools
+from samcli.commands.check.lib import resource_provider
 from samcli.commands.check.pricing_calculations import PricingCalculations
 
 import click
@@ -38,6 +41,8 @@ from .exceptions import InvalidSamDocumentException
 
 from .bottle_neck_calculations import BottleNeckCalculations
 from .print_results import PrintResults
+
+from samcli.commands.check.lib.resource_provider import ResourceProvider
 
 
 SHORT_HELP = "Checks template for bottle necks."
@@ -129,7 +134,7 @@ def do_cli(ctx, template):
 
     click.echo("... analyzing application template")
 
-    graph = parse_template()
+    graph = parse_template(template)
 
     bottle_necks = BottleNecks(graph)
     bottle_necks.ask_entry_point_question()
@@ -145,9 +150,10 @@ def do_cli(ctx, template):
     results.print_bottle_neck_results()
 
 
-def parse_template():
+def parse_template(template):
 
-    all_lambda_functions = []
+    all_lambda_functions = {}
+    all_resources = {}
 
     # template path
     path = os.path.realpath("template.yaml")
@@ -158,10 +164,13 @@ def parse_template():
     functions = function_provider.get_all()  # List of all functions in the stacks
     for stack_function in functions:
         new_lambda_function = LambdaFunction(stack_function, "AWS::Lambda::Function")
-        all_lambda_functions.append(new_lambda_function)
+        all_lambda_functions[stack_function.functionname] = new_lambda_function
+
+    resource_provider = ResourceProvider(template)
+    all_resources = resource_provider.get_all_resources()
 
     # After all resources have been parsed from template, pass them into the graph
-    graph_context = GraphContext(all_lambda_functions)
+    graph_context = GraphContext(all_lambda_functions, all_resources)
 
     return graph_context.generate()
 

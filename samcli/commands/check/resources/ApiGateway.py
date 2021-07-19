@@ -1,14 +1,12 @@
 from .TemplateResource import TemplateResource
 
 
-class LambdaFunction(TemplateResource):
+class ApiGateway(TemplateResource):
     def __init__(self, resource_object, resource_type):
         super().__init__(resource_object, resource_type)
-        self.duration = None
         self.tps = None
         self.parents = []
         self.children = []
-        self.permission = None
 
     def add_child(self, child_node):
         self.children.append(child_node)
@@ -27,15 +25,3 @@ class LambdaFunction(TemplateResource):
 
     def get_tps(self):
         return self.tps
-
-    def set_duration(self, duration):
-        self.duration = duration
-
-    def get_duration(self):
-        return self.duration
-
-    def get_permission(self):
-        return self.permission
-
-    def set_permission(self, permission):
-        self.permission = permission

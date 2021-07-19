@@ -126,28 +126,30 @@ class TestCalculations(TestCase):
         burst_mock = Mock()
         concurrent_mock = Mock()
 
-        client_mock.get_aws_default_service_quota(ServiceCode="lambda", QuotaCode="L-548AE339").return_value = {
-            "Quota": {"Value": burst_mock}
-        }
-        client_mock.get_aws_default_service_quota(ServiceCode="lambda", QuotaCode="L-B99A9384").return_value = {
-            "Quota": {"Value": concurrent_mock}
-        }
+        def get_quota(ServiceCode, QuotaCode):
+            if QuotaCode == "L-548AE339":
+                return {"Quota": {"Value": burst_mock}}
+            elif QuotaCode == "L-B99A9384":
+                return {"Quota": {"Value": concurrent_mock}}
 
-        burst_concurrency = client_mock.get_aws_default_service_quota(
-            ServiceCode="lambda", QuotaCode="L-548AE339"
-        ).return_value["Quota"]["Value"]
-        concurrent_executions = client_mock.get_aws_default_service_quota(
-            ServiceCode="lambda", QuotaCode="L-B99A9384"
-        ).return_value["Quota"]["Value"]
+        client_mock.get_aws_default_service_quota.side_effect = get_quota
 
         calculations.run_calculations()
 
         patch_boto3.client.assert_called_once_with("service-quotas")
         calculations.check_limit.assert_called_once_with(
-            resource_mock.get_tps.return_value, resource_mock.get_duration.return_value, concurrent_executions
+            resource_mock.get_tps.return_value, resource_mock.get_duration.return_value, concurrent_mock
         )
 
         client_mock.get_aws_default_service_quota.assert_called()
+        calculations.generate_warning_message.assert_called_once_with(
+            calculations.check_limit.return_value,
+            resource_mock.get_name.return_value,
+            concurrent_mock,
+            resource_mock.get_duration.return_value,
+            resource_mock.get_tps.return_value,
+            burst_mock,
+        )
 
     def test_check_limit(self):
         graph_mock = Mock()
