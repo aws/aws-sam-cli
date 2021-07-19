@@ -43,6 +43,8 @@ class Template:
         An optional series of plugins to be plugged in. A plugin defines its own interactive_flow, preprocessor
         and postprocessor. A plugin is a sub-set of the template, if there is a common behavior among multiple
         templates, it is better to be extracted to a plugin that can then be plugged in to each of these templates.
+    metadata: Optional[Dict]
+        An optional dictionary with extra information about the template
 
     Methods
     -------
@@ -63,6 +65,7 @@ class Template:
         preprocessors: Optional[List[Processor]] = None,
         postprocessors: Optional[List[Processor]] = None,
         plugins: Optional[List[Plugin]] = None,
+        metadata: Optional[Dict] = None,
     ):
         """
         Initialize the class
@@ -86,6 +89,8 @@ class Template:
             An optional series of plugins to be plugged in. A plugin defines its own interactive_flow, preprocessor
             and postprocessor. A plugin is a sub-set of the template, if there is a common behavior among multiple
             templates, it is better to be extracted to a plugin that can then be plugged in to each of these templates.
+        metadata: Optional[Dict]
+            An optional dictionary with extra information about the template
         """
         self._location = location
         self._interactive_flows = interactive_flows or []
@@ -99,6 +104,7 @@ class Template:
                 self._preprocessors.append(plugin.preprocessor)
             if plugin.postprocessor:
                 self._postprocessors.append(plugin.postprocessor)
+        self.metadata = metadata
 
     def run_interactive_flows(self, context: Optional[Dict] = None) -> Dict:
         """

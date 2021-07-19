@@ -2,8 +2,10 @@
 Interactive flow that prompts that users for pipeline template (cookiecutter template) and used it to generate
 pipeline configuration file
 """
+import json
 import logging
 import os
+from json import JSONDecodeError
 from pathlib import Path
 from textwrap import dedent
 from typing import Dict, List, Tuple
@@ -11,7 +13,11 @@ from typing import Dict, List, Tuple
 import click
 
 from samcli.cli.main import global_cfg
-from samcli.commands.exceptions import PipelineTemplateCloneException, PipelineFileAlreadyExistsError
+from samcli.commands.exceptions import (
+    PipelineTemplateCloneException,
+    PipelineFileAlreadyExistsError,
+    AppPipelineTemplateMetadataException,
+)
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.cookiecutter.interactive_flow import InteractiveFlow
 from samcli.lib.cookiecutter.interactive_flow_creator import InteractiveFlowCreator
@@ -118,7 +124,7 @@ class InteractiveInitFlow:
             )
             return self._generate_from_pipeline_template(pipeline_template_local_dir)
 
-    def _prompt_run_bootstrap_within_pipeline_init(self, stage_names: List[str], required_env_number: int) -> bool:
+    def _prompt_run_bootstrap_within_pipeline_init(self, stage_names: List[str], number_of_stages: int) -> bool:
         """
         Prompt bootstrap if `--bootstrap` flag is provided. Return True if bootstrap process is executed.
         """
@@ -128,7 +134,7 @@ class InteractiveInitFlow:
             click.echo(
                 Colored().yellow(
                     f"Only {len(stage_names)} stage(s) were detected, "
-                    f"fewer than what the template requires: {required_env_number}."
+                    f"fewer than what the template requires: {number_of_stages}."
                 )
             )
         click.echo()
@@ -192,14 +198,17 @@ class InteractiveInitFlow:
         and return the list of generated files.
         """
         pipeline_template: Template = _initialize_pipeline_template(pipeline_template_dir)
-        required_env_number = 2  # TODO: read from template
-        click.echo(f"You are using the {required_env_number}-stage pipeline template.")
-        _draw_stage_diagram(required_env_number)
+        number_of_stages = (pipeline_template.metadata or {}).get("number_of_stages")
+        if not number_of_stages:
+            LOG.debug("Cannot find number_of_stages from template's metadata, set to default 2.")
+            number_of_stages = 2
+        click.echo(f"You are using the {number_of_stages}-stage pipeline template.")
+        _draw_stage_diagram(number_of_stages)
         while True:
             click.echo("Checking for existing stages...\n")
             stage_names, bootstrap_context = _load_pipeline_bootstrap_resources()
-            if len(stage_names) < required_env_number and self._prompt_run_bootstrap_within_pipeline_init(
-                stage_names, required_env_number
+            if len(stage_names) < number_of_stages and self._prompt_run_bootstrap_within_pipeline_init(
+                stage_names, number_of_stages
             ):
                 # the customers just went through the bootstrap process,
                 # refresh the pipeline bootstrap resources and see whether bootstrap is still needed
@@ -399,7 +408,26 @@ def _initialize_pipeline_template(pipeline_template_dir: Path) -> Template:
         The initialized pipeline's cookiecutter template
     """
     interactive_flow = _get_pipeline_template_interactive_flow(pipeline_template_dir)
-    return Template(location=str(pipeline_template_dir), interactive_flows=[interactive_flow])
+    metadata = _get_pipeline_template_metadata(pipeline_template_dir)
+    return Template(location=str(pipeline_template_dir), interactive_flows=[interactive_flow], metadata=metadata)
+
+
+def _get_pipeline_template_metadata(pipeline_template_dir: Path) -> Dict:
+    """
+    Load the metadata from the file metadata.json located in the template directory,
+    raise an exception if anything wrong.
+    """
+    metadata_path = Path(pipeline_template_dir, "metadata.json")
+    if not metadata_path.exists():
+        raise AppPipelineTemplateMetadataException(f"Cannot find metadata file {metadata_path}")
+    try:
+        with open(metadata_path, "r", encoding="utf-8") as file:
+            metadata = json.load(file)
+            if isinstance(metadata, dict):
+                return metadata
+            raise AppPipelineTemplateMetadataException(f"Invalid content found in {metadata_path}")
+    except JSONDecodeError as ex:
+        raise AppPipelineTemplateMetadataException(f"Invalid JSON found in {metadata_path}") from ex
 
 
 def _get_pipeline_template_interactive_flow(pipeline_template_dir: Path) -> InteractiveFlow:
