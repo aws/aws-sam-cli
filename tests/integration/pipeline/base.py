@@ -1,6 +1,7 @@
 import os
 import shutil
 import logging
+import uuid
 from pathlib import Path
 from typing import List, Optional, Set, Tuple, Any
 from unittest import TestCase
@@ -54,10 +55,12 @@ class BootstrapIntegBase(PipelineBase):
     region = "us-east-1"
     stack_names: List[str]
     cf_client: Any
+    randomized_stage_suffix: str
 
     @classmethod
     def setUpClass(cls):
         cls.cf_client = boto3.client("cloudformation", region_name=cls.region)
+        cls.randomized_stage_suffix = uuid.uuid4().hex[-6:]
 
     def setUp(self):
         self.stack_names = []
@@ -142,7 +145,7 @@ class BootstrapIntegBase(PipelineBase):
     def _get_stage_and_stack_name(self, suffix: str = "") -> Tuple[str, str]:
         # Method expects method name which can be a full path. Eg: test.integration.test_bootstrap_command.method_name
         method_name = self.id().split(".")[-1]
-        stage_name = method_name.replace("_", "-") + suffix
+        stage_name = method_name.replace("_", "-") + suffix + "-" + self.randomized_stage_suffix
 
         mock_env = Mock()
         mock_env.name = stage_name
