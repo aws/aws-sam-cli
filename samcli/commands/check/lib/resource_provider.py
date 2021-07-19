@@ -38,12 +38,13 @@ class ResourceProvider:
 
         resources = local_stacks["Resources"]
 
-        for resource_name in resources:
-            resource_obj = resources[resource_name]
+        for resource_name, resource_obj in resources.items():
 
             if resource_obj["Type"] == "AWS::ApiGateway::RestApi":
-                all_api_gateways[resource_name] = ApiGateway(resource_obj, resource_obj["Type"])
+                all_api_gateways[resource_name] = ApiGateway(resource_obj, resource_obj["Type"], resource_name)
             elif resource_obj["Type"] == "AWS::Lambda::Permission":
-                all_lambda_permissions[resource_name] = LambdaFunctionPermission(resource_obj, resource_obj["Type"])
+                all_lambda_permissions[resource_name] = LambdaFunctionPermission(
+                    resource_obj, resource_obj["Type"], resource_name
+                )
 
         return all_resources

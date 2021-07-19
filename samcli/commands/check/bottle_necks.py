@@ -43,12 +43,16 @@ class BottleNecks:
             click.echo("")
 
             current_entry_point = entry_points.pop(user_input - 1)
+            current_entry_point_type = current_entry_point.get_resource_type()
 
             self.ask_bottle_neck_questions(current_entry_point)
 
-            self.pricing.ask_pricing_question(current_entry_point)
+            # For now pricing is only done on lambda functions
+            if current_entry_point_type == "AWS::Lambda::Function":
+                self.pricing.ask_pricing_question(current_entry_point)
 
-            self.graph.add_resource_to_analyze(current_entry_point)
+                # Only the lambda functions can be the source of bottle necks for now.
+                self.graph.add_resource_to_analyze(current_entry_point)
 
             click.echo("")
 
@@ -60,6 +64,18 @@ class BottleNecks:
 
         if resource.get_resource_type() == "AWS::Lambda::Function":
             self.lambda_bottle_neck_quesitons(resource)
+        elif resource.get_resource_type() == "AWS::ApiGateway::RestApi":
+            self.api_bottle_neck_questions(resource)
+
+    def api_bottle_neck_questions(self, api_gateway):
+        user_input_tps = self.ask(
+            "What is the expected per-second arrival rate for [%s]?\n[TPS]" % (api_gateway.get_name())
+        )
+        api_gateway.set_tps(user_input_tps)
+
+        for child in api_gateway.get_children():
+            child.set_tps(user_input_tps)
+            self.ask_bottle_neck_questions(child)
 
     def lambda_bottle_neck_quesitons(self, lambda_function):
         # If there is no entry point to the lambda function, get tps
@@ -77,3 +93,6 @@ class BottleNecks:
         )
 
         lambda_function.set_duration(user_input_duration)
+
+        for child in lambda_function.get_children():
+            self.ask_bottle_neck_questions(child)

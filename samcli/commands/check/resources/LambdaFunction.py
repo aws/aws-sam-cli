@@ -2,8 +2,8 @@ from .TemplateResource import TemplateResource
 
 
 class LambdaFunction(TemplateResource):
-    def __init__(self, resource_object, resource_type):
-        super().__init__(resource_object, resource_type)
+    def __init__(self, resource_object, resource_type, resource_name):
+        super().__init__(resource_object, resource_type, resource_name)
         self.duration = None
         self.tps = None
         self.parents = []

@@ -7,7 +7,6 @@ import yaml
 
 import logging
 import functools
-from samcli.commands.check.lib import resource_provider
 from samcli.commands.check.pricing_calculations import PricingCalculations
 
 import click
@@ -163,14 +162,16 @@ def parse_template(template):
     function_provider = SamFunctionProvider(local_stacks)
     functions = function_provider.get_all()  # List of all functions in the stacks
     for stack_function in functions:
-        new_lambda_function = LambdaFunction(stack_function, "AWS::Lambda::Function")
+        new_lambda_function = LambdaFunction(stack_function, "AWS::Lambda::Function", stack_function.functionname)
         all_lambda_functions[stack_function.functionname] = new_lambda_function
 
     resource_provider = ResourceProvider(template)
     all_resources = resource_provider.get_all_resources()
 
+    all_resources["LambdaFunctions"] = all_lambda_functions
+
     # After all resources have been parsed from template, pass them into the graph
-    graph_context = GraphContext(all_lambda_functions, all_resources)
+    graph_context = GraphContext(all_resources)
 
     return graph_context.generate()
 
