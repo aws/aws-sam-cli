@@ -35,7 +35,7 @@ from samcli.lib.package.packageable_resources import (
     ResourceZip,
 )
 from samcli.lib.package.s3_uploader import S3Uploader
-from samcli.lib.package.uploaders import Uploaders
+from samcli.lib.package.uploaders import Uploaders, Destination
 from samcli.lib.package.utils import (
     is_local_folder,
     make_abs_path,
@@ -46,7 +46,6 @@ from samcli.lib.package.utils import (
 )
 from samcli.lib.utils.packagetype import ZIP
 from samcli.yamlhelper import yaml_parse, yaml_dump
-
 
 # NOTE: sriram-mv, A cyclic dependency on `Template` needs to be broken.
 
@@ -265,3 +264,48 @@ class Template:
                     # Delete code resources
                     exporter = exporter_class(self.uploaders, None)
                     exporter.delete(resource_id, resource_dict)
+
+    def get_s3_info(self):
+        """
+        Iterates the template_dict resources with S3 EXPORT_DESTINATION to get the
+        s3_bucket and s3_prefix information for the purpose of deletion.
+        Method finds the first resource with s3 information, extracts the information
+        and then terminates. It is safe to assume that all the packaged files using the
+        commands package and deploy are in the same s3 bucket with the same s3 prefix.
+        """
+        result = {"s3_bucket": None, "s3_prefix": None}
+        if "Resources" not in self.template_dict:
+            return result
+
+        self._apply_global_values()
+
+        for _, resource in self.template_dict["Resources"].items():
+
+            resource_type = resource.get("Type", None)
+            resource_dict = resource.get("Properties", {})
+
+            for exporter_class in self.resources_to_export:
+                # Skip the resources which don't give s3 information
+                if exporter_class.EXPORT_DESTINATION != Destination.S3:
+                    continue
+                if exporter_class.RESOURCE_TYPE != resource_type:
+                    continue
+                if resource_dict.get("PackageType", ZIP) != exporter_class.ARTIFACT_TYPE:
+                    continue
+
+                exporter = exporter_class(self.uploaders, None)
+                s3_info = exporter.get_property_value(resource_dict)
+
+                result["s3_bucket"] = s3_info["Bucket"]
+                s3_key = s3_info["Key"]
+
+                # Extract the prefix from the key
+                if s3_key:
+                    key_split = s3_key.rsplit("/", 1)
+                    if len(key_split) > 1:
+                        result["s3_prefix"] = key_split[0]
+                break
+            if result["s3_bucket"]:
+                break
+
+        return result

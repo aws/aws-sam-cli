@@ -164,11 +164,22 @@ class ResourceZip(Resource):
         """
         if resource_dict is None:
             return
+
+        s3_info = self.get_property_value(resource_dict)
+        if s3_info["Key"]:
+            self.uploader.delete_artifact(s3_info["Key"], True)
+
+    def get_property_value(self, resource_dict):
+        """
+        Get the s3 property value for this resource
+        """
+        if resource_dict is None:
+            return {"Bucket": None, "Key": None}
+
         resource_path = jmespath.search(self.PROPERTY_NAME, resource_dict)
-        parsed_s3_url = self.uploader.parse_s3_url(resource_path)
-        if not self.uploader.bucket_name:
-            self.uploader.bucket_name = parsed_s3_url["Bucket"]
-        self.uploader.delete_artifact(parsed_s3_url["Key"], True)
+        if resource_path:
+            return self.uploader.parse_s3_url(resource_path)
+        return {"Bucket": None, "Key": None}
 
 
 class ResourceImageDict(Resource):
@@ -322,13 +333,23 @@ class ResourceWithS3UrlDict(ResourceZip):
         """
         if resource_dict is None:
             return
-        resource_path = resource_dict[self.PROPERTY_NAME]
-        s3_bucket = resource_path[self.BUCKET_NAME_PROPERTY]
-        key = resource_path[self.OBJECT_KEY_PROPERTY]
 
-        if not self.uploader.bucket_name:
-            self.uploader.bucket_name = s3_bucket
-        self.uploader.delete_artifact(remote_path=key, is_key=True)
+        s3_info = self.get_property_value(resource_dict)
+        if s3_info["Key"]:
+            self.uploader.delete_artifact(remote_path=s3_info["Key"], is_key=True)
+
+    def get_property_value(self, resource_dict):
+        """
+        Get the s3 property value for this resource
+        """
+        if resource_dict is None:
+            return {"Bucket": None, "Key": None}
+
+        resource_path = resource_dict.get(self.PROPERTY_NAME, {})
+        s3_bucket = resource_path.get(self.BUCKET_NAME_PROPERTY, None)
+
+        key = resource_path.get(self.OBJECT_KEY_PROPERTY, None)
+        return {"Bucket": s3_bucket, "Key": key}
 
 
 class ServerlessFunctionResource(ResourceZip):

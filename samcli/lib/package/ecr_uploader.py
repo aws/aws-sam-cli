@@ -101,7 +101,7 @@ class ECRUploader:
         :param property_name: provided property_name for the resource
         """
         try:
-            repo_image_tag = self.parse_ecr_url(image_uri=image_uri)
+            repo_image_tag = self.parse_image_url(image_uri=image_uri)
             repository = repo_image_tag["repository"]
             image_tag = repo_image_tag["image_tag"]
             resp = self.ecr_client.batch_delete_image(
@@ -140,7 +140,7 @@ class ECRUploader:
             raise DeleteArtifactFailedError(resource_id=resource_id, property_name=property_name, ex=ex) from ex
 
     @staticmethod
-    def parse_ecr_url(image_uri: str) -> Dict:
+    def parse_image_url(image_uri: str) -> Dict:
         result = {}
         registry_repo_tag = image_uri.split("/")
         repo_colon_image_tag = None
