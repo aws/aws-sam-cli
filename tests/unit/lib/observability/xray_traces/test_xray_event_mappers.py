@@ -139,6 +139,8 @@ class TestXRayTraceConsoleMapper(AbstractXRayServiceGraphMapperTest):
         self.assertTrue(isinstance(mapped_event, XRayServiceGraphEvent))
 
         self.assertTrue(f"\nNew XRay Service Graph" in mapped_event.message)
+        self.assertTrue(f"\n  Start time: {self.service_graph_event.start_time}" in mapped_event.message)
+        self.assertTrue(f"\n  End time: {self.service_graph_event.end_time}" in mapped_event.message)
 
         self.validate_services(self.service_graph_event.services, mapped_event.message)
 

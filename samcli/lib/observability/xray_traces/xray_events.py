@@ -1,11 +1,11 @@
 """
 Keeps XRay event definitions
 """
-import hashlib
 import json
 from typing import List
 
 from samcli.lib.observability.observability_info_puller import ObservabilityEvent
+from samcli.lib.utils.hash import str_checksum
 
 
 class XRayTraceEvent(ObservabilityEvent[dict]):
@@ -104,7 +104,7 @@ class XRayServiceGraphEvent(ObservabilityEvent[dict]):
         get the hash of the containing services
         """
         services = self.event.get("Services", [])
-        return hashlib.sha1(str(services).encode('utf-8')).hexdigest()
+        return str_checksum(str(services))
 
 
 class XRayGraphServiceInfo:

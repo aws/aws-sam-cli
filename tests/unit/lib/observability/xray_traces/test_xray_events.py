@@ -4,6 +4,7 @@ import uuid
 from unittest import TestCase
 
 from samcli.lib.observability.xray_traces.xray_events import XRayTraceSegment, XRayTraceEvent, XRayServiceGraphEvent
+from samcli.lib.utils.hash import str_checksum
 
 LATEST_EVENT_TIME = 9621490723
 
@@ -178,3 +179,8 @@ class TestXRayServiceGraphEvent(AbstractXRayServiceTest):
 
         for service, service_dict in zip(services, services_array):
             self.validate_service(service, service_dict)
+
+    def test__xray_service_graph_event_get_hash(self):
+        xray_service_graph_event = XRayServiceGraphEvent(self.event_dict)
+        expected_hash = str_checksum(str(self.event_dict["Services"]))
+        self.assertEqual(expected_hash, xray_service_graph_event.get_hash())

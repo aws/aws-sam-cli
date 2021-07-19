@@ -40,6 +40,31 @@ class TestXRayServiceGraphPuller(TestCase):
         self.consumer.consume.assert_called()
 
     @patch("samcli.lib.observability.xray_traces.xray_service_graph_event_puller.XRayServiceGraphEvent")
+    @patch("samcli.lib.observability.xray_traces.xray_service_graph_event_puller.to_utc")
+    @patch("samcli.lib.observability.xray_traces.xray_service_graph_event_puller.utc_to_timestamp")
+    def test_load_time_period_with_same_event_twice(
+        self, patched_utc_to_timestamp, patched_to_utc, patched_xray_service_graph_event
+    ):
+        given_paginator = Mock()
+        self.xray_client.get_paginator.return_value = given_paginator
+
+        given_services = [{"EndTime": "endtime", "Services": [{"id": 1}]}]
+        given_paginator.paginate.return_value = given_services
+
+        start_time = "start_time"
+        end_time = "end_time"
+        patched_utc_to_timestamp.return_value = 1
+        self.xray_service_graph_puller.load_time_period(start_time, end_time)
+        # called with the same event twice
+        self.xray_service_graph_puller.load_time_period(start_time, end_time)
+        patched_utc_to_timestamp.assert_called()
+        patched_to_utc.assert_called()
+        given_paginator.paginate.assert_called_with(StartTime=start_time, EndTime=end_time)
+        patched_xray_service_graph_event.assrt_called_with({"EndTime": "endtime", "Services": [{"id": 1}]})
+        # consumer should only get called once
+        self.consumer.consume.assert_called_once()
+
+    @patch("samcli.lib.observability.xray_traces.xray_service_graph_event_puller.XRayServiceGraphEvent")
     def test_load_time_period_with_no_service(self, patched_xray_service_graph_event):
         given_paginator = Mock()
         self.xray_client.get_paginator.return_value = given_paginator
