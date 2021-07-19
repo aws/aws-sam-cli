@@ -47,13 +47,6 @@ class BottleNecks:
 
             self.ask_bottle_neck_questions(current_entry_point)
 
-            # For now pricing is only done on lambda functions
-            if current_entry_point_type == "AWS::Lambda::Function":
-                self.pricing.ask_pricing_question(current_entry_point)
-
-                # Only the lambda functions can be the source of bottle necks for now.
-                self.graph.add_resource_to_analyze(current_entry_point)
-
             click.echo("")
 
         return
@@ -93,6 +86,11 @@ class BottleNecks:
         )
 
         lambda_function.set_duration(user_input_duration)
+
+        self.pricing.ask_pricing_question(lambda_function)
+
+        # Only the lambda functions can be the source of bottle necks for now.
+        self.graph.add_resource_to_analyze(lambda_function)
 
         for child in lambda_function.get_children():
             self.ask_bottle_neck_questions(child)
