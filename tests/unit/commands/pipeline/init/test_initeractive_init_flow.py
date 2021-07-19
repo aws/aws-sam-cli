@@ -1,7 +1,7 @@
 import json
 import tempfile
 from unittest import TestCase
-from unittest.mock import patch, Mock, ANY, call
+from unittest.mock import patch, Mock, call
 import os
 from pathlib import Path
 
@@ -114,14 +114,14 @@ class TestInteractiveInitFlow(TestCase):
     @patch("samcli.commands.pipeline.init.interactive_init_flow.InteractiveFlowCreator.create_flow")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.PipelineTemplatesManifest")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
-    @patch("samcli.commands.pipeline.init.interactive_init_flow._copy_dir_contents_to_cwd_fail_on_exist")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow._copy_dir_contents_to_cwd")
     @patch("samcli.commands.pipeline.init.interactive_init_flow._get_pipeline_template_metadata")
     @patch("samcli.lib.cookiecutter.question.click")
     def test_generate_pipeline_configuration_file_from_app_pipeline_template_happy_case(
         self,
         click_mock,
         _get_pipeline_template_metadata_mock,
-        _copy_dir_contents_to_cwd_fail_on_exist_mock,
+        _copy_dir_contents_to_cwd_mock,
         clone_mock,
         PipelineTemplatesManifest_mock,
         create_interactive_flow_mock,
@@ -260,14 +260,14 @@ class TestInteractiveInitFlow(TestCase):
     @patch("samcli.commands.pipeline.init.interactive_init_flow.InteractiveFlowCreator.create_flow")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.click")
-    @patch("samcli.commands.pipeline.init.interactive_init_flow._copy_dir_contents_to_cwd_fail_on_exist")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow._copy_dir_contents_to_cwd")
     @patch("samcli.commands.pipeline.init.interactive_init_flow._get_pipeline_template_metadata")
     @patch("samcli.lib.cookiecutter.question.click")
     def test_generate_pipeline_configuration_file_from_custom_remote_pipeline_template_happy_case(
         self,
         questions_click_mock,
         _get_pipeline_template_metadata_mock,
-        _copy_dir_contents_to_cwd_fail_on_exist_mock,
+        _copy_dir_contents_to_cwd_mock,
         init_click_mock,
         clone_mock,
         create_interactive_flow_mock,
@@ -285,7 +285,7 @@ class TestInteractiveInitFlow(TestCase):
         create_interactive_flow_mock.return_value = interactive_flow_mock
         cookiecutter_context_mock = {"key": "value"}
         interactive_flow_mock.run.return_value = cookiecutter_context_mock
-        _copy_dir_contents_to_cwd_fail_on_exist_mock.return_value = ["file1"]
+        _copy_dir_contents_to_cwd_mock.return_value = ["file1"]
 
         questions_click_mock.prompt.return_value = "2"  # Custom pipeline templates
         init_click_mock.prompt.return_value = "https://github.com/any-custom-pipeline-template-repo.git"
@@ -382,14 +382,14 @@ class TestInteractiveInitFlowWithBootstrap(TestCase):
     )
     @patch("samcli.commands.pipeline.init.interactive_init_flow.PipelineTemplatesManifest")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
-    @patch("samcli.commands.pipeline.init.interactive_init_flow._copy_dir_contents_to_cwd_fail_on_exist")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow._copy_dir_contents_to_cwd")
     @patch("samcli.commands.pipeline.init.interactive_init_flow._get_pipeline_template_metadata")
     @patch("samcli.lib.cookiecutter.question.click")
     def test_with_bootstrap_but_answer_no(
         self,
         click_mock,
         _get_pipeline_template_metadata_mock,
-        _copy_dir_contents_to_cwd_fail_on_exist_mock,
+        _copy_dir_contents_to_cwd_mock,
         clone_mock,
         PipelineTemplatesManifest_mock,
         _prompt_run_bootstrap_within_pipeline_init_mock,
@@ -458,7 +458,7 @@ class TestInteractiveInitFlowWithBootstrap(TestCase):
     )
     @patch("samcli.commands.pipeline.init.interactive_init_flow.PipelineTemplatesManifest")
     @patch("samcli.commands.pipeline.init.interactive_init_flow.GitRepo.clone")
-    @patch("samcli.commands.pipeline.init.interactive_init_flow._copy_dir_contents_to_cwd_fail_on_exist")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow._copy_dir_contents_to_cwd")
     @patch("samcli.commands.pipeline.init.interactive_init_flow._get_pipeline_template_metadata")
     @patch("samcli.lib.cookiecutter.question.click")
     def test_with_bootstrap_answer_yes(
@@ -467,7 +467,7 @@ class TestInteractiveInitFlowWithBootstrap(TestCase):
         _prompt_run_bootstrap_expected_calls,
         click_mock,
         _get_pipeline_template_metadata_mock,
-        _copy_dir_contents_to_cwd_fail_on_exist_mock,
+        _copy_dir_contents_to_cwd_mock,
         clone_mock,
         PipelineTemplatesManifest_mock,
         _prompt_run_bootstrap_within_pipeline_init_mock,
