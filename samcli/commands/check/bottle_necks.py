@@ -43,7 +43,6 @@ class BottleNecks:
             click.echo("")
 
             current_entry_point = entry_points.pop(user_input - 1)
-            current_entry_point_type = current_entry_point.get_resource_type()
 
             self.ask_bottle_neck_questions(current_entry_point)
 
