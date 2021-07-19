@@ -14,7 +14,7 @@ from samcli.commands.package.exceptions import ExportFailedError
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Destination
 from samcli.lib.package.utils import zip_folder, make_zip
-from samcli.lib.utils.packagetype import ZIP
+from samcli.lib.utils.packagetype import ZIP, IMAGE
 from tests.testing_utils import FileCreator
 from samcli.commands.package import exceptions
 from samcli.lib.package.artifact_exporter import (
@@ -1421,7 +1421,6 @@ class TestArtifactExporter(unittest.TestCase):
         """
 
     def test_template_delete(self):
-        template_str = self.example_yaml_template()
 
         resource_type1_class = Mock()
         resource_type1_class.RESOURCE_TYPE = "resource_type1"
@@ -1483,6 +1482,7 @@ class TestArtifactExporter(unittest.TestCase):
                 "Resource3": {"Type": "AWS::ECR::Repository", "Properties": properties, "DeletionPolicy": "Retain"},
             }
         }
+
         template_str = json.dumps(template_dict, indent=4, ensure_ascii=False)
 
         template_exporter = Template(
@@ -1496,3 +1496,52 @@ class TestArtifactExporter(unittest.TestCase):
 
         repos = template_exporter.get_ecr_repos()
         self.assertEqual(repos, {"Resource1": {"Repository": "test_repo"}})
+
+    def test_template_get_s3_info(self):
+
+        resource_type1_class = Mock()
+        resource_type1_class.RESOURCE_TYPE = "resource_type1"
+        resource_type1_class.ARTIFACT_TYPE = ZIP
+        resource_type1_class.PROPERTY_NAME = "CodeUri"
+        resource_type1_class.EXPORT_DESTINATION = Destination.S3
+        resource_type1_instance = Mock()
+        resource_type1_class.return_value = resource_type1_instance
+        resource_type1_instance.get_property_value = Mock()
+        resource_type1_instance.get_property_value.return_value = {"Bucket": "bucket", "Key": "prefix/file"}
+
+        resource_type2_class = Mock()
+        resource_type2_class.RESOURCE_TYPE = "resource_type2"
+        resource_type2_class.ARTIFACT_TYPE = ZIP
+        resource_type2_class.EXPORT_DESTINATION = Destination.S3
+        resource_type2_instance = Mock()
+        resource_type2_class.return_value = resource_type2_instance
+
+        resource_type3_class = Mock()
+        resource_type3_class.RESOURCE_TYPE = "resource_type3"
+        resource_type3_class.ARTIFACT_TYPE = IMAGE
+        resource_type3_class.EXPORT_DESTINATION = Destination.ECR
+        resource_type3_instance = Mock()
+        resource_type3_class.return_value = resource_type3_instance
+
+        resources_to_export = [resource_type3_class, resource_type2_class, resource_type1_class]
+
+        properties = {"foo": "bar", "CodeUri": "s3://bucket/prefix/file"}
+        template_dict = {
+            "Resources": {
+                "Resource1": {"Type": "resource_type1", "Properties": properties},
+            }
+        }
+        template_str = json.dumps(template_dict, indent=4, ensure_ascii=False)
+
+        template_exporter = Template(
+            template_path=None,
+            parent_dir=None,
+            uploaders=self.uploaders_mock,
+            code_signer=None,
+            resources_to_export=resources_to_export,
+            template_str=template_str,
+        )
+
+        s3_info = template_exporter.get_s3_info()
+        self.assertEqual(s3_info, {"s3_bucket": "bucket", "s3_prefix": "prefix"})
+        resource_type1_instance.get_property_value.assert_called_once_with(properties)

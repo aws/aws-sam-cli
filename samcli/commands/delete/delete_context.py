@@ -249,8 +249,6 @@ class DeleteContext:
         with mktempfile() as temp_file:
             self.cf_template_file_name = get_cf_template_name(temp_file, template_str, "template")
 
-        self.s3_prompts()
-
         template = Template(
             template_path=None,
             parent_dir=None,
@@ -258,6 +256,18 @@ class DeleteContext:
             code_signer=None,
             template_str=template_str,
         )
+
+        # If s3 info is not available, try to obtain it from CF
+        # template resources.
+        if not self.s3_bucket:
+            s3_info = template.get_s3_info()
+            self.s3_bucket = s3_info["s3_bucket"]
+            self.s3_uploader.bucket_name = self.s3_bucket
+
+            self.s3_prefix = s3_info["s3_prefix"]
+            self.s3_uploader.prefix = self.s3_prefix
+
+        self.s3_prompts()
 
         retain_resources = self.ecr_repos_prompts(template)
 
