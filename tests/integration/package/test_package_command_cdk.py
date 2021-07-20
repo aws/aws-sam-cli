@@ -22,6 +22,7 @@ TIMEOUT = 300
 LOG = logging.getLogger(__name__)
 
 
+@skipIf(SKIP_PACKAGE_TESTS, "Skip package tests in CI/CD only")
 class TestPackageCdk(CdkPackageIntegPythonBase):
 
     @parameterized.expand(
