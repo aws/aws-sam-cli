@@ -6,7 +6,6 @@ import json
 import logging
 import os
 from json import JSONDecodeError
-import sys
 from pathlib import Path
 from textwrap import dedent
 from typing import Dict, List, Tuple
@@ -255,6 +254,12 @@ def _load_pipeline_bootstrap_resources() -> Tuple[List[str], Dict[str, str]]:
 
 
 def _copy_dir_contents_to_cwd(source_dir: str) -> List[str]:
+    """
+    Copy the contents of source_dir into the current cwd.
+    If existing files are encountered, ask for confirmation.
+    If not confirmed, all files will be written to
+    .aws-sam/pipeline/generated-files/
+    """
     file_paths: List[str] = []
     existing_file_paths: List[str] = []
     for root, _, files in os.walk(source_dir):
@@ -273,7 +278,7 @@ def _copy_dir_contents_to_cwd(source_dir: str) -> List[str]:
             target_dir = str(Path(PIPELINE_CONFIG_DIR, "generated-files"))
             osutils.copytree(source_dir, target_dir)
             click.echo(f"All files are saved to {target_dir}.")
-            sys.exit(0)
+            return [str(Path(target_dir, path)) for path in file_paths]
     LOG.debug("Copy contents of %s to cwd", source_dir)
     osutils.copytree(source_dir, ".")
     return file_paths

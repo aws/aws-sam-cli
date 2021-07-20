@@ -536,9 +536,10 @@ class TestInteractiveInitFlow_copy_dir_contents_to_cwd(TestCase):
             confirm_mock.return_value = True
             Path(source, "file").touch()
             Path(source, "file").write_text("hi")
-            _copy_dir_contents_to_cwd(source)
+            file_paths = _copy_dir_contents_to_cwd(source)
             confirm_mock.assert_not_called()
             self.assertEqual("hi", Path("file").read_text(encoding="utf-8"))
+            self.assertEqual([str(Path(".", "file"))], file_paths)
 
     @patch("samcli.commands.pipeline.init.interactive_init_flow.click.confirm")
     def test_copy_dir_contents_to_cwd_override(self, confirm_mock):
@@ -547,20 +548,19 @@ class TestInteractiveInitFlow_copy_dir_contents_to_cwd(TestCase):
             Path(source, "file").touch()
             Path(source, "file").write_text("hi")
             Path("file").touch()
-            _copy_dir_contents_to_cwd(source)
+            file_paths = _copy_dir_contents_to_cwd(source)
             confirm_mock.assert_called_once()
             self.assertEqual("hi", Path("file").read_text(encoding="utf-8"))
+            self.assertEqual([str(Path(".", "file"))], file_paths)
 
     @patch("samcli.commands.pipeline.init.interactive_init_flow.click.confirm")
-    @patch("samcli.commands.pipeline.init.interactive_init_flow.sys.exit")
-    def test_copy_dir_contents_to_cwd_not_override(self, exit_mock, confirm_mock):
+    def test_copy_dir_contents_to_cwd_not_override(self, confirm_mock):
         with tempfile.TemporaryDirectory() as source:
             confirm_mock.return_value = False
             Path(source, "file").touch()
             Path(source, "file").write_text("hi")
             Path("file").touch()
-            _copy_dir_contents_to_cwd(source)
+            file_paths = _copy_dir_contents_to_cwd(source)
             confirm_mock.assert_called_once()
-            exit_mock.assert_called_once()
-            # verify file content at sys.exit
-            exit_mock.side_effect = lambda _: self.assertEqual("", Path("file").read_text(encoding="utf-8"))
+            self.assertEqual("", Path("file").read_text(encoding="utf-8"))
+            self.assertEqual([str(Path(".aws-sam", "pipeline", "generated-files", "file"))], file_paths)
