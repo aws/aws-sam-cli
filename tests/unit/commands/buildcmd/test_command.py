@@ -18,6 +18,7 @@ class TestDoCli(TestCase):
         BuildContextMock.return_value.__enter__.return_value = ctx_mock
 
         do_cli(
+            ctx_mock,
             "function_identifier",
             "template",
             "base_dir",
@@ -55,6 +56,7 @@ class TestDoCli(TestCase):
             container_env_var={},
             container_env_var_file="container_env_var_file",
             build_images={},
+            aws_region=ctx_mock.region,
         )
         ctx_mock.run.assert_called_with()
         self.assertEqual(ctx_mock.run.call_count, 1)

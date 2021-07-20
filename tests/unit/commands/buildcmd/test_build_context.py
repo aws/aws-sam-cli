@@ -71,6 +71,7 @@ class TestBuildContext__enter__(TestCase):
             cached=False,
             cache_dir="cache_dir",
             parallel=True,
+            aws_region="any_aws_region",
         )
         setup_build_dir_mock = Mock()
         build_dir_result = setup_build_dir_mock.return_value = "my/new/build/dir"
@@ -93,7 +94,11 @@ class TestBuildContext__enter__(TestCase):
         self.assertTrue(function1 in resources_to_build.functions)
         self.assertTrue(layer1 in resources_to_build.layers)
 
-        get_buildable_stacks_mock.assert_called_once_with("template_file", parameter_overrides={"overrides": "value"})
+        get_buildable_stacks_mock.assert_called_once_with(
+            "template_file",
+            parameter_overrides={"overrides": "value"},
+            global_parameter_overrides={"AWS::Region": "any_aws_region"},
+        )
         SamFunctionProviderMock.assert_called_once_with([stack], False)
         pathlib_mock.Path.assert_called_once_with("template_file")
         setup_build_dir_mock.assert_called_with("build_dir", True)
@@ -402,7 +407,9 @@ class TestBuildContext__enter__(TestCase):
         resources_to_build = context.resources_to_build
         self.assertEqual(resources_to_build.functions, [func1, func2])
         self.assertEqual(resources_to_build.layers, [layer1])
-        get_buildable_stacks_mock.assert_called_once_with("template_file", parameter_overrides={"overrides": "value"})
+        get_buildable_stacks_mock.assert_called_once_with(
+            "template_file", parameter_overrides={"overrides": "value"}, global_parameter_overrides=None
+        )
         SamFunctionProviderMock.assert_called_once_with([stack], False)
         pathlib_mock.Path.assert_called_once_with("template_file")
         setup_build_dir_mock.assert_called_with("build_dir", True)

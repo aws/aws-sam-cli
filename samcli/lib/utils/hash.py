@@ -3,7 +3,7 @@ Hash calculation utilities for files and directories.
 """
 import os
 import hashlib
-from typing import Any, cast
+from typing import Any, cast, List, Optional
 
 BLOCK_SIZE = 4096
 
@@ -41,25 +41,32 @@ def file_checksum(file_name: str, hash_generator: Any = None) -> str:
         return cast(str, hash_generator.hexdigest())
 
 
-def dir_checksum(directory: str, followlinks: bool = True) -> str:
+def dir_checksum(directory: str, followlinks: bool = True, ignore_list: Optional[List[str]] = None) -> str:
     """
 
     Parameters
     ----------
     directory : A directory with an absolute path
     followlinks: Follow symbolic links through the given directory
+    ignore_list: The list of file/directory names to ignore in checksum
 
     Returns
     -------
     md5 checksum of the directory.
 
     """
+    ignore_set = set(ignore_list or [])
     md5_dir = hashlib.md5()
     files = list()
     # Walk through given directory and find all directories and files.
-    for dirpath, _, filenames in os.walk(directory, followlinks=followlinks):
+    for dirpath, dirnames, filenames in os.walk(directory, followlinks=followlinks):
+        # > When topdown is True, the caller can modify the dirnames list in-place
+        # > (perhaps using del or slice assignment) and walk() will only recurse
+        # > into the subdirectories whose names remain in dirnames
+        # > https://docs.python.org/library/os.html#os.walk
+        dirnames[:] = [dirname for dirname in dirnames if dirname not in ignore_set]
         # Go through every file in the directory and sub-directory.
-        for filepath in [os.path.join(dirpath, filename) for filename in filenames]:
+        for filepath in [os.path.join(dirpath, filename) for filename in filenames if filename not in ignore_set]:
             # Look at filename and contents.
             # Encode file's checksum to be utf-8 and bytes.
             files.append(filepath)
