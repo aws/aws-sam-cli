@@ -55,7 +55,6 @@ class GraphContext:
             source_name = event_object["Properties"]["EventSourceArn"]
 
             source_name_split = source_name.split(":")
-            print("!!!")
 
             if source_name_split[0] == "arn":
                 """

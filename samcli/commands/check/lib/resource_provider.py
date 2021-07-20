@@ -17,6 +17,23 @@ class ResourceProvider:
     def __init__(self, template):
         self.template = template
 
+    def get_local_stacks(self):
+        new_file, path = tempfile.mkstemp()
+
+        local_stacks = None
+
+        try:
+            with os.fdopen(new_file, "w") as tmp:
+                tmp.write(yaml_dump(self.template))
+                tmp.close()
+
+                local_stacks = SamLocalStackProvider.get_stacks(path)[0][0][4]
+
+        finally:
+            os.remove(path)
+
+        return local_stacks
+
     def get_all_resources(self):
 
         all_api_gateways = {}
@@ -31,19 +48,7 @@ class ResourceProvider:
             "DynamoDBTables": all_dynamoDB_tables,
         }
 
-        new_file, path = tempfile.mkstemp()
-
-        local_stacks = None
-
-        try:
-            with os.fdopen(new_file, "w") as tmp:
-                tmp.write(yaml_dump(self.template))
-                tmp.close()
-
-                local_stacks = SamLocalStackProvider.get_stacks(path)[0][0][4]
-
-        finally:
-            os.remove(path)
+        local_stacks = self.get_local_stacks()
 
         resources = local_stacks["Resources"]
 
