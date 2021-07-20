@@ -148,6 +148,7 @@ class ECRUploader:
         except self.ecr_client.exceptions.RepositoryNotFoundException:
             # If the repository is empty, cloudformation automatically deletes
             # the repository when cf_client.delete_stack is called.
+            LOG.debug("Could not find repository %s", physical_id)
             pass
 
     @staticmethod

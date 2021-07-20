@@ -178,7 +178,7 @@ class TestECRUploader(TestCase):
             ecr_uploader.upload(image, resource_name="HelloWorldFunction")
 
     @patch("samcli.lib.package.ecr_uploader.click.echo")
-    def test_delete_artifact_no_image_error(self, patched_click_echo):
+    def test_delete_artifact_no_image_found(self, patched_click_echo):
         ecr_uploader = ECRUploader(
             docker_client=self.docker_client,
             ecr_client=self.ecr_client,
@@ -245,6 +245,24 @@ class TestECRUploader(TestCase):
             ecr_uploader.delete_artifact(
                 image_uri=self.image_uri, resource_id=self.resource_id, property_name=self.property_name
             )
+
+    @patch("samcli.lib.package.ecr_uploader.click.echo")
+    def test_delete_ecr_repository(self, patched_click_echo):
+        ecr_uploader = ECRUploader(
+            docker_client=self.docker_client,
+            ecr_client=self.ecr_client,
+            ecr_repo=self.ecr_repo,
+            ecr_repo_multi=self.ecr_repo_multi,
+            tag=self.tag,
+        )
+        ecr_uploader.ecr_client.delete_repository = MagicMock()
+
+        ecr_uploader.delete_ecr_repository(physical_id=self.ecr_repo)
+
+        expected_click_echo_calls = [
+            call(f"\t- Deleting ECR repository {self.ecr_repo}"),
+        ]
+        self.assertEqual(expected_click_echo_calls, patched_click_echo.call_args_list)
 
     def test_parse_image_url(self):
 
