@@ -9,6 +9,8 @@ from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 
 from samcli.commands.check.resources.ApiGateway import ApiGateway
 from samcli.commands.check.resources.LamdaFunctionPermission import LambdaFunctionPermission
+from samcli.commands.check.resources.EventSourceMapping import EventSourceMapping
+from samcli.commands.check.resources.DynamoDB import DynamoDB
 
 
 class ResourceProvider:
@@ -19,8 +21,15 @@ class ResourceProvider:
 
         all_api_gateways = {}
         all_lambda_permissions = {}
+        all_event_source_mappings = {}
+        all_dynamoDB_tables = {}
 
-        all_resources = {"ApiGateways": all_api_gateways, "LambdaPermissions": all_lambda_permissions}
+        all_resources = {
+            "ApiGateways": all_api_gateways,
+            "LambdaPermissions": all_lambda_permissions,
+            "EventSourceMappings": all_event_source_mappings,
+            "DynamoDBTables": all_dynamoDB_tables,
+        }
 
         new_file, path = tempfile.mkstemp()
 
@@ -46,5 +55,11 @@ class ResourceProvider:
                 all_lambda_permissions[resource_name] = LambdaFunctionPermission(
                     resource_obj, resource_obj["Type"], resource_name
                 )
+            elif resource_obj["Type"] == "AWS::Lambda::EventSourceMapping":
+                all_event_source_mappings[resource_name] = EventSourceMapping(
+                    resource_obj, resource_obj["Type"], resource_name
+                )
+            elif resource_obj["Type"] == "AWS::DynamoDB::Table":
+                all_dynamoDB_tables[resource_name] = DynamoDB(resource_obj, resource_obj["Type"], resource_name)
 
         return all_resources

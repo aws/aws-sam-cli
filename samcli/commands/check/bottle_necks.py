@@ -51,21 +51,18 @@ class BottleNecks:
         return
 
     def ask_bottle_neck_questions(self, resource):
-        if resource is None:
-            return
-
         if resource.get_resource_type() == "AWS::Lambda::Function":
             self.lambda_bottle_neck_quesitons(resource)
-        elif resource.get_resource_type() == "AWS::ApiGateway::RestApi":
-            self.api_bottle_neck_questions(resource)
+        else:
+            self.event_source_bottle_neck_questions(resource)
 
-    def api_bottle_neck_questions(self, api_gateway):
+    def event_source_bottle_neck_questions(self, event_source):
         user_input_tps = self.ask(
-            "What is the expected per-second arrival rate for [%s]?\n[TPS]" % (api_gateway.get_name())
+            "What is the expected per-second arrival rate for [%s]?\n[TPS]" % (event_source.get_name())
         )
-        api_gateway.set_tps(user_input_tps)
+        event_source.set_tps(user_input_tps)
 
-        for child in api_gateway.get_children():
+        for child in event_source.get_children():
             child.set_tps(user_input_tps)
             self.ask_bottle_neck_questions(child)
 

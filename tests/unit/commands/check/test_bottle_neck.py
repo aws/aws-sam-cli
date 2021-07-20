@@ -46,12 +46,7 @@ class TestBottleNeck(TestCase):
         my_resource = None
 
         self_mock.lambda_bottle_neck_quesitons.return_value = Mock()
-        self_mock.api_bottle_neck_questions.return_value = Mock()
-
-        result = BottleNecks.ask_bottle_neck_questions(self_mock, my_resource)
-
-        # ensure method returns None if resource is None
-        self.assertEqual(result, my_resource)
+        self_mock.event_source_bottle_neck_questions.return_value = Mock()
 
         my_resource = Mock()
         my_resource.get_resource_type.return_value = "AWS::Lambda::Function"
@@ -61,27 +56,27 @@ class TestBottleNeck(TestCase):
 
         my_resource.get_resource_type.return_value = "AWS::ApiGateway::RestApi"
         BottleNecks.ask_bottle_neck_questions(self_mock, my_resource)
-        self_mock.api_bottle_neck_questions.assert_called_with(my_resource)
+        self_mock.event_source_bottle_neck_questions.assert_called_with(my_resource)
 
-    def test_api_bottle_neck_questions(self):
+    def test_event_source_bottle_neck_questions(self):
         self_mock = Mock()
-        api_mock = Mock()
+        event_source_mock = Mock()
         child_mock = Mock()
         input_mock = Mock()
 
-        api_mock.set_tps.return_value = Mock()
-        api_mock.get_children.return_value = [child_mock]
+        event_source_mock.set_tps.return_value = Mock()
+        event_source_mock.get_children.return_value = [child_mock]
         child_mock.set_tps.return_value = Mock()
 
         self_mock.ask.return_value = input_mock
         self_mock.ask_bottle_neck_questions.return_value = Mock()
         self_mock.ask_bottle_neck_questions.return_value = Mock()
 
-        BottleNecks.api_bottle_neck_questions(self_mock, api_mock)
+        BottleNecks.event_source_bottle_neck_questions(self_mock, event_source_mock)
 
         self_mock.ask.assert_called_once()
         self_mock.ask_bottle_neck_questions.assert_called_once_with(child_mock)
-        api_mock.set_tps.assert_called_once_with(input_mock)
+        event_source_mock.set_tps.assert_called_once_with(input_mock)
         child_mock.set_tps.assert_called_once_with(input_mock)
 
     def test_lambda_bottle_neck_quesitons(self):
