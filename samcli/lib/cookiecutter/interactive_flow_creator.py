@@ -17,7 +17,7 @@ class QuestionsFailedParsingException(UserException):
 
 class InteractiveFlowCreator:
     @staticmethod
-    def create_flow(flow_definition_path: str, extra_context: Optional[Dict] = None):
+    def create_flow(flow_definition_path: str, extra_context: Optional[Dict] = None) -> InteractiveFlow:
         """
         This method parses the given json/yaml file to create an InteractiveFLow. It expects the file to define
         a list of questions. It parses the questions and add it to the flow in the same order they are defined
@@ -77,7 +77,7 @@ class InteractiveFlowCreator:
         questions_definition = InteractiveFlowCreator._parse_questions_definition(flow_definition_path, extra_context)
 
         try:
-            for question in questions_definition.get("questions"):
+            for question in questions_definition.get("questions", []):
                 q = QuestionFactory.create_question_from_json(question)
                 if not first_question_key:
                     first_question_key = q.key
@@ -90,7 +90,7 @@ class InteractiveFlowCreator:
             raise QuestionsFailedParsingException(f"Failed to parse questions: {str(ex)}") from ex
 
     @staticmethod
-    def _parse_questions_definition(file_path, extra_context: Optional[Dict] = None):
+    def _parse_questions_definition(file_path: str, extra_context: Optional[Dict] = None) -> Dict:
         """
         Read the questions definition file, do variable substitution, parse it as JSON/YAML
 
