@@ -11,11 +11,8 @@ import jmespath
 import yaml
 from botocore.utils import set_value_from_jmespath
 
-from samcli.commands.exceptions import UserException
 from samcli.lib.iac.interface import S3Asset, Stack as IacStack
 from samcli.lib.samlib.resource_metadata_normalizer import METADATA_KEY, ASSET_PATH_METADATA_KEY
-from samcli.lib.utils.packagetype import ZIP
-from samcli.yamlhelper import yaml_parse, yaml_dump
 from samcli.commands._utils.resources import (
     METADATA_WITH_LOCAL_PATHS,
     AWS_SERVERLESS_FUNCTION,
@@ -24,6 +21,9 @@ from samcli.commands._utils.resources import (
     RESOURCES_WITH_LOCAL_PATHS,
     RESOURCES_WITH_IMAGE_COMPONENT,
 )
+from samcli.commands.exceptions import UserException
+from samcli.lib.utils.packagetype import ZIP
+from samcli.yamlhelper import yaml_parse, yaml_dump
 
 
 class TemplateNotFoundException(UserException):
