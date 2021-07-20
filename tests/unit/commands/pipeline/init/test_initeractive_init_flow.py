@@ -1,4 +1,5 @@
 import json
+import shutil
 import tempfile
 from unittest import TestCase
 from unittest.mock import patch, Mock, call
@@ -17,6 +18,7 @@ from samcli.commands.pipeline.init.interactive_init_flow import (
     _prompt_cicd_provider,
     _prompt_provider_pipeline_template,
     _get_pipeline_template_metadata,
+    _copy_dir_contents_to_cwd,
 )
 from samcli.commands.pipeline.init.pipeline_templates_manifest import AppPipelineTemplateManifestException
 from samcli.lib.utils.git_repo import CloneRepoException
@@ -520,3 +522,45 @@ class TestInteractiveInitFlowWithBootstrap(TestCase):
 
         # verify
         _prompt_run_bootstrap_within_pipeline_init_mock.assert_has_calls(_prompt_run_bootstrap_expected_calls)
+
+
+class TestInteractiveInitFlow_copy_dir_contents_to_cwd(TestCase):
+    def tearDown(self) -> None:
+        if Path("file").exists():
+            Path("file").unlink()
+        shutil.rmtree(os.path.join(".aws-sam", "pipeline"), ignore_errors=True)
+
+    @patch("samcli.commands.pipeline.init.interactive_init_flow.click.confirm")
+    def test_copy_dir_contents_to_cwd_no_need_override(self, confirm_mock):
+        with tempfile.TemporaryDirectory() as source:
+            confirm_mock.return_value = True
+            Path(source, "file").touch()
+            Path(source, "file").write_text("hi")
+            _copy_dir_contents_to_cwd(source)
+            confirm_mock.assert_not_called()
+            self.assertEqual("hi", Path("file").read_text(encoding="utf-8"))
+
+    @patch("samcli.commands.pipeline.init.interactive_init_flow.click.confirm")
+    def test_copy_dir_contents_to_cwd_override(self, confirm_mock):
+        with tempfile.TemporaryDirectory() as source:
+            confirm_mock.return_value = True
+            Path(source, "file").touch()
+            Path(source, "file").write_text("hi")
+            Path("file").touch()
+            _copy_dir_contents_to_cwd(source)
+            confirm_mock.assert_called_once()
+            self.assertEqual("hi", Path("file").read_text(encoding="utf-8"))
+
+    @patch("samcli.commands.pipeline.init.interactive_init_flow.click.confirm")
+    @patch("samcli.commands.pipeline.init.interactive_init_flow.sys.exit")
+    def test_copy_dir_contents_to_cwd_not_override(self, exit_mock, confirm_mock):
+        with tempfile.TemporaryDirectory() as source:
+            confirm_mock.return_value = False
+            Path(source, "file").touch()
+            Path(source, "file").write_text("hi")
+            Path("file").touch()
+            _copy_dir_contents_to_cwd(source)
+            confirm_mock.assert_called_once()
+            exit_mock.assert_called_once()
+            # verify file content at sys.exit
+            exit_mock.side_effect = lambda _: self.assertEqual("", Path("file").read_text(encoding="utf-8"))
