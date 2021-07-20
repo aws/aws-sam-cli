@@ -6,7 +6,6 @@ import logging
 from typing import Dict, Any, List
 
 import click
-from botocore.session import get_session
 from click import confirm
 from click import prompt
 from click.types import FuncParamType
@@ -38,6 +37,7 @@ from samcli.lib.providers.provider import Stack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.colors import Colored
+from samcli.lib.utils.defaults import get_default_aws_region
 from samcli.lib.utils.packagetype import IMAGE
 
 LOG = logging.getLogger(__name__)
@@ -127,8 +127,8 @@ class GuidedContext:
         Start an interactive cli prompt to collection information for deployment
 
         """
-        default_stack_name = self.stack_name
-        default_region = self.region or get_session().get_config_variable("region") or "us-east-1"
+        default_stack_name = self.stack_name or "sam-app"
+        default_region = self.region or get_default_aws_region()
         default_capabilities = self.capabilities[0] or ("CAPABILITY_IAM",)
         default_config_env = self.config_env or DEFAULT_ENV
         default_config_file = self.config_file or DEFAULT_CONFIG_FILE_NAME

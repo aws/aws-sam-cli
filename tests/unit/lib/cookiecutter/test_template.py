@@ -114,11 +114,16 @@ class TestTemplate(TestCase):
             postprocessors=[mock_postprocessor],
         )
         mock_preprocessor.run.return_value = self._ANY_PROCESSOR_CONTEXT
-        t.generate_project(context=self._ANY_INTERACTIVE_FLOW_CONTEXT)
+        output_dir = Mock()
+        t.generate_project(context=self._ANY_INTERACTIVE_FLOW_CONTEXT, output_dir=output_dir)
         mock_interactive_flow.run.assert_not_called()
         mock_preprocessor.run.assert_called_once_with(self._ANY_INTERACTIVE_FLOW_CONTEXT)
         mock_cookiecutter.assert_called_with(
-            template=self._ANY_LOCATION, output_dir=".", no_input=True, extra_context=self._ANY_PROCESSOR_CONTEXT
+            template=self._ANY_LOCATION,
+            output_dir=output_dir,
+            no_input=True,
+            extra_context=self._ANY_PROCESSOR_CONTEXT,
+            overwrite_if_exists=True,
         )
         mock_postprocessor.run.assert_called_once_with(self._ANY_PROCESSOR_CONTEXT)
 
@@ -127,7 +132,7 @@ class TestTemplate(TestCase):
         t = Template(location=self._ANY_LOCATION, preprocessors=[mock_preprocessor])
         with self.assertRaises(PreprocessingError):
             mock_preprocessor.run.side_effect = Exception("something went wrong")
-            t.generate_project({})
+            t.generate_project({}, Mock())
 
     @patch("samcli.lib.cookiecutter.template.cookiecutter")
     @patch("samcli.lib.cookiecutter.processor")
@@ -135,7 +140,7 @@ class TestTemplate(TestCase):
         t = Template(location=self._ANY_LOCATION, postprocessors=[mock_postprocessor])
         with self.assertRaises(PostprocessingError):
             mock_postprocessor.run.side_effect = Exception("something went wrong")
-            t.generate_project({})
+            t.generate_project({}, Mock())
 
     @patch("samcli.lib.cookiecutter.template.generate_non_cookiecutter_project")
     @patch("samcli.lib.cookiecutter.template.cookiecutter")
@@ -143,13 +148,13 @@ class TestTemplate(TestCase):
         t = Template(location=self._ANY_LOCATION)
         with self.assertRaises(InvalidLocationError):
             mock_cookiecutter.side_effect = UnknownRepoType()
-            t.generate_project({})
+            t.generate_project({}, Mock())
         mock_cookiecutter.reset_mock()
         with self.assertRaises(GenerateProjectFailedError):
             mock_cookiecutter.side_effect = Exception("something went wrong")
-            t.generate_project({})
+            t.generate_project({}, Mock())
         mock_cookiecutter.reset_mock()
         # if the provided template is not a cookiecutter template, we generate a non cookiecutter template
         mock_cookiecutter.side_effect = RepositoryNotFound()
-        t.generate_project({})
+        t.generate_project({}, Mock())
         mock_generate_non_cookiecutter_project.assert_called_once()
