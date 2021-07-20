@@ -52,6 +52,7 @@ from samcli.lib.package.packageable_resources import (
     CloudFormationResourceVersionSchemaHandlerPackage,
     ResourceZip,
     ResourceImage,
+    ResourceImageDict,
     ECRResource,
 )
 
@@ -450,6 +451,35 @@ class TestArtifactExporter(unittest.TestCase):
         )
 
         self.assertEqual(resource_dict[resource.PROPERTY_NAME], ecr_url)
+
+        self.ecr_uploader_mock.delete_artifact = MagicMock()
+        resource.delete(resource_id, resource_dict)
+        self.assertEqual(self.ecr_uploader_mock.delete_artifact.call_count, 1)
+
+    @patch("samcli.lib.package.packageable_resources.upload_local_image_artifacts")
+    def test_resource_image_dict(self, upload_local_image_artifacts_mock):
+        # Property value is a path to an image
+
+        class MockResource(ResourceImageDict):
+            PROPERTY_NAME = "foo"
+
+        resource = MockResource(self.uploaders_mock, None)
+
+        resource_id = "id"
+        resource_dict = {}
+        resource_dict[resource.PROPERTY_NAME] = "image:latest"
+        parent_dir = "dir"
+        ecr_url = "123456789.dkr.ecr.us-east-1.amazonaws.com/sam-cli"
+
+        upload_local_image_artifacts_mock.return_value = ecr_url
+
+        resource.export(resource_id, resource_dict, parent_dir)
+
+        upload_local_image_artifacts_mock.assert_called_once_with(
+            resource_id, resource_dict, resource.PROPERTY_NAME, parent_dir, self.ecr_uploader_mock
+        )
+
+        self.assertEqual(resource_dict[resource.PROPERTY_NAME][resource.EXPORT_PROPERTY_CODE_KEY], ecr_url)
 
         self.ecr_uploader_mock.delete_artifact = MagicMock()
         resource.delete(resource_id, resource_dict)
