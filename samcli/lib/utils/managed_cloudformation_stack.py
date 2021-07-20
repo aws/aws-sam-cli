@@ -59,10 +59,11 @@ def _create_or_get_stack(cloudformation_client, stack_name, template_body):
         ds_resp = cloudformation_client.describe_stacks(StackName=stack_name)
         stacks = ds_resp["Stacks"]
         stack = stacks[0]
+        click.echo("\n\tLooking for resources needed for deployment: Found!")
         _check_sanity_of_stack(stack, stack_name)
         return stack["Outputs"]
     except ClientError:
-        pass
+        click.echo("\n\tLooking for resources needed for deployment: Not found.")
 
     try:
         stack = _create_stack(
