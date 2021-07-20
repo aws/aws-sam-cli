@@ -13,8 +13,9 @@ from samcli.lib.package.ecr_uploader import ECRUploader
 
 class TestDeleteContext(TestCase):
     @patch("samcli.commands.delete.delete_context.click.echo")
+    @patch("samcli.commands.delete.delete_context.click.get_current_context")
     @patch.object(CfUtils, "has_stack", MagicMock(return_value=(False)))
-    def test_delete_context_stack_does_not_exist(self, patched_click_echo):
+    def test_delete_context_stack_does_not_exist(self, patched_click_get_current_context, patched_click_echo):
         with DeleteContext(
             stack_name="test",
             region="us-east-1",
@@ -143,11 +144,14 @@ class TestDeleteContext(TestCase):
 
     @patch("samcli.commands.delete.delete_context.click.echo")
     @patch("samcli.commands.deploy.guided_context.click.secho")
+    @patch("samcli.commands.delete.delete_context.click.get_current_context")
     @patch.object(CfUtils, "has_stack", MagicMock(side_effect=(True, False)))
     @patch.object(CfUtils, "get_stack_template", MagicMock(return_value=({"TemplateBody": "Hello World"})))
     @patch.object(CfUtils, "delete_stack", MagicMock())
     @patch.object(CfUtils, "wait_for_delete", MagicMock())
-    def test_delete_context_no_s3_bucket(self, patched_click_secho, patched_click_echo):
+    def test_delete_context_no_s3_bucket(
+        self, patched_click_get_current_context, patched_click_secho, patched_click_echo
+    ):
         with DeleteContext(
             stack_name="test",
             region="us-east-1",
@@ -175,12 +179,15 @@ class TestDeleteContext(TestCase):
 
     @patch("samcli.commands.delete.delete_context.get_cf_template_name")
     @patch("samcli.commands.delete.delete_context.confirm")
+    @patch("samcli.commands.delete.delete_context.click.get_current_context")
     @patch.object(CfUtils, "has_stack", MagicMock(side_effect=(True, False)))
     @patch.object(CfUtils, "get_stack_template", MagicMock(return_value=({"TemplateBody": "Hello World"})))
     @patch.object(CfUtils, "delete_stack", MagicMock())
     @patch.object(CfUtils, "wait_for_delete", MagicMock())
     @patch.object(S3Uploader, "delete_artifact", MagicMock())
-    def test_guided_prompts_s3_bucket_prefix_present_execute_run(self, patched_confirm, patched_get_cf_template_name):
+    def test_guided_prompts_s3_bucket_prefix_present_execute_run(
+        self, patched_click_get_current_context, patched_confirm, patched_get_cf_template_name
+    ):
 
         patched_get_cf_template_name.return_value = "hello.template"
         with DeleteContext(
@@ -228,6 +235,7 @@ class TestDeleteContext(TestCase):
 
     @patch("samcli.commands.delete.delete_context.get_cf_template_name")
     @patch("samcli.commands.delete.delete_context.confirm")
+    @patch("samcli.commands.delete.delete_context.click.get_current_context")
     @patch.object(CfUtils, "has_stack", MagicMock(side_effect=(True, False)))
     @patch.object(CfUtils, "get_stack_template", MagicMock(return_value=({"TemplateBody": "Hello World"})))
     @patch.object(CfUtils, "delete_stack", MagicMock())
@@ -235,7 +243,7 @@ class TestDeleteContext(TestCase):
     @patch.object(S3Uploader, "delete_artifact", MagicMock())
     @patch.object(ECRUploader, "delete_ecr_repository", MagicMock())
     def test_guided_prompts_s3_bucket_present_no_prefix_execute_run(
-        self, patched_confirm, patched_get_cf_template_name
+        self, patched_click_get_current_context, patched_confirm, patched_get_cf_template_name
     ):
 
         patched_get_cf_template_name.return_value = "hello.template"
@@ -274,6 +282,7 @@ class TestDeleteContext(TestCase):
 
     @patch("samcli.commands.delete.delete_context.get_cf_template_name")
     @patch("samcli.commands.delete.delete_context.confirm")
+    @patch("samcli.commands.delete.delete_context.click.get_current_context")
     @patch.object(CfUtils, "has_stack", MagicMock(side_effect=(True, True)))
     @patch.object(CfUtils, "get_stack_template", MagicMock(return_value=({"TemplateBody": "Hello World"})))
     @patch.object(CfUtils, "delete_stack", MagicMock())
@@ -282,7 +291,7 @@ class TestDeleteContext(TestCase):
     @patch.object(ECRUploader, "delete_ecr_repository", MagicMock())
     @patch.object(Template, "get_ecr_repos", MagicMock(side_effect=({}, {"logical_id": {"Repository": "test_id"}})))
     def test_guided_prompts_ecr_companion_stack_present_execute_run(
-        self, patched_confirm, patched_get_cf_template_name
+        self, patched_click_get_current_context, patched_confirm, patched_get_cf_template_name
     ):
 
         patched_get_cf_template_name.return_value = "hello.template"
@@ -347,6 +356,7 @@ class TestDeleteContext(TestCase):
 
     @patch("samcli.commands.delete.delete_context.get_cf_template_name")
     @patch("samcli.commands.delete.delete_context.click.echo")
+    @patch("samcli.commands.delete.delete_context.click.get_current_context")
     @patch.object(CfUtils, "has_stack", MagicMock(side_effect=(True, False)))
     @patch.object(CfUtils, "get_stack_template", MagicMock(return_value=({"TemplateBody": "Hello World"})))
     @patch.object(CfUtils, "delete_stack", MagicMock())
@@ -355,7 +365,7 @@ class TestDeleteContext(TestCase):
     @patch.object(ECRUploader, "delete_ecr_repository", MagicMock())
     @patch.object(Template, "get_ecr_repos", MagicMock(return_value=({"logical_id": {"Repository": "test_id"}})))
     def test_no_prompts_input_is_ecr_companion_stack_present_execute_run(
-        self, patched_click_echo, patched_get_cf_template_name
+        self, patched_click_get_current_context, patched_click_echo, patched_get_cf_template_name
     ):
         CfUtils.get_stack_template.return_value = {
             "TemplateBody": {"Metadata": {"CompanionStackname": "test-098f6bcd-CompanionStack"}}

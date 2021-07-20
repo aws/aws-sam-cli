@@ -2,7 +2,7 @@
 Delete a SAM stack
 """
 import logging
-from typing import Dict
+
 import json
 import boto3
 
@@ -35,9 +35,6 @@ LOG = logging.getLogger(__name__)
 
 
 class DeleteContext:
-
-    ecr_repos: Dict[str, Dict[str, str]]
-
     def __init__(self, stack_name: str, region: str, profile: str, config_file: str, config_env: str, no_prompts: bool):
         self.stack_name = stack_name
         self.region = region
@@ -87,10 +84,8 @@ class DeleteContext:
                 LOG.debug("Local config present and using the defined options")
                 if not self.region:
                     self.region = config_options.get("region", None)
-                    Context.get_current_context().region = self.region
                 if not self.profile:
                     self.profile = config_options.get("profile", None)
-                    Context.get_current_context().profile = self.profile
                 self.s3_bucket = config_options.get("s3_bucket", None)
                 self.s3_prefix = config_options.get("s3_prefix", None)
 
@@ -102,6 +97,10 @@ class DeleteContext:
             session = boto3.Session()
             region = session.region_name
             self.region = region if region else "us-east-1"
+
+        if self.profile:
+            Context.get_current_context().profile = self.profile
+        if self.region:
             Context.get_current_context().region = self.region
 
         boto_config = get_boto_config_with_user_agent()
