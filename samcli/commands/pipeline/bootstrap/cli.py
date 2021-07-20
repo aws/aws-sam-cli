@@ -15,6 +15,7 @@ from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.version_checker import check_newer_version
 from .guided_context import GuidedContext
+from ..external_links import CONFIG_AWS_CRED_ON_CICD_URL
 
 SHORT_HELP = "Generates the necessary AWS resources to connect your CI/CD system."
 
@@ -219,7 +220,7 @@ def do_cli(
                     f"""\
                     Before running {Colored().bold("sam pipeline init")}, we recommend first setting up AWS credentials
                     in your CI/CD account. Read more about how to do so with your provider in
-                    [DOCS-LINK].
+                    {CONFIG_AWS_CRED_ON_CICD_URL}.
                     """
                 )
             )
