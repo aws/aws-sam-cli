@@ -1,3 +1,4 @@
+import os.path
 import shutil
 from pathlib import Path
 from textwrap import dedent
@@ -64,19 +65,43 @@ class TestInit(InitIntegBase):
         with open(expected_file_path, "r") as expected, open(generated_jenkinsfile_path, "r") as output:
             self.assertEqual(expected.read(), output.read())
 
-    def test_failed_when_generated_file_already_exist(self):
+    def test_failed_when_generated_file_already_exist_override(self):
         generated_jenkinsfile_path = Path("Jenkinsfile")
         generated_jenkinsfile_path.touch()  # the file now pre-exists
         self.generated_files.append(generated_jenkinsfile_path)
 
         init_command_list = self.get_init_command_list()
-        init_process_execute = run_command_with_inputs(init_command_list, QUICK_START_JENKINS_INPUTS_WITHOUT_AUTO_FILL)
-
-        self.assertEqual(init_process_execute.process.returncode, 1)
-        stderr = init_process_execute.stderr.decode()
-        self.assertIn(
-            'Pipeline file "Jenkinsfile" already exists in project root directory, please remove it first.', stderr
+        init_process_execute = run_command_with_inputs(
+            init_command_list, [*QUICK_START_JENKINS_INPUTS_WITHOUT_AUTO_FILL, "y"]
         )
+
+        self.assertEqual(init_process_execute.process.returncode, 0)
+        self.assertTrue(Path("Jenkinsfile").exists())
+
+        expected_file_path = Path(__file__).parent.parent.joinpath(Path("testdata", "pipeline", "expected_jenkinsfile"))
+        with open(expected_file_path, "r") as expected, open(generated_jenkinsfile_path, "r") as output:
+            self.assertEqual(expected.read(), output.read())
+
+    def test_failed_when_generated_file_already_exist_not_override(self):
+        generated_jenkinsfile_path = Path("Jenkinsfile")
+        generated_jenkinsfile_path.touch()  # the file now pre-exists
+        self.generated_files.append(generated_jenkinsfile_path)
+
+        init_command_list = self.get_init_command_list()
+        init_process_execute = run_command_with_inputs(
+            init_command_list, [*QUICK_START_JENKINS_INPUTS_WITHOUT_AUTO_FILL, ""]
+        )
+
+        self.assertEqual(init_process_execute.process.returncode, 0)
+
+        expected_file_path = Path(__file__).parent.parent.joinpath(Path("testdata", "pipeline", "expected_jenkinsfile"))
+        with open(expected_file_path, "r") as expected, open(
+            os.path.join(".aws-sam", "pipeline", "generated-files", "Jenkinsfile"), "r"
+        ) as output:
+            self.assertEqual(expected.read(), output.read())
+
+        # also check the Jenkinsfile is not overridden
+        self.assertEqual("", open("Jenkinsfile", "r").read())
 
     def test_custom_template(self):
         generated_file = Path("weather")

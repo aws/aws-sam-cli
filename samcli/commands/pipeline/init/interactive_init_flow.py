@@ -14,9 +14,8 @@ import click
 
 from samcli.cli.main import global_cfg
 from samcli.commands.exceptions import (
-    PipelineTemplateCloneException,
-    PipelineFileAlreadyExistsError,
     AppPipelineTemplateMetadataException,
+    PipelineTemplateCloneException,
 )
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.cookiecutter.interactive_flow import InteractiveFlow
@@ -220,7 +219,7 @@ class InteractiveInitFlow:
             LOG.debug("Generating pipeline files into %s", generate_dir)
             context["outputDir"] = "."  # prevent cookiecutter from generating a sub-folder
             pipeline_template.generate_project(context, generate_dir)
-            return _copy_dir_contents_to_cwd_fail_on_exist(generate_dir)
+            return _copy_dir_contents_to_cwd(generate_dir)
 
 
 def _load_pipeline_bootstrap_resources() -> Tuple[List[str], Dict[str, str]]:
@@ -254,19 +253,35 @@ def _load_pipeline_bootstrap_resources() -> Tuple[List[str], Dict[str, str]]:
     return stage_names, context
 
 
-def _copy_dir_contents_to_cwd_fail_on_exist(source_dir: str) -> List[str]:
-    copied_file_paths: List[str] = []
+def _copy_dir_contents_to_cwd(source_dir: str) -> List[str]:
+    """
+    Copy the contents of source_dir into the current cwd.
+    If existing files are encountered, ask for confirmation.
+    If not confirmed, all files will be written to
+    .aws-sam/pipeline/generated-files/
+    """
+    file_paths: List[str] = []
+    existing_file_paths: List[str] = []
     for root, _, files in os.walk(source_dir):
         for filename in files:
             file_path = Path(root, filename)
             target_file_path = Path(".").joinpath(file_path.relative_to(source_dir))
             LOG.debug("Verify %s does not exist", target_file_path)
             if target_file_path.exists():
-                raise PipelineFileAlreadyExistsError(target_file_path)
-            copied_file_paths.append(str(target_file_path))
+                existing_file_paths.append(str(target_file_path))
+            file_paths.append(str(target_file_path))
+    if existing_file_paths:
+        click.echo("\nThe following files already exist:")
+        for existing_file_path in existing_file_paths:
+            click.echo(f"\t- {existing_file_path}")
+        if not click.confirm("Do you want to override them?"):
+            target_dir = str(Path(PIPELINE_CONFIG_DIR, "generated-files"))
+            osutils.copytree(source_dir, target_dir)
+            click.echo(f"All files are saved to {target_dir}.")
+            return [str(Path(target_dir, path)) for path in file_paths]
     LOG.debug("Copy contents of %s to cwd", source_dir)
     osutils.copytree(source_dir, ".")
-    return copied_file_paths
+    return file_paths
 
 
 def _clone_app_pipeline_templates() -> Path:
