@@ -59,7 +59,7 @@ class TestDeleteContext(TestCase):
             )
         ),
     )
-    @patch("samcli.commands.deploy.guided_context.click.get_current_context")
+    @patch("samcli.commands.delete.delete_context.click.get_current_context")
     def test_delete_context_parse_config_file(self, patched_click_get_current_context):
         patched_click_get_current_context = MagicMock()
         with DeleteContext(
@@ -75,6 +75,30 @@ class TestDeleteContext(TestCase):
             self.assertEqual(delete_context.profile, "developer")
             self.assertEqual(delete_context.s3_bucket, "s3-bucket")
             self.assertEqual(delete_context.s3_prefix, "s3-prefix")
+
+    @patch("samcli.commands.delete.delete_context.prompt")
+    @patch("samcli.commands.delete.delete_context.click.get_current_context")
+    @patch.object(CfUtils, "has_stack", MagicMock(return_value=(False)))
+    def test_delete_no_user_input(self, patched_click_get_current_context, patched_prompt):
+        patched_click_get_current_context = MagicMock()
+        with DeleteContext(
+            stack_name=None,
+            region=None,
+            config_file=None,
+            config_env=None,
+            profile=None,
+            no_prompts=True,
+        ) as delete_context:
+            delete_context.run()
+
+            patched_prompt.side_effect = ["sam-app"]
+
+            expected_prompt_calls = [
+                call(click.style("\tEnter stack name you want to delete:", bold=True), type=click.STRING),
+            ]
+
+        self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
+        self.assertEqual(delete_context.region, "us-east-1")
 
     @patch.object(
         TomlProvider,
@@ -97,7 +121,7 @@ class TestDeleteContext(TestCase):
     @patch.object(CfUtils, "wait_for_delete", MagicMock())
     @patch.object(Template, "get_ecr_repos", MagicMock(return_value=({"logical_id": {"Repository": "test_id"}})))
     @patch.object(S3Uploader, "delete_prefix_artifacts", MagicMock())
-    @patch("samcli.commands.deploy.guided_context.click.get_current_context")
+    @patch("samcli.commands.delete.delete_context.click.get_current_context")
     def test_delete_context_valid_execute_run(self, patched_click_get_current_context):
         patched_click_get_current_context = MagicMock()
         with DeleteContext(
