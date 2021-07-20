@@ -88,8 +88,8 @@ class DefaultBuildStrategy(BuildStrategy):
         self,
         build_graph: BuildGraph,
         build_dir: str,
-        build_function: Callable[[str, str, str, str, Optional[str], str, dict, dict], str],
-        build_layer: Callable[[str, str, str, List[str], str, dict], str],
+        build_function: Callable[[str, str, str, str, Optional[str], str, dict, dict, dict], str],
+        build_layer: Callable[[str, str, str, List[str], str, dict, dict], str],
     ) -> None:
         super().__init__(build_graph)
         self._build_dir = build_dir
@@ -118,6 +118,7 @@ class DefaultBuildStrategy(BuildStrategy):
         # we should create a copy and pass it down, otherwise additional env vars like LAMBDA_BUILDERS_LOG_LEVEL
         # will make cache invalid all the time
         container_env_vars = deepcopy(build_definition.env_vars)
+        container_dir_mounts = deepcopy(build_definition.dir_mounts)
 
         # when a function is passed here, it is ZIP function, codeuri and runtime are not None
         result = self._build_function(
@@ -129,6 +130,7 @@ class DefaultBuildStrategy(BuildStrategy):
             single_build_dir,
             build_definition.metadata,
             container_env_vars,
+            container_dir_mounts,
         )
         function_build_results[single_full_path] = result
 
@@ -173,6 +175,7 @@ class DefaultBuildStrategy(BuildStrategy):
                 layer.compatible_runtimes,  # type: ignore
                 single_build_dir,
                 layer_definition.env_vars,
+                layer_definition.dir_mounts,
             )
         }
 

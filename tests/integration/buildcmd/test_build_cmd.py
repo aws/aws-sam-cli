@@ -1576,6 +1576,35 @@ class TestBuildWithInlineContainerEnvVars(BuildIntegBase):
             self.assertEqual(actual.strip(), "MyVar")
 
 
+class TestBuildWithContainerMountedDirs(BuildIntegBase):
+    template = "container_dir_mount_template.yml"
+
+    def test_directory_mounted(self):
+        if SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        dir_to_mount = str(Path(self.test_data_path, "PythonContainerMountedDirs", "test_mounted_dir"))
+        mount_destination = "/tmp/test_mounted_dir"
+        cmdlist = self.get_command_list(use_container=True, container_dir_mount=f"{dir_to_mount}:{mount_destination}")
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        run_command(cmdlist, cwd=self.working_dir)
+
+        self._verify_file_from_mounted_dir_present(self.default_build_dir)
+
+        self.verify_docker_container_cleanedup("python3.7")
+        self.verify_pulling_only_latest_tag("python3.7")
+
+    def _verify_file_from_mounted_dir_present(self, build_dir):
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("CheckDirMountFunction", build_dir_files)
+
+        function_files = os.listdir(str(build_dir.joinpath("CheckDirMountFunction")))
+        self.assertIn("copied_from_mounted_dir.txt", function_files)
+
+
 class TestBuildWithNestedStacks(NestedBuildIntegBase):
     # we put the root template in its own directory to test the scenario where codeuri and children templates
     # are not located in the same folder.

@@ -37,6 +37,7 @@ class LambdaBuildContainer(Container):
         log_level=None,
         mode=None,
         env_vars=None,
+        dir_mounts=None,
         image=None,
     ):
 
@@ -47,6 +48,7 @@ class LambdaBuildContainer(Container):
         source_dir = str(pathlib.Path(source_dir).resolve())
 
         container_dirs = LambdaBuildContainer._get_container_dirs(source_dir, manifest_dir)
+        dir_mounts = dir_mounts if dir_mounts else {}
         env_vars = env_vars if env_vars else {}
 
         # `executable_search_paths` are provided as a list of paths on the host file system that needs to passed to
@@ -86,6 +88,9 @@ class LambdaBuildContainer(Container):
             # is outside of source directory
             manifest_dir: {"bind": container_dirs["manifest_dir"], "mode": "ro"}
         }
+
+        for host_dir, container_dir in dir_mounts.items():
+            additional_volumes[host_dir] = {"bind": container_dir}
 
         if log_level:
             env_vars["LAMBDA_BUILDERS_LOG_LEVEL"] = log_level

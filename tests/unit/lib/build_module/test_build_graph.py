@@ -20,6 +20,7 @@ from samcli.lib.build.build_graph import (
     BUILD_METHOD_FIELD,
     COMPATIBLE_RUNTIMES_FIELD,
     LAYER_FIELD,
+    DIR_MOUNTS_FIELD,
     _toml_table_to_function_build_definition,
     _toml_table_to_layer_build_definition,
     BuildGraph,
@@ -94,7 +95,13 @@ def generate_layer(
 class TestConversionFunctions(TestCase):
     def test_function_build_definition_to_toml_table(self):
         build_definition = FunctionBuildDefinition(
-            "runtime", "codeuri", ZIP, {"key": "value"}, "source_md5", env_vars={"env_vars": "value1"}
+            "runtime",
+            "codeuri",
+            ZIP,
+            {"key": "value"},
+            "source_md5",
+            env_vars={"env_vars": "value1"},
+            dir_mounts={"/local/dir": "/container/dir"},
         )
         build_definition.add_function(generate_function())
 
@@ -107,9 +114,17 @@ class TestConversionFunctions(TestCase):
         self.assertEqual(toml_table[FUNCTIONS_FIELD], [f.name for f in build_definition.functions])
         self.assertEqual(toml_table[SOURCE_MD5_FIELD], build_definition.source_md5)
         self.assertEqual(toml_table[ENV_VARS_FIELD], build_definition.env_vars)
+        self.assertEqual(toml_table[DIR_MOUNTS_FIELD], build_definition.dir_mounts)
 
     def test_layer_build_definition_to_toml_table(self):
-        build_definition = LayerBuildDefinition("name", "codeuri", "method", "runtime", env_vars={"env_vars": "value"})
+        build_definition = LayerBuildDefinition(
+            "name",
+            "codeuri",
+            "method",
+            "runtime",
+            env_vars={"env_vars": "value"},
+            dir_mounts={"/local/dir": "/container/dir"},
+        )
         build_definition.layer = generate_function()
 
         toml_table = _layer_build_definition_to_toml_table(build_definition)
@@ -121,6 +136,7 @@ class TestConversionFunctions(TestCase):
         self.assertEqual(toml_table[LAYER_FIELD], build_definition.layer.name)
         self.assertEqual(toml_table[SOURCE_MD5_FIELD], build_definition.source_md5)
         self.assertEqual(toml_table[ENV_VARS_FIELD], build_definition.env_vars)
+        self.assertEqual(toml_table[DIR_MOUNTS_FIELD], build_definition.dir_mounts)
 
     def test_toml_table_to_function_build_definition(self):
         toml_table = tomlkit.table()
@@ -131,6 +147,7 @@ class TestConversionFunctions(TestCase):
         toml_table[FUNCTIONS_FIELD] = ["function1"]
         toml_table[SOURCE_MD5_FIELD] = "source_md5"
         toml_table[ENV_VARS_FIELD] = {"env_vars": "value"}
+        toml_table[DIR_MOUNTS_FIELD] = {"/local/dir": "/container/dir"}
         uuid = str(uuid4())
 
         build_definition = _toml_table_to_function_build_definition(uuid, toml_table)
@@ -143,6 +160,7 @@ class TestConversionFunctions(TestCase):
         self.assertEqual(build_definition.functions, [])
         self.assertEqual(build_definition.source_md5, toml_table[SOURCE_MD5_FIELD])
         self.assertEqual(build_definition.env_vars, toml_table[ENV_VARS_FIELD])
+        self.assertEqual(build_definition.dir_mounts, toml_table[DIR_MOUNTS_FIELD])
 
     def test_toml_table_to_layer_build_definition(self):
         toml_table = tomlkit.table()
@@ -153,6 +171,7 @@ class TestConversionFunctions(TestCase):
         toml_table[COMPATIBLE_RUNTIMES_FIELD] = "layer1"
         toml_table[SOURCE_MD5_FIELD] = "source_md5"
         toml_table[ENV_VARS_FIELD] = {"env_vars": "value"}
+        toml_table[DIR_MOUNTS_FIELD] = {"/local/dir": "/container/dir"}
         uuid = str(uuid4())
 
         build_definition = _toml_table_to_layer_build_definition(uuid, toml_table)
@@ -165,6 +184,7 @@ class TestConversionFunctions(TestCase):
         self.assertEqual(build_definition.layer, None)
         self.assertEqual(build_definition.source_md5, toml_table[SOURCE_MD5_FIELD])
         self.assertEqual(build_definition.env_vars, toml_table[ENV_VARS_FIELD])
+        self.assertEqual(build_definition.dir_mounts, toml_table[DIR_MOUNTS_FIELD])
 
 
 class TestBuildGraph(TestCase):
@@ -179,6 +199,7 @@ class TestBuildGraph(TestCase):
     LAYER_UUID = "7dnc257e-cd4b-4d94-8c74-7ab870b3abc3"
     SOURCE_MD5 = "cae49aa393d669e850bd49869905099d"
     ENV_VARS = {"env_vars": "value"}
+    DIR_MOUNTS = {"/local/dir": "/container/dir"}
 
     BUILD_GRAPH_CONTENTS = f"""
     [function_build_definitions]
@@ -193,6 +214,8 @@ class TestBuildGraph(TestCase):
     Test2 = "{METADATA['Test2']}"
     [function_build_definitions.{UUID}.env_vars]
     env_vars = "{ENV_VARS['env_vars']}"
+    [function_build_definitions.{UUID}.dir_mounts]
+    "/local/dir" = "{DIR_MOUNTS['/local/dir']}"
 
     [layer_build_definitions]
     [layer_build_definitions.{LAYER_UUID}]
@@ -204,6 +227,8 @@ class TestBuildGraph(TestCase):
     layer = "SumLayer"
     [layer_build_definitions.{LAYER_UUID}.env_vars]
     env_vars = "{ENV_VARS['env_vars']}"
+    [layer_build_definitions.{LAYER_UUID}.dir_mounts]
+    "/local/dir" = "{DIR_MOUNTS['/local/dir']}"
     """
 
     def test_should_instantiate_first_time(self):
@@ -313,6 +338,7 @@ class TestBuildGraph(TestCase):
                 TestBuildGraph.ZIP,
                 TestBuildGraph.METADATA,
                 TestBuildGraph.SOURCE_MD5,
+                TestBuildGraph.DIR_MOUNTS,
                 TestBuildGraph.ENV_VARS,
             )
             function1 = generate_function(
@@ -360,6 +386,7 @@ class TestBuildGraph(TestCase):
                 TestBuildGraph.LAYER_RUNTIME,
                 [TestBuildGraph.LAYER_RUNTIME],
                 TestBuildGraph.SOURCE_MD5,
+                TestBuildGraph.DIR_MOUNTS,
                 TestBuildGraph.ENV_VARS,
             )
             layer1 = generate_layer(
@@ -495,5 +522,5 @@ class TestBuildDefinition(TestCase):
         build_definition = FunctionBuildDefinition("runtime", "codeuri", ZIP, None, "source_md5")
         self.assertEqual(
             str(build_definition),
-            f"BuildDefinition(runtime, codeuri, Zip, source_md5, {build_definition.uuid}, {{}}, {{}}, [])",
+            f"BuildDefinition(runtime, codeuri, Zip, source_md5, {build_definition.uuid}, {{}}, {{}}, {{}}, [])",
         )

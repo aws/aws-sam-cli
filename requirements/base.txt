@@ -15,3 +15,4 @@ serverlessrepo==0.1.10
 aws_lambda_builders==1.5.0
 tomlkit==0.7.2
 watchdog==2.1.2
+pathvalidate==2.4.1

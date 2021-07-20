@@ -155,6 +155,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                     self.function_build_definition1.get_handler_name(),
                     self.function_build_definition1.get_build_dir(given_build_dir),
                     self.function_build_definition1.metadata,
+                    self.function_build_definition1.dir_mounts,
                     self.function_build_definition1.env_vars,
                 ),
                 call(
@@ -165,6 +166,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                     self.function_build_definition2.get_handler_name(),
                     self.function_build_definition2.get_build_dir(given_build_dir),
                     self.function_build_definition2.metadata,
+                    self.function_build_definition2.dir_mounts,
                     self.function_build_definition2.env_vars,
                 ),
             ]
@@ -179,6 +181,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                     self.layer1.build_method,
                     self.layer1.compatible_runtimes,
                     self.layer1.get_build_dir(given_build_dir),
+                    self.function_build_definition1.dir_mounts,
                     self.function_build_definition1.env_vars,
                 ),
                 call(
@@ -187,6 +190,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                     self.layer2.build_method,
                     self.layer2.compatible_runtimes,
                     self.layer2.get_build_dir(given_build_dir),
+                    self.function_build_definition2.dir_mounts,
                     self.function_build_definition2.env_vars,
                 ),
             ]
@@ -219,14 +223,21 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
         function2.name = "Function2"
         function2.full_path = "Function2"
         function2.packagetype = IMAGE
-        build_definition = FunctionBuildDefinition("3.7", "codeuri", IMAGE, {}, env_vars={"FOO": "BAR"})
+        build_definition = FunctionBuildDefinition(
+            "3.7", "codeuri", IMAGE, {}, env_vars={"FOO": "BAR"}, dir_mounts={"/local/dir": "/container/dir"}
+        )
         # since they have the same metadata, they are put into the same build_definition.
         build_definition.functions = [function1, function2]
 
         with patch("samcli.lib.build.build_strategy.deepcopy", wraps=deepcopy) as patched_deepcopy:
             result = default_build_strategy.build_single_function_definition(build_definition)
 
-            patched_deepcopy.assert_called_with(build_definition.env_vars)
+            patched_deepcopy.assert_has_calls(
+                [
+                    call(build_definition.env_vars),
+                    call(build_definition.dir_mounts),
+                ]
+            )
 
         # both of the function name should show up in results
         self.assertEqual(result, {"Function": built_image, "Function2": built_image})

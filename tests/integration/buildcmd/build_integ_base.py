@@ -71,6 +71,7 @@ class BuildIntegBase(TestCase):
         parallel=False,
         container_env_var=None,
         container_env_var_file=None,
+        container_dir_mount=None,
         build_image=None,
         region=None,
     ):
@@ -114,6 +115,9 @@ class BuildIntegBase(TestCase):
 
         if container_env_var_file:
             command_list += ["--container-env-var-file", container_env_var_file]
+
+        if container_dir_mount:
+            command_list += ["--container-dir-mount", container_dir_mount]
 
         if build_image:
             command_list += ["--build-image", build_image]

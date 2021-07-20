@@ -45,6 +45,7 @@ class BuildContext:
         skip_pull_image: bool = False,
         container_env_var: Optional[dict] = None,
         container_env_var_file: Optional[str] = None,
+        container_dir_mount: Optional[dict] = None,
         build_images: Optional[dict] = None,
         aws_region: Optional[str] = None,
     ) -> None:
@@ -72,6 +73,7 @@ class BuildContext:
         self._cached = cached
         self._container_env_var = container_env_var
         self._container_env_var_file = container_env_var_file
+        self._container_dir_mount = container_dir_mount
         self._build_images = build_images
 
         self._function_provider: Optional[SamFunctionProvider] = None

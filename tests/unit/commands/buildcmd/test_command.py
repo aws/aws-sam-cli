@@ -5,7 +5,14 @@ from unittest import TestCase
 from unittest.mock import Mock, patch, call
 from parameterized import parameterized
 
-from samcli.commands.build.command import do_cli, _get_mode_value_from_envvar, _process_env_var, _process_image_options
+from samcli.commands.build.command import (
+    do_cli,
+    _get_mode_value_from_envvar,
+    _process_env_var,
+    _process_image_options,
+    _process_dir_mounts,
+)
+from samcli.commands.build.exceptions import InvalidMountedPathException
 from samcli.commands.exceptions import UserException
 from samcli.lib.build.app_builder import (
     BuildError,
@@ -68,6 +75,7 @@ class TestDoCli(TestCase):
             "mode",
             (""),
             "container_env_var_file",
+            ["/local/dir:/container/dir"],
             (),
         )
 
@@ -84,6 +92,7 @@ class TestDoCli(TestCase):
             parallel="parallel",
             container_env_var={},
             container_env_var_file="container_env_var_file",
+            container_dir_mount={"/local/dir": "/container/dir"},
             build_images={},
         )
         builder_mock.build.assert_called_once()
@@ -160,6 +169,7 @@ class TestDoCli(TestCase):
                 "mode",
                 (""),
                 "container_env_var_file",
+                ["/local/dir:/container/dir"],
                 (),
             )
 
@@ -193,6 +203,7 @@ class TestDoCli(TestCase):
                 "mode",
                 (""),
                 "container_env_var_file",
+                ["/local/dir:/container/dir"],
                 (),
             )
 
@@ -264,6 +275,36 @@ class TestEnvVarParsing(TestCase):
 
         result = _process_env_var(container_env_vars)
         self.assertEqual(result, {})
+
+
+class TestDirMountsParsing(TestCase):
+    @parameterized.expand(
+        [
+            ("Windows", ["C://local/dir:/container/dir"], {"C://local/dir": "/container/dir"}),
+            ("Linux", ["/local/dir:/container/dir"], {"/local/dir": "/container/dir"}),
+            # Multiple arguments case
+            (
+                "Linux",
+                ["/local/dir1:/container/dir1", "/local/dir2:/container/dir2"],
+                {"/local/dir1": "/container/dir1", "/local/dir2": "/container/dir2"},
+            ),
+        ]
+    )
+    def test_process_valid_paths(self, platform, input, expected):
+        with patch("pathvalidate._common.platform.system", return_value=platform):
+            result = _process_dir_mounts(input)
+        self.assertEqual(result, expected)
+
+    @parameterized.expand(
+        [
+            ("Windows", ["C://lo*cal/dir:/container/dir"]),
+            ("Linux", ["C://local/dir:/container/dir"]),
+        ]
+    )
+    def test_process_invalid_paths(self, platform, input):
+        with patch("pathvalidate._common.platform.system", return_value=platform):
+            with self.assertRaises(InvalidMountedPathException) as e:
+                _process_dir_mounts(input)
 
 
 class TestImageParsing(TestCase):

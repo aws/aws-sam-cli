@@ -116,6 +116,7 @@ class TestSamConfigForAllCommands(TestCase):
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
             "container_env_var": (""),
             "container_env_var_file": "file",
+            "container_dir_mount": ["/local/dir:/container/dir"],
             "build_image": (""),
         }
 
@@ -151,6 +152,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 (),
                 "file",
+                tuple(["/local/dir:/container/dir"]),
                 (),
             )
 
@@ -205,6 +207,7 @@ class TestSamConfigForAllCommands(TestCase):
                 (),
                 "env_vars_file",
                 (),
+                (),
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -256,6 +259,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 (),
                 None,
+                (),
                 ("Function1=image_1", "image_2"),
             )
 

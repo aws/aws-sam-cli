@@ -67,6 +67,7 @@ class ApplicationBuilder:
         docker_client: Optional[docker.DockerClient] = None,
         container_env_var: Optional[Dict] = None,
         container_env_var_file: Optional[str] = None,
+        container_dir_mount: Optional[Dict] = None,
         build_images: Optional[Dict] = None,
     ) -> None:
         """
@@ -104,6 +105,8 @@ class ApplicationBuilder:
             An optional dictionary of environment variables to pass to the container
         container_env_var_file : Optional[str]
             An optional path to file that contains environment variables to pass to the container
+        container_dir_mount : Optional[Dict]
+            An optional dictionary of locations to be mounted into the container
         build_images : Optional[Dict]
             An optional dictionary of build images to be used for building functions
         """
@@ -125,6 +128,7 @@ class ApplicationBuilder:
         self._colored = Colored()
         self._container_env_var = container_env_var
         self._container_env_var_file = container_env_var_file
+        self._container_dir_mount = container_dir_mount
         self._build_images = build_images or {}
 
     def build(self) -> Dict[str, str]:
@@ -189,17 +193,30 @@ class ApplicationBuilder:
                     "Could not read environment variables overrides from file {}: {}".format(env_vars_file, str(ex))
                 ) from ex
 
+        # TODO --container-dir-mounts are passed as global. There's no way to mount different directories depending
+        # on which function/layer is being built. In case of --container-env-var this is possible using
+        # Function1.VAR=VAL syntax. Perhaps such mechanism should be implemented for --container-dir-mounts too?
         for function in functions:
             container_env_vars = self._make_env_vars(function, file_env_vars, inline_env_vars)
             function_build_details = FunctionBuildDefinition(
-                function.runtime, function.codeuri, function.packagetype, function.metadata, env_vars=container_env_vars
+                function.runtime,
+                function.codeuri,
+                function.packagetype,
+                function.metadata,
+                dir_mounts=self._container_dir_mount,
+                env_vars=container_env_vars,
             )
             build_graph.put_function_build_definition(function_build_details, function)
 
         for layer in layers:
             container_env_vars = self._make_env_vars(layer, file_env_vars, inline_env_vars)
             layer_build_details = LayerBuildDefinition(
-                layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes, env_vars=container_env_vars
+                layer.name,
+                layer.codeuri,
+                layer.build_method,
+                layer.compatible_runtimes,
+                dir_mounts=self._container_dir_mount,
+                env_vars=container_env_vars,
             )
             build_graph.put_layer_build_definition(layer_build_details, layer)
 
@@ -386,6 +403,7 @@ class ApplicationBuilder:
         compatible_runtimes: List[str],
         artifact_dir: str,
         container_env_vars: Optional[Dict] = None,
+        container_dir_mounts: Optional[Dict] = None,
     ) -> str:
         """
         Given the layer information, this method will build the Lambda layer. Depending on the configuration
@@ -411,6 +429,9 @@ class ApplicationBuilder:
 
         container_env_vars : Optional[Dict]
             An optional dictionary of environment variables to pass to the container.
+
+        container_dir_mounts : Optional[Dict]
+            An optional dictionary of host paths to be mounted into the container.
 
         Returns
         -------
@@ -445,7 +466,15 @@ class ApplicationBuilder:
                 global_image = self._build_images.get(None)
                 image = self._build_images.get(layer_name, global_image)
                 self._build_function_on_container(
-                    config, code_dir, artifact_subdir, manifest_path, build_runtime, options, container_env_vars, image
+                    config,
+                    code_dir,
+                    artifact_subdir,
+                    manifest_path,
+                    build_runtime,
+                    options,
+                    container_env_vars,
+                    container_dir_mounts,
+                    image,
                 )
             else:
                 self._build_function_in_process(
@@ -465,6 +494,7 @@ class ApplicationBuilder:
         artifact_dir: str,
         metadata: Optional[Dict] = None,
         container_env_vars: Optional[Dict] = None,
+        container_dir_mounts: Optional[Dict] = None,
     ) -> str:
         """
         Given the function information, this method will build the Lambda function. Depending on the configuration
@@ -488,6 +518,8 @@ class ApplicationBuilder:
             AWS Lambda function metadata
         container_env_vars : Optional[Dict]
             An optional dictionary of environment variables to pass to the container.
+        container_dir_mounts : Optional[Dict]
+            An optional dictionary of host paths to be mounted into the container.
 
         Returns
         -------
@@ -535,6 +567,7 @@ class ApplicationBuilder:
                         runtime,
                         options,
                         container_env_vars,
+                        container_dir_mounts,
                         image,
                     )
 
@@ -613,6 +646,7 @@ class ApplicationBuilder:
         runtime: str,
         options: Optional[Dict],
         container_env_vars: Optional[Dict] = None,
+        container_dir_mounts: Optional[Dict] = None,
         build_image: Optional[str] = None,
     ) -> str:
         # _build_function_on_container() is only called when self._container_manager if not None
@@ -632,6 +666,7 @@ class ApplicationBuilder:
         log_level = LOG.getEffectiveLevel()
 
         container_env_vars = container_env_vars or {}
+        container_dir_mounts = container_dir_mounts or {}
 
         container = LambdaBuildContainer(
             lambda_builders_protocol_version,
@@ -647,6 +682,7 @@ class ApplicationBuilder:
             executable_search_paths=config.executable_search_paths,
             mode=self._mode,
             env_vars=container_env_vars,
+            dir_mounts=container_dir_mounts,
             image=build_image,
         )
 

@@ -6,6 +6,7 @@ import os
 import logging
 from typing import List, Optional, Dict, Tuple
 import click
+from pathvalidate import ValidationError, validate_filepath
 
 from samcli.cli.context import Context
 from samcli.commands._utils.options import (
@@ -19,7 +20,7 @@ from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
-from samcli.commands.build.exceptions import InvalidBuildImageException
+from samcli.commands.build.exceptions import InvalidBuildImageException, InvalidMountedPathException
 from samcli.commands.build.click_container import ContainerOptions
 
 LOG = logging.getLogger(__name__)
@@ -129,6 +130,16 @@ $ sam build MyFunction
     cls=ContainerOptions,
 )
 @click.option(
+    "--container-dir-mount",
+    "-v",
+    default=None,
+    multiple=True,
+    required=False,
+    help="Directories to be mounted into docker container."
+    " E.g. sam build --use-container --container-dir-mount /host/path:/container/path",
+    cls=ContainerOptions,
+)
+@click.option(
     "--build-image",
     "-bi",
     default=None,
@@ -194,6 +205,7 @@ def cli(
     docker_network: Optional[str],
     container_env_var: Optional[Tuple[str]],
     container_env_var_file: Optional[str],
+    container_dir_mount: Optional[Tuple[str]],
     build_image: Optional[Tuple[str]],
     skip_pull_image: bool,
     parameter_overrides: dict,
@@ -225,6 +237,7 @@ def cli(
         mode,
         container_env_var,
         container_env_var_file,
+        container_dir_mount,
         build_image,
     )  # pragma: no cover
 
@@ -247,6 +260,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     mode: Optional[str],
     container_env_var: Optional[Tuple[str]],
     container_env_var_file: Optional[str],
+    container_dir_mount: Optional[Tuple[str]],
     build_image: Optional[Tuple[str]],
 ) -> None:
     """
@@ -275,6 +289,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
 
     processed_env_vars = _process_env_var(container_env_var)
     processed_build_images = _process_image_options(build_image)
+    processed_dir_mounts = _process_dir_mounts(container_dir_mount)
 
     with BuildContext(
         function_identifier,
@@ -292,6 +307,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         mode=mode,
         container_env_var=processed_env_vars,
         container_env_var_file=container_env_var_file,
+        container_dir_mount=processed_dir_mounts,
         build_images=processed_build_images,
         aws_region=click_ctx.region,
     ) as ctx:
@@ -309,6 +325,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
                 parallel=parallel,
                 container_env_var=processed_env_vars,
                 container_env_var_file=container_env_var_file,
+                container_dir_mount=processed_dir_mounts,
                 build_images=processed_build_images,
             )
         except FunctionNotFound as ex:
@@ -441,6 +458,43 @@ def _process_env_var(container_env_var: Optional[Tuple[str]]) -> Dict:
             processed_env_vars[location_key][env_var_name] = value
 
     return processed_env_vars
+
+
+def _process_dir_mounts(container_dir_mount: Optional[Tuple[str]]) -> Dict:
+    """
+    Parameters
+    ----------
+    container_dir_mount : Tuple
+        The tuple of command line args received from --container-dir-mount flag
+        Tuples should be formatted like: /host/dir/to/mount:/container/mount/destination
+
+    Returns
+    -------
+    dictionary
+        {
+           "/host/dir1": "/container/destination1",
+           "/host/dir2": "/container/destination2"
+        }
+    """
+
+    processed_dir_mounts: Dict = {}
+
+    if container_dir_mount:
+        for dir_mount in container_dir_mount:
+            host_dir, container_dir = dir_mount.rsplit(":", 1)
+
+            try:
+                # Host path is validated for current platform
+                validate_filepath(host_dir, platform="auto")
+                # Container path is always a Linux path
+                validate_filepath(container_dir, platform="Linux")
+            except ValidationError as e:
+                msg = f"Invalid command line --container-dir-mount input {dir_mount}."
+                raise InvalidMountedPathException(msg) from e
+
+            processed_dir_mounts[host_dir] = container_dir
+
+    return processed_dir_mounts
 
 
 def _process_image_options(image_args: Optional[Tuple[str]]) -> Dict:

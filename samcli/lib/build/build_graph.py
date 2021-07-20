@@ -25,6 +25,7 @@ METADATA_FIELD = "metadata"
 FUNCTIONS_FIELD = "functions"
 SOURCE_MD5_FIELD = "source_md5"
 ENV_VARS_FIELD = "env_vars"
+DIR_MOUNTS_FIELD = "dir_mounts"
 LAYER_NAME_FIELD = "layer_name"
 BUILD_METHOD_FIELD = "build_method"
 COMPATIBLE_RUNTIMES_FIELD = "compatible_runtimes"
@@ -59,6 +60,8 @@ def _function_build_definition_to_toml_table(
         toml_table[METADATA_FIELD] = function_build_definition.metadata
     if function_build_definition.env_vars:
         toml_table[ENV_VARS_FIELD] = function_build_definition.env_vars
+    if function_build_definition.dir_mounts:
+        toml_table[DIR_MOUNTS_FIELD] = function_build_definition.dir_mounts
 
     return toml_table
 
@@ -85,6 +88,7 @@ def _toml_table_to_function_build_definition(uuid: str, toml_table: tomlkit.api.
         toml_table.get(PACKAGETYPE_FIELD, ZIP),
         dict(toml_table.get(METADATA_FIELD, {})),
         toml_table.get(SOURCE_MD5_FIELD, ""),
+        dict(toml_table.get(DIR_MOUNTS_FIELD, {})),
         dict(toml_table.get(ENV_VARS_FIELD, {})),
     )
     function_build_definition.uuid = uuid
@@ -114,6 +118,8 @@ def _layer_build_definition_to_toml_table(layer_build_definition: "LayerBuildDef
     toml_table[LAYER_FIELD] = layer_build_definition.layer.name
     if layer_build_definition.env_vars:
         toml_table[ENV_VARS_FIELD] = layer_build_definition.env_vars
+    if layer_build_definition.dir_mounts:
+        toml_table[DIR_MOUNTS_FIELD] = layer_build_definition.dir_mounts
     toml_table[LAYER_FIELD] = layer_build_definition.layer.full_path
 
     return toml_table
@@ -141,6 +147,7 @@ def _toml_table_to_layer_build_definition(uuid: str, toml_table: tomlkit.api.Tab
         toml_table.get(BUILD_METHOD_FIELD),
         toml_table.get(COMPATIBLE_RUNTIMES_FIELD),
         toml_table.get(SOURCE_MD5_FIELD, ""),
+        dict(toml_table.get(DIR_MOUNTS_FIELD, {})),
         dict(toml_table.get(ENV_VARS_FIELD, {})),
     )
     layer_build_definition.uuid = uuid
@@ -340,6 +347,7 @@ class LayerBuildDefinition(AbstractBuildDefinition):
         build_method: Optional[str],
         compatible_runtimes: Optional[List[str]],
         source_md5: str = "",
+        dir_mounts: Optional[Dict] = None,
         env_vars: Optional[Dict] = None,
     ):
         super().__init__(source_md5)
@@ -347,6 +355,7 @@ class LayerBuildDefinition(AbstractBuildDefinition):
         self.codeuri = codeuri
         self.build_method = build_method
         self.compatible_runtimes = compatible_runtimes
+        self.dir_mounts = dir_mounts if dir_mounts else {}
         self.env_vars = env_vars if env_vars else {}
         # Note(xinhol): In our code, we assume "layer" is never None. We should refactor
         # this and move "layer" out of LayerBuildDefinition to take advantage of type check.
@@ -355,7 +364,7 @@ class LayerBuildDefinition(AbstractBuildDefinition):
     def __str__(self) -> str:
         return (
             f"LayerBuildDefinition({self.name}, {self.codeuri}, {self.source_md5}, {self.uuid}, "
-            f"{self.build_method}, {self.compatible_runtimes}, {self.env_vars})"
+            f"{self.build_method}, {self.compatible_runtimes}, {self.env_vars}, {self.dir_mounts})"
         )
 
     def __eq__(self, other: Any) -> bool:
@@ -381,6 +390,7 @@ class LayerBuildDefinition(AbstractBuildDefinition):
             and self.build_method == other.build_method
             and self.compatible_runtimes == other.compatible_runtimes
             and self.env_vars == other.env_vars
+            and self.dir_mounts == other.dir_mounts
         )
 
 
@@ -396,6 +406,7 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         packagetype: str,
         metadata: Optional[Dict],
         source_md5: str = "",
+        dir_mounts: Optional[Dict] = None,
         env_vars: Optional[Dict] = None,
     ) -> None:
         super().__init__(source_md5)
@@ -403,6 +414,7 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         self.codeuri = codeuri
         self.packagetype = packagetype
         self.metadata = metadata if metadata else {}
+        self.dir_mounts = dir_mounts if dir_mounts else {}
         self.env_vars = env_vars if env_vars else {}
         self.functions: List[Function] = []
 
@@ -439,7 +451,7 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         return (
             "BuildDefinition("
             f"{self.runtime}, {self.codeuri}, {self.packagetype}, {self.source_md5}, "
-            f"{self.uuid}, {self.metadata}, {self.env_vars}, "
+            f"{self.uuid}, {self.metadata}, {self.env_vars}, {self.dir_mounts}, "
             f"{[f.functionname for f in self.functions]})"
         )
 
@@ -470,4 +482,5 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
             and self.packagetype == other.packagetype
             and self.metadata == other.metadata
             and self.env_vars == other.env_vars
+            and self.dir_mounts == other.dir_mounts
         )
