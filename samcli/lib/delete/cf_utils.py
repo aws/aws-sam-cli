@@ -16,7 +16,6 @@ LOG = logging.getLogger(__name__)
 class CfUtils:
     def __init__(self, cloudformation_client):
         self._client = cloudformation_client
-        # self._resource_client = cloudformation_resource_client
 
     def has_stack(self, stack_name: str) -> bool:
         """

@@ -114,7 +114,7 @@ class ECRUploader:
                 image_details = resp["failures"][0]
                 if image_details["failureCode"] == "ImageNotFound":
                     LOG.debug(
-                        "Could not delete image for %s" " parameter of %s resource as it does not exist. \n",
+                        "Could not delete image for %s parameter of %s resource as it does not exist. \n",
                         property_name,
                         resource_id,
                     )
@@ -149,7 +149,6 @@ class ECRUploader:
             # If the repository is empty, cloudformation automatically deletes
             # the repository when cf_client.delete_stack is called.
             LOG.debug("Could not find repository %s", physical_id)
-            pass
 
     @staticmethod
     def parse_image_url(image_uri: str) -> Dict:

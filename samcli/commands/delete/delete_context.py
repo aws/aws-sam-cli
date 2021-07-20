@@ -136,7 +136,7 @@ class DeleteContext:
                 self.delete_artifacts_folder = confirm(
                     click.style(
                         "\tAre you sure you want to delete the folder"
-                        + f" {self.s3_prefix} in S3 which contains the artifacts?",
+                        f" {self.s3_prefix} in S3 which contains the artifacts?",
                         bold=True,
                     ),
                     default=False,
@@ -164,7 +164,7 @@ class DeleteContext:
             delete_ecr_companion_stack_prompt = confirm(
                 click.style(
                     "\tDo you you want to delete the ECR companion stack"
-                    + f" {self.companion_stack_name} in the region {self.region} ?",
+                    f" {self.companion_stack_name} in the region {self.region} ?",
                     bold=True,
                 ),
                 default=False,
@@ -190,7 +190,7 @@ class DeleteContext:
                 delete_repo = confirm(
                     click.style(
                         f"\tECR repository {repo_name}"
-                        + " may not be empty. Do you want to delete the repository and all the images in it ?",
+                        " may not be empty. Do you want to delete the repository and all the images in it ?",
                         bold=True,
                     ),
                     default=False,
@@ -317,8 +317,7 @@ class DeleteContext:
         if not self.no_prompts:
             delete_stack = confirm(
                 click.style(
-                    f"\tAre you sure you want to delete the stack {self.stack_name}"
-                    + f" in the region {self.region} ?",
+                    f"\tAre you sure you want to delete the stack {self.stack_name}" f" in the region {self.region} ?",
                     bold=True,
                 ),
                 default=False,
@@ -335,5 +334,5 @@ class DeleteContext:
                 LOG.debug("Input stack does not exists on Cloudformation")
                 click.echo(
                     f"Error: The input stack {self.stack_name} does"
-                    + f" not exist on Cloudformation in the region {self.region}"
+                    f" not exist on Cloudformation in the region {self.region}"
                 )

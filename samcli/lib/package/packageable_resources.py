@@ -519,6 +519,12 @@ class CloudFormationResourceVersionSchemaHandlerPackage(ResourceZip):
 
 
 class ECRResource(Resource):
+    """
+    Represents CloudFormation resources ECR for deleting the ECR
+    repository with the property name RepositoryName. This class is used
+    only for deleting the repository and not exporting anything.
+    """
+
     RESOURCE_TYPE = AWS_ECR_REPOSITORY
     PROPERTY_NAME = RESOURCES_WITH_IMAGE_COMPONENT[RESOURCE_TYPE][0]
     ARTIFACT_TYPE = ZIP
