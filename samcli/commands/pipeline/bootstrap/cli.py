@@ -73,9 +73,9 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
 )
 @click.option(
     "--image-repository",
-    help="Specify whether to create an Amazon ECR image repository if none is provided. "
-    "The Amazon ECR repository holds the container images of Lambda functions or layers "
-    "having a package type of Image. The default is --no-create-image-repository.",
+    help="The ARN of an Amazon ECR image repository to hold the container images of Lambda functions or "
+         "layers that have a package type of Image. If provided, the --create-image-repository options is ignored. "
+         "If not provided and --create-image-repository is specified, the command will create one.",
     required=False,
 )
 @click.option(
