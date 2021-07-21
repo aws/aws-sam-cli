@@ -17,12 +17,11 @@ from samcli.lib.utils.version_checker import check_newer_version
 from .guided_context import GuidedContext
 from ..external_links import CONFIG_AWS_CRED_ON_CICD_URL
 
-SHORT_HELP = "Generates the necessary AWS resources to connect your CI/CD system."
+SHORT_HELP = "Generates the required AWS resources to connect your CI/CD system."
 
 HELP_TEXT = """
-SAM Pipeline Bootstrap generates the necessary AWS resources to connect your
-CI/CD system. This step must be completed for each pipeline stage prior to
-running sam pipeline init
+This command generates the required AWS infrastructure resources to connect to your CI/CD system.
+This step must be run for each deployment stage in your pipeline, prior to running the sam pipline init command.
 """
 
 PIPELINE_CONFIG_DIR = os.path.join(".aws-sam", "pipeline")
@@ -39,29 +38,33 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
 )
 @click.option(
     "--stage",
-    help="The name of the corresponding stage. It is used as a suffix for the created resources.",
+    help="The name of the corresponding deployment stage. "
+    "It is used as a suffix for the created AWS infrastructure resources.",
     required=False,
 )
 @click.option(
     "--pipeline-user",
-    help="An IAM user generated or referenced by sam pipeline bootstrap in order to "
-    "allow the connected CI/CD system to connect to the SAM CLI.",
+    help="The Amazon Resource Name (ARN) of the IAM user having its access key ID and secret access key "
+    "shared with the CI/CD system. It is used to grant this IAM user permission to access the "
+    "corresponding AWS account. If not provided, the command will create one along with the access "
+    "key ID and secret access key credentials.",
     required=False,
 )
 @click.option(
     "--pipeline-execution-role",
-    help="Execution role that the CI/CD system assumes in order to make changes to resources on your behalf.",
+    help="The ARN of the IAM role to be assumed by the pipeline user to operate on this stage. "
+    "Provide it only if you want to use your own role, otherwise this command will create one.",
     required=False,
 )
 @click.option(
     "--cloudformation-execution-role",
-    help="Execution role that CloudFormation assumes in order to make changes to resources on your behalf",
+    help="The ARN of the IAM role to be assumed by the AWS CloudFormation service while deploying the "
+    "application's stack. Provide only if you want to use your own role, otherwise the command will create one.",
     required=False,
 )
 @click.option(
     "--bucket",
-    help="The name of the S3 bucket where this command uploads your CloudFormation template. This is required for"
-    "deployments of templates sized greater than 51,200 bytes.",
+    help="The ARN of the Amazon S3 bucket to hold the AWS SAM artifacts.",
     required=False,
 )
 @click.option(
@@ -73,14 +76,16 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
 )
 @click.option(
     "--image-repository",
-    help="ECR repo uri where this command uploads the image artifacts that are referenced in your template.",
+    help="The ARN of an Amazon ECR image repository to hold the container images of Lambda functions or "
+    "layers that have a package type of Image. If provided, the --create-image-repository options is ignored. "
+    "If not provided and --create-image-repository is specified, the command will create one.",
     required=False,
 )
 @click.option(
     "--confirm-changeset/--no-confirm-changeset",
     default=True,
     is_flag=True,
-    help="Prompt to confirm if the resources is to be deployed by SAM CLI.",
+    help="Prompt to confirm if the resources are to be deployed.",
 )
 @common_options
 @aws_creds_options
@@ -150,10 +155,12 @@ def do_cli(
                 dedent(
                     """\
 
-                    sam pipeline bootstrap generates the necessary AWS resources to connect a stage in
-                    your CI/CD system. We will ask for [1] stage definition, [2] account details, and
-                    [3] references to existing resources in order to bootstrap these pipeline
-                    resources.
+                    sam pipeline bootstrap generates the required AWS infrastructure resources to connect
+                    to your CI/CD system. This step must be run for each deployment stage in your pipeline,
+                    prior to running the sam pipeline init command.
+
+                    We will ask for [1] stage definition, [2] account details, and
+                    [3] references to existing resources in order to bootstrap these pipeline resources.
                     """
                 ),
             )
