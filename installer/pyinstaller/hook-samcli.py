@@ -13,6 +13,7 @@ hiddenimports = [
     "samcli.commands.deploy",
     "samcli.commands.logs",
     "samcli.commands.publish",
+    "samcli.commands.pipeline",
     # default hidden import 'pkg_resources.py2_warn' is added
     # since pyInstaller 4.0.
     "pkg_resources.py2_warn",
