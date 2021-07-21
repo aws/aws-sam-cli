@@ -45,18 +45,22 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
 )
 @click.option(
     "--pipeline-user",
-    help="An IAM user generated or referenced by sam pipeline bootstrap in order to "
-    "allow the connected CI/CD system to connect to the SAM CLI.",
+    help="The Amazon Resource Name (ARN) of the IAM user having its access key ID and secret access key "
+    "shared with the CI/CD system. It is used to grant this IAM user permission to access the "
+    "corresponding AWS account. If not provided, the command will create one along with the access "
+    "key ID and secret access key credentials.",
     required=False,
 )
 @click.option(
     "--pipeline-execution-role",
-    help="Execution role that the CI/CD system assumes in order to make changes to resources on your behalf.",
+    help="The ARN of the IAM role to be assumed by the pipeline user to operate on this stage. "
+    "Provide it only if you want to use your own role, otherwise this command will create one.",
     required=False,
 )
 @click.option(
     "--cloudformation-execution-role",
-    help="Execution role that CloudFormation assumes in order to make changes to resources on your behalf",
+    help="The ARN of the IAM role to be assumed by the AWS CloudFormation service while deploying the "
+    "application's stack. Provide only if you want to use your own role, otherwise the command will create one.",
     required=False,
 )
 @click.option(
@@ -74,15 +78,15 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
 @click.option(
     "--image-repository",
     help="The ARN of an Amazon ECR image repository to hold the container images of Lambda functions or "
-         "layers that have a package type of Image. If provided, the --create-image-repository options is ignored. "
-         "If not provided and --create-image-repository is specified, the command will create one.",
+    "layers that have a package type of Image. If provided, the --create-image-repository options is ignored. "
+    "If not provided and --create-image-repository is specified, the command will create one.",
     required=False,
 )
 @click.option(
     "--confirm-changeset/--no-confirm-changeset",
     default=True,
     is_flag=True,
-    help="Prompt to confirm if the resources is to be deployed by SAM CLI.",
+    help="Prompt to confirm if the resources are to be deployed.",
 )
 @common_options
 @aws_creds_options
