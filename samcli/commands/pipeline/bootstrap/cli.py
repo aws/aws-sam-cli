@@ -40,7 +40,7 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
 @click.option(
     "--stage",
     help="The name of the corresponding deployment stage. "
-         "It is used as a suffix for the created AWS infrastructure resources.",
+    "It is used as a suffix for the created AWS infrastructure resources.",
     required=False,
 )
 @click.option(
@@ -73,7 +73,9 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
 )
 @click.option(
     "--image-repository",
-    help="ECR repo uri where this command uploads the image artifacts that are referenced in your template.",
+    help="Specify whether to create an Amazon ECR image repository if none is provided. "
+    "The Amazon ECR repository holds the container images of Lambda functions or layers "
+    "having a package type of Image. The default is --no-create-image-repository.",
     required=False,
 )
 @click.option(
