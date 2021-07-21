@@ -1143,8 +1143,8 @@ class TestBuildWithBuildMethod(BuildIntegBase):
         LOG.info("Running Command: {}".format(cmdlist))
         # This will error out.
         command = run_command(cmdlist, cwd=self.working_dir)
-        self.assertEqual(command.process.returncode, 1)
-        self.assertEqual(command.stdout.strip(), b"Build Failed")
+        self.assertEqual(command.process.returncode, 0)
+        self.assertEqual(command.stdout.strip(), b"Continuing the build without dependencies")
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
 
