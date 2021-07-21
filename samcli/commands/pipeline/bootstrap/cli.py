@@ -17,12 +17,11 @@ from samcli.lib.utils.version_checker import check_newer_version
 from .guided_context import GuidedContext
 from ..external_links import CONFIG_AWS_CRED_ON_CICD_URL
 
-SHORT_HELP = "Generates the necessary AWS resources to connect your CI/CD system."
+SHORT_HELP = "Generates the required AWS resources to connect your CI/CD system."
 
 HELP_TEXT = """
-SAM Pipeline Bootstrap generates the necessary AWS resources to connect your
-CI/CD system. This step must be completed for each pipeline stage prior to
-running sam pipeline init
+This command generates the required AWS infrastructure resources to connect to your CI/CD system.
+This step must be run for each deployment stage in your pipeline, prior to running the sam pipline init command.
 """
 
 PIPELINE_CONFIG_DIR = os.path.join(".aws-sam", "pipeline")
