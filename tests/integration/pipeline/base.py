@@ -83,7 +83,7 @@ class BootstrapIntegBase(PipelineBase):
                 if resource["ResourceType"] == "AWS::S3::Bucket"
             ]
             session = boto3.session.Session()
-            s3_client = session.resource('s3')
+            s3_client = session.resource("s3")
             for bucket in buckets:
                 bucket = s3_client.Bucket(bucket)
                 bucket.object_versions.delete()
