@@ -290,7 +290,7 @@ class LambdaImage:
             dockerfile_content = dockerfile_content + f"ADD {layer.name} {LambdaImage._LAYERS_DIR}\n"
         return dockerfile_content
 
-    def _remove_images(self, repo_name):
+    def _remove_images(self, repo_name: str) -> None:
         """
         Remove all images for given repo
 
