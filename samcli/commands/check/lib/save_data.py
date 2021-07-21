@@ -38,6 +38,14 @@ class SaveGraphData:
                 "tps": resource.get_tps(),
                 "children": resource_children_toml,
             }
+        elif resource_type == "AWS::DynamoDB::Table":
+            resource_toml = {
+                "resource_object": "",
+                "resource_type": resource_type,
+                "resource_name": resource_name,
+                "tps": resource.get_tps(),
+                "children": resource_children_toml,
+            }
 
         resource_children = resource.get_children()
         for child in resource_children:
@@ -92,7 +100,6 @@ class SaveGraphData:
         samconfig.flush()
 
         result = samconfig.get_all(["load"], "graph", "check")
-        print(result)
 
     def get_config_ctx(self, config_file=None):
         """
