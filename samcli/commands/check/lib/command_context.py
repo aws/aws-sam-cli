@@ -15,7 +15,8 @@ from samtranslator.parser import parser
 from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
 from samcli.yamlhelper import yaml_parse
 
-from samcli.lib.replace_uri.replace_uri import _replace_local_codeuri as external_replace_local_codeuri
+from samcli.lib.replace_uri.replace_uri import replace_local_codeuri as external_replace_local_codeuri
+from samcli.lib.samlib.wrapper import SamTranslatorWrapper
 from ..exceptions import InvalidSamDocumentException
 
 LOG = logging.getLogger(__name__)
@@ -43,7 +44,9 @@ class CheckContext:
         """
         Takes a sam template or a CFN json template and converts it into a CFN yaml template
         """
-        managed_policy_map = load_policies()
+        wrapper = SamTranslatorWrapper({})
+        managed_policy_map = wrapper.managed_policy_map()
+
         original_template = self.read_sam_file()
 
         updated_template = external_replace_local_codeuri(original_template)
@@ -82,11 +85,3 @@ class CheckContext:
             sam_template = yaml_parse(sam_template.read())
 
         return sam_template
-
-
-def load_policies():
-    """
-    Load user policies from iam account
-    """
-    iam_client = boto3.client("iam")
-    return ManagedPolicyLoader(iam_client).load()

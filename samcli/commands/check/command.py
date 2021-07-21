@@ -10,6 +10,7 @@ from samcli.cli.main import pass_context, common_options as cli_framework_option
 from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
+from samcli.commands._utils.options import template_option_without_build
 
 
 SHORT_HELP = "Checks template for bottle necks."
@@ -39,6 +40,7 @@ LOG = logging.getLogger(__name__)
     help=HELP_TEXT,
 )
 @configuration_option(provider=TomlProvider(section="parameters"))
+@template_option_without_build
 @aws_creds_options
 @cli_framework_options
 @pass_context

@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 
 from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
 
-from samcli.commands.check.lib.command_context import CheckContext, load_policies
+from samcli.commands.check.lib.command_context import CheckContext
 
 
 class TestCommandContext(TestCase):
@@ -36,34 +36,13 @@ class TestCommandContext(TestCase):
         with self.assertRaises(SamTemplateNotFoundException):
             context.read_sam_file()
 
-    @patch("samcli.commands.check.lib.command_context.boto3")
-    @patch("samcli.commands.check.lib.command_context.ManagedPolicyLoader")
-    def test_load_policies(self, policy_loader_mock, boto3_mock):
-        mock_iam_client = Mock()
-        boto3_mock.client.return_value = mock_iam_client
-
-        expected_policies = Mock()
-
-        mock_loader = Mock()
-        policy_loader_mock.return_value = mock_loader
-
-        mock_loader.load.return_value = expected_policies
-
-        result = load_policies()
-
-        boto3_mock.client.assert_called_with("iam")
-        policy_loader_mock.assert_called_with(mock_iam_client)
-
-        mock_loader.load.assert_called_once()
-        self.assertEqual(result, expected_policies)
-
-    @patch("samcli.commands.check.lib.command_context.load_policies")
+    @patch("samcli.commands.check.lib.command_context.SamTranslatorWrapper")
     @patch("samcli.commands.check.lib.command_context.external_replace_local_codeuri")
     @patch("samcli.commands.check.lib.command_context.Translator")
     @patch("samcli.commands.check.lib.command_context.Session")
     @patch("samcli.commands.check.lib.command_context.parser")
     def test_transform_template(
-        self, patched_parser, patched_session, patched_translator, patch_replace, patch_policies
+        self, patched_parser, patched_session, patched_translator, patch_replace, patch_wrapper
     ):
         """
         read_sam_file needs to be cast as a mock through context
@@ -76,7 +55,7 @@ class TestCommandContext(TestCase):
         context = CheckContext(region, profile, template_path)
 
         given_policies = Mock()
-        patch_policies.return_value = given_policies
+        patch_wrapper.managed_policy_map.return_value = given_policies
 
         original_template = Mock()
         context.read_sam_file = Mock()

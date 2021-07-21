@@ -5,7 +5,7 @@ into  CloudFormation yaml template
 from samcli.lib.utils.packagetype import ZIP
 
 
-def _replace_local_codeuri(template):
+def replace_local_codeuri(template):
     """
     Replaces the CodeUri in AWS::Serverless::Function and DefinitionUri in AWS::Serverless::Api and
     AWS::Serverless::HttpApi to a fake S3 Uri. This is to support running the SAM Translator with
