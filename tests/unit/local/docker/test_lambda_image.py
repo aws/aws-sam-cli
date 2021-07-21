@@ -2,7 +2,7 @@ import io
 import tempfile
 
 from unittest import TestCase
-from unittest.mock import patch, Mock, mock_open, ANY
+from unittest.mock import patch, Mock, mock_open, ANY, call
 
 from docker.errors import ImageNotFound, BuildError, APIError
 
@@ -42,6 +42,7 @@ class TestLambdaImage(TestCase):
         layer_downloader_mock = Mock()
         setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
         docker_client_mock.api.build.return_value = ["mock"]
+        docker_client_mock.images.list.return_value = []
 
         lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=docker_client_mock)
 
@@ -63,6 +64,7 @@ class TestLambdaImage(TestCase):
 
         docker_client_mock = Mock()
         docker_client_mock.images.get.return_value = Mock()
+        docker_client_mock.images.list.return_value = []
 
         lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=docker_client_mock)
 
@@ -137,6 +139,7 @@ class TestLambdaImage(TestCase):
 
         docker_client_mock = Mock()
         docker_client_mock.images.get.side_effect = ImageNotFound("image not found")
+        docker_client_mock.images.list.return_value = []
 
         stream = io.StringIO()
 
@@ -167,6 +170,7 @@ class TestLambdaImage(TestCase):
 
         docker_client_mock = Mock()
         docker_client_mock.images.get.side_effect = ImageNotFound("image not found")
+        docker_client_mock.images.list.return_value = []
 
         stream = io.StringIO()
 
@@ -400,3 +404,21 @@ class TestLambdaImage(TestCase):
             decode=True,
         )
         docker_full_path_mock.unlink.assert_called_once()
+
+    def test_building_new_image_removes_old_images(self):
+        docker_client_mock = Mock()
+        docker_client_mock.api.build.return_value = ["mock"]
+        docker_client_mock.images.get.side_effect = ImageNotFound("image not found")
+        docker_client_mock.images.list.return_value = [Mock(id="old1"), Mock(id="old2")]
+
+        layer_downloader_mock = Mock()
+        setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
+
+        lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=docker_client_mock)
+
+        self.assertEqual(
+            lambda_image.build("python3.6", ZIP, None, []),
+            f"amazon/aws-sam-cli-emulation-image-python3.6:rapid-{version}",
+        )
+
+        docker_client_mock.images.remove.assert_has_calls([call("old1"), call("old2")])

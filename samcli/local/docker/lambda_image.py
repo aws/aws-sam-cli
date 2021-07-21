@@ -138,6 +138,8 @@ class LambdaImage:
             or any(layer.is_defined_within_template for layer in downloaded_layers)
             or not runtime
         ):
+            LOG.info("Removing old images")
+            self._remove_images(image_tag.split(":")[0])
             stream_writer = stream or StreamWriter(sys.stderr)
             stream_writer.write("Building image...")
             stream_writer.flush()
@@ -287,3 +289,18 @@ class LambdaImage:
         for layer in layers:
             dockerfile_content = dockerfile_content + f"ADD {layer.name} {LambdaImage._LAYERS_DIR}\n"
         return dockerfile_content
+
+    def _remove_images(self, repo_name):
+        """
+        Remove all images for given repo
+
+        Parameters
+        ----------
+        repo_name str
+            Repo for which all images will be removed
+        """
+        try:
+            for image in self.docker_client.images.list(name=repo_name):
+                self.docker_client.images.remove(image.id)
+        except docker.errors.APIError:
+            LOG.exception("Failed to remove images")
