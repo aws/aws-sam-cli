@@ -172,10 +172,10 @@ class TestS3Uploader(TestCase):
                 s3_uploader.upload(f.name, remote_path)
             self.assertEqual(BucketNotSpecifiedError().message, str(ex))
 
-    def test_s3_delete_artifact(self):
+    def test_s3_delete_artifact_successfull(self):
         s3_uploader = S3Uploader(
             s3_client=self.s3,
-            bucket_name=None,
+            bucket_name=self.bucket_name,
             prefix=self.prefix,
             kms_key_id=self.kms_key_id,
             force_upload=self.force_upload,
@@ -183,14 +183,14 @@ class TestS3Uploader(TestCase):
         )
         self.s3.delete_object = MagicMock()
         self.s3.head_object = MagicMock()
-        with self.assertRaises(BucketNotSpecifiedError) as ex:
-            with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
-                self.assertTrue(s3_uploader.delete_artifact(f.name))
+
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
+            self.assertTrue(s3_uploader.delete_artifact(f.name))
 
     def test_s3_delete_non_existant_artifact(self):
         s3_uploader = S3Uploader(
             s3_client=self.s3,
-            bucket_name=None,
+            bucket_name=self.bucket_name,
             prefix=self.prefix,
             kms_key_id=self.kms_key_id,
             force_upload=self.force_upload,
@@ -198,9 +198,24 @@ class TestS3Uploader(TestCase):
         )
         self.s3.delete_object = MagicMock()
         self.s3.head_object = MagicMock(side_effect=ClientError(error_response={}, operation_name="head_object"))
-        with self.assertRaises(BucketNotSpecifiedError) as ex:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
+            self.assertFalse(s3_uploader.delete_artifact(f.name))
+
+    def test_s3_delete_artifact_client_error(self):
+        s3_uploader = S3Uploader(
+            s3_client=self.s3,
+            bucket_name=self.bucket_name,
+            prefix=self.prefix,
+            kms_key_id=self.kms_key_id,
+            force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
+        )
+        self.s3.delete_object = MagicMock(
+            side_effect=ClientError(error_response={"Error": {"Code": "ClientError"}}, operation_name="delete_object")
+        )
+        with self.assertRaises(ClientError):
             with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
-                self.assertFalse(s3_uploader.delete_artifact(f.name))
+                s3_uploader.delete_artifact(f.name)
 
     def test_s3_delete_artifact_no_bucket(self):
         s3_uploader = S3Uploader(

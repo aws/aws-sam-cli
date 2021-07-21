@@ -2,7 +2,7 @@ from unittest.mock import patch, MagicMock, ANY, call
 from unittest import TestCase
 
 
-from samcli.commands.delete.exceptions import DeleteFailedError, FetchTemplateFailedError
+from samcli.commands.delete.exceptions import DeleteFailedError, FetchTemplateFailedError, CfDeleteFailedStatusError
 from botocore.exceptions import ClientError, BotoCoreError, WaiterError
 
 from samcli.lib.delete.cf_utils import CfUtils
@@ -87,6 +87,12 @@ class TestCfUtils(TestCase):
         with self.assertRaises(Exception):
             self.cf_utils.get_stack_template("test", "Original")
 
+    def test_cf_utils_get_stack_template_success(self):
+        self.cf_utils._client.get_template = MagicMock(return_value=({"TemplateBody": "Hello World"}))
+
+        response = self.cf_utils.get_stack_template("test", "Original")
+        self.assertEqual(response, {"TemplateBody": "Hello World"})
+
     def test_cf_utils_delete_stack_exception_botocore(self):
         self.cf_utils._client.delete_stack = MagicMock(side_effect=BotoCoreError())
         with self.assertRaises(DeleteFailedError):
@@ -95,7 +101,7 @@ class TestCfUtils(TestCase):
     def test_cf_utils_delete_stack_exception(self):
         self.cf_utils._client.delete_stack = MagicMock(side_effect=Exception())
         with self.assertRaises(Exception):
-            self.cf_utils.delete_stack("test")
+            self.cf_utils.delete_stack("test", ["retain_logical_id"])
 
     def test_cf_utils_wait_for_delete_exception(self):
         self.cf_utils._client.get_waiter = MagicMock(
@@ -108,4 +114,17 @@ class TestCfUtils(TestCase):
             )
         )
         with self.assertRaises(DeleteFailedError):
+            self.cf_utils.wait_for_delete("test")
+
+    def test_cf_utils_wait_for_delete_failed_status(self):
+        self.cf_utils._client.get_waiter = MagicMock(
+            return_value=MockDeleteWaiter(
+                ex=WaiterError(
+                    name="wait_for_delete",
+                    reason="DELETE_FAILED ",
+                    last_response={"Status": "Failed", "StatusReason": "It's a unit test"},
+                )
+            )
+        )
+        with self.assertRaises(CfDeleteFailedStatusError):
             self.cf_utils.wait_for_delete("test")
