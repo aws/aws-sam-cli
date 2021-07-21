@@ -82,9 +82,11 @@ class BootstrapIntegBase(PipelineBase):
                 for resource in stack_resources["StackResources"]
                 if resource["ResourceType"] == "AWS::S3::Bucket"
             ]
-            s3_client = boto3.client("s3")
+            session = boto3.session.Session()
+            s3_client = session.resource("s3")
             for bucket in buckets:
-                s3_client.delete_bucket(Bucket=bucket.get("PhysicalResourceId"))
+                bucket = s3_client.Bucket(bucket)
+                bucket.object_versions.delete()
         except botocore.exceptions.ClientError:
             """No need to fail in cleanup"""
 
