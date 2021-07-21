@@ -9,9 +9,9 @@ from samtranslator.parser import parser
 from samtranslator.translator.translator import Translator
 from boto3.session import Session
 
-from samcli.lib.replace_uri.replace_uri import ReplaceLocalCodeUri
+from samcli.lib.replace_uri.replace_uri import replace_local_codeuri as external_replace_local_codeuri
+from samcli.lib.replace_uri.replace_uri import is_s3_uri as external_is_s3_uri
 
-from samcli.lib.utils.packagetype import ZIP
 from samcli.yamlhelper import yaml_dump
 from .exceptions import InvalidSamDocumentException
 
@@ -55,7 +55,7 @@ class SamTemplateValidator:
         InvalidSamDocumentException
              If the template is not valid, an InvalidSamDocumentException is raised
         """
-        managed_policy_map = self.managed_policy_loader.load()
+        managed_policy_map = self.managed_policy_loader
 
         sam_translator = Translator(
             managed_policy_map=managed_policy_map,
@@ -64,8 +64,7 @@ class SamTemplateValidator:
             boto_session=self.boto3_session,
         )
 
-        uri_replace = ReplaceLocalCodeUri(self.sam_template)
-        self.sam_template = uri_replace._replace_local_codeuri()
+        self.sam_template = external_replace_local_codeuri(self.sam_template)
 
         try:
             template = sam_translator.translate(sam_template=self.sam_template, parameter_values={})
@@ -74,28 +73,6 @@ class SamTemplateValidator:
             raise InvalidSamDocumentException(
                 functools.reduce(lambda message, error: message + " " + str(error), e.causes, str(e))
             ) from e
-
-    def _replace_local_codeuri(self):
-        uri_replace = ReplaceLocalCodeUri(self.sam_template)
-        return uri_replace._replace_local_codeuri()
-
-    @staticmethod
-    def is_s3_uri(uri):
-        """
-        Checks the uri and determines if it is a valid S3 Uri
-
-        Parameters
-        ----------
-        uri str, required
-            Uri to check
-
-        Returns
-        -------
-        bool
-            Returns True if the uri given is an S3 uri, otherwise False
-
-        """
-        return ReplaceLocalCodeUri.is_s3_uri(uri)
 
     @staticmethod
     def _update_to_s3_uri(property_key, resource_property_dict, s3_uri_value="s3://bucket/value"):
@@ -116,7 +93,7 @@ class SamTemplateValidator:
         uri_property = resource_property_dict.get(property_key, ".")
 
         # ignore if dict or already an S3 Uri
-        if isinstance(uri_property, dict) or ReplaceLocalCodeUri.is_s3_uri(uri_property):
+        if isinstance(uri_property, dict) or external_is_s3_uri(uri_property):
             return
 
         resource_property_dict[property_key] = s3_uri_value
