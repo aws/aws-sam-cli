@@ -60,8 +60,7 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
 )
 @click.option(
     "--bucket",
-    help="The name of the S3 bucket where this command uploads your CloudFormation template. This is required for"
-    "deployments of templates sized greater than 51,200 bytes.",
+    help="The ARN of the Amazon S3 bucket to hold the AWS SAM artifacts.",
     required=False,
 )
 @click.option(
