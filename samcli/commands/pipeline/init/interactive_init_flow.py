@@ -57,10 +57,10 @@ class InteractiveInitFlow:
             dedent(
                 """\
 
-                sam pipeline init generates a pipeline configuration file that you can use to connect your
-                AWS account(s) to your CI/CD system. We will guide you through the process to
-                bootstrap resources for each stage, then walk through the details necessary for
-                creating the pipeline config file.
+                sam pipeline init generates a pipeline configuration file that your CI/CD system
+                can use to deploy serverless applications using AWS SAM. 
+                We will guide you through the process to bootstrap resources for each stage,
+                then walk through the details necessary for creating the pipeline config file.
 
                 Please ensure you are in the root folder of your SAM application before you begin.
                 """
