@@ -25,6 +25,7 @@ class BottleNecks:
 
     def ask_entry_point_question(self):
         entry_points = self.graph.get_entry_points()
+        entry_point_holder = []
 
         # All entry points must be calcualted before info can be displayed
         while entry_points != []:
@@ -43,10 +44,14 @@ class BottleNecks:
             click.echo("")
 
             current_entry_point = entry_points.pop(user_input - 1)
+            entry_point_holder.append(current_entry_point)
 
             self.ask_bottle_neck_questions(current_entry_point)
 
             click.echo("")
+
+        for entry_point in entry_point_holder:
+            self.graph.add_entry_point(entry_point)
 
         return
 

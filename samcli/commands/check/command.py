@@ -43,6 +43,8 @@ from .print_results import PrintResults
 
 from samcli.commands.check.lib.resource_provider import ResourceProvider
 
+from samcli.commands.check.lib.save_data import SaveGraphData
+
 
 SHORT_HELP = "Checks template for bottle necks."
 
@@ -73,34 +75,27 @@ LOG = logging.getLogger(__name__)
 )
 @configuration_option(provider=TomlProvider(section="parameters"))
 @template_option_without_build
-# options go here with this format
-# @click.option(
-#     "--test",
-#     "-t",
-#     required=False,
-#     is_flag=True,
-#     help="Test number 1",
-# )
+@click.option(
+    "--load",
+    required=False,
+    is_flag=True,
+    help="Load data in the config file",
+)
 @aws_creds_options
 @cli_framework_options
 @pass_context
 @track_command
 @check_newer_version
 @print_cmdline_args
-def cli(
-    ctx,
-    template_file,
-    config_file,
-    config_env,
-):
+def cli(ctx, template_file, config_file, config_env, load):
     """
     `sam deploy` command entry point
     """
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
-    do_cli(ctx, template_file)  # pragma: no cover
+    do_cli(ctx, template_file, config_file, load)  # pragma: no cover
 
 
-def do_cli(ctx, template):
+def do_cli(ctx, template, config_file, load):
     """
     Implementation of the ``cli`` method
 
@@ -134,6 +129,9 @@ def do_cli(ctx, template):
     click.echo("... analyzing application template")
 
     graph = parse_template(template)
+    #######################Just for testing
+
+    ###############will put back lower when testing is done
 
     bottle_necks = BottleNecks(graph)
     bottle_necks.ask_entry_point_question()
@@ -144,9 +142,35 @@ def do_cli(ctx, template):
     pricing_calculations = PricingCalculations(graph)
     pricing_calculations.run_calculations()
 
+    # save_data = ask_to_save_data()
+
+    # if save_data:
+    #     save_graph_data = SaveGraphData(graph)
+    #     save_graph_data.save_to_config_file(config_file)
+
+    save_data = True
+
+    if save_data:
+        save_graph_data = SaveGraphData(graph)
+        save_graph_data.save_to_config_file(config_file)
+
     results = PrintResults(graph, pricing_calculations.get_lambda_pricing_results())
     results.print_all_pricing_results()
     results.print_bottle_neck_results()
+
+
+def ask_to_save_data():
+    correct_input = False
+    while not correct_input:
+        user_input = click.prompt("Would you like to save this data in the samconfig file for future use? [y/n]")
+        user_input = user_input.lower()
+
+        if user_input == "y":
+            return True
+        elif user_input == "n":
+            return False
+        else:
+            click.echo("Please enter a valid responce.")
 
 
 def parse_template(template):

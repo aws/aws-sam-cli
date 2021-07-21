@@ -22,10 +22,10 @@ class ResourceProvider:
 
         local_stacks = None
 
-        try:
+        try:  # use open, nor fdopen
             with os.fdopen(new_file, "w") as tmp:
                 tmp.write(yaml_dump(self.template))
-                tmp.close()
+                tmp.close()  # Don't need this.
 
                 local_stacks = SamLocalStackProvider.get_stacks(path)[0][0][4]
 

@@ -29,9 +29,9 @@ class TestResourceProvider(TestCase):
 
         resource_provider = ResourceProvider(template_mock)
 
-        # result = resource_provider.get_local_stacks()
+        result = resource_provider.get_local_stacks()
 
-        # self.assertEqual(local_stacks_mock, result)
+        self.assertEqual(local_stacks_mock, result)
 
     @patch("samcli.commands.check.lib.resource_provider.ApiGateway")
     @patch("samcli.commands.check.lib.resource_provider.LambdaFunctionPermission")
