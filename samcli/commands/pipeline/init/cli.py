@@ -17,7 +17,7 @@ serverless applications using AWS SAM.
 
 Before using sam pipeline init, you must bootstrap the necessary resources for each stage in your pipeline.
 You can do this by running sam pipeline init --bootstrap to be guided through the setup and configuration
-file generation process, or refer to resources you have previously created with the sam pipeline bootstrap command. 
+file generation process, or refer to resources you have previously created with the sam pipeline bootstrap command.
 """
 
 

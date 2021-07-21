@@ -58,7 +58,7 @@ class InteractiveInitFlow:
                 """\
 
                 sam pipeline init generates a pipeline configuration file that your CI/CD system
-                can use to deploy serverless applications using AWS SAM. 
+                can use to deploy serverless applications using AWS SAM.
                 We will guide you through the process to bootstrap resources for each stage,
                 then walk through the details necessary for creating the pipeline config file.
 

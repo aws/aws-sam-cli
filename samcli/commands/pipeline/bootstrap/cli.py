@@ -158,7 +158,7 @@ def do_cli(
                     sam pipeline bootstrap generates the required AWS infrastructure resources to connect
                     to your CI/CD system. This step must be run for each deployment stage in your pipeline,
                     prior to running the sam pipeline init command.
-                    
+
                     We will ask for [1] stage definition, [2] account details, and
                     [3] references to existing resources in order to bootstrap these pipeline resources.
                     """
