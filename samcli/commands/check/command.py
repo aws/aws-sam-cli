@@ -3,6 +3,7 @@ CLI command for "deploy" command
 """
 import os
 import ast
+from samtranslator.model import sam_resources
 import yaml
 
 import logging
@@ -44,6 +45,8 @@ from .print_results import PrintResults
 from samcli.commands.check.lib.resource_provider import ResourceProvider
 
 from samcli.commands.check.lib.save_data import SaveGraphData
+
+from samcli.commands.check.lib.load_data import LoadData
 
 
 SHORT_HELP = "Checks template for bottle necks."
@@ -102,6 +105,28 @@ def do_cli(ctx, template, config_file, load):
     Translate template into CloudFormation yaml format
     """
 
+    if load:
+        load_data = LoadData()
+        graph = load_data.generate_graph_from_toml(config_file)
+
+        bottle_neck_calculations = BottleNeckCalculations(graph)
+        bottle_neck_calculations.run_calculations()
+
+        pricing_calculations = PricingCalculations(graph)
+        pricing_calculations.run_calculations()
+
+        save_data = False
+
+        if save_data:
+            save_graph_data = SaveGraphData(graph)
+            save_graph_data.save_to_config_file(config_file)
+
+        results = PrintResults(graph, pricing_calculations.get_lambda_pricing_results())
+        results.print_all_pricing_results()
+        results.print_bottle_neck_results()
+
+        return
+
     # acquire template and policies
     sam_template = _read_sam_file(template)
     iam_client = boto3.client("iam")
@@ -129,9 +154,6 @@ def do_cli(ctx, template, config_file, load):
     click.echo("... analyzing application template")
 
     graph = parse_template(template)
-    #######################Just for testing
-
-    ###############will put back lower when testing is done
 
     bottle_necks = BottleNecks(graph)
     bottle_necks.ask_entry_point_question()
@@ -142,13 +164,7 @@ def do_cli(ctx, template, config_file, load):
     pricing_calculations = PricingCalculations(graph)
     pricing_calculations.run_calculations()
 
-    # save_data = ask_to_save_data()
-
-    # if save_data:
-    #     save_graph_data = SaveGraphData(graph)
-    #     save_graph_data.save_to_config_file(config_file)
-
-    save_data = True
+    save_data = ask_to_save_data()
 
     if save_data:
         save_graph_data = SaveGraphData(graph)

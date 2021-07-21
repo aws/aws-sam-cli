@@ -2,7 +2,7 @@ import os
 
 import click
 
-from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
+from samcli.lib.config.samconfig import SamConfig, DEFAULT_CONFIG_FILE_NAME
 
 
 class SaveGraphData:
@@ -80,7 +80,7 @@ class SaveGraphData:
         """
         Saves the graph data into the samconfig.toml file
         """
-        samconfig = self.get_config_ctx(config_file)
+        samconfig = get_config_ctx(config_file)
 
         resources_to_analyze_toml = {}
         lambda_function_pricing_info_toml = {}
@@ -99,18 +99,17 @@ class SaveGraphData:
         samconfig.put(["load"], "graph", "all_graph_data", graph_dict, "check")
         samconfig.flush()
 
-        result = samconfig.get_all(["load"], "graph", "check")
 
-    def get_config_ctx(self, config_file=None):
-        """
-        Gets the samconfig file so it can be modified
-        """
-        path = os.path.realpath("")
-        ctx = click.get_current_context()
+def get_config_ctx(config_file=None):
+    """
+    Gets the samconfig file so it can be modified
+    """
+    path = os.path.realpath("")
+    ctx = click.get_current_context()
 
-        samconfig_dir = getattr(ctx, "samconfig_dir", None)
-        samconfig = SamConfig(
-            config_dir=samconfig_dir if samconfig_dir else SamConfig.config_dir(template_file_path=path),
-            filename=config_file or DEFAULT_CONFIG_FILE_NAME,
-        )
-        return samconfig
+    samconfig_dir = getattr(ctx, "samconfig_dir", None)
+    samconfig = SamConfig(
+        config_dir=samconfig_dir if samconfig_dir else SamConfig.config_dir(template_file_path=path),
+        filename=config_file or DEFAULT_CONFIG_FILE_NAME,
+    )
+    return samconfig
