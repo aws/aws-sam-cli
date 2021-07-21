@@ -12,12 +12,20 @@ from samtranslator.translator.managed_policy_translator import ManagedPolicyLoad
 from samtranslator.translator.translator import Translator
 from samtranslator.public.exceptions import InvalidDocumentException
 from samtranslator.parser import parser
+
 from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
+from samcli.commands.check.bottle_necks import BottleNecks
+from samcli.commands.check.graph_context import GraphContext
+from samcli.commands.check.resources.LambdaFunction import LambdaFunction
+
 from samcli.yamlhelper import yaml_parse
 
-from samcli.lib.replace_uri.replace_uri import replace_local_codeuri as external_replace_local_codeuri
+from samcli.lib.replace_uri.replace_uri import replace_local_codeuri
 from samcli.lib.samlib.wrapper import SamTranslatorWrapper
+from samcli.lib.providers.sam_function_provider import SamFunctionProvider
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from ..exceptions import InvalidSamDocumentException
+
 
 LOG = logging.getLogger(__name__)
 
@@ -40,6 +48,30 @@ class CheckContext:
 
         LOG.info("... analyzing application template")
 
+        graph = self.parse_template()
+
+        bottle_necks = BottleNecks(graph)
+        bottle_necks.ask_entry_point_question()
+
+    def parse_template(self):
+        all_lambda_functions = []
+
+        # template path
+        path = os.path.realpath("template.yaml")
+
+        # Get all lambda functions
+        local_stacks = SamLocalStackProvider.get_stacks(path)[0]
+        function_provider = SamFunctionProvider(local_stacks)
+        functions = function_provider.get_all()  # List of all functions in the stacks
+        for stack_function in functions:
+            new_lambda_function = LambdaFunction(stack_function, "AWS::Lambda::Function")
+            all_lambda_functions.append(new_lambda_function)
+
+        # After all resources have been parsed from template, pass them into the graph
+        graph_context = GraphContext(all_lambda_functions)
+
+        return graph_context.generate()
+
     def transform_template(self):
         """
         Takes a sam template or a CFN json template and converts it into a CFN yaml template
@@ -49,7 +81,7 @@ class CheckContext:
 
         original_template = self.read_sam_file()
 
-        updated_template = external_replace_local_codeuri(original_template)
+        updated_template = replace_local_codeuri(original_template)
 
         sam_translator = Translator(
             managed_policy_map=managed_policy_map,
