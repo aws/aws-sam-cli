@@ -4,6 +4,7 @@ import tempfile
 import uuid
 import json
 import time
+import logging
 from pathlib import Path
 from unittest import TestCase
 
@@ -11,6 +12,7 @@ import boto3
 
 from tests.testing_utils import run_command
 
+LOG = logging.getLogger(__name__)
 SLEEP = 3
 
 
@@ -79,6 +81,21 @@ class PackageIntegBase(TestCase):
     def tearDown(self):
         super().tearDown()
 
+    @classmethod
+    def tearDownClass(cls):
+        # If the class doesn't use pre-created bucket & ECR, delete them
+        if not cls.pre_created_bucket:
+            for obj in cls.s3_bucket.objects.all():
+                obj.delete()
+            cls.s3_bucket.delete()
+            time.sleep(SLEEP)
+        if not cls.pre_created_ecr_repo:
+            repo_name = cls.ecr_repo_name.split("/")[-1]
+            cls.ecr.delete_repository(repositoryName=repo_name, force=True)
+            time.sleep(SLEEP)
+
+        super().tearDownClass()
+
     def base_command(self):
         command = "sam"
         if os.getenv("SAM_CLI_DEV"):
@@ -101,7 +118,6 @@ class PackageIntegBase(TestCase):
         image_repository=None,
         image_repositories=None,
         resolve_s3=False,
-        cdk_app=None,
     ):
         command_list = [self.base_command(), "package"]
 
