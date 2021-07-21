@@ -1,17 +1,11 @@
-import os
-import pathlib
-import re
 import shutil
 import logging
 
-from subprocess import Popen, PIPE, TimeoutExpired
 import tempfile
 
 from unittest import skipIf
 from parameterized import parameterized, param
 
-from samcli.lib.utils.hash import dir_checksum, file_checksum
-from samcli.lib.warnings.sam_cli_warning import CodeDeployWarning
 from .package_integ_base import CdkPackageIntegPythonBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, run_command
 
@@ -24,7 +18,6 @@ LOG = logging.getLogger(__name__)
 
 @skipIf(SKIP_PACKAGE_TESTS, "Skip package tests in CI/CD only")
 class TestPackageCdkPythonZip(CdkPackageIntegPythonBase):
-
     @parameterized.expand(
         [
             "aws-lambda-function",
@@ -96,7 +89,7 @@ class TestPackageCdkPythonZip(CdkPackageIntegPythonBase):
                     f"Successfully packaged artifacts and wrote output template to file {output_template.name}",
                     encoding="utf-8",
                 ),
-                process_execute.stdout
+                process_execute.stdout,
             )
 
     @parameterized.expand(
@@ -128,7 +121,7 @@ class TestPackageCdkPythonZip(CdkPackageIntegPythonBase):
                     f"Successfully packaged artifacts and wrote output template to file {output_template.name}",
                     encoding="utf-8",
                 ),
-                process_execute.stdout
+                process_execute.stdout,
             )
 
     @parameterized.expand(
@@ -162,7 +155,7 @@ class TestPackageCdkPythonZip(CdkPackageIntegPythonBase):
                         f"Successfully packaged artifacts and wrote output template to file {output_template.name}",
                         encoding="utf-8",
                     ),
-                    process_execute.stdout
+                    process_execute.stdout,
                 )
 
     @parameterized.expand(
@@ -195,7 +188,7 @@ class TestPackageCdkPythonZip(CdkPackageIntegPythonBase):
                     f"Successfully packaged artifacts and wrote output template to file {output_template.name}",
                     encoding="utf-8",
                 ),
-                process_execute.stdout
+                process_execute.stdout,
             )
 
     @parameterized.expand(
@@ -228,7 +221,7 @@ class TestPackageCdkPythonZip(CdkPackageIntegPythonBase):
                     f"Successfully packaged artifacts and wrote output template to file {output_template.name}",
                     encoding="utf-8",
                 ),
-                process_execute.stdout
+                process_execute.stdout,
             )
 
     @parameterized.expand(
@@ -260,7 +253,7 @@ class TestPackageCdkPythonZip(CdkPackageIntegPythonBase):
                     f"Successfully packaged artifacts and wrote output template to file {output_template.name}",
                     encoding="utf-8",
                 ),
-                process_execute.stdout
+                process_execute.stdout,
             )
 
     @parameterized.expand([(True,), (False,)])
@@ -295,5 +288,3 @@ class TestPackageCdkPythonZip(CdkPackageIntegPythonBase):
                     upload_message,
                     process_execute.stderr,
                 )
-
-

@@ -1,19 +1,12 @@
 import os
-import pathlib
-import re
 import shutil
 import logging
 
-from subprocess import Popen, PIPE, TimeoutExpired
-import tempfile
-
 from unittest import skipIf
-from parameterized import parameterized, param
+from parameterized import parameterized
 
 import docker
 
-from samcli.lib.utils.hash import dir_checksum, file_checksum
-from samcli.lib.warnings.sam_cli_warning import CodeDeployWarning
 from .package_integ_base import CdkPackageIntegPythonBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, run_command
 

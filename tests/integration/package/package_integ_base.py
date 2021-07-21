@@ -153,7 +153,6 @@ class PackageIntegBase(TestCase):
 
 
 class CdkPackageIntegBase(PackageIntegBase):
-
     def setUp(self):
         # Sythensizing a CDK app produces a Cloud Assembly. To simulate an actual working setup, we copy the CDK app
         # from test_data to a scratch dir as if the scratch dir is the working directory.
@@ -198,7 +197,7 @@ class CdkPackageIntegBase(PackageIntegBase):
             metadata=metadata,
             image_repository=image_repository,
             image_repositories=image_repositories,
-            resolve_s3=resolve_s3
+            resolve_s3=resolve_s3,
         )
 
         if cdk_app:
@@ -221,12 +220,7 @@ class CdkPackageIntegPythonBase(CdkPackageIntegBase):
 
     def _install_deps(self):
         if os.path.isfile(f"{self.working_dir}/requirements.txt"):
-            pip_command = [
-                self.venv_pip,
-                "install",
-                "-r",
-                "requirements.txt"
-            ]
+            pip_command = [self.venv_pip, "install", "-r", "requirements.txt"]
             run_command(pip_command, cwd=self.working_dir)
 
     @property
