@@ -85,7 +85,7 @@ class BootstrapIntegBase(PipelineBase):
             session = boto3.session.Session()
             s3_client = session.resource("s3")
             for bucket in buckets:
-                bucket = s3_client.Bucket(bucket)
+                bucket = s3_client.Bucket(bucket.get("PhysicalResourceId"))
                 bucket.object_versions.delete()
         except botocore.exceptions.ClientError:
             """No need to fail in cleanup"""
