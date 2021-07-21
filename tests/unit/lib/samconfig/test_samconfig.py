@@ -1,11 +1,11 @@
 import os
 from pathlib import Path
-
 from unittest import TestCase
 
 from samcli.lib.config.exceptions import SamConfigVersionException
+from samcli.lib.config.samconfig import SamConfig, DEFAULT_CONFIG_FILE_NAME, DEFAULT_GLOBAL_CMDNAME, DEFAULT_ENV
 from samcli.lib.config.version import VERSION_KEY, SAM_CONFIG_VERSION
-from samcli.lib.config.samconfig import SamConfig, DEFAULT_CONFIG_FILE_NAME, DEFAULT_GLOBAL_CMDNAME
+from samcli.lib.utils import osutils
 
 
 class TestSamConfig(TestCase):
@@ -27,13 +27,24 @@ class TestSamConfig(TestCase):
         self.assertTrue(self.samconfig.sanity_check())
         self.assertEqual(SAM_CONFIG_VERSION, self.samconfig.document.get(VERSION_KEY))
 
-    def _update_samconfig(self, cmd_names, section, key, value, env):
-        self.samconfig.put(cmd_names=cmd_names, section=section, key=key, value=value, env=env)
+    def _update_samconfig(self, cmd_names, section, key, value, env=None):
+        if env:
+            self.samconfig.put(cmd_names=cmd_names, section=section, key=key, value=value, env=env)
+        else:
+            self.samconfig.put(cmd_names=cmd_names, section=section, key=key, value=value)
         self.samconfig.flush()
         self._check_config_file()
 
     def test_init(self):
         self.assertEqual(self.samconfig.filepath, Path(self.config_dir, DEFAULT_CONFIG_FILE_NAME))
+
+    def test_get_stage_names(self):
+        self.assertEqual(self.samconfig.get_stage_names(), [])
+        self._update_samconfig(cmd_names=["myCommand"], section="mySection", key="port", value=5401, env="stage1")
+        self._update_samconfig(cmd_names=["myCommand"], section="mySection", key="port", value=5401, env="stage2")
+        self.assertEqual(self.samconfig.get_stage_names(), ["stage1", "stage2"])
+        self._update_samconfig(cmd_names=["myCommand"], section="mySection", key="port", value=5401)
+        self.assertEqual(self.samconfig.get_stage_names(), ["stage1", "stage2", DEFAULT_ENV])
 
     def test_param_overwrite(self):
         self._update_samconfig(cmd_names=["myCommand"], section="mySection", key="port", value=5401, env="myEnv")
@@ -195,3 +206,18 @@ class TestSamConfig(TestCase):
         self.samconfig.put(cmd_names=["local", "start", "api"], section="parameters", key="skip_pull_image", value=True)
         self.samconfig.sanity_check()
         self.assertEqual(self.samconfig.document.get(VERSION_KEY), 0.2)
+
+    def test_write_config_file_will_create_the_file_if_not_exist(self):
+        with osutils.mkdir_temp(ignore_errors=True) as tempdir:
+            non_existing_dir = os.path.join(tempdir, "non-existing-dir")
+            non_existing_file = "non-existing-file"
+            samconfig = SamConfig(config_dir=non_existing_dir, filename=non_existing_file)
+
+            self.assertFalse(samconfig.exists())
+
+            samconfig.flush()
+            self.assertFalse(samconfig.exists())  # nothing to write, no need to create the file
+
+            samconfig.put(cmd_names=["any", "command"], section="any-section", key="any-key", value="any-value")
+            samconfig.flush()
+            self.assertTrue(samconfig.exists())
