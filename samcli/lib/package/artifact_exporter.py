@@ -16,7 +16,7 @@ Exporting resources defined in the cloudformation template to the cloud.
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 import os
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 from botocore.utils import set_value_from_jmespath
 
@@ -33,6 +33,7 @@ from samcli.lib.package.packageable_resources import (
     METADATA_EXPORT_LIST,
     GLOBAL_EXPORT_DICT,
     ResourceZip,
+    ECRResource,
 )
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Uploaders, Destination
@@ -239,7 +240,7 @@ class Template:
 
         return self.template_dict
 
-    def delete(self):
+    def delete(self, retain_resources: List):
         """
         Deletes all the artifacts referenced by the given Cloudformation template
         """
@@ -255,7 +256,7 @@ class Template:
             resource_deletion_policy = resource.get("DeletionPolicy", None)
             # If the deletion policy is set to Retain,
             # do not delete the artifact for the resource.
-            if resource_deletion_policy != "Retain":
+            if resource_deletion_policy != "Retain" and resource_id not in retain_resources:
                 for exporter_class in self.resources_to_export:
                     if exporter_class.RESOURCE_TYPE != resource_type:
                         continue
@@ -264,6 +265,28 @@ class Template:
                     # Delete code resources
                     exporter = exporter_class(self.uploaders, None)
                     exporter.delete(resource_id, resource_dict)
+
+    def get_ecr_repos(self):
+        """
+        Get all the ecr repos from the template
+        """
+        ecr_repos = {}
+        if "Resources" not in self.template_dict:
+            return ecr_repos
+
+        self._apply_global_values()
+        for resource_id, resource in self.template_dict["Resources"].items():
+
+            resource_type = resource.get("Type", None)
+            resource_dict = resource.get("Properties", {})
+            resource_deletion_policy = resource.get("DeletionPolicy", None)
+            if resource_deletion_policy == "Retain" or resource_type != "AWS::ECR::Repository":
+                continue
+
+            ecr_resource = ECRResource(self.uploaders, None)
+            ecr_repos[resource_id] = {"Repository": ecr_resource.get_property_value(resource_dict)}
+
+        return ecr_repos
 
     def get_s3_info(self):
         """

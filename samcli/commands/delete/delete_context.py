@@ -2,18 +2,26 @@
 Delete a SAM stack
 """
 import logging
+
+import json
 import boto3
 
 
 import click
 from click import confirm
 from click import prompt
+
+from samcli.lib.utils.hash import str_checksum
 from samcli.cli.cli_config_file import TomlProvider
 from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
 from samcli.lib.delete.cf_utils import CfUtils
+
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.artifact_exporter import mktempfile, get_cf_template_name
 
+from samcli.cli.context import Context
+
+from samcli.commands.delete.exceptions import CfDeleteFailedStatusError
 
 from samcli.lib.package.artifact_exporter import Template
 from samcli.lib.package.ecr_uploader import ECRUploader
@@ -38,10 +46,12 @@ class DeleteContext:
         self.s3_prefix = None
         self.cf_utils = None
         self.s3_uploader = None
+        self.ecr_uploader = None
         self.uploaders = None
         self.cf_template_file_name = None
         self.delete_artifacts_folder = None
         self.delete_cf_template_file = None
+        self.companion_stack_name = None
 
     def __enter__(self):
         self.parse_config_file()
@@ -69,15 +79,13 @@ class DeleteContext:
             if not self.stack_name:
                 self.stack_name = config_options.get("stack_name", None)
             # If the stack_name is same as the one present in samconfig file,
-            # get the information about parameters if not specified by customer.
+            # get the information about parameters if not specified by user.
             if self.stack_name and self.stack_name == config_options.get("stack_name", None):
                 LOG.debug("Local config present and using the defined options")
                 if not self.region:
                     self.region = config_options.get("region", None)
-                    click.get_current_context().region = self.region
                 if not self.profile:
                     self.profile = config_options.get("profile", None)
-                    click.get_current_context().profile = self.profile
                 self.s3_bucket = config_options.get("s3_bucket", None)
                 self.s3_prefix = config_options.get("s3_prefix", None)
 
@@ -85,6 +93,16 @@ class DeleteContext:
         """
         Initialize all the clients being used by sam delete.
         """
+        if not self.region:
+            session = boto3.Session()
+            region = session.region_name
+            self.region = region if region else "us-east-1"
+
+        if self.profile:
+            Context.get_current_context().profile = self.profile
+        if self.region:
+            Context.get_current_context().region = self.region
+
         boto_config = get_boto_config_with_user_agent()
 
         # Define cf_client based on the region as different regions can have same stack-names
@@ -95,22 +113,21 @@ class DeleteContext:
         s3_client = boto3.client("s3", region_name=self.region if self.region else None, config=boto_config)
         ecr_client = boto3.client("ecr", region_name=self.region if self.region else None, config=boto_config)
 
-        self.region = s3_client._client_config.region_name if s3_client else self.region  # pylint: disable=W0212
         self.s3_uploader = S3Uploader(s3_client=s3_client, bucket_name=self.s3_bucket, prefix=self.s3_prefix)
 
-        ecr_uploader = ECRUploader(docker_client=None, ecr_client=ecr_client, ecr_repo=None, ecr_repo_multi=None)
+        self.ecr_uploader = ECRUploader(docker_client=None, ecr_client=ecr_client, ecr_repo=None, ecr_repo_multi=None)
 
-        self.uploaders = Uploaders(self.s3_uploader, ecr_uploader)
+        self.uploaders = Uploaders(self.s3_uploader, self.ecr_uploader)
         self.cf_utils = CfUtils(cloudformation_client)
 
-    def guided_prompts(self):
+    def s3_prompts(self):
         """
-        Guided prompts asking customer to delete artifacts
+        Guided prompts asking user to delete s3 artifacts
         """
         # Note: s3_bucket and s3_prefix information is only
         # available if a local toml file is present or if
         # this information is obtained from the template resources and so if this
-        # information is not found, warn the customer that S3 artifacts
+        # information is not found, warn the user that S3 artifacts
         # will need to be manually deleted.
 
         if not self.no_prompts and self.s3_bucket:
@@ -118,7 +135,7 @@ class DeleteContext:
                 self.delete_artifacts_folder = confirm(
                     click.style(
                         "\tAre you sure you want to delete the folder"
-                        + f" {self.s3_prefix} in S3 which contains the artifacts?",
+                        f" {self.s3_prefix} in S3 which contains the artifacts?",
                         bold=True,
                     ),
                     default=False,
@@ -137,6 +154,85 @@ class DeleteContext:
             else:
                 self.delete_cf_template_file = True
 
+    def ecr_companion_stack_prompts(self):
+        """
+        User prompt to delete the ECR companion stack.
+        """
+        click.echo(f"\tFound ECR Companion Stack {self.companion_stack_name}")
+        if not self.no_prompts:
+            delete_ecr_companion_stack_prompt = confirm(
+                click.style(
+                    "\tDo you you want to delete the ECR companion stack"
+                    f" {self.companion_stack_name} in the region {self.region} ?",
+                    bold=True,
+                ),
+                default=False,
+            )
+            return delete_ecr_companion_stack_prompt
+        return True
+
+    def ecr_repos_prompts(self, template: Template):
+        """
+        User prompts to delete the ECR repositories for the given template.
+
+        :param template: Template to get the ECR repositories.
+        """
+        retain_repos = []
+        ecr_repos = template.get_ecr_repos()
+
+        if not self.no_prompts:
+            for logical_id in ecr_repos:
+                # Get all the repos from the companion stack
+                repo = ecr_repos[logical_id]
+                repo_name = repo["Repository"]
+
+                delete_repo = confirm(
+                    click.style(
+                        f"\tECR repository {repo_name}"
+                        " may not be empty. Do you want to delete the repository and all the images in it ?",
+                        bold=True,
+                    ),
+                    default=False,
+                )
+                if not delete_repo:
+                    retain_repos.append(logical_id)
+        return retain_repos
+
+    def delete_ecr_companion_stack(self):
+        """
+        Delete the ECR companion stack and ECR repositories based
+        on user input.
+        """
+        delete_ecr_companion_stack_prompt = self.ecr_companion_stack_prompts()
+        if delete_ecr_companion_stack_prompt or self.no_prompts:
+            cf_ecr_companion_stack = self.cf_utils.get_stack_template(self.companion_stack_name, TEMPLATE_STAGE)
+            ecr_stack_template_str = cf_ecr_companion_stack.get("TemplateBody", None)
+            ecr_stack_template_str = json.dumps(ecr_stack_template_str, indent=4, ensure_ascii=False)
+
+            ecr_companion_stack_template = Template(
+                template_path=None,
+                parent_dir=None,
+                uploaders=self.uploaders,
+                code_signer=None,
+                template_str=ecr_stack_template_str,
+            )
+
+            retain_repos = self.ecr_repos_prompts(ecr_companion_stack_template)
+
+            # Delete the repos created by ECR companion stack if not retained
+            ecr_companion_stack_template.delete(retain_resources=retain_repos)
+
+            click.echo(f"\t- Deleting ECR Companion Stack {self.companion_stack_name}")
+            try:
+                # If delete_stack fails and its status changes to DELETE_FAILED, retain
+                # the user input repositories and delete the stack.
+                self.cf_utils.delete_stack(stack_name=self.companion_stack_name)
+                self.cf_utils.wait_for_delete(stack_name=self.companion_stack_name)
+                LOG.debug("Deleted ECR Companion Stack: %s", self.companion_stack_name)
+            except CfDeleteFailedStatusError:
+                LOG.debug("delete_stack resulted failed and so re-try with retain_resources")
+                self.cf_utils.delete_stack(stack_name=self.companion_stack_name, retain_resources=retain_repos)
+
     def delete(self):
         """
         Delete method calls for Cloudformation stacks and S3 and ECR artifacts
@@ -145,12 +241,19 @@ class DeleteContext:
         cf_template = self.cf_utils.get_stack_template(self.stack_name, TEMPLATE_STAGE)
         template_str = cf_template.get("TemplateBody", None)
 
+        if isinstance(template_str, dict):
+            template_str = json.dumps(template_str, indent=4, ensure_ascii=False)
+
         # Get the cloudformation template name using template_str
         with mktempfile() as temp_file:
             self.cf_template_file_name = get_cf_template_name(temp_file, template_str, "template")
 
         template = Template(
-            template_path=None, parent_dir=None, uploaders=self.uploaders, code_signer=None, template_str=template_str
+            template_path=None,
+            parent_dir=None,
+            uploaders=self.uploaders,
+            code_signer=None,
+            template_str=template_str,
         )
 
         # If s3 info is not available, try to obtain it from CF
@@ -163,16 +266,21 @@ class DeleteContext:
             self.s3_prefix = s3_info["s3_prefix"]
             self.s3_uploader.prefix = self.s3_prefix
 
-        self.guided_prompts()
+        self.s3_prompts()
 
-        # Delete the primary stack
-        click.echo(f"\n\t- Deleting Cloudformation stack {self.stack_name}")
-        self.cf_utils.delete_stack(stack_name=self.stack_name)
-        self.cf_utils.wait_for_delete(self.stack_name)
-        LOG.debug("Deleted Cloudformation stack: %s", self.stack_name)
+        retain_resources = self.ecr_repos_prompts(template)
 
-        # Delete the artifacts
-        template.delete()
+        # ECR companion stack delete prompts, if it exists
+        parent_stack_hash = str_checksum(self.stack_name)
+        possible_companion_stack_name = f"{self.stack_name[:104]}-{parent_stack_hash[:8]}-CompanionStack"
+        ecr_companion_stack_exists = self.cf_utils.has_stack(stack_name=possible_companion_stack_name)
+        if ecr_companion_stack_exists:
+            LOG.debug("ECR Companion stack found for the input stack")
+            self.companion_stack_name = possible_companion_stack_name
+            self.delete_ecr_companion_stack()
+
+        # Delete the artifacts and retain resources user selected not to delete
+        template.delete(retain_resources=retain_resources)
 
         # Delete the CF template file in S3
         if self.delete_cf_template_file:
@@ -182,24 +290,33 @@ class DeleteContext:
         elif self.delete_artifacts_folder:
             self.s3_uploader.delete_prefix_artifacts()
 
-        # If s3_bucket information is not available
-        elif not self.s3_bucket:
+        # Delete the primary input stack
+        try:
+            click.echo(f"\t- Deleting Cloudformation stack {self.stack_name}")
+            self.cf_utils.delete_stack(stack_name=self.stack_name)
+            self.cf_utils.wait_for_delete(self.stack_name)
+            LOG.debug("Deleted Cloudformation stack: %s", self.stack_name)
+        except CfDeleteFailedStatusError:
+            LOG.debug("delete_stack resulted failed and so re-try with retain_resources")
+            self.cf_utils.delete_stack(stack_name=self.stack_name, retain_resources=retain_resources)
+
+        # If s3_bucket information is not available, warn the user
+        if not self.s3_bucket:
             LOG.debug("Cannot delete s3 files as no s3_bucket found")
             click.secho(
-                "\nWarning: s3_bucket and s3_prefix information cannot be obtained,"
-                " delete the files manually if required",
+                "\nWarning: s3_bucket and s3_prefix information could not be obtained from local config file"
+                " or cloudformation template, delete the s3 files manually if required",
                 fg="yellow",
             )
 
     def run(self):
         """
-        Delete the stack based on the argument provided by customers and samconfig.toml.
+        Delete the stack based on the argument provided by user and samconfig.toml.
         """
         if not self.no_prompts:
             delete_stack = confirm(
                 click.style(
-                    f"\tAre you sure you want to delete the stack {self.stack_name}"
-                    + f" in the region {self.region} ?",
+                    f"\tAre you sure you want to delete the stack {self.stack_name}" f" in the region {self.region} ?",
                     bold=True,
                 ),
                 default=False,
@@ -214,4 +331,7 @@ class DeleteContext:
                 click.echo("\nDeleted successfully")
             else:
                 LOG.debug("Input stack does not exists on Cloudformation")
-                click.echo(f"Error: The input stack {self.stack_name} does not exist on Cloudformation")
+                click.echo(
+                    f"Error: The input stack {self.stack_name} does"
+                    f" not exist on Cloudformation in the region {self.region}"
+                )

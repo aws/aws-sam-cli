@@ -16,7 +16,6 @@ from samcli.commands.package.exceptions import (
     DockerPushFailedError,
     DockerLoginFailedError,
     ECRAuthorizationError,
-    ImageNotFoundError,
     DeleteArtifactFailedError,
 )
 from samcli.lib.package.image_utils import tag_translation
@@ -114,35 +113,47 @@ class ECRUploader:
                 # Image not found
                 image_details = resp["failures"][0]
                 if image_details["failureCode"] == "ImageNotFound":
-                    LOG.error("ImageNotFound Exception")
-                    message_fmt = (
-                        "Could not delete image for {property_name}"
-                        " parameter of {resource_id} resource as it does not exist. \n"
+                    LOG.debug(
+                        "Could not delete image for %s parameter of %s resource as it does not exist. \n",
+                        property_name,
+                        resource_id,
                     )
-                    raise ImageNotFoundError(resource_id, property_name, message_fmt=message_fmt)
-
-                LOG.error(
-                    "Could not delete the image for the resource %s. FailureCode: %s, FailureReason: %s",
-                    property_name,
-                    image_details["failureCode"],
-                    image_details["failureReason"],
-                )
-                raise DeleteArtifactFailedError(
-                    resource_id=resource_id, property_name=property_name, ex=image_details["failureReason"]
-                )
-
-            LOG.debug("Deleting ECR image with tag %s", image_tag)
-            click.echo(f"\t- Deleting ECR image {image_tag} in repository {repository}")
+                    click.echo(f"\t- Could not find image with tag {image_tag} in repository {repository}")
+                else:
+                    LOG.debug(
+                        "Could not delete the image for the resource %s. FailureCode: %s, FailureReason: %s",
+                        property_name,
+                        image_details["failureCode"],
+                        image_details["failureReason"],
+                    )
+                    click.echo(f"\t- Could not delete image with tag {image_tag} in repository {repository}")
+            else:
+                LOG.debug("Deleting ECR image with tag %s", image_tag)
+                click.echo(f"\t- Deleting ECR image {image_tag} in repository {repository}")
 
         except botocore.exceptions.ClientError as ex:
             # Handle Client errors such as RepositoryNotFoundException or InvalidParameterException
             LOG.error("DeleteArtifactFailedError Exception : %s", str(ex))
             raise DeleteArtifactFailedError(resource_id=resource_id, property_name=property_name, ex=ex) from ex
 
+    def delete_ecr_repository(self, physical_id: str):
+        """
+        Delete ECR repository using the physical_id
+
+        :param: physical_id of the repository to be deleted
+        """
+        try:
+            click.echo(f"\t- Deleting ECR repository {physical_id}")
+            self.ecr_client.delete_repository(repositoryName=physical_id, force=True)
+        except self.ecr_client.exceptions.RepositoryNotFoundException:
+            # If the repository is empty, cloudformation automatically deletes
+            # the repository when cf_client.delete_stack is called.
+            LOG.debug("Could not find repository %s", physical_id)
+
     @staticmethod
     def parse_image_url(image_uri: str) -> Dict:
         result = {}
-        registry_repo_tag = image_uri.split("/")
+        registry_repo_tag = image_uri.split("/", 1)
         repo_colon_image_tag = None
         if len(registry_repo_tag) == 1:
             # If there is no registry specified, e.g. repo:tag
