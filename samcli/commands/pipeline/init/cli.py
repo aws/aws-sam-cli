@@ -10,14 +10,14 @@ from samcli.cli.main import pass_context, common_options as cli_framework_option
 from samcli.commands.pipeline.init.interactive_init_flow import InteractiveInitFlow
 from samcli.lib.telemetry.metric import track_command
 
-SHORT_HELP = "Generates CI/CD pipeline configuration files."
+SHORT_HELP = "Generates a CI/CD pipeline configuration file."
 HELP_TEXT = """
-sam pipeline init generates a pipeline configuration file that you can use to connect your
-AWS account(s) to your CI/CD system. Before using sam pipeline init, you must
-bootstrap the necessary resources for each stage in your pipeline. You can do this
-by running sam pipeline init --bootstrap to be guided through the setup and configuration
-file generation process, or refer to resources you have previously created with the
-sam pipeline bootstrap command.
+This command generates a pipeline configuration file that your CI/CD system can use to deploy
+serverless applications using AWS SAM.
+
+Before using sam pipeline init, you must bootstrap the necessary resources for each stage in your pipeline.
+You can do this by running sam pipeline init --bootstrap to be guided through the setup and configuration
+file generation process, or refer to resources you have previously created with the sam pipeline bootstrap command.
 """
 
 
@@ -27,7 +27,7 @@ sam pipeline bootstrap command.
     "--bootstrap",
     is_flag=True,
     default=False,
-    help="Allow bootstrapping resources.",
+    help="Enable interactive mode that walks the user through creating necessary AWS infrastructure resources.",
 )
 @cli_framework_options
 @pass_context
