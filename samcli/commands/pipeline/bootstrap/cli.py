@@ -39,7 +39,8 @@ PIPELINE_CONFIG_FILENAME = "pipelineconfig.toml"
 )
 @click.option(
     "--stage",
-    help="The name of the corresponding stage. It is used as a suffix for the created resources.",
+    help="The name of the corresponding deployment stage. "
+         "It is used as a suffix for the created AWS infrastructure resources.",
     required=False,
 )
 @click.option(
