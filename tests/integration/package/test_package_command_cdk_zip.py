@@ -4,7 +4,7 @@ import logging
 import tempfile
 
 from unittest import skipIf
-from parameterized import parameterized, param
+from parameterized import parameterized
 
 from .package_integ_base import CdkPackageIntegPythonBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, run_command
