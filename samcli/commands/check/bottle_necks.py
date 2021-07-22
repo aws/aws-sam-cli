@@ -28,18 +28,16 @@ class BottleNecks:
 
             current_entry_point = entry_points.pop(user_input - 1)
 
-            self.ask_bottle_neck_questions(current_entry_point)
+            ask_bottle_neck_questions(current_entry_point)
 
             self.graph.add_resource_to_analyze(current_entry_point)
 
         click.echo("Running calculations...")
 
-    def ask_bottle_neck_questions(self, resource):
-        if resource is None:
-            return
 
-        if resource.get_resource_type() == "AWS::Lambda::Function":
-            lambda_bottle_neck_quesitons(resource)
+def ask_bottle_neck_questions(resource):
+    if resource.get_resource_type() == "AWS::Lambda::Function":
+        lambda_bottle_neck_quesitons(resource)
 
 
 def lambda_bottle_neck_quesitons(lambda_function):
