@@ -1,6 +1,6 @@
-from types import resolve_bases
-
-
+"""
+Super class for all resources
+"""
 class TemplateResource:
     def __init__(self, resource_object, resource_type):
         self.resource_object = resource_object

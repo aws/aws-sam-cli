@@ -1,3 +1,7 @@
+"""
+This class will generate the graph based on the template data.
+Connections between nodes will occur here.
+"""
 from .resources.Graph import Graph
 
 

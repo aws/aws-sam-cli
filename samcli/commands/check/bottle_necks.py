@@ -12,7 +12,7 @@ class BottleNecks:
     def ask(self, question, min_val=1, max_val=float("inf")):
         valid_user_input = False
         user_input = None
-        while valid_user_input is False:
+        while not valid_user_input:
             user_input = click.prompt(text=question, type=int)
             if user_input > max_val or user_input < min_val:
                 click.echo("Please enter a number within the range")
@@ -45,8 +45,6 @@ class BottleNecks:
             self.graph.add_resource_to_analyze(current_entry_point)
 
         click.echo("Running calculations...")
-
-        return
 
     def ask_bottle_neck_questions(self, resource):
         if resource is None:

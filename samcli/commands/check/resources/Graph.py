@@ -1,3 +1,6 @@
+"""
+Class for graph. All data is stored in the graph directly, or within nodes that are stored in the graph
+"""
 class Graph:
     def __init__(self):
         self.entry_points = []

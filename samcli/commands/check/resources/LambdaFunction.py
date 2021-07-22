@@ -1,4 +1,8 @@
-from .TemplateResource import TemplateResource
+"""
+Class object for Lambda Functions. Contains object from template, as well as all data for lambda functions,
+excluding pricing info
+"""
+from samcli.commands.check.resources.TemplateResource import TemplateResource
 
 
 class LambdaFunction(TemplateResource):
