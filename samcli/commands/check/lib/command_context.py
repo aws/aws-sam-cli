@@ -5,10 +5,8 @@ import os
 import functools
 import logging
 
-import boto3
 from boto3.session import Session
 
-from samtranslator.translator.managed_policy_translator import ManagedPolicyLoader
 from samtranslator.translator.translator import Translator
 from samtranslator.public.exceptions import InvalidDocumentException
 from samtranslator.parser import parser
