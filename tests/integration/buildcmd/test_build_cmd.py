@@ -2038,7 +2038,7 @@ class TestBuildWithCDKPluginWithApiGateway(CDKTestBase):
         project_name = "cdk-example-rest-api-gateway"
         self.verify_build_success(project_name)
         self.verify_included_expected_project_manifest()
-        body = f'{{"message": "Lambda was invoked successfully from APIGW."}}'
+        body = f'{{"message":"Lambda was invoked successfully from APIGW."}}'
         expected = {"body": body, "statusCode": 200}
         self.verify_invoke_built_function("CdkExampleRestApiGatewayStack/APIGWLambdaFunction", expected)
 
