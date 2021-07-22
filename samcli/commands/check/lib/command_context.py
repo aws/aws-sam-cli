@@ -5,6 +5,7 @@ import os
 import functools
 import logging
 
+
 from boto3.session import Session
 
 from samtranslator.translator.translator import Translator
@@ -23,7 +24,6 @@ from samcli.lib.samlib.wrapper import SamTranslatorWrapper
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from ..exceptions import InvalidSamDocumentException
-
 
 LOG = logging.getLogger(__name__)
 

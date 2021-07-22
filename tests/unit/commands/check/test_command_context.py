@@ -128,3 +128,4 @@ class TestCommandContext(TestCase):
         graph_context_mock.generate.assert_called_once()
 
         self.assertEqual(result, result_mock)
+
