@@ -1,5 +1,9 @@
 import os
+import shutil
+import subprocess
+import tempfile
 from pathlib import Path
+from typing import Dict, Any
 from unittest import TestCase
 from unittest.mock import patch, ANY
 
@@ -13,6 +17,7 @@ from samcli.commands.init import do_cli as init_cli
 from samcli.commands.init.init_templates import InitTemplates, APP_TEMPLATES_REPO_URL
 from samcli.lib.iac.interface import ProjectTypes
 from samcli.lib.init import GenerateProjectFailedError
+from samcli.lib.utils import osutils
 from samcli.lib.utils.git_repo import GitRepo
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 
@@ -43,6 +48,38 @@ class TestCli(TestCase):
         self.no_input = False
         self.extra_context = '{"project_name": "testing project", "runtime": "python3.6"}'
         self.extra_context_as_json = {"project_name": "testing project", "runtime": "python3.6"}
+
+    # setup cache for clone, so that if `git clone` is called multiple times on the same URL,
+    # only one clone will happen.
+    clone_cache: Dict[str, Path]
+    patcher: Any
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        # Make (url -> directory) cache to avoid cloning the same thing twice
+        cls.clone_cache = {}
+        cls.patcher = patch("samcli.lib.utils.git_repo.check_output", side_effect=cls.check_output_mock)
+        cls.patcher.start()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.patcher.stop()
+        for _, directory in cls.clone_cache.items():
+            shutil.rmtree(directory.parent)
+
+    @classmethod
+    def check_output_mock(cls, commands, cwd, stderr):
+        git_executable, _, url, clone_name = commands
+        if url not in cls.clone_cache:
+            tempdir = tempfile.NamedTemporaryFile(delete=False).name
+            subprocess.check_output(
+                [git_executable, "clone", url, clone_name],
+                cwd=tempdir,
+                stderr=stderr,
+            )
+            cls.clone_cache[url] = Path(tempdir, clone_name)
+
+        osutils.copytree(str(cls.clone_cache[url]), str(Path(cwd, clone_name)))
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
     @patch("samcli.commands.init.init_generator.generate_project")
