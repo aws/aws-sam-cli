@@ -1132,7 +1132,7 @@ class TestBuildWithBuildMethod(BuildIntegBase):
 
         # runtime is chosen based off current python version.
         runtime = self._get_python_version()
-        # BuildMethod is set to the ruby2.7, this should cause failure.
+        # BuildMethod is set to the ruby2.7, ruby build without Gemfile can still pass
         overrides = {"Runtime": runtime, "CodeUri": "Provided", "Handler": "main.handler", "BuildMethod": "ruby2.7"}
         manifest_path = os.path.join(self.test_data_path, "Provided", "requirements.txt")
 
@@ -1141,10 +1141,10 @@ class TestBuildWithBuildMethod(BuildIntegBase):
         )
 
         LOG.info("Running Command: {}".format(cmdlist))
-        # This will error out.
+
         command = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command.process.returncode, 0)
-        self.assertEqual(command.stdout.strip(), b"Continuing the build without dependencies")
+        self.assertIn("Continuing the build without dependencies", command.stderr.decode().strip())
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
 
