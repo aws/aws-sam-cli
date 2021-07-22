@@ -46,29 +46,10 @@ class CheckContext:
 
         LOG.info("... analyzing application template")
 
-        graph = self.parse_template()
+        graph = parse_template()
 
         bottle_necks = BottleNecks(graph)
         bottle_necks.ask_entry_point_question()
-
-    def parse_template(self):
-        all_lambda_functions = []
-
-        # template path
-        path = os.path.realpath("template.yaml")
-
-        # Get all lambda functions
-        local_stacks = SamLocalStackProvider.get_stacks(path)[0]
-        function_provider = SamFunctionProvider(local_stacks)
-        functions = function_provider.get_all()  # List of all functions in the stacks
-        for stack_function in functions:
-            new_lambda_function = LambdaFunction(stack_function, "AWS::Lambda::Function")
-            all_lambda_functions.append(new_lambda_function)
-
-        # After all resources have been parsed from template, pass them into the graph
-        graph_context = GraphContext(all_lambda_functions)
-
-        return graph_context.generate()
 
     def transform_template(self):
         """
@@ -115,3 +96,23 @@ class CheckContext:
             sam_template = yaml_parse(sam_template.read())
 
         return sam_template
+
+
+def parse_template():
+    all_lambda_functions = []
+
+    # template path
+    path = os.path.realpath("template.yaml")
+
+    # Get all lambda functions
+    local_stacks = SamLocalStackProvider.get_stacks(path)[0]
+    function_provider = SamFunctionProvider(local_stacks)
+    functions = function_provider.get_all()  # List of all functions in the stacks
+    for stack_function in functions:
+        new_lambda_function = LambdaFunction(stack_function, "AWS::Lambda::Function")
+        all_lambda_functions.append(new_lambda_function)
+
+    # After all resources have been parsed from template, pass them into the graph
+    graph_context = GraphContext(all_lambda_functions)
+
+    return graph_context.generate()

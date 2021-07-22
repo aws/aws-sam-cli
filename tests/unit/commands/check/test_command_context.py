@@ -6,12 +6,13 @@ from unittest.mock import Mock, patch
 
 from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
 
-from samcli.commands.check.lib.command_context import CheckContext
+from samcli.commands.check.lib.command_context import CheckContext, parse_template
 
 
 class TestCommandContext(TestCase):
+    @patch("samcli.commands.check.lib.command_context.parse_template")
     @patch("samcli.commands.check.lib.command_context.BottleNecks")
-    def test_run(self, patch_bottle_neck):
+    def test_run(self, patch_bottle_neck, patch_parse_template):
         region = Mock()
         profile = Mock()
         path = Mock()
@@ -20,8 +21,8 @@ class TestCommandContext(TestCase):
         context = CheckContext(region, profile, path)
 
         context.transform_template = Mock()
-        context.parse_template = Mock()
-        context.parse_template.return_value = graph_mock
+
+        patch_parse_template.return_value = graph_mock
 
         patch_bottle_neck.return_value = bottle_neck_mock
         bottle_neck_mock.ask_entry_point_question = Mock()
@@ -29,7 +30,7 @@ class TestCommandContext(TestCase):
         context.run()
 
         context.transform_template.assert_called_once()
-        context.parse_template.assert_called_once()
+        patch_parse_template.assert_called_once()
         patch_bottle_neck.assert_called_once_with(graph_mock)
         bottle_neck_mock.ask_entry_point_question.assert_called_once()
 
@@ -117,8 +118,7 @@ class TestCommandContext(TestCase):
 
         patch_function_provider.return_value = function_provider_mock
 
-        context = CheckContext(Mock(), Mock(), Mock())
-        result = context.parse_template()
+        result = parse_template()
 
         patch_stack_provider.get_stacks.assert_called_once_with(path_mock)
         patch_function_provider.assert_called_once_with(local_stacks_mock)
@@ -128,4 +128,3 @@ class TestCommandContext(TestCase):
         graph_context_mock.generate.assert_called_once()
 
         self.assertEqual(result, result_mock)
-
