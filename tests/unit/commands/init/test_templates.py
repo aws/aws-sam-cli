@@ -12,7 +12,7 @@ from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 
 class TestTemplates(TestCase):
-    @patch("subprocess.check_output")
+    @patch("samcli.lib.utils.git_repo.check_output")
     @patch("samcli.lib.utils.git_repo.GitRepo._git_executable")
     @patch("samcli.lib.utils.git_repo.GitRepo._ensure_clone_directory_exists")
     @patch("shutil.copytree")
@@ -41,7 +41,7 @@ class TestTemplates(TestCase):
                 )
                 self.assertTrue(search("mock-ruby-template", location))
 
-    @patch("subprocess.check_output")
+    @patch("samcli.lib.utils.git_repo.check_output")
     @patch("samcli.lib.utils.git_repo.GitRepo._git_executable")
     @patch("samcli.lib.utils.git_repo.GitRepo._ensure_clone_directory_exists")
     @patch("shutil.copytree")
@@ -75,7 +75,7 @@ class TestTemplates(TestCase):
     @patch("samcli.lib.utils.git_repo.GitRepo._ensure_clone_directory_exists")
     def test_fallback_options(self, git_exec_mock, prompt_mock, cd_mock):
         prompt_mock.return_value = "1"
-        with patch("subprocess.check_output", new_callable=MagicMock) as mock_sub:
+        with patch("samcli.lib.utils.git_repo.check_output", new_callable=MagicMock) as mock_sub:
             with patch("samcli.cli.global_config.GlobalConfig.config_dir", new_callable=PropertyMock) as mock_cfg:
                 mock_sub.side_effect = OSError("Fail")
                 mock_cfg.return_value = Path("/tmp/test-sam")
@@ -89,7 +89,7 @@ class TestTemplates(TestCase):
     @patch("samcli.lib.utils.git_repo.GitRepo._ensure_clone_directory_exists")
     def test_fallback_process_error(self, git_exec_mock, prompt_mock, cd_mock):
         prompt_mock.return_value = "1"
-        with patch("subprocess.check_output", new_callable=MagicMock) as mock_sub:
+        with patch("samcli.lib.utils.git_repo.check_output", new_callable=MagicMock) as mock_sub:
             with patch("samcli.cli.global_config.GlobalConfig.config_dir", new_callable=PropertyMock) as mock_cfg:
                 mock_sub.side_effect = subprocess.CalledProcessError("fail", "fail", "not found".encode("utf-8"))
                 mock_cfg.return_value = Path("/tmp/test-sam")
