@@ -8,12 +8,12 @@ class Pricing:
         self.graph = graph
         self.asked_lambda_questions = False
 
-    def ask(self, question, min=1, max=float("inf")):
+    def ask(self, question, min_val=1, max_val=float("inf")):
         valid_user_input = False
         user_input = None
         while valid_user_input is False:
             user_input = click.prompt(text=question, type=int)
-            if user_input > max or user_input < min:
+            if user_input > max_val or user_input < min_val:
                 click.echo("Please enter a number within the range")
             else:
                 valid_user_input = True

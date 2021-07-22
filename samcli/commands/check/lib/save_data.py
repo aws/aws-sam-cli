@@ -18,7 +18,6 @@ class SaveGraphData:
         resource_name = resource.get_name()
         resource_toml = {}
         resource_children_toml = []
-        resource_parents = []  # May not need this at all, so leaving blank for now
 
         if resource_type == "AWS::Lambda::Function":
             resource_toml = {
