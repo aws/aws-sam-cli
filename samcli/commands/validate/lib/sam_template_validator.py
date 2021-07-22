@@ -9,7 +9,9 @@ from samtranslator.parser import parser
 from samtranslator.translator.translator import Translator
 from boto3.session import Session
 
-from samcli.lib.utils.packagetype import ZIP
+from samcli.lib.replace_uri.replace_uri import replace_local_codeuri as external_replace_local_codeuri
+from samcli.lib.replace_uri.replace_uri import is_s3_uri as external_is_s3_uri
+
 from samcli.yamlhelper import yaml_dump
 from .exceptions import InvalidSamDocumentException
 
@@ -53,7 +55,7 @@ class SamTemplateValidator:
         InvalidSamDocumentException
              If the template is not valid, an InvalidSamDocumentException is raised
         """
-        managed_policy_map = self.managed_policy_loader.load()
+        managed_policy_map = self.managed_policy_loader
 
         sam_translator = Translator(
             managed_policy_map=managed_policy_map,
@@ -62,7 +64,7 @@ class SamTemplateValidator:
             boto_session=self.boto3_session,
         )
 
-        self._replace_local_codeuri()
+        self.sam_template = external_replace_local_codeuri(self.sam_template)
 
         try:
             template = sam_translator.translate(sam_template=self.sam_template, parameter_values={})
@@ -71,72 +73,6 @@ class SamTemplateValidator:
             raise InvalidSamDocumentException(
                 functools.reduce(lambda message, error: message + " " + str(error), e.causes, str(e))
             ) from e
-
-    def _replace_local_codeuri(self):
-        """
-        Replaces the CodeUri in AWS::Serverless::Function and DefinitionUri in AWS::Serverless::Api and
-        AWS::Serverless::HttpApi to a fake S3 Uri. This is to support running the SAM Translator with
-        valid values for these fields. If this in not done, the template is invalid in the eyes of SAM
-        Translator (the translator does not support local paths)
-        """
-
-        all_resources = self.sam_template.get("Resources", {})
-        global_settings = self.sam_template.get("Globals", {})
-
-        for resource_type, properties in global_settings.items():
-
-            if resource_type == "Function":
-                if all(
-                    [
-                        _properties.get("Properties", {}).get("PackageType", ZIP) == ZIP
-                        for _, _properties in all_resources.items()
-                    ]
-                    + [_properties.get("PackageType", ZIP) == ZIP for _, _properties in global_settings.items()]
-                ):
-                    SamTemplateValidator._update_to_s3_uri("CodeUri", properties)
-
-        for _, resource in all_resources.items():
-
-            resource_type = resource.get("Type")
-            resource_dict = resource.get("Properties", {})
-
-            if resource_type == "AWS::Serverless::Function" and resource_dict.get("PackageType", ZIP) == ZIP:
-
-                SamTemplateValidator._update_to_s3_uri("CodeUri", resource_dict)
-
-            if resource_type == "AWS::Serverless::LayerVersion":
-
-                SamTemplateValidator._update_to_s3_uri("ContentUri", resource_dict)
-
-            if resource_type == "AWS::Serverless::Api":
-                if "DefinitionUri" in resource_dict:
-                    SamTemplateValidator._update_to_s3_uri("DefinitionUri", resource_dict)
-
-            if resource_type == "AWS::Serverless::HttpApi":
-                if "DefinitionUri" in resource_dict:
-                    SamTemplateValidator._update_to_s3_uri("DefinitionUri", resource_dict)
-
-            if resource_type == "AWS::Serverless::StateMachine":
-                if "DefinitionUri" in resource_dict:
-                    SamTemplateValidator._update_to_s3_uri("DefinitionUri", resource_dict)
-
-    @staticmethod
-    def is_s3_uri(uri):
-        """
-        Checks the uri and determines if it is a valid S3 Uri
-
-        Parameters
-        ----------
-        uri str, required
-            Uri to check
-
-        Returns
-        -------
-        bool
-            Returns True if the uri given is an S3 uri, otherwise False
-
-        """
-        return isinstance(uri, str) and uri.startswith("s3://")
 
     @staticmethod
     def _update_to_s3_uri(property_key, resource_property_dict, s3_uri_value="s3://bucket/value"):
@@ -157,7 +93,7 @@ class SamTemplateValidator:
         uri_property = resource_property_dict.get(property_key, ".")
 
         # ignore if dict or already an S3 Uri
-        if isinstance(uri_property, dict) or SamTemplateValidator.is_s3_uri(uri_property):
+        if isinstance(uri_property, dict) or external_is_s3_uri(uri_property):
             return
 
         resource_property_dict[property_key] = s3_uri_value
