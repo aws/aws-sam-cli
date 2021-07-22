@@ -1,0 +1,191 @@
+{
+  "version": "tree-0.1",
+  "tree": {
+    "id": "App",
+    "path": "",
+    "children": {
+      "Tree": {
+        "id": "Tree",
+        "path": "Tree",
+        "constructInfo": {
+          "fqn": "@aws-cdk/core.Construct",
+          "version": "1.114.0"
+        }
+      },
+      "AwsLambdaFunctionStack": {
+        "id": "AwsLambdaFunctionStack",
+        "path": "AwsLambdaFunctionStack",
+        "children": {
+          "lambda-function": {
+            "id": "lambda-function",
+            "path": "AwsLambdaFunctionStack/lambda-function",
+            "children": {
+              "ServiceRole": {
+                "id": "ServiceRole",
+                "path": "AwsLambdaFunctionStack/lambda-function/ServiceRole",
+                "children": {
+                  "Resource": {
+                    "id": "Resource",
+                    "path": "AwsLambdaFunctionStack/lambda-function/ServiceRole/Resource",
+                    "attributes": {
+                      "aws:cdk:cloudformation:type": "AWS::IAM::Role",
+                      "aws:cdk:cloudformation:props": {
+                        "assumeRolePolicyDocument": {
+                          "Statement": [
+                            {
+                              "Action": "sts:AssumeRole",
+                              "Effect": "Allow",
+                              "Principal": {
+                                "Service": "lambda.amazonaws.com"
+                              }
+                            }
+                          ],
+                          "Version": "2012-10-17"
+                        },
+                        "managedPolicyArns": [
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                "arn:",
+                                {
+                                  "Ref": "AWS::Partition"
+                                },
+                                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+                              ]
+                            ]
+                          }
+                        ]
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "@aws-cdk/aws-iam.CfnRole",
+                      "version": "1.114.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "@aws-cdk/aws-iam.Role",
+                  "version": "1.114.0"
+                }
+              },
+              "AssetImage": {
+                "id": "AssetImage",
+                "path": "AwsLambdaFunctionStack/lambda-function/AssetImage",
+                "children": {
+                  "Staging": {
+                    "id": "Staging",
+                    "path": "AwsLambdaFunctionStack/lambda-function/AssetImage/Staging",
+                    "constructInfo": {
+                      "fqn": "@aws-cdk/core.AssetStaging",
+                      "version": "1.114.0"
+                    }
+                  },
+                  "Repository": {
+                    "id": "Repository",
+                    "path": "AwsLambdaFunctionStack/lambda-function/AssetImage/Repository",
+                    "constructInfo": {
+                      "fqn": "@aws-cdk/aws-ecr.RepositoryBase",
+                      "version": "1.114.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "@aws-cdk/aws-ecr-assets.DockerImageAsset",
+                  "version": "1.114.0"
+                }
+              },
+              "Resource": {
+                "id": "Resource",
+                "path": "AwsLambdaFunctionStack/lambda-function/Resource",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::Lambda::Function",
+                  "aws:cdk:cloudformation:props": {
+                    "code": {
+                      "imageUri": {
+                        "Fn::Join": [
+                          "",
+                          [
+                            {
+                              "Ref": "AWS::AccountId"
+                            },
+                            ".dkr.ecr.",
+                            {
+                              "Ref": "AWS::Region"
+                            },
+                            ".",
+                            {
+                              "Ref": "AWS::URLSuffix"
+                            },
+                            "/aws-cdk/assets:41860b066d2fb162b3fafef1677d11af9bc3eb0e6995b4d0b8aede408da1e8d3"
+                          ]
+                        ]
+                      }
+                    },
+                    "role": {
+                      "Fn::GetAtt": [
+                        "lambdafunctionServiceRoleC60A9A75",
+                        "Arn"
+                      ]
+                    },
+                    "imageConfig": {
+                      "command": [
+                        "app.get"
+                      ],
+                      "entryPoint": [
+                        "/lambda-entrypoint.sh"
+                      ]
+                    },
+                    "packageType": "Image"
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "@aws-cdk/aws-lambda.CfnFunction",
+                  "version": "1.114.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "@aws-cdk/aws-lambda.DockerImageFunction",
+              "version": "1.114.0"
+            }
+          },
+          "CDKMetadata": {
+            "id": "CDKMetadata",
+            "path": "AwsLambdaFunctionStack/CDKMetadata",
+            "children": {
+              "Default": {
+                "id": "Default",
+                "path": "AwsLambdaFunctionStack/CDKMetadata/Default",
+                "constructInfo": {
+                  "fqn": "@aws-cdk/core.CfnResource",
+                  "version": "1.114.0"
+                }
+              },
+              "Condition": {
+                "id": "Condition",
+                "path": "AwsLambdaFunctionStack/CDKMetadata/Condition",
+                "constructInfo": {
+                  "fqn": "@aws-cdk/core.CfnCondition",
+                  "version": "1.114.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "@aws-cdk/core.Construct",
+              "version": "1.114.0"
+            }
+          }
+        },
+        "constructInfo": {
+          "fqn": "@aws-cdk/core.Stack",
+          "version": "1.114.0"
+        }
+      }
+    },
+    "constructInfo": {
+      "fqn": "@aws-cdk/core.App",
+      "version": "1.114.0"
+    }
+  }
+}
