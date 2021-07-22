@@ -159,7 +159,7 @@ for:
       # Pre-dev Tests
       - "pip install -e \".[pre-dev]\""
       - "pylint --rcfile .pylintrc samcli"
-      
+
       # Dev Tests
       - "pip install -e \".[dev]\""
       - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
@@ -170,7 +170,11 @@ for:
       # Runs only in Linux, logging docker hub when running canary and docker cred is available
       - sh: "
         if [[ -n $BY_CANARY ]] && [[ -n $DOCKER_USER ]] && [[ -n $DOCKER_PASS ]];
-          then echo Logging in Docker Hub; echo $DOCKER_PASS | docker login --username $DOCKER_USER --password-stdin;
+          then echo Logging in Docker Hub; echo $DOCKER_PASS | docker login --username $DOCKER_USER --password-stdin registry-1.docker.io;
+        fi"
+      - sh: "
+        if [[ -n $BY_CANARY ]];
+          then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws; 
         fi"
       - sh: "pytest -vv tests/integration"
       - sh: "pytest -vv tests/regression"
