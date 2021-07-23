@@ -10,13 +10,13 @@ from samcli.commands.check.resources.TemplateResource import TemplateResource
 class LambdaFunction(TemplateResource):
     def __init__(self, resource_object: Function, resource_type: str):
         super().__init__(resource_object, resource_type)
-        self.duration = 0
-        self.tps = 0
+        self.duration = -1
+        self.tps = -1
         self.parents: List = []
         self.children: List = []
-        self.number_of_requests = 0
-        self.average_duration = 0
-        self.allocated_memory = 0
+        self.number_of_requests = -1
+        self.average_duration = -1
+        self.allocated_memory = -1
         self.allocated_memory_unit = ""
 
     def set_number_of_requests(self, num: int):
