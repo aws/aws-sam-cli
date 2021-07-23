@@ -398,7 +398,7 @@ class IntrinsicIntegBase(BuildIntegBase):
                 self.assertEqual(0, process_execute.process.returncode)
 
 
-class CDKTestBase(BuildIntegBase):
+class CDKBuildTestBase(BuildIntegBase):
     @classmethod
     def setUpClass(cls):
         cls.cmd = cls.base_command()
@@ -413,27 +413,23 @@ class CDKTestBase(BuildIntegBase):
         self.scratch_dir = str(Path(__file__).resolve().parent.joinpath(str(uuid.uuid4()).replace("-", "")[:10]))
         shutil.rmtree(self.scratch_dir, ignore_errors=True)
         os.mkdir(self.scratch_dir)
-
         self.working_dir = tempfile.mkdtemp(dir=self.scratch_dir)
-        self.custom_build_dir = tempfile.mkdtemp(dir=self.scratch_dir)
-
         self.default_build_dir = Path(self.working_dir, ".aws-sam", "build")
 
     def tearDown(self):
-        self.custom_build_dir and shutil.rmtree(self.custom_build_dir, ignore_errors=True)
         self.working_dir and shutil.rmtree(self.working_dir, ignore_errors=True)
         self.scratch_dir and shutil.rmtree(self.scratch_dir, ignore_errors=True)
 
-        npm_projects = ["cdk-example-rest-api-gateway"]
-
-        for project in npm_projects:
-            project_path = self.get_project_path(project)
-            node_modules_path = os.path.join(project_path, "node_modules")
-            package_lock_path = os.path.join(project_path, "package-lock.json")
-            if os.path.exists(node_modules_path):
-                shutil.rmtree(node_modules_path, ignore_errors=True)
-            if os.path.exists(package_lock_path):
-                os.remove(package_lock_path)
+        # npm_projects = ["cdk-example-rest-api-gateway"]
+        #
+        # for project in npm_projects:
+        #     project_path = self.get_project_path(project)
+        #     node_modules_path = os.path.join(project_path, "node_modules")
+        #     package_lock_path = os.path.join(project_path, "package-lock.json")
+        #     if os.path.exists(node_modules_path):
+        #         shutil.rmtree(node_modules_path, ignore_errors=True)
+        #     if os.path.exists(package_lock_path):
+        #         os.remove(package_lock_path)
 
     def copy_source_to_temp(self, project_name):
         source = self.get_project_path(project_name)
@@ -458,6 +454,8 @@ class CDKTestBase(BuildIntegBase):
         container_env_var_file=None,
         build_image=None,
         project_type=None,
+        cdk_app=None,
+        cdk_context=None,
     ):
 
         command_list = [self.cmd, "build", "-b", str(self.default_build_dir)]
@@ -501,21 +499,24 @@ class CDKTestBase(BuildIntegBase):
         if project_type:
             command_list += ["--project-type", project_type]
 
+        if cdk_app:
+            command_list += ["--cdk_app", cdk_app]
+
+        if cdk_context:
+            command_list += ["--cdk_context", cdk_context]
+
         return command_list
 
     def get_project_path(self, project_name):
         return str(Path(self.test_data_path, project_name))
 
     def verify_build_success(self, project_name, cmd=None):
-        self.copy_source_to_temp(project_name)
-
         if cmd:
             cmd_list = cmd
         else:
             cmd_list = self.get_command_list()
 
         LOG.info("Running Command: {}".format(cmd_list))
-        LOG.info(cmd_list)
 
         process_execute = run_command(cmd_list, cwd=self.temp_source)
 
@@ -538,3 +539,29 @@ class CDKTestBase(BuildIntegBase):
         manifest = {"manifest.json", "tree.json", "cdk.out"}
         build_artifact_files = set(os.listdir(str(self.default_build_dir)))
         self.assertTrue(build_artifact_files.intersection(manifest))
+
+
+class CdkBuildIntegPythonBase(CDKBuildTestBase):
+    def setUp(self):
+        super().setUp()
+        self._create_virtual_env()
+
+    def tearDown(self):
+        super().tearDown()
+
+    def _create_virtual_env(self):
+        create_venv_command = ["python3", "-m", "venv", ".venv"]
+        run_command(create_venv_command, cwd=self.working_dir)
+
+    def _install_deps(self):
+        if os.path.isfile(f"{self.working_dir}/source/requirements.txt"):
+            pip_command = [self.venv_pip, "install", "-r", "source/requirements.txt"]
+            run_command(pip_command, cwd=self.working_dir)
+
+    @property
+    def venv_python(self):
+        return f"{self.working_dir}/.venv/bin/python"
+
+    @property
+    def venv_pip(self):
+        return f"{self.working_dir}/.venv/bin/pip"
