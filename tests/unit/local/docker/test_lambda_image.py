@@ -51,6 +51,8 @@ class TestLambdaImage(TestCase):
             f"mylambdaimage:rapid-{version}",
         )
 
+        docker_client_mock.images.remove.assert_not_called()
+
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
     @patch("samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version")
     def test_building_image_with_no_runtime_only_image_always_build(
@@ -78,6 +80,8 @@ class TestLambdaImage(TestCase):
         # No Layers are added.
         layer_downloader_mock.assert_not_called()
 
+        docker_client_mock.images.remove.assert_not_called()
+
     def test_building_image_with_non_accpeted_package_type(self):
         docker_client_mock = Mock()
         layer_downloader_mock = Mock()
@@ -89,6 +93,8 @@ class TestLambdaImage(TestCase):
             lambda_image.build("python3.6", "Non-accepted-packagetype", None, [])
         with self.assertRaises(InvalidIntermediateImageError):
             lambda_image.build("python3.6", None, None, [])
+
+        docker_client_mock.images.remove.assert_not_called()
 
     def test_building_image_with_no_layers(self):
         docker_client_mock = Mock()
@@ -102,6 +108,8 @@ class TestLambdaImage(TestCase):
             lambda_image.build("python3.6", ZIP, None, []),
             f"amazon/aws-sam-cli-emulation-image-python3.6:rapid-{version}",
         )
+
+        docker_client_mock.images.remove.assert_not_called()
 
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
     @patch("samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version")
@@ -126,6 +134,8 @@ class TestLambdaImage(TestCase):
         generate_docker_image_version_patch.assert_called_once_with([layer_mock], "python3.6")
         docker_client_mock.images.get.assert_called_once_with("samcli/lambda:image-version")
         build_image_patch.assert_not_called()
+
+        docker_client_mock.images.remove.assert_not_called()
 
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
     @patch("samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version")
@@ -158,6 +168,8 @@ class TestLambdaImage(TestCase):
             stream=stream,
         )
 
+        docker_client_mock.images.remove.assert_not_called()
+
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
     @patch("samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version")
     def test_not_force_building_image_that_doesnt_already_exists(
@@ -188,6 +200,8 @@ class TestLambdaImage(TestCase):
             ["layers1"],
             stream=stream,
         )
+
+        docker_client_mock.images.remove.assert_not_called()
 
     @patch("samcli.local.docker.lambda_image.hashlib")
     def test_generate_docker_image_version(self, hashlib_patch):
@@ -263,6 +277,8 @@ class TestLambdaImage(TestCase):
 
         docker_full_path_mock.unlink.assert_called_once()
 
+        docker_client_mock.images.remove.assert_not_called()
+
     @patch("samcli.local.docker.lambda_image.create_tarball")
     @patch("samcli.local.docker.lambda_image.uuid")
     @patch("samcli.local.docker.lambda_image.Path")
@@ -310,6 +326,8 @@ class TestLambdaImage(TestCase):
         )
 
         docker_full_path_mock.unlink.assert_not_called()
+
+        docker_client_mock.images.remove.assert_not_called()
 
     @patch("samcli.local.docker.lambda_image.create_tarball")
     @patch("samcli.local.docker.lambda_image.uuid")
@@ -359,6 +377,8 @@ class TestLambdaImage(TestCase):
 
         docker_full_path_mock.unlink.assert_not_called()
 
+        docker_client_mock.images.remove.assert_not_called()
+
     @patch("samcli.local.docker.lambda_image.create_tarball")
     @patch("samcli.local.docker.lambda_image.uuid")
     @patch("samcli.local.docker.lambda_image.Path")
@@ -405,6 +425,8 @@ class TestLambdaImage(TestCase):
         )
         docker_full_path_mock.unlink.assert_called_once()
 
+        docker_client_mock.images.remove.assert_not_called()
+
     def test_building_new_image_removes_old_images(self):
         docker_client_mock = Mock()
         docker_client_mock.api.build.return_value = ["mock"]
@@ -421,4 +443,24 @@ class TestLambdaImage(TestCase):
             f"amazon/aws-sam-cli-emulation-image-python3.6:rapid-{version}",
         )
 
-        docker_client_mock.images.remove.assert_has_calls([call("old1"), call("old2")])
+        docker_client_mock.images.remove.assert_has_calls(
+            [call(image="old1", force=True), call(image="old2", force=True)]
+        )
+
+    def test_building_new_user_provided_image_doesnt_remove_old_images(self):
+        docker_client_mock = Mock()
+        docker_client_mock.api.build.return_value = ["mock"]
+        docker_client_mock.images.get.side_effect = ImageNotFound("image not found")
+        docker_client_mock.images.list.return_value = [Mock(id="old1"), Mock(id="old2")]
+
+        layer_downloader_mock = Mock()
+        setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
+
+        lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=docker_client_mock)
+
+        self.assertEqual(
+            lambda_image.build("python3.6", IMAGE, "mylambdaimage:v1", []),
+            f"mylambdaimage:rapid-{version}",
+        )
+
+        docker_client_mock.images.remove.assert_not_called()

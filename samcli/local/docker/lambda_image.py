@@ -113,7 +113,8 @@ class LambdaImage:
         # Default image tag to be the base image with a tag of 'rapid' instead of latest.
         # If the image name had a digest, removing the @ so that a valid image name can be constructed
         # to use for the local invoke image name.
-        image_tag = f"{image_name.split(':')[0].replace('@', '')}:rapid-{version}"
+        image_repo = image_name.split(":")[0].replace("@", "")
+        image_tag = f"{image_repo}:rapid-{version}"
 
         downloaded_layers = []
 
@@ -132,14 +133,17 @@ class LambdaImage:
             LOG.info("Image was not found.")
             image_not_found = True
 
+        # If building a new image that's not user provided, delete older images of the same repo
+        if image_not_found and not (packagetype == IMAGE):
+            LOG.info("Removing old images")
+            self._remove_images(image_repo)
+
         if (
             self.force_image_build
             or image_not_found
             or any(layer.is_defined_within_template for layer in downloaded_layers)
             or not runtime
         ):
-            LOG.info("Removing old images")
-            self._remove_images(image_tag.split(":")[0])
             stream_writer = stream or StreamWriter(sys.stderr)
             stream_writer.write("Building image...")
             stream_writer.flush()
@@ -301,6 +305,6 @@ class LambdaImage:
         """
         try:
             for image in self.docker_client.images.list(name=repo_name):
-                self.docker_client.images.remove(image.id)
-        except docker.errors.APIError:
-            LOG.exception("Failed to remove images")
+                self.docker_client.images.remove(image=image.id, force=True)
+        except docker.errors.APIError as ex:
+            LOG.warning("Failed to remove images", exc_info=ex)
