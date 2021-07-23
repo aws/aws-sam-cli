@@ -65,8 +65,8 @@ class Pricing:
         return True
 
     def ask_pricing_question(self, resource):
-        print("PRICING QUESTIONS")
         if resource.get_resource_type() == "AWS::Lambda::Function" and self.asked_lambda_questions == False:
+            click.echo("Pricing Questions")
             self.asked_lambda_questions = True
             self.ask_lambda_function_questions(resource)
 
