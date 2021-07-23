@@ -66,16 +66,6 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
         method_name = method_name.split(".")[-1]
         return f"{method_name.replace('_', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"
 
-    def _replace_cloud_assembly_stack_name(self, manifest_path, original_stack_name, new_stack_name):
-        with open(manifest_path, "r") as fp:
-            manifest_dict = json.loads(fp.read())
-        artifacts_dict = manifest_dict["artifacts"]
-        if original_stack_name in artifacts_dict:
-            artifacts_dict[new_stack_name] = copy.deepcopy(artifacts_dict[original_stack_name])
-            del artifacts_dict[original_stack_name]
-        with open(manifest_path, "w") as fp:
-            fp.write(json.dumps(manifest_dict, indent=4))
-
     @parameterized.expand(["aws-lambda-function"])
     def test_package_and_deploy_no_s3_bucket_all_args(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
