@@ -53,30 +53,29 @@ def iac_options_validation(require_stack=False):
             project = kwargs.get("project")
             guided = ctx.params.get("guided", False) or ctx.params.get("g", False)
             stack_name = ctx.params.get("stack_name")
-            if selected_project_type in project_types_requring_stack_check and project and require_stack and not guided:
-                if ctx.params.get("stack_name") is not None:
-                    if project.find_stack_by_name(stack_name) is None:
+            command = ctx.command.name
+            if project and require_stack and not guided:
+                if selected_project_type in project_types_requring_stack_check:
+                    if stack_name is not None:
+                        if project.find_stack_by_name(stack_name) is None:
+                            raise click.BadOptionUsage(
+                                option_name="--stack-name",
+                                ctx=ctx,
+                                message=f"Stack with stack name '{stack_name}' not found.",
+                            )
+                    elif len(project.stacks) > 1:
                         raise click.BadOptionUsage(
                             option_name="--stack-name",
                             ctx=ctx,
-                            message=f"Stack with stack name '{stack_name}' not found.",
+                            message="More than one stack found. Use '--stack-name' to specify the stack.",
                         )
-                elif len(project.stacks) > 1:
+                if command == "deploy" and not stack_name:
                     raise click.BadOptionUsage(
                         option_name="--stack-name",
                         ctx=ctx,
-                        message="More than one stack found. Use '--stack-name' to specify the stack.",
+                        message="Missing option '--stack-name', 'sam deploy --guided' can "
+                        "be used to provide and save needed parameters for future deploys.",
                     )
-
-            command = ctx.command.name
-            if command == "deploy" and not stack_name and not guided:
-                raise click.BadOptionUsage(
-                    option_name="--stack-name",
-                    ctx=ctx,
-                    message="Missing option '--stack-name', 'sam deploy --guided' can "
-                    "be used to provide and save needed parameters for future deploys.",
-                )
-
             return func(*args, **kwargs)
 
         return wrapped

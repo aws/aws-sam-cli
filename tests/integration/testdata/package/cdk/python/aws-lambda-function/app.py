@@ -13,7 +13,8 @@ from aws_lambda_function.aws_lambda_function_stack import AwsLambdaFunctionStack
 
 
 app = core.App()
-AwsLambdaFunctionStack(app, "AwsLambdaFunctionStack",
+stack_name = app.node.try_get_context("stack_name") or "AwsLambdaFunctionStack"
+AwsLambdaFunctionStack(app, stack_name,
     # If you don't specify 'env', this stack will be environment-agnostic.
     # Account/Region-dependent features and context lookups will not work,
     # but a single synthesized template can be deployed anywhere.

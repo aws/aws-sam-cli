@@ -740,6 +740,12 @@ class Project:
         self._stacks = stacks
 
     @property
+    def default_stack(self) -> Optional[Stack]:
+        if len(self._stacks) > 0:
+            return self._stacks[0]
+        return None
+
+    @property
     def extra_details(self) -> Optional[Dict[str, Any]]:
         return self._extra_details
 
