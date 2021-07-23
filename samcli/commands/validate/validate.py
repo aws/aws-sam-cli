@@ -3,6 +3,7 @@ CLI Command for Validating a SAM Template
 """
 import os
 
+import boto3
 from botocore.exceptions import NoCredentialsError
 import click
 
@@ -41,6 +42,7 @@ def do_cli(ctx, template):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
+    from samtranslator.translator.managed_policy_translator import ManagedPolicyLoader
 
     from samcli.commands.exceptions import UserException
     from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
@@ -49,10 +51,10 @@ def do_cli(ctx, template):
 
     sam_template = _read_sam_file(template)
 
-    wrapper = SamTranslatorWrapper({})
-    managed_policy_map = wrapper.managed_policy_map()
-
-    validator = SamTemplateValidator(sam_template, managed_policy_map, profile=ctx.profile, region=ctx.region)
+    iam_client = boto3.client("iam")
+    validator = SamTemplateValidator(
+        sam_template, ManagedPolicyLoader(iam_client), profile=ctx.profile, region=ctx.region
+    )
 
     try:
         validator.is_valid()
