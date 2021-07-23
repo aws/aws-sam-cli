@@ -69,7 +69,7 @@ def iac_options_validation(require_stack=False):
                             ctx=ctx,
                             message="More than one stack found. Use '--stack-name' to specify the stack.",
                         )
-                if command == "deploy":
+                if command == "deploy" and not stack_name:
                     raise click.BadOptionUsage(
                         option_name="--stack-name",
                         ctx=ctx,

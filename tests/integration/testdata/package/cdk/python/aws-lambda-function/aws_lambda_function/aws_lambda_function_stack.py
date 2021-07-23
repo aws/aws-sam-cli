@@ -13,22 +13,19 @@ class AwsLambdaFunctionStack(cdk.Stack):
         super().__init__(scope, construct_id, **kwargs)
 
         # The code that defines your stack goes here
-        lambda_role = _iam.Role(
-            scope=self,
-            id="cdk-lambda-role",
-            assumed_by=_iam.ServicePrincipal("lambda.amazonaws.com"),
-            role_name="cdk-lambda-role-nested",
-            managed_policies=[
-                _iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaBasicExecutionRole")
-            ]
-        )
-
         _lambda.Function(
             scope=self,
             id="lambda-function",
             runtime=_lambda.Runtime.PYTHON_3_8,
             code=_lambda.Code.from_asset("./lambda_code"),
             handler="app.handler",
-            role=lambda_role,
+        )
+        
+        core.CfnParameter(
+            scope=self,
+            id="custom-parameter",
+            type="String",
+            description="A custom parameter",
+            default="Sample",
         )
 
