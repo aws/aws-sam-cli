@@ -741,7 +741,7 @@ class Project:
 
     @property
     def default_stack(self) -> Optional[Stack]:
-        if len(self.stacks) > 0:
+        if len(self._stacks) > 0:
             return self._stacks[0]
         return None
 
