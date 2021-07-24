@@ -38,7 +38,7 @@ class BottleNecks:
 
         click.echo("Running calculations...")
 
-    def lambda_bottle_neck_quesitons(self, lambda_function: LambdaFunction):
+    def _lambda_bottle_neck_quesitons(self, lambda_function: LambdaFunction):
         # If there is no entry point to the lambda function, get tps
         if lambda_function.tps == -1:
             user_input_tps = ask(
@@ -57,10 +57,10 @@ class BottleNecks:
 
     def ask_bottle_neck_questions(self, resource: LambdaFunction):
         if resource.resource_type == AWS_LAMBDA_FUNCTION:
-            self.lambda_bottle_neck_quesitons(resource)
+            self._lambda_bottle_neck_quesitons(resource)
 
 
-def ask(question: str, min_val=1, max_val=float("inf")) -> int:
+def ask(question: str, min_val: int = 1, max_val: float = float("inf")) -> int:
     valid_user_input = False
     user_input = 0
     while not valid_user_input:

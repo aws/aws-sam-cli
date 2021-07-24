@@ -104,6 +104,7 @@ def parse_template() -> Graph:
     all_lambda_functions = []
 
     # template path
+    # To-Do: allow user to set the path for the template
     path = os.path.realpath("template.yaml")
 
     # Get all lambda functions

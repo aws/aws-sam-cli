@@ -46,14 +46,14 @@ class TestBottleNeck(TestCase):
 
         graph_mock = Mock()
         bottle_neck = BottleNecks(graph_mock)
-        bottle_neck.lambda_bottle_neck_quesitons = Mock()
+        bottle_neck._lambda_bottle_neck_quesitons = Mock()
 
         bottle_neck.ask_bottle_neck_questions(my_resource)
 
-        bottle_neck.lambda_bottle_neck_quesitons.assert_called_once_with(my_resource)
+        bottle_neck._lambda_bottle_neck_quesitons.assert_called_once_with(my_resource)
 
     @patch("samcli.commands.check.bottle_necks.ask")
-    def test_lambda_bottle_neck_quesitons(self, patch_ask):
+    def test__lambda_bottle_neck_quesitons(self, patch_ask):
         lambda_function_mock = Mock()
         lambda_function_mock.tps = -1
         lambda_function_mock.duration = -1
@@ -63,12 +63,12 @@ class TestBottleNeck(TestCase):
         graph_mock = Mock()
         bottle_neck = BottleNecks(graph_mock)
 
-        bottle_neck.lambda_bottle_neck_quesitons(lambda_function_mock)
+        bottle_neck._lambda_bottle_neck_quesitons(lambda_function_mock)
 
         patch_ask.assert_called()
         self.assertEqual(lambda_function_mock.tps, patch_ask.return_value)
 
-        bottle_neck.lambda_bottle_neck_quesitons(lambda_function_mock)
+        bottle_neck._lambda_bottle_neck_quesitons(lambda_function_mock)
 
         patch_ask.assert_called()
         self.assertEqual(lambda_function_mock.duration, patch_ask.return_value)

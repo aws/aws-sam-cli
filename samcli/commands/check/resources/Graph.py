@@ -1,7 +1,7 @@
 """
 Class for graph. All data is stored in the graph directly, or within nodes that are stored in the graph
 """
-from typing import Any, List
+from typing import Any
 from samcli.commands.check.resources.LambdaFunction import LambdaFunction
 
 
