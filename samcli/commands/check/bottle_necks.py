@@ -28,13 +28,13 @@ class BottleNecks:
                 item_number += 1
 
             entry_point_question += "\nWhere should the simulation start?"
-            user_input = ask(entry_point_question, 1, item_number - 1)
+            user_input = _ask(entry_point_question, 1, item_number - 1)
 
             click.echo("")
 
             current_entry_point = entry_points.pop(user_input - 1)
 
-            self.ask_bottle_neck_questions(current_entry_point)
+            self._ask_bottle_neck_questions(current_entry_point)
 
             self._graph.resources_to_analyze.append(current_entry_point)
 
@@ -43,12 +43,12 @@ class BottleNecks:
     def _lambda_bottle_neck_quesitons(self, lambda_function: LambdaFunction):
         # If there is no entry point to the lambda function, get tps
         if lambda_function.tps == -1:
-            user_input_tps = ask(
+            user_input_tps = _ask(
                 "What is the expected per-second arrival rate for [%s]?\n[TPS]" % (lambda_function.resource_name)
             )
             lambda_function.tps = user_input_tps
 
-        user_input_duration = ask(
+        user_input_duration = _ask(
             "What is the expected duration for the Lambda function [%s] in ms?\n[1 - 900,000]"
             % (lambda_function.resource_name),
             1,
@@ -57,12 +57,12 @@ class BottleNecks:
 
         lambda_function.duration = user_input_duration
 
-    def ask_bottle_neck_questions(self, resource: LambdaFunction):
+    def _ask_bottle_neck_questions(self, resource: LambdaFunction):
         if resource.resource_type == AWS_LAMBDA_FUNCTION:
             self._lambda_bottle_neck_quesitons(resource)
 
 
-def ask(question: str, min_val: int = 1, max_val: float = float("inf")) -> int:
+def _ask(question: str, min_val: int = 1, max_val: float = float("inf")) -> int:
     valid_user_input = False
     user_input = 0
     while not valid_user_input:
