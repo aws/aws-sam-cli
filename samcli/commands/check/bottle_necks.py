@@ -30,13 +30,15 @@ class BottleNecks:
             entry_point_question += "\nWhere should the simulation start?"
             user_input = ask(entry_point_question, 1, item_number - 1)
 
+            click.echo("")
+
             current_entry_point = entry_points.pop(user_input - 1)
 
             self.ask_bottle_neck_questions(current_entry_point)
 
             self._graph.resources_to_analyze.append(current_entry_point)
 
-        click.echo("Running calculations...")
+            click.echo("")
 
     def _lambda_bottle_neck_quesitons(self, lambda_function: LambdaFunction):
         # If there is no entry point to the lambda function, get tps
