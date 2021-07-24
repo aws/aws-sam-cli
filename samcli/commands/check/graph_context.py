@@ -15,7 +15,7 @@ class GraphContext:
 
         # Find all entry points
         for function in self._lambda_functions:
-            if not function.get_parents():  # No parent resourecs, so this is an entry point
-                graph.add_entry_point(function)
+            if not function.parents:  # No parent resourecs, so this is an entry point
+                graph.entry_points.append(function)
 
         return graph

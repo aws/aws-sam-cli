@@ -11,8 +11,8 @@ class TestGraph(TestCase):
 
         graph = Graph()
 
-        graph.add_entry_point(entry_point_mock)
-        graph.add_resource_to_analyze(resource_mock)
+        graph.entry_points.append(entry_point_mock)
+        graph.resources_to_analyze.append(resource_mock)
 
-        self.assertEqual(entry_point_mock, graph.get_entry_points()[0])
-        self.assertEqual(resource_mock, graph.get_resources_to_analyze()[0])
+        self.assertEqual(entry_point_mock, graph.entry_points[0])
+        self.assertEqual(resource_mock, graph.resources_to_analyze[0])

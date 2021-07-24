@@ -19,10 +19,10 @@ class TestLambdaFunction(TestCase):
 
         lambda_function = LambdaFunction(object_mock, type_mock)
 
-        lambda_function.set_duration(duration_mock)
-        lambda_function.set_tps(tps_mock)
-        lambda_function.add_parent(parents_mock)
-        lambda_function.add_child(children_mock)
+        lambda_function.duration = duration_mock
+        lambda_function.tps = tps_mock
+        lambda_function.parents.append(parents_mock)
+        lambda_function.children.append(children_mock)
         lambda_function.set_number_of_requests(requests_mock)
         lambda_function.set_average_duration(average_duration_mock)
         lambda_function.set_allocated_memory(memory_mock)

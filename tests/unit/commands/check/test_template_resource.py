@@ -13,6 +13,6 @@ class TestTemplateResource(TestCase):
 
         resource = TemplateResource(object_mock, type_mock)
 
-        self.assertEqual(resource.get_resource_object(), object_mock)
-        self.assertEqual(resource.get_resource_type(), type_mock)
-        self.assertEqual(resource.get_name(), object_mock.name)
+        self.assertEqual(resource.resource_object, object_mock)
+        self.assertEqual(resource.resource_type, type_mock)
+        self.assertEqual(resource.resource_name, object_mock.name)

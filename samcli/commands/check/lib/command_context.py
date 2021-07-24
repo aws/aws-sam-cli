@@ -39,9 +39,9 @@ class CheckContext:
     """
 
     def __init__(self, region, profile, template_path):
-        self.region = region
-        self.profile = profile
-        self.template_path = template_path
+        self._region = region
+        self._profile = profile
+        self._template_path = template_path
 
     def run(self):
         self.transform_template()
@@ -68,7 +68,7 @@ class CheckContext:
             managed_policy_map=managed_policy_map,
             sam_parser=parser.Parser(),
             plugins=[],
-            boto_session=Session(profile_name=self.profile, region_name=self.region),
+            boto_session=Session(profile_name=self._profile, region_name=self._region),
         )
 
         # Translate template
@@ -90,11 +90,11 @@ class CheckContext:
         :raises: SamTemplateNotFoundException when the template file does not exist
         """
 
-        if not os.path.exists(self.template_path):
+        if not os.path.exists(self._template_path):
             LOG.error("SAM Template Not Found")
-            raise SamTemplateNotFoundException("Template at {} is not found".format(self.template_path))
+            raise SamTemplateNotFoundException("Template at {} is not found".format(self._template_path))
 
-        with open(self.template_path, "r", encoding="utf-8") as sam_template:
+        with open(self._template_path, "r", encoding="utf-8") as sam_template:
             sam_template = yaml_parse(sam_template.read())
 
         return sam_template
