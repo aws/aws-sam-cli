@@ -19,56 +19,66 @@ class LambdaFunction(TemplateResource):
         self._allocated_memory = -1
         self._allocated_memory_unit = ""
 
-    def set_number_of_requests(self, num: int):
-        self._number_of_requests = num
-
-    def get_number_of_requests(self) -> int:
+    @property
+    def number_of_requests(self) -> int:
         return self._number_of_requests
 
-    def set_average_duration(self, avg: int):
-        self._average_duration = avg
+    @number_of_requests.setter
+    def number_of_requests(self, num: int):
+        self._number_of_requests = num
 
-    def get_average_duration(self) -> int:
+    @property
+    def average_duration(self) -> int:
         return self._average_duration
 
-    def set_allocated_memory(self, mry: int):
-        self._allocated_memory = mry
+    @average_duration.setter
+    def average_duration(self, avg: int):
+        self._average_duration = avg
 
-    def get_allocated_memory(self) -> int:
+    @property
+    def allocated_memory(self) -> int:
         return self._allocated_memory
 
-    def set_allocated_memory_unit(self, unit: str):
-        self._allocated_memory_unit = unit
+    @allocated_memory.setter
+    def allocated_memory(self, mry: int):
+        self._allocated_memory = mry
 
-    def get_allocated_memory_unit(self) -> str:
+    @property
+    def allocated_memory_unit(self) -> str:
         return self._allocated_memory_unit
 
-    def add_child(self, child_node: "LambdaFunction"):
-        self._children.append(child_node)
+    @allocated_memory_unit.setter
+    def allocated_memory_unit(self, unit: str):
+        self._allocated_memory_unit = unit
 
-    def get_children(self) -> List:
+    @property
+    def children(self) -> List:
         return self._children
 
-    def add_parent(self, parent_node: "LambdaFunction"):
-        self._parents.append(parent_node)
+    @children.setter
+    def children(self, child_node: "LambdaFunction"):
+        self._children.append(child_node)
 
-    def get_parents(self) -> List:
+    @property
+    def parents(self) -> List:
         return self._parents
 
-    def set_tps(self, tps: int):
-        self._tps = tps
+    @parents.setter
+    def parents(self, parent_node: "LambdaFunction"):
+        self._parents.append(parent_node)
 
-    def get_tps(self) -> int:
+    @property
+    def tps(self) -> int:
         return self._tps
 
-    def set_duration(self, duration: int):
-        self._duration = duration
+    @tps.setter
+    def tps(self, tps: int):
+        self._tps = tps
 
-    def get_duration(self) -> int:
+    @property
+    def duration(self) -> int:
         return self._duration
 
-    # Property objects
-    duration = property(get_duration, set_duration)
-    tps = property(get_tps, set_tps)
-    parents = property(get_parents, add_parent)
-    children = property(get_children, add_child)
+    @duration.setter
+    def duration(self, duration: int):
+        self._duration = duration

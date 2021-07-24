@@ -15,7 +15,7 @@ class Graph:
         return self._entry_points
 
     @entry_points.setter
-    def entry_point(self, node: LambdaFunction):
+    def entry_points(self, node: LambdaFunction):
         self._entry_points.append(node)
 
     @property
@@ -23,5 +23,5 @@ class Graph:
         return self._resources_to_analyze
 
     @resources_to_analyze.setter
-    def resource_to_analyze(self, resource: LambdaFunction):
+    def resources_to_analyze(self, resource: LambdaFunction):
         self._resources_to_analyze.append(resource)

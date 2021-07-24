@@ -23,16 +23,16 @@ class TestLambdaFunction(TestCase):
         lambda_function.tps = tps_mock
         lambda_function.parents.append(parents_mock)
         lambda_function.children.append(children_mock)
-        lambda_function.set_number_of_requests(requests_mock)
-        lambda_function.set_average_duration(average_duration_mock)
-        lambda_function.set_allocated_memory(memory_mock)
-        lambda_function.set_allocated_memory_unit(memory_unit_mock)
+        lambda_function.number_of_requests = requests_mock
+        lambda_function.average_duration = average_duration_mock
+        lambda_function.allocated_memory = memory_mock
+        lambda_function.allocated_memory_unit = memory_unit_mock
 
-        self.assertEqual(duration_mock, lambda_function.get_duration())
-        self.assertEqual(tps_mock, lambda_function.get_tps())
-        self.assertEqual(parents_mock, lambda_function.get_parents()[0])
-        self.assertEqual(children_mock, lambda_function.get_children()[0])
-        self.assertEqual(requests_mock, lambda_function.get_number_of_requests())
-        self.assertEqual(average_duration_mock, lambda_function.get_average_duration())
-        self.assertEqual(memory_mock, lambda_function.get_allocated_memory())
-        self.assertEqual(memory_unit_mock, lambda_function.get_allocated_memory_unit())
+        self.assertEqual(duration_mock, lambda_function.duration)
+        self.assertEqual(tps_mock, lambda_function.tps)
+        self.assertEqual(parents_mock, lambda_function.parents[0])
+        self.assertEqual(children_mock, lambda_function.children[0])
+        self.assertEqual(requests_mock, lambda_function.number_of_requests)
+        self.assertEqual(average_duration_mock, lambda_function.average_duration)
+        self.assertEqual(memory_mock, lambda_function.allocated_memory)
+        self.assertEqual(memory_unit_mock, lambda_function.allocated_memory_unit)
