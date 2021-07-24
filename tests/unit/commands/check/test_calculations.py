@@ -6,8 +6,9 @@ from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
 
 class TestCalculations(TestCase):
+    @patch("samcli.commands.check.calculations._check_limit")
     @patch("samcli.commands.check.calculations.CheckWarning")
-    def test__generate_warning_message(self, patch_warning):
+    def test__generate_warning_message(self, patch_warning, patch_check_limit):
         """
         Other than capacity, the specific values (strings and ints) used in the parameter variables for
         "calculations._generate_warning_message" do not matter. They just have to be of type
@@ -75,18 +76,19 @@ class TestCalculations(TestCase):
         tps = 16
         burst_concurrency = 2342
 
-        calculations.check_limit = Mock()
-        calculations.check_limit.return_value = 815
+        patch_check_limit.return_value = 815
 
         calculations._generate_warning_message(
             capacity_used, resource_name, concurrent_executions, duration, tps, burst_concurrency
         )
 
         graph_mock.red_burst_warnings.append.assert_called_once_with(warning_instance_mock)
+        patch_check_limit.assert_called_once_with(tps, duration, burst_concurrency)
 
+    @patch("samcli.commands.check.calculations._check_limit")
     @patch("samcli.commands.check.calculations.click")
     @patch("samcli.commands.check.calculations.boto3")
-    def test_run_bottle_neck_calculations(self, patch_boto3, patch_click):
+    def test_run_bottle_neck_calculations(self, patch_boto3, patch_click, patch_check_limit):
         # pass
         # Cannot mock client. Need to find a way around it.
         graph_mock = Mock()
@@ -104,8 +106,8 @@ class TestCalculations(TestCase):
         patch_boto3.client.return_value = client_mock
 
         calculations = Calculations(graph_mock)
-        calculations._check_limit = Mock()
-        calculations._check_limit.return_value = Mock()
+
+        patch_check_limit.return_value = Mock()
         calculations._generate_warning_message = Mock()
 
         burst_mock = Mock()
@@ -122,11 +124,11 @@ class TestCalculations(TestCase):
         calculations.run_bottle_neck_calculations()
 
         patch_boto3.client.assert_called_once_with("service-quotas")
-        calculations._check_limit.assert_called_once_with(resource_mock.tps, resource_mock.duration, concurrent_mock)
+        patch_check_limit.assert_called_once_with(resource_mock.tps, resource_mock.duration, concurrent_mock)
 
         client_mock.get_aws_default_service_quota.assert_called()
         calculations._generate_warning_message.assert_called_once_with(
-            calculations._check_limit.return_value,
+            patch_check_limit.return_value,
             resource_mock.resource_name,
             concurrent_mock,
             resource_mock.duration,
@@ -135,14 +137,12 @@ class TestCalculations(TestCase):
         )
 
     def test_check_limit(self):
-        graph_mock = Mock()
+        from samcli.commands.check.calculations import _check_limit
 
-        calculations = Calculations(graph_mock)
-
-        result1 = calculations._check_limit(300, 200, 1000)
-        result2 = calculations._check_limit(300, 1500, 2000)
-        result3 = calculations._check_limit(1000, 300, 1500)
-        result4 = calculations._check_limit(1800, 1400, 450)
+        result1 = _check_limit(300, 200, 1000)
+        result2 = _check_limit(300, 1500, 2000)
+        result3 = _check_limit(1000, 300, 1500)
+        result4 = _check_limit(1800, 1400, 450)
 
         self.assertEqual(result1, 6)
         self.assertEqual(result2, 22.5)

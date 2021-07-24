@@ -45,7 +45,7 @@ class Calculations:
             self._graph.red_warnings.append(warning)
 
         else:  # capacity_used > 100
-            burst_capacity_used = self._check_limit(tps, duration, burst_concurrency)
+            burst_capacity_used = _check_limit(tps, duration, burst_concurrency)
             warning.message = (
                 "For the lambda function [%s], the %ims duration and %iTPS arrival rate is using %i%% of the allowed concurrency on AWS Lambda. It exceeds the limits of the lambda function. It will use %i%% of the available burst concurrency. It is strongly recommended that you get a limit increase before deploying your application:\nhttps://console.aws.amazon.com/servicequotas"
                 % (resource_name, duration, tps, round(capacity_used), round(burst_capacity_used))
@@ -71,12 +71,13 @@ class Calculations:
 
                 tps = resource.tps
                 duration = resource.duration
-                capacity_used = self._check_limit(tps, duration, concurrent_executions)
+                capacity_used = _check_limit(tps, duration, concurrent_executions)
 
                 self._generate_warning_message(
                     capacity_used, resource_name, concurrent_executions, duration, tps, burst_concurrency
                 )
 
-    def _check_limit(self, tps: int, duration: int, execution_limit: int) -> float:
-        tps_max_limit = (1000 / duration) * execution_limit
-        return (tps / tps_max_limit) * 100
+
+def _check_limit(tps: int, duration: int, execution_limit: int) -> float:
+    tps_max_limit = (1000 / duration) * execution_limit
+    return (tps / tps_max_limit) * 100
