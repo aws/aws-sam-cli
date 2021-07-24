@@ -1,62 +1,84 @@
-from .TemplateResource import TemplateResource
+"""
+Class object for Lambda Functions. Contains object from template, as well as all data for lambda functions,
+excluding pricing info
+"""
+from typing import List
+from samcli.lib.providers.provider import Function
+from samcli.commands.check.resources.TemplateResource import TemplateResource
 
 
 class LambdaFunction(TemplateResource):
-    def __init__(self, resource_object, resource_type):
+    def __init__(self, resource_object: Function, resource_type: str):
         super().__init__(resource_object, resource_type)
-        self.duration = None
-        self.tps = None
-        self.parents = []
-        self.children = []
-        self.number_of_requests = None
-        self.average_duration = None
-        self.allocated_memory = None
-        self.allocated_memory_unit = None
+        self._duration: int = -1
+        self._tps: int = -1
+        self._parents: List = []
+        self._children: List = []
+        self._number_of_requests: int = -1
+        self._average_duration: int = -1
+        self._allocated_memory: int = -1
+        self._allocated_memory_unit: str = ""
 
-    def set_number_of_requests(self, num):
-        self.number_of_requests = num
+    @property
+    def number_of_requests(self) -> int:
+        return self._number_of_requests
 
-    def get_number_of_requests(self):
-        return self.number_of_requests
+    @number_of_requests.setter
+    def number_of_requests(self, num: int):
+        self._number_of_requests = num
 
-    def set_average_duration(self, avg):
-        self.average_duration = avg
+    @property
+    def average_duration(self) -> int:
+        return self._average_duration
 
-    def get_average_duration(self):
-        return self.average_duration
+    @average_duration.setter
+    def average_duration(self, avg: int):
+        self._average_duration = avg
 
-    def set_allocated_memory(self, mry):
-        self.allocated_memory = mry
+    @property
+    def allocated_memory(self) -> int:
+        return self._allocated_memory
 
-    def get_allocated_memory(self):
-        return self.allocated_memory
+    @allocated_memory.setter
+    def allocated_memory(self, mry: int):
+        self._allocated_memory = mry
 
-    def set_allocated_memory_unit(self, unit):
-        self.allocated_memory_unit = unit
+    @property
+    def allocated_memory_unit(self) -> str:
+        return self._allocated_memory_unit
 
-    def get_allocated_memory_unit(self):
-        return self.allocated_memory_unit
+    @allocated_memory_unit.setter
+    def allocated_memory_unit(self, unit: str):
+        self._allocated_memory_unit = unit
 
-    def add_child(self, child_node):
-        self.children.append(child_node)
+    @property
+    def children(self) -> List:
+        return self._children
 
-    def get_children(self):
-        return self.children
+    @children.setter
+    def children(self, child_node: "LambdaFunction"):
+        self._children.append(child_node)
 
-    def add_parent(self, parent_node):
-        self.parents.append(parent_node)
+    @property
+    def parents(self) -> List:
+        return self._parents
 
-    def get_parents(self):
-        return self.parents
+    @parents.setter
+    def parents(self, parent_node: "LambdaFunction"):
+        self._parents.append(parent_node)
 
-    def set_tps(self, tps):
-        self.tps = tps
+    @property
+    def tps(self) -> int:
+        return self._tps
 
-    def get_tps(self):
-        return self.tps
+    @tps.setter
+    def tps(self, tps: int):
+        self._tps = tps
 
-    def set_duration(self, duration):
-        self.duration = duration
+    @property
+    def duration(self) -> int:
+        return self._duration
 
-    def get_duration(self):
-        return self.duration
+    @duration.setter
+    def duration(self, duration: int):
+        self._duration = duration

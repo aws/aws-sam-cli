@@ -92,7 +92,7 @@ class SamTranslatorWrapper:
 
         sam_parser = Parser()
         sam_translator = Translator(
-            managed_policy_map=self.__managed_policy_map(),
+            managed_policy_map=self.managed_policy_map(),
             sam_parser=sam_parser,
             # Default plugins are already initialized within the Translator
             plugins=self.extra_plugins,
@@ -104,7 +104,7 @@ class SamTranslatorWrapper:
     def template(self):
         return copy.deepcopy(self._sam_template)
 
-    def __managed_policy_map(self):
+    def managed_policy_map(self):
         """
         This method is unused and a Work In Progress
         """
