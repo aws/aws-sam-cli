@@ -1348,10 +1348,10 @@ class TestService_construct_event(TestCase):
             '"cognitoAuthenticationProvider": null, "cognitoIdentityPoolId": null, "userAgent": '
             '"Custom User Agent String", "caller": null, "cognitoAuthenticationType": null, "sourceIp": '
             '"190.0.0.0", "user": null}, "accountId": "123456789012", "domainName": "190.0.0.1", '
-            '"protocol": "HTTP/1.1"}, "headers": {"Content-Type": '
-            '"application/json", "X-Test": "Value", "X-Forwarded-Port": "3000", "X-Forwarded-Proto": "http"}, '
-            '"multiValueHeaders": {"Content-Type": ["application/json"], "X-Test": ["Value"], '
-            '"X-Forwarded-Port": ["3000"], "X-Forwarded-Proto": ["http"]}, '
+            '"protocol": "HTTP/1.1"}, "headers": {"content-type": '
+            '"application/json", "x-test": "Value", "x-forwarded-port": "3000", "x-forwarded-proto": "http"}, '
+            '"multiValueHeaders": {"Content-Type": ["application/json"], "x-test": ["Value"], '
+            '"x-forwarded-port": ["3000"], "x-forwarded-proto": ["http"]}, '
             '"stageVariables": null, "path": "path", "pathParameters": {"path": "params"}, '
             '"isBase64Encoded": false}'
         )
@@ -1421,8 +1421,8 @@ class TestService_construct_event(TestCase):
         self.assertEqual(
             actual_query_string,
             (
-                {"X-Forwarded-Proto": "http", "X-Forwarded-Port": "3000"},
-                {"X-Forwarded-Proto": ["http"], "X-Forwarded-Port": ["3000"]},
+                {"x-forwarded-proto": "http", "x-forwarded-port": "3000"},
+                {"x-forwarded-proto": ["http"], "x-forwarded-port": ["3000"]},
             ),
         )
 
@@ -1441,16 +1441,16 @@ class TestService_construct_event(TestCase):
             actual_query_string,
             (
                 {
-                    "Content-Type": "application/json",
-                    "X-Test": "Value",
-                    "X-Forwarded-Proto": "http",
-                    "X-Forwarded-Port": "3000",
+                    "content-type": "application/json",
+                    "x-test": "Value",
+                    "x-forwarded-proto": "http",
+                    "x-forwarded-port": "3000",
                 },
                 {
-                    "Content-Type": ["application/json"],
-                    "X-Test": ["Value"],
-                    "X-Forwarded-Proto": ["http"],
-                    "X-Forwarded-Port": ["3000"],
+                    "content-type": ["application/json"],
+                    "x-test": ["Value"],
+                    "x-forwarded-proto": ["http"],
+                    "x-forwarded-port": ["3000"],
                 },
             ),
         )
@@ -1522,10 +1522,10 @@ class TestService_construct_event_http(TestCase):
             "rawQueryString": "query=params",
             "cookies": ["cookie1=test", "cookie2=test"],
             "headers": {
-                "Content-Type": "application/json",
+                "content-type": "application/json",
                 "x-test": "Value",
-                "X-Forwarded-Proto": "http",
-                "X-Forwarded-Port": "3000"
+                "x-forwarded-proto": "http",
+                "x-forwarded-port": "3000"
             },
             "queryStringParameters": {"query": "params"},
             "requestContext": {
@@ -1616,7 +1616,7 @@ class TestService_construct_event_http(TestCase):
         actual_query_string = LocalApigwService._event_http_headers(
             request_mock, "3000")
         self.assertEqual(actual_query_string, {
-                         "X-Forwarded-Proto": "http", "X-Forwarded-Port": "3000"})
+                         "x-forwarded-proto": "http", "x-forwarded-port": "3000"})
 
     def test_event_headers_with_non_empty_list(self):
         request_mock = Mock()
@@ -1632,10 +1632,10 @@ class TestService_construct_event_http(TestCase):
         self.assertEqual(
             actual_query_string,
             {
-                "Content-Type": "application/json",
+                "content-type": "application/json",
                 "x-test": "Value",
-                "X-Forwarded-Proto": "http",
-                "X-Forwarded-Port": "3000",
+                "x-forwarded-proto": "http",
+                "x-forwarded-port": "3000",
             },
         )
 
