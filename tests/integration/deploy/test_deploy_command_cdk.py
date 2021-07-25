@@ -1,12 +1,10 @@
-import json
 import os
 import shutil
 import tempfile
-import uuid
 import time
-import copy
 import logging
 from unittest import skipIf
+from distutils.dir_util import copy_tree
 
 import boto3
 import docker
@@ -15,7 +13,7 @@ from parameterized import parameterized
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
-from tests.integration.package.package_integ_base import CdkPackageIntegPythonBase, PackageIntegBase
+from tests.integration.package.package_integ_base import CdkPackageIntegPythonBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 from tests.testing_utils import CommandResult, run_command, run_command_with_input
 
@@ -69,14 +67,14 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
     @parameterized.expand(["aws-lambda-function"])
     def test_package_and_deploy_no_s3_bucket_all_args(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
         with tempfile.NamedTemporaryFile(delete=False) as output_template_file:
             # Package necessary artifacts.
             package_command_list = self.get_command_list(
                 s3_bucket=self.bucket_name,
                 output_template_file=output_template_file.name,
-                cdk_app=f"{self.venv_python} app.py",
+                cdk_app=f"{self.cdk_python_env.python_executable} app.py",
             )
             package_process = run_command(command_list=package_command_list, cwd=self.working_dir)
             self.assertEqual(package_process.process.returncode, 0)
@@ -123,8 +121,8 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
     @parameterized.expand(["aws-lambda-function"])
     def test_no_package_and_deploy_with_s3_bucket_all_args(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
 
         stack_name = self._method_to_stack_name(self.id())
         self.stack_names.append(stack_name)
@@ -142,7 +140,7 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
             no_execute_changeset=False,
             tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
-            cdk_app=f"{self.venv_python} app.py",
+            cdk_app=f"{self.cdk_python_env.python_executable} app.py",
             cdk_context=f"stack_name={stack_name}",
         )
 
@@ -152,8 +150,8 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
     @parameterized.expand(["aws-lambda-function"])
     def test_no_package_and_deploy_with_s3_bucket_and_no_confirm_changeset(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
 
         stack_name = self._method_to_stack_name(self.id())
         self.stack_names.append(stack_name)
@@ -171,7 +169,7 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
             no_execute_changeset=False,
             tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
-            cdk_app=f"{self.venv_python} app.py",
+            cdk_app=f"{self.cdk_python_env.python_executable} app.py",
             cdk_context=f"stack_name={stack_name}",
         )
 
@@ -183,15 +181,15 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
     @parameterized.expand(["aws-lambda-function"])
     def test_deploy_no_redeploy_on_same_built_artifacts(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
 
         stack_name = self._method_to_stack_name(self.id())
         self.stack_names.append(stack_name)
 
         # Build project
         build_command_list = self.get_minimal_build_command_list(
-            cdk_app=f"{self.venv_python} app.py",
+            cdk_app=f"{self.cdk_python_env.python_executable} app.py",
             cdk_context=f"stack_name={stack_name}",
         )
         run_command(build_command_list, cwd=self.working_dir)
@@ -225,8 +223,8 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
     @parameterized.expand(["aws-lambda-function"])
     def test_no_package_and_deploy_with_s3_bucket_all_args_confirm_changeset(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
 
         stack_name = self._method_to_stack_name(self.id())
         self.stack_names.append(stack_name)
@@ -244,7 +242,7 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
             no_execute_changeset=False,
             tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=True,
-            cdk_app=f"{self.venv_python} app.py",
+            cdk_app=f"{self.cdk_python_env.python_executable} app.py",
             cdk_context=f"stack_name={stack_name}",
         )
 
@@ -254,8 +252,8 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
     @parameterized.expand(["aws-lambda-function"])
     def test_deploy_without_s3_bucket(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
 
         stack_name = self._method_to_stack_name(self.id())
         self.stack_names.append(stack_name)
@@ -272,7 +270,7 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
             no_execute_changeset=False,
             tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
-            cdk_app=f"{self.venv_python} app.py",
+            cdk_app=f"{self.cdk_python_env.python_executable} app.py",
             cdk_context=f"stack_name={stack_name}",
         )
 
@@ -290,8 +288,8 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
     @parameterized.expand(["aws-lambda-function"])
     def test_deploy_without_stack_name(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
 
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(
@@ -305,7 +303,7 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
             no_execute_changeset=False,
             tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
-            cdk_app=f"{self.venv_python} app.py",
+            cdk_app=f"{self.cdk_python_env.python_executable} app.py",
         )
 
         deploy_process_execute = run_command(deploy_command_list, cwd=self.working_dir)
@@ -314,8 +312,8 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
     @parameterized.expand(["aws-lambda-function"])
     def test_deploy_with_non_exist_stack_name(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
 
         stack_name = self._method_to_stack_name(self.id())
 
@@ -332,7 +330,7 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
             no_execute_changeset=False,
             tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
-            cdk_app=f"{self.venv_python} app.py",
+            cdk_app=f"{self.cdk_python_env.python_executable} app.py",
         )
 
         deploy_process_execute = run_command(deploy_command_list, cwd=self.working_dir)
@@ -348,8 +346,8 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
     @parameterized.expand(["aws-lambda-function"])
     def test_deploy_without_capabilities(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
 
         stack_name = self._method_to_stack_name(self.id())
         self.stack_names.append(stack_name)
@@ -366,7 +364,7 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
             no_execute_changeset=False,
             tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
-            cdk_app=f"{self.venv_python} app.py",
+            cdk_app=f"{self.cdk_python_env.python_executable} app.py",
             cdk_context=f"stack_name={stack_name}",
         )
 
@@ -376,8 +374,8 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
     @parameterized.expand(["aws-lambda-function"])
     def test_deploy_with_s3_bucket_switch_region(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
 
         stack_name = self._method_to_stack_name(self.id())
         self.stack_names.append(stack_name)
@@ -395,7 +393,7 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
             no_execute_changeset=False,
             tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
-            cdk_app=f"{self.venv_python} app.py",
+            cdk_app=f"{self.cdk_python_env.python_executable} app.py",
             cdk_context=f"stack_name={stack_name}",
         )
 
@@ -417,7 +415,7 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
             tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
             region="eu-west-2",
-            cdk_app=f"{self.venv_python} app.py",
+            cdk_app=f"{self.cdk_python_env.python_executable} app.py",
             cdk_context=f"stack_name={stack_name}",
         )
 
@@ -437,8 +435,8 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
     @parameterized.expand(["aws-lambda-function"])
     def test_deploy_twice_with_no_fail_on_empty_changeset(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
 
         stack_name = self._method_to_stack_name(self.id())
         self.stack_names.append(stack_name)
@@ -455,7 +453,7 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
             no_execute_changeset=False,
             tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
-            cdk_app=f"{self.venv_python} app.py",
+            cdk_app=f"{self.cdk_python_env.python_executable} app.py",
             cdk_context=f"stack_name={stack_name}",
         )
 
@@ -475,7 +473,7 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
             tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
             fail_on_empty_changeset=False,
-            cdk_app=f"{self.venv_python} app.py",
+            cdk_app=f"{self.cdk_python_env.python_executable} app.py",
             cdk_context=f"stack_name={stack_name}",
         )
 
@@ -487,8 +485,8 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
     @parameterized.expand(["aws-lambda-function"])
     def test_deploy_twice_with_fail_on_empty_changeset(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
 
         stack_name = self._method_to_stack_name(self.id())
         self.stack_names.append(stack_name)
@@ -505,7 +503,7 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
             no_execute_changeset=False,
             tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
-            cdk_app=f"{self.venv_python} app.py",
+            cdk_app=f"{self.cdk_python_env.python_executable} app.py",
             cdk_context=f"stack_name={stack_name}",
         )
 
@@ -525,7 +523,7 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
             tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
             fail_on_empty_changeset=True,
-            cdk_app=f"{self.venv_python} app.py",
+            cdk_app=f"{self.cdk_python_env.python_executable} app.py",
             cdk_context=f"stack_name={stack_name}",
         )
 
@@ -537,15 +535,15 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
     @parameterized.expand(["aws-lambda-function"])
     def test_deploy_guided_zip(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
 
         stack_name = self._method_to_stack_name(self.id())
         self.stack_names.append(stack_name)
 
         deploy_command_list = self.get_deploy_command_list(
             guided=True,
-            cdk_app=f"{self.venv_python} app.py",
+            cdk_app=f"{self.cdk_python_env.python_executable} app.py",
             cdk_context=f"stack_name={stack_name}",
         )
 
@@ -561,8 +559,8 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
     @parameterized.expand(["aws-lambda-function"])
     def test_deploy_guided_set_parameter(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
 
         stack_name = self._method_to_stack_name(self.id())
         self.stack_names.append(stack_name)
@@ -570,7 +568,7 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(
             guided=True,
-            cdk_app=f"{self.venv_python} app.py",
+            cdk_app=f"{self.cdk_python_env.python_executable} app.py",
             cdk_context=f"stack_name={stack_name}",
         )
 
@@ -587,8 +585,8 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
     @parameterized.expand(["aws-lambda-function"])
     def test_deploy_guided_set_capabilities(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
 
         stack_name = self._method_to_stack_name(self.id())
         self.stack_names.append(stack_name)
@@ -596,7 +594,7 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(
             guided=True,
-            cdk_app=f"{self.venv_python} app.py",
+            cdk_app=f"{self.cdk_python_env.python_executable} app.py",
             cdk_context=f"stack_name={stack_name}",
         )
 
@@ -612,8 +610,8 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
     @parameterized.expand(["aws-lambda-function"])
     def test_deploy_guided_capabilities_default(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
 
         stack_name = self._method_to_stack_name(self.id())
         self.stack_names.append(stack_name)
@@ -621,7 +619,7 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(
             guided=True,
-            cdk_app=f"{self.venv_python} app.py",
+            cdk_app=f"{self.cdk_python_env.python_executable} app.py",
             cdk_context=f"stack_name={stack_name}",
         )
 
@@ -638,8 +636,8 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
     @parameterized.expand(["aws-lambda-function"])
     def test_deploy_guided_set_confirm_changeset(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
 
         stack_name = self._method_to_stack_name(self.id())
         self.stack_names.append(stack_name)
@@ -647,7 +645,7 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(
             guided=True,
-            cdk_app=f"{self.venv_python} app.py",
+            cdk_app=f"{self.cdk_python_env.python_executable} app.py",
             cdk_context=f"stack_name={stack_name}",
         )
 
@@ -664,8 +662,8 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
     @parameterized.expand(["aws-lambda-function"])
     def test_deploy_guided_with_non_exist_stack_name(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
 
         stack_name = self._method_to_stack_name(self.id())
         # self.stack_names.append(stack_name)
@@ -673,7 +671,7 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(
             guided=True,
-            cdk_app=f"{self.venv_python} app.py",
+            cdk_app=f"{self.cdk_python_env.python_executable} app.py",
         )
 
         deploy_process_execute = run_command_with_input(
@@ -693,8 +691,8 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
     @parameterized.expand(["aws-lambda-function"])
     def test_deploy_with_no_s3_bucket_set_resolve_s3(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
 
         stack_name = self._method_to_stack_name(self.id())
         self.stack_names.append(stack_name)
@@ -708,7 +706,7 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
             resolve_s3=True,
-            cdk_app=f"{self.venv_python} app.py",
+            cdk_app=f"{self.cdk_python_env.python_executable} app.py",
             cdk_context=f"stack_name={stack_name}",
         )
 
@@ -718,13 +716,13 @@ class TestDeployCdkPython(CdkPackageIntegPythonBase, DeployIntegBase):
     @parameterized.expand([("aws-lambda-function", "samconfig-invalid-syntax.toml")])
     def test_deploy_with_invalid_config(self, cdk_app_loc, config_file):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
         config_path = self.test_data_path.joinpath(config_file)
 
         deploy_command_list = self.get_deploy_command_list(
             config_file=config_path,
-            cdk_app=f"{self.venv_python} app.py",
+            cdk_app=f"{self.cdk_python_env.python_executable} app.py",
         )
 
         deploy_process_execute = run_command(deploy_command_list, cwd=self.working_dir)
