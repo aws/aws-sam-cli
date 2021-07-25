@@ -14,8 +14,9 @@ LOG = logging.getLogger(__name__)
 
 class CdkPythonEnv:
     """
-    A self-contained and temporary environment for testing CDK app written in Python 
+    A self-contained and temporary environment for testing CDK app written in Python
     """
+
     def __init__(self, base_dir: str, use_venv: bool = False):
         self._base_dir = base_dir
         self._venv_path = os.path.join(self._base_dir, ".venv")
