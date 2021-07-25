@@ -17,7 +17,8 @@ from samcli.local.lambdafn.exceptions import FunctionNotFound
 class TestApiGatewayService(TestCase):
     def setUp(self):
         self.function_name = Mock()
-        self.api_gateway_route = Route(methods=["GET"], function_name=self.function_name, path="/")
+        self.api_gateway_route = Route(
+            methods=["GET"], function_name=self.function_name, path="/")
         self.http_gateway_route = Route(
             methods=["GET"], function_name=self.function_name, path="/", event_type=Route.HTTP
         )
@@ -73,7 +74,8 @@ class TestApiGatewayService(TestCase):
         self.api_service._construct_v_1_0_event = Mock()
 
         parse_output_mock = Mock()
-        parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
+        parse_output_mock.return_value = (
+            "status_code", Headers({"headers": "headers"}), "body")
         self.api_service._parse_v1_payload_format_lambda_output = parse_output_mock
 
         service_response_mock = Mock()
@@ -85,8 +87,10 @@ class TestApiGatewayService(TestCase):
         result = self.api_service._request_handler()
 
         self.assertEqual(result, make_response_mock)
-        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
-        self.api_service._construct_v_1_0_event.assert_called_with(ANY, ANY, ANY, ANY, ANY)
+        self.lambda_runner.invoke.assert_called_with(
+            ANY, ANY, stdout=ANY, stderr=self.stderr)
+        self.api_service._construct_v_1_0_event.assert_called_with(
+            ANY, ANY, ANY, ANY, ANY)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     def test_http_request_must_invoke_lambda(self, request_mock):
@@ -101,7 +105,8 @@ class TestApiGatewayService(TestCase):
         self.http_service._construct_v_2_0_event_http = MagicMock()
 
         parse_output_mock = Mock()
-        parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
+        parse_output_mock.return_value = (
+            "status_code", Headers({"headers": "headers"}), "body")
         self.http_service._parse_v2_payload_format_lambda_output = parse_output_mock
 
         service_response_mock = Mock()
@@ -113,8 +118,10 @@ class TestApiGatewayService(TestCase):
         result = self.http_service._request_handler()
 
         self.assertEqual(result, make_response_mock)
-        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
-        self.http_service._construct_v_2_0_event_http.assert_called_with(ANY, ANY, ANY, ANY, ANY, ANY)
+        self.lambda_runner.invoke.assert_called_with(
+            ANY, ANY, stdout=ANY, stderr=self.stderr)
+        self.http_service._construct_v_2_0_event_http.assert_called_with(
+            ANY, ANY, ANY, ANY, ANY, ANY)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     def test_http_v1_payload_request_must_invoke_lambda(self, request_mock):
@@ -129,7 +136,8 @@ class TestApiGatewayService(TestCase):
         self.http_service._construct_v_2_0_event_http = MagicMock()
 
         parse_output_mock = Mock()
-        parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
+        parse_output_mock.return_value = (
+            "status_code", Headers({"headers": "headers"}), "body")
         self.http_service._parse_v1_payload_format_lambda_output = parse_output_mock
 
         service_response_mock = Mock()
@@ -141,8 +149,10 @@ class TestApiGatewayService(TestCase):
         result = self.http_service._request_handler()
 
         self.assertEqual(result, make_response_mock)
-        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
-        self.http_service._construct_v_1_0_event.assert_called_with(ANY, ANY, ANY, ANY, ANY)
+        self.lambda_runner.invoke.assert_called_with(
+            ANY, ANY, stdout=ANY, stderr=self.stderr)
+        self.http_service._construct_v_1_0_event.assert_called_with(
+            ANY, ANY, ANY, ANY, ANY)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     def test_http_v2_payload_request_must_invoke_lambda(self, request_mock):
@@ -157,7 +167,8 @@ class TestApiGatewayService(TestCase):
         self.http_service._construct_v_2_0_event_http = MagicMock()
 
         parse_output_mock = Mock()
-        parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
+        parse_output_mock.return_value = (
+            "status_code", Headers({"headers": "headers"}), "body")
         self.http_service._parse_v2_payload_format_lambda_output = parse_output_mock
 
         service_response_mock = Mock()
@@ -169,8 +180,10 @@ class TestApiGatewayService(TestCase):
         result = self.http_service._request_handler()
 
         self.assertEqual(result, make_response_mock)
-        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
-        self.http_service._construct_v_2_0_event_http.assert_called_with(ANY, ANY, ANY, ANY, ANY, ANY)
+        self.lambda_runner.invoke.assert_called_with(
+            ANY, ANY, stdout=ANY, stderr=self.stderr)
+        self.http_service._construct_v_2_0_event_http.assert_called_with(
+            ANY, ANY, ANY, ANY, ANY, ANY)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     def test_api_options_request_must_invoke_lambda(self, request_mock):
@@ -182,7 +195,8 @@ class TestApiGatewayService(TestCase):
         self.api_service._construct_v_1_0_event = Mock()
 
         parse_output_mock = Mock()
-        parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
+        parse_output_mock.return_value = (
+            "status_code", Headers({"headers": "headers"}), "body")
         self.api_service._parse_v1_payload_format_lambda_output = parse_output_mock
 
         service_response_mock = Mock()
@@ -194,7 +208,8 @@ class TestApiGatewayService(TestCase):
         result = self.api_service._request_handler()
 
         self.assertEqual(result, make_response_mock)
-        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
+        self.lambda_runner.invoke.assert_called_with(
+            ANY, ANY, stdout=ANY, stderr=self.stderr)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     def test_http_options_request_must_invoke_lambda(self, request_mock):
@@ -206,7 +221,8 @@ class TestApiGatewayService(TestCase):
         self.http_service._construct_v_1_0_event = Mock()
 
         parse_output_mock = Mock()
-        parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
+        parse_output_mock.return_value = (
+            "status_code", Headers({"headers": "headers"}), "body")
         self.http_service._parse_v1_payload_format_lambda_output = parse_output_mock
 
         service_response_mock = Mock()
@@ -218,7 +234,8 @@ class TestApiGatewayService(TestCase):
         result = self.http_service._request_handler()
 
         self.assertEqual(result, make_response_mock)
-        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
+        self.lambda_runner.invoke.assert_called_with(
+            ANY, ANY, stdout=ANY, stderr=self.stderr)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     @patch("samcli.local.apigw.local_apigw_service.LambdaOutputParser")
@@ -235,7 +252,8 @@ class TestApiGatewayService(TestCase):
         self.api_service._construct_v_1_0_event = Mock()
 
         parse_output_mock = Mock()
-        parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
+        parse_output_mock.return_value = (
+            "status_code", Headers({"headers": "headers"}), "body")
         self.api_service._parse_v1_payload_format_lambda_output = parse_output_mock
 
         lambda_logs = "logs"
@@ -252,7 +270,8 @@ class TestApiGatewayService(TestCase):
         lambda_output_parser_mock.get_lambda_output.assert_called_with(ANY)
 
         # Make sure the parse method is called only on the returned response and not on the raw data from stdout
-        parse_output_mock.assert_called_with(lambda_response, ANY, ANY, Route.API)
+        parse_output_mock.assert_called_with(
+            lambda_response, ANY, ANY, Route.API)
         # Make sure the logs are written to stderr
         self.stderr.write.assert_called_with(lambda_logs)
 
@@ -266,7 +285,8 @@ class TestApiGatewayService(TestCase):
         self.api_service._get_current_route.methods = []
 
         parse_output_mock = Mock()
-        parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
+        parse_output_mock.return_value = (
+            "status_code", Headers({"headers": "headers"}), "body")
         self.api_service._parse_v1_payload_format_lambda_output = parse_output_mock
 
         service_response_mock = Mock()
@@ -282,13 +302,16 @@ class TestApiGatewayService(TestCase):
         function_name_1 = Mock()
         function_name_2 = Mock()
         function_name_3 = Mock()
-        api_gateway_route_1 = Route(methods=["GET"], function_name=function_name_1, path="/")
-        api_gateway_route_2 = Route(methods=["POST"], function_name=function_name_2, path="/")
+        api_gateway_route_1 = Route(
+            methods=["GET"], function_name=function_name_1, path="/")
+        api_gateway_route_2 = Route(
+            methods=["POST"], function_name=function_name_2, path="/")
         api_gateway_route_3 = Route(
             methods=["x-amazon-apigateway-any-method"], function_name=function_name_3, path="$default"
         )
 
-        list_of_routes = [api_gateway_route_1, api_gateway_route_2, api_gateway_route_3]
+        list_of_routes = [api_gateway_route_1,
+                          api_gateway_route_2, api_gateway_route_3]
 
         lambda_runner = Mock()
 
@@ -297,19 +320,32 @@ class TestApiGatewayService(TestCase):
 
         service.create()
 
-        self.assertEqual(service._dict_of_routes["/:GET"].function_name, function_name_1)
-        self.assertEqual(service._dict_of_routes["/:POST"].function_name, function_name_2)
-        self.assertEqual(service._dict_of_routes["/:OPTIONS"].function_name, function_name_3)
-        self.assertEqual(service._dict_of_routes["/:PATCH"].function_name, function_name_3)
-        self.assertEqual(service._dict_of_routes["/:DELETE"].function_name, function_name_3)
-        self.assertEqual(service._dict_of_routes["/:PUT"].function_name, function_name_3)
-        self.assertEqual(service._dict_of_routes["/<path:any_path>:GET"].function_name, function_name_3)
-        self.assertEqual(service._dict_of_routes["/<path:any_path>:DELETE"].function_name, function_name_3)
-        self.assertEqual(service._dict_of_routes["/<path:any_path>:PUT"].function_name, function_name_3)
-        self.assertEqual(service._dict_of_routes["/<path:any_path>:POST"].function_name, function_name_3)
-        self.assertEqual(service._dict_of_routes["/<path:any_path>:HEAD"].function_name, function_name_3)
-        self.assertEqual(service._dict_of_routes["/<path:any_path>:OPTIONS"].function_name, function_name_3)
-        self.assertEqual(service._dict_of_routes["/<path:any_path>:PATCH"].function_name, function_name_3)
+        self.assertEqual(
+            service._dict_of_routes["/:GET"].function_name, function_name_1)
+        self.assertEqual(
+            service._dict_of_routes["/:POST"].function_name, function_name_2)
+        self.assertEqual(
+            service._dict_of_routes["/:OPTIONS"].function_name, function_name_3)
+        self.assertEqual(
+            service._dict_of_routes["/:PATCH"].function_name, function_name_3)
+        self.assertEqual(
+            service._dict_of_routes["/:DELETE"].function_name, function_name_3)
+        self.assertEqual(
+            service._dict_of_routes["/:PUT"].function_name, function_name_3)
+        self.assertEqual(
+            service._dict_of_routes["/<path:any_path>:GET"].function_name, function_name_3)
+        self.assertEqual(
+            service._dict_of_routes["/<path:any_path>:DELETE"].function_name, function_name_3)
+        self.assertEqual(
+            service._dict_of_routes["/<path:any_path>:PUT"].function_name, function_name_3)
+        self.assertEqual(
+            service._dict_of_routes["/<path:any_path>:POST"].function_name, function_name_3)
+        self.assertEqual(
+            service._dict_of_routes["/<path:any_path>:HEAD"].function_name, function_name_3)
+        self.assertEqual(
+            service._dict_of_routes["/<path:any_path>:OPTIONS"].function_name, function_name_3)
+        self.assertEqual(
+            service._dict_of_routes["/<path:any_path>:PATCH"].function_name, function_name_3)
 
     @patch("samcli.local.apigw.local_apigw_service.Flask")
     def test_create_creates_flask_app_with_url_rules(self, flask):
@@ -339,13 +375,15 @@ class TestApiGatewayService(TestCase):
     def test_http_initalize_creates_default_values(self):
         self.assertEqual(self.http_service.port, 3000)
         self.assertEqual(self.http_service.host, "127.0.0.1")
-        self.assertEqual(self.http_service.api.routes, self.http_list_of_routes)
+        self.assertEqual(self.http_service.api.routes,
+                         self.http_list_of_routes)
         self.assertIsNone(self.http_service.static_dir)
         self.assertEqual(self.http_service.lambda_runner, self.lambda_runner)
 
     def test_initalize_with_values(self):
         lambda_runner = Mock()
-        local_service = LocalApigwService(Api(), lambda_runner, static_dir="dir/static", port=5000, host="129.0.0.0")
+        local_service = LocalApigwService(
+            Api(), lambda_runner, static_dir="dir/static", port=5000, host="129.0.0.0")
         self.assertEqual(local_service.port, 5000)
         self.assertEqual(local_service.host, "129.0.0.0")
         self.assertEqual(local_service.api.routes, [])
@@ -414,7 +452,8 @@ class TestApiGatewayService(TestCase):
     @patch("samcli.local.apigw.local_apigw_service.ServiceErrorResponses")
     def test_request_handler_errors_when_unable_to_read_binary_data(self, service_error_responses_patch, request_mock):
         _construct_event = Mock()
-        _construct_event.side_effect = UnicodeDecodeError("utf8", b"obj", 1, 2, "reason")
+        _construct_event.side_effect = UnicodeDecodeError(
+            "utf8", b"obj", 1, 2, "reason")
         self.api_service._get_current_route = MagicMock()
         self.api_service._get_current_route.methods = []
 
@@ -437,7 +476,8 @@ class TestApiGatewayService(TestCase):
         self.api_service._route_key = route_key_method_mock
         self.api_service._dict_of_routes = {"method:path": "function"}
 
-        self.assertEqual(self.api_service._get_current_route(request_mock), "function")
+        self.assertEqual(self.api_service._get_current_route(
+            request_mock), "function")
 
     def test_get_current_route_keyerror(self):
         """
@@ -461,8 +501,10 @@ class TestApiGatewayService(TestCase):
 class TestApiGatewayModel(TestCase):
     def setUp(self):
         self.function_name = "name"
-        self.api_gateway = Route(function_name=self.function_name, methods=["Post"], path="/")
-        self.http_gateway = Route(function_name=self.function_name, methods=["Post"], path="/", event_type=Route.HTTP)
+        self.api_gateway = Route(
+            function_name=self.function_name, methods=["Post"], path="/")
+        self.http_gateway = Route(function_name=self.function_name, methods=[
+                                  "Post"], path="/", event_type=Route.HTTP)
 
     def test_class_initialization(self):
         self.assertEqual(self.api_gateway.methods, ["POST"])
@@ -482,7 +524,8 @@ class TestLambdaHeaderDictionaryMerge(TestCase):
         headers = {}
         multi_value_headers = {}
 
-        result = LocalApigwService._merge_response_headers(headers, multi_value_headers)
+        result = LocalApigwService._merge_response_headers(
+            headers, multi_value_headers)
 
         self.assertEqual(result, Headers({}))
 
@@ -490,7 +533,8 @@ class TestLambdaHeaderDictionaryMerge(TestCase):
         headers = {"h1": "value1", "h2": "value2", "h3": "value3"}
         multi_value_headers = {"h3": ["value4"]}
 
-        result = LocalApigwService._merge_response_headers(headers, multi_value_headers)
+        result = LocalApigwService._merge_response_headers(
+            headers, multi_value_headers)
 
         self.assertIn("h1", result)
         self.assertIn("h2", result)
@@ -503,7 +547,8 @@ class TestLambdaHeaderDictionaryMerge(TestCase):
         headers = {"h1": "ValueB"}
         multi_value_headers = {"h1": ["ValueA", "ValueB", "ValueC"]}
 
-        result = LocalApigwService._merge_response_headers(headers, multi_value_headers)
+        result = LocalApigwService._merge_response_headers(
+            headers, multi_value_headers)
 
         self.assertIn("h1", result)
         self.assertEqual(result.get_all("h1"), ["ValueA", "ValueB", "ValueC"])
@@ -600,7 +645,8 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
             lambda_output, binary_types=[], flask_request=Mock(), event_type=event_type
         )
 
-        self.assertEqual(headers, Headers({"Content-Type": "application/json", "X-Foo": ["bar", "42"]}))
+        self.assertEqual(headers, Headers(
+            {"Content-Type": "application/json", "X-Foo": ["bar", "42"]}))
 
     @parameterized.expand(
         [
@@ -620,7 +666,8 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
         )
 
         self.assertEqual(
-            headers, Headers({"Content-Type": "application/json", "X-Bar": "bar", "X-Foo": ["bar", "42", "foo"]})
+            headers, Headers({"Content-Type": "application/json",
+                              "X-Bar": "bar", "X-Foo": ["bar", "42", "foo"]})
         )
 
     def test_extra_values_raise(self):
@@ -644,7 +691,8 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
             lambda_output, binary_types=[], flask_request=Mock(), event_type=Route.HTTP
         )
         self.assertEqual(status_code, 200)
-        self.assertEqual(headers, Headers({"Content-Type": "application/json"}))
+        self.assertEqual(headers, Headers(
+            {"Content-Type": "application/json"}))
         self.assertEqual(body, '{"message":"Hello from Lambda"}')
 
     @parameterized.expand(
@@ -664,7 +712,8 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
         )
 
         self.assertEqual(status_code, 200)
-        self.assertEqual(headers, Headers({"Content-Type": "application/json"}))
+        self.assertEqual(headers, Headers(
+            {"Content-Type": "application/json"}))
         self.assertEqual(body, '{"message":"Hello from Lambda"}')
 
     @parameterized.expand(
@@ -721,11 +770,13 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
         )
 
         should_decode_body_patch.assert_called_with(
-            ["*/*"], flask_request_mock, Headers({"Content-Type": "application/octet-stream"}), encoded_parsed_value
+            ["*/*"], flask_request_mock, Headers(
+                {"Content-Type": "application/octet-stream"}), encoded_parsed_value
         )
 
         self.assertEqual(status_code, 200)
-        self.assertEqual(headers, Headers({"Content-Type": "application/octet-stream"}))
+        self.assertEqual(headers, Headers(
+            {"Content-Type": "application/octet-stream"}))
         self.assertEqual(body, binary_body)
 
     @parameterized.expand(
@@ -785,11 +836,13 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
         )
 
         should_decode_body_patch.assert_called_with(
-            ["*/*"], flask_request_mock, Headers({"Content-Type": "application/octet-stream"}), True
+            ["*/*"], flask_request_mock, Headers(
+                {"Content-Type": "application/octet-stream"}), True
         )
 
         self.assertEqual(status_code, 200)
-        self.assertEqual(headers, Headers({"Content-Type": "application/octet-stream"}))
+        self.assertEqual(headers, Headers(
+            {"Content-Type": "application/octet-stream"}))
         self.assertEqual(body, binary_body)
 
     @parameterized.expand(
@@ -817,8 +870,10 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
         )
 
         self.assertEqual(status_code, 200)
-        self.assertEqual(headers, Headers({"Content-Type": "application/octet-stream"}))
-        self.assertEqual(body, binary_body if encoded_parsed_value else base64_body)
+        self.assertEqual(headers, Headers(
+            {"Content-Type": "application/octet-stream"}))
+        self.assertEqual(
+            body, binary_body if encoded_parsed_value else base64_body)
 
     @parameterized.expand(
         [
@@ -878,7 +933,8 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
         )
 
         self.assertEqual(status_code, 200)
-        self.assertEqual(headers, Headers({"Content-Type": "application/octet-stream"}))
+        self.assertEqual(headers, Headers(
+            {"Content-Type": "application/octet-stream"}))
         self.assertEqual(body, base64_body)
 
     def test_parse_returns_does_not_decodes_base64_to_binary_for_http_api(self):
@@ -896,7 +952,8 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
         )
 
         self.assertEqual(status_code, 200)
-        self.assertEqual(headers, Headers({"Content-Type": "application/octet-stream"}))
+        self.assertEqual(headers, Headers(
+            {"Content-Type": "application/octet-stream"}))
         self.assertEqual(body, base64_body)
 
     @parameterized.expand(
@@ -970,7 +1027,8 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
         )
 
         self.assertEqual(status_code, 200)
-        self.assertEqual(headers, Headers({"Content-Type": "application/json"}))
+        self.assertEqual(headers, Headers(
+            {"Content-Type": "application/json"}))
         self.assertEqual(body, '{"message":"Hello from Lambda"}')
 
     @parameterized.expand(
@@ -1032,7 +1090,8 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
         )
 
         self.assertEqual(status_code, 200)
-        self.assertEqual(headers, Headers({"Content-Type": "application/json"}))
+        self.assertEqual(headers, Headers(
+            {"Content-Type": "application/json"}))
         self.assertEqual(body, None)
 
     @parameterized.expand(
@@ -1101,7 +1160,8 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
         )
 
         self.assertEqual(status_code, 200)
-        self.assertEqual(headers, Headers({"Content-Type": "application/json"}))
+        self.assertEqual(headers, Headers(
+            {"Content-Type": "application/json"}))
         self.assertEqual(body, '{"message":"Hello from Lambda"}')
 
     def test_parse_returns_correct_tuple(self):
@@ -1115,7 +1175,8 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
         )
 
         self.assertEqual(status_code, 200)
-        self.assertEqual(headers, Headers({"Content-Type": "application/json"}))
+        self.assertEqual(headers, Headers(
+            {"Content-Type": "application/json"}))
         self.assertEqual(body, '{"message":"Hello from Lambda"}')
 
     def test_parse_raises_when_invalid_mimetype(self):
@@ -1144,7 +1205,8 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
         )
 
         self.assertEqual(status_code, 200)
-        self.assertEqual(headers, Headers({"Content-Type": "application/octet-stream"}))
+        self.assertEqual(headers, Headers(
+            {"Content-Type": "application/octet-stream"}))
         self.assertEqual(body, base64_body)
 
     def test_parse_returns_decodes_base64_to_binary(self):
@@ -1162,7 +1224,8 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
         )
 
         self.assertEqual(status_code, 200)
-        self.assertEqual(headers, Headers({"Content-Type": "application/octet-stream"}))
+        self.assertEqual(headers, Headers(
+            {"Content-Type": "application/octet-stream"}))
         self.assertEqual(body, binary_body)
 
     def test_status_code_int_str(self):
@@ -1212,7 +1275,8 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
             lambda_output, binary_types=[], flask_request=Mock()
         )
         self.assertEqual(status_code, 200)
-        self.assertEqual(headers, Headers({"Content-Type": "application/json"}))
+        self.assertEqual(headers, Headers(
+            {"Content-Type": "application/json"}))
         self.assertEqual(body, "some str")
 
     def test_lambda_output_integer(self):
@@ -1221,7 +1285,8 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
             lambda_output, binary_types=[], flask_request=Mock()
         )
         self.assertEqual(status_code, 200)
-        self.assertEqual(headers, Headers({"Content-Type": "application/json"}))
+        self.assertEqual(headers, Headers(
+            {"Content-Type": "application/json"}))
         self.assertEqual(body, lambda_output)
 
     def test_properties_are_null(self):
@@ -1232,7 +1297,8 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
         )
 
         self.assertEqual(status_code, 200)
-        self.assertEqual(headers, Headers({"Content-Type": "application/json"}))
+        self.assertEqual(headers, Headers(
+            {"Content-Type": "application/json"}))
         self.assertEqual(body, None)
 
     def test_lambda_output_json_object_no_status_code(self):
@@ -1243,7 +1309,8 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
         )
 
         self.assertEqual(status_code, 200)
-        self.assertEqual(headers, Headers({"Content-Type": "application/json"}))
+        self.assertEqual(headers, Headers(
+            {"Content-Type": "application/json"}))
         self.assertEqual(body, lambda_output)
 
 
@@ -1257,7 +1324,8 @@ class TestService_construct_event(TestCase):
         self.request_mock.host = "190.0.0.1"
         self.request_mock.get_data.return_value = b"DATA!!!!"
         query_param_args_mock = Mock()
-        query_param_args_mock.lists.return_value = {"query": ["params"]}.items()
+        query_param_args_mock.lists.return_value = {
+            "query": ["params"]}.items()
         self.request_mock.args = query_param_args_mock
         headers_mock = Mock()
         headers_mock.keys.return_value = ["Content-Type", "X-Test"]
@@ -1292,28 +1360,34 @@ class TestService_construct_event(TestCase):
 
     def validate_request_context_and_remove_request_time_data(self, event_json):
         request_time = event_json["requestContext"].pop("requestTime", None)
-        request_time_epoch = event_json["requestContext"].pop("requestTimeEpoch", None)
+        request_time_epoch = event_json["requestContext"].pop(
+            "requestTimeEpoch", None)
 
         self.assertIsInstance(request_time, str)
-        parsed_request_time = datetime.strptime(request_time, "%d/%b/%Y:%H:%M:%S +0000")
+        parsed_request_time = datetime.strptime(
+            request_time, "%d/%b/%Y:%H:%M:%S +0000")
         self.assertIsInstance(parsed_request_time, datetime)
 
         self.assertIsInstance(request_time_epoch, int)
 
     def test_construct_event_with_data(self):
-        actual_event_str = LocalApigwService._construct_v_1_0_event(self.request_mock, 3000, binary_types=[])
+        actual_event_str = LocalApigwService._construct_v_1_0_event(
+            self.request_mock, 3000, binary_types=[])
 
         actual_event_json = json.loads(actual_event_str)
-        self.validate_request_context_and_remove_request_time_data(actual_event_json)
+        self.validate_request_context_and_remove_request_time_data(
+            actual_event_json)
 
         self.assertEqual(actual_event_json["body"], self.expected_dict["body"])
 
     def test_construct_event_no_data(self):
         self.request_mock.get_data.return_value = None
 
-        actual_event_str = LocalApigwService._construct_v_1_0_event(self.request_mock, 3000, binary_types=[])
+        actual_event_str = LocalApigwService._construct_v_1_0_event(
+            self.request_mock, 3000, binary_types=[])
         actual_event_json = json.loads(actual_event_str)
-        self.validate_request_context_and_remove_request_time_data(actual_event_json)
+        self.validate_request_context_and_remove_request_time_data(
+            actual_event_json)
 
         self.assertEqual(actual_event_json["body"], None)
 
@@ -1326,9 +1400,11 @@ class TestService_construct_event(TestCase):
 
         self.request_mock.get_data.return_value = binary_body
 
-        actual_event_str = LocalApigwService._construct_v_1_0_event(self.request_mock, 3000, binary_types=[])
+        actual_event_str = LocalApigwService._construct_v_1_0_event(
+            self.request_mock, 3000, binary_types=[])
         actual_event_json = json.loads(actual_event_str)
-        self.validate_request_context_and_remove_request_time_data(actual_event_json)
+        self.validate_request_context_and_remove_request_time_data(
+            actual_event_json)
 
         self.assertEqual(actual_event_json["body"], base64_body)
         self.assertEqual(actual_event_json["isBase64Encoded"], True)
@@ -1340,7 +1416,8 @@ class TestService_construct_event(TestCase):
         request_mock.headers = headers_mock
         request_mock.scheme = "http"
 
-        actual_query_string = LocalApigwService._event_headers(request_mock, "3000")
+        actual_query_string = LocalApigwService._event_headers(
+            request_mock, "3000")
         self.assertEqual(
             actual_query_string,
             (
@@ -1358,7 +1435,8 @@ class TestService_construct_event(TestCase):
         request_mock.headers = headers_mock
         request_mock.scheme = "http"
 
-        actual_query_string = LocalApigwService._event_headers(request_mock, "3000")
+        actual_query_string = LocalApigwService._event_headers(
+            request_mock, "3000")
         self.assertEqual(
             actual_query_string,
             (
@@ -1383,7 +1461,8 @@ class TestService_construct_event(TestCase):
         query_param_args_mock.lists.return_value = {}.items()
         request_mock.args = query_param_args_mock
 
-        actual_query_string = LocalApigwService._query_string_params(request_mock)
+        actual_query_string = LocalApigwService._query_string_params(
+            request_mock)
         self.assertEqual(actual_query_string, ({}, {}))
 
     def test_query_string_params_with_param_value_being_empty_list(self):
@@ -1392,17 +1471,21 @@ class TestService_construct_event(TestCase):
         query_param_args_mock.lists.return_value = {"param": []}.items()
         request_mock.args = query_param_args_mock
 
-        actual_query_string = LocalApigwService._query_string_params(request_mock)
+        actual_query_string = LocalApigwService._query_string_params(
+            request_mock)
         self.assertEqual(actual_query_string, ({"param": ""}, {"param": [""]}))
 
     def test_query_string_params_with_param_value_being_non_empty_list(self):
         request_mock = Mock()
         query_param_args_mock = Mock()
-        query_param_args_mock.lists.return_value = {"param": ["a", "b"]}.items()
+        query_param_args_mock.lists.return_value = {
+            "param": ["a", "b"]}.items()
         request_mock.args = query_param_args_mock
 
-        actual_query_string = LocalApigwService._query_string_params(request_mock)
-        self.assertEqual(actual_query_string, ({"param": "b"}, {"param": ["a", "b"]}))
+        actual_query_string = LocalApigwService._query_string_params(
+            request_mock)
+        self.assertEqual(actual_query_string,
+                         ({"param": "b"}, {"param": ["a", "b"]}))
 
 
 class TestService_construct_event_http(TestCase):
@@ -1414,7 +1497,8 @@ class TestService_construct_event_http(TestCase):
         self.request_mock.get_data.return_value = b"DATA!!!!"
         self.request_mock.mimetype = "application/json"
         query_param_args_mock = Mock()
-        query_param_args_mock.lists.return_value = {"query": ["params"]}.items()
+        query_param_args_mock.lists.return_value = {
+            "query": ["params"]}.items()
         self.request_mock.args = query_param_args_mock
         self.request_mock.query_string = b"query=params"
         headers_mock = Mock()
@@ -1439,7 +1523,7 @@ class TestService_construct_event_http(TestCase):
             "cookies": ["cookie1=test", "cookie2=test"],
             "headers": {
                 "Content-Type": "application/json",
-                "X-Test": "Value",
+                "x-test": "Value",
                 "X-Forwarded-Proto": "http",
                 "X-Forwarded-Port": "3000"
             },
@@ -1471,10 +1555,12 @@ class TestService_construct_event_http(TestCase):
         actual_event_str = LocalApigwService._construct_v_2_0_event_http(
             self.request_mock, 3000, binary_types=[], route_key="GET /endpoint"
         )
-        print("DEBUG: json.loads(actual_event_str)", json.loads(actual_event_str))
+        print("DEBUG: json.loads(actual_event_str)",
+              json.loads(actual_event_str))
         print("DEBUG: self.expected_dict", self.expected_dict)
         actual_event_dict = json.loads(actual_event_str)
-        self.assertEqual(len(actual_event_dict["requestContext"]["requestId"]), 36)
+        self.assertEqual(
+            len(actual_event_dict["requestContext"]["requestId"]), 36)
         actual_event_dict["requestContext"]["requestId"] = ""
         self.assertEqual(actual_event_dict, self.expected_dict)
 
@@ -1486,7 +1572,8 @@ class TestService_construct_event_http(TestCase):
             self.request_mock, 3000, binary_types=[], route_key="GET /endpoint"
         )
         actual_event_dict = json.loads(actual_event_str)
-        self.assertEqual(len(actual_event_dict["requestContext"]["requestId"]), 36)
+        self.assertEqual(
+            len(actual_event_dict["requestContext"]["requestId"]), 36)
         actual_event_dict["requestContext"]["requestId"] = ""
         self.assertEqual(actual_event_dict, self.expected_dict)
 
@@ -1514,7 +1601,8 @@ class TestService_construct_event_http(TestCase):
             self.request_mock, 3000, binary_types=[], route_key="GET /endpoint"
         )
         actual_event_dict = json.loads(actual_event_str)
-        self.assertEqual(len(actual_event_dict["requestContext"]["requestId"]), 36)
+        self.assertEqual(
+            len(actual_event_dict["requestContext"]["requestId"]), 36)
         actual_event_dict["requestContext"]["requestId"] = ""
         self.assertEqual(actual_event_dict, self.expected_dict)
 
@@ -1525,8 +1613,10 @@ class TestService_construct_event_http(TestCase):
         request_mock.headers = headers_mock
         request_mock.scheme = "http"
 
-        actual_query_string = LocalApigwService._event_http_headers(request_mock, "3000")
-        self.assertEqual(actual_query_string, {"X-Forwarded-Proto": "http", "X-Forwarded-Port": "3000"})
+        actual_query_string = LocalApigwService._event_http_headers(
+            request_mock, "3000")
+        self.assertEqual(actual_query_string, {
+                         "X-Forwarded-Proto": "http", "X-Forwarded-Port": "3000"})
 
     def test_event_headers_with_non_empty_list(self):
         request_mock = Mock()
@@ -1537,12 +1627,13 @@ class TestService_construct_event_http(TestCase):
         request_mock.headers = headers_mock
         request_mock.scheme = "http"
 
-        actual_query_string = LocalApigwService._event_http_headers(request_mock, "3000")
+        actual_query_string = LocalApigwService._event_http_headers(
+            request_mock, "3000")
         self.assertEqual(
             actual_query_string,
             {
                 "Content-Type": "application/json",
-                "X-Test": "Value",
+                "x-test": "Value",
                 "X-Forwarded-Proto": "http",
                 "X-Forwarded-Port": "3000",
             },
@@ -1553,16 +1644,20 @@ class TestService_should_base64_encode(TestCase):
     @parameterized.expand(
         [
             param("Mimeyype is in binary types", ["image/gif"], "image/gif"),
-            param("Mimetype defined and binary types has */*", ["*/*"], "image/gif"),
-            param("*/* is in binary types with no mimetype defined", ["*/*"], None),
+            param("Mimetype defined and binary types has */*",
+                  ["*/*"], "image/gif"),
+            param("*/* is in binary types with no mimetype defined",
+                  ["*/*"], None),
         ]
     )
     def test_should_base64_encode_returns_true(self, test_case_name, binary_types, mimetype):
-        self.assertTrue(LocalApigwService._should_base64_encode(binary_types, mimetype))
+        self.assertTrue(LocalApigwService._should_base64_encode(
+            binary_types, mimetype))
 
     @parameterized.expand([param("Mimetype is not in binary types", ["image/gif"], "application/octet-stream")])
     def test_should_base64_encode_returns_false(self, test_case_name, binary_types, mimetype):
-        self.assertFalse(LocalApigwService._should_base64_encode(binary_types, mimetype))
+        self.assertFalse(LocalApigwService._should_base64_encode(
+            binary_types, mimetype))
 
 
 class TestServiceCorsToHeaders(TestCase):
@@ -1583,12 +1678,14 @@ class TestServiceCorsToHeaders(TestCase):
         )
 
     def test_empty_elements(self):
-        cors = Cors(allow_origin="www.domain.com", allow_methods=",".join(["GET", "POST", "OPTIONS"]))
+        cors = Cors(allow_origin="www.domain.com",
+                    allow_methods=",".join(["GET", "POST", "OPTIONS"]))
         headers = Cors.cors_to_headers(cors)
 
         self.assertEqual(
             headers,
-            {"Access-Control-Allow-Origin": "www.domain.com", "Access-Control-Allow-Methods": "GET,POST,OPTIONS"},
+            {"Access-Control-Allow-Origin": "www.domain.com",
+                "Access-Control-Allow-Methods": "GET,POST,OPTIONS"},
         )
 
 
@@ -1599,55 +1696,74 @@ class TestRouteEqualsHash(TestCase):
         self.assertIn(route, routes)
 
     def test_route_method_order_equals(self):
-        route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
-        route2 = Route(function_name="test", path="/test", methods=["GET", "POST"])
+        route1 = Route(function_name="test", path="/test",
+                       methods=["POST", "GET"])
+        route2 = Route(function_name="test", path="/test",
+                       methods=["GET", "POST"])
         self.assertEqual(route1, route2)
 
     def test_route_hash(self):
-        route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
+        route1 = Route(function_name="test", path="/test",
+                       methods=["POST", "GET"])
         dic = {route1: "test"}
         self.assertEqual(dic[route1], "test")
 
     def test_route_object_equals(self):
-        route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
-        route2 = type("obj", (object,), {"function_name": "test", "path": "/test", "methods": ["GET", "POST"]})
+        route1 = Route(function_name="test", path="/test",
+                       methods=["POST", "GET"])
+        route2 = type("obj", (object,), {
+                      "function_name": "test", "path": "/test", "methods": ["GET", "POST"]})
 
         self.assertNotEqual(route1, route2)
 
     def test_route_function_name_equals(self):
-        route1 = Route(function_name="test1", path="/test", methods=["GET", "POST"])
-        route2 = Route(function_name="test2", path="/test", methods=["GET", "POST"])
+        route1 = Route(function_name="test1", path="/test",
+                       methods=["GET", "POST"])
+        route2 = Route(function_name="test2", path="/test",
+                       methods=["GET", "POST"])
         self.assertNotEqual(route1, route2)
 
     def test_route_different_path_equals(self):
-        route1 = Route(function_name="test", path="/test1", methods=["GET", "POST"])
-        route2 = Route(function_name="test", path="/test2", methods=["GET", "POST"])
+        route1 = Route(function_name="test", path="/test1",
+                       methods=["GET", "POST"])
+        route2 = Route(function_name="test", path="/test2",
+                       methods=["GET", "POST"])
         self.assertNotEqual(route1, route2)
 
     def test_same_object_equals(self):
-        route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
+        route1 = Route(function_name="test", path="/test",
+                       methods=["POST", "GET"])
         self.assertEqual(route1, copy.deepcopy(route1))
 
     def test_route_function_name_hash(self):
-        route1 = Route(function_name="test1", path="/test", methods=["GET", "POST"])
-        route2 = Route(function_name="test2", path="/test", methods=["GET", "POST"])
+        route1 = Route(function_name="test1", path="/test",
+                       methods=["GET", "POST"])
+        route2 = Route(function_name="test2", path="/test",
+                       methods=["GET", "POST"])
         self.assertNotEqual(route1.__hash__(), route2.__hash__())
 
     def test_route_different_path_hash(self):
-        route1 = Route(function_name="test", path="/test1", methods=["GET", "POST"])
-        route2 = Route(function_name="test", path="/test2", methods=["GET", "POST"])
+        route1 = Route(function_name="test", path="/test1",
+                       methods=["GET", "POST"])
+        route2 = Route(function_name="test", path="/test2",
+                       methods=["GET", "POST"])
         self.assertNotEqual(route1.__hash__(), route2.__hash__())
 
     def test_same_object_hash(self):
-        route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
+        route1 = Route(function_name="test", path="/test",
+                       methods=["POST", "GET"])
         self.assertEqual(route1.__hash__(), copy.deepcopy(route1).__hash__())
 
     def test_route_method_order_hash(self):
-        route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
-        route2 = Route(function_name="test", path="/test", methods=["GET", "POST"])
+        route1 = Route(function_name="test", path="/test",
+                       methods=["POST", "GET"])
+        route2 = Route(function_name="test", path="/test",
+                       methods=["GET", "POST"])
         self.assertEqual(route1.__hash__(), route2.__hash__())
 
     def test_route_different_stack_path_hash(self):
-        route1 = Route(function_name="test", path="/test1", methods=["GET", "POST"], stack_path="2")
-        route2 = Route(function_name="test", path="/test1", methods=["GET", "POST"], stack_path="1")
+        route1 = Route(function_name="test", path="/test1",
+                       methods=["GET", "POST"], stack_path="2")
+        route2 = Route(function_name="test", path="/test1",
+                       methods=["GET", "POST"], stack_path="1")
         self.assertNotEqual(route1.__hash__(), route2.__hash__())
