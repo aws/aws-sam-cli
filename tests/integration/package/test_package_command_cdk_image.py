@@ -2,6 +2,7 @@ import os
 import shutil
 import logging
 
+from distutils.dir_util import copy_tree
 from unittest import skipIf
 from parameterized import parameterized
 
@@ -9,6 +10,7 @@ import docker
 
 from .package_integ_base import CdkPackageIntegPythonBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, run_command
+from tests.cdk_testing_utils import CdkPythonEnv
 
 # Package tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict package tests to run outside of CI/CD, when the branch is not master and tests are not run by Canary.
@@ -37,7 +39,8 @@ class TestPackageCdkPythonImage(CdkPackageIntegPythonBase):
     )
     def test_package_template_without_image_repository(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
         command_list = self.get_command_list(
             cdk_app=os.path.join(self.working_dir, ".aws-sam", "build"),
         )
@@ -54,7 +57,8 @@ class TestPackageCdkPythonImage(CdkPackageIntegPythonBase):
     )
     def test_package_template_with_image_repository(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
         command_list = self.get_command_list(
             image_repository=self.ecr_repo_name,
             cdk_app=os.path.join(self.working_dir, ".aws-sam", "build"),
@@ -72,7 +76,8 @@ class TestPackageCdkPythonImage(CdkPackageIntegPythonBase):
     )
     def test_package_template_with_image_repositories(self, resource_id, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
         command_list = self.get_command_list(
             image_repositories=f"{resource_id}={self.ecr_repo_name}",
             cdk_app=os.path.join(self.working_dir, ".aws-sam", "build"),
@@ -91,7 +96,8 @@ class TestPackageCdkPythonImage(CdkPackageIntegPythonBase):
     )
     def test_package_template_with_non_ecr_repo_uri_image_repository(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
         command_list = self.get_command_list(
             image_repository="non-ecr-repo-uri",
             resolve_s3=True,
@@ -110,7 +116,8 @@ class TestPackageCdkPythonImage(CdkPackageIntegPythonBase):
     )
     def test_package_template_and_s3_bucket(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
         command_list = self.get_command_list(
             s3_bucket=self.s3_bucket,
             cdk_app=os.path.join(self.working_dir, ".aws-sam", "build"),
