@@ -570,8 +570,8 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
             lambda_output, binary_types=[], flask_request=Mock(), event_type=event_type
         )
 
-        self.assertIn("Content-Type", headers)
-        self.assertEqual(headers["Content-Type"], "application/json")
+        self.assertIn("content-type", headers)
+        self.assertEqual(headers["content-type"], "application/json")
 
     @parameterized.expand(
         [
@@ -589,8 +589,8 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
             lambda_output, binary_types=[], flask_request=Mock(), event_type=event_type
         )
 
-        self.assertIn("Content-Type", headers)
-        self.assertEqual(headers["Content-Type"], "application/json")
+        self.assertIn("content-type", headers)
+        self.assertEqual(headers["content-type"], "application/json")
 
     @parameterized.expand(
         [
@@ -600,15 +600,15 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
     )
     def test_custom_content_type_header_is_not_modified(self, event_type):
         lambda_output = (
-            '{"statusCode": 200, "headers":{"Content-Type": "text/xml"}, "body": "{}", ' '"isBase64Encoded": false}'
+            '{"statusCode": 200, "headers":{"content-type": "text/xml"}, "body": "{}", ' '"isBase64Encoded": false}'
         )
 
         (_, headers, _) = LocalApigwService._parse_v1_payload_format_lambda_output(
             lambda_output, binary_types=[], flask_request=Mock(), event_type=event_type
         )
 
-        self.assertIn("Content-Type", headers)
-        self.assertEqual(headers["Content-Type"], "text/xml")
+        self.assertIn("content-type", headers)
+        self.assertEqual(headers["content-type"], "text/xml")
 
     @parameterized.expand(
         [
@@ -618,7 +618,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
     )
     def test_custom_content_type_multivalue_header_is_not_modified(self, event_type):
         lambda_output = (
-            '{"statusCode": 200, "multiValueHeaders":{"Content-Type": ["text/xml"]}, "body": "{}", '
+            '{"statusCode": 200, "multiValueHeaders":{"content-type": ["text/xml"]}, "body": "{}", '
             '"isBase64Encoded": false}'
         )
 
@@ -626,8 +626,8 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
             lambda_output, binary_types=[], flask_request=Mock(), event_type=event_type
         )
 
-        self.assertIn("Content-Type", headers)
-        self.assertEqual(headers["Content-Type"], "text/xml")
+        self.assertIn("content-type", headers)
+        self.assertEqual(headers["content-type"], "text/xml")
 
     @parameterized.expand(
         [
@@ -646,7 +646,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
         )
 
         self.assertEqual(headers, Headers(
-            {"Content-Type": "application/json", "X-Foo": ["bar", "42"]}))
+            {"content-type": "application/json", "x-foo": ["bar", "42"]}))
 
     @parameterized.expand(
         [
@@ -666,8 +666,8 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
         )
 
         self.assertEqual(
-            headers, Headers({"Content-Type": "application/json",
-                              "X-Bar": "bar", "X-Foo": ["bar", "42", "foo"]})
+            headers, Headers({"content-type": "application/json",
+                              "x-bar": "bar", "x-foo": ["bar", "42", "foo"]})
         )
 
     def test_extra_values_raise(self):
@@ -692,7 +692,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
         )
         self.assertEqual(status_code, 200)
         self.assertEqual(headers, Headers(
-            {"Content-Type": "application/json"}))
+            {"content-type": "application/json"}))
         self.assertEqual(body, '{"message":"Hello from Lambda"}')
 
     @parameterized.expand(
@@ -713,7 +713,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
 
         self.assertEqual(status_code, 200)
         self.assertEqual(headers, Headers(
-            {"Content-Type": "application/json"}))
+            {"content-type": "application/json"}))
         self.assertEqual(body, '{"message":"Hello from Lambda"}')
 
     @parameterized.expand(
@@ -724,7 +724,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
     )
     def test_parse_raises_when_invalid_mimetype(self, event_type):
         lambda_output = (
-            '{"statusCode": 200, "headers": {\\"Content-Type\\": \\"text\\"}, "body": "{\\"message\\":\\"Hello from Lambda\\"}", '
+            '{"statusCode": 200, "headers": {\\"content-type\\": \\"text\\"}, "body": "{\\"message\\":\\"Hello from Lambda\\"}", '
             '"isBase64Encoded": false}'
         )
 
@@ -759,7 +759,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
         base64_body = base64.b64encode(binary_body).decode("utf-8")
         lambda_output = {
             "statusCode": 200,
-            "headers": {"Content-Type": "application/octet-stream"},
+            "headers": {"content-type": "application/octet-stream"},
             "body": base64_body,
             encoded_field_name: encoded_response_value,
         }
@@ -776,7 +776,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
 
         self.assertEqual(status_code, 200)
         self.assertEqual(headers, Headers(
-            {"Content-Type": "application/octet-stream"}))
+            {"content-type": "application/octet-stream"}))
         self.assertEqual(body, binary_body)
 
     @parameterized.expand(
@@ -842,7 +842,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
 
         self.assertEqual(status_code, 200)
         self.assertEqual(headers, Headers(
-            {"Content-Type": "application/octet-stream"}))
+            {"content-type": "application/octet-stream"}))
         self.assertEqual(body, binary_body)
 
     @parameterized.expand(
@@ -871,7 +871,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
 
         self.assertEqual(status_code, 200)
         self.assertEqual(headers, Headers(
-            {"Content-Type": "application/octet-stream"}))
+            {"content-type": "application/octet-stream"}))
         self.assertEqual(
             body, binary_body if encoded_parsed_value else base64_body)
 
@@ -934,7 +934,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
 
         self.assertEqual(status_code, 200)
         self.assertEqual(headers, Headers(
-            {"Content-Type": "application/octet-stream"}))
+            {"content-type": "application/octet-stream"}))
         self.assertEqual(body, base64_body)
 
     def test_parse_returns_does_not_decodes_base64_to_binary_for_http_api(self):
@@ -953,7 +953,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
 
         self.assertEqual(status_code, 200)
         self.assertEqual(headers, Headers(
-            {"Content-Type": "application/octet-stream"}))
+            {"content-type": "application/octet-stream"}))
         self.assertEqual(body, base64_body)
 
     @parameterized.expand(
@@ -1028,7 +1028,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
 
         self.assertEqual(status_code, 200)
         self.assertEqual(headers, Headers(
-            {"Content-Type": "application/json"}))
+            {"content-type": "application/json"}))
         self.assertEqual(body, '{"message":"Hello from Lambda"}')
 
     @parameterized.expand(
@@ -1091,7 +1091,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
 
         self.assertEqual(status_code, 200)
         self.assertEqual(headers, Headers(
-            {"Content-Type": "application/json"}))
+            {"content-type": "application/json"}))
         self.assertEqual(body, None)
 
     @parameterized.expand(
@@ -1121,8 +1121,8 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
             lambda_output, binary_types=[], flask_request=Mock()
         )
 
-        self.assertIn("Content-Type", headers)
-        self.assertEqual(headers["Content-Type"], "application/json")
+        self.assertIn("content-type", headers)
+        self.assertEqual(headers["content-type"], "application/json")
 
     def test_default_content_type_header_added_with_empty_headers(self):
         lambda_output = (
@@ -1134,8 +1134,8 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
             lambda_output, binary_types=[], flask_request=Mock()
         )
 
-        self.assertIn("Content-Type", headers)
-        self.assertEqual(headers["Content-Type"], "application/json")
+        self.assertIn("content-type", headers)
+        self.assertEqual(headers["content-type"], "application/json")
 
     def test_custom_content_type_header_is_not_modified(self):
         lambda_output = (
@@ -1146,8 +1146,8 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
             lambda_output, binary_types=[], flask_request=Mock()
         )
 
-        self.assertIn("Content-Type", headers)
-        self.assertEqual(headers["Content-Type"], "text/xml")
+        self.assertIn("content-type", headers)
+        self.assertEqual(headers["content-type"], "text/xml")
 
     def test_extra_values_skipped(self):
         lambda_output = (
@@ -1161,7 +1161,7 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
 
         self.assertEqual(status_code, 200)
         self.assertEqual(headers, Headers(
-            {"Content-Type": "application/json"}))
+            {"content-type": "application/json"}))
         self.assertEqual(body, '{"message":"Hello from Lambda"}')
 
     def test_parse_returns_correct_tuple(self):
@@ -1176,7 +1176,7 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
 
         self.assertEqual(status_code, 200)
         self.assertEqual(headers, Headers(
-            {"Content-Type": "application/json"}))
+            {"content-type": "application/json"}))
         self.assertEqual(body, '{"message":"Hello from Lambda"}')
 
     def test_parse_raises_when_invalid_mimetype(self):
@@ -1206,7 +1206,7 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
 
         self.assertEqual(status_code, 200)
         self.assertEqual(headers, Headers(
-            {"Content-Type": "application/octet-stream"}))
+            {"content-type": "application/octet-stream"}))
         self.assertEqual(body, base64_body)
 
     def test_parse_returns_decodes_base64_to_binary(self):
@@ -1225,7 +1225,7 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
 
         self.assertEqual(status_code, 200)
         self.assertEqual(headers, Headers(
-            {"Content-Type": "application/octet-stream"}))
+            {"content-type": "application/octet-stream"}))
         self.assertEqual(body, binary_body)
 
     def test_status_code_int_str(self):
@@ -1276,7 +1276,7 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
         )
         self.assertEqual(status_code, 200)
         self.assertEqual(headers, Headers(
-            {"Content-Type": "application/json"}))
+            {"content-type": "application/json"}))
         self.assertEqual(body, "some str")
 
     def test_lambda_output_integer(self):
@@ -1286,7 +1286,7 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
         )
         self.assertEqual(status_code, 200)
         self.assertEqual(headers, Headers(
-            {"Content-Type": "application/json"}))
+            {"content-type": "application/json"}))
         self.assertEqual(body, lambda_output)
 
     def test_properties_are_null(self):
@@ -1298,7 +1298,7 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
 
         self.assertEqual(status_code, 200)
         self.assertEqual(headers, Headers(
-            {"Content-Type": "application/json"}))
+            {"content-type": "application/json"}))
         self.assertEqual(body, None)
 
     def test_lambda_output_json_object_no_status_code(self):
@@ -1310,7 +1310,7 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
 
         self.assertEqual(status_code, 200)
         self.assertEqual(headers, Headers(
-            {"Content-Type": "application/json"}))
+            {"content-type": "application/json"}))
         self.assertEqual(body, lambda_output)
 
 
