@@ -37,7 +37,8 @@ class TestParallelRequests(StartApiIntegBaseClass):
         start_time = time()
         with ThreadPoolExecutor(number_of_requests) as thread_pool:
             futures = [
-                thread_pool.submit(requests.get, self.url + "/sleepfortenseconds/function1", timeout=300)
+                thread_pool.submit(requests.get, self.url +
+                                   "/sleepfortenseconds/function1", timeout=300)
                 for _ in range(0, number_of_requests)
             ]
             results = [r.result() for r in as_completed(futures)]
@@ -49,7 +50,8 @@ class TestParallelRequests(StartApiIntegBaseClass):
 
             for result in results:
                 self.assertEqual(result.status_code, 200)
-                self.assertEqual(result.json(), {"message": "HelloWorld! I just slept and waking up."})
+                self.assertEqual(
+                    result.json(), {"message": "HelloWorld! I just slept and waking up."})
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -61,7 +63,8 @@ class TestParallelRequests(StartApiIntegBaseClass):
         number_of_requests = 10
         start_time = time()
         with ThreadPoolExecutor(10) as thread_pool:
-            test_url_paths = ["/sleepfortenseconds/function0", "/sleepfortenseconds/function1"]
+            test_url_paths = ["/sleepfortenseconds/function0",
+                              "/sleepfortenseconds/function1"]
 
             futures = [
                 thread_pool.submit(
@@ -78,7 +81,8 @@ class TestParallelRequests(StartApiIntegBaseClass):
 
             for result in results:
                 self.assertEqual(result.status_code, 200)
-                self.assertEqual(result.json(), {"message": "HelloWorld! I just slept and waking up."})
+                self.assertEqual(
+                    result.json(), {"message": "HelloWorld! I just slept and waking up."})
 
 
 class TestServiceErrorResponses(StartApiIntegBaseClass):
@@ -98,12 +102,14 @@ class TestServiceErrorResponses(StartApiIntegBaseClass):
         response = requests.get(self.url + "/id", timeout=300)
 
         self.assertEqual(response.status_code, 403)
-        self.assertEqual(response.json(), {"message": "Missing Authentication Token"})
+        self.assertEqual(response.json(), {
+                         "message": "Missing Authentication Token"})
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_invalid_response_from_lambda(self):
-        response = requests.get(self.url + "/invalidresponsereturned", timeout=300)
+        response = requests.get(
+            self.url + "/invalidresponsereturned", timeout=300)
 
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response.json(), {"message": "Internal server error"})
@@ -143,7 +149,8 @@ class TestService(StartApiIntegBaseClass):
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_calling_proxy_endpoint(self):
-        response = requests.get(self.url + "/proxypath/this/is/some/path", timeout=300)
+        response = requests.get(
+            self.url + "/proxypath/this/is/some/path", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
@@ -229,7 +236,8 @@ class TestService(StartApiIntegBaseClass):
         # not exact 6 mega, as local start-api sends extra data with the input data
         around_six_mega = 6 * 1024 * 1024 - 2 * 1024
         data = "a" * around_six_mega
-        response = requests.post(self.url + "/echoeventbody", data=data, timeout=300)
+        response = requests.post(
+            self.url + "/echoeventbody", data=data, timeout=300)
 
         self.assertEqual(response.status_code, 200)
         response_data = response.json()
@@ -257,7 +265,8 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_calling_proxy_endpoint(self):
-        response = requests.get(self.url + "/proxypath/this/is/some/path", timeout=300)
+        response = requests.get(
+            self.url + "/proxypath/this/is/some/path", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
@@ -354,7 +363,8 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
         """
         Patch Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
         """
-        response = requests.get(self.url + "/invalidv1responsehash", timeout=300)
+        response = requests.get(
+            self.url + "/invalidv1responsehash", timeout=300)
 
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response.json(), {"message": "Internal server error"})
@@ -365,7 +375,8 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
         """
         Patch Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
         """
-        response = requests.get(self.url + "/validv2responsestring", timeout=300)
+        response = requests.get(
+            self.url + "/validv2responsestring", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.text, "This is invalid")
@@ -376,7 +387,8 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
         """
         Patch Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
         """
-        response = requests.get(self.url + "/validv2responseinteger", timeout=300)
+        response = requests.get(
+            self.url + "/validv2responseinteger", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.text, "2")
@@ -398,7 +410,8 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
         """
         Patch Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
         """
-        response = requests.get(self.url + "/invalidv1responsestring", timeout=300)
+        response = requests.get(
+            self.url + "/invalidv1responsestring", timeout=300)
 
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response.json(), {"message": "Internal server error"})
@@ -492,12 +505,14 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
         response = requests.get(self.url + "/nofunctionfound", timeout=300)
 
         self.assertEqual(response.status_code, 502)
-        self.assertEqual(response.json(), {"message": "No function defined for resource method"})
+        self.assertEqual(response.json(), {
+                         "message": "No function defined for resource method"})
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_function_with_no_api_event_is_reachable(self):
-        response = requests.get(self.url + "/functionwithnoapievent", timeout=300)
+        response = requests.get(
+            self.url + "/functionwithnoapievent", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
@@ -505,7 +520,8 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_lambda_function_resource_is_reachable(self):
-        response = requests.get(self.url + "/nonserverlessfunction", timeout=300)
+        response = requests.get(
+            self.url + "/nonserverlessfunction", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
@@ -545,9 +561,11 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
         """
         Binary data is returned correctly
         """
-        expected = base64.b64encode(self.get_binary_data(self.binary_data_file))
+        expected = base64.b64encode(
+            self.get_binary_data(self.binary_data_file))
 
-        response = requests.get(self.url + "/nondecodedbase64response", timeout=300)
+        response = requests.get(
+            self.url + "/nondecodedbase64response", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("Content-Type"), "image/gif")
@@ -561,7 +579,8 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
         """
         expected = self.get_binary_data(self.binary_data_file)
 
-        response = requests.get(self.url + "/decodedbase64responsebas64encoded", timeout=300)
+        response = requests.get(
+            self.url + "/decodedbase64responsebas64encoded", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("Content-Type"), "image/gif")
@@ -573,9 +592,11 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
         """
         Binary data is returned correctly
         """
-        expected = base64.b64encode(self.get_binary_data(self.binary_data_file))
+        expected = base64.b64encode(
+            self.get_binary_data(self.binary_data_file))
 
-        response = requests.get(self.url + "/decodedbase64responsebas64encodedpriority", timeout=300)
+        response = requests.get(
+            self.url + "/decodedbase64responsebas64encodedpriority", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("Content-Type"), "image/gif")
@@ -606,7 +627,8 @@ class TestStartApiWithSwaggerHttpApis(StartApiIntegBaseClass):
         """
         Post Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.post(self.url + "/httpapi-anyandall", json={}, timeout=300)
+        response = requests.post(
+            self.url + "/httpapi-anyandall", json={}, timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
@@ -617,7 +639,8 @@ class TestStartApiWithSwaggerHttpApis(StartApiIntegBaseClass):
         """
         Put Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.put(self.url + "/httpapi-anyandall", json={}, timeout=300)
+        response = requests.put(
+            self.url + "/httpapi-anyandall", json={}, timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
@@ -638,7 +661,8 @@ class TestStartApiWithSwaggerHttpApis(StartApiIntegBaseClass):
         """
         Delete Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.delete(self.url + "/httpapi-anyandall", timeout=300)
+        response = requests.delete(
+            self.url + "/httpapi-anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
@@ -649,7 +673,8 @@ class TestStartApiWithSwaggerHttpApis(StartApiIntegBaseClass):
         """
         Options Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.options(self.url + "/httpapi-anyandall", timeout=300)
+        response = requests.options(
+            self.url + "/httpapi-anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
 
@@ -753,12 +778,14 @@ class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
         response = requests.get(self.url + "/nofunctionfound", timeout=300)
 
         self.assertEqual(response.status_code, 502)
-        self.assertEqual(response.json(), {"message": "No function defined for resource method"})
+        self.assertEqual(response.json(), {
+                         "message": "No function defined for resource method"})
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_lambda_function_resource_is_reachable(self):
-        response = requests.get(self.url + "/nonserverlessfunction", timeout=300)
+        response = requests.get(
+            self.url + "/nonserverlessfunction", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
@@ -811,16 +838,19 @@ class TestServiceResponses(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("Content-Type"), "text/plain")
-        self.assertEqual(response.headers.get("MyCustomHeader"), "Value1, Value2")
+        self.assertEqual(response.headers.get(
+            "MyCustomHeader"), "Value1, Value2")
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_multiple_headers_overrides_headers_response(self):
-        response = requests.get(self.url + "/multipleheadersoverridesheaders", timeout=300)
+        response = requests.get(
+            self.url + "/multipleheadersoverridesheaders", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("Content-Type"), "text/plain")
-        self.assertEqual(response.headers.get("MyCustomHeader"), "Value1, Value2, Custom")
+        self.assertEqual(response.headers.get(
+            "MyCustomHeader"), "Value1, Value2, Custom")
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -846,7 +876,8 @@ class TestServiceResponses(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content.decode("utf-8"), "")
-        self.assertEqual(response.headers.get("Content-Type"), "application/json")
+        self.assertEqual(response.headers.get(
+            "Content-Type"), "application/json")
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -961,7 +992,8 @@ class TestServiceRequests(StartApiIntegBaseClass):
 
         response_data = response.json()
 
-        self.assertEqual(response_data.get("headers").get("Content-Type"), "application/x-www-form-urlencoded")
+        self.assertEqual(response_data.get("headers").get(
+            "content-type"), "application/x-www-form-urlencoded")
         self.assertEqual(response_data.get("body"), "key=value")
 
     @pytest.mark.flaky(reruns=3)
@@ -980,17 +1012,20 @@ class TestServiceRequests(StartApiIntegBaseClass):
     def test_request_with_multi_value_headers(self):
         response = requests.get(
             self.url + "/echoeventbody",
-            headers={"Content-Type": "application/x-www-form-urlencoded, image/gif"},
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded, image/gif"},
             timeout=300,
         )
 
         self.assertEqual(response.status_code, 200)
         response_data = response.json()
         self.assertEqual(
-            response_data.get("multiValueHeaders").get("Content-Type"), ["application/x-www-form-urlencoded, image/gif"]
+            response_data.get("multiValueHeaders").get(
+                "Content-Type"), ["application/x-www-form-urlencoded, image/gif"]
         )
         self.assertEqual(
-            response_data.get("headers").get("Content-Type"), "application/x-www-form-urlencoded, image/gif"
+            response_data.get("headers").get(
+                "content-type"), "application/x-www-form-urlencoded, image/gif"
         )
 
     @pytest.mark.flaky(reruns=3)
@@ -999,14 +1034,17 @@ class TestServiceRequests(StartApiIntegBaseClass):
         """
         Query params given should be put into the Event to Lambda
         """
-        response = requests.get(self.url + "/id/4", params={"key": "value"}, timeout=300)
+        response = requests.get(
+            self.url + "/id/4", params={"key": "value"}, timeout=300)
 
         self.assertEqual(response.status_code, 200)
 
         response_data = response.json()
 
-        self.assertEqual(response_data.get("queryStringParameters"), {"key": "value"})
-        self.assertEqual(response_data.get("multiValueQueryStringParameters"), {"key": ["value"]})
+        self.assertEqual(response_data.get(
+            "queryStringParameters"), {"key": "value"})
+        self.assertEqual(response_data.get(
+            "multiValueQueryStringParameters"), {"key": ["value"]})
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -1014,14 +1052,17 @@ class TestServiceRequests(StartApiIntegBaseClass):
         """
         Query params given should be put into the Event to Lambda
         """
-        response = requests.get(self.url + "/id/4", params={"key": ["value", "value2"]}, timeout=300)
+        response = requests.get(
+            self.url + "/id/4", params={"key": ["value", "value2"]}, timeout=300)
 
         self.assertEqual(response.status_code, 200)
 
         response_data = response.json()
 
-        self.assertEqual(response_data.get("queryStringParameters"), {"key": "value2"})
-        self.assertEqual(response_data.get("multiValueQueryStringParameters"), {"key": ["value", "value2"]})
+        self.assertEqual(response_data.get(
+            "queryStringParameters"), {"key": "value2"})
+        self.assertEqual(response_data.get("multiValueQueryStringParameters"), {
+                         "key": ["value", "value2"]})
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -1049,7 +1090,8 @@ class TestServiceRequests(StartApiIntegBaseClass):
 
         response_data = response.json()
 
-        self.assertEqual(response_data.get("pathParameters"), {"id": "4", "user": "jacob"})
+        self.assertEqual(response_data.get("pathParameters"),
+                         {"id": "4", "user": "jacob"})
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -1061,10 +1103,14 @@ class TestServiceRequests(StartApiIntegBaseClass):
 
         response_data = response.json()
 
-        self.assertEqual(response_data.get("headers").get("X-Forwarded-Proto"), "http")
-        self.assertEqual(response_data.get("multiValueHeaders").get("X-Forwarded-Proto"), ["http"])
-        self.assertEqual(response_data.get("headers").get("X-Forwarded-Port"), self.port)
-        self.assertEqual(response_data.get("multiValueHeaders").get("X-Forwarded-Port"), [self.port])
+        self.assertEqual(response_data.get(
+            "headers").get("x-forwarded-proto"), "http")
+        self.assertEqual(response_data.get(
+            "multiValueHeaders").get("x-forwarded-proto"), ["http"])
+        self.assertEqual(response_data.get(
+            "headers").get("x-forwarded-port"), self.port)
+        self.assertEqual(response_data.get("multiValueHeaders").get(
+            "x-forwarded-port"), [self.port])
 
 
 class TestStartApiWithStage(StartApiIntegBaseClass):
@@ -1086,7 +1132,8 @@ class TestStartApiWithStage(StartApiIntegBaseClass):
 
         response_data = response.json()
 
-        self.assertEqual(response_data.get("requestContext", {}).get("stage"), "Prod")
+        self.assertEqual(response_data.get(
+            "requestContext", {}).get("stage"), "Prod")
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -1097,7 +1144,8 @@ class TestStartApiWithStage(StartApiIntegBaseClass):
 
         response_data = response.json()
 
-        self.assertEqual(response_data.get("stageVariables"), {"VarName": "varValue"})
+        self.assertEqual(response_data.get(
+            "stageVariables"), {"VarName": "varValue"})
 
 
 class TestStartApiWithStageAndSwagger(StartApiIntegBaseClass):
@@ -1118,7 +1166,8 @@ class TestStartApiWithStageAndSwagger(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
 
         response_data = response.json()
-        self.assertEqual(response_data.get("requestContext", {}).get("stage"), "dev")
+        self.assertEqual(response_data.get(
+            "requestContext", {}).get("stage"), "dev")
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -1128,7 +1177,8 @@ class TestStartApiWithStageAndSwagger(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
 
         response_data = response.json()
-        self.assertEqual(response_data.get("stageVariables"), {"VarName": "varValue"})
+        self.assertEqual(response_data.get(
+            "stageVariables"), {"VarName": "varValue"})
 
 
 class TestStartApiWithStageAndSwaggerWithHttpApi(StartApiIntegBaseClass):
@@ -1144,22 +1194,26 @@ class TestStartApiWithStageAndSwaggerWithHttpApi(StartApiIntegBaseClass):
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_swagger_stage_name_httpapi(self):
-        response = requests.get(self.url + "/httpapi-echoeventbody", timeout=300)
+        response = requests.get(
+            self.url + "/httpapi-echoeventbody", timeout=300)
 
         self.assertEqual(response.status_code, 200)
 
         response_data = response.json()
-        self.assertEqual(response_data.get("requestContext", {}).get("stage"), "dev-http")
+        self.assertEqual(response_data.get(
+            "requestContext", {}).get("stage"), "dev-http")
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_swagger_stage_variable_httpapi(self):
-        response = requests.get(self.url + "/httpapi-echoeventbody", timeout=300)
+        response = requests.get(
+            self.url + "/httpapi-echoeventbody", timeout=300)
 
         self.assertEqual(response.status_code, 200)
 
         response_data = response.json()
-        self.assertEqual(response_data.get("stageVariables"), {"VarNameHttpApi": "varValueV2"})
+        self.assertEqual(response_data.get("stageVariables"),
+                         {"VarNameHttpApi": "varValueV2"})
 
 
 class TestPayloadVersionWithStageAndSwaggerWithHttpApi(StartApiIntegBaseClass):
@@ -1171,7 +1225,8 @@ class TestPayloadVersionWithStageAndSwaggerWithHttpApi(StartApiIntegBaseClass):
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_payload_version_v1_swagger_inline_httpapi(self):
-        response = requests.get(self.url + "/httpapi-payload-format-v1", timeout=300)
+        response = requests.get(
+            self.url + "/httpapi-payload-format-v1", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         response_data = response.json()
@@ -1180,7 +1235,8 @@ class TestPayloadVersionWithStageAndSwaggerWithHttpApi(StartApiIntegBaseClass):
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_payload_version_v2_swagger_inline_httpapi(self):
-        response = requests.get(self.url + "/httpapi-payload-format-v2", timeout=300)
+        response = requests.get(
+            self.url + "/httpapi-payload-format-v2", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         response_data = response.json()
@@ -1189,7 +1245,8 @@ class TestPayloadVersionWithStageAndSwaggerWithHttpApi(StartApiIntegBaseClass):
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_payload_version_v1_property_httpapi(self):
-        response = requests.get(self.url + "/httpapi-payload-format-v1-property", timeout=300)
+        response = requests.get(
+            self.url + "/httpapi-payload-format-v1-property", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         response_data = response.json()
@@ -1235,14 +1292,19 @@ class TestServiceCorsSwaggerRequests(StartApiIntegBaseClass):
         """
         This tests that the Cors are added to option requests in the swagger template
         """
-        response = requests.options(self.url + "/echobase64eventbody", timeout=300)
+        response = requests.options(
+            self.url + "/echobase64eventbody", timeout=300)
 
         self.assertEqual(response.status_code, 200)
 
-        self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "*")
-        self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), "origin, x-requested-with")
-        self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), "GET,OPTIONS")
-        self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), "true")
+        self.assertEqual(response.headers.get(
+            "Access-Control-Allow-Origin"), "*")
+        self.assertEqual(response.headers.get(
+            "Access-Control-Allow-Headers"), "origin, x-requested-with")
+        self.assertEqual(response.headers.get(
+            "Access-Control-Allow-Methods"), "GET,OPTIONS")
+        self.assertEqual(response.headers.get(
+            "Access-Control-Allow-Credentials"), "true")
         self.assertEqual(response.headers.get("Access-Control-Max-Age"), "510")
 
 
@@ -1263,13 +1325,18 @@ class TestServiceCorsSwaggerRequestsWithHttpApi(StartApiIntegBaseClass):
         """
         This tests that the Cors are added to option requests in the swagger template
         """
-        response = requests.options(self.url + "/httpapi-echobase64eventbody", timeout=300)
+        response = requests.options(
+            self.url + "/httpapi-echobase64eventbody", timeout=300)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "*")
-        self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), "origin")
-        self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), "GET,OPTIONS,POST")
-        self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), "true")
+        self.assertEqual(response.headers.get(
+            "Access-Control-Allow-Origin"), "*")
+        self.assertEqual(response.headers.get(
+            "Access-Control-Allow-Headers"), "origin")
+        self.assertEqual(response.headers.get(
+            "Access-Control-Allow-Methods"), "GET,OPTIONS,POST")
+        self.assertEqual(response.headers.get(
+            "Access-Control-Allow-Credentials"), "true")
         self.assertEqual(response.headers.get("Access-Control-Max-Age"), "42")
 
 
@@ -1289,13 +1356,18 @@ class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
         """
         This tests that the Cors are added to options requests when the global property is set
         """
-        response = requests.options(self.url + "/echobase64eventbody", timeout=300)
+        response = requests.options(
+            self.url + "/echobase64eventbody", timeout=300)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "*")
-        self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), None)
-        self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), ",".join(sorted(Route.ANY_HTTP_METHODS)))
-        self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), None)
+        self.assertEqual(response.headers.get(
+            "Access-Control-Allow-Origin"), "*")
+        self.assertEqual(response.headers.get(
+            "Access-Control-Allow-Headers"), None)
+        self.assertEqual(response.headers.get(
+            "Access-Control-Allow-Methods"), ",".join(sorted(Route.ANY_HTTP_METHODS)))
+        self.assertEqual(response.headers.get(
+            "Access-Control-Allow-Credentials"), None)
         self.assertEqual(response.headers.get("Access-Control-Max-Age"), None)
 
     @pytest.mark.flaky(reruns=3)
@@ -1308,11 +1380,16 @@ class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content.decode("utf-8"), "")
-        self.assertEqual(response.headers.get("Content-Type"), "application/json")
-        self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), None)
-        self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), None)
-        self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), None)
-        self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), None)
+        self.assertEqual(response.headers.get(
+            "Content-Type"), "application/json")
+        self.assertEqual(response.headers.get(
+            "Access-Control-Allow-Origin"), None)
+        self.assertEqual(response.headers.get(
+            "Access-Control-Allow-Headers"), None)
+        self.assertEqual(response.headers.get(
+            "Access-Control-Allow-Methods"), None)
+        self.assertEqual(response.headers.get(
+            "Access-Control-Allow-Credentials"), None)
         self.assertEqual(response.headers.get("Access-Control-Max-Age"), None)
 
 
@@ -1334,7 +1411,8 @@ class TestStartApiWithCloudFormationStage(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
 
         response_data = response.json()
-        self.assertEqual(response_data.get("requestContext", {}).get("stage"), "Dev")
+        self.assertEqual(response_data.get(
+            "requestContext", {}).get("stage"), "Dev")
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -1372,7 +1450,8 @@ class TestStartApiWithMethodsAndResources(StartApiIntegBaseClass):
         """
         Post Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.post(self.url + "/root/anyandall", json={}, timeout=300)
+        response = requests.post(
+            self.url + "/root/anyandall", json={}, timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
@@ -1383,7 +1462,8 @@ class TestStartApiWithMethodsAndResources(StartApiIntegBaseClass):
         """
         Put Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.put(self.url + "/root/anyandall", json={}, timeout=300)
+        response = requests.put(
+            self.url + "/root/anyandall", json={}, timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
@@ -1433,15 +1513,18 @@ class TestStartApiWithMethodsAndResources(StartApiIntegBaseClass):
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_function_not_defined_in_template(self):
-        response = requests.get(self.url + "/root/nofunctionfound", timeout=300)
+        response = requests.get(
+            self.url + "/root/nofunctionfound", timeout=300)
 
         self.assertEqual(response.status_code, 502)
-        self.assertEqual(response.json(), {"message": "No function defined for resource method"})
+        self.assertEqual(response.json(), {
+                         "message": "No function defined for resource method"})
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_lambda_function_resource_is_reachable(self):
-        response = requests.get(self.url + "/root/nonserverlessfunction", timeout=300)
+        response = requests.get(
+            self.url + "/root/nonserverlessfunction", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
@@ -1581,10 +1664,14 @@ class TestCFNTemplateQuickCreatedHttpApiWithDefaultRoute(StartApiIntegBaseClass)
 
         self.assertEqual(response.status_code, 200)
 
-        self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "https://example.com")
-        self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), "x-apigateway-header")
-        self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), "GET,OPTIONS")
-        self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), "true")
+        self.assertEqual(response.headers.get(
+            "Access-Control-Allow-Origin"), "https://example.com")
+        self.assertEqual(response.headers.get(
+            "Access-Control-Allow-Headers"), "x-apigateway-header")
+        self.assertEqual(response.headers.get(
+            "Access-Control-Allow-Methods"), "GET,OPTIONS")
+        self.assertEqual(response.headers.get(
+            "Access-Control-Allow-Credentials"), "true")
         self.assertEqual(response.headers.get("Access-Control-Max-Age"), "600")
 
 
@@ -1633,7 +1720,8 @@ class TestCFNTemplateQuickCreatedHttpApiWithOneRoute(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         response_data = response.json()
         self.assertEqual(response_data.get("version", {}), "2.0")
-        self.assertEqual(response_data.get("routeKey", {}), "GET /echoeventbody")
+        self.assertEqual(response_data.get(
+            "routeKey", {}), "GET /echoeventbody")
         self.assertIsNone(response_data.get("multiValueHeaders"))
         self.assertIsNotNone(response_data.get("cookies"))
 
@@ -1644,7 +1732,8 @@ class TestCFNTemplateQuickCreatedHttpApiWithOneRoute(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         response_data = response.json()
-        self.assertEqual(response_data.get("requestContext", {}).get("stage"), "$default")
+        self.assertEqual(response_data.get(
+            "requestContext", {}).get("stage"), "$default")
 
 
 class TestServerlessTemplateWithRestApiAndHttpApiGateways(StartApiIntegBaseClass):
@@ -1774,7 +1863,8 @@ class TestWarmContainersMultipleInvoke(TestWarmContainersBaseClass):
         initiated_containers = self.count_running_containers()
 
         # validate that no new containers got created
-        self.assertEqual(initiated_containers, initiated_containers_before_invoking_any_function)
+        self.assertEqual(initiated_containers,
+                         initiated_containers_before_invoking_any_function)
 
 
 class TestLazyContainers(TestWarmContainersBaseClass):
@@ -1820,7 +1910,8 @@ class TestLazyContainersMultipleInvoke(TestWarmContainersBaseClass):
         initiated_containers = self.count_running_containers()
 
         # only one container is initialized
-        self.assertEqual(initiated_containers, initiated_containers_before_any_invoke + 1)
+        self.assertEqual(initiated_containers,
+                         initiated_containers_before_any_invoke + 1)
 
 
 class TestImagePackageType(StartApiIntegBaseClass):
