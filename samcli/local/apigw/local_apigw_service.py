@@ -36,7 +36,8 @@ class LambdaResponseParseException(Exception):
 class Route:
     API = "Api"
     HTTP = "HttpApi"
-    ANY_HTTP_METHODS = ["GET", "DELETE", "PUT", "POST", "HEAD", "OPTIONS", "PATCH"]
+    ANY_HTTP_METHODS = ["GET", "DELETE", "PUT",
+                        "POST", "HEAD", "OPTIONS", "PATCH"]
 
     def __init__(
         self,
@@ -77,7 +78,8 @@ class Route:
         )
 
     def __hash__(self):
-        route_hash = hash(f"{self.stack_path}-{self.function_name}-{self.path}")
+        route_hash = hash(
+            f"{self.stack_path}-{self.function_name}-{self.path}")
         for method in sorted(self.methods):
             route_hash *= hash(method)
         return route_hash
@@ -180,12 +182,14 @@ class LocalApigwService(BaseLocalService):
                 rules_iter = self._app.url_map.iter_rules("/")
                 while True:
                     rule = next(rules_iter)
-                    all_methods = [method for method in all_methods if method not in rule.methods]
+                    all_methods = [
+                        method for method in all_methods if method not in rule.methods]
             except (KeyError, StopIteration):
                 pass
 
             self._add_catch_all_path(all_methods, "/", default_route)
-            self._add_catch_all_path(Route.ANY_HTTP_METHODS, "/<path:any_path>", default_route)
+            self._add_catch_all_path(
+                Route.ANY_HTTP_METHODS, "/<path:any_path>", default_route)
 
         self._construct_error_handling()
 
@@ -251,11 +255,14 @@ class LocalApigwService(BaseLocalService):
         Updates the Flask app with Error Handlers for different Error Codes
         """
         # Both path and method not present
-        self._app.register_error_handler(404, ServiceErrorResponses.route_not_found)
+        self._app.register_error_handler(
+            404, ServiceErrorResponses.route_not_found)
         # Path is present, but method not allowed
-        self._app.register_error_handler(405, ServiceErrorResponses.route_not_found)
+        self._app.register_error_handler(
+            405, ServiceErrorResponses.route_not_found)
         # Something went wrong
-        self._app.register_error_handler(500, ServiceErrorResponses.lambda_failure_response)
+        self._app.register_error_handler(
+            500, ServiceErrorResponses.lambda_failure_response)
 
     def _request_handler(self, **kwargs):
         """
@@ -294,7 +301,8 @@ class LocalApigwService(BaseLocalService):
             # or none, as the default value to be used is 2.0
             # https://docs.aws.amazon.com/apigatewayv2/latest/api-reference/apis-apiid-integrations.html#apis-apiid-integrations-prop-createintegrationinput-payloadformatversion
             if route.event_type == Route.HTTP and route.payload_format_version in [None, "2.0"]:
-                route_key = self._v2_route_key(method, endpoint, route.is_default_route)
+                route_key = self._v2_route_key(
+                    method, endpoint, route.is_default_route)
                 event = self._construct_v_2_0_event_http(
                     request,
                     self.port,
@@ -314,11 +322,13 @@ class LocalApigwService(BaseLocalService):
         stdout_stream_writer = StreamWriter(stdout_stream, self.is_debugging)
 
         try:
-            self.lambda_runner.invoke(route.function_name, event, stdout=stdout_stream_writer, stderr=self.stderr)
+            self.lambda_runner.invoke(
+                route.function_name, event, stdout=stdout_stream_writer, stderr=self.stderr)
         except FunctionNotFound:
             return ServiceErrorResponses.lambda_not_found_response()
 
-        lambda_response, lambda_logs, _ = LambdaOutputParser.get_lambda_output(stdout_stream)
+        lambda_response, lambda_logs, _ = LambdaOutputParser.get_lambda_output(
+            stdout_stream)
 
         if self.stderr and lambda_logs:
             # Write the logs to stderr if available.
@@ -393,31 +403,37 @@ class LocalApigwService(BaseLocalService):
         try:
             json_output = json.loads(lambda_output)
         except ValueError as ex:
-            raise LambdaResponseParseException("Lambda response must be valid json") from ex
+            raise LambdaResponseParseException(
+                "Lambda response must be valid json") from ex
 
         if not isinstance(json_output, dict):
-            raise LambdaResponseParseException(f"Lambda returned {type(json_output)} instead of dict")
+            raise LambdaResponseParseException(
+                f"Lambda returned {type(json_output)} instead of dict")
 
         if event_type == Route.HTTP and json_output.get("statusCode") is None:
-            raise LambdaResponseParseException(f"Invalid API Gateway Response Key: statusCode is not in {json_output}")
+            raise LambdaResponseParseException(
+                f"Invalid API Gateway Response Key: statusCode is not in {json_output}")
 
         status_code = json_output.get("statusCode") or 200
         headers = LocalApigwService._merge_response_headers(
-            json_output.get("headers") or {}, json_output.get("multiValueHeaders") or {}
+            json_output.get("headers") or {}, json_output.get(
+                "multiValueHeaders") or {}
         )
 
         body = json_output.get("body")
         if body is None:
             LOG.warning("Lambda returned empty body!")
 
-        is_base_64_encoded = LocalApigwService.get_base_64_encoded(event_type, json_output)
+        is_base_64_encoded = LocalApigwService.get_base_64_encoded(
+            event_type, json_output)
 
         try:
             status_code = int(status_code)
             if status_code <= 0:
                 raise ValueError
         except ValueError as ex:
-            raise LambdaResponseParseException("statusCode must be a positive int") from ex
+            raise LambdaResponseParseException(
+                "statusCode must be a positive int") from ex
 
         try:
             if body:
@@ -427,11 +443,13 @@ class LocalApigwService(BaseLocalService):
                 f"Non null response bodies should be able to convert to string: {body}"
             ) from ex
 
-        invalid_keys = LocalApigwService._invalid_apig_response_keys(json_output, event_type)
+        invalid_keys = LocalApigwService._invalid_apig_response_keys(
+            json_output, event_type)
         # HTTP API Gateway just skip the non allowed lambda response fields, but Rest API gateway fail on
         # the non allowed fields
         if event_type == Route.API and invalid_keys:
-            raise LambdaResponseParseException(f"Invalid API Gateway Response Keys: {invalid_keys} in {json_output}")
+            raise LambdaResponseParseException(
+                f"Invalid API Gateway Response Keys: {invalid_keys} in {json_output}")
 
         # If the customer doesn't define Content-Type default to application/json
         if "Content-Type" not in headers:
@@ -494,13 +512,15 @@ class LocalApigwService(BaseLocalService):
         try:
             json_output = json.loads(lambda_output)
         except ValueError as ex:
-            raise LambdaResponseParseException("Lambda response must be valid json") from ex
+            raise LambdaResponseParseException(
+                "Lambda response must be valid json") from ex
 
         # lambda can return any valid json response in payload format version 2.0.
         # response can be a simple type like string, or integer
         # https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html#http-api-develop-integrations-lambda.response
         if isinstance(json_output, dict):
-            body = json_output.get("body") if "statusCode" in json_output else json.dumps(json_output)
+            body = json_output.get(
+                "body") if "statusCode" in json_output else json.dumps(json_output)
         else:
             body = json_output
             json_output = {}
@@ -518,7 +538,8 @@ class LocalApigwService(BaseLocalService):
             if status_code <= 0:
                 raise ValueError
         except ValueError as ex:
-            raise LambdaResponseParseException("statusCode must be a positive int") from ex
+            raise LambdaResponseParseException(
+                "statusCode must be a positive int") from ex
 
         try:
             if body:
@@ -547,7 +568,8 @@ class LocalApigwService(BaseLocalService):
 
     @staticmethod
     def _invalid_apig_response_keys(output, event_type):
-        allowable = {"statusCode", "body", "headers", "multiValueHeaders", "isBase64Encoded", "cookies"}
+        allowable = {"statusCode", "body", "headers",
+                     "multiValueHeaders", "isBase64Encoded", "cookies"}
         if event_type == Route.API:
             allowable.add("base64Encoded")
         invalid_keys = output.keys() - allowable
@@ -574,7 +596,8 @@ class LocalApigwService(BaseLocalService):
         True if the body from the request should be converted to binary, otherwise false
 
         """
-        best_match_mimetype = flask_request.accept_mimetypes.best_match(lamba_response_headers.get_all("Content-Type"))
+        best_match_mimetype = flask_request.accept_mimetypes.best_match(
+            lamba_response_headers.get_all("Content-Type"))
         is_best_match_in_binary_types = best_match_mimetype in binary_types or "*/*" in binary_types
 
         return best_match_mimetype and is_best_match_in_binary_types and is_base_64_encoded
@@ -628,7 +651,8 @@ class LocalApigwService(BaseLocalService):
 
         identity = ContextIdentity(source_ip=flask_request.remote_addr)
 
-        endpoint = PathConverter.convert_path_to_api_gateway(flask_request.endpoint)
+        endpoint = PathConverter.convert_path_to_api_gateway(
+            flask_request.endpoint)
         method = flask_request.method
         protocol = flask_request.environ.get("SERVER_PROTOCOL", "HTTP/1.1")
         host = flask_request.host
@@ -637,10 +661,12 @@ class LocalApigwService(BaseLocalService):
 
         request_mimetype = flask_request.mimetype
 
-        is_base_64 = LocalApigwService._should_base64_encode(binary_types, request_mimetype)
+        is_base_64 = LocalApigwService._should_base64_encode(
+            binary_types, request_mimetype)
 
         if is_base_64:
-            LOG.debug("Incoming Request seems to be binary. Base64 encoding the request data before sending to Lambda.")
+            LOG.debug(
+                "Incoming Request seems to be binary. Base64 encoding the request data before sending to Lambda.")
             request_data = base64.b64encode(request_data)
 
         if request_data:
@@ -649,7 +675,8 @@ class LocalApigwService(BaseLocalService):
             # We might want to consider to use a new variable here.
             request_data = request_data.decode("utf-8")
 
-        query_string_dict, multi_value_query_string_dict = LocalApigwService._query_string_params(flask_request)
+        query_string_dict, multi_value_query_string_dict = LocalApigwService._query_string_params(
+            flask_request)
 
         context = RequestContext(
             resource_path=endpoint,
@@ -661,7 +688,8 @@ class LocalApigwService(BaseLocalService):
             domain_name=host,
         )
 
-        headers_dict, multi_value_headers_dict = LocalApigwService._event_headers(flask_request, port)
+        headers_dict, multi_value_headers_dict = LocalApigwService._event_headers(
+            flask_request, port)
 
         event = ApiGatewayLambdaEvent(
             http_method=method,
@@ -679,7 +707,8 @@ class LocalApigwService(BaseLocalService):
         )
 
         event_str = json.dumps(event.to_dict(), sort_keys=True)
-        LOG.debug("Constructed String representation of Event to invoke Lambda. Event: %s", event_str)
+        LOG.debug(
+            "Constructed String representation of Event to invoke Lambda. Event: %s", event_str)
         return event_str
 
     @staticmethod
@@ -706,22 +735,27 @@ class LocalApigwService(BaseLocalService):
 
         request_mimetype = flask_request.mimetype
 
-        is_base_64 = LocalApigwService._should_base64_encode(binary_types, request_mimetype)
+        is_base_64 = LocalApigwService._should_base64_encode(
+            binary_types, request_mimetype)
 
         if is_base_64:
-            LOG.debug("Incoming Request seems to be binary. Base64 encoding the request data before sending to Lambda.")
+            LOG.debug(
+                "Incoming Request seems to be binary. Base64 encoding the request data before sending to Lambda.")
             request_data = base64.b64encode(request_data)
 
         if request_data is not None:
             # Flask does not parse/decode the request data. We should do it ourselves
             request_data = request_data.decode("utf-8")
 
-        query_string_dict, _ = LocalApigwService._query_string_params(flask_request)
+        query_string_dict, _ = LocalApigwService._query_string_params(
+            flask_request)
 
         cookies = LocalApigwService._event_http_cookies(flask_request)
         headers = LocalApigwService._event_http_headers(flask_request, port)
-        context_http = ContextHTTP(method=method, path=flask_request.path, source_ip=flask_request.remote_addr)
-        context = RequestContextV2(http=context_http, route_key=route_key, stage=stage_name)
+        context_http = ContextHTTP(
+            method=method, path=flask_request.path, source_ip=flask_request.remote_addr)
+        context = RequestContextV2(
+            http=context_http, route_key=route_key, stage=stage_name)
         event = ApiGatewayV2LambdaEvent(
             route_key=route_key,
             raw_path=flask_request.path,
@@ -737,7 +771,8 @@ class LocalApigwService(BaseLocalService):
         )
 
         event_str = json.dumps(event.to_dict())
-        LOG.debug("Constructed String representation of Event Version 2.0 to invoke Lambda. Event: %s", event_str)
+        LOG.debug(
+            "Constructed String representation of Event Version 2.0 to invoke Lambda. Event: %s", event_str)
         return event_str
 
     @staticmethod
@@ -799,7 +834,8 @@ class LocalApigwService(BaseLocalService):
         # See https://github.com/pallets/flask/issues/850
         for header_key in flask_request.headers.keys():
             headers_dict[header_key] = flask_request.headers.get(header_key)
-            multi_value_headers_dict[header_key] = flask_request.headers.getlist(header_key)
+            multi_value_headers_dict[header_key] = flask_request.headers.getlist(
+                header_key)
 
         headers_dict["X-Forwarded-Proto"] = flask_request.scheme
         multi_value_headers_dict["X-Forwarded-Proto"] = [flask_request.scheme]
@@ -827,7 +863,8 @@ class LocalApigwService(BaseLocalService):
         """
         cookies = []
         for cookie_key in flask_request.cookies.keys():
-            cookies.append("{}={}".format(cookie_key, flask_request.cookies.get(cookie_key)))
+            cookies.append("{}={}".format(
+                cookie_key, flask_request.cookies.get(cookie_key)))
         return cookies
 
     @staticmethod
@@ -851,7 +888,7 @@ class LocalApigwService(BaseLocalService):
         # Multi-value request headers is not really supported by Flask.
         # See https://github.com/pallets/flask/issues/850
         for header_key in flask_request.headers.keys():
-            headers[header_key] = flask_request.headers.get(header_key)
+            headers[header_key.lower()] = flask_request.headers.get(header_key)
 
         headers["X-Forwarded-Proto"] = flask_request.scheme
         headers["X-Forwarded-Port"] = str(port)
