@@ -24,12 +24,13 @@ class ResourceProvider:
 
         local_stacks = None
 
-        try:  # use open, nor fdopen
-            with os.fdopen(new_file, "w") as tmp:
-                tmp.write(yaml_dump(self.template))
-                tmp.close()  # Don't need this.
+        try:
+            tmp = os.fdopen(new_file, "w")
 
-                local_stacks = SamLocalStackProvider.get_stacks(path)[0][0][4]
+            tmp.write(yaml_dump(self.template))
+            tmp.close()
+
+            local_stacks = SamLocalStackProvider.get_stacks(path)[0][0][4]
 
         finally:
             os.remove(path)

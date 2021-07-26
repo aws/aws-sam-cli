@@ -25,7 +25,7 @@ class TestResourceProvider(TestCase):
         tmp_mock.write = Mock()
         tmp_mock.close = Mock()
 
-        patch_stack.get_stacks.return_value = local_stacks_mock
+        patch_stack.get_stacks.return_value = [[[None, None, None, None, local_stacks_mock]]]
 
         resource_provider = ResourceProvider(template_mock)
 
