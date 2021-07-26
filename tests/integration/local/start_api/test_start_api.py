@@ -961,7 +961,7 @@ class TestServiceRequests(StartApiIntegBaseClass):
 
         response_data = response.json()
 
-        self.assertEqual(response_data.get("headers").get("Content-Type"), "application/x-www-form-urlencoded")
+        self.assertEqual(response_data.get("headers").get("content-type"), "application/x-www-form-urlencoded")
         self.assertEqual(response_data.get("body"), "key=value")
 
     @pytest.mark.flaky(reruns=3)
@@ -987,10 +987,10 @@ class TestServiceRequests(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         response_data = response.json()
         self.assertEqual(
-            response_data.get("multiValueHeaders").get("Content-Type"), ["application/x-www-form-urlencoded, image/gif"]
+            response_data.get("multiValueHeaders").get("content-type"), ["application/x-www-form-urlencoded, image/gif"]
         )
         self.assertEqual(
-            response_data.get("headers").get("Content-Type"), "application/x-www-form-urlencoded, image/gif"
+            response_data.get("headers").get("content-type"), "application/x-www-form-urlencoded, image/gif"
         )
 
     @pytest.mark.flaky(reruns=3)
@@ -1061,10 +1061,10 @@ class TestServiceRequests(StartApiIntegBaseClass):
 
         response_data = response.json()
 
-        self.assertEqual(response_data.get("headers").get("X-Forwarded-Proto"), "http")
-        self.assertEqual(response_data.get("multiValueHeaders").get("X-Forwarded-Proto"), ["http"])
-        self.assertEqual(response_data.get("headers").get("X-Forwarded-Port"), self.port)
-        self.assertEqual(response_data.get("multiValueHeaders").get("X-Forwarded-Port"), [self.port])
+        self.assertEqual(response_data.get("headers").get("x-forwarded-proto"), "http")
+        self.assertEqual(response_data.get("multiValueHeaders").get("x-forwarded-proto"), ["http"])
+        self.assertEqual(response_data.get("headers").get("x-forwarded-port"), self.port)
+        self.assertEqual(response_data.get("multiValueHeaders").get("x-forwarded-port"), [self.port])
 
 
 class TestStartApiWithStage(StartApiIntegBaseClass):
