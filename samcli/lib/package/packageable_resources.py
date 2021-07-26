@@ -99,7 +99,7 @@ class ResourceZip(Resource):
 
     # FIXME: add type annotation once MRO fixed in Iac interface
     def export(self, resource, parent_dir):
-        resource_id = resource.key
+        resource_id = resource.item_id or resource.key
         resource_dict = None
         if isinstance(resource, IacResource):
             resource_dict = resource.get("Properties")
@@ -153,7 +153,7 @@ class ResourceZip(Resource):
         """
         # code signer only accepts files which has '.zip' extension in it
         # so package artifact with '.zip' if it is required to be signed
-        resource_id = resource.key
+        resource_id = resource.item_id or resource.key
         resource_dict = None
         if isinstance(resource, IacResource):
             resource_dict = resource.get("Properties")
@@ -196,7 +196,7 @@ class ResourceImageDict(Resource):
 
     # FIXME: add type annotation once MRO fixed in Iac interface
     def export(self, resource, parent_dir):
-        resource_id = resource.key
+        resource_id = resource.item_id or resource.key
         resource_dict = None
         if isinstance(resource, IacResource):
             resource_dict = resource.get("Properties")
@@ -233,7 +233,7 @@ class ResourceImageDict(Resource):
         dictionary where the key is EXPORT_PROPERTY_CODE_KEY and value is set to an
         uploaded URL.
         """
-        resource_id = resource.key
+        resource_id = resource.item_id or resource.key
         resource_dict = None
         if isinstance(resource, IacResource):
             resource_dict = resource.get("Properties")
@@ -263,7 +263,7 @@ class ResourceImage(Resource):
 
     # FIXME: add type annotation once MRO fixed in Iac interface
     def export(self, resource, parent_dir):
-        resource_id = resource.key
+        resource_id = resource.item_id or resource.key
         resource_dict = None
         if isinstance(resource, IacResource):
             resource_dict = resource.get("Properties")
@@ -299,7 +299,7 @@ class ResourceImage(Resource):
         Default export action is to upload artifacts and set the property to
         URL of the uploaded object
         """
-        resource_id = resource.key
+        resource_id = resource.item_id or resource.key
         resource_dict = None
         if isinstance(resource, IacResource):
             resource_dict = resource.get("Properties")
@@ -334,7 +334,7 @@ class ResourceWithS3UrlDict(ResourceZip):
         Upload to S3 and set property to an dict representing the S3 url
         of the uploaded object
         """
-        resource_id = resource.key
+        resource_id = resource.item_id or resource.key
         resource_dict = None
         if isinstance(resource, IacResource):
             resource_dict = resource.get("Properties")

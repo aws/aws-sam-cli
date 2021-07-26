@@ -120,6 +120,7 @@ class TestArtifactExporter(unittest.TestCase):
                 uploaders=self.uploaders_mock, code_signer=code_signer_mock, iac=self.iac_mock
             )
             iac_resource_mock = MagicMock(spec=IacResource)
+            iac_resource_mock.item_id = "id"
             iac_resource_mock.key = "id"
             iac_resource_mock.get.return_value = {"InlineCode": "code"}
             iac_resource_mock.is_packageable.return_value = False
@@ -143,6 +144,7 @@ class TestArtifactExporter(unittest.TestCase):
         uploaders_mock.get = Mock(return_value=s3_uploader_mock)
 
         iac_resource_mock = MagicMock(spec=IacResource)
+        iac_resource_mock.item_id = "id"
         iac_resource_mock.key = "id"
         iac_resource_mock.find_asset_by_source_property.return_value = MagicMock(spec=S3Asset)
 
@@ -429,6 +431,7 @@ class TestArtifactExporter(unittest.TestCase):
         resource = MockResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
 
         iac_resource_mock = MagicMock(spec=IacResource)
+        iac_resource_mock.item_id = "id"
         iac_resource_mock.key = "id"
         asset_mock = MagicMock(spec=S3Asset)
         asset_mock.source_path = "/path/to/file"
@@ -461,6 +464,7 @@ class TestArtifactExporter(unittest.TestCase):
 
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
+        iac_resource_mock.item_id = "id"
         asset_mock = Mock(spec=ImageAsset)
         asset_mock.source_local_image = "image:latest"
         asset_mock.source_property = resource.PROPERTY_NAME
@@ -491,6 +495,7 @@ class TestArtifactExporter(unittest.TestCase):
 
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
+        iac_resource_mock.item_id = "id"
         asset_mock = Mock(spec=ImageAsset)
         asset_mock.source_local_image = "image:latest"
         asset_mock.source_property = resource.PROPERTY_NAME
@@ -518,6 +523,7 @@ class TestArtifactExporter(unittest.TestCase):
         original_image = "123456789.dkr.ecr.us-east-1.amazonaws.com/sam-cli"
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
+        iac_resource_mock.item_id = "id"
         asset_mock = Mock(spec=ImageAsset)
         asset_mock.source_local_image = original_image
         iac_resource_mock.find_asset_by_source_property.return_value = asset_mock
@@ -563,6 +569,7 @@ class TestArtifactExporter(unittest.TestCase):
 
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
+        iac_resource_mock.item_id = "id"
         asset_mock = Mock(spec=ImageAsset)
         asset_mock.source_local_image = "image:latest"
         asset_mock.source_property = resource.PROPERTY_NAME
@@ -593,6 +600,7 @@ class TestArtifactExporter(unittest.TestCase):
 
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
+        iac_resource_mock.item_id = "id"
         asset_mock = Mock(spec=ImageAsset)
         asset_mock.source_local_image = "image:latest"
         asset_mock.source_property = resource.PROPERTY_NAME
@@ -620,6 +628,7 @@ class TestArtifactExporter(unittest.TestCase):
         original_image = "123456789.dkr.ecr.us-east-1.amazonaws.com/sam-cli"
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
+        iac_resource_mock.item_id = "id"
         asset_mock = Mock(spec=ImageAsset)
         asset_mock.source_local_image = original_image
         iac_resource_mock.find_asset_by_source_property.return_value = asset_mock
@@ -643,6 +652,7 @@ class TestArtifactExporter(unittest.TestCase):
         original_image = None
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
+        iac_resource_mock.item_id = "id"
         asset_mock = Mock(spec=ImageAsset)
         asset_mock.source_local_image = original_image
         iac_resource_mock.find_asset_by_source_property.return_value = asset_mock
@@ -673,6 +683,7 @@ class TestArtifactExporter(unittest.TestCase):
         original_path = "/path/to/file"
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
+        iac_resource_mock.item_id = "id"
         asset_mock = MagicMock(spec=S3Asset)
         asset_mock.source_path = original_path
         asset_mock.source_property = resource.PROPERTY_NAME
@@ -729,6 +740,7 @@ class TestArtifactExporter(unittest.TestCase):
         original_path = "/path/to/zip_file"
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
+        iac_resource_mock.item_id = "id"
         asset_mock = MagicMock(spec=S3Asset)
         asset_mock.source_path = original_path
         asset_mock.source_property = resource.PROPERTY_NAME
@@ -779,6 +791,7 @@ class TestArtifactExporter(unittest.TestCase):
         original_path = "/path/to/file"
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
+        iac_resource_mock.item_id = "id"
         asset_mock = MagicMock(spec=S3Asset)
         asset_mock.source_path = original_path
         asset_mock.source_property = resource.PROPERTY_NAME
@@ -817,6 +830,7 @@ class TestArtifactExporter(unittest.TestCase):
 
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
+        iac_resource_mock.item_id = "id"
         asset_mock = MagicMock(spec=S3Asset)
         asset_mock.source_path = None
         asset_mock.source_property = resource.PROPERTY_NAME
@@ -846,6 +860,7 @@ class TestArtifactExporter(unittest.TestCase):
         resource = MockResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
+        iac_resource_mock.item_id = "id"
         asset_mock = Mock(spec=S3Asset)
         asset_mock.source_path = None
         iac_resource_mock.find_asset_by_source_property.return_value = asset_mock
@@ -870,6 +885,7 @@ class TestArtifactExporter(unittest.TestCase):
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.find_asset_by_source_property.return_value = MagicMock(spec=S3Asset)
         iac_resource_mock.key = "id"
+        iac_resource_mock.item_id = "id"
         parent_dir = "dir"
         s3_url = "s3://foo/bar"
 
@@ -900,6 +916,7 @@ class TestArtifactExporter(unittest.TestCase):
         # Case 1: Property value is a path to file
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
+        iac_resource_mock.item_id = "id"
         asset_mock = Mock(spec=S3Asset)
         asset_mock.source_path = "/path/to/file"
         asset_mock.source_property = resource.PROPERTY_NAME
@@ -936,6 +953,7 @@ class TestArtifactExporter(unittest.TestCase):
 
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
+        iac_resource_mock.item_id = "id"
         asset_mock = MagicMock(spec=S3Asset)
         asset_mock.source_path = "/path/to/file"
         asset_mock.source_property = resource.PROPERTY_NAME
@@ -952,6 +970,7 @@ class TestArtifactExporter(unittest.TestCase):
 
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
+        iac_resource_mock.item_id = "id"
         property_name = stack_resource.PROPERTY_NAME
         exported_template_dict = {"foo": "bar"}
         result_s3_url = "s3://hello/world"
@@ -1002,6 +1021,7 @@ class TestArtifactExporter(unittest.TestCase):
         stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
+        iac_resource_mock.item_id = "id"
         property_name = stack_resource.PROPERTY_NAME
         s3_url = "s3://hello/world"
         resource_dict = {property_name: s3_url}
@@ -1018,6 +1038,7 @@ class TestArtifactExporter(unittest.TestCase):
         stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
+        iac_resource_mock.item_id = "id"
         property_name = stack_resource.PROPERTY_NAME
         s3_url = "https://s3.amazonaws.com/hello/world"
         resource_dict = {property_name: s3_url}
@@ -1035,6 +1056,7 @@ class TestArtifactExporter(unittest.TestCase):
 
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
+        iac_resource_mock.item_id = "id"
         property_name = stack_resource.PROPERTY_NAME
         s3_url = "https://s3.some-valid-region.amazonaws.com/hello/world"
         resource_dict = {property_name: s3_url}
@@ -1050,6 +1072,7 @@ class TestArtifactExporter(unittest.TestCase):
         stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
+        iac_resource_mock.item_id = "id"
         property_name = stack_resource.PROPERTY_NAME
         s3_url = "s3://hello/world"
         resource_dict = {property_name: s3_url}
@@ -1067,6 +1090,7 @@ class TestArtifactExporter(unittest.TestCase):
         stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
+        iac_resource_mock.item_id = "id"
         property_name = stack_resource.PROPERTY_NAME
         s3_url = "s3://hello/world"
         nested_stack_mock = Mock()
@@ -1090,6 +1114,7 @@ class TestArtifactExporter(unittest.TestCase):
 
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
+        iac_resource_mock.item_id = "id"
         property_name = stack_resource.PROPERTY_NAME
         asset_mock = Mock(spec=S3Asset)
         iac_resource_mock.find_asset_by_source_property.return_value = asset_mock
@@ -1129,6 +1154,7 @@ class TestArtifactExporter(unittest.TestCase):
         stack_resource = ServerlessApplicationResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
+        iac_resource_mock.item_id = "id"
         property_name = stack_resource.PROPERTY_NAME
         s3_url = "s3://hello/world"
         resource_dict = {property_name: s3_url}
@@ -1145,6 +1171,7 @@ class TestArtifactExporter(unittest.TestCase):
         stack_resource = ServerlessApplicationResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
+        iac_resource_mock.item_id = "id"
         property_name = stack_resource.PROPERTY_NAME
         s3_url = "https://s3.amazonaws.com/hello/world"
         resource_dict = {property_name: s3_url}
@@ -1161,6 +1188,7 @@ class TestArtifactExporter(unittest.TestCase):
         stack_resource = ServerlessApplicationResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
+        iac_resource_mock.item_id = "id"
         property_name = stack_resource.PROPERTY_NAME
 
         # Case 2: Path is empty
@@ -1176,6 +1204,7 @@ class TestArtifactExporter(unittest.TestCase):
         stack_resource = ServerlessApplicationResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
+        iac_resource_mock.item_id = "id"
         asset_mock = Mock(spec=S3Asset)
         iac_resource_mock.find_asset_by_source_property.return_value = asset_mock
         property_name = stack_resource.PROPERTY_NAME
@@ -1196,6 +1225,7 @@ class TestArtifactExporter(unittest.TestCase):
         stack_resource = ServerlessApplicationResource(self.uploaders_mock, self.code_signer_mock, self.iac_mock)
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
+        iac_resource_mock.item_id = "id"
         property_name = stack_resource.PROPERTY_NAME
 
         # Case 4: Path is dictionary

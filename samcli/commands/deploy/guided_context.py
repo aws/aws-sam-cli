@@ -11,7 +11,7 @@ from click.types import FuncParamType
 from click import prompt
 from click import confirm
 
-from samcli.commands._utils.options import _space_separated_list_func_type
+from samcli.commands._utils.options import _space_separated_list_func_type, DEFAULT_STACK_NAME
 from samcli.commands.deploy.code_signer_utils import (
     signer_config_per_function,
     extract_profile_name_and_owner_from_existing,
@@ -58,7 +58,7 @@ class GuidedContext:
     ):
         self._iac = iac
         self._project = project
-        self.stack_name = stack_name
+        self.stack_name = stack_name or project.default_stack.name or DEFAULT_STACK_NAME
         self.s3_bucket = s3_bucket
         self.image_repository = image_repository
         self.image_repositories = image_repositories
@@ -86,7 +86,8 @@ class GuidedContext:
         self.end_bold = "\033[0m"
         self.color = Colored()
         self.function_provider = None
-        self._get_iac_stack()
+        self._iac_stack = None
+        self.template_file = None
 
     @property
     def guided_capabilities(self):
@@ -96,33 +97,21 @@ class GuidedContext:
     def guided_parameter_overrides(self):
         return self._parameter_overrides
 
-    def _get_iac_stack(self):
+    def _get_iac_stack(self, provided_stack_name):
         """
         get iac_stack from project based on stack_name
         """
-        stack = None
-        if self.stack_name is not None:
-            stack = self._project.find_stack_by_name(self.stack_name)
-            if stack is None:
-                # there is not stack with provided stack name
-                raise GuidedDeployFailedError(
-                    f"There is no stack with name '{self.stack_name}'. "
-                    "If you have specified --stack-name, specify the correct stack name "
-                    "or remove --stack-name to use default."
-                )
-
-        # NOTE: stack can be None because of one of the two reasons:
-        # 1) self.stack_name is None
-        # 2) self.stack_name is not None, but there is not stack with that name
-        # Either case, we select the first stack in the project by default, and update self.stack_name
-        if stack is None:
-            LOG.debug("Using the first stack in the project")
-            stack = self._project.stacks[0]
-            LOG.debug("name of first stack: '%s'", stack.name)
+        stack = self._project.find_stack_by_name(provided_stack_name) or self._project.default_stack
+        if stack is None or (stack.name and stack.name != provided_stack_name):
+            raise GuidedDeployFailedError(
+                f"There is no stack with name '{provided_stack_name}'. "
+                "If you have specified --stack-name, specify the correct stack name "
+                "or remove --stack-name to use default."
+            )
 
         self._iac_stack = stack
         self.template_file = stack.origin_dir
-        self.stack_name = self.stack_name or stack.name or "sam-app"
+        self.stack_name = stack.name if stack.name else provided_stack_name
 
     # pylint: disable=too-many-statements
     def guided_prompts(self):
@@ -148,6 +137,7 @@ class GuidedContext:
         stack_name = prompt(
             f"\t{self.start_bold}Stack Name{self.end_bold}", default=default_stack_name, type=click.STRING
         )
+        self._get_iac_stack(stack_name)
         region = prompt(f"\t{self.start_bold}AWS Region{self.end_bold}", default=default_region, type=click.STRING)
         parameter_override_keys = self._iac_stack.get_overrideable_parameters()
         input_parameter_overrides = self.prompt_parameters(
@@ -357,12 +347,12 @@ class GuidedContext:
 
     def run(self):
 
+        self.guided_prompts()
+
         guided_config = GuidedConfig(template_file=self.template_file, section=self.config_section)
         guided_config.read_config_showcase(
             self.config_file or DEFAULT_CONFIG_FILE_NAME,
         )
-
-        self.guided_prompts()
 
         if self.save_to_config:
             guided_config.save_config(

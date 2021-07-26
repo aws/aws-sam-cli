@@ -34,11 +34,10 @@ class TestGuidedContext(TestCase):
         stack_mock.name = "stack_name"
         project_mock.find_stack_by_name.return_value = stack_mock
 
-        self.gc.stack_name = "test"
-        self.gc._get_iac_stack()
+        self.gc._get_iac_stack("stack_name")
         self.assertEqual(self.gc._iac_stack, stack_mock)
         self.assertEqual(self.gc.template_file, "dir")
-        self.assertEqual(self.gc.stack_name, "test")
+        self.assertEqual(self.gc.stack_name, "stack_name")
 
     def test_get_iac_stack_stack_name_not_found(self):
         project_mock = self.gc._project
@@ -47,29 +46,15 @@ class TestGuidedContext(TestCase):
         stack_mock.origin_dir = "dir"
         stack_mock.name = "stack_name"
         project_mock.find_stack_by_name.return_value = None
+        project_mock.default_stack = stack_mock
 
-        self.gc.stack_name = "test"
         with self.assertRaises(GuidedDeployFailedError) as ex:
-            self.gc._get_iac_stack()
+            self.gc._get_iac_stack("test")
         self.assertEqual(
             ex.exception.msg,
             "There is no stack with name 'test'. "
             "If you have specified --stack-name, specify the correct stack name or remove --stack-name to use default.",
         )
-
-    def test_get_iac_stack_stack_name_none(self):
-        project_mock = self.gc._project
-        project_mock.reset_mock()
-        stack_mock = Mock()
-        stack_mock.origin_dir = "dir"
-        stack_mock.name = "stack_name"
-        project_mock.stacks.__getitem__.return_value = stack_mock
-
-        self.gc.stack_name = None
-        self.gc._get_iac_stack()
-        self.assertEqual(self.gc._iac_stack, stack_mock)
-        self.assertEqual(self.gc.template_file, "dir")
-        self.assertEqual(self.gc.stack_name, "stack_name")
 
     def test_get_iac_stack_stack_name_empty_sting(self):
         project_mock = self.gc._project
@@ -77,14 +62,13 @@ class TestGuidedContext(TestCase):
         stack_mock = Mock()
         stack_mock.origin_dir = "dir"
         stack_mock.name = ""
-        project_mock.stacks.__getitem__.return_value = stack_mock
+        project_mock.find_stack_by_name.return_value = None
+        project_mock.default_stack = stack_mock
 
-        self.gc.stack_name = None
-        self.gc._get_iac_stack()
+        self.gc._get_iac_stack("provided_stack_name")
         self.assertEqual(self.gc._iac_stack, stack_mock)
         self.assertEqual(self.gc.template_file, "dir")
-        self.assertEqual(self.gc.stack_name, "sam-app")
-        self.gc.stack_name = "test"
+        self.assertEqual(self.gc.stack_name, "provided_stack_name")
 
     @patch("samcli.commands.deploy.guided_context.prompt")
     @patch("samcli.commands.deploy.guided_context.confirm")
@@ -103,9 +87,15 @@ class TestGuidedContext(TestCase):
         patched_confirm,
         patched_prompt,
     ):
-        self.gc._iac_stack = MagicMock()
-        self.gc._iac_stack.has_assets_of_package_type.return_value = False
-        self.gc._iac_stack.get_overrideable_parameters.return_value = {}
+        project_mock = self.gc._project
+        project_mock.reset_mock()
+        iac_stack_mock = MagicMock()
+        iac_stack_mock.origin_dir = "dir"
+        iac_stack_mock.name = ""
+        iac_stack_mock.has_assets_of_package_type.return_value = False
+        iac_stack_mock.get_overrideable_parameters.return_value = {}
+        project_mock.find_stack_by_name.return_value = None
+        project_mock.default_stack = iac_stack_mock
 
         patched_sam_function_provider.return_value = {}
         patched_get_buildable_stacks.return_value = (Mock(), [])
@@ -138,25 +128,27 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
-    # @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
     @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
-    # @patch("samcli.commands.deploy.guided_context.get_template_data")
     def test_guided_prompts_check_defaults_public_resources_zips(
         self,
-        # patched_get_template_data,
         patched_signer_config_per_function,
         patched_sam_function_provider,
-        # patched_get_template_artifacts_format,
         patched_get_buildable_stacks,
         patchedauth_per_resource,
         patched_manage_stack,
         patched_confirm,
         patched_prompt,
     ):
-        self.gc._iac_stack = MagicMock()
-        self.gc._iac_stack.has_assets_of_package_type.return_value = False
-        self.gc._iac_stack.get_overrideable_parameters.return_value = {}
+        project_mock = self.gc._project
+        project_mock.reset_mock()
+        iac_stack_mock = MagicMock()
+        iac_stack_mock.origin_dir = "dir"
+        iac_stack_mock.name = ""
+        iac_stack_mock.has_assets_of_package_type.return_value = False
+        iac_stack_mock.get_overrideable_parameters.return_value = {}
+        project_mock.find_stack_by_name.return_value = None
+        project_mock.default_stack = iac_stack_mock
 
         patched_signer_config_per_function.return_value = (None, None)
         patched_sam_function_provider.return_value = {}
@@ -207,12 +199,18 @@ class TestGuidedContext(TestCase):
         patched_confirm,
         patched_prompt,
     ):
-        self.gc._iac_stack = MagicMock()
-        self.gc._iac_stack.has_assets_of_package_type.return_value = True
+        project_mock = self.gc._project
+        project_mock.reset_mock()
+        iac_stack_mock = MagicMock()
+        iac_stack_mock.origin_dir = "dir"
+        iac_stack_mock.name = ""
+        iac_stack_mock.has_assets_of_package_type.return_value = True
         function_resource_mock = Mock()
         function_resource_mock.item_id = "HelloWorldFunction"
-        self.gc._iac_stack.find_function_resources_of_package_type.return_value = [function_resource_mock]
-        self.gc._iac_stack.get_overrideable_parameters.return_value = {}
+        iac_stack_mock.find_function_resources_of_package_type.return_value = [function_resource_mock]
+        iac_stack_mock.get_overrideable_parameters.return_value = {}
+        project_mock.find_stack_by_name.return_value = None
+        project_mock.default_stack = iac_stack_mock
 
         patched_signer_config_per_function.return_value = (None, None)
         patched_tag_translation.return_value = "helloworld-123456-v1"
@@ -272,12 +270,9 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
-    # @patch("samcli.commands.deploy.guided_context.get_template_artifacts_format")
-    # @patch("samcli.commands.deploy.guided_context.get_template_function_resource_ids")
     @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
     @patch("samcli.commands.deploy.guided_context.click.secho")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
-    # @patch("samcli.commands.deploy.guided_context.get_template_data")
     def test_guided_prompts_check_defaults_public_resources_images_ecr_url(
         self,
         patched_signer_config_per_function,
@@ -289,12 +284,18 @@ class TestGuidedContext(TestCase):
         patched_confirm,
         patched_prompt,
     ):
-        self.gc._iac_stack = MagicMock()
-        self.gc._iac_stack.has_assets_of_package_type.return_value = True
+        project_mock = self.gc._project
+        project_mock.reset_mock()
+        iac_stack_mock = MagicMock()
+        iac_stack_mock.origin_dir = "dir"
+        iac_stack_mock.name = ""
+        iac_stack_mock.has_assets_of_package_type.return_value = True
         function_resource_mock = Mock()
         function_resource_mock.item_id = "HelloWorldFunction"
-        self.gc._iac_stack.find_function_resources_of_package_type.return_value = [function_resource_mock]
-        self.gc._iac_stack.get_overrideable_parameters.return_value = {}
+        iac_stack_mock.find_function_resources_of_package_type.return_value = [function_resource_mock]
+        iac_stack_mock.get_overrideable_parameters.return_value = {}
+        project_mock.find_stack_by_name.return_value = None
+        project_mock.default_stack = iac_stack_mock
 
         patched_sam_function_provider.return_value = MagicMock(
             functions={
@@ -366,12 +367,18 @@ class TestGuidedContext(TestCase):
         patched_confirm,
         patched_prompt,
     ):
-        self.gc._iac_stack = MagicMock()
-        self.gc._iac_stack.has_assets_of_package_type.return_value = True
+        project_mock = self.gc._project
+        project_mock.reset_mock()
+        iac_stack_mock = MagicMock()
+        iac_stack_mock.origin_dir = "dir"
+        iac_stack_mock.name = ""
+        iac_stack_mock.has_assets_of_package_type.return_value = True
         function_resource_mock = Mock()
         function_resource_mock.item_id = "HelloWorldFunction"
-        self.gc._iac_stack.find_function_resources_of_package_type.return_value = [function_resource_mock]
-        self.gc._iac_stack.get_overrideable_parameters.return_value = {}
+        iac_stack_mock.find_function_resources_of_package_type.return_value = [function_resource_mock]
+        iac_stack_mock.get_overrideable_parameters.return_value = {}
+        project_mock.find_stack_by_name.return_value = None
+        project_mock.default_stack = iac_stack_mock
 
         # Set ImageUri to be None, the sam app was never built.
         patched_sam_function_provider.return_value = MagicMock(
@@ -411,12 +418,18 @@ class TestGuidedContext(TestCase):
         patched_confirm,
         patched_prompt,
     ):
-        self.gc._iac_stack = MagicMock()
-        self.gc._iac_stack.has_assets_of_package_type.return_value = True
+        project_mock = self.gc._project
+        project_mock.reset_mock()
+        iac_stack_mock = MagicMock()
+        iac_stack_mock.origin_dir = "dir"
+        iac_stack_mock.name = ""
+        iac_stack_mock.has_assets_of_package_type.return_value = True
         function_resource_mock = Mock()
         function_resource_mock.item_id = "HelloWorldFunction"
-        self.gc._iac_stack.find_function_resources_of_package_type.return_value = [function_resource_mock]
-        self.gc._iac_stack.get_overrideable_parameters.return_value = {}
+        iac_stack_mock.find_function_resources_of_package_type.return_value = [function_resource_mock]
+        iac_stack_mock.get_overrideable_parameters.return_value = {}
+        project_mock.find_stack_by_name.return_value = None
+        project_mock.default_stack = iac_stack_mock
 
         patched_sam_function_provider.return_value = MagicMock(
             functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri="mysamapp:v1")}
@@ -468,12 +481,15 @@ class TestGuidedContext(TestCase):
         patched_confirm,
         patched_prompt,
     ):
-        self.gc._iac_stack = MagicMock()
-        self.gc._iac_stack.has_assets_of_package_type.return_value = False
-        # function_resource_mock = Mock()
-        # function_resource_mock.item_id = "HelloWorldFunction"
-        # self.gc._iac_stack.find_function_resources_of_package_type.return_value = [function_resource_mock]
-        self.gc._iac_stack.get_overrideable_parameters.return_value = {}
+        project_mock = self.gc._project
+        project_mock.reset_mock()
+        iac_stack_mock = MagicMock()
+        iac_stack_mock.origin_dir = "dir"
+        iac_stack_mock.name = ""
+        iac_stack_mock.has_assets_of_package_type.return_value = False
+        iac_stack_mock.get_overrideable_parameters.return_value = {}
+        project_mock.find_stack_by_name.return_value = None
+        project_mock.default_stack = iac_stack_mock
 
         patched_signer_config_per_function.return_value = ({}, {})
         patched_get_buildable_stacks.return_value = (Mock(), [])
@@ -515,9 +531,15 @@ class TestGuidedContext(TestCase):
         patched_confirm,
         patched_prompt,
     ):
-        self.gc._iac_stack = MagicMock()
-        self.gc._iac_stack.has_assets_of_package_type.return_value = False
-        self.gc._iac_stack.get_overrideable_parameters.return_value = {}
+        project_mock = self.gc._project
+        project_mock.reset_mock()
+        iac_stack_mock = MagicMock()
+        iac_stack_mock.origin_dir = "dir"
+        iac_stack_mock.name = ""
+        iac_stack_mock.has_assets_of_package_type.return_value = False
+        iac_stack_mock.get_overrideable_parameters.return_value = {}
+        project_mock.find_stack_by_name.return_value = None
+        project_mock.default_stack = iac_stack_mock
 
         patched_sam_function_provider.return_value = {}
         patched_get_buildable_stacks.return_value = (Mock(), [])
@@ -573,9 +595,15 @@ class TestGuidedContext(TestCase):
         patched_confirm,
         patched_prompt,
     ):
-        self.gc._iac_stack = MagicMock()
-        self.gc._iac_stack.has_assets_of_package_type.return_value = False
-        self.gc._iac_stack.get_overrideable_parameters.return_value = {"MyTestKey": {"Default": "MyTemplateDefaultVal"}}
+        project_mock = self.gc._project
+        project_mock.reset_mock()
+        iac_stack_mock = MagicMock()
+        iac_stack_mock.origin_dir = "dir"
+        iac_stack_mock.name = ""
+        iac_stack_mock.has_assets_of_package_type.return_value = False
+        iac_stack_mock.get_overrideable_parameters.return_value = {"MyTestKey": {"Default": "MyTemplateDefaultVal"}}
+        project_mock.find_stack_by_name.return_value = None
+        project_mock.default_stack = iac_stack_mock
 
         patched_sam_function_provider.return_value = {}
         patched_get_buildable_stacks.return_value = (Mock(), [])
@@ -627,9 +655,15 @@ class TestGuidedContext(TestCase):
         patched_confirm,
         patched_prompt,
     ):
-        self.gc._iac_stack = MagicMock()
-        self.gc._iac_stack.has_assets_of_package_type.return_value = False
-        self.gc._iac_stack.get_overrideable_parameters.return_value = {"MyTestKey": {"Default": "MyTemplateDefaultVal"}}
+        project_mock = self.gc._project
+        project_mock.reset_mock()
+        iac_stack_mock = MagicMock()
+        iac_stack_mock.origin_dir = "dir"
+        iac_stack_mock.name = ""
+        iac_stack_mock.has_assets_of_package_type.return_value = False
+        iac_stack_mock.get_overrideable_parameters.return_value = {"MyTestKey": {"Default": "MyTemplateDefaultVal"}}
+        project_mock.find_stack_by_name.return_value = None
+        project_mock.default_stack = iac_stack_mock
 
         patched_sam_function_provider.return_value = {}
         patched_get_buildable_stacks.return_value = (Mock(), [])
@@ -694,11 +728,15 @@ class TestGuidedContext(TestCase):
         patched_confirm,
         patched_prompt,
     ):
-        # given_sign_packages_flag = True
-        # given_code_signing_configs = ({"MyFunction1"}, {"MyLayer1": {"MyFunction1"}, "MyLayer2": {"MyFunction1"}})
-        self.gc._iac_stack = MagicMock()
-        self.gc._iac_stack.has_assets_of_package_type.return_value = False
-        self.gc._iac_stack.get_overrideable_parameters.return_value = {}
+        project_mock = self.gc._project
+        project_mock.reset_mock()
+        iac_stack_mock = MagicMock()
+        iac_stack_mock.origin_dir = "dir"
+        iac_stack_mock.name = ""
+        iac_stack_mock.has_assets_of_package_type.return_value = False
+        iac_stack_mock.get_overrideable_parameters.return_value = {}
+        project_mock.find_stack_by_name.return_value = None
+        project_mock.default_stack = iac_stack_mock
 
         patched_sam_function_provider.return_value = {}
         patched_signer_config_per_function.return_value = given_code_signing_configs
@@ -762,9 +800,15 @@ class TestGuidedContext(TestCase):
         patched_prompt,
         patched_get_session,
     ):
-        self.gc._iac_stack = MagicMock()
-        self.gc._iac_stack.has_assets_of_package_type.return_value = False
-        self.gc._iac_stack.get_overrideable_parameters.return_value = {}
+        project_mock = self.gc._project
+        project_mock.reset_mock()
+        iac_stack_mock = MagicMock()
+        iac_stack_mock.origin_dir = "dir"
+        iac_stack_mock.name = ""
+        iac_stack_mock.has_assets_of_package_type.return_value = False
+        iac_stack_mock.get_overrideable_parameters.return_value = {}
+        project_mock.find_stack_by_name.return_value = None
+        project_mock.default_stack = iac_stack_mock
 
         patched_sam_function_provider.return_value = {}
         patched_get_buildable_stacks.return_value = (Mock(), [])

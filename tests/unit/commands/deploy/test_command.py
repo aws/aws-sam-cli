@@ -54,6 +54,7 @@ class TestDeployCliCommand(TestCase):
         self.iac_stack_mock = MagicMock()
         self.project.find_stack_by_name.return_value = self.iac_stack_mock
         self.project.stacks.__getitem__.return_value = self.iac_stack_mock
+        self.project.default_stack = self.iac_stack_mock
         MOCK_SAM_CONFIG.reset_mock()
 
     @patch("samcli.commands.package.command.click")
@@ -237,6 +238,7 @@ class TestDeployCliCommand(TestCase):
         mock_package_context,
         mock_package_click,
     ):
+        self.iac_stack_mock.name = ""
         self.iac_stack_mock.has_assets_of_package_type.return_value = True
         function_resource_mock = Mock()
         function_resource_mock.item_id = "HelloWorldFunction"
@@ -379,6 +381,7 @@ class TestDeployCliCommand(TestCase):
         mock_package_context,
         mock_package_click,
     ):
+        self.iac_stack_mock.name = ""
         self.iac_stack_mock.has_assets_of_package_type.return_value = True
         function_resource_mock = Mock()
         function_resource_mock.item_id = "HelloWorldFunction"
@@ -539,6 +542,7 @@ class TestDeployCliCommand(TestCase):
         mock_package_context,
         mock_package_click,
     ):
+        self.iac_stack_mock.name = ""
         self.iac_stack_mock.has_assets_of_package_type.return_value = True
         function_resource_mock = Mock()
         function_resource_mock.item_id = "HelloWorldFunction"
@@ -675,6 +679,7 @@ class TestDeployCliCommand(TestCase):
         mock_package_context,
         mock_package_click,
     ):
+        self.iac_stack_mock.name = ""
         self.iac_stack_mock.has_assets_of_package_type.return_value = True
         function_resource_mock = Mock()
         function_resource_mock.item_id = "HelloWorldFunction"

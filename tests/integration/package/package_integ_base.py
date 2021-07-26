@@ -1,12 +1,20 @@
 import os
+import shutil
+import tempfile
 import uuid
 import json
 import time
+import logging
+from distutils.dir_util import copy_tree
 from pathlib import Path
 from unittest import TestCase
 
 import boto3
 
+from tests.testing_utils import run_command
+from tests.cdk_testing_utils import CdkPythonEnv
+
+LOG = logging.getLogger(__name__)
 SLEEP = 3
 
 
@@ -75,6 +83,21 @@ class PackageIntegBase(TestCase):
     def tearDown(self):
         super().tearDown()
 
+    @classmethod
+    def tearDownClass(cls):
+        # If the class doesn't use pre-created bucket & ECR, delete them
+        if not cls.pre_created_bucket:
+            for obj in cls.s3_bucket.objects.all():
+                obj.delete()
+            cls.s3_bucket.delete()
+            time.sleep(SLEEP)
+        if not cls.pre_created_ecr_repo:
+            repo_name = cls.ecr_repo_name.split("/")[-1]
+            cls.ecr.delete_repository(repositoryName=repo_name, force=True)
+            time.sleep(SLEEP)
+
+        super().tearDownClass()
+
     def base_command(self):
         command = "sam"
         if os.getenv("SAM_CLI_DEV"):
@@ -129,3 +152,72 @@ class PackageIntegBase(TestCase):
         if resolve_s3:
             command_list = command_list + ["--resolve-s3"]
         return command_list
+
+
+class CdkPackageIntegBase(PackageIntegBase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.scratch_dir = str(Path(__file__).resolve().parent.joinpath(str(uuid.uuid4()).replace("-", "")[:10]))
+        os.mkdir(cls.scratch_dir)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.scratch_dir and shutil.rmtree(cls.scratch_dir, ignore_errors=True)
+        super().tearDownClass()
+
+    def setUp(self):
+        # Sythensizing a CDK app produces a Cloud Assembly. To simulate an actual working setup, we copy the CDK app
+        # from test_data to a scratch dir as if the scratch dir is the working directory.
+        # This is similar to the setup in BuildIntegBase
+        # shutil.rmtree(self.scratch_dir, ignore_errors=True)
+        # os.mkdir(self.scratch_dir)
+        self.working_dir = tempfile.mkdtemp(dir=self.scratch_dir)
+
+    def tearDown(self):
+        self.working_dir and shutil.rmtree(self.working_dir, ignore_errors=True)
+
+    def get_command_list(
+        self,
+        s3_bucket=None,
+        template=None,
+        template_file=None,
+        s3_prefix=None,
+        output_template_file=None,
+        use_json=False,
+        force_upload=False,
+        no_progressbar=False,
+        kms_key_id=None,
+        metadata=None,
+        image_repository=None,
+        image_repositories=None,
+        resolve_s3=False,
+        cdk_app=None,
+    ):
+        command_list = super().get_command_list(
+            s3_bucket=s3_bucket,
+            template=template,
+            template_file=template_file,
+            s3_prefix=s3_prefix,
+            output_template_file=output_template_file,
+            use_json=use_json,
+            force_upload=force_upload,
+            no_progressbar=no_progressbar,
+            kms_key_id=kms_key_id,
+            metadata=metadata,
+            image_repository=image_repository,
+            image_repositories=image_repositories,
+            resolve_s3=resolve_s3,
+        )
+
+        if cdk_app:
+            command_list = command_list + ["--cdk-app", str(cdk_app)]
+
+        return command_list
+
+
+class CdkPackageIntegPythonBase(CdkPackageIntegBase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.cdk_python_env = CdkPythonEnv(cls.scratch_dir)
