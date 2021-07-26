@@ -56,16 +56,16 @@ class LambdaFunction(TemplateResource):
         return self._children
 
     @children.setter
-    def children(self, child_node: "LambdaFunction"):
-        self._children.append(child_node)
+    def children(self, new_children_list: List):
+        self._children = new_children_list
 
     @property
     def parents(self) -> List:
         return self._parents
 
     @parents.setter
-    def parents(self, parent_node: "LambdaFunction"):
-        self._parents.append(parent_node)
+    def parents(self, new_parent_list: List):
+        self._parents = new_parent_list
 
     @property
     def tps(self) -> int:

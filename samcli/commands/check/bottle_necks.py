@@ -21,14 +21,14 @@ class BottleNecks:
             entry_point_question = (
                 "We found the following resources in your application that could be the entry point for a request."
             )
-            item_number = 1
-            for item in entry_points:
+
+            for item_number, item in enumerate(entry_points):
                 item_name = item.resource_name
-                entry_point_question += "\n[%i] %s" % (item_number, item_name)
+                entry_point_question += "\n[%i] %s" % (item_number + 1, item_name)
                 item_number += 1
 
             entry_point_question += "\nWhere should the simulation start?"
-            user_input = ask(entry_point_question, 1, item_number - 1)
+            user_input = ask(entry_point_question, 1, item_number)
 
             current_entry_point = entry_points.pop(user_input - 1)
 
