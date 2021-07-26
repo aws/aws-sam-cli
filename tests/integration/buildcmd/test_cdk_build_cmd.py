@@ -1,8 +1,10 @@
-from .build_integ_base import CdkBuildIntegPythonBase
+from .build_integ_base import CdkBuildIntegPythonBase, CdkBuildIntegNodejsBase
+from distutils.dir_util import copy_tree
 from pathlib import Path
 from tests.testing_utils import run_command
 import logging
 import requests
+import os
 
 LOG = logging.getLogger(__name__)
 
@@ -10,50 +12,59 @@ LOG = logging.getLogger(__name__)
 class TestBuildWithCDKPluginNestedStacks(CdkBuildIntegPythonBase):
     def test_cdk_nested_build(self):
         project_name = "cdk-example-multiple-stacks-01"
-        self.copy_source_to_temp(project_name)
-        # self._install_deps()
-        self.verify_build_success(project_name)
+        test_data_path = os.path.join(self.test_data_path, "CDK", project_name)
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
+        self.verify_build_success(self.working_dir)
         self.verify_included_expected_project_manifest()
 
         # Verify invoke after build
         expected = get_expected_response(message="hello world")
-        self.verify_invoke_built_function("root-stack/nested-stack/cdk-wing-test-lambda", expected)
+        self.verify_invoke_built_function("root-stack/nested-stack/cdk-wing-test-lambda", expected, self.working_dir)
         expected = get_expected_response(message="hello world 2!")
-        self.verify_invoke_built_function("Stack2/cdk-wing-test-lambda", expected)
+        self.verify_invoke_built_function("Stack2/cdk-wing-test-lambda", expected, self.working_dir)
         expected = get_expected_response(message="hello world 3!")
-        self.verify_invoke_built_function("root-stack/nested-stack/nested-nested-stack/cdk-wing-test-lambda", expected)
+        self.verify_invoke_built_function(
+            "root-stack/nested-stack/nested-nested-stack/cdk-wing-test-lambda", expected, self.working_dir
+        )
 
 
-class TestBuildWithCDKPluginWithApiGateway(CdkBuildIntegPythonBase):
+class TestBuildWithCDKPluginWithApiGateway(CdkBuildIntegNodejsBase):
     def test_cdk_apigateway(self):
         project_name = "cdk-example-rest-api-gateway"
-        self.copy_source_to_temp(project_name)
-        self.verify_build_success(project_name)
+        test_data_path = os.path.join(self.test_data_path, "CDK", project_name)
+        copy_tree(test_data_path, self.working_dir)
+        self.install_dependencies(self.working_dir)
+        self.verify_build_success(self.working_dir)
         self.verify_included_expected_project_manifest()
         body = f'{{"message":"Lambda was invoked successfully from APIGW."}}'
         expected = {"body": body, "statusCode": 200}
-        self.verify_invoke_built_function("CdkExampleRestApiGatewayStack/APIGWLambdaFunction", expected)
+        self.verify_invoke_built_function("CdkExampleRestApiGatewayStack/APIGWLambdaFunction", expected, self.working_dir)
 
 
 class TestBuildWithCDKPluginWithApiCorsLambda(CdkBuildIntegPythonBase):
     def test_cdk_api_cors_lambda(self):
         project_name = "api-cors-lambda"
-        self.copy_source_to_temp(project_name)
-        self.verify_build_success(project_name)
+        test_data_path = os.path.join(self.test_data_path, "CDK", project_name)
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
+        self.verify_build_success(self.working_dir)
         self.verify_included_expected_project_manifest()
         expected = {"body": "Lambda was invoked successfully.", "statusCode": 200}
-        self.verify_invoke_built_function("ApiCorsLambdaStack/ApiCorsLambda", expected)
+        self.verify_invoke_built_function("ApiCorsLambdaStack/ApiCorsLambda", expected, self.working_dir)
 
 
 class TestBuildWithCDKLayer(CdkBuildIntegPythonBase):
     def test_cdk_layer(self):
         project_name = "cdk-example-layer"
-        self.copy_source_to_temp(project_name)
+        test_data_path = os.path.join(self.test_data_path, "CDK", project_name)
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
         cmd_list = self.get_command_list(use_container=True)
-        self.verify_build_success(project_name, cmd_list)
+        self.verify_build_success(self.working_dir, cmd_list)
         self.verify_included_expected_project_manifest()
         expected = get_expected_response(message="hello world")
-        self.verify_invoke_built_function("CdkExampleLayerStack/lambda-function", expected)
+        self.verify_invoke_built_function("CdkExampleLayerStack/lambda-function", expected, self.working_dir)
 
 
 class TestBuildWithCDKVariousOptions(CdkBuildIntegPythonBase):
@@ -89,24 +100,28 @@ class TestBuildWithCDKVariousOptions(CdkBuildIntegPythonBase):
         self._verify_build(self.project_name, cmd_list)
 
     def _verify_build(self, project_name, cmd_list):
-        self.copy_source_to_temp(project_name)
-        self.verify_build_success(project_name, cmd_list)
+        test_data_path = os.path.join(self.test_data_path, "CDK", project_name)
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
+        self.verify_build_success(self.working_dir, cmd_list)
         self.verify_included_expected_project_manifest()
         expected = {"body": "Lambda was invoked successfully.", "statusCode": 200}
-        self.verify_invoke_built_function("ApiCorsLambdaStack/ApiCorsLambda", expected)
+        self.verify_invoke_built_function("ApiCorsLambdaStack/ApiCorsLambda", expected, self.working_dir)
 
     def _verify_cached_artifact(self, cache_dir):
         self.assertTrue(cache_dir.exists(), "Cache directory should be created")
 
     def _verify_build_failed(self, project_name, cmd=None):
-        project_path = self.get_project_path(project_name)
+        test_data_path = os.path.join(self.test_data_path, "CDK", project_name)
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
         if cmd:
             cmd_list = cmd
         else:
             cmd_list = self.get_command_list()
         LOG.info("Running Command: {}".format(cmd_list))
         LOG.info(cmd_list)
-        process_execute = run_command(cmd_list, cwd=project_path)
+        process_execute = run_command(cmd_list, cwd=self.working_dir)
         self.assertEqual(2, process_execute.process.returncode)
 
 

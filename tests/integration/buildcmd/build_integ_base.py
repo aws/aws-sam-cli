@@ -7,6 +7,7 @@ import time
 import logging
 import json
 from unittest import TestCase
+from tests.cdk_testing_utils import CdkPythonEnv
 
 import docker
 import jmespath
@@ -399,43 +400,29 @@ class IntrinsicIntegBase(BuildIntegBase):
 
 
 class CDKBuildTestBase(BuildIntegBase):
+    scratch_dir = None
+
     @classmethod
     def setUpClass(cls):
-        cls.cmd = cls.base_command()
-        integration_dir = Path(__file__).resolve().parents[1]
-        cls.test_data_path = Path(integration_dir, "testdata", "buildcmd", "CDK")
+        super().setUpClass()
+        cls.scratch_dir = str(Path(__file__).resolve().parent.joinpath(str(uuid.uuid4()).replace("-", "")[:10]))
+        os.mkdir(cls.scratch_dir)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.scratch_dir and shutil.rmtree(cls.scratch_dir, ignore_errors=True)
+        super().tearDownClass()
 
     def setUp(self):
         # To invoke a function created by the build command, we need the built artifacts to be in a
         # location that is shared in Docker. Most temp directories are not shared. Therefore we are
         # using a scratch space within the test folder that is .gitignored. Contents of this folder
         # is also deleted after every test run
-        self.scratch_dir = str(Path(__file__).resolve().parent.joinpath(str(uuid.uuid4()).replace("-", "")[:10]))
-        shutil.rmtree(self.scratch_dir, ignore_errors=True)
-        os.mkdir(self.scratch_dir)
         self.working_dir = tempfile.mkdtemp(dir=self.scratch_dir)
         self.default_build_dir = Path(self.working_dir, ".aws-sam", "build")
 
     def tearDown(self):
         self.working_dir and shutil.rmtree(self.working_dir, ignore_errors=True)
-        self.scratch_dir and shutil.rmtree(self.scratch_dir, ignore_errors=True)
-
-        # npm_projects = ["cdk-example-rest-api-gateway"]
-        #
-        # for project in npm_projects:
-        #     project_path = self.get_project_path(project)
-        #     node_modules_path = os.path.join(project_path, "node_modules")
-        #     package_lock_path = os.path.join(project_path, "package-lock.json")
-        #     if os.path.exists(node_modules_path):
-        #         shutil.rmtree(node_modules_path, ignore_errors=True)
-        #     if os.path.exists(package_lock_path):
-        #         os.remove(package_lock_path)
-
-    def copy_source_to_temp(self, project_name):
-        source = self.get_project_path(project_name)
-        destination = str(Path(self.working_dir, "source"))
-        if not os.path.exists(destination):
-            self.temp_source = shutil.copytree(source, destination)
 
     def get_command_list(
         self,
@@ -507,10 +494,7 @@ class CDKBuildTestBase(BuildIntegBase):
 
         return command_list
 
-    def get_project_path(self, project_name):
-        return str(Path(self.test_data_path, project_name))
-
-    def verify_build_success(self, project_name, cmd=None):
+    def verify_build_success(self, source_path, cmd=None):
         if cmd:
             cmd_list = cmd
         else:
@@ -518,18 +502,17 @@ class CDKBuildTestBase(BuildIntegBase):
 
         LOG.info("Running Command: {}".format(cmd_list))
 
-        process_execute = run_command(cmd_list, cwd=self.temp_source)
+        process_execute = run_command(cmd_list, cwd=source_path)
 
         self.assertEqual(0, process_execute.process.returncode)
         self.assertIn("Build Succeeded", str(process_execute.stdout))
 
-    def verify_invoke_built_function(self, function_logical_id, expected_result):
+    def verify_invoke_built_function(self, function_logical_id, expected_result, source_path):
         LOG.info("Invoking built function '{}'".format(function_logical_id))
 
         cmd_list = [self.cmd, "local", "invoke", function_logical_id, "--project-type", "cdk"]
-        project_dir = os.path.join(self.working_dir, "source")
 
-        process_execute = run_command(cmd_list, cwd=project_dir)
+        process_execute = run_command(cmd_list, cwd=source_path)
         process_execute.process.wait()
         process_stdout = process_execute.stdout.decode("utf-8")
 
@@ -542,26 +525,19 @@ class CDKBuildTestBase(BuildIntegBase):
 
 
 class CdkBuildIntegPythonBase(CDKBuildTestBase):
-    def setUp(self):
-        super().setUp()
-        self._create_virtual_env()
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.cdk_python_env = CdkPythonEnv(cls.scratch_dir)
 
-    def tearDown(self):
-        super().tearDown()
 
-    def _create_virtual_env(self):
-        create_venv_command = ["python3", "-m", "venv", ".venv"]
-        run_command(create_venv_command, cwd=self.working_dir)
+class CdkBuildIntegNodejsBase(CDKBuildTestBase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
 
-    def _install_deps(self):
-        if os.path.isfile(f"{self.working_dir}/source/requirements.txt"):
-            pip_command = [self.venv_pip, "install", "-r", "source/requirements.txt"]
-            run_command(pip_command, cwd=self.working_dir)
-
-    @property
-    def venv_python(self):
-        return f"{self.working_dir}/.venv/bin/python"
-
-    @property
-    def venv_pip(self):
-        return f"{self.working_dir}/.venv/bin/pip"
+    @staticmethod
+    def install_dependencies(package_path):
+        if os.path.exists(package_path):
+            command = ['npm', "install"]
+            run_command(command_list=command, cwd=package_path)
