@@ -1,8 +1,8 @@
-import shutil
+import os
 import logging
-
 import tempfile
 
+from distutils.dir_util import copy_tree
 from unittest import skipIf
 from parameterized import parameterized
 
@@ -26,11 +26,11 @@ class TestPackageCdkPythonZip(CdkPackageIntegPythonBase):
     )
     def test_package_barebones(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
         command_list = self.get_command_list(
             s3_bucket=self.s3_bucket.name,
-            cdk_app=f"{self.venv_python} app.py",
+            cdk_app=f"{self.cdk_python_env.python_executable} app.py",
         )
         LOG.debug("command list: %s", command_list)
         process_execute = run_command(command_list, cwd=self.working_dir)
@@ -46,13 +46,13 @@ class TestPackageCdkPythonZip(CdkPackageIntegPythonBase):
     )
     def test_package_with_prefix(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
         s3_prefix = "integ_test_prefix"
         command_list = self.get_command_list(
             s3_bucket=self.s3_bucket.name,
             s3_prefix=s3_prefix,
-            cdk_app=f"{self.venv_python} app.py",
+            cdk_app=f"{self.cdk_python_env.python_executable} app.py",
         )
         LOG.debug("command list: %s", command_list)
         process_execute = run_command(command_list, cwd=self.working_dir)
@@ -69,8 +69,8 @@ class TestPackageCdkPythonZip(CdkPackageIntegPythonBase):
     )
     def test_package_with_output_template_file(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
         s3_prefix = "integ_test_prefix"
 
         with tempfile.NamedTemporaryFile(delete=False) as output_template:
@@ -78,7 +78,7 @@ class TestPackageCdkPythonZip(CdkPackageIntegPythonBase):
                 s3_bucket=self.s3_bucket.name,
                 s3_prefix=s3_prefix,
                 output_template_file=output_template.name,
-                cdk_app=f"{self.venv_python} app.py",
+                cdk_app=f"{self.cdk_python_env.python_executable} app.py",
             )
             LOG.debug("command list: %s", command_list)
             process_execute = run_command(command_list, cwd=self.working_dir)
@@ -100,8 +100,8 @@ class TestPackageCdkPythonZip(CdkPackageIntegPythonBase):
     )
     def test_package_with_json(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
         s3_prefix = "integ_test_prefix"
 
         with tempfile.NamedTemporaryFile(delete=False) as output_template:
@@ -110,7 +110,7 @@ class TestPackageCdkPythonZip(CdkPackageIntegPythonBase):
                 s3_prefix=s3_prefix,
                 output_template_file=output_template.name,
                 use_json=True,
-                cdk_app=f"{self.venv_python} app.py",
+                cdk_app=f"{self.cdk_python_env.python_executable} app.py",
             )
             LOG.debug("command list: %s", command_list)
             process_execute = run_command(command_list, cwd=self.working_dir)
@@ -132,8 +132,8 @@ class TestPackageCdkPythonZip(CdkPackageIntegPythonBase):
     )
     def test_package_with_force_upload(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
         s3_prefix = "integ_test_prefix"
 
         with tempfile.NamedTemporaryFile(delete=False) as output_template:
@@ -144,7 +144,7 @@ class TestPackageCdkPythonZip(CdkPackageIntegPythonBase):
                     s3_prefix=s3_prefix,
                     output_template_file=output_template.name,
                     force_upload=True,
-                    cdk_app=f"{self.venv_python} app.py",
+                    cdk_app=f"{self.cdk_python_env.python_executable} app.py",
                 )
                 LOG.debug("command list: %s", command_list)
                 process_execute = run_command(command_list, cwd=self.working_dir)
@@ -166,8 +166,8 @@ class TestPackageCdkPythonZip(CdkPackageIntegPythonBase):
     )
     def test_package_with_kms_key(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
         s3_prefix = "integ_test_prefix"
 
         with tempfile.NamedTemporaryFile(delete=False) as output_template:
@@ -177,7 +177,7 @@ class TestPackageCdkPythonZip(CdkPackageIntegPythonBase):
                 output_template_file=output_template.name,
                 force_upload=True,
                 kms_key_id=self.kms_key,
-                cdk_app=f"{self.venv_python} app.py",
+                cdk_app=f"{self.cdk_python_env.python_executable} app.py",
             )
             LOG.debug("command list: %s", command_list)
             process_execute = run_command(command_list, cwd=self.working_dir)
@@ -199,8 +199,8 @@ class TestPackageCdkPythonZip(CdkPackageIntegPythonBase):
     )
     def test_package_with_metadata(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
         s3_prefix = "integ_test_prefix"
 
         with tempfile.NamedTemporaryFile(delete=False) as output_template:
@@ -210,7 +210,7 @@ class TestPackageCdkPythonZip(CdkPackageIntegPythonBase):
                 output_template_file=output_template.name,
                 force_upload=True,
                 metadata={"integ": "yes"},
-                cdk_app=f"{self.venv_python} app.py",
+                cdk_app=f"{self.cdk_python_env.python_executable} app.py",
             )
             LOG.debug("command list: %s", command_list)
             process_execute = run_command(command_list, cwd=self.working_dir)
@@ -232,8 +232,8 @@ class TestPackageCdkPythonZip(CdkPackageIntegPythonBase):
     )
     def test_package_with_resolve_s3(self, cdk_app_loc):
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
         s3_prefix = "integ_test_prefix"
 
         with tempfile.NamedTemporaryFile(delete=False) as output_template:
@@ -242,7 +242,7 @@ class TestPackageCdkPythonZip(CdkPackageIntegPythonBase):
                 output_template_file=output_template.name,
                 force_upload=True,
                 resolve_s3=True,
-                cdk_app=f"{self.venv_python} app.py",
+                cdk_app=f"{self.cdk_python_env.python_executable} app.py",
             )
             LOG.debug("command list: %s", command_list)
             process_execute = run_command(command_list, cwd=self.working_dir)
@@ -260,8 +260,8 @@ class TestPackageCdkPythonZip(CdkPackageIntegPythonBase):
     def test_package_with_no_progress_bar(self, no_progressbar):
         cdk_app_loc = "aws-lambda-function"
         test_data_path = self.test_data_path.joinpath("cdk", "python", cdk_app_loc)
-        shutil.copytree(test_data_path, self.working_dir, dirs_exist_ok=True)
-        self._install_deps()
+        copy_tree(test_data_path, self.working_dir)
+        self.cdk_python_env.install_dependencies(os.path.join(self.working_dir, "requirements.txt"))
         s3_prefix = "integ_test_prefix"
 
         with tempfile.NamedTemporaryFile(delete=False) as output_template:
@@ -271,7 +271,7 @@ class TestPackageCdkPythonZip(CdkPackageIntegPythonBase):
                 output_template_file=output_template.name,
                 force_upload=True,
                 no_progressbar=no_progressbar,
-                cdk_app=f"{self.venv_python} app.py",
+                cdk_app=f"{self.cdk_python_env.python_executable} app.py",
             )
             LOG.debug("command list: %s", command_list)
             process_execute = run_command(command_list, cwd=self.working_dir)
