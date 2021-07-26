@@ -22,6 +22,8 @@ class BottleNecks:
                 "We found the following resources in your application that could be the entry point for a request."
             )
 
+            item_number = 0
+
             for item_number, item in enumerate(entry_points):
                 item_name = item.resource_name
                 entry_point_question += "\n[%i] %s" % (item_number + 1, item_name)
