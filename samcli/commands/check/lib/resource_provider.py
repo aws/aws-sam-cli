@@ -8,9 +8,11 @@ from samcli.yamlhelper import yaml_dump
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 
 from samcli.commands.check.resources.ApiGateway import ApiGateway
+from samcli.commands.check.resources.LambdaFunction import LambdaFunction
 from samcli.commands.check.resources.LamdaFunctionPermission import LambdaFunctionPermission
 from samcli.commands.check.resources.EventSourceMapping import EventSourceMapping
 from samcli.commands.check.resources.DynamoDB import DynamoDB
+from samcli.commands.check.resources.IAMRole import IAMRole
 
 
 class ResourceProvider:
@@ -40,12 +42,16 @@ class ResourceProvider:
         all_lambda_permissions = {}
         all_event_source_mappings = {}
         all_dynamoDB_tables = {}
+        all_lambda_functions = {}
+        all_iam_roles = {}
 
         all_resources = {
             "ApiGateways": all_api_gateways,
+            "LambdaFunctions": all_lambda_functions,
             "LambdaPermissions": all_lambda_permissions,
             "EventSourceMappings": all_event_source_mappings,
             "DynamoDBTables": all_dynamoDB_tables,
+            "IAMRoles": all_iam_roles,
         }
 
         local_stacks = self.get_local_stacks()
@@ -56,6 +62,8 @@ class ResourceProvider:
 
             if resource_obj["Type"] == "AWS::ApiGateway::RestApi":
                 all_api_gateways[resource_name] = ApiGateway(resource_obj, resource_obj["Type"], resource_name)
+            elif resource_obj["Type"] == "AWS::Lambda::Function":
+                all_lambda_functions[resource_name] = LambdaFunction(resource_obj, resource_obj["Type"], resource_name)
             elif resource_obj["Type"] == "AWS::Lambda::Permission":
                 all_lambda_permissions[resource_name] = LambdaFunctionPermission(
                     resource_obj, resource_obj["Type"], resource_name
@@ -66,5 +74,7 @@ class ResourceProvider:
                 )
             elif resource_obj["Type"] == "AWS::DynamoDB::Table":
                 all_dynamoDB_tables[resource_name] = DynamoDB(resource_obj, resource_obj["Type"], resource_name)
+            elif resource_obj["Type"] == "AWS::IAM::Role":
+                all_iam_roles[resource_name] = IAMRole(resource_obj, resource_obj["Type"], resource_name)
 
         return all_resources

@@ -191,24 +191,10 @@ def ask_to_save_data():
 
 def parse_template(template):
 
-    all_lambda_functions = {}
     all_resources = {}
-
-    # template path
-    path = os.path.realpath("template.yaml")
-
-    # Get all lambda functions
-    local_stacks = SamLocalStackProvider.get_stacks(path)[0]
-    function_provider = SamFunctionProvider(local_stacks)
-    functions = function_provider.get_all()  # List of all functions in the stacks
-    for stack_function in functions:
-        new_lambda_function = LambdaFunction(stack_function, "AWS::Lambda::Function", stack_function.functionname)
-        all_lambda_functions[stack_function.functionname] = new_lambda_function
 
     resource_provider = ResourceProvider(template)
     all_resources = resource_provider.get_all_resources()
-
-    all_resources["LambdaFunctions"] = all_lambda_functions
 
     # After all resources have been parsed from template, pass them into the graph
     graph_context = GraphContext(all_resources)

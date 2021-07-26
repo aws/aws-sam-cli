@@ -62,6 +62,17 @@ class BottleNecks:
             self.event_source_bottle_neck_questions(resource)
 
     def event_source_bottle_neck_questions(self, event_source):
+        if event_source.get_children() == []:
+            """
+            If an event source does not have any child nodes, then this event source is not a parent to any
+            lambda functions. This can only happen if a lambda function has permissions to access a specific resource,
+            but that resource does not access its own lambda function.
+            For example: a lambda function may have permission to write to a dynamoDB table, but that table is not an event
+            to some other lambda function.
+            If that's the case, no further bottle neck questions are needed to be asked, since bottle necks are currently
+            only determined at the lambda function, and not the event source itself
+            """
+            return
         user_input_tps = self.ask(
             "What is the expected per-second arrival rate for [%s]?\n[TPS]" % (event_source.get_name())
         )
