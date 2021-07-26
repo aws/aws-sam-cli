@@ -15,9 +15,9 @@ from samtranslator.parser import parser
 
 from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
 from samcli.commands.check.bottle_necks import BottleNecks
-from samcli.commands.check.graph_context import GraphContext
 from samcli.commands.check.resources.LambdaFunction import LambdaFunction
 from samcli.commands.check.resources.Graph import Graph
+from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
 from samcli.yamlhelper import yaml_parse
 
@@ -112,10 +112,11 @@ def parse_template() -> Graph:
     function_provider = SamFunctionProvider(local_stacks)
     functions = function_provider.get_all()  # List of all functions in the stacks
     for stack_function in functions:
-        new_lambda_function = LambdaFunction(stack_function, "AWS::Lambda::Function")
+        new_lambda_function = LambdaFunction(stack_function, AWS_LAMBDA_FUNCTION)
         all_lambda_functions.append(new_lambda_function)
 
     # After all resources have been parsed from template, pass them into the graph
-    graph_context = GraphContext(all_lambda_functions)
+    graph = Graph()
+    graph.generate(all_lambda_functions)
 
-    return graph_context.generate()
+    return graph

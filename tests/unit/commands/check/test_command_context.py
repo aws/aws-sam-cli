@@ -5,6 +5,7 @@ from unittest import TestCase
 from unittest.mock import Mock, patch
 
 from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
+from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
 from samcli.commands.check.lib.command_context import CheckContext, parse_template
 
@@ -88,7 +89,7 @@ class TestCommandContext(TestCase):
         patch_replace.assert_called_with(original_template)
         sam_translator.translate.assert_called_with(sam_template=updated_template, parameter_values={})
 
-    @patch("samcli.commands.check.lib.command_context.GraphContext")
+    @patch("samcli.commands.check.lib.command_context.Graph")
     @patch("samcli.commands.check.lib.command_context.LambdaFunction")
     @patch("samcli.commands.check.lib.command_context.SamLocalStackProvider")
     @patch("samcli.commands.check.lib.command_context.SamFunctionProvider")
@@ -104,11 +105,10 @@ class TestCommandContext(TestCase):
         new_lambda_function_mock = Mock()
         patch_lambda.return_value = new_lambda_function_mock
 
-        graph_context_mock = Mock()
-        result_mock = Mock()
+        graph_mock = Mock()
 
-        graph_context_mock.generate.return_value = result_mock
-        patch_graph.return_value = graph_context_mock
+        graph_mock.generate = Mock()
+        patch_graph.return_value = graph_mock
 
         all_lambda_functions = [patch_lambda.return_value]
 
@@ -123,8 +123,8 @@ class TestCommandContext(TestCase):
         patch_stack_provider.get_stacks.assert_called_once_with(path_mock)
         patch_function_provider.assert_called_once_with(local_stacks_mock)
         function_provider_mock.get_all.assert_called_once()
-        patch_lambda.assert_called_once_with(stack_function_mock, "AWS::Lambda::Function")
-        patch_graph.assert_called_once_with(all_lambda_functions)
-        graph_context_mock.generate.assert_called_once()
+        patch_lambda.assert_called_once_with(stack_function_mock, AWS_LAMBDA_FUNCTION)
+        patch_graph.assert_called_once()
+        graph_mock.generate.assert_called_once_with(all_lambda_functions)
 
-        self.assertEqual(result, result_mock)
+        self.assertEqual(result, graph_mock)
