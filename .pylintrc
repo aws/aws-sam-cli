@@ -23,7 +23,8 @@ load-plugins=
     pylint.extensions.docparams, # Parameter documentation checker
 
 # Use multiple processes to speed up Pylint.
-jobs=4
+# Pylint has a bug on multitread, turn it off.
+jobs=1
 
 # Allow loading of arbitrary C extensions. Extensions are imported into the
 # active Python interpreter and may run arbitrary code.
@@ -92,23 +93,13 @@ disable=
     # W9018, # "%s" differing in parameter type documentation
     # W9019, # "%s" useless ignored parameter documentation
     # W9020, # "%s" useless ignored parameter type documentation
-    # Below are python3.9 only
-    C0412, # Imports from %s package docker are not grouped (ungrouped-imports)
-    C0330, # Wrong hanging indentation before block (add 4 spaces).
-    C0111, # Missing class docstring (missing-docstring)
-    W9015, # Missing in parameter documentation (missing-param-doc)
-    E1101, # Instance of 'Function' has no 'name' member (no-member)
-    C0123, # Using type() instead of isinstance() for a typecheck.
-    E0401, # Unable to import %s (import-error)
-    E0611, # No name '%s' in module '%s' (no-name-in-module)
-    E1123, # Unexpected keyword argument '%s' in constructor call (unexpected-keyword-arg)
-    R5501, # Consider using "elif" instead of "else if"
-    E1136, # Value '%s' is unsubscriptable (unsubscriptable-object)
-    E0239, # Inheriting '%s', which is not a class. (inherit-non-class)
-    I1101, # Module '%s' has no '%s' member, but source is unavailable. Consider adding this module to extension-pkg-whitelist if you want to perform analysis based on run-time introspection of living objects. (c-extension-no-member)
+    C0103, # Class constant name "%s" doesn't conform to UPPER_CASE naming style ('([^\\W\\da-z][^\\Wa-z]*|__.*__)$' pattern) (invalid-name)
+    R1729, # Use a generator instead 'any(r.startswith(runtime) for r in mapping['runtimes'])' (use-a-generator)
+    R1732, # Consider using 'with' for resource-allocating operations (consider-using-with)
+    I1101, # Module 'math' has no 'pow' member, but source is unavailable. Consider adding this module to extension-pkg-allow-list if you want to perform analysis based on run-time introspection of living objects. (c-extension-no-member)
 
 
-[REPORTS]
+[REPORTS]g
 
 # Set the output format. Available formats are text, parseable, colorized, msvs
 # (visual studio) and html. You can also give a reporter class, eg
