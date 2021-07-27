@@ -3,6 +3,7 @@ Class for graph. All data is stored in the graph directly, or within nodes that 
 """
 from typing import List
 
+
 class Graph:
     entry_points: List
     resources_to_analyze: List
