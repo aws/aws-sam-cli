@@ -1,9 +1,9 @@
 from typing import List, OrderedDict
 import click
 
-from .resources.Graph import Graph
 from samcli.commands.check.resources.DynamoDB import DynamoDB
 from samcli.commands.check.resources.LambdaFunction import LambdaFunction
+from .resources.Graph import Graph
 
 
 class GraphContext:
@@ -125,7 +125,7 @@ class GraphContext:
     def _handle_iam_roles(self):
         for lambda_function_name, lambda_function in self.lambda_functions.items():
 
-            properties = self._get_propertiers(lambda_function)
+            properties = self._get_properties(lambda_function)
 
             # there may not be policies.
             if "ManagedPolicyArns" in properties:
@@ -140,7 +140,7 @@ class GraphContext:
                     if policy in self._dynamo_policies:
                         self._make_connection_from_policy("AWS::DynamoDB::Table", lambda_function_name)
 
-    def _get_propertiers(self, lambda_function: LambdaFunction) -> OrderedDict:
+    def _get_properties(self, lambda_function: LambdaFunction) -> OrderedDict:
         lambda_function_resource_object = lambda_function.get_resource_object()
 
         lambda_function_role_name = lambda_function_resource_object["Properties"]["Role"]["Fn::GetAtt"][0]

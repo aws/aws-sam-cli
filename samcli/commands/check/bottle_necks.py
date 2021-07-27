@@ -73,9 +73,27 @@ class BottleNecks:
             only determined at the lambda function, and not the event source itself
             """
             return
-        user_input_tps = self.ask(
-            "What is the expected per-second arrival rate for [%s]?\n[TPS]" % (event_source.get_name())
-        )
+
+        entry_point = True
+        parent_tps = 0
+        if event_source.get_parents():
+            entry_point = False
+            parent_tps = event_source.get_parents()[0].get_tps()
+
+        """
+        If the event source is an entry point, proceed normally. If it is not an entry point (i.e. a lambda function calls 
+        this resource), its tps will be limited by the entry point that lead to this resource.
+        """
+        if entry_point:
+            user_input_tps = self.ask(
+                "What is the expected per-second arrival rate for [%s]?\n[TPS]" % (event_source.get_name())
+            )
+        else:
+            user_input_tps = self.ask(
+                "What is the expected per-second arrival rate for [%s]? [max: %i]\n[TPS]"
+                % (event_source.get_name(), parent_tps),
+                max=parent_tps,
+            )
         event_source.set_tps(user_input_tps)
 
         for child in event_source.get_children():

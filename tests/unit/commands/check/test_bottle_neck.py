@@ -66,6 +66,7 @@ class TestBottleNeck(TestCase):
 
         event_source_mock.set_tps.return_value = Mock()
         event_source_mock.get_children.return_value = [child_mock]
+        event_source_mock.get_parents.return_value = []
         child_mock.set_tps.return_value = Mock()
 
         self_mock.ask.return_value = input_mock
