@@ -10,6 +10,8 @@ from samcli.lib.delete.cf_utils import CfUtils
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.ecr_uploader import ECRUploader
 
+from samcli.commands.delete.exceptions import CfDeleteFailedStatusError
+
 
 class TestDeleteContext(TestCase):
     @patch("samcli.commands.delete.delete_context.click.echo")
@@ -78,9 +80,10 @@ class TestDeleteContext(TestCase):
             self.assertEqual(delete_context.s3_prefix, "s3-prefix")
 
     @patch("samcli.commands.delete.delete_context.prompt")
+    @patch("samcli.commands.delete.delete_context.confirm")
     @patch("samcli.commands.delete.delete_context.click.get_current_context")
     @patch.object(CfUtils, "has_stack", MagicMock(return_value=(False)))
-    def test_delete_no_user_input(self, patched_click_get_current_context, patched_prompt):
+    def test_delete_no_user_input(self, patched_click_get_current_context, patched_confirm, patched_prompt):
         patched_click_get_current_context = MagicMock()
         with DeleteContext(
             stack_name=None,
@@ -88,11 +91,12 @@ class TestDeleteContext(TestCase):
             config_file=None,
             config_env=None,
             profile=None,
-            no_prompts=True,
+            no_prompts=None,
         ) as delete_context:
             delete_context.run()
 
             patched_prompt.side_effect = ["sam-app"]
+            patched_confirm.side_effect = [True]
 
             expected_prompt_calls = [
                 call(click.style("\tEnter stack name you want to delete:", bold=True), type=click.STRING),
@@ -388,3 +392,43 @@ class TestDeleteContext(TestCase):
                 call("\nDeleted successfully"),
             ]
             self.assertEqual(expected_click_echo_calls, patched_click_echo.call_args_list)
+
+    @patch("samcli.commands.delete.delete_context.get_cf_template_name")
+    @patch("samcli.commands.delete.delete_context.click.get_current_context")
+    @patch.object(CfUtils, "has_stack", MagicMock(side_effect=(True, True)))
+    @patch.object(CfUtils, "get_stack_template", MagicMock(return_value=({"TemplateBody": "Hello World"})))
+    @patch.object(CfUtils, "delete_stack", MagicMock())
+    @patch.object(
+        CfUtils,
+        "wait_for_delete",
+        MagicMock(
+            side_effect=(
+                CfDeleteFailedStatusError("test-098f6bcd-CompanionStack", "Mock WaitError"),
+                {},
+                CfDeleteFailedStatusError("test", "Mock WaitError"),
+                {},
+            )
+        ),
+    )
+    @patch.object(S3Uploader, "delete_prefix_artifacts", MagicMock())
+    @patch.object(ECRUploader, "delete_ecr_repository", MagicMock())
+    @patch.object(Template, "get_ecr_repos", MagicMock(side_effect=({}, {"logical_id": {"Repository": "test_id"}})))
+    def test_retain_resources_delete_stack(self, patched_click_get_current_context, patched_get_cf_template_name):
+        patched_get_cf_template_name.return_value = "hello.template"
+        with DeleteContext(
+            stack_name="test",
+            region="us-east-1",
+            config_file="samconfig.toml",
+            config_env="default",
+            profile="test",
+            no_prompts=True,
+        ) as delete_context:
+            delete_context.s3_bucket = "s3_bucket"
+            delete_context.s3_prefix = "s3_prefix"
+
+            delete_context.run()
+
+            self.assertEqual(CfUtils.has_stack.call_count, 2)
+            self.assertEqual(CfUtils.get_stack_template.call_count, 2)
+            self.assertEqual(CfUtils.delete_stack.call_count, 4)
+            self.assertEqual(CfUtils.wait_for_delete.call_count, 4)

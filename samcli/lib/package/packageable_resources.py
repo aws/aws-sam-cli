@@ -178,7 +178,7 @@ class ResourceZip(Resource):
             return {"Bucket": None, "Key": None}
 
         resource_path = jmespath.search(self.PROPERTY_NAME, resource_dict)
-        if resource_path:
+        if resource_path and isinstance(resource_path, str):
             return self.uploader.parse_s3_url(resource_path)
         return {"Bucket": None, "Key": None}
 
@@ -350,7 +350,9 @@ class ResourceWithS3UrlDict(ResourceZip):
         s3_bucket = resource_path.get(self.BUCKET_NAME_PROPERTY, None)
 
         key = resource_path.get(self.OBJECT_KEY_PROPERTY, None)
-        return {"Bucket": s3_bucket, "Key": key}
+        if isinstance(s3_bucket, str) and isinstance(key, str):
+            return {"Bucket": s3_bucket, "Key": key}
+        return {"Bucket": None, "Key": None}
 
 
 class ServerlessFunctionResource(ResourceZip):
