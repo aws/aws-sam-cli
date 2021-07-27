@@ -65,8 +65,8 @@ class BottleNecks:
             lambda_function.tps = user_input_tps
 
         user_input_duration = _ask(
-            "What is the expected duration for the Lambda function [%s] in ms?\n[1 - 900,000]"
-            % (lambda_function.resource_name),
+            "What is the expected duration for the Lambda function [%s] in ms?\n[1 - %i]"
+            % (lambda_function.resource_name, self._lambda_max_duration),
             1,
             self._lambda_max_duration,
         )

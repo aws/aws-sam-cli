@@ -36,4 +36,3 @@ class LambdaFunction(TemplateResource):
     @property
     def resource_name(self) -> Any:
         return self._resource_object.name
-

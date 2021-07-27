@@ -9,7 +9,13 @@ from .resources.Warning import CheckWarning
 
 
 class Calculations:
+    _graph: Graph
+
     def __init__(self, graph: Graph):
+        """
+        Args:
+            graph (Graph): The graph object. This is where all of the data is stored
+        """
         self._graph = graph
 
     def _generate_warning_message(
@@ -21,6 +27,15 @@ class Calculations:
         tps: int,
         burst_concurrency: int,
     ):
+        """Depending on how severe the bottle neck is, a different warning message will be generated
+        Args:
+            capacity_used (int): Percentage of capacity used
+            resource_name (str): Recource name that the warning is for
+            concurrent_executions (int): Concurrent executions based on users account
+            duration (int): Duration of lambda function
+            tps (int): TPS of lambda function based on its parent resource
+            burst_concurrency (int): Burst concurrency based on users account
+        """
         warning = CheckWarning()
 
         if capacity_used <= 70:
@@ -53,6 +68,9 @@ class Calculations:
             self._graph.red_burst_warnings.append(warning)
 
     def run_bottle_neck_calculations(self):
+        """
+        Bottle neck calculations are calculated and stored in the graph
+        """
         click.echo("Running calculations...")
 
         for resource in self._graph.resources_to_analyze:
@@ -79,5 +97,14 @@ class Calculations:
 
 
 def _check_limit(tps: int, duration: int, execution_limit: int) -> float:
+    """The check to see if a given resource will cause a bottle neck.
+    Args:
+        tps (int): TPS of lambda function based on parent resource
+        duration (int): Duration of lambda function
+        execution_limit (int): Execution limit based on user account
+
+    Returns:
+        float: percentage of available concurrent executions used
+    """
     tps_max_limit = (1000 / duration) * execution_limit
     return (tps / tps_max_limit) * 100
