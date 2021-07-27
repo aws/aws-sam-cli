@@ -134,7 +134,7 @@ class LambdaImage:
             image_not_found = True
 
         # If building a new image that's not user provided, delete older images of the same repo
-        if image_not_found and not (packagetype == IMAGE):
+        if image_not_found and packagetype != IMAGE:
             LOG.info("Removing old images")
             self._remove_images(image_repo)
 
