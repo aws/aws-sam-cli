@@ -1,6 +1,7 @@
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
+
 from samcli.commands.check.bottle_necks import BottleNecks, _ask
 from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
@@ -14,6 +15,7 @@ class TestBottleNeck(TestCase):
 
         self.assertEqual(result, click_patch.prompt.return_value)
         click_patch.prompt.assert_called_with(text=question, type=int)
+
 
     @patch("samcli.commands.check.bottle_necks._ask")
     @patch("samcli.commands.check.bottle_necks.click")
@@ -31,6 +33,7 @@ class TestBottleNeck(TestCase):
         graph_mock.entry_points = entry_points
 
         bottle_neck = BottleNecks(graph_mock)
+
         bottle_neck._ask_bottle_neck_questions = Mock()
         patch_ask.return_value = 1
 

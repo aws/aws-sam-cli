@@ -7,6 +7,7 @@ from unittest.mock import Mock, patch
 from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
 from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
+
 from samcli.commands.check.lib.command_context import CheckContext, _parse_template
 
 
@@ -32,6 +33,11 @@ class TestCommandContext(TestCase):
 
         patch_calculations.run_bottle_neck_calculations = Mock()
         patch_print.print_bottle_neck_results = Mock()
+
+        patch_parse_template.return_value = graph_mock
+
+        patch_bottle_neck.return_value = bottle_neck_mock
+        bottle_neck_mock.ask_entry_point_question = Mock()
 
         context.run()
 

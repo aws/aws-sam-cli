@@ -50,6 +50,10 @@ class BottleNecks:
 
             click.echo("")
 
+
+        click.echo("Running calculations...")
+
+
     def _lambda_bottle_neck_quesitons(self, lambda_function: LambdaFunction) -> None:
         """
         TPS (if necessary) and duration questions are asked for lambda functions
@@ -59,10 +63,15 @@ class BottleNecks:
         """
         # If there is no entry point to the lambda function, get tps
         if lambda_function.tps == -1:
+
             user_input_tps = _ask(
+
+            user_input_tps = ask(
+
                 "What is the expected per-second arrival rate for [%s]?\n[TPS]" % (lambda_function.resource_name)
             )
             lambda_function.tps = user_input_tps
+
 
         user_input_duration = _ask(
             "What is the expected duration for the Lambda function [%s] in ms?\n[1 - %i]"
@@ -74,6 +83,7 @@ class BottleNecks:
         lambda_function.duration = user_input_duration
 
     def _ask_bottle_neck_questions(self, resource: LambdaFunction) -> None:
+
         """Specific bottle neck questions are asked based on resource type
 
         Args:
@@ -81,6 +91,7 @@ class BottleNecks:
         """
         if resource.resource_type == AWS_LAMBDA_FUNCTION:
             self._lambda_bottle_neck_quesitons(resource)
+
 
 
 def _ask(question: str, min_val: int = 1, max_val: float = float("inf")) -> int:

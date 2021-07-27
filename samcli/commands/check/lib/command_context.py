@@ -17,9 +17,9 @@ from samcli.commands.check.bottle_necks import BottleNecks
 from samcli.commands.check.resources.LambdaFunction import LambdaFunction
 from samcli.commands.check.resources.Graph import Graph
 from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
+
 from samcli.commands.check.calculations import Calculations
 from samcli.commands.check.print_results import PrintResults
-
 
 from samcli.yamlhelper import yaml_parse
 
@@ -45,6 +45,7 @@ class CheckContext:
     _profile: str
     _template_path: str
 
+
     def __init__(self, region: str, profile: str, template_path: str):
         """
         Args:
@@ -61,6 +62,7 @@ class CheckContext:
         All main functions (bottle neck questions, pricing questions, calculations, print results)
         will be called here
         """
+
         self._transform_template()
 
         LOG.info("... analyzing application template")
@@ -69,6 +71,7 @@ class CheckContext:
 
         bottle_necks = BottleNecks(graph)
         bottle_necks.ask_entry_point_question()
+
 
         calculations = Calculations(graph)
         calculations.run_bottle_neck_calculations()
@@ -121,6 +124,7 @@ class CheckContext:
             sam_template = yaml_parse(sam_template.read())
 
         return sam_template
+
 
 
 def _parse_template() -> Graph:
