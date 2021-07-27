@@ -5,7 +5,15 @@ from samcli.lib.providers.provider import Function
 
 
 class TemplateResource:
+    _resource_object: Function
+    _resource_type: str
+
     def __init__(self, resource_object: Function, resource_type: str):
+        """
+        Args:
+            resource_object (Function): The resource object form the template file
+            resource_type (str): The resource type
+        """
         self._resource_object = resource_object
         self._resource_type = resource_type
 

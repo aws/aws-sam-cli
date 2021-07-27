@@ -9,11 +9,21 @@ from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
 
 class BottleNecks:
+    _graph: Graph
+    _lambda_max_duration: int
+
     def __init__(self, graph: Graph):
+        """
+        Args:
+            graph (Graph): The graph object. This is where all of the data is stored
+        """
         self._graph = graph
         self._lambda_max_duration = 900000
 
-    def ask_entry_point_question(self):
+    def ask_entry_point_question(self) -> None:
+        """
+        User is asked which entry point they'd like to start with
+        """
         entry_points = self._graph.entry_points
 
         # All entry points must be calcualted before info can be displayed
@@ -40,7 +50,13 @@ class BottleNecks:
 
         click.echo("Running calculations...")
 
-    def _lambda_bottle_neck_quesitons(self, lambda_function: LambdaFunction):
+    def _lambda_bottle_neck_quesitons(self, lambda_function: LambdaFunction) -> None:
+        """
+        TPS (if necessary) and duration questions are asked for lambda functions
+
+        Args:
+            lambda_function (LambdaFunction): [description]
+        """
         # If there is no entry point to the lambda function, get tps
         if lambda_function.tps == -1:
             user_input_tps = ask(
@@ -57,12 +73,27 @@ class BottleNecks:
 
         lambda_function.duration = user_input_duration
 
-    def ask_bottle_neck_questions(self, resource: LambdaFunction):
+    def ask_bottle_neck_questions(self, resource: LambdaFunction) -> None:
+        """Specific bottle neck questions are asked based on resource type
+
+        Args:
+            resource (LambdaFunction): [description]
+        """
         if resource.resource_type == AWS_LAMBDA_FUNCTION:
             self._lambda_bottle_neck_quesitons(resource)
 
 
 def ask(question: str, min_val: int = 1, max_val: float = float("inf")) -> int:
+    """Prompt the user for input based on provided range
+
+    Args:
+        question (str): The question to prompt the user with
+        min_val (int, optional): Minimum acceptable value. Defaults to 1.
+        max_val (float, optional): Maximum acceptable value. Defaults to float("inf").
+
+    Returns:
+        int: User selected value
+    """
     valid_user_input = False
     user_input = 0
     while not valid_user_input:

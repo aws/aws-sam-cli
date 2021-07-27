@@ -4,7 +4,6 @@ A center hub for checker logic
 import os
 import functools
 import logging
-
 from typing import Any
 
 from boto3.session import Session
@@ -38,12 +37,26 @@ class CheckContext:
     "print_results"
     """
 
-    def __init__(self, region, profile, template_path):
+    _region: str
+    _profile: str
+    _template_path: str
+
+    def __init__(self, region: str, profile: str, template_path: str):
+        """
+        Args:
+            region (str): Users region
+            profile (str): Users profile
+            template_path (str): [description]
+        """
         self._region = region
         self._profile = profile
         self._template_path = template_path
 
-    def run(self):
+    def run(self) -> None:
+        """
+        All main functions (bottle neck questions, pricing questions, calculations, print results)
+        will be called here
+        """
         self.transform_template()
 
         LOG.info("... analyzing application template")
@@ -101,6 +114,11 @@ class CheckContext:
 
 
 def parse_template() -> Graph:
+    """Parses the tenplate to retrieve resources
+
+    Returns:
+        Graph: Returns the generated graph object
+    """
     all_lambda_functions = []
 
     # template path
