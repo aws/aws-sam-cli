@@ -995,7 +995,7 @@
       "tags": {
         "error": {
           "type": "string",
-          "default": "SomeError"
+          "default": "ErrorName"
         },
         "cause": {
           "type": "string",
