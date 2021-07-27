@@ -535,9 +535,3 @@ class CdkBuildIntegNodejsBase(CDKBuildTestBase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-
-    @staticmethod
-    def install_dependencies(package_path):
-        if os.path.exists(package_path):
-            command = ['npm', "install"]
-            run_command(command_list=command, cwd=package_path)

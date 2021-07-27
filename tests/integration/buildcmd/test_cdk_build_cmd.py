@@ -34,12 +34,13 @@ class TestBuildWithCDKPluginWithApiGateway(CdkBuildIntegNodejsBase):
         project_name = "cdk-example-rest-api-gateway"
         test_data_path = os.path.join(self.test_data_path, "CDK", project_name)
         copy_tree(test_data_path, self.working_dir)
-        self.install_dependencies(self.working_dir)
         self.verify_build_success(self.working_dir)
         self.verify_included_expected_project_manifest()
         body = f'{{"message":"Lambda was invoked successfully from APIGW."}}'
         expected = {"body": body, "statusCode": 200}
-        self.verify_invoke_built_function("CdkExampleRestApiGatewayStack/APIGWLambdaFunction", expected, self.working_dir)
+        self.verify_invoke_built_function(
+            "CdkExampleRestApiGatewayStack/APIGWLambdaFunction", expected, self.working_dir
+        )
 
 
 class TestBuildWithCDKPluginWithApiCorsLambda(CdkBuildIntegPythonBase):
