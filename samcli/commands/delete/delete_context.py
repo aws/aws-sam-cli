@@ -35,7 +35,7 @@ LOG = logging.getLogger(__name__)
 
 
 class DeleteContext:
-    # TODO: Separate this context into guided and non-guided just like deploy.
+    # TODO: Separate this context into 2 separate contexts guided and non-guided, just like deploy.
     def __init__(self, stack_name: str, region: str, profile: str, config_file: str, config_env: str, no_prompts: bool):
         self.stack_name = stack_name
         self.region = region

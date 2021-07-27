@@ -5,7 +5,6 @@ import time
 import uuid
 from pathlib import Path
 from unittest import skipIf
-import logging
 import boto3
 import docker
 from botocore.config import Config
@@ -26,7 +25,6 @@ SKIP_DELETE_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_
 CFN_SLEEP = 3
 TIMEOUT = 300
 CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
-LOG = logging.getLogger(__name__)
 
 
 @skipIf(SKIP_DELETE_TESTS, "Skip delete tests in CI/CD only")
@@ -82,7 +80,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             "aws-stepfunctions-statemachine.yaml",
         ]
     )
-    def test_delete_with_s3_prefix_present_zip(self, template_file):
+    def test_delete_no_prompts_with_s3_prefix_present_zip(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
@@ -118,14 +116,14 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             "aws-serverless-function-image.yaml",
         ]
     )
-    def test_delete_with_s3_prefix_present_image(self, template_file):
+    def test_delete_no_prompts_with_s3_prefix_present_image(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
 
         config_file_name = stack_name + ".toml"
         deploy_command_list = self.get_deploy_command_list(
-            template_file=template_path, guided=True, config_file=config_file_name
+            template_file=template_path, guided=True, config_file=config_file_name, image_repository=self.ecr_repo_name
         )
 
         deploy_process_execute = run_command_with_input(
@@ -154,7 +152,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             "aws-serverless-function.yaml",
         ]
     )
-    def test_delete_guided_prompts(self, template_file):
+    def test_delete_guided_config_file_present(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
@@ -171,7 +169,6 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
         config_file_path = self.test_data_path.joinpath(config_file_name)
         delete_command_list = self.get_delete_command_list(stack_name=stack_name, config_file=config_file_path)
 
-        LOG.info(delete_command_list)
         delete_process_execute = run_command_with_input(delete_command_list, "y\nn\ny\n".encode())
 
         self.assertEqual(delete_process_execute.process.returncode, 0)
@@ -216,7 +213,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             "aws-serverless-function.yaml",
         ]
     )
-    def test_delete_no_s3_prefix_zip(self, template_file):
+    def test_delete_no_prompts_no_s3_prefix_zip(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
@@ -254,7 +251,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             "aws-serverless-function-image.yaml",
         ]
     )
-    def test_delete_no_s3_prefix_image(self, template_file):
+    def test_delete_no_prompts_no_s3_prefix_image(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
@@ -333,9 +330,9 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
         AWSTemplateFormatVersion: '2010-09-09'
         Description: Stack for testing termination protection enabled stacks.
         Resources:
-          MyRepository: 
+          MyRepository:
             Type: AWS::ECR::Repository
-            Properties: 
+            Properties:
                 RepositoryName: "test-termination-protection-repository"
         """
 
@@ -365,6 +362,134 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             resp = self.cf_client.describe_stacks(StackName=stack_name)
         except ClientError as ex:
             self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
+
+    def test_no_prompts_no_stack_name(self):
+
+        delete_command_list = self.get_delete_command_list(no_prompts=True)
+        delete_process_execute = run_command(delete_command_list)
+        self.assertEqual(delete_process_execute.process.returncode, 2)
+
+    def test_no_prompts_no_region(self):
+        stack_name = self._method_to_stack_name(self.id())
+
+        delete_command_list = self.get_delete_command_list(stack_name=stack_name, no_prompts=True)
+        delete_process_execute = run_command(delete_command_list)
+        self.assertEqual(delete_process_execute.process.returncode, 2)
+
+    @parameterized.expand(
+        [
+            "aws-serverless-function.yaml",
+        ]
+    )
+    def test_delete_guided_no_stack_name_no_region(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_bucket=self.bucket_name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+            region="us-east-1",
+        )
+        deploy_process_execute = run_command(deploy_command_list)
+
+        delete_command_list = self.get_delete_command_list()
+        delete_process_execute = run_command_with_input(delete_command_list, "{}\ny\ny\n".format(stack_name).encode())
+
+        self.assertEqual(delete_process_execute.process.returncode, 0)
+
+        try:
+            resp = self.cf_client.describe_stacks(StackName=stack_name)
+        except ClientError as ex:
+            self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
+
+    @parameterized.expand(
+        [
+            "aws-ecr-repository.yaml",
+        ]
+    )
+    def test_delete_guided_ecr_repository_present(self, template_file):
+        template_path = self.delete_test_data_path.joinpath(template_file)
+        stack_name = self._method_to_stack_name(self.id())
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_bucket=self.bucket_name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+            region="us-east-1",
+        )
+        deploy_process_execute = run_command(deploy_command_list)
+
+        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region="us-east-1")
+        delete_process_execute = run_command_with_input(delete_command_list, "y\ny\ny\n".encode())
+
+        self.assertEqual(delete_process_execute.process.returncode, 0)
+
+        try:
+            resp = self.cf_client.describe_stacks(StackName=stack_name)
+        except ClientError as ex:
+            self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
+
+    @parameterized.expand(
+        [
+            "aws-serverless-function-image.yaml",
+        ]
+    )
+    def test_delete_guided_no_s3_prefix_image(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+
+        # Try to deploy to another region.
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            image_repository=self.ecr_repo_name,
+            s3_bucket=self.bucket_name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+            region="us-east-1",
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+
+        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region="us-east-1")
+
+        delete_process_execute = run_command_with_input(delete_command_list, "y\n".encode())
+
+        self.assertEqual(delete_process_execute.process.returncode, 0)
+
+        try:
+            resp = self.cf_client.describe_stacks(StackName=stack_name)
+        except ClientError as ex:
+            self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
+
+    # TODO: Add 2 more tests after Auto ECR is merged to develop
+    # 1. Create a stack using guided deploy of type image and delete
+    # 2. Delete the ECR Companion Stack as input stack.
 
     def _method_to_stack_name(self, method_name):
         """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
