@@ -19,10 +19,7 @@ class CdkPythonEnv:
 
     def __init__(self, base_dir: str, use_venv: bool = False):
         self._base_dir = base_dir
-        self._venv_path = os.path.join(
-            self._base_dir,
-            "venv{}".format(str(uuid.uuid4()).replace("-", "")[:5])
-        )
+        self._venv_path = os.path.join(self._base_dir, "venv{}".format(str(uuid.uuid4()).replace("-", "")[:5]))
         self._use_venv = use_venv
         if self._use_venv:
             self._create_virtual_env()
