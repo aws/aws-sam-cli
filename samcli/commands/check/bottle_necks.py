@@ -40,7 +40,7 @@ class BottleNecks:
 
             entry_point_question += "\nWhere should the simulation start?"
 
-            user_input = ask(entry_point_question, 1, item_number + 1)
+            user_input = _ask(entry_point_question, 1, item_number + 1)
 
             current_entry_point = entry_points.pop(user_input - 1)
 
@@ -73,8 +73,7 @@ class BottleNecks:
 
         lambda_function.duration = user_input_duration
 
-
-    def ask_bottle_neck_questions(self, resource: LambdaFunction) -> None:
+    def _ask_bottle_neck_questions(self, resource: LambdaFunction) -> None:
         """Specific bottle neck questions are asked based on resource type
 
         Args:
@@ -84,8 +83,7 @@ class BottleNecks:
             self._lambda_bottle_neck_quesitons(resource)
 
 
-
-def ask(question: str, min_val: int = 1, max_val: float = float("inf")) -> int:
+def _ask(question: str, min_val: int = 1, max_val: float = float("inf")) -> int:
     """Prompt the user for input based on provided range
 
     Args:

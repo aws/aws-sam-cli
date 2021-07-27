@@ -27,7 +27,6 @@ from samcli.lib.replace_uri.replace_uri import replace_local_codeuri
 from samcli.lib.samlib.wrapper import SamTranslatorWrapper
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
-from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 from ..exceptions import InvalidSamDocumentException
 
 
@@ -57,17 +56,12 @@ class CheckContext:
         self._profile = profile
         self._template_path = template_path
 
-
     def run(self) -> None:
         """
         All main functions (bottle neck questions, pricing questions, calculations, print results)
         will be called here
         """
-        self.transform_template()
-
-    def run(self):
         self._transform_template()
-
 
         LOG.info("... analyzing application template")
 
@@ -129,15 +123,12 @@ class CheckContext:
         return sam_template
 
 
-
-def parse_template() -> Graph:
-    """Parses the tenplate to retrieve resources
+def _parse_template() -> Graph:
+    """Parses the template to retrieve resources
 
     Returns:
         Graph: Returns the generated graph object
-
-def _parse_template() -> Graph:
-
+    """
     all_lambda_functions = []
 
     # template path
