@@ -302,6 +302,8 @@ def do_cli(
         )
         guided_context.run()
     else:
+        # TODO Refactor resolve-s3 and resolve-image-repos into one place
+        # after we figure out how to enable resolve-images-repos in package
         if resolve_s3:
             if bool(s3_bucket):
                 raise DeployResolveS3AndS3SetError()
