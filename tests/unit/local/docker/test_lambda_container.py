@@ -21,6 +21,7 @@ RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT = [
     Runtime.python38.value,
     Runtime.python36.value,
     Runtime.python27.value,
+    Runtime.python39.value,
 ]
 
 RUNTIMES_WITH_DEBUG_ENV_VARS_ONLY = [
