@@ -7,6 +7,10 @@ from typing import List
 class Graph:
     entry_points: List
     resources_to_analyze: List
+    green_warnings: List
+    yellow_warnings: List
+    red_warnings: List
+    red_burst_warnings: List
 
     def __init__(self):
         self.entry_points: List = []

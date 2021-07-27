@@ -45,26 +45,31 @@ class Calculations:
             )
             self._graph.green_warnings.append(warning)
 
-        elif capacity_used > 70 and capacity_used < 90:
+        elif 70 < capacity_used < 90:
             warning.message = (
-                "For the lambda function [%s], the %ims duration and %iTPS arrival rate is using %i%% of the allowed concurrency on AWS Lambda. A limit increase should be considered:\nhttps://console.aws.amazon.com/servicequotas"
-                % (resource_name, duration, tps, round(capacity_used))
-            )
+                "For the lambda function [%s], the %ims duration and %iTPS arrival rate is using %i%% of the allowed "
+                + "concurrency on AWS Lambda. A limit increase should be considered:"
+                + "\nhttps://console.aws.amazon.com/servicequotas"
+            ) % (resource_name, duration, tps, round(capacity_used))
             self._graph.yellow_warnings.append(warning)
 
-        elif capacity_used >= 90 and capacity_used <= 100:
+        elif 90 <= capacity_used <= 100:
             warning.message = (
-                "For the lambda function [%s], the %ims duration and %iTPS arrival rate is using %i%% of the allowed concurrency on AWS Lambda. It is very close to the limits of the lambda function. It is strongly recommended that you get a limit increase before deploying your application:\nhttps://console.aws.amazon.com/servicequotas"
-                % (resource_name, duration, tps, round(capacity_used))
-            )
+                "For the lambda function [%s], the %ims duration and %iTPS arrival rate is using %i%% of the allowed "
+                + "concurrency on AWS Lambda. It is very close to the limits of the lambda function. It is strongly "
+                + "recommended that you get a limit increase before deploying your application:"
+                + "\nhttps://console.aws.amazon.com/servicequotas"
+            ) % (resource_name, duration, tps, round(capacity_used))
             self._graph.red_warnings.append(warning)
 
         else:  # capacity_used > 100
             burst_capacity_used = _check_limit(tps, duration, burst_concurrency)
             warning.message = (
-                "For the lambda function [%s], the %ims duration and %iTPS arrival rate is using %i%% of the allowed concurrency on AWS Lambda. It exceeds the limits of the lambda function. It will use %i%% of the available burst concurrency. It is strongly recommended that you get a limit increase before deploying your application:\nhttps://console.aws.amazon.com/servicequotas"
-                % (resource_name, duration, tps, round(capacity_used), round(burst_capacity_used))
-            )
+                "For the lambda function [%s], the %ims duration and %iTPS arrival rate is using %i%% of the allowed "
+                + "concurrency on AWS Lambda. It exceeds the limits of the lambda function. It will use %i%% of the "
+                + "available burst concurrency. It is strongly recommended that you get a limit increase before "
+                + "deploying your application:\nhttps://console.aws.amazon.com/servicequotas"
+            ) % (resource_name, duration, tps, round(capacity_used), round(burst_capacity_used))
             self._graph.red_burst_warnings.append(warning)
 
     def run_bottle_neck_calculations(self):

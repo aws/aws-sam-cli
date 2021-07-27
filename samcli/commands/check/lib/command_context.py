@@ -45,7 +45,6 @@ class CheckContext:
     _profile: str
     _template_path: str
 
-
     def __init__(self, region: str, profile: str, template_path: str):
         """
         Args:
@@ -71,7 +70,6 @@ class CheckContext:
 
         bottle_necks = BottleNecks(graph)
         bottle_necks.ask_entry_point_question()
-
 
         calculations = Calculations(graph)
         calculations.run_bottle_neck_calculations()
@@ -124,7 +122,6 @@ class CheckContext:
             sam_template = yaml_parse(sam_template.read())
 
         return sam_template
-
 
 
 def _parse_template() -> Graph:

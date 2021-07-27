@@ -16,7 +16,6 @@ class TestBottleNeck(TestCase):
         self.assertEqual(result, click_patch.prompt.return_value)
         click_patch.prompt.assert_called_with(text=question, type=int)
 
-
     @patch("samcli.commands.check.bottle_necks._ask")
     @patch("samcli.commands.check.bottle_necks.click")
     def test_ask_entry_point_question(self, click_patch, patch_ask):
