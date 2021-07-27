@@ -37,10 +37,9 @@ class BottleNecks:
             for item_number, item in enumerate(entry_points):
                 item_name = item.resource_name
                 entry_point_question += "\n[%i] %s" % (item_number + 1, item_name)
-                item_number += 1
 
             entry_point_question += "\nWhere should the simulation start?"
-            user_input = ask(entry_point_question, 1, item_number)
+            user_input = ask(entry_point_question, 1, item_number + 1)
 
             current_entry_point = entry_points.pop(user_input - 1)
 

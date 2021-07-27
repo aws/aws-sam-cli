@@ -2,11 +2,10 @@
 Super class for all resources
 """
 from typing import Any
-from samcli.lib.providers.provider import Function
 
 
 class TemplateResource:
-    _resource_object: Function
+    _resource_object: Any
     _resource_type: str
 
     def __init__(self, resource_object: Any, resource_type: str):
@@ -19,11 +18,11 @@ class TemplateResource:
         self._resource_type = resource_type
 
     @property
-    def resource_object(self) -> Function:
+    def resource_object(self) -> Any:
         return self._resource_object
 
     @property
-    def resource_name(self) -> str:
+    def resource_name(self) -> Any:
         return self._resource_object.name
 
     @property
