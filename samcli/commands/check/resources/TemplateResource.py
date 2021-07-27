@@ -1,6 +1,7 @@
 """
 Super class for all resources
 """
+from typing import Any
 from samcli.lib.providers.provider import Function
 
 
@@ -8,7 +9,7 @@ class TemplateResource:
     _resource_object: Function
     _resource_type: str
 
-    def __init__(self, resource_object: Function, resource_type: str):
+    def __init__(self, resource_object: Any, resource_type: str):
         """
         Args:
             resource_object (Function): The resource object form the template file
