@@ -1,21 +1,32 @@
 """
 Super class for all resources
 """
-from samcli.lib.providers.provider import Function
+import abc
+
+from typing import Any
 
 
 class TemplateResource:
-    def __init__(self, resource_object: Function, resource_type: str):
+    _resource_object: Any
+    _resource_type: str
+
+    def __init__(self, resource_object: Any, resource_type: str):
+        """
+        Args:
+            resource_object (Function): The resource object form the template file
+            resource_type (str): The resource type
+        """
         self._resource_object = resource_object
         self._resource_type = resource_type
 
     @property
-    def resource_object(self) -> Function:
+    def resource_object(self) -> Any:
         return self._resource_object
 
     @property
-    def resource_name(self) -> str:
-        return self._resource_object.name
+    @abc.abstractmethod
+    def resource_name(self) -> Any:
+        raise NotImplementedError()
 
     @property
     def resource_type(self) -> str:

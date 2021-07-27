@@ -4,7 +4,6 @@ A center hub for checker logic
 import os
 import functools
 import logging
-
 from typing import Any
 
 from boto3.session import Session
@@ -15,11 +14,12 @@ from samtranslator.parser import parser
 
 from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
 from samcli.commands.check.bottle_necks import BottleNecks
-from samcli.commands.check.graph_context import GraphContext
 from samcli.commands.check.resources.LambdaFunction import LambdaFunction
 from samcli.commands.check.resources.Graph import Graph
+from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 from samcli.commands.check.calculations import Calculations
 from samcli.commands.check.print_results import PrintResults
+
 
 from samcli.yamlhelper import yaml_parse
 
@@ -42,13 +42,32 @@ class CheckContext:
     "print_results"
     """
 
-    def __init__(self, region, profile, template_path):
+    _region: str
+    _profile: str
+    _template_path: str
+
+    def __init__(self, region: str, profile: str, template_path: str):
+        """
+        Args:
+            region (str): Users region
+            profile (str): Users profile
+            template_path (str): [description]
+        """
         self._region = region
         self._profile = profile
         self._template_path = template_path
 
+
+    def run(self) -> None:
+        """
+        All main functions (bottle neck questions, pricing questions, calculations, print results)
+        will be called here
+        """
+        self.transform_template()
+
     def run(self):
         self._transform_template()
+
 
         LOG.info("... analyzing application template")
 
@@ -110,7 +129,15 @@ class CheckContext:
         return sam_template
 
 
+
+def parse_template() -> Graph:
+    """Parses the tenplate to retrieve resources
+
+    Returns:
+        Graph: Returns the generated graph object
+
 def _parse_template() -> Graph:
+
     all_lambda_functions = []
 
     # template path
@@ -126,6 +153,7 @@ def _parse_template() -> Graph:
         all_lambda_functions.append(new_lambda_function)
 
     # After all resources have been parsed from template, pass them into the graph
-    graph_context = GraphContext(all_lambda_functions)
+    graph = Graph()
+    graph.generate(all_lambda_functions)
 
-    return graph_context.generate()
+    return graph

@@ -9,10 +9,9 @@ class TestTemplateResource(TestCase):
         object_mock = Mock()
         type_mock = Mock()
 
-        object_mock.name.return_value = Mock()
-
         resource = TemplateResource(object_mock, type_mock)
 
         self.assertEqual(resource.resource_object, object_mock)
         self.assertEqual(resource.resource_type, type_mock)
-        self.assertEqual(resource.resource_name, object_mock.name)
+        with self.assertRaises(NotImplementedError):
+            resource.resource_name
