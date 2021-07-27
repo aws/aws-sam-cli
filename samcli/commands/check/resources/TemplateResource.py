@@ -1,6 +1,8 @@
 """
 Super class for all resources
 """
+import abc
+
 from typing import Any
 
 
@@ -22,8 +24,9 @@ class TemplateResource:
         return self._resource_object
 
     @property
+    @abc.abstractmethod
     def resource_name(self) -> Any:
-        return self._resource_object.name
+        raise NotImplementedError()
 
     @property
     def resource_type(self) -> str:

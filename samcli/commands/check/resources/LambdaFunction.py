@@ -2,7 +2,7 @@
 Class object for Lambda Functions. Contains object from template, as well as all data for lambda functions,
 excluding pricing info
 """
-from typing import List
+from typing import List, Any
 from samcli.lib.providers.provider import Function
 from samcli.commands.check.resources.TemplateResource import TemplateResource
 
@@ -32,3 +32,7 @@ class LambdaFunction(TemplateResource):
         self.average_duration = -1
         self.allocated_memory = -1
         self.allocated_memory_unit = ""
+
+    @property
+    def resource_name(self) -> Any:
+        return self._resource_object.name
