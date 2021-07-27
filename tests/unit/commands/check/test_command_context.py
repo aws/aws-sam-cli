@@ -7,13 +7,15 @@ from unittest.mock import Mock, patch
 from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
 from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
-from samcli.commands.check.lib.command_context import CheckContext, parse_template
+from samcli.commands.check.lib.command_context import CheckContext, _parse_template
 
 
 class TestCommandContext(TestCase):
-    @patch("samcli.commands.check.lib.command_context.parse_template")
+    @patch("samcli.commands.check.lib.command_context.PrintResults")
+    @patch("samcli.commands.check.lib.command_context.Calculations")
+    @patch("samcli.commands.check.lib.command_context._parse_template")
     @patch("samcli.commands.check.lib.command_context.BottleNecks")
-    def test_run(self, patch_bottle_neck, patch_parse_template):
+    def test_run(self, patch_bottle_neck, patch_parse_template, patch_calculations, patch_print):
         region = Mock()
         profile = Mock()
         path = Mock()
@@ -21,16 +23,19 @@ class TestCommandContext(TestCase):
         bottle_neck_mock = Mock()
         context = CheckContext(region, profile, path)
 
-        context.transform_template = Mock()
+        context._transform_template = Mock()
 
         patch_parse_template.return_value = graph_mock
 
         patch_bottle_neck.return_value = bottle_neck_mock
         bottle_neck_mock.ask_entry_point_question = Mock()
 
+        patch_calculations.run_bottle_neck_calculations = Mock()
+        patch_print.print_bottle_neck_results = Mock()
+
         context.run()
 
-        context.transform_template.assert_called_once()
+        context._transform_template.assert_called_once()
         patch_parse_template.assert_called_once()
         patch_bottle_neck.assert_called_once_with(graph_mock)
         bottle_neck_mock.ask_entry_point_question.assert_called_once()
@@ -47,7 +52,7 @@ class TestCommandContext(TestCase):
         context = CheckContext(region, profile, template_path)
 
         with self.assertRaises(SamTemplateNotFoundException):
-            context.read_sam_file()
+            context._read_sam_file()
 
     @patch("samcli.commands.check.lib.command_context.SamTranslatorWrapper")
     @patch("samcli.commands.check.lib.command_context.replace_local_codeuri")
@@ -71,8 +76,8 @@ class TestCommandContext(TestCase):
         patch_wrapper.managed_policy_map.return_value = given_policies
 
         original_template = Mock()
-        context.read_sam_file = Mock()
-        context.read_sam_file.return_value = original_template
+        context._read_sam_file = Mock()
+        context._read_sam_file.return_value = original_template
 
         updated_template = Mock()
         patch_replace.return_value = updated_template
@@ -83,7 +88,7 @@ class TestCommandContext(TestCase):
         converted_template = Mock()
         sam_translator.translate.return_value = converted_template
 
-        result = context.transform_template()
+        result = context._transform_template()
 
         self.assertEqual(result, converted_template)
         patch_replace.assert_called_with(original_template)
@@ -118,7 +123,7 @@ class TestCommandContext(TestCase):
 
         patch_function_provider.return_value = function_provider_mock
 
-        result = parse_template()
+        result = _parse_template()
 
         patch_stack_provider.get_stacks.assert_called_once_with(path_mock)
         patch_function_provider.assert_called_once_with(local_stacks_mock)

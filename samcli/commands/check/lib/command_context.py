@@ -17,6 +17,9 @@ from samcli.commands.check.bottle_necks import BottleNecks
 from samcli.commands.check.resources.LambdaFunction import LambdaFunction
 from samcli.commands.check.resources.Graph import Graph
 from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
+from samcli.commands.check.calculations import Calculations
+from samcli.commands.check.print_results import PrintResults
+
 
 from samcli.yamlhelper import yaml_parse
 
@@ -24,7 +27,9 @@ from samcli.lib.replace_uri.replace_uri import replace_local_codeuri
 from samcli.lib.samlib.wrapper import SamTranslatorWrapper
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 from ..exceptions import InvalidSamDocumentException
+
 
 LOG = logging.getLogger(__name__)
 
@@ -52,6 +57,7 @@ class CheckContext:
         self._profile = profile
         self._template_path = template_path
 
+
     def run(self) -> None:
         """
         All main functions (bottle neck questions, pricing questions, calculations, print results)
@@ -59,21 +65,31 @@ class CheckContext:
         """
         self.transform_template()
 
+    def run(self):
+        self._transform_template()
+
+
         LOG.info("... analyzing application template")
 
-        graph = parse_template()
+        graph = _parse_template()
 
         bottle_necks = BottleNecks(graph)
         bottle_necks.ask_entry_point_question()
 
-    def transform_template(self) -> Any:
+        calculations = Calculations(graph)
+        calculations.run_bottle_neck_calculations()
+
+        results = PrintResults(graph)
+        results.print_bottle_neck_results()
+
+    def _transform_template(self) -> Any:
         """
         Takes a sam template or a CFN json template and converts it into a CFN yaml template
         """
         wrapper = SamTranslatorWrapper({})
         managed_policy_map = wrapper.managed_policy_map()
 
-        original_template = self.read_sam_file()
+        original_template = self._read_sam_file()
 
         updated_template = replace_local_codeuri(original_template)
 
@@ -94,7 +110,7 @@ class CheckContext:
 
         return converted_template
 
-    def read_sam_file(self) -> Any:
+    def _read_sam_file(self) -> Any:
         """
         Reads the file (json and yaml supported) provided and returns the dictionary representation of the file.
         The file will be a sam application template file in SAM yaml, CFN json, or CFN yaml format
@@ -113,12 +129,15 @@ class CheckContext:
         return sam_template
 
 
+
 def parse_template() -> Graph:
     """Parses the tenplate to retrieve resources
 
     Returns:
         Graph: Returns the generated graph object
-    """
+
+def _parse_template() -> Graph:
+
     all_lambda_functions = []
 
     # template path
