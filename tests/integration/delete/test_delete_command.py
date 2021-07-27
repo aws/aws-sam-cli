@@ -55,7 +55,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
 
         stack_name = self._method_to_stack_name(self.id())
 
-        delete_command_list = self.get_delete_command_list(stack_name=stack_name, no_prompts=True)
+        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region="us-east-1", no_prompts=True)
 
         delete_process_execute = run_command(delete_command_list)
         self.assertEqual(delete_process_execute.process.returncode, 0)
@@ -98,7 +98,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
 
         config_file_path = self.test_data_path.joinpath(config_file_name)
         delete_command_list = self.get_delete_command_list(
-            stack_name=stack_name, config_file=config_file_path, no_prompts=True
+            stack_name=stack_name, config_file=config_file_path, region="us-east-1", no_prompts=True
         )
 
         delete_process_execute = run_command(delete_command_list)
@@ -134,7 +134,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
 
         config_file_path = self.test_data_path.joinpath(config_file_name)
         delete_command_list = self.get_delete_command_list(
-            stack_name=stack_name, config_file=config_file_path, no_prompts=True
+            stack_name=stack_name, config_file=config_file_path, region="us-east-1", no_prompts=True
         )
 
         delete_process_execute = run_command(delete_command_list)
@@ -321,6 +321,44 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
 
         delete_process_execute = run_command(delete_command_list)
 
+        self.assertEqual(delete_process_execute.process.returncode, 0)
+
+        try:
+            resp = self.cf_client.describe_stacks(StackName=stack_name)
+        except ClientError as ex:
+            self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
+
+    def test_delete_stack_termination_protection_enabled(self):
+        template_str = """
+        AWSTemplateFormatVersion: '2010-09-09'
+        Description: Stack for testing termination protection enabled stacks.
+        Resources:
+          MyRepository: 
+            Type: AWS::ECR::Repository
+            Properties: 
+                RepositoryName: "test-termination-protection-repository"
+        """
+
+        stack_name = self._method_to_stack_name(self.id())
+
+        self.cf_client.create_stack(StackName=stack_name, TemplateBody=template_str, EnableTerminationProtection=True)
+
+        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region="us-east-1", no_prompts=True)
+
+        delete_process_execute = run_command(delete_command_list)
+
+        self.assertEqual(delete_process_execute.process.returncode, 1)
+        self.assertIn(
+            bytes(
+                "TerminationProtection is enabled",
+                encoding="utf-8",
+            ),
+            delete_process_execute.stderr,
+        )
+
+        self.cf_client.update_termination_protection(StackName=stack_name, EnableTerminationProtection=False)
+
+        delete_process_execute = run_command(delete_command_list)
         self.assertEqual(delete_process_execute.process.returncode, 0)
 
         try:
