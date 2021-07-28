@@ -2,10 +2,14 @@
 Keeps XRay event definitions
 """
 import json
+import operator
 from typing import List
 
 from samcli.lib.observability.observability_info_puller import ObservabilityEvent
 from samcli.lib.utils.hash import str_checksum
+
+
+start_time_getter = operator.attrgetter("start_time")
 
 
 class XRayTraceEvent(ObservabilityEvent[dict]):
@@ -15,14 +19,15 @@ class XRayTraceEvent(ObservabilityEvent[dict]):
     """
 
     def __init__(self, event: dict):
+        super().__init__(event, 0)
         self.id = event.get("Id", "")
         self.duration = event.get("Duration", 0.0)
         self.message = json.dumps(event)
-
         self.segments: List[XRayTraceSegment] = []
-        self._construct_segments(event)
 
-        super().__init__(event, 0)
+        self._construct_segments(event)
+        if self.segments:
+            self.timestamp = self.segments[0].start_time
 
     def _construct_segments(self, event_dict):
         """
@@ -32,6 +37,7 @@ class XRayTraceEvent(ObservabilityEvent[dict]):
         for raw_segment in raw_segments:
             segment_document = raw_segment.get("Document", "{}")
             self.segments.append(XRayTraceSegment(json.loads(segment_document)))
+        self.segments.sort(key=start_time_getter)
 
     def get_latest_event_time(self):
         """
@@ -63,6 +69,7 @@ class XRayTraceSegment:
         sub_segments = document.get("subsegments", [])
         for sub_segment in sub_segments:
             self.sub_segments.append(XRayTraceSegment(sub_segment))
+        self.sub_segments.sort(key=start_time_getter)
 
     def get_duration(self):
         return self.end_time - self.start_time

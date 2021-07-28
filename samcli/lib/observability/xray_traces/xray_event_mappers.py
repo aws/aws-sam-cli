@@ -21,8 +21,10 @@ class XRayTraceConsoleMapper(ObservabilityEventMapper[XRayTraceEvent]):
 
     def map(self, event: XRayTraceEvent) -> XRayTraceEvent:
         formatted_segments = self.format_segments(event.segments)
+        iso_formatted_timestamp = timestamp_to_iso(event.timestamp)
         mapped_message = (
-            f"\nNew XRay Event with id ({event.id}) and duration ({event.duration:.3f}s)" f"{formatted_segments}"
+            f"\nXRay Event at ({iso_formatted_timestamp}) with id ({event.id}) and duration ({event.duration:.3f}s)"
+            f"{formatted_segments}"
         )
         event.message = mapped_message
 
@@ -147,9 +149,9 @@ class XRayServiceGraphFileMapper(ObservabilityEventMapper[XRayServiceGraphEvent]
         self.convert_event_datetime_to_iso(event, "EndTime")
 
     def convert_event_datetime_to_iso(self, event, datetime_key):
-        datetime = event.get(datetime_key, None)
-        if datetime:
-            event[datetime_key] = self.convert_local_datetime_to_iso(datetime)
+        event_datetime = event.get(datetime_key, None)
+        if event_datetime:
+            event[datetime_key] = self.convert_local_datetime_to_iso(event_datetime)
 
     @staticmethod
     def convert_local_datetime_to_iso(local_datetime):

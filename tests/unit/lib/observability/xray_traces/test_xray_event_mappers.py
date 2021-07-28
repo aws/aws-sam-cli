@@ -67,8 +67,9 @@ class TestXRayTraceConsoleMapper(AbstraceXRayTraceMapperTest):
 
         self.assertTrue(isinstance(mapped_event, XRayTraceEvent))
 
+        event_timestamp = timestamp_to_iso(self.trace_event.timestamp)
         self.assertTrue(
-            f"New XRay Event with id ({self.trace_event.id}) and duration ({self.trace_event.duration:.3f}s)"
+            f"XRay Event at ({event_timestamp}) with id ({self.trace_event.id}) and duration ({self.trace_event.duration:.3f}s)"
             in mapped_event.message
         )
 
@@ -131,7 +132,7 @@ class AbstractXRayServiceGraphMapperTest(TestCase):
         )
 
 
-class TestXRayTraceConsoleMapper(AbstractXRayServiceGraphMapperTest):
+class TestXRayServiceGraphConsoleMapper(AbstractXRayServiceGraphMapperTest):
     def test_console_mapper(self):
         console_mapper = XRayServiceGraphConsoleMapper()
         mapped_event = console_mapper.map(self.service_graph_event)

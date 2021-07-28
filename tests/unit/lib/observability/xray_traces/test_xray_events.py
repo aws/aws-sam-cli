@@ -26,17 +26,18 @@ class AbstractXRayEventTextTest(TestCase):
 
 class TestXRayTraceEvent(AbstractXRayEventTextTest):
     def setUp(self):
+        self.first_segment_date = time.time() - 1000
         self.segment_1 = {
             "Id": str(uuid.uuid4()),
-            "name": str(uuid.uuid4()),
+            "name": f"Second {str(uuid.uuid4())}",
             "start_time": time.time(),
             "end_time": time.time(),
             "http": {"response": {"status": 200}},
         }
         self.segment_2 = {
             "Id": str(uuid.uuid4()),
-            "name": str(uuid.uuid4()),
-            "start_time": time.time(),
+            "name": f"First {str(uuid.uuid4())}",
+            "start_time": self.first_segment_date,
             "end_time": LATEST_EVENT_TIME,
             "http": {"response": {"status": 200}},
         }
@@ -63,6 +64,17 @@ class TestXRayTraceEvent(AbstractXRayEventTextTest):
     def test_latest_event_time(self):
         xray_trace_event = XRayTraceEvent(self.event_dict)
         self.assertEqual(xray_trace_event.get_latest_event_time(), LATEST_EVENT_TIME)
+
+    def test_first_event_time(self):
+        xray_trace_event = XRayTraceEvent(self.event_dict)
+        self.assertEqual(xray_trace_event.timestamp, self.first_segment_date)
+
+    def test_segment_order(self):
+        xray_trace_event = XRayTraceEvent(self.event_dict)
+
+        self.assertEqual(len(xray_trace_event.segments), 2)
+        self.assertIn("First", xray_trace_event.segments[0].name)
+        self.assertIn("Second", xray_trace_event.segments[1].name)
 
 
 class TestXRayTraceSegment(AbstractXRayEventTextTest):
