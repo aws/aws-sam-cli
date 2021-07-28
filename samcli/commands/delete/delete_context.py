@@ -231,6 +231,8 @@ class DeleteContext:
             )
 
             retain_repos = self.ecr_repos_prompts(ecr_companion_stack_template)
+            # Delete the repos created by ECR companion stack if not retained
+            ecr_companion_stack_template.delete(retain_resources=retain_repos)
 
             click.echo(f"\t- Deleting ECR Companion Stack {self.companion_stack_name}")
             try:
@@ -240,13 +242,8 @@ class DeleteContext:
                 self.cf_utils.wait_for_delete(stack_name=self.companion_stack_name)
                 LOG.debug("Deleted ECR Companion Stack: %s", self.companion_stack_name)
 
-                # Delete the repos created by ECR companion stack if not retained
-                ecr_companion_stack_template.delete(retain_resources=retain_repos)
             except CfDeleteFailedStatusError:
                 LOG.debug("delete_stack resulted failed and so re-try with retain_resources")
-                # Delete the non retained repos created by ECR companion stack before deleting the stack
-                ecr_companion_stack_template.delete(retain_resources=retain_repos)
-
                 self.cf_utils.delete_stack(stack_name=self.companion_stack_name, retain_resources=retain_repos)
                 self.cf_utils.wait_for_delete(stack_name=self.companion_stack_name)
 
@@ -296,22 +293,8 @@ class DeleteContext:
             self.companion_stack_name = possible_companion_stack_name
             self.delete_ecr_companion_stack()
 
-        # Delete the primary input stack
-        try:
-            click.echo(f"\t- Deleting Cloudformation stack {self.stack_name}")
-            self.cf_utils.delete_stack(stack_name=self.stack_name)
-            self.cf_utils.wait_for_delete(self.stack_name)
-            LOG.debug("Deleted Cloudformation stack: %s", self.stack_name)
-
-            # Delete the artifacts and retain resources user selected not to delete
-            template.delete(retain_resources=retain_resources)
-        except CfDeleteFailedStatusError:
-            LOG.debug("delete_stack resulted failed and so re-try with retain_resources")
-            # Delete the non retained artifacts and resources before deleting stack
-            template.delete(retain_resources=retain_resources)
-
-            self.cf_utils.delete_stack(stack_name=self.stack_name, retain_resources=retain_resources)
-            self.cf_utils.wait_for_delete(self.stack_name)
+        # Delete the artifacts and retain resources user selected not to delete
+        template.delete(retain_resources=retain_resources)
 
         # Delete the CF template file in S3
         if self.delete_cf_template_file:
@@ -320,6 +303,18 @@ class DeleteContext:
         # Delete the folder of artifacts if s3_bucket and s3_prefix provided
         elif self.delete_artifacts_folder:
             self.s3_uploader.delete_prefix_artifacts()
+
+        # Delete the primary input stack
+        try:
+            click.echo(f"\t- Deleting Cloudformation stack {self.stack_name}")
+            self.cf_utils.delete_stack(stack_name=self.stack_name)
+            self.cf_utils.wait_for_delete(self.stack_name)
+            LOG.debug("Deleted Cloudformation stack: %s", self.stack_name)
+
+        except CfDeleteFailedStatusError:
+            LOG.debug("delete_stack resulted failed and so re-try with retain_resources")
+            self.cf_utils.delete_stack(stack_name=self.stack_name, retain_resources=retain_resources)
+            self.cf_utils.wait_for_delete(self.stack_name)
 
         # If s3_bucket information is not available, warn the user
         if not self.s3_bucket:
