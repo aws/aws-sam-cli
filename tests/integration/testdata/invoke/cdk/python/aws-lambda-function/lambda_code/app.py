@@ -33,5 +33,5 @@ def write_to_stderr(event, context):
 def echo_event(event, context):
     return event
 
-def env_var_echo_handler(event, context):
+def parameter_echo_handler(event, context):
     return dict(os.environ)

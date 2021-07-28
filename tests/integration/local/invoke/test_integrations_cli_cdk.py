@@ -183,13 +183,13 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
         self.assertEqual("{}", process_stdout.decode("utf-8"))
 
     @pytest.mark.flaky(reruns=3)
-    def test_invoke_with_env_using_parameters(self):
+    def test_invoke_with_parameters_overrides(self):
         test_data_path = self.test_data_path.joinpath("cdk", "python", "aws-lambda-function")
         copy_tree(test_data_path, self.working_dir)
         command_list = self.get_command_list(
             "AwsLambdaFunctionStack/echo-env-with-parameters",
             event_path=self.event_path,
-            parameter_overrides={"MyRuntimeVersion": "v0", "DefaultTimeout": "100"},
+            parameter_overrides={"MyRuntimeVersion": "v0", "TimeOut": "100"},
         )
         process = Popen(command_list, stdout=PIPE, cwd=self.working_dir)
         try:
@@ -197,10 +197,8 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
         except TimeoutExpired:
             process.kill()
             raise
-
         process_stdout = stdout.strip()
         environ = json.loads(process_stdout.decode("utf-8"))
-
-        self.assertEqual(environ["TimeOut"], "100")
+        self.assertIsNone(environ.get("TimeOut"))
         self.assertEqual(environ["MyRuntimeVersion"], "v0")
         self.assertEqual(environ["EmptyDefaultParameter"], "")

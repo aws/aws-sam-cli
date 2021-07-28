@@ -188,7 +188,4 @@ class CDKInvokeIntegPythonBase(CDKInvokeIntegBase):
         cls.event_utf8_path = str(cls.test_data_path.joinpath("cdk", "python", "event_utf8.json"))
         cls.env_var_path = str(cls.test_data_path.joinpath("cdk", "python", "vars.json"))
         cls.cdk_python_env = CdkPythonEnv(cls.scratch_dir)
-
-    def setUp(self):
-        super().setUp()
-        self.cdk_python_env.install_dependencies(str(self.test_data_path.joinpath("cdk", "python", "requirements.txt")))
+        cls.cdk_python_env.install_dependencies(str(cls.test_data_path.joinpath("cdk", "python", "requirements.txt")))

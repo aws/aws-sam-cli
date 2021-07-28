@@ -63,23 +63,31 @@ class AwsLambdaFunctionStack(cdk.Stack):
             handler="app.echo_event",
         )
 
+        my_runtime_version_parameter = core.CfnParameter(
+            scope=self,
+            id="MyRuntimeVersion",
+            type="String",
+            description="A custom parameter",
+            default="",
+        )
+
+        empty_default_parameter = core.CfnParameter(
+            scope=self,
+            id="EmptyDefaultParameter",
+            type="String",
+            description="A custom parameter",
+            default="",
+        )
+
         _lambda.Function(
             scope=self,
             id="echo-env-with-parameters",
             runtime=_lambda.Runtime.PYTHON_3_8,
             code=_lambda.Code.from_asset("./lambda_code"),
-            handler="app.env_var_echo_handler",
             environment={
-                         "TimeOut": str(DEFAULT_TIMEOUT),
-                         "MyRuntimeVersion": "",
-                         "EmptyDefaultParameter": ""}
-        )
-        
-        core.CfnParameter(
-            scope=self,
-            id="custom-parameter",
-            type="String",
-            description="A custom parameter",
-            default="Sample",
+                "MyRuntimeVersion" : my_runtime_version_parameter.value_as_string,
+                "EmptyDefaultParameter" : empty_default_parameter.value_as_string
+            },
+            handler="app.parameter_echo_handler"
         )
 
