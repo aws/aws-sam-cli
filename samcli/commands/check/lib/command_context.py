@@ -18,8 +18,8 @@ from samcli.commands.check.resources.LambdaFunction import LambdaFunction
 from samcli.commands.check.resources.Graph import Graph
 from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
-from samcli.commands.check.calculations import Calculation
-from samcli.commands.check.print_results import Results
+from samcli.commands.check.calculation import Calculation
+from samcli.commands.check.results import Results
 
 from samcli.yamlhelper import yaml_parse
 

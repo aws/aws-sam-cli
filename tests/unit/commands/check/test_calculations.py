@@ -1,13 +1,13 @@
 from unittest import TestCase
 from unittest.mock import MagicMock, Mock, patch
 
-from samcli.commands.check.calculations import Calculation
+from samcli.commands.check.calculation import Calculation
 from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
 
 class TestCalculations(TestCase):
-    @patch("samcli.commands.check.calculations._check_limit")
-    @patch("samcli.commands.check.calculations.CheckWarning")
+    @patch("samcli.commands.check.calculation._check_limit")
+    @patch("samcli.commands.check.calculation.CheckWarning")
     def test__generate_warning_message(self, patch_warning, patch_check_limit):
         """
         Other than capacity, the specific values (strings and ints) used in the parameter variables for
@@ -85,9 +85,9 @@ class TestCalculations(TestCase):
         graph_mock.red_burst_warnings.append.assert_called_once_with(warning_instance_mock)
         patch_check_limit.assert_called_once_with(tps, duration, burst_concurrency)
 
-    @patch("samcli.commands.check.calculations._check_limit")
-    @patch("samcli.commands.check.calculations.click")
-    @patch("samcli.commands.check.calculations.boto3")
+    @patch("samcli.commands.check.calculation._check_limit")
+    @patch("samcli.commands.check.calculation.click")
+    @patch("samcli.commands.check.calculation.boto3")
     def test_run_bottle_neck_calculations(self, patch_boto3, patch_click, patch_check_limit):
         import botocore
 
@@ -149,7 +149,7 @@ class TestCalculations(TestCase):
             calculations.run_bottle_neck_calculations()
 
     def test_check_limit(self):
-        from samcli.commands.check.calculations import _check_limit
+        from samcli.commands.check.calculation import _check_limit
 
         result1 = _check_limit(300, 200, 1000)
         result2 = _check_limit(300, 1500, 2000)
