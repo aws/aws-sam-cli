@@ -16,7 +16,7 @@ class AwsLambdaFunctionStack(cdk.Stack):
         _lambda.Function(
             scope=self,
             id="lambda-function",
-            runtime=_lambda.Runtime.PYTHON_3_8,
+            runtime=_lambda.Runtime.PYTHON_3_7,
             code=_lambda.Code.from_asset("./lambda_code"),
             handler="app.handler",
         )
