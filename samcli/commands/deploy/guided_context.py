@@ -6,10 +6,11 @@ import logging
 from typing import Dict, Any, List, Optional
 
 import click
-from botocore.session import get_session
 from click import confirm
 from click import prompt
 from click.types import FuncParamType
+
+from botocore.session import get_session
 
 from samcli.commands._utils.options import _space_separated_list_func_type
 from samcli.commands._utils.template import (
@@ -35,7 +36,7 @@ from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.packagetype import IMAGE
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
-from samcli.lib.bootstrap.companion_stack.companion_stack_manager_helper import CompanionStackManagerHelper
+from samcli.lib.bootstrap.companion_stack.companion_stack_manager import CompanionStackManager
 
 LOG = logging.getLogger(__name__)
 
@@ -332,30 +333,33 @@ class GuidedContext:
         """
         updated_repositories = image_repositories.copy() if image_repositories is not None else {}
         self.function_provider = SamFunctionProvider(stacks, ignore_code_extraction_warnings=True)
+        manager = CompanionStackManager(stack_name, region, s3_bucket, s3_prefix)
 
-        manager_helper = CompanionStackManagerHelper(
-            stack_name, region, s3_bucket, s3_prefix, self.template_file, updated_repositories
-        )
+        function_logical_ids = [
+            function.full_path for function in self.function_provider.get_all() if function.packagetype == IMAGE
+        ]
 
-        create_all_repos = self.prompt_create_all_repos(
-            manager_helper.function_logical_ids, manager_helper.missing_repo_functions
-        )
+        functions_without_repo = [
+            function_logical_id
+            for function_logical_id in function_logical_ids
+            if function_logical_id not in updated_repositories
+        ]
+
+        manager.set_functions(function_logical_ids, updated_repositories)
+
+        create_all_repos = self.prompt_create_all_repos(function_logical_ids, functions_without_repo)
         if create_all_repos:
-            updated_repositories.update(manager_helper.manager.get_repository_mapping())
+            updated_repositories.update(manager.get_repository_mapping())
         else:
-            updated_repositories = self.prompt_specify_repos(
-                manager_helper.missing_repo_functions, updated_repositories
-            )
-            manager_helper.update_specified_image_repos(updated_repositories)
+            updated_repositories = self.prompt_specify_repos(functions_without_repo, updated_repositories)
+            manager.set_functions(function_logical_ids, updated_repositories)
 
-        self.prompt_delete_unreferenced_repos(
-            [manager_helper.manager.get_repo_uri(repo) for repo in manager_helper.unreferenced_repos]
+        updated_repositories = self.prompt_delete_unreferenced_repos(
+            [manager.get_repo_uri(repo) for repo in manager.get_unreferenced_repos()], updated_repositories
         )
-
-        updated_repositories = manager_helper.remove_unreferenced_repos_from_mapping(updated_repositories)
         GuidedContext.verify_images_exist_locally(self.function_provider.functions)
 
-        manager_helper.manager.sync_repos()
+        manager.sync_repos()
         return updated_repositories
 
     def prompt_specify_repos(
@@ -385,9 +389,7 @@ class GuidedContext:
                 f"\t {self.start_bold}ECR repository for {function_logical_id}{self.end_bold}",
                 type=click.STRING,
             )
-            if function_logical_id not in image_repositories or not is_ecr_url(
-                str(image_repositories[function_logical_id])
-            ):
+            if not is_ecr_url(image_uri):
                 raise GuidedDeployFailedError(f"Invalid Image Repository ECR URI: {image_uri}")
 
             updated_repositories[function_logical_id] = image_uri
@@ -413,6 +415,7 @@ class GuidedContext:
         if not functions:
             return False
 
+        # Case for when all functions do not have mapped repo
         if functions == functions_without_repo:
             click.echo("\t Image repositories: Not found.")
             click.echo(
@@ -430,6 +433,7 @@ class GuidedContext:
             " #Different image repositories can be set in samconfig.toml"
         )
 
+        # Case for all functions do have mapped repo
         if not functions_without_repo:
             return False
 
@@ -447,7 +451,9 @@ class GuidedContext:
             else True
         )
 
-    def prompt_delete_unreferenced_repos(self, unreferenced_repo_uris: List[str]) -> None:
+    def prompt_delete_unreferenced_repos(
+        self, unreferenced_repo_uris: List[str], image_repositories: Dict[str, str]
+    ) -> Dict[str, str]:
         """
         Prompt user for deleting unreferenced companion stack image repos.
         Throws GuidedDeployFailedError if delete repos has been denied by the user.
@@ -458,9 +464,18 @@ class GuidedContext:
 
         unreferenced_repo_uris: List[str]
             List of unreferenced image repos that need to be deleted.
+        image_repositories: Dict[str, str]
+            Dictionary of image repo URIs with key as function logical ID and value as image repo URI
+
+        Returns
+        -------
+        Dict[str, str]
+            Copy of image_repositories that have unreferenced image repos removed
         """
         if not unreferenced_repo_uris:
             return
+
+        output_image_repositories = image_repositories.copy()
 
         click.echo("\t Checking for unreferenced ECR repositories to clean-up: " f"{len(unreferenced_repo_uris)} found")
         for repo_uri in unreferenced_repo_uris:
@@ -478,6 +493,12 @@ class GuidedContext:
                 "managed stack to retain them and resolve this unreferenced check."
             )
             raise GuidedDeployFailedError("Unreferenced Auto Created ECR Repos Must Be Deleted.")
+
+        for function_logical_id, repo_uri in image_repositories.items():
+            if repo_uri in unreferenced_repo_uris:
+                del output_image_repositories[function_logical_id]
+                break
+        return output_image_repositories
 
     @staticmethod
     def verify_images_exist_locally(functions: Dict[str, Function]) -> None:

@@ -50,22 +50,18 @@ class TestDeployCliCommand(TestCase):
         self.resolve_image_repos = False
         MOCK_SAM_CONFIG.reset_mock()
 
-        self.companion_stack_manager_helper_patch = patch(
-            "samcli.commands.deploy.guided_context.CompanionStackManagerHelper"
-        )
-        self.companion_stack_manager_helper_mock = self.companion_stack_manager_helper_patch.start()
-        self.companion_stack_manager_helper_mock.return_value.missing_repo_functions = ["HelloWorldFunction"]
-        self.companion_stack_manager_helper_mock.return_value.function_logical_ids = ["HelloWorldFunction"]
-        self.companion_stack_manager_helper_mock.return_value.unreferenced_repos = ["HelloWorldFunctionB"]
-        self.companion_stack_manager_helper_mock.return_value.get_repository_mapping.return_value = {
+        self.companion_stack_manager_patch = patch("samcli.commands.deploy.guided_context.CompanionStackManager")
+        self.companion_stack_manager_mock = self.companion_stack_manager_patch.start()
+        self.companion_stack_manager_mock.return_value.set_functions = None
+        self.companion_stack_manager_mock.return_value.get_repository_mapping.return_value = {
             "HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"
         }
-        self.companion_stack_manager_helper_mock.return_value.remove_unreferenced_repos_from_mapping.return_value = {
+        self.companion_stack_manager_mock.return_value.remove_unreferenced_repos_from_mapping.return_value = {
             "HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"
         }
 
     def tearDown(self):
-        self.companion_stack_manager_helper_patch.stop()
+        self.companion_stack_manager_patch.stop()
 
     @patch("samcli.commands.package.command.click")
     @patch("samcli.commands.package.package_context.PackageContext")

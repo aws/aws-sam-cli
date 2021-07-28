@@ -1,7 +1,10 @@
 """
     Companion stack manager
 """
-from typing import List, Dict
+from samcli.lib.utils.packagetype import IMAGE
+from samcli.lib.providers.sam_function_provider import SamFunctionProvider
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+from typing import List, Dict, Optional
 import typing
 
 import boto3
@@ -18,9 +21,6 @@ from samcli.lib.package.s3_uploader import S3Uploader
 if typing.TYPE_CHECKING:  # pragma: no cover
     from mypy_boto3_cloudformation.client import CloudFormationClient
     from mypy_boto3_s3.client import S3Client
-else:  # pragma: no cover
-    CloudFormationClient = object
-    S3Client = object
 
 
 class CompanionStackManager:
@@ -36,8 +36,8 @@ class CompanionStackManager:
     _delete_stack_waiter_config: Dict[str, int]
     _s3_bucket: str
     _s3_prefix: str
-    _cfn_client: CloudFormationClient
-    _s3_client: S3Client
+    _cfn_client: "CloudFormationClient"
+    _s3_client: "S3Client"
 
     def __init__(self, stack_name, region, s3_bucket, s3_prefix):
         self._companion_stack = CompanionStack(stack_name)
@@ -66,7 +66,9 @@ class CompanionStackManager:
                 "Please provide a region via the --region parameter or by the AWS_REGION environment variable."
             ) from ex
 
-    def set_functions(self, function_logical_ids: List[str]) -> None:
+    def set_functions(
+        self, function_logical_ids: List[str], image_repositories: Optional[Dict[str, str]] = None
+    ) -> None:
         """
         Sets functions that need to have ECR repos created
 
@@ -74,10 +76,18 @@ class CompanionStackManager:
         ----------
         function_logical_ids: List[str]
             Function logical IDs that need to have ECR repos created
+        image_repositories: Optional[Dict[str, str]]
+            Optional image repository mapping. Functions with non-auto-ecr URIs
+            will be ignored.
         """
         self._builder.clear_functions()
+        if image_repositories is None:
+            image_repositories = dict()
         for function_logical_id in function_logical_ids:
-            self._builder.add_function(function_logical_id)
+            if function_logical_id not in image_repositories or self.is_repo_uri(
+                image_repositories.get(function_logical_id), function_logical_id
+            ):
+                self._builder.add_function(function_logical_id)
 
     def update_companion_stack(self) -> None:
         """
@@ -263,3 +273,20 @@ class CompanionStackManager:
             Returns True if repo_uri is a companion stack repo.
         """
         return repo_uri == self.get_repo_uri(ECRRepo(self._companion_stack, function_logical_id))
+
+
+def sync_ecr_stack(
+    template_file: str, stack_name: str, region: str, s3_bucket: str, s3_prefix: str, image_repositories: Dict[str, str]
+) -> None:
+    image_repositories = image_repositories.copy() if image_repositories else {}
+    manager = CompanionStackManager(stack_name, region, s3_bucket, s3_prefix)
+
+    stacks = SamLocalStackProvider.get_stacks(template_file)[0]
+    function_provider = SamFunctionProvider(stacks, ignore_code_extraction_warnings=True)
+    function_logical_ids = [
+        function.full_path for function in function_provider.get_all() if function.packagetype == IMAGE
+    ]
+    manager.set_functions(function_logical_ids, image_repositories)
+    image_repositories.update(manager.get_repository_mapping())
+    manager.sync_repos()
+    return image_repositories

@@ -2,6 +2,10 @@
 CLI command for "deploy" command
 """
 import logging
+from samcli.lib.utils.packagetype import IMAGE
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+from samcli.lib.providers.sam_function_provider import SamFunctionProvider
+from samcli.lib.bootstrap.companion_stack.companion_stack_manager import sync_ecr_stack
 
 import click
 
@@ -26,7 +30,6 @@ from samcli.lib.cli_validation.image_repository_validation import image_reposito
 from samcli.lib.utils import osutils
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.utils.version_checker import check_newer_version
-from samcli.lib.bootstrap.companion_stack.companion_stack_manager_helper import CompanionStackManagerHelper
 
 SHORT_HELP = "Deploy an AWS SAM application."
 
@@ -302,8 +305,6 @@ def do_cli(
         )
         guided_context.run()
     else:
-        # TODO Refactor resolve-s3 and resolve-image-repos into one place
-        # after we figure out how to enable resolve-images-repos in package
         if resolve_s3:
             if bool(s3_bucket):
                 raise DeployResolveS3AndS3SetError()
@@ -312,14 +313,12 @@ def do_cli(
             click.echo("\t\tA different default S3 bucket can be set in samconfig.toml")
             click.echo("\t\tOr by specifying --s3-bucket explicitly.")
 
+        # TODO Refactor resolve-s3 and resolve-image-repos into one place
+        # after we figure out how to enable resolve-images-repos in package
         if resolve_image_repos:
-            if image_repositories is None:
-                image_repositories = {}
-            manager_helper = CompanionStackManagerHelper(
-                stack_name, region, s3_bucket, s3_prefix, template_file, image_repositories
+            image_repositories = sync_ecr_stack(
+                template_file, stack_name, region, s3_bucket, s3_prefix, image_repositories
             )
-            image_repositories.update(manager_helper.manager.get_repository_mapping())
-            manager_helper.manager.sync_repos()
 
     with osutils.tempfile_platform_independent() as output_template_file:
 
