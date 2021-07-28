@@ -22,7 +22,7 @@ class CompanionStack:
         self._escaped_parent_stack_name = re.sub(r"[^a-z0-9]", "", self._parent_stack_name.lower())
         self._parent_stack_hash = str_checksum(self._parent_stack_name)
         # There is max 128 characters limit on the length of stack name.
-        # Using MD5 to avoid collision after trucating
+        # Using MD5 to avoid collision after truncating
         # 104 + 1 + 8 + 15 = 128 max char
         self._stack_name = f"{self._parent_stack_name[:104]}-{self._parent_stack_hash[:8]}-CompanionStack"
 
@@ -36,7 +36,7 @@ class CompanionStack:
     @property
     def escaped_parent_stack_name(self) -> str:
         """
-        Parent stack name with only alpha numerica characters
+        Parent stack name with only alphanumeric characters
         """
         return self._escaped_parent_stack_name
 

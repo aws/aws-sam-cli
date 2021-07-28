@@ -65,7 +65,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             if stack_name != SAM_CLI_STACK_NAME:
                 region = stack.get("region")
                 cfn_client = (
-                    self.cf_client if not region else boto3.client("cloudformation", config=Config(region_name=region))
+                    self.cfn_client if not region else boto3.client("cloudformation", config=Config(region_name=region))
                 )
                 ecr_client = self.ecr_client if not region else boto3.client("ecr", config=Config(region_name=region))
                 self._delete_companion_stack(cfn_client, ecr_client, self._stack_name_to_companion_stack(stack_name))
