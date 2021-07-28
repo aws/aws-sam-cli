@@ -2,10 +2,6 @@
 CLI command for "deploy" command
 """
 import logging
-from samcli.lib.utils.packagetype import IMAGE
-from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
-from samcli.lib.providers.sam_function_provider import SamFunctionProvider
-from samcli.lib.bootstrap.companion_stack.companion_stack_manager import sync_ecr_stack
 
 import click
 
@@ -30,6 +26,7 @@ from samcli.lib.cli_validation.image_repository_validation import image_reposito
 from samcli.lib.utils import osutils
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.utils.version_checker import check_newer_version
+from samcli.lib.bootstrap.companion_stack.companion_stack_manager import sync_ecr_stack
 
 SHORT_HELP = "Deploy an AWS SAM application."
 

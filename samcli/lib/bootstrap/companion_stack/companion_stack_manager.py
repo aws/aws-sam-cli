@@ -1,9 +1,6 @@
 """
     Companion stack manager
 """
-from samcli.lib.utils.packagetype import IMAGE
-from samcli.lib.providers.sam_function_provider import SamFunctionProvider
-from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from typing import List, Dict, Optional
 import typing
 
@@ -16,6 +13,9 @@ from samcli.lib.bootstrap.companion_stack.companion_stack_builder import Compani
 from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack, ECRRepo
 from samcli.lib.package.artifact_exporter import mktempfile
 from samcli.lib.package.s3_uploader import S3Uploader
+from samcli.lib.utils.packagetype import IMAGE
+from samcli.lib.providers.sam_function_provider import SamFunctionProvider
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 
 # pylint: disable=E0401
 if typing.TYPE_CHECKING:  # pragma: no cover
@@ -254,7 +254,7 @@ class CompanionStackManager:
         """
         return repo.get_repo_uri(self._account_id, self._region_name)
 
-    def is_repo_uri(self, repo_uri: str, function_logical_id: str) -> bool:
+    def is_repo_uri(self, repo_uri: Optional[str], function_logical_id: str) -> bool:
         """
         Check whether repo URI is a companion stack repo
 
@@ -276,7 +276,30 @@ class CompanionStackManager:
 
 def sync_ecr_stack(
     template_file: str, stack_name: str, region: str, s3_bucket: str, s3_prefix: str, image_repositories: Dict[str, str]
-) -> None:
+) -> Dict[str, str]:
+    """Blocking call to sync local functions with ECR Companion Stack
+
+    Parameters
+    ----------
+    template_file : str
+        Template file path.
+    stack_name : str
+        Stack name
+    region : str
+        AWS region
+    s3_bucket : str
+        S3 bucket
+    s3_prefix : str
+        S3 prefix for the bucket
+    image_repositories : Dict[str, str]
+        Mapping between function logical ID and ECR URI
+
+    Returns
+    -------
+    Dict[str, str]
+        Updated mapping of image_repositories. Auto ECR URIs are added
+        for Functions without a repo specified.
+    """
     image_repositories = image_repositories.copy() if image_repositories else {}
     manager = CompanionStackManager(stack_name, region, s3_bucket, s3_prefix)
 

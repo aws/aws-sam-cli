@@ -472,10 +472,10 @@ class GuidedContext:
         Dict[str, str]
             Copy of image_repositories that have unreferenced image repos removed
         """
-        if not unreferenced_repo_uris:
-            return
-
         output_image_repositories = image_repositories.copy()
+
+        if not unreferenced_repo_uris:
+            return output_image_repositories
 
         click.echo("\t Checking for unreferenced ECR repositories to clean-up: " f"{len(unreferenced_repo_uris)} found")
         for repo_uri in unreferenced_repo_uris:
