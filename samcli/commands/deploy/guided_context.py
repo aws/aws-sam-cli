@@ -34,6 +34,7 @@ from samcli.lib.package.image_utils import tag_translation, NonLocalImageExcepti
 from samcli.lib.providers.provider import Function, Stack
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.colors import Colored
+from samcli.lib.utils.defaults import get_default_aws_region
 from samcli.lib.utils.packagetype import IMAGE
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.bootstrap.companion_stack.companion_stack_manager import CompanionStackManager
@@ -110,7 +111,7 @@ class GuidedContext:
             The keys of parameters to override, for each key, customers will be asked to provide a value
         """
         default_stack_name = self.stack_name or "sam-app"
-        default_region = self.region or get_session().get_config_variable("region") or "us-east-1"
+        default_region = self.region or get_default_aws_region()
         default_capabilities = self.capabilities[0] or ("CAPABILITY_IAM",)
         default_config_env = self.config_env or DEFAULT_ENV
         default_config_file = self.config_file or DEFAULT_CONFIG_FILE_NAME
