@@ -152,8 +152,7 @@ class CompanionStackManager:
             return []
         repos: List[ECRRepo] = list()
         stack = boto3.resource("cloudformation", config=self._boto_config).Stack(self._companion_stack.stack_name)
-        resources = stack.resource_summaries.all()
-        for resource in resources:
+        for resource in stack.resource_summaries.all():
             if resource.resource_type == "AWS::ECR::Repository":
                 repos.append(
                     ECRRepo(logical_id=resource.logical_resource_id, physical_id=resource.physical_resource_id)
