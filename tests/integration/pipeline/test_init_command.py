@@ -7,7 +7,9 @@ from unittest import skipIf
 
 from parameterized import parameterized
 
+from samcli.cli.main import global_cfg
 from samcli.commands.pipeline.bootstrap.cli import PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME
+from samcli.commands.pipeline.init.interactive_init_flow import APP_PIPELINE_TEMPLATES_REPO_LOCAL_NAME
 from tests.integration.pipeline.base import InitIntegBase, BootstrapIntegBase
 from tests.integration.pipeline.test_bootstrap_command import SKIP_BOOTSTRAP_TESTS, CREDENTIAL_PROFILE
 from tests.testing_utils import run_command_with_inputs
@@ -34,6 +36,8 @@ QUICK_START_JENKINS_INPUTS_WITHOUT_AUTO_FILL = [
     "prod-ecr",
     "us-west-2",
 ]
+SHARED_PATH: Path = global_cfg.config_dir
+EXPECTED_JENKINS_FILE_PATH = Path(SHARED_PATH, APP_PIPELINE_TEMPLATES_REPO_LOCAL_NAME, "tests", "testfile_jenkins", "expected")
 
 
 class TestInit(InitIntegBase):
@@ -61,8 +65,7 @@ class TestInit(InitIntegBase):
         self.assertEqual(init_process_execute.process.returncode, 0)
         self.assertTrue(Path("Jenkinsfile").exists())
 
-        expected_file_path = Path(__file__).parent.parent.joinpath(Path("testdata", "pipeline", "expected_jenkinsfile"))
-        with open(expected_file_path, "r") as expected, open(generated_jenkinsfile_path, "r") as output:
+        with open(EXPECTED_JENKINS_FILE_PATH, "r") as expected, open(generated_jenkinsfile_path, "r") as output:
             self.assertEqual(expected.read(), output.read())
 
     def test_failed_when_generated_file_already_exist_override(self):
@@ -78,8 +81,7 @@ class TestInit(InitIntegBase):
         self.assertEqual(init_process_execute.process.returncode, 0)
         self.assertTrue(Path("Jenkinsfile").exists())
 
-        expected_file_path = Path(__file__).parent.parent.joinpath(Path("testdata", "pipeline", "expected_jenkinsfile"))
-        with open(expected_file_path, "r") as expected, open(generated_jenkinsfile_path, "r") as output:
+        with open(EXPECTED_JENKINS_FILE_PATH, "r") as expected, open(generated_jenkinsfile_path, "r") as output:
             self.assertEqual(expected.read(), output.read())
 
     def test_failed_when_generated_file_already_exist_not_override(self):
@@ -94,8 +96,7 @@ class TestInit(InitIntegBase):
 
         self.assertEqual(init_process_execute.process.returncode, 0)
 
-        expected_file_path = Path(__file__).parent.parent.joinpath(Path("testdata", "pipeline", "expected_jenkinsfile"))
-        with open(expected_file_path, "r") as expected, open(
+        with open(EXPECTED_JENKINS_FILE_PATH, "r") as expected, open(
             os.path.join(".aws-sam", "pipeline", "generated-files", "Jenkinsfile"), "r"
         ) as output:
             self.assertEqual(expected.read(), output.read())
@@ -176,8 +177,7 @@ class TestInit(InitIntegBase):
         self.assertEqual(init_process_execute.process.returncode, 0)
         self.assertTrue(Path("Jenkinsfile").exists())
 
-        expected_file_path = Path(__file__).parent.parent.joinpath(Path("testdata", "pipeline", "expected_jenkinsfile"))
-        with open(expected_file_path, "r") as expected, open(generated_jenkinsfile_path, "r") as output:
+        with open(EXPECTED_JENKINS_FILE_PATH, "r") as expected, open(generated_jenkinsfile_path, "r") as output:
             self.assertEqual(expected.read(), output.read())
 
 
