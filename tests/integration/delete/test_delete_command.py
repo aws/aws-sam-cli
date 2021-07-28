@@ -487,9 +487,47 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
         except ClientError as ex:
             self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
 
-    # TODO: Add 2 more tests after Auto ECR is merged to develop
+    @parameterized.expand(
+        [
+            "aws-serverless-function-retain.yaml",
+        ]
+    )
+    def test_delete_guided_retain_s3_artifact(self, template_file):
+        template_path = self.delete_test_data_path.joinpath(template_file)
+        stack_name = self._method_to_stack_name(self.id())
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_bucket=self.bucket_name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+            region="us-east-1",
+        )
+        deploy_process_execute = run_command(deploy_command_list)
+
+        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region="us-east-1")
+        delete_process_execute = run_command_with_input(delete_command_list, "y\nn\nn\n".encode())
+
+        self.assertEqual(delete_process_execute.process.returncode, 0)
+
+        try:
+            resp = self.cf_client.describe_stacks(StackName=stack_name)
+        except ClientError as ex:
+            self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
+
+    # TODO: Add 3 more tests after Auto ECR is merged to develop
     # 1. Create a stack using guided deploy of type image and delete
     # 2. Delete the ECR Companion Stack as input stack.
+    # 3. Retain ECR Repository that contains atleast 1 image.
+    #    - Create a stack using guided deploy of type image
+    #    - Select no for deleting ECR repository and this will retain the non-empty repository
 
     def _method_to_stack_name(self, method_name):
         """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
