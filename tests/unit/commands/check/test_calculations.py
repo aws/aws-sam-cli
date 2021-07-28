@@ -89,8 +89,8 @@ class TestCalculations(TestCase):
     @patch("samcli.commands.check.calculations.click")
     @patch("samcli.commands.check.calculations.boto3")
     def test_run_bottle_neck_calculations(self, patch_boto3, patch_click, patch_check_limit):
-        # pass
-        # Cannot mock client. Need to find a way around it.
+        import botocore
+
         graph_mock = Mock()
         resource_mock = Mock()
 
@@ -135,6 +135,18 @@ class TestCalculations(TestCase):
             resource_mock.tps,
             burst_mock,
         )
+
+        # Test error catches
+        client_mock.get_aws_default_service_quota.side_effect = botocore.exceptions.ClientError(
+            error_response={"Error": {"Message": "Stack with id test does not exist"}},
+            operation_name="stack_status",
+        )
+        with self.assertRaises(botocore.exceptions.ClientError):
+            calculations.run_bottle_neck_calculations()
+
+        client_mock.get_aws_default_service_quota.side_effect = ValueError
+        with self.assertRaises(ValueError):
+            calculations.run_bottle_neck_calculations()
 
     def test_check_limit(self):
         from samcli.commands.check.calculations import _check_limit

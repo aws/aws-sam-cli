@@ -3,6 +3,9 @@ Bottle neck calculations are done here. Warning messages are also generated here
 """
 import click
 import boto3
+import botocore
+
+
 from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 from samcli.commands.check.resources.Graph import Graph
 from .resources.Warning import CheckWarning
@@ -45,7 +48,7 @@ class Calculations:
             )
             self._graph.green_warnings.append(warning)
 
-        elif 70 < capacity_used < 90:
+        elif capacity_used < 90:
             warning.message = (
                 "For the lambda function [%s], the %ims duration and %iTPS arrival rate is using %i%% of the allowed "
                 + "concurrency on AWS Lambda. A limit increase should be considered:"
@@ -53,7 +56,7 @@ class Calculations:
             ) % (resource_name, duration, tps, round(capacity_used))
             self._graph.yellow_warnings.append(warning)
 
-        elif 90 <= capacity_used <= 100:
+        elif capacity_used <= 100:
             warning.message = (
                 "For the lambda function [%s], the %ims duration and %iTPS arrival rate is using %i%% of the allowed "
                 + "concurrency on AWS Lambda. It is very close to the limits of the lambda function. It is strongly "
@@ -78,19 +81,26 @@ class Calculations:
         """
         click.echo("Running calculations...")
 
+        client = boto3.client("service-quotas")
+
         for resource in self._graph.resources_to_analyze:
             resource_type = resource.resource_type
             resource_name = resource.resource_name
 
             if resource_type == AWS_LAMBDA_FUNCTION:
 
-                client = boto3.client("service-quotas")
-                burst_concurrency = client.get_aws_default_service_quota(ServiceCode="lambda", QuotaCode="L-548AE339")[
-                    "Quota"
-                ]["Value"]
-                concurrent_executions = client.get_aws_default_service_quota(
-                    ServiceCode="lambda", QuotaCode="L-B99A9384"
-                )["Quota"]["Value"]
+                try:
+                    burst_concurrency = client.get_aws_default_service_quota(
+                        ServiceCode="lambda", QuotaCode="L-548AE339"
+                    )["Quota"]["Value"]
+                    concurrent_executions = client.get_aws_default_service_quota(
+                        ServiceCode="lambda", QuotaCode="L-B99A9384"
+                    )["Quota"]["Value"]
+                except botocore.exceptions.ClientError as error:
+                    raise error
+
+                except botocore.exceptions.ParamValidationError as error:
+                    raise ValueError("The parameters you provided are incorrect: {}".format(error)) from error
 
                 tps = resource.tps
                 duration = resource.duration
