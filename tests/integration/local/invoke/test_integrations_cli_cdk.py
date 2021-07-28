@@ -112,7 +112,9 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
     def test_invoke_with_env_vars(self):
         test_data_path = self.test_data_path.joinpath("cdk", "python", "aws-lambda-function")
         copy_tree(test_data_path, self.working_dir)
-        command_list = self.get_command_list("AwsLambdaFunctionStack/custom-env-vars-function", event_path=self.event_path)
+        command_list = self.get_command_list(
+            "AwsLambdaFunctionStack/custom-env-vars-function", event_path=self.event_path
+        )
 
         process = Popen(command_list, stdout=PIPE, cwd=self.working_dir)
         try:
@@ -127,7 +129,9 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
     def test_invoke_when_function_writes_stdout(self):
         test_data_path = self.test_data_path.joinpath("cdk", "python", "aws-lambda-function")
         copy_tree(test_data_path, self.working_dir)
-        command_list = self.get_command_list("AwsLambdaFunctionStack/write-to-stdout-function", event_path=self.event_path)
+        command_list = self.get_command_list(
+            "AwsLambdaFunctionStack/write-to-stdout-function", event_path=self.event_path
+        )
 
         process = Popen(command_list, stdout=PIPE, stderr=PIPE, cwd=self.working_dir)
         try:
@@ -146,7 +150,9 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
     def test_invoke_when_function_writes_stderr(self):
         test_data_path = self.test_data_path.joinpath("cdk", "python", "aws-lambda-function")
         copy_tree(test_data_path, self.working_dir)
-        command_list = self.get_command_list("AwsLambdaFunctionStack/write-to-stderr-function", event_path=self.event_path)
+        command_list = self.get_command_list(
+            "AwsLambdaFunctionStack/write-to-stderr-function", event_path=self.event_path
+        )
 
         process = Popen(command_list, stderr=PIPE, cwd=self.working_dir)
         try:

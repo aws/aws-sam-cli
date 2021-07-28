@@ -191,4 +191,4 @@ class CDKInvokeIntegPythonBase(CDKInvokeIntegBase):
 
     def setUp(self):
         super().setUp()
-        self.cdk_python_env.install_dependencies(str(cls.test_data_path.joinpath("cdk", "python", "requirements.txt")))
+        self.cdk_python_env.install_dependencies(str(self.test_data_path.joinpath("cdk", "python", "requirements.txt")))
