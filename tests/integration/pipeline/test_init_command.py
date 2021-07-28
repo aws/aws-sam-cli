@@ -37,7 +37,9 @@ QUICK_START_JENKINS_INPUTS_WITHOUT_AUTO_FILL = [
     "us-west-2",
 ]
 SHARED_PATH: Path = global_cfg.config_dir
-EXPECTED_JENKINS_FILE_PATH = Path(SHARED_PATH, APP_PIPELINE_TEMPLATES_REPO_LOCAL_NAME, "tests", "testfile_jenkins", "expected")
+EXPECTED_JENKINS_FILE_PATH = Path(
+    SHARED_PATH, APP_PIPELINE_TEMPLATES_REPO_LOCAL_NAME, "tests", "testfile_jenkins", "expected"
+)
 
 
 class TestInit(InitIntegBase):
