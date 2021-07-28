@@ -7,7 +7,7 @@ import click
 from samcli.commands.check.resources.Graph import Graph
 
 
-class PrintResults:
+class Results:
     _graph: Graph
 
     def __init__(self, graph: Graph):

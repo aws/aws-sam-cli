@@ -3,7 +3,7 @@ Tests for print_result.py
 """
 from unittest import TestCase
 from unittest.mock import Mock, patch
-from samcli.commands.check.print_results import PrintResults
+from samcli.commands.check.print_results import Results
 
 
 class TestPrintResults(TestCase):
@@ -18,7 +18,7 @@ class TestPrintResults(TestCase):
 
         patch_click.secho = Mock()
 
-        print_results = PrintResults(graph_mock)
+        print_results = Results(graph_mock)
 
         print_results.print_bottle_neck_results()
 

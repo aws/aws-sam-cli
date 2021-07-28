@@ -18,8 +18,8 @@ from samcli.commands.check.resources.LambdaFunction import LambdaFunction
 from samcli.commands.check.resources.Graph import Graph
 from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
-from samcli.commands.check.calculations import Calculations
-from samcli.commands.check.print_results import PrintResults
+from samcli.commands.check.calculations import Calculation
+from samcli.commands.check.print_results import Results
 
 from samcli.yamlhelper import yaml_parse
 
@@ -71,10 +71,10 @@ class CheckContext:
         bottle_necks = BottleNecks(graph)
         bottle_necks.ask_entry_point_question()
 
-        calculations = Calculations(graph)
+        calculations = Calculation(graph)
         calculations.run_bottle_neck_calculations()
 
-        results = PrintResults(graph)
+        results = Results(graph)
         results.print_bottle_neck_results()
 
     def _transform_template(self) -> Any:
