@@ -64,7 +64,7 @@ class DeleteContext:
                 )
             else:
                 raise click.BadOptionUsage(
-                    option_name="delete",
+                    option_name="--stack-name",
                     message="Missing option '--stack-name', provide a stack name that needs to be deleted.",
                 )
 
@@ -107,7 +107,7 @@ class DeleteContext:
                 self.region = region if region else "us-east-1"
             else:
                 raise click.BadOptionUsage(
-                    option_name="delete",
+                    option_name="--region",
                     message="Missing option '--region', region is required to run the non guided delete command.",
                 )
 
