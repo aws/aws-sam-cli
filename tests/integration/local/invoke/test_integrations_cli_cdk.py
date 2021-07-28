@@ -26,7 +26,7 @@ TIMEOUT = 300
 
 
 class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
-    @pytest.mark.flaky(reruns=0)
+    @pytest.mark.flaky(reruns=3)
     def test_invoke_returncode_is_zero(self):
         test_data_path = self.test_data_path.joinpath("cdk", "python", "aws-lambda-function")
         copy_tree(test_data_path, self.working_dir)
@@ -42,7 +42,7 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
 
         self.assertEqual(process.returncode, 0)
 
-    @pytest.mark.flaky(reruns=0)
+    @pytest.mark.flaky(reruns=3)
     def test_invoke_with_utf8_event(self):
         test_data_path = self.test_data_path.joinpath("cdk", "python", "aws-lambda-function")
         copy_tree(test_data_path, self.working_dir)
@@ -59,7 +59,7 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
 
         self.assertEqual(process.returncode, 0)
 
-    @pytest.mark.flaky(reruns=0)
+    @pytest.mark.flaky(reruns=3)
     def test_invoke_returns_execpted_results(self):
         test_data_path = self.test_data_path.joinpath("cdk", "python", "aws-lambda-function")
         copy_tree(test_data_path, self.working_dir)
@@ -77,7 +77,7 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
         process_stdout = stdout.strip()
         self.assertEqual(process_stdout.decode("utf-8"), '"Hello world"')
 
-    @pytest.mark.flaky(reruns=0)
+    @pytest.mark.flaky(reruns=3)
     def test_invoke_with_timeout_set(self):
         test_data_path = self.test_data_path.joinpath("cdk", "python", "aws-lambda-function")
         copy_tree(test_data_path, self.working_dir)
@@ -108,7 +108,7 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
             msg="The return statement in the LambdaFunction " "should never return leading to an empty string",
         )
 
-    @pytest.mark.flaky(reruns=0)
+    @pytest.mark.flaky(reruns=3)
     def test_invoke_with_env_vars(self):
         test_data_path = self.test_data_path.joinpath("cdk", "python", "aws-lambda-function")
         copy_tree(test_data_path, self.working_dir)
@@ -123,7 +123,7 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
         process_stdout = stdout.strip()
         self.assertEqual(process_stdout.decode("utf-8"), '"MyVar"')
 
-    @pytest.mark.flaky(reruns=0)
+    @pytest.mark.flaky(reruns=3)
     def test_invoke_when_function_writes_stdout(self):
         test_data_path = self.test_data_path.joinpath("cdk", "python", "aws-lambda-function")
         copy_tree(test_data_path, self.working_dir)
@@ -142,7 +142,7 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
         self.assertIn("Docker Lambda is writing to stdout", process_stderr.decode("utf-8"))
         self.assertIn("wrote to stdout", process_stdout.decode("utf-8"))
 
-    @pytest.mark.flaky(reruns=0)
+    @pytest.mark.flaky(reruns=3)
     def test_invoke_when_function_writes_stderr(self):
         test_data_path = self.test_data_path.joinpath("cdk", "python", "aws-lambda-function")
         copy_tree(test_data_path, self.working_dir)
@@ -159,7 +159,7 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
 
         self.assertIn("Docker Lambda is writing to stderr", process_stderr.decode("utf-8"))
 
-    @pytest.mark.flaky(reruns=0)
+    @pytest.mark.flaky(reruns=3)
     def test_invoke_returns_expected_result_when_no_event_given(self):
         test_data_path = self.test_data_path.joinpath("cdk", "python", "aws-lambda-function")
         copy_tree(test_data_path, self.working_dir)
@@ -176,7 +176,7 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
         self.assertEqual(process.returncode, 0)
         self.assertEqual("{}", process_stdout.decode("utf-8"))
 
-    @pytest.mark.flaky(reruns=0)
+    @pytest.mark.flaky(reruns=3)
     def test_invoke_with_env_using_parameters(self):
         test_data_path = self.test_data_path.joinpath("cdk", "python", "aws-lambda-function")
         copy_tree(test_data_path, self.working_dir)
