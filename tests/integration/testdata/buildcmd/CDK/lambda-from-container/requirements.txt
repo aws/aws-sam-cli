@@ -1,0 +1,14 @@
+##
+## jsii must be 1.14.1 or better on Python 3.7
+## https://github.com/aws/aws-cdk/issues/11255
+##
+jsii>=1.14.1
+cattrs>=1.1.1
+
+
+##
+## CDK Modules
+##
+aws-cdk.core>=1.76.0
+aws-cdk.aws_lambda>=1.76.0
+aws-cdk.aws_ecr>=1.76.0

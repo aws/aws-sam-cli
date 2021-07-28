@@ -56,7 +56,7 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
             "Runtime": runtime,
             "Handler": "main.handler",
             "DockerFile": "Dockerfile",
-            "Tag": f"{random.randint(1,100)}",
+            "Tag": f"{random.randint(1, 100)}",
         }
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
