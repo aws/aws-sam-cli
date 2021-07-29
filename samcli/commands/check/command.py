@@ -3,8 +3,6 @@ CLI command for "check" command
 """
 
 import logging
-import functools
-from samcli.commands.check.pricing_calculations import PricingCalculations
 
 import click
 

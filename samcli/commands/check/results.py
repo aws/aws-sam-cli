@@ -39,7 +39,7 @@ class Results:
         click.echo("\t Total: $%.2f/month" % self.lambda_pricing_results)
 
 
-def _print_warnings(self, warnings):
+def _print_warnings(warnings):
     """An individual warning message gets echoed here
     Args:
         warnings (List): List of one type of warnings

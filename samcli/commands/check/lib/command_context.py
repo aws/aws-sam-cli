@@ -19,7 +19,8 @@ from samcli.commands.check.resources.Graph import Graph
 from samcli.commands.check.resources.Pricing import Pricing
 from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
-from samcli.commands.check.calculation import Calculation
+from samcli.commands.check.pricing_calculations import PricingCalculations
+from samcli.commands.check.bottle_neck_calculations import BottleNeckCalculations
 from samcli.commands.check.results import Results
 
 from samcli.yamlhelper import yaml_parse
@@ -75,8 +76,11 @@ class CheckContext:
         pricing = Pricing(graph)
         pricing.ask_pricing_questions()
 
-        calculations = Calculation(graph)
-        calculations.run_bottle_neck_calculations()
+        bottle_neck_calculations = BottleNeckCalculations(graph)
+        bottle_neck_calculations.run_calculations()
+
+        pricing_calculations = PricingCalculations(graph)
+        pricing_calculations.run_calculations()
 
         results = Results(graph)
         results.print_bottle_neck_results()
