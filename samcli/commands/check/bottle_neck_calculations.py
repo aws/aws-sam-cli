@@ -46,7 +46,7 @@ class BottleNeckCalculations:
     def run_calculations(self):
         click.echo("Running calculations...")
 
-        for resource in self.graph.get_resources_to_analyze():
+        for resource in self.graph.resources_to_analyze.values():
             resource_type = resource.get_resource_type()
             resource_name = resource.get_name()
 

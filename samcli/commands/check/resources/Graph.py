@@ -4,7 +4,7 @@ from logging import warn
 class Graph:
     def __init__(self):
         self.entry_points = []
-        self.resources_to_analyze = []
+        self.resources_to_analyze = {}
         self.green_warnings = []
         self.yellow_warnings = []
         self.red_warnings = []
@@ -20,8 +20,8 @@ class Graph:
     def get_resources_to_analyze(self):
         return self.resources_to_analyze
 
-    def add_resource_to_analyze(self, resource):
-        self.resources_to_analyze.append(resource)
+    def add_resource_to_analyze(self, resource, key):
+        self.resources_to_analyze[key] = resource
 
     def add_green_warning(self, warning):
         self.green_warnings.append(warning)

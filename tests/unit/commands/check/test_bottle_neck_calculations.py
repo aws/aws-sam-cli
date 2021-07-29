@@ -107,7 +107,7 @@ class TestCalculations(TestCase):
         graph_mock = Mock()
         resource_mock = Mock()
 
-        graph_mock.get_resources_to_analyze.return_value = [resource_mock]
+        graph_mock.resources_to_analyze = {"": resource_mock}
 
         resource_mock.get_resource_type.return_value = "AWS::Lambda::Function"
         resource_mock.get_name.return_value = Mock()

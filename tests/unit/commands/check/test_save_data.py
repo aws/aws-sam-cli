@@ -5,89 +5,68 @@ from samcli.commands.check.lib.save_data import SaveGraphData, get_config_ctx
 
 
 class TestSaveData(TestCase):
-    def test_generate_resource_toml(self):
-        save_data = SaveGraphData(Mock())
+    def test_generate_lambda_toml(self):
+        graph_mock = Mock()
 
-        name_mock = Mock()
-        duration_mock = Mock()
-        tps_mock = Mock()
-        resource_children = []
+        lambda_function_mock = Mock()
+        children_toml_mock = Mock()
+        copied_lambda_function_mock = Mock()
+        entry_point_resource = ""
+
+        lambda_function_mock.resource_name = ""
+        key = lambda_function_mock.resource_name + ":" + entry_point_resource
+
+        graph_mock.resources_to_analyze = {key: copied_lambda_function_mock}
+
+        copied_lambda_function_mock.get_resource_type.return_value = Mock()
+        copied_lambda_function_mock.get_name.return_value = Mock()
+        copied_lambda_function_mock.get_duration.return_value = Mock()
+        copied_lambda_function_mock.get_tps.return_value = Mock()
+
+        lambda_toml = {
+            "resource_object": "",
+            "resource_type": copied_lambda_function_mock.get_resource_type(),
+            "resource_name": copied_lambda_function_mock.get_name(),
+            "duration": copied_lambda_function_mock.get_duration(),
+            "tps": copied_lambda_function_mock.get_tps(),
+            "children": children_toml_mock,
+            "key": key
+        }
+
+        save_data = SaveGraphData(graph_mock)
+        result = save_data.generate_lambda_toml(lambda_function_mock, children_toml_mock, entry_point_resource)
+
+        self.assertEqual(result, lambda_toml)
+
+    def test_generate_resource_toml(self):
+        graph_mock = Mock()
+        entry_point_resource = ""
+        resource_toml = Mock()
+
+        save_data = SaveGraphData(graph_mock)
 
         resource_mock = Mock()
         resource_mock.get_resource_type.return_value = "AWS::Lambda::Function"
-        resource_mock.get_name.return_value = name_mock
-        resource_mock.get_duration.return_value = duration_mock
-        resource_mock.get_tps.return_value = tps_mock
-        resource_mock.get_children.return_value = resource_children
+        resource_mock.get_name.return_value = Mock()
+        resource_mock.get_children.return_value = []
 
-        resource_type_mock = resource_mock.get_resource_type.return_value
-        resource_name_mock = resource_mock.get_name.return_value
-        resource_toml = {
-            "resource_object": "",
-            "resource_type": resource_type_mock,
-            "resource_name": resource_name_mock,
-            "duration": duration_mock,
-            "tps": tps_mock,
-            "children": resource_children,
-        }
+        save_data.generate_lambda_toml = Mock()
+        save_data.generate_lambda_toml.return_value = resource_toml
 
-        # testing lambda function
-        result = save_data.generate_resource_toml(resource_mock)
+        result = save_data.generate_resource_toml(resource_mock, entry_point_resource)
 
-        resource_mock.get_resource_type.assert_called()
-        resource_mock.get_name.assert_called()
-        resource_mock.get_duration.assert_called()
-        resource_mock.get_tps.assert_called()
-        resource_mock.get_children.assert_called()
-
-        self.assertEqual(result, resource_toml)
-
-        # testing api gateways
-        resource_mock.get_resource_type.return_value = "AWS::ApiGateway::RestApi"
-        resource_type_mock = resource_mock.get_resource_type.return_value
-        resource_toml = {
-            "resource_object": "",
-            "resource_type": resource_type_mock,
-            "resource_name": resource_name_mock,
-            "tps": tps_mock,
-            "children": resource_children,
-        }
-
-        result = save_data.generate_resource_toml(resource_mock)
-
-        resource_mock.get_resource_type.assert_called()
-        resource_mock.get_name.assert_called()
-        resource_mock.get_tps.assert_called()
-        resource_mock.get_children.assert_called()
-
-        self.assertEqual(result, resource_toml)
-
-        # testing Dynamodb tables
-        resource_mock.get_resource_type.return_value = "AWS::DynamoDB::Table"
-        resource_type_mock = resource_mock.get_resource_type.return_value
-        resource_toml = {
-            "resource_object": "",
-            "resource_type": resource_type_mock,
-            "resource_name": resource_name_mock,
-            "tps": tps_mock,
-            "children": resource_children,
-        }
-
-        result = save_data.generate_resource_toml(resource_mock)
-
-        resource_mock.get_resource_type.assert_called()
-        resource_mock.get_name.assert_called()
-        resource_mock.get_tps.assert_called()
-        resource_mock.get_children.assert_called()
-
+        save_data.generate_lambda_toml.assert_called_once_with(resource_mock, [], entry_point_resource)
         self.assertEqual(result, resource_toml)
 
     def test_parse_resources(self):
         resource_toml_mock = Mock()
-        name_mock = Mock()
+        name = "Name"
+        entry_point_resource = "Mock"
+        key = name + ":" + entry_point_resource
 
         resource_mock = Mock()
-        resource_mock.get_name.return_value = name_mock
+        resource_mock.get_name.return_value = name
+        resource_mock.entry_point_resource = entry_point_resource
 
         resources = [resource_mock]
         resources_to_analyze_toml = {}
@@ -98,9 +77,9 @@ class TestSaveData(TestCase):
 
         save_data.parse_resources(resources, resources_to_analyze_toml)
 
-        save_data.generate_resource_toml.assert_called_once_with(resource_mock)
+        save_data.generate_resource_toml.assert_called_once_with(resource_mock, entry_point_resource)
 
-        self.assertEqual(resources_to_analyze_toml[name_mock], resource_toml_mock)
+        self.assertEqual(resources_to_analyze_toml[key], resource_toml_mock)
 
     def test_get_lambda_function_pricing_info(self):
         requests_mock = Mock()

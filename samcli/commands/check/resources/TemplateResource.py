@@ -1,4 +1,4 @@
-from types import resolve_bases
+from typing import Any
 
 
 class TemplateResource:
@@ -6,6 +6,7 @@ class TemplateResource:
         self.resource_object = resource_object
         self.resource_type = resource_type
         self.resource_name = resource_name
+        self.entry_point_resource = None
 
     def get_resource_object(self):
         return self.resource_object

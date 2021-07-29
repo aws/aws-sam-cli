@@ -1,3 +1,4 @@
+from samcli.commands.check.resources.LambdaFunction import LambdaFunction
 import click
 
 from click import confirm
@@ -44,9 +45,10 @@ class BottleNecks:
             click.echo("")
 
             current_entry_point = entry_points.pop(user_input - 1)
+            current_entry_point_name = current_entry_point.get_name()
             entry_point_holder.append(current_entry_point)
 
-            self.ask_bottle_neck_questions(current_entry_point)
+            self.ask_bottle_neck_questions(current_entry_point, current_entry_point_name)
 
             click.echo("")
 
@@ -55,13 +57,14 @@ class BottleNecks:
 
         return
 
-    def ask_bottle_neck_questions(self, resource):
+    def ask_bottle_neck_questions(self, resource, entry_point_name):
+        resource.entry_point_resource = entry_point_name
         if resource.get_resource_type() == "AWS::Lambda::Function":
-            self.lambda_bottle_neck_quesitons(resource)
+            self.lambda_bottle_neck_quesitons(resource, entry_point_name)
         else:
-            self.event_source_bottle_neck_questions(resource)
+            self.event_source_bottle_neck_questions(resource, entry_point_name)
 
-    def event_source_bottle_neck_questions(self, event_source):
+    def event_source_bottle_neck_questions(self, event_source, entry_point_name):
         if event_source.get_children() == []:
             """
             If an event source does not have any child nodes, then this event source is not a parent to any
@@ -98,9 +101,9 @@ class BottleNecks:
 
         for child in event_source.get_children():
             child.set_tps(user_input_tps)
-            self.ask_bottle_neck_questions(child)
+            self.ask_bottle_neck_questions(child, entry_point_name)
 
-    def lambda_bottle_neck_quesitons(self, lambda_function):
+    def lambda_bottle_neck_quesitons(self, lambda_function, entry_point_name):
         # If there is no entry point to the lambda function, get tps
         if lambda_function.get_tps() is None:
             user_input_tps = self.ask(
@@ -119,8 +122,20 @@ class BottleNecks:
 
         self.pricing.ask_pricing_question(lambda_function)
 
+        # This given instance of a lambda function is what needs to be analyzed.
+        copied_lambda_function = lambda_function.copy_data()
+
+        """
+        To ensure the correct object (not the one in the graph) is saved to the samconfig file,
+        the copied object will need to be found at a later stage. Putting it in a dictionary
+        will enable it to be found based on its name (which does not changes from the original
+        to the copied) and the name of the entry point (which is what makes the instance
+        unique).
+        """
+        key = copied_lambda_function.resource_name + ":" + entry_point_name
         # Only the lambda functions can be the source of bottle necks for now.
-        self.graph.add_resource_to_analyze(lambda_function)
+        self.graph.resources_to_analyze[key] = copied_lambda_function
 
         for child in lambda_function.get_children():
-            self.ask_bottle_neck_questions(child)
+            self.ask_bottle_neck_questions(child, entry_point_name)
+

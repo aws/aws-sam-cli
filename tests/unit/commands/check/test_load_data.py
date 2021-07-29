@@ -112,6 +112,7 @@ class TestLoadData(TestCase):
             "children": children,
             "tps": tps,
             "duration": duration,
+            "key": "",
         }
 
         result = load_data.parse_single_resource_toml(resource_toml, is_entry_point)

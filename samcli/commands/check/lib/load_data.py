@@ -63,8 +63,8 @@ class LoadData:
                 resource_tps,
                 resource_duration,
             )
-
-            self.graph.add_resource_to_analyze(current_resource)
+            key = str(resource_toml["key"])
+            self.graph.add_resource_to_analyze(current_resource, key)
 
         elif resource_type == "AWS::ApiGateway::RestApi":
             current_resource = self.generate_api_gateway(
