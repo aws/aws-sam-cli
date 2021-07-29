@@ -12,7 +12,6 @@ from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.commands._utils.options import template_option_without_build
 
-
 SHORT_HELP = "Checks template for bottle necks."
 
 
