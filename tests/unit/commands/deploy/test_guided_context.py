@@ -11,6 +11,7 @@ from samcli.lib.utils.packagetype import ZIP, IMAGE
 
 class TestGuidedContext(TestCase):
     def setUp(self):
+        self.image_repository = "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"
         self.gc = GuidedContext(
             template_file="template",
             stack_name="test",
@@ -19,22 +20,25 @@ class TestGuidedContext(TestCase):
             confirm_changeset=True,
             region="region",
             image_repository=None,
-            image_repositories={"HelloWorldFunction": "image-repo"},
+            image_repositories={"RandomFunction": "image-repo"},
         )
-        self.companion_stack_manager_helper_patch = patch(
-            "samcli.commands.deploy.guided_context.CompanionStackManagerHelper"
+
+        self.unreferenced_repo_mock = MagicMock()
+
+        self.companion_stack_manager_patch = patch("samcli.commands.deploy.guided_context.CompanionStackManager")
+        self.companion_stack_manager_mock = self.companion_stack_manager_patch.start()
+        self.companion_stack_manager_mock.return_value.set_functions.return_value = None
+        self.companion_stack_manager_mock.return_value.get_repository_mapping.return_value = {
+            "HelloWorldFunction": self.image_repository
+        }
+        self.companion_stack_manager_mock.return_value.get_unreferenced_repos.return_value = [
+            self.unreferenced_repo_mock
+        ]
+        self.companion_stack_manager_mock.return_value.get_repo_uri = (
+            lambda repo: "123456789012.dkr.ecr.us-east-1.amazonaws.com/test2"
+            if repo == self.unreferenced_repo_mock
+            else None
         )
-        self.companion_stack_manager_helper_mock = self.companion_stack_manager_helper_patch.start()
-        self.companion_stack_manager_helper_mock.return_value.missing_repo_functions = ["HelloWorldFunction"]
-        self.companion_stack_manager_helper_mock.return_value.function_logical_ids = ["HelloWorldFunction"]
-        self.companion_stack_manager_helper_mock.return_value.unreferenced_repos = ["HelloWorldFunctionB"]
-        self.companion_stack_manager_helper_mock.return_value.get_repository_mapping.return_value = {
-            "HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"
-        }
-        self.companion_stack_manager_helper_mock.return_value.remove_unreferenced_repos_from_mapping.return_value = {
-            "HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"
-        }
-        self.companion_stack_manager_helper_mock.return_value.missing_repo_functions = ["HelloWorldFunction"]
 
         self.verify_image_patch = patch(
             "samcli.commands.deploy.guided_context.GuidedContext.verify_images_exist_locally"
@@ -42,7 +46,7 @@ class TestGuidedContext(TestCase):
         self.verify_image_mock = self.verify_image_patch.start()
 
     def tearDown(self):
-        self.companion_stack_manager_helper_patch.stop()
+        self.companion_stack_manager_patch.stop()
         self.verify_image_patch.stop()
 
     @patch("samcli.commands.deploy.guided_context.prompt")
@@ -77,10 +81,6 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
-            call(
-                f"\t {self.gc.start_bold}Create managed ECR repositories for all functions?{self.gc.end_bold}",
-                default=True,
-            ),
             call(
                 f"\t {self.gc.start_bold}Delete the unreferenced repositories listed above when deploying?{self.gc.end_bold}",
                 default=False,
@@ -134,10 +134,6 @@ class TestGuidedContext(TestCase):
             ),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
             call(
-                f"\t {self.gc.start_bold}Create managed ECR repositories for all functions?{self.gc.end_bold}",
-                default=True,
-            ),
-            call(
                 f"\t {self.gc.start_bold}Delete the unreferenced repositories listed above when deploying?{self.gc.end_bold}",
                 default=False,
             ),
@@ -176,9 +172,11 @@ class TestGuidedContext(TestCase):
 
         patched_signer_config_per_function.return_value = (None, None)
         patched_tag_translation.return_value = "helloworld-123456-v1"
-        patched_sam_function_provider.return_value = MagicMock(
-            functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri="helloworld:v1")}
-        )
+        function_mock = MagicMock()
+        function_mock.packagetype = IMAGE
+        function_mock.imageuri = "helloworld:v1"
+        function_mock.full_path = "HelloWorldFunction"
+        patched_sam_function_provider.return_value.get_all.return_value = [function_mock]
         patched_get_buildable_stacks.return_value = (Mock(), [])
         patched_prompt.side_effect = [
             "sam-app",
@@ -245,13 +243,11 @@ class TestGuidedContext(TestCase):
         patched_confirm,
         patched_prompt,
     ):
-        patched_sam_function_provider.return_value = MagicMock(
-            functions={
-                "HelloWorldFunction": MagicMock(
-                    packagetype=IMAGE, imageuri="123456789012.dkr.ecr.region.amazonaws.com/myrepo"
-                )
-            }
-        )
+        function_mock = MagicMock()
+        function_mock.packagetype = IMAGE
+        function_mock.imageuri = "helloworld:v1"
+        function_mock.full_path = "HelloWorldFunction"
+        patched_sam_function_provider.return_value.get_all.return_value = [function_mock]
         patched_get_buildable_stacks.return_value = (Mock(), [])
         patched_prompt.side_effect = [
             "sam-app",
@@ -318,11 +314,11 @@ class TestGuidedContext(TestCase):
         patched_confirm,
         patched_prompt,
     ):
-
-        # Set ImageUri to be None, the sam app was never built.
-        patched_sam_function_provider.return_value = MagicMock(
-            functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri=None)}
-        )
+        function_mock = MagicMock()
+        function_mock.packagetype = IMAGE
+        function_mock.imageuri = None
+        function_mock.full_path = "HelloWorldFunction"
+        patched_sam_function_provider.return_value.get_all.return_value = [function_mock]
         patched_get_buildable_stacks.return_value = (Mock(), [])
         patched_prompt.side_effect = [
             "sam-app",
@@ -357,15 +353,16 @@ class TestGuidedContext(TestCase):
         patched_confirm,
         patched_prompt,
     ):
-
-        self.companion_stack_manager_helper_mock.return_value.function_logical_ids = [
-            "HelloWorldFunction",
-            "GoodbyeWorldFunction",
-        ]
         # Set ImageUri to be None, the sam app was never built.
-        patched_sam_function_provider.return_value = MagicMock(
-            functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri=None)}
-        )
+        function_mock_1 = MagicMock()
+        function_mock_1.packagetype = IMAGE
+        function_mock_1.imageuri = None
+        function_mock_1.full_path = "HelloWorldFunction"
+        function_mock_2 = MagicMock()
+        function_mock_2.packagetype = IMAGE
+        function_mock_2.imageuri = None
+        function_mock_2.full_path = "RandomFunction"
+        patched_sam_function_provider.return_value.get_all.return_value = [function_mock_1, function_mock_2]
         patched_get_buildable_stacks.return_value = (Mock(), [])
         patched_prompt.side_effect = [
             "sam-app",
@@ -432,12 +429,12 @@ class TestGuidedContext(TestCase):
         patched_confirm,
         patched_prompt,
     ):
-
-        self.companion_stack_manager_helper_mock.return_value.function_logical_ids = []
         # Set ImageUri to be None, the sam app was never built.
-        patched_sam_function_provider.return_value = MagicMock(
-            functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri=None)}
-        )
+        function_mock = MagicMock()
+        function_mock.packagetype = IMAGE
+        function_mock.imageuri = None
+        function_mock.full_path = "HelloWorldFunction"
+        patched_sam_function_provider.return_value.get_all.return_value = [function_mock]
         patched_get_buildable_stacks.return_value = (Mock(), [])
         patched_prompt.side_effect = [
             "sam-app",
@@ -447,7 +444,7 @@ class TestGuidedContext(TestCase):
         ]
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
-        patched_confirm.side_effect = [True, False, True, False, True, True]
+        patched_confirm.side_effect = [True, False, True, False, False, True]
         patched_manage_stack.return_value = "managed_s3_stack"
         patched_signer_config_per_function.return_value = ({}, {})
 
@@ -461,6 +458,10 @@ class TestGuidedContext(TestCase):
                 default=False,
             ),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
+            call(
+                f"\t {self.gc.start_bold}Create managed ECR repositories for all functions?{self.gc.end_bold}",
+                default=True,
+            ),
             call(
                 f"\t {self.gc.start_bold}Delete the unreferenced repositories listed above when deploying?{self.gc.end_bold}",
                 default=False,
@@ -506,9 +507,11 @@ class TestGuidedContext(TestCase):
         patched_prompt,
     ):
         # Set ImageUri to be None, the sam app was never built.
-        patched_sam_function_provider.return_value = MagicMock(
-            functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri=None)}
-        )
+        function_mock = MagicMock()
+        function_mock.packagetype = IMAGE
+        function_mock.imageuri = None
+        function_mock.full_path = "HelloWorldFunction"
+        patched_sam_function_provider.return_value.get_all.return_value = [function_mock]
         patched_get_buildable_stacks.return_value = (Mock(), [])
         patched_prompt.side_effect = [
             "sam-app",
@@ -542,9 +545,11 @@ class TestGuidedContext(TestCase):
         patched_confirm,
         patched_prompt,
     ):
-        patched_sam_function_provider.return_value = MagicMock(
-            functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri="mysamapp:v1")}
-        )
+        function_mock = MagicMock()
+        function_mock.packagetype = IMAGE
+        function_mock.imageuri = None
+        function_mock.full_path = "HelloWorldFunction"
+        patched_sam_function_provider.return_value.get_all.return_value = [function_mock]
         patched_get_buildable_stacks.return_value = (Mock(), [])
         # set Image repository to be blank.
         patched_prompt.side_effect = [
@@ -605,10 +610,6 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
             call(
-                f"\t {self.gc.start_bold}Create managed ECR repositories for all functions?{self.gc.end_bold}",
-                default=True,
-            ),
-            call(
                 f"\t {self.gc.start_bold}Delete the unreferenced repositories listed above when deploying?{self.gc.end_bold}",
                 default=False,
             ),
@@ -641,7 +642,7 @@ class TestGuidedContext(TestCase):
         patched_confirm,
         patched_prompt,
     ):
-        patched_sam_function_provider.return_value.fucntions = {}
+        patched_sam_function_provider.return_value.functions = {}
         patched_get_buildable_stacks.return_value = (Mock(), [])
         patched_signer_config_per_function.return_value = ({}, {})
         # Series of inputs to confirmations so that full range of questions are asked.
@@ -658,10 +659,6 @@ class TestGuidedContext(TestCase):
                 default=False,
             ),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
-            call(
-                f"\t {self.gc.start_bold}Create managed ECR repositories for all functions?{self.gc.end_bold}",
-                default=True,
-            ),
             call(
                 f"\t {self.gc.start_bold}Delete the unreferenced repositories listed above when deploying?{self.gc.end_bold}",
                 default=False,
@@ -723,10 +720,6 @@ class TestGuidedContext(TestCase):
             ),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
             call(
-                f"\t {self.gc.start_bold}Create managed ECR repositories for all functions?{self.gc.end_bold}",
-                default=True,
-            ),
-            call(
                 f"\t {self.gc.start_bold}Delete the unreferenced repositories listed above when deploying?{self.gc.end_bold}",
                 default=False,
             ),
@@ -781,10 +774,6 @@ class TestGuidedContext(TestCase):
                 default=False,
             ),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
-            call(
-                f"\t {self.gc.start_bold}Create managed ECR repositories for all functions?{self.gc.end_bold}",
-                default=True,
-            ),
             call(
                 f"\t {self.gc.start_bold}Delete the unreferenced repositories listed above when deploying?{self.gc.end_bold}",
                 default=False,
@@ -851,10 +840,6 @@ class TestGuidedContext(TestCase):
                 default=True,
             ),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
-            call(
-                f"\t {self.gc.start_bold}Create managed ECR repositories for all functions?{self.gc.end_bold}",
-                default=True,
-            ),
             call(
                 f"\t {self.gc.start_bold}Delete the unreferenced repositories listed above when deploying?{self.gc.end_bold}",
                 default=False,
@@ -926,10 +911,6 @@ class TestGuidedContext(TestCase):
                 default=False,
             ),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
-            call(
-                f"\t {self.gc.start_bold}Create managed ECR repositories for all functions?{self.gc.end_bold}",
-                default=True,
-            ),
             call(
                 f"\t {self.gc.start_bold}Delete the unreferenced repositories listed above when deploying?{self.gc.end_bold}",
                 default=False,
