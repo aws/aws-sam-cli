@@ -206,7 +206,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
-        self.stack_names.append(stack_name)
+        self.stacks.append({"name": stack_name})
 
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(
@@ -621,7 +621,7 @@ to create a managed default bucket, or run sam deploy --guided",
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
-        self.stack_names.append(stack_name)
+        self.stacks.append({"name": stack_name})
 
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
@@ -640,7 +640,7 @@ to create a managed default bucket, or run sam deploy --guided",
         else:
             self.fail("Companion stack was created. This should not happen with specifying image repos.")
 
-        self.stack_names.append(SAM_CLI_STACK_NAME)
+        self.stacks.append(SAM_CLI_STACK_NAME)
         # Remove samconfig.toml
         os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
 
