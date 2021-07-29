@@ -16,8 +16,8 @@ class TemplateResource:
             resource_object (Function): The resource object form the template file
             resource_type (str): The resource type
         """
-        self._resource_object = resource_object
-        self._resource_type = resource_type
+        self._resource_object: Any = resource_object
+        self._resource_type: str = resource_type
 
     @property
     def resource_object(self) -> Any:

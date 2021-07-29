@@ -40,7 +40,6 @@ class Calculation:
             burst_concurrency (int): Burst concurrency based on users account
         """
 
-
         if capacity_used <= 70:
             message = (
                 "For the lambda function [%s], you will not be close to its soft limit of %i concurrent executions."

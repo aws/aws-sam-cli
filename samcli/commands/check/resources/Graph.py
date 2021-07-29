@@ -22,7 +22,7 @@ class Graph:
         self.yellow_warnings: List = []
         self.red_warnings: List = []
         self.red_burst_warnings: List = []
-        self.lambda_function_pricing_info = None
+        self.lambda_function_pricing_info: LambdaFunctionPricing = None
 
     def generate(self, lambda_functions: List) -> None:
         """Generates the graph based on the connections calulated

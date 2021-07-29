@@ -3,6 +3,7 @@ Object to contain Lambda function pricing info.
 This data gets stored in the graph, not a lambda function object
 """
 
+
 class LambdaFunctionPricing:
     number_of_requests: int
     average_duration: int

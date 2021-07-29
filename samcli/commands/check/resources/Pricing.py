@@ -4,7 +4,7 @@ Lambda Functions as of now. Data is stored in graph in
 Lambda function pricing object.
 """
 
-from typing import List
+from typing import List, Tuple
 import click
 
 from samcli.commands.check.resources.Graph import Graph
@@ -14,6 +14,10 @@ from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
 class Pricing:
     _graph: Graph
+    _max_num_requests: int
+    _min_memory_amount: int
+    _max_memory_amount: int
+    _max_duration: int
 
     def __init__(self, graph: Graph) -> None:
         """
@@ -21,10 +25,10 @@ class Pricing:
             graph (Graph): The graph object. This is where all of the data is stored
         """
         self._graph: Graph = graph
-        self._max_num_requests = 1000000000000000000000
-        self._min_memory_amount = 128
-        self._max_memory_amount = 10000
-        self._max_duration = 900000
+        self._max_num_requests: int = 1000000000000000000000
+        self._min_memory_amount: int = 128
+        self._max_memory_amount: int = 10000
+        self._max_duration: int = 900000
 
     def ask_pricing_questions(self) -> None:
         """
@@ -107,7 +111,7 @@ class Pricing:
 
         return True
 
-    def _ask_memory(self, question: str) -> str:
+    def _ask_memory(self, question: str) -> Tuple[float, str]:
         """Ask user memory pricing question for lambda functions
 
         Args:
