@@ -121,7 +121,7 @@ class Pricing:
             str: memory amount and unit
         """
         valid_user_input = False
-        user_input_split = None
+        user_input_split = []
         while not valid_user_input:
             user_input = click.prompt(text=question, type=str)
             user_input_split = user_input.split(":")
@@ -144,7 +144,7 @@ def _ask(question: str, min_val: int = 1, max_val: float = float("inf")) -> int:
         [type]: [description]
     """
     valid_user_input = False
-    user_input = None
+    user_input = -1
     while not valid_user_input:
         user_input = click.prompt(text=question, type=int)
         if user_input < min_val or user_input > max_val:
