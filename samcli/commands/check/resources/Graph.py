@@ -3,6 +3,8 @@ Class for graph. All data is stored in the graph directly, or within nodes that 
 """
 from typing import List
 
+from samcli.commands.check.resources.LambdaFunctionPricing import LambdaFunctionPricing
+
 
 class Graph:
     entry_points: List
@@ -11,6 +13,7 @@ class Graph:
     yellow_warnings: List
     red_warnings: List
     red_burst_warnings: List
+    lambda_function_pricing_info: LambdaFunctionPricing
 
     def __init__(self):
         self.entry_points: List = []
@@ -19,6 +22,7 @@ class Graph:
         self.yellow_warnings: List = []
         self.red_warnings: List = []
         self.red_burst_warnings: List = []
+        self.lambda_function_pricing_info = None
 
     def generate(self, lambda_functions: List) -> None:
         """Generates the graph based on the connections calulated
@@ -29,4 +33,3 @@ class Graph:
         for function in lambda_functions:
             if not function.parents:  # No parent resourecs, so this is an entry point
                 self.entry_points.append(function)
-

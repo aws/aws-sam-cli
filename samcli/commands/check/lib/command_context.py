@@ -16,6 +16,7 @@ from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFound
 from samcli.commands.check.bottle_necks import BottleNecks
 from samcli.commands.check.resources.LambdaFunction import LambdaFunction
 from samcli.commands.check.resources.Graph import Graph
+from samcli.commands.check.resources.Pricing import Pricing
 from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
 from samcli.commands.check.calculation import Calculation
@@ -70,6 +71,9 @@ class CheckContext:
 
         bottle_necks = BottleNecks(graph)
         bottle_necks.ask_entry_point_question()
+
+        pricing = Pricing(graph)
+        pricing.ask_pricing_questions()
 
         calculations = Calculation(graph)
         calculations.run_bottle_neck_calculations()

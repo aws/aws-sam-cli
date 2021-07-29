@@ -13,32 +13,6 @@ from samcli.lib.utils.version_checker import check_newer_version
 from samcli.commands._utils.options import template_option_without_build
 
 
-from samtranslator.translator.translator import Translator
-from samtranslator.public.exceptions import InvalidDocumentException
-
-import boto3
-from samtranslator.translator.managed_policy_translator import ManagedPolicyLoader
-from samtranslator.parser import parser
-from boto3.session import Session
-from samcli.yamlhelper import yaml_dump
-from samcli.lib.utils.packagetype import ZIP
-
-from samcli.lib.replace_uri.replace_uri import ReplaceLocalCodeUri
-
-from samcli.lib.providers.sam_function_provider import SamFunctionProvider
-from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
-from .bottle_necks import BottleNecks
-from .graph_context import GraphContext
-from .resources.LambdaFunction import LambdaFunction
-
-from .resources.Pricing import Pricing
-from .exceptions import InvalidSamDocumentException
-
-from .calculations import Calculations
-from .print_results import PrintResults
-
-
-
 SHORT_HELP = "Checks template for bottle necks."
 
 
@@ -92,19 +66,6 @@ def do_cli(ctx, template_path):
     """
 
     from samcli.commands.check.lib.command_context import CheckContext
-
-    pricing = Pricing(graph)
-    pricing.ask_pricing_questions()
-
-    click.echo("Running calculations...")
-
-    calculations = Calculations(graph)
-    calculations.run_bottle_neck_calculations()
-
-    results = PrintResults(graph)
-    results.print_bottle_neck_results()
-
-
 
     context = CheckContext(ctx.region, ctx.profile, template_path)
     context.run()
