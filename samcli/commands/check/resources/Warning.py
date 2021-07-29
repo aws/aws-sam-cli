@@ -1,10 +1,10 @@
-class Warning:
-    def __init__(self):
-        self.warning_type = None
-        self.message = None
+"""
+Class object for warnings. Warning messages, as well as the warning type is stored here
+"""
 
-    def set_message(self, message):
-        self.message = message
 
-    def get_message(self):
-        return self.message
+class CheckWarning:
+    message: str
+
+    def __init__(self, message: str):
+        self.message: str = message
