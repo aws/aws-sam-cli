@@ -60,7 +60,7 @@ class DeleteContext:
             LOG.debug("No stack-name input found")
             if not self.no_prompts:
                 self.stack_name = prompt(
-                    click.style("\tEnter stack name you want to delete:", bold=True), type=click.STRING
+                    click.style("\tEnter stack name you want to delete", bold=True), type=click.STRING
                 )
             else:
                 raise click.BadOptionUsage(

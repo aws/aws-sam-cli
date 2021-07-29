@@ -99,7 +99,7 @@ class TestDeleteContext(TestCase):
             patched_confirm.side_effect = [True]
 
             expected_prompt_calls = [
-                call(click.style("\tEnter stack name you want to delete:", bold=True), type=click.STRING),
+                call(click.style("\tEnter stack name you want to delete", bold=True), type=click.STRING),
             ]
 
         self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
