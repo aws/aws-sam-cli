@@ -39,41 +39,45 @@ class Calculation:
             tps (int): TPS of lambda function based on its parent resource
             burst_concurrency (int): Burst concurrency based on users account
         """
-        warning = CheckWarning()
+
 
         if capacity_used <= 70:
-            warning.message = (
+            message = (
                 "For the lambda function [%s], you will not be close to its soft limit of %i concurrent executions."
                 % (resource_name, concurrent_executions)
             )
+            warning = CheckWarning(message)
             self._graph.green_warnings.append(warning)
 
         elif capacity_used < 90:
-            warning.message = (
+            message = (
                 f"For the lambda function [{resource_name}], the {duration}ms duration and {tps}TPS arrival rate is "
                 f"using {round(capacity_used)}% of the allowed concurrency on AWS Lambda. A limit increase should "
                 "be considered:\nhttps://console.aws.amazon.com/servicequotas"
             )
+            warning = CheckWarning(message)
             self._graph.yellow_warnings.append(warning)
 
         elif capacity_used <= 100:
-            warning.message = (
+            message = (
                 f"For the lambda function [{resource_name}], the {duration}ms duration and {tps}TPS arrival rate is "
                 f"using {round(capacity_used)}% of the allowed concurrency on AWS Lambda. It is very close to the "
                 "limits of the lambda function. It is strongly recommended that you get a limit increase before "
                 "deploying your application:\nhttps://console.aws.amazon.com/servicequotas"
             )
+            warning = CheckWarning(message)
             self._graph.red_warnings.append(warning)
 
         else:  # capacity_used > 100
             burst_capacity_used = _check_limit(tps, duration, burst_concurrency)
-            warning.message = (
+            message = (
                 f"For the lambda function [{resource_name}], the {duration}ms duration and {tps}TPS arrival rate "
                 f"is using {round(capacity_used)}% of the allowed concurrency on AWS Lambda. It exceeds the "
                 f"limits of the lambda function. It will use {round(burst_capacity_used)}% of the "
                 "available burst concurrency. It is strongly recommended that you get a limit increase before "
                 "deploying your application:\nhttps://console.aws.amazon.com/servicequotas"
             )
+            warning = CheckWarning(message)
             self._graph.red_burst_warnings.append(warning)
 
     def run_bottle_neck_calculations(self):

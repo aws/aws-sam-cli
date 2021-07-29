@@ -4,9 +4,8 @@ Class object for warnings. Warning messages, as well as the warning type is stor
 
 
 class CheckWarning:
-    warning_type: str
     message: str
 
-    def __init__(self):
-        self.warning_type: str = ""
-        self.message: str = ""
+    def __init__(self, message: str):
+        self.message: str = message
+
