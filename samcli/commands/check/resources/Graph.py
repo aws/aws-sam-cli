@@ -1,48 +1,32 @@
-from logging import warn
+"""
+Class for graph. All data is stored in the graph directly, or within nodes that are stored in the graph
+"""
+from typing import List
 
 
 class Graph:
+    entry_points: List
+    resources_to_analyze: List
+    green_warnings: List
+    yellow_warnings: List
+    red_warnings: List
+    red_burst_warnings: List
+
     def __init__(self):
-        self.entry_points = []
-        self.resources_to_analyze = []
-        self.green_warnings = []
-        self.yellow_warnings = []
-        self.red_warnings = []
-        self.red_burst_warnings = []
+        self.entry_points: List = []
+        self.resources_to_analyze: List = []
+        self.green_warnings: List = []
+        self.yellow_warnings: List = []
+        self.red_warnings: List = []
+        self.red_burst_warnings: List = []
 
-    def add_entry_point(self, node):
-        self.entry_points.append(node)
-
-    def get_entry_points(self):
-        return self.entry_points
-
-    def get_resources_to_analyze(self):
-        return self.resources_to_analyze
-
-    def add_resource_to_analyze(self, resource):
-        self.resources_to_analyze.append(resource)
-        
-    def add_green_warning(self, warning):
-        self.green_warnings.append(warning)
-
-    def get_green_warnings(self):
-        return self.green_warnings
-
-    def add_yellow_warning(self, warning):
-        self.yellow_warnings.append(warning)
-
-    def get_yellow_warnings(self):
-        return self.yellow_warnings
-
-    def add_red_warning(self, warning):
-        self.red_warnings.append(warning)
-
-    def get_red_warnings(self):
-        return self.red_warnings
-
-    def add_red_burst_warning(self, warning):
-        self.red_burst_warnings.append(warning)
-
-    def get_red_burst_warnings(self):
-        return self.red_burst_warnings
+    def generate(self, lambda_functions: List) -> None:
+        """Generates the graph based on the connections calulated
+        Args:
+            lambda_functions (List): List of all lambda functions in template
+        """
+        # Find all entry points
+        for function in lambda_functions:
+            if not function.parents:  # No parent resourecs, so this is an entry point
+                self.entry_points.append(function)
 
