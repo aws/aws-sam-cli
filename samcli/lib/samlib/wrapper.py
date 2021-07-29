@@ -83,6 +83,7 @@ class SamTranslatorWrapper:
 
         return template_copy
 
+    # pylint: disable=W0238
     def __translate(self, parameter_values):
         """
         This method is unused and a Work In Progress
