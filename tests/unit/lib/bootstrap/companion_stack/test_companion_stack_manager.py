@@ -1,7 +1,7 @@
 from botocore.exceptions import ClientError
-from samcli.lib.bootstrap.companion_stack.companion_stack_manager import CompanionStackManager
+from samcli.lib.bootstrap.companion_stack.companion_stack_manager import CompanionStackManager, sync_ecr_stack
 from unittest import TestCase
-from unittest.mock import ANY, Mock, patch
+from unittest.mock import ANY, MagicMock, Mock, patch
 
 
 class TestCompanionStackManager(TestCase):
@@ -251,3 +251,20 @@ class TestCompanionStackManager(TestCase):
     def test_does_companion_stack_exist_false(self):
         self.cfn_client.describe_stacks.side_effect = ClientError({}, Mock())
         self.assertFalse(self.manager.does_companion_stack_exist())
+
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.CompanionStackManager")
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.SamLocalStackProvider")
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.SamFunctionProvider")
+    def test_sync_ecr_stack(self, function_provider_mock, stack_provider_mock, manager_mock):
+        image_repositories = {"Function1": "uri1"}
+        stacks = MagicMock()
+        stack_provider_mock.get_stacks.return_value = (stacks, None)
+        manager_mock.return_value.get_repository_mapping.return_value = {"Function2": "uri2"}
+
+        result = sync_ecr_stack("template.yaml", "stack-name", "region", "s3-bucket", "s3-prefix", image_repositories)
+
+        manager_mock.assert_called_once_with("stack-name", "region", "s3-bucket", "s3-prefix")
+        function_provider_mock.assert_called_once_with(stacks, ignore_code_extraction_warnings=True)
+        manager_mock.return_value.sync_repos.assert_called_once_with()
+
+        self.assertEqual(result, {"Function1": "uri1", "Function2": "uri2"})
