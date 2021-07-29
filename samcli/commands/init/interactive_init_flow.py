@@ -18,6 +18,11 @@ from samcli.commands.init.init_generator import do_generate
 from samcli.commands.init.init_templates import InitTemplates
 from samcli.lib.utils.osutils import remove
 from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.local.common.runtime_template import (
+    RUNTIME_DEP_TEMPLATE_MAPPING,
+    RUNTIME_TO_DEPENDENCY_MANAGERS,
+    LAMBDA_IMAGES_RUNTIMES_MAP,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -39,19 +44,79 @@ def do_interactive(
     It will ask customers a few questions to init a template.
     """
     if app_template:
-        location_opt_choice = "1"
+        location_opt_choice = "2"
     else:
         click.echo("Which template source would you like to use?")
-        click.echo("\t1 - AWS Quick Start Templates\n\t2 - Custom Template Location")
-        location_opt_choice = click.prompt("Choice", type=click.Choice(["1", "2"]), show_choices=False)
-    if location_opt_choice == "2":
-        _generate_from_location(
-            location, package_type, runtime, dependency_manager, output_dir, name, app_template, no_input
+        click.echo("\t1 - Hello World application\n\t2 - AWS Quick Start Templates\n\t3 - Custom Template Location")
+        location_opt_choice = click.prompt("Choice", type=click.Choice(["1", "2", "3"]), show_choices=False)
+
+        get_start_options(
+            location,
+            package_type,
+            runtime,
+            base_image,
+            dependency_manager,
+            output_dir,
+            name,
+            app_template,
+            no_input,
+            location_opt_choice,
         )
-    else:
+
+
+def get_start_options(
+    location,
+    package_type,
+    runtime,
+    base_image,
+    dependency_manager,
+    output_dir,
+    name,
+    app_template,
+    no_input,
+    location_opt_choice,
+):
+    if location_opt_choice == "1":
+        _generate_simple_application(
+            location, runtime, base_image, dependency_manager, output_dir, name, app_template, package_type
+        )
+
+    elif location_opt_choice == "2":
         _generate_from_use_case(
             location, package_type, runtime, base_image, dependency_manager, output_dir, name, app_template
         )
+
+    else:
+        _generate_from_location(
+            location, package_type, runtime, dependency_manager, output_dir, name, app_template, no_input
+        )
+
+
+def _generate_simple_application(
+    location, runtime, base_image, dependency_manager, output_dir, name, app_template, package_type="ZIP"
+):
+    templates = InitTemplates()
+    click.echo("\nWhich runtime would you like to use?")
+    runtime_choosen = _get_choice_from_options("runtime", RUNTIME_DEP_TEMPLATE_MAPPING)
+    runtime_templates = RUNTIME_DEP_TEMPLATE_MAPPING[runtime_choosen]
+    runtime = runtime_templates[0]["runtimes"][0]
+
+    dependency_manager = _get_dependency_manager(dependency_manager, runtime)
+    bundle_template = templates.get_bundle_option(package_type, runtime, dependency_manager)
+    template = bundle_template[0]
+    app_template = template["appTemplate"]
+    location = template["init_location"]
+
+    if not name:
+        name = click.prompt("\nProject name", type=str, default="sam-app")
+    extra_context = {"project_name": name, "runtime": runtime}
+
+    no_input = True
+    summary_msg = generate_summary_message(
+        package_type, runtime, base_image, dependency_manager, output_dir, name, app_template
+    )
+    click.echo(summary_msg)
+    do_generate(location, package_type, runtime, dependency_manager, output_dir, name, no_input, extra_context)
 
 
 def _generate_from_location(
@@ -77,27 +142,20 @@ def _generate_from_use_case(
 ):
     templates = InitTemplates()
     preprocessed_options = templates.get_preprocessed_manifest()
+    click.echo("\nWhat template would you like to start with?")
+    use_case = _get_choice_from_options("Template", preprocessed_options)
 
-    click.echo("\nWhat is your use-case?")
-    use_case = _get_choice_from_options("Use case", preprocessed_options)
+    runtime_options = preprocessed_options[use_case]
+    click.echo("\nWhich runtime would you like to use?")
+    runtime = _get_choice_from_options("Runtime", runtime_options)
 
-    package_types_options = preprocessed_options[use_case]
+    package_types_options = runtime_options[runtime]
     click.echo("\nWhat package type would you like to use?")
     package_type = _get_choice_from_options("Package type", package_types_options)
-
-    runtime_options = package_types_options[package_type]
     if package_type == IMAGE:
-        click.echo("\nWhich base image would you like to use?")
-        base_image = _get_choice_from_options("Image", runtime_options)
-        runtime = _get_runtime_from_image(base_image)
-        template_runtime = base_image
+        base_image = _get_image_from_runtime(runtime)
 
-    else:
-        click.echo("\nWhich runtime would you like to use?")
-        runtime = _get_choice_from_options("Runtime", runtime_options)
-        template_runtime = runtime
-
-    template_options = runtime_options[template_runtime]
+    template_options = package_types_options[package_type]
     template_choosen = _get_app_template_choice(template_options)
     app_template = template_choosen["appTemplate"]
 
@@ -119,6 +177,95 @@ def _generate_from_use_case(
         extra_context = {**schemas_template_parameter, **extra_context}
 
     no_input = True
+    summary_msg = generate_summary_message(
+        package_type, runtime, base_image, dependency_manager, output_dir, name, app_template
+    )
+
+    click.echo(summary_msg)
+    do_generate(location, package_type, runtime, dependency_manager, output_dir, name, no_input, extra_context)
+    # executing event_bridge logic if call is for Schema dynamic template
+    if is_dynamic_schemas_template:
+        _package_schemas_code(runtime, schemas_api_caller, schema_template_details, output_dir, name, location)
+
+
+def _get_app_template_choice(templates):
+    chosen_template = templates[0]
+    if len(templates) > 1:
+        click.echo("\nSelect your starter template")
+        click_template_choices = []
+        for idx, template in enumerate(templates):
+            click.echo("\t{index} - {name}".format(index=idx + 1, name=template["displayName"]))
+            click_template_choices.append(str(idx + 1))
+        template_choice = click.prompt("Template", type=click.Choice(click_template_choices), show_choices=False)
+        chosen_template = templates[int(template_choice) - 1]
+    return chosen_template
+
+
+def _get_choice_from_options(msg, options):
+    click_choices = []
+    options_list = options if isinstance(options, list) else list(options.keys())
+    for idx, option in enumerate(options_list):
+        click.echo("\t{index} - {name}".format(index=idx + 1, name=option))
+        click_choices.append(str(idx + 1))
+    choice = click.prompt(msg, type=click.Choice(click_choices), show_choices=False)
+    choosen = options_list[int(choice) - 1]
+    return choosen
+
+
+def _get_runtime_from_image(image):
+    """
+    Get corresponding runtime from the base-image parameter
+    """
+    runtime = image[image.find("/") + 1 : image.find("-")]
+    return runtime
+
+
+def _get_image_from_runtime(runtime):
+    """
+    Get corresponding base-image from the runtime parameter
+    """
+    image = LAMBDA_IMAGES_RUNTIMES_MAP[runtime]
+    return image
+
+
+def _get_schema_template_details(schemas_api_caller):
+    try:
+        return get_schema_template_details(schemas_api_caller)
+    except ClientError as e:
+        raise SchemasApiException(
+            "Exception occurs while getting Schemas template parameter. %s" % e.response["Error"]["Message"]
+        ) from e
+
+
+def _get_dependency_manager(dependency_manager, runtime):
+    if not dependency_manager:
+        valid_dep_managers = RUNTIME_TO_DEPENDENCY_MANAGERS.get(runtime)
+        if valid_dep_managers is None:
+            dependency_manager = None
+        elif len(valid_dep_managers) == 1:
+            dependency_manager = valid_dep_managers[0]
+        else:
+            click.echo("\nWhich dependency manager would you like to use?")
+            return _get_choice_from_options("dependency_manager", valid_dep_managers)
+    return dependency_manager
+
+
+def _package_schemas_code(runtime, schemas_api_caller, schema_template_details, output_dir, name, location):
+    try:
+        click.echo("Trying to get package schema code")
+        download_location = tempfile.NamedTemporaryFile(delete=False)
+        do_download_source_code_binding(runtime, schema_template_details, schemas_api_caller, download_location)
+        do_extract_and_merge_schemas_code(download_location, output_dir, name, location)
+        download_location.close()
+    except (ClientError, WaiterError) as e:
+        raise SchemasApiException(
+            "Exception occurs while packaging Schemas code. %s" % e.response["Error"]["Message"]
+        ) from e
+    finally:
+        remove(download_location.name)
+
+
+def generate_summary_message(package_type, runtime, base_image, dependency_manager, output_dir, name, app_template):
     summary_msg = ""
     if package_type == ZIP:
         summary_msg = f"""
@@ -144,66 +291,6 @@ def _generate_from_use_case(
     Output Directory: {output_dir}
 
     Next steps can be found in the README file at {output_dir}/{name}/README.md
-        """
-
-    click.echo(summary_msg)
-    do_generate(location, package_type, runtime, dependency_manager, output_dir, name, no_input, extra_context)
-    # executing event_bridge logic if call is for Schema dynamic template
-    if is_dynamic_schemas_template:
-        _package_schemas_code(runtime, schemas_api_caller, schema_template_details, output_dir, name, location)
-
-
-def _get_app_template_choice(templates):
-    chosen_template = templates[0]
-    if len(templates) > 1:
-        click.echo("\nSelect your starter template")
-        click_template_choices = []
-        for idx, template in enumerate(templates):
-            click.echo("\t{index} - {name}".format(index=idx + 1, name=template["displayName"]))
-            click_template_choices.append(str(idx + 1))
-        template_choice = click.prompt("Template", type=click.Choice(click_template_choices), show_choices=False)
-        chosen_template = templates[int(template_choice) - 1]
-    return chosen_template
-
-
-def _get_choice_from_options(msg, options):
-    options_list = list(options.keys())
-    click_choices = []
-    for idx, option in enumerate(options_list):
-        click.echo("\t{index} - {name}".format(index=idx + 1, name=option))
-        click_choices.append(str(idx + 1))
-    choice = click.prompt(msg, type=click.Choice(click_choices), show_choices=False)
-    choosen = options_list[int(choice) - 1]
-    return choosen
-
-
-def _get_runtime_from_image(image):
     """
-    Get corresponding runtime from the base-image parameter
-    """
-    runtime = image[image.find("/") + 1 : image.find("-")]
-    return runtime
 
-
-def _get_schema_template_details(schemas_api_caller):
-    try:
-        return get_schema_template_details(schemas_api_caller)
-    except ClientError as e:
-        raise SchemasApiException(
-            "Exception occurs while getting Schemas template parameter. %s" % e.response["Error"]["Message"]
-        ) from e
-
-
-def _package_schemas_code(runtime, schemas_api_caller, schema_template_details, output_dir, name, location):
-    try:
-        click.echo("Trying to get package schema code")
-        download_location = tempfile.NamedTemporaryFile(delete=False)
-        do_download_source_code_binding(runtime, schema_template_details, schemas_api_caller, download_location)
-        do_extract_and_merge_schemas_code(download_location, output_dir, name, location)
-        download_location.close()
-    except (ClientError, WaiterError) as e:
-        raise SchemasApiException(
-            "Exception occurs while packaging Schemas code. %s" % e.response["Error"]["Message"]
-        ) from e
-    finally:
-        remove(download_location.name)
+    return summary_msg

@@ -23,7 +23,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "ruby": [
         {
-            "runtimes": ["ruby2.5", "ruby2.7"],
+            "runtimes": ["ruby2.7", "ruby2.5"],
             "dependency_manager": "bundler",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-ruby"),
             "build": True,
@@ -155,6 +155,25 @@ LAMBDA_IMAGES_RUNTIMES = [
     "amazon/dotnetcore3.1-base",
     "amazon/dotnetcore2.1-base",
 ]
+
+LAMBDA_IMAGES_RUNTIMES_MAP = {
+    "nodejs14.x": "amazon/nodejs14.x-base",
+    "nodejs12.x": "amazon/nodejs12.x-base",
+    "nodejs10.x": "amazon/nodejs10.x-base",
+    "python3.8": "amazon/python3.8-base",
+    "python3.7": "amazon/python3.7-base",
+    "python3.6": "amazon/python3.6-base",
+    "python2.7": "amazon/python2.7-base",
+    "ruby2.7": "amazon/ruby2.7-base",
+    "ruby2.5": "amazon/ruby2.5-base",
+    "go1.x": "amazon/go1.x-base",
+    "java11": "amazon/java11-base",
+    "java8.al2": "amazon/java8.al2-base",
+    "java8": "amazon/java8-base",
+    "dotnet5.0": "amazon/dotnet5.0-base",
+    "dotnetcore3.1": "amazon/dotnetcore3.1-base",
+    "dotnetcore2.1": "amazon/dotnetcore2.1-base",
+}
 
 # Schemas Code lang is a MINIMUM supported version
 # - this is why later Lambda runtimes can be mapped to earlier Schemas Code Languages

@@ -588,10 +588,10 @@ class TestCli(TestCase):
         schemas_api_caller_mock.return_value.download_source_code_binding.return_value = "result.zip"
         # WHEN the user follows interactive init prompts
 
-        # 1: AWS Quick Start Templates
+        # 2: AWS Quick Start Templates
         # 3: Infrastructure event management - Use case
-        # 1: Zip
         # 3: Java Runtime
+        # 1: Zip
         # 4: select event-bridge app from scratch
         # test-project: response to name
         # Y: Use default aws configuration
@@ -599,10 +599,10 @@ class TestCli(TestCase):
         # 4: select aws.events as registries
         # 9: select schema AWSAPICallViaCloudTrail
         user_input = """
-1
+2
+3
 3
 1
-3
 4
 test-project
 Y
@@ -655,18 +655,18 @@ Y
 
         # WHEN the user follows interactive init prompts
 
-        # 1: AWS Quick Start Templates
+        # 2: AWS Quick Start Templates
         # 1: Serverless API - Use case
+        # 4: Java8
         # 2: Package type - Image
-        # 14: Java8 base image
         # 2: Hello World Lambda Image Example: Maven
         # test-project: response to name
 
         user_input = """
-1
-1
 2
-14
+1
+4
+2
 2
 test-project
             """
@@ -744,10 +744,10 @@ test-project
         schemas_api_caller_mock.return_value.download_source_code_binding.return_value = "result.zip"
         # WHEN the user follows interactive init prompts
 
-        # 1: AWS Quick Start Templates
+        # 2: AWS Quick Start Templates
         # 3: Infrastructure event management - Use case
-        # 1: Zip
         # 3: Java Runtime
+        # 1: Zip
         # 4: select event-bridge app from scratch
         # test-project: response to name
         # N: Use default AWS profile
@@ -756,10 +756,10 @@ test-project
         # 4: select aws.events as registries
         # 9: select schema AWSAPICallViaCloudTrail
         user_input = """
-1
+2
+3
 3
 1
-3
 4
 test-project
 N
@@ -826,10 +826,10 @@ us-east-1
         )
         # WHEN the user follows interactive init prompts
 
-        # 1: AWS Quick Start Templates
+        # 2: AWS Quick Start Templates
         # 3: Infrastructure event management - Use case
-        # 1: Zip
         # 3: Java Runtime
+        # 1: Zip
         # 4: select event-bridge app from scratch
         # test-project: response to name
         # N: Use default AWS profile
@@ -838,10 +838,10 @@ us-east-1
         # 4: select aws.events as registries
         # 9: select schema AWSAPICallViaCloudTrail
         user_input = """
-1
+2
+3
 3
 1
-3
 4
 test-project
 N
@@ -917,10 +917,10 @@ invalid-region
         )
         # WHEN the user follows interactive init prompts
 
-        # 1: AWS Quick Start Templates
+        # 2: AWS Quick Start Templates
         # 3: Infrastructure event management - Use case
-        # 1: Zip
         # 3: Java Runtime
+        # 1: Zip
         # 4: select event-bridge app from scratch
         # test-project: response to name
         # Y: Use default aws configuration
@@ -928,10 +928,10 @@ invalid-region
         # 4: select aws.events as registries
         # 9: select schema AWSAPICallViaCloudTrail
         user_input = """
-1
+2
+3
 3
 1
-3
 4
 test-project
 Y
@@ -1019,10 +1019,10 @@ Y
         )
         # WHEN the user follows interactive init prompts
 
-        # 1: AWS Quick Start Templates
+        # 2: AWS Quick Start Templates
         # 3: Infrastructure event management - Use case
-        # 1: Zip
         # 3: Java Runtime
+        # 1: Zip
         # 4: select event-bridge app from scratch
         # test-project: response to name
         # Y: Use default aws configuration
@@ -1030,10 +1030,10 @@ Y
         # 4: select aws.events as registries
         # 9: select schema AWSAPICallViaCloudTrail
         user_input = """
-1
+2
+3
 3
 1
-3
 4
 test-project
 Y
@@ -1086,10 +1086,10 @@ Y
     def test_init_cli_int_from_location(self, generate_project_patch, cd_mock):
         # WHEN the user follows interactive init prompts
 
-        # 2: selecting custom location
+        # 3: selecting custom location
         # foo: the "location"
         user_input = """
-2
+3
 foo
         """
 
@@ -1115,13 +1115,15 @@ foo
     def test_init_cli_no_package_type(self, generate_project_patch, cd_mock):
         # WHEN the user follows interactive init prompts
 
-        # 1: selecting template source
+        # 2: selecting template source
         # 2s: selecting package type
         user_input = """
+2
 1
-1
+13
 2
 3
+untitled6
         """
         args = [
             "--no-input",
@@ -1395,3 +1397,43 @@ foo
                 no_input=None,
                 extra_context=None,
             )
+
+    def test_init_cli_generate_simple_hello_world_app(self):
+        # WHEN the user follows interactive init prompts
+        # 1: Hello World application
+        # 1: python
+        # test-project: response to name
+        user_input = """
+1
+1
+test-project
+        """
+
+        with tempfile.TemporaryDirectory() as temp:
+            runner = CliRunner()
+            result = runner.invoke(init_cmd, ["--output-dir", temp], input=user_input)
+            self.assertFalse(result.exception)
+            expected_output_folder = Path(temp, "test-project")
+            self.assertTrue(expected_output_folder.exists)
+            self.assertTrue(expected_output_folder.is_dir())
+
+    def test_init_cli_generate_simple_java_hello_world_app(self):
+        # WHEN the user follows interactive init prompts
+        # 1: Hello World application
+        # 6: java
+        # 2: Gradle
+        # test-project: response to name
+        user_input = """
+1
+6
+2
+test-project
+        """
+
+        with tempfile.TemporaryDirectory() as temp:
+            runner = CliRunner()
+            result = runner.invoke(init_cmd, ["--output-dir", temp], input=user_input)
+            self.assertFalse(result.exception)
+            expected_output_folder = Path(temp, "test-project")
+            self.assertTrue(expected_output_folder.exists)
+            self.assertTrue(expected_output_folder.is_dir())

@@ -177,6 +177,20 @@ class InitTemplates:
     def get_preprocessed_manifest(self):
         """
         This method get the manifest cloned from the git repo and preprocessed it.
+        The structure of the manifest is shown below:
+
+        {
+            "dotnetcore2.1": [
+                {
+                    "directory": "dotnetcore2.1/cookiecutter-aws-sam-hello-dotnet",
+                    "displayName": "Hello World Example",
+                    "dependencyManager": "cli-package",
+                    "appTemplate": "hello-world",
+                    "packageType": "Zip",
+                    "useCaseName": "Serverless API"
+                },
+            ]
+        }
 
         Raises:
             InvalidInitTemplateError: Exception raise when template is invalid or missing a parameter
@@ -185,7 +199,7 @@ class InitTemplates:
             dict: This is preprocessed manifest with the use_case as key
         """
         manifest_dump = requests.get(self._manifest_url)
-        if not manifest_dump:
+        if not manifest_dump.ok:
             raise InvalidInitTemplateError(
                 "Can't retrieve templates manifest from {url}".format(url=self._manifest_url)
             )
@@ -195,24 +209,35 @@ class InitTemplates:
         for template_runtime in manifest_body:
             template_list = manifest_body[template_runtime]
             for template in template_list:
-                if "useCaseName" not in template:
-                    raise InvalidInitTemplateError(
-                        "Template {name} missing use case descriptor".format(name=template["displayName"])
-                    )
+                self.validate_value_in_template("packageType", template)
+                package_type = template["packageType"]
+                runtime = self.get_runtime(package_type, template_runtime)
+
+                self.validate_value_in_template("useCaseName", template)
                 use_case = template["useCaseName"]
                 if use_case not in preprocessed_manifest:
                     preprocessed_manifest[use_case] = {}
 
-                if "packageType" not in template:
-                    raise InvalidInitTemplateError(
-                        "Template {name} missing the package type value".format(name=template["displayName"])
-                    )
+                if runtime not in preprocessed_manifest[use_case]:
+                    preprocessed_manifest[use_case][runtime] = {}
 
-                package_type = template["packageType"]
-                if package_type not in preprocessed_manifest[use_case]:
-                    preprocessed_manifest[use_case][package_type] = {}
-
-                if template_runtime not in preprocessed_manifest[use_case][package_type]:
-                    preprocessed_manifest[use_case][package_type][template_runtime] = []
-                preprocessed_manifest[use_case][package_type][template_runtime].append(template)
+                if package_type not in preprocessed_manifest[use_case][runtime]:
+                    preprocessed_manifest[use_case][runtime][package_type] = []
+                preprocessed_manifest[use_case][runtime][package_type].append(template)
         return preprocessed_manifest
+
+    def validate_value_in_template(self, value, template):
+        if value not in template:
+            raise InvalidInitTemplateError(
+                "Template {name} missing the value for {property} in manifest file".format(
+                    name=template["displayName"], property=value
+                )
+            )
+
+    def get_runtime(self, package_type, template_runtime):
+        if package_type == "Image":
+            template_runtime = template_runtime[template_runtime.find("/") + 1 : template_runtime.find("-")]
+        return template_runtime
+
+    def get_bundle_option(self, package_type, runtime, dependency_manager):
+        return self._init_options_from_bundle(package_type, runtime, dependency_manager)
