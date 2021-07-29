@@ -46,8 +46,6 @@ class BottleNecks:
             user_input = _ask(entry_point_question, 1, item_number + 1)
             current_entry_point = entry_points.pop(user_input - 1)
 
-            self.pricing.ask_pricing_question(current_entry_point)
-
             self._ask_bottle_neck_questions(current_entry_point)
             self._graph.resources_to_analyze.append(current_entry_point)
 
@@ -76,6 +74,8 @@ class BottleNecks:
         )
 
         lambda_function.duration = user_input_duration
+
+        self.pricing.ask_pricing_questions(lambda_function)
 
     def _ask_bottle_neck_questions(self, resource: LambdaFunction) -> None:
 

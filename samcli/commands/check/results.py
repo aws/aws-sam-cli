@@ -45,4 +45,4 @@ def _print_warnings(warnings):
         warnings (List): List of one type of warnings
     """
     for warning in warnings:
-        click.echo(warning.get_message() + "\n")
+        click.echo(warning.message + "\n")

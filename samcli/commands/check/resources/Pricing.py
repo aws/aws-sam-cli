@@ -31,18 +31,15 @@ class Pricing:
         self._max_duration: int = 900000
         self.asked_lambda_questions = False
 
-    def ask_pricing_questions(self) -> None:
+    def ask_pricing_questions(self, resource) -> None:
         """
         Pricing quetions for various resources get asked here
         Pricing is only done for Lambda functions now
         """
-        asked_lambda_questions = False
-        click.echo("Pricing Questions")
-        for resource in self._graph.resources_to_analyze:
-            # Only ask lambda quetions once for all lambda functions
-            if resource.resource_type == AWS_LAMBDA_FUNCTION and not asked_lambda_questions:
-                asked_lambda_questions = True
-                self._ask_lambda_function_questions()
+        if resource.resource_type == AWS_LAMBDA_FUNCTION and self.asked_lambda_questions == False:
+            click.echo("Pricing Questions")
+            self.asked_lambda_questions = True
+            self._ask_lambda_function_questions()
 
     def _ask_lambda_function_questions(self) -> None:
         """Lambda function pricing questions"""

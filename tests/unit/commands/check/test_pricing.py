@@ -111,15 +111,15 @@ class TestPricing(TestCase):
 
     def test_ask_pricing_questions(self):
         self_mock = Mock()
+        self_mock.asked_lambda_questions = False
         self_mock._ask_lambda_function_questions = Mock()
 
         resource_mock = Mock()
         resource_mock.resource_type = AWS_LAMBDA_FUNCTION
-        self_mock._graph.resources_to_analyze = [resource_mock]
 
-        Pricing.ask_pricing_questions(self_mock)
+        Pricing.ask_pricing_questions(self_mock, resource_mock)
 
-        self_mock._ask_lambda_function_questions.assert_called_with()
+        self_mock._ask_lambda_function_questions.assert_called_once()
 
     @patch("samcli.commands.check.resources.Pricing._ask")
     @patch("samcli.commands.check.resources.Pricing.LambdaFunctionPricing")

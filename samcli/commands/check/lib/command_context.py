@@ -16,7 +16,6 @@ from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFound
 from samcli.commands.check.bottle_necks import BottleNecks
 from samcli.commands.check.resources.LambdaFunction import LambdaFunction
 from samcli.commands.check.resources.Graph import Graph
-from samcli.commands.check.resources.Pricing import Pricing
 from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
 from samcli.commands.check.pricing_calculations import PricingCalculations
@@ -73,17 +72,15 @@ class CheckContext:
         bottle_necks = BottleNecks(graph)
         bottle_necks.ask_entry_point_question()
 
-        pricing = Pricing(graph)
-        pricing.ask_pricing_questions()
-
         bottle_neck_calculations = BottleNeckCalculations(graph)
-        bottle_neck_calculations.run_calculations()
+        bottle_neck_calculations.run_bottle_neck_calculations()
 
         pricing_calculations = PricingCalculations(graph)
         pricing_calculations.run_calculations()
 
-        results = Results(graph)
+        results = Results(graph, pricing_calculations.get_lambda_pricing_results())
         results.print_bottle_neck_results()
+        results.print_all_pricing_results()
 
     def _transform_template(self) -> Any:
         """

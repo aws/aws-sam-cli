@@ -12,12 +12,19 @@ from samcli.commands.check.lib.command_context import CheckContext, _parse_templ
 
 
 class TestCommandContext(TestCase):
-    @patch("samcli.commands.check.lib.command_context.Pricing")
     @patch("samcli.commands.check.lib.command_context.Results")
-    @patch("samcli.commands.check.lib.command_context.Calculation")
+    @patch("samcli.commands.check.lib.command_context.PricingCalculations")
+    @patch("samcli.commands.check.lib.command_context.BottleNeckCalculations")
     @patch("samcli.commands.check.lib.command_context._parse_template")
     @patch("samcli.commands.check.lib.command_context.BottleNecks")
-    def test_run(self, patch_bottle_neck, patch_parse_template, patch_calculations, patch_print, patch_pricing):
+    def test_run(
+        self,
+        patch_bottle_neck,
+        patch_parse_template,
+        patch_bottle_neck_calculations,
+        patch_pricing_calculations,
+        patch_print,
+    ):
         region = Mock()
         profile = Mock()
         path = Mock()
@@ -32,15 +39,16 @@ class TestCommandContext(TestCase):
         patch_bottle_neck.return_value = bottle_neck_mock
         bottle_neck_mock.ask_entry_point_question = Mock()
 
-        patch_calculations.run_bottle_neck_calculations = Mock()
+        patch_bottle_neck_calculations.run_bottle_neck_calculations = Mock()
         patch_print.print_bottle_neck_results = Mock()
+
+        patch_pricing_calculations.run_calculations = Mock()
+        patch_pricing_calculations.get_lambda_pricing_results = Mock()
 
         patch_parse_template.return_value = graph_mock
 
         patch_bottle_neck.return_value = bottle_neck_mock
         bottle_neck_mock.ask_entry_point_question = Mock()
-
-        patch_pricing.ask_pricing_questions = Mock()
 
         context.run()
 

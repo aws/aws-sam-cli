@@ -49,12 +49,12 @@ class PricingCalculations:
                 raise Exception()
 
     def determine_lambda_cost(self):
-        template_lambda_pricing_info = self.graph.get_lambda_function_pricing_info()
+        template_lambda_pricing_info = self.graph.lambda_function_pricing_info
 
-        memory_amount = float(template_lambda_pricing_info.get_allocated_memory())
-        memory_unit = template_lambda_pricing_info.get_allocated_memory_unit()
-        number_of_requests = template_lambda_pricing_info.get_number_of_requests()
-        average_duration = template_lambda_pricing_info.get_average_duration()
+        memory_amount = float(template_lambda_pricing_info.allocated_memory)
+        memory_unit = template_lambda_pricing_info.allocated_memory_unit
+        number_of_requests = template_lambda_pricing_info.number_of_requests
+        average_duration = template_lambda_pricing_info.average_duration
 
         # Need to convert to GB if provided in MB
         if memory_unit == "MB":
