@@ -29,3 +29,4 @@ class Graph:
         for function in lambda_functions:
             if not function.parents:  # No parent resourecs, so this is an entry point
                 self.entry_points.append(function)
+
