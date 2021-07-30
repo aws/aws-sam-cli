@@ -101,7 +101,7 @@ def _create_or_get_stack(
         stack_outputs = cast(List[Dict[str, str]], stack["Outputs"])
         return StackOutput(stack_outputs)
     except ClientError:
-        LOG.debug("Managed S3 stack not found. Creating a new one.")
+        LOG.debug("Managed S3 stack [%s] not found. Creating a new one.", stack_name)
 
     try:
         stack = _create_stack(

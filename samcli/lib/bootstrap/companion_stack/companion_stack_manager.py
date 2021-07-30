@@ -196,7 +196,7 @@ class CompanionStackManager:
             try:
                 self._ecr_client.delete_repository(repositoryName=repo.physical_id, force=True)
             except self._ecr_client.exceptions.RepositoryNotFoundException:
-                LOG.debug("Image repo not found in companion stack. Skipping deletion.")
+                LOG.debug("Image repo [%s] not found in companion stack. Skipping deletion.", repo.physical_id)
 
     def sync_repos(self) -> None:
         """
