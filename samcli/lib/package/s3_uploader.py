@@ -189,7 +189,9 @@ class S3Uploader:
             LOG.error("Bucket not specified")
             raise BucketNotSpecifiedError()
         if self.prefix:
-            response = self.s3.list_objects_v2(Bucket=self.bucket_name, Prefix=self.prefix)
+            # Note: list_objects_v2 api uses prefix to fetch the keys that begin with the prefix
+            # To restrict fetching files with exact prefix self.prefix, "/" is used below.
+            response = self.s3.list_objects_v2(Bucket=self.bucket_name, Prefix=self.prefix + "/")
             prefix_files = response.get("Contents", [])
             for obj in prefix_files:
                 self.delete_artifact(obj["Key"], True)

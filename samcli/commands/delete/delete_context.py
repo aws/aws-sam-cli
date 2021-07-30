@@ -35,6 +35,7 @@ LOG = logging.getLogger(__name__)
 
 
 class DeleteContext:
+    # TODO: Separate this context into 2 separate contexts guided and non-guided, just like deploy.
     def __init__(self, stack_name: str, region: str, profile: str, config_file: str, config_env: str, no_prompts: bool):
         self.stack_name = stack_name
         self.region = region
@@ -57,9 +58,15 @@ class DeleteContext:
         self.parse_config_file()
         if not self.stack_name:
             LOG.debug("No stack-name input found")
-            self.stack_name = prompt(
-                click.style("\tEnter stack name you want to delete:", bold=True), type=click.STRING
-            )
+            if not self.no_prompts:
+                self.stack_name = prompt(
+                    click.style("\tEnter stack name you want to delete", bold=True), type=click.STRING
+                )
+            else:
+                raise click.BadOptionUsage(
+                    option_name="--stack-name",
+                    message="Missing option '--stack-name', provide a stack name that needs to be deleted.",
+                )
 
         self.init_clients()
         return self
@@ -94,9 +101,15 @@ class DeleteContext:
         Initialize all the clients being used by sam delete.
         """
         if not self.region:
-            session = boto3.Session()
-            region = session.region_name
-            self.region = region if region else "us-east-1"
+            if not self.no_prompts:
+                session = boto3.Session()
+                region = session.region_name
+                self.region = region if region else "us-east-1"
+            else:
+                raise click.BadOptionUsage(
+                    option_name="--region",
+                    message="Missing option '--region', region is required to run the non guided delete command.",
+                )
 
         if self.profile:
             Context.get_current_context().profile = self.profile
@@ -218,7 +231,6 @@ class DeleteContext:
             )
 
             retain_repos = self.ecr_repos_prompts(ecr_companion_stack_template)
-
             # Delete the repos created by ECR companion stack if not retained
             ecr_companion_stack_template.delete(retain_resources=retain_repos)
 
@@ -229,9 +241,11 @@ class DeleteContext:
                 self.cf_utils.delete_stack(stack_name=self.companion_stack_name)
                 self.cf_utils.wait_for_delete(stack_name=self.companion_stack_name)
                 LOG.debug("Deleted ECR Companion Stack: %s", self.companion_stack_name)
+
             except CfDeleteFailedStatusError:
                 LOG.debug("delete_stack resulted failed and so re-try with retain_resources")
                 self.cf_utils.delete_stack(stack_name=self.companion_stack_name, retain_resources=retain_repos)
+                self.cf_utils.wait_for_delete(stack_name=self.companion_stack_name)
 
     def delete(self):
         """
@@ -296,9 +310,11 @@ class DeleteContext:
             self.cf_utils.delete_stack(stack_name=self.stack_name)
             self.cf_utils.wait_for_delete(self.stack_name)
             LOG.debug("Deleted Cloudformation stack: %s", self.stack_name)
+
         except CfDeleteFailedStatusError:
             LOG.debug("delete_stack resulted failed and so re-try with retain_resources")
             self.cf_utils.delete_stack(stack_name=self.stack_name, retain_resources=retain_resources)
+            self.cf_utils.wait_for_delete(self.stack_name)
 
         # If s3_bucket information is not available, warn the user
         if not self.s3_bucket:

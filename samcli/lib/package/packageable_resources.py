@@ -178,7 +178,11 @@ class ResourceZip(Resource):
             return {"Bucket": None, "Key": None}
 
         resource_path = jmespath.search(self.PROPERTY_NAME, resource_dict)
-        if resource_path:
+        # In the case where resource_path is pointing to an intrinsinc
+        # ref function, sam delete will delete the stack but skip the deletion of this
+        # artifact, as deletion of intrinsic ref function artifacts is not supported yet.
+        # TODO: Allow deletion of S3 artifacts with intrinsic ref functions.
+        if resource_path and isinstance(resource_path, str):
             return self.uploader.parse_s3_url(resource_path)
         return {"Bucket": None, "Key": None}
 
@@ -233,12 +237,14 @@ class ResourceImageDict(Resource):
             return
 
         remote_path = resource_dict.get(self.PROPERTY_NAME, {}).get(self.EXPORT_PROPERTY_CODE_KEY)
-        if is_ecr_url(remote_path):
+        # In the case where remote_path is pointing to an intrinsinc
+        # ref function, sam delete will delete the stack but skip the deletion of this
+        # artifact, as deletion of intrinsic ref function artifacts is not supported yet.
+        # TODO: Allow deletion of ECR artifacts with intrinsic ref functions.
+        if isinstance(remote_path, str) and is_ecr_url(remote_path):
             self.uploader.delete_artifact(
                 image_uri=remote_path, resource_id=resource_id, property_name=self.PROPERTY_NAME
             )
-        else:
-            raise ValueError("URL given to the parse method is not a valid ECR url {0}".format(remote_path))
 
 
 class ResourceImage(Resource):
@@ -288,13 +294,15 @@ class ResourceImage(Resource):
         if resource_dict is None:
             return
 
-        remote_path = resource_dict[self.PROPERTY_NAME]
-        if is_ecr_url(remote_path):
+        remote_path = resource_dict.get(self.PROPERTY_NAME)
+        # In the case where remote_path is pointing to an intrinsinc
+        # ref function, sam delete will delete the stack but skip the deletion of this
+        # artifact, as deletion of intrinsic ref function artifacts is not supported yet.
+        # TODO: Allow deletion of ECR artifacts with intrinsic ref functions.
+        if isinstance(remote_path, str) and is_ecr_url(remote_path):
             self.uploader.delete_artifact(
                 image_uri=remote_path, resource_id=resource_id, property_name=self.PROPERTY_NAME
             )
-        else:
-            raise ValueError("URL given to the parse method is not a valid ECR url {0}".format(remote_path))
 
 
 class ResourceWithS3UrlDict(ResourceZip):
@@ -350,7 +358,13 @@ class ResourceWithS3UrlDict(ResourceZip):
         s3_bucket = resource_path.get(self.BUCKET_NAME_PROPERTY, None)
 
         key = resource_path.get(self.OBJECT_KEY_PROPERTY, None)
-        return {"Bucket": s3_bucket, "Key": key}
+        # In the case where resource_path is pointing to an intrinsinc
+        # ref function, sam delete will delete the stack but skip the deletion of this
+        # artifact, as deletion of intrinsic ref function artifacts is not supported yet.
+        # TODO: Allow deletion of S3 artifacts with intrinsic ref functions.
+        if isinstance(s3_bucket, str) and isinstance(key, str):
+            return {"Bucket": s3_bucket, "Key": key}
+        return {"Bucket": None, "Key": None}
 
 
 class ServerlessFunctionResource(ResourceZip):
@@ -535,7 +549,8 @@ class ECRResource(Resource):
             return
 
         repository_name = self.get_property_value(resource_dict)
-        if repository_name:
+        # TODO: Allow deletion of ECR Repositories with intrinsic ref functions.
+        if repository_name and isinstance(repository_name, str):
             self.uploader.delete_ecr_repository(physical_id=repository_name)
 
     def get_property_value(self, resource_dict):

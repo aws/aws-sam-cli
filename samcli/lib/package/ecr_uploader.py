@@ -133,8 +133,10 @@ class ECRUploader:
 
         except botocore.exceptions.ClientError as ex:
             # Handle Client errors such as RepositoryNotFoundException or InvalidParameterException
-            LOG.error("DeleteArtifactFailedError Exception : %s", str(ex))
-            raise DeleteArtifactFailedError(resource_id=resource_id, property_name=property_name, ex=ex) from ex
+            if "RepositoryNotFoundException" not in str(ex):
+                LOG.debug("DeleteArtifactFailedError Exception : %s", str(ex))
+                raise DeleteArtifactFailedError(resource_id=resource_id, property_name=property_name, ex=ex) from ex
+            LOG.debug("RepositoryNotFoundException : %s", str(ex))
 
     def delete_ecr_repository(self, physical_id: str):
         """

@@ -30,6 +30,10 @@ class CfUtils:
                 return False
 
             stack = resp["Stacks"][0]
+            if stack["EnableTerminationProtection"]:
+                message = "Stack cannot be deleted while TerminationProtection is enabled."
+                raise DeleteFailedError(stack_name=stack_name, msg=message)
+
             # Note: Stacks with REVIEW_IN_PROGRESS can be deleted
             # using delete_stack but get_template does not return
             # the template_str for this stack restricting deletion of
@@ -52,11 +56,6 @@ class CfUtils:
 
             LOG.error("Botocore Exception : %s", str(e))
             raise DeleteFailedError(stack_name=stack_name, msg=str(e)) from e
-
-        except Exception as e:
-            # We don't know anything about this exception. Don't handle
-            LOG.error("Unable to get stack details.", exc_info=e)
-            raise e
 
     def get_stack_template(self, stack_name: str, stage: str) -> Dict:
         """

@@ -51,14 +51,16 @@ class TestCfUtils(TestCase):
         with self.assertRaises(DeleteFailedError):
             self.cf_utils.has_stack("test")
 
-    def test_cf_utils_has_stack_exception(self):
-        self.cf_utils._client.describe_stacks = MagicMock(side_effect=Exception())
-        with self.assertRaises(Exception):
+    def test_cf_utils_has_stack_termination_protection_enabled(self):
+        self.cf_utils._client.describe_stacks = MagicMock(
+            return_value={"Stacks": [{"StackStatus": "CREATE_COMPLETE", "EnableTerminationProtection": True}]}
+        )
+        with self.assertRaises(DeleteFailedError):
             self.cf_utils.has_stack("test")
 
     def test_cf_utils_has_stack_in_review(self):
         self.cf_utils._client.describe_stacks = MagicMock(
-            return_value={"Stacks": [{"StackStatus": "REVIEW_IN_PROGRESS"}]}
+            return_value={"Stacks": [{"StackStatus": "REVIEW_IN_PROGRESS", "EnableTerminationProtection": False}]}
         )
         self.assertEqual(self.cf_utils.has_stack("test"), False)
 

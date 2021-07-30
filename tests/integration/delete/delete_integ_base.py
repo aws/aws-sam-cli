@@ -1,11 +1,12 @@
 import os
+from pathlib import Path
 from unittest import TestCase
 
 
 class DeleteIntegBase(TestCase):
     @classmethod
     def setUpClass(cls):
-        pass
+        cls.delete_test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "delete")
 
     def setUp(self):
         super().setUp()
