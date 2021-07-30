@@ -249,8 +249,17 @@ class TestCompanionStackManager(TestCase):
         self.assertTrue(self.manager.does_companion_stack_exist())
 
     def test_does_companion_stack_exist_false(self):
-        self.cfn_client.describe_stacks.side_effect = ClientError({}, Mock())
+        error = ClientError({}, Mock())
+        error_message = f"Stack with id {self.companion_stack_name} does not exist"
+        error.response = {"Error": {"Message": error_message}}
+        self.cfn_client.describe_stacks.side_effect = error
         self.assertFalse(self.manager.does_companion_stack_exist())
+
+    def test_does_companion_stack_exist_error(self):
+        error = ClientError({}, Mock())
+        self.cfn_client.describe_stacks.side_effect = error
+        with self.assertRaises(ClientError):
+            self.assertFalse(self.manager.does_companion_stack_exist())
 
     @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.CompanionStackManager")
     @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.SamLocalStackProvider")

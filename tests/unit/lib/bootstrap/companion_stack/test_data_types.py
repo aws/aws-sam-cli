@@ -91,4 +91,4 @@ class TestECRRepo(TestCase):
     def test_logical_id_cutoff(self):
         self.function_id = "F" * 64
         self.ecr_repo = ECRRepo(companion_stack=self.companion_stack_mock, function_logical_id=self.function_id)
-        self.assertEqual(self.ecr_repo.output_logical_id, "F" * 52 + "qwertyuiRepo")
+        self.assertEqual(self.ecr_repo.logical_id, "F" * 52 + "qwertyuiRepo")
