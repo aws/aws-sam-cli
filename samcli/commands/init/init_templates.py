@@ -32,7 +32,8 @@ class InvalidInitTemplateError(UserException):
 
 class InitTemplates:
     def __init__(self, no_interactive=False):
-        # NOTE:: Please note that this temporary, and the PR would be update to clone directly from the github and use manifest in clone
+        # NOTE:: Please note that this temporary, and the PR would be update to clone directly
+        # from the github and use manifest in clone
         self._manifest_url = "https://raw.githubusercontent.com/sapessi/aws-sam-cli-app-templates/master/manifest.json"
 
         self._no_interactive = no_interactive
