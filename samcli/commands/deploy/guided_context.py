@@ -346,7 +346,9 @@ class GuidedContext:
 
         manager.set_functions(function_logical_ids, updated_repositories)
 
-        create_all_repos = self.prompt_create_all_repos(function_logical_ids, functions_without_repo)
+        create_all_repos = self.prompt_create_all_repos(
+            function_logical_ids, functions_without_repo, updated_repositories
+        )
         if create_all_repos:
             updated_repositories.update(manager.get_repository_mapping())
         else:
@@ -395,7 +397,9 @@ class GuidedContext:
 
         return updated_repositories
 
-    def prompt_create_all_repos(self, functions: List[str], functions_without_repo: List[str]) -> bool:
+    def prompt_create_all_repos(
+        self, functions: List[str], functions_without_repo: List[str], existing_mapping: Dict[str, str]
+    ) -> bool:
         """
         Prompt whether to create all repos
 
@@ -403,8 +407,13 @@ class GuidedContext:
         ----------
         functions: List[str]
             List of function logical IDs that are image based
+
         functions_without_repo: List[str]
             List of function logical IDs that do not have an ECR image repo specified
+
+        existing_mapping: Dict[str, str]
+            Current image repo dictionary with function logical ID as key and image repo URI as value.
+            This dict will be shown in the terminal.
 
         Returns
         -------
@@ -431,6 +440,8 @@ class GuidedContext:
             f"Found ({functions_with_repo_count} of {len(functions)})"
             " #Different image repositories can be set in samconfig.toml"
         )
+        for function_logical_id, repo_uri in existing_mapping.items():
+            click.echo(f"\t {function_logical_id}: {repo_uri}")
 
         # Case for all functions do have mapped repo
         if not functions_without_repo:
