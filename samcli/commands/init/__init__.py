@@ -273,7 +273,7 @@ def do_cli(
     image_bool = name and pt_explicit and base_image
     if location or zip_bool or image_bool:
         # need to turn app_template into a location before we generate
-        templates = InitTemplates(no_interactive)
+        templates = InitTemplates()
         if package_type == IMAGE and image_bool:
             runtime = _get_runtime_from_image(base_image)
             options = templates.init_options(package_type, runtime, base_image, dependency_manager)

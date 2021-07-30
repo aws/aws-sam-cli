@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import Dict
 
 import click
-import requests
 
 from samcli.cli.main import global_cfg
 from samcli.commands.exceptions import UserException, AppTemplateUpdateException
@@ -31,12 +30,7 @@ class InvalidInitTemplateError(UserException):
 
 
 class InitTemplates:
-    def __init__(self, no_interactive=False):
-        # NOTE:: Please note that this temporary, and the PR would be update to clone directly
-        # from the github and use manifest in clone
-        self._manifest_url = "https://raw.githubusercontent.com/sapessi/aws-sam-cli-app-templates/master/manifest.json"
-
-        self._no_interactive = no_interactive
+    def __init__(self):
         self._git_repo: GitRepo = GitRepo(url=APP_TEMPLATES_REPO_URL)
 
     def prompt_for_location(self, package_type, runtime, base_image, dependency_manager):
@@ -113,19 +107,22 @@ class InitTemplates:
 
     def init_options(self, package_type, runtime, base_image, dependency_manager):
         if not self._git_repo.clone_attempted:
-            shared_dir: Path = global_cfg.config_dir
-            try:
-                self._git_repo.clone(clone_dir=shared_dir, clone_name=APP_TEMPLATES_REPO_NAME, replace_existing=True)
-            except CloneRepoUnstableStateException as ex:
-                raise AppTemplateUpdateException(str(ex)) from ex
-            except (OSError, CloneRepoException):
-                # If can't clone, try using an old clone from a previous run if already exist
-                expected_previous_clone_local_path: Path = shared_dir.joinpath(APP_TEMPLATES_REPO_NAME)
-                if expected_previous_clone_local_path.exists():
-                    self._git_repo.local_path = expected_previous_clone_local_path
+            self.git_cloner()
         if self._git_repo.local_path is None:
             return self._init_options_from_bundle(package_type, runtime, dependency_manager)
         return self._init_options_from_manifest(package_type, runtime, base_image, dependency_manager)
+
+    def git_cloner(self):
+        shared_dir: Path = global_cfg.config_dir
+        try:
+            self._git_repo.clone(clone_dir=shared_dir, clone_name=APP_TEMPLATES_REPO_NAME, replace_existing=True)
+        except CloneRepoUnstableStateException as ex:
+            raise AppTemplateUpdateException(str(ex)) from ex
+        except (OSError, CloneRepoException):
+            # If can't clone, try using an old clone from a previous run if already exist
+            expected_previous_clone_local_path: Path = shared_dir.joinpath(APP_TEMPLATES_REPO_NAME)
+            if expected_previous_clone_local_path.exists():
+                self._git_repo.local_path = expected_previous_clone_local_path
 
     def _init_options_from_manifest(self, package_type, runtime, base_image, dependency_manager):
         manifest_path = os.path.join(self._git_repo.local_path, "manifest.json")
@@ -204,13 +201,14 @@ class InitTemplates:
         Returns:
             dict: This is preprocessed manifest with the use_case as key
         """
-        manifest_dump = requests.get(self._manifest_url)
-        if not manifest_dump.ok:
-            raise InvalidInitTemplateError(
-                "Can't retrieve templates manifest from {url}".format(url=self._manifest_url)
-            )
+        if not self._git_repo.clone_attempted:
+            self.git_cloner()
+        manifest_path = os.path.join(self._git_repo.local_path, "manifest.json")
+        with open(str(manifest_path)) as fp:
+            body = fp.read()
+            manifest_body = json.loads(body)
+
         preprocessed_manifest = {}
-        manifest_body = manifest_dump.json()
 
         for template_runtime in manifest_body:
             template_list = manifest_body[template_runtime]
@@ -239,8 +237,8 @@ class InitTemplates:
 def validate_value_in_template(value, template):
     if value not in template:
         raise InvalidInitTemplateError(
-            "Template {name} missing the value for {property} in manifest file".format(
-                name=template["displayName"], property=value
+            "Template is missing the value for {property} in manifest file. Please raise a ticket".format(
+                property=value
             )
         )
 
