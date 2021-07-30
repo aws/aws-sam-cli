@@ -4,6 +4,18 @@ from unittest import TestCase
 from unittest.mock import Mock, patch
 
 
+class TestCheckSumConsistency(TestCase):
+    """This test case is used for surfacing breaking changes companion stacks
+    that can be caused by str_checksum.
+    If the behavior of str_checksum is changed, please verify the side effects
+    that can be caused on companion stacks.
+    """
+
+    def test_check_sum_consistency(self):
+        companion_stack = CompanionStack("Parent-Stack")
+        self.assertEqual(companion_stack.stack_name, "Parent-Stack-8ab67daa-CompanionStack")
+
+
 class TestCompanionStack(TestCase):
     def setUp(self):
         self.check_sum = "checksum"
@@ -27,6 +39,11 @@ class TestCompanionStack(TestCase):
 
     def test_stack_name(self):
         self.assertEqual(self.companion_stack.stack_name, "Parent-Stack-checksum-CompanionStack")
+
+    def test_stack_name_cutoff(self):
+        self.parent_stack_name = "A" * 128
+        self.companion_stack = CompanionStack(self.parent_stack_name)
+        self.assertEqual(self.companion_stack.stack_name, "A" * 104 + "-checksum-CompanionStack")
 
 
 class TestECRRepo(TestCase):
@@ -61,3 +78,17 @@ class TestECRRepo(TestCase):
             self.ecr_repo.get_repo_uri("12345", "us-west-2"),
             "12345.dkr.ecr.us-west-2.amazonaws.com/parentstacknameabcdefgh/functionaqwertyuirepo",
         )
+
+    def test_physical_id_cutoff(self):
+        self.companion_stack_mock.escaped_parent_stack_name = "s" * 128
+        self.companion_stack_mock.parent_stack_hash = "abcdefghijklmn"
+
+        self.function_id = "F" * 64
+        self.ecr_repo = ECRRepo(companion_stack=self.companion_stack_mock, function_logical_id=self.function_id)
+
+        self.assertEqual(self.ecr_repo.physical_id, "s" * 128 + "abcdefgh/" + "f" * 64 + "qwertyuirepo")
+
+    def test_logical_id_cutoff(self):
+        self.function_id = "F" * 64
+        self.ecr_repo = ECRRepo(companion_stack=self.companion_stack_mock, function_logical_id=self.function_id)
+        self.assertEqual(self.ecr_repo.output_logical_id, "F" * 52 + "qwertyuiRepo")
