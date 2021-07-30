@@ -527,7 +527,7 @@ class GuidedContext:
             try:
                 tag_translation(image)
             except NonLocalImageException:
-                pass
+                LOG.debug("Image URI is not pointing to local. Skipping verification.")
             except NoImageFoundException as ex:
                 raise GuidedDeployFailedError("No images found to deploy, try running sam build") from ex
 

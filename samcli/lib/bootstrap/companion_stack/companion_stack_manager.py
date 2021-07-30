@@ -1,6 +1,7 @@
 """
     Companion stack manager
 """
+import logging
 from typing import List, Dict, Optional
 import typing
 
@@ -21,6 +22,8 @@ from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 if typing.TYPE_CHECKING:  # pragma: no cover
     from mypy_boto3_cloudformation.client import CloudFormationClient
     from mypy_boto3_s3.client import S3Client
+
+LOG = logging.getLogger(__name__)
 
 
 class CompanionStackManager:
@@ -193,7 +196,7 @@ class CompanionStackManager:
             try:
                 self._ecr_client.delete_repository(repositoryName=repo.physical_id, force=True)
             except self._ecr_client.exceptions.RepositoryNotFoundException:
-                pass
+                LOG.debug("Image repo not found in companion stack. Skipping deletion.")
 
     def sync_repos(self) -> None:
         """
@@ -202,15 +205,14 @@ class CompanionStackManager:
         Deletes unreferenced repos if they exist.
         Deletes companion stack if there isn't any repo left.
         """
-        exists = self.does_companion_stack_exist()
         has_repo = bool(self.get_repository_mapping())
-        if exists:
+        if self.does_companion_stack_exist():
             self.delete_unreferenced_repos()
             if has_repo:
                 self.update_companion_stack()
             else:
                 self.delete_companion_stack()
-        elif not exists and has_repo:
+        elif has_repo:
             self.update_companion_stack()
 
     def does_companion_stack_exist(self) -> bool:
@@ -225,8 +227,11 @@ class CompanionStackManager:
         try:
             self._cfn_client.describe_stacks(StackName=self._companion_stack.stack_name)
             return True
-        except ClientError:
-            return False
+        except ClientError as e:
+            error_message = e.response.get("Error", {}).get("Message")
+            if error_message == f"Stack with id {self._companion_stack.stack_name} does not exist":
+                return False
+            raise e
 
     def get_repository_mapping(self) -> Dict[str, str]:
         """
