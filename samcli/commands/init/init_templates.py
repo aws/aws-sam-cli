@@ -16,7 +16,10 @@ from samcli.cli.main import global_cfg
 from samcli.commands.exceptions import UserException, AppTemplateUpdateException
 from samcli.lib.utils.git_repo import GitRepo, CloneRepoException, CloneRepoUnstableStateException
 from samcli.lib.utils.packagetype import IMAGE
-from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING, get_local_lambda_images_location
+from samcli.local.common.runtime_template import (
+    RUNTIME_DEP_TEMPLATE_MAPPING,
+    get_local_lambda_images_location,
+)
 
 LOG = logging.getLogger(__name__)
 APP_TEMPLATES_REPO_URL = "https://github.com/aws/aws-sam-cli-app-templates"
@@ -29,7 +32,9 @@ class InvalidInitTemplateError(UserException):
 
 class InitTemplates:
     def __init__(self, no_interactive=False):
+        # NOTE:: Please note that this temporary, and the PR would be update to clone directly from the github and use manifest in clone
         self._manifest_url = "https://raw.githubusercontent.com/sapessi/aws-sam-cli-app-templates/master/manifest.json"
+
         self._no_interactive = no_interactive
         self._git_repo: GitRepo = GitRepo(url=APP_TEMPLATES_REPO_URL)
 
@@ -209,11 +214,11 @@ class InitTemplates:
         for template_runtime in manifest_body:
             template_list = manifest_body[template_runtime]
             for template in template_list:
-                self.validate_value_in_template("packageType", template)
+                validate_value_in_template("packageType", template)
                 package_type = template["packageType"]
-                runtime = self.get_runtime(package_type, template_runtime)
+                runtime = get_runtime(package_type, template_runtime)
 
-                self.validate_value_in_template("useCaseName", template)
+                validate_value_in_template("useCaseName", template)
                 use_case = template["useCaseName"]
                 if use_case not in preprocessed_manifest:
                     preprocessed_manifest[use_case] = {}
@@ -226,18 +231,20 @@ class InitTemplates:
                 preprocessed_manifest[use_case][runtime][package_type].append(template)
         return preprocessed_manifest
 
-    def validate_value_in_template(self, value, template):
-        if value not in template:
-            raise InvalidInitTemplateError(
-                "Template {name} missing the value for {property} in manifest file".format(
-                    name=template["displayName"], property=value
-                )
-            )
-
-    def get_runtime(self, package_type, template_runtime):
-        if package_type == "Image":
-            template_runtime = template_runtime[template_runtime.find("/") + 1 : template_runtime.find("-")]
-        return template_runtime
-
     def get_bundle_option(self, package_type, runtime, dependency_manager):
         return self._init_options_from_bundle(package_type, runtime, dependency_manager)
+
+
+def validate_value_in_template(value, template):
+    if value not in template:
+        raise InvalidInitTemplateError(
+            "Template {name} missing the value for {property} in manifest file".format(
+                name=template["displayName"], property=value
+            )
+        )
+
+
+def get_runtime(package_type, template_runtime):
+    if package_type == "Image":
+        template_runtime = template_runtime[template_runtime.find("/") + 1 : template_runtime.find("-")]
+    return template_runtime
