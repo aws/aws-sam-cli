@@ -2,7 +2,7 @@
 Class object for Lambda Functions. Contains object from template, as well as all data for lambda functions,
 excluding pricing info
 """
-from typing import List, Any, Dict, Union
+from typing import List
 from samcli.commands.check.resources.template_resource import TemplateResource
 from samcli.lib.providers.provider import Function
 
