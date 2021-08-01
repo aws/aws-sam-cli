@@ -14,9 +14,9 @@ from samtranslator.parser import parser
 
 from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
 from samcli.commands.check.bottle_necks import BottleNecks
-from samcli.commands.check.resources.LambdaFunction import LambdaFunction
-from samcli.commands.check.resources.Graph import Graph
-from samcli.commands.check.resources.Pricing import Pricing
+from samcli.commands.check.resources.lambda_function import LambdaFunction
+from samcli.commands.check.resources.graph import CheckGraph
+from samcli.commands.check.resources.pricing import Pricing
 from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
 from samcli.commands.check.calculation import Calculation
@@ -128,7 +128,7 @@ class CheckContext:
         return sam_template
 
 
-def _parse_template() -> Graph:
+def _parse_template() -> CheckGraph:
     """Parses the template to retrieve resources
 
     Returns:
@@ -149,7 +149,6 @@ def _parse_template() -> Graph:
         all_lambda_functions.append(new_lambda_function)
 
     # After all resources have been parsed from template, pass them into the graph
-    graph = Graph()
-    graph.generate(all_lambda_functions)
+    graph = CheckGraph(all_lambda_functions)
 
     return graph

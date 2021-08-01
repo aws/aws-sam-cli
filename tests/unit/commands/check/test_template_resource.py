@@ -1,7 +1,7 @@
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
-from samcli.commands.check.resources.TemplateResource import TemplateResource
+from samcli.commands.check.resources.template_resource import TemplateResource
 
 
 class TestTemplateResource(TestCase):

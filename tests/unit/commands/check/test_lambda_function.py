@@ -1,7 +1,7 @@
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
-from samcli.commands.check.resources.LambdaFunction import LambdaFunction
+from samcli.commands.check.resources.lambda_function import LambdaFunction
 
 
 class TestLambdaFunction(TestCase):

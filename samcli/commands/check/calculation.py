@@ -7,14 +7,14 @@ import botocore
 
 
 from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
-from samcli.commands.check.resources.Graph import Graph
-from .resources.Warning import CheckWarning
+from samcli.commands.check.resources.graph import CheckGraph
+from .resources.warning import CheckWarning
 
 
 class Calculation:
-    _graph: Graph
+    _graph: CheckGraph
 
-    def __init__(self, graph: Graph):
+    def __init__(self, graph: CheckGraph):
         """
         Args:
             graph (Graph): The graph object. This is where all of the data is stored

@@ -103,7 +103,7 @@ class TestCommandContext(TestCase):
         patch_replace.assert_called_with(original_template)
         sam_translator.translate.assert_called_with(sam_template=updated_template, parameter_values={})
 
-    @patch("samcli.commands.check.lib.command_context.Graph")
+    @patch("samcli.commands.check.lib.command_context.CheckGraph")
     @patch("samcli.commands.check.lib.command_context.LambdaFunction")
     @patch("samcli.commands.check.lib.command_context.SamLocalStackProvider")
     @patch("samcli.commands.check.lib.command_context.SamFunctionProvider")
@@ -121,7 +121,6 @@ class TestCommandContext(TestCase):
 
         graph_mock = Mock()
 
-        graph_mock.generate = Mock()
         patch_graph.return_value = graph_mock
 
         all_lambda_functions = [patch_lambda.return_value]
@@ -138,7 +137,6 @@ class TestCommandContext(TestCase):
         patch_function_provider.assert_called_once_with(local_stacks_mock)
         function_provider_mock.get_all.assert_called_once()
         patch_lambda.assert_called_once_with(stack_function_mock, AWS_LAMBDA_FUNCTION)
-        patch_graph.assert_called_once()
-        graph_mock.generate.assert_called_once_with(all_lambda_functions)
+        patch_graph.assert_called_once_with(all_lambda_functions)
 
         self.assertEqual(result, graph_mock)
