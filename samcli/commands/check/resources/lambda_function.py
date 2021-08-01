@@ -17,7 +17,7 @@ class LambdaFunction(TemplateResource):
     allocated_memory: int
     allocated_memory_unit: str
 
-    def __init__(self, resource_object: Union[Dict, Function], resource_type: str):
+    def __init__(self, resource_object: Function, resource_type: str):
         """
         Args:
             resource_object (Dict): The resource object form the template file
@@ -34,5 +34,5 @@ class LambdaFunction(TemplateResource):
         self.allocated_memory_unit = ""
 
     @property
-    def resource_name(self) -> Any:
+    def resource_name(self) -> str:
         return self._resource_object.name
