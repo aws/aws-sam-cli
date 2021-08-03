@@ -17,35 +17,21 @@ class RootStack(core.Stack):
     def __init__(self, scope: cdk.Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        cdk_lambda = _lambda.Function(
+        cdk_lambda = _lambda.DockerImageFunction(
             scope=self,
-            id="cdk-wing-test-lambda",
-            runtime=_lambda.Runtime.PYTHON_3_7,
-            code=_lambda.Code.from_asset("./stack3_lambda_code"),
-            handler="app.lambda_handler",
+            id="container-function",
+            code=_lambda.DockerImageCode.from_image_asset(
+                "./docker_lambda_code",
+                cmd=['app.get'],
+                entrypoint=["/lambda-entrypoint.sh"],
+            ),
         )
-
-        # cdk_lambda = _lambda.DockerImageFunction(
-        #     scope=self,
-        #     id="container-function",
-        #     code=_lambda.DockerImageCode.from_image_asset(
-        #         "./docker_lambda_code",
-        #         cmd=['app.get'],
-        #         entrypoint=["/lambda-entrypoint.sh"],
-        #     ),
-        # )
 
         remote_nested_stack = cfn.CfnStack(
             scope=self,
             id="remote-nested-stack",
             template_url="s3://bucket/key",
         )
-
-        # serverless_function = sam.CfnFunction(
-        #     scope=self,
-        #     id="severless-function",
-        #     code_uri=
-        # )
     
 
 class HelloCdkNestedStacksStack(cfn.NestedStack):
