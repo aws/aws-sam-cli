@@ -30,7 +30,7 @@ class TestTestExecutorFactory(TestCase):
         self.assertIsNone(executor)
 
     @patch("samcli.lib.test.test_executor_factory.LambdaInvokeExecutor")
-    @patch("samcli.lib.test.test_executor_factory.LambdaConvertToDefaultJSON")
+    @patch("samcli.lib.test.test_executor_factory.DefaultConvertToJSON")
     @patch("samcli.lib.test.test_executor_factory.LambdaResponseConverter")
     @patch("samcli.lib.test.test_executor_factory.ResponseObjectToJsonStringMapper")
     @patch("samcli.lib.test.test_executor_factory.TestExecutor")
@@ -87,9 +87,9 @@ class TestTestExecutorFactory(TestCase):
         given_test_executor = Mock()
         patched_test_executor.return_value = given_test_executor
 
-        lambda_executor = self.test_executor_factory._create_sqs_test_executor(given_cfn_resource_summary)
+        sqs_executor = self.test_executor_factory._create_sqs_test_executor(given_cfn_resource_summary)
 
-        self.assertEqual(lambda_executor, given_test_executor)
+        self.assertEqual(sqs_executor, given_test_executor)
 
         patched_convert_to_json.assert_called_once()
         patched_convert_response_to_string.assert_called_once()
@@ -103,4 +103,84 @@ class TestTestExecutorFactory(TestCase):
             ],
             response_mappers=[patched_convert_response_to_string()],
             boto_action_executor=patched_sqs_message_executor(),
+        )
+
+    @patch("samcli.lib.test.test_executor_factory.KinesisPutRecordsExecutor")
+    @patch("samcli.lib.test.test_executor_factory.ResponseObjectToJsonStringMapper")
+    @patch("samcli.lib.test.test_executor_factory.KinesisConvertToRecordsJsonObject")
+    @patch("samcli.lib.test.test_executor_factory.TestExecutor")
+    def test_create_kinesis_test_executor(
+        self,
+        patched_test_executor,
+        patched_convert_to_json,
+        patched_convert_response_to_string,
+        patched_kinesis_put_records_executor,
+    ):
+        given_physical_resource_id = "physical_resource_id"
+        given_cfn_resource_summary = Mock(physical_resource_id="physical_resource_id")
+
+        given_kinesis_client = Mock()
+        self.boto_client_provider_mock.return_value = given_kinesis_client
+
+        given_test_executor = Mock()
+        patched_test_executor.return_value = given_test_executor
+
+        kinesis_executor = self.test_executor_factory._create_kinesis_test_executor(given_cfn_resource_summary)
+
+        self.assertEqual(kinesis_executor, given_test_executor)
+
+        patched_convert_to_json.assert_called_once()
+        patched_convert_response_to_string.assert_called_once()
+
+        self.boto_client_provider_mock.assert_called_with("kinesis")
+        patched_kinesis_put_records_executor.assert_called_with(given_kinesis_client, given_physical_resource_id)
+
+        patched_test_executor.assert_called_with(
+            request_mappers=[
+                patched_convert_to_json(),
+            ],
+            response_mappers=[patched_convert_response_to_string()],
+            boto_action_executor=patched_kinesis_put_records_executor(),
+        )
+
+    @patch("samcli.lib.test.test_executor_factory.StepFunctionsStartExecutionExecutor")
+    @patch("samcli.lib.test.test_executor_factory.ResponseObjectToJsonStringMapper")
+    @patch("samcli.lib.test.test_executor_factory.DefaultConvertToJSON")
+    @patch("samcli.lib.test.test_executor_factory.TestExecutor")
+    def test_create_stepfunctions_test_executor(
+        self,
+        patched_test_executor,
+        patched_convert_to_json,
+        patched_convert_response_to_string,
+        patched_stepfunctions_start_execution_executor,
+    ):
+        given_physical_resource_id = "physical_resource_id"
+        given_cfn_resource_summary = Mock(physical_resource_id="physical_resource_id")
+
+        given_stepfunctions_client = Mock()
+        self.boto_client_provider_mock.return_value = given_stepfunctions_client
+
+        given_test_executor = Mock()
+        patched_test_executor.return_value = given_test_executor
+
+        stepfunctions_executor = self.test_executor_factory._create_stepfunctions_test_executor(
+            given_cfn_resource_summary
+        )
+
+        self.assertEqual(stepfunctions_executor, given_test_executor)
+
+        patched_convert_to_json.assert_called_once()
+        patched_convert_response_to_string.assert_called_once()
+
+        self.boto_client_provider_mock.assert_called_with("stepfunctions")
+        patched_stepfunctions_start_execution_executor.assert_called_with(
+            given_stepfunctions_client, given_physical_resource_id
+        )
+
+        patched_test_executor.assert_called_with(
+            request_mappers=[
+                patched_convert_to_json(),
+            ],
+            response_mappers=[patched_convert_response_to_string()],
+            boto_action_executor=patched_stepfunctions_start_execution_executor(),
         )

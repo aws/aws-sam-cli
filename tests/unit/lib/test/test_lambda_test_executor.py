@@ -3,7 +3,7 @@ from unittest.mock import Mock
 
 from samcli.lib.test.lambda_test_executor import (
     LambdaInvokeExecutor,
-    LambdaConvertToDefaultJSON,
+    DefaultConvertToJSON,
     LambdaResponseConverter,
 )
 from samcli.lib.test.test_executors import TestExecutionInfo
@@ -26,9 +26,9 @@ class TestLambdaInvokeExecutor(TestCase):
         self.lambda_client.invoke.assert_called_with(FunctionName=self.function_name, Payload=given_payload)
 
 
-class TestLambdaConvertToDefaultJSON(TestCase):
+class TestDefaultConvertToJSON(TestCase):
     def setUp(self) -> None:
-        self.lambda_convert_to_default_json = LambdaConvertToDefaultJSON()
+        self.lambda_convert_to_default_json = DefaultConvertToJSON()
 
     def test_conversion(self):
         given_string = "Hello World"

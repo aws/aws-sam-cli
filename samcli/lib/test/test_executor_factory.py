@@ -4,14 +4,20 @@ Test executor factory to instantiate test executor for given resource
 import logging
 from typing import Dict, Callable, Any, Optional
 
-from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION, AWS_SQS_QUEUE, AWS_KINESIS_STREAM
+from samcli.commands._utils.resources import (
+    AWS_LAMBDA_FUNCTION,
+    AWS_SQS_QUEUE,
+    AWS_KINESIS_STREAM,
+    AWS_STEPFUNCTIONS_STATEMACHINE,
+)
 from samcli.lib.test.lambda_test_executor import (
-    LambdaConvertToDefaultJSON,
+    DefaultConvertToJSON,
     LambdaResponseConverter,
     LambdaInvokeExecutor,
 )
 from samcli.lib.test.sqs_test_executor import SqsSendMessageExecutor, SqsConvertToEntriesJsonObject
 from samcli.lib.test.kinesis_test_executor import KinesisPutRecordsExecutor, KinesisConvertToRecordsJsonObject
+from samcli.lib.test.stepfunctions_test_executor import StepFunctionsStartExecutionExecutor
 from samcli.lib.test.test_executors import TestExecutor, ResponseObjectToJsonStringMapper
 from samcli.lib.utils.cloudformation import CloudFormationResourceSummary
 
@@ -57,7 +63,7 @@ class TestExecutorFactory:
 
     def _create_lambda_test_executor(self, cfn_resource_summary: CloudFormationResourceSummary):
         return TestExecutor(
-            request_mappers=[LambdaConvertToDefaultJSON()],
+            request_mappers=[DefaultConvertToJSON()],
             response_mappers=[LambdaResponseConverter(), ResponseObjectToJsonStringMapper()],
             boto_action_executor=LambdaInvokeExecutor(
                 self._boto_client_provider("lambda"),
@@ -89,9 +95,22 @@ class TestExecutorFactory:
             ),
         )
 
+    def _create_stepfunctions_test_executor(self, cfn_resource_summary: CloudFormationResourceSummary):
+        return TestExecutor(
+            request_mappers=[
+                DefaultConvertToJSON(),
+            ],
+            response_mappers=[ResponseObjectToJsonStringMapper()],
+            boto_action_executor=StepFunctionsStartExecutionExecutor(
+                self._boto_client_provider("stepfunctions"),
+                cfn_resource_summary.physical_resource_id,
+            ),
+        )
+
     # mapping definition for each supported resource type
     EXECUTOR_MAPPING: Dict[str, Callable[["TestExecutorFactory", CloudFormationResourceSummary], TestExecutor]] = {
         AWS_LAMBDA_FUNCTION: _create_lambda_test_executor,
         AWS_SQS_QUEUE: _create_sqs_test_executor,
         AWS_KINESIS_STREAM: _create_kinesis_test_executor,
+        AWS_STEPFUNCTIONS_STATEMACHINE: _create_stepfunctions_test_executor,
     }

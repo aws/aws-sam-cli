@@ -31,7 +31,7 @@ class LambdaInvokeExecutor(BotoActionExecutor):
         return self._lambda_client.invoke(FunctionName=self._function_name, Payload=payload)
 
 
-class LambdaConvertToDefaultJSON(TestRequestResponseMapper):
+class DefaultConvertToJSON(TestRequestResponseMapper):
     """
     If a regular string is provided as payload, this class will convert it into a JSON object
     """
@@ -41,7 +41,7 @@ class LambdaConvertToDefaultJSON(TestRequestResponseMapper):
             try:
                 _ = json.loads(cast(str, test_input.payload))
             except JSONDecodeError:
-                json_value = f'"{test_input.payload}"'
+                json_value = json.dumps(test_input.payload)
                 LOG.info(
                     "Auto converting value '%s' into JSON '%s'. "
                     "If you don't want auto-conversion, please provide a JSON string as payload",
