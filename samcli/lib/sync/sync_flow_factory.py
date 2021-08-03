@@ -16,6 +16,7 @@ from samcli.lib.sync.flows.zip_function_sync_flow import ZipFunctionSyncFlow
 from samcli.lib.sync.flows.image_function_sync_flow import ImageFunctionSyncFlow
 from samcli.lib.sync.flows.rest_api_sync_flow import RestApiSyncFlow
 from samcli.lib.sync.flows.http_api_sync_flow import HttpApiSyncFlow
+from samcli.lib.sync.flows.stepfunctions_sync_flow import StepFunctionsSyncFlow
 from samcli.lib.utils.boto_utils import get_boto_resource_provider_with_config
 from samcli.lib.utils.cloudformation import get_physical_id_mapping
 
@@ -110,6 +111,25 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
             self._stacks,
         )
 
+    def _create_stepfunctions_flow(
+        self, resource_identifier: ResourceIdentifier, resource: Dict[str, Any]
+    ) -> Optional[SyncFlow]:
+        definition_substitutions = resource.get("Properties", dict()).get("DefinitionSubstitutions", None)
+        if definition_substitutions:
+            LOG.warning(
+                "DefinitionSubstitutions property is specified in resource %s. Skipping this resource. "
+                "Code sync for StepFunctions does not go through CFN, please run sam sync --infra to update.",
+                resource_identifier,
+            )
+            return None
+        return StepFunctionsSyncFlow(
+            str(resource_identifier),
+            self._build_context,
+            self._deploy_context,
+            self._physical_id_mapping,
+            self._stacks,
+        )
+
     GeneratorFunction = Callable[["SyncFlowFactory", ResourceIdentifier, Dict[str, Any]], Optional[SyncFlow]]
     GENERATOR_MAPPING: Dict[str, GeneratorFunction] = {
         SamBaseProvider.LAMBDA_FUNCTION: _create_lambda_flow,
@@ -120,6 +140,10 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
         CfnApiProvider.APIGATEWAY_RESTAPI: _create_rest_api_flow,
         SamApiProvider.SERVERLESS_HTTP_API: _create_api_flow,
         CfnApiProvider.APIGATEWAY_V2_API: _create_api_flow,
+        # Using strings for resource names for now, looking for a solution to
+        # have a place that stores all resource names like command/_utils/resources.py
+        "AWS::Serverless::StateMachine": _create_stepfunctions_flow,
+        "AWS::StepFunctions::StateMachine": _create_stepfunctions_flow,
     }
     # SyncFlow mapping between resource type and creation function
     # Ignoring no-self-use as PyLint has a bug with Generic Abstract Classes

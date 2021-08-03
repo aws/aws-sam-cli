@@ -58,9 +58,11 @@ class HttpApiSyncFlow(GenericApiSyncFlow):
     def sync(self) -> None:
         api_physical_id = self.get_physical_id(self._api_identifier)
         if self._definition_uri is None:
-            msg = "fails since no DefinitionUri defined in the template, \
-            if you are using DefinitionBody please run sam sync --infra"
-            LOG.error("%sImport HttpApi %s", self.log_prefix, msg)
+            LOG.error(
+                "%sImport HttpApi fails since no DefinitionUri defined in the template, \
+if you are using DefinitionBody please run sam sync --infra",
+                self.log_prefix,
+            )
             raise UriNotFoundException(self._api_identifier, "DefinitionUri")
         LOG.debug("%sTrying to import HttpAPI through client", self.log_prefix)
         response = self._api_client.reimport_api(ApiId=api_physical_id, Body=self._swagger_body)

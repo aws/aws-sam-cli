@@ -66,6 +66,12 @@ class TestSyncFlowFactory(TestCase):
         result = factory._create_api_flow("API1", {})
         self.assertEqual(result, http_api_sync_mock.return_value)
 
+    @patch("samcli.lib.sync.sync_flow_factory.StepFunctionsSyncFlow")
+    def test_create_stepfunctions_flow(self, stepfunctions_sync_mock):
+        factory = self.create_factory()
+        result = factory._create_stepfunctions_flow("StateMachine1", {})
+        self.assertEqual(result, stepfunctions_sync_mock.return_value)
+
     @patch("samcli.lib.sync.sync_flow_factory.get_resource_by_id")
     def test_create_sync_flow(self, get_resource_by_id_mock):
         factory = self.create_factory()
