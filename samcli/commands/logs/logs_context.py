@@ -5,7 +5,12 @@ Read and parse CLI args for the Logs Command and setup the context for running t
 import logging
 from typing import List, Optional, Set, Any
 
-from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION, AWS_APIGATEWAY_RESTAPI, AWS_APIGATEWAY_HTTPAPI
+from samcli.commands._utils.resources import (
+    AWS_LAMBDA_FUNCTION,
+    AWS_APIGATEWAY_RESTAPI,
+    AWS_APIGATEWAY_HTTPAPI,
+    AWS_STEPFUNCTIONS_STATEMACHINE,
+)
 from samcli.commands.exceptions import UserException
 from samcli.lib.utils.boto_utils import BotoProviderType
 from samcli.lib.utils.cloudformation import get_resource_summaries
@@ -58,7 +63,12 @@ class ResourcePhysicalIdResolver:
     """
 
     # list of resource types that is supported right now for pulling their logs
-    DEFAULT_SUPPORTED_RESOURCES: Set[str] = {AWS_LAMBDA_FUNCTION, AWS_APIGATEWAY_RESTAPI, AWS_APIGATEWAY_HTTPAPI}
+    DEFAULT_SUPPORTED_RESOURCES: Set[str] = {
+        AWS_LAMBDA_FUNCTION,
+        AWS_APIGATEWAY_RESTAPI,
+        AWS_APIGATEWAY_HTTPAPI,
+        AWS_STEPFUNCTIONS_STATEMACHINE,
+    }
 
     def __init__(
         self,

@@ -78,7 +78,9 @@ def generate_puller(
     # populate all puller instances for given resources
     for resource_information in resource_information_list:
         cw_log_group_name = LogGroupProvider.for_resource(
-            resource_information.resource_type, resource_information.physical_resource_id
+            boto_client_provider,
+            resource_information.resource_type,
+            resource_information.physical_resource_id,
         )
         if not cw_log_group_name:
             LOG.warning(
