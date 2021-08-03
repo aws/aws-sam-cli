@@ -4,7 +4,7 @@ excluding pricing info
 """
 from typing import List, Any
 from samcli.lib.providers.provider import Function
-from samcli.commands.check.resources.TemplateResource import TemplateResource
+from samcli.commands.check.resources.template_resource import TemplateResource
 
 
 class LambdaFunction(TemplateResource):

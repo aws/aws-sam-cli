@@ -1,7 +1,7 @@
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
-from samcli.commands.check.resources.Graph import Graph
+from samcli.commands.check.resources.graph import Graph
 
 
 class TestGraph(TestCase):

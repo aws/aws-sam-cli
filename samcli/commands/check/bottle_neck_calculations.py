@@ -7,8 +7,8 @@ import botocore
 
 
 from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
-from samcli.commands.check.resources.Graph import Graph
-from .resources.Warning import CheckWarning
+from samcli.commands.check.resources.graph import Graph
+from .resources.warning import CheckWarning
 
 
 class BottleNeckCalculations:

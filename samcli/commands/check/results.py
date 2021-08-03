@@ -4,7 +4,7 @@ Prints the results of bottle neck calculations
 from typing import List
 import click
 
-from samcli.commands.check.resources.Graph import Graph
+from samcli.commands.check.resources.graph import Graph
 
 
 class Results:

@@ -3,11 +3,11 @@ Bottle neck questions are asked here. Data is saved in graph, but not calcualted
 """
 import click
 
-from samcli.commands.check.resources.Graph import Graph
-from samcli.commands.check.resources.LambdaFunction import LambdaFunction
+from samcli.commands.check.resources.graph import Graph
+from samcli.commands.check.resources.lambda_function import LambdaFunction
 from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
-from .resources.Pricing import Pricing
+from .resources.pricing import Pricing
 
 
 class BottleNecks:

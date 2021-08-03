@@ -14,8 +14,8 @@ from samtranslator.parser import parser
 
 from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
 from samcli.commands.check.bottle_necks import BottleNecks
-from samcli.commands.check.resources.LambdaFunction import LambdaFunction
-from samcli.commands.check.resources.Graph import Graph
+from samcli.commands.check.resources.lambda_function import LambdaFunction
+from samcli.commands.check.resources.graph import Graph
 from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
 from samcli.commands.check.pricing_calculations import PricingCalculations
