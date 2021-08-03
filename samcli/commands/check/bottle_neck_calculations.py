@@ -1,6 +1,6 @@
 from types import resolve_bases
 import click
-from .resources.Warning import Warning
+from samcli.commands.check.resources.warning import Warning
 
 import boto3
 

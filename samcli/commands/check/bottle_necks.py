@@ -1,10 +1,10 @@
-from samcli.commands.check.resources.LambdaFunction import LambdaFunction
+from samcli.commands.check.resources.lambda_function import LambdaFunction
 import click
 
 from click import confirm
 from click import prompt
 
-from .resources.Pricing import Pricing
+from samcli.commands.check.resources.pricing import Pricing
 
 
 class BottleNecks:
@@ -138,4 +138,3 @@ class BottleNecks:
 
         for child in lambda_function.get_children():
             self.ask_bottle_neck_questions(child, entry_point_name)
-

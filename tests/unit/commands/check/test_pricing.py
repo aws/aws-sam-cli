@@ -1,12 +1,12 @@
-from samcli.commands.check.resources.LambdaFunctionPricing import LambdaFunctionPricing
+from samcli.commands.check.resources.lambda_function_pricing import LambdaFunctionPricing
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
-from samcli.commands.check.resources.Pricing import Pricing
+from samcli.commands.check.resources.pricing import Pricing
 
 
 class TestPricing(TestCase):
-    @patch("samcli.commands.check.resources.Pricing.click")
+    @patch("samcli.commands.check.resources.pricing.click")
     def test_ask(self, patch_click):
         graph_mock = Mock()
         question_mock = "Mock()"
@@ -19,7 +19,7 @@ class TestPricing(TestCase):
         patch_click.prompt.assert_called_once_with(text=question_mock, type=int)
         self.assertEqual(result, patch_click.prompt.return_value)
 
-    @patch("samcli.commands.check.resources.Pricing.click")
+    @patch("samcli.commands.check.resources.pricing.click")
     def test_ask_memory(self, patch_click):
         graph_mock = Mock()
         question_mock = "Mock()"
@@ -40,7 +40,7 @@ class TestPricing(TestCase):
         self.assertEqual(result0, split_value[0])
         self.assertEqual(result1, split_value[1])
 
-    @patch("samcli.commands.check.resources.Pricing.click")
+    @patch("samcli.commands.check.resources.pricing.click")
     def test_correct_memory_input(self, patch_click):
         # All correct input
         memory_amount = "300"
@@ -118,7 +118,7 @@ class TestPricing(TestCase):
 
         pricing.ask_lambda_function_questions.assert_called_once_with(resource_mock)
 
-    @patch("samcli.commands.check.resources.Pricing.LambdaFunctionPricing")
+    @patch("samcli.commands.check.resources.pricing.LambdaFunctionPricing")
     def test_ask_lambda_function_questions(self, patch_LFPricing):
         pricing_instance_mock = Mock()
         patch_LFPricing.return_value = pricing_instance_mock

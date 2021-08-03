@@ -34,9 +34,9 @@ from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from .bottle_necks import BottleNecks
 from .graph_context import GraphContext
-from .resources.LambdaFunction import LambdaFunction
+from samcli.commands.check.resources.lambda_function import LambdaFunction
 
-from .resources.Pricing import Pricing
+from samcli.commands.check.resources.pricing import Pricing
 from .exceptions import InvalidSamDocumentException
 
 from .bottle_neck_calculations import BottleNeckCalculations

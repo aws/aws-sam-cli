@@ -1,9 +1,9 @@
 from typing import List, OrderedDict
 import click
 
-from samcli.commands.check.resources.DynamoDB import DynamoDB
-from samcli.commands.check.resources.LambdaFunction import LambdaFunction
-from .resources.Graph import Graph
+from samcli.commands.check.resources.dynamo_db import DynamoDB
+from samcli.commands.check.resources.lambda_function import LambdaFunction
+from samcli.commands.check.resources.graph import Graph
 
 
 class GraphContext:

@@ -1,4 +1,4 @@
-from .TemplateResource import TemplateResource
+from samcli.commands.check.resources.template_resource import TemplateResource
 
 
 class LambdaFunction(TemplateResource):

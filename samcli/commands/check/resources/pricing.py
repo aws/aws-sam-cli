@@ -1,6 +1,6 @@
 import click
 
-from .LambdaFunctionPricing import LambdaFunctionPricing
+from samcli.commands.check.resources.lambda_function_pricing import LambdaFunctionPricing
 
 
 class Pricing:

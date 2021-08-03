@@ -2,11 +2,11 @@ import logging
 
 import tomlkit.exceptions
 
-from samcli.commands.check.resources.Graph import Graph
-from samcli.commands.check.resources.LambdaFunction import LambdaFunction
-from samcli.commands.check.resources.LambdaFunctionPricing import LambdaFunctionPricing
-from samcli.commands.check.resources.ApiGateway import ApiGateway
-from samcli.commands.check.resources.DynamoDB import DynamoDB
+from samcli.commands.check.resources.graph import Graph
+from samcli.commands.check.resources.lambda_function import LambdaFunction
+from samcli.commands.check.resources.lambda_function_pricing import LambdaFunctionPricing
+from samcli.commands.check.resources.api_gateway import ApiGateway
+from samcli.commands.check.resources.dynamo_db import DynamoDB
 
 from samcli.commands.check.lib.save_data import get_config_ctx
 
