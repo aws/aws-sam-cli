@@ -12,7 +12,7 @@ from samcli.commands.init.interactive_event_bridge_flow import (
     get_schemas_api_caller,
     get_schemas_template_parameter,
 )
-from samcli.commands.exceptions import SchemasApiException
+from samcli.commands.exceptions import SchemasApiException, InvalidInitOptionException
 from samcli.lib.schemas.schemas_code_manager import do_download_source_code_binding, do_extract_and_merge_schemas_code
 from samcli.local.common.runtime_template import INIT_RUNTIMES, RUNTIME_TO_DEPENDENCY_MANAGERS, LAMBDA_IMAGES_RUNTIMES
 from samcli.commands.init.init_generator import do_generate
@@ -183,23 +183,31 @@ def _get_runtime_from_image(image):
 
 
 def _get_dependency_manager(dependency_manager, runtime):
-    if not dependency_manager:
-        valid_dep_managers = RUNTIME_TO_DEPENDENCY_MANAGERS.get(runtime)
-        if valid_dep_managers is None:
-            dependency_manager = None
-        elif len(valid_dep_managers) == 1:
-            dependency_manager = valid_dep_managers[0]
-        else:
-            choices = list(map(str, range(1, len(valid_dep_managers) + 1)))
-            choice_num = 1
-            click.echo("\nWhich dependency manager would you like to use?")
-            for dm in valid_dep_managers:
-                msg = "\t" + str(choice_num) + " - " + dm
-                click.echo(msg)
-                choice_num = choice_num + 1
-            choice = click.prompt("Dependency manager", type=click.Choice(choices), show_choices=False)
-            dependency_manager = valid_dep_managers[int(choice) - 1]  # zero index
+    valid_dep_managers = RUNTIME_TO_DEPENDENCY_MANAGERS.get(runtime)
+    if dependency_manager:
+        _validate_runtime_dependancy_manager(dependency_manager, runtime)
+    elif valid_dep_managers is None:
+        dependency_manager = None
+    elif len(valid_dep_managers) == 1:
+        dependency_manager = valid_dep_managers[0]
+    else:
+        choices = list(map(str, range(1, len(valid_dep_managers) + 1)))
+        choice_num = 1
+        click.echo("\nWhich dependency manager would you like to use?")
+        for dm in valid_dep_managers:
+            msg = "\t" + str(choice_num) + " - " + dm
+            click.echo(msg)
+            choice_num = choice_num + 1
+        choice = click.prompt("Dependency manager", type=click.Choice(choices), show_choices=False)
+        dependency_manager = valid_dep_managers[int(choice) - 1]  # zero index
     return dependency_manager
+
+
+def _validate_runtime_dependancy_manager(dependency_manager, runtime):
+    valid_dep_managers = RUNTIME_TO_DEPENDENCY_MANAGERS.get(runtime)
+    if dependency_manager not in valid_dep_managers:
+        msg = f"Wrong dependency manager {dependency_manager} selected for Lambda Runtime {runtime}."
+        raise InvalidInitOptionException(msg)
 
 
 def _get_schema_template_details(schemas_api_caller):

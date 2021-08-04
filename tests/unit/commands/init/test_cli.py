@@ -225,6 +225,27 @@ class TestCli(TestCase):
             )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
+    def test_init_fails_wrong_dep_mgr_for_runtime(self, git_repo_clone_mock):
+        # WHEN the wrong dependency_manager is passed for a runtime
+        # THEN an exception should be raised
+        with self.assertRaises(UserException):
+            init_cli(
+                ctx=self.ctx,
+                no_interactive=self.no_interactive,
+                location=self.location,
+                pt_explicit=self.pt_explicit,
+                package_type=self.package_type,
+                runtime="java8",
+                base_image=self.base_image,
+                dependency_manager="pip",
+                output_dir=None,
+                name=self.name,
+                app_template=self.app_template,
+                no_input=self.no_input,
+                extra_context=None,
+            )
+
+    @patch("samcli.lib.utils.git_repo.GitRepo.clone")
     @patch("samcli.commands.init.init_generator.generate_project")
     def test_init_cli_generate_project_fails(self, generate_project_patch, git_repo_clone_mock):
         # GIVEN generate_project fails to create a project
@@ -1387,3 +1408,29 @@ foo
                 no_input=None,
                 extra_context=None,
             )
+
+    @patch("samcli.lib.utils.git_repo.GitRepo._ensure_clone_directory_exists")
+    def test_init_cli_with_mismatch_dep_runtime(self, cd_mock):
+        # WHEN the user follows interactive init prompts
+
+        # 1: selecting template source
+        # 2s: selecting package type
+        user_input = """
+1
+2
+1
+        """
+        args = [
+            "--no-input",
+            "--name",
+            "untitled6",
+            "runtime",
+            "java8",
+            "--dependency-manager",
+            "pip",
+        ]
+        runner = CliRunner()
+        result = runner.invoke(init_cmd, args=args, input=user_input)
+
+        # THEN we should receive no errors
+        self.assertTrue(result.exception)
