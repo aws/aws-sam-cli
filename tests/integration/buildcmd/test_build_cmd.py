@@ -1346,35 +1346,50 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
                 expected_messages, command_result, self._make_parameter_override_arg(overrides)
             )
 
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestRepeatedBuildHitsCache(BuildIntegBase):
+    # Use template containing both functions and layers
+    template = "layers-functions-template.yaml"
+
+    @parameterized.expand([(True,), (False,)])
     @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
-    def test_cached_build_with_env_vars(self):
+    def test_repeated_cached_build_hits_cache(self, use_container):
         """
         Build 2 times to verify that second time hits the cached build
         """
-        overrides = {
-            "FunctionCodeUri": "Python",
-            "Function1Handler": "main.first_function_handler",
-            "Function2Handler": "main.second_function_handler",
-            "FunctionRuntime": "python3.8",
+
+        parameter_overrides = {
+            "LayerContentUri": "PyLayer",
+            "LayerBuildMethod": "python3.7",
+            "CodeUri": "Python",
+            "Handler": "main.handler",
+            "Runtime": "python3.7",
+            "LayerMakeContentUri": "PyLayerMake",
         }
+
         cmdlist = self.get_command_list(
-            use_container=True, parameter_overrides=overrides, cached=True, container_env_var="FOO=BAR"
+            use_container=use_container,
+            parameter_overrides=parameter_overrides,
+            cached=True,
+            container_env_var="FOO=BAR" if use_container else None,
         )
+
+        cache_invalid_output = "Cache is invalid, running build and copying resources to "
+        cache_valid_output = "Valid cache found, copying previously built resources from "
 
         LOG.info("Running Command (cache should be invalid): %s", cmdlist)
-        command_result = run_command(cmdlist, cwd=self.working_dir)
-        self.assertTrue(
-            "Cache is invalid, running build and copying resources to function build definition"
-            in command_result.stderr.decode("utf-8")
-        )
+        command_result = run_command(cmdlist, cwd=self.working_dir).stderr.decode("utf-8")
+        self.assertTrue(cache_invalid_output in command_result)
+        self.assertFalse(cache_valid_output in command_result)
 
         LOG.info("Re-Running Command (valid cache should exist): %s", cmdlist)
-        command_result_with_cache = run_command(cmdlist, cwd=self.working_dir)
-
-        self.assertTrue(
-            "Valid cache found, copying previously built resources from function build definition"
-            in command_result_with_cache.stderr.decode("utf-8")
-        )
+        command_result = run_command(cmdlist, cwd=self.working_dir).stderr.decode("utf-8")
+        self.assertFalse(cache_invalid_output in command_result)
+        self.assertTrue(cache_valid_output in command_result)
 
 
 @skipIf(

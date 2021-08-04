@@ -1,4 +1,3 @@
-from copy import deepcopy
 from unittest import TestCase
 from unittest.mock import Mock, patch, MagicMock, call, ANY
 
@@ -223,11 +222,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
         # since they have the same metadata, they are put into the same build_definition.
         build_definition.functions = [function1, function2]
 
-        with patch("samcli.lib.build.build_strategy.deepcopy", wraps=deepcopy) as patched_deepcopy:
-            result = default_build_strategy.build_single_function_definition(build_definition)
-
-            patched_deepcopy.assert_called_with(build_definition.env_vars)
-
+        result = default_build_strategy.build_single_function_definition(build_definition)
         # both of the function name should show up in results
         self.assertEqual(result, {"Function": built_image, "Function2": built_image})
 
