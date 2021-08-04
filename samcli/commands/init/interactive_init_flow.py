@@ -12,10 +12,10 @@ from samcli.commands.init.interactive_event_bridge_flow import (
     get_schemas_api_caller,
     get_schemas_template_parameter,
 )
-from samcli.commands.exceptions import SchemasApiException
+from samcli.commands.exceptions import SchemasApiException, InvalidInitOptionException
 from samcli.lib.schemas.schemas_code_manager import do_download_source_code_binding, do_extract_and_merge_schemas_code
 from samcli.commands.init.init_generator import do_generate
-from samcli.commands.init.init_templates import InitTemplates
+from samcli.commands.init.init_templates import InitTemplates, InvalidInitTemplateError
 from samcli.lib.utils.osutils import remove
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.local.common.runtime_template import (
@@ -52,6 +52,7 @@ def do_interactive(
 
         get_start_options(
             location,
+            pt_explicit,
             package_type,
             runtime,
             base_image,
@@ -66,6 +67,7 @@ def do_interactive(
 
 def get_start_options(
     location,
+    pt_explicit,
     package_type,
     runtime,
     base_image,
@@ -78,12 +80,12 @@ def get_start_options(
 ):
     if location_opt_choice == "1":
         _generate_simple_application(
-            location, runtime, base_image, dependency_manager, output_dir, name, app_template, package_type
+            location, pt_explicit, runtime, base_image, dependency_manager, output_dir, name, app_template, package_type
         )
 
     elif location_opt_choice == "2":
         _generate_from_use_case(
-            location, package_type, runtime, base_image, dependency_manager, output_dir, name, app_template
+            location, pt_explicit, package_type, runtime, base_image, dependency_manager, output_dir, name, app_template
         )
 
     else:
@@ -92,14 +94,19 @@ def get_start_options(
         )
 
 
+# pylint: disable=too-many-statements
 def _generate_simple_application(
-    location, runtime, base_image, dependency_manager, output_dir, name, app_template, package_type="ZIP"
+    location, pt_explicit, runtime, base_image, dependency_manager, output_dir, name, app_template, package_type="Zip"
 ):
+    if pt_explicit and package_type == "Image":
+        raise InvalidInitOptionException("Hello World Application only supports ZIP package type")
+
     templates = InitTemplates()
-    click.echo("\nWhich runtime would you like to use?")
-    runtime_choosen = _get_choice_from_options("runtime", RUNTIME_DEP_TEMPLATE_MAPPING)
-    runtime_templates = RUNTIME_DEP_TEMPLATE_MAPPING[runtime_choosen]
-    runtime = runtime_templates[0]["runtimes"][0]
+    if not runtime:
+        question = "Which runtime would you like to use?"
+        runtime_choosen = _get_choice_from_options(runtime, RUNTIME_DEP_TEMPLATE_MAPPING, question, "runtime")
+        runtime_templates = RUNTIME_DEP_TEMPLATE_MAPPING[runtime_choosen]
+        runtime = runtime_templates[0]["runtimes"][0]
 
     dependency_manager = _get_dependency_manager(dependency_manager, runtime)
     bundle_template = templates.get_bundle_option(package_type, runtime, dependency_manager)
@@ -138,27 +145,50 @@ Output Directory: {output_dir}
 
 # pylint: disable=too-many-statements
 def _generate_from_use_case(
-    location, package_type, runtime, base_image, dependency_manager, output_dir, name, app_template
+    location, pt_explicit, package_type, runtime, base_image, dependency_manager, output_dir, name, app_template
 ):
+
     templates = InitTemplates()
-    preprocessed_options = templates.get_preprocessed_manifest()
-    click.echo("\nWhat template would you like to start with?")
-    use_case = _get_choice_from_options("Template", preprocessed_options)
+    filter_value = runtime if runtime else base_image
+    preprocessed_options = templates.get_preprocessed_manifest(filter_value)
+
+    question = "What template would you like to start with?"
+    use_case = _get_choice_from_options(
+        None,
+        preprocessed_options,
+        question,
+        "Template",
+    )
 
     runtime_options = preprocessed_options[use_case]
-    click.echo("\nWhich runtime would you like to use?")
-    runtime = _get_choice_from_options("Runtime", runtime_options)
+    question = "Which runtime would you like to use?"
+    runtime = _get_choice_from_options(runtime, runtime_options, question, "Runtime")
+    try:
+        package_types_options = runtime_options[runtime]
+        if not pt_explicit:
+            message = "What package type would you like to use?"
+            package_type = _get_choice_from_options(None, package_types_options, message, "Package type")
+            if package_type == IMAGE:
+                base_image = _get_image_from_runtime(runtime)
+    except Exception as ex:
+        raise InvalidInitOptionException(f"Lambda Runtime {runtime} is not supported for {use_case} examples.") from ex
 
-    package_types_options = runtime_options[runtime]
-    click.echo("\nWhat package type would you like to use?")
-    package_type = _get_choice_from_options("Package type", package_types_options)
-    if package_type == IMAGE:
-        base_image = _get_image_from_runtime(runtime)
+    try:
+        template_options = package_types_options[package_type]
+        template_choosen = _get_app_template_choice(template_options)
+        app_template = template_choosen["appTemplate"]
 
-    template_options = package_types_options[package_type]
-    template_choosen = _get_app_template_choice(template_options)
-    app_template = template_choosen["appTemplate"]
+    except Exception as ex:
+        raise InvalidInitOptionException(
+            f"{package_type} package type is not supported for {use_case} examples and runtime {runtime} selected."
+        ) from ex
 
+    if dependency_manager:
+        validate_runtime_dependancy_manager(dependency_manager, runtime)
+        if dependency_manager != template_choosen["dependencyManager"]:
+            raise InvalidInitOptionException(
+                f"Dependency manager {dependency_manager} is not supported for {app_template} template selected."
+            )
     dependency_manager = template_choosen["dependencyManager"]
     location = templates.location_from_app_template(package_type, runtime, base_image, dependency_manager, app_template)
 
@@ -201,14 +231,19 @@ def _get_app_template_choice(templates):
     return chosen_template
 
 
-def _get_choice_from_options(msg, options):
-    click_choices = []
-    options_list = options if isinstance(options, list) else list(options.keys())
-    for idx, option in enumerate(options_list):
-        click.echo("\t{index} - {name}".format(index=idx + 1, name=option))
-        click_choices.append(str(idx + 1))
-    choice = click.prompt(msg, type=click.Choice(click_choices), show_choices=False)
-    choosen = options_list[int(choice) - 1]
+def _get_choice_from_options(choosen, options, question, msg):
+
+    if not choosen:
+        click_choices = []
+
+        options_list = options if isinstance(options, list) else list(options.keys())
+
+        click.echo(f"\n{question}")
+        for idx, option in enumerate(options_list):
+            click.echo("\t{index} - {name}".format(index=idx + 1, name=option))
+            click_choices.append(str(idx + 1))
+        choice = click.prompt(msg, type=click.Choice(click_choices), show_choices=False)
+        choosen = options_list[int(choice) - 1]
     return choosen
 
 
@@ -245,9 +280,19 @@ def _get_dependency_manager(dependency_manager, runtime):
         elif len(valid_dep_managers) == 1:
             dependency_manager = valid_dep_managers[0]
         else:
-            click.echo("\nWhich dependency manager would you like to use?")
-            return _get_choice_from_options("dependency_manager", valid_dep_managers)
+            question = "Which dependency manager would you like to use?"
+            return _get_choice_from_options(dependency_manager, valid_dep_managers, question, "dependency_manager")
+    validate_runtime_dependancy_manager(dependency_manager, runtime)
     return dependency_manager
+
+
+def validate_runtime_dependancy_manager(dependency_manager, runtime):
+    valid_dep_managers = RUNTIME_TO_DEPENDENCY_MANAGERS.get(runtime)
+    if dependency_manager not in valid_dep_managers:
+        msg = "Lambda Runtime {} and dependency manager {} does not have an available initialization template.".format(
+            runtime, dependency_manager
+        )
+        raise InvalidInitTemplateError(msg)
 
 
 def _package_schemas_code(runtime, schemas_api_caller, schema_template_details, output_dir, name, location):

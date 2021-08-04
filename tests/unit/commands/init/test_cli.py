@@ -23,7 +23,9 @@ from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 class MockInitTemplates:
     def __init__(self, no_interactive=False, auto_clone=True):
-        self._manifest_url = "https://raw.githubusercontent.com/sapessi/aws-sam-cli-app-templates/master/manifest.json"
+        self._manifest_url = (
+            "https://raw.githubusercontent.com/jonife/aws-sam-cli-app-templates/update-init/manifest.json"
+        )
         self._repo_url = "https://github.com/awslabs/aws-sam-cli-app-templates.git"
         self._repo_name = "aws-sam-cli-app-templates"
         self.repo_path = "repository"
@@ -1120,7 +1122,8 @@ foo
         user_input = """
 2
 1
-13
+1
+1
 2
 3
 untitled6
