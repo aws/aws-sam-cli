@@ -1,6 +1,5 @@
 'use strict';
 
-const AWS = require('aws-sdk');
 const log = require('lambda-log');
 
 module.exports.get = (event, context, callback) => {
@@ -11,7 +10,7 @@ module.exports.get = (event, context, callback) => {
     const response = {
         statusCode: 200,
         body: JSON.stringify({
-            "message": "hello world!!! docker"
+            "message": "hello world from Docker"
         })
     };
     log.debug(response);
