@@ -1,5 +1,4 @@
 import subprocess
-from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch, MagicMock, ANY, call
 import os
@@ -56,8 +55,9 @@ class TestGitRepo(TestCase):
         self.repo.clone(clone_dir=self.local_clone_dir, clone_name=REPO_NAME)
         self.local_clone_dir.mkdir.assert_called_once_with(mode=0o700, parents=True, exist_ok=True)
         popen_mock.assert_called_once_with(["git"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        # TODO remove --branch once CDK templates are GA
         check_output_mock.assert_has_calls(
-            [call(["git", "clone", self.repo.url, REPO_NAME], cwd=ANY, stderr=subprocess.STDOUT)]
+            [call(["git", "clone", "--branch", self.repo.branch, self.repo.url, REPO_NAME], cwd=ANY, stderr=subprocess.STDOUT)]
         )
         shutil_mock.rmtree.assert_not_called()
         shutil_mock.copytree.assert_called_with(ANY, EXPECTED_DEFAULT_CLONE_PATH, ignore=ANY)

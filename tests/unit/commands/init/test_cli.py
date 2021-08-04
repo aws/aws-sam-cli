@@ -69,11 +69,12 @@ class TestCli(TestCase):
 
     @classmethod
     def check_output_mock(cls, commands, cwd, stderr):
-        git_executable, _, url, clone_name = commands
+        # TODO remove --branch once CDK is GA
+        git_executable, _, url, _, branch, clone_name = commands
         if url not in cls.clone_cache:
             tempdir = tempfile.NamedTemporaryFile(delete=False).name
             subprocess.check_output(
-                [git_executable, "clone", url, clone_name],
+                [git_executable, "clone", "--branch", branch, url, clone_name],
                 cwd=tempdir,
                 stderr=stderr,
             )
