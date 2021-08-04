@@ -57,7 +57,13 @@ class TestGitRepo(TestCase):
         popen_mock.assert_called_once_with(["git"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         # TODO remove --branch once CDK templates are GA
         check_output_mock.assert_has_calls(
-            [call(["git", "clone", "--branch", self.repo.branch, self.repo.url, REPO_NAME], cwd=ANY, stderr=subprocess.STDOUT)]
+            [
+                call(
+                    ["git", "clone", "--branch", self.repo.branch, self.repo.url, REPO_NAME],
+                    cwd=ANY,
+                    stderr=subprocess.STDOUT,
+                )
+            ]
         )
         shutil_mock.rmtree.assert_not_called()
         shutil_mock.copytree.assert_called_with(ANY, EXPECTED_DEFAULT_CLONE_PATH, ignore=ANY)
