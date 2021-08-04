@@ -13,6 +13,7 @@ class TestPricing(TestCase):
         resource_mock = Mock()
         resource_mock.resource_type = AWS_LAMBDA_FUNCTION
         self_mock._graph.resources_to_analyze = [resource_mock]
+        self_mock._graph.unique_pricing_info = {}
 
         lambda_pricing_mock = Mock()
         lambda_pricing_mock.ask_lambda_function_questions = Mock()
@@ -23,4 +24,4 @@ class TestPricing(TestCase):
 
         lambda_pricing_mock.ask_lambda_function_questions.assert_called_once()
 
-        self.assertEqual(self_mock._graph.lambda_function_pricing_info, lambda_pricing_mock)
+        self.assertEqual(self_mock._graph.unique_pricing_info["LambdaFunction"], lambda_pricing_mock)

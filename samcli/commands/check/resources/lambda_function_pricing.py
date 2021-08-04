@@ -5,9 +5,10 @@ from typing import List, Tuple
 import click
 
 from samcli.commands.check.lib.ask_question import ask
+from samcli.commands.check.resources.unique_pricing_info import UniquePricingInfo
 
 
-class LambdaFunctionPricing:
+class LambdaFunctionPricing(UniquePricingInfo):
     """
     Pricing for lambda funcitons will be hanled differently to all other resources.
     Lambda funciton priocing is based off of the performance of all lambda function,
@@ -40,6 +41,7 @@ class LambdaFunctionPricing:
     _max_duration: int
 
     def __init__(self):
+        super().__init__()
         self.number_of_requests: int = None
         self.average_duration: int = None
         self.allocated_memory: float = None

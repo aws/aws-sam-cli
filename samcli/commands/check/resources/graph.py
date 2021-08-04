@@ -1,11 +1,11 @@
 """
 Class for graph. All data is stored in the graph directly, or within nodes that are stored in the graph
 """
-from typing import List, Optional, Union
+from typing import Dict, List, Union
 
-from samcli.commands.check.resources.lambda_function_pricing import LambdaFunctionPricing
 from samcli.commands.check.resources.lambda_function import LambdaFunction
 from samcli.commands.check.resources.warning import CheckWarning
+from samcli.commands.check.resources.unique_pricing_info import UniquePricingInfo
 
 
 class CheckGraph:
@@ -17,8 +17,8 @@ class CheckGraph:
       neck issues (just lambda functions for now).
     green/yellow/red/red_burst_warnings: The four different warning types that
       the user can be presented
-    lambda_function_pricing_info: Contains the user entered data for the lambda
-      pricing questions
+    unique_pricing_info: Contains the user entered data for all pricing questions
+      for every resource
     """
 
     entry_points: List[Union[LambdaFunction]]
@@ -27,7 +27,7 @@ class CheckGraph:
     yellow_warnings: List[CheckWarning]
     red_warnings: List[CheckWarning]
     red_burst_warnings: List[CheckWarning]
-    lambda_function_pricing_info: Optional[LambdaFunctionPricing]
+    unique_pricing_info: Dict[str, UniquePricingInfo]
 
     def __init__(self, lambda_functions: List):
         self.entry_points: List[Union[LambdaFunction]] = []
@@ -36,11 +36,11 @@ class CheckGraph:
         self.yellow_warnings: List[CheckWarning] = []
         self.red_warnings: List[CheckWarning] = []
         self.red_burst_warnings: List[CheckWarning] = []
-        self.lambda_function_pricing_info: Optional[LambdaFunctionPricing] = None
+        self.unique_pricing_info: Dict[str, UniquePricingInfo] = {}
 
         self._generate(lambda_functions)
 
-    def _generate(self, lambda_functions: List) -> None:
+    def _generate(self, lambda_functions: List[LambdaFunction]) -> None:
         """Generates the graph based on the connections calulated
         Parameters
         ----------

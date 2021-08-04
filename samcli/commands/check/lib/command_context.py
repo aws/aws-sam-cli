@@ -158,7 +158,7 @@ def _parse_template() -> CheckGraph:
     function_provider = SamFunctionProvider(local_stacks)
     functions = function_provider.get_all()  # List of all functions in the stacks
     for stack_function in functions:
-        new_lambda_function = LambdaFunction(stack_function, AWS_LAMBDA_FUNCTION)
+        new_lambda_function = LambdaFunction(stack_function, AWS_LAMBDA_FUNCTION, stack_function.name)
         all_lambda_functions.append(new_lambda_function)
 
     # After all resources have been parsed from template, pass them into the graph

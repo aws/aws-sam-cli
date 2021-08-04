@@ -18,7 +18,7 @@ class CheckPricing:
         """
         Parameters
         ----------
-            graph: Graph
+            graph: CheckGraph
               The graph object. This is where all of the data is stored
         """
         self._graph: CheckGraph = graph
@@ -37,4 +37,4 @@ class CheckPricing:
                 lambda_pricing = LambdaFunctionPricing()
                 lambda_pricing.ask_lambda_function_questions()
 
-                self._graph.lambda_function_pricing_info = lambda_pricing
+                self._graph.unique_pricing_info["LambdaFunction"] = lambda_pricing

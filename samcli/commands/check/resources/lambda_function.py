@@ -17,7 +17,7 @@ class LambdaFunction(TemplateResource):
     allocated_memory: int
     allocated_memory_unit: str
 
-    def __init__(self, resource_object: Function, resource_type: str):
+    def __init__(self, resource_object: Function, resource_type: str, resource_name: str):
         """
         Parameters
         ----------
@@ -25,8 +25,10 @@ class LambdaFunction(TemplateResource):
                 The resource object form the template file
             resource_type: str
                 The resource type
+            resource_name: str
+                The name of the resource
         """
-        super().__init__(resource_object, resource_type)
+        super().__init__(resource_object, resource_type, resource_name)
         self.duration = -1
         self.tps = -1
         self.parents: List = []
@@ -35,7 +37,3 @@ class LambdaFunction(TemplateResource):
         self.average_duration = -1
         self.allocated_memory = -1
         self.allocated_memory_unit = ""
-
-    @property
-    def resource_name(self) -> str:
-        return self._resource_object.name

@@ -112,6 +112,7 @@ class TestCommandContext(TestCase):
         path_mock = Mock()
         local_stacks_mock = Mock()
         stack_function_mock = Mock()
+        stack_function_mock.name = Mock()
 
         function_provider_mock = Mock()
         function_provider_mock.get_all.return_value = [stack_function_mock]
@@ -136,7 +137,7 @@ class TestCommandContext(TestCase):
         patch_stack_provider.get_stacks.assert_called_once_with(path_mock)
         patch_function_provider.assert_called_once_with(local_stacks_mock)
         function_provider_mock.get_all.assert_called_once()
-        patch_lambda.assert_called_once_with(stack_function_mock, AWS_LAMBDA_FUNCTION)
+        patch_lambda.assert_called_once_with(stack_function_mock, AWS_LAMBDA_FUNCTION, stack_function_mock.name)
         patch_graph.assert_called_once_with(all_lambda_functions)
 
         self.assertEqual(result, graph_mock)

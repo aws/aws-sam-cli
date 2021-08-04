@@ -18,7 +18,7 @@ class CheckCalculation:
         """
         Parameters
         ----------
-            graph: Graph
+            graph: CheckGraph
                 The graph object. This is where all of the data is stored
         """
         self._graph = graph

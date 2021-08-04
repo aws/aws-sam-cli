@@ -5,6 +5,7 @@ from typing import List
 import click
 
 from samcli.commands.check.resources.graph import CheckGraph
+from samcli.commands.check.resources.warning import CheckWarning
 
 
 class CheckResults:
@@ -14,7 +15,7 @@ class CheckResults:
         """
         Parameters
         ----------
-            graph: Graph
+            graph: CheckGraph
                 The graph object. This is where all of the data is stored
         """
         self._graph = graph
@@ -33,11 +34,11 @@ class CheckResults:
         _print_warnings(self._graph.red_burst_warnings)
 
 
-def _print_warnings(warnings: List):
+def _print_warnings(warnings: List[CheckWarning]):
     """An individual warning message gets echoed here
     Parameters
     ----------
-        warnings: List
+        warnings: List[CheckWarning]
             List of one type of warnings
     """
     for warning in warnings:
