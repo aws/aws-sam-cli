@@ -316,6 +316,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "SamFuncWithImage2",
                 Function(
+                    function_id="SamFuncWithImage2",
                     name="SamFuncWithImage2",
                     functionname="SamFuncWithImage2",
                     runtime=None,
@@ -426,6 +427,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "LambdaFuncWithInlineCode",
                 Function(
+                    function_id="LambdaFuncWithInlineCode",
                     name="LambdaFuncWithInlineCode",
                     functionname="LambdaFuncWithInlineCode",
                     runtime="nodejs4.3",

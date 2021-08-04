@@ -27,6 +27,7 @@ class MockInitTemplates:
         self._no_interactive = no_interactive
         self._git_repo: GitRepo = GitRepo(
             url=APP_TEMPLATES_REPO_URL,
+            branch="cdk-template",
         )
         self._git_repo.clone_attempted = True
         self._git_repo.local_path = Path("repository")
@@ -69,11 +70,12 @@ class TestCli(TestCase):
 
     @classmethod
     def check_output_mock(cls, commands, cwd, stderr):
-        git_executable, _, url, clone_name = commands
+        # TODO remove --branch once CDK is GA
+        git_executable, _, url, _, branch, clone_name = commands
         if url not in cls.clone_cache:
             tempdir = tempfile.NamedTemporaryFile(delete=False).name
             subprocess.check_output(
-                [git_executable, "clone", url, clone_name],
+                [git_executable, "clone", "--branch", branch, url, clone_name],
                 cwd=tempdir,
                 stderr=stderr,
             )
@@ -1232,9 +1234,9 @@ foo
             None,
         )
 
-    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
+    @patch("samcli.lib.utils.git_repo.GitRepo._ensure_clone_directory_exists")
     @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli_int_cdk_project_from_location(self, generate_project_patch, sd_mock):
+    def test_init_cli_int_cdk_project_from_location(self, generate_project_patch, cd_mock):
         # WHEN the user follows interactive init prompts
 
         # 2: Project type: CDK
@@ -1341,6 +1343,8 @@ foo
                 runtime=None,
                 no_input=self.no_input,
                 extra_context=self.extra_context,
+                project_type=ProjectTypes.CFN,
+                cdk_language=None,
             )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
@@ -1380,6 +1384,8 @@ foo
                 runtime=None,
                 no_input=self.no_input,
                 extra_context=self.extra_context,
+                project_type=ProjectTypes.CFN,
+                cdk_language=None,
             )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
@@ -1420,8 +1426,11 @@ foo
             runtime=None,
             no_input=None,
             extra_context=None,
+            project_type=ProjectTypes.CFN,
+            cdk_language=None,
         )
         generate_project_patch.assert_called_once_with(
+            ProjectTypes.CFN,
             os.path.normpath("repository/python3.8-image/cookiecutter-ml-apigw-pytorch"),  # location
             "Image",  # package_type
             "python3.8",  # runtime
@@ -1463,8 +1472,11 @@ foo
             runtime=None,
             no_input=None,
             extra_context=None,
+            project_type=ProjectTypes.CFN,
+            cdk_language=None,
         )
         generate_project_patch.assert_called_once_with(
+            ProjectTypes.CFN,
             os.path.normpath("repository/python3.8-image/cookiecutter-ml-apigw-pytorch"),  # location
             "Image",  # package_type
             "python3.8",  # runtime
@@ -1506,8 +1518,11 @@ foo
             runtime=None,
             no_input=None,
             extra_context=None,
+            project_type=ProjectTypes.CFN,
+            cdk_language=None,
         )
         generate_project_patch.assert_called_once_with(
+            ProjectTypes.CFN,
             os.path.normpath("repository/python3.8-image/cookiecutter-ml-apigw-pytorch"),  # location
             "Image",  # package_type
             "python3.8",  # runtime
@@ -1550,4 +1565,6 @@ foo
                 runtime=None,
                 no_input=None,
                 extra_context=None,
+                project_type=ProjectTypes.CFN,
+                cdk_language=None,
             )

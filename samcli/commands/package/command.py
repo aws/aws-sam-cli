@@ -117,9 +117,9 @@ The following resources and their property locations are supported.
     required=False,
     is_flag=True,
     help="Automatically resolve s3 bucket for non-guided deployments. "
-         "Enabling this option will also create a managed default s3 bucket for you. "
-         "If you do not provide a --s3-bucket value, the managed bucket will be used. "
-         "Do not use --s3-guided parameter with this option.",
+    "Enabling this option will also create a managed default s3 bucket for you. "
+    "If you do not provide a --s3-bucket value, the managed bucket will be used. "
+    "Do not use --s3-guided parameter with this option.",
 )
 @click.option("--stack-name", required=False, help="The stack name to package")
 @metadata_override_option

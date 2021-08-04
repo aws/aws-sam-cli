@@ -675,6 +675,9 @@ class TestInvokeContext_local_lambda_runner(TestCase):
         image_mock = Mock()
         lambda_image_patch.return_value = image_mock
 
+        iac_mock = Mock()
+        project_mock = Mock()
+
         cwd = "cwd"
         self.context = InvokeContext(
             template_file="template_file",
@@ -692,6 +695,8 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             aws_region="region",
             container_host="abcdef",
             container_host_interface="192.168.100.101",
+            iac=iac_mock,
+            project=project_mock,
         )
         self.context.get_cwd = Mock()
         self.context.get_cwd.return_value = cwd

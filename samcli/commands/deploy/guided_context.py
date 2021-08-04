@@ -12,13 +12,6 @@ from click.types import FuncParamType
 
 from samcli.commands._utils.options import _space_separated_list_func_type, DEFAULT_STACK_NAME
 from samcli.commands.deploy.auth_utils import auth_per_resource
-from samcli.commands._utils.options import _space_separated_list_func_type
-from samcli.commands._utils.template import (
-    get_template_parameters,
-    get_template_artifacts_format,
-    get_template_function_resource_ids,
-)
-from samcli.commands.deploy.auth_utils import auth_per_resource
 from samcli.commands.deploy.code_signer_utils import (
     signer_config_per_function,
     extract_profile_name_and_owner_from_existing,

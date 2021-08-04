@@ -150,5 +150,8 @@ class TestSamDeployCommand(TestCase):
                 [{"ParameterKey": "a", "ParameterValue": "b"}, {"ParameterKey": "c", "UsePreviousValue": True}],
             )
             patched_get_buildable_stacks.assert_called_once_with(
-                ANY, parameter_overrides={"a": "b"}, global_parameter_overrides={"AWS::Region": "any-aws-region"}
+                ANY,
+                parameter_overrides={"a": "b"},
+                normalize_resource_metadata=False,
+                global_parameter_overrides={"AWS::Region": "any-aws-region"},
             )

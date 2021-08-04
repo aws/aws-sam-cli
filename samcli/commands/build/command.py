@@ -17,20 +17,18 @@ from samcli.commands._utils.options import (
     cdk_click_options,
 )
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
+from samcli.commands.build.build_constants import DEFAULT_BUILD_DIR, DEFAULT_CACHE_DIR
 from samcli.lib.build.exceptions import BuildInsideContainerError
 from samcli.lib.iac.interface import IacPlugin, Project
-from samcli.lib.iac.utils.helpers import inject_iac_plugin
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.commands.build.exceptions import InvalidBuildImageException
 from samcli.commands.build.click_container import ContainerOptions
+from samcli.lib.iac.utils.helpers import inject_iac_plugin
 
 LOG = logging.getLogger(__name__)
-
-DEFAULT_BUILD_DIR = os.path.join(".aws-sam", "build")
-DEFAULT_CACHE_DIR = os.path.join(".aws-sam", "cache")
 
 HELP_TEXT = """
 Use this command to build your AWS Lambda Functions source code to generate artifacts that target AWS Lambda's
