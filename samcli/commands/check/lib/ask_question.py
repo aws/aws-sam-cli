@@ -6,17 +6,23 @@ if it is within the specified range.
 import click
 
 
-def ask(question: str, min_val: int = 1, max_val: float = float("inf")) -> int:
+def ask(question: str, min_val: float = 1, max_val: float = float("inf")) -> int:
     """Prompts the user with a question for some input. A min and max value
     can be passed and used.
 
-    Args:
-        question (str): The question to ask the user
-        min_val (int, optional): The min value the user can enter. Defaults to 1.
-        max_val (float, optional): The max value the user can enter. Defaults to float("inf").
+    Parameters
+    ----------
+        question: str
+            The question to ask the user
+        min_val: float, optional
+            The min value the user can enter. Defaults to 1.
+        max_val: float, optional
+            The max value the user can enter. Defaults to float("inf").
 
-    Returns:
-        [type]: [description]
+    Returns
+    -------
+        int
+            Returns the user input once it's within the range
     """
     valid_user_input = False
     user_input = -1

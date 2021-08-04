@@ -19,9 +19,12 @@ class LambdaFunction(TemplateResource):
 
     def __init__(self, resource_object: Function, resource_type: str):
         """
-        Args:
-            resource_object (Dict): The resource object form the template file
-            resource_type (str): The resource type
+        Parameters
+        ----------
+            resource_object: Function
+                The resource object form the template file
+            resource_type: str
+                The resource type
         """
         super().__init__(resource_object, resource_type)
         self.duration = -1

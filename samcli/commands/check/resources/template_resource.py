@@ -13,9 +13,12 @@ class TemplateResource:
 
     def __init__(self, resource_object: Function, resource_type: str):
         """
-        Args:
-            resource_object (Function): The resource object form the template file
-            resource_type (str): The resource type
+        Parameters
+        ----------
+            resource_object: Function
+                The resource object form the template file
+            resource_type: str
+                The resource type
         """
         self._resource_object: Function = resource_object
         self._resource_type: str = resource_type

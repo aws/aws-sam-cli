@@ -12,9 +12,9 @@ from samcli.commands.check.lib.command_context import CheckContext, _parse_templ
 
 
 class TestCommandContext(TestCase):
-    @patch("samcli.commands.check.lib.command_context.Pricing")
-    @patch("samcli.commands.check.lib.command_context.Results")
-    @patch("samcli.commands.check.lib.command_context.Calculation")
+    @patch("samcli.commands.check.lib.command_context.CheckPricing")
+    @patch("samcli.commands.check.lib.command_context.CheckResults")
+    @patch("samcli.commands.check.lib.command_context.CheckCalculation")
     @patch("samcli.commands.check.lib.command_context._parse_template")
     @patch("samcli.commands.check.lib.command_context.BottleNecks")
     def test_run(self, patch_bottle_neck, patch_parse_template, patch_calculations, patch_print, patch_pricing):

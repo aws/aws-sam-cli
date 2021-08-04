@@ -16,8 +16,10 @@ class BottleNecks:
 
     def __init__(self, graph: CheckGraph):
         """
-        Args:
-            graph (Graph): The graph object. This is where all of the data is stored
+        Parameters
+        ----------
+            graph: Graph
+                The graph object. This is where all of the data is stored
         """
         self._graph = graph
         self._lambda_max_duration = 900000
@@ -54,8 +56,10 @@ class BottleNecks:
         """
         TPS (if necessary) and duration questions are asked for lambda functions
 
-        Args:
-            lambda_function (LambdaFunction): [description]
+        Parameters
+        ----------
+            lambda_function: LambdaFunction
+                The current lambda function object being analyzed from the graph
         """
         # If there is no entry point to the lambda function, get tps
         if lambda_function.tps == -1:
@@ -78,8 +82,10 @@ class BottleNecks:
 
         """Specific bottle neck questions are asked based on resource type
 
-        Args:
-            resource (LambdaFunction): [description]
+        Parameters
+        ----------
+            resource: LambdaFunction
+                The current lambda function object being analyzed from the graph
         """
         if resource.resource_type == AWS_LAMBDA_FUNCTION:
             self._lambda_bottle_neck_quesitons(resource)

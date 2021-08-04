@@ -11,20 +11,15 @@ from samcli.commands.check.resources.lambda_function_pricing import LambdaFuncti
 from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
 
-class Pricing:
+class CheckPricing:
     _graph: CheckGraph
 
     def __init__(self, graph: CheckGraph) -> None:
         """
-        Args:
-            graph (Graph): The graph object. This is where all of the data is stored
-
-        - _max_num_requests are the maximum number of requests that the bulk API will accept
-        - _min_memory_amount is the smallest amount of memory in MB that can be used to
-          calcualte pricing info
-        - _max_memory_amount is the largest amount of memory in MBthat can be used to
-          calcualte pricing info
-        - _max_duration is the maximum runtime for lambda funcitons in ms
+        Parameters
+        ----------
+            graph: Graph
+              The graph object. This is where all of the data is stored
         """
         self._graph: CheckGraph = graph
 

@@ -11,12 +11,13 @@ from samcli.commands.check.resources.warning import CheckWarning
 class CheckGraph:
     """
     A graph object stores four main item types.
-    - entry_points are all possible entry points to the application based on the template.
-    - resources_to_analyze are all resources that need to be directly checked for bottle
+
+    entry_points: All possible entry points to the application based on the template.
+    resources_to_analyze: All resources that need to be directly checked for bottle
       neck issues (just lambda functions for now).
-    - green/yellow/red/red_burst_warnings are the four different warning types that
+    green/yellow/red/red_burst_warnings: The four different warning types that
       the user can be presented
-    - lambda_function_pricing_info will contain the user entered data for the lambda
+    lambda_function_pricing_info: Contains the user entered data for the lambda
       pricing questions
     """
 
@@ -41,8 +42,10 @@ class CheckGraph:
 
     def _generate(self, lambda_functions: List) -> None:
         """Generates the graph based on the connections calulated
-        Args:
-            lambda_functions (List): List of all lambda functions in template
+        Parameters
+        ----------
+            lambda_functions: List
+              List of all lambda functions in template
         """
         # Find all entry points
         for function in lambda_functions:

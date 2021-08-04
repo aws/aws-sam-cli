@@ -1,7 +1,7 @@
 from unittest import TestCase
 from unittest.mock import MagicMock, Mock, patch
 
-from samcli.commands.check.calculation import Calculation
+from samcli.commands.check.calculation import CheckCalculation
 from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
 
@@ -24,7 +24,7 @@ class TestCalculations(TestCase):
         graph_mock.red_warnings.append = Mock()
         graph_mock.red_burst_warnings.append = Mock()
 
-        calculations = Calculation(graph_mock)
+        calculations = CheckCalculation(graph_mock)
 
         # Capacity <= 70
         capacity_used = 60
@@ -105,7 +105,7 @@ class TestCalculations(TestCase):
 
         patch_boto3.client.return_value = client_mock
 
-        calculations = Calculation(graph_mock)
+        calculations = CheckCalculation(graph_mock)
 
         patch_check_limit.return_value = Mock()
         calculations._generate_warning_message = Mock()

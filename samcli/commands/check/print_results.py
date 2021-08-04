@@ -7,13 +7,15 @@ import click
 from samcli.commands.check.resources.graph import CheckGraph
 
 
-class Results:
+class CheckResults:
     _graph: CheckGraph
 
     def __init__(self, graph: CheckGraph):
         """
-        Args:
-            graph (Graph): The graph object. This is where all of the data is stored
+        Parameters
+        ----------
+            graph: Graph
+                The graph object. This is where all of the data is stored
         """
         self._graph = graph
 
@@ -33,8 +35,10 @@ class Results:
 
 def _print_warnings(warnings: List):
     """An individual warning message gets echoed here
-    Args:
-        warnings (List): List of one type of warnings
+    Parameters
+    ----------
+        warnings: List
+            List of one type of warnings
     """
     for warning in warnings:
         click.echo(warning.message + "\n")

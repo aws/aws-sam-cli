@@ -1,7 +1,7 @@
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
-from samcli.commands.check.resources.pricing import Pricing
+from samcli.commands.check.resources.pricing import CheckPricing
 from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
 
@@ -19,7 +19,7 @@ class TestPricing(TestCase):
 
         patch_lambda_pricing.return_value = lambda_pricing_mock
 
-        Pricing.ask_pricing_questions(self_mock)
+        CheckPricing.ask_pricing_questions(self_mock)
 
         lambda_pricing_mock.ask_lambda_function_questions.assert_called_once()
 

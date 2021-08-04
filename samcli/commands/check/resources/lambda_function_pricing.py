@@ -13,12 +13,20 @@ class LambdaFunctionPricing:
     Lambda funciton priocing is based off of the performance of all lambda function,
     not an individual one. Therefore, all of that data can eb stored in a class object
     rather than a random lambda function object. This data gets stored in the graph.
-    - number_of_requests are the expected amount of requests all lambda funcitons
-      will experience in a given month
-    - average_duration is the average duration of all lambda functions
-    - allocated_memory [128MB - 10GB] is how much memory the user wants to allocate
-      to their lambda funcitons
-    - allocated_memory_unit [MB, GB] is the unit of memory for the amount entered
+
+    number_of_requests: The expected amount of requests all lambda funcitons
+        will experience in a given month
+    average_duration: The average duration of all lambda functions
+    allocated_memory [128MB - 10GB]: How much memory the user wants to allocate
+        to their lambda funcitons
+    allocated_memory_unit [MB, GB]: The unit of memory for the amount entered
+
+    _max_num_requests: The maximum number of requests that the bulk API will accept
+    _min_memory_amount: The smallest amount of memory in MB that can be used to
+        calcualte pricing info
+    _max_memory_amount: The largest amount of memory in MB that can be used to
+        calcualte pricing info
+    _max_duration i: The maximum runtime for lambda funcitons in ms
     """
 
     number_of_requests: int
@@ -43,7 +51,6 @@ class LambdaFunctionPricing:
         self._max_duration: int = 900000
 
     def ask_lambda_function_questions(self) -> None:
-        """Lambda function pricing questions"""
 
         user_input_requests = ask(
             "What are the total number of requests expected from all lambda functions in a given month?",
@@ -67,11 +74,15 @@ class LambdaFunctionPricing:
     def _validate_memory_input(self, user_input_split: List) -> bool:
         """Checks if user input correct memory amount and unit
 
-        Args:
-            user_input_split (List): User enterd data [memory_amount, memory_unit]
+        Parameters
+        ----------
+            user_input_split: List
+                User enterd data [memory_amount, memory_unit]
 
-        Returns:
-            [type]: [description]
+        Returns
+        -------
+            bool
+                True if correct input provided, False otherqise
         """
         if len(user_input_split) != 2:
             click.echo("Please enter a valid input.")
@@ -110,11 +121,15 @@ class LambdaFunctionPricing:
     def _ask_memory(self, question: str) -> Tuple[float, str]:
         """Ask user memory pricing question for lambda functions
 
-        Args:
-            question (str): The question to ask the user
+        Parameters
+        ----------
+            question: str
+                The question to ask the user
 
-        Returns:
-            str: memory amount and unit
+        Returns
+        -------
+            user_input_split[0], user_input_split[1]
+                memory amount and unit
         """
         valid_user_input = False
         user_input_split = []

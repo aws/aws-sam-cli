@@ -46,7 +46,7 @@ class TestBottleNeck(TestCase):
         bottle_neck._lambda_bottle_neck_quesitons.assert_called_once_with(my_resource)
 
     @patch("samcli.commands.check.bottle_necks.ask")
-    def test__lambda_bottle_neck_quesitons(self, patch_ask):
+    def test_lambda_bottle_neck_quesitons(self, patch_ask):
         lambda_function_mock = Mock()
         lambda_function_mock.tps = -1
         lambda_function_mock.duration = -1
