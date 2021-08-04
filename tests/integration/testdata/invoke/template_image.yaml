@@ -203,3 +203,13 @@ Resources:
       ImageConfig:
         Command:
           - main.echo_event
+
+  ImageDoesntExistFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: func-name
+      PackageType: Image
+      ImageUri: non-existing-image:v1
+      ImageConfig:
+        Command:
+          - main.echo_event

@@ -17,20 +17,18 @@ from samcli.commands._utils.options import (
     cdk_click_options,
 )
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
+from samcli.commands.build.build_constants import DEFAULT_BUILD_DIR, DEFAULT_CACHE_DIR
 from samcli.lib.build.exceptions import BuildInsideContainerError
 from samcli.lib.iac.interface import IacPlugin, Project
-from samcli.lib.iac.utils.helpers import inject_iac_plugin
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.commands.build.exceptions import InvalidBuildImageException
 from samcli.commands.build.click_container import ContainerOptions
+from samcli.lib.iac.utils.helpers import inject_iac_plugin
 
 LOG = logging.getLogger(__name__)
-
-DEFAULT_BUILD_DIR = os.path.join(".aws-sam", "build")
-DEFAULT_CACHE_DIR = os.path.join(".aws-sam", "cache")
 
 HELP_TEXT = """
 Use this command to build your AWS Lambda Functions source code to generate artifacts that target AWS Lambda's
@@ -220,6 +218,7 @@ def cli(
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
     mode = _get_mode_value_from_envvar("SAM_BUILD_MODE", choices=["debug"])
     do_cli(
+        ctx,
         resource_logical_id,
         template_file,
         base_dir,
@@ -244,6 +243,7 @@ def cli(
 
 
 def do_cli(  # pylint: disable=too-many-locals, too-many-statements
+    click_ctx,
     function_identifier: Optional[str],
     template: str,
     base_dir: Optional[str],
@@ -307,6 +307,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         container_env_var=processed_env_vars,
         container_env_var_file=container_env_var_file,
         build_images=processed_build_images,
+        aws_region=click_ctx.region,
         iac=iac,
         project=project,
     ) as ctx:

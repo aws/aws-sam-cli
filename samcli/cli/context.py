@@ -4,7 +4,7 @@ Context information passed to each CLI command
 
 import logging
 import uuid
-from typing import Optional, cast
+from typing import Optional, cast, List
 
 import boto3
 import botocore
@@ -223,7 +223,7 @@ class Context:
             raise CredentialsError(str(ex)) from ex
 
 
-def get_cmd_names(cmd_name, ctx):
+def get_cmd_names(cmd_name, ctx) -> List[str]:
     """
     Given the click core context, return a list representing all the subcommands passed to the CLI
 

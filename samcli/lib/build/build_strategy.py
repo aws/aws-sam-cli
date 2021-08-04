@@ -5,6 +5,7 @@ import logging
 import pathlib
 import shutil
 from abc import abstractmethod, ABC
+from copy import deepcopy
 from typing import Callable, Dict, List, Any, Optional, cast
 
 from samcli.commands.build.exceptions import MissingBuildMethodException
@@ -114,6 +115,10 @@ class DefaultBuildStrategy(BuildStrategy):
 
         LOG.debug("Building to following folder %s", single_build_dir)
 
+        # we should create a copy and pass it down, otherwise additional env vars like LAMBDA_BUILDERS_LOG_LEVEL
+        # will make cache invalid all the time
+        container_env_vars = deepcopy(build_definition.env_vars)
+
         # when a function is passed here, it is ZIP function, codeuri and runtime are not None
         result = self._build_function(
             build_definition.get_function_name(),
@@ -123,7 +128,7 @@ class DefaultBuildStrategy(BuildStrategy):
             build_definition.get_handler_name(),
             single_build_dir,
             build_definition.metadata,
-            build_definition.env_vars,
+            container_env_vars,
         )
         function_build_results[single_full_path] = result
 
@@ -214,7 +219,7 @@ class CachedBuildStrategy(BuildStrategy):
             return self._delegate_build_strategy.build_single_function_definition(build_definition)
 
         code_dir = str(pathlib.Path(self._base_dir, cast(str, build_definition.codeuri)).resolve())
-        source_md5 = dir_checksum(code_dir)
+        source_md5 = dir_checksum(code_dir, ignore_list=[".aws-sam"])
         cache_function_dir = pathlib.Path(self._cache_dir, build_definition.uuid)
         function_build_results = {}
 
@@ -253,7 +258,7 @@ class CachedBuildStrategy(BuildStrategy):
         Builds single layer definition with caching
         """
         code_dir = str(pathlib.Path(self._base_dir, cast(str, layer_definition.codeuri)).resolve())
-        source_md5 = dir_checksum(code_dir)
+        source_md5 = dir_checksum(code_dir, ignore_list=[".aws-sam"])
         cache_function_dir = pathlib.Path(self._cache_dir, layer_definition.uuid)
         layer_build_result = {}
 

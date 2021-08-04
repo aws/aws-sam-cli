@@ -54,6 +54,7 @@ class TestDoCli(TestCase):
         project = Mock()
 
         do_cli(
+            ctx_mock,
             "function_identifier",
             "template",
             "base_dir",
@@ -133,6 +134,7 @@ class TestDoCli(TestCase):
 
         with self.assertRaises(UserException) as ctx:
             do_cli(
+                ctx_mock,
                 "function_identifier",
                 "template",
                 "base_dir",
@@ -170,6 +172,7 @@ class TestDoCli(TestCase):
 
         with self.assertRaises(UserException) as ctx:
             do_cli(
+                ctx_mock,
                 "function_identifier",
                 "template",
                 "base_dir",

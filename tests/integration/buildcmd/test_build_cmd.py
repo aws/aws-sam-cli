@@ -1,15 +1,25 @@
 import shutil
-import sys
-import os
 import logging
+import os
 import random
-from unittest import skipIf
+import sys
 from pathlib import Path
-from parameterized import parameterized, parameterized_class
+from unittest import skipIf
 
 import pytest
+from parameterized import parameterized, parameterized_class
 
 from samcli.lib.utils import osutils
+from tests.testing_utils import (
+    IS_WINDOWS,
+    RUNNING_ON_CI,
+    RUNNING_TEST_FOR_MASTER_ON_CI,
+    RUN_BY_CANARY,
+    CI_OVERRIDE,
+    run_command,
+    SKIP_DOCKER_TESTS,
+    SKIP_DOCKER_MESSAGE,
+)
 from .build_integ_base import (
     BuildIntegBase,
     DedupBuildIntegBase,
@@ -18,18 +28,13 @@ from .build_integ_base import (
     NestedBuildIntegBase,
     IntrinsicIntegBase,
 )
-from tests.testing_utils import (
-    IS_WINDOWS,
-    RUNNING_ON_CI,
-    CI_OVERRIDE,
-    run_command,
-    SKIP_DOCKER_TESTS,
-    SKIP_DOCKER_MESSAGE,
-)
 
 LOG = logging.getLogger(__name__)
 
 TIMEOUT = 420  # 7 mins
+
+# SAR tests require credentials. This is to skip running the test where credentials are not available.
+SKIP_SAR_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
 
 @skipIf(
@@ -1127,8 +1132,8 @@ class TestBuildWithBuildMethod(BuildIntegBase):
 
         # runtime is chosen based off current python version.
         runtime = self._get_python_version()
-        # BuildMethod is set to the ruby2.7, this should cause failure.
-        overrides = {"Runtime": runtime, "CodeUri": "Provided", "Handler": "main.handler", "BuildMethod": "ruby2.7"}
+        # BuildMethod is set to the java8, this should cause failure.
+        overrides = {"Runtime": runtime, "CodeUri": "Provided", "Handler": "main.handler", "BuildMethod": "java8"}
         manifest_path = os.path.join(self.test_data_path, "Provided", "requirements.txt")
 
         cmdlist = self.get_command_list(
@@ -1340,6 +1345,36 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
             self._verify_build_and_invoke_functions(
                 expected_messages, command_result, self._make_parameter_override_arg(overrides)
             )
+
+    @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
+    def test_cached_build_with_env_vars(self):
+        """
+        Build 2 times to verify that second time hits the cached build
+        """
+        overrides = {
+            "FunctionCodeUri": "Python",
+            "Function1Handler": "main.first_function_handler",
+            "Function2Handler": "main.second_function_handler",
+            "FunctionRuntime": "python3.8",
+        }
+        cmdlist = self.get_command_list(
+            use_container=True, parameter_overrides=overrides, cached=True, container_env_var="FOO=BAR"
+        )
+
+        LOG.info("Running Command (cache should be invalid): %s", cmdlist)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertTrue(
+            "Cache is invalid, running build and copying resources to function build definition"
+            in command_result.stderr.decode("utf-8")
+        )
+
+        LOG.info("Re-Running Command (valid cache should exist): %s", cmdlist)
+        command_result_with_cache = run_command(cmdlist, cwd=self.working_dir)
+
+        self.assertTrue(
+            "Valid cache found, copying previously built resources from function build definition"
+            in command_result_with_cache.stderr.decode("utf-8")
+        )
 
 
 @skipIf(
@@ -2014,3 +2049,36 @@ class TestBuildWithZipFunctionsOrLayers(NestedBuildIntegBase):
                 [""],
                 command_result,  # there is only one stack
             )
+
+
+@skipIf(SKIP_SAR_TESTS, "Skip SAR tests")
+class TestBuildSAR(BuildIntegBase):
+    template = "aws-serverless-application-with-application-id-map.yaml"
+
+    @parameterized.expand(
+        [
+            ("use_container", "us-east-2"),
+            ("use_container", "eu-west-1"),
+            ("use_container", None),
+            (False, "us-east-2"),
+            (False, "eu-west-1"),
+            (False, None),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_sar_application_with_location_resolved_from_map(self, use_container, region):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        cmdlist = self.get_command_list(use_container=use_container, region=region)
+        LOG.info("Running Command: %s", cmdlist)
+        LOG.info(self.working_dir)
+        process_execute = run_command(cmdlist, cwd=self.working_dir)
+
+        if region == "us-east-2":  # Success [the !FindInMap contains an entry for use-east-2 region only]
+            self.assertEqual(process_execute.process.returncode, 0)
+        else:
+            # Using other regions or the default SAM CLI region (us-east-1, in case if None region given)
+            # will fail the build as there is no mapping
+            self.assertEqual(process_execute.process.returncode, 1)
+            self.assertIn("Property \\'ApplicationId\\' cannot be resolved.", str(process_execute.stderr))

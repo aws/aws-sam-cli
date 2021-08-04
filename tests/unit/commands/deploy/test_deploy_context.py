@@ -1,6 +1,6 @@
 """Test sam deploy command"""
 from unittest import TestCase
-from unittest.mock import patch, MagicMock, Mock
+from unittest.mock import ANY, patch, MagicMock, Mock
 import tempfile
 
 from samcli.lib.deploy.deployer import Deployer
@@ -27,7 +27,7 @@ class TestSamDeployCommand(TestCase):
             notification_arns=[],
             fail_on_empty_changeset=False,
             tags={"a": "b"},
-            region=None,
+            region="any-aws-region",
             profile=None,
             confirm_changeset=False,
             signing_profiles=None,
@@ -148,4 +148,10 @@ class TestSamDeployCommand(TestCase):
             self.assertEqual(
                 self.deploy_command_context.deployer.create_and_wait_for_changeset.call_args[1]["parameter_values"],
                 [{"ParameterKey": "a", "ParameterValue": "b"}, {"ParameterKey": "c", "UsePreviousValue": True}],
+            )
+            patched_get_buildable_stacks.assert_called_once_with(
+                ANY,
+                parameter_overrides={"a": "b"},
+                normalize_resource_metadata=False,
+                global_parameter_overrides={"AWS::Region": "any-aws-region"},
             )

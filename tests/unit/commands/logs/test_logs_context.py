@@ -1,11 +1,11 @@
-import botocore.session
-from botocore.stub import Stubber
-
 from unittest import TestCase
 from unittest.mock import Mock, patch, ANY
 
-from samcli.commands.logs.logs_context import LogsCommandContext
+import botocore.session
+from botocore.stub import Stubber
+
 from samcli.commands.exceptions import UserException
+from samcli.commands.logs.logs_context import LogsCommandContext
 
 
 class TestLogsCommandContext(TestCase):
@@ -30,13 +30,6 @@ class TestLogsCommandContext(TestCase):
         self.assertEqual(self.context.filter_pattern, self.filter_pattern)
         self.assertIsNone(self.context.output_file_handle)  # before setting context handle will be null
 
-    @patch("samcli.commands.logs.logs_context.LogsFetcher")
-    def test_fetcher_property(self, LogsFetcherMock):
-        LogsFetcherMock.return_value = Mock()
-
-        self.assertEqual(self.context.fetcher, LogsFetcherMock.return_value)
-        LogsFetcherMock.assert_called_with(self.context._logs_client)
-
     @patch("samcli.commands.logs.logs_context.Colored")
     def test_colored_property(self, ColoredMock):
         ColoredMock.return_value = Mock()
@@ -60,15 +53,6 @@ class TestLogsCommandContext(TestCase):
 
         self.assertEqual(ctx.colored, ColoredMock.return_value)
         ColoredMock.assert_called_with(colorize=True)  # Must enable colors
-
-    @patch("samcli.commands.logs.logs_context.LogsFormatter")
-    @patch("samcli.commands.logs.logs_context.Colored")
-    def test_formatter_property(self, ColoredMock, LogsFormatterMock):
-        LogsFormatterMock.return_value = Mock()
-        ColoredMock.return_value = Mock()
-
-        self.assertEqual(self.context.formatter, LogsFormatterMock.return_value)
-        LogsFormatterMock.assert_called_with(ColoredMock.return_value, ANY)
 
     @patch("samcli.commands.logs.logs_context.LogGroupProvider")
     @patch.object(LogsCommandContext, "_get_resource_id_from_stack")

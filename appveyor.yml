@@ -174,7 +174,7 @@ for:
       # Pre-dev Tests
       - "pip install -e \".[pre-dev]\""
       - "pylint --rcfile .pylintrc samcli"
-      
+
       # Dev Tests
       - "pip install -e \".[dev]\""
       #TODO revert the percentage to 94

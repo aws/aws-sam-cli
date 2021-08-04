@@ -1,0 +1,5 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+tags = "stage=int company:application=awesome-service company:department=engineering company:staff=12"

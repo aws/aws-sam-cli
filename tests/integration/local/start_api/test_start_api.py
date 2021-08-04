@@ -1,3 +1,4 @@
+import base64
 import uuid
 import random
 
@@ -382,14 +383,14 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
-    def test_invalid_v2_lambda_response(self):
+    def test_v2_lambda_response_skip_unexpected_fields(self):
         """
         Patch Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
         """
         response = requests.get(self.url + "/invalidv2response", timeout=300)
 
-        self.assertEqual(response.status_code, 502)
-        self.assertEqual(response.json(), {"message": "Internal server error"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -533,6 +534,48 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
         expected = self.get_binary_data(self.binary_data_file)
 
         response = requests.get(self.url + "/base64response", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("Content-Type"), "image/gif")
+        self.assertEqual(response.content, expected)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_non_decoded_binary_response(self):
+        """
+        Binary data is returned correctly
+        """
+        expected = base64.b64encode(self.get_binary_data(self.binary_data_file))
+
+        response = requests.get(self.url + "/nondecodedbase64response", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("Content-Type"), "image/gif")
+        self.assertEqual(response.content, expected)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_decoded_binary_response_base64encoded_field(self):
+        """
+        Binary data is returned correctly
+        """
+        expected = self.get_binary_data(self.binary_data_file)
+
+        response = requests.get(self.url + "/decodedbase64responsebas64encoded", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("Content-Type"), "image/gif")
+        self.assertEqual(response.content, expected)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_decoded_binary_response_base64encoded_field_is_priority(self):
+        """
+        Binary data is returned correctly
+        """
+        expected = base64.b64encode(self.get_binary_data(self.binary_data_file))
+
+        response = requests.get(self.url + "/decodedbase64responsebas64encodedpriority", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("Content-Type"), "image/gif")

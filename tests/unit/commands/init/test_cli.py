@@ -1,3 +1,9 @@
+import os
+import shutil
+import subprocess
+import tempfile
+from pathlib import Path
+from typing import Dict, Any
 from unittest import TestCase
 from unittest.mock import patch, ANY
 
@@ -5,23 +11,25 @@ import botocore.exceptions
 import click
 from click.testing import CliRunner
 
-from samcli.commands.init.init_templates import InitTemplates
+from samcli.commands.exceptions import UserException
 from samcli.commands.init import cli as init_cmd
 from samcli.commands.init import do_cli as init_cli
+from samcli.commands.init.init_templates import InitTemplates, APP_TEMPLATES_REPO_URL
 from samcli.lib.iac.interface import ProjectTypes
 from samcli.lib.init import GenerateProjectFailedError
-from samcli.commands.exceptions import UserException
+from samcli.lib.utils import osutils
+from samcli.lib.utils.git_repo import GitRepo
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 
 class MockInitTemplates:
-    def __init__(self, no_interactive=False, auto_clone=True):
-        self._repo_url = "https://github.com/awslabs/aws-sam-cli-app-templates.git"
-        self._repo_name = "aws-sam-cli-app-templates"
-        self.repo_path = "repository"
-        self.clone_attempted = True
+    def __init__(self, no_interactive=False):
         self._no_interactive = no_interactive
-        self._auto_clone = auto_clone
+        self._git_repo: GitRepo = GitRepo(
+            url=APP_TEMPLATES_REPO_URL,
+        )
+        self._git_repo.clone_attempted = True
+        self._git_repo.local_path = Path("repository")
 
 
 class TestCli(TestCase):
@@ -41,9 +49,41 @@ class TestCli(TestCase):
         self.extra_context = '{"project_name": "testing project", "runtime": "python3.6"}'
         self.extra_context_as_json = {"project_name": "testing project", "runtime": "python3.6"}
 
-    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
+    # setup cache for clone, so that if `git clone` is called multiple times on the same URL,
+    # only one clone will happen.
+    clone_cache: Dict[str, Path]
+    patcher: Any
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        # Make (url -> directory) cache to avoid cloning the same thing twice
+        cls.clone_cache = {}
+        cls.patcher = patch("samcli.lib.utils.git_repo.check_output", side_effect=cls.check_output_mock)
+        cls.patcher.start()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.patcher.stop()
+        for _, directory in cls.clone_cache.items():
+            shutil.rmtree(directory.parent)
+
+    @classmethod
+    def check_output_mock(cls, commands, cwd, stderr):
+        git_executable, _, url, clone_name = commands
+        if url not in cls.clone_cache:
+            tempdir = tempfile.NamedTemporaryFile(delete=False).name
+            subprocess.check_output(
+                [git_executable, "clone", url, clone_name],
+                cwd=tempdir,
+                stderr=stderr,
+            )
+            cls.clone_cache[url] = Path(tempdir, clone_name)
+
+        osutils.copytree(str(cls.clone_cache[url]), str(Path(cwd, clone_name)))
+
+    @patch("samcli.lib.utils.git_repo.GitRepo.clone")
     @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli(self, generate_project_patch, sd_mock):
+    def test_init_cli(self, generate_project_patch, git_repo_clone_mock):
         # GIVEN generate_project successfully created a project
         # WHEN a project name has been passed
         init_cli(
@@ -60,7 +100,6 @@ class TestCli(TestCase):
             app_template=self.app_template,
             no_input=self.no_input,
             extra_context=None,
-            auto_clone=False,
             project_type=ProjectTypes.CFN,
             cdk_language=None,
         )
@@ -79,9 +118,9 @@ class TestCli(TestCase):
             self.extra_context_as_json,
         )
 
-    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
+    @patch("samcli.lib.utils.git_repo.GitRepo.clone")
     @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_image_cli(self, generate_project_patch, sd_mock):
+    def test_init_image_cli(self, generate_project_patch, git_repo_clone_mock):
         # GIVEN generate_project successfully created a project
         # WHEN a project name has been passed
         init_cli(
@@ -98,7 +137,6 @@ class TestCli(TestCase):
             app_template=None,
             no_input=self.no_input,
             extra_context=None,
-            auto_clone=False,
             project_type=ProjectTypes.CFN,
             cdk_language=None,
         )
@@ -117,9 +155,9 @@ class TestCli(TestCase):
             {"runtime": "nodejs12.x", "project_name": "testing project"},
         )
 
-    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
+    @patch("samcli.lib.utils.git_repo.GitRepo.clone")
     @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_image_java_cli(self, generate_project_patch, sd_mock):
+    def test_init_image_java_cli(self, generate_project_patch, git_repo_clone_mock):
         # GIVEN generate_project successfully created a project
         # WHEN a project name has been passed
         init_cli(
@@ -136,7 +174,6 @@ class TestCli(TestCase):
             app_template=None,
             no_input=self.no_input,
             extra_context=None,
-            auto_clone=False,
             project_type=ProjectTypes.CFN,
             cdk_language=None,
         )
@@ -155,8 +192,8 @@ class TestCli(TestCase):
             {"runtime": "java11", "project_name": "testing project"},
         )
 
-    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
-    def test_init_fails_invalid_template(self, sd_mock):
+    @patch("samcli.lib.utils.git_repo.GitRepo.clone")
+    def test_init_fails_invalid_template(self, git_repo_clone_mock):
         # WHEN an unknown app template is passed in
         # THEN an exception should be raised
         with self.assertRaises(UserException):
@@ -174,13 +211,12 @@ class TestCli(TestCase):
                 app_template="wrong-and-bad",
                 no_input=self.no_input,
                 extra_context=None,
-                auto_clone=False,
                 project_type=ProjectTypes.CFN,
                 cdk_language=None,
             )
 
-    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
-    def test_init_fails_invalid_dep_mgr(self, sd_mock):
+    @patch("samcli.lib.utils.git_repo.GitRepo.clone")
+    def test_init_fails_invalid_dep_mgr(self, git_repo_clone_mock):
         # WHEN an unknown app template is passed in
         # THEN an exception should be raised
         with self.assertRaises(UserException):
@@ -198,14 +234,13 @@ class TestCli(TestCase):
                 app_template=self.app_template,
                 no_input=self.no_input,
                 extra_context=None,
-                auto_clone=False,
                 project_type=ProjectTypes.CFN,
                 cdk_language=None,
             )
 
-    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
+    @patch("samcli.lib.utils.git_repo.GitRepo.clone")
     @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli_generate_project_fails(self, generate_project_patch, sd_mock):
+    def test_init_cli_generate_project_fails(self, generate_project_patch, git_repo_clone_mock):
         # GIVEN generate_project fails to create a project
         generate_project_patch.side_effect = GenerateProjectFailedError(
             project=self.name, provider_error="Something wrong happened"
@@ -228,7 +263,6 @@ class TestCli(TestCase):
                 app_template=None,
                 no_input=self.no_input,
                 extra_context=None,
-                auto_clone=False,
                 project_type=ProjectTypes.CFN,
                 cdk_language=None,
             )
@@ -243,9 +277,9 @@ class TestCli(TestCase):
                 self.no_input,
             )
 
-    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
+    @patch("samcli.lib.utils.git_repo.GitRepo.clone")
     @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli_generate_project_image_fails(self, generate_project_patch, sd_mock):
+    def test_init_cli_generate_project_image_fails(self, generate_project_patch, git_repo_clone_mock):
         # GIVEN generate_project fails to create a project
         generate_project_patch.side_effect = GenerateProjectFailedError(
             project=self.name, provider_error="Something wrong happened"
@@ -268,7 +302,6 @@ class TestCli(TestCase):
                 app_template=None,
                 no_input=self.no_input,
                 extra_context=None,
-                auto_clone=False,
                 project_type=ProjectTypes.CFN,
                 cdk_language=None,
             )
@@ -301,7 +334,6 @@ class TestCli(TestCase):
             app_template=self.app_template,
             no_input=self.no_input,
             extra_context=None,
-            auto_clone=False,
             project_type=ProjectTypes.CFN,
             cdk_language=None,
         )
@@ -337,7 +369,6 @@ class TestCli(TestCase):
             app_template=self.app_template,
             no_input=self.no_input,
             extra_context='{"schema_name":"events", "schema_type":"aws"}',
-            auto_clone=False,
             project_type=ProjectTypes.CFN,
             cdk_language=None,
         )
@@ -373,7 +404,6 @@ class TestCli(TestCase):
             app_template=self.app_template,
             no_input=self.no_input,
             extra_context='{"project_name": "my_project", "runtime": "java8", "schema_name":"events", "schema_type": "aws"}',
-            auto_clone=False,
             project_type=ProjectTypes.CFN,
             cdk_language=None,
         )
@@ -409,7 +439,6 @@ class TestCli(TestCase):
                 app_template=self.app_template,
                 no_input=self.no_input,
                 extra_context='{"project_name", "my_project", "runtime": "java8", "schema_name":"events", "schema_type": "aws"}',
-                auto_clone=False,
                 project_type=ProjectTypes.CFN,
                 cdk_language=None,
             )
@@ -432,7 +461,6 @@ class TestCli(TestCase):
             app_template=None,
             no_input=None,
             extra_context='{"schema_name":"events", "schema_type": "aws"}',
-            auto_clone=False,
             project_type=ProjectTypes.CFN,
             cdk_language=None,
         )
@@ -468,7 +496,6 @@ class TestCli(TestCase):
             app_template=None,
             no_input=None,
             extra_context='{"schema_name":"events", "schema_type": "aws"}',
-            auto_clone=False,
             project_type=ProjectTypes.CFN,
             cdk_language=None,
         )
@@ -504,7 +531,6 @@ class TestCli(TestCase):
             app_template=None,
             no_input=None,
             extra_context='{"schema_name":"events", "schema_type": "aws"}',
-            auto_clone=False,
             project_type=ProjectTypes.CFN,
             cdk_language=None,
         )
@@ -542,7 +568,6 @@ class TestCli(TestCase):
             # fmt: off
             extra_context='{\"schema_name\":\"events\", \"schema_type\":\"aws\"}',
             # fmt: on
-            auto_clone=False,
             project_type=ProjectTypes.CFN,
             cdk_language=None,
         )
@@ -1158,7 +1183,6 @@ Y
             app_template="eventBridge-schema-app",
             no_input=self.no_input,
             extra_context=None,
-            auto_clone=False,
             project_type=ProjectTypes.CFN,
             cdk_language=None,
         )
@@ -1176,9 +1200,9 @@ Y
             self.extra_context_as_json,
         )
 
-    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
+    @patch("samcli.lib.utils.git_repo.GitRepo._ensure_clone_directory_exists")
     @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli_int_from_location(self, generate_project_patch, sd_mock):
+    def test_init_cli_int_from_location(self, generate_project_patch, cd_mock):
         # WHEN the user follows interactive init prompts
 
         # 1: Project type: SAM
@@ -1208,9 +1232,9 @@ foo
             None,
         )
 
-    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
+    @patch("samcli.lib.utils.git_repo.GitRepo._ensure_clone_directory_exists")
     @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli_int_cdk_project_from_location(self, generate_project_patch, sd_mock):
+    def test_init_cli_int_cdk_project_from_location(self, generate_project_patch, cd_mock):
         # WHEN the user follows interactive init prompts
 
         # 2: Project type: CDK
@@ -1240,9 +1264,9 @@ foo
             None,
         )
 
-    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
+    @patch("samcli.lib.utils.git_repo.GitRepo._ensure_clone_directory_exists")
     @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli_no_package_type(self, generate_project_patch, sd_mock):
+    def test_init_cli_no_package_type(self, generate_project_patch, cd_mock):
         # WHEN the user follows interactive init prompts
 
         # 1: Project type: SAM
@@ -1279,3 +1303,266 @@ foo
             True,
             ANY,
         )
+
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
+    def test_init_cli_image_pool_with_base_image_having_multiple_managed_template_but_no_app_template_provided(
+        self,
+        init_options_from_manifest_mock,
+    ):
+        init_options_from_manifest_mock.return_value = [
+            {
+                "directory": "python3.8-image/cookiecutter-aws-sam-hello-python-lambda-image",
+                "displayName": "Hello World Lambda Image Example",
+                "dependencyManager": "pip",
+                "appTemplate": "hello-world-lambda-image",
+                "packageType": "Image",
+            },
+            {
+                "directory": "python3.8-image/cookiecutter-ml-apigw-pytorch",
+                "displayName": "PyTorch Machine Learning Inference API",
+                "dependencyManager": "pip",
+                "appTemplate": "ml-apigw-pytorch",
+                "packageType": "Image",
+            },
+        ]
+        with self.assertRaises(UserException):
+            init_cli(
+                ctx=self.ctx,
+                no_interactive=self.no_interactive,
+                pt_explicit=self.pt_explicit,
+                package_type="Image",
+                base_image="amazon/python3.8-base",
+                dependency_manager="pip",
+                app_template=None,
+                name=self.name,
+                output_dir=self.output_dir,
+                location=None,
+                runtime=None,
+                no_input=self.no_input,
+                extra_context=self.extra_context,
+                project_type=ProjectTypes.CFN,
+                cdk_language=None,
+            )
+
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
+    def test_init_cli_image_pool_with_base_image_having_multiple_managed_template_and_provided_app_template_not_matching_any_managed_templates(
+        self,
+        init_options_from_manifest_mock,
+    ):
+        init_options_from_manifest_mock.return_value = [
+            {
+                "directory": "python3.8-image/cookiecutter-aws-sam-hello-python-lambda-image",
+                "displayName": "Hello World Lambda Image Example",
+                "dependencyManager": "pip",
+                "appTemplate": "hello-world-lambda-image",
+                "packageType": "Image",
+            },
+            {
+                "directory": "python3.8-image/cookiecutter-ml-apigw-pytorch",
+                "displayName": "PyTorch Machine Learning Inference API",
+                "dependencyManager": "pip",
+                "appTemplate": "ml-apigw-pytorch",
+                "packageType": "Image",
+            },
+        ]
+        with self.assertRaises(UserException):
+            init_cli(
+                ctx=self.ctx,
+                no_interactive=self.no_interactive,
+                pt_explicit=self.pt_explicit,
+                package_type="Image",
+                base_image="amazon/python3.8-base",
+                dependency_manager="pip",
+                app_template="Not-ml-apigw-pytorch",  # different value than appTemplates shown in the manifest above
+                name=self.name,
+                output_dir=self.output_dir,
+                location=None,
+                runtime=None,
+                no_input=self.no_input,
+                extra_context=self.extra_context,
+                project_type=ProjectTypes.CFN,
+                cdk_language=None,
+            )
+
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_image_pool_with_base_image_having_multiple_managed_template_with_matching_app_template_provided(
+        self,
+        generate_project_patch,
+        init_options_from_manifest_mock,
+    ):
+        init_options_from_manifest_mock.return_value = [
+            {
+                "directory": "python3.8-image/cookiecutter-aws-sam-hello-python-lambda-image",
+                "displayName": "Hello World Lambda Image Example",
+                "dependencyManager": "pip",
+                "appTemplate": "hello-world-lambda-image",
+                "packageType": "Image",
+            },
+            {
+                "directory": "python3.8-image/cookiecutter-ml-apigw-pytorch",
+                "displayName": "PyTorch Machine Learning Inference API",
+                "dependencyManager": "pip",
+                "appTemplate": "ml-apigw-pytorch",
+                "packageType": "Image",
+            },
+        ]
+        init_cli(
+            ctx=self.ctx,
+            no_interactive=True,
+            pt_explicit=True,
+            package_type="Image",
+            base_image="amazon/python3.8-base",
+            dependency_manager="pip",
+            app_template="ml-apigw-pytorch",  # same value as one appTemplate in the manifest above
+            name=self.name,
+            output_dir=None,
+            location=None,
+            runtime=None,
+            no_input=None,
+            extra_context=None,
+            project_type=ProjectTypes.CFN,
+            cdk_language=None,
+        )
+        generate_project_patch.assert_called_once_with(
+            ProjectTypes.CFN,
+            os.path.normpath("repository/python3.8-image/cookiecutter-ml-apigw-pytorch"),  # location
+            "Image",  # package_type
+            "python3.8",  # runtime
+            "pip",  # dependency_manager
+            self.output_dir,
+            self.name,
+            True,  # no_input
+            ANY,
+        )
+
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_image_pool_with_base_image_having_one_managed_template_does_not_need_app_template_argument(
+        self,
+        generate_project_patch,
+        init_options_from_manifest_mock,
+    ):
+        init_options_from_manifest_mock.return_value = [
+            {
+                "directory": "python3.8-image/cookiecutter-ml-apigw-pytorch",
+                "displayName": "PyTorch Machine Learning Inference API",
+                "dependencyManager": "pip",
+                "appTemplate": "ml-apigw-pytorch",
+                "packageType": "Image",
+            },
+        ]
+        init_cli(
+            ctx=self.ctx,
+            no_interactive=True,
+            pt_explicit=True,
+            package_type="Image",
+            base_image="amazon/python3.8-base",
+            dependency_manager="pip",
+            app_template=None,
+            name=self.name,
+            output_dir=None,
+            location=None,
+            runtime=None,
+            no_input=None,
+            extra_context=None,
+            project_type=ProjectTypes.CFN,
+            cdk_language=None,
+        )
+        generate_project_patch.assert_called_once_with(
+            ProjectTypes.CFN,
+            os.path.normpath("repository/python3.8-image/cookiecutter-ml-apigw-pytorch"),  # location
+            "Image",  # package_type
+            "python3.8",  # runtime
+            "pip",  # dependency_manager
+            self.output_dir,
+            self.name,
+            True,  # no_input
+            ANY,
+        )
+
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_image_pool_with_base_image_having_one_managed_template_with_provided_app_template_matching_the_managed_template(
+        self,
+        generate_project_patch,
+        init_options_from_manifest_mock,
+    ):
+        init_options_from_manifest_mock.return_value = [
+            {
+                "directory": "python3.8-image/cookiecutter-ml-apigw-pytorch",
+                "displayName": "PyTorch Machine Learning Inference API",
+                "dependencyManager": "pip",
+                "appTemplate": "ml-apigw-pytorch",
+                "packageType": "Image",
+            },
+        ]
+        init_cli(
+            ctx=self.ctx,
+            no_interactive=True,
+            pt_explicit=True,
+            package_type="Image",
+            base_image="amazon/python3.8-base",
+            dependency_manager="pip",
+            app_template="ml-apigw-pytorch",  # same value as appTemplate indicated in the manifest above
+            name=self.name,
+            output_dir=None,
+            location=None,
+            runtime=None,
+            no_input=None,
+            extra_context=None,
+            project_type=ProjectTypes.CFN,
+            cdk_language=None,
+        )
+        generate_project_patch.assert_called_once_with(
+            ProjectTypes.CFN,
+            os.path.normpath("repository/python3.8-image/cookiecutter-ml-apigw-pytorch"),  # location
+            "Image",  # package_type
+            "python3.8",  # runtime
+            "pip",  # dependency_manager
+            self.output_dir,
+            self.name,
+            True,  # no_input
+            ANY,
+        )
+
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_image_pool_with_base_image_having_one_managed_template_with_provided_app_template_not_matching_the_managed_template(
+        self,
+        generate_project_patch,
+        init_options_from_manifest_mock,
+    ):
+        init_options_from_manifest_mock.return_value = [
+            {
+                "directory": "python3.8-image/cookiecutter-ml-apigw-pytorch",
+                "displayName": "PyTorch Machine Learning Inference API",
+                "dependencyManager": "pip",
+                "appTemplate": "ml-apigw-pytorch",
+                "packageType": "Image",
+            },
+        ]
+        with (self.assertRaises(UserException)):
+            init_cli(
+                ctx=self.ctx,
+                no_interactive=True,
+                pt_explicit=True,
+                package_type="Image",
+                base_image="amazon/python3.8-base",
+                dependency_manager="pip",
+                app_template="NOT-ml-apigw-pytorch",  # different value than appTemplate shown in the manifest above
+                name=self.name,
+                output_dir=None,
+                location=None,
+                runtime=None,
+                no_input=None,
+                extra_context=None,
+                project_type=ProjectTypes.CFN,
+                cdk_language=None,
+            )
