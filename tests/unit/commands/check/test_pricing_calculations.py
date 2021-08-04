@@ -1,6 +1,6 @@
 from unittest import TestCase
 from unittest.mock import Mock, patch
-from samcli.commands.check.pricing_calculations import PricingCalculations
+from samcli.commands.check.pricing_calculations import PricingCalculations, _convert_usage_type
 
 
 class TestPricingCalculations(TestCase):
@@ -39,7 +39,7 @@ class TestPricingCalculations(TestCase):
 
         patch_ast.literal_eval.return_value = Mock()
 
-        result = PricingCalculations.get_aws_lambda_pricing_info(Mock())
+        result = PricingCalculations.get_aws_lambda_pricing_info(Mock(), "")
 
         self.assertEqual(result, patch_ast.literal_eval.return_value)
 
@@ -62,17 +62,18 @@ class TestPricingCalculations(TestCase):
 
         self.assertEqual(381.38, self_mock.lambda_pricing_results)
 
+    @patch("samcli.commands.check.pricing_calculations._convert_usage_type")
     @patch("samcli.commands.check.pricing_calculations.get_session")
-    def test_get_lambda_charge_and_request_amounts(self, patch_session):
+    def test_get_lambda_charge_and_request_amounts(self, patch_session, patch_convert):
         self_mock = Mock()
         self_mock.get_region_prefix = Mock()
         self_mock.get_pricing_or_request_value = Mock()
         self_mock.region_prefix = "@#$"
 
-        product_1 = {"attributes": {"usagetype": "Global-Request"}}
-        product_2 = {"attributes": {"usagetype": "Global-Lambda-GB-Second"}}
-        product_3 = {"attributes": {"usagetype": "Lambda-GB-Second"}}
-        product_4 = {"attributes": {"usagetype": "Request"}}
+        product_1 = {"attributes": {"usagetype": "Global-Request", "location": ""}}
+        product_2 = {"attributes": {"usagetype": "Global-Lambda-GB-Second", "location": ""}}
+        product_3 = {"attributes": {"usagetype": "Lambda-GB-Second", "location": ""}}
+        product_4 = {"attributes": {"usagetype": "Request", "location": ""}}
 
         terms_mock = Mock()
         products = {"1": product_1, "2": product_2, "3": product_3, "4": product_4}
@@ -82,11 +83,16 @@ class TestPricingCalculations(TestCase):
         self_mock.get_aws_lambda_pricing_info = Mock()
         self_mock.get_aws_lambda_pricing_info.return_value = {"products": products, "terms": terms_mock}
 
+        patch_convert.return_value = ["", "Lambda-GB-Second"]
+
         PricingCalculations.get_lambda_charge_and_request_amounts(self_mock)
 
         self_mock.get_pricing_or_request_value.assert_any_call(product_1, terms_mock, "global-request")
         self_mock.get_pricing_or_request_value.assert_any_call(product_2, terms_mock, "global-lambda")
         self_mock.get_pricing_or_request_value.assert_any_call(product_3, terms_mock, "lambda")
+
+        patch_convert.return_value = ["Request", ""]
+        PricingCalculations.get_lambda_charge_and_request_amounts(self_mock)
         self_mock.get_pricing_or_request_value.assert_any_call(product_4, terms_mock, "request")
 
     def test_get_pricing_or_request_value(self):
@@ -117,6 +123,16 @@ class TestPricingCalculations(TestCase):
         PricingCalculations.get_pricing_or_request_value(self_mock, product, terms, "request")
         self.assertEqual(115, self_mock.monthly_request_charge)
 
-    def test_get_region_prefix(self):
-        # TODO
-        pass
+    def test_convert_usage_type(self):
+        usage_type = "USW2-Request"
+        lambda_request_key = "Request"
+        lambda_gb_second_key = "Lambda-GB-Second"
+        default_region = False
+
+        result1, result2 = _convert_usage_type(usage_type, lambda_request_key, lambda_gb_second_key, default_region)
+        self.assertEqual(result1, lambda_request_key)
+
+        usage_type = "USW2-Lambda-GB-Second"
+        result1, result2 = _convert_usage_type(usage_type, lambda_request_key, lambda_gb_second_key, default_region)
+
+        self.assertEqual(result2, lambda_gb_second_key)
