@@ -323,7 +323,7 @@ class SamFunctionProvider(SamBaseProvider):
             for asset in assets:
                 if isinstance(asset, ImageAsset) and asset.source_property.startswith("Code"):
                     image_asset = asset
-                    code = image_asset.source_local_image
+                    code = image_asset.source_local_image if image_asset.source_local_image else image_asset.source_path
                     if isinstance(code, str):
                         function_image_uri = cast(Optional[str], code)
                     else:
