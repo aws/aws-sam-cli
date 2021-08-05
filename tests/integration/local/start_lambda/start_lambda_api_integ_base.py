@@ -10,6 +10,7 @@ import os
 import random
 from pathlib import Path
 
+from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
 from tests.testing_utils import SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE, run_command
 
 
@@ -72,6 +73,8 @@ class StartLambdaIntegBaseClass(TestCase):
         ]
         if cls.container_mode:
             command_list += ["--warm-containers", cls.container_mode]
+            if cls.container_mode == ContainersInitializationMode.EAGER.value:
+                wait_time = 25
 
         if cls.parameter_overrides:
             command_list += ["--parameter-overrides", cls._make_parameter_override_arg(cls.parameter_overrides)]
