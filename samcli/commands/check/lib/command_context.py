@@ -144,7 +144,7 @@ def _parse_template() -> CheckGraph:
 
     Returns
     -------
-        Graph
+        CheckGraph
             Returns the generated graph object
     """
     all_lambda_functions = []

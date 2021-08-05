@@ -31,8 +31,8 @@ class LambdaFunction(TemplateResource):
         super().__init__(resource_object, resource_type, resource_name)
         self.duration = -1
         self.tps = -1
-        self.parents: List = []
-        self.children: List = []
+        self.parents = []
+        self.children = []
         self.number_of_requests = -1
         self.average_duration = -1
         self.allocated_memory = -1

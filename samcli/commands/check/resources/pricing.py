@@ -21,7 +21,7 @@ class CheckPricing:
             graph: CheckGraph
               The graph object. This is where all of the data is stored
         """
-        self._graph: CheckGraph = graph
+        self._graph = graph
 
     def ask_pricing_questions(self) -> None:
         """

@@ -29,14 +29,14 @@ class CheckGraph:
     red_burst_warnings: List[CheckWarning]
     unique_pricing_info: Dict[str, UniquePricingInfo]
 
-    def __init__(self, lambda_functions: List):
-        self.entry_points: List[Union[LambdaFunction]] = []
-        self.resources_to_analyze: List[Union[LambdaFunction]] = []
-        self.green_warnings: List[CheckWarning] = []
-        self.yellow_warnings: List[CheckWarning] = []
-        self.red_warnings: List[CheckWarning] = []
-        self.red_burst_warnings: List[CheckWarning] = []
-        self.unique_pricing_info: Dict[str, UniquePricingInfo] = {}
+    def __init__(self, lambda_functions: List[LambdaFunction]):
+        self.entry_points = []
+        self.resources_to_analyze = []
+        self.green_warnings = []
+        self.yellow_warnings = []
+        self.red_warnings = []
+        self.red_burst_warnings = []
+        self.unique_pricing_info = {}
 
         self._generate(lambda_functions)
 
@@ -44,7 +44,7 @@ class CheckGraph:
         """Generates the graph based on the connections calulated
         Parameters
         ----------
-            lambda_functions: List
+            lambda_functions: List[LambdaFunction]
               List of all lambda functions in template
         """
         # Find all entry points

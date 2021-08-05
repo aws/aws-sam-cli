@@ -21,6 +21,6 @@ class TemplateResource:
             resource_name: str
                 The name of the resource
         """
-        self.resource_object: Function = resource_object
-        self.resource_type: str = resource_type
-        self.resource_name: str = resource_name
+        self.resource_object = resource_object
+        self.resource_type = resource_type
+        self.resource_name = resource_name
