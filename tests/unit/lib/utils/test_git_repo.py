@@ -48,7 +48,7 @@ class TestGitRepo(TestCase):
 
     @patch("samcli.lib.utils.git_repo.Path.exists")
     @patch("samcli.lib.utils.git_repo.shutil")
-    @patch("samcli.lib.utils.git_repo.subprocess.check_output")
+    @patch("samcli.lib.utils.git_repo.check_output")
     @patch("samcli.lib.utils.git_repo.subprocess.Popen")
     @patch("samcli.lib.utils.git_repo.platform.system")
     def test_clone_happy_case(self, platform_mock, popen_mock, check_output_mock, shutil_mock, path_exist_mock):
@@ -65,7 +65,7 @@ class TestGitRepo(TestCase):
 
     @patch("samcli.lib.utils.git_repo.Path.exists")
     @patch("samcli.lib.utils.git_repo.shutil")
-    @patch("samcli.lib.utils.git_repo.subprocess.check_output")
+    @patch("samcli.lib.utils.git_repo.check_output")
     @patch("samcli.lib.utils.git_repo.subprocess.Popen")
     @patch("samcli.lib.utils.git_repo.platform.system")
     def test_clone_create_new_local_repo(
@@ -79,7 +79,7 @@ class TestGitRepo(TestCase):
 
     @patch("samcli.lib.utils.git_repo.Path.exists")
     @patch("samcli.lib.utils.git_repo.shutil")
-    @patch("samcli.lib.utils.git_repo.subprocess.check_output")
+    @patch("samcli.lib.utils.git_repo.check_output")
     @patch("samcli.lib.utils.git_repo.subprocess.Popen")
     @patch("samcli.lib.utils.git_repo.platform.system")
     def test_clone_replace_current_local_repo_if_replace_existing_flag_is_set(
@@ -93,7 +93,7 @@ class TestGitRepo(TestCase):
         shutil_mock.ignore_patterns.assert_called_with("*.git")
 
     @patch("samcli.lib.utils.git_repo.Path.exists")
-    @patch("samcli.lib.utils.git_repo.subprocess.check_output")
+    @patch("samcli.lib.utils.git_repo.check_output")
     @patch("samcli.lib.utils.git_repo.subprocess.Popen")
     @patch("samcli.lib.utils.git_repo.platform.system")
     def test_clone_fail_if_current_local_repo_exists_and_replace_existing_flag_is_not_set(
@@ -104,7 +104,7 @@ class TestGitRepo(TestCase):
             self.repo.clone(clone_dir=self.local_clone_dir, clone_name=REPO_NAME)  # replace_existing=False by default
 
     @patch("samcli.lib.utils.git_repo.shutil")
-    @patch("samcli.lib.utils.git_repo.subprocess.check_output")
+    @patch("samcli.lib.utils.git_repo.check_output")
     @patch("samcli.lib.utils.git_repo.subprocess.Popen")
     @patch("samcli.lib.utils.git_repo.platform.system")
     def test_clone_attempt_is_set_to_true_after_clone(self, platform_mock, popen_mock, check_output_mock, shutil_mock):
@@ -113,7 +113,7 @@ class TestGitRepo(TestCase):
         self.assertTrue(self.repo.clone_attempted)
 
     @patch("samcli.lib.utils.git_repo.shutil")
-    @patch("samcli.lib.utils.git_repo.subprocess.check_output")
+    @patch("samcli.lib.utils.git_repo.check_output")
     @patch("samcli.lib.utils.git_repo.subprocess.Popen")
     @patch("samcli.lib.utils.git_repo.platform.system")
     def test_clone_attempt_is_set_to_true_even_if_clone_failed(
@@ -129,7 +129,7 @@ class TestGitRepo(TestCase):
         self.assertTrue(self.repo.clone_attempted)
 
     @patch("samcli.lib.utils.git_repo.shutil")
-    @patch("samcli.lib.utils.git_repo.subprocess.check_output")
+    @patch("samcli.lib.utils.git_repo.check_output")
     @patch("samcli.lib.utils.git_repo.subprocess.Popen")
     @patch("samcli.lib.utils.git_repo.platform.system")
     def test_clone_failed_to_create_the_clone_directory(
@@ -147,7 +147,7 @@ class TestGitRepo(TestCase):
         shutil_mock.assert_not_called()
 
     @patch("samcli.lib.utils.git_repo.shutil")
-    @patch("samcli.lib.utils.git_repo.subprocess.check_output")
+    @patch("samcli.lib.utils.git_repo.check_output")
     @patch("samcli.lib.utils.git_repo.subprocess.Popen")
     @patch("samcli.lib.utils.git_repo.platform.system")
     def test_clone_when_the_subprocess_fail(self, platform_mock, popen_mock, check_output_mock, shutil_mock):
@@ -156,7 +156,7 @@ class TestGitRepo(TestCase):
             self.repo.clone(clone_dir=self.local_clone_dir, clone_name=REPO_NAME)
 
     @patch("samcli.lib.utils.git_repo.LOG")
-    @patch("samcli.lib.utils.git_repo.subprocess.check_output")
+    @patch("samcli.lib.utils.git_repo.check_output")
     @patch("samcli.lib.utils.git_repo.subprocess.Popen")
     @patch("samcli.lib.utils.git_repo.platform.system")
     def test_clone_when_the_git_repo_not_found(self, platform_mock, popen_mock, check_output_mock, log_mock):
@@ -170,7 +170,7 @@ class TestGitRepo(TestCase):
 
     @patch("samcli.lib.utils.git_repo.Path.exists")
     @patch("samcli.lib.utils.git_repo.shutil")
-    @patch("samcli.lib.utils.git_repo.subprocess.check_output")
+    @patch("samcli.lib.utils.git_repo.check_output")
     @patch("samcli.lib.utils.git_repo.subprocess.Popen")
     @patch("samcli.lib.utils.git_repo.platform.system")
     def test_clone_when_failed_to_move_cloned_repo_from_temp_to_final_destination(
