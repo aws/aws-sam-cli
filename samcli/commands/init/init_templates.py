@@ -9,7 +9,6 @@ import os
 from pathlib import Path
 from typing import Dict
 
-import requests
 
 import click
 
@@ -23,7 +22,9 @@ from samcli.local.common.runtime_template import (
 )
 
 LOG = logging.getLogger(__name__)
-APP_TEMPLATES_REPO_URL = "https://github.com/aws/aws-sam-cli-app-templates"
+# Note:: This would be changed when after aws-sam-cli-app-templates pr
+# https://github.com/aws/aws-sam-cli-app-templates/pull/127 is merged
+APP_TEMPLATES_REPO_URL = "https://github.com/jonife/aws-sam-cli-app-templates"
 APP_TEMPLATES_REPO_NAME = "aws-sam-cli-app-templates"
 
 
@@ -34,10 +35,6 @@ class InvalidInitTemplateError(UserException):
 class InitTemplates:
     def __init__(self):
         self._git_repo: GitRepo = GitRepo(url=APP_TEMPLATES_REPO_URL)
-        self._git_repo.clone_attempted = False
-        self._manifest_url = (
-            "https://raw.githubusercontent.com/jonife/aws-sam-cli-app-templates/update-init/manifest.json"
-        )
 
     def prompt_for_location(self, package_type, runtime, base_image, dependency_manager):
         """
@@ -130,6 +127,11 @@ class InitTemplates:
             if expected_previous_clone_local_path.exists():
                 self._git_repo.local_path = expected_previous_clone_local_path
 
+    def _get_local_path(self):
+        if not self._git_repo.clone_attempted:
+            self.git_cloner()
+        return self._git_repo.local_path
+
     def _init_options_from_manifest(self, package_type, runtime, base_image, dependency_manager):
         manifest_path = os.path.join(self._git_repo.local_path, "manifest.json")
         with open(str(manifest_path)) as fp:
@@ -207,13 +209,14 @@ class InitTemplates:
         Returns:
             dict: This is preprocessed manifest with the use_case as key
         """
-        manifest_dump = requests.get(self._manifest_url)
-        if not manifest_dump.ok:
-            raise InvalidInitTemplateError(
-                "Can't retrieve templates manifest from {url}".format(url=self._manifest_url)
-            )
+        if not self._git_repo.clone_attempted:
+            self.git_cloner()
+        manifest_path = os.path.join(self._git_repo.local_path, "manifest.json")
+        with open(str(manifest_path)) as fp:
+            body = fp.read()
+            manifest_body = json.loads(body)
+
         preprocessed_manifest = {}
-        manifest_body = manifest_dump.json()
 
         for template_runtime in manifest_body:
             if filter_value and filter_value == template_runtime:

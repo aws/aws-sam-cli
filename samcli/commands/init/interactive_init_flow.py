@@ -96,9 +96,9 @@ def get_start_options(
 
 # pylint: disable=too-many-statements
 def _generate_simple_application(
-    location, pt_explicit, runtime, base_image, dependency_manager, output_dir, name, app_template, package_type="Zip"
+    location, pt_explicit, runtime, base_image, dependency_manager, output_dir, name, app_template, package_type=ZIP
 ):
-    if pt_explicit and package_type == "Image":
+    if pt_explicit and package_type == IMAGE:
         raise InvalidInitOptionException("Hello World Application only supports ZIP package type")
 
     templates = InitTemplates()
@@ -151,7 +151,6 @@ def _generate_from_use_case(
     templates = InitTemplates()
     filter_value = runtime if runtime else base_image
     preprocessed_options = templates.get_preprocessed_manifest(filter_value)
-
     question = "What template would you like to start with?"
     use_case = _get_choice_from_options(
         None,
@@ -159,10 +158,14 @@ def _generate_from_use_case(
         question,
         "Template",
     )
-
     runtime_options = preprocessed_options[use_case]
-    question = "Which runtime would you like to use?"
-    runtime = _get_choice_from_options(runtime, runtime_options, question, "Runtime")
+    if not runtime and not base_image:
+        question = "Which runtime would you like to use?"
+        runtime = _get_choice_from_options(runtime, runtime_options, question, "Runtime")
+
+    if base_image:
+        runtime = _get_runtime_from_image(base_image)
+
     try:
         package_types_options = runtime_options[runtime]
         if not pt_explicit:
@@ -282,7 +285,8 @@ def _get_dependency_manager(dependency_manager, runtime):
         else:
             question = "Which dependency manager would you like to use?"
             return _get_choice_from_options(dependency_manager, valid_dep_managers, question, "dependency_manager")
-    validate_runtime_dependancy_manager(dependency_manager, runtime)
+    else:
+        validate_runtime_dependancy_manager(dependency_manager, runtime)
     return dependency_manager
 
 

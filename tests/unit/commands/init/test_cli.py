@@ -14,22 +14,19 @@ from click.testing import CliRunner
 from samcli.commands.exceptions import UserException
 from samcli.commands.init import cli as init_cmd
 from samcli.commands.init import do_cli as init_cli
-from samcli.commands.init.init_templates import InitTemplates, APP_TEMPLATES_REPO_URL
+from samcli.commands.init.init_templates import (
+    InitTemplates,
+    APP_TEMPLATES_REPO_URL,
+)
 from samcli.lib.init import GenerateProjectFailedError
 from samcli.lib.utils import osutils
 from samcli.lib.utils.git_repo import GitRepo
 from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.cli.main import global_cfg
 
 
 class MockInitTemplates:
-    def __init__(self, no_interactive=False, auto_clone=True):
-        self._manifest_url = (
-            "https://raw.githubusercontent.com/jonife/aws-sam-cli-app-templates/update-init/manifest.json"
-        )
-        self._repo_url = "https://github.com/awslabs/aws-sam-cli-app-templates.git"
-        self._repo_name = "aws-sam-cli-app-templates"
-        self.repo_path = "repository"
-        self.clone_attempted = True
+    def __init__(self, no_interactive=False):
         self._no_interactive = no_interactive
         self._git_repo: GitRepo = GitRepo(
             url=APP_TEMPLATES_REPO_URL,
@@ -533,6 +530,7 @@ class TestCli(TestCase):
         )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    @patch("samcli.commands.init.init_templates.InitTemplates.get_preprocessed_manifest")
     @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
     @patch("samcli.lib.schemas.schemas_aws_config.Session")
     @patch("samcli.commands.init.interactive_init_flow.do_extract_and_merge_schemas_code")
@@ -547,6 +545,7 @@ class TestCli(TestCase):
         do_extract_and_merge_schemas_code_mock,
         session_mock,
         init_options_from_manifest_mock,
+        get_preprocessed_manifest_mock,
     ):
         init_options_from_manifest_mock.return_value = [
             {
@@ -563,6 +562,38 @@ class TestCli(TestCase):
                 "isDynamicTemplate": "True",
             },
         ]
+
+        get_preprocessed_manifest_mock.return_value = {
+            "Serverless API": {
+                "java11": {
+                    "Zip": [
+                        {
+                            "directory": "java11/cookiecutter-aws-sam-hello-java-maven",
+                            "displayName": "Hello World Example: Maven",
+                            "dependencyManager": "maven",
+                            "appTemplate": "hello-world",
+                            "packageType": "Zip",
+                            "useCaseName": "Serverless API",
+                        },
+                    ]
+                }
+            },
+            "Infrastructure event management": {
+                "java11": {
+                    "Zip": [
+                        {
+                            "directory": "java11/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
+                            "displayName": "EventBridge App from scratch (100+ Event Schemas): Maven",
+                            "dependencyManager": "maven",
+                            "appTemplate": "eventBridge-schema-app",
+                            "isDynamicTemplate": "True",
+                            "packageType": "Zip",
+                            "useCaseName": "Infrastructure event management",
+                        },
+                    ]
+                }
+            },
+        }
         session_mock.return_value.profile_name = "test"
         session_mock.return_value.region_name = "ap-northeast-1"
         schemas_api_caller_mock.return_value.list_registries.return_value = {
@@ -591,10 +622,10 @@ class TestCli(TestCase):
         # WHEN the user follows interactive init prompts
 
         # 2: AWS Quick Start Templates
-        # 3: Infrastructure event management - Use case
-        # 3: Java Runtime
+        # 2: Infrastructure event management - Use case
+        # 1: Java Runtime
         # 1: Zip
-        # 4: select event-bridge app from scratch
+        # select event-bridge app from scratch
         # test-project: response to name
         # Y: Use default aws configuration
         # 1: select schema from cli_paginator
@@ -602,10 +633,9 @@ class TestCli(TestCase):
         # 9: select schema AWSAPICallViaCloudTrail
         user_input = """
 2
-3
-3
+2
 1
-4
+1
 test-project
 Y
 1
@@ -639,37 +669,54 @@ Y
         )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    @patch("samcli.commands.init.init_templates.InitTemplates.get_preprocessed_manifest")
     @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
     @patch("samcli.commands.init.init_generator.generate_project")
     def test_init_cli_int_with_image_app_template(
-        self,
-        generate_project_patch,
-        init_options_from_manifest_mock,
+        self, generate_project_patch, init_options_from_manifest_mock, get_preprocessed_manifest_mock
     ):
         init_options_from_manifest_mock.return_value = [
             {
-                "directory": "java8-base/cookiecutter-aws-sam-hello-java-maven-lambda-image",
+                "directory": "java8-image/cookiecutter-aws-sam-hello-java-maven-lambda-image",
                 "displayName": "Hello World Lambda Image Example: Maven",
                 "dependencyManager": "maven",
                 "appTemplate": "hello-world-lambda-image",
+                "packageType": "Image",
+                "useCaseName": "Serverless API",
             }
         ]
+
+        get_preprocessed_manifest_mock.return_value = {
+            "Serverless API": {
+                "java8": {
+                    "Image": [
+                        {
+                            "directory": "java8-image/cookiecutter-aws-sam-hello-java-maven-lambda-image",
+                            "displayName": "Hello World Lambda Image Example: Maven",
+                            "dependencyManager": "maven",
+                            "appTemplate": "hello-world-lambda-image",
+                            "packageType": "Image",
+                            "useCaseName": "Serverless API",
+                        },
+                    ]
+                }
+            },
+        }
 
         # WHEN the user follows interactive init prompts
 
         # 2: AWS Quick Start Templates
         # 1: Serverless API - Use case
-        # 4: Java8
-        # 2: Package type - Image
-        # 2: Hello World Lambda Image Example: Maven
+        # 1: Java8
+        # 1: Package type - Image
+        # Hello World Lambda Image Example: Maven
         # test-project: response to name
 
         user_input = """
 2
 1
-4
-2
-2
+1
+1
 test-project
             """
         runner = CliRunner()
@@ -687,6 +734,7 @@ test-project
         )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    @patch("samcli.commands.init.init_templates.InitTemplates.get_preprocessed_manifest")
     @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
     @patch("samcli.lib.schemas.schemas_aws_config.Session")
     @patch("samcli.commands.init.interactive_init_flow.do_extract_and_merge_schemas_code")
@@ -701,22 +749,60 @@ test-project
         do_extract_and_merge_schemas_code_mock,
         session_mock,
         init_options_from_manifest_mock,
+        get_preprocessed_manifest_mock,
     ):
         init_options_from_manifest_mock.return_value = [
             {
-                "directory": "java8/cookiecutter-aws-sam-hello-java-maven",
+                "directory": "java11/cookiecutter-aws-sam-hello-java-maven",
                 "displayName": "Hello World Example: Maven",
                 "dependencyManager": "maven",
                 "appTemplate": "hello-world",
+                "packageType": "Zip",
+                "useCaseName": "Serverless API",
             },
             {
-                "directory": "java8/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
-                "displayName": "Hello World Schema example Example: Maven",
+                "directory": "java11/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
+                "displayName": "EventBridge App from scratch (100+ Event Schemas): Maven",
                 "dependencyManager": "maven",
                 "appTemplate": "eventBridge-schema-app",
                 "isDynamicTemplate": "True",
+                "packageType": "Zip",
+                "useCaseName": "Infrastructure event management",
             },
         ]
+
+        get_preprocessed_manifest_mock.return_value = {
+            "Serverless API": {
+                "java11": {
+                    "Zip": [
+                        {
+                            "directory": "java11/cookiecutter-aws-sam-hello-java-maven",
+                            "displayName": "Hello World Example: Maven",
+                            "dependencyManager": "maven",
+                            "appTemplate": "hello-world",
+                            "packageType": "Zip",
+                            "useCaseName": "Serverless API",
+                        },
+                    ]
+                }
+            },
+            "Infrastructure event management": {
+                "java11": {
+                    "Zip": [
+                        {
+                            "directory": "java11/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
+                            "displayName": "EventBridge App from scratch (100+ Event Schemas): Maven",
+                            "dependencyManager": "maven",
+                            "appTemplate": "eventBridge-schema-app",
+                            "isDynamicTemplate": "True",
+                            "packageType": "Zip",
+                            "useCaseName": "Infrastructure event management",
+                        },
+                    ]
+                }
+            },
+        }
+
         session_mock.return_value.profile_name = "default"
         session_mock.return_value.region_name = "ap-south-1"
         session_mock.return_value.available_profiles = ["default", "test-profile"]
@@ -747,10 +833,10 @@ test-project
         # WHEN the user follows interactive init prompts
 
         # 2: AWS Quick Start Templates
-        # 3: Infrastructure event management - Use case
-        # 3: Java Runtime
+        # 2: Infrastructure event management - Use case
+        # 1: Java Runtime
         # 1: Zip
-        # 4: select event-bridge app from scratch
+        # select event-bridge app from scratch
         # test-project: response to name
         # N: Use default AWS profile
         # 1: Select profile
@@ -759,10 +845,9 @@ test-project
         # 9: select schema AWSAPICallViaCloudTrail
         user_input = """
 2
-3
-3
+2
 1
-4
+1
 test-project
 N
 1
@@ -797,28 +882,71 @@ us-east-1
         do_extract_and_merge_schemas_code_mock.do_extract_and_merge_schemas_code("result.zip", ".", "test-project", ANY)
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    @patch("samcli.commands.init.init_templates.InitTemplates.get_preprocessed_manifest")
     @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
     @patch("samcli.lib.schemas.schemas_aws_config.Session")
     @patch("samcli.commands.init.interactive_event_bridge_flow.SchemasApiCaller")
     @patch("samcli.commands.init.interactive_event_bridge_flow.get_schemas_client")
     def test_init_cli_int_with_event_bridge_app_template_and_aws_configuration_with_wrong_region_name(
-        self, get_schemas_client_mock, schemas_api_caller_mock, session_mock, init_options_from_manifest_mock
+        self,
+        get_schemas_client_mock,
+        schemas_api_caller_mock,
+        session_mock,
+        init_options_from_manifest_mock,
+        get_preprocessed_manifest_mock,
     ):
         init_options_from_manifest_mock.return_value = [
             {
-                "directory": "java8/cookiecutter-aws-sam-hello-java-maven",
+                "directory": "java11/cookiecutter-aws-sam-hello-java-maven",
                 "displayName": "Hello World Example: Maven",
                 "dependencyManager": "maven",
                 "appTemplate": "hello-world",
+                "packageType": "Zip",
+                "useCaseName": "Serverless API",
             },
             {
-                "directory": "java8/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
-                "displayName": "Hello World Schema example Example: Maven",
+                "directory": "java11/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
+                "displayName": "EventBridge App from scratch (100+ Event Schemas): Maven",
                 "dependencyManager": "maven",
                 "appTemplate": "eventBridge-schema-app",
                 "isDynamicTemplate": "True",
+                "packageType": "Zip",
+                "useCaseName": "Infrastructure event management",
             },
         ]
+
+        get_preprocessed_manifest_mock.return_value = {
+            "Serverless API": {
+                "java11": {
+                    "Zip": [
+                        {
+                            "directory": "java11/cookiecutter-aws-sam-hello-java-maven",
+                            "displayName": "Hello World Example: Maven",
+                            "dependencyManager": "maven",
+                            "appTemplate": "hello-world",
+                            "packageType": "Zip",
+                            "useCaseName": "Serverless API",
+                        },
+                    ]
+                }
+            },
+            "Infrastructure event management": {
+                "java11": {
+                    "Zip": [
+                        {
+                            "directory": "java11/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
+                            "displayName": "EventBridge App from scratch (100+ Event Schemas): Maven",
+                            "dependencyManager": "maven",
+                            "appTemplate": "eventBridge-schema-app",
+                            "isDynamicTemplate": "True",
+                            "packageType": "Zip",
+                            "useCaseName": "Infrastructure event management",
+                        },
+                    ]
+                }
+            },
+        }
+
         session_mock.return_value.profile_name = "default"
         session_mock.return_value.region_name = "ap-south-1"
         session_mock.return_value.available_profiles = ["default", "test-profile"]
@@ -829,10 +957,10 @@ us-east-1
         # WHEN the user follows interactive init prompts
 
         # 2: AWS Quick Start Templates
-        # 3: Infrastructure event management - Use case
-        # 3: Java Runtime
+        # 2: Infrastructure event management - Use case
+        # 1: Java Runtime
         # 1: Zip
-        # 4: select event-bridge app from scratch
+        # select event-bridge app from scratch
         # test-project: response to name
         # N: Use default AWS profile
         # 1: Select profile
@@ -841,10 +969,9 @@ us-east-1
         # 9: select schema AWSAPICallViaCloudTrail
         user_input = """
 2
-3
-3
+2
 1
-4
+1
 test-project
 N
 1
@@ -859,6 +986,7 @@ invalid-region
         self.assertTrue(result.exception)
         get_schemas_client_mock.assert_called_once_with("default", "invalid-region")
 
+    @patch("samcli.commands.init.init_templates.InitTemplates.get_preprocessed_manifest")
     @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
     @patch("samcli.lib.schemas.schemas_aws_config.Session")
     @patch("samcli.commands.init.interactive_init_flow.do_extract_and_merge_schemas_code")
@@ -874,22 +1002,60 @@ invalid-region
         do_extract_and_merge_schemas_code_mock,
         session_mock,
         init_options_from_manifest_mock,
+        get_preprocessed_manifest_mock,
     ):
         init_options_from_manifest_mock.return_value = [
             {
-                "directory": "java8/cookiecutter-aws-sam-hello-java-maven",
+                "directory": "java11/cookiecutter-aws-sam-hello-java-maven",
                 "displayName": "Hello World Example: Maven",
                 "dependencyManager": "maven",
                 "appTemplate": "hello-world",
+                "packageType": "Zip",
+                "useCaseName": "Serverless API",
             },
             {
-                "directory": "java8/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
-                "displayName": "Hello World Schema example Example: Maven",
+                "directory": "java11/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
+                "displayName": "EventBridge App from scratch (100+ Event Schemas): Maven",
                 "dependencyManager": "maven",
                 "appTemplate": "eventBridge-schema-app",
                 "isDynamicTemplate": "True",
+                "packageType": "Zip",
+                "useCaseName": "Infrastructure event management",
             },
         ]
+
+        get_preprocessed_manifest_mock.return_value = {
+            "Serverless API": {
+                "java11": {
+                    "Zip": [
+                        {
+                            "directory": "java11/cookiecutter-aws-sam-hello-java-maven",
+                            "displayName": "Hello World Example: Maven",
+                            "dependencyManager": "maven",
+                            "appTemplate": "hello-world",
+                            "packageType": "Zip",
+                            "useCaseName": "Serverless API",
+                        },
+                    ]
+                }
+            },
+            "Infrastructure event management": {
+                "java11": {
+                    "Zip": [
+                        {
+                            "directory": "java11/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
+                            "displayName": "EventBridge App from scratch (100+ Event Schemas): Maven",
+                            "dependencyManager": "maven",
+                            "appTemplate": "eventBridge-schema-app",
+                            "isDynamicTemplate": "True",
+                            "packageType": "Zip",
+                            "useCaseName": "Infrastructure event management",
+                        },
+                    ]
+                }
+            },
+        }
+
         session_mock.return_value.profile_name = "test"
         session_mock.return_value.region_name = "ap-northeast-1"
         schemas_api_caller_mock.return_value.list_registries.return_value = {
@@ -920,10 +1086,10 @@ invalid-region
         # WHEN the user follows interactive init prompts
 
         # 2: AWS Quick Start Templates
-        # 3: Infrastructure event management - Use case
-        # 3: Java Runtime
+        # 2: Infrastructure event management - Use case
+        # 1: Java Runtime
         # 1: Zip
-        # 4: select event-bridge app from scratch
+        # select event-bridge app from scratch
         # test-project: response to name
         # Y: Use default aws configuration
         # 1: select schema from cli_paginator
@@ -931,10 +1097,9 @@ invalid-region
         # 9: select schema AWSAPICallViaCloudTrail
         user_input = """
 2
-3
-3
+2
 1
-4
+1
 test-project
 Y
 1
@@ -967,13 +1132,14 @@ Y
             "result.zip", ".", "test-project", ANY
         )
 
-    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    @patch("samcli.commands.init.init_templates.InitTemplates.get_preprocessed_manifest")
     @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
     @patch("samcli.lib.schemas.schemas_aws_config.Session")
     @patch("samcli.commands.init.interactive_init_flow.do_extract_and_merge_schemas_code")
     @patch("samcli.commands.init.interactive_event_bridge_flow.SchemasApiCaller")
     @patch("samcli.commands.init.interactive_event_bridge_flow.get_schemas_client")
     @patch("samcli.commands.init.init_generator.generate_project")
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
     def test_init_cli_int_with_schemas_details_raises_exception(
         self,
         generate_project_patch,
@@ -982,22 +1148,59 @@ Y
         do_extract_and_merge_schemas_code_mock,
         session_mock,
         init_options_from_manifest_mock,
+        get_preprocessed_manifest_mock,
     ):
         init_options_from_manifest_mock.return_value = [
             {
-                "directory": "java8/cookiecutter-aws-sam-hello-java-maven",
+                "directory": "java11/cookiecutter-aws-sam-hello-java-maven",
                 "displayName": "Hello World Example: Maven",
                 "dependencyManager": "maven",
                 "appTemplate": "hello-world",
+                "packageType": "Zip",
+                "useCaseName": "Serverless API",
             },
             {
-                "directory": "java8/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
-                "displayName": "Hello World Schema example Example: Maven",
+                "directory": "java11/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
+                "displayName": "EventBridge App from scratch (100+ Event Schemas): Maven",
                 "dependencyManager": "maven",
                 "appTemplate": "eventBridge-schema-app",
                 "isDynamicTemplate": "True",
+                "packageType": "Zip",
+                "useCaseName": "Infrastructure event management",
             },
         ]
+
+        get_preprocessed_manifest_mock.return_value = {
+            "Serverless API": {
+                "java11": {
+                    "Zip": [
+                        {
+                            "directory": "java11/cookiecutter-aws-sam-hello-java-maven",
+                            "displayName": "Hello World Example: Maven",
+                            "dependencyManager": "maven",
+                            "appTemplate": "hello-world",
+                            "packageType": "Zip",
+                            "useCaseName": "Serverless API",
+                        },
+                    ]
+                }
+            },
+            "Infrastructure event management": {
+                "java11": {
+                    "Zip": [
+                        {
+                            "directory": "java11/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
+                            "displayName": "EventBridge App from scratch (100+ Event Schemas): Maven",
+                            "dependencyManager": "maven",
+                            "appTemplate": "eventBridge-schema-app",
+                            "isDynamicTemplate": "True",
+                            "packageType": "Zip",
+                            "useCaseName": "Infrastructure event management",
+                        },
+                    ]
+                }
+            },
+        }
         session_mock.return_value.profile_name = "test"
         session_mock.return_value.region_name = "ap-northeast-1"
         schemas_api_caller_mock.return_value.list_registries.return_value = {
@@ -1022,10 +1225,10 @@ Y
         # WHEN the user follows interactive init prompts
 
         # 2: AWS Quick Start Templates
-        # 3: Infrastructure event management - Use case
-        # 3: Java Runtime
+        # 2: Infrastructure event management - Use case
+        # 1: Java Runtime
         # 1: Zip
-        # 4: select event-bridge app from scratch
+        # select event-bridge app from scratch
         # test-project: response to name
         # Y: Use default aws configuration
         # 1: select schema from cli_paginator
@@ -1033,10 +1236,9 @@ Y
         # 9: select schema AWSAPICallViaCloudTrail
         user_input = """
 2
-3
-3
+2
 1
-4
+1
 test-project
 Y
 1
@@ -1112,9 +1314,40 @@ foo
             None,
         )
 
+    @patch("samcli.commands.init.init_templates.InitTemplates.get_preprocessed_manifest")
+    @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
     @patch("samcli.lib.utils.git_repo.GitRepo._ensure_clone_directory_exists")
     @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli_no_package_type(self, generate_project_patch, cd_mock):
+    def test_init_cli_no_package_type(
+        self, generate_project_patch, cd_mock, init_options_from_manifest_mock, get_preprocessed_manifest_mock
+    ):
+        init_options_from_manifest_mock.return_value = [
+            {
+                "directory": "python3.8-image/cookiecutter-aws-sam-hello-python-lambda-image",
+                "displayName": "Hello World Lambda Image Example",
+                "dependencyManager": "pip",
+                "appTemplate": "hello-world-lambda-image",
+                "packageType": "Image",
+                "useCaseName": "Serverless API",
+            },
+        ]
+
+        get_preprocessed_manifest_mock.return_value = {
+            "Serverless API": {
+                "python3.8": {
+                    "Image": [
+                        {
+                            "directory": "python3.8-image/cookiecutter-aws-sam-hello-python-lambda-image",
+                            "displayName": "Hello World Lambda Image Example",
+                            "dependencyManager": "pip",
+                            "appTemplate": "hello-world-lambda-image",
+                            "packageType": "Image",
+                            "useCaseName": "Serverless API",
+                        }
+                    ]
+                }
+            }
+        }
         # WHEN the user follows interactive init prompts
 
         # 2: selecting template source
@@ -1271,7 +1504,7 @@ untitled6
             extra_context=None,
         )
         generate_project_patch.assert_called_once_with(
-            os.path.normpath("repository/python3.8-image/cookiecutter-ml-apigw-pytorch"),  # location
+            ANY,  # location
             "Image",  # package_type
             "python3.8",  # runtime
             "pip",  # dependency_manager
@@ -1314,7 +1547,7 @@ untitled6
             extra_context=None,
         )
         generate_project_patch.assert_called_once_with(
-            os.path.normpath("repository/python3.8-image/cookiecutter-ml-apigw-pytorch"),  # location
+            ANY,  # location
             "Image",  # package_type
             "python3.8",  # runtime
             "pip",  # dependency_manager
@@ -1357,7 +1590,7 @@ untitled6
             extra_context=None,
         )
         generate_project_patch.assert_called_once_with(
-            os.path.normpath("repository/python3.8-image/cookiecutter-ml-apigw-pytorch"),  # location
+            ANY,  # location
             "Image",  # package_type
             "python3.8",  # runtime
             "pip",  # dependency_manager
