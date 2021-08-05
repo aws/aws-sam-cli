@@ -217,7 +217,7 @@ def _check_input(user_input: str, max_item_number: int) -> bool:
             return False, []
 
         if value <= 0 or value > max_item_number:
-            click.echo("Numbers out of range. Please select values within the lsit range.")
+            click.echo("Numbers out of range. Please select values within the list range.")
             return False, []
 
     user_choices_ints = []
