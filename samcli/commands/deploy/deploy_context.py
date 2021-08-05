@@ -31,7 +31,6 @@ from samcli.commands.deploy.utils import (
     hide_noecho_parameter_overrides,
 )
 from samcli.lib.deploy.deployer import Deployer
-from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.iac.interface import Stack
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.package.s3_uploader import S3Uploader
