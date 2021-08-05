@@ -192,6 +192,8 @@ class ContainerManager:
     def _is_rapid_image(image_name: str) -> bool:
         """
         Is the image tagged as a RAPID clone?
+        The regex matches normal versions like: rapid-1.23.4,
+        or nightly build versions like: rapid-1.23.4.dev200001012300
 
         : param string image_name: Name of the image
         : return bool: True, if the image name ends with rapid-$SAM_CLI_VERSION. False, otherwise
