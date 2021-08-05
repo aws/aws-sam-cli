@@ -51,12 +51,12 @@ class GitRepo:
         creates a local clone of this Git repository. (more details in the method documentation).
     """
 
-    def __init__(self, url: str) -> None:
+    # TODO: [UPDATEME] melasmar: We should remove branch when making CDK support GA.
+    def __init__(self, url: str, branch: Optional[str] = None) -> None:
         self.url: str = url
         self.local_path: Optional[Path] = None
         self.clone_attempted: bool = False
-        # TODO: [UPDATEME] melasmar: We should remove branch when making CDK support GA.
-        self.branch: str = "cdk-template"
+        self.branch = branch
 
     @staticmethod
     def _ensure_clone_directory_exists(clone_dir: Path) -> None:
@@ -125,8 +125,11 @@ class GitRepo:
                 git_executable: str = GitRepo._git_executable()
                 LOG.info("\nCloning from %s", self.url)
                 # TODO: [UPDATEME] wchengru: We should remove --branch option when making CDK support GA.
+                command_list = [git_executable, "clone", self.url, clone_name]
+                if self.branch is not None:
+                    command_list = [git_executable, "clone", "--branch", self.branch, self.url, clone_name]
                 check_output(
-                    [git_executable, "clone", "--branch", self.branch, self.url, clone_name],
+                    command_list,
                     cwd=tempdir,
                     stderr=subprocess.STDOUT,
                 )

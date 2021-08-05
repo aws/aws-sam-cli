@@ -3,14 +3,11 @@ import subprocess
 from pathlib import Path
 from re import search
 from unittest import TestCase
-
 from samcli.lib.iac.interface import ProjectTypes
-from samcli.lib.utils.packagetype import IMAGE, ZIP
-
-from pathlib import Path
 from unittest.mock import mock_open, patch, PropertyMock, MagicMock
 
 from samcli.commands.init.init_templates import InitTemplates
+from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 
 class TestTemplates(TestCase):

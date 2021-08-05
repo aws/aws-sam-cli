@@ -34,7 +34,8 @@ class CDKProjectInvalidInitConfigError(UserException):
 class InitTemplates:
     def __init__(self, no_interactive=False):
         self._no_interactive = no_interactive
-        self._git_repo: GitRepo = GitRepo(url=APP_TEMPLATES_REPO_URL)
+        # TODO [melasmar] Remove branch after CDK templates become GA
+        self._git_repo: GitRepo = GitRepo(url=APP_TEMPLATES_REPO_URL, branch="cdk-template")
 
     def prompt_for_location(self, project_type, cdk_language, package_type, runtime, base_image, dependency_manager):
         """
@@ -127,9 +128,9 @@ class InitTemplates:
                 if expected_previous_clone_local_path.exists():
                     self._git_repo.local_path = expected_previous_clone_local_path
         if self._git_repo.local_path is None:
-            return self._init_options_from_bundle(package_type, cdk_language, package_type, runtime, dependency_manager)
+            return self._init_options_from_bundle(project_type, cdk_language, package_type, runtime, dependency_manager)
         return self._init_options_from_manifest(
-            package_type, cdk_language, package_type, runtime, base_image, dependency_manager
+            project_type, cdk_language, package_type, runtime, base_image, dependency_manager
         )
 
     def _init_options_from_manifest(

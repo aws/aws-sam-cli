@@ -37,8 +37,8 @@ def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandRes
         raise
 
 
-def run_command_with_input(command_list, stdin_input, timeout=TIMEOUT) -> CommandResult:
-    process_execute = Popen(command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE)
+def run_command_with_input(command_list, stdin_input, cwd=None, env=None, timeout=TIMEOUT) -> CommandResult:
+    process_execute = Popen(command_list, cwd=cwd, env=env, stdout=PIPE, stderr=PIPE, stdin=PIPE)
     try:
         stdout_data, stderr_data = process_execute.communicate(stdin_input, timeout=timeout)
         LOG.info(f"Stdout: {stdout_data.decode('utf-8')}")
@@ -52,7 +52,9 @@ def run_command_with_input(command_list, stdin_input, timeout=TIMEOUT) -> Comman
 
 
 def run_command_with_inputs(command_list: List[str], inputs: List[str], timeout=TIMEOUT) -> CommandResult:
-    return run_command_with_input(command_list, ("\n".join(inputs) + "\n").encode(), timeout)
+    return run_command_with_input(
+        command_list=command_list, stdin_input=("\n".join(inputs) + "\n").encode(), timeout=timeout
+    )
 
 
 class FileCreator(object):

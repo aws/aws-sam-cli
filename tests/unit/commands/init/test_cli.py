@@ -27,6 +27,7 @@ class MockInitTemplates:
         self._no_interactive = no_interactive
         self._git_repo: GitRepo = GitRepo(
             url=APP_TEMPLATES_REPO_URL,
+            branch="cdk-template",
         )
         self._git_repo.clone_attempted = True
         self._git_repo.local_path = Path("repository")

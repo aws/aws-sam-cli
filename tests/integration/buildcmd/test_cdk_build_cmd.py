@@ -19,9 +19,6 @@ class TestBuildWithCDKPluginNestedStacks(CdkBuildIntegPythonBase):
         self.verify_included_expected_project_manifest()
 
         # Verify invoke after build
-        body = f'{{"message":"hello world from Docker"}}'
-        expected = {"body": body, "statusCode": 200}
-        self.verify_invoke_built_function("root-stack/container-function", expected, self.working_dir)
         expected = get_expected_response(message="hello world")
         self.verify_invoke_built_function("root-stack/nested-stack/cdk-wing-test-lambda", expected, self.working_dir)
         expected = get_expected_response(message="hello world 2!")

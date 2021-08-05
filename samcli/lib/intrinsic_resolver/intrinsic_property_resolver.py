@@ -265,14 +265,9 @@ class IntrinsicResolver:
                             asset.source_path, ignore_errors, parent_function=asset.source_property
                         )
                     elif isinstance(asset, ImageAsset):
-                        if asset.source_local_image:
-                            asset.source_local_image = self.intrinsic_property_resolver(
-                                asset.source_local_image, ignore_errors, parent_function=asset.source_property
-                            )
-                        else:
-                            asset.source_path = self.intrinsic_property_resolver(
-                                asset.source_path, ignore_errors, parent_function=asset.source_property
-                            )
+                        asset.source_local_image = self.intrinsic_property_resolver(
+                            asset.source_local_image, ignore_errors, parent_function=asset.source_property
+                        )
 
     def resolve_attribute(self, cloud_formation_property, ignore_errors=False):
         """
