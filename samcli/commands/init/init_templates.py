@@ -34,7 +34,8 @@ class CDKProjectInvalidInitConfigError(UserException):
 class InitTemplates:
     def __init__(self, no_interactive=False):
         self._no_interactive = no_interactive
-        self._git_repo: GitRepo = GitRepo(url=APP_TEMPLATES_REPO_URL)
+        # TODO [melasmar] Remove branch after CDK templates become GA
+        self._git_repo: GitRepo = GitRepo(url=APP_TEMPLATES_REPO_URL, branch="cdk-template")
 
     def prompt_for_location(self, project_type, cdk_language, package_type, runtime, base_image, dependency_manager):
         """

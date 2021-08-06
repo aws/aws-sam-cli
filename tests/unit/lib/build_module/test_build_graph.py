@@ -89,7 +89,7 @@ def generate_layer(
     if metadata is None:
         metadata = {}
 
-    return LayerVersion(arn, codeuri, compatible_runtimes, metadata, stack_path)
+    return LayerVersion("", arn, codeuri, compatible_runtimes, metadata, stack_path)
 
 
 class TestConversionFunctions(TestCase):

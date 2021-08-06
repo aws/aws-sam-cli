@@ -1,3 +1,6 @@
+"""
+Integration tests for init command
+"""
 from unittest import TestCase
 
 from parameterized import parameterized

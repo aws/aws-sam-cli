@@ -123,7 +123,7 @@ class TestGuidedContext(TestCase):
         ]
         self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
         patched_get_buildable_stacks.assert_called_once_with(
-            "template", parameter_overrides={}, global_parameter_overrides={"AWS::Region": ANY}
+            ANY, parameter_overrides={}, global_parameter_overrides={"AWS::Region": ANY}
         )
 
     @patch("samcli.commands.deploy.guided_context.prompt")

@@ -52,7 +52,9 @@ def run_command_with_input(command_list, stdin_input, cwd=None, env=None, timeou
 
 
 def run_command_with_inputs(command_list: List[str], inputs: List[str], timeout=TIMEOUT) -> CommandResult:
-    return run_command_with_input(command_list, ("\n".join(inputs) + "\n").encode(), timeout)
+    return run_command_with_input(
+        command_list=command_list, stdin_input=("\n".join(inputs) + "\n").encode(), timeout=timeout
+    )
 
 
 class FileCreator(object):

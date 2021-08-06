@@ -57,7 +57,13 @@ class TestGitRepo(TestCase):
         self.local_clone_dir.mkdir.assert_called_once_with(mode=0o700, parents=True, exist_ok=True)
         popen_mock.assert_called_once_with(["git"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         check_output_mock.assert_has_calls(
-            [call(["git", "clone", self.repo.url, REPO_NAME], cwd=ANY, stderr=subprocess.STDOUT)]
+            [
+                call(
+                    ["git", "clone", self.repo.url, REPO_NAME],
+                    cwd=ANY,
+                    stderr=subprocess.STDOUT,
+                )
+            ]
         )
         shutil_mock.rmtree.assert_not_called()
         shutil_mock.copytree.assert_called_with(ANY, EXPECTED_DEFAULT_CLONE_PATH, ignore=ANY)

@@ -132,61 +132,98 @@ class SamFunctionProvider(SamBaseProvider):
                 if resource_type in [SamFunctionProvider.SERVERLESS_FUNCTION, SamFunctionProvider.LAMBDA_FUNCTION]:
                     resource_package_type = resource_properties.get("PackageType", ZIP)
 
-                    code_property_key = SamBaseProvider.CODE_PROPERTY_KEYS[resource_type]
                     image_property_key = SamBaseProvider.IMAGE_PROPERTY_KEYS[resource_type]
-                    assets = resource.assets or []
-                    code_asset_uri = None
-                    for asset in assets:
-                        if isinstance(asset, S3Asset) and asset.source_property == code_property_key:
-                            code_asset_uri = asset.source_path
-                            break
+                    code_property_key = SamBaseProvider.CODE_PROPERTY_KEYS[resource_type]
+
+                    code_asset_uri = SamFunctionProvider.get_code_asset_uri(code_property_key, resource)
                     if resource_package_type == ZIP and SamBaseProvider._is_s3_location(
-                            code_asset_uri or resource_properties.get(code_property_key)
+                        code_asset_uri or resource_properties.get(code_property_key)
                     ):
                         # CodeUri can be a dictionary of S3 Bucket/Key or a S3 URI, neither of which are supported
                         if not ignore_code_extraction_warnings:
                             SamFunctionProvider._warn_code_extraction(resource_type, name, code_property_key)
                         continue
 
+                    image_asset_uri = SamFunctionProvider.get_image_asset_uri(image_property_key, resource)
                     if resource_package_type == IMAGE and SamBaseProvider._is_ecr_uri(
-                        resource_properties.get(image_property_key)
+                        image_asset_uri or resource_properties.get(image_property_key)
                     ):
                         # ImageUri can be an ECR uri, which is not supported
                         if not ignore_code_extraction_warnings:
                             SamFunctionProvider._warn_imageuri_extraction(resource_type, name, image_property_key)
                         continue
 
-                if resource_type == SamFunctionProvider.SERVERLESS_FUNCTION:
-                    layers = SamFunctionProvider._parse_layer_info(
-                        stack,
-                        resource_properties.get("Layers", []),
-                        use_raw_codeuri,
-                        ignore_code_extraction_warnings=ignore_code_extraction_warnings,
-                    )
-                    function = SamFunctionProvider._convert_sam_function_resource(
-                        stack,
-                        name,
-                        resource,
-                        layers,
-                        use_raw_codeuri,
-                    )
-                    result[function.full_path] = function
+                function = SamFunctionProvider.build_lambda_function(
+                    ignore_code_extraction_warnings,
+                    name,
+                    resource,
+                    resource_properties,
+                    resource_type,
+                    stack,
+                    use_raw_codeuri,
+                )
 
-                elif resource_type == SamFunctionProvider.LAMBDA_FUNCTION:
-                    layers = SamFunctionProvider._parse_layer_info(
-                        stack,
-                        resource_properties.get("Layers", []),
-                        use_raw_codeuri,
-                        ignore_code_extraction_warnings=ignore_code_extraction_warnings,
-                    )
-                    function = SamFunctionProvider._convert_lambda_function_resource(
-                        stack, name, resource, layers, use_raw_codeuri
-                    )
+                if function:
                     result[function.full_path] = function
 
                 # We don't care about other resource types. Just ignore them
 
         return result
+
+    @staticmethod
+    def get_image_asset_uri(image_property_key, resource):
+        assets = resource.assets or []
+        image_asset_uri = None
+        for asset in assets:
+            if isinstance(asset, ImageAsset) and asset.source_property == image_property_key:
+                image_asset_uri = asset.source_local_image if asset.source_local_image else asset.source_path
+                if isinstance(image_asset_uri, str):
+                    image_asset_uri = cast(Optional[str], image_asset_uri)
+                else:
+                    image_asset_uri = cast(Optional[str], image_asset_uri.get("ImageUri", None))
+                break
+        return image_asset_uri
+
+    @staticmethod
+    def get_code_asset_uri(code_property_key, resource):
+        assets = resource.assets or []
+        code_asset_uri = None
+        for asset in assets:
+            if isinstance(asset, S3Asset) and asset.source_property == code_property_key:
+                code_asset_uri = asset.source_path
+                break
+        return code_asset_uri
+
+    @staticmethod
+    def build_lambda_function(
+        ignore_code_extraction_warnings, name, resource, resource_properties, resource_type, stack, use_raw_codeuri
+    ):
+        function = None
+        if resource_type == SamFunctionProvider.SERVERLESS_FUNCTION:
+            layers = SamFunctionProvider._parse_layer_info(
+                stack,
+                resource_properties.get("Layers", []),
+                use_raw_codeuri,
+                ignore_code_extraction_warnings=ignore_code_extraction_warnings,
+            )
+            function = SamFunctionProvider._convert_sam_function_resource(
+                stack,
+                name,
+                resource,
+                layers,
+                use_raw_codeuri,
+            )
+        elif resource_type == SamFunctionProvider.LAMBDA_FUNCTION:
+            layers = SamFunctionProvider._parse_layer_info(
+                stack,
+                resource_properties.get("Layers", []),
+                use_raw_codeuri,
+                ignore_code_extraction_warnings=ignore_code_extraction_warnings,
+            )
+            function = SamFunctionProvider._convert_lambda_function_resource(
+                stack, name, resource, layers, use_raw_codeuri
+            )
+        return function
 
     @staticmethod
     def _convert_sam_function_resource(

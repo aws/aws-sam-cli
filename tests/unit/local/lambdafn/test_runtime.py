@@ -520,7 +520,7 @@ class TestLambdaRuntime_unarchived_layer(TestCase):
         self.layer_downloader = Mock()
         self.runtime = LambdaRuntime(self.manager_mock, self.layer_downloader)
 
-    @parameterized.expand([(LayerVersion("arn", "file.zip"),)])
+    @parameterized.expand([(LayerVersion("", arn="arn", codeuri="file.zip"),)])
     @patch("samcli.local.lambdafn.runtime.LambdaRuntime._get_code_dir")
     def test_unarchived_layer(self, layer, get_code_dir_mock):
         new_url = get_code_dir_mock.return_value = Mock()
@@ -528,7 +528,9 @@ class TestLambdaRuntime_unarchived_layer(TestCase):
         self.assertNotEqual(layer, result)
         self.assertEqual(new_url, result.codeuri)
 
-    @parameterized.expand([("arn",), (LayerVersion("arn", "folder"),), ({"Name": "hi", "Version": "x.y.z"},)])
+    @parameterized.expand(
+        [("arn",), (LayerVersion("", arn="arn", codeuri="folder"),), ({"Name": "hi", "Version": "x.y.z"},)]
+    )
     @patch("samcli.local.lambdafn.runtime.LambdaRuntime._get_code_dir")
     def test_unarchived_layer_not_local_archive_file(self, layer, get_code_dir_mock):
         get_code_dir_mock.side_effect = lambda x: x  # directly return the input
