@@ -8,7 +8,7 @@ import threading
 from typing import List, Optional, TYPE_CHECKING
 
 from samcli.lib.utils.colors import Colored
-from samcli.lib.providers.exceptions import MissingCodeUri, MissingDefinitionUri
+from samcli.lib.providers.exceptions import MissingCodeUri, MissingLocalDefinition
 
 from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_all_resource_ids
 from samcli.lib.utils.code_trigger_factory import CodeTriggerFactory
@@ -106,7 +106,7 @@ class WatchManager:
         for resource_id in resource_ids:
             try:
                 trigger = self._trigger_factory.create_trigger(resource_id, self._on_code_change_wrapper(resource_id))
-            except (MissingCodeUri, MissingDefinitionUri):
+            except (MissingCodeUri, MissingLocalDefinition):
                 LOG.debug("CodeTrigger not created as CodeUri or DefinitionUri is missing for %s.", str(resource_id))
                 continue
 

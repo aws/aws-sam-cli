@@ -5,10 +5,10 @@ Read and parse CLI args for the Logs Command and setup the context for running t
 import logging
 from typing import List, Optional, Set, Any
 
-from samcli.commands._utils.resources import (
+from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION,
     AWS_APIGATEWAY_RESTAPI,
-    AWS_APIGATEWAY_HTTPAPI,
+    AWS_APIGATEWAY_V2_API,
     AWS_STEPFUNCTIONS_STATEMACHINE,
 )
 from samcli.commands.exceptions import UserException
@@ -66,7 +66,7 @@ class ResourcePhysicalIdResolver:
     DEFAULT_SUPPORTED_RESOURCES: Set[str] = {
         AWS_LAMBDA_FUNCTION,
         AWS_APIGATEWAY_RESTAPI,
-        AWS_APIGATEWAY_HTTPAPI,
+        AWS_APIGATEWAY_V2_API,
         AWS_STEPFUNCTIONS_STATEMACHINE,
     }
 

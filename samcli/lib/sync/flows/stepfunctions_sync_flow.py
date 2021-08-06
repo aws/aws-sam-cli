@@ -6,8 +6,8 @@ from typing import Any, Dict, List, TYPE_CHECKING, cast, Optional
 from boto3.session import Session
 
 from samcli.lib.providers.provider import Stack, get_resource_by_id, ResourceIdentifier
-from samcli.lib.sync.exceptions import UriNotFoundException
 from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall
+from samcli.lib.providers.exceptions import MissingLocalDefinition
 
 if TYPE_CHECKING:
     from samcli.commands.deploy.deploy_context import DeployContext
@@ -101,7 +101,7 @@ class StepFunctionsSyncFlow(SyncFlow):
 if you are using inline Definition please run sam sync --infra",
                 self.log_prefix,
             )
-            raise UriNotFoundException(self._state_machine_identifier, "DefinitionUri")
+            raise MissingLocalDefinition(ResourceIdentifier(self._state_machine_identifier), "DefinitionUri")
         LOG.debug("%sTrying to update State Machine definition", self.log_prefix)
         response = self._stepfunctions_client.update_state_machine(
             stateMachineArn=state_machine_arn, definition=self._states_definition

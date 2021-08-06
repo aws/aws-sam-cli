@@ -66,7 +66,7 @@ DEFAULT_TEMPLATE_NAME = "template.yaml"
 @click.option(
     "--code",
     is_flag=True,
-    help="Sync code resoures. This includes Lambda Functions, API Gateway, and Step Functions.",
+    help="Sync code resources. This includes Lambda Functions, API Gateway, and Step Functions.",
 )
 @click.option(
     "--watch",

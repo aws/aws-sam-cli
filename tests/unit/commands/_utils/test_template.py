@@ -9,7 +9,7 @@ from unittest import TestCase
 from unittest.mock import patch, mock_open, MagicMock
 from parameterized import parameterized, param
 
-from samcli.commands._utils.resources import AWS_SERVERLESS_FUNCTION, AWS_SERVERLESS_API
+from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION, AWS_SERVERLESS_API
 from samcli.commands._utils.template import (
     get_template_data,
     METADATA_WITH_LOCAL_PATHS,

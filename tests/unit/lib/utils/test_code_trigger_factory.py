@@ -1,8 +1,8 @@
-from samcli.lib.providers.provider import ResourceIdentifier
 from parameterized import parameterized
 from unittest.case import TestCase
 from unittest.mock import MagicMock, patch, ANY
 from samcli.lib.utils.code_trigger_factory import CodeTriggerFactory
+from samcli.lib.providers.provider import ResourceIdentifier
 
 
 class TestCodeTriggerFactory(TestCase):
@@ -15,7 +15,7 @@ class TestCodeTriggerFactory(TestCase):
         on_code_change_mock = MagicMock()
         resource_identifier = ResourceIdentifier("Function1")
         resource = {"Properties": {"PackageType": "Zip"}}
-        result = self.factory._create_lambda_trigger(resource_identifier, resource, on_code_change_mock)
+        result = self.factory._create_lambda_trigger(resource_identifier, "Type", resource, on_code_change_mock)
         self.assertEqual(result, trigger_mock.return_value)
         trigger_mock.assert_called_once_with(resource_identifier, self.stacks, on_code_change_mock)
 
@@ -24,7 +24,7 @@ class TestCodeTriggerFactory(TestCase):
         on_code_change_mock = MagicMock()
         resource_identifier = ResourceIdentifier("Function1")
         resource = {"Properties": {"PackageType": "Image"}}
-        result = self.factory._create_lambda_trigger(resource_identifier, resource, on_code_change_mock)
+        result = self.factory._create_lambda_trigger(resource_identifier, "Type", resource, on_code_change_mock)
         self.assertEqual(result, trigger_mock.return_value)
         trigger_mock.assert_called_once_with(resource_identifier, self.stacks, on_code_change_mock)
 
@@ -32,24 +32,29 @@ class TestCodeTriggerFactory(TestCase):
     def test_create_layer_trigger(self, trigger_mock):
         on_code_change_mock = MagicMock()
         resource_identifier = ResourceIdentifier("Layer1")
-        result = self.factory._create_layer_trigger(resource_identifier, {}, on_code_change_mock)
+        result = self.factory._create_layer_trigger(resource_identifier, "Type", {}, on_code_change_mock)
         self.assertEqual(result, trigger_mock.return_value)
         trigger_mock.assert_called_once_with(resource_identifier, self.stacks, on_code_change_mock)
 
-    @patch("samcli.lib.utils.code_trigger_factory.APIGatewayCodeTrigger")
-    def test_create_api_gateway_trigger(self, trigger_mock):
+    @patch("samcli.lib.utils.code_trigger_factory.DefinitionCodeTrigger")
+    def test_create_definition_trigger(self, trigger_mock):
         on_code_change_mock = MagicMock()
         resource_identifier = ResourceIdentifier("API1")
-        result = self.factory._create_api_gateway_trigger(resource_identifier, {}, on_code_change_mock)
+        resource_type = "AWS::Serverless::Api"
+        result = self.factory._create_definition_code_trigger(
+            resource_identifier, resource_type, {}, on_code_change_mock
+        )
         self.assertEqual(result, trigger_mock.return_value)
-        trigger_mock.assert_called_once_with(resource_identifier, self.stacks, on_code_change_mock)
+        trigger_mock.assert_called_once_with(resource_identifier, resource_type, self.stacks, on_code_change_mock)
 
     @patch("samcli.lib.utils.code_trigger_factory.get_resource_by_id")
-    def test_create_trigger(self, get_resource_by_id_mock):
+    @patch("samcli.lib.utils.resource_type_based_factory.get_resource_by_id")
+    def test_create_trigger(self, get_resource_by_id_mock, parent_get_resource_by_id_mock):
         code_trigger = MagicMock()
         resource_identifier = MagicMock()
-        get_resource_by_id = MagicMock()
+        get_resource_by_id = {"Type": "AWS::Serverless::Api"}
         get_resource_by_id_mock.return_value = get_resource_by_id
+        parent_get_resource_by_id_mock.return_value = get_resource_by_id
         generator_mock = MagicMock()
         generator_mock.return_value = code_trigger
 
@@ -63,5 +68,5 @@ class TestCodeTriggerFactory(TestCase):
 
         self.assertEqual(result, code_trigger)
         generator_mock.assert_called_once_with(
-            self.factory, resource_identifier, get_resource_by_id, on_code_change_mock
+            self.factory, resource_identifier, "AWS::Serverless::Api", get_resource_by_id, on_code_change_mock
         )

@@ -1,8 +1,8 @@
-from samcli.lib.sync.exceptions import MissingPhysicalResourceError, SyncFlowException
 from unittest.case import TestCase
 from unittest.mock import MagicMock, patch, ANY
 from samcli.lib.sync.watch_manager import WatchManager
-from samcli.lib.providers.exceptions import MissingCodeUri, MissingDefinitionUri
+from samcli.lib.providers.exceptions import MissingCodeUri, MissingLocalDefinition
+from samcli.lib.sync.exceptions import MissingPhysicalResourceError, SyncFlowException
 
 
 class TestWatchManager(TestCase):
@@ -62,7 +62,7 @@ class TestWatchManager(TestCase):
             None,
             MissingCodeUri(),
             trigger_2,
-            MissingDefinitionUri(),
+            MissingLocalDefinition(MagicMock(), MagicMock()),
         ]
         self.watch_manager._stacks = [MagicMock()]
         self.watch_manager._trigger_factory = trigger_factory

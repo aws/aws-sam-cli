@@ -1,11 +1,10 @@
 import re
-from samcli.lib.providers.provider import ResourceIdentifier
 from parameterized import parameterized
 from unittest.case import TestCase
 from unittest.mock import MagicMock, patch, ANY
 from samcli.lib.utils.resource_trigger import (
-    APIGatewayCodeTrigger,
     CodeResourceTrigger,
+    DefinitionCodeTrigger,
     LambdaFunctionCodeTrigger,
     LambdaImageCodeTrigger,
     LambdaLayerCodeTrigger,
@@ -14,7 +13,8 @@ from samcli.lib.utils.resource_trigger import (
     TemplateTrigger,
 )
 from samcli.local.lambdafn.exceptions import FunctionNotFound, ResourceNotFound
-from samcli.lib.providers.exceptions import MissingCodeUri, MissingDefinitionUri
+from samcli.lib.providers.exceptions import MissingLocalDefinition
+from samcli.lib.providers.provider import ResourceIdentifier
 
 
 class TestResourceTrigger(TestCase):
@@ -216,17 +216,32 @@ class TestLambdaLayerCodeTrigger(TestCase):
         self.assertEqual(bundle.event_handler.on_any_event, on_code_change_mock)
 
 
-class TestAPIGatewayCodeTrigger(TestCase):
+class TestDefinitionCodeTrigger(TestCase):
     @patch("samcli.lib.utils.resource_trigger.DefinitionValidator")
     @patch("samcli.lib.utils.resource_trigger.Path")
     @patch("samcli.lib.utils.resource_trigger.ResourceTrigger.get_single_file_path_handler")
     @patch("samcli.lib.utils.resource_trigger.get_resource_by_id")
     def test_get_path_handler(self, get_resource_by_id_mock, single_file_handler_mock, path_mock, validator_mock):
         stacks = [MagicMock(), MagicMock()]
-        trigger = APIGatewayCodeTrigger("definition.json", stacks, MagicMock())
+        resource = {"Properties": {"DefinitionUri": "abc"}}
+        get_resource_by_id_mock.return_value = resource
+        trigger = DefinitionCodeTrigger("TestApi", "AWS::Serverless::Api", stacks, MagicMock())
         result = trigger.get_path_handlers()
         self.assertEqual(result, [single_file_handler_mock.return_value])
         self.assertEqual(single_file_handler_mock.return_value.event_handler.on_any_event, trigger._validator_wrapper)
+
+    @patch("samcli.lib.utils.resource_trigger.DefinitionValidator")
+    @patch("samcli.lib.utils.resource_trigger.Path")
+    @patch("samcli.lib.utils.resource_trigger.ResourceTrigger.get_single_file_path_handler")
+    @patch("samcli.lib.utils.resource_trigger.get_resource_by_id")
+    def test_get_path_handler_missing_definition(
+        self, get_resource_by_id_mock, single_file_handler_mock, path_mock, validator_mock
+    ):
+        stacks = [MagicMock(), MagicMock()]
+        resource = {"Properties": {"Field": "abc"}}
+        get_resource_by_id_mock.return_value = resource
+        with self.assertRaises(MissingLocalDefinition):
+            trigger = DefinitionCodeTrigger("TestApi", "AWS::Serverless::Api", stacks, MagicMock())
 
     @patch("samcli.lib.utils.resource_trigger.DefinitionValidator")
     @patch("samcli.lib.utils.resource_trigger.Path")
@@ -236,6 +251,8 @@ class TestAPIGatewayCodeTrigger(TestCase):
         on_definition_change_mock = MagicMock()
         event_mock = MagicMock()
         validator_mock.return_value.validate.return_value = True
-        trigger = APIGatewayCodeTrigger("definition.json", stacks, on_definition_change_mock)
+        resource = {"Properties": {"DefinitionUri": "abc"}}
+        get_resource_by_id_mock.return_value = resource
+        trigger = DefinitionCodeTrigger("TestApi", "AWS::Serverless::Api", stacks, on_definition_change_mock)
         trigger._validator_wrapper(event_mock)
         on_definition_change_mock.assert_called_once_with(event_mock)

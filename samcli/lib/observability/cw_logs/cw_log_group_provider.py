@@ -4,10 +4,10 @@ Discover & provide the log group name
 import logging
 from typing import Optional
 
-from samcli.commands._utils.resources import (
+from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION,
     AWS_APIGATEWAY_RESTAPI,
-    AWS_APIGATEWAY_HTTPAPI,
+    AWS_APIGATEWAY_V2_API,
     AWS_STEPFUNCTIONS_STATEMACHINE,
 )
 from samcli.lib.utils.boto_utils import BotoProviderType
@@ -27,7 +27,7 @@ class LogGroupProvider:
             log_group = LogGroupProvider.for_lambda_function(name)
         elif resource_type == AWS_APIGATEWAY_RESTAPI:
             log_group = LogGroupProvider.for_apigw_rest_api(name)
-        elif resource_type == AWS_APIGATEWAY_HTTPAPI:
+        elif resource_type == AWS_APIGATEWAY_V2_API:
             log_group = LogGroupProvider.for_apigwv2_http_api(boto_client_provider, name)
         elif resource_type == AWS_STEPFUNCTIONS_STATEMACHINE:
             log_group = LogGroupProvider.for_step_functions(boto_client_provider, name)

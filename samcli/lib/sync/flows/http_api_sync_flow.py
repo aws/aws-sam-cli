@@ -5,8 +5,8 @@ from typing import Dict, List, TYPE_CHECKING, cast
 from boto3.session import Session
 
 from samcli.lib.sync.flows.generic_api_sync_flow import GenericApiSyncFlow
-from samcli.lib.sync.exceptions import UriNotFoundException
-from samcli.lib.providers.provider import Stack
+from samcli.lib.providers.provider import ResourceIdentifier, Stack
+from samcli.lib.providers.exceptions import MissingLocalDefinition
 
 # BuildContext and DeployContext will only be imported for type checking to improve performance
 # since no instances of contexts will be instantiated in this class
@@ -63,7 +63,7 @@ class HttpApiSyncFlow(GenericApiSyncFlow):
 if you are using DefinitionBody please run sam sync --infra",
                 self.log_prefix,
             )
-            raise UriNotFoundException(self._api_identifier, "DefinitionUri")
+            raise MissingLocalDefinition(ResourceIdentifier(self._api_identifier), "DefinitionUri")
         LOG.debug("%sTrying to import HttpAPI through client", self.log_prefix)
         response = self._api_client.reimport_api(ApiId=api_physical_id, Body=self._swagger_body)
         LOG.debug("%sImport HttpApi Result: %s", self.log_prefix, response)

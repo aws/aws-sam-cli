@@ -1,25 +1,20 @@
 """ResourceTrigger Classes for Creating PathHandlers According to a Resource"""
 import re
-from pathlib import Path
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
+
 from typing_extensions import Protocol
+from watchdog.events import FileSystemEvent, PatternMatchingEventHandler, RegexMatchingEventHandler
 
-from watchdog.events import (
-    FileSystemEvent,
-    PatternMatchingEventHandler,
-    RegexMatchingEventHandler,
-)
-
-from samcli.lib.providers.exceptions import MissingCodeUri, MissingDefinitionUri
-
-from samcli.lib.providers.sam_layer_provider import SamLayerProvider
-from samcli.lib.providers.sam_function_provider import SamFunctionProvider
-from samcli.lib.utils.definition_validator import DefinitionValidator
-from samcli.local.lambdafn.exceptions import FunctionNotFound, ResourceNotFound
-
-from samcli.lib.utils.path_observer import PathHandler
+from samcli.lib.providers.exceptions import MissingCodeUri, MissingLocalDefinition
 from samcli.lib.providers.provider import Function, LayerVersion, ResourceIdentifier, Stack, get_resource_by_id
+from samcli.lib.providers.sam_function_provider import SamFunctionProvider
+from samcli.lib.providers.sam_layer_provider import SamLayerProvider
+from samcli.lib.utils.definition_validator import DefinitionValidator
+from samcli.lib.utils.path_observer import PathHandler
+from samcli.local.lambdafn.exceptions import FunctionNotFound, ResourceNotFound
+from samcli.lib.utils.resources import RESOURCES_WITH_LOCAL_PATHS
 
 
 class OnChangeCallback(Protocol):
@@ -127,6 +122,7 @@ class TemplateTrigger(ResourceTrigger):
 class CodeResourceTrigger(ResourceTrigger):
     """Parent class for ResourceTriggers that are for a single template resource."""
 
+    _resource_identifier: ResourceIdentifier
     _resource: Dict[str, Any]
     _on_code_change: OnChangeCallback
 
@@ -147,6 +143,7 @@ class CodeResourceTrigger(ResourceTrigger):
             Raised when the resource cannot be found in the stacks.
         """
         super().__init__()
+        self._resource_identifier = resource_identifier
         resource = get_resource_by_id(stacks, resource_identifier)
         if not resource:
             raise ResourceNotFound()
@@ -274,37 +271,51 @@ class LambdaLayerCodeTrigger(CodeResourceTrigger):
         return [dir_path_handler]
 
 
-class APIGatewayCodeTrigger(CodeResourceTrigger):
+class DefinitionCodeTrigger(CodeResourceTrigger):
     _validator: DefinitionValidator
     _definition_file: str
 
     def __init__(
         self,
-        rest_api_identifier: ResourceIdentifier,
+        resource_identifier: ResourceIdentifier,
+        resource_type: str,
         stacks: List[Stack],
         on_code_change: OnChangeCallback,
     ):
         """
         Parameters
         ----------
-        rest_api_identifier : ResourceIdentifier
-            ResourceIdentifier for the RestApi
+        resource_identifier : ResourceIdentifier
+            ResourceIdentifier for the Resource
+        resource_type : str
+            Resource type
         stacks : List[Stack]
             List of stacks
         on_code_change : OnChangeCallback
-            Callback when RestApi definition file is changed.
+            Callback when definition file is changed.
+        """
+        super().__init__(resource_identifier, stacks, on_code_change)
+        self._resource_type = resource_type
+        self._definition_file = self._get_definition_file()
+        self._validator = DefinitionValidator(Path(self._definition_file))
+
+    def _get_definition_file(self) -> str:
+        """
+        Returns
+        -------
+        str
+            JSON/YAML definition file path
 
         Raises
         ------
-        MissingDefinitionUri
-            raised when there is no DefinitionUri property in the RestApi definition.
+        MissingLocalDefinition
+            raised when resource property related to definition path is not specified.
         """
-        super().__init__(rest_api_identifier, stacks, on_code_change)
-        definition_file = self._resource.get("Properties", {}).get("DefinitionUri", None)
-        if not definition_file:
-            raise MissingDefinitionUri()
-        self._definition_file = definition_file
-        self._validator = DefinitionValidator(Path(self._definition_file))
+        property_name = RESOURCES_WITH_LOCAL_PATHS[self._resource_type][0]
+        definition_file = self._resource.get("Properties", {}).get(property_name)
+        if not definition_file or not isinstance(definition_file, str):
+            raise MissingLocalDefinition(self._resource_identifier, property_name)
+        return definition_file
 
     def _validator_wrapper(self, event: Optional[FileSystemEvent] = None):
         """Wrapper for callback that only executes if the definition is valid and non-trivial changes are detected.

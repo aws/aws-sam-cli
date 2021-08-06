@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch, call, ANY
 
 from parameterized import parameterized
 
-from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
+from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION
 from samcli.commands.logs.puller_factory import (
     generate_puller,
     generate_file_consumer,

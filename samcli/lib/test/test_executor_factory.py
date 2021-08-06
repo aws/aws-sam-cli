@@ -4,7 +4,7 @@ Test executor factory to instantiate test executor for given resource
 import logging
 from typing import Dict, Callable, Any, Optional
 
-from samcli.commands._utils.resources import (
+from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION,
     AWS_SQS_QUEUE,
     AWS_KINESIS_STREAM,

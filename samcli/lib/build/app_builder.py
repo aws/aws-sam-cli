@@ -21,8 +21,15 @@ from samcli.lib.build.build_strategy import (
     ParallelBuildStrategy,
     BuildStrategy,
 )
+from samcli.lib.utils.resources import (
+    AWS_CLOUDFORMATION_STACK,
+    AWS_LAMBDA_FUNCTION,
+    AWS_LAMBDA_LAYERVERSION,
+    AWS_SERVERLESS_APPLICATION,
+    AWS_SERVERLESS_FUNCTION,
+    AWS_SERVERLESS_LAYERVERSION,
+)
 from samcli.lib.providers.provider import ResourcesToBuildCollector, Function, get_full_path, Stack, LayerVersion
-from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.lib.utils.colors import Colored
 import samcli.lib.utils.osutils as osutils
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -265,26 +272,26 @@ class ApplicationBuilder:
                 store_path = os.path.relpath(absolute_output_path, original_dir)
 
             if has_build_artifact:
-                if resource_type == SamBaseProvider.SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == ZIP:
+                if resource_type == AWS_SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == ZIP:
                     properties["CodeUri"] = store_path
 
-                if resource_type == SamBaseProvider.LAMBDA_FUNCTION and properties.get("PackageType", ZIP) == ZIP:
+                if resource_type == AWS_LAMBDA_FUNCTION and properties.get("PackageType", ZIP) == ZIP:
                     properties["Code"] = store_path
 
-                if resource_type in [SamBaseProvider.SERVERLESS_LAYER, SamBaseProvider.LAMBDA_LAYER]:
+                if resource_type in [AWS_SERVERLESS_LAYERVERSION, AWS_LAMBDA_LAYERVERSION]:
                     properties["ContentUri"] = store_path
 
-                if resource_type == SamBaseProvider.LAMBDA_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
+                if resource_type == AWS_LAMBDA_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
                     properties["Code"] = built_artifacts[full_path]
 
-                if resource_type == SamBaseProvider.SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
+                if resource_type == AWS_SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
                     properties["ImageUri"] = built_artifacts[full_path]
 
             if is_stack:
-                if resource_type == SamBaseProvider.SERVERLESS_APPLICATION:
+                if resource_type == AWS_SERVERLESS_APPLICATION:
                     properties["Location"] = store_path
 
-                if resource_type == SamBaseProvider.CLOUDFORMATION_STACK:
+                if resource_type == AWS_CLOUDFORMATION_STACK:
                     properties["TemplateURL"] = store_path
 
         return template_dict

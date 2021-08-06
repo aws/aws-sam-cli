@@ -1,8 +1,8 @@
+from samcli.lib.providers.exceptions import MissingLocalDefinition
 from unittest import TestCase
 from unittest.mock import ANY, MagicMock, mock_open, patch
 
 from samcli.lib.sync.flows.stepfunctions_sync_flow import StepFunctionsSyncFlow
-from samcli.lib.sync.exceptions import UriNotFoundException
 
 
 class TestStepFunctionsSyncFlow(TestCase):
@@ -80,5 +80,5 @@ class TestStepFunctionsSyncFlow(TestCase):
         sync_flow._definition_uri = None
 
         with patch("builtins.open", mock_open(read_data='{"key": "value"}')) as mock_file:
-            with self.assertRaises(UriNotFoundException):
+            with self.assertRaises(MissingLocalDefinition):
                 sync_flow.sync()
