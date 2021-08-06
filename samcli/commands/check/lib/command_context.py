@@ -14,12 +14,13 @@ from samtranslator.parser import parser
 
 from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
 from samcli.commands.check.bottle_necks import BottleNecks
-from samcli.commands.check.resources.LambdaFunction import LambdaFunction
-from samcli.commands.check.resources.Graph import Graph
+from samcli.commands.check.resources.lambda_function import LambdaFunction
+from samcli.commands.check.resources.graph import CheckGraph
+from samcli.commands.check.resources.pricing import CheckPricing
 from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
-from samcli.commands.check.calculation import Calculation
-from samcli.commands.check.results import Results
+from samcli.commands.check.calculation import CheckCalculation
+from samcli.commands.check.print_results import CheckResults
 
 from samcli.yamlhelper import yaml_parse
 
@@ -47,10 +48,14 @@ class CheckContext:
 
     def __init__(self, region: str, profile: str, template_path: str):
         """
-        Args:
-            region (str): Users region
-            profile (str): Users profile
-            template_path (str): [description]
+        Parameters
+        ----------
+            region: str
+                Users region
+            profile: str
+                Users profile
+            template_path: str
+                Path of the template
         """
         self._region = region
         self._profile = profile
@@ -71,10 +76,13 @@ class CheckContext:
         bottle_necks = BottleNecks(graph)
         bottle_necks.ask_entry_point_question()
 
-        calculations = Calculation(graph)
+        pricing = CheckPricing(graph)
+        pricing.ask_pricing_questions()
+
+        calculations = CheckCalculation(graph)
         calculations.run_bottle_neck_calculations()
 
-        results = Results(graph)
+        results = CheckResults(graph)
         results.print_bottle_neck_results()
 
     def _transform_template(self) -> Any:
@@ -110,8 +118,15 @@ class CheckContext:
         Reads the file (json and yaml supported) provided and returns the dictionary representation of the file.
         The file will be a sam application template file in SAM yaml, CFN json, or CFN yaml format
 
-        :return dict: Dictionary representing the SAM Template
-        :raises: SamTemplateNotFoundException when the template file does not exist
+        Returns
+        -------
+            dict
+                Dictionary representing the SAM Template
+
+        Raises
+        ------
+            SamTemplateNotFoundException
+                Raises this when the template file does not exist
         """
 
         if not os.path.exists(self._template_path):
@@ -124,11 +139,13 @@ class CheckContext:
         return sam_template
 
 
-def _parse_template() -> Graph:
+def _parse_template() -> CheckGraph:
     """Parses the template to retrieve resources
 
-    Returns:
-        Graph: Returns the generated graph object
+    Returns
+    -------
+        CheckGraph
+            Returns the generated graph object
     """
     all_lambda_functions = []
 
@@ -141,11 +158,10 @@ def _parse_template() -> Graph:
     function_provider = SamFunctionProvider(local_stacks)
     functions = function_provider.get_all()  # List of all functions in the stacks
     for stack_function in functions:
-        new_lambda_function = LambdaFunction(stack_function, AWS_LAMBDA_FUNCTION)
+        new_lambda_function = LambdaFunction(stack_function, AWS_LAMBDA_FUNCTION, stack_function.name)
         all_lambda_functions.append(new_lambda_function)
 
     # After all resources have been parsed from template, pass them into the graph
-    graph = Graph()
-    graph.generate(all_lambda_functions)
+    graph = CheckGraph(all_lambda_functions)
 
     return graph

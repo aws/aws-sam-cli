@@ -1,13 +1,14 @@
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
-from samcli.commands.check.resources.LambdaFunction import LambdaFunction
+from samcli.commands.check.resources.lambda_function import LambdaFunction
 
 
 class TestLambdaFunction(TestCase):
     def test_class(self):
         object_mock = Mock()
         type_mock = Mock()
+        name_mock = Mock()
         duration_mock = Mock()
         tps_mock = Mock()
         parents_mock = Mock()
@@ -17,7 +18,7 @@ class TestLambdaFunction(TestCase):
         memory_mock = Mock()
         memory_unit_mock = Mock()
 
-        lambda_function = LambdaFunction(object_mock, type_mock)
+        lambda_function = LambdaFunction(object_mock, type_mock, name_mock)
 
         lambda_function.duration = duration_mock
         lambda_function.tps = tps_mock

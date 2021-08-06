@@ -12,11 +12,12 @@ from samcli.commands.check.lib.command_context import CheckContext, _parse_templ
 
 
 class TestCommandContext(TestCase):
-    @patch("samcli.commands.check.lib.command_context.Results")
-    @patch("samcli.commands.check.lib.command_context.Calculation")
+    @patch("samcli.commands.check.lib.command_context.CheckPricing")
+    @patch("samcli.commands.check.lib.command_context.CheckResults")
+    @patch("samcli.commands.check.lib.command_context.CheckCalculation")
     @patch("samcli.commands.check.lib.command_context._parse_template")
     @patch("samcli.commands.check.lib.command_context.BottleNecks")
-    def test_run(self, patch_bottle_neck, patch_parse_template, patch_calculations, patch_print):
+    def test_run(self, patch_bottle_neck, patch_parse_template, patch_calculations, patch_print, patch_pricing):
         region = Mock()
         profile = Mock()
         path = Mock()
@@ -38,6 +39,8 @@ class TestCommandContext(TestCase):
 
         patch_bottle_neck.return_value = bottle_neck_mock
         bottle_neck_mock.ask_entry_point_question = Mock()
+
+        patch_pricing.ask_pricing_questions = Mock()
 
         context.run()
 
@@ -100,7 +103,7 @@ class TestCommandContext(TestCase):
         patch_replace.assert_called_with(original_template)
         sam_translator.translate.assert_called_with(sam_template=updated_template, parameter_values={})
 
-    @patch("samcli.commands.check.lib.command_context.Graph")
+    @patch("samcli.commands.check.lib.command_context.CheckGraph")
     @patch("samcli.commands.check.lib.command_context.LambdaFunction")
     @patch("samcli.commands.check.lib.command_context.SamLocalStackProvider")
     @patch("samcli.commands.check.lib.command_context.SamFunctionProvider")
@@ -109,6 +112,7 @@ class TestCommandContext(TestCase):
         path_mock = Mock()
         local_stacks_mock = Mock()
         stack_function_mock = Mock()
+        stack_function_mock.name = Mock()
 
         function_provider_mock = Mock()
         function_provider_mock.get_all.return_value = [stack_function_mock]
@@ -118,7 +122,6 @@ class TestCommandContext(TestCase):
 
         graph_mock = Mock()
 
-        graph_mock.generate = Mock()
         patch_graph.return_value = graph_mock
 
         all_lambda_functions = [patch_lambda.return_value]
@@ -134,8 +137,7 @@ class TestCommandContext(TestCase):
         patch_stack_provider.get_stacks.assert_called_once_with(path_mock)
         patch_function_provider.assert_called_once_with(local_stacks_mock)
         function_provider_mock.get_all.assert_called_once()
-        patch_lambda.assert_called_once_with(stack_function_mock, AWS_LAMBDA_FUNCTION)
-        patch_graph.assert_called_once()
-        graph_mock.generate.assert_called_once_with(all_lambda_functions)
+        patch_lambda.assert_called_once_with(stack_function_mock, AWS_LAMBDA_FUNCTION, stack_function_mock.name)
+        patch_graph.assert_called_once_with(all_lambda_functions)
 
         self.assertEqual(result, graph_mock)
