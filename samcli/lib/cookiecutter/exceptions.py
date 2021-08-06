@@ -4,8 +4,8 @@
 class CookiecutterErrorException(Exception):
     fmt = "An unspecified error occurred"
 
-    def __init__(self, **kwargs):
-        msg = self.fmt.format(**kwargs)
+    def __init__(self, **kwargs):  # type: ignore
+        msg: str = self.fmt.format(**kwargs)
         Exception.__init__(self, msg)
         self.kwargs = kwargs
 
