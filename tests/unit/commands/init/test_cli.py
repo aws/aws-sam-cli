@@ -14,7 +14,7 @@ from click.testing import CliRunner
 from samcli.commands.exceptions import UserException
 from samcli.commands.init import cli as init_cmd
 from samcli.commands.init import do_cli as init_cli
-from samcli.commands.init.init_templates import InitTemplates, APP_TEMPLATES_REPO_URL
+from samcli.commands.init.init_templates import InitTemplates, APP_TEMPLATES_REPO_URL, InvalidInitTemplateError
 from samcli.lib.init import GenerateProjectFailedError
 from samcli.lib.utils import osutils
 from samcli.lib.utils.git_repo import GitRepo
@@ -225,10 +225,10 @@ class TestCli(TestCase):
             )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
-    def test_init_fails_wrong_dep_mgr_for_runtime(self, git_repo_clone_mock):
+    def test_init_fails_unsupported_dep_mgr_for_runtime(self, git_repo_clone_mock):
         # WHEN the wrong dependency_manager is passed for a runtime
         # THEN an exception should be raised
-        with self.assertRaises(UserException):
+        with self.assertRaises(InvalidInitTemplateError) as ex:
             init_cli(
                 ctx=self.ctx,
                 no_interactive=self.no_interactive,
@@ -244,6 +244,10 @@ class TestCli(TestCase):
                 no_input=self.no_input,
                 extra_context=None,
             )
+        expected_error_message = (
+            "Lambda Runtime java8 and dependency manager pip does not have an available initialization template."
+        )
+        self.assertEqual(str(ex.exception), expected_error_message)
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
     @patch("samcli.commands.init.init_generator.generate_project")
@@ -1392,7 +1396,7 @@ foo
                 "packageType": "Image",
             },
         ]
-        with (self.assertRaises(UserException)):
+        with (self.assertRaises(UserException)) as ex:
             init_cli(
                 ctx=self.ctx,
                 no_interactive=True,
@@ -1408,23 +1412,22 @@ foo
                 no_input=None,
                 extra_context=None,
             )
+            self.fail(str(ex))
 
     @patch("samcli.lib.utils.git_repo.GitRepo._ensure_clone_directory_exists")
     def test_init_cli_with_mismatch_dep_runtime(self, cd_mock):
         # WHEN the user follows interactive init prompts
 
         # 1: selecting template source
-        # 2s: selecting package type
+        # 1: selecting package type
         user_input = """
 1
-2
 1
         """
         args = [
-            "--no-input",
             "--name",
             "untitled6",
-            "runtime",
+            "--runtime",
             "java8",
             "--dependency-manager",
             "pip",
@@ -1432,5 +1435,6 @@ foo
         runner = CliRunner()
         result = runner.invoke(init_cmd, args=args, input=user_input)
 
-        # THEN we should receive no errors
         self.assertTrue(result.exception)
+        expected_error_message = "Unsupported dependency manager pip selected for Lambda Runtime java8."
+        self.assertIn(expected_error_message, result.output)

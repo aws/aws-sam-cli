@@ -185,7 +185,9 @@ def _get_runtime_from_image(image):
 def _get_dependency_manager(dependency_manager, runtime):
     valid_dep_managers = RUNTIME_TO_DEPENDENCY_MANAGERS.get(runtime)
     if dependency_manager:
-        _validate_runtime_dependancy_manager(dependency_manager, runtime)
+        if dependency_manager not in valid_dep_managers:
+            msg = f"Unsupported dependency manager {dependency_manager} selected for Lambda Runtime {runtime}."
+            raise InvalidInitOptionException(msg)
     elif valid_dep_managers is None:
         dependency_manager = None
     elif len(valid_dep_managers) == 1:
@@ -201,13 +203,6 @@ def _get_dependency_manager(dependency_manager, runtime):
         choice = click.prompt("Dependency manager", type=click.Choice(choices), show_choices=False)
         dependency_manager = valid_dep_managers[int(choice) - 1]  # zero index
     return dependency_manager
-
-
-def _validate_runtime_dependancy_manager(dependency_manager, runtime):
-    valid_dep_managers = RUNTIME_TO_DEPENDENCY_MANAGERS.get(runtime)
-    if dependency_manager not in valid_dep_managers:
-        msg = f"Wrong dependency manager {dependency_manager} selected for Lambda Runtime {runtime}."
-        raise InvalidInitOptionException(msg)
 
 
 def _get_schema_template_details(schemas_api_caller):
