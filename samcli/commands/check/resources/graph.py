@@ -1,54 +1,53 @@
-from logging import warn
+"""
+Class for graph. All data is stored in the graph directly, or within nodes that are stored in the graph
+"""
+from typing import Dict, List, Union
+
+from samcli.commands.check.resources.lambda_function import LambdaFunction
+from samcli.commands.check.resources.warning import CheckWarning
+from samcli.commands.check.resources.unique_pricing_info import UniquePricingInfo
 
 
-class Graph:
-    def __init__(self):
+class CheckGraph:
+    """
+    A graph object stores four main item types.
+
+    entry_points: All possible entry points to the application based on the template.
+    resources_to_analyze: All resources that need to be directly checked for bottle
+      neck issues (just lambda functions for now).
+    green/yellow/red/red_burst_warnings: The four different warning types that
+      the user can be presented
+    unique_pricing_info: Contains the user entered data for all pricing questions
+      for every resource
+    """
+
+    entry_points: List[Union[LambdaFunction]]
+    resources_to_analyze: List[Union[LambdaFunction]]
+    green_warnings: List[CheckWarning]
+    yellow_warnings: List[CheckWarning]
+    red_warnings: List[CheckWarning]
+    red_burst_warnings: List[CheckWarning]
+    unique_pricing_info: Dict[str, UniquePricingInfo]
+
+    def __init__(self, lambda_functions: List[LambdaFunction]):
         self.entry_points = []
-        self.resources_to_analyze = {}
+        self.resources_to_analyze = []
         self.green_warnings = []
         self.yellow_warnings = []
         self.red_warnings = []
         self.red_burst_warnings = []
-        self.lambda_function_pricing_info = None
+        self.unique_pricing_info = {}
 
-    def add_entry_point(self, node):
-        self.entry_points.append(node)
+        self._generate(lambda_functions)
 
-    def get_entry_points(self):
-        return self.entry_points
-
-    def get_resources_to_analyze(self):
-        return self.resources_to_analyze
-
-    def add_resource_to_analyze(self, resource, key):
-        self.resources_to_analyze[key] = resource
-
-    def add_green_warning(self, warning):
-        self.green_warnings.append(warning)
-
-    def get_green_warnings(self):
-        return self.green_warnings
-
-    def add_yellow_warning(self, warning):
-        self.yellow_warnings.append(warning)
-
-    def get_yellow_warnings(self):
-        return self.yellow_warnings
-
-    def add_red_warning(self, warning):
-        self.red_warnings.append(warning)
-
-    def get_red_warnings(self):
-        return self.red_warnings
-
-    def add_red_burst_warning(self, warning):
-        self.red_burst_warnings.append(warning)
-
-    def get_red_burst_warnings(self):
-        return self.red_burst_warnings
-
-    def get_lambda_function_pricing_info(self):
-        return self.lambda_function_pricing_info
-
-    def set_lambda_function_pricing_info(self, info):
-        self.lambda_function_pricing_info = info
+    def _generate(self, lambda_functions: List[LambdaFunction]) -> None:
+        """Generates the graph based on the connections calulated
+        Parameters
+        ----------
+            lambda_functions: List[LambdaFunction]
+              List of all lambda functions in template
+        """
+        # Find all entry points
+        for function in lambda_functions:
+            if not function.parents:  # No parent resourecs, so this is an entry point
+                self.entry_points.append(function)
