@@ -1,11 +1,32 @@
+"""
+Class object for Lambda Functions. Contains object from template, as well as all data for lambda functions,
+excluding pricing info
+"""
+from typing import List
 from samcli.commands.check.resources.template_resource import TemplateResource
+from samcli.lib.providers.provider import Function
 
 
 class LambdaFunction(TemplateResource):
-    def __init__(self, resource_object, resource_type, resource_name):
+    duration: int
+    tps: int
+    parents: List
+    children: List
+
+    def __init__(self, resource_object: Function, resource_type: str, resource_name: str):
+        """
+        Parameters
+        ----------
+            resource_object: Function
+                The resource object form the template file
+            resource_type: str
+                The resource type
+            resource_name: str
+                The name of the resource
+        """
         super().__init__(resource_object, resource_type, resource_name)
-        self.duration = None
-        self.tps = None
+        self.duration = -1
+        self.tps = -1
         self.parents = []
         self.children = []
         self.permission = None
@@ -32,33 +53,3 @@ class LambdaFunction(TemplateResource):
         new_lambda_function.entry_point_resource = old_entry_point_resource
 
         return new_lambda_function
-
-    def add_child(self, child_node):
-        self.children.append(child_node)
-
-    def get_children(self):
-        return self.children
-
-    def add_parent(self, parent_node):
-        self.parents.append(parent_node)
-
-    def get_parents(self):
-        return self.parents
-
-    def set_tps(self, tps):
-        self.tps = tps
-
-    def get_tps(self):
-        return self.tps
-
-    def set_duration(self, duration):
-        self.duration = duration
-
-    def get_duration(self):
-        return self.duration
-
-    def get_permission(self):
-        return self.permission
-
-    def set_permission(self, permission):
-        self.permission = permission

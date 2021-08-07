@@ -1,145 +1,27 @@
-from samcli.commands.check.resources.lambda_function_pricing import LambdaFunctionPricing
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
-from samcli.commands.check.resources.pricing import Pricing
+from samcli.commands.check.resources.pricing import CheckPricing
+from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
 
 class TestPricing(TestCase):
-    @patch("samcli.commands.check.resources.pricing.click")
-    def test_ask(self, patch_click):
-        graph_mock = Mock()
-        question_mock = "Mock()"
-
-        pricing = Pricing(graph_mock)
-        patch_click.prompt.return_value = 5
-
-        result = pricing.ask(question_mock, 1, 10)
-
-        patch_click.prompt.assert_called_once_with(text=question_mock, type=int)
-        self.assertEqual(result, patch_click.prompt.return_value)
-
-    @patch("samcli.commands.check.resources.pricing.click")
-    def test_ask_memory(self, patch_click):
-        graph_mock = Mock()
-        question_mock = "Mock()"
-
-        pricing = Pricing(graph_mock)
-        patch_click.prompt.return_value = "5:GB"
-
-        split_value = patch_click.prompt.return_value.split(":")
-
-        pricing.correct_memory_input = Mock()
-        pricing.correct_memory_input.return_value = True
-
-        result0, result1 = pricing.ask_memory(question_mock, 1, 10)
-
-        patch_click.prompt.assert_called_once_with(text=question_mock, type=str)
-        pricing.correct_memory_input.assert_called_once_with(split_value)
-
-        self.assertEqual(result0, split_value[0])
-        self.assertEqual(result1, split_value[1])
-
-    @patch("samcli.commands.check.resources.pricing.click")
-    def test_correct_memory_input(self, patch_click):
-        # All correct input
-        memory_amount = "300"
-        memory_unit = "MB"
-        user_input_split = [memory_amount, memory_unit]
-
-        result = Pricing.correct_memory_input(Mock(), user_input_split)
-
-        self.assertEqual(True, result)
-
-        memory_amount = "2.58"
-        memory_unit = "GB"
-        user_input_split = [memory_amount, memory_unit]
-
-        result = Pricing.correct_memory_input(Mock(), user_input_split)
-
-        self.assertEqual(True, result)
-
-        # Incorrect user_input_split amount
-        memory_amount = "600"
-        memory_unit = "MB"
-        user_input_split = [memory_amount, memory_unit, memory_unit]
-
-        result = Pricing.correct_memory_input(Mock(), user_input_split)
-
-        self.assertEqual(False, result)
-
-        # Invalid amount (not a number)
-        memory_amount = "number"
-        memory_unit = "MB"
-        user_input_split = [memory_amount, memory_unit, memory_unit]
-
-        result = Pricing.correct_memory_input(Mock(), user_input_split)
-
-        self.assertEqual(False, result)
-
-        # Invalid unit
-        memory_amount = "800"
-        memory_unit = "TB"
-        user_input_split = [memory_amount, memory_unit, memory_unit]
-
-        result = Pricing.correct_memory_input(Mock(), user_input_split)
-
-        self.assertEqual(False, result)
-
-        # Below range
-        memory_amount = "80"
-        memory_unit = "MB"
-        user_input_split = [memory_amount, memory_unit, memory_unit]
-
-        result = Pricing.correct_memory_input(Mock(), user_input_split)
-
-        self.assertEqual(False, result)
-
-        # Above range
-        memory_amount = "80"
-        memory_unit = "GB"
-        user_input_split = [memory_amount, memory_unit, memory_unit]
-
-        result = Pricing.correct_memory_input(Mock(), user_input_split)
-
-        self.assertEqual(False, result)
-
-    def test_ask_pricing_questions(self):
-        self_mock = Mock()
-        resource_mock = Mock()
-        resource_mock.get_resource_type.return_value = "AWS::Lambda::Function"
-        self_mock.asked_lambda_questions.return_value = False
-
-        pricing = Pricing(self_mock)
-
-        pricing.ask_lambda_function_questions = Mock()
-
-        pricing.ask_pricing_question(resource_mock)
-
-        pricing.ask_lambda_function_questions.assert_called_once_with(resource_mock)
-
     @patch("samcli.commands.check.resources.pricing.LambdaFunctionPricing")
-    def test_ask_lambda_function_questions(self, patch_LFPricing):
-        pricing_instance_mock = Mock()
-        patch_LFPricing.return_value = pricing_instance_mock
+    def test_ask_pricing_questions(self, patch_lambda_pricing):
+        self_mock = Mock()
 
-        pricing_instance_mock.set_number_of_requests = Mock()
+        resource_mock = Mock()
+        resource_mock.resource_type = AWS_LAMBDA_FUNCTION
+        self_mock._graph.resources_to_analyze = [resource_mock]
+        self_mock._graph.unique_pricing_info = {}
 
-        graph_mock = Mock()
-        lambda_function_mock = Mock()
+        lambda_pricing_mock = Mock()
+        lambda_pricing_mock.ask_lambda_function_questions = Mock()
 
-        pricing = Pricing(graph_mock)
-        pricing.ask = Mock()
-        pricing.ask_memory = Mock()
+        patch_lambda_pricing.return_value = lambda_pricing_mock
 
-        memory_mock = Mock()
-        unit_mock = Mock()
-        pricing.ask_memory.return_value = [memory_mock, unit_mock]
+        CheckPricing.ask_pricing_questions(self_mock)
 
-        pricing.ask_lambda_function_questions(lambda_function_mock)
+        lambda_pricing_mock.ask_lambda_function_questions.assert_called_once()
 
-        pricing_instance_mock.set_number_of_requests.assert_called_once_with(pricing.ask.return_value)
-        pricing_instance_mock.set_average_duration.assert_called_once_with(pricing.ask.return_value)
-        pricing_instance_mock.set_allocated_memory.assert_called_once_with(memory_mock)
-        pricing_instance_mock.set_allocated_memory_unit.assert_called_once_with(unit_mock)
-        graph_mock.set_lambda_function_pricing_info.assert_called_once_with(pricing_instance_mock)
+        self.assertEqual(self_mock._graph.unique_pricing_info["LambdaFunction"], lambda_pricing_mock)

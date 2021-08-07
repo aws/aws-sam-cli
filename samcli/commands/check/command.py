@@ -1,5 +1,5 @@
 """
-CLI command for "deploy" command
+CLI command for "check" command
 """
 import os
 import ast
@@ -67,7 +67,6 @@ Connections between resources can be made after all required data is
 provided
 """
 
-CONFIG_SECTION = "parameters"
 LOG = logging.getLogger(__name__)
 
 
@@ -92,87 +91,87 @@ LOG = logging.getLogger(__name__)
 @print_cmdline_args
 def cli(ctx, template_file, config_file, config_env, load):
     """
-    `sam deploy` command entry point
+    `sam check` command entry point
     """
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
     do_cli(ctx, template_file, config_file, load)  # pragma: no cover
 
 
-def do_cli(ctx, template, config_file, load):
-    """
-    Implementation of the ``cli`` method
+# def do_cli(ctx, template, config_file, load):
+#     """
+#     Implementation of the ``cli`` method
 
-    Translate template into CloudFormation yaml format
-    """
+#     Translate template into CloudFormation yaml format
+#     """
 
-    if load:
-        load_data = LoadData()
-        graph = load_data.generate_graph_from_toml(config_file)
+#     if load:
+#         load_data = LoadData()
+#         graph = load_data.generate_graph_from_toml(config_file)
 
-        bottle_neck_calculations = BottleNeckCalculations(graph)
-        bottle_neck_calculations.run_calculations()
+#         bottle_neck_calculations = BottleNeckCalculations(graph)
+#         bottle_neck_calculations.run_calculations()
 
-        pricing_calculations = PricingCalculations(graph)
-        pricing_calculations.run_calculations()
+#         pricing_calculations = PricingCalculations(graph)
+#         pricing_calculations.run_calculations()
 
-        save_data = False
+#         save_data = False
 
-        if save_data:
-            save_graph_data = SaveGraphData(graph)
-            save_graph_data.save_to_config_file(config_file)
+#         if save_data:
+#             save_graph_data = SaveGraphData(graph)
+#             save_graph_data.save_to_config_file(config_file)
 
-        results = PrintResults(graph, pricing_calculations.get_lambda_pricing_results())
-        results.print_all_pricing_results()
-        results.print_bottle_neck_results()
+#         results = PrintResults(graph, pricing_calculations.get_lambda_pricing_results())
+#         results.print_all_pricing_results()
+#         results.print_bottle_neck_results()
 
-        return
+#         return
 
-    # acquire template and policies
-    sam_template = _read_sam_file(template)
-    iam_client = boto3.client("iam")
-    managed_policy_map = ManagedPolicyLoader(iam_client).load()
+#     # acquire template and policies
+#     sam_template = _read_sam_file(template)
+#     iam_client = boto3.client("iam")
+#     managed_policy_map = ManagedPolicyLoader(iam_client).load()
 
-    sam_translator = Translator(
-        managed_policy_map=managed_policy_map,
-        sam_parser=parser.Parser(),
-        plugins=[],
-        boto_session=Session(profile_name=ctx.profile, region_name=ctx.region),
-    )
+#     sam_translator = Translator(
+#         managed_policy_map=managed_policy_map,
+#         sam_parser=parser.Parser(),
+#         plugins=[],
+#         boto_session=Session(profile_name=ctx.profile, region_name=ctx.region),
+#     )
 
-    # Convert uri's
-    uri_replace = ReplaceLocalCodeUri(sam_template)
-    sam_template = uri_replace._replace_local_codeuri()
+#     # Convert uri's
+#     uri_replace = ReplaceLocalCodeUri(sam_template)
+#     sam_template = uri_replace._replace_local_codeuri()
 
-    # Translate template
-    try:
-        template = sam_translator.translate(sam_template=sam_template, parameter_values={})
-    except InvalidDocumentException as e:
-        raise InvalidSamDocumentException(
-            functools.reduce(lambda message, error: message + " " + str(error), e.causes, str(e))
-        ) from e
+#     # Translate template
+#     try:
+#         template = sam_translator.translate(sam_template=sam_template, parameter_values={})
+#     except InvalidDocumentException as e:
+#         raise InvalidSamDocumentException(
+#             functools.reduce(lambda message, error: message + " " + str(error), e.causes, str(e))
+#         ) from e
 
-    click.echo("... analyzing application template")
+#     click.echo("... analyzing application template")
 
-    graph = parse_template(template)
+#     graph = parse_template(template)
 
-    bottle_necks = BottleNecks(graph)
-    bottle_necks.ask_entry_point_question()
+#     bottle_necks = BottleNecks(graph)
+#     bottle_necks.ask_entry_point_question()
 
-    bottle_neck_calculations = BottleNeckCalculations(graph)
-    bottle_neck_calculations.run_calculations()
+#     bottle_neck_calculations = BottleNeckCalculations(graph)
+#     bottle_neck_calculations.run_calculations()
 
-    pricing_calculations = PricingCalculations(graph)
-    pricing_calculations.run_calculations()
+#     pricing_calculations = PricingCalculations(graph)
+#     pricing_calculations.run_calculations()
 
-    save_data = ask_to_save_data()
+#     save_data = ask_to_save_data()
 
-    if save_data:
-        save_graph_data = SaveGraphData(graph)
-        save_graph_data.save_to_config_file(config_file)
+#     if save_data:
+#         save_graph_data = SaveGraphData(graph)
+#         save_graph_data.save_to_config_file(config_file)
 
-    results = PrintResults(graph, pricing_calculations.get_lambda_pricing_results())
-    results.print_all_pricing_results()
-    results.print_bottle_neck_results()
+#     results = PrintResults(graph, pricing_calculations.get_lambda_pricing_results())
+#     results.print_all_pricing_results()
+#     results.print_bottle_neck_results()
 
 
 def ask_to_save_data():
@@ -202,23 +201,12 @@ def parse_template(template):
     return graph_context.generate()
 
 
-def _read_sam_file(template):
+def do_cli(ctx, template_path):
     """
-    Reads the file (json and yaml supported) provided and returns the dictionary representation of the file.
-
-    :param str template: Path to the template file
-    :return dict: Dictionary representing the SAM Template
-    :raises: SamTemplateNotFoundException when the template file does not exist
+    Implementation of the ``cli`` method
     """
 
-    from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
-    from samcli.yamlhelper import yaml_parse
+    from samcli.commands.check.lib.command_context import CheckContext
 
-    if not os.path.exists(template):
-        click.secho("SAM Template Not Found", bg="red")
-        raise SamTemplateNotFoundException("Template at {} is not found".format(template))
-
-    with click.open_file(template, "r", encoding="utf-8") as sam_template:
-        sam_template = yaml_parse(sam_template.read())
-
-    return sam_template
+    context = CheckContext(ctx.region, ctx.profile, template_path)
+    context.run()
