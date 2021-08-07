@@ -32,15 +32,19 @@ class LambdaFunction(TemplateResource):
         self.permission = None
         self.entry_point_resource = None
 
+    def add_child(self, child):
+        # REMOVE
+        self.children.append(child)
+
     def copy_data(self):
-        old_resource_object = self.get_resource_object()
-        old_resource_type = self.get_resource_type()
-        old_resource_name = self.get_name()
-        old_duration = self.get_duration()
-        old_tps = self.get_tps()
-        old_parents = self.get_parents()
-        old_children = self.get_children()
-        old_permission = self.get_permission()
+        old_resource_object = self.resource_object
+        old_resource_type = self.resource_type
+        old_resource_name = self.resource_name
+        old_duration = self.duration
+        old_tps = self.tps
+        old_parents = self.parents
+        old_children = self.children
+        old_permission = self.permission
         old_entry_point_resource = self.entry_point_resource
 
         new_lambda_function = LambdaFunction(old_resource_object, old_resource_type, old_resource_name)

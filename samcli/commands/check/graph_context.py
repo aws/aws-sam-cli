@@ -3,7 +3,7 @@ import click
 
 from samcli.commands.check.resources.dynamo_db import DynamoDB
 from samcli.commands.check.resources.lambda_function import LambdaFunction
-from samcli.commands.check.resources.graph import Graph
+from samcli.commands.check.resources.graph import CheckGraph
 
 
 class GraphContext:
@@ -25,7 +25,7 @@ class GraphContext:
         }
 
     def generate(self):
-        graph = Graph()
+        graph = CheckGraph([])
 
         self.make_connections(graph)
         self.find_entry_points(graph)
@@ -38,7 +38,7 @@ class GraphContext:
             Certain resoures, such as ApiGateways, linked resources in a permission prod. Any other
             resources that do so will be handled here
             """
-            permission_object = permission.get_resource_object()
+            permission_object = permission.resource_object
 
             ref_function_name = permission_object["Properties"]["FunctionName"]["Ref"]
             source_name = permission_object["Properties"]["SourceArn"]["Fn::Sub"][1]["__ApiId__"]["Ref"]
@@ -47,8 +47,8 @@ class GraphContext:
                 ref_object = self.lambda_functions[ref_function_name]
                 source_object = self.api_gateways[source_name]
 
-                source_object.add_child(ref_object)
-                ref_object.add_parent(source_object)
+                source_object.children.append(ref_object)
+                ref_object.parents.append(source_object)
 
             else:
                 raise Exception(
@@ -61,7 +61,7 @@ class GraphContext:
             DynamoDB tables, Kinesis streams, SQS queues, and MSK link themselves to lambda functions through
             EventSourceMapping objects. Those are handled here.
             """
-            event_object = event.get_resource_object()
+            event_object = event.resource_object
 
             ref_function_name = event_object["Properties"]["FunctionName"]["Ref"]
             ref_function_object = self.lambda_functions[ref_function_name]
@@ -86,8 +86,8 @@ class GraphContext:
                     source_object = DynamoDB({}, "AWS::DynamoDB::Table", source_name)
                     self.dynamoDB_tables[source_name] = source_object
 
-                    source_object.add_child(ref_function_object)
-                    ref_function_object.add_parent(source_object)
+                    source_object.children.append(ref_function_object)
+                    ref_function_object.parents.append(source_object)
             else:
                 # This resource does exist in the template. No extra steps are needed
                 source_name = source_name.split(".")[0]
@@ -96,21 +96,21 @@ class GraphContext:
                 if source_name in self.dynamoDB_tables:
                     source_object = self.dynamoDB_tables[source_name]
 
-                    source_object.add_child(ref_function_object)
-                    ref_function_object.add_parent(source_object)
+                    source_object.children.append(ref_function_object)
+                    ref_function_object.parents.append(source_object)
 
     def find_entry_points(self, graph):
         for function_object in self.lambda_functions.values():
-            if function_object.get_parents() == []:  # No parent resourecs, so this is an entry point
-                graph.add_entry_point(function_object)
+            if function_object.parents == []:  # No parent resourecs, so this is an entry point
+                graph.entry_points.append(function_object)
 
         for api_object in self.api_gateways.values():
-            if api_object.get_parents() == []:
-                graph.add_entry_point(api_object)
+            if api_object.parents == []:
+                graph.entry_points.append(api_object)
 
         for dynamo_object in self.dynamoDB_tables.values():
-            if dynamo_object.get_parents() == []:
-                graph.add_entry_point(dynamo_object)
+            if dynamo_object.parents == []:
+                graph.entry_points.append(dynamo_object)
 
     def make_connections(self, graph):
         # Start with lambda function permissions, if there are any
@@ -141,7 +141,7 @@ class GraphContext:
                         self._make_connection_from_policy("AWS::DynamoDB::Table", lambda_function_name)
 
     def _get_properties(self, lambda_function: LambdaFunction) -> OrderedDict:
-        lambda_function_resource_object = lambda_function.get_resource_object()
+        lambda_function_resource_object = lambda_function.resource_object
 
         lambda_function_role_name = lambda_function_resource_object["Properties"]["Role"]["Fn::GetAtt"][0]
 
@@ -150,7 +150,7 @@ class GraphContext:
 
         iam_role = self._iam_roles[lambda_function_role_name]
 
-        iam_role_object = iam_role.get_resource_object()
+        iam_role_object = iam_role.resource_object
 
         return iam_role_object["Properties"]
 
@@ -166,8 +166,8 @@ class GraphContext:
             lambda_function = self.lambda_functions[lambda_function_name]
 
             for resource in resources_selected:
-                lambda_function.add_child(resource)
-                resource.add_parent(lambda_function)
+                lambda_function.children.append(resource)
+                resource.parents.append(lambda_function)
 
     def _ask_dynamo_connection_question(self, lambda_function_name: str) -> List:
         resources_selected = []

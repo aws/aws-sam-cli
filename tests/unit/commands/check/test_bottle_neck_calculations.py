@@ -2,10 +2,11 @@ from unittest import TestCase
 from unittest.mock import MagicMock, Mock, patch
 
 from samcli.commands.check.bottle_neck_calculations import BottleNeckCalculations
+from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
 
 class TestCalculations(TestCase):
-    @patch("samcli.commands.check.calculation._check_limit")
+    @patch("samcli.commands.check.bottle_neck_calculations._check_limit")
     @patch("samcli.commands.check.bottle_neck_calculations.Warning")
     def test_generate_warning_message(self, patch_warning, patch_check_limit):
         """
@@ -18,10 +19,10 @@ class TestCalculations(TestCase):
         patch_warning.return_value = warning_instance_mock
 
         warning_instance_mock.message = Mock()
-        graph_mock.green_warnings.append = Mock()
-        graph_mock.yellow_warnings.append = Mock()
-        graph_mock.red_warnings.append = Mock()
-        graph_mock.red_burst_warnings.append = Mock()
+        graph_mock.green_warnings = []
+        graph_mock.yellow_warnings = []
+        graph_mock.red_warnings = []
+        graph_mock.red_burst_warnings = []
 
         calculations = BottleNeckCalculations(graph_mock)
 
@@ -37,8 +38,6 @@ class TestCalculations(TestCase):
             capacity_used, resource_name, concurrent_executions, duration, tps, burst_concurrency
         )
 
-        graph_mock.green_warnings.append.assert_called_once_with(warning_instance_mock)
-
         # Capacity > 70 and < 90
         capacity_used = 89
         resource_name = "4"
@@ -51,8 +50,6 @@ class TestCalculations(TestCase):
             capacity_used, resource_name, concurrent_executions, duration, tps, burst_concurrency
         )
 
-        graph_mock.yellow_warnings.append.assert_called_once_with(warning_instance_mock)
-
         # Capacity >= 90 <= 100
         capacity_used = 90
         resource_name = "4"
@@ -64,8 +61,6 @@ class TestCalculations(TestCase):
         calculations._generate_warning_message(
             capacity_used, resource_name, concurrent_executions, duration, tps, burst_concurrency
         )
-
-        graph_mock.red_warnings.append.assert_called_once_with(warning_instance_mock)
 
         # Capacity > 100
         capacity_used = 101
@@ -81,13 +76,17 @@ class TestCalculations(TestCase):
             capacity_used, resource_name, concurrent_executions, duration, tps, burst_concurrency
         )
 
-        graph_mock.red_burst_warnings.append.assert_called_once_with(warning_instance_mock)
         patch_check_limit.assert_called_once_with(tps, duration, burst_concurrency)
 
-    @patch("samcli.commands.check.calculation._check_limit")
+        self.assertEqual(len(graph_mock.green_warnings), 1)
+        self.assertEqual(len(graph_mock.yellow_warnings), 1)
+        self.assertEqual(len(graph_mock.red_warnings), 1)
+        self.assertEqual(len(graph_mock.red_burst_warnings), 1)
+
+    @patch("samcli.commands.check.bottle_neck_calculations._check_limit")
     @patch("samcli.commands.check.bottle_neck_calculations.click")
     @patch("samcli.commands.check.bottle_neck_calculations.boto3")
-    def test_run_bottle_neck_calculations(self, patch_boto3, patch_click, patch_check_limit):
+    def test_run_calculations(self, patch_boto3, patch_click, patch_check_limit):
         import botocore
 
         graph_mock = Mock()
@@ -107,7 +106,7 @@ class TestCalculations(TestCase):
         calculations = BottleNeckCalculations(graph_mock)
         calculations.check_limit = Mock()
         calculations.check_limit.return_value = Mock()
-        calculations.generate_warning_message = Mock()
+        calculations._generate_warning_message = Mock()
 
         patch_check_limit.return_value = Mock()
 
@@ -143,11 +142,11 @@ class TestCalculations(TestCase):
             operation_name="stack_status",
         )
         with self.assertRaises(botocore.exceptions.ClientError):
-            calculations.run_bottle_neck_calculations()
+            calculations.run_calculations()
 
         client_mock.get_aws_default_service_quota.side_effect = ValueError
         with self.assertRaises(ValueError):
-            calculations.run_bottle_neck_calculations()
+            calculations.run_calculations()
 
     def test_check_limit(self):
         from samcli.commands.check.calculation import _check_limit

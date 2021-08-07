@@ -1,14 +1,8 @@
 """
 CLI command for "check" command
 """
-import os
-import ast
-from samtranslator.model import sam_resources
-import yaml
 
 import logging
-import functools
-from samcli.commands.check.pricing_calculations import PricingCalculations
 
 import click
 
@@ -17,36 +11,6 @@ from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.commands._utils.options import template_option_without_build
-
-from samtranslator.translator.translator import Translator
-from samtranslator.public.exceptions import InvalidDocumentException
-
-import boto3
-from samtranslator.translator.managed_policy_translator import ManagedPolicyLoader
-from samtranslator.parser import parser
-from boto3.session import Session
-from samcli.yamlhelper import yaml_dump
-from samcli.lib.utils.packagetype import ZIP
-
-from samcli.lib.replace_uri.replace_uri import ReplaceLocalCodeUri
-
-from samcli.lib.providers.sam_function_provider import SamFunctionProvider
-from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
-from .bottle_necks import BottleNecks
-from .graph_context import GraphContext
-from samcli.commands.check.resources.lambda_function import LambdaFunction
-
-from samcli.commands.check.resources.pricing import Pricing
-from .exceptions import InvalidSamDocumentException
-
-from .bottle_neck_calculations import BottleNeckCalculations
-from .print_results import PrintResults
-
-from samcli.commands.check.lib.resource_provider import ResourceProvider
-
-from samcli.commands.check.lib.save_data import SaveGraphData
-
-from samcli.commands.check.lib.load_data import LoadData
 
 
 SHORT_HELP = "Checks template for bottle necks."
@@ -97,116 +61,14 @@ def cli(ctx, template_file, config_file, config_env, load):
     do_cli(ctx, template_file, config_file, load)  # pragma: no cover
 
 
-# def do_cli(ctx, template, config_file, load):
-#     """
-#     Implementation of the ``cli`` method
-
-#     Translate template into CloudFormation yaml format
-#     """
-
-#     if load:
-#         load_data = LoadData()
-#         graph = load_data.generate_graph_from_toml(config_file)
-
-#         bottle_neck_calculations = BottleNeckCalculations(graph)
-#         bottle_neck_calculations.run_calculations()
-
-#         pricing_calculations = PricingCalculations(graph)
-#         pricing_calculations.run_calculations()
-
-#         save_data = False
-
-#         if save_data:
-#             save_graph_data = SaveGraphData(graph)
-#             save_graph_data.save_to_config_file(config_file)
-
-#         results = PrintResults(graph, pricing_calculations.get_lambda_pricing_results())
-#         results.print_all_pricing_results()
-#         results.print_bottle_neck_results()
-
-#         return
-
-#     # acquire template and policies
-#     sam_template = _read_sam_file(template)
-#     iam_client = boto3.client("iam")
-#     managed_policy_map = ManagedPolicyLoader(iam_client).load()
-
-#     sam_translator = Translator(
-#         managed_policy_map=managed_policy_map,
-#         sam_parser=parser.Parser(),
-#         plugins=[],
-#         boto_session=Session(profile_name=ctx.profile, region_name=ctx.region),
-#     )
-
-#     # Convert uri's
-#     uri_replace = ReplaceLocalCodeUri(sam_template)
-#     sam_template = uri_replace._replace_local_codeuri()
-
-#     # Translate template
-#     try:
-#         template = sam_translator.translate(sam_template=sam_template, parameter_values={})
-#     except InvalidDocumentException as e:
-#         raise InvalidSamDocumentException(
-#             functools.reduce(lambda message, error: message + " " + str(error), e.causes, str(e))
-#         ) from e
-
-#     click.echo("... analyzing application template")
-
-#     graph = parse_template(template)
-
-#     bottle_necks = BottleNecks(graph)
-#     bottle_necks.ask_entry_point_question()
-
-#     bottle_neck_calculations = BottleNeckCalculations(graph)
-#     bottle_neck_calculations.run_calculations()
-
-#     pricing_calculations = PricingCalculations(graph)
-#     pricing_calculations.run_calculations()
-
-#     save_data = ask_to_save_data()
-
-#     if save_data:
-#         save_graph_data = SaveGraphData(graph)
-#         save_graph_data.save_to_config_file(config_file)
-
-#     results = PrintResults(graph, pricing_calculations.get_lambda_pricing_results())
-#     results.print_all_pricing_results()
-#     results.print_bottle_neck_results()
-
-
-def ask_to_save_data():
-    correct_input = False
-    while not correct_input:
-        user_input = click.prompt("Would you like to save this data in the samconfig file for future use? [y/n]")
-        user_input = user_input.lower()
-
-        if user_input == "y":
-            return True
-        elif user_input == "n":
-            return False
-        else:
-            click.echo("Please enter a valid responce.")
-
-
-def parse_template(template):
-
-    all_resources = {}
-
-    resource_provider = ResourceProvider(template)
-    all_resources = resource_provider.get_all_resources()
-
-    # After all resources have been parsed from template, pass them into the graph
-    graph_context = GraphContext(all_resources)
-
-    return graph_context.generate()
-
-
-def do_cli(ctx, template_path):
+def do_cli(ctx, template, config_file, load):
     """
     Implementation of the ``cli`` method
+
+    Translate template into CloudFormation yaml format
     """
 
     from samcli.commands.check.lib.command_context import CheckContext
 
-    context = CheckContext(ctx.region, ctx.profile, template_path)
-    context.run()
+    context = CheckContext(ctx.region, ctx.profile, template)
+    context.run(config_file, load)

@@ -18,19 +18,19 @@ class TestSaveData(TestCase):
 
         graph_mock.resources_to_analyze = {key: copied_lambda_function_mock}
 
-        copied_lambda_function_mock.get_resource_type.return_value = Mock()
-        copied_lambda_function_mock.get_name.return_value = Mock()
-        copied_lambda_function_mock.get_duration.return_value = Mock()
-        copied_lambda_function_mock.get_tps.return_value = Mock()
+        copied_lambda_function_mock.resource_type = Mock()
+        copied_lambda_function_mock.resource_name = Mock()
+        copied_lambda_function_mock.duration = Mock()
+        copied_lambda_function_mock.tps = Mock()
 
         lambda_toml = {
             "resource_object": "",
-            "resource_type": copied_lambda_function_mock.get_resource_type(),
-            "resource_name": copied_lambda_function_mock.get_name(),
-            "duration": copied_lambda_function_mock.get_duration(),
-            "tps": copied_lambda_function_mock.get_tps(),
+            "resource_type": copied_lambda_function_mock.resource_type,
+            "resource_name": copied_lambda_function_mock.resource_name,
+            "duration": copied_lambda_function_mock.duration,
+            "tps": copied_lambda_function_mock.tps,
             "children": children_toml_mock,
-            "key": key
+            "key": key,
         }
 
         save_data = SaveGraphData(graph_mock)
@@ -46,9 +46,9 @@ class TestSaveData(TestCase):
         save_data = SaveGraphData(graph_mock)
 
         resource_mock = Mock()
-        resource_mock.get_resource_type.return_value = "AWS::Lambda::Function"
-        resource_mock.get_name.return_value = Mock()
-        resource_mock.get_children.return_value = []
+        resource_mock.resource_type = "AWS::Lambda::Function"
+        resource_mock.reource_name = Mock()
+        resource_mock.children = []
 
         save_data.generate_lambda_toml = Mock()
         save_data.generate_lambda_toml.return_value = resource_toml
@@ -65,7 +65,7 @@ class TestSaveData(TestCase):
         key = name + ":" + entry_point_resource
 
         resource_mock = Mock()
-        resource_mock.get_name.return_value = name
+        resource_mock.resource_name = name
         resource_mock.entry_point_resource = entry_point_resource
 
         resources = [resource_mock]
@@ -88,13 +88,13 @@ class TestSaveData(TestCase):
         memory_unit_mock = Mock()
 
         lambda_pricing_info_mock = Mock()
-        lambda_pricing_info_mock.get_number_of_requests.return_value = requests_mock
-        lambda_pricing_info_mock.get_average_duration.return_value = duration_mock
-        lambda_pricing_info_mock.get_allocated_memory.return_value = memory_mock
-        lambda_pricing_info_mock.get_allocated_memory_unit.return_value = memory_unit_mock
+        lambda_pricing_info_mock.number_of_requests = requests_mock
+        lambda_pricing_info_mock.average_duration = duration_mock
+        lambda_pricing_info_mock.allocated_memory = memory_mock
+        lambda_pricing_info_mock.allocated_memory_unit = memory_unit_mock
 
         graph_mock = Mock()
-        graph_mock.get_lambda_function_pricing_info.return_value = lambda_pricing_info_mock
+        graph_mock.unique_pricing_info = {"LambdaFunction": lambda_pricing_info_mock}
 
         save_data = SaveGraphData(graph_mock)
         result = save_data.get_lambda_function_pricing_info()
@@ -122,7 +122,7 @@ class TestSaveData(TestCase):
         lambda_function_pricing_info_toml_mock = Mock()
 
         graph_mock = Mock()
-        graph_mock.get_entry_points.return_value = resources_mock
+        graph_mock.entry_points = resources_mock
 
         resources_to_analyze_toml = {}
 
@@ -139,7 +139,6 @@ class TestSaveData(TestCase):
         save_data.save_to_config_file(config_file_mock)
 
         patch_get_config_ctx.assert_called_once_with(config_file_mock)
-        graph_mock.get_entry_points.assert_called_once()
         save_data.parse_resources.assert_called_once_with(resources_mock, resources_to_analyze_toml)
         save_data.get_lambda_function_pricing_info.assert_called_once()
         samconfig_mock.put.assert_called_once_with(["load"], "graph", "all_graph_data", graph_dict, "check")

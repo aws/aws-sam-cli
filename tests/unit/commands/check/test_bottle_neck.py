@@ -30,8 +30,7 @@ class TestBottleNeck(TestCase):
         bottle_neck.ask_entry_point_question()
 
         patch_ask.assert_called_once_with(question, 1, 1)
-        bottle_neck._ask_bottle_neck_questions.assert_called_once_with(entry_point_mock)
-        graph_mock.resources_to_analyze.append.assert_called_once_with(entry_point_mock)
+        bottle_neck._ask_bottle_neck_questions.assert_called_once_with(entry_point_mock, entry_point_mock.resource_name)
 
     def test_ask_bottle_neck_questions(self):
         self_mock = Mock()
@@ -42,48 +41,48 @@ class TestBottleNeck(TestCase):
         self_mock.event_source_bottle_neck_questions.return_value = Mock()
 
         my_resource = Mock()
-        my_resource.get_resource_type.return_value = "AWS::Lambda::Function"
+        my_resource.resource_type = "AWS::Lambda::Function"
 
-        BottleNecks.ask_bottle_neck_questions(self_mock, my_resource, entry_point_name)
+        BottleNecks._ask_bottle_neck_questions(self_mock, my_resource, entry_point_name)
         self_mock.lambda_bottle_neck_quesitons.assert_called_with(my_resource, entry_point_name)
 
-        my_resource.get_resource_type.return_value = "AWS::ApiGateway::RestApi"
-        BottleNecks.ask_bottle_neck_questions(self_mock, my_resource, entry_point_name)
+        my_resource.resource_type = "AWS::ApiGateway::RestApi"
+        BottleNecks._ask_bottle_neck_questions(self_mock, my_resource, entry_point_name)
         self_mock.event_source_bottle_neck_questions.assert_called_with(my_resource, entry_point_name)
 
-    def test_event_source_bottle_neck_questions(self):
+    @patch("samcli.commands.check.bottle_necks.ask")
+    def test_event_source_bottle_neck_questions(self, patch_ask):
         self_mock = Mock()
         event_source_mock = Mock()
         child_mock = Mock()
         input_mock = Mock()
         entry_point_name = Mock()
 
-        event_source_mock.set_tps.return_value = Mock()
-        event_source_mock.get_children.return_value = [child_mock]
-        event_source_mock.get_parents.return_value = []
-        child_mock.set_tps.return_value = Mock()
+        event_source_mock.tps = Mock()
+        event_source_mock.children = [child_mock]
+        event_source_mock.parents = []
+        child_mock.tps.return_value = Mock()
 
-        self_mock.ask.return_value = input_mock
-        self_mock.ask_bottle_neck_questions.return_value = Mock()
-        self_mock.ask_bottle_neck_questions.return_value = Mock()
+        patch_ask.return_value = input_mock
+        self_mock._ask_bottle_neck_questions = Mock()
+        self_mock._ask_bottle_neck_questions = Mock()
 
         BottleNecks.event_source_bottle_neck_questions(self_mock, event_source_mock, entry_point_name)
 
-        self_mock.ask.assert_called_once()
-        self_mock.ask_bottle_neck_questions.assert_called_once_with(child_mock, entry_point_name)
-        event_source_mock.set_tps.assert_called_once_with(input_mock)
-        child_mock.set_tps.assert_called_once_with(input_mock)
+        patch_ask.assert_called_once()
+        self_mock._ask_bottle_neck_questions.assert_called_once_with(child_mock, entry_point_name)
 
     @patch("samcli.commands.check.bottle_necks.ask")
     def test_lambda_bottle_neck_quesitons(self, patch_ask):
         self_mock = Mock()
-        self_mock.graph.resources_to_analyze = {}
+        self_mock._graph.resources_to_analyze = {}
+        self_mock._lambda_max_duration = 100
 
         lambda_function_mock = Mock()
-        lambda_function_mock.get_tps.return_value = None
+        lambda_function_mock.tps = 44
 
         child_mock = Mock()
-        lambda_function_mock.get_children.return_value = [child_mock]
+        lambda_function_mock.children = [child_mock]
 
         copy_lambda_function_mock = Mock()
         copy_lambda_function_mock.resource_name = ""
@@ -91,21 +90,14 @@ class TestBottleNeck(TestCase):
 
         entry_point_name = "Mock"
 
-        self_mock.ask.return_value = Mock()
-        self_mock.ask_bottle_neck_questions.return_value = Mock()
+        self_mock._ask_bottle_neck_questions.return_value = Mock()
 
         BottleNecks.lambda_bottle_neck_quesitons(self_mock, lambda_function_mock, entry_point_name)
 
-        self_mock.ask.assert_called()
-        lambda_function_mock.set_tps.assert_called_once()
-        lambda_function_mock.set_duration.assert_called_once_with(self_mock.ask.return_value)
-        lambda_function_mock.get_children.assert_called_once()
-        self_mock.ask_bottle_neck_questions.assert_called_once_with(child_mock, entry_point_name)
+        patch_ask.assert_called()
+        self_mock._ask_bottle_neck_questions.assert_called_once_with(child_mock, entry_point_name)
 
-        # Need to reset self_mock.ask call amount by reseting mock
-        self_mock = Mock()
-        self_mock.graph.resources_to_analyze = {}
-        lambda_function_mock.get_tps.return_value = "Not None"
+        lambda_function_mock.tps = -1
         BottleNecks.lambda_bottle_neck_quesitons(self_mock, lambda_function_mock, entry_point_name)
 
-        self_mock.ask.assert_called_once()
+        patch_ask.assert_called()

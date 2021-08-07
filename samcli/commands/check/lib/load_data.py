@@ -2,7 +2,7 @@ import logging
 
 import tomlkit.exceptions
 
-from samcli.commands.check.resources.graph import Graph
+from samcli.commands.check.resources.graph import CheckGraph
 from samcli.commands.check.resources.lambda_function import LambdaFunction
 from samcli.commands.check.resources.lambda_function_pricing import LambdaFunctionPricing
 from samcli.commands.check.resources.api_gateway import ApiGateway
@@ -15,7 +15,7 @@ LOG = logging.getLogger(__name__)
 
 class LoadData:
     def __init__(self):
-        self.graph = Graph()
+        self.graph = CheckGraph([])
         self.graph_toml = {}
 
     def get_data_from_toml(self, config_file):
@@ -27,14 +27,14 @@ class LoadData:
         toml_lambda_function_info = self.graph_toml["lambda_function_pricing_info"]
 
         lambda_function_pricing = LambdaFunctionPricing()
-        lambda_function_pricing.set_number_of_requests(int(toml_lambda_function_info["number_of_requests"]))
-        lambda_function_pricing.set_average_duration(int(toml_lambda_function_info["average_duration"]))
-        lambda_function_pricing.set_allocated_memory(float(toml_lambda_function_info["allocated_memory"]))
-        lambda_function_pricing.set_allocated_memory_unit(str(toml_lambda_function_info["allocated_memory_unit"]))
+        lambda_function_pricing.number_of_requests = int(toml_lambda_function_info["number_of_requests"])
+        lambda_function_pricing.average_duration = int(toml_lambda_function_info["average_duration"])
+        lambda_function_pricing.allocated_memory = float(toml_lambda_function_info["allocated_memory"])
+        lambda_function_pricing.allocated_memory_unit = str(toml_lambda_function_info["allocated_memory_unit"])
 
         self.check_pricing_info(lambda_function_pricing)
 
-        self.graph.set_lambda_function_pricing_info(lambda_function_pricing)
+        self.graph.unique_pricing_info["LambdaFunction"] = lambda_function_pricing
 
     def parse_resources(self):
         resources_toml = self.graph_toml["resources_to_analyze"]
@@ -64,7 +64,7 @@ class LoadData:
                 resource_duration,
             )
             key = str(resource_toml["key"])
-            self.graph.add_resource_to_analyze(current_resource, key)
+            self.graph.resources_to_analyze[key] = current_resource
 
         elif resource_type == "AWS::ApiGateway::RestApi":
             current_resource = self.generate_api_gateway(
@@ -88,7 +88,7 @@ class LoadData:
             current_resource.add_child(child_resource)
 
         if is_entry_point:
-            self.graph.add_entry_point(current_resource)
+            self.graph.entry_points.append(current_resource)
         else:
             return current_resource
 
@@ -101,8 +101,8 @@ class LoadData:
         resource_duration,
     ):
         lambda_function = LambdaFunction(resource_object, resource_type, resource_name)
-        lambda_function.set_duration(resource_duration)
-        lambda_function.set_tps(resource_tps)
+        lambda_function.duration = resource_duration
+        lambda_function.tps = resource_tps
 
         return lambda_function
 
@@ -135,10 +135,10 @@ class LoadData:
             raise ValueError("invalid number")
 
     def check_pricing_info(self, lambda_function_pricing):
-        number_of_requests = lambda_function_pricing.get_number_of_requests()
-        average_duration = lambda_function_pricing.get_average_duration()
-        allocated_memory = lambda_function_pricing.get_allocated_memory()
-        allocated_memory_unit = lambda_function_pricing.get_allocated_memory_unit()
+        number_of_requests = lambda_function_pricing.number_of_requests
+        average_duration = lambda_function_pricing.average_duration
+        allocated_memory = lambda_function_pricing.allocated_memory
+        allocated_memory_unit = lambda_function_pricing.allocated_memory_unit
 
         valid_units = ["MB", "GB"]
         # memory is in MB

@@ -5,6 +5,7 @@ import click
 
 from samcli.commands.check.resources.graph import CheckGraph
 from samcli.commands.check.resources.lambda_function import LambdaFunction
+from samcli.commands.check.resources.pricing import CheckPricing
 from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
 from samcli.commands.check.lib.ask_question import ask
@@ -23,6 +24,7 @@ class BottleNecks:
         """
         self._graph = graph
         self._lambda_max_duration = 900000
+        self._pricing = CheckPricing(graph)
 
     def ask_entry_point_question(self) -> None:
         """
@@ -48,27 +50,34 @@ class BottleNecks:
             user_input = ask(entry_point_question, 1, item_number + 1)
 
             current_entry_point = entry_points.pop(user_input - 1)
-            current_entry_point_name = current_entry_point.get_name()
+            current_entry_point_name = current_entry_point.resource_name
             entry_point_holder.append(current_entry_point)
 
-            self.ask_bottle_neck_questions(current_entry_point, current_entry_point_name)
+            self._ask_bottle_neck_questions(current_entry_point, current_entry_point_name)
 
             click.echo("")
 
         for entry_point in entry_point_holder:
-            self.graph.add_entry_point(entry_point)
+            self._graph.entry_points.append(entry_point)
 
         return
 
-    def ask_bottle_neck_questions(self, resource, entry_point_name):
+    def _ask_bottle_neck_questions(self, resource, entry_point_name):
+        """Specific bottle neck questions are asked based on resource type
+
+        Parameters
+        ----------
+            resource: LambdaFunction
+                The current lambda function object being analyzed from the graph
+        """
         resource.entry_point_resource = entry_point_name
-        if resource.get_resource_type() == "AWS::Lambda::Function":
+        if resource.resource_type == "AWS::Lambda::Function":
             self.lambda_bottle_neck_quesitons(resource, entry_point_name)
         else:
             self.event_source_bottle_neck_questions(resource, entry_point_name)
 
     def event_source_bottle_neck_questions(self, event_source, entry_point_name):
-        if event_source.get_children() == []:
+        if event_source.children == []:
             """
             If an event source does not have any child nodes, then this event source is not a parent to any
             lambda functions. This can only happen if a lambda function has permissions to access a specific resource,
@@ -85,14 +94,14 @@ class BottleNecks:
         this resource), its tps will be limited by the entry point that lead to this resource.
         """
 
-        user_input_tps = self.ask(
-            "What is the expected per-second arrival rate for [%s]?\n[TPS]" % (event_source.get_name())
+        user_input_tps = ask(
+            "What is the expected per-second arrival rate for [%s]?\n[TPS]" % (event_source.resource_name)
         )
-        event_source.set_tps(user_input_tps)
+        event_source.tps = user_input_tps
 
-        for child in event_source.get_children():
-            child.set_tps(user_input_tps)
-            self.ask_bottle_neck_questions(child, entry_point_name)
+        for child in event_source.children:
+            child.tps = user_input_tps
+            self._ask_bottle_neck_questions(child, entry_point_name)
 
     def lambda_bottle_neck_quesitons(self, lambda_function, entry_point_name):
         # If there is no entry point to the lambda function, get tps
@@ -112,8 +121,6 @@ class BottleNecks:
 
         lambda_function.duration = user_input_duration
 
-        self.pricing.ask_pricing_question(lambda_function)
-
         # This given instance of a lambda function is what needs to be analyzed.
         copied_lambda_function = lambda_function.copy_data()
 
@@ -126,19 +133,9 @@ class BottleNecks:
         """
         key = copied_lambda_function.resource_name + ":" + entry_point_name
         # Only the lambda functions can be the source of bottle necks for now.
-        self.graph.resources_to_analyze[key] = copied_lambda_function
+        self._graph.resources_to_analyze[key] = copied_lambda_function
 
-        for child in lambda_function.get_children():
-            self.ask_bottle_neck_questions(child, entry_point_name)
+        self._pricing.ask_pricing_questions()
 
-    def _ask_bottle_neck_questions(self, resource: LambdaFunction) -> None:
-
-        """Specific bottle neck questions are asked based on resource type
-
-        Parameters
-        ----------
-            resource: LambdaFunction
-                The current lambda function object being analyzed from the graph
-        """
-        if resource.resource_type == AWS_LAMBDA_FUNCTION:
-            self._lambda_bottle_neck_quesitons(resource)
+        for child in lambda_function.children:
+            self._ask_bottle_neck_questions(child, entry_point_name)

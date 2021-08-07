@@ -18,7 +18,7 @@ class TestPrintResults(TestCase):
 
         patch_click.secho = Mock()
 
-        print_results = CheckResults(graph_mock)
+        print_results = CheckResults(graph_mock, Mock())
 
         print_results.print_bottle_neck_results()
 

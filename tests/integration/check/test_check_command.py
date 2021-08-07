@@ -99,7 +99,7 @@ class TestCheck(CheckIntegBase):
             "external_dynamo_table.yaml",
         ]
     )
-    def test_eternal_dynamo_table(self, template_file):
+    def test_external_dynamo_table(self, template_file):
         """
         In this tests a dynamo table is referenced in the table, but not defined in it.
         An actual dynamoDB table does not need to be generated for this test.

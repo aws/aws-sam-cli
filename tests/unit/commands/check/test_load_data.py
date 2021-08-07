@@ -24,11 +24,11 @@ class TestLoadData(TestCase):
 
         self.assertEqual(result, result_mock)
 
-    @patch("samcli.commands.check.lib.load_data.Graph")
+    @patch("samcli.commands.check.lib.load_data.CheckGraph")
     @patch("samcli.commands.check.lib.load_data.LambdaFunctionPricing")
     def test_parse_toml_lambda_function_info(self, patch_lambda_function_pricing, patch_graph):
         graph_mock = Mock()
-        graph_mock.set_lambda_function_pricing_info = Mock()
+        graph_mock.unique_pricing_info = {}
         patch_graph.return_value = graph_mock
 
         toml_lambda_function_info_mock = MagicMock()
@@ -40,24 +40,13 @@ class TestLoadData(TestCase):
         lambda_function_pricing_mock = Mock()
         patch_lambda_function_pricing.return_value = lambda_function_pricing_mock
 
-        lambda_function_pricing_mock.set_number_of_requests = Mock()
-        lambda_function_pricing_mock.set_average_duration = Mock()
-        lambda_function_pricing_mock.set_allocated_memory = Mock()
-        lambda_function_pricing_mock.set_allocated_memory_unit = Mock()
-
         load_data.parse_toml_lambda_function_info()
 
         patch_lambda_function_pricing.assert_called_once()
-        lambda_function_pricing_mock.set_number_of_requests.assert_called_once()
-        lambda_function_pricing_mock.set_average_duration.assert_called_once()
-        lambda_function_pricing_mock.set_allocated_memory.assert_called_once()
-        lambda_function_pricing_mock.set_allocated_memory_unit.assert_called_once()
 
         load_data.check_pricing_info.assert_called_once_with(lambda_function_pricing_mock)
 
-        graph_mock.set_lambda_function_pricing_info.assert_called_once_with(lambda_function_pricing_mock)
-
-    @patch("samcli.commands.check.lib.load_data.Graph")
+    @patch("samcli.commands.check.lib.load_data.CheckGraph")
     def test_parse_resources(self, patch_graph):
         resource_toml_mock = Mock()
         resources_toml_mock = Mock()
@@ -77,7 +66,7 @@ class TestLoadData(TestCase):
         resources_toml_mock.values.assert_called_once()
         load_data.parse_single_resource_toml.assert_called_once_with(resource_toml_mock)
 
-    @patch("samcli.commands.check.lib.load_data.Graph")
+    @patch("samcli.commands.check.lib.load_data.CheckGraph")
     def test_parse_single_resource_toml(self, patch_graph):
         resource_name = ""
         resource_object = ""
@@ -86,12 +75,10 @@ class TestLoadData(TestCase):
         is_entry_point = False
 
         current_resource_mock = Mock()
-        current_resource_mock.add_child = Mock()
         children = []
 
         graph_mock = Mock()
-        graph_mock.add_entry_point = Mock()
-        graph_mock.add_resource_to_analyze = Mock()
+        graph_mock.resources_to_analyze = {}
         patch_graph.return_value = graph_mock
 
         load_data = LoadData()
@@ -149,7 +136,7 @@ class TestLoadData(TestCase):
 
         self.assertEqual(result, current_resource_mock)
 
-    @patch("samcli.commands.check.lib.load_data.Graph")
+    @patch("samcli.commands.check.lib.load_data.CheckGraph")
     @patch("samcli.commands.check.lib.load_data.LambdaFunction")
     def test_generate_lambda_function(self, patch_lambda_function, patch_graph):
         resource_name_mock = Mock()
@@ -159,8 +146,6 @@ class TestLoadData(TestCase):
         resource_type_mock = Mock()
 
         lambda_function_mock = Mock()
-        lambda_function_mock.set_duration = Mock()
-        lambda_function_mock.set_tps = Mock()
 
         patch_lambda_function.return_value = lambda_function_mock
 
@@ -174,12 +159,10 @@ class TestLoadData(TestCase):
         )
 
         patch_lambda_function.assert_called_once_with(resource_object_mock, resource_type_mock, resource_name_mock)
-        lambda_function_mock.set_duration.assert_called_once_with(duration_mock)
-        lambda_function_mock.set_tps.assert_called_once_with(tps_mock)
 
         self.assertEqual(result, lambda_function_mock)
 
-    @patch("samcli.commands.check.lib.load_data.Graph")
+    @patch("samcli.commands.check.lib.load_data.CheckGraph")
     @patch("samcli.commands.check.lib.load_data.ApiGateway")
     def test_generate_api_gateway(self, patch_api_gateway, patch_graph):
         resource_name_mock = Mock()
@@ -206,7 +189,7 @@ class TestLoadData(TestCase):
 
         self.assertEqual(result, api_gateway_mock)
 
-    @patch("samcli.commands.check.lib.load_data.Graph")
+    @patch("samcli.commands.check.lib.load_data.CheckGraph")
     @patch("samcli.commands.check.lib.load_data.DynamoDB")
     def test_generate_dynamodb_table(self, patch_dynamodb_table, patch_graph):
         resource_name_mock = Mock()
@@ -233,7 +216,7 @@ class TestLoadData(TestCase):
 
         self.assertEqual(result, dynamodb_table_mock)
 
-    @patch("samcli.commands.check.lib.load_data.Graph")
+    @patch("samcli.commands.check.lib.load_data.CheckGraph")
     def test_check_range(self, patch_graph):
         value = 0
         min_value = 5
@@ -251,7 +234,7 @@ class TestLoadData(TestCase):
             load_data = LoadData()
             load_data.check_range(value, min_value, max_value)
 
-    @patch("samcli.commands.check.lib.load_data.Graph")
+    @patch("samcli.commands.check.lib.load_data.CheckGraph")
     def test_check_pricing_info(self, patch_graph):
         requests_mock = Mock()
         duration_mock = Mock()
@@ -259,10 +242,10 @@ class TestLoadData(TestCase):
         memory_unit = ""
 
         lambda_function_pricing_mock = Mock()
-        lambda_function_pricing_mock.get_number_of_requests.return_value = requests_mock
-        lambda_function_pricing_mock.get_average_duration.return_value = duration_mock
-        lambda_function_pricing_mock.get_allocated_memory.return_value = memory_mock
-        lambda_function_pricing_mock.get_allocated_memory_unit.return_value = memory_unit
+        lambda_function_pricing_mock.number_of_requests = requests_mock
+        lambda_function_pricing_mock.average_duration = duration_mock
+        lambda_function_pricing_mock.allocated_memory = memory_mock
+        lambda_function_pricing_mock.allocated_memory_unit = memory_unit
 
         min_memory = 128
         max_memory = 10000
@@ -277,7 +260,7 @@ class TestLoadData(TestCase):
             load_data.check_pricing_info(lambda_function_pricing_mock)
 
         memory_unit = "MB"
-        lambda_function_pricing_mock.get_allocated_memory_unit.return_value = memory_unit
+        lambda_function_pricing_mock.allocated_memory_unit = memory_unit
 
         load_data.check_pricing_info(lambda_function_pricing_mock)
 
@@ -285,7 +268,7 @@ class TestLoadData(TestCase):
         load_data.check_range.assert_any_call(duration_mock, min_duration, max_duration)
         load_data.check_range.assert_any_call(memory_mock, min_memory, max_memory)
 
-    @patch("samcli.commands.check.lib.load_data.Graph")
+    @patch("samcli.commands.check.lib.load_data.CheckGraph")
     def test_generate_graph_from_toml(self, patch_graph):
         import tomlkit.exceptions
 

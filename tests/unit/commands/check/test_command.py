@@ -22,7 +22,7 @@ class TestCheckCli(TestCase):
 
             check_context.run = Mock()
 
-            do_cli(ctx, template_path)
+            do_cli(ctx, template_path, Mock(), Mock())
 
             patched_context.assert_called_once_with(ctx.region, ctx.profile, template_path)
             check_context.run.assert_called_once()

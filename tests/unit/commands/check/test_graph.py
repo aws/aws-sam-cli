@@ -11,10 +11,12 @@ class TestGraph(TestCase):
 
         lambda_functions = []
 
+        key = "key"
+
         graph = CheckGraph(lambda_functions)
 
         graph.entry_points.append(entry_point_mock)
-        graph.resources_to_analyze.append(resource_mock)
+        graph.resources_to_analyze[key] = resource_mock
 
         self.assertEqual(entry_point_mock, graph.entry_points[0])
-        self.assertEqual(resource_mock, graph.resources_to_analyze[0])
+        self.assertEqual(resource_mock, graph.resources_to_analyze[key])

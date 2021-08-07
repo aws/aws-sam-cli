@@ -31,7 +31,7 @@ class CheckGraph:
 
     def __init__(self, lambda_functions: List[LambdaFunction]):
         self.entry_points = []
-        self.resources_to_analyze = []
+        self.resources_to_analyze = {}
         self.green_warnings = []
         self.yellow_warnings = []
         self.red_warnings = []

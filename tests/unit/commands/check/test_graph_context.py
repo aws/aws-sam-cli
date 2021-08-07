@@ -5,7 +5,7 @@ from samcli.commands.check.graph_context import GraphContext, _check_input
 
 
 class TestGraphContext(TestCase):
-    @patch("samcli.commands.check.graph_context.Graph")
+    @patch("samcli.commands.check.graph_context.CheckGraph")
     def test_generate(self, patch_graph):
         graph_mock = Mock()
         patch_graph.return_value = graph_mock
@@ -14,9 +14,6 @@ class TestGraphContext(TestCase):
 
         graph_context.make_connections = Mock()
         graph_context.find_entry_points = Mock()
-
-        graph_context.make_connections.return_value = Mock()
-        graph_context.find_entry_points.return_value = Mock()
 
         generated_graph = graph_context.generate()
 
@@ -30,8 +27,10 @@ class TestGraphContext(TestCase):
         permission_object = {}
         function_name_mock = Mock()
         function_object_mock = Mock()
+        function_object_mock.parents = []
         source_name_mock = Mock()
         source_object_mock = Mock()
+        source_object_mock.children = []
 
         permission_object = {
             "Properties": {
@@ -44,17 +43,14 @@ class TestGraphContext(TestCase):
         self_mock.api_gateways = {source_name_mock: source_object_mock}
 
         permission_mock = Mock()
-        permission_mock.get_resource_object.return_value = permission_object
+        permission_mock.resource_object = permission_object
 
         self_mock.lambda_permissions.values.return_value = [permission_mock]
 
-        source_object_mock.add_child = Mock()
-        function_object_mock.add_parent = Mock()
-
         GraphContext.handle_lambda_permissions(self_mock)
 
-        source_object_mock.add_child.assert_called_once_with(function_object_mock)
-        function_object_mock.add_parent.assert_called_once_with(source_object_mock)
+        self.assertEqual(function_object_mock.parents[0], source_object_mock)
+        self.assertEqual(source_object_mock.children[0], function_object_mock)
 
         self_mock.lambda_functions = {}
 
@@ -67,7 +63,10 @@ class TestGraphContext(TestCase):
         event_mock = Mock()
         function_name_mock = Mock()
         function_object_mock = Mock()
+        function_object_mock = Mock()
+        function_object_mock.parents = []
         source_object_mock = Mock()
+        source_object_mock.children = []
 
         patch_dynamo.return_value = source_object_mock
 
@@ -75,49 +74,48 @@ class TestGraphContext(TestCase):
 
         event_object = {"Properties": {"FunctionName": {"Ref": function_name_mock}, "EventSourceArn": source_name}}
 
-        event_mock.get_resource_object.return_value = event_object
+        event_mock.resource_object = event_object
 
         self_mock.event_source_mappings.values.return_value = [event_mock]
         self_mock.lambda_functions = {function_name_mock: function_object_mock}
 
         self_mock.dynamoDB_tables = {}
 
-        source_object_mock.add_child = Mock()
-        function_object_mock.add_parent = Mock()
-
         GraphContext.handle_event_source_mappings(self_mock)
 
-        source_object_mock.add_child.assert_called_once_with(function_object_mock)
-        function_object_mock.add_parent.assert_called_once_with(source_object_mock)
+        self.assertEqual(function_object_mock.parents[0], source_object_mock)
+        self.assertEqual(source_object_mock.children[0], function_object_mock)
 
     def test_find_entry_points(self):
         self_mock = Mock()
         graph_mock = Mock()
-
-        graph_mock.add_entry_point = Mock()
+        graph_mock.entry_points = []
 
         function_object_mock = Mock()
         api_object_mock = Mock()
         dynamo_object_mock = Mock()
 
-        function_object_mock.get_parents.return_value = []
-        api_object_mock.get_parents.return_value = []
-        dynamo_object_mock.get_parents.return_value = []
+        function_object_mock.parents = []
+        api_object_mock.parents = []
+        dynamo_object_mock.parents = []
 
         self_mock.lambda_functions.values.return_value = [function_object_mock]
         self_mock.api_gateways.values.return_value = []
         self_mock.dynamoDB_tables.values.return_value = []
 
         GraphContext.find_entry_points(self_mock, graph_mock)
-        graph_mock.add_entry_point.assert_called_with(function_object_mock)
+
+        self.assertEqual(graph_mock.entry_points[0], function_object_mock)
 
         self_mock.api_gateways.values.return_value = [api_object_mock]
         GraphContext.find_entry_points(self_mock, graph_mock)
-        graph_mock.add_entry_point.assert_called_with(api_object_mock)
+
+        self.assertEqual(graph_mock.entry_points[-1], api_object_mock)
 
         self_mock.dynamoDB_tables.values.return_value = [dynamo_object_mock]
         GraphContext.find_entry_points(self_mock, graph_mock)
-        graph_mock.add_entry_point.assert_called_with(dynamo_object_mock)
+
+        self.assertEqual(graph_mock.entry_points[-1], dynamo_object_mock)
 
     def test_make_connections(self):
         self_mock = Mock()
@@ -161,7 +159,7 @@ class TestGraphContext(TestCase):
         iam_role_object = {"Properties": properties_mock}
 
         role_mock = Mock()
-        role_mock.get_resource_object.return_value = iam_role_object
+        role_mock.resource_object = iam_role_object
 
         lambda_function_role_name = Mock()
         lambda_function_resource_object = {"Properties": {"Role": {"Fn::GetAtt": [lambda_function_role_name]}}}
@@ -169,7 +167,7 @@ class TestGraphContext(TestCase):
         self_mock._iam_roles = {lambda_function_role_name: role_mock}
 
         lambda_function_mock = Mock()
-        lambda_function_mock.get_resource_object.return_value = lambda_function_resource_object
+        lambda_function_mock.resource_object = lambda_function_resource_object
 
         result = GraphContext._get_properties(self_mock, lambda_function_mock)
 
@@ -184,13 +182,13 @@ class TestGraphContext(TestCase):
 
     def test_make_connection_from_policy(self):
         resource_mock = Mock()
-        resource_mock.add_parent = Mock()
+        resource_mock.parents = []
         resources_selected = [resource_mock]
 
         child_resource_type = "AWS::DynamoDB::Table"
         lambda_function_name = Mock()
         lambda_function_mock = Mock()
-        lambda_function_mock.add_child = Mock()
+        lambda_function_mock.children = []
 
         self_mock = Mock()
         self_mock._ask_dynamo_connection_question.return_value = resources_selected
@@ -198,8 +196,8 @@ class TestGraphContext(TestCase):
 
         GraphContext._make_connection_from_policy(self_mock, child_resource_type, lambda_function_name)
 
-        lambda_function_mock.add_child.assert_called_once_with(resource_mock)
-        resource_mock.add_parent.assert_called_once_with(lambda_function_mock)
+        self.assertEqual(lambda_function_mock.children[0], resource_mock)
+        self.assertEqual(resource_mock.parents[0], lambda_function_mock)
 
     @patch("samcli.commands.check.graph_context._check_input")
     @patch("samcli.commands.check.graph_context.click")

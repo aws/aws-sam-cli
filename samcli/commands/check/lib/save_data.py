@@ -25,10 +25,10 @@ class SaveGraphData:
 
         lambda_toml = {
             "resource_object": "",
-            "resource_type": copied_lambda_function.get_resource_type(),
-            "resource_name": copied_lambda_function.get_name(),
-            "duration": copied_lambda_function.get_duration(),
-            "tps": copied_lambda_function.get_tps(),
+            "resource_type": copied_lambda_function.resource_type,
+            "resource_name": copied_lambda_function.resource_name,
+            "duration": copied_lambda_function.duration,
+            "tps": copied_lambda_function.tps,
             "children": children_toml,
             "key": key,
         }
@@ -40,8 +40,8 @@ class SaveGraphData:
         Generates a dict for a single resource. This is recursively called for all
         children of a given resource
         """
-        resource_type = resource.get_resource_type()
-        resource_name = resource.get_name()
+        resource_type = resource.resource_type
+        resource_name = resource.resource_name
         resource_toml = {}
         resource_children_toml = []
 
@@ -53,7 +53,7 @@ class SaveGraphData:
                 "resource_object": "",
                 "resource_type": resource_type,
                 "resource_name": resource_name,
-                "tps": resource.get_tps(),
+                "tps": resource.tps,
                 "children": resource_children_toml,
             }
         elif resource_type == "AWS::DynamoDB::Table":
@@ -61,11 +61,11 @@ class SaveGraphData:
                 "resource_object": "",
                 "resource_type": resource_type,
                 "resource_name": resource_name,
-                "tps": resource.get_tps(),
+                "tps": resource.tps,
                 "children": resource_children_toml,
             }
 
-        resource_children = resource.get_children()
+        resource_children = resource.children
         for child in resource_children:
             child_toml = self.generate_resource_toml(child, entry_point_resource)
             resource_children_toml.append(child_toml)
@@ -80,20 +80,20 @@ class SaveGraphData:
         for resource in resources:
             entry_point_resource = resource.entry_point_resource
             resource_toml = self.generate_resource_toml(resource, entry_point_resource)
-            key = resource.get_name() + ":" + entry_point_resource
+            key = resource.resource_name + ":" + entry_point_resource
             resources_to_analyze_toml[key] = resource_toml
 
     def get_lambda_function_pricing_info(self):
         """
         Gets the pricing information from the graph. Converts it into a dict
         """
-        lambda_pricing_info = self.graph.get_lambda_function_pricing_info()
+        lambda_pricing_info = self.graph.unique_pricing_info["LambdaFunction"]
 
         return {
-            "number_of_requests": lambda_pricing_info.get_number_of_requests(),
-            "average_duration": lambda_pricing_info.get_average_duration(),
-            "allocated_memory": lambda_pricing_info.get_allocated_memory(),
-            "allocated_memory_unit": lambda_pricing_info.get_allocated_memory_unit(),
+            "number_of_requests": lambda_pricing_info.number_of_requests,
+            "average_duration": lambda_pricing_info.average_duration,
+            "allocated_memory": lambda_pricing_info.allocated_memory,
+            "allocated_memory_unit": lambda_pricing_info.allocated_memory_unit,
         }
 
     def save_to_config_file(self, config_file):
@@ -105,7 +105,7 @@ class SaveGraphData:
         resources_to_analyze_toml = {}
         lambda_function_pricing_info_toml = {}
 
-        resources = self.graph.get_entry_points()
+        resources = self.graph.entry_points
 
         self.parse_resources(resources, resources_to_analyze_toml)
 

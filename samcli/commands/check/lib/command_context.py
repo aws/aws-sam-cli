@@ -6,6 +6,10 @@ import functools
 import logging
 from typing import Any
 
+import click
+
+#!!! REMOVE import click AND PUT FUNCtion that uses it into save_data file
+
 from boto3.session import Session
 
 from samtranslator.translator.translator import Translator
@@ -14,21 +18,22 @@ from samtranslator.parser import parser
 
 from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
 from samcli.commands.check.bottle_necks import BottleNecks
-from samcli.commands.check.resources.lambda_function import LambdaFunction
-from samcli.commands.check.resources.graph import CheckGraph
-from samcli.commands.check.resources.pricing import CheckPricing
-from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
-from samcli.commands.check.calculation import CheckCalculation
 from samcli.commands.check.print_results import CheckResults
 
 from samcli.yamlhelper import yaml_parse
 
 from samcli.lib.replace_uri.replace_uri import replace_local_codeuri
 from samcli.lib.samlib.wrapper import SamTranslatorWrapper
-from samcli.lib.providers.sam_function_provider import SamFunctionProvider
-from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from ..exceptions import InvalidSamDocumentException
+
+from samcli.commands.check.lib.load_data import LoadData
+from samcli.commands.check.bottle_neck_calculations import BottleNeckCalculations
+from samcli.commands.check.pricing_calculations import PricingCalculations
+from samcli.commands.check.lib.save_data import SaveGraphData
+from samcli.commands.check.print_results import CheckResults
+from samcli.commands.check.lib.resource_provider import ResourceProvider
+from samcli.commands.check.graph_context import GraphContext
 
 
 LOG = logging.getLogger(__name__)
@@ -61,28 +66,57 @@ class CheckContext:
         self._profile = profile
         self._template_path = template_path
 
-    def run(self) -> None:
+    def run(self, config_file, load) -> None:
         """
         All main functions (bottle neck questions, pricing questions, calculations, print results)
         will be called here
         """
 
-        self._transform_template()
+        if load:
+            load_data = LoadData()
+            graph = load_data.generate_graph_from_toml(config_file)
+
+            bottle_neck_calculations = BottleNeckCalculations(graph)
+            bottle_neck_calculations.run_calculations()
+
+            pricing_calculations = PricingCalculations(graph)
+            pricing_calculations.run_calculations()
+
+            save_data = False
+
+            if save_data:
+                save_graph_data = SaveGraphData(graph)
+                save_graph_data.save_to_config_file(config_file)
+
+            results = CheckResults(graph, pricing_calculations.get_lambda_pricing_results())
+            results.print_all_pricing_results()
+            results.print_bottle_neck_results()
+
+            return
+
+        converted_template = self._transform_template()
 
         LOG.info("... analyzing application template")
 
-        graph = _parse_template()
+        graph = _parse_template(converted_template)
 
         bottle_necks = BottleNecks(graph)
         bottle_necks.ask_entry_point_question()
 
-        pricing = CheckPricing(graph)
-        pricing.ask_pricing_questions()
+        bottle_neck_calculations = BottleNeckCalculations(graph)
+        bottle_neck_calculations.run_calculations()
 
-        calculations = CheckCalculation(graph)
-        calculations.run_bottle_neck_calculations()
+        pricing_calculations = PricingCalculations(graph)
+        pricing_calculations.run_calculations()
 
-        results = CheckResults(graph)
+        save_data = ask_to_save_data()
+
+        if save_data:
+            save_graph_data = SaveGraphData(graph)
+            save_graph_data.save_to_config_file(config_file)
+
+        results = CheckResults(graph, pricing_calculations.get_lambda_pricing_results())
+        results.print_all_pricing_results()
         results.print_bottle_neck_results()
 
     def _transform_template(self) -> Any:
@@ -139,29 +173,28 @@ class CheckContext:
         return sam_template
 
 
-def _parse_template() -> CheckGraph:
-    """Parses the template to retrieve resources
+def _parse_template(template):
 
-    Returns
-    -------
-        CheckGraph
-            Returns the generated graph object
-    """
-    all_lambda_functions = []
+    all_resources = {}
 
-    # template path
-    # To-Do: allow user to set the path for the template
-    path = os.path.realpath("template.yaml")
-
-    # Get all lambda functions
-    local_stacks = SamLocalStackProvider.get_stacks(path)[0]
-    function_provider = SamFunctionProvider(local_stacks)
-    functions = function_provider.get_all()  # List of all functions in the stacks
-    for stack_function in functions:
-        new_lambda_function = LambdaFunction(stack_function, AWS_LAMBDA_FUNCTION, stack_function.name)
-        all_lambda_functions.append(new_lambda_function)
+    resource_provider = ResourceProvider(template)
+    all_resources = resource_provider.get_all_resources()
 
     # After all resources have been parsed from template, pass them into the graph
-    graph = CheckGraph(all_lambda_functions)
+    graph_context = GraphContext(all_resources)
 
-    return graph
+    return graph_context.generate()
+
+
+def ask_to_save_data():
+    correct_input = False
+    while not correct_input:
+        user_input = click.prompt("Would you like to save this data in the samconfig file for future use? [y/n]")
+        user_input = user_input.lower()
+
+        if user_input == "y":
+            return True
+        elif user_input == "n":
+            return False
+        else:
+            click.echo("Please enter a valid responce.")
