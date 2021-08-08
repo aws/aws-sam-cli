@@ -10,18 +10,13 @@ from samcli.commands.check.resources.warning import CheckWarning
 
 class CheckResults:
     _graph: CheckGraph
+    _lambda_pricing_results: float
 
-    def __init__(self, graph: CheckGraph, lambda_pricing_results):
-        """
-        Parameters
-        ----------
-            graph: CheckGraph
-                The graph object. This is where all of the data is stored
-        """
+    def __init__(self, graph: CheckGraph, lambda_pricing_results: float):
         self._graph = graph
-        self.lambda_pricing_results = lambda_pricing_results
+        self._lambda_pricing_results = lambda_pricing_results
 
-    def print_bottle_neck_results(self):
+    def print_bottle_neck_results(self) -> None:
         """
         All warning messages are printed here
         """
@@ -34,15 +29,15 @@ class CheckResults:
         click.secho("Bottlenecks found", fg="bright_red")
         _print_warnings(self._graph.red_burst_warnings)
 
-    def print_all_pricing_results(self):
+    def print_all_pricing_results(self) -> None:
         click.echo("With the current resource allocation, we estimate the following costs:")
-        click.echo("\t* AWS Lambda: $%.2f/month" % self.lambda_pricing_results)
+        click.echo("\t* AWS Lambda: $%.2f/month" % self._lambda_pricing_results)
 
         click.echo("\t------------------")
-        click.echo("\t Total: $%.2f/month" % self.lambda_pricing_results)
+        click.echo("\t Total: $%.2f/month" % self._lambda_pricing_results)
 
 
-def _print_warnings(warnings: List[CheckWarning]):
+def _print_warnings(warnings: List[CheckWarning]) -> None:
     """An individual warning message gets echoed here
     Parameters
     ----------

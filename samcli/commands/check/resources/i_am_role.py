@@ -1,3 +1,6 @@
+"""
+Object for an I_AM_Role object in CFN templates
+"""
 from samcli.commands.check.resources.template_resource import TemplateResource
 
 

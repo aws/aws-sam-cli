@@ -1,17 +1,47 @@
-from types import resolve_bases
+"""
+Class for doing all bottle neck calcualtions on all resources
+"""
+import boto3
 import click
 from samcli.commands.check.resources.warning import CheckWarning
+from samcli.commands.check.resources.graph import CheckGraph
 
-import boto3
+from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
 
 class BottleNeckCalculations:
-    def __init__(self, graph):
-        self.graph = graph
+    _graph: CheckGraph
+
+    def __init__(self, graph: CheckGraph):
+        self._graph = graph
 
     def _generate_warning_message(
-        self, capacity_used, resource_name, concurrent_executions, duration, tps, burst_concurrency
+        self,
+        capacity_used: int,
+        resource_name: str,
+        concurrent_executions: int,
+        duration: int,
+        tps: int,
+        burst_concurrency: int,
     ):
+        """
+        Generates a warning message based on the severity of the bottle neck
+
+        Parameters
+        ----------
+            capacity_used: int
+                Total capacity used as a percentage
+            resource_name: str
+                Current resource name
+            concurrent_executions: int
+                Total amount of concurrent executions allowed
+            duration: int
+                Duration of current resource
+            tps: int
+                TPS of current resource
+            burst_concurrency: int
+                Total allowed burst concurrency allowed
+        """
 
         if capacity_used <= 70:
             message = (
@@ -19,41 +49,50 @@ class BottleNeckCalculations:
                 % (resource_name, concurrent_executions)
             )
             warning = CheckWarning(message)
-            self.graph.green_warnings.append(warning)
+            self._graph.green_warnings.append(warning)
 
         elif capacity_used < 90:
             message = (
-                "For the lambda function [%s], the %ims duration and %iTPS arrival rate is using %i%% of the allowed concurrency on AWS Lambda. A limit increase should be considered:\nhttps://console.aws.amazon.com/servicequotas"
-                % (resource_name, duration, tps, round(capacity_used))
+                "For the lambda function [%s], the %ims duration and %iTPS arrival rate is using %i%% of the allowed "
+                "concurrency on AWS Lambda. A limit increase should be considered:"
+                "\nhttps://console.aws.amazon.com/servicequotas" % (resource_name, duration, tps, round(capacity_used))
             )
             warning = CheckWarning(message)
-            self.graph.yellow_warnings.append(warning)
+            self._graph.yellow_warnings.append(warning)
 
         elif capacity_used <= 100:
             message = (
-                "For the lambda function [%s], the %ims duration and %iTPS arrival rate is using %i%% of the allowed concurrency on AWS Lambda. It is very close to the limits of the lambda function. It is strongly recommended that you get a limit increase before deploying your application:\nhttps://console.aws.amazon.com/servicequotas"
-                % (resource_name, duration, tps, round(capacity_used))
+                "For the lambda function [%s], the %ims duration and %iTPS arrival rate is using %i%% of the allowed "
+                "concurrency on AWS Lambda. It is very close to the limits of the lambda function. It is strongly "
+                "recommended that you get a limit increase before deploying your application:"
+                "\nhttps://console.aws.amazon.com/servicequotas" % (resource_name, duration, tps, round(capacity_used))
             )
             warning = CheckWarning(message)
-            self.graph.red_warnings.append(warning)
+            self._graph.red_warnings.append(warning)
 
         else:  # capacity_used > 100
             burst_capacity_used = _check_limit(tps, duration, burst_concurrency)
             message = (
-                "For the lambda function [%s], the %ims duration and %iTPS arrival rate is using %i%% of the allowed concurrency on AWS Lambda. It exceeds the limits of the lambda function. It will use %i%% of the available burst concurrency. It is strongly recommended that you get a limit increase before deploying your application:\nhttps://console.aws.amazon.com/servicequotas"
+                "For the lambda function [%s], the %ims duration and %iTPS arrival rate is using %i%% of the allowed "
+                "concurrency on AWS Lambda. It exceeds the limits of the lambda function. It will use %i%% of the "
+                "available burst concurrency. It is strongly recommended that you get a limit increase before "
+                "deploying your application:\nhttps://console.aws.amazon.com/servicequotas"
                 % (resource_name, duration, tps, round(capacity_used), round(burst_capacity_used))
             )
             warning = CheckWarning(message)
-            self.graph.red_burst_warnings.append(warning)
+            self._graph.red_burst_warnings.append(warning)
 
     def run_calculations(self):
+        """
+        Runs calculaitons for each resource
+        """
         click.echo("Running calculations...")
 
-        for resource in self.graph.resources_to_analyze.values():
+        for resource in self._graph.resources_to_analyze.values():
             resource_type = resource.resource_type
             resource_name = resource.resource_name
 
-            if resource_type == "AWS::Lambda::Function":
+            if resource_type == AWS_LAMBDA_FUNCTION:
 
                 client = boto3.client("service-quotas")
                 burst_concurrency = client.get_aws_default_service_quota(ServiceCode="lambda", QuotaCode="L-548AE339")[
@@ -72,6 +111,23 @@ class BottleNeckCalculations:
                 )
 
 
-def _check_limit(tps, duration, execution_limit):
+def _check_limit(tps: int, duration: int, execution_limit: int):
+    """
+    Checks the limit of the current resource
+
+    Parameters
+    ----------
+        tps: int
+            TPS of current resource
+        duration: int
+            Duration of current resource
+        execution_limit: int
+            Execution limit of current resource type
+
+    Returns
+    -------
+        float
+            Returns the percentage of the amount of executions used
+    """
     tps_max_limit = (1000 / duration) * execution_limit
     return (tps / tps_max_limit) * 100

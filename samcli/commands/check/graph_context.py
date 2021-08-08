@@ -12,7 +12,7 @@ class GraphContext:
         self.api_gateways = resources["ApiGateways"]
         self.lambda_functions = resources["LambdaFunctions"]
         self.event_source_mappings = resources["EventSourceMappings"]
-        self.dynamoDB_tables = resources["DynamoDBTables"]
+        self.dynamo_db_tables = resources["DynamoDBTables"]
         self._iam_roles = resources["IAMRoles"]
         self._dynamo_policies = {
             "DynamoDBCrudPolicy": True,
@@ -84,7 +84,7 @@ class GraphContext:
                     source_name = source_name_split[5]
                     # Until the resource_object is needed, just use an empty {} for now
                     source_object = DynamoDB({}, "AWS::DynamoDB::Table", source_name)
-                    self.dynamoDB_tables[source_name] = source_object
+                    self.dynamo_db_tables[source_name] = source_object
 
                     source_object.children.append(ref_function_object)
                     ref_function_object.parents.append(source_object)
@@ -93,8 +93,8 @@ class GraphContext:
                 source_name = source_name.split(".")[0]
 
                 # Check all tables, as the event does not contain the type of resource in "EventSourceArn"
-                if source_name in self.dynamoDB_tables:
-                    source_object = self.dynamoDB_tables[source_name]
+                if source_name in self.dynamo_db_tables:
+                    source_object = self.dynamo_db_tables[source_name]
 
                     source_object.children.append(ref_function_object)
                     ref_function_object.parents.append(source_object)
@@ -108,7 +108,7 @@ class GraphContext:
             if api_object.parents == []:
                 graph.entry_points.append(api_object)
 
-        for dynamo_object in self.dynamoDB_tables.values():
+        for dynamo_object in self.dynamo_db_tables.values():
             if dynamo_object.parents == []:
                 graph.entry_points.append(dynamo_object)
 
@@ -179,7 +179,7 @@ class GraphContext:
 
         displayed_resources_names = []
 
-        for item_number, dynamo_table_name in enumerate(self.dynamoDB_tables):
+        for item_number, dynamo_table_name in enumerate(self.dynamo_db_tables):
             info_prompt += "[%i] %s\n" % (item_number + 1, dynamo_table_name)
             displayed_resources_names.append(dynamo_table_name)
 
@@ -200,7 +200,7 @@ class GraphContext:
             choice -= 1  # list display starts at 1. choice -= 1 to account for this
             resource_choice = displayed_resources_names[choice]
 
-            selected_resource = self.dynamoDB_tables[resource_choice]
+            selected_resource = self.dynamo_db_tables[resource_choice]
             resources_selected.append(selected_resource)
 
         return resources_selected

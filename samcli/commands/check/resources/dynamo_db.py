@@ -1,3 +1,7 @@
+"""
+Class object for DynamoDB tables. Includes the dynamoDB object from the template.
+"""
+
 from samcli.commands.check.resources.template_resource import TemplateResource
 
 

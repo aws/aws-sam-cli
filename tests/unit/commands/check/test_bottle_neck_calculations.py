@@ -149,7 +149,7 @@ class TestCalculations(TestCase):
             calculations.run_calculations()
 
     def test_check_limit(self):
-        from samcli.commands.check.calculation import _check_limit
+        from samcli.commands.check.bottle_neck_calculations import _check_limit
 
         result1 = _check_limit(300, 200, 1000)
         result2 = _check_limit(300, 1500, 2000)

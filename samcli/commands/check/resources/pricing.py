@@ -13,6 +13,7 @@ from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
 class CheckPricing:
     _graph: CheckGraph
+    _asked_lambda_questions: bool
 
     def __init__(self, graph: CheckGraph) -> None:
         """

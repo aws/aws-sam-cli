@@ -1,3 +1,7 @@
+"""
+class object for ApiGateway. Contains the apigateway pbject from the CFN template
+"""
+
 from samcli.commands.check.resources.template_resource import TemplateResource
 
 

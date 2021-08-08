@@ -53,6 +53,9 @@ class LambdaFunctionPricing(UniquePricingInfo):
         self._max_duration = 900000
 
     def ask_lambda_function_questions(self) -> None:
+        """
+        Pricing quesrions for lambda functions
+        """
 
         user_input_requests = ask(
             "What are the total number of requests expected from all lambda functions in a given month?",

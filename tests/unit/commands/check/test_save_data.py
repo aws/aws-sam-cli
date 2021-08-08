@@ -34,7 +34,7 @@ class TestSaveData(TestCase):
         }
 
         save_data = SaveGraphData(graph_mock)
-        result = save_data.generate_lambda_toml(lambda_function_mock, children_toml_mock, entry_point_resource)
+        result = save_data._generate_lambda_toml(lambda_function_mock, children_toml_mock, entry_point_resource)
 
         self.assertEqual(result, lambda_toml)
 
@@ -50,12 +50,12 @@ class TestSaveData(TestCase):
         resource_mock.reource_name = Mock()
         resource_mock.children = []
 
-        save_data.generate_lambda_toml = Mock()
-        save_data.generate_lambda_toml.return_value = resource_toml
+        save_data._generate_lambda_toml = Mock()
+        save_data._generate_lambda_toml.return_value = resource_toml
 
-        result = save_data.generate_resource_toml(resource_mock, entry_point_resource)
+        result = save_data._generate_resource_toml(resource_mock, entry_point_resource)
 
-        save_data.generate_lambda_toml.assert_called_once_with(resource_mock, [], entry_point_resource)
+        save_data._generate_lambda_toml.assert_called_once_with(resource_mock, [], entry_point_resource)
         self.assertEqual(result, resource_toml)
 
     def test_parse_resources(self):
@@ -72,12 +72,12 @@ class TestSaveData(TestCase):
         resources_to_analyze_toml = {}
 
         save_data = SaveGraphData(Mock())
-        save_data.generate_resource_toml = Mock()
-        save_data.generate_resource_toml.return_value = resource_toml_mock
+        save_data._generate_resource_toml = Mock()
+        save_data._generate_resource_toml.return_value = resource_toml_mock
 
-        save_data.parse_resources(resources, resources_to_analyze_toml)
+        save_data._parse_resources(resources, resources_to_analyze_toml)
 
-        save_data.generate_resource_toml.assert_called_once_with(resource_mock, entry_point_resource)
+        save_data._generate_resource_toml.assert_called_once_with(resource_mock, entry_point_resource)
 
         self.assertEqual(resources_to_analyze_toml[key], resource_toml_mock)
 
@@ -97,7 +97,7 @@ class TestSaveData(TestCase):
         graph_mock.unique_pricing_info = {"LambdaFunction": lambda_pricing_info_mock}
 
         save_data = SaveGraphData(graph_mock)
-        result = save_data.get_lambda_function_pricing_info()
+        result = save_data._get_lambda_function_pricing_info()
 
         expected_result = {
             "number_of_requests": requests_mock,
@@ -127,9 +127,9 @@ class TestSaveData(TestCase):
         resources_to_analyze_toml = {}
 
         save_data = SaveGraphData(graph_mock)
-        save_data.parse_resources = Mock()
-        save_data.get_lambda_function_pricing_info = Mock()
-        save_data.get_lambda_function_pricing_info.return_value = lambda_function_pricing_info_toml_mock
+        save_data._parse_resources = Mock()
+        save_data._get_lambda_function_pricing_info = Mock()
+        save_data._get_lambda_function_pricing_info.return_value = lambda_function_pricing_info_toml_mock
 
         graph_dict = {
             "resources_to_analyze": resources_to_analyze_toml,
@@ -139,8 +139,8 @@ class TestSaveData(TestCase):
         save_data.save_to_config_file(config_file_mock)
 
         patch_get_config_ctx.assert_called_once_with(config_file_mock)
-        save_data.parse_resources.assert_called_once_with(resources_mock, resources_to_analyze_toml)
-        save_data.get_lambda_function_pricing_info.assert_called_once()
+        save_data._parse_resources.assert_called_once_with(resources_mock, resources_to_analyze_toml)
+        save_data._get_lambda_function_pricing_info.assert_called_once()
         samconfig_mock.put.assert_called_once_with(["load"], "graph", "all_graph_data", graph_dict, "check")
         samconfig_mock.flush.assert_called_once()
 

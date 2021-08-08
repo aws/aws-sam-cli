@@ -79,7 +79,7 @@ class TestGraphContext(TestCase):
         self_mock.event_source_mappings.values.return_value = [event_mock]
         self_mock.lambda_functions = {function_name_mock: function_object_mock}
 
-        self_mock.dynamoDB_tables = {}
+        self_mock.dynamo_db_tables = {}
 
         GraphContext.handle_event_source_mappings(self_mock)
 
@@ -101,7 +101,7 @@ class TestGraphContext(TestCase):
 
         self_mock.lambda_functions.values.return_value = [function_object_mock]
         self_mock.api_gateways.values.return_value = []
-        self_mock.dynamoDB_tables.values.return_value = []
+        self_mock.dynamo_db_tables.values.return_value = []
 
         GraphContext.find_entry_points(self_mock, graph_mock)
 
@@ -112,7 +112,7 @@ class TestGraphContext(TestCase):
 
         self.assertEqual(graph_mock.entry_points[-1], api_object_mock)
 
-        self_mock.dynamoDB_tables.values.return_value = [dynamo_object_mock]
+        self_mock.dynamo_db_tables.values.return_value = [dynamo_object_mock]
         GraphContext.find_entry_points(self_mock, graph_mock)
 
         self.assertEqual(graph_mock.entry_points[-1], dynamo_object_mock)
@@ -209,7 +209,7 @@ class TestGraphContext(TestCase):
         selected_resource_mock = Mock()
 
         self_mock = Mock()
-        self_mock.dynamoDB_tables = {dynamo_table_name: selected_resource_mock}
+        self_mock.dynamo_db_tables = {dynamo_table_name: selected_resource_mock}
 
         choice = 1
         user_choices = [choice]

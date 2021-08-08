@@ -21,7 +21,7 @@ def ask(question: str, min_val: float = 1, max_val: float = float("inf")) -> int
 
     Returns
     -------
-        int
+        user_input: int
             Returns the user input once it's within the range
     """
     valid_user_input = False

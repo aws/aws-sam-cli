@@ -1,11 +1,15 @@
 """
 Bottle neck questions are asked here. Data is saved in graph, but not calcualted here.
 """
+from typing import Union
 import click
 
-from samcli.commands.check.resources.graph import CheckGraph
+from samcli.commands.check.resources.dynamo_db import DynamoDB
 from samcli.commands.check.resources.lambda_function import LambdaFunction
+from samcli.commands.check.resources.api_gateway import ApiGateway
+from samcli.commands.check.resources.graph import CheckGraph
 from samcli.commands.check.resources.pricing import CheckPricing
+
 from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
 from samcli.commands.check.lib.ask_question import ask
@@ -14,6 +18,7 @@ from samcli.commands.check.lib.ask_question import ask
 class BottleNecks:
     _graph: CheckGraph
     _lambda_max_duration: int
+    _pricing: CheckPricing
 
     def __init__(self, graph: CheckGraph):
         """
@@ -60,39 +65,39 @@ class BottleNecks:
         for entry_point in entry_point_holder:
             self._graph.entry_points.append(entry_point)
 
-        return
-
-    def _ask_bottle_neck_questions(self, resource, entry_point_name):
+    def _ask_bottle_neck_questions(self, resource: Union[LambdaFunction, ApiGateway, DynamoDB], entry_point_name: str):
         """Specific bottle neck questions are asked based on resource type
 
         Parameters
         ----------
-            resource: LambdaFunction
+            resource: Union[LambdaFunction, ApiGateway, DynamoDB]
                 The current lambda function object being analyzed from the graph
+            entry_point_name: str
+                Entry point resource name
         """
         resource.entry_point_resource = entry_point_name
-        if resource.resource_type == "AWS::Lambda::Function":
+        if resource.resource_type == AWS_LAMBDA_FUNCTION:
             self.lambda_bottle_neck_quesitons(resource, entry_point_name)
         else:
             self.event_source_bottle_neck_questions(resource, entry_point_name)
 
-    def event_source_bottle_neck_questions(self, event_source, entry_point_name):
-        if event_source.children == []:
-            """
-            If an event source does not have any child nodes, then this event source is not a parent to any
-            lambda functions. This can only happen if a lambda function has permissions to access a specific resource,
-            but that resource does not access its own lambda function.
-            For example: a lambda function may have permission to write to a dynamoDB table, but that table is not an event
-            to some other lambda function.
-            If that's the case, no further bottle neck questions are needed to be asked, since bottle necks are currently
-            only determined at the lambda function, and not the event source itself
-            """
-            return
+    def event_source_bottle_neck_questions(
+        self, event_source: Union[ApiGateway, DynamoDB], entry_point_name: str
+    ) -> None:
+        """
+        If an event source does not have any child nodes, then this event source is not a parent to any
+        lambda functions. This can only happen if a lambda function has permissions to access a specific resource,
+        but that resource does not access its own lambda function.
+        For example: a lambda function may have permission to write to a dynamoDB table, but that table is
+        not an event to some other lambda function.
+        If that's the case, no further bottle neck questions are needed to be asked, since bottle necks
+        are currently only determined at the lambda function, and not the event source itself
 
+        If the event source is an entry point, proceed normally. If it is not an entry point (i.e. a lambda
+        function calls this resource), its tps will be limited by the entry point that lead to this resource.
         """
-        If the event source is an entry point, proceed normally. If it is not an entry point (i.e. a lambda function calls 
-        this resource), its tps will be limited by the entry point that lead to this resource.
-        """
+        if event_source.children == []:
+            return
 
         user_input_tps = ask(
             "What is the expected per-second arrival rate for [%s]?\n[TPS]" % (event_source.resource_name)
@@ -103,7 +108,17 @@ class BottleNecks:
             child.tps = user_input_tps
             self._ask_bottle_neck_questions(child, entry_point_name)
 
-    def lambda_bottle_neck_quesitons(self, lambda_function, entry_point_name):
+    def lambda_bottle_neck_quesitons(self, lambda_function: LambdaFunction, entry_point_name: str) -> None:
+        """
+        Bottleneck quesitons for lambda functions
+
+        Parameters
+        ----------
+            lambda_function: LambdaFunction
+                The current lambda function object to ask bottle neck questions on
+            entry_point_name: str
+                The name of the entry point resource
+        """
         # If there is no entry point to the lambda function, get tps
         if lambda_function.tps == -1:
 
@@ -124,13 +139,12 @@ class BottleNecks:
         # This given instance of a lambda function is what needs to be analyzed.
         copied_lambda_function = lambda_function.copy_data()
 
-        """
-        To ensure the correct object (not the one in the graph) is saved to the samconfig file,
-        the copied object will need to be found at a later stage. Putting it in a dictionary
-        will enable it to be found based on its name (which does not changes from the original
-        to the copied) and the name of the entry point (which is what makes the instance
-        unique).
-        """
+        # To ensure the correct object (not the one in the graph) is saved to the samconfig file,
+        # the copied object will need to be found at a later stage. Putting it in a dictionary
+        # will enable it to be found based on its name (which does not changes from the original
+        # to the copied) and the name of the entry point (which is what makes the instance
+        # unique).
+
         key = copied_lambda_function.resource_name + ":" + entry_point_name
         # Only the lambda functions can be the source of bottle necks for now.
         self._graph.resources_to_analyze[key] = copied_lambda_function

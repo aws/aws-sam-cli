@@ -2,8 +2,11 @@
 Class object for Lambda Functions. Contains object from template, as well as all data for lambda functions,
 excluding pricing info
 """
-from typing import List
+from typing import List, Optional, Union
 from samcli.commands.check.resources.template_resource import TemplateResource
+from samcli.commands.check.resources.api_gateway import ApiGateway
+from samcli.commands.check.resources.dynamo_db import DynamoDB
+from samcli.commands.check.resources.lambda_function_permission import LambdaFunctionPermission
 from samcli.lib.providers.provider import Function
 
 
@@ -12,6 +15,8 @@ class LambdaFunction(TemplateResource):
     tps: int
     parents: List
     children: List
+    permission: Optional[LambdaFunctionPermission]
+    entry_point_resource: Union[ApiGateway, DynamoDB, None]
 
     def __init__(self, resource_object: Function, resource_type: str, resource_name: str):
         """
@@ -37,6 +42,14 @@ class LambdaFunction(TemplateResource):
         self.children.append(child)
 
     def copy_data(self):
+        """
+        Copies data from cirrent resource over to a new one. This is what
+        happens when a snapshot of the graph occurs for analyzing reources
+
+        Returns:
+            new_lambda_function: LambdaFunction
+                Returns the new, copied, independent lambda function object
+        """
         old_resource_object = self.resource_object
         old_resource_type = self.resource_type
         old_resource_name = self.resource_name

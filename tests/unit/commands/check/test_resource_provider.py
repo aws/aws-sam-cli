@@ -29,7 +29,7 @@ class TestResourceProvider(TestCase):
 
         resource_provider = ResourceProvider(template_mock)
 
-        result = resource_provider.get_local_stacks()
+        result = resource_provider._get_local_stacks()
 
         self.assertEqual(local_stacks_mock, result)
 
@@ -57,8 +57,8 @@ class TestResourceProvider(TestCase):
         }
         local_stacks_mock = {"Resources": resources_mock}
 
-        resource_provider.get_local_stacks = Mock()
-        resource_provider.get_local_stacks.return_value = local_stacks_mock
+        resource_provider._get_local_stacks = Mock()
+        resource_provider._get_local_stacks.return_value = local_stacks_mock
 
         resource_provider.get_all_resources()
 

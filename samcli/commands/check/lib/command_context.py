@@ -8,8 +8,6 @@ from typing import Any
 
 import click
 
-#!!! REMOVE import click AND PUT FUNCtion that uses it into save_data file
-
 from boto3.session import Session
 
 from samtranslator.translator.translator import Translator
@@ -19,13 +17,11 @@ from samtranslator.parser import parser
 from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
 from samcli.commands.check.bottle_necks import BottleNecks
 
-from samcli.commands.check.print_results import CheckResults
-
 from samcli.yamlhelper import yaml_parse
 
 from samcli.lib.replace_uri.replace_uri import replace_local_codeuri
 from samcli.lib.samlib.wrapper import SamTranslatorWrapper
-from ..exceptions import InvalidSamDocumentException
+from samcli.commands.check.exceptions import InvalidSamDocumentException
 
 from samcli.commands.check.lib.load_data import LoadData
 from samcli.commands.check.bottle_neck_calculations import BottleNeckCalculations
@@ -66,10 +62,17 @@ class CheckContext:
         self._profile = profile
         self._template_path = template_path
 
-    def run(self, config_file, load) -> None:
+    def run(self, config_file: Any, load: bool) -> None:
         """
         All main functions (bottle neck questions, pricing questions, calculations, print results)
         will be called here
+
+        Parameters
+        ----------
+            config_file: Any
+                The samconfig.toml file
+            load: bool
+                The cli flag for loading data from the config file
         """
 
         if load:
@@ -173,7 +176,22 @@ class CheckContext:
         return sam_template
 
 
-def _parse_template(template):
+def _parse_template(template: Any) -> GraphContext:
+    """
+    Parses the template file to look for resources (event sources), lambda functions, event mappings,
+    and other resources that may be produced by the lambda functions, such as permission prods or IAM roles.
+
+    Parameters
+    ----------
+        template: Any
+            The template to be parsed for data. The template is in a CFN format by this stage
+
+    Returns
+    -------
+        graph_context: GrapgContext
+            This returns the graph object after it is generated and all connections are made
+
+    """
 
     all_resources = {}
 
@@ -187,6 +205,15 @@ def _parse_template(template):
 
 
 def ask_to_save_data():
+    """
+    Asks the user whether they would lie tyo same the data they entered into the
+    samconfig.toml file or not.
+
+    Returns
+    -------
+        bool
+            Returns the users option to either save or not save the data to the samconfig.toml file
+    """
     correct_input = False
     while not correct_input:
         user_input = click.prompt("Would you like to save this data in the samconfig file for future use? [y/n]")
