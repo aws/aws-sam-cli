@@ -1396,7 +1396,7 @@ foo
                 "packageType": "Image",
             },
         ]
-        with (self.assertRaises(UserException)) as ex:
+        with self.assertRaises(UserException):
             init_cli(
                 ctx=self.ctx,
                 no_interactive=True,
@@ -1412,7 +1412,6 @@ foo
                 no_input=None,
                 extra_context=None,
             )
-            self.fail(str(ex))
 
     @patch("samcli.lib.utils.git_repo.GitRepo._ensure_clone_directory_exists")
     def test_init_cli_with_mismatch_dep_runtime(self, cd_mock):
