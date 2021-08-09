@@ -98,7 +98,7 @@ class TestLambdaImage(TestCase):
 
         self.assertEqual(
             lambda_image.build("python3.6", ZIP, None, []),
-            f"amazon/aws-sam-cli-emulation-image-python3.6:rapid-{version}",
+            f"public.ecr.aws/sam/emulation-python3.6:rapid-{version}",
         )
 
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
@@ -149,7 +149,7 @@ class TestLambdaImage(TestCase):
         generate_docker_image_version_patch.assert_called_once_with(["layers1"], "python3.6")
         docker_client_mock.images.get.assert_called_once_with("samcli/lambda:image-version")
         build_image_patch.assert_called_once_with(
-            "amazon/aws-sam-cli-emulation-image-python3.6:latest",
+            "public.ecr.aws/sam/emulation-python3.6:latest",
             "samcli/lambda:image-version",
             ["layers1"],
             stream=stream,
@@ -179,7 +179,7 @@ class TestLambdaImage(TestCase):
         generate_docker_image_version_patch.assert_called_once_with(["layers1"], "python3.6")
         docker_client_mock.images.get.assert_called_once_with("samcli/lambda:image-version")
         build_image_patch.assert_called_once_with(
-            "amazon/aws-sam-cli-emulation-image-python3.6:latest",
+            "public.ecr.aws/sam/emulation-python3.6:latest",
             "samcli/lambda:image-version",
             ["layers1"],
             stream=stream,
