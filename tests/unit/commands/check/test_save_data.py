@@ -22,6 +22,7 @@ class TestSaveData(TestCase):
         copied_lambda_function_mock.resource_name = Mock()
         copied_lambda_function_mock.duration = Mock()
         copied_lambda_function_mock.tps = Mock()
+        copied_lambda_function_mock.path_to_resource = Mock()
 
         lambda_toml = {
             "resource_object": "",
@@ -31,6 +32,7 @@ class TestSaveData(TestCase):
             "tps": copied_lambda_function_mock.tps,
             "children": children_toml_mock,
             "key": key,
+            "path_to_resource": copied_lambda_function_mock.path_to_resource,
         }
 
         save_data = SaveGraphData(graph_mock)

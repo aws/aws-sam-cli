@@ -58,6 +58,7 @@ class SaveGraphData:
             "tps": copied_lambda_function.tps,
             "children": children_toml,
             "key": key,
+            "path_to_resource": copied_lambda_function.path_to_resource,
         }
 
         return lambda_toml
@@ -100,6 +101,7 @@ class SaveGraphData:
                 "resource_name": resource_name,
                 "tps": resource.tps,
                 "children": resource_children_toml,
+                "path_to_resource": resource.path_to_resource,
             }
         elif resource_type == AWS_DYNAMODB_TABLE:
             resource_toml = {
@@ -108,6 +110,7 @@ class SaveGraphData:
                 "resource_name": resource_name,
                 "tps": resource.tps,
                 "children": resource_children_toml,
+                "path_to_resource": resource.path_to_resource,
             }
 
         resource_children = resource.children

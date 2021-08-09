@@ -84,6 +84,7 @@ class TestLoadData(TestCase):
         tps = 0
         duration = 0
         is_entry_point = False
+        path_to_resource = Mock()
 
         current_resource_mock = Mock()
         children = []
@@ -107,6 +108,7 @@ class TestLoadData(TestCase):
             "tps": tps,
             "duration": duration,
             "key": "",
+            "path_to_resource": path_to_resource,
         }
 
         result = load_data._parse_single_resource_toml(resource_toml, is_entry_point)
@@ -122,6 +124,7 @@ class TestLoadData(TestCase):
             "children": children,
             "tps": tps,
             "duration": duration,
+            "path_to_resource": path_to_resource,
         }
 
         result = load_data._parse_single_resource_toml(resource_toml, is_entry_point)
@@ -137,6 +140,7 @@ class TestLoadData(TestCase):
             "children": children,
             "tps": tps,
             "duration": duration,
+            "path_to_resource": path_to_resource,
         }
 
         result = load_data._parse_single_resource_toml(resource_toml, is_entry_point)
@@ -151,6 +155,7 @@ class TestLoadData(TestCase):
         tps_mock = Mock()
         duration_mock = Mock()
         resource_type_mock = Mock()
+        path_to_resource_mock = Mock()
 
         lambda_function_mock = Mock()
 
@@ -163,9 +168,12 @@ class TestLoadData(TestCase):
             resource_object_mock,
             tps_mock,
             duration_mock,
+            path_to_resource_mock,
         )
 
-        patch_lambda_function.assert_called_once_with(resource_object_mock, resource_type_mock, resource_name_mock)
+        patch_lambda_function.assert_called_once_with(
+            resource_object_mock, resource_type_mock, resource_name_mock, path_to_resource_mock
+        )
 
         self.assertEqual(result, lambda_function_mock)
 
@@ -176,10 +184,9 @@ class TestLoadData(TestCase):
         resource_object_mock = Mock()
         tps_mock = Mock()
         resource_type_mock = Mock()
+        path_to_resource = Mock()
 
         api_gateway_mock = Mock()
-        api_gateway_mock.set_duration = Mock()
-        api_gateway_mock.set_tps = Mock()
 
         patch_api_gateway.return_value = api_gateway_mock
 
@@ -189,10 +196,12 @@ class TestLoadData(TestCase):
             resource_name_mock,
             resource_object_mock,
             tps_mock,
+            path_to_resource,
         )
 
-        patch_api_gateway.assert_called_once_with(resource_object_mock, resource_type_mock, resource_name_mock)
-        api_gateway_mock.set_tps.assert_called_once_with(tps_mock)
+        patch_api_gateway.assert_called_once_with(
+            resource_object_mock, resource_type_mock, resource_name_mock, path_to_resource
+        )
 
         self.assertEqual(result, api_gateway_mock)
 
@@ -203,10 +212,9 @@ class TestLoadData(TestCase):
         resource_object_mock = Mock()
         tps_mock = Mock()
         resource_type_mock = Mock()
+        path_to_resource = Mock()
 
         dynamodb_table_mock = Mock()
-        dynamodb_table_mock.set_duration = Mock()
-        dynamodb_table_mock.set_tps = Mock()
 
         patch_dynamodb_table.return_value = dynamodb_table_mock
 
@@ -216,10 +224,12 @@ class TestLoadData(TestCase):
             resource_name_mock,
             resource_object_mock,
             tps_mock,
+            path_to_resource,
         )
 
-        patch_dynamodb_table.assert_called_once_with(resource_object_mock, resource_type_mock, resource_name_mock)
-        dynamodb_table_mock.set_tps.assert_called_once_with(tps_mock)
+        patch_dynamodb_table.assert_called_once_with(
+            resource_object_mock, resource_type_mock, resource_name_mock, path_to_resource
+        )
 
         self.assertEqual(result, dynamodb_table_mock)
 

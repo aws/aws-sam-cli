@@ -4,7 +4,7 @@ that can be entered into the graph
 """
 
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import tomlkit.exceptions
 
@@ -78,6 +78,7 @@ class LoadData:
         resource_object = str(resource_toml["resource_object"])
         resource_children = resource_toml["children"]
         resource_tps = int(resource_toml["tps"])
+        path_to_resource = resource_toml["path_to_resource"]
 
         _check_range(resource_tps, 0, float("inf"))
 
@@ -92,6 +93,7 @@ class LoadData:
                 resource_object,
                 resource_tps,
                 resource_duration,
+                path_to_resource,
             )
             key = str(resource_toml["key"])
             self._graph.resources_to_analyze[key] = current_resource
@@ -102,6 +104,7 @@ class LoadData:
                 resource_name,
                 resource_object,
                 resource_tps,
+                path_to_resource,
             )
         elif resource_type == AWS_DYNAMODB_TABLE:
             current_resource = _generate_dynamo_db_table(
@@ -109,13 +112,14 @@ class LoadData:
                 resource_name,
                 resource_object,
                 resource_tps,
+                path_to_resource,
             )
         else:
             raise ValueError("invalid type")
 
         for child_toml in resource_children:
             child_resource = self._parse_single_resource_toml(child_toml, False)
-            current_resource.add_child(child_resource)
+            current_resource.children.append(child_resource)
 
         if is_entry_point:
             self._graph.entry_points.append(current_resource)
@@ -270,6 +274,7 @@ def _generate_lambda_function(
     resource_object: Dict,
     resource_tps: int,
     resource_duration: int,
+    path_to_resource: List[str],
 ) -> LambdaFunction:
     """
     Generates a lambda function object
@@ -286,13 +291,15 @@ def _generate_lambda_function(
             The resource tps
         resource_duration: int
             The resource duration
+        path_to_resource: List[str]
+            The path taken to get to this state of the resource
 
     Returns
     -------
         lambda_function: LambdaFunction
             Returns a generated lambda function object
     """
-    lambda_function = LambdaFunction(resource_object, resource_type, resource_name)
+    lambda_function = LambdaFunction(resource_object, resource_type, resource_name, path_to_resource)
     lambda_function.duration = resource_duration
     lambda_function.tps = resource_tps
 
@@ -304,6 +311,7 @@ def _generate_api_gateway(
     resource_name: str,
     resource_object: Dict,
     resource_tps: int,
+    path_to_resource: List[str],
 ) -> ApiGateway:
     """
     Generates an ApiGateway object
@@ -318,14 +326,16 @@ def _generate_api_gateway(
             The resource object that was retrieved from the template when it was first parsed
         resource_tps: int
             The resource tps
+        path_to_resource: List[str]
+            The path taken to get to this state of the resource
 
     Returns
     -------
         api_gateway: ApiGateway
             Retruns a generated ApiGateway object
     """
-    api_gateway = ApiGateway(resource_object, resource_type, resource_name)
-    api_gateway.set_tps(resource_tps)
+    api_gateway = ApiGateway(resource_object, resource_type, resource_name, path_to_resource)
+    api_gateway.tps = resource_tps
 
     return api_gateway
 
@@ -335,6 +345,7 @@ def _generate_dynamo_db_table(
     resource_name: str,
     resource_object: Dict,
     resource_tps: int,
+    path_to_resource: List[str],
 ) -> DynamoDB:
     """
     Generates a DynamoDB object
@@ -349,13 +360,15 @@ def _generate_dynamo_db_table(
             The resource object that was retrieved from the template when it was first parsed
         resource_tps: int
             The resource tps
+        path_to_resource: List[str]
+            The path taken to get to this state of the resource
 
     Returns
     -------
         dynamo_db_table: DynamoDB
             Returns a generated DynamoDB object
     """
-    dynamo_db_table = DynamoDB(resource_object, resource_type, resource_name)
-    dynamo_db_table.set_tps(resource_tps)
+    dynamo_db_table = DynamoDB(resource_object, resource_type, resource_name, path_to_resource)
+    dynamo_db_table.tps = resource_tps
 
     return dynamo_db_table

@@ -39,10 +39,6 @@ class LambdaFunction(TemplateResource):
         self.permission = None
         self.entry_point_resource = None
 
-    def add_child(self, child):
-        # REMOVE
-        self.children.append(child)
-
     def copy_data(self):
         """
         Copies data from cirrent resource over to a new one. This is what
