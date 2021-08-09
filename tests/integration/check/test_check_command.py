@@ -85,8 +85,8 @@ class TestCheck(CheckIntegBase):
         self.assertIn(bytes("* AWS Lambda: $741.40/month", encoding="utf-8"), stdout)
         self.assertIn(
             bytes(
-                "For the lambda function [HelloWorldFunction2], you will not be "
-                "close to its soft limit of 1000 concurrent executions.",
+                "For the lambda function [HelloWorldFunction2], following the path [DynamoDBTable1], "
+                "you will not be close to its soft limit of 1000 concurrent executions.",
                 encoding="utf-8",
             ),
             stdout,
@@ -140,37 +140,79 @@ class TestCheck(CheckIntegBase):
 
         stdout = check_process_execute.stdout.strip()
         self.assertIn(bytes("* AWS Lambda: $74.87/month", encoding="utf-8"), stdout)
-        self.assertIn(bytes("[HelloWorldFunction2], you will not be close", encoding="utf-8"), stdout)
-        self.assertIn(bytes("[HelloWorldFunction3], you will not be close", encoding="utf-8"), stdout)
         self.assertIn(
-            bytes("[HelloWorldFunction3], the 800ms duration and 900TPS arrival rate is using 72%", encoding="utf-8"),
+            bytes(
+                "[HelloWorldFunction2], following the path [ApiGatewayApi2 --> HelloWorldFunction1 --> DynamoDBTable1"
+                "], you will not be close to its soft limit of 1000 concurrent executions.",
+                encoding="utf-8",
+            ),
             stdout,
         )
         self.assertIn(
-            bytes("[HelloWorldFunction1], the 963ms duration and 800TPS arrival rate is using 77%", encoding="utf-8"),
+            bytes(
+                "[HelloWorldFunction3], following the path [ApiGatewayApi2 --> HelloWorldFunction1 --> DynamoDBTable2"
+                "], you will not be close to its soft limit of 1000 concurrent executions.",
+                encoding="utf-8",
+            ),
             stdout,
         )
         self.assertIn(
-            bytes("[HelloWorldFunction4], the 1101ms duration and 753TPS arrival rate is using 83%", encoding="utf-8"),
+            bytes(
+                "[HelloWorldFunction3], following the path [ApiGatewayApi1 --> HelloWorldFunction1 --> DynamoDBTable2"
+                "], the 800ms duration and 900TPS arrival rate is using 72%",
+                encoding="utf-8",
+            ),
             stdout,
         )
         self.assertIn(
-            bytes("[HelloWorldFunction1], the 750ms duration and 1200TPS arrival rate is using 90%", encoding="utf-8"),
+            bytes(
+                "[HelloWorldFunction1], following the path [ApiGatewayApi2], the 963ms duration and 800TPS arrival"
+                " rate is using 77%",
+                encoding="utf-8",
+            ),
             stdout,
         )
         self.assertIn(
-            bytes("[HelloWorldFunction4], the 1001ms duration and 900TPS arrival rate is using 90%", encoding="utf-8"),
+            bytes(
+                "[HelloWorldFunction4], following the path [ApiGatewayApi2 --> HelloWorldFunction1 --> "
+                "DynamoDBTable2], the 1101ms duration and 753TPS arrival rate is using 83%",
+                encoding="utf-8",
+            ),
             stdout,
         )
         self.assertIn(
-            bytes("[HelloWorldFunction2], the 702ms duration and 1400TPS arrival rate is using 98%", encoding="utf-8"),
+            bytes(
+                "[HelloWorldFunction1], following the path [ApiGatewayApi1], the 750ms duration and 1200TPS "
+                "arrival rate is using 90%",
+                encoding="utf-8",
+            ),
             stdout,
         )
         self.assertIn(
-            bytes("[HelloWorldFunction2], the 900ms duration and 1200TPS arrival rate is using 108%", encoding="utf-8"),
+            bytes(
+                "[HelloWorldFunction4], following the path [ApiGatewayApi1 --> HelloWorldFunction1 --> "
+                "DynamoDBTable2], the 1001ms duration and 900TPS arrival rate is using 90%",
+                encoding="utf-8",
+            ),
             stdout,
         )
-        self.assertIn(bytes("36% of the available burst concurrency.", encoding="utf-8"), stdout)
+        self.assertIn(
+            bytes(
+                "[HelloWorldFunction2], following the path [ApiGatewayApi3], the 702ms duration and 1400TPS "
+                "arrival rate is using 98%",
+                encoding="utf-8",
+            ),
+            stdout,
+        )
+        self.assertIn(
+            bytes(
+                "[HelloWorldFunction2], following the path [ApiGatewayApi1 --> HelloWorldFunction1 --> "
+                "DynamoDBTable1], the 900ms duration and 1200TPS arrival rate is using 108% of the allowed "
+                "concurrency on AWS Lambda. It exceeds the limits of the lambda function. It will use 36%",
+                encoding="utf-8",
+            ),
+            stdout,
+        )
 
         self.assertEqual(check_process_execute.process.returncode, 0)
 

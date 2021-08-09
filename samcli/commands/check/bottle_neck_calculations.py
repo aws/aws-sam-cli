@@ -1,6 +1,7 @@
 """
 Class for doing all bottle neck calcualtions on all resources
 """
+from typing import List
 import boto3
 import click
 from samcli.commands.check.resources.warning import CheckWarning
@@ -23,6 +24,7 @@ class BottleNeckCalculations:
         duration: int,
         tps: int,
         burst_concurrency: int,
+        path_to_resource: List[str],
     ):
         """
         Generates a warning message based on the severity of the bottle neck
@@ -41,31 +43,38 @@ class BottleNeckCalculations:
                 TPS of current resource
             burst_concurrency: int
                 Total allowed burst concurrency allowed
+            path_to_resource: List[str]
+                Path taken to get to current resource
         """
+
+        path_str = _generate_path_string(path_to_resource)
 
         if capacity_used <= 70:
             message = (
-                "For the lambda function [%s], you will not be close to its soft limit of %i concurrent executions."
-                % (resource_name, concurrent_executions)
+                "For the lambda function [%s], following the path [%s], you will not be close to its soft "
+                "limit of %i concurrent executions." % (resource_name, path_str, concurrent_executions)
             )
             warning = CheckWarning(message)
             self._graph.green_warnings.append(warning)
 
         elif capacity_used < 90:
             message = (
-                "For the lambda function [%s], the %ims duration and %iTPS arrival rate is using %i%% of the allowed "
-                "concurrency on AWS Lambda. A limit increase should be considered:"
-                "\nhttps://console.aws.amazon.com/servicequotas" % (resource_name, duration, tps, round(capacity_used))
+                "For the lambda function [%s], following the path [%s], the %ims duration and %iTPS arrival "
+                "rate is using %i%% of the allowed concurrency on AWS Lambda. A limit increase should be considered:"
+                "\nhttps://console.aws.amazon.com/servicequotas"
+                % (resource_name, path_str, duration, tps, round(capacity_used))
             )
             warning = CheckWarning(message)
             self._graph.yellow_warnings.append(warning)
 
         elif capacity_used <= 100:
             message = (
-                "For the lambda function [%s], the %ims duration and %iTPS arrival rate is using %i%% of the allowed "
-                "concurrency on AWS Lambda. It is very close to the limits of the lambda function. It is strongly "
-                "recommended that you get a limit increase before deploying your application:"
-                "\nhttps://console.aws.amazon.com/servicequotas" % (resource_name, duration, tps, round(capacity_used))
+                "For the lambda function [%s], following the path [%s], the %ims duration and %iTPS "
+                "arrival rate is using %i%% of the allowed concurrency on AWS Lambda. It is very close to "
+                "the limits of the lambda function. It is strongly recommended that you get a limit "
+                "increase before deploying your application:"
+                "\nhttps://console.aws.amazon.com/servicequotas"
+                % (resource_name, path_str, duration, tps, round(capacity_used))
             )
             warning = CheckWarning(message)
             self._graph.red_warnings.append(warning)
@@ -73,11 +82,12 @@ class BottleNeckCalculations:
         else:  # capacity_used > 100
             burst_capacity_used = _check_limit(tps, duration, burst_concurrency)
             message = (
-                "For the lambda function [%s], the %ims duration and %iTPS arrival rate is using %i%% of the allowed "
-                "concurrency on AWS Lambda. It exceeds the limits of the lambda function. It will use %i%% of the "
-                "available burst concurrency. It is strongly recommended that you get a limit increase before "
-                "deploying your application:\nhttps://console.aws.amazon.com/servicequotas"
-                % (resource_name, duration, tps, round(capacity_used), round(burst_capacity_used))
+                "For the lambda function [%s], following the path [%s], the %ims duration and %iTPS arrival "
+                "rate is using %i%% of the allowed concurrency on AWS Lambda. It exceeds the limits of the "
+                "lambda function. It will use %i%% of the available burst concurrency. It is strongly "
+                "recommended that you get a limit increase before deploying your application:"
+                "\nhttps://console.aws.amazon.com/servicequotas"
+                % (resource_name, path_str, duration, tps, round(capacity_used), round(burst_capacity_used))
             )
             warning = CheckWarning(message)
             self._graph.red_burst_warnings.append(warning)
@@ -91,6 +101,7 @@ class BottleNeckCalculations:
         for resource in self._graph.resources_to_analyze.values():
             resource_type = resource.resource_type
             resource_name = resource.resource_name
+            resource_path = resource.path_to_resource
 
             if resource_type == AWS_LAMBDA_FUNCTION:
 
@@ -107,7 +118,7 @@ class BottleNeckCalculations:
                 capacity_used = _check_limit(tps, duration, concurrent_executions)
 
                 self._generate_warning_message(
-                    capacity_used, resource_name, concurrent_executions, duration, tps, burst_concurrency
+                    capacity_used, resource_name, concurrent_executions, duration, tps, burst_concurrency, resource_path
                 )
 
 
@@ -131,3 +142,15 @@ def _check_limit(tps: int, duration: int, execution_limit: int):
     """
     tps_max_limit = (1000 / duration) * execution_limit
     return (tps / tps_max_limit) * 100
+
+
+def _generate_path_string(path_list: List[str]):
+    path_str = ""
+
+    for counter, item in enumerate(path_list):
+        path_str += item
+
+        if counter < len(path_list) - 1:
+            path_str += " --> "
+
+    return path_str

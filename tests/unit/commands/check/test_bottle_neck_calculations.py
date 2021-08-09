@@ -6,9 +6,10 @@ from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
 
 class TestCalculations(TestCase):
+    @patch("samcli.commands.check.bottle_neck_calculations._generate_path_string")
     @patch("samcli.commands.check.bottle_neck_calculations._check_limit")
     @patch("samcli.commands.check.bottle_neck_calculations.Warning")
-    def test_generate_warning_message(self, patch_warning, patch_check_limit):
+    def test_generate_warning_message(self, patch_warning, patch_check_limit, patch_generate):
         """
         Other than capacity, the specific values (strings and ints) used in the parameter variables for
         "calculations._generate_warning_message" do not matter. They just have to be of type
@@ -24,6 +25,8 @@ class TestCalculations(TestCase):
         graph_mock.red_warnings = []
         graph_mock.red_burst_warnings = []
 
+        path_to_resource = []
+
         calculations = BottleNeckCalculations(graph_mock)
 
         # Capacity <= 70
@@ -35,7 +38,7 @@ class TestCalculations(TestCase):
         burst_concurrency = Mock()
 
         calculations._generate_warning_message(
-            capacity_used, resource_name, concurrent_executions, duration, tps, burst_concurrency
+            capacity_used, resource_name, concurrent_executions, duration, tps, burst_concurrency, path_to_resource
         )
 
         # Capacity > 70 and < 90
@@ -47,7 +50,7 @@ class TestCalculations(TestCase):
         burst_concurrency = 2342
 
         calculations._generate_warning_message(
-            capacity_used, resource_name, concurrent_executions, duration, tps, burst_concurrency
+            capacity_used, resource_name, concurrent_executions, duration, tps, burst_concurrency, path_to_resource
         )
 
         # Capacity >= 90 <= 100
@@ -59,7 +62,7 @@ class TestCalculations(TestCase):
         burst_concurrency = 2342
 
         calculations._generate_warning_message(
-            capacity_used, resource_name, concurrent_executions, duration, tps, burst_concurrency
+            capacity_used, resource_name, concurrent_executions, duration, tps, burst_concurrency, path_to_resource
         )
 
         # Capacity > 100
@@ -73,10 +76,12 @@ class TestCalculations(TestCase):
         patch_check_limit.return_value = 815
 
         calculations._generate_warning_message(
-            capacity_used, resource_name, concurrent_executions, duration, tps, burst_concurrency
+            capacity_used, resource_name, concurrent_executions, duration, tps, burst_concurrency, path_to_resource
         )
 
         patch_check_limit.assert_called_once_with(tps, duration, burst_concurrency)
+
+        patch_generate.assert_any_call(path_to_resource)
 
         self.assertEqual(len(graph_mock.green_warnings), 1)
         self.assertEqual(len(graph_mock.yellow_warnings), 1)
@@ -98,6 +103,7 @@ class TestCalculations(TestCase):
         resource_mock.resource_name = Mock()
         resource_mock.tps = Mock()
         resource_mock.duration = Mock()
+        resource_mock.path_to_resource = []
 
         client_mock = Mock()
 
@@ -134,6 +140,7 @@ class TestCalculations(TestCase):
             resource_mock.duration,
             resource_mock.tps,
             burst_mock,
+            resource_mock.path_to_resource,
         )
 
         # Test error catches
