@@ -116,13 +116,13 @@ class TestCommandContext(TestCase):
         sam_translator.translate.assert_called_with(sam_template=updated_template, parameter_values={})
 
     @patch("samcli.commands.check.lib.command_context.ResourceProvider")
-    @patch("samcli.commands.check.lib.command_context.GraphContext")
+    @patch("samcli.commands.check.lib.command_context.CheckGraph")
     @patch("samcli.commands.check.lib.command_context.os")
     def test_parse_template(self, patch_os, patch_graph, patch_provider):
         path_mock = Mock()
         template_mock = Mock()
         graph_mock = Mock()
-        graph_mock.generate.return_value = Mock()
+        graph_mock.generate = Mock()
 
         patch_graph.return_value = graph_mock
 
@@ -138,4 +138,4 @@ class TestCommandContext(TestCase):
         patch_provider.assert_called_once_with(template_mock)
         patch_graph.assert_called_once_with(all_resources_mock)
 
-        self.assertEqual(result, graph_mock.generate.return_value)
+        self.assertEqual(result, graph_mock)

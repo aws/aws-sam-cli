@@ -29,8 +29,7 @@ from samcli.commands.check.pricing_calculations import PricingCalculations
 from samcli.commands.check.lib.save_data import SaveGraphData
 from samcli.commands.check.print_results import CheckResults
 from samcli.commands.check.lib.resource_provider import ResourceProvider
-from samcli.commands.check.graph_context import GraphContext
-
+from samcli.commands.check.resources.graph import CheckGraph
 
 LOG = logging.getLogger(__name__)
 
@@ -176,7 +175,7 @@ class CheckContext:
         return sam_template
 
 
-def _parse_template(template: Any) -> GraphContext:
+def _parse_template(template: Any) -> CheckGraph:
     """
     Parses the template file to look for resources (event sources), lambda functions, event mappings,
     and other resources that may be produced by the lambda functions, such as permission prods or IAM roles.
@@ -188,7 +187,7 @@ def _parse_template(template: Any) -> GraphContext:
 
     Returns
     -------
-        graph_context: GrapgContext
+        graph: CheckGraph
             This returns the graph object after it is generated and all connections are made
 
     """
@@ -199,9 +198,10 @@ def _parse_template(template: Any) -> GraphContext:
     all_resources = resource_provider.get_all_resources()
 
     # After all resources have been parsed from template, pass them into the graph
-    graph_context = GraphContext(all_resources)
+    graph = CheckGraph(all_resources)
+    graph.generate()
 
-    return graph_context.generate()
+    return graph
 
 
 def ask_to_save_data():
