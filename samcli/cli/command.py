@@ -8,6 +8,8 @@ from collections import OrderedDict
 
 import click
 
+from installer.pyinstaller.hidden_imports import SAM_CLI_HIDDEN_IMPORTS
+
 logger = logging.getLogger(__name__)
 
 # Commands that are bundled with the CLI by default in app life-cycle order.
@@ -62,6 +64,15 @@ class BaseCommand(click.MultiCommand):
 
         if not cmd_packages:
             cmd_packages = _SAM_CLI_COMMAND_PACKAGES
+        elif isinstance(cmd_packages, list):
+            for package in cmd_packages:
+                if package not in SAM_CLI_HIDDEN_IMPORTS:
+                    logger.warning(
+                        "Package %s is not registered as default hidden imports. "
+                        "Consider adding it to /installer/pyinstaller/hidden_imports.py, "
+                        "Otherwise the PyInstaller package will not import it.",
+                        package,
+                    )
 
         self._commands = {}
         self._commands = BaseCommand._set_commands(cmd_packages)
@@ -118,3 +129,6 @@ class BaseCommand(click.MultiCommand):
             return None
 
         return mod.cli
+
+    def get_command_packages(self):
+        return self._commands.values()
