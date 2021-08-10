@@ -131,7 +131,7 @@ class CompanionStackManager:
 
         waiter.wait(StackName=stack_name, WaiterConfig=self._update_stack_waiter_config)  # type: ignore
 
-    def delete_companion_stack(self):
+    def _delete_companion_stack(self):
         """
         Blocking call to delete the companion stack
         """
@@ -211,7 +211,7 @@ class CompanionStackManager:
             if has_repo:
                 self.update_companion_stack()
             else:
-                self.delete_companion_stack()
+                self._delete_companion_stack()
         elif has_repo:
             self.update_companion_stack()
 

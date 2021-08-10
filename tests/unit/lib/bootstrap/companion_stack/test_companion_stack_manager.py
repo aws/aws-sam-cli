@@ -94,7 +94,7 @@ class TestCompanionStackManager(TestCase):
         cfn_waiter = Mock()
         self.cfn_client.get_waiter.return_value = cfn_waiter
 
-        self.manager.delete_companion_stack()
+        self.manager._delete_companion_stack()
 
         self.cfn_client.delete_stack.assert_called_once_with(StackName=self.companion_stack_name)
         self.cfn_client.get_waiter.assert_called_once_with("stack_delete_complete")
@@ -213,11 +213,11 @@ class TestCompanionStackManager(TestCase):
         self.manager.get_repository_mapping = lambda: {"a": ""}
         self.manager.delete_unreferenced_repos = Mock()
         self.manager.update_companion_stack = Mock()
-        self.manager.delete_companion_stack = Mock()
+        self.manager._delete_companion_stack = Mock()
 
         self.manager.sync_repos()
         self.manager.delete_unreferenced_repos.assert_called_once()
-        self.manager.delete_companion_stack.assert_not_called()
+        self.manager._delete_companion_stack.assert_not_called()
         self.manager.update_companion_stack.assert_called_once()
 
     def test_sync_repos_exists_with_no_repo(self):
@@ -225,11 +225,11 @@ class TestCompanionStackManager(TestCase):
         self.manager.get_repository_mapping = lambda: {}
         self.manager.delete_unreferenced_repos = Mock()
         self.manager.update_companion_stack = Mock()
-        self.manager.delete_companion_stack = Mock()
+        self.manager._delete_companion_stack = Mock()
 
         self.manager.sync_repos()
         self.manager.delete_unreferenced_repos.assert_called_once()
-        self.manager.delete_companion_stack.assert_called_once()
+        self.manager._delete_companion_stack.assert_called_once()
         self.manager.update_companion_stack.assert_not_called()
 
     def test_sync_repos_does_not_exist(self):
@@ -237,11 +237,11 @@ class TestCompanionStackManager(TestCase):
         self.manager.get_repository_mapping = lambda: {"a": ""}
         self.manager.delete_unreferenced_repos = Mock()
         self.manager.update_companion_stack = Mock()
-        self.manager.delete_companion_stack = Mock()
+        self.manager._delete_companion_stack = Mock()
 
         self.manager.sync_repos()
         self.manager.delete_unreferenced_repos.assert_not_called()
-        self.manager.delete_companion_stack.assert_not_called()
+        self.manager._delete_companion_stack.assert_not_called()
         self.manager.update_companion_stack.assert_called_once()
 
     def test_does_companion_stack_exist_true(self):
