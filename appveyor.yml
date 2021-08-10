@@ -112,7 +112,7 @@ for:
 
     install:
       # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
-      - sh: "sudo apt-get update"
+      - sh: "sudo apt-get update -y"
 
       - sh: "gvm use go1.13"
       - sh: "echo $PATH"
