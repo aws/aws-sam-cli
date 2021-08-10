@@ -12,9 +12,58 @@ from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
 class BottleNeckCalculations:
     _graph: CheckGraph
+    _template_path: str
 
-    def __init__(self, graph: CheckGraph):
+    def __init__(self, graph: CheckGraph, template_path: str):
         self._graph = graph
+        self._template_path = template_path
+
+    def _get_error_file_lines(self, resource_name: str) -> str:
+        """
+        Finds the current resource in the template file. Adds a few of the lines
+        from the file to the warning message.
+
+        Parameters
+        ----------
+            resource_name: str
+                The resource name to find in the file
+
+        Returns
+        -------
+            error_file_lines: str
+                The error message showing where in the file the bottle neck
+                is located
+        """
+        error_file_lines = "\nThe resource [%s] can be found here...\n  --> %s\n" % (resource_name, self._template_path)
+
+        error_file_lines += "   |\n"
+
+        with open(self._template_path, "r", encoding="utf-8") as file:
+            content = [line.strip("\n") for line in file.readlines()]
+
+            resource_pos = -1
+            resource_to_find = resource_name + ":"
+            found_resource = False
+
+            for pos, file_line in enumerate(content):
+                if file_line.strip() == resource_to_find:
+                    resource_pos = pos
+                    found_resource = True
+                    break
+
+            if not found_resource:
+                return ""
+
+            for current_pos in range(resource_pos, resource_pos + 4):
+                if current_pos >= len(content):
+                    break
+
+                if current_pos is resource_pos:
+                    error_file_lines += "%i |" % (current_pos + 1) + content[current_pos] + "\n"
+                else:
+                    error_file_lines += "   |" + content[current_pos] + "\n"
+
+        return error_file_lines
 
     def _generate_warning_message(
         self,
@@ -89,6 +138,9 @@ class BottleNeckCalculations:
                 "\nhttps://console.aws.amazon.com/servicequotas"
                 % (resource_name, path_str, duration, tps, round(capacity_used), round(burst_capacity_used))
             )
+
+            message += self._get_error_file_lines(resource_name)
+
             warning = CheckWarning(message)
             self._graph.red_burst_warnings.append(warning)
 

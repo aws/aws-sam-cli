@@ -78,7 +78,7 @@ class CheckContext:
             load_data = LoadData()
             graph = load_data.generate_graph_from_toml(config_file)
 
-            bottle_neck_calculations = BottleNeckCalculations(graph)
+            bottle_neck_calculations = BottleNeckCalculations(graph, self._template_path)
             bottle_neck_calculations.run_calculations()
 
             pricing_calculations = PricingCalculations(graph)
@@ -105,7 +105,7 @@ class CheckContext:
         bottle_necks = BottleNecks(graph)
         bottle_necks.ask_entry_point_question()
 
-        bottle_neck_calculations = BottleNeckCalculations(graph)
+        bottle_neck_calculations = BottleNeckCalculations(graph, self._template_path)
         bottle_neck_calculations.run_calculations()
 
         pricing_calculations = PricingCalculations(graph)

@@ -62,6 +62,11 @@ class TestCheck(CheckIntegBase):
         self.assertIn(bytes("1900TPS arrival rate", encoding="utf-8"), stdout)
         self.assertIn(bytes("234% of the allowed concurrency", encoding="utf-8"), stdout)
         self.assertIn(bytes(" 78% of the available burst concurrency.", encoding="utf-8"), stdout)
+        self.assertIn(bytes("The resource [HelloWorldFunction1] can be found here...", encoding="utf-8"), stdout)
+        self.assertIn(bytes("14 |  HelloWorldFunction1:", encoding="utf-8"), stdout)
+        self.assertIn(bytes("|    Type: AWS::Serverless::Function", encoding="utf-8"), stdout)
+        self.assertIn(bytes("|    Properties:", encoding="utf-8"), stdout)
+        self.assertIn(bytes("|      CodeUri: hello_world/", encoding="utf-8"), stdout)
 
         self.assertEqual(check_process_execute.process.returncode, 0)
 

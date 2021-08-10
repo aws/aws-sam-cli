@@ -27,7 +27,7 @@ class TestCalculations(TestCase):
 
         path_to_resource = []
 
-        calculations = BottleNeckCalculations(graph_mock)
+        calculations = BottleNeckCalculations(graph_mock, "")
 
         # Capacity <= 70
         capacity_used = 60
@@ -75,6 +75,9 @@ class TestCalculations(TestCase):
 
         patch_check_limit.return_value = 815
 
+        calculations._get_error_file_lines = Mock()
+        calculations._get_error_file_lines.return_value = ""
+
         calculations._generate_warning_message(
             capacity_used, resource_name, concurrent_executions, duration, tps, burst_concurrency, path_to_resource
         )
@@ -109,7 +112,7 @@ class TestCalculations(TestCase):
 
         patch_boto3.client.return_value = client_mock
 
-        calculations = BottleNeckCalculations(graph_mock)
+        calculations = BottleNeckCalculations(graph_mock, "")
         calculations.check_limit = Mock()
         calculations.check_limit.return_value = Mock()
         calculations._generate_warning_message = Mock()
