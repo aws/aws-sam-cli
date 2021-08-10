@@ -42,21 +42,13 @@ def image_repository_validation(func):
 
         validators = [
             Validator(
-                validation_function=lambda: image_repository and image_repositories,
+                validation_function=lambda: image_repository + image_repositories + resolve_image_repos > 1,
                 exception=click.BadOptionUsage(
                     option_name="--image-repositories",
                     ctx=ctx,
-                    message="Both '--image-repositories' and '--image-repository' cannot be provided. "
-                    "Do you have both specified in the command or in a configuration file?",
-                ),
-            ),
-            Validator(
-                validation_function=lambda: image_repository and resolve_image_repos,
-                exception=click.BadOptionUsage(
-                    option_name="--resolve-image-repos",
-                    ctx=ctx,
-                    message="Both '--resolve-image-repos' and '--image-repository' cannot be provided. "
-                    "Do you have both specified in the command or in a configuration file?",
+                    message="Only one of the following can be provided: '--image-repositories', "
+                    "'--image-repository', or '--resolve-image-repos'. "
+                    "Do you have multiple specified in the command or in a configuration file?",
                 ),
             ),
             Validator(
