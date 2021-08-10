@@ -90,7 +90,7 @@ class CheckContext:
                 save_graph_data = SaveGraphData(graph)
                 save_graph_data.save_to_config_file(config_file)
 
-            results = CheckResults(graph, pricing_calculations.get_lambda_pricing_results())
+            results = CheckResults(graph, pricing_calculations.lambda_pricing_results)
             results.print_all_pricing_results()
             results.print_bottle_neck_results()
 
@@ -117,7 +117,7 @@ class CheckContext:
             save_graph_data = SaveGraphData(graph)
             save_graph_data.save_to_config_file(config_file)
 
-        results = CheckResults(graph, pricing_calculations.get_lambda_pricing_results())
+        results = CheckResults(graph, pricing_calculations.lambda_pricing_results)
         results.print_all_pricing_results()
         results.print_bottle_neck_results()
 

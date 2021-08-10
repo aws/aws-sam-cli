@@ -33,7 +33,7 @@ class TestCheck(CheckIntegBase):
         )
 
         stdout = check_process_execute.stdout.strip()
-        self.assertIn(bytes("* AWS Lambda: $172.21/month", encoding="utf-8"), stdout)
+        self.assertIn(bytes("* AWS Lambda: $172.81/month", encoding="utf-8"), stdout)
         self.assertIn(bytes("789ms duration", encoding="utf-8"), stdout)
         self.assertIn(bytes("954TPS arrival rate", encoding="utf-8"), stdout)
         self.assertIn(bytes("75%", encoding="utf-8"), stdout)
@@ -82,7 +82,7 @@ class TestCheck(CheckIntegBase):
         )
 
         stdout = check_process_execute.stdout.strip()
-        self.assertIn(bytes("* AWS Lambda: $741.40/month", encoding="utf-8"), stdout)
+        self.assertIn(bytes("* AWS Lambda: $744.20/month", encoding="utf-8"), stdout)
         self.assertIn(
             bytes(
                 "For the lambda function [HelloWorldFunction2], following the path [DynamoDBTable1], "
@@ -139,7 +139,7 @@ class TestCheck(CheckIntegBase):
         )
 
         stdout = check_process_execute.stdout.strip()
-        self.assertIn(bytes("* AWS Lambda: $74.87/month", encoding="utf-8"), stdout)
+        self.assertIn(bytes("* AWS Lambda: $76.07/month", encoding="utf-8"), stdout)
         self.assertIn(
             bytes(
                 "[HelloWorldFunction2], following the path [ApiGatewayApi2 --> HelloWorldFunction1 --> DynamoDBTable1"
