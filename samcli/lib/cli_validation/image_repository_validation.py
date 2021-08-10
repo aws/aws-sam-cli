@@ -42,7 +42,10 @@ def image_repository_validation(func):
 
         validators = [
             Validator(
-                validation_function=lambda: image_repository + image_repositories + resolve_image_repos > 1,
+                validation_function=lambda: bool(image_repository)
+                + bool(image_repositories)
+                + bool(resolve_image_repos)
+                > 1,
                 exception=click.BadOptionUsage(
                     option_name="--image-repositories",
                     ctx=ctx,
