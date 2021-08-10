@@ -167,24 +167,13 @@ for:
       - "mypy setup.py samcli tests"
       - "pytest -n 4 tests/functional"
 
-      # Runs only in Linux, logging docker hub when running canary and docker cred is available
-      - sh: "
-        if [[ -n $BY_CANARY ]] && [[ -n $DOCKER_USER ]] && [[ -n $DOCKER_PASS ]];
-          then echo Logging in Docker Hub; echo $DOCKER_PASS | docker login --username $DOCKER_USER --password-stdin registry-1.docker.io; 
-        fi"
-      - sh: "
-        if [[ -n $BY_CANARY ]] && [[ -n $DOCKER_USER ]] && [[ -n $DOCKER_PASS ]];
-          then echo Logging in Docker Hub; echo $DOCKER_PASS | docker login --username $DOCKER_USER --password-stdin; 
-        fi"
+      # Runs only in Linux, logging Public ECR when running canary and cred is available
       - sh: "
         if [[ -n $BY_CANARY ]];
           then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws; 
         fi"
 
-      # Check dockerhub anonymous pull limitation before integration tests, verify if it's related to toomanyrequest failures
-      - sh: "sudo apt-get -y install jq"
-      - sh: "TOKEN=$(curl \"https://auth.docker.io/token?service=registry.docker.io&scope=repository:ratelimitpreview/test:pull\" | jq -r .token); curl --head -H \"Authorization: Bearer $TOKEN\" https://registry-1.docker.io/v2/ratelimitpreview/test/manifests/latest"
-      
+
       - sh: "pytest -vv tests/integration"
       - sh: "pytest -vv tests/regression"
       - sh: "black --check setup.py tests samcli"
@@ -196,6 +185,3 @@ for:
       # Smoke tests run in parallel - it runs on both Linux & Windows
       # Presence of the RUN_SMOKE envvar will run the smoke tests
       - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke}"
-
-      # Check dockerhub anonymous pull limitation after integration tests, verify if it's related to toomanyrequest failures
-      - sh: "TOKEN=$(curl \"https://auth.docker.io/token?service=registry.docker.io&scope=repository:ratelimitpreview/test:pull\" | jq -r .token); curl --head -H \"Authorization: Bearer $TOKEN\" https://registry-1.docker.io/v2/ratelimitpreview/test/manifests/latest"
