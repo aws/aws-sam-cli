@@ -10,8 +10,6 @@ from samcli.commands.check.resources.pricing import CheckPricing
 
 from samcli.commands.check.lib.ask_question import ask
 
-from samcli.commands.check.lib.ask_question import ask
-
 
 class BottleNecks:
     _graph: CheckGraph
