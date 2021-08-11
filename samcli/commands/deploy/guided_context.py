@@ -120,7 +120,7 @@ class GuidedContext:
         Start an interactive cli prompt to collection information for deployment
 
         """
-        default_stack_name = self.stack_name or "sam-app"
+        default_stack_name = self.stack_name
         default_region = self.region or get_default_aws_region()
         default_capabilities = self.capabilities[0] or ("CAPABILITY_IAM",)
         default_config_env = self.config_env or DEFAULT_ENV

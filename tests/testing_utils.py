@@ -51,9 +51,11 @@ def run_command_with_input(command_list, stdin_input, cwd=None, env=None, timeou
         raise
 
 
-def run_command_with_inputs(command_list: List[str], inputs: List[str], timeout=TIMEOUT) -> CommandResult:
+def run_command_with_inputs(
+    command_list: List[str], inputs: List[str], cwd=None, env=None, timeout=TIMEOUT
+) -> CommandResult:
     return run_command_with_input(
-        command_list=command_list, stdin_input=("\n".join(inputs) + "\n").encode(), timeout=timeout
+        command_list=command_list, stdin_input=("\n".join(inputs) + "\n").encode(), cwd=cwd, env=env, timeout=timeout
     )
 
 
