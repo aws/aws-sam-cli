@@ -106,6 +106,7 @@ class TestBottleNeckCalculations(TestCase):
         patch_boto3.client.return_value = client_mock
 
         calculations = BottleNeckCalculations(graph_mock)
+        patch_check_limit.return_value = Mock()
         calculations._generate_warning_message = Mock()
 
         burst_mock = Mock()

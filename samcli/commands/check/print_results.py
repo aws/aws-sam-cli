@@ -4,16 +4,19 @@ Prints the results of bottle neck calculations
 from typing import List
 import click
 
-from samcli.commands.check.resources.graph import Graph
+from samcli.commands.check.resources.graph import CheckGraph
+from samcli.commands.check.resources.warning import CheckWarning
 
 
-class Results:
-    _graph: Graph
+class CheckResults:
+    _graph: CheckGraph
 
-    def __init__(self, graph: Graph, lambda_pricing_results):
+    def __init__(self, graph: CheckGraph, lambda_pricing_results):
         """
-        Args:
-            graph (Graph): The graph object. This is where all of the data is stored
+        Parameters
+        ----------
+            graph: CheckGraph
+                The graph object. This is where all of the data is stored
         """
         self._graph = graph
         self.lambda_pricing_results = lambda_pricing_results
@@ -39,10 +42,12 @@ class Results:
         click.echo("\t Total: $%.2f/month" % self.lambda_pricing_results)
 
 
-def _print_warnings(warnings):
+def _print_warnings(warnings: List[CheckWarning]):
     """An individual warning message gets echoed here
-    Args:
-        warnings (List): List of one type of warnings
+    Parameters
+    ----------
+        warnings: List[CheckWarning]
+            List of one type of warnings
     """
     for warning in warnings:
         click.echo(warning.message + "\n")

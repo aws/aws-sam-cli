@@ -1,7 +1,7 @@
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
-from samcli.commands.check.resources.graph import Graph
+from samcli.commands.check.resources.graph import CheckGraph
 
 
 class TestGraph(TestCase):
@@ -9,7 +9,9 @@ class TestGraph(TestCase):
         entry_point_mock = Mock()
         resource_mock = Mock()
 
-        graph = Graph()
+        lambda_functions = []
+
+        graph = CheckGraph(lambda_functions)
 
         graph.entry_points.append(entry_point_mock)
         graph.resources_to_analyze.append(resource_mock)

@@ -7,17 +7,19 @@ import botocore
 
 
 from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
-from samcli.commands.check.resources.graph import Graph
+from samcli.commands.check.resources.graph import CheckGraph
 from .resources.warning import CheckWarning
 
 
 class BottleNeckCalculations:
-    _graph: Graph
+    _graph: CheckGraph
 
-    def __init__(self, graph: Graph):
+    def __init__(self, graph: CheckGraph):
         """
-        Args:
-            graph (Graph): The graph object. This is where all of the data is stored
+        Parameters
+        ----------
+            graph: CheckGraph
+                The graph object. This is where all of the data is stored
         """
         self._graph = graph
 
@@ -31,13 +33,20 @@ class BottleNeckCalculations:
         burst_concurrency: int,
     ):
         """Depending on how severe the bottle neck is, a different warning message will be generated
-        Args:
-            capacity_used (int): Percentage of capacity used
-            resource_name (str): Recource name that the warning is for
-            concurrent_executions (int): Concurrent executions based on users account
-            duration (int): Duration of lambda function
-            tps (int): TPS of lambda function based on its parent resource
-            burst_concurrency (int): Burst concurrency based on users account
+        Parameters
+        ----------
+            capacity_used: int
+                Percentage of capacity used
+            resource_name: str
+                Recource name that the warning is for
+            concurrent_executions: int
+                Concurrent executions based on users account
+            duration: int
+                Duration of lambda function
+            tps: int
+                TPS of lambda function based on its parent resource
+            burst_concurrency: int
+                Burst concurrency based on users account
         """
 
         if capacity_used <= 70:
@@ -117,13 +126,19 @@ class BottleNeckCalculations:
 
 def _check_limit(tps: int, duration: int, execution_limit: int) -> float:
     """The check to see if a given resource will cause a bottle neck.
-    Args:
-        tps (int): TPS of lambda function based on parent resource
-        duration (int): Duration of lambda function
-        execution_limit (int): Execution limit based on user account
+    Parameters
+    ----------
+        tps: int
+            TPS of lambda function based on parent resource
+        duration: int
+            Duration of lambda function
+        execution_limit: int
+            Execution limit based on user account
 
-    Returns:
-        float: percentage of available concurrent executions used
+    Returns
+    -------
+        float
+            percentage of available concurrent executions used
     """
     tps_max_limit = (1000 / duration) * execution_limit
     return (tps / tps_max_limit) * 100

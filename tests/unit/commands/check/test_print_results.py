@@ -3,12 +3,12 @@ Tests for print_result.py
 """
 from unittest import TestCase
 from unittest.mock import Mock, patch
-from samcli.commands.check.results import Results
+from samcli.commands.check.print_results import CheckResults
 
 
 class TestPrintResults(TestCase):
-    @patch("samcli.commands.check.results._print_warnings")
-    @patch("samcli.commands.check.results.click")
+    @patch("samcli.commands.check.print_results._print_warnings")
+    @patch("samcli.commands.check.print_results.click")
     def test_print_bottle_neck_results(self, patch_click, patch_print):
         graph_mock = Mock()
         graph_mock.green_warnings = Mock()
@@ -18,7 +18,7 @@ class TestPrintResults(TestCase):
 
         patch_click.secho = Mock()
 
-        print_results = Results(graph_mock, Mock())
+        print_results = CheckResults(graph_mock)
 
         print_results.print_bottle_neck_results()
 
