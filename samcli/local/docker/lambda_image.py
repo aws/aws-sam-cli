@@ -133,10 +133,9 @@ class LambdaImage:
             LOG.info("Image was not found.")
             image_not_found = True
 
-        # If building a new image that's not user provided, delete older images of the same repo
-        if image_not_found and packagetype != IMAGE:
-            LOG.info("Removing old images")
-            self._remove_images(image_repo)
+        # If building a new rapid image, delete older rapid images of the same repo
+        if image_not_found and image_tag == f"{image_repo}:rapid-{version}":
+            self._remove_rapid_images(image_repo)
 
         if (
             self.force_image_build
@@ -294,17 +293,21 @@ class LambdaImage:
             dockerfile_content = dockerfile_content + f"ADD {layer.name} {LambdaImage._LAYERS_DIR}\n"
         return dockerfile_content
 
-    def _remove_images(self, repo_name: str) -> None:
+    def _remove_rapid_images(self, repo: str) -> None:
         """
-        Remove all images for given repo
+        Remove all rapid images for given repo
 
         Parameters
         ----------
-        repo_name str
-            Repo for which all images will be removed
+        repo str
+            Repo for which rapid images will be removed
         """
+        LOG.info("Removing rapid images for repo %s", repo)
         try:
-            for image in self.docker_client.images.list(name=repo_name):
-                self.docker_client.images.remove(image=image.id, force=True)
+            for image in self.docker_client.images.list(name=repo):
+                for tag in image.tags:
+                    if ":rapid-" in tag:
+                        self.docker_client.images.remove(image=image.id, force=True)
+                        break
         except docker.errors.APIError as ex:
-            LOG.warning("Failed to remove images", exc_info=ex)
+            LOG.warning("Failed to remove rapid images", exc_info=ex)
