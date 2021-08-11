@@ -1,3 +1,9 @@
+"""
+Superclass for pricing calculations. Each resource will inherit
+this class and implement necessary methods to determine pricing
+cost of the given resource
+"""
+
 from abc import abstractmethod
 
 

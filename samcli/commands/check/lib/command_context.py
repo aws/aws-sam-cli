@@ -28,7 +28,7 @@ from samcli.lib.replace_uri.replace_uri import replace_local_codeuri
 from samcli.lib.samlib.wrapper import SamTranslatorWrapper
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
-from ..exceptions import InvalidSamDocumentException
+from samcli.commands.check.exceptions import InvalidSamDocumentException
 
 
 LOG = logging.getLogger(__name__)

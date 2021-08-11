@@ -1,3 +1,8 @@
+"""
+Class for calculating pricing information for all lambda functiuons
+"""
+
+from typing import List
 import urllib.request
 from urllib.error import HTTPError
 
@@ -11,45 +16,35 @@ from samcli.commands.check.pricing_calculations import PricingCalculations
 class LambdaFunctionPricingCalculations(PricingCalculations):
     def __init__(self, graph):
         super().__init__(graph)
-        self.max_num_of_free_requests = None
-        self.max_free_GBs = None
-        self.monthly_compute_charge = None
-        self.monthly_request_charge = None
-        self.max_request_usage_type = "Global-Request"
-        self.max_free_GBs_usage_type = "Global-Lambda-GB-Second"
-        self.compute_usage_type = "Lambda-GB-Second"
-        self.request_charge_usage_type = "Request"
+        self._max_num_of_free_requests = None
+        self._max_free_gb_s = None
+        self._monthly_compute_charge = None
+        self._monthly_request_charge = None
+        self._max_request_usage_type = "Global-Request"
+        self._max_free_gb_s_usage_type = "Global-Lambda-GB-Second"
+        self._compute_usage_type = "Lambda-GB-Second"
+        self._request_charge_usage_type = "Request"
 
         self.lambda_pricing_results = None
 
     def get_aws_pricing_info(self, region):
-        return self.get_aws_lambda_pricing_info(region)
+        return _get_aws_lambda_pricing_info(region)
 
-    def determine_cost(self):
-        self.determine_lambda_cost()
+    def determine_cost(self) -> None:
+        self._determine_lambda_cost()
 
-    def run_calculations(self):
+    def run_calculations(self) -> None:
         self.get_charge_and_request_amounts()
         self.determine_cost()
 
-    def get_charge_and_request_amounts(self):
-        self.get_lambda_charge_and_request_amounts()
+    def get_charge_and_request_amounts(self) -> None:
+        self._get_lambda_charge_and_request_amounts()
 
-    def get_aws_lambda_pricing_info(self, region):
-
-        try:
-            with urllib.request.urlopen(
-                "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSLambda/current/" + region + "/index.json"
-            ) as f:
-                file = f.read().decode("utf-8")
-                return ast.literal_eval(file)
-        except HTTPError as e:
-            if e.code == 403:
-                raise Exception("Invalid region id")
-            else:
-                raise Exception()
-
-    def determine_lambda_cost(self):
+    def _determine_lambda_cost(self) -> None:
+        """
+        Determines the cost of running all lambda functions based on the
+        answers the user provided for lamnda function pricing
+        """
         template_lambda_pricing_info = self.graph.unique_pricing_info["LambdaFunction"]
 
         memory_amount = float(template_lambda_pricing_info.allocated_memory)
@@ -64,27 +59,30 @@ class LambdaFunctionPricingCalculations(PricingCalculations):
         # converts average_duration from ms to seconds within equation
         total_compute_s = number_of_requests * average_duration * 0.001
 
-        total_compute_GB_s = memory_amount * total_compute_s
+        total_compute_gb_s = memory_amount * total_compute_s
 
-        total_compute_GB_s -= self.max_free_GBs
+        total_compute_gb_s -= self._max_free_gb_s
 
-        if total_compute_GB_s < 0:
-            total_compute_GB_s = 0
+        if total_compute_gb_s < 0:
+            total_compute_gb_s = 0
 
-        monthly_compute_amount = total_compute_GB_s * self.monthly_compute_charge
+        monthly_compute_amount = total_compute_gb_s * self._monthly_compute_charge
 
-        total_requests = number_of_requests - self.max_num_of_free_requests
+        total_requests = number_of_requests - self._max_num_of_free_requests
 
         if total_requests < 0:
             total_requests = 0
 
-        monthly_request_amount = total_requests * self.monthly_request_charge
+        monthly_request_amount = total_requests * self._monthly_request_charge
 
         monthly_lambda_costs = round(monthly_compute_amount + monthly_request_amount, 2)
 
         self.lambda_pricing_results = monthly_lambda_costs
 
-    def get_lambda_charge_and_request_amounts(self):
+    def _get_lambda_charge_and_request_amounts(self) -> None:
+        """
+        Gets the charge and request amouint from the AWS Price List API
+        """
         region = get_session().get_config_variable("region")
 
         aws_lambda_price = self.get_aws_pricing_info(region)
@@ -111,18 +109,18 @@ class LambdaFunctionPricingCalculations(PricingCalculations):
             )
 
             if usage_type == global_request:
-                self.get_pricing_or_request_value(product, terms, "global-request")
+                self._get_pricing_or_request_value(product, terms, "global-request")
 
             elif usage_type == global_lambda_gb_second:
-                self.get_pricing_or_request_value(product, terms, "global-lambda")
+                self._get_pricing_or_request_value(product, terms, "global-lambda")
 
             elif modified_lambda_gb_second_key == lambda_gb_second_key and location != "Any":
-                self.get_pricing_or_request_value(product, terms, "lambda")
+                self._get_pricing_or_request_value(product, terms, "lambda")
 
             elif modified_lambda_request_key == lambda_request_key and location != "Any":
-                self.get_pricing_or_request_value(product, terms, "request")
+                self._get_pricing_or_request_value(product, terms, "request")
 
-    def get_pricing_or_request_value(self, product, terms, get_type):
+    def _get_pricing_or_request_value(self, product, terms, get_type) -> None:
         sku = product["sku"]
 
         temp_key = terms["OnDemand"][sku]
@@ -139,16 +137,77 @@ class LambdaFunctionPricingCalculations(PricingCalculations):
         price_dimentions = next(iter(temp_key.values()))
 
         if get_type == "global-request":
-            self.max_num_of_free_requests = float(price_dimentions["endRange"])
+            self._max_num_of_free_requests = float(price_dimentions["endRange"])
         elif get_type == "global-lambda":
-            self.max_free_GBs = float(price_dimentions["endRange"])
+            self._max_free_gb_s = float(price_dimentions["endRange"])
         elif get_type == "lambda":
-            self.monthly_compute_charge = float(price_dimentions["pricePerUnit"]["USD"])
+            self._monthly_compute_charge = float(price_dimentions["pricePerUnit"]["USD"])
         elif get_type == "request":
-            self.monthly_request_charge = float(price_dimentions["pricePerUnit"]["USD"])
+            self._monthly_request_charge = float(price_dimentions["pricePerUnit"]["USD"])
 
 
-def _convert_usage_type(usage_type, lambda_request_key, lambda_gb_second_key, default_region) -> str:
+def _get_aws_lambda_pricing_info(region: str):
+    """
+    Gets AWS Price List API json file for appropriate reigon and resource
+
+    Parameters
+    ----------
+        region: str
+            The region associated with the users account or their preset
+            region, if it exists.
+
+    Raises
+    ------
+        Exception: error code 403
+            An invalid region id is used
+        Exception
+            Catches remaining exceptions
+
+    Returns
+    -------
+        [type]: [description]
+    """
+    try:
+        with urllib.request.urlopen(
+            "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSLambda/current/" + region + "/index.json"
+        ) as f:
+            file = f.read().decode("utf-8")
+            return ast.literal_eval(file)
+    except HTTPError as e:
+        if e.code == 403:
+            raise Exception("Invalid region id") from e
+        else:
+            raise Exception() from e
+
+
+def _convert_usage_type(
+    usage_type: str, lambda_request_key: str, lambda_gb_second_key: str, default_region: bool
+) -> List[str]:
+    """
+    Converts the usage_type into a format that can be used to find the correct pricing
+    or request value. This is a work around to avoid using the abreviation of every
+    region to find the correct pricing or request value in the AWS Price List API json file
+
+    It's unknown if the request or pricing key value is hidden within the usage_type, so
+    it is checked for both. Only one can be in a single usage_type at a given time.
+
+    Parameters
+    ----------
+        usage_type: str
+            The usage type, which includes the region abreviation
+        lambda_request_key: str
+            The lambda request key we are looking for in the usage_type
+        lambda_gb_second_key: str
+            The gb_second pricing key we are looking for in the usage_type
+        default_region: bool
+            The default region does not have any region abrviations within it,
+            so nothing needs to be done
+
+    Returns:
+        Tuple[str, str]:
+            Returns the request and pricing keys, but without the unecessary
+            region abreviation
+    """
     modified_lambda_request_key = ""
     modified_lambda_gb_second_key = ""
 

@@ -6,17 +6,20 @@ import click
 
 from samcli.commands.check.resources.graph import CheckGraph
 from samcli.commands.check.resources.warning import CheckWarning
+from samcli.commands.check.resources.lambda_function_pricing import LambdaFunctionPricing
 
 
 class CheckResults:
     _graph: CheckGraph
 
-    def __init__(self, graph: CheckGraph, lambda_pricing_results):
+    def __init__(self, graph: CheckGraph, lambda_pricing_results: LambdaFunctionPricing):
         """
         Parameters
         ----------
             graph: CheckGraph
                 The graph object. This is where all of the data is stored
+            lambda_pricing_results: LambdaFunctionPricing
+                The pricing info for all lambda functions
         """
         self._graph = graph
         self.lambda_pricing_results = lambda_pricing_results

@@ -1,5 +1,5 @@
 """
-Class object for warnings. Warning messages, as well as the warning type is stored here
+Class object for warnings. Warning messages are stored here
 """
 
 

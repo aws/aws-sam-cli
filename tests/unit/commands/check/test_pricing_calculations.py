@@ -3,6 +3,7 @@ from unittest.mock import Mock, patch
 from samcli.commands.check.lambda_function_pricing_calculations import (
     LambdaFunctionPricingCalculations,
     _convert_usage_type,
+    _get_aws_lambda_pricing_info,
 )
 
 
@@ -19,11 +20,11 @@ class TestLambdaFunctionPricingCalculations(TestCase):
 
     def test_get_charge_and_request_amounts(self):
         self_mock = Mock()
-        self_mock.get_lambda_charge_and_request_amounts = Mock()
+        self_mock._get_lambda_charge_and_request_amounts = Mock()
 
         LambdaFunctionPricingCalculations.get_charge_and_request_amounts(self_mock)
 
-        self_mock.get_lambda_charge_and_request_amounts.assert_called_once()
+        self_mock._get_lambda_charge_and_request_amounts.assert_called_once()
 
     @patch("samcli.commands.check.lambda_function_pricing_calculations.ast")
     @patch("samcli.commands.check.lambda_function_pricing_calculations.urllib")
@@ -34,16 +35,16 @@ class TestLambdaFunctionPricingCalculations(TestCase):
 
         patch_ast.literal_eval.return_value = Mock()
 
-        result = LambdaFunctionPricingCalculations.get_aws_lambda_pricing_info(Mock(), "")
+        result = _get_aws_lambda_pricing_info("")
 
         self.assertEqual(result, patch_ast.literal_eval.return_value)
 
     def test_determine_lambda_cost(self):
         self_mock = Mock()
-        self_mock.monthly_compute_charge = 0.00001
-        self_mock.monthly_request_charge = 0.00002
-        self_mock.max_num_of_free_requests = 1000000
-        self_mock.max_free_GBs = 400000
+        self_mock._monthly_compute_charge = 0.00001
+        self_mock._monthly_request_charge = 0.00002
+        self_mock._max_num_of_free_requests = 1000000
+        self_mock._max_free_gb_s = 400000
 
         template_lambda_pricing_info_mock = Mock()
         template_lambda_pricing_info_mock.allocated_memory = 4.1
@@ -53,7 +54,7 @@ class TestLambdaFunctionPricingCalculations(TestCase):
 
         self_mock.graph.unique_pricing_info = {"LambdaFunction": template_lambda_pricing_info_mock}
 
-        LambdaFunctionPricingCalculations.determine_lambda_cost(self_mock)
+        LambdaFunctionPricingCalculations._determine_lambda_cost(self_mock)
 
         self.assertEqual(381.38, self_mock.lambda_pricing_results)
 
@@ -61,9 +62,7 @@ class TestLambdaFunctionPricingCalculations(TestCase):
     @patch("samcli.commands.check.lambda_function_pricing_calculations.get_session")
     def test_get_lambda_charge_and_request_amounts(self, patch_session, patch_convert):
         self_mock = Mock()
-        self_mock.get_region_prefix = Mock()
-        self_mock.get_pricing_or_request_value = Mock()
-        self_mock.region_prefix = "@#$"
+        self_mock._get_pricing_or_request_value = Mock()
 
         product_1 = {"attributes": {"usagetype": "Global-Request", "location": ""}}
         product_2 = {"attributes": {"usagetype": "Global-Lambda-GB-Second", "location": ""}}
@@ -80,15 +79,15 @@ class TestLambdaFunctionPricingCalculations(TestCase):
 
         patch_convert.return_value = ["", "Lambda-GB-Second"]
 
-        LambdaFunctionPricingCalculations.get_lambda_charge_and_request_amounts(self_mock)
+        LambdaFunctionPricingCalculations._get_lambda_charge_and_request_amounts(self_mock)
 
-        self_mock.get_pricing_or_request_value.assert_any_call(product_1, terms_mock, "global-request")
-        self_mock.get_pricing_or_request_value.assert_any_call(product_2, terms_mock, "global-lambda")
-        self_mock.get_pricing_or_request_value.assert_any_call(product_3, terms_mock, "lambda")
+        self_mock._get_pricing_or_request_value.assert_any_call(product_1, terms_mock, "global-request")
+        self_mock._get_pricing_or_request_value.assert_any_call(product_2, terms_mock, "global-lambda")
+        self_mock._get_pricing_or_request_value.assert_any_call(product_3, terms_mock, "lambda")
 
         patch_convert.return_value = ["Request", ""]
-        LambdaFunctionPricingCalculations.get_lambda_charge_and_request_amounts(self_mock)
-        self_mock.get_pricing_or_request_value.assert_any_call(product_4, terms_mock, "request")
+        LambdaFunctionPricingCalculations._get_lambda_charge_and_request_amounts(self_mock)
+        self_mock._get_pricing_or_request_value.assert_any_call(product_4, terms_mock, "request")
 
     def test_get_pricing_or_request_value(self):
         self_mock = Mock()
@@ -103,20 +102,20 @@ class TestLambdaFunctionPricingCalculations(TestCase):
         terms = {"OnDemand": {sku: temp_key}}
 
         # testing global-request
-        LambdaFunctionPricingCalculations.get_pricing_or_request_value(self_mock, product, terms, "global-request")
-        self.assertEqual(8.15, self_mock.max_num_of_free_requests)
+        LambdaFunctionPricingCalculations._get_pricing_or_request_value(self_mock, product, terms, "global-request")
+        self.assertEqual(8.15, self_mock._max_num_of_free_requests)
 
         # testing global-lambda
-        LambdaFunctionPricingCalculations.get_pricing_or_request_value(self_mock, product, terms, "global-lambda")
-        self.assertEqual(8.15, self_mock.max_free_GBs)
+        LambdaFunctionPricingCalculations._get_pricing_or_request_value(self_mock, product, terms, "global-lambda")
+        self.assertEqual(8.15, self_mock._max_free_gb_s)
 
         # testing lambda
-        LambdaFunctionPricingCalculations.get_pricing_or_request_value(self_mock, product, terms, "lambda")
-        self.assertEqual(115, self_mock.monthly_compute_charge)
+        LambdaFunctionPricingCalculations._get_pricing_or_request_value(self_mock, product, terms, "lambda")
+        self.assertEqual(115, self_mock._monthly_compute_charge)
 
         # testing request
-        LambdaFunctionPricingCalculations.get_pricing_or_request_value(self_mock, product, terms, "request")
-        self.assertEqual(115, self_mock.monthly_request_charge)
+        LambdaFunctionPricingCalculations._get_pricing_or_request_value(self_mock, product, terms, "request")
+        self.assertEqual(115, self_mock._monthly_request_charge)
 
     def test_convert_usage_type(self):
         usage_type = "USW2-Request"
