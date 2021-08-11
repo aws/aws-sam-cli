@@ -77,6 +77,10 @@ install:
 
 test_script:
     # Reactivate virtualenv before running tests
+    - ps: "
+        If (Test-Path env:BY_CANARY){
+          echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws; 
+        }"
     - "git --version"
     - "venv\\Scripts\\activate"
     - "docker system prune -a -f"
