@@ -121,10 +121,6 @@ class LambdaFunctionPricingCalculations(PricingCalculations):
                 self._get_pricing_or_request_value(product, terms, "request")
 
     def _get_pricing_or_request_value(self, product, terms, get_type) -> None:
-        sku = product["sku"]
-
-        temp_key = terms["OnDemand"][sku]
-
         """
         The dictionaries have unknown sku numbers. To prevent a massive storage of over
         400 sku numbers, plus 2 additional unique keys per sku number, a temp_key is used
@@ -132,6 +128,10 @@ class LambdaFunctionPricingCalculations(PricingCalculations):
         key in a given dictionary until the final path is reached. It is only done when
         there is only one value in a given object.
         """
+        sku = product["sku"]
+
+        temp_key = terms["OnDemand"][sku]
+
         temp_key = next(iter(temp_key.values()))
         temp_key = temp_key["priceDimensions"]
         price_dimentions = next(iter(temp_key.values()))
@@ -165,7 +165,8 @@ def _get_aws_lambda_pricing_info(region: str):
 
     Returns
     -------
-        [type]: [description]
+        file
+            Returns the json file from the API
     """
     try:
         with urllib.request.urlopen(
@@ -176,8 +177,7 @@ def _get_aws_lambda_pricing_info(region: str):
     except HTTPError as e:
         if e.code == 403:
             raise Exception("Invalid region id") from e
-        else:
-            raise Exception() from e
+        raise Exception() from e
 
 
 def _convert_usage_type(
