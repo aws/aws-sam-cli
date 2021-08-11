@@ -27,11 +27,7 @@ class TestPackageImage(PackageIntegBase):
     def setUpClass(cls):
         cls.docker_client = docker.from_env()
         cls.local_images = [
-            ("alpine", "latest"),
-            # below 3 images are for test_package_with_deep_nested_template_image()
-            ("python", "3.9-slim"),
-            ("python", "3.8-slim"),
-            ("python", "3.7-slim"),
+            ("public.ecr.aws/sam/emulation-python3.8", "latest"),
         ]
         # setup some images locally by pulling them.
         for repo, tag in cls.local_images:
@@ -211,9 +207,7 @@ class TestPackageImage(PackageIntegBase):
 
         # verify all function images are pushed
         images = [
-            ("python", "3.9-slim"),
-            ("python", "3.8-slim"),
-            ("python", "3.7-slim"),
+            ("public.ecr.aws/sam/emulation-python3.8", "latest"),
         ]
         for image, tag in images:
             # check string like this:
