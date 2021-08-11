@@ -11,14 +11,17 @@ from samcli.commands.check.resources.warning import CheckWarning
 class CheckResults:
     _graph: CheckGraph
 
-    def __init__(self, graph: CheckGraph):
+    def __init__(self, graph: CheckGraph, lambda_pricing_results: float):
         """
         Parameters
         ----------
             graph: CheckGraph
                 The graph object. This is where all of the data is stored
+            lambda_pricing_results: float
+                The cost of all lambda functions
         """
         self._graph = graph
+        self._lambda_pricing_results = lambda_pricing_results
 
     def print_bottle_neck_results(self):
         """
@@ -32,6 +35,13 @@ class CheckResults:
         _print_warnings(self._graph.red_warnings)
         click.secho("Bottlenecks found", fg="bright_red")
         _print_warnings(self._graph.red_burst_warnings)
+
+    def print_all_pricing_results(self) -> None:
+        click.echo("With the current resource allocation, we estimate the following costs:")
+        click.echo("\t* AWS Lambda: $%.2f/month" % self._lambda_pricing_results)
+
+        click.echo("\t------------------")
+        click.echo("\t Total: $%.2f/month" % self._lambda_pricing_results)
 
 
 def _print_warnings(warnings: List[CheckWarning]):
