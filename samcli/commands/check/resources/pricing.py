@@ -35,6 +35,6 @@ class CheckPricing:
                 click.echo("Pricing Questions")
                 self._asked_lambda_questions = True
                 lambda_pricing = LambdaFunctionPricing()
-                lambda_pricing.ask_lambda_function_questions()
+                lambda_pricing.ask_questions()
 
                 self._graph.unique_pricing_info["LambdaFunction"] = lambda_pricing

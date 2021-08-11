@@ -17,12 +17,12 @@ class TestPricing(TestCase):
         self_mock._graph.unique_pricing_info = {}
 
         lambda_pricing_mock = Mock()
-        lambda_pricing_mock.ask_lambda_function_questions = Mock()
+        lambda_pricing_mock.ask_questions = Mock()
 
         patch_lambda_pricing.return_value = lambda_pricing_mock
 
         CheckPricing.ask_pricing_questions(self_mock)
 
-        lambda_pricing_mock.ask_lambda_function_questions.assert_called_once()
+        lambda_pricing_mock.ask_questions.assert_called_once()
 
         self.assertEqual(self_mock._graph.unique_pricing_info["LambdaFunction"], lambda_pricing_mock)

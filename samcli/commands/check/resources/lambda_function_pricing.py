@@ -52,6 +52,9 @@ class LambdaFunctionPricing(UniquePricingInfo):
         self._max_memory_amount = 10000
         self._max_duration = 900000
 
+    def ask_questions(self):
+        self.ask_lambda_function_questions()
+
     def ask_lambda_function_questions(self) -> None:
 
         user_input_requests = ask(
