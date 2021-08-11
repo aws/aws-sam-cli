@@ -205,8 +205,7 @@ class TestPackageImage(PackageIntegBase):
 
         # verify all function images are pushed
         images = [
-            ("emulation-python3.8", "latest"),
-            ("emulation-python3.8-2", "latest"),
+            ("public.ecr.aws/sam/emulation-python3.8", "latest"),
         ]
         for image, tag in images:
             # check string like this:
