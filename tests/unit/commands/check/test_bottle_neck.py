@@ -31,7 +31,6 @@ class TestBottleNeck(TestCase):
 
         patch_ask.assert_called_once_with(question, 1, 1)
         bottle_neck._ask_bottle_neck_questions.assert_called_once_with(entry_point_mock)
-        graph_mock.resources_to_analyze.append.assert_called_once_with(entry_point_mock)
 
     def test_ask_bottle_neck_questions(self):
         my_resource = Mock()
@@ -55,10 +54,12 @@ class TestBottleNeck(TestCase):
 
         graph_mock = Mock()
         bottle_neck = BottleNecks(graph_mock)
+        bottle_neck.pricing.ask_pricing_questions = Mock()
 
         bottle_neck._lambda_bottle_neck_quesitons(lambda_function_mock)
 
         patch_ask.assert_called()
+        bottle_neck.pricing.ask_pricing_questions.assert_called_once()
         self.assertEqual(lambda_function_mock.tps, patch_ask.return_value)
 
         bottle_neck._lambda_bottle_neck_quesitons(lambda_function_mock)

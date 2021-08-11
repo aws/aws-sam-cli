@@ -56,7 +56,7 @@ class TestPricingCalculations(TestCase):
         template_lambda_pricing_info_mock.number_of_requests = 4000000
         template_lambda_pricing_info_mock.average_duration = 1984
 
-        self_mock.graph.lambda_function_pricing_info = template_lambda_pricing_info_mock
+        self_mock.graph.unique_pricing_info = {"LambdaFunction": template_lambda_pricing_info_mock}
 
         PricingCalculations.determine_lambda_cost(self_mock)
 

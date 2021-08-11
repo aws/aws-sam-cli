@@ -49,7 +49,7 @@ class PricingCalculations:
                 raise Exception()
 
     def determine_lambda_cost(self):
-        template_lambda_pricing_info = self.graph.lambda_function_pricing_info
+        template_lambda_pricing_info = self.graph.unique_pricing_info["LambdaFunction"]
 
         memory_amount = float(template_lambda_pricing_info.allocated_memory)
         memory_unit = template_lambda_pricing_info.allocated_memory_unit

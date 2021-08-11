@@ -9,6 +9,7 @@ class TestPricing(TestCase):
     @patch("samcli.commands.check.resources.pricing.LambdaFunctionPricing")
     def test_ask_pricing_questions(self, patch_lambda_pricing):
         self_mock = Mock()
+        self_mock._asked_lambda_questions = False
 
         resource_mock = Mock()
         resource_mock.resource_type = AWS_LAMBDA_FUNCTION

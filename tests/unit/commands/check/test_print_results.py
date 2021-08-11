@@ -16,9 +16,11 @@ class TestPrintResults(TestCase):
         graph_mock.red_warnings = Mock()
         graph_mock.red_burst_warnings = Mock()
 
+        lambda_pricing_results = 0.0
+
         patch_click.secho = Mock()
 
-        print_results = CheckResults(graph_mock)
+        print_results = CheckResults(graph_mock, lambda_pricing_results)
 
         print_results.print_bottle_neck_results()
 
