@@ -119,6 +119,6 @@ class TestLambdaFunctionPricing(TestCase):
         pricing_instance_mock.allocated_memory = memory_mock
         pricing_instance_mock.allocated_memory_unit = unit_mock
 
-        pricing.ask_lambda_function_questions()
+        pricing._ask_lambda_function_questions()
 
         pricing._ask_memory.assert_called_once()

@@ -1,13 +1,13 @@
 from unittest import TestCase
 from unittest.mock import MagicMock, Mock, patch
 
-from samcli.commands.check.calculation import CheckCalculation
+from samcli.commands.check.bottle_neck_calculations import BottleNeckCalculations
 from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
 
 
-class TestCalculations(TestCase):
-    @patch("samcli.commands.check.calculation._check_limit")
-    @patch("samcli.commands.check.calculation.CheckWarning")
+class TestBottleNeckCalculations(TestCase):
+    @patch("samcli.commands.check.bottle_neck_calculations._check_limit")
+    @patch("samcli.commands.check.bottle_neck_calculations.CheckWarning")
     def test__generate_warning_message(self, patch_warning, patch_check_limit):
         """
         Other than capacity, the specific values (strings and ints) used in the parameter variables for
@@ -24,7 +24,7 @@ class TestCalculations(TestCase):
         graph_mock.red_warnings.append = Mock()
         graph_mock.red_burst_warnings.append = Mock()
 
-        calculations = CheckCalculation(graph_mock)
+        calculations = BottleNeckCalculations(graph_mock)
 
         # Capacity <= 70
         capacity_used = 60
@@ -85,9 +85,9 @@ class TestCalculations(TestCase):
         graph_mock.red_burst_warnings.append.assert_called_once_with(warning_instance_mock)
         patch_check_limit.assert_called_once_with(tps, duration, burst_concurrency)
 
-    @patch("samcli.commands.check.calculation._check_limit")
-    @patch("samcli.commands.check.calculation.click")
-    @patch("samcli.commands.check.calculation.boto3")
+    @patch("samcli.commands.check.bottle_neck_calculations._check_limit")
+    @patch("samcli.commands.check.bottle_neck_calculations.click")
+    @patch("samcli.commands.check.bottle_neck_calculations.boto3")
     def test_run_bottle_neck_calculations(self, patch_boto3, patch_click, patch_check_limit):
         import botocore
 
@@ -105,8 +105,7 @@ class TestCalculations(TestCase):
 
         patch_boto3.client.return_value = client_mock
 
-        calculations = CheckCalculation(graph_mock)
-
+        calculations = BottleNeckCalculations(graph_mock)
         patch_check_limit.return_value = Mock()
         calculations._generate_warning_message = Mock()
 
@@ -149,7 +148,7 @@ class TestCalculations(TestCase):
             calculations.run_bottle_neck_calculations()
 
     def test_check_limit(self):
-        from samcli.commands.check.calculation import _check_limit
+        from samcli.commands.check.bottle_neck_calculations import _check_limit
 
         result1 = _check_limit(300, 200, 1000)
         result2 = _check_limit(300, 1500, 2000)

@@ -11,7 +11,7 @@ from samcli.commands.check.resources.graph import CheckGraph
 from .resources.warning import CheckWarning
 
 
-class CheckCalculation:
+class BottleNeckCalculations:
     _graph: CheckGraph
 
     def __init__(self, graph: CheckGraph):

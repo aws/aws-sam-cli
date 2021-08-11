@@ -6,6 +6,9 @@ import click
 from samcli.commands.check.resources.graph import CheckGraph
 from samcli.commands.check.resources.lambda_function import LambdaFunction
 from samcli.commands._utils.resources import AWS_LAMBDA_FUNCTION
+from samcli.commands.check.resources.pricing import CheckPricing
+
+from samcli.commands.check.lib.ask_question import ask
 
 from samcli.commands.check.lib.ask_question import ask
 
@@ -23,6 +26,7 @@ class BottleNecks:
         """
         self._graph = graph
         self._lambda_max_duration = 900000
+        self.pricing = CheckPricing(graph)
 
     def ask_entry_point_question(self) -> None:
         """
@@ -48,7 +52,6 @@ class BottleNecks:
             current_entry_point = entry_points.pop(user_input - 1)
 
             self._ask_bottle_neck_questions(current_entry_point)
-            self._graph.resources_to_analyze.append(current_entry_point)
 
             click.echo("")
 
@@ -77,6 +80,10 @@ class BottleNecks:
         )
 
         lambda_function.duration = user_input_duration
+
+        self._graph.resources_to_analyze.append(lambda_function)
+
+        self.pricing.ask_pricing_questions()
 
     def _ask_bottle_neck_questions(self, resource: LambdaFunction) -> None:
 
