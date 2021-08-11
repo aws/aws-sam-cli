@@ -25,7 +25,7 @@ from samcli.commands.check.exceptions import InvalidSamDocumentException
 
 from samcli.commands.check.lib.load_data import LoadData
 from samcli.commands.check.bottle_neck_calculations import BottleNeckCalculations
-from samcli.commands.check.pricing_calculations import PricingCalculations
+from samcli.commands.check.lambda_function_pricing_calculations import LambdaFunctionPricingCalculations
 from samcli.commands.check.lib.save_data import SaveGraphData
 from samcli.commands.check.print_results import CheckResults
 from samcli.commands.check.lib.resource_provider import ResourceProvider
@@ -81,7 +81,7 @@ class CheckContext:
             bottle_neck_calculations = BottleNeckCalculations(graph, self._template_path)
             bottle_neck_calculations.run_calculations()
 
-            pricing_calculations = PricingCalculations(graph)
+            pricing_calculations = LambdaFunctionPricingCalculations(graph)
             pricing_calculations.run_calculations()
 
             save_data = False
@@ -108,7 +108,7 @@ class CheckContext:
         bottle_neck_calculations = BottleNeckCalculations(graph, self._template_path)
         bottle_neck_calculations.run_calculations()
 
-        pricing_calculations = PricingCalculations(graph)
+        pricing_calculations = LambdaFunctionPricingCalculations(graph)
         pricing_calculations.run_calculations()
 
         save_data = ask_to_save_data()

@@ -13,7 +13,7 @@ from samcli.commands.check.lib.command_context import CheckContext, _parse_templ
 
 class TestCommandContext(TestCase):
     @patch("samcli.commands.check.lib.command_context.ask_to_save_data")
-    @patch("samcli.commands.check.lib.command_context.PricingCalculations")
+    @patch("samcli.commands.check.lib.command_context.LambdaFunctionPricingCalculations")
     @patch("samcli.commands.check.lib.command_context.CheckResults")
     @patch("samcli.commands.check.lib.command_context.BottleNeckCalculations")
     @patch("samcli.commands.check.lib.command_context._parse_template")

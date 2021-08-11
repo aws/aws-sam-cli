@@ -97,7 +97,7 @@ class TestLambdaFunctionPricing(TestCase):
 
     @patch("samcli.commands.check.resources.lambda_function_pricing.ask")
     @patch("samcli.commands.check.resources.lambda_function_pricing.LambdaFunctionPricing")
-    def test_ask_lambda_function_questions(self, patch_LFPricing, patch_ask):
+    def test_ask_questions(self, patch_LFPricing, patch_ask):
         pricing_instance_mock = Mock()
         patch_LFPricing.return_value = pricing_instance_mock
 
@@ -119,15 +119,6 @@ class TestLambdaFunctionPricing(TestCase):
         pricing_instance_mock.allocated_memory = memory_mock
         pricing_instance_mock.allocated_memory_unit = unit_mock
 
-        pricing._ask_lambda_function_questions()
-
-        pricing._ask_memory.assert_called_once()
-
-    def test_ask_questions(self):
-        pricing = LambdaFunctionPricing()
-
-        pricing._ask_lambda_function_questions = Mock()
-
         pricing.ask_questions()
 
-        pricing._ask_lambda_function_questions.assert_called_once()
+        pricing._ask_memory.assert_called_once()
