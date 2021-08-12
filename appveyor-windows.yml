@@ -66,6 +66,9 @@ install:
     # Actually install SAM CLI's dependencies
     - "pip install -e \".[dev]\""
 
+    # Install aws cli
+    - "pip install awscli"
+
     # Switch to Docker Linux containers
     - ps: Switch-DockerLinux
 

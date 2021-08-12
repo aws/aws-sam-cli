@@ -7,7 +7,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       PackageType: Image
-      Code: public.ecr.aws/sam/emulation-python3.8:latest
+      Code: emulation-python3.8:latest
       Role:
         Fn::GetAtt:
           - "LambdaExecutionRole"
