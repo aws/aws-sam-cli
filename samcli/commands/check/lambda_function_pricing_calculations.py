@@ -2,11 +2,11 @@
 Class for calculating pricing information for all lambda functiuons
 """
 
-from typing import List
-import urllib.request
-from urllib.error import HTTPError
+import json
 
-import ast
+from typing import List
+import requests
+from urllib.error import HTTPError
 
 from botocore.session import get_session
 
@@ -65,11 +65,10 @@ class LambdaFunctionPricingCalculations(PricingCalculations):
                 Returns the json file from the API
         """
         try:
-            with urllib.request.urlopen(
+            response = requests.get(
                 "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSLambda/current/" + region + "/index.json"
-            ) as f:
-                file = f.read().decode("utf-8")
-                return ast.literal_eval(file)
+            )
+            return json.loads(response.text)
         except HTTPError as e:
             if e.code == 403:
                 raise Exception("Invalid region id") from e

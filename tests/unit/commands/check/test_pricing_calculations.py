@@ -17,18 +17,22 @@ class TestLambdaFunctionPricingCalculations(TestCase):
         self_mock._get_charge_and_request_amounts.assert_called_once()
         self_mock._determine_cost.assert_called_once()
 
-    @patch("samcli.commands.check.lambda_function_pricing_calculations.ast")
-    @patch("samcli.commands.check.lambda_function_pricing_calculations.urllib")
-    def test_get_aws_pricing_info(self, patch_request, patch_ast):
+    @patch("samcli.commands.check.lambda_function_pricing_calculations.requests")
+    @patch("samcli.commands.check.lambda_function_pricing_calculations.json")
+    def test_get_aws_pricing_info(self, patch_json, patch_requests):
 
-        file_return_mock = Mock()
-        file_return_mock.read.decode = Mock()
+        responce_mock = Mock()
+        responce_mock.text = Mock()
+        responce_text_mock = Mock()
 
-        patch_ast.literal_eval.return_value = Mock()
+        patch_requests.get.return_value = responce_mock
+        patch_json.loads.return_value = responce_text_mock
 
         result = LambdaFunctionPricingCalculations._get_aws_pricing_info(Mock(), "")
 
-        self.assertEqual(result, patch_ast.literal_eval.return_value)
+        patch_requests.get.assert_called_once()
+        patch_json.loads.assert_called_once()
+        self.assertEqual(result, responce_text_mock)
 
     def test_determine_cost(self):
         self_mock = Mock()
