@@ -406,7 +406,7 @@ class TestLambdaImage(TestCase):
         docker_full_path_mock.unlink.assert_called_once()
 
     def test_building_new_rapid_image_removes_old_rapid_images(self):
-        repo = "amazon/aws-sam-cli-emulation-image-python3.6"
+        repo = "public.ecr.aws/sam/emulation-python3.6"
         docker_client_mock = Mock()
         docker_client_mock.api.build.return_value = ["mock"]
         docker_client_mock.images.get.side_effect = ImageNotFound("image not found")
@@ -430,9 +430,13 @@ class TestLambdaImage(TestCase):
         )
 
     def test_building_existing_rapid_image_does_not_remove_old_rapid_images(self):
+        repo = "public.ecr.aws/sam/emulation-python3.6"
         docker_client_mock = Mock()
         docker_client_mock.api.build.return_value = ["mock"]
-        docker_client_mock.images.list.return_value = [Mock(id="old1"), Mock(id="old2")]
+        docker_client_mock.images.list.return_value = [
+            Mock(id="old1", tags=[f"{repo}:rapid-0.00.01"]),
+            Mock(id="old2", tags=[f"{repo}:rapid-0.00.02"]),
+        ]
 
         layer_downloader_mock = Mock()
         setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
@@ -441,7 +445,7 @@ class TestLambdaImage(TestCase):
 
         self.assertEqual(
             lambda_image.build("python3.6", ZIP, None, []),
-            f"amazon/aws-sam-cli-emulation-image-python3.6:rapid-{version}",
+            f"{repo}:rapid-{version}",
         )
 
         docker_client_mock.images.remove.assert_not_called()

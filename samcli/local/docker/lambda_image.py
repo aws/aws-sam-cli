@@ -17,6 +17,7 @@ from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.lib.utils.tar import create_tarball
 from samcli import __version__ as version
+from samcli.local.docker import utils
 
 
 LOG = logging.getLogger(__name__)
@@ -306,7 +307,7 @@ class LambdaImage:
         try:
             for image in self.docker_client.images.list(name=repo):
                 for tag in image.tags:
-                    if ":rapid-" in tag:
+                    if utils.is_rapid_image(tag):
                         self.docker_client.images.remove(image=image.id, force=True)
                         break
         except docker.errors.APIError as ex:
