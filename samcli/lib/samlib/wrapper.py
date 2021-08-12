@@ -8,13 +8,10 @@ rich public interface.
 """
 
 import copy
-import os
-import json
-
 import functools
 from typing import Dict
 
-import boto3
+from samtranslator.model import ResourceTypeResolver, sam_resources
 
 # SAM Translator Library Internal module imports #
 from samtranslator.model.exceptions import (
@@ -23,22 +20,15 @@ from samtranslator.model.exceptions import (
     InvalidResourceException,
     InvalidEventException,
 )
-from samtranslator.validator.validator import SamTemplateValidator
-from samtranslator.model import ResourceTypeResolver, sam_resources
 from samtranslator.plugins import LifeCycleEvents
-from samtranslator.translator.translator import prepare_plugins, Translator
-from samtranslator.translator.managed_policy_translator import ManagedPolicyLoader
-from samtranslator.parser.parser import Parser
+from samtranslator.translator.translator import prepare_plugins
+from samtranslator.validator.validator import SamTemplateValidator
 
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from .local_uri_plugin import SupportLocalUriPlugin
 
 
 class SamTranslatorWrapper:
-
-    _thisdir = os.path.dirname(os.path.abspath(__file__))
-    _DEFAULT_MANAGED_POLICIES_FILE = os.path.join(_thisdir, "default_managed_policies.json")
-
     def __init__(self, sam_template, parameter_values=None, offline_fallback=True):
         """
 
@@ -82,7 +72,7 @@ class SamTranslatorWrapper:
             ) from e
 
         return template_copy
-
+      
     def __translate(self, parameter_values):
         """
         This method is unused and a Work In Progress
@@ -121,7 +111,6 @@ class SamTranslatorWrapper:
 
             # Offline is not enabled. So just raise the exception
             raise ex
-
 
 class _SamParserReimplemented:
     """
