@@ -22,6 +22,7 @@ _SAM_CLI_COMMAND_PACKAGES = [
     "samcli.commands.logs",
     "samcli.commands.publish",
     "samcli.commands.pipeline.pipeline",
+    "samcli.commands.check",
     # We intentionally do not expose the `bootstrap` command for now. We might open it up later
     # "samcli.commands.bootstrap",
 ]

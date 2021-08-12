@@ -72,11 +72,45 @@ class SamTranslatorWrapper:
             ) from e
 
         return template_copy
+      
+    def __translate(self, parameter_values):
+        """
+        This method is unused and a Work In Progress
+        """
+
+        template_copy = self.template
+
+        sam_parser = Parser()
+        sam_translator = Translator(
+            managed_policy_map=self.managed_policy_map(),
+            sam_parser=sam_parser,
+            # Default plugins are already initialized within the Translator
+            plugins=self.extra_plugins,
+        )
+
+        return sam_translator.translate(sam_template=template_copy, parameter_values=parameter_values)
 
     @property
     def template(self):
         return copy.deepcopy(self._sam_template)
 
+    def managed_policy_map(self):
+        """
+        This method is unused and a Work In Progress
+        """
+        try:
+            iam_client = boto3.client("iam")
+            return ManagedPolicyLoader(iam_client).load()
+        except Exception as ex:
+
+            if self._offline_fallback:
+                # If offline flag is set, then fall back to the list of default managed policies
+                # This should be sufficient for most cases
+                with open(self._DEFAULT_MANAGED_POLICIES_FILE, "r") as fp:
+                    return json.load(fp)
+
+            # Offline is not enabled. So just raise the exception
+            raise ex
 
 class _SamParserReimplemented:
     """
