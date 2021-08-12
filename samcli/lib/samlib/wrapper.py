@@ -7,9 +7,13 @@ a tech debt that we have decided to take on. This will be eventually thrown away
 rich public interface.
 """
 
+import os
 import copy
 import functools
+import json
 from typing import Dict
+
+import boto3
 
 from samtranslator.model import ResourceTypeResolver, sam_resources
 
@@ -23,12 +27,17 @@ from samtranslator.model.exceptions import (
 from samtranslator.plugins import LifeCycleEvents
 from samtranslator.translator.translator import prepare_plugins
 from samtranslator.validator.validator import SamTemplateValidator
+from samtranslator.translator.managed_policy_translator import ManagedPolicyLoader
 
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from .local_uri_plugin import SupportLocalUriPlugin
 
 
 class SamTranslatorWrapper:
+
+    _thisdir = os.path.dirname(os.path.abspath(__file__))
+    _DEFAULT_MANAGED_POLICIES_FILE = os.path.join(_thisdir, "default_managed_policies.json")
+
     def __init__(self, sam_template, parameter_values=None, offline_fallback=True):
         """
 
@@ -72,23 +81,6 @@ class SamTranslatorWrapper:
             ) from e
 
         return template_copy
-      
-    def __translate(self, parameter_values):
-        """
-        This method is unused and a Work In Progress
-        """
-
-        template_copy = self.template
-
-        sam_parser = Parser()
-        sam_translator = Translator(
-            managed_policy_map=self.managed_policy_map(),
-            sam_parser=sam_parser,
-            # Default plugins are already initialized within the Translator
-            plugins=self.extra_plugins,
-        )
-
-        return sam_translator.translate(sam_template=template_copy, parameter_values=parameter_values)
 
     @property
     def template(self):
@@ -111,6 +103,7 @@ class SamTranslatorWrapper:
 
             # Offline is not enabled. So just raise the exception
             raise ex
+
 
 class _SamParserReimplemented:
     """
