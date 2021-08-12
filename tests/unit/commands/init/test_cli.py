@@ -549,17 +549,21 @@ class TestCli(TestCase):
     ):
         init_options_from_manifest_mock.return_value = [
             {
-                "directory": "java8/cookiecutter-aws-sam-hello-java-maven",
+                "directory": "java11/cookiecutter-aws-sam-hello-java-maven",
                 "displayName": "Hello World Example: Maven",
                 "dependencyManager": "maven",
                 "appTemplate": "hello-world",
+                "packageType": "Zip",
+                "useCaseName": "Serverless API",
             },
             {
-                "directory": "java8/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
-                "displayName": "Hello World Schema example Example: Maven",
+                "directory": "java11/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
+                "displayName": "EventBridge App from scratch (100+ Event Schemas): Maven",
                 "dependencyManager": "maven",
                 "appTemplate": "eventBridge-schema-app",
                 "isDynamicTemplate": "True",
+                "packageType": "Zip",
+                "useCaseName": "Infrastructure event management",
             },
         ]
 
@@ -623,8 +627,8 @@ class TestCli(TestCase):
 
         # 2: AWS Quick Start Templates
         # 2: Infrastructure event management - Use case
-        # 1: Java Runtime
-        # 1: Zip
+        # Java Runtime
+        # Zip
         # select event-bridge app from scratch
         # test-project: response to name
         # Y: Use default aws configuration
@@ -634,8 +638,6 @@ class TestCli(TestCase):
         user_input = """
 2
 2
-1
-1
 test-project
 Y
 1
@@ -707,16 +709,13 @@ Y
 
         # 2: AWS Quick Start Templates
         # 1: Serverless API - Use case
-        # 1: Java8
-        # 1: Package type - Image
+        # Java8
+        # Package type - Image
         # Hello World Lambda Image Example: Maven
         # test-project: response to name
 
         user_input = """
 2
-1
-1
-1
 test-project
             """
         runner = CliRunner()
@@ -834,8 +833,8 @@ test-project
 
         # 2: AWS Quick Start Templates
         # 2: Infrastructure event management - Use case
-        # 1: Java Runtime
-        # 1: Zip
+        # Java Runtime
+        # Zip
         # select event-bridge app from scratch
         # test-project: response to name
         # N: Use default AWS profile
@@ -846,8 +845,6 @@ test-project
         user_input = """
 2
 2
-1
-1
 test-project
 N
 1
@@ -958,8 +955,8 @@ us-east-1
 
         # 2: AWS Quick Start Templates
         # 2: Infrastructure event management - Use case
-        # 1: Java Runtime
-        # 1: Zip
+        # Java Runtime
+        # Zip
         # select event-bridge app from scratch
         # test-project: response to name
         # N: Use default AWS profile
@@ -1087,8 +1084,8 @@ invalid-region
 
         # 2: AWS Quick Start Templates
         # 2: Infrastructure event management - Use case
-        # 1: Java Runtime
-        # 1: Zip
+        # Java Runtime
+        # Zip
         # select event-bridge app from scratch
         # test-project: response to name
         # Y: Use default aws configuration
@@ -1098,8 +1095,6 @@ invalid-region
         user_input = """
 2
 2
-1
-1
 test-project
 Y
 1
@@ -1354,9 +1349,6 @@ foo
         # 2s: selecting package type
         user_input = """
 2
-1
-1
-1
 2
 3
 untitled6
@@ -1641,7 +1633,7 @@ untitled6
         # test-project: response to name
         user_input = """
 1
-1
+5
 test-project
         """
 
@@ -1656,12 +1648,12 @@ test-project
     def test_init_cli_generate_simple_java_hello_world_app(self):
         # WHEN the user follows interactive init prompts
         # 1: Hello World application
-        # 6: java
+        # 3: java
         # 2: Gradle
         # test-project: response to name
         user_input = """
 1
-6
+3
 2
 test-project
         """

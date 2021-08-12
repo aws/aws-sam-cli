@@ -112,28 +112,28 @@ RUNTIMES: Set[str] = set(
 # When adding new Lambda runtimes, please update SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING
 # Order here should be a the group of the latest versions of runtimes followed by runtime groups
 INIT_RUNTIMES = [
-    # latest of each runtime version
-    "nodejs14.x",
-    "python3.9",
-    "ruby2.7",
-    "go1.x",
-    "java11",
+    # dotnetcore runtimes in descending order
+    "dotnet5.0",
     "dotnetcore3.1",
-    # older nodejs runtimes
+    "dotnetcore2.1",
+    "go1.x",
+    # java runtimes in descending order
+    "java11",
+    "java8.al2",
+    "java8",
+    # nodejs runtimes in descending order
+    "nodejs14.x",
     "nodejs12.x",
     "nodejs10.x",
-    # older python runtimes
+    # python runtimes in descending order
+    "python3.9"
     "python3.8",
     "python3.7",
     "python3.6",
     "python2.7",
-    # older ruby runtimes
+    # ruby runtimes in descending order
+    "ruby2.7",
     "ruby2.5",
-    # older java runtimes
-    "java8.al2",
-    "java8",
-    # older dotnetcore runtimes
-    "dotnetcore2.1",
 ]
 
 LAMBDA_IMAGES_RUNTIMES = [
@@ -160,6 +160,7 @@ LAMBDA_IMAGES_RUNTIMES_MAP = {
     "nodejs14.x": "amazon/nodejs14.x-base",
     "nodejs12.x": "amazon/nodejs12.x-base",
     "nodejs10.x": "amazon/nodejs10.x-base",
+    "python3.9": "amazon/python3.9-base",
     "python3.8": "amazon/python3.8-base",
     "python3.7": "amazon/python3.7-base",
     "python3.6": "amazon/python3.6-base",
