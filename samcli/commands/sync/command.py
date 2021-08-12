@@ -9,17 +9,17 @@ from samcli.cli.main import pass_context, common_options as cli_framework_option
 from samcli.commands._utils.options import (
     template_option_without_build,
     parameter_override_option,
-    capabilities_override_option,
-    metadata_override_option,
-    notification_arns_override_option,
-    tags_override_option,
-    stack_name_override_option,
-    base_dir_override_option,
-    image_repository_override_option,
-    image_repositories_override_option,
-    s3_prefix_override_option,
-    kms_key_id_override_option,
-    role_arn_override_option,
+    capabilities_option,
+    metadata_option,
+    notification_arns_option,
+    tags_option,
+    stack_name_option,
+    base_dir_option,
+    image_repository_option,
+    image_repositories_option,
+    s3_prefix_option,
+    kms_key_id_option,
+    role_arn_option,
 )
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
@@ -83,20 +83,20 @@ DEFAULT_TEMPLATE_NAME = "template.yaml"
     multiple=True,
     help="Sync code for all types of the resource.",
 )
-@stack_name_override_option
-@base_dir_override_option
-@image_repository_override_option
-@image_repositories_override_option
-@s3_prefix_override_option
-@kms_key_id_override_option
-@role_arn_override_option
+@stack_name_option(required=True)  # pylint: disable=E1120
+@base_dir_option
+@image_repository_option
+@image_repositories_option
+@s3_prefix_option
+@kms_key_id_option
+@role_arn_option
 @parameter_override_option
 @cli_framework_options
 @aws_creds_options
-@metadata_override_option
-@notification_arns_override_option
-@tags_override_option
-@capabilities_override_option
+@metadata_option
+@notification_arns_option
+@tags_option
+@capabilities_option(default=("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"))  # pylint: disable=E1120
 @pass_context
 @track_command
 @image_repository_validation

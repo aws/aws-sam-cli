@@ -8,24 +8,24 @@ import click
 from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.commands._utils.options import (
-    capabilities_override_option,
-    metadata_override_option,
-    notification_arns_override_option,
+    capabilities_option,
+    metadata_option,
+    notification_arns_option,
     parameter_override_option,
     no_progressbar_option,
-    tags_override_option,
+    tags_option,
     template_click_option,
     signing_profiles_option,
-    stack_name_override_option,
-    s3_bucket_override_option,
-    image_repository_override_option,
-    image_repositories_override_option,
-    s3_prefix_override_option,
-    kms_key_id_override_option,
-    use_json_override_option,
-    force_upload_override_option,
-    resolve_s3_override_option,
-    role_arn_override_option,
+    stack_name_option,
+    s3_bucket_option,
+    image_repository_option,
+    image_repositories_option,
+    s3_prefix_option,
+    kms_key_id_option,
+    use_json_option,
+    force_upload_option,
+    resolve_s3_option,
+    role_arn_option,
 )
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
 from samcli.lib.telemetry.metric import track_command
@@ -92,23 +92,23 @@ LOG = logging.getLogger(__name__)
     is_flag=True,
     help="Prompt to confirm if the computed changeset is to be deployed by SAM CLI.",
 )
-@stack_name_override_option
-@s3_bucket_override_option
-@image_repository_override_option
-@image_repositories_override_option
-@force_upload_override_option
-@s3_prefix_override_option
-@kms_key_id_override_option
-@role_arn_override_option
-@use_json_override_option
-@resolve_s3_override_option
-@metadata_override_option
-@notification_arns_override_option
-@tags_override_option
+@stack_name_option
+@s3_bucket_option
+@image_repository_option
+@image_repositories_option
+@force_upload_option
+@s3_prefix_option
+@kms_key_id_option
+@role_arn_option
+@use_json_option
+@resolve_s3_option
+@metadata_option
+@notification_arns_option
+@tags_option
 @parameter_override_option
 @signing_profiles_option
 @no_progressbar_option
-@capabilities_override_option
+@capabilities_option
 @aws_creds_options
 @common_options
 @image_repository_validation

@@ -8,16 +8,16 @@ from samcli.cli.main import pass_context, common_options, aws_creds_options, pri
 from samcli.lib.cli_validation.image_repository_validation import image_repository_validation
 from samcli.commands._utils.options import (
     signing_profiles_option,
-    s3_bucket_override_option,
-    image_repository_override_option,
-    image_repositories_override_option,
-    s3_prefix_override_option,
-    kms_key_id_override_option,
-    use_json_override_option,
-    force_upload_override_option,
-    resolve_s3_override_option,
+    s3_bucket_option,
+    image_repository_option,
+    image_repositories_option,
+    s3_prefix_option,
+    kms_key_id_option,
+    use_json_option,
+    force_upload_option,
+    resolve_s3_option,
 )
-from samcli.commands._utils.options import metadata_override_option, template_click_option, no_progressbar_option
+from samcli.commands._utils.options import metadata_option, template_click_option, no_progressbar_option
 from samcli.lib.utils.resources import resources_generator
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.telemetry.metric import track_command, track_template_warnings
@@ -62,15 +62,15 @@ The following resources and their property locations are supported.
     "writes the output AWS CloudFormation template. If you don't specify a "
     "path, the command writes the template to the standard output.",
 )
-@s3_bucket_override_option
-@image_repository_override_option
-@image_repositories_override_option
-@s3_prefix_override_option
-@kms_key_id_override_option
-@use_json_override_option
-@force_upload_override_option
-@resolve_s3_override_option
-@metadata_override_option
+@s3_bucket_option
+@image_repository_option
+@image_repositories_option
+@s3_prefix_option
+@kms_key_id_option
+@use_json_option
+@force_upload_option
+@resolve_s3_option
+@metadata_option
 @signing_profiles_option
 @no_progressbar_option
 @common_options

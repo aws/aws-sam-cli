@@ -5,6 +5,7 @@ Common CLI options shared by various commands
 import os
 import logging
 from functools import partial
+import types
 
 import click
 from click.types import FuncParamType
@@ -28,6 +29,43 @@ DEFAULT_BUILD_DIR = os.path.join(".aws-sam", "build")
 DEFAULT_CACHE_DIR = os.path.join(".aws-sam", "cache")
 
 LOG = logging.getLogger(__name__)
+
+
+def parameterized_option(option):
+    """Meta decorator for option decorators.
+    This adds the ability to specify optional parameters for option decorators.
+
+    Usage:
+        @parameterized_option
+        def some_option(f, required=False)
+            ...
+
+        @some_option
+        def command(...)
+
+        or
+
+        @some_option(required=True)
+        def command(...)
+    """
+
+    def parameter_wrapper(*args, **kwargs):
+        if len(args) == 1 and isinstance(args[0], types.FunctionType):
+            # Case when option decorator does not have parameter
+            # @stack_name_option
+            # def command(...)
+            return option(args[0])
+
+        # Case when option decorator does have parameter
+        # @stack_name_option("a", "b")
+        # def command(...)
+
+        def option_wrapper(f):
+            return option(f, *args, **kwargs)
+
+        return option_wrapper
+
+    return parameter_wrapper
 
 
 def get_or_default_template_file_name(ctx, param, provided_value, include_build):
@@ -353,31 +391,33 @@ def metadata_click_option():
     )
 
 
-def metadata_override_option(f):
+def metadata_option(f):
     return metadata_click_option()(f)
 
 
-def capabilities_click_option():
+def capabilities_click_option(default):
     return click.option(
         "--capabilities",
         cls=OptionNargs,
         required=False,
+        default=default,
         type=FuncParamType(func=_space_separated_list_func_type),
-        help="A list of  capabilities  that  you  must  specify"
-        "before  AWS  Cloudformation  can create certain stacks. Some stack tem-"
-        "plates might include resources that can affect permissions in your  AWS"
-        "account,  for  example, by creating new AWS Identity and Access Manage-"
-        "ment (IAM) users. For those stacks,  you  must  explicitly  acknowledge"
-        "their  capabilities by specifying this parameter. The only valid values"
-        "are CAPABILITY_IAM and CAPABILITY_NAMED_IAM. If you have IAM resources,"
-        "you  can specify either capability. If you have IAM resources with cus-"
-        "tom names, you must specify CAPABILITY_NAMED_IAM. If you don't  specify"
-        "this  parameter, this action returns an InsufficientCapabilities error.",
+        help="A list of capabilities that you must specify "
+        "before AWS Cloudformation can create certain stacks. Some stack templates "
+        "might include resources that can affect permissions in your AWS "
+        "account, for example, by creating new AWS Identity and Access Management "
+        "(IAM) users. For those stacks, you must explicitly acknowledge "
+        "their capabilities by specifying this parameter. The only valid values"
+        "are CAPABILITY_IAM and CAPABILITY_NAMED_IAM. If you have IAM resources, "
+        "you can specify either capability. If you have IAM resources with custom "
+        "names, you must specify CAPABILITY_NAMED_IAM. If you don't specify "
+        "this parameter, this action returns an InsufficientCapabilities error.",
     )
 
 
-def capabilities_override_option(f):
-    return capabilities_click_option()(f)
+@parameterized_option
+def capabilities_option(f, default=None):
+    return capabilities_click_option(default)(f)
 
 
 def tags_click_option():
@@ -392,7 +432,7 @@ def tags_click_option():
     )
 
 
-def tags_override_option(f):
+def tags_option(f):
     return tags_click_option()(f)
 
 
@@ -408,22 +448,23 @@ def notification_arns_click_option():
     )
 
 
-def notification_arns_override_option(f):
+def notification_arns_option(f):
     return notification_arns_click_option()(f)
 
 
-def stack_name_click_option():
+def stack_name_click_option(required):
     return click.option(
         "--stack-name",
-        required=False,
+        required=required,
         help="The name of the AWS CloudFormation stack you're deploying to. "
         "If you specify an existing stack, the command updates the stack. "
         "If you specify a new stack, the command creates it.",
     )
 
 
-def stack_name_override_option(f):
-    return stack_name_click_option()(f)
+@parameterized_option
+def stack_name_option(f, required=False):
+    return stack_name_click_option(required)(f)
 
 
 def s3_bucket_click_option():
@@ -435,7 +476,7 @@ def s3_bucket_click_option():
     )
 
 
-def s3_bucket_override_option(f):
+def s3_bucket_option(f):
     return s3_bucket_click_option()(f)
 
 
@@ -450,7 +491,7 @@ def build_dir_click_option():
     )
 
 
-def build_dir_override_option(f):
+def build_dir_option(f):
     return build_dir_click_option()(f)
 
 
@@ -465,7 +506,7 @@ def cache_dir_click_option():
     )
 
 
-def cache_dir_override_option(f):
+def cache_dir_option(f):
     return cache_dir_click_option()(f)
 
 
@@ -481,7 +522,7 @@ def base_dir_click_option():
     )
 
 
-def base_dir_override_option(f):
+def base_dir_option(f):
     return base_dir_click_option()(f)
 
 
@@ -495,7 +536,7 @@ def manifest_click_option():
     )
 
 
-def manifest_override_option(f):
+def manifest_option(f):
     return manifest_click_option()(f)
 
 
@@ -514,7 +555,7 @@ def cached_click_option():
     )
 
 
-def cached_override_option(f):
+def cached_option(f):
     return cached_click_option()(f)
 
 
@@ -528,7 +569,7 @@ def image_repository_click_option():
     )
 
 
-def image_repository_override_option(f):
+def image_repository_option(f):
     return image_repository_click_option()(f)
 
 
@@ -544,7 +585,7 @@ def image_repositories_click_option():
     )
 
 
-def image_repositories_override_option(f):
+def image_repositories_option(f):
     return image_repositories_click_option()(f)
 
 
@@ -558,7 +599,7 @@ def s3_prefix_click_option():
     )
 
 
-def s3_prefix_override_option(f):
+def s3_prefix_option(f):
     return s3_prefix_click_option()(f)
 
 
@@ -570,7 +611,7 @@ def kms_key_id_click_option():
     )
 
 
-def kms_key_id_override_option(f):
+def kms_key_id_option(f):
     return kms_key_id_click_option()(f)
 
 
@@ -584,7 +625,7 @@ def use_json_click_option():
     )
 
 
-def use_json_override_option(f):
+def use_json_option(f):
     return use_json_click_option()(f)
 
 
@@ -599,7 +640,7 @@ def force_upload_click_option():
     )
 
 
-def force_upload_override_option(f):
+def force_upload_option(f):
     return force_upload_click_option()(f)
 
 
@@ -623,7 +664,7 @@ def resolve_s3_click_option():
     )
 
 
-def resolve_s3_override_option(f):
+def resolve_s3_option(f):
     return resolve_s3_click_option()(f)
 
 
@@ -637,7 +678,7 @@ def role_arn_click_option():
     )
 
 
-def role_arn_override_option(f):
+def role_arn_option(f):
     return role_arn_click_option()(f)
 
 

@@ -12,11 +12,11 @@ from samcli.commands._utils.options import (
     template_option_without_build,
     docker_common_options,
     parameter_override_option,
-    build_dir_override_option,
-    cache_dir_override_option,
-    base_dir_override_option,
-    manifest_override_option,
-    cached_override_option,
+    build_dir_option,
+    cache_dir_option,
+    base_dir_option,
+    manifest_option,
+    cached_option,
 )
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.lib.telemetry.metric import track_command
@@ -126,11 +126,11 @@ $ sam build MyFunction
     help="Enabled parallel builds. Use this flag to build your AWS SAM template's functions and layers in parallel. "
     "By default the functions and layers are built in sequence",
 )
-@build_dir_override_option
-@cache_dir_override_option
-@base_dir_override_option
-@manifest_override_option
-@cached_override_option
+@build_dir_option
+@cache_dir_option
+@base_dir_option
+@manifest_option
+@cached_option
 @template_option_without_build
 @parameter_override_option
 @docker_common_options
