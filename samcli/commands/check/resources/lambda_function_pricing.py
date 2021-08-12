@@ -42,10 +42,10 @@ class LambdaFunctionPricing(UniquePricingInfo):
 
     def __init__(self):
         super().__init__()
-        self.number_of_requests = None
-        self.average_duration = None
-        self.allocated_memory = None
-        self.allocated_memory_unit = None
+        self.number_of_requests = -1
+        self.average_duration = -1
+        self.allocated_memory = -1
+        self.allocated_memory_unit = -1
 
         self._max_num_requests = 1000000000000000000000
         self._min_memory_amount = 128

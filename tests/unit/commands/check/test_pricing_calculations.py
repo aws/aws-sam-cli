@@ -17,14 +17,6 @@ class TestLambdaFunctionPricingCalculations(TestCase):
         self_mock._get_charge_and_request_amounts.assert_called_once()
         self_mock._determine_cost.assert_called_once()
 
-    def test_get_charge_and_request_amounts(self):
-        self_mock = Mock()
-        self_mock._get_lambda_charge_and_request_amounts = Mock()
-
-        LambdaFunctionPricingCalculations._get_charge_and_request_amounts(self_mock)
-
-        self_mock._get_lambda_charge_and_request_amounts.assert_called_once()
-
     @patch("samcli.commands.check.lambda_function_pricing_calculations.ast")
     @patch("samcli.commands.check.lambda_function_pricing_calculations.urllib")
     def test_get_aws_pricing_info(self, patch_request, patch_ast):

@@ -70,8 +70,8 @@ class BottleNecks:
         resource: Union[LambdaFunction, ApiGateway, DynamoDB],
         entry_point_name: str,
         previous_resource_name: str = "",
-        current_path: List[str] = [],
-    ):
+        current_path=None,
+    ) -> None:
         """Specific bottle neck questions are asked based on resource type
 
         Parameters
@@ -85,6 +85,10 @@ class BottleNecks:
             current_path: List[str]
                 The current path being followed
         """
+
+        if not current_path:
+            current_path = []
+
         resource.entry_point_resource = entry_point_name
         if resource.resource_type == AWS_LAMBDA_FUNCTION:
             self.lambda_bottle_neck_quesitons(resource, entry_point_name, previous_resource_name, current_path)
@@ -109,6 +113,17 @@ class BottleNecks:
 
         If the event source is an entry point, proceed normally. If it is not an entry point (i.e. a lambda
         function calls this resource), its tps will be limited by the entry point that lead to this resource.
+
+        Parameters
+        ----------
+            event_source: Union[ApiGateway, DynamoDB]
+                The current event source to ask bottle neck questions about
+            entry_point_name: str
+                The entry point name to teh current event source. Can be None
+            previous_resource_name: str
+                The direct parent resource to the current one. Can be None
+            current_path: List[str]
+                The current path to the given event source
         """
         if event_source.children == []:
             return

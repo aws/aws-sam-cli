@@ -10,11 +10,8 @@ class TemplateResource:
     resource_object: Function
     resource_type: str
     resource_name: str
-    path_to_resource: List[str]
 
-    def __init__(
-        self, resource_object: Function, resource_type: str, resource_name: str, path_to_resource: List[str] = []
-    ):
+    def __init__(self, resource_object: Function, resource_type: str, resource_name: str, path_to_resource=None):
         """
         Parameters
         ----------
@@ -30,4 +27,7 @@ class TemplateResource:
         self.resource_object = resource_object
         self.resource_type = resource_type
         self.resource_name = resource_name
-        self.path_to_resource = path_to_resource
+        if not path_to_resource:
+            self.path_to_resource = []
+        else:
+            self.path_to_resource = path_to_resource

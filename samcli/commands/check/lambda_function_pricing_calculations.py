@@ -11,27 +11,38 @@ import ast
 from botocore.session import get_session
 
 from samcli.commands.check.pricing_calculations import PricingCalculations
+from samcli.commands.check.resources.graph import CheckGraph
 
 
 class LambdaFunctionPricingCalculations(PricingCalculations):
-    def __init__(self, graph):
+    graph: CheckGraph
+    _max_num_of_free_requests: float
+    _max_free_gb_s: float
+    _monthly_compute_charge: float
+    _monthly_request_charge: float
+    _max_request_usage_type: str
+    _max_free_gb_s_usage_type: str
+    _compute_usage_type: str
+    _request_charge_usage_type: str
+
+    def __init__(self, graph: CheckGraph):
         super().__init__(graph)
-        self._max_num_of_free_requests = None
-        self._max_free_gb_s = None
-        self._monthly_compute_charge = None
-        self._monthly_request_charge = None
+        self._max_num_of_free_requests = -1
+        self._max_free_gb_s = -1
+        self._monthly_compute_charge = -1
+        self._monthly_request_charge = -1
         self._max_request_usage_type = "Global-Request"
         self._max_free_gb_s_usage_type = "Global-Lambda-GB-Second"
         self._compute_usage_type = "Lambda-GB-Second"
         self._request_charge_usage_type = "Request"
 
-        self.lambda_pricing_results = None
+        self.lambda_pricing_results = -1
 
     def run_calculations(self) -> None:
         self._get_charge_and_request_amounts()
         self._determine_cost()
 
-    def _get_aws_pricing_info(self, region):
+    def _get_aws_pricing_info(self, region: str):
         """
         Gets AWS Price List API json file for appropriate reigon and resource
 
@@ -39,7 +50,7 @@ class LambdaFunctionPricingCalculations(PricingCalculations):
         ----------
             region: str
                 The region associated with the users account or their preset
-                region, if it exists.
+                region.
 
         Raises
         ------
@@ -76,7 +87,7 @@ class LambdaFunctionPricingCalculations(PricingCalculations):
         number_of_requests = template_lambda_pricing_info.number_of_requests
         average_duration = template_lambda_pricing_info.average_duration
 
-        # Need to convert to GB if provided in MB
+        # Need to convert to GB if provided in MB. 1GB = 1024MB in Lambda
         if memory_unit == "MB":
             memory_amount *= 0.0009765625
 
@@ -108,6 +119,10 @@ class LambdaFunctionPricingCalculations(PricingCalculations):
         Gets the charge and request amouint from the AWS Price List API
         """
         region = get_session().get_config_variable("region")
+
+        if region is None:
+            # If there is no region set, default to the default region.
+            region = "us-east-1"
 
         aws_lambda_price = self._get_aws_pricing_info(region)
         products = aws_lambda_price["products"]
@@ -144,13 +159,25 @@ class LambdaFunctionPricingCalculations(PricingCalculations):
             elif modified_lambda_request_key == lambda_request_key and location != "Any":
                 self._get_pricing_or_request_value(product, terms, "request")
 
-    def _get_pricing_or_request_value(self, product, terms, get_type) -> None:
+    def _get_pricing_or_request_value(self, product: dict, terms: dict, get_type: str) -> None:
         """
         The dictionaries have unknown sku numbers. To prevent a massive storage of over
         400 sku numbers, plus 2 additional unique keys per sku number, a temp_key is used
         to bypass the need to know the keys. This is just to hold the value of the first
         key in a given dictionary until the final path is reached. It is only done when
         there is only one value in a given object.
+
+        Parameters
+        ----------
+            product: dict
+                The given product for the particular resource. The product (within
+                the api json file) contains the sku, hich is needed to find the
+                correct term.
+            terms: dict
+                A dict of all terms. A term the allocated range for a given resource
+                and the price AWS charges per unit (also defined in the term)
+            get_type: str
+                The type of property to look for.
         """
         sku = product["sku"]
 
@@ -214,4 +241,5 @@ def _convert_usage_type(
     if usage_type_length >= lambda_gb_second_key_length:
         modified_lambda_gb_second_key = usage_type[usage_type_length - lambda_gb_second_key_length :]
 
+    # Example: Unmodified lambda request key: USW2-Request. Modified lamba request key: Request
     return [modified_lambda_request_key, modified_lambda_gb_second_key]

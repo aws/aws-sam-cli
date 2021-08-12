@@ -29,7 +29,7 @@ class LoadData:
         self._graph = CheckGraph([])
         self._graph_toml = {}
 
-    def _parse_toml_lambda_function_info(self):
+    def _parse_toml_lambda_function_info(self) -> None:
         """
         Parses the toml file data for the resources and pricing info
         """
@@ -45,7 +45,7 @@ class LoadData:
 
         self._graph.unique_pricing_info["LambdaFunction"] = lambda_function_pricing
 
-    def _parse_resources(self):
+    def _parse_resources(self) -> None:
         """
         Parses each resource from the toml file
         """
@@ -75,12 +75,12 @@ class LoadData:
         """
         resource_type = str(resource_toml["resource_type"])
         resource_name = str(resource_toml["resource_name"])
-        resource_object = str(resource_toml["resource_object"])
+        resource_object = resource_toml["resource_object"]
         resource_children = resource_toml["children"]
         resource_tps = int(resource_toml["tps"])
         path_to_resource = resource_toml["path_to_resource"]
 
-        _check_range(resource_tps, 0, float("inf"))
+        _check_range(resource_tps, 0.0, float("inf"))
 
         current_resource = None
 
@@ -190,7 +190,7 @@ class LoadData:
         return self._graph
 
 
-def _check_pricing_info(lambda_function_pricing: LambdaFunctionPricing):
+def _check_pricing_info(lambda_function_pricing: LambdaFunctionPricing) -> None:
     """
     Chewcks all priocing info to ensure it is of the expected type and value
 
@@ -227,17 +227,17 @@ def _check_pricing_info(lambda_function_pricing: LambdaFunctionPricing):
     _check_range(allocated_memory, min_memory, max_memory)
 
 
-def _check_range(check_value: int, min_value: int, max_value: int):
+def _check_range(check_value: float, min_value: float, max_value: float) -> None:
     """
     Checks the range if the provided input with the allowed max and min values
 
     Parameters
     ----------
-        check_value: int
+        check_value: float
             The value to check if it's within the range
-        min_value: int
+        min_value: float
             The minimum allowed value
-        max_value: int
+        max_value: float
             The maximum allowed value
 
     Raises:
@@ -248,7 +248,7 @@ def _check_range(check_value: int, min_value: int, max_value: int):
         raise ValueError("invalid number")
 
 
-def _get_data_from_toml(config_file: Any) -> Dict:
+def _get_data_from_toml(config_file: Any):
     """
     Gets all of the necessary data from the samconfig.toml file
 

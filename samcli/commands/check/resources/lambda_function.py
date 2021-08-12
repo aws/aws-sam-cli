@@ -18,9 +18,7 @@ class LambdaFunction(TemplateResource):
     permission: Optional[LambdaFunctionPermission]
     entry_point_resource: Union[ApiGateway, DynamoDB, None]
 
-    def __init__(
-        self, resource_object: Function, resource_type: str, resource_name: str, path_to_resource: List[str] = []
-    ):
+    def __init__(self, resource_object: Function, resource_type: str, resource_name: str, path_to_resource=None):
         """
         Parameters
         ----------
@@ -30,6 +28,9 @@ class LambdaFunction(TemplateResource):
                 The resource type
             resource_name: str
                 The name of the resource
+            path_to_resource: List[str]
+                The path taken to the current resource. Can be None for
+                entry point resources
         """
         super().__init__(resource_object, resource_type, resource_name, path_to_resource)
         self.duration = -1

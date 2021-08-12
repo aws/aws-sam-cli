@@ -47,7 +47,7 @@ class SaveGraphData:
 
         lambda_function_name = lambda_function.resource_name
 
-        key = lambda_function_name + ":" + entry_point_resource
+        key = lambda_function_name + ":" + str(entry_point_resource)
         copied_lambda_function = self._graph.resources_to_analyze[key]
 
         lambda_toml = {
@@ -89,7 +89,7 @@ class SaveGraphData:
         resource_type = resource.resource_type
         resource_name = resource.resource_name
         resource_toml = {}
-        resource_children_toml = []
+        resource_children_toml: List = []
 
         if resource_type == AWS_LAMBDA_FUNCTION:
             resource_toml = self._generate_lambda_toml(resource, resource_children_toml, entry_point_resource)
@@ -137,7 +137,7 @@ class SaveGraphData:
         for resource in resources:
             entry_point_resource = resource.entry_point_resource
             resource_toml = self._generate_resource_toml(resource, entry_point_resource)
-            key = resource.resource_name + ":" + entry_point_resource
+            key = resource.resource_name + ":" + str(entry_point_resource)
             resources_to_analyze_toml[key] = resource_toml
 
     def _get_lambda_function_pricing_info(self):
@@ -169,7 +169,7 @@ class SaveGraphData:
         """
         samconfig = get_config_ctx(config_file)
 
-        resources_to_analyze_toml = {}
+        resources_to_analyze_toml: dict = {}
         lambda_function_pricing_info_toml = {}
 
         resources = self._graph.entry_points

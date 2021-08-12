@@ -11,4 +11,6 @@ class UniquePricingInfo:
 
     @abstractmethod
     def ask_questions(self):
-        pass
+        """
+        Asks the pricing questions, depending on what resource is being accessed.
+        """

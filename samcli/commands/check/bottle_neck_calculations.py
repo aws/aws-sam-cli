@@ -67,7 +67,7 @@ class BottleNeckCalculations:
 
     def _generate_warning_message(
         self,
-        capacity_used: int,
+        capacity_used: float,
         resource_name: str,
         concurrent_executions: int,
         duration: int,
@@ -80,7 +80,7 @@ class BottleNeckCalculations:
 
         Parameters
         ----------
-            capacity_used: int
+            capacity_used: float
                 Total capacity used as a percentage
             resource_name: str
                 Current resource name
@@ -144,7 +144,7 @@ class BottleNeckCalculations:
             warning = CheckWarning(message)
             self._graph.red_burst_warnings.append(warning)
 
-    def run_calculations(self):
+    def run_calculations(self) -> None:
         """
         Runs calculaitons for each resource
         """
@@ -174,7 +174,7 @@ class BottleNeckCalculations:
                 )
 
 
-def _check_limit(tps: int, duration: int, execution_limit: int):
+def _check_limit(tps: int, duration: int, execution_limit: int) -> float:
     """
     Checks the limit of the current resource
 
@@ -196,7 +196,20 @@ def _check_limit(tps: int, duration: int, execution_limit: int):
     return (tps / tps_max_limit) * 100
 
 
-def _generate_path_string(path_list: List[str]):
+def _generate_path_string(path_list: List[str]) -> str:
+    """
+    Generates the path to the resource into a string
+
+    Parameters
+    ----------
+        path_list: List[str]
+            The path to the resource in a list format
+
+    Returns
+    -------
+        path_str: str
+            The path to the resource as a string
+    """
     path_str = ""
 
     for counter, item in enumerate(path_list):

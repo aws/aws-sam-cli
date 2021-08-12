@@ -1,18 +1,16 @@
 """
 Class for graph. All data is stored in the graph directly, or within nodes that are stored in the graph
 """
-from typing import Dict, List, Tuple, Union, OrderedDict
+from typing import Any, Dict, List, Tuple, Union
 
 import click
 
 from samcli.commands.check.resources.lambda_function import LambdaFunction
-from samcli.commands.check.resources.lambda_function_permission import LambdaFunctionPermission
-from samcli.commands.check.resources.api_gateway import ApiGateway
 from samcli.commands.check.resources.dynamo_db import DynamoDB
-from samcli.commands.check.resources.event_source_mapping import EventSourceMapping
-from samcli.commands.check.resources.i_am_role import IAMRole
 from samcli.commands.check.resources.warning import CheckWarning
 from samcli.commands.check.resources.unique_pricing_info import UniquePricingInfo
+
+from samcli.commands._utils.resources import AWS_DYNAMODB_TABLE
 
 
 class CheckGraph:
@@ -29,19 +27,18 @@ class CheckGraph:
     """
 
     entry_points: List[Union[LambdaFunction]]
-    resources_to_analyze: List[Union[LambdaFunction]]
-    green_warnings: List[CheckWarning]
+    resources_to_analyze: Dict
     yellow_warnings: List[CheckWarning]
     red_warnings: List[CheckWarning]
     red_burst_warnings: List[CheckWarning]
     unique_pricing_info: Dict[str, UniquePricingInfo]
 
-    _lambda_permissions: List[LambdaFunctionPermission]
-    _api_gateways: List[ApiGateway]
-    _lambda_functions: List[LambdaFunction]
-    _event_source_mappings: List[EventSourceMapping]
-    _dynamo_db_tables: List[DynamoDB]
-    _iam_roles: List[IAMRole]
+    _lambda_permissions: Dict
+    _api_gateways: Dict
+    _lambda_functions: Dict
+    _event_source_mappings: Dict
+    _dynamo_db_tables: Dict
+    _iam_roles: Dict
     _dynamo_policies: Dict
 
     def __init__(self, resources):
@@ -84,6 +81,7 @@ class CheckGraph:
         Certain resoures, such as ApiGateways, linked resources in a permission prod. Any other
         resources that do so will be handled here
         """
+
         for permission in self._lambda_permissions.values():
             permission_object = permission.resource_object
 
@@ -106,6 +104,13 @@ class CheckGraph:
         """
         DynamoDB tables, Kinesis streams, SQS queues, and MSK link themselves to lambda functions through
         EventSourceMapping objects. Those are handled here.
+
+        if source_name_split[0] == "arn":
+            This resource is not defined in the template, but exists somewhere outside of it already deployed.
+            When this happens, a new object of appropriate type needs to be generated and added to the graph.
+            Currently, the graph does not contain this object/resource, because it was never defined in the
+            template (this is allowed). Generate the new resource, add it to the graph, then make the
+            appropriate connections.
         """
         for event in self._event_source_mappings.values():
             event_object = event.resource_object
@@ -118,19 +123,13 @@ class CheckGraph:
             source_name_split = source_name.split(":")
 
             if source_name_split[0] == "arn":
-                """
-                This resource is not defined in the template, but exists somewhere outside of it already deployed.
-                When this happens, a new object of appropriate type needs to be generated and added to the graph.
-                Currently, the graph does not contain this object/resource, because it was never defined in the
-                template (this is allowed). Generate the new resource, add it to the graph, then make the
-                appropriate connections.
-                """
+
                 source_type = source_name_split[2]
 
                 if source_type == "dynamodb":
                     source_name = source_name_split[5]
                     # Until the resource_object is needed, just use an empty {} for now
-                    source_object = DynamoDB({}, "AWS::DynamoDB::Table", source_name)
+                    source_object = DynamoDB({}, AWS_DYNAMODB_TABLE, source_name)
                     self._dynamo_db_tables[source_name] = source_object
 
                     source_object.children.append(ref_function_object)
@@ -179,6 +178,11 @@ class CheckGraph:
     def _handle_iam_roles(self) -> None:
         """
         Checks IAM_Roles to see what connections between resources need to be made
+
+        for policy in policies:
+            Only the policy name is given. What resource the policy is for is not known. "
+            All policies must be checked. Policies can also include what has access to
+            the lambda function. Those are ignored, as they are handled elsewhere
         """
         for lambda_function_name, lambda_function in self._lambda_functions.items():
 
@@ -189,18 +193,22 @@ class CheckGraph:
                 policies = properties["ManagedPolicyArns"]
 
                 for policy in policies:
-                    """
-                    Only the policy name is given. What resource the policy is for is not known. "
-                    All policies must be checked. Policies can also include what has access to
-                    the lambda function. Those are ignored, as they are handled elsewhere
-                    """
-
                     if policy in self._dynamo_policies:
-                        self._make_connection_from_policy("AWS::DynamoDB::Table", lambda_function_name)
+                        self._make_connection_from_policy(AWS_DYNAMODB_TABLE, lambda_function_name)
 
-    def _get_properties(self, lambda_function: LambdaFunction) -> OrderedDict:
+    def _get_properties(self, lambda_function: LambdaFunction) -> Any:
         """
         Gets properties of lambda functions, hich are defined in a CFN template
+
+        Parameters
+        ----------
+            lambda_function: LambdaFunction
+                The lambda funciton object that the data from the lambda funciton
+                in the template will be appended to
+        Returns
+        -------
+            OrderedDict:
+                An OrderedDict that contains the properties of the lambda function from the template
         """
         lambda_function_resource_object = lambda_function.resource_object
 
@@ -228,7 +236,7 @@ class CheckGraph:
             lambda_function_name: str
                 The name of the current lambda function
         """
-        if child_resource_type == "AWS::DynamoDB::Table":
+        if child_resource_type == AWS_DYNAMODB_TABLE:
             resources_selected = self._ask_dynamo_connection_question(lambda_function_name)
 
             lambda_function = self._lambda_functions[lambda_function_name]
@@ -261,12 +269,14 @@ class CheckGraph:
 
         displayed_resources_names = []
 
+        item_number = None
+
         for item_number, dynamo_table_name in enumerate(self._dynamo_db_tables):
             info_prompt += "[%i] %s\n" % (item_number + 1, dynamo_table_name)
             displayed_resources_names.append(dynamo_table_name)
 
         user_input = ""
-        user_choices = []
+        user_choices: List = []
 
         while not valid_user_input:
 

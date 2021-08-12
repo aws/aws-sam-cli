@@ -30,6 +30,12 @@ class CheckResults:
         _print_warnings(self._graph.red_burst_warnings)
 
     def print_all_pricing_results(self) -> None:
+        """
+        Prints the pricing results for all individual resources
+        (excluding lambda functions). The  it prints the pricing results for all
+        resources of the same type. Then it prints the pricing results for
+        the entire application.
+        """
         click.echo("With the current resource allocation, we estimate the following costs:")
         click.echo("\t* AWS Lambda: $%.2f/month" % self._lambda_pricing_results)
 
