@@ -27,15 +27,14 @@ class TestPackageImage(PackageIntegBase):
     def setUpClass(cls):
         cls.docker_client = docker.from_env()
         cls.local_images = [
-            ("alpine", "latest"),
-            # below 3 images are for test_package_with_deep_nested_template_image()
-            ("python", "3.9-slim"),
-            ("python", "3.8-slim"),
-            ("python", "3.7-slim"),
+            ("public.ecr.aws/sam/emulation-python3.8", "latest"),
         ]
         # setup some images locally by pulling them.
         for repo, tag in cls.local_images:
             cls.docker_client.api.pull(repository=repo, tag=tag)
+            cls.docker_client.api.tag(f"{repo}:{tag}", "emulation-python3.8", tag="latest")
+            cls.docker_client.api.tag(f"{repo}:{tag}", "emulation-python3.8-2", tag="latest")
+
         super(TestPackageImage, cls).setUpClass()
 
     def setUp(self):
@@ -204,16 +203,10 @@ class TestPackageImage(PackageIntegBase):
             raise
         process_stderr = stderr.strip().decode("utf-8")
 
-        # there are in total 3 function images and 2 child template file to upload
-        # verify both child templates are uploaded
-        uploads = re.findall(r"\.template", process_stderr)
-        self.assertEqual(len(uploads), 2)
-
         # verify all function images are pushed
         images = [
-            ("python", "3.9-slim"),
-            ("python", "3.8-slim"),
-            ("python", "3.7-slim"),
+            ("emulation-python3.8", "latest"),
+            ("emulation-python3.8-2", "latest"),
         ]
         for image, tag in images:
             # check string like this:

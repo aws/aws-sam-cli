@@ -992,7 +992,16 @@
     "error": {
       "filename": "StepFunctionsError",
       "help": "Generates an AWS StepFunctions Error Event",
-      "tags": {}
+      "tags": {
+        "error": {
+          "type": "string",
+          "default": "ErrorName"
+        },
+        "cause": {
+          "type": "string",
+          "default": "This is the cause of the error."
+        }
+      }
     }
   }
 }
