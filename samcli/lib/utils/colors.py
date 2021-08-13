@@ -58,6 +58,10 @@ class Colored:
         """Underline the input"""
         return click.style(msg, underline=True) if self.colorize else msg
 
+    def bold(self, msg):
+        """Bold the input"""
+        return click.style(msg, bold=True) if self.colorize else msg
+
     def _color(self, msg, color):
         """Internal helper method to add colors to input"""
         kwargs = {"fg": color}

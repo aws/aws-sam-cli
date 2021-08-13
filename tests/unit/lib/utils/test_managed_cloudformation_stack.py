@@ -21,19 +21,28 @@ class TestManagedCloudFormationStack(TestCase):
     def test_session_missing_profile(self, boto_mock):
         boto_mock.side_effect = ProfileNotFound(profile="test-profile")
         with self.assertRaises(CredentialsError):
-            manage_stack("test-profile", "fake-region", SAM_CLI_STACK_NAME, _get_stack_template())
+            manage_stack(
+                profile="test-profile",
+                region="fake-region",
+                stack_name=SAM_CLI_STACK_NAME,
+                template_body=_get_stack_template(),
+            )
 
     @patch("boto3.client")
     def test_client_missing_credentials(self, boto_mock):
         boto_mock.side_effect = NoCredentialsError()
         with self.assertRaises(CredentialsError):
-            manage_stack(None, "fake-region", SAM_CLI_STACK_NAME, _get_stack_template())
+            manage_stack(
+                profile=None, region="fake-region", stack_name=SAM_CLI_STACK_NAME, template_body=_get_stack_template()
+            )
 
     @patch("boto3.client")
     def test_client_missing_region(self, boto_mock):
         boto_mock.side_effect = NoRegionError()
         with self.assertRaises(RegionError):
-            manage_stack(None, "fake-region", SAM_CLI_STACK_NAME, _get_stack_template())
+            manage_stack(
+                profile=None, region="fake-region", stack_name=SAM_CLI_STACK_NAME, template_body=_get_stack_template()
+            )
 
     def test_new_stack(self):
         stub_cf, stubber = self._stubbed_cf_client()
@@ -47,6 +56,8 @@ class TestManagedCloudFormationStack(TestCase):
             "Tags": [{"Key": "ManagedStackSource", "Value": "AwsSamCli"}],
             "ChangeSetType": "CREATE",
             "ChangeSetName": "InitialCreation",
+            "Capabilities": ["CAPABILITY_IAM"],
+            "Parameters": [],
         }
         ccs_resp = {"Id": "id", "StackId": "aws-sam-cli-managed-default"}
         stubber.add_response("create_change_set", ccs_resp, ccs_params)
@@ -151,6 +162,8 @@ class TestManagedCloudFormationStack(TestCase):
             "Tags": [{"Key": "ManagedStackSource", "Value": "AwsSamCli"}],
             "ChangeSetType": "CREATE",
             "ChangeSetName": "InitialCreation",
+            "Capabilities": ["CAPABILITY_IAM"],
+            "Parameters": [],
         }
         stubber.add_client_error("create_change_set", service_error_code="ClientError", expected_params=ccs_params)
         stubber.activate()
@@ -171,6 +184,8 @@ class TestManagedCloudFormationStack(TestCase):
             "Tags": [{"Key": "ManagedStackSource", "Value": "AwsSamCli"}],
             "ChangeSetType": "CREATE",
             "ChangeSetName": "InitialCreation",
+            "Capabilities": ["CAPABILITY_IAM"],
+            "Parameters": [],
         }
         ccs_resp = {"Id": "id", "StackId": "aws-sam-cli-managed-default"}
         stubber.add_response("create_change_set", ccs_resp, ccs_params)

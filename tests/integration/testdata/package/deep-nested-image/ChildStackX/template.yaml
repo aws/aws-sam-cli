@@ -7,7 +7,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       PackageType: Image
-      ImageUri: python:3.7-slim
+      ImageUri: emulation-python3.8-2:latest
 
   ChildStackY:
     Type: AWS::Serverless::Application
