@@ -54,7 +54,7 @@ class Runtime(Enum):
 
 class LambdaImage:
     _LAYERS_DIR = "/opt"
-    _INVOKE_REPO_PREFIX = "amazon/aws-sam-cli-emulation-image"
+    _INVOKE_REPO_PREFIX = "public.ecr.aws/sam/emulation"
     _SAM_CLI_REPO_NAME = "samcli/lambda"
     _RAPID_SOURCE_PATH = Path(__file__).parent.joinpath("..", "rapid").resolve()
 
