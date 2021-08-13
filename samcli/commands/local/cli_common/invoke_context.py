@@ -404,6 +404,7 @@ class InvokeContext:
                 self._template_file,
                 parameter_overrides=self._parameter_overrides,
                 global_parameter_overrides=self._global_parameter_overrides,
+                root_template_path=os.path.dirname(os.path.abspath(self._template_file)),
             )
             return stacks
         except (TemplateNotFoundException, TemplateFailedParsingException) as ex:
