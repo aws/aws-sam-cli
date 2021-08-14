@@ -110,7 +110,7 @@ RUNTIMES: Set[str] = set(
 )
 
 # When adding new Lambda runtimes, please update SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING
-# Order here should be a the group of the latest versions of runtimes followed by runtime groups
+# Runtimes are ordered in alphabetical fashion with reverse version order (latest versions first)
 INIT_RUNTIMES = [
     # dotnetcore runtimes in descending order
     "dotnet5.0",
@@ -157,6 +157,13 @@ LAMBDA_IMAGES_RUNTIMES = [
 ]
 
 LAMBDA_IMAGES_RUNTIMES_MAP = {
+    "dotnet5.0": "amazon/dotnet5.0-base",
+    "dotnetcore3.1": "amazon/dotnetcore3.1-base",
+    "dotnetcore2.1": "amazon/dotnetcore2.1-base",
+    "go1.x": "amazon/go1.x-base",
+    "java11": "amazon/java11-base",
+    "java8.al2": "amazon/java8.al2-base",
+    "java8": "amazon/java8-base",
     "nodejs14.x": "amazon/nodejs14.x-base",
     "nodejs12.x": "amazon/nodejs12.x-base",
     "nodejs10.x": "amazon/nodejs10.x-base",
@@ -167,13 +174,6 @@ LAMBDA_IMAGES_RUNTIMES_MAP = {
     "python2.7": "amazon/python2.7-base",
     "ruby2.7": "amazon/ruby2.7-base",
     "ruby2.5": "amazon/ruby2.5-base",
-    "go1.x": "amazon/go1.x-base",
-    "java11": "amazon/java11-base",
-    "java8.al2": "amazon/java8.al2-base",
-    "java8": "amazon/java8-base",
-    "dotnet5.0": "amazon/dotnet5.0-base",
-    "dotnetcore3.1": "amazon/dotnetcore3.1-base",
-    "dotnetcore2.1": "amazon/dotnetcore2.1-base",
 }
 
 # Schemas Code lang is a MINIMUM supported version

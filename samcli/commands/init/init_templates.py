@@ -2,6 +2,7 @@
 Manages the set of application templates.
 """
 
+import re
 import itertools
 import json
 import logging
@@ -109,28 +110,23 @@ class InitTemplates:
         return bool(entry["appTemplate"] == app_template)
 
     def init_options(self, package_type, runtime, base_image, dependency_manager):
-        if not self._git_repo.clone_attempted:
-            self.git_cloner()
+        self.clone_templates_repo()
         if self._git_repo.local_path is None:
             return self._init_options_from_bundle(package_type, runtime, dependency_manager)
         return self._init_options_from_manifest(package_type, runtime, base_image, dependency_manager)
 
-    def git_cloner(self):
-        shared_dir: Path = global_cfg.config_dir
-        try:
-            self._git_repo.clone(clone_dir=shared_dir, clone_name=APP_TEMPLATES_REPO_NAME, replace_existing=True)
-        except CloneRepoUnstableStateException as ex:
-            raise AppTemplateUpdateException(str(ex)) from ex
-        except (OSError, CloneRepoException):
-            # If can't clone, try using an old clone from a previous run if already exist
-            expected_previous_clone_local_path: Path = shared_dir.joinpath(APP_TEMPLATES_REPO_NAME)
-            if expected_previous_clone_local_path.exists():
-                self._git_repo.local_path = expected_previous_clone_local_path
-
-    def _get_local_path(self):
+    def clone_templates_repo(self):
         if not self._git_repo.clone_attempted:
-            self.git_cloner()
-        return self._git_repo.local_path
+            shared_dir: Path = global_cfg.config_dir
+            try:
+                self._git_repo.clone(clone_dir=shared_dir, clone_name=APP_TEMPLATES_REPO_NAME, replace_existing=True)
+            except CloneRepoUnstableStateException as ex:
+                raise AppTemplateUpdateException(str(ex)) from ex
+            except (OSError, CloneRepoException):
+                # If can't clone, try using an old clone from a previous run if already exist
+                expected_previous_clone_local_path: Path = shared_dir.joinpath(APP_TEMPLATES_REPO_NAME)
+                if expected_previous_clone_local_path.exists():
+                    self._git_repo.local_path = expected_previous_clone_local_path
 
     def _init_options_from_manifest(self, package_type, runtime, base_image, dependency_manager):
         manifest_path = os.path.join(self._git_repo.local_path, "manifest.json")
@@ -188,8 +184,10 @@ class InitTemplates:
     def get_preprocessed_manifest(self, filter_value=None):
         """
         This method get the manifest cloned from the git repo and preprocessed it.
-        The structure of the manifest is shown below:
+        Below is the link to manifest:
+        https://github.com/aws/aws-sam-cli-app-templates/blob/master/manifest.json
 
+        The structure of the manifest is shown below:
         {
             "dotnetcore2.1": [
                 {
@@ -203,60 +201,56 @@ class InitTemplates:
             ]
         }
 
-        Raises:
-            InvalidInitTemplateError: Exception raise when template is invalid or missing a parameter
+        Parameters
+        ----------
+        filter_value : string, optional
+            This could be a runtime or a base-image, by default None
 
-        Returns:
-            dict: This is preprocessed manifest with the use_case as key
+        Returns
+        -------
+        [dict]
+            This is preprocessed manifest with the use_case as key
         """
-        if not self._git_repo.clone_attempted:
-            self.git_cloner()
-        manifest_path = os.path.join(self._git_repo.local_path, "manifest.json")
+        self.clone_templates_repo()
+        manifest_path = Path(self._git_repo.local_path, "manifest.json")
         with open(str(manifest_path)) as fp:
             body = fp.read()
             manifest_body = json.loads(body)
 
         preprocessed_manifest = {}
-
         for template_runtime in manifest_body:
-            if filter_value and filter_value == template_runtime:
-                template_list = manifest_body[template_runtime]
-            elif filter_value and filter_value != template_runtime:
+            if filter_value and filter_value != template_runtime:
                 continue
-            else:
-                template_list = manifest_body[template_runtime]
+
+            template_list = manifest_body[template_runtime]
             for template in template_list:
-                validate_value_in_template("packageType", template)
-                package_type = template["packageType"]
+                package_type = get_template_value("packageType", template)
+                use_case_name = get_template_value("useCaseName", template)
                 runtime = get_runtime(package_type, template_runtime)
 
-                validate_value_in_template("useCaseName", template)
-                use_case = template["useCaseName"]
-                if use_case not in preprocessed_manifest:
-                    preprocessed_manifest[use_case] = {}
+                use_case = preprocessed_manifest.get(use_case_name, {})
+                use_case[runtime] = use_case.get(runtime, {})
+                use_case[runtime][package_type] = use_case[runtime].get(package_type, [])
+                use_case[runtime][package_type].append(template)
 
-                if runtime not in preprocessed_manifest[use_case]:
-                    preprocessed_manifest[use_case][runtime] = {}
-
-                if package_type not in preprocessed_manifest[use_case][runtime]:
-                    preprocessed_manifest[use_case][runtime][package_type] = []
-                preprocessed_manifest[use_case][runtime][package_type].append(template)
+                preprocessed_manifest[use_case_name] = use_case
         return preprocessed_manifest
 
     def get_bundle_option(self, package_type, runtime, dependency_manager):
         return self._init_options_from_bundle(package_type, runtime, dependency_manager)
 
 
-def validate_value_in_template(value, template):
+def get_template_value(value, template):
     if value not in template:
         raise InvalidInitTemplateError(
             "Template is missing the value for {property} in manifest file. Please raise a ticket".format(
                 property=value
             )
         )
+    return template.get(value)
 
 
 def get_runtime(package_type, template_runtime):
-    if package_type == "Image":
-        template_runtime = template_runtime[template_runtime.find("/") + 1 : template_runtime.find("-")]
+    if package_type == IMAGE:
+        template_runtime = re.split("/|-", template_runtime)[1]
     return template_runtime

@@ -1,4 +1,5 @@
 import os
+from re import template
 import shutil
 import subprocess
 import tempfile
@@ -14,10 +15,7 @@ from click.testing import CliRunner
 from samcli.commands.exceptions import UserException
 from samcli.commands.init import cli as init_cmd
 from samcli.commands.init import do_cli as init_cli
-from samcli.commands.init.init_templates import (
-    InitTemplates,
-    APP_TEMPLATES_REPO_URL,
-)
+from samcli.commands.init.init_templates import InitTemplates, APP_TEMPLATES_REPO_URL, get_runtime
 from samcli.lib.init import GenerateProjectFailedError
 from samcli.lib.utils import osutils
 from samcli.lib.utils.git_repo import GitRepo
@@ -32,7 +30,8 @@ class MockInitTemplates:
             url=APP_TEMPLATES_REPO_URL,
         )
         self._git_repo.clone_attempted = True
-        self._git_repo.local_path = Path("repository")
+        # self._git_repo.local_path = Path("repository")
+        self._git_repo.local_path = Path("tests/unit/commands/init")
 
 
 class TestCli(TestCase):
@@ -1665,3 +1664,120 @@ test-project
             expected_output_folder = Path(temp, "test-project")
             self.assertTrue(expected_output_folder.exists)
             self.assertTrue(expected_output_folder.is_dir())
+
+    def test_must_return_runtime_from_base_image_name(self):
+        base_images = [
+            "amazon/dotnet5.0-base",
+            "amazon/dotnetcore3.1-base",
+            "amazon/go1.x-base",
+            "amazon/java11-base",
+            "amazon/nodejs14.x-base",
+            "amazon/python3.8-base",
+            "amazon/ruby2.7-base",
+        ]
+
+        expected_runtime = [
+            "dotnet5.0",
+            "dotnetcore3.1",
+            "go1.x",
+            "java11",
+            "nodejs14.x",
+            "python3.8",
+            "ruby2.7",
+        ]
+
+        for index, base_image in enumerate(base_images):
+            runtime = get_runtime(IMAGE, base_image)
+            self.assertEqual(runtime, expected_runtime[index])
+
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    def test_must_process_manifest(self):
+        template = InitTemplates()
+        preprocess_manifest = template.get_preprocessed_manifest()
+        expected_result = {
+            "Serverless API": {
+                "dotnetcore2.1": {
+                    "Zip": [
+                        {
+                            "directory": "dotnetcore2.1/cookiecutter-aws-sam-hello-dotnet",
+                            "displayName": "Hello World Example",
+                            "dependencyManager": "cli-package",
+                            "appTemplate": "hello-world",
+                            "packageType": "Zip",
+                            "useCaseName": "Serverless API",
+                        }
+                    ]
+                },
+                "go1.x": {
+                    "Zip": [
+                        {
+                            "directory": "go1.x/cookiecutter-aws-sam-hello-golang",
+                            "displayName": "Hello World Example",
+                            "dependencyManager": "mod",
+                            "appTemplate": "hello-world",
+                            "packageType": "Zip",
+                            "useCaseName": "Serverless API",
+                        }
+                    ]
+                },
+                "nodejs14.x": {
+                    "Image": [
+                        {
+                            "directory": "nodejs14.x-image/cookiecutter-aws-sam-hello-nodejs-lambda-image",
+                            "displayName": "Hello World Image Example",
+                            "dependencyManager": "npm",
+                            "appTemplate": "hello-world-lambda-image",
+                            "packageType": "Image",
+                            "useCaseName": "Serverless API",
+                        }
+                    ]
+                },
+            }
+        }
+        self.assertEqual(preprocess_manifest, expected_result)
+
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    def test_must_process_manifest_with_runtime_as_filter_value(self):
+        template = InitTemplates()
+        filter_value = "go1.x"
+        preprocess_manifest = template.get_preprocessed_manifest(filter_value)
+        expected_result = {
+            "Serverless API": {
+                "go1.x": {
+                    "Zip": [
+                        {
+                            "directory": "go1.x/cookiecutter-aws-sam-hello-golang",
+                            "displayName": "Hello World Example",
+                            "dependencyManager": "mod",
+                            "appTemplate": "hello-world",
+                            "packageType": "Zip",
+                            "useCaseName": "Serverless API",
+                        }
+                    ]
+                },
+            }
+        }
+        self.assertEqual(preprocess_manifest, expected_result)
+
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    def test_must_process_manifest_with_image_as_filter_value(self):
+        template = InitTemplates()
+        filter_value = "amazon/nodejs14.x-base"
+        preprocess_manifest = template.get_preprocessed_manifest(filter_value)
+        expected_result = {
+            "Serverless API": {
+                "nodejs14.x": {
+                    "Image": [
+                        {
+                            "directory": "nodejs14.x-image/cookiecutter-aws-sam-hello-nodejs-lambda-image",
+                            "displayName": "Hello World Image Example",
+                            "dependencyManager": "npm",
+                            "appTemplate": "hello-world-lambda-image",
+                            "packageType": "Image",
+                            "useCaseName": "Serverless API",
+                        }
+                    ]
+                }
+            }
+        }
+        self.assertEqual(preprocess_manifest, expected_result)

@@ -51,22 +51,22 @@ def do_interactive(
         click.echo("\t1 - Hello World application\n\t2 - AWS Quick Start Templates\n\t3 - Custom Template Location")
         location_opt_choice = click.prompt("Choice", type=click.Choice(["1", "2", "3"]), show_choices=False)
 
-        get_start_options(
-            location,
-            pt_explicit,
-            package_type,
-            runtime,
-            base_image,
-            dependency_manager,
-            output_dir,
-            name,
-            app_template,
-            no_input,
-            location_opt_choice,
-        )
+    generate_application(
+        location,
+        pt_explicit,
+        package_type,
+        runtime,
+        base_image,
+        dependency_manager,
+        output_dir,
+        name,
+        app_template,
+        no_input,
+        location_opt_choice,
+    )
 
 
-def get_start_options(
+def generate_application(
     location,
     pt_explicit,
     package_type,
@@ -109,8 +109,8 @@ def _generate_simple_application(
             + "We will default to the latest supported version of your selected runtime."
         )
         runtime_list = sorted(RUNTIME_DEP_TEMPLATE_MAPPING.keys())
-        runtime_choosen = _get_choice_from_options(runtime, runtime_list, question, "Runtime")
-        runtime_templates = RUNTIME_DEP_TEMPLATE_MAPPING[runtime_choosen]
+        runtime_chosen = _get_choice_from_options(runtime, runtime_list, question, "Runtime")
+        runtime_templates = RUNTIME_DEP_TEMPLATE_MAPPING[runtime_chosen]
         runtime = runtime_templates[0]["runtimes"][0]
 
     dependency_manager = _get_dependency_manager(None, dependency_manager, runtime)
@@ -190,8 +190,8 @@ def _generate_from_use_case(
             f"{package_type} package type is not supported for {use_case} examples and runtime {runtime} selected."
         ) from ex
 
-    template_choosen = _get_app_template_choice(dependency_manager_options, dependency_manager)
-    app_template = template_choosen["appTemplate"]
+    template_chosen = _get_app_template_choice(dependency_manager_options, dependency_manager)
+    app_template = template_chosen["appTemplate"]
     location = templates.location_from_app_template(package_type, runtime, base_image, dependency_manager, app_template)
 
     if not name:
@@ -226,48 +226,43 @@ def _get_app_template_choice(templates_options, dependency_manager):
     if len(templates) > 1:
         click.echo("\nSelect your starter template")
         click_template_choices = []
-        for idx, template in enumerate(templates):
-            click.echo("\t{index} - {name}".format(index=idx + 1, name=template["displayName"]))
-            click_template_choices.append(str(idx + 1))
+        for index, template in enumerate(templates):
+            click.echo(f"\t{index+1} - {template['displayName']}")
+            click_template_choices.append(str(index + 1))
         template_choice = click.prompt("Template", type=click.Choice(click_template_choices), show_choices=False)
         chosen_template = templates[int(template_choice) - 1]
     return chosen_template
 
 
 def _get_templates_with_dependency_manager(templates_options, dependency_manager):
-    templates = []
-    for template in templates_options:
-        if template["dependencyManager"] == dependency_manager:
-            templates.append(template)
-    return templates
+    return [t for t in templates_options if t.get("dependencyManager") == dependency_manager]
 
 
-def _get_choice_from_options(choosen, options, question, msg):
+def _get_choice_from_options(chosen, options, question, msg):
 
-    if not choosen:
-        click_choices = []
+    if chosen:
+        return chosen
 
-        options_list = options if isinstance(options, list) else list(options.keys())
+    click_choices = []
 
-        if len(options_list) == 1:
-            choosen = options_list[0]
-            click.echo(
-                f"\nBased on your selections, the only {msg} available is {choosen}."
-                + f"\nWe will proceed to selecting the {msg} as {choosen}."
-            )
-        else:
-            click.echo(f"\n{question}")
-            options_list = (
-                get_sorted_runtimes(options_list)
-                if msg == "Runtime" and not isinstance(options, list)
-                else options_list
-            )
-            for idx, option in enumerate(options_list):
-                click.echo("\t{index} - {name}".format(index=idx + 1, name=option))
-                click_choices.append(str(idx + 1))
-            choice = click.prompt(msg, type=click.Choice(click_choices), show_choices=False)
-            choosen = options_list[int(choice) - 1]
-    return choosen
+    options_list = options if isinstance(options, list) else list(options.keys())
+
+    if len(options_list) == 1:
+        click.echo(
+            f"\nBased on your selections, the only {msg} available is {options_list[0]}."
+            + f"\nWe will proceed to selecting the {msg} as {options_list[0]}."
+        )
+        return options_list[0]
+
+    click.echo(f"\n{question}")
+    options_list = (
+        get_sorted_runtimes(options_list) if msg == "Runtime" and not isinstance(options, list) else options_list
+    )
+    for index, option in enumerate(options_list):
+        click.echo(f"\t{index+1} - {option}")
+        click_choices.append(str(index + 1))
+    choice = click.prompt(msg, type=click.Choice(click_choices), show_choices=False)
+    return options_list[int(choice) - 1]
 
 
 def get_sorted_runtimes(options_list):
