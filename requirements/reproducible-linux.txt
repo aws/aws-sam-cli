@@ -64,9 +64,9 @@ cookiecutter==1.7.2 \
     --hash=sha256:430eb882d028afb6102c084bab6cf41f6559a77ce9b18dc6802e3bc0cc5f4a30 \
     --hash=sha256:efb6b2d4780feda8908a873e38f0e61778c23f6a2ea58215723bcceb5b515dac
     # via aws-sam-cli (setup.py)
-dateparser==0.7.6 \
-    --hash=sha256:7552c994f893b5cb8fcf103b4cd2ff7f57aab9bfd2619fdf0cf571c0740fd90b \
-    --hash=sha256:e875efd8c57c85c2d02b238239878db59ff1971f5a823457fcc69e493bf6ebfa
+dateparser==1.0.0 \
+    --hash=sha256:159cc4e01a593706a15cd4e269a0b3345edf3aef8bf9278a57dac8adf5bf1e4a \
+    --hash=sha256:17202df32c7a36e773136ff353aa3767e987f8b3e27374c39fd21a30a803d6f8
     # via aws-sam-cli (setup.py)
 docker==4.2.2 \
     --hash=sha256:03a46400c4080cb6f7aa997f881ddd84fef855499ece219d75fbdb53289c17ab \
