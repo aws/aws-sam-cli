@@ -1134,8 +1134,8 @@ class TestBuildWithBuildMethod(BuildIntegBase):
 
         # runtime is chosen based off current python version.
         runtime = self._get_python_version()
-        # BuildMethod is set to the ruby2.7, this should cause failure.
-        overrides = {"Runtime": runtime, "CodeUri": "Provided", "Handler": "main.handler", "BuildMethod": "ruby2.7"}
+        # BuildMethod is set to the java8, this should cause failure.
+        overrides = {"Runtime": runtime, "CodeUri": "Provided", "Handler": "main.handler", "BuildMethod": "java8"}
         manifest_path = os.path.join(self.test_data_path, "Provided", "requirements.txt")
 
         cmdlist = self.get_command_list(
@@ -1347,6 +1347,36 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
             self._verify_build_and_invoke_functions(
                 expected_messages, command_result, self._make_parameter_override_arg(overrides)
             )
+
+    @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
+    def test_cached_build_with_env_vars(self):
+        """
+        Build 2 times to verify that second time hits the cached build
+        """
+        overrides = {
+            "FunctionCodeUri": "Python",
+            "Function1Handler": "main.first_function_handler",
+            "Function2Handler": "main.second_function_handler",
+            "FunctionRuntime": "python3.8",
+        }
+        cmdlist = self.get_command_list(
+            use_container=True, parameter_overrides=overrides, cached=True, container_env_var="FOO=BAR"
+        )
+
+        LOG.info("Running Command (cache should be invalid): %s", cmdlist)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertTrue(
+            "Cache is invalid, running build and copying resources to function build definition"
+            in command_result.stderr.decode("utf-8")
+        )
+
+        LOG.info("Re-Running Command (valid cache should exist): %s", cmdlist)
+        command_result_with_cache = run_command(cmdlist, cwd=self.working_dir)
+
+        self.assertTrue(
+            "Valid cache found, copying previously built resources from function build definition"
+            in command_result_with_cache.stderr.decode("utf-8")
+        )
 
 
 @skipIf(

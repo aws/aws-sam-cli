@@ -114,6 +114,7 @@ class Deployer:
             if "Stack with id {0} does not exist".format(stack_name) in str(e):
                 LOG.debug("Stack with id %s does not exist", stack_name)
                 return False
+            return None
         except botocore.exceptions.BotoCoreError as e:
             # If there are credentials, environment errors,
             # catch that and throw a deploy failed error.

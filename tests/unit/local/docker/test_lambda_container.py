@@ -455,7 +455,7 @@ class TestLambdaContainer_get_exposed_ports(TestCase):
 
 class TestLambdaContainer_get_image(TestCase):
     def test_must_return_build_image(self):
-        expected = "amazon/aws-sam-cli-emulation-image-foo:rapid-x.y.z"
+        expected = "public.ecr.aws/sam/emulation-foo:rapid-x.y.z"
 
         image_builder = Mock()
         image_builder.build.return_value = expected
