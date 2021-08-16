@@ -126,10 +126,10 @@ for:
         - image: Ubuntu
 
     install:
-      # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
-      - sh: "sudo apt-get update"
       # apt repo for python3.9 installation
       - sh: "sudo add-apt-repository ppa:deadsnakes/ppa"
+      # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
+      - sh: "sudo apt-get update"
 
       - sh: "gvm use go1.13"
       - sh: "echo $PATH"
@@ -157,10 +157,10 @@ for:
       - sh: "sudo apt-get -y install python3.8"
       - sh: "sudo apt-get -y install python3.9"
 
-      - sh: "which python3.9"
       - sh: "which python3.8"
-      - sh: "which python3.6"
       - sh: "which python3.7"
+      - sh: "which python3.6"
+      - sh: "which python3.9"
       - sh: "which python2.7"
 
       - sh: "PATH=$PATH:/usr/bin/python3.9:/usr/bin/python3.8:/usr/bin/python3.7"
