@@ -55,7 +55,7 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID_IMAGE = "ImageFunction"
 
-    @parameterized.expand([("3.6", False), ("3.7", False), ("3.8", False)])
+    @parameterized.expand([("3.6", False), ("3.7", False), ("3.8", False), ("3.9", False)])
     @pytest.mark.flaky(reruns=3)
     def test_with_default_requirements(self, runtime, use_container):
         overrides = {
@@ -97,6 +97,7 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
             ("python3.6", "Python", False),
             ("python3.7", "Python", False),
             ("python3.8", "Python", False),
+            ("python3.9", "Python", False),
             # numpy 1.20.3 (in PythonPEP600/requirements.txt) only support python 3.7+
             ("python3.7", "PythonPEP600", False),
             ("python3.8", "PythonPEP600", False),
@@ -104,6 +105,7 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
             ("python3.6", "Python", "use_container"),
             ("python3.7", "Python", "use_container"),
             ("python3.8", "Python", "use_container"),
+            ("python3.9", "Python", "use_container"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -1188,12 +1190,12 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
             ),
             (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
-            (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
+            (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
             # container
             (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
-            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
+            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
         ]
     )
@@ -1311,12 +1313,12 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
             ),
             (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
-            (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
+            (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
             # container
             (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
-            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
+            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
         ]
     )
@@ -1397,12 +1399,12 @@ class TestParallelBuilds(DedupBuildIntegBase):
             ),
             (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
-            (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
+            (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
             # container
             (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
-            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
+            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
         ]
     )
