@@ -1,1 +1,4 @@
-{}
+{
+    "Error": "{{{error}}}",
+    "Cause": "{{{cause}}}"
+}
