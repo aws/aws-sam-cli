@@ -126,7 +126,7 @@ INIT_RUNTIMES = [
     "nodejs12.x",
     "nodejs10.x",
     # python runtimes in descending order
-    "python3.9"
+    "python3.9",
     "python3.8",
     "python3.7",
     "python3.6",
