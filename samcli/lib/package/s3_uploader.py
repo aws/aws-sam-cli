@@ -22,7 +22,6 @@ import sys
 from collections import abc
 from typing import Optional, Dict, Any, cast
 from urllib.parse import urlparse, parse_qs
-import click
 
 import botocore
 import botocore.exceptions
@@ -30,7 +29,7 @@ import botocore.exceptions
 from boto3.s3 import transfer
 
 from samcli.commands.package.exceptions import NoSuchBucketError, BucketNotSpecifiedError
-from samcli.lib.utils.hash import file_checksum
+from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name
 
 LOG = logging.getLogger(__name__)
 
@@ -138,11 +137,9 @@ class S3Uploader:
         # uploads of same object. Uploader will check if the file exists in S3
         # and re-upload only if necessary. So the template points to same file
         # in multiple places, this will upload only once
-        filemd5 = precomputed_md5 or file_checksum(file_name)
-        remote_path = filemd5
-        if extension:
-            remote_path = remote_path + "." + extension
-
+        remote_path = get_uploaded_s3_object_name(
+            precomputed_md5=precomputed_md5, file_path=file_name, extension=extension
+        )
         return self.upload(file_name, remote_path)
 
     def delete_artifact(self, remote_path: str, is_key: bool = False) -> bool:
@@ -164,14 +161,14 @@ class S3Uploader:
 
             # Deleting Specific file with key
             if self.file_exists(remote_path=key):
-                click.echo(f"\t- Deleting S3 object with key {key}")
+                LOG.info("\t- Deleting S3 object with key %s", key)
                 self.s3.delete_object(Bucket=self.bucket_name, Key=key)
                 LOG.debug("Deleted s3 object with key %s successfully", key)
                 return True
 
             # Given s3 object key does not exist
             LOG.debug("Could not find the S3 file with the key %s", key)
-            click.echo(f"\t- Could not find and delete the S3 object with the key {key}")
+            LOG.info("\t- Could not find and delete the S3 object with the key %s", key)
             return False
 
         except botocore.exceptions.ClientError as ex:

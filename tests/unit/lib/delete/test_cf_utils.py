@@ -5,7 +5,7 @@ from unittest import TestCase
 from samcli.commands.delete.exceptions import DeleteFailedError, FetchTemplateFailedError, CfDeleteFailedStatusError
 from botocore.exceptions import ClientError, BotoCoreError, WaiterError
 
-from samcli.lib.delete.cf_utils import CfUtils
+from samcli.lib.delete.cfn_utils import CfnUtils
 
 
 class MockDeleteWaiter:
@@ -23,7 +23,7 @@ class TestCfUtils(TestCase):
         self.session = MagicMock()
         self.cloudformation_client = self.session.client("cloudformation")
         self.s3_client = self.session.client("s3")
-        self.cf_utils = CfUtils(self.cloudformation_client)
+        self.cf_utils = CfnUtils(self.cloudformation_client)
 
     def test_cf_utils_init(self):
         self.assertEqual(self.cf_utils._client, self.cloudformation_client)

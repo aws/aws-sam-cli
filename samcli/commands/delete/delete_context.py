@@ -14,10 +14,10 @@ from click import prompt
 from samcli.lib.utils.hash import str_checksum
 from samcli.cli.cli_config_file import TomlProvider
 from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
-from samcli.lib.delete.cf_utils import CfUtils
+from samcli.lib.delete.cfn_utils import CfnUtils
 
 from samcli.lib.package.s3_uploader import S3Uploader
-from samcli.lib.package.artifact_exporter import mktempfile, get_cf_template_name
+from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name
 
 from samcli.cli.context import Context
 
@@ -82,19 +82,21 @@ class DeleteContext:
         config_options = toml_provider(
             config_path=self.config_file, config_env=self.config_env, cmd_names=[CONFIG_COMMAND]
         )
-        if config_options:
-            if not self.stack_name:
-                self.stack_name = config_options.get("stack_name", None)
-            # If the stack_name is same as the one present in samconfig file,
-            # get the information about parameters if not specified by user.
-            if self.stack_name and self.stack_name == config_options.get("stack_name", None):
-                LOG.debug("Local config present and using the defined options")
-                if not self.region:
-                    self.region = config_options.get("region", None)
-                if not self.profile:
-                    self.profile = config_options.get("profile", None)
-                self.s3_bucket = config_options.get("s3_bucket", None)
-                self.s3_prefix = config_options.get("s3_prefix", None)
+        if not config_options:
+            return
+
+        if not self.stack_name:
+            self.stack_name = config_options.get("stack_name", None)
+        # If the stack_name is same as the one present in samconfig file,
+        # get the information about parameters if not specified by user.
+        if self.stack_name and self.stack_name == config_options.get("stack_name", None):
+            LOG.debug("Local config present and using the defined options")
+            if not self.region:
+                self.region = config_options.get("region", None)
+            if not self.profile:
+                self.profile = config_options.get("profile", None)
+            self.s3_bucket = config_options.get("s3_bucket", None)
+            self.s3_prefix = config_options.get("s3_prefix", None)
 
     def init_clients(self):
         """
@@ -106,6 +108,8 @@ class DeleteContext:
                 region = session.region_name
                 self.region = region if region else "us-east-1"
             else:
+                # TODO: as part of the guided and non-guided context separation, we need also to move the options
+                # validations to a validator similar to samcli/lib/cli_validation/image_repository_validation.py.
                 raise click.BadOptionUsage(
                     option_name="--region",
                     message="Missing option '--region', region is required to run the non guided delete command.",
@@ -131,7 +135,7 @@ class DeleteContext:
         self.ecr_uploader = ECRUploader(docker_client=None, ecr_client=ecr_client, ecr_repo=None, ecr_repo_multi=None)
 
         self.uploaders = Uploaders(self.s3_uploader, self.ecr_uploader)
-        self.cf_utils = CfUtils(cloudformation_client)
+        self.cf_utils = CfnUtils(cloudformation_client)
 
     def s3_prompts(self):
         """
@@ -172,17 +176,17 @@ class DeleteContext:
         User prompt to delete the ECR companion stack.
         """
         click.echo(f"\tFound ECR Companion Stack {self.companion_stack_name}")
-        if not self.no_prompts:
-            delete_ecr_companion_stack_prompt = confirm(
-                click.style(
-                    "\tDo you you want to delete the ECR companion stack"
-                    f" {self.companion_stack_name} in the region {self.region} ?",
-                    bold=True,
-                ),
-                default=False,
-            )
-            return delete_ecr_companion_stack_prompt
-        return True
+        if self.no_prompts:
+            return True
+
+        return confirm(
+            click.style(
+                "\tDo you you want to delete the ECR companion stack"
+                f" {self.companion_stack_name} in the region {self.region} ?",
+                bold=True,
+            ),
+            default=False,
+        )
 
     def ecr_repos_prompts(self, template: Template):
         """
@@ -259,8 +263,7 @@ class DeleteContext:
             template_str = json.dumps(template_str, indent=4, ensure_ascii=False)
 
         # Get the cloudformation template name using template_str
-        with mktempfile() as temp_file:
-            self.cf_template_file_name = get_cf_template_name(temp_file, template_str, "template")
+        self.cf_template_file_name = get_uploaded_s3_object_name(file_content=template_str, extension="template")
 
         template = Template(
             template_path=None,

@@ -41,10 +41,9 @@ from samcli.lib.package.utils import (
     is_local_folder,
     make_abs_path,
     is_local_file,
-    mktempfile,
     is_s3_url,
-    get_cf_template_name,
 )
+from samcli.lib.package.local_files_utils import mktempfile, get_uploaded_s3_object_name
 from samcli.lib.utils.packagetype import ZIP
 from samcli.yamlhelper import yaml_parse, yaml_dump
 
@@ -84,10 +83,9 @@ class CloudFormationStackResource(ResourceZip):
         exported_template_str = yaml_dump(exported_template_dict)
 
         with mktempfile() as temporary_file:
-
-            remote_path = get_cf_template_name(
-                temp_file=temporary_file, template_str=exported_template_str, extension="template"
-            )
+            temporary_file.write(exported_template_str)
+            temporary_file.flush()
+            remote_path = get_uploaded_s3_object_name(file_path=temporary_file.name, extension="template")
             url = self.uploader.upload(temporary_file.name, remote_path)
 
             # TemplateUrl property requires S3 URL to be in path-style format
@@ -135,7 +133,7 @@ class Template:
         """
         if not template_str:
             if not (is_local_folder(parent_dir) and os.path.isabs(parent_dir)):
-                raise ValueError("parent_dir parameter must be " "an absolute path to a folder {0}".format(parent_dir))
+                raise ValueError("parent_dir parameter must be an absolute path to a folder {0}".format(parent_dir))
 
             abs_template_path = make_abs_path(parent_dir, template_path)
             template_dir = os.path.dirname(abs_template_path)

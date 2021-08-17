@@ -13,7 +13,7 @@ from samcli.commands.delete.exceptions import DeleteFailedError, FetchTemplateFa
 LOG = logging.getLogger(__name__)
 
 
-class CfUtils:
+class CfnUtils:
     def __init__(self, cloudformation_client):
         self._client = cloudformation_client
 
