@@ -11,7 +11,7 @@ import uuid
 import zipfile
 import contextlib
 from contextlib import contextmanager
-from typing import Dict, Optional, cast
+from typing import Dict, Optional, cast, TextIO
 
 import jmespath
 
@@ -19,7 +19,7 @@ from samcli.commands.package import exceptions
 from samcli.commands.package.exceptions import ImageNotFoundError
 from samcli.lib.package.ecr_utils import is_ecr_url
 from samcli.lib.package.s3_uploader import S3Uploader
-from samcli.lib.utils.hash import dir_checksum
+from samcli.lib.utils.hash import dir_checksum, file_checksum
 
 LOG = logging.getLogger(__name__)
 
@@ -110,7 +110,8 @@ def upload_local_image_artifacts(resource_id, resource_dict, property_name, pare
     image_path = jmespath.search(property_name, resource_dict)
 
     if not image_path:
-        raise ImageNotFoundError(property_name=property_name, resource_id=resource_id)
+        message_fmt = "Image not found for {property_name} parameter of {resource_id} resource. \n"
+        raise ImageNotFoundError(property_name=property_name, resource_id=resource_id, message_fmt=message_fmt)
 
     if is_ecr_url(image_path):
         LOG.debug("Property %s of %s is already an ECR URL", property_name, resource_id)
@@ -284,3 +285,13 @@ def copy_to_temp_dir(filepath):
     dst = os.path.join(tmp_dir, os.path.basename(filepath))
     shutil.copyfile(filepath, dst)
     return tmp_dir
+
+
+def get_cf_template_name(temp_file: TextIO, template_str: str, extension: str) -> str:
+    temp_file.write(template_str)
+    temp_file.flush()
+
+    filemd5 = file_checksum(temp_file.name)
+    remote_path = filemd5 + "." + extension
+
+    return remote_path
