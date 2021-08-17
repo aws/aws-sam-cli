@@ -84,6 +84,7 @@ class Deployer:
         self.max_attempts = 3
         self.deploy_color = DeployColor()
 
+    # pylint: disable=inconsistent-return-statements
     def has_stack(self, stack_name):
         """
         Checks if a CloudFormation stack with given name exists
