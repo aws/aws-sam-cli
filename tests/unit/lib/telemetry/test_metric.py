@@ -222,7 +222,7 @@ class TestTrackCommand(TestCase):
         self.assertGreaterEqual(
             metric.get_data()["duration"],
             sleep_duration,
-            "Measured duration must be in milliseconds and greater than equal to  the sleep duration",
+            "Measured duration must be in milliseconds and greater than equal to the sleep duration",
         )
 
     @patch("samcli.lib.telemetry.metric.Context")
