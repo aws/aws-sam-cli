@@ -3,4 +3,9 @@ from .hidden_imports import SAM_CLI_HIDDEN_IMPORTS, SAM_CLI_COLLECT_DATA_PACKAGE
 
 hiddenimports = SAM_CLI_HIDDEN_IMPORTS
 
-datas = sum(hooks.collect_data_files(package) for package in SAM_CLI_COLLECT_DATA_PACKAGES)
+datas = (
+    hooks.collect_data_files("samcli")
+    + hooks.collect_data_files("samtranslator")
+    + hooks.collect_data_files("aws_lambda_builders")
+    + hooks.collect_data_files("text_unidecode")
+)
