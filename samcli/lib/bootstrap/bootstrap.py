@@ -4,30 +4,49 @@ Bootstrap's user's development environment by creating cloud resources required 
 
 import json
 import logging
+from typing import Optional
+
+import boto3
+from botocore.exceptions import ClientError
+
 from samcli import __version__
 from samcli.cli.global_config import GlobalConfig
-from samcli.commands.exceptions import UserException
-from samcli.lib.utils.managed_cloudformation_stack import manage_stack as manage_cloudformation_stack
+from samcli.commands.exceptions import UserException, CredentialsError
+from samcli.lib.utils.managed_cloudformation_stack import StackOutput, manage_stack as manage_cloudformation_stack
 
 SAM_CLI_STACK_NAME = "aws-sam-cli-managed-default"
 LOG = logging.getLogger(__name__)
 
 
 def manage_stack(profile, region):
-    outputs = manage_cloudformation_stack(
+    outputs: StackOutput = manage_cloudformation_stack(
         profile=None, region=region, stack_name=SAM_CLI_STACK_NAME, template_body=_get_stack_template()
     )
 
-    try:
-        bucket_name = next(o for o in outputs if o["OutputKey"] == "SourceBucket")["OutputValue"]
-    except StopIteration as ex:
+    bucket_name = outputs.get("SourceBucket")
+    if bucket_name is None:
         msg = (
             "Stack " + SAM_CLI_STACK_NAME + " exists, but is missing the managed source bucket key. "
             "Failing as this stack was likely not created by the AWS SAM CLI."
         )
-        raise UserException(msg) from ex
+        raise UserException(msg)
     # This bucket name is what we would write to a config file
     return bucket_name
+
+
+def get_current_account_id(profile: Optional[str] = None):
+    """Returns account ID based on used AWS credentials."""
+    session = boto3.Session(profile_name=profile)  # type: ignore
+    sts_client = session.client("sts")
+    try:
+        caller_identity = sts_client.get_caller_identity()
+    except ClientError as ex:
+        if ex.response["Error"]["Code"] == "InvalidClientTokenId":
+            raise CredentialsError("Cannot identify account due to invalid configured credentials.") from ex
+        raise CredentialsError("Cannot identify account based on configured credentials.") from ex
+    if "Account" not in caller_identity:
+        raise CredentialsError("Cannot identify account based on configured credentials.")
+    return caller_identity["Account"]
 
 
 def _get_stack_template():
@@ -73,6 +92,9 @@ def _get_stack_template():
                       - "/*"
                 Principal:
                   Service: serverlessrepo.amazonaws.com
+                Condition:
+                  StringEquals:
+                    aws:SourceAccount: !Ref AWS::AccountId
 
     Outputs:
       SourceBucket:

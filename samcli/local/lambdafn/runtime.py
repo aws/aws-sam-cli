@@ -1,20 +1,21 @@
 """
 Classes representing a local Lambda runtime
 """
-
+import copy
 import os
 import shutil
 import tempfile
 import signal
 import logging
 import threading
-from typing import Optional
+from typing import Optional, Union, Dict
 
 from samcli.local.docker.lambda_container import LambdaContainer
 from samcli.lib.utils.file_observer import LambdaFunctionObserver
 from samcli.lib.utils.packagetype import ZIP
 from samcli.lib.telemetry.metric import MetricName, capture_parameter
 from .zip import unzip
+from ...lib.providers.provider import LayerVersion
 from ...lib.utils.stream_writer import StreamWriter
 
 LOG = logging.getLogger(__name__)
@@ -44,7 +45,7 @@ class LambdaRuntime:
         self._image_builder = image_builder
         self._temp_uncompressed_paths_to_be_cleaned = []
 
-    def create(self, function_config, debug_context=None):
+    def create(self, function_config, debug_context=None, container_host=None, container_host_interface=None):
         """
         Create a new Container for the passed function, then store it in a dictionary using the function name,
         so it can be retrieved later and used in the other functions. Make sure to use the debug_context only
@@ -56,6 +57,8 @@ class LambdaRuntime:
             Configuration of the function to create a new Container for it.
         debug_context DebugContext
             Debugging context for the function (includes port, args, and path)
+        container_host string
+            Host of locally emulated Lambda container
 
         Returns
         -------
@@ -66,6 +69,7 @@ class LambdaRuntime:
         env_vars = function_config.env_vars.resolve()
 
         code_dir = self._get_code_dir(function_config.code_abs_path)
+        layers = [self._unarchived_layer(layer) for layer in function_config.layers]
         container = LambdaContainer(
             function_config.runtime,
             function_config.imageuri,
@@ -73,11 +77,13 @@ class LambdaRuntime:
             function_config.packagetype,
             function_config.imageconfig,
             code_dir,
-            function_config.layers,
+            layers,
             self._image_builder,
             memory_mb=function_config.memory,
             env_vars=env_vars,
             debug_options=debug_context,
+            container_host=container_host,
+            container_host_interface=container_host_interface,
         )
         try:
             # create the container.
@@ -88,7 +94,7 @@ class LambdaRuntime:
             LOG.debug("Ctrl+C was pressed. Aborting container creation")
             raise
 
-    def run(self, container, function_config, debug_context):
+    def run(self, container, function_config, debug_context, container_host=None, container_host_interface=None):
         """
         Find the created container for the passed Lambda function, then using the
         ContainerManager run this container.
@@ -102,6 +108,11 @@ class LambdaRuntime:
             Configuration of the function to run its created container.
         debug_context DebugContext
             Debugging context for the function (includes port, args, and path)
+        container_host string
+            Host of locally emulated Lambda container
+        container_host_interface string
+            Optional. Interface that Docker host binds ports to
+
         Returns
         -------
         Container
@@ -109,7 +120,7 @@ class LambdaRuntime:
         """
 
         if not container:
-            container = self.create(function_config, debug_context)
+            container = self.create(function_config, debug_context, container_host, container_host_interface)
 
         if container.is_running():
             LOG.info("Lambda function '%s' is already running", function_config.name)
@@ -132,6 +143,8 @@ class LambdaRuntime:
         debug_context=None,
         stdout: Optional[StreamWriter] = None,
         stderr: Optional[StreamWriter] = None,
+        container_host=None,
+        container_host_interface=None,
     ):
         """
         Invoke the given Lambda function locally.
@@ -150,13 +163,17 @@ class LambdaRuntime:
             StreamWriter that receives stdout text from container.
         :param samcli.lib.utils.stream_writer.StreamWriter stderr: Optional.
             StreamWriter that receives stderr text from container.
+        :param string container_host: Optional.
+            Host of locally emulated Lambda container
+        :param string container_host_interface: Optional.
+            Interface that Docker host binds ports to
         :raises Keyboard
         """
         timer = None
         container = None
         try:
             # Start the container. This call returns immediately after the container starts
-            container = self.create(function_config, debug_context)
+            container = self.create(function_config, debug_context, container_host, container_host_interface)
             container = self.run(container, function_config, debug_context)
             # Setup appropriate interrupt - timeout or Ctrl+C - before function starts executing.
             #
@@ -235,9 +252,9 @@ class LambdaRuntime:
         timer.start()
         return timer
 
-    def _get_code_dir(self, code_path):
+    def _get_code_dir(self, code_path: str) -> str:
         """
-        Method to get a path to a directory where the Lambda function code is available. This directory will
+        Method to get a path to a directory where the function/layer code is available. This directory will
         be mounted directly inside the Docker container.
 
         This method handles a few different cases for ``code_path``:
@@ -259,12 +276,33 @@ class LambdaRuntime:
         """
 
         if code_path and os.path.isfile(code_path) and code_path.endswith(self.SUPPORTED_ARCHIVE_EXTENSIONS):
-            decompressed_dir = _unzip_file(code_path)
+            decompressed_dir: str = _unzip_file(code_path)
             self._temp_uncompressed_paths_to_be_cleaned += [decompressed_dir]
             return decompressed_dir
 
         LOG.debug("Code %s is not a zip/jar file", code_path)
         return code_path
+
+    def _unarchived_layer(self, layer: Union[str, Dict, LayerVersion]) -> Union[str, Dict, LayerVersion]:
+        """
+        If the layer's content uri points to a supported local archive file, use self._get_code_dir() to
+        un-archive it and so that it can be mounted directly inside the Docker container.
+        Parameters
+        ----------
+        layer
+            a str, dict or a LayerVersion object representing a layer
+
+        Returns
+        -------
+            as it is (if no archived file is identified)
+            or a LayerVersion with ContentUri pointing to an unarchived directory
+        """
+        if isinstance(layer, LayerVersion) and isinstance(layer.codeuri, str):
+            unarchived_layer = copy.deepcopy(layer)
+            unarchived_layer.codeuri = self._get_code_dir(layer.codeuri)
+            return unarchived_layer if unarchived_layer.codeuri != layer.codeuri else layer
+
+        return layer
 
     def _clean_decompressed_paths(self):
         """
@@ -301,7 +339,7 @@ class WarmLambdaRuntime(LambdaRuntime):
 
         super().__init__(container_manager, image_builder)
 
-    def create(self, function_config, debug_context=None):
+    def create(self, function_config, debug_context=None, container_host=None, container_host_interface=None):
         """
         Create a new Container for the passed function, then store it in a dictionary using the function name,
         so it can be retrieved later and used in the other functions. Make sure to use the debug_context only
@@ -313,6 +351,10 @@ class WarmLambdaRuntime(LambdaRuntime):
             Configuration of the function to create a new Container for it.
         debug_context DebugContext
             Debugging context for the function (includes port, args, and path)
+        container_host string
+            Host of locally emulated Lambda container
+        container_host_interface string
+            Interface that Docker host binds ports to
 
         Returns
         -------
@@ -336,7 +378,7 @@ class WarmLambdaRuntime(LambdaRuntime):
             )
             debug_context = None
 
-        container = super().create(function_config, debug_context)
+        container = super().create(function_config, debug_context, container_host, container_host_interface)
         self._containers[function_config.name] = container
 
         self._observer.watch(function_config)

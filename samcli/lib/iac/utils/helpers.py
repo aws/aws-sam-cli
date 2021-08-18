@@ -30,7 +30,7 @@ def get_iac_plugin(project_type, command_params, with_build):
     lookup_paths = []
 
     if with_build:
-        from samcli.commands.build.command import DEFAULT_BUILD_DIR
+        from samcli.commands.build.build_constants import DEFAULT_BUILD_DIR
 
         # is this correct? --build-dir is only used for "build" (for writing)
         # but with_true is True for "local" commands only

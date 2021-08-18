@@ -5,6 +5,7 @@ import tempfile
 import shutil
 from collections import namedtuple
 from subprocess import Popen, PIPE, TimeoutExpired
+from typing import List
 
 IS_WINDOWS = platform.system().lower() == "windows"
 RUNNING_ON_CI = os.environ.get("APPVEYOR", False)
@@ -48,6 +49,14 @@ def run_command_with_input(command_list, stdin_input, cwd=None, env=None, timeou
         LOG.error(f"Return Code: {process_execute.returncode}")
         process_execute.kill()
         raise
+
+
+def run_command_with_inputs(
+    command_list: List[str], inputs: List[str], cwd=None, env=None, timeout=TIMEOUT
+) -> CommandResult:
+    return run_command_with_input(
+        command_list=command_list, stdin_input=("\n".join(inputs) + "\n").encode(), cwd=cwd, env=env, timeout=timeout
+    )
 
 
 class FileCreator(object):

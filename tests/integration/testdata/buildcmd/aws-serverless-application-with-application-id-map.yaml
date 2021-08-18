@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Mappings:
+  MappingExample:
+    us-east-2:
+      ApplicationId: arn:aws:serverlessrepo:us-east-1:077246666028:applications/hello-world
+
+Resources:
+  MyApplication:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location:
+        ApplicationId: !FindInMap [ MappingExample, !Ref AWS::Region, ApplicationId ]
+        SemanticVersion: 1.0.4
+      Parameters:
+        IdentityNameParameter: AnyValue
