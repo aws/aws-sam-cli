@@ -10,6 +10,7 @@ import os
 
 LOG = logging.getLogger(__name__)
 
+
 @skipIf(
     not RUN_BY_CANARY,
     "Skip build tests that are not running on canaries",
