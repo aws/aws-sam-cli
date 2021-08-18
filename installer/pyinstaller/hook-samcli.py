@@ -1,5 +1,5 @@
 from PyInstaller.utils import hooks
-from .hidden_imports import SAM_CLI_HIDDEN_IMPORTS, SAM_CLI_COLLECT_DATA_PACKAGES
+from installer.pyinstaller.hidden_imports import SAM_CLI_HIDDEN_IMPORTS
 
 hiddenimports = SAM_CLI_HIDDEN_IMPORTS
 

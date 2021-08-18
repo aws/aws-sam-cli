@@ -11,5 +11,3 @@ SAM_CLI_HIDDEN_IMPORTS = _SAM_CLI_COMMAND_PACKAGES + [
     "aws_lambda_builders.workflows",
     "configparser",
 ]
-
-SAM_CLI_COLLECT_DATA_PACKAGES = ["samcli", "samtranslator", "aws_lambda_builders", "text_unidecode"]
