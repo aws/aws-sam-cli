@@ -1,14 +1,19 @@
+from unittest import skipIf
+
 from .build_integ_base import CdkBuildIntegPythonBase, CdkBuildIntegNodejsBase
 from distutils.dir_util import copy_tree
 from pathlib import Path
-from tests.testing_utils import run_command
+from tests.testing_utils import run_command, RUN_BY_CANARY
 import logging
 import requests
 import os
 
 LOG = logging.getLogger(__name__)
 
-
+@skipIf(
+    not RUN_BY_CANARY,
+    "Skip build tests that are not running on canaries",
+)
 class TestBuildWithCDKPluginNestedStacks(CdkBuildIntegPythonBase):
     def test_cdk_nested_build(self):
         project_name = "cdk-example-multiple-stacks-01"
@@ -32,6 +37,10 @@ class TestBuildWithCDKPluginNestedStacks(CdkBuildIntegPythonBase):
         )
 
 
+@skipIf(
+    not RUN_BY_CANARY,
+    "Skip build tests that are not running on canaries",
+)
 class TestBuildWithCDKPluginWithApiGateway(CdkBuildIntegNodejsBase):
     def test_cdk_apigateway(self):
         project_name = "cdk-example-rest-api-gateway"
@@ -46,6 +55,10 @@ class TestBuildWithCDKPluginWithApiGateway(CdkBuildIntegNodejsBase):
         )
 
 
+@skipIf(
+    not RUN_BY_CANARY,
+    "Skip build tests that are not running on canaries",
+)
 class TestBuildWithCDKPluginWithApiCorsLambda(CdkBuildIntegPythonBase):
     def test_cdk_api_cors_lambda(self):
         project_name = "api-cors-lambda"
@@ -58,6 +71,10 @@ class TestBuildWithCDKPluginWithApiCorsLambda(CdkBuildIntegPythonBase):
         self.verify_invoke_built_function("ApiCorsLambdaStack/ApiCorsLambda", expected, self.working_dir)
 
 
+@skipIf(
+    not RUN_BY_CANARY,
+    "Skip build tests that are not running on canaries",
+)
 class TestBuildWithCDKLayer(CdkBuildIntegPythonBase):
     def test_cdk_layer(self):
         project_name = "cdk-example-layer"
@@ -71,6 +88,10 @@ class TestBuildWithCDKLayer(CdkBuildIntegPythonBase):
         self.verify_invoke_built_function("CdkExampleLayerStack/lambda-function", expected, self.working_dir)
 
 
+@skipIf(
+    not RUN_BY_CANARY,
+    "Skip build tests that are not running on canaries",
+)
 class TestBuildWithCDKVariousOptions(CdkBuildIntegPythonBase):
     project_name = "api-cors-lambda"
 
