@@ -111,7 +111,7 @@ class PackageRegressionBase(TestCase):
             output_aws = output_template_file_aws.read()
 
         # remove the region name from the template url in cases like nested stacks
-        output_aws = output_aws.replace(b's3.us-east-1.', b's3.')
+        output_aws = output_aws.replace(b"s3.us-east-1.", b"s3.")
 
         if "use_json" in args and args.get("use_json"):
             output_sam = json.loads(output_sam)
