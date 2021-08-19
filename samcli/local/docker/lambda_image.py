@@ -30,6 +30,7 @@ class Runtime(Enum):
     python36 = "python3.6"
     python37 = "python3.7"
     python38 = "python3.8"
+    python39 = "python3.9"
     ruby25 = "ruby2.5"
     ruby27 = "ruby2.7"
     java8 = "java8"
@@ -54,7 +55,7 @@ class Runtime(Enum):
 
 class LambdaImage:
     _LAYERS_DIR = "/opt"
-    _INVOKE_REPO_PREFIX = "amazon/aws-sam-cli-emulation-image"
+    _INVOKE_REPO_PREFIX = "public.ecr.aws/sam/emulation"
     _SAM_CLI_REPO_NAME = "samcli/lambda"
     _RAPID_SOURCE_PATH = Path(__file__).parent.joinpath("..", "rapid").resolve()
 
