@@ -118,4 +118,5 @@ class PackageRegressionBase(TestCase):
             # remove the region name from the template url in cases like nested stacks
             output_aws = output_aws.replace(b's3.us-east-1.', b's3.')
             output_aws = yaml_parse(output_aws)
-            self.assertEqual(output_sam, output_aws)
+
+        self.assertEqual(output_sam, output_aws)
