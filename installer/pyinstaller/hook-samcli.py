@@ -13,6 +13,7 @@ hiddenimports = [
     "samcli.commands.deploy",
     "samcli.commands.logs",
     "samcli.commands.publish",
+    "samcli.commands.delete",
     "samcli.commands.pipeline.pipeline",
     "samcli.commands.pipeline.init",
     "samcli.commands.pipeline.bootstrap",
