@@ -30,7 +30,6 @@ class MockInitTemplates:
             url=APP_TEMPLATES_REPO_URL,
         )
         self._git_repo.clone_attempted = True
-        # self._git_repo.local_path = Path("repository")
         self._git_repo.local_path = Path("tests/unit/commands/init")
 
 

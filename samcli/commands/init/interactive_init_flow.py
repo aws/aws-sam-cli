@@ -301,8 +301,7 @@ def _get_image_from_runtime(runtime):
     """
     Get corresponding base-image from the runtime parameter
     """
-    image = LAMBDA_IMAGES_RUNTIMES_MAP[runtime]
-    return image
+    return LAMBDA_IMAGES_RUNTIMES_MAP[runtime]
 
 
 def _get_schema_template_details(schemas_api_caller):

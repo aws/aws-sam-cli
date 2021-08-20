@@ -243,9 +243,7 @@ class InitTemplates:
 def get_template_value(value, template):
     if value not in template:
         raise InvalidInitTemplateError(
-            "Template is missing the value for {property} in manifest file. Please raise a ticket".format(
-                property=value
-            )
+            f"Template is missing the value for {value} in manifest file. Please raise a ticket"
         )
     return template.get(value)
 
