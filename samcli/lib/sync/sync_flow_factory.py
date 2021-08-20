@@ -16,6 +16,7 @@ from samcli.lib.sync.flows.http_api_sync_flow import HttpApiSyncFlow
 from samcli.lib.sync.flows.stepfunctions_sync_flow import StepFunctionsSyncFlow
 from samcli.lib.utils.boto_utils import get_boto_resource_provider_with_config
 from samcli.lib.utils.cloudformation import get_physical_id_mapping
+from samcli.lib.package.utils import is_local_file
 from samcli.lib.utils.resources import (
     AWS_SERVERLESS_FUNCTION,
     AWS_LAMBDA_FUNCTION,
@@ -102,7 +103,12 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
             self._stacks,
         )
 
-    def _create_rest_api_flow(self, resource_identifier: ResourceIdentifier, resource: Dict[str, Any]) -> SyncFlow:
+    def _create_rest_api_flow(
+        self, resource_identifier: ResourceIdentifier, resource: Dict[str, Any]
+    ) -> Optional[SyncFlow]:
+        if not self.check_definition_uri(resource_identifier, resource):
+            return None
+
         return RestApiSyncFlow(
             str(resource_identifier),
             self._build_context,
@@ -111,7 +117,10 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
             self._stacks,
         )
 
-    def _create_api_flow(self, resource_identifier: ResourceIdentifier, resource: Dict[str, Any]) -> SyncFlow:
+    def _create_api_flow(self, resource_identifier: ResourceIdentifier, resource: Dict[str, Any]) -> Optional[SyncFlow]:
+        if not self.check_definition_uri(resource_identifier, resource):
+            return None
+
         return HttpApiSyncFlow(
             str(resource_identifier),
             self._build_context,
@@ -123,14 +132,18 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
     def _create_stepfunctions_flow(
         self, resource_identifier: ResourceIdentifier, resource: Dict[str, Any]
     ) -> Optional[SyncFlow]:
+        if not self.check_definition_uri(resource_identifier, resource):
+            return None
+
         definition_substitutions = resource.get("Properties", dict()).get("DefinitionSubstitutions", None)
         if definition_substitutions:
             LOG.warning(
-                "DefinitionSubstitutions property is specified in resource %s. Skipping this resource. "
-                "Code sync for StepFunctions does not go through CFN, please run sam sync --infra to update.",
+                "DefinitionSubstitutions property is specified in resource %s. Skipping this resource. \
+Code sync for StepFunctions does not go through CFN, please run sam sync --infra to update.",
                 resource_identifier,
             )
             return None
+
         return StepFunctionsSyncFlow(
             str(resource_identifier),
             self._build_context,
@@ -164,3 +177,16 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
         if not generator or not resource:
             return None
         return cast(SyncFlowFactory.GeneratorFunction, generator)(self, resource_identifier, resource)
+
+    @staticmethod
+    def check_definition_uri(resource_identifier: ResourceIdentifier, resource: Dict[str, Any]) -> bool:
+        definition_uri = resource.get("Properties", dict()).get("DefinitionUri", None)
+        if not definition_uri or not is_local_file(str(definition_uri)):
+            LOG.warning(
+                "Skipping %s, since for %s resource we only support sync \
+when a valid local definition file is specified for the DefinitionUri property",
+                resource_identifier,
+                resource.get("Type", ""),
+            )
+            return False
+        return True

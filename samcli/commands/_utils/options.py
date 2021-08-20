@@ -682,6 +682,19 @@ def role_arn_option(f):
     return role_arn_click_option()(f)
 
 
+def list_resource_click_option():
+    return click.option(
+        "--list",
+        "list_resource",
+        is_flag=True,
+        help="List all of the available resource IDs of the current project.",
+    )
+
+
+def list_resource_option(f):
+    return list_resource_click_option()(f)
+
+
 def _space_separated_list_func_type(value):
     if isinstance(value, str):
         return value.split(" ")
