@@ -122,20 +122,20 @@ try {
             pytest --cov samcli --cov-report html --cov-fail-under 95 tests/unit
         }
         $IntegTest {
-            Write-Host "Telemetry Status: $env:SAM_CLI_TELEMETRY"
-	        pytest tests/integration
+            Write-Output "Telemetry Status: $env:SAM_CLI_TELEMETRY"
+            pytest tests/integration
         }
         $FuncTest {
-            Write-Host "Telemetry Status: $env:SAM_CLI_TELEMETRY"
-	        pytest --cov samcli.local --cov samcli.commands.local --cov-report term-missing tests/functional
+            Write-Output "Telemetry Status: $env:SAM_CLI_TELEMETRY"
+            pytest --cov samcli.local --cov samcli.commands.local --cov-report term-missing tests/functional
         }
         $RegresTest {
-            Write-Host "Telemetry Status: $env:SAM_CLI_TELEMETRY"
-	        pytest tests/regression
+            Write-Output "Telemetry Status: $env:SAM_CLI_TELEMETRY"
+            pytest tests/regression
         }
         $SmokeTest {
-            Write-Host "Telemetry Status: $env:SAM_CLI_TELEMETRY"
-	        pytest -n 4 tests/smoke
+            Write-Output "Telemetry Status: $env:SAM_CLI_TELEMETRY"
+            pytest -n 4 tests/smoke
         }
         $Lint {
             Lint
@@ -154,8 +154,9 @@ try {
             Dev
             BlackCheck
         }
-        
-        default { Write-Host 'You have to specify one of the parameters. Call Get-Help ./Make.ps1 for more information' -ForegroundColor red }
+        default {
+            Get-Help ./Make
+        }
     }
 }
 finally {
