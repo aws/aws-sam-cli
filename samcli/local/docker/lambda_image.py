@@ -301,7 +301,7 @@ class LambdaImage:
 
         Parameters
         ----------
-        repo st
+        repo string
             Repo for which rapid images will be removed
         """
         LOG.info("Removing rapid images for repo %s", repo)
