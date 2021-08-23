@@ -90,6 +90,12 @@ git clone https://github.com/aws/aws-sam-cli.git
 cd aws-sam-cli
 make init  # this will put a file `samdev` available in $PATH
 ```
+Windows users can use PowerShell and `Make.ps1` script which performs the tasks from `Makefile` without *nix `make` tool.
+
+```PowerShell
+cd aws-sam-cli
+./Make -Init
+```
 
 Now you can verify whether the dev AWS SAM CLI is available:
 
@@ -143,6 +149,12 @@ Move back to your SAM CLI directory and re-run init, If necessary: open requirem
 make init
 ```
 
+Or on Windows
+
+```PowerShell
+./Make -Init
+```
+
 ## Making a Pull Request
 
 Above demonstrates how to setup the environment, which is enough
@@ -175,10 +187,12 @@ python --version  # Python 3.7.10
 make init  # one time setup, this will put a file `samdev` available in $PATH
 ```
 
+For Windows, use your favorite tool for managing different python versions and environments and call `./Make -Init` to initialize each of the environments.
+
 ### Format Python Code
 
 We format our code using [Black](https://github.com/python/black) and verify the source code is
-black compliant in AppVeyor during PRs. Black will be installed automatically with `make init`.
+black compliant in AppVeyor during PRs. Black will be installed automatically with `make init` or `./Make -Init` on Windows.
 
 There are generally 3 options to make sure your change is compliant with our formatting standard:
 
@@ -186,6 +200,12 @@ There are generally 3 options to make sure your change is compliant with our for
 
 ```sh
 make black
+```
+
+On Windows:
+
+```PowerShell
+./Make -Black
 ```
 
 #### (Option 2) Integrating Black directly in your favorite IDE
@@ -224,7 +244,13 @@ lint, formatter, unit tests, function tests, and so on.
 make pr
 ```
 
-We also suggest to run `make pr` in all Python versions.
+Use `Make.ps1` script on Windows instead:
+
+```PowerShell
+./Make -pr
+```
+
+We also suggest to run `make pr` or `./Make -pr` in all Python versions.
 
 #### Unit Testing with Multiple Python Versions (Optional)
 
@@ -244,6 +270,21 @@ installation. It looks for a command named `sam` in your shell.
 development version of SAM CLI. This is useful if you are making changes
 to the CLI and want to verify that it works. It is a good practice to
 run integration tests before submitting a pull request.
+
+On Windows, the behaviour is slightly different. `./Make -IntegTest` runs integration tests **only** against **development** version of SAM CLI.
+
+`Make.ps1` script always sets environment to `dev` before running any command and resets `SAM_CLI_DEV` when done, even if a command fails.
+
+```PowerShell
+$env:SAM_CLI_DEV = 1
+try {
+  # execute commands here
+  ...
+}
+finally {
+  $env:SAM_CLI_DEV = ''
+}
+```
 
 ## Other Topics
 ### Code Conventions
