@@ -416,6 +416,8 @@ class TestDeleteOldRapidImages(InvokeIntegBase):
             path=cls.test_data_invoke_path, dockerfile="Dockerfile", tag=cls.tag, decode=True, nocache=True
         ):
             print(log)
+        cls.other_repo = "test-delete-old-rapid-images-other-repo"
+        cls.other_repo_tags = [f"{cls.other_repo}:v1", f"{cls.other_repo}:rapid-0.00.01"]
 
     @classmethod
     def tearDownClass(cls):
@@ -434,7 +436,7 @@ class TestDeleteOldRapidImages(InvokeIntegBase):
         self.new_rapid_image_tag = f"{self.repo}:rapid-{version}"
 
     def tearDown(self):
-        for tag in self.old_rapid_image_tags + [self.new_rapid_image_tag]:
+        for tag in self.old_rapid_image_tags + [self.new_rapid_image_tag] + self.other_repo_tags:
             try:
                 self.client.api.remove_image(tag)
             except APIError:
@@ -484,3 +486,25 @@ class TestDeleteOldRapidImages(InvokeIntegBase):
             self.client.images.get(tag)
         self.client.images.get(self.new_rapid_image_tag)
         self.client.images.get(f"{self.repo}:v1")
+
+    @pytest.mark.flaky(reruns=3)
+    def test_building_new_rapid_image_doesnt_remove_images_in_other_repos(self):
+        for tag in self.other_repo_tags:
+            for log in self.client.api.build(
+                path=self.test_data_invoke_path, dockerfile="Dockerfile", tag=tag, decode=True, nocache=True
+            ):
+                print(log)
+
+        command_list = self.get_command_list(
+            "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        for tag in self.other_repo_tags:
+            self.client.images.get(tag)

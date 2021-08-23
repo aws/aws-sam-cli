@@ -309,7 +309,7 @@ class LambdaImage:
             for image in self.docker_client.images.list(name=repo):
                 for tag in image.tags:
                     if ContainerManager.is_rapid_image(tag):
-                        self.docker_client.images.remove(image=image.id, force=True)
+                        self.docker_client.images.remove(image.id)
                         break
         except docker.errors.APIError as ex:
             LOG.warning("Failed to remove rapid images", exc_info=ex)

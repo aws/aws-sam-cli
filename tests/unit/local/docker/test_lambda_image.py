@@ -425,9 +425,7 @@ class TestLambdaImage(TestCase):
             f"{repo}:rapid-{version}",
         )
 
-        docker_client_mock.images.remove.assert_has_calls(
-            [call(image="old1", force=True), call(image="old2", force=True)]
-        )
+        docker_client_mock.images.remove.assert_has_calls([call("old1"), call("old2")])
 
     def test_building_existing_rapid_image_does_not_remove_old_rapid_images(self):
         repo = "public.ecr.aws/sam/emulation-python3.6"
