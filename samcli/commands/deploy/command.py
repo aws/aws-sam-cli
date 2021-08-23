@@ -26,6 +26,7 @@ from samcli.lib.cli_validation.image_repository_validation import image_reposito
 from samcli.lib.utils import osutils
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.utils.version_checker import check_newer_version
+from samcli.lib.bootstrap.companion_stack.companion_stack_manager import sync_ecr_stack
 
 SHORT_HELP = "Deploy an AWS SAM application."
 
@@ -153,8 +154,18 @@ LOG = logging.getLogger(__name__)
     "--resolve-s3",
     required=False,
     is_flag=True,
-    help="Automatically resolve s3 bucket for non-guided deployments."
+    help="Automatically resolve s3 bucket for non-guided deployments. "
+    "Enabling this option will also create a managed default s3 bucket for you. "
+    "If you do not provide a --s3-bucket value, the managed bucket will be used. "
     "Do not use --s3-guided parameter with this option.",
+)
+@click.option(
+    "--resolve-image-repos",
+    required=False,
+    is_flag=True,
+    help="Automatically create and delete ECR repositories for image-based functions in non-guided deployments. "
+    "A companion stack containing ECR repos for each function will be deployed along with the template stack. "
+    "Automatically created image repositories will be deleted if the corresponding functions are removed.",
 )
 @metadata_override_option
 @notification_arns_override_option
@@ -194,6 +205,7 @@ def cli(
     confirm_changeset,
     signing_profiles,
     resolve_s3,
+    resolve_image_repos,
     config_file,
     config_env,
 ):
@@ -228,6 +240,7 @@ def cli(
         resolve_s3,
         config_file,
         config_env,
+        resolve_image_repos,
     )  # pragma: no cover
 
 
@@ -258,6 +271,7 @@ def do_cli(
     resolve_s3,
     config_file,
     config_env,
+    resolve_image_repos,
 ):
     """
     Implementation of the ``cli`` method
@@ -287,13 +301,21 @@ def do_cli(
             config_file=config_file,
         )
         guided_context.run()
-    elif resolve_s3 and bool(s3_bucket):
-        raise DeployResolveS3AndS3SetError()
-    elif resolve_s3:
-        s3_bucket = manage_stack(profile=profile, region=region)
-        click.echo(f"\n\t\tManaged S3 bucket: {s3_bucket}")
-        click.echo("\t\tA different default S3 bucket can be set in samconfig.toml")
-        click.echo("\t\tOr by specifying --s3-bucket explicitly.")
+    else:
+        if resolve_s3:
+            if bool(s3_bucket):
+                raise DeployResolveS3AndS3SetError()
+            s3_bucket = manage_stack(profile=profile, region=region)
+            click.echo(f"\n\t\tManaged S3 bucket: {s3_bucket}")
+            click.echo("\t\tA different default S3 bucket can be set in samconfig.toml")
+            click.echo("\t\tOr by specifying --s3-bucket explicitly.")
+
+        # TODO Refactor resolve-s3 and resolve-image-repos into one place
+        # after we figure out how to enable resolve-images-repos in package
+        if resolve_image_repos:
+            image_repositories = sync_ecr_stack(
+                template_file, stack_name, region, s3_bucket, s3_prefix, image_repositories
+            )
 
     with osutils.tempfile_platform_independent() as output_template_file:
 

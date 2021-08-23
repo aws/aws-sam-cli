@@ -42,6 +42,7 @@ class DeployRegressionBase(TestCase):
         tags=None,
         profile=None,
         region=None,
+        resolve_image_repos=False,
     ):
         command_list = self.base_command(base=base)
 
@@ -79,6 +80,8 @@ class DeployRegressionBase(TestCase):
             command_list = command_list + ["--region", str(region)]
         if profile:
             command_list = command_list + ["--profile", str(profile)]
+        if resolve_image_repos:
+            command_list = command_list + ["--resolve-image-repos"]
 
         return command_list
 

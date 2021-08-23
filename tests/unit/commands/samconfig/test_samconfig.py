@@ -134,6 +134,7 @@ class TestSamConfigForAllCommands(TestCase):
             self.assertIsNone(result.exception)
 
             do_cli_mock.assert_called_with(
+                ANY,
                 "foo",
                 str(Path(os.getcwd(), "mytemplate.yaml")),
                 "basedir",
@@ -186,6 +187,7 @@ class TestSamConfigForAllCommands(TestCase):
             self.assertIsNone(result.exception)
 
             do_cli_mock.assert_called_with(
+                ANY,
                 "foo",
                 str(Path(os.getcwd(), "mytemplate.yaml")),
                 "basedir",
@@ -237,6 +239,7 @@ class TestSamConfigForAllCommands(TestCase):
             self.assertIsNone(result.exception)
 
             do_cli_mock.assert_called_with(
+                ANY,
                 "foo",
                 str(Path(os.getcwd(), "mytemplate.yaml")),
                 "basedir",
@@ -601,6 +604,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 "samconfig.toml",
                 "default",
+                False,
             )
 
     @patch("samcli.commands.deploy.command.do_cli")
@@ -709,6 +713,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 "samconfig.toml",
                 "default",
+                False,
             )
 
     @patch("samcli.commands.logs.command.do_cli")

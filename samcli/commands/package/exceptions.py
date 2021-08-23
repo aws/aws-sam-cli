@@ -62,12 +62,32 @@ class ExportFailedError(UserException):
         )
 
 
-class ImageNotFoundError(UserException):
-    def __init__(self, resource_id, property_name):
+class DeleteArtifactFailedError(UserException):
+    def __init__(self, resource_id, property_name, ex):
         self.resource_id = resource_id
         self.property_name = property_name
+        self.ex = ex
 
-        message_fmt = "Image not found for {property_name} parameter of {resource_id} resource. \n"
+        message_fmt = (
+            "Unable to delete artifact referenced "
+            "by {property_name} parameter of {resource_id} resource."
+            "\n"
+            "{ex}"
+        )
+
+        super().__init__(
+            message=message_fmt.format(
+                property_name=self.property_name,
+                resource_id=self.resource_id,
+                ex=self.ex,
+            )
+        )
+
+
+class ImageNotFoundError(UserException):
+    def __init__(self, resource_id, property_name, message_fmt):
+        self.resource_id = resource_id
+        self.property_name = property_name
 
         super().__init__(
             message=message_fmt.format(
@@ -124,7 +144,8 @@ class BucketNotSpecifiedError(UserException):
     def __init__(self, **kwargs):
         self.kwargs = kwargs
 
-        message_fmt = "\nS3 Bucket not specified, use --s3-bucket to specify a bucket name or run sam deploy --guided"
+        message_fmt = "\nS3 Bucket not specified, use --s3-bucket to specify a bucket name, or use --resolve-s3 \
+to create a managed default bucket, or run sam deploy --guided"
 
         super().__init__(message=message_fmt.format(**self.kwargs))
 
