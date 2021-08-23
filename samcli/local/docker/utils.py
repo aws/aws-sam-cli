@@ -94,16 +94,3 @@ def is_docker_reachable(docker_client):
     except errors:
         LOG.debug("Docker is not reachable", exc_info=True)
         return False
-
-
-def is_rapid_image(image_name: str) -> bool:
-    """
-    Is the image tagged as a RAPID clone?
-
-    : param string image_name: Name of the image
-    : return bool: True, if the image name ends with rapid-$SAM_CLI_VERSION. False, otherwise
-    """
-
-    if not re.search(r":rapid-\d+\.\d+.\d+$", image_name):
-        return False
-    return True
