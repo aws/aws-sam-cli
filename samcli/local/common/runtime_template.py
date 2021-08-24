@@ -15,7 +15,7 @@ _lambda_images_templates = os.path.join(_init_path, "lib", "init", "image_templa
 RUNTIME_DEP_TEMPLATE_MAPPING = {
     "python": [
         {
-            "runtimes": ["python3.8", "python3.7", "python3.6", "python2.7"],
+            "runtimes": ["python3.9", "python3.8", "python3.7", "python3.6", "python2.7"],
             "dependency_manager": "pip",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-python"),
             "build": True,
@@ -79,6 +79,7 @@ def get_local_lambda_images_location(mapping, runtime):
 
 
 RUNTIME_TO_DEPENDENCY_MANAGERS = {
+    "python3.9": ["pip"],
     "python3.8": ["pip"],
     "python3.7": ["pip"],
     "python3.6": ["pip"],
@@ -113,7 +114,7 @@ RUNTIMES: Set[str] = set(
 INIT_RUNTIMES = [
     # latest of each runtime version
     "nodejs14.x",
-    "python3.8",
+    "python3.9",
     "ruby2.7",
     "go1.x",
     "java11",
@@ -122,6 +123,7 @@ INIT_RUNTIMES = [
     "nodejs12.x",
     "nodejs10.x",
     # older python runtimes
+    "python3.8",
     "python3.7",
     "python3.6",
     "python2.7",
@@ -138,6 +140,7 @@ LAMBDA_IMAGES_RUNTIMES = [
     "amazon/nodejs14.x-base",
     "amazon/nodejs12.x-base",
     "amazon/nodejs10.x-base",
+    "amazon/python3.9-base",
     "amazon/python3.8-base",
     "amazon/python3.7-base",
     "amazon/python3.6-base",
@@ -162,4 +165,5 @@ SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
     "python3.7": "Python36",
     "python3.6": "Python36",
     "python3.8": "Python36",
+    "python3.9": "Python36",
 }
