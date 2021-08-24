@@ -12,10 +12,10 @@ attrs==20.3.0 \
     --hash=sha256:31b2eced602aa8423c2aea9c76a724617ed67cf9513173fd3a4f03e3a929c7e6 \
     --hash=sha256:832aa3cde19744e49938b91fea06d69ecb9e649c93ba974535d08ad92164f700
     # via jsonschema
-aws-lambda-builders==1.5.0 \
-    --hash=sha256:0167b40da88c679e21341852faf59fae2aafe36c22a560de2e4aa75c7b9dd846 \
-    --hash=sha256:6fd7fddd50b7bbbb8668c44c638d685123a698bf1a866da2f34b440bca9958ad \
-    --hash=sha256:c9f2259656353f98e70c49ed52b6ea8891d1f6853c2b1a9ac891772768d1697e
+aws-lambda-builders==1.6.0 \
+    --hash=sha256:068840f92520dd37524f464c61e4fd3224c185dda40cd941ddeb0354edcc069b \
+    --hash=sha256:2d232e14397519d8e75d4cc1523a31a255c053f97fd784b5513b81fc6c6c5492 \
+    --hash=sha256:3e26edb75e78e1420d573cf4bcda1acd424f88a12e754bff971fe8b9bb4545a3
     # via aws-sam-cli (setup.py)
 aws-sam-translator==1.38.0 \
     --hash=sha256:0ecadda9cf5ab2318f57f1253181a2151e4c53cd35d21717a923c075a5a65cb6 \
@@ -64,9 +64,9 @@ cookiecutter==1.7.2 \
     --hash=sha256:430eb882d028afb6102c084bab6cf41f6559a77ce9b18dc6802e3bc0cc5f4a30 \
     --hash=sha256:efb6b2d4780feda8908a873e38f0e61778c23f6a2ea58215723bcceb5b515dac
     # via aws-sam-cli (setup.py)
-dateparser==0.7.6 \
-    --hash=sha256:7552c994f893b5cb8fcf103b4cd2ff7f57aab9bfd2619fdf0cf571c0740fd90b \
-    --hash=sha256:e875efd8c57c85c2d02b238239878db59ff1971f5a823457fcc69e493bf6ebfa
+dateparser==1.0.0 \
+    --hash=sha256:159cc4e01a593706a15cd4e269a0b3345edf3aef8bf9278a57dac8adf5bf1e4a \
+    --hash=sha256:17202df32c7a36e773136ff353aa3767e987f8b3e27374c39fd21a30a803d6f8
     # via aws-sam-cli (setup.py)
 docker==4.2.2 \
     --hash=sha256:03a46400c4080cb6f7aa997f881ddd84fef855499ece219d75fbdb53289c17ab \
