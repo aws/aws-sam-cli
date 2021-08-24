@@ -39,8 +39,8 @@ class BuildStrategy(ABC):
         """
         result = {}
         with self:
-            result.update(self._build_functions(self._build_graph))
             result.update(self._build_layers(self._build_graph))
+            result.update(self._build_functions(self._build_graph))
 
         return result
 
