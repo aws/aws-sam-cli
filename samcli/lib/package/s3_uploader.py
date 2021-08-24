@@ -29,7 +29,7 @@ import botocore.exceptions
 from boto3.s3 import transfer
 
 from samcli.commands.package.exceptions import NoSuchBucketError, BucketNotSpecifiedError
-from samcli.lib.utils.hash import file_checksum
+from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name
 
 LOG = logging.getLogger(__name__)
 
@@ -137,12 +137,61 @@ class S3Uploader:
         # uploads of same object. Uploader will check if the file exists in S3
         # and re-upload only if necessary. So the template points to same file
         # in multiple places, this will upload only once
-        filemd5 = precomputed_md5 or file_checksum(file_name)
-        remote_path = filemd5
-        if extension and remote_path:
-            remote_path = remote_path + "." + extension
-
+        remote_path = get_uploaded_s3_object_name(
+            precomputed_md5=precomputed_md5, file_path=file_name, extension=extension
+        )
         return self.upload(file_name, remote_path)
+
+    def delete_artifact(self, remote_path: str, is_key: bool = False) -> bool:
+        """
+        Deletes a given file from S3
+        :param remote_path: Path to the file that will be deleted
+        :param is_key: If the given remote_path is the key or a file_name
+
+        :return: metadata dict of the deleted object
+        """
+        try:
+            if not self.bucket_name:
+                LOG.error("Bucket not specified")
+                raise BucketNotSpecifiedError()
+
+            key = remote_path
+            if self.prefix and not is_key:
+                key = "{0}/{1}".format(self.prefix, remote_path)
+
+            # Deleting Specific file with key
+            if self.file_exists(remote_path=key):
+                LOG.info("\t- Deleting S3 object with key %s", key)
+                self.s3.delete_object(Bucket=self.bucket_name, Key=key)
+                LOG.debug("Deleted s3 object with key %s successfully", key)
+                return True
+
+            # Given s3 object key does not exist
+            LOG.debug("Could not find the S3 file with the key %s", key)
+            LOG.info("\t- Could not find and delete the S3 object with the key %s", key)
+            return False
+
+        except botocore.exceptions.ClientError as ex:
+            error_code = ex.response["Error"]["Code"]
+            if error_code == "NoSuchBucket":
+                LOG.error("Provided bucket %s does not exist ", self.bucket_name)
+                raise NoSuchBucketError(bucket_name=self.bucket_name) from ex
+            raise ex
+
+    def delete_prefix_artifacts(self):
+        """
+        Deletes all the files from the prefix in S3
+        """
+        if not self.bucket_name:
+            LOG.error("Bucket not specified")
+            raise BucketNotSpecifiedError()
+        if self.prefix:
+            # Note: list_objects_v2 api uses prefix to fetch the keys that begin with the prefix
+            # To restrict fetching files with exact prefix self.prefix, "/" is used below.
+            response = self.s3.list_objects_v2(Bucket=self.bucket_name, Prefix=self.prefix + "/")
+            prefix_files = response.get("Contents", [])
+            for obj in prefix_files:
+                self.delete_artifact(obj["Key"], True)
 
     def file_exists(self, remote_path: str) -> bool:
         """
@@ -199,25 +248,70 @@ class S3Uploader:
         object_key_property: str = "Key",
         version_property: Optional[str] = None,
     ) -> Dict:
-
         if isinstance(url, str) and url.startswith("s3://"):
 
-            parsed = urlparse(url)
-            query = parse_qs(parsed.query)
+            return S3Uploader._parse_s3_format_url(
+                url=url,
+                bucket_name_property=bucket_name_property,
+                object_key_property=object_key_property,
+                version_property=version_property,
+            )
 
-            if parsed.netloc and parsed.path:
-                result = dict()
-                result[bucket_name_property] = parsed.netloc
-                result[object_key_property] = parsed.path.lstrip("/")
+        if isinstance(url, str) and url.startswith("https://s3"):
+            return S3Uploader._parse_path_style_s3_url(
+                url=url, bucket_name_property=bucket_name_property, object_key_property=object_key_property
+            )
 
-                # If there is a query string that has a single versionId field,
-                # set the object version and return
-                if version_property is not None and "versionId" in query and len(query["versionId"]) == 1:
-                    result[version_property] = query["versionId"][0]
+        raise ValueError("URL given to the parse method is not a valid S3 url {0}".format(url))
 
-                return result
+    @staticmethod
+    def _parse_s3_format_url(
+        url: Any,
+        bucket_name_property: str = "Bucket",
+        object_key_property: str = "Key",
+        version_property: Optional[str] = None,
+    ) -> Dict:
+        """
+        Method for parsing s3 urls that begin with s3://
+        e.g. s3://bucket/key
+        """
+        parsed = urlparse(url)
+        query = parse_qs(parsed.query)
+        if parsed.netloc and parsed.path:
+            result = dict()
+            result[bucket_name_property] = parsed.netloc
+            result[object_key_property] = parsed.path.lstrip("/")
 
-        raise ValueError("URL given to the parse method is not a valid S3 url " "{0}".format(url))
+            # If there is a query string that has a single versionId field,
+            # set the object version and return
+            if version_property is not None and "versionId" in query and len(query["versionId"]) == 1:
+                result[version_property] = query["versionId"][0]
+
+            return result
+
+        raise ValueError("URL given to the parse method is not a valid S3 url {0}".format(url))
+
+    @staticmethod
+    def _parse_path_style_s3_url(
+        url: Any,
+        bucket_name_property: str = "Bucket",
+        object_key_property: str = "Key",
+    ) -> Dict:
+        """
+        Static method for parsing path style s3 urls.
+        e.g. https://s3.us-east-1.amazonaws.com/bucket/key
+        """
+        parsed = urlparse(url)
+        result = dict()
+        # parsed.path would point to /bucket/key
+        if parsed.path:
+            s3_bucket_key = parsed.path.split("/", 2)[1:]
+
+            result[bucket_name_property] = s3_bucket_key[0]
+            result[object_key_property] = s3_bucket_key[1]
+
+            return result
+        raise ValueError("URL given to the parse method is not a valid S3 url {0}".format(url))
 
 
 class ProgressPercentage:

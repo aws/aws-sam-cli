@@ -17,7 +17,7 @@ Exporting resources defined in the cloudformation template to the cloud.
 # language governing permissions and limitations under the License.
 import os
 import logging
-from typing import Dict, Union
+from typing import Dict, Optional, List, Union
 
 from botocore.utils import set_value_from_jmespath
 
@@ -34,20 +34,20 @@ from samcli.lib.package.packageable_resources import (
     METADATA_EXPORT_LIST,
     GLOBAL_EXPORT_DICT,
     ResourceZip,
+    ECRResource,
 )
 from samcli.lib.package.s3_uploader import S3Uploader
-from samcli.lib.package.uploaders import Uploaders
+from samcli.lib.package.uploaders import Uploaders, Destination
 from samcli.lib.package.utils import (
     is_local_folder,
     make_abs_path,
     is_local_file,
-    mktempfile,
     is_s3_url,
 )
+from samcli.lib.package.local_files_utils import mktempfile, get_uploaded_s3_object_name
 from samcli.lib.utils.packagetype import ZIP
 from samcli.yamlhelper import yaml_dump
 from samcli.lib.iac.interface import Stack as IacStack, IacPlugin, Resource as IacResource, DictSectionItem, S3Asset
-
 
 # NOTE: sriram-mv, A cyclic dependency on `Template` needs to be broken.
 
@@ -111,8 +111,8 @@ class CloudFormationStackResource(ResourceZip):
         with mktempfile() as temporary_file:
             temporary_file.write(exported_template_str)
             temporary_file.flush()
-
-            url = self.uploader.upload_with_dedup(temporary_file.name, "template")
+            remote_path = get_uploaded_s3_object_name(file_path=temporary_file.name, extension="template")
+            url = self.uploader.upload(temporary_file.name, remote_path)
 
             # TemplateUrl property requires S3 URL to be in path-style format
             parts = S3Uploader.parse_s3_url(url, version_property="Version")
@@ -160,12 +160,14 @@ class Template:
             RESOURCES_EXPORT_LIST + [CloudFormationStackResource, ServerlessApplicationResource]
         ),
         metadata_to_export=frozenset(METADATA_EXPORT_LIST),
+        # template_str: Optional[str] = None,
     ):
         """
         Reads the template and makes it ready for export
         """
+        #if not template_str:
         if not (is_local_folder(parent_dir) and os.path.isabs(parent_dir)):
-            raise ValueError("parent_dir parameter must be " "an absolute path to a folder {0}".format(parent_dir))
+            raise ValueError("parent_dir parameter must be an absolute path to a folder {0}".format(parent_dir))
 
         self.template_dict = template_dict
         self.template_dir = template_dict.origin_dir
@@ -263,3 +265,96 @@ class Template:
                 exporter.export(resource, self.template_dir)
 
         return self.template_dict
+
+    def delete(self, retain_resources: List):
+        """
+        Deletes all the artifacts referenced by the given Cloudformation template
+        """
+        if "Resources" not in self.template_dict:
+            return
+
+        self._apply_global_values()
+
+        for resource_id, resource in self.template_dict["Resources"].items():
+
+            resource_type = resource.get("Type", None)
+            resource_dict = resource.get("Properties", {})
+            resource_deletion_policy = resource.get("DeletionPolicy", None)
+            # If the deletion policy is set to Retain,
+            # do not delete the artifact for the resource.
+            if resource_deletion_policy != "Retain" and resource_id not in retain_resources:
+                for exporter_class in self.resources_to_export:
+                    if exporter_class.RESOURCE_TYPE != resource_type:
+                        continue
+                    if resource_dict.get("PackageType", ZIP) != exporter_class.ARTIFACT_TYPE:
+                        continue
+                    # Delete code resources
+                    exporter = exporter_class(self.uploaders, None)
+                    exporter.delete(resource_id, resource_dict)
+
+    def get_ecr_repos(self):
+        """
+        Get all the ecr repos from the template
+        """
+        ecr_repos = {}
+        if "Resources" not in self.template_dict:
+            return ecr_repos
+
+        self._apply_global_values()
+        for resource_id, resource in self.template_dict["Resources"].items():
+
+            resource_type = resource.get("Type", None)
+            resource_dict = resource.get("Properties", {})
+            resource_deletion_policy = resource.get("DeletionPolicy", None)
+            if resource_deletion_policy == "Retain" or resource_type != "AWS::ECR::Repository":
+                continue
+
+            ecr_resource = ECRResource(self.uploaders, None)
+            ecr_repos[resource_id] = {"Repository": ecr_resource.get_property_value(resource_dict)}
+
+        return ecr_repos
+
+    def get_s3_info(self):
+        """
+        Iterates the template_dict resources with S3 EXPORT_DESTINATION to get the
+        s3_bucket and s3_prefix information for the purpose of deletion.
+        Method finds the first resource with s3 information, extracts the information
+        and then terminates. It is safe to assume that all the packaged files using the
+        commands package and deploy are in the same s3 bucket with the same s3 prefix.
+        """
+        result = {"s3_bucket": None, "s3_prefix": None}
+        if "Resources" not in self.template_dict:
+            return result
+
+        self._apply_global_values()
+
+        for _, resource in self.template_dict["Resources"].items():
+
+            resource_type = resource.get("Type", None)
+            resource_dict = resource.get("Properties", {})
+
+            for exporter_class in self.resources_to_export:
+                # Skip the resources which don't give s3 information
+                if exporter_class.EXPORT_DESTINATION != Destination.S3:
+                    continue
+                if exporter_class.RESOURCE_TYPE != resource_type:
+                    continue
+                if resource_dict.get("PackageType", ZIP) != exporter_class.ARTIFACT_TYPE:
+                    continue
+
+                exporter = exporter_class(self.uploaders, None)
+                s3_info = exporter.get_property_value(resource_dict)
+
+                result["s3_bucket"] = s3_info["Bucket"]
+                s3_key = s3_info["Key"]
+
+                # Extract the prefix from the key
+                if s3_key:
+                    key_split = s3_key.rsplit("/", 1)
+                    if len(key_split) > 1:
+                        result["s3_prefix"] = key_split[0]
+                break
+            if result["s3_bucket"]:
+                break
+
+        return result

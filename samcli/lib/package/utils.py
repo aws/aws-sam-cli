@@ -7,7 +7,6 @@ import platform
 import re
 import shutil
 import tempfile
-import uuid
 import zipfile
 import contextlib
 from contextlib import contextmanager
@@ -15,8 +14,7 @@ from typing import Optional
 
 import jmespath
 
-from samcli.commands.package import exceptions
-from samcli.commands.package.exceptions import ImageNotFoundError
+from samcli.commands.package.exceptions import ImageNotFoundError, InvalidLocalPathError
 from samcli.lib.package.ecr_utils import is_ecr_url
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.hash import dir_checksum
@@ -111,7 +109,8 @@ def upload_local_image_artifacts(resource_id, asset, property_name, parent_dir, 
     image_path = asset.source_local_image
 
     if not image_path:
-        raise ImageNotFoundError(property_name=property_name, resource_id=resource_id)
+        message_fmt = "Image not found for {property_name} parameter of {resource_id} resource. \n"
+        raise ImageNotFoundError(property_name=property_name, resource_id=resource_id, message_fmt=message_fmt)
 
     if is_ecr_url(image_path):
         LOG.debug("Property %s of %s is already an ECR URL", property_name, resource_id)
@@ -176,7 +175,7 @@ def upload_local_artifacts(
     if is_local_file(local_path):
         return uploader.upload_with_dedup(local_path)
 
-    raise exceptions.InvalidLocalPathError(resource_id=resource_id, property_name=property_name, local_path=local_path)
+    raise InvalidLocalPathError(resource_id=resource_id, property_name=property_name, local_path=local_path)
 
 
 def resource_not_packageable(resource_dict):
@@ -265,19 +264,6 @@ def make_zip(file_name, source_root):
                         zf.write(full_path, relative_path)
 
     return zipfile_name
-
-
-@contextmanager
-def mktempfile():
-    directory = tempfile.gettempdir()
-    filename = os.path.join(directory, uuid.uuid4().hex)
-
-    try:
-        with open(filename, "w+") as handle:
-            yield handle
-    finally:
-        if os.path.exists(filename):
-            os.remove(filename)
 
 
 def copy_to_temp_dir(filepath):
