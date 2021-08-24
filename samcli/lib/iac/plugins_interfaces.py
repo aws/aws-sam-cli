@@ -720,7 +720,7 @@ class Stack(MutableMapping, OrderedDict):
         return bool(self._sections)
 
 
-class Project:
+class SamCliProject:
     """
     Class represents the Project data that will be returned by the IaC plugins
     Project:
@@ -803,24 +803,24 @@ class ProjectFindRule:
 
     @abc.abstractmethod
     @property
-    def content_rules(self) -> MutableMapping[str, str]:
+    def content_rules(self) -> Dict[str, str]:
         """
         regex to filter the file context. Key is the regex of filename
         Value is file content filter with regex.
         """
 
 
-class Context:
-    def __init__(self, context: MutableMapping[str, Any]):
+class PluginContext:
+    def __init__(self, context: Dict[str, Any]):
         self._context = context
-    @abc.abstractmethod
+
     @property
-    def context_map(self, context: MutableMapping[str, Any]):
+    def context_map(self):
         """
         the context retrieved from command line, its key is the command line option
         name, value is corresponding input
         """
-        pass
+        return self._context
 
 
 class IaCPluginInterface(metaclass=abc.ABCMeta):
@@ -828,18 +828,18 @@ class IaCPluginInterface(metaclass=abc.ABCMeta):
     Interface for an IaC Plugin
     We only require two methods here - get_project and write_project
     """
-    def __init__(self, context: Context):
+    def __init__(self, context: PluginContext):
         self._context = context
 
     @abc.abstractmethod
-    def read_project(self, lookup_paths: List[str]) -> Project:
+    def read_project(self, lookup_paths: List[str]) -> SamCliProject:
         """
         Read and parse template of that IaC Platform
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def write_project(self, project: Project, build_dir: str) -> bool:
+    def write_project(self, project: SamCliProject, build_dir: str) -> bool:
         """
         Write project to a template (or a set of templates),
         move the template(s) to build_path
@@ -861,27 +861,36 @@ class IaCPluginDefinition:
     def __init__(
         self,
         plugin_name: str,
-        plugin_creator: Callable[[], IaCPluginInterface],
+        plugin_creator: Callable[IaCPluginInterface],
         plugin_detector: ProjectFindRule,
         additional_options: List[click.option],
-        properties: MutableMapping[str, str],
     ):
         self._plugin_name = plugin_name
         self._plugin_creator = plugin_creator
         self._project_detector = plugin_detector
         self._additional_options = additional_options
-        self._properties = properties
 
-    def create_plugin(self, context: Context) -> IaCPluginInterface:
-        return self._plugin_creator()
+    def create_plugin(self, context: PluginContext) -> IaCPluginInterface:
+        """
+        factory method to use plugin_creator function to instantiate an IaCPluginInterface object.
+        """
+        return self._plugin_creator(context)
 
     @abc.abstractmethod
     def project_detected(self, path: str) -> bool:
-        pass
+        """
+        use the defined project_detector function to detect the type of a project
+        return true if a valid project is detected
+        """
+        raise NotImplementedError
 
     @abc.abstractmethod
     def valid_context(self, options: List[click.option]) -> bool:
-        pass
+        """
+        validate the options from command line
+        return true if the command line options are valid for the given project type
+        """
+        raise NotImplementedError
 
 
 def _make_dict(obj):
