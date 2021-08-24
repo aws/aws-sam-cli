@@ -3,14 +3,14 @@ Provide IAC Plugins Interface && Project representation
 """
 
 import abc
-import click
-import logging
-from collections import OrderedDict, Callable
-from collections.abc import MutableMapping, Mapping
+from collections import OrderedDict
+from collections.abc import Callable, Mapping, MutableMapping
 from copy import deepcopy
 from enum import Enum
 from typing import List, Any, Dict, Iterator, Optional
 from uuid import uuid4
+import click
+import logging
 
 from samcli.commands._utils.resources import (
     AWS_LAMBDA_FUNCTION,
@@ -21,10 +21,11 @@ from samcli.commands._utils.resources import (
 )
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 
-
+# pylint: disable=R0801
 LOG = logging.getLogger(__name__)
 
 
+# pylint: disable=R0801
 class Environment:
     def __init__(self, region: Optional[str] = None, account_id: Optional[str] = None):
         self._region = region
@@ -47,6 +48,7 @@ class Environment:
         self._account_id = account_id
 
 
+# pylint: disable=R0801
 class Destination:
     def __init__(self, path: str, value: Any):
         self._path = path
@@ -69,6 +71,7 @@ class Destination:
         self._value = value
 
 
+# pylint: disable=R0801
 class Asset:
     def __init__(
         self,
@@ -120,6 +123,7 @@ class Asset:
         self._extra_details = extra_details
 
 
+# pylint: disable=R0801
 class S3Asset(Asset):
     """
     Represent the S3 Assets.
@@ -186,6 +190,7 @@ class S3Asset(Asset):
         self._updated_source_path = updated_source_path
 
 
+# pylint: disable=R0801
 class ImageAsset(Asset):
     """
     Represent the Container Assets.
@@ -285,6 +290,7 @@ class ImageAsset(Asset):
         self._docker_file_name = docker_file_name
 
 
+# pylint: disable=R0801
 class SectionItem:
     def __init__(
         self,
@@ -311,6 +317,7 @@ class SectionItem:
         self._item_id = item_id
 
 
+# pylint: disable=R0801
 class SimpleSectionItem(SectionItem):
     def __init__(
         self,
@@ -333,6 +340,7 @@ class SimpleSectionItem(SectionItem):
         return bool(self._value)
 
 
+# pylint: disable=R0801
 # pylint: disable=R0901
 class DictSectionItem(SectionItem, MutableMapping, OrderedDict):
     def __init__(
@@ -407,6 +415,7 @@ class DictSectionItem(SectionItem, MutableMapping, OrderedDict):
         return bool(self._body)
 
 
+# pylint: disable=R0801
 class Section:
     def __init__(self, section_name: Optional[str] = None):
         self._section_name = section_name
@@ -416,6 +425,7 @@ class Section:
         return self._section_name
 
 
+# pylint: disable=R0801
 class SimpleSection(Section):
     def __init__(self, section_name: str, value: Any = None):
         self._value = value
@@ -433,6 +443,7 @@ class SimpleSection(Section):
         return bool(self._value)
 
 
+# pylint: disable=R0801
 # pylint: disable=R0901
 class DictSection(Section, MutableMapping, OrderedDict):
     def __init__(self, section_name: Optional[str] = None, items: Optional[List[SectionItem]] = None):
@@ -482,6 +493,7 @@ class DictSection(Section, MutableMapping, OrderedDict):
         return bool(self._items_dict)
 
 
+# pylint: disable=R0801
 class Resource(DictSectionItem):
     """
     Represents one resource in Resources section in a template
@@ -529,6 +541,7 @@ class Resource(DictSectionItem):
         return any(resource_type in p for p in packageable_resources)
 
 
+# pylint: disable=R0801
 class Parameter(DictSectionItem):
     """
     Represents 1 Parameters in Parameters section in a template
@@ -558,6 +571,7 @@ class Parameter(DictSectionItem):
         self._added_by_iac = added_by_iac
 
 
+# pylint: disable=R0801
 # pylint: disable=R0901
 class Stack(MutableMapping, OrderedDict):
     """
@@ -761,16 +775,19 @@ class SamCliProject:
         return None
 
 
+# pylint: disable=R0801
 class LookupPathType(Enum):
     SOURCE = "Source"
     BUILD = "BUILD"
 
 
+# pylint: disable=R0801
 class ProjectTypes(Enum):
     CFN = "CFN"
     CDK = "CDK"
 
 
+# pylint: disable=R0801
 class LookupPath:
     def __init__(self, lookup_path_dir: str, lookup_path_type: LookupPathType = LookupPathType.BUILD):
         self._lookup_path_dir = lookup_path_dir
@@ -828,6 +845,7 @@ class IaCPluginInterface(metaclass=abc.ABCMeta):
     Interface for an IaC Plugin
     We only require two methods here - get_project and write_project
     """
+
     def __init__(self, context: PluginContext):
         self._context = context
 
@@ -857,7 +875,6 @@ class IaCPluginInterface(metaclass=abc.ABCMeta):
 
 
 class IaCPluginDefinition:
-
     def __init__(
         self,
         plugin_name: str,
@@ -893,6 +910,7 @@ class IaCPluginDefinition:
         raise NotImplementedError
 
 
+# pylint: disable=R0801
 def _make_dict(obj):
     if not isinstance(obj, MutableMapping):
         return obj
