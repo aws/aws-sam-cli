@@ -639,7 +639,7 @@ to create a managed default bucket, or run sam deploy --guided",
         else:
             self.fail("Companion stack was created. This should not happen with specifying image repos.")
 
-        self.stacks.append(SAM_CLI_STACK_NAME)
+        self.stacks.append({"name": SAM_CLI_STACK_NAME})
         # Remove samconfig.toml
         os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
 
