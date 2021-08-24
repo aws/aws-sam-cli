@@ -8,6 +8,7 @@ from enum import Enum
 from pathlib import Path
 
 import sys
+import re
 import platform
 import docker
 
@@ -17,10 +18,11 @@ from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.lib.utils.tar import create_tarball
 from samcli import __version__ as version
-from samcli.local.docker.manager import ContainerManager
 
 
 LOG = logging.getLogger(__name__)
+
+RAPID_IMAGE_TAG_PREFIX = "rapid"
 
 
 class Runtime(Enum):
@@ -116,7 +118,7 @@ class LambdaImage:
         # If the image name had a digest, removing the @ so that a valid image name can be constructed
         # to use for the local invoke image name.
         image_repo = image_name.split(":")[0].replace("@", "")
-        image_tag = f"{image_repo}:rapid-{version}"
+        image_tag = f"{image_repo}:{RAPID_IMAGE_TAG_PREFIX}-{version}"
 
         downloaded_layers = []
 
@@ -136,7 +138,7 @@ class LambdaImage:
             image_not_found = True
 
         # If building a new rapid image, delete older rapid images of the same repo
-        if image_not_found and image_tag == f"{image_repo}:rapid-{version}":
+        if image_not_found and image_tag == f"{image_repo}:{RAPID_IMAGE_TAG_PREFIX}-{version}":
             self._remove_rapid_images(image_repo)
 
         if (
@@ -308,7 +310,7 @@ class LambdaImage:
         try:
             for image in self.docker_client.images.list(name=repo):
                 for tag in image.tags:
-                    if ContainerManager.is_rapid_image(tag):
+                    if self.is_rapid_image(tag):
                         try:
                             self.docker_client.images.remove(image.id)
                         except docker.errors.APIError as ex:
@@ -316,3 +318,16 @@ class LambdaImage:
                         break
         except docker.errors.APIError as ex:
             LOG.warning("Failed getting images from repo %s", repo, exc_info=ex)
+
+    @staticmethod
+    def is_rapid_image(image_name: str) -> bool:
+        """
+        Is the image tagged as a RAPID clone?
+
+        : param string image_name: Name of the image
+        : return bool: True, if the image name ends with rapid-$SAM_CLI_VERSION. False, otherwise
+        """
+
+        if not re.search(fr":{RAPID_IMAGE_TAG_PREFIX}-\d+\.\d+.\d+$", image_name):
+            return False
+        return True
