@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import time
 
 
 def handler(event, context):
@@ -12,7 +13,8 @@ def handler(event, context):
 
     return "Hello world"
 
-def timeout_handler(event, context):
+def sleeptime_handler(event, context):
+    time.sleep(10)
     return ""
 
 def custom_env_var_echo_handler(event, context):

@@ -26,7 +26,7 @@ class AwsLambdaFunctionStack(cdk.Stack):
             id="timeout-function",
             runtime=_lambda.Runtime.PYTHON_3_8,
             code=_lambda.Code.from_asset("./lambda_code"),
-            handler="app.timeout_handler",
+            handler="app.sleeptime_handler",
             timeout=core.Duration.seconds(DEFAULT_TIMEOUT)
         )
 
