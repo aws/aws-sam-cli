@@ -128,7 +128,7 @@ class InitTemplates:
                     self._git_repo.local_path = expected_previous_clone_local_path
 
     def _init_options_from_manifest(self, package_type, runtime, base_image, dependency_manager):
-        manifest_path = os.path.join(self._git_repo.local_path, self.manifest_file_name)
+        manifest_path = self.get_manifest_path()
         with open(str(manifest_path)) as fp:
             body = fp.read()
             manifest_body = json.loads(body)
@@ -190,6 +190,9 @@ class InitTemplates:
     def get_app_template_location(self, template_directory):
         return os.path.normpath(os.path.join(self._git_repo.local_path, template_directory))
 
+    def get_manifest_path(self):
+        return Path(self._git_repo.local_path, self.manifest_file_name)
+
     def get_preprocessed_manifest(self, filter_value=None):
         """
         This method get the manifest cloned from the git repo and preprocessed it.
@@ -221,7 +224,7 @@ class InitTemplates:
             This is preprocessed manifest with the use_case as key
         """
         self.clone_templates_repo()
-        manifest_path = Path(self._git_repo.local_path, self.manifest_file_name)
+        manifest_path = self.get_manifest_path()
         with open(str(manifest_path)) as fp:
             body = fp.read()
             manifest_body = json.loads(body)
