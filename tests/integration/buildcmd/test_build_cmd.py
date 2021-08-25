@@ -38,7 +38,8 @@ SKIP_SAR_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_
 
 
 @skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    # Hits public ECR pull limitation, move it to canary tests
+    ((not RUN_BY_CANARY) or (IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
@@ -54,7 +55,7 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID_IMAGE = "ImageFunction"
 
-    @parameterized.expand([("3.6", False), ("3.7", False), ("3.8", False)])
+    @parameterized.expand([("3.6", False), ("3.7", False), ("3.8", False), ("3.9", False)])
     @pytest.mark.flaky(reruns=3)
     def test_with_default_requirements(self, runtime, use_container):
         overrides = {
@@ -96,6 +97,7 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
             ("python3.6", "Python", False),
             ("python3.7", "Python", False),
             ("python3.8", "Python", False),
+            ("python3.9", "Python", False),
             # numpy 1.20.3 (in PythonPEP600/requirements.txt) only support python 3.7+
             ("python3.7", "PythonPEP600", False),
             ("python3.8", "PythonPEP600", False),
@@ -103,6 +105,7 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
             ("python3.6", "Python", "use_container"),
             ("python3.7", "Python", "use_container"),
             ("python3.8", "Python", "use_container"),
+            ("python3.9", "Python", "use_container"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -1132,8 +1135,8 @@ class TestBuildWithBuildMethod(BuildIntegBase):
 
         # runtime is chosen based off current python version.
         runtime = self._get_python_version()
-        # BuildMethod is set to the ruby2.7, this should cause failure.
-        overrides = {"Runtime": runtime, "CodeUri": "Provided", "Handler": "main.handler", "BuildMethod": "ruby2.7"}
+        # BuildMethod is set to the java8, this should cause failure.
+        overrides = {"Runtime": runtime, "CodeUri": "Provided", "Handler": "main.handler", "BuildMethod": "java8"}
         manifest_path = os.path.join(self.test_data_path, "Provided", "requirements.txt")
 
         cmdlist = self.get_command_list(
@@ -1187,12 +1190,12 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
             ),
             (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
-            (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
+            (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
             # container
             (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
-            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
+            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
         ]
     )
@@ -1310,12 +1313,12 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
             ),
             (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
-            (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
+            (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
             # container
             (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
-            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
+            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
         ]
     )
@@ -1396,12 +1399,12 @@ class TestParallelBuilds(DedupBuildIntegBase):
             ),
             (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
-            (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
+            (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
             # container
             (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
-            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
+            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
         ]
     )

@@ -73,8 +73,7 @@ def _get_aws_region_choice(available_regions_name, region):
     click.echo("# Partial list of AWS regions")
     click.echo("#")
 
-    for cli_display_region in cli_display_regions:
-        msg = cli_display_regions[cli_display_region]
+    for msg in cli_display_regions.values():
         click.echo("# " + msg)
 
     region_choice = click.prompt(f"Region [{region}]", type=str, show_choices=False)
