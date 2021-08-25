@@ -32,6 +32,11 @@ class LambdaResponseParseException(Exception):
     An exception raised when we fail to parse the response for Lambda
     """
 
+class PayloadFormatVersionValidateException(Exception):
+    """
+    An exception raised when validation of payload format version fails
+    """
+
 
 class Route:
     API = "Api"
@@ -283,6 +288,9 @@ class LocalApigwService(BaseLocalService):
 
         route = self._get_current_route(request)
         cors_headers = Cors.cors_to_headers(self.api.cors)
+
+        if not isinstance(route.payload_format_version, str):
+            raise PayloadFormatVersionValidateException("payloadFormatVersion is not a string")
 
         method, endpoint = self.get_request_methods_endpoints(request)
         if method == "OPTIONS" and self.api.cors:
