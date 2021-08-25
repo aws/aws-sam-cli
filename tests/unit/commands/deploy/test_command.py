@@ -47,6 +47,7 @@ class TestDeployCliCommand(TestCase):
         self.config_env = "mock-default-env"
         self.config_file = "mock-default-filename"
         self.signing_profiles = None
+        self.resolve_image_repos = False
         self.project_type = "CFN"
         self.project = MagicMock()
         self.iac = Mock()
@@ -56,6 +57,17 @@ class TestDeployCliCommand(TestCase):
         self.project.stacks.__getitem__.return_value = self.iac_stack_mock
         self.project.default_stack = self.iac_stack_mock
         MOCK_SAM_CONFIG.reset_mock()
+
+        self.companion_stack_manager_patch = patch("samcli.commands.deploy.guided_context.CompanionStackManager")
+        self.companion_stack_manager_mock = self.companion_stack_manager_patch.start()
+        self.companion_stack_manager_mock.return_value.set_functions.return_value = None
+        self.companion_stack_manager_mock.return_value.get_repository_mapping.return_value = {
+            "HelloWorldFunction": self.image_repository
+        }
+        self.companion_stack_manager_mock.return_value.get_unreferenced_repos.return_value = []
+
+    def tearDown(self):
+        self.companion_stack_manager_patch.stop()
 
     @patch("samcli.commands.package.command.click")
     @patch("samcli.commands.package.package_context.PackageContext")
@@ -93,6 +105,7 @@ class TestDeployCliCommand(TestCase):
             resolve_s3=self.resolve_s3,
             config_env=self.config_env,
             config_file=self.config_file,
+            resolve_image_repos=self.resolve_image_repos,
             project_type=self.project_type,
             project=self.project,
             iac=self.iac,
@@ -158,7 +171,7 @@ class TestDeployCliCommand(TestCase):
             "MyNoEchoParameter": {"Type": "String", "NoEcho": True},
         }
         mock_get_buildable_stacks.return_value = (Mock(), [])
-        mock_sam_function_provider.return_value = {}
+        mock_sam_function_provider.return_value.functions = {}
         context_mock = Mock()
         mockauth_per_resource.return_value = [("HelloWorldResource1", False), ("HelloWorldResource2", False)]
         mock_deploy_context.return_value.__enter__.return_value = context_mock
@@ -205,6 +218,7 @@ class TestDeployCliCommand(TestCase):
                     resolve_s3=self.resolve_s3,
                     config_env=self.config_env,
                     config_file=self.config_file,
+                    resolve_image_repos=self.resolve_image_repos,
                     project_type=self.project_type,
                     project=self.project,
                     iac=self.iac,
@@ -251,18 +265,19 @@ class TestDeployCliCommand(TestCase):
         mock_tag_translation.return_value = "helloworld-123456-v1"
 
         context_mock = Mock()
-        mock_sam_function_provider.return_value = MagicMock(
-            functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri="helloworld:v1")}
-        )
+        function_mock = MagicMock()
+        function_mock.packagetype = IMAGE
+        function_mock.imageuri = "helloworld:v1"
+        function_mock.full_path = "HelloWorldFunction"
+        mock_sam_function_provider.return_value.get_all.return_value = [function_mock]
         mockauth_per_resource.return_value = [("HelloWorldResource", False)]
         mock_deploy_context.return_value.__enter__.return_value = context_mock
-        mock_confirm.side_effect = [True, False, True, True]
+        mock_confirm.side_effect = [True, False, True, True, True, True]
         mock_prompt.side_effect = [
             "sam-app",
             "us-east-1",
             "guidedParameter",
             "secure",
-            "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
             ("CAPABILITY_IAM",),
             "testconfig.toml",
             "test-env",
@@ -300,6 +315,7 @@ class TestDeployCliCommand(TestCase):
                 resolve_s3=self.resolve_s3,
                 config_env=self.config_env,
                 config_file=self.config_file,
+                resolve_image_repos=self.resolve_image_repos,
                 project_type=self.project_type,
                 project=self.project,
                 iac=self.iac,
@@ -356,6 +372,7 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
+    @patch("samcli.commands.deploy.guided_context.get_template_parameters")
     @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
     @patch.object(
@@ -373,6 +390,7 @@ class TestDeployCliCommand(TestCase):
         mock_prompt,
         mock_signer_config_per_function,
         mock_sam_function_provider,
+        mock_get_template_parameters,
         mock_get_buildable_stacks,
         mockauth_per_resource,
         mock_managed_stack,
@@ -395,10 +413,17 @@ class TestDeployCliCommand(TestCase):
         mock_tag_translation.return_value = "helloworld-123456-v1"
 
         context_mock = Mock()
-        mock_sam_function_provider.return_value = MagicMock(
-            functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri="helloworld:v1")}
-        )
+        function_mock = MagicMock()
+        function_mock.packagetype = IMAGE
+        function_mock.imageuri = "helloworld:v1"
+        function_mock.full_path = "HelloWorldFunction"
+        mock_sam_function_provider.return_value.get_all.return_value = [function_mock]
         mockauth_per_resource.return_value = [("HelloWorldResource", False)]
+        mock_get_template_parameters.return_value = {
+            "Myparameter": {"Type": "String"},
+            "MyParameterSpaces": {"Type": "String"},
+            "MyNoEchoParameter": {"Type": "String", "NoEcho": True},
+        }
         mock_deploy_context.return_value.__enter__.return_value = context_mock
         mock_prompt.side_effect = [
             "sam-app",
@@ -406,12 +431,11 @@ class TestDeployCliCommand(TestCase):
             "guidedParameter",
             "guided parameter with spaces",
             "secure",
-            "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
             ("CAPABILITY_IAM",),
             "testconfig.toml",
             "test-env",
         ]
-        mock_confirm.side_effect = [True, False, True, True]
+        mock_confirm.side_effect = [True, False, True, True, True, True]
 
         mock_managed_stack.return_value = "managed-s3-bucket"
         mock_signer_config_per_function.return_value = ({}, {})
@@ -443,6 +467,7 @@ class TestDeployCliCommand(TestCase):
             resolve_s3=self.resolve_s3,
             config_env=self.config_env,
             config_file=self.config_file,
+            resolve_image_repos=self.resolve_image_repos,
             project_type=self.project_type,
             project=self.project,
             iac=self.iac,
@@ -552,21 +577,23 @@ class TestDeployCliCommand(TestCase):
         mock_tag_translation.return_value = "helloworld-123456-v1"
 
         context_mock = Mock()
-        mock_sam_function_provider.return_value = MagicMock(
-            functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri="helloworld:v1")}
-        )
+        function_mock = MagicMock()
+        function_mock.packagetype = IMAGE
+        function_mock.imageuri = "helloworld:v1"
+        function_mock.full_path = "HelloWorldFunction"
+        mock_sam_function_provider.return_value.get_all.return_value = [function_mock]
         mockauth_per_resource.return_value = [("HelloWorldResource", False)]
 
+        mock_get_template_parameters.return_value = {}
         mock_deploy_context.return_value.__enter__.return_value = context_mock
         mock_prompt.side_effect = [
             "sam-app",
             "us-east-1",
-            "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
             ("CAPABILITY_IAM",),
             "testconfig.toml",
             "test-env",
         ]
-        mock_confirm.side_effect = [True, False, True, True]
+        mock_confirm.side_effect = [True, False, True, True, True, True]
         mock_get_cmd_names.return_value = ["deploy"]
         mock_managed_stack.return_value = "managed-s3-bucket"
         mock_signer_config_per_function.return_value = ({}, {})
@@ -598,6 +625,7 @@ class TestDeployCliCommand(TestCase):
             config_env=self.config_env,
             config_file=self.config_file,
             signing_profiles=self.signing_profiles,
+            resolve_image_repos=self.resolve_image_repos,
             project_type=self.project_type,
             project=self.project,
             iac=self.iac,
@@ -658,6 +686,7 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
+    @patch("samcli.commands.deploy.guided_context.get_template_parameters")
     @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
     @patch.object(GuidedConfig, "get_config_ctx", MagicMock(return_value=(None, get_mock_sam_config())))
@@ -671,6 +700,7 @@ class TestDeployCliCommand(TestCase):
         mock_prompt,
         mock_signer_config_per_function,
         mock_sam_function_provider,
+        mock_get_template_parameters,
         mock_get_buildable_stacks,
         mockauth_per_resource,
         mock_managed_stack,
@@ -689,18 +719,20 @@ class TestDeployCliCommand(TestCase):
         mock_tag_translation.return_value = "helloworld-123456-v1"
 
         context_mock = Mock()
-        mock_sam_function_provider.return_value = MagicMock(
-            functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri="helloworld:v1")}
-        )
+        function_mock = MagicMock()
+        function_mock.packagetype = IMAGE
+        function_mock.imageuri = "helloworld:v1"
+        function_mock.full_path = "HelloWorldFunction"
+        mock_sam_function_provider.return_value.get_all.return_value = [function_mock]
         mockauth_per_resource.return_value = [("HelloWorldResource", False)]
+        mock_get_template_parameters.return_value = {}
         mock_deploy_context.return_value.__enter__.return_value = context_mock
         mock_prompt.side_effect = [
             "sam-app",
             "us-east-1",
-            "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
             ("CAPABILITY_IAM",),
         ]
-        mock_confirm.side_effect = [True, False, True, False]
+        mock_confirm.side_effect = [True, False, True, False, True, True]
 
         mock_managed_stack.return_value = "managed-s3-bucket"
         mock_signer_config_per_function.return_value = ({}, {})
@@ -734,6 +766,7 @@ class TestDeployCliCommand(TestCase):
                 config_file=self.config_file,
                 config_env=self.config_env,
                 signing_profiles=self.signing_profiles,
+                resolve_image_repos=self.resolve_image_repos,
                 project_type=self.project_type,
                 project=self.project,
                 iac=self.iac,
@@ -806,6 +839,7 @@ class TestDeployCliCommand(TestCase):
             config_file=self.config_file,
             config_env=self.config_env,
             signing_profiles=self.signing_profiles,
+            resolve_image_repos=self.resolve_image_repos,
             project_type=self.project_type,
             project=self.project,
             iac=self.iac,
@@ -866,7 +900,83 @@ class TestDeployCliCommand(TestCase):
                 config_file=self.config_file,
                 config_env=self.config_env,
                 signing_profiles=self.signing_profiles,
+                resolve_image_repos=self.resolve_image_repos,
                 project_type=self.project_type,
                 project=self.project,
                 iac=self.iac,
             )
+
+    @patch("samcli.commands.package.command.click")
+    @patch("samcli.commands.package.package_context.PackageContext")
+    @patch("samcli.commands.deploy.command.click")
+    @patch("samcli.commands.deploy.deploy_context.DeployContext")
+    @patch("samcli.commands.deploy.command.manage_stack")
+    @patch("samcli.commands.deploy.command.sync_ecr_stack")
+    def test_all_args_resolve_image_repos(
+        self,
+        mock_sync_ecr_stack,
+        mock_manage_stack,
+        mock_deploy_context,
+        mock_deploy_click,
+        mock_package_context,
+        mock_package_click,
+    ):
+        context_mock = Mock()
+        mock_deploy_context.return_value.__enter__.return_value = context_mock
+        mock_sync_ecr_stack.return_value = {"HelloWorldFunction1": self.image_repository}
+
+        do_cli(
+            template_file=self.template_file,
+            stack_name=self.stack_name,
+            s3_bucket=self.s3_bucket,
+            image_repository=None,
+            image_repositories=None,
+            force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key_id,
+            parameter_overrides=self.parameter_overrides,
+            capabilities=self.capabilities,
+            no_execute_changeset=self.no_execute_changeset,
+            role_arn=self.role_arn,
+            notification_arns=self.notification_arns,
+            fail_on_empty_changeset=self.fail_on_empty_changset,
+            tags=self.tags,
+            region=self.region,
+            profile=self.profile,
+            use_json=self.use_json,
+            metadata=self.metadata,
+            guided=self.guided,
+            confirm_changeset=self.confirm_changeset,
+            resolve_s3=False,
+            config_file=self.config_file,
+            config_env=self.config_env,
+            signing_profiles=self.signing_profiles,
+            resolve_image_repos=True,
+        )
+
+        mock_deploy_context.assert_called_with(
+            template_file=ANY,
+            stack_name=self.stack_name,
+            s3_bucket=self.s3_bucket,
+            force_upload=self.force_upload,
+            image_repository=None,
+            image_repositories={"HelloWorldFunction1": self.image_repository},
+            no_progressbar=self.no_progressbar,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key_id,
+            parameter_overrides=self.parameter_overrides,
+            capabilities=self.capabilities,
+            no_execute_changeset=self.no_execute_changeset,
+            role_arn=self.role_arn,
+            notification_arns=self.notification_arns,
+            fail_on_empty_changeset=self.fail_on_empty_changset,
+            tags=self.tags,
+            region=self.region,
+            profile=self.profile,
+            confirm_changeset=self.confirm_changeset,
+            signing_profiles=self.signing_profiles,
+        )
+
+        context_mock.run.assert_called_with()
+        self.assertEqual(context_mock.run.call_count, 1)
