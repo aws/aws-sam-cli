@@ -31,6 +31,7 @@ class MockInitTemplates:
         )
         self._git_repo.clone_attempted = True
         self._git_repo.local_path = Path("tests/unit/commands/init")
+        self.manifest_file_name = "test_manifest.json"
 
 
 class TestCli(TestCase):

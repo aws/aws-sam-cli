@@ -99,25 +99,36 @@ def generate_application(
 def _generate_simple_application(
     location, pt_explicit, runtime, base_image, dependency_manager, output_dir, name, app_template, package_type=ZIP
 ):
-    if pt_explicit and package_type == IMAGE:
-        raise InvalidInitOptionException("Hello World Application only supports ZIP package type")
-
     templates = InitTemplates()
-    if not runtime:
+    if not runtime and not base_image:
         question = (
             "Which runtime would you like to use? "
             + "We will default to the latest supported version of your selected runtime."
         )
         runtime_list = sorted(RUNTIME_DEP_TEMPLATE_MAPPING.keys())
         runtime_chosen = _get_choice_from_options(runtime, runtime_list, question, "Runtime")
-        runtime_templates = RUNTIME_DEP_TEMPLATE_MAPPING[runtime_chosen]
+        runtime_templates = RUNTIME_DEP_TEMPLATE_MAPPING.get(runtime_chosen)
         runtime = runtime_templates[0]["runtimes"][0]
 
+    package_type = package_type if not base_image else IMAGE
+    if package_type == IMAGE:
+        if not base_image:
+            base_image = LAMBDA_IMAGES_RUNTIMES_MAP.get(runtime)
+        if not runtime:
+            runtime = _get_runtime_from_image(base_image)
+
     dependency_manager = _get_dependency_manager(None, dependency_manager, runtime)
-    bundle_template = templates.get_bundle_option(package_type, runtime, dependency_manager)
-    template = bundle_template[0]
+
+    if package_type != IMAGE:
+        bundle_template = templates.get_bundle_option(package_type, runtime, dependency_manager)
+        template = bundle_template[0]
+        location = template["init_location"]
+    else:
+        template = templates.get_hello_world_image_template(package_type, runtime, base_image, dependency_manager)
+        template = template[0]
+        location = templates.get_app_template_location(template["directory"])
+
     app_template = template["appTemplate"]
-    location = template["init_location"]
 
     if not name:
         name = click.prompt("\nProject name", type=str, default="sam-app")

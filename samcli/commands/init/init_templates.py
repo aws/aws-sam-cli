@@ -23,9 +23,7 @@ from samcli.local.common.runtime_template import (
 )
 
 LOG = logging.getLogger(__name__)
-# Note:: This would be changed when after aws-sam-cli-app-templates pr
-# https://github.com/aws/aws-sam-cli-app-templates/pull/127 is merged
-APP_TEMPLATES_REPO_URL = "https://github.com/jonife/aws-sam-cli-app-templates"
+APP_TEMPLATES_REPO_URL = "https://github.com/aws/aws-sam-cli-app-templates"
 APP_TEMPLATES_REPO_NAME = "aws-sam-cli-app-templates"
 
 
@@ -36,6 +34,7 @@ class InvalidInitTemplateError(UserException):
 class InitTemplates:
     def __init__(self):
         self._git_repo: GitRepo = GitRepo(url=APP_TEMPLATES_REPO_URL)
+        self.manifest_file_name = "manifest.json"
 
     def prompt_for_location(self, package_type, runtime, base_image, dependency_manager):
         """
@@ -129,7 +128,7 @@ class InitTemplates:
                     self._git_repo.local_path = expected_previous_clone_local_path
 
     def _init_options_from_manifest(self, package_type, runtime, base_image, dependency_manager):
-        manifest_path = os.path.join(self._git_repo.local_path, "manifest.json")
+        manifest_path = os.path.join(self._git_repo.local_path, self.manifest_file_name)
         with open(str(manifest_path)) as fp:
             body = fp.read()
             manifest_body = json.loads(body)
@@ -181,6 +180,16 @@ class InitTemplates:
                 return option.get("isDynamicTemplate", False)
         return False
 
+    def get_hello_world_image_template(self, package_type, runtime, base_image, dependency_manager):
+        self.clone_templates_repo()
+        templates = self.init_options(package_type, runtime, base_image, dependency_manager)
+        template_display_name = "hello world"
+        hello_world_template = filter(lambda x: template_display_name in x["displayName"].lower(), list(templates))
+        return list(hello_world_template)
+
+    def get_app_template_location(self, template_directory):
+        return os.path.normpath(os.path.join(self._git_repo.local_path, template_directory))
+
     def get_preprocessed_manifest(self, filter_value=None):
         """
         This method get the manifest cloned from the git repo and preprocessed it.
@@ -212,7 +221,7 @@ class InitTemplates:
             This is preprocessed manifest with the use_case as key
         """
         self.clone_templates_repo()
-        manifest_path = Path(self._git_repo.local_path, "manifest.json")
+        manifest_path = Path(self._git_repo.local_path, self.manifest_file_name)
         with open(str(manifest_path)) as fp:
             body = fp.read()
             manifest_body = json.loads(body)
