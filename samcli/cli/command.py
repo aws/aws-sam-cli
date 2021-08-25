@@ -19,6 +19,7 @@ _SAM_CLI_COMMAND_PACKAGES = [
     "samcli.commands.local.local",
     "samcli.commands.package",
     "samcli.commands.deploy",
+    "samcli.commands.delete",
     "samcli.commands.logs",
     "samcli.commands.publish",
     "samcli.commands.pipeline.pipeline",

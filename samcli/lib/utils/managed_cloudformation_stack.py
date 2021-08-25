@@ -97,12 +97,11 @@ def _create_or_get_stack(
         ds_resp = cloudformation_client.describe_stacks(StackName=stack_name)
         stacks = ds_resp["Stacks"]
         stack = stacks[0]
-        click.echo("\n\tLooking for resources needed for deployment: Found!")
         _check_sanity_of_stack(stack)
         stack_outputs = cast(List[Dict[str, str]], stack["Outputs"])
         return StackOutput(stack_outputs)
     except ClientError:
-        click.echo("\n\tLooking for resources needed for deployment: Not found.")
+        LOG.debug("Managed S3 stack [%s] not found. Creating a new one.", stack_name)
 
     try:
         stack = _create_stack(
