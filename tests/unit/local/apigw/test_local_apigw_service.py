@@ -10,7 +10,12 @@ from werkzeug.datastructures import Headers
 
 from samcli.lib.providers.provider import Api
 from samcli.lib.providers.provider import Cors
-from samcli.local.apigw.local_apigw_service import LocalApigwService, Route, LambdaResponseParseException
+from samcli.local.apigw.local_apigw_service import (
+    LocalApigwService,
+    Route,
+    LambdaResponseParseException,
+    PayloadFormatVersionValidateException,
+)
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 
 
@@ -426,6 +431,14 @@ class TestApiGatewayService(TestCase):
         request_mock.return_value = ("test", "test")
         result = self.api_service._request_handler()
         self.assertEqual(result, failure_mock)
+
+    def test_request_handler_errors_when_payload_format_version_wrong(self):
+        get_current_route = Mock()
+        get_current_route.return_value.payload_format_version = 2.0
+        self.api_service._get_current_route = get_current_route
+
+        with self.assertRaises(PayloadFormatVersionValidateException):
+            self.api_service._request_handler()
 
     def test_get_current_route(self):
         request_mock = Mock()
