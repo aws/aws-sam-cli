@@ -863,7 +863,7 @@ class IaCPluginDefinition:
         plugin_name: str,
         plugin_creator: Callable[[PluginContext], IaCPluginInterface],
         plugin_detector: ProjectFindRule,
-        additional_options: List[Any],
+        additional_options: Dict[Any, Any],
     ):
         self._plugin_name = plugin_name
         self._plugin_creator = plugin_creator
@@ -885,7 +885,7 @@ class IaCPluginDefinition:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def valid_context(self, options: List[Any]) -> bool:
+    def valid_context(self, options: Dict[Any, Any]) -> bool:
         """
         validate the options from command line
         return true if the command line options are valid for the given project type
