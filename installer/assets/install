@@ -37,27 +37,27 @@ parse_commandline() {
   while test $# -gt 0
   do
     key="$1"
-	case "$key" in
-	  -i|--install-dir)
-	    PARSED_INSTALL_DIR="$2"
-		shift
-	   ;;
-	  -b|--bin-dir)
-	    PARSED_BIN_DIR="$2"
-		shift
-	   ;;
-	  -u|--update)
-	    PARSED_UPGRADE="yes"
-	  ;;
-	  -h|--help)
-	    usage
+    case "$key" in
+      -i|--install-dir)
+        PARSED_INSTALL_DIR="$2"
+        shift
+        ;;
+      -b|--bin-dir)
+        PARSED_BIN_DIR="$2"
+        shift
+        ;;
+      -u|--update)
+        PARSED_UPGRADE="yes"
+        ;;
+      -h|--help)
+        usage
         exit 0
-	  ;;
-	  *)
-	   die "Got an unexpected argument: $1"
-	  ;;
+        ;;
+      *)
+        die "Got an unexpected argument: $1"
+        ;;
     esac
-	shift
+    shift
   done
 }
 
@@ -127,9 +127,9 @@ create_bin_symlinks() {
 }
 
 die() {
-	err_msg="$1"
-	echo "$err_msg" >&2
-	exit 1
+  err_msg="$1"
+  echo "$err_msg" >&2
+  exit 1
 }
 
 main() {
