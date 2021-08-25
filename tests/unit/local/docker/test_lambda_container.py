@@ -10,6 +10,7 @@ from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.local.docker.lambda_container import LambdaContainer, Runtime
 from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
+from samcli.local.docker.lambda_image import RAPID_IMAGE_TAG_PREFIX
 
 RUNTIMES_WITH_ENTRYPOINT = [Runtime.dotnetcore21.value, Runtime.dotnetcore31.value, Runtime.go1x.value]
 
@@ -21,6 +22,7 @@ RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT = [
     Runtime.python38.value,
     Runtime.python36.value,
     Runtime.python27.value,
+    Runtime.python39.value,
 ]
 
 RUNTIMES_WITH_DEBUG_ENV_VARS_ONLY = [
@@ -454,7 +456,7 @@ class TestLambdaContainer_get_exposed_ports(TestCase):
 
 class TestLambdaContainer_get_image(TestCase):
     def test_must_return_build_image(self):
-        expected = "amazon/aws-sam-cli-emulation-image-foo:rapid-x.y.z"
+        expected = f"public.ecr.aws/sam/emulation-foo:{RAPID_IMAGE_TAG_PREFIX}-x.y.z"
 
         image_builder = Mock()
         image_builder.build.return_value = expected
