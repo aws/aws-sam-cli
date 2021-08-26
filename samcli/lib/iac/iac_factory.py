@@ -22,6 +22,7 @@ class IaCFactory:
     get_iac returns an instance of an IaCPluginInterface based on the given context
     detect_project_type returns a string indicating the type of IaC project found
     """
+
     def __init__(self, context: SamCliContext):
         self._sam_cli_context = context
 

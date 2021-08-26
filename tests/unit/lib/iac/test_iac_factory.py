@@ -72,8 +72,7 @@ class TestDetectProjectType(TestCase):
     @patch("samcli.lib.iac.iac_factory.os")
     def test_detect_no_valid_project_types(self, mock_os):
         expected_message = (
-            "Could not determine the plugin type from the provided files:\n\n"
-            "__init__.py, hello_world, cdk.out"
+            "Could not determine the plugin type from the provided files:\n\n" "__init__.py, hello_world, cdk.out"
         )
         mock_os.listdir.return_value = ["__init__.py", "hello_world", "cdk.out"]
         with self.assertRaises(InvalidIaCPlugin) as ctx:
