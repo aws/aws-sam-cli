@@ -26,3 +26,11 @@ class CdkSynthError(UserException):
     def __init__(self, stack_traces: str):
         msg = "When synthesizing your CDK app, the following error occurs:\n\n{stack_traces}"
         UserException.__init__(self, msg.format(stack_traces=stack_traces))
+
+
+class InvalidIaCPlugin(UserException):
+    def __init__(self, files: Optional[list] = None):
+        if files is None:
+            files = []
+        msg = "Could not determine the plugin type from the provided files:\n\n{files}"
+        UserException.__init__(self, msg.format(files=", ".join(files)))

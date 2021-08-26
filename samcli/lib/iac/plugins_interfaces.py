@@ -334,7 +334,7 @@ class SimpleSectionItem(SectionItem):
 
 
 # pylint: disable=R0901
-class DictSectionItem(SectionItem, MutableMapping, OrderedDict):
+class DictSectionItem(SectionItem, MutableMapping):
     def __init__(
         self,
         key: Optional[str] = None,
@@ -434,7 +434,7 @@ class SimpleSection(Section):
 
 
 # pylint: disable=R0901
-class DictSection(Section, MutableMapping, OrderedDict):
+class DictSection(Section, MutableMapping):
     def __init__(self, section_name: Optional[str] = None, items: Optional[List[SectionItem]] = None):
         self._items_dict = OrderedDict()
         if items:
@@ -559,7 +559,7 @@ class Parameter(DictSectionItem):
 
 
 # pylint: disable=R0901
-class Stack(MutableMapping, OrderedDict):
+class Stack(MutableMapping):
     """
     Represents IaC Stack
     """
@@ -793,24 +793,7 @@ class LookupPath:
         self._lookup_path_type = lookup_path_type
 
 
-class ProjectFindRule:
-    @abc.abstractmethod
-    @property
-    def file_rules(self) -> List[str]:
-        """
-        a list of regex to filter the file names or suffixes
-        """
-
-    @abc.abstractmethod
-    @property
-    def content_rules(self) -> Dict[str, str]:
-        """
-        regex to filter the file context. Key is the regex of filename
-        Value is file content filter with regex.
-        """
-
-
-class PluginContext:
+class SamCliContext:
     def __init__(self, context: Dict[str, Any]):
         self._context = context
 
@@ -829,7 +812,7 @@ class IaCPluginInterface(metaclass=abc.ABCMeta):
     We only require two methods here - get_project and write_project
     """
 
-    def __init__(self, context: PluginContext):
+    def __init__(self, context: SamCliContext):
         self._context = context
 
     @abc.abstractmethod
@@ -856,39 +839,11 @@ class IaCPluginInterface(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-
-class IaCPluginDefinition:
-    def __init__(
-        self,
-        plugin_name: str,
-        plugin_creator: Callable[[PluginContext], IaCPluginInterface],
-        plugin_detector: ProjectFindRule,
-        additional_options: Dict[Any, Any],
-    ):
-        self._plugin_name = plugin_name
-        self._plugin_creator = plugin_creator
-        self._project_detector = plugin_detector
-        self._additional_options = additional_options
-
-    def create_plugin(self, context: PluginContext) -> IaCPluginInterface:
-        """
-        factory method to use plugin_creator function to instantiate an IaCPluginInterface object.
-        """
-        return self._plugin_creator(context)
-
+    @staticmethod
     @abc.abstractmethod
-    def project_detected(self, path: str) -> bool:
+    def get_iac_file_types() -> List[str]:
         """
-        use the defined project_detector function to detect the type of a project
-        return true if a valid project is detected
-        """
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def valid_context(self, options: Dict[Any, Any]) -> bool:
-        """
-        validate the options from command line
-        return true if the command line options are valid for the given project type
+        return a list of file types that define the IaC project
         """
         raise NotImplementedError
 
