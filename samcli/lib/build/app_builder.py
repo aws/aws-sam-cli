@@ -448,6 +448,15 @@ class ApplicationBuilder:
                     config, code_dir, artifact_subdir, manifest_path, build_runtime, options, container_env_vars, image
                 )
             else:
+                # use layers option to handle case for packaging Layers which is different than functions for Java
+                if config.language == "java":
+                    config = CONFIG(
+                        language=config.language,
+                        dependency_manager=config.dependency_manager,
+                        application_framework="layers",
+                        manifest_name=config.manifest_name,
+                        executable_search_paths=config.executable_search_paths,
+                    )
                 self._build_function_in_process(
                     config, code_dir, artifact_subdir, scratch_dir, manifest_path, build_runtime, options
                 )
