@@ -31,9 +31,8 @@ class SamLocalStackProvider(SamBaseProvider):
     ):
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
-        to be valid, normalized and a dictionary. It should be normalized by running all pre-processing
-        before passing to this class. The process of normalization will remove structures like ``Globals``, resolve
-        intrinsic functions etc.
+        to be valid and a dictionary. This class will perform template normalization to remove structures
+        like ``Globals``, resolve intrinsic functions etc.
         This class does not perform any syntactic validation of the template.
         After the class is initialized, any changes to the ``template_dict`` will not be reflected in here.
         You need to explicitly update the class with new template, if necessary.
