@@ -11,7 +11,6 @@ import click
 from click import confirm
 from click import prompt
 
-from samcli.lib.utils.hash import str_checksum
 from samcli.cli.cli_config_file import TomlProvider
 from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
 from samcli.lib.delete.cfn_utils import CfnUtils
@@ -26,6 +25,7 @@ from samcli.commands.delete.exceptions import CfDeleteFailedStatusError
 from samcli.lib.package.artifact_exporter import Template
 from samcli.lib.package.ecr_uploader import ECRUploader
 from samcli.lib.package.uploaders import Uploaders
+from samcli.lib.bootstrap.companion_stack.companion_stack_builder import CompanionStack
 
 CONFIG_COMMAND = "deploy"
 CONFIG_SECTION = "parameters"
@@ -288,12 +288,12 @@ class DeleteContext:
         retain_resources = self.ecr_repos_prompts(template)
 
         # ECR companion stack delete prompts, if it exists
-        parent_stack_hash = str_checksum(self.stack_name)
-        possible_companion_stack_name = f"{self.stack_name[:104]}-{parent_stack_hash[:8]}-CompanionStack"
-        ecr_companion_stack_exists = self.cf_utils.has_stack(stack_name=possible_companion_stack_name)
+        companion_stack = CompanionStack(self.stack_name)
+
+        ecr_companion_stack_exists = self.cf_utils.has_stack(stack_name=companion_stack.stack_name)
         if ecr_companion_stack_exists:
             LOG.debug("ECR Companion stack found for the input stack")
-            self.companion_stack_name = possible_companion_stack_name
+            self.companion_stack_name = companion_stack.stack_name
             self.delete_ecr_companion_stack()
 
         # Delete the artifacts and retain resources user selected not to delete
