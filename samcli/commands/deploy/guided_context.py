@@ -11,9 +11,6 @@ from click import prompt
 from click.types import FuncParamType
 
 from samcli.commands._utils.options import _space_separated_list_func_type, DEFAULT_STACK_NAME
-from samcli.commands._utils.template import (
-    get_template_parameters,
-)
 from samcli.commands.deploy.auth_utils import auth_per_resource
 from samcli.commands.deploy.code_signer_utils import (
     signer_config_per_function,
@@ -122,7 +119,6 @@ class GuidedContext:
     def guided_prompts(self):
         """
         Start an interactive cli prompt to collection information for deployment
-
         """
         default_stack_name = self.stack_name
         default_region = self.region or get_default_aws_region()
@@ -349,8 +345,8 @@ class GuidedContext:
             A dictionary contains image function logical ID as key, image repository as value.
         """
         updated_repositories = image_repositories.copy() if image_repositories is not None else {}
-        if not self._iac_stack.has_assets_of_package_type(IMAGE):
-            return updated_repositories
+        # if not self._iac_stack.has_assets_of_package_type(IMAGE):
+        #    return updated_repositories
         self.function_provider = SamFunctionProvider(stacks, ignore_code_extraction_warnings=True)
         manager = CompanionStackManager(stack_name, region, s3_bucket, s3_prefix)
 
@@ -552,19 +548,12 @@ class GuidedContext:
                 raise GuidedDeployFailedError("No images found to deploy, try running sam build") from ex
 
     def run(self):
-
-        try:
-            _parameter_override_keys = get_template_parameters(template_file=self.template_file)
-        except ValueError as ex:
-            LOG.debug("Failed to parse SAM template", exc_info=ex)
-            raise GuidedDeployFailedError(str(ex)) from ex
-
         guided_config = GuidedConfig(template_file=self.template_file, section=self.config_section)
         guided_config.read_config_showcase(
             self.config_file or DEFAULT_CONFIG_FILE_NAME,
         )
 
-        self.guided_prompts(_parameter_override_keys)
+        self.guided_prompts()
 
         if self.save_to_config:
             guided_config.save_config(

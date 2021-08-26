@@ -1,11 +1,12 @@
 """
 Utilities for local files handling.
 """
+import json
 import os
 import tempfile
 import uuid
 from contextlib import contextmanager
-from typing import Optional
+from typing import Optional, Dict
 
 from samcli.lib.utils.hash import file_checksum
 
@@ -25,7 +26,7 @@ def mktempfile():
 
 def get_uploaded_s3_object_name(
     precomputed_md5: Optional[str] = None,
-    file_content: Optional[str] = None,
+    file_content: Optional[Dict[str, str]] = None,
     file_path: Optional[str] = None,
     extension: Optional[str] = None,
 ) -> str:
@@ -37,7 +38,7 @@ def get_uploaded_s3_object_name(
     ----------
     precomputed_md5: str
         the precomputed hash value of the file.
-    file_content : str
+    file_content : Dict[str, str]
         The file content to be uploaded to S3.
     file_path : str
         The file path to be uploaded to S3
@@ -51,8 +52,9 @@ def get_uploaded_s3_object_name(
     if precomputed_md5:
         filemd5 = precomputed_md5
     elif file_content:
+        file_content_str = json.dumps(file_content, indent=4, ensure_ascii=False)
         with mktempfile() as temp_file:
-            temp_file.write(file_content)
+            temp_file.write(file_content_str)
             temp_file.flush()
             filemd5 = file_checksum(temp_file.name)
     elif file_path:

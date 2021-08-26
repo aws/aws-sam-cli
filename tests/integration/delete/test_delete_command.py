@@ -130,6 +130,8 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             deploy_command_list, f"{stack_name}\n\n{self.ecr_repo_name}\n\n\ny\n\n\n\n\n\n".encode()
         )
 
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+
         config_file_path = self.test_data_path.joinpath(config_file_name)
         delete_command_list = self.get_delete_command_list(
             stack_name=stack_name, config_file=config_file_path, region="us-east-1", no_prompts=True
@@ -166,6 +168,8 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             deploy_command_list, "{}\n\n\n\n\n\n\n\n\n".format(stack_name).encode()
         )
 
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+
         config_file_path = self.test_data_path.joinpath(config_file_name)
         delete_command_list = self.get_delete_command_list(stack_name=stack_name, config_file=config_file_path)
 
@@ -197,6 +201,8 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
         deploy_process_execute = run_command_with_input(
             deploy_command_list, "{}\n\n\n\n\nn\n\n\n".format(stack_name).encode()
         )
+
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
 
         delete_command_list = self.get_delete_command_list(stack_name=stack_name, region="us-east-1", no_prompts=True)
 

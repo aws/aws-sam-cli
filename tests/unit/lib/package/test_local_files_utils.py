@@ -9,7 +9,7 @@ class GetUploadedS3ObjectNameUtils(unittest.TestCase):
         self.file_hash_value = "123456789"
         self.extension = "template"
         self.pre_calculated_hash = "345654323456543"
-        self.file_content = MagicMock()
+        self.file_content = {"Resources": {"resource1": {"Type": "type", "Properties": {"prop1": "value1"}}}}
         self.file_path = MagicMock()
 
     @patch("samcli.lib.package.local_files_utils.mktempfile")

@@ -2,8 +2,8 @@
 Delete a SAM stack
 """
 import logging
+import os
 
-import json
 import boto3
 
 
@@ -26,6 +26,9 @@ from samcli.lib.package.artifact_exporter import Template
 from samcli.lib.package.ecr_uploader import ECRUploader
 from samcli.lib.package.uploaders import Uploaders
 from samcli.lib.bootstrap.companion_stack.companion_stack_builder import CompanionStack
+
+from samcli.lib.iac.interface import Stack as IacStack
+from samcli.yamlhelper import yaml_parse
 
 CONFIG_COMMAND = "deploy"
 CONFIG_SECTION = "parameters"
@@ -223,15 +226,18 @@ class DeleteContext:
         delete_ecr_companion_stack_prompt = self.ecr_companion_stack_prompts()
         if delete_ecr_companion_stack_prompt or self.no_prompts:
             cf_ecr_companion_stack = self.cf_utils.get_stack_template(self.companion_stack_name, TEMPLATE_STAGE)
-            ecr_stack_template_str = cf_ecr_companion_stack.get("TemplateBody", None)
-            ecr_stack_template_str = json.dumps(ecr_stack_template_str, indent=4, ensure_ascii=False)
+
+            ecr_stack_template_dict = cf_ecr_companion_stack.get("TemplateBody", None)
+
+            ecr_stack_iac = IacStack()
+            ecr_stack_iac.update(ecr_stack_template_dict)
 
             ecr_companion_stack_template = Template(
-                template_path=None,
-                parent_dir=None,
+                template_dict=ecr_stack_iac,
+                parent_dir=os.getcwd(),
                 uploaders=self.uploaders,
                 code_signer=None,
-                template_str=ecr_stack_template_str,
+                iac=None,
             )
 
             retain_repos = self.ecr_repos_prompts(ecr_companion_stack_template)
@@ -257,20 +263,19 @@ class DeleteContext:
         """
         # Fetch the template using the stack-name
         cf_template = self.cf_utils.get_stack_template(self.stack_name, TEMPLATE_STAGE)
-        template_str = cf_template.get("TemplateBody", None)
+        template = cf_template.get("TemplateBody", None)
 
-        if isinstance(template_str, dict):
-            template_str = json.dumps(template_str, indent=4, ensure_ascii=False)
+        if isinstance(template, str):
+            template = yaml_parse(template)
+
+        iac_stack = IacStack()
+        iac_stack.update(template)
 
         # Get the cloudformation template name using template_str
-        self.cf_template_file_name = get_uploaded_s3_object_name(file_content=template_str, extension="template")
+        self.cf_template_file_name = get_uploaded_s3_object_name(file_content=template, extension="template")
 
         template = Template(
-            template_path=None,
-            parent_dir=None,
-            uploaders=self.uploaders,
-            code_signer=None,
-            template_str=template_str,
+            template_dict=iac_stack, parent_dir=os.getcwd(), uploaders=self.uploaders, code_signer=None, iac=None
         )
 
         # If s3 info is not available, try to obtain it from CF

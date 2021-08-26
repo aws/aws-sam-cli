@@ -104,8 +104,8 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
         self.assertEqual(process.returncode, 0)
         self.assertEqual(
             process_stdout.decode("utf-8"),
-            '""',
-            msg="The return statement in the LambdaFunction " "should never return leading to an empty string",
+            "",
+            msg="The return statement in the LambdaFunction should return an empty string",
         )
 
     @pytest.mark.flaky(reruns=3)

@@ -11,6 +11,7 @@ from unittest import mock
 from unittest.mock import patch, Mock, MagicMock
 
 from samcli.commands.package.exceptions import ExportFailedError
+from samcli.lib.iac.cfn_iac import CfnIacPlugin
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Destination
 from samcli.lib.package.utils import zip_folder, make_zip
@@ -465,7 +466,7 @@ class TestArtifactExporter(unittest.TestCase):
         self.assertEqual(resource_dict[resource.PROPERTY_NAME], s3_url)
 
         self.s3_uploader_mock.delete_artifact = MagicMock()
-        resource.delete(resource_id, resource_dict)
+        resource.delete(iac_resource_mock.item_id, resource_dict)
         self.assertEqual(self.s3_uploader_mock.delete_artifact.call_count, 1)
 
     @patch("samcli.lib.package.packageable_resources.upload_local_image_artifacts")
@@ -484,8 +485,7 @@ class TestArtifactExporter(unittest.TestCase):
         asset_mock.source_local_image = "image:latest"
         asset_mock.source_property = resource.PROPERTY_NAME
         iac_resource_mock.find_asset_by_source_property.return_value = asset_mock
-        resource_dict = {}
-        resource_dict[resource.PROPERTY_NAME] = "image:latest"
+        resource_dict = {resource.PROPERTY_NAME: "image:latest"}
         iac_resource_mock.get.return_value = resource_dict
         parent_dir = "dir"
         ecr_url = "123456789.dkr.ecr.us-east-1.amazonaws.com/sam-cli"
@@ -501,36 +501,7 @@ class TestArtifactExporter(unittest.TestCase):
         self.assertEqual(resource_dict[resource.PROPERTY_NAME], ecr_url)
 
         self.ecr_uploader_mock.delete_artifact = MagicMock()
-        resource.delete(resource_id, resource_dict)
-        self.assertEqual(self.ecr_uploader_mock.delete_artifact.call_count, 1)
-
-    @patch("samcli.lib.package.packageable_resources.upload_local_image_artifacts")
-    def test_resource_image_dict(self, upload_local_image_artifacts_mock):
-        # Property value is a path to an image
-
-        class MockResource(ResourceImageDict):
-            PROPERTY_NAME = "foo"
-
-        resource = MockResource(self.uploaders_mock, None)
-
-        resource_id = "id"
-        resource_dict = {}
-        resource_dict[resource.PROPERTY_NAME] = "image:latest"
-        parent_dir = "dir"
-        ecr_url = "123456789.dkr.ecr.us-east-1.amazonaws.com/sam-cli"
-
-        upload_local_image_artifacts_mock.return_value = ecr_url
-
-        resource.export(resource_id, resource_dict, parent_dir)
-
-        upload_local_image_artifacts_mock.assert_called_once_with(
-            resource_id, resource_dict, resource.PROPERTY_NAME, parent_dir, self.ecr_uploader_mock
-        )
-
-        self.assertEqual(resource_dict[resource.PROPERTY_NAME][resource.EXPORT_PROPERTY_CODE_KEY], ecr_url)
-
-        self.ecr_uploader_mock.delete_artifact = MagicMock()
-        resource.delete(resource_id, resource_dict)
+        resource.delete(iac_resource_mock.item_id, resource_dict)
         self.assertEqual(self.ecr_uploader_mock.delete_artifact.call_count, 1)
 
     def test_lambda_image_resource_package_success(self):
@@ -614,6 +585,7 @@ class TestArtifactExporter(unittest.TestCase):
             PROPERTY_NAME = "foo"
 
         resource = MockResource(self.uploaders_mock, None, self.iac_mock)
+        resource_id = "id"
 
         iac_resource_mock = MagicMock(spec=IacResource)
         iac_resource_mock.key = "id"
@@ -636,7 +608,11 @@ class TestArtifactExporter(unittest.TestCase):
             iac_resource_mock.key, asset_mock, resource.PROPERTY_NAME, parent_dir, self.ecr_uploader_mock
         )
 
-        self.assertEqual(resource_dict[resource.PROPERTY_NAME], {"ImageUri": ecr_url})
+        self.assertEqual(resource_dict[resource.PROPERTY_NAME][resource.EXPORT_PROPERTY_CODE_KEY], ecr_url)
+
+        self.ecr_uploader_mock.delete_artifact = MagicMock()
+        resource.delete(resource_id, resource_dict)
+        self.assertEqual(self.ecr_uploader_mock.delete_artifact.call_count, 1)
 
     def test_resource_image_dict_package_success(self):
         # Property value is set to an image
@@ -969,8 +945,7 @@ class TestArtifactExporter(unittest.TestCase):
         asset_mock.source_path = "/path/to/file"
         asset_mock.source_property = resource.PROPERTY_NAME
         iac_resource_mock.find_asset_by_source_property.return_value = asset_mock
-        resource_dict = {}
-        resource_dict[resource.PROPERTY_NAME] = "/path/to/file"
+        resource_dict = {resource.PROPERTY_NAME: "/path/to/file"}
         iac_resource_mock.get.return_value = resource_dict
         parent_dir = "dir"
         s3_url = "s3://bucket/key1/key2?versionId=SomeVersionNumber"
@@ -988,7 +963,7 @@ class TestArtifactExporter(unittest.TestCase):
         )
 
         self.s3_uploader_mock.delete_artifact = MagicMock()
-        resource.delete(resource_id, resource_dict)
+        resource.delete(iac_resource_mock.item_id, resource_dict)
         self.s3_uploader_mock.delete_artifact.assert_called_once_with(remote_path="key1/key2", is_key=True)
 
     def test_ecr_resource_delete(self):
@@ -997,7 +972,7 @@ class TestArtifactExporter(unittest.TestCase):
         class MockResource(ECRResource):
             PROPERTY_NAME = "foo"
 
-        resource = MockResource(self.uploaders_mock, None)
+        resource = MockResource(self.uploaders_mock, None, None)
 
         resource_id = "id"
         resource_dict = {}
@@ -1767,22 +1742,24 @@ class TestArtifactExporter(unittest.TestCase):
                 "Resource3": {"Type": "some-other-type", "Properties": properties, "DeletionPolicy": "Retain"},
             }
         }
-        template_str = json.dumps(template_dict, indent=4, ensure_ascii=False)
+
+        iac_stack = IacStack()
+        iac_stack.update(template_dict)
 
         template_exporter = Template(
-            template_path=None,
-            parent_dir=None,
+            template_dict=iac_stack,
+            parent_dir=os.getcwd(),
             uploaders=self.uploaders_mock,
             code_signer=None,
             resources_to_export=resources_to_export,
-            template_str=template_str,
+            iac=None,
         )
 
         template_exporter.delete(retain_resources=[])
 
-        resource_type1_class.assert_called_once_with(self.uploaders_mock, None)
+        resource_type1_class.assert_called_once_with(self.uploaders_mock, None, None)
         resource_type1_instance.delete.assert_called_once_with("Resource1", mock.ANY)
-        resource_type2_class.assert_called_once_with(self.uploaders_mock, None)
+        resource_type2_class.assert_called_once_with(self.uploaders_mock, None, None)
         resource_type2_instance.delete.assert_called_once_with("Resource2", mock.ANY)
         resource_type3_class.assert_not_called()
         resource_type3_instance.delete.assert_not_called()
@@ -1799,15 +1776,16 @@ class TestArtifactExporter(unittest.TestCase):
             }
         }
 
-        template_str = json.dumps(template_dict, indent=4, ensure_ascii=False)
+        iac_stack = IacStack()
+        iac_stack.update(template_dict)
 
         template_exporter = Template(
-            template_path=None,
-            parent_dir=None,
+            template_dict=iac_stack,
+            parent_dir=os.getcwd(),
             uploaders=self.uploaders_mock,
             code_signer=None,
             resources_to_export=resources_to_export,
-            template_str=template_str,
+            iac=None,
         )
 
         repos = template_exporter.get_ecr_repos()
@@ -1847,15 +1825,17 @@ class TestArtifactExporter(unittest.TestCase):
                 "Resource1": {"Type": "resource_type1", "Properties": properties},
             }
         }
-        template_str = json.dumps(template_dict, indent=4, ensure_ascii=False)
+
+        iac_stack = IacStack()
+        iac_stack.update(template_dict)
 
         template_exporter = Template(
-            template_path=None,
-            parent_dir=None,
+            template_dict=iac_stack,
+            parent_dir=os.getcwd(),
             uploaders=self.uploaders_mock,
             code_signer=None,
             resources_to_export=resources_to_export,
-            template_str=template_str,
+            iac=None,
         )
 
         s3_info = template_exporter.get_s3_info()

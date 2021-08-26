@@ -12,6 +12,7 @@ from botocore.exceptions import ClientError, NoRegionError, NoCredentialsError
 from samcli.commands.exceptions import CredentialsError, RegionError
 from samcli.lib.bootstrap.companion_stack.companion_stack_builder import CompanionStackBuilder
 from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack, ECRRepo
+from samcli.lib.iac.interface import Stack as IacStack
 from samcli.lib.package.artifact_exporter import mktempfile
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.packagetype import IMAGE
@@ -280,14 +281,19 @@ class CompanionStackManager:
 
 
 def sync_ecr_stack(
-    template_file: str, stack_name: str, region: str, s3_bucket: str, s3_prefix: str, image_repositories: Dict[str, str]
+    iac_stacks: List[IacStack],
+    stack_name: str,
+    region: str,
+    s3_bucket: str,
+    s3_prefix: str,
+    image_repositories: Dict[str, str],
 ) -> Dict[str, str]:
     """Blocking call to sync local functions with ECR Companion Stack
 
     Parameters
     ----------
-    template_file : str
-        Template file path.
+    iac_stacks : List[IacStack]
+        Infrastructure project list of stacks
     stack_name : str
         Stack name
     region : str
@@ -308,7 +314,7 @@ def sync_ecr_stack(
     image_repositories = image_repositories.copy() if image_repositories else {}
     manager = CompanionStackManager(stack_name, region, s3_bucket, s3_prefix)
 
-    stacks = SamLocalStackProvider.get_stacks(template_file)[0]
+    stacks = SamLocalStackProvider.get_stacks(iac_stacks)[0]
     function_provider = SamFunctionProvider(stacks, ignore_code_extraction_warnings=True)
     function_logical_ids = [
         function.full_path for function in function_provider.get_all() if function.packagetype == IMAGE

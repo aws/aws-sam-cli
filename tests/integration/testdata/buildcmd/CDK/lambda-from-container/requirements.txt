@@ -9,6 +9,6 @@ cattrs>=1.1.1
 ##
 ## CDK Modules
 ##
-aws-cdk.core>=1.76.0
-aws-cdk.aws_lambda>=1.76.0
-aws-cdk.aws_ecr>=1.76.0
+aws-cdk.core~=1.99.0
+aws-cdk.aws_lambda~=1.99.0
+aws-cdk.aws_ecr~=1.99.0

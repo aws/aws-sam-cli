@@ -17,7 +17,7 @@ Exporting resources defined in the cloudformation template to the cloud.
 # language governing permissions and limitations under the License.
 import os
 import logging
-from typing import Dict, Optional, List, Union
+from typing import Dict, List, Union
 
 from botocore.utils import set_value_from_jmespath
 
@@ -47,7 +47,14 @@ from samcli.lib.package.utils import (
 from samcli.lib.package.local_files_utils import mktempfile, get_uploaded_s3_object_name
 from samcli.lib.utils.packagetype import ZIP
 from samcli.yamlhelper import yaml_dump
-from samcli.lib.iac.interface import Stack as IacStack, IacPlugin, Resource as IacResource, DictSectionItem, S3Asset
+from samcli.lib.iac.interface import (
+    Stack as IacStack,
+    IacPlugin,
+    Resource as IacResource,
+    DictSectionItem,
+    S3Asset,
+    DictSection,
+)
 
 # NOTE: sriram-mv, A cyclic dependency on `Template` needs to be broken.
 
@@ -165,7 +172,6 @@ class Template:
         """
         Reads the template and makes it ready for export
         """
-        #if not template_str:
         if not (is_local_folder(parent_dir) and os.path.isabs(parent_dir)):
             raise ValueError("parent_dir parameter must be an absolute path to a folder {0}".format(parent_dir))
 
@@ -223,7 +229,7 @@ class Template:
 
         Intentionally not dealing with Api:DefinitionUri at this point.
         """
-        for _, resource in self.template_dict["Resources"].items():
+        for _, resource in self.template_dict.get("Resources", DictSection()).items():
 
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", None)
@@ -250,7 +256,7 @@ class Template:
         self._apply_global_values()
         self._export_global_artifacts(self.template_dict)
 
-        for resource in self.template_dict["Resources"].values():  # type: ignore
+        for resource in self.template_dict.get("Resources", DictSection()).values():  # type: ignore
 
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
@@ -275,7 +281,7 @@ class Template:
 
         self._apply_global_values()
 
-        for resource_id, resource in self.template_dict["Resources"].items():
+        for resource_id, resource in self.template_dict.get("Resources", DictSection()).items():  # type: ignore
 
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
@@ -289,7 +295,7 @@ class Template:
                     if resource_dict.get("PackageType", ZIP) != exporter_class.ARTIFACT_TYPE:
                         continue
                     # Delete code resources
-                    exporter = exporter_class(self.uploaders, None)
+                    exporter = exporter_class(self.uploaders, None, None)
                     exporter.delete(resource_id, resource_dict)
 
     def get_ecr_repos(self):
@@ -301,7 +307,7 @@ class Template:
             return ecr_repos
 
         self._apply_global_values()
-        for resource_id, resource in self.template_dict["Resources"].items():
+        for resource_id, resource in self.template_dict.get("Resources", DictSection()).items():
 
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
@@ -309,7 +315,7 @@ class Template:
             if resource_deletion_policy == "Retain" or resource_type != "AWS::ECR::Repository":
                 continue
 
-            ecr_resource = ECRResource(self.uploaders, None)
+            ecr_resource = ECRResource(self.uploaders, None, self.iac)
             ecr_repos[resource_id] = {"Repository": ecr_resource.get_property_value(resource_dict)}
 
         return ecr_repos
@@ -328,7 +334,7 @@ class Template:
 
         self._apply_global_values()
 
-        for _, resource in self.template_dict["Resources"].items():
+        for _, resource in self.template_dict.get("Resources", DictSection()).items():
 
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
@@ -342,7 +348,7 @@ class Template:
                 if resource_dict.get("PackageType", ZIP) != exporter_class.ARTIFACT_TYPE:
                     continue
 
-                exporter = exporter_class(self.uploaders, None)
+                exporter = exporter_class(self.uploaders, None, None)
                 s3_info = exporter.get_property_value(resource_dict)
 
                 result["s3_bucket"] = s3_info["Bucket"]

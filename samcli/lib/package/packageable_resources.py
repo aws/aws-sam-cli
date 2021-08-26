@@ -6,6 +6,7 @@ import os
 import shutil
 from typing import Optional, Union
 
+import jmespath
 from botocore.utils import set_value_from_jmespath
 
 from samcli.commands.package import exceptions

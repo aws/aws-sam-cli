@@ -335,7 +335,7 @@ def do_cli(
         # after we figure out how to enable resolve-images-repos in package
         if resolve_image_repos:
             image_repositories = sync_ecr_stack(
-                template_file, stack_name, region, s3_bucket, s3_prefix, image_repositories
+                project.stacks, stack_name, region, s3_bucket, s3_prefix, image_repositories
             )
 
     with osutils.tempfile_platform_independent() as output_template_file:

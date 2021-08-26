@@ -64,6 +64,7 @@ class PackageIntegBase(TestCase):
 
         # Intialize S3 client
         s3 = boto3.resource("s3")
+        cls.s3_client = boto3.client("s3")
         cls.ecr = boto3.client("ecr")
         # Use a pre-created KMS Key
         cls.kms_key = os.environ.get("AWS_KMS_KEY")
@@ -90,8 +91,14 @@ class PackageIntegBase(TestCase):
     def tearDownClass(cls):
         # If the class doesn't use pre-created bucket & ECR, delete them
         if not cls.pre_created_bucket:
+            # delete S3 Objects
             for obj in cls.s3_bucket.objects.all():
-                obj.delete()
+                cls.s3_client.delete_object(Bucket=obj.bucket_name, Key=obj.key)
+
+            versions = cls.s3_client.list_object_versions(Bucket=cls.s3_bucket.name)
+            if "Versions" in versions and len(versions["Versions"]) > 0:
+                cls.s3_bucket.object_versions.delete()
+                time.sleep(SLEEP)
             cls.s3_bucket.delete()
             time.sleep(SLEEP)
         if not cls.pre_created_ecr_repo:

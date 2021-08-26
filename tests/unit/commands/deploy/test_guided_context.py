@@ -371,6 +371,19 @@ class TestGuidedContext(TestCase):
         patched_confirm,
         patched_prompt,
     ):
+        project_mock = self.gc._project
+        project_mock.reset_mock()
+        iac_stack_mock = MagicMock()
+        iac_stack_mock.origin_dir = "dir"
+        iac_stack_mock.name = ""
+        iac_stack_mock.has_assets_of_package_type.return_value = True
+        function_resource_mock = Mock()
+        function_resource_mock.item_id = "HelloWorldFunction"
+        iac_stack_mock.find_function_resources_of_package_type.return_value = [function_resource_mock]
+        iac_stack_mock.get_overrideable_parameters.return_value = {}
+        project_mock.find_stack_by_name.return_value = None
+        project_mock.default_stack = iac_stack_mock
+
         function_mock = MagicMock()
         function_mock.packagetype = IMAGE
         function_mock.imageuri = None
@@ -389,7 +402,7 @@ class TestGuidedContext(TestCase):
         patched_manage_stack.return_value = "managed_s3_stack"
         patched_signer_config_per_function.return_value = ({}, {})
         with self.assertRaises(GuidedDeployFailedError):
-            self.gc.guided_prompts(parameter_override_keys=None)
+            self.gc.guided_prompts()
 
     @patch("samcli.commands.deploy.guided_context.prompt")
     @patch("samcli.commands.deploy.guided_context.confirm")
@@ -410,6 +423,19 @@ class TestGuidedContext(TestCase):
         patched_confirm,
         patched_prompt,
     ):
+        project_mock = self.gc._project
+        project_mock.reset_mock()
+        iac_stack_mock = MagicMock()
+        iac_stack_mock.origin_dir = "dir"
+        iac_stack_mock.name = ""
+        iac_stack_mock.has_assets_of_package_type.return_value = True
+        function_resource_mock = Mock()
+        function_resource_mock.item_id = "HelloWorldFunction"
+        iac_stack_mock.find_function_resources_of_package_type.return_value = [function_resource_mock]
+        iac_stack_mock.get_overrideable_parameters.return_value = {}
+        project_mock.find_stack_by_name.return_value = None
+        project_mock.default_stack = iac_stack_mock
+
         # Set ImageUri to be None, the sam app was never built.
         function_mock_1 = MagicMock()
         function_mock_1.packagetype = IMAGE
@@ -432,7 +458,7 @@ class TestGuidedContext(TestCase):
         patched_manage_stack.return_value = "managed_s3_stack"
         patched_signer_config_per_function.return_value = ({}, {})
 
-        self.gc.guided_prompts(parameter_override_keys=None)
+        self.gc.guided_prompts()
         # Now to check for all the defaults on confirmations.
         expected_confirmation_calls = [
             call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),
@@ -505,9 +531,6 @@ class TestGuidedContext(TestCase):
         function_mock.imageuri = None
         function_mock.full_path = "HelloWorldFunction"
         patched_sam_function_provider.return_value.get_all.return_value = [function_mock]
-        patched_sam_function_provider.return_value = MagicMock(
-            functions={"HelloWorldFunction": MagicMock(packagetype=IMAGE, imageuri=None)}
-        )
         patched_get_buildable_stacks.return_value = (Mock(), [])
         patched_prompt.side_effect = [
             "sam-app",
@@ -521,7 +544,7 @@ class TestGuidedContext(TestCase):
         patched_manage_stack.return_value = "managed_s3_stack"
         patched_signer_config_per_function.return_value = ({}, {})
 
-        self.gc.guided_prompts(parameter_override_keys=None)
+        self.gc.guided_prompts()
         # Now to check for all the defaults on confirmations.
         expected_confirmation_calls = [
             call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),

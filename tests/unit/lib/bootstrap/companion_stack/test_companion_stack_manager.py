@@ -269,8 +269,9 @@ class TestCompanionStackManager(TestCase):
         stacks = MagicMock()
         stack_provider_mock.get_stacks.return_value = (stacks, None)
         manager_mock.return_value.get_repository_mapping.return_value = {"Function2": "uri2"}
+        iac_stacks_list = [MagicMock()]
 
-        result = sync_ecr_stack("template.yaml", "stack-name", "region", "s3-bucket", "s3-prefix", image_repositories)
+        result = sync_ecr_stack(iac_stacks_list, "stack-name", "region", "s3-bucket", "s3-prefix", image_repositories)
 
         manager_mock.assert_called_once_with("stack-name", "region", "s3-bucket", "s3-prefix")
         function_provider_mock.assert_called_once_with(stacks, ignore_code_extraction_warnings=True)
