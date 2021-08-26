@@ -38,9 +38,9 @@ class IaCFactory:
                 f"of the following {[ptype.value for ptype in ProjectTypes]} ",
             )
         iac_implementation = iac_implementations.get(project_type)
-        if iac_implementation is not None:
-            return iac_implementation(self._sam_cli_context)
-        raise ValueError()
+        if iac_implementation is None:
+            raise ValueError()
+        return iac_implementation(self._sam_cli_context)
 
     @staticmethod
     def detect_project_type(path: str) -> str:
