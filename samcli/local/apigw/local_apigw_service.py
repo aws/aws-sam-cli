@@ -290,8 +290,10 @@ class LocalApigwService(BaseLocalService):
         route = self._get_current_route(request)
         cors_headers = Cors.cors_to_headers(self.api.cors)
 
-        if isinstance(route.payload_format_version, float):
-            raise PayloadFormatVersionValidateException("payloadFormatVersion is not a string")
+        # payloadFormatVersion can only support 2 values: "1.0" and "2.0"
+        # so we want to do strict validation to make sure it has proper value if provided
+        if route.payload_format_version not in [None, "1.0", "2.0"]:
+            raise PayloadFormatVersionValidateException('payloadFormatVersion must be "1.0" or "2.0"')
 
         method, endpoint = self.get_request_methods_endpoints(request)
         if method == "OPTIONS" and self.api.cors:
@@ -299,6 +301,7 @@ class LocalApigwService(BaseLocalService):
             return self.service_response("", headers, 200)
 
         try:
+            # TODO: Rewrite the logic below to use version 2.0 when an invalid value is provided
             # the Lambda Event 2.0 is only used for the HTTP API gateway with defined payload format version equal 2.0
             # or none, as the default value to be used is 2.0
             # https://docs.aws.amazon.com/apigatewayv2/latest/api-reference/apis-apiid-integrations.html#apis-apiid-integrations-prop-createintegrationinput-payloadformatversion
