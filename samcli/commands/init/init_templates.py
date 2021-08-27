@@ -122,7 +122,7 @@ class InitTemplates:
             except CloneRepoUnstableStateException as ex:
                 raise AppTemplateUpdateException(str(ex)) from ex
             except (OSError, CloneRepoException):
-                # If can't clone, try using an old clone from a previous run if already exist
+                LOG.debug("Clone error, attempting to use an old clone from a previous run")
                 expected_previous_clone_local_path: Path = shared_dir.joinpath(APP_TEMPLATES_REPO_NAME)
                 if expected_previous_clone_local_path.exists():
                     self._git_repo.local_path = expected_previous_clone_local_path
