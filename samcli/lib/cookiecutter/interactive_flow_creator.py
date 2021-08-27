@@ -13,7 +13,7 @@ from .interactive_flow import InteractiveFlow
 from .question import Question, QuestionFactory
 
 
-QUESTIONS_TEMPLATE_PATH = str(
+QUESTIONS_TEMPLATE_FILE = str(
     pathlib.Path(os.path.dirname(__file__), "..", "pipeline", "init", "questions.json.schema")
 )
 
@@ -123,7 +123,7 @@ class InteractiveFlowCreator:
         """
 
         try:
-            with open(QUESTIONS_TEMPLATE_PATH) as f:
+            with open(QUESTIONS_TEMPLATE_FILE) as f:
                 questions_schema = f.read()
             questions_yaml = parse_yaml_file(file_path=file_path, extra_context=extra_context)
             validate(instance=questions_yaml, schema=json.loads(questions_schema))
