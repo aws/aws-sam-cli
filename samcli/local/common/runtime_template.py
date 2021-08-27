@@ -136,26 +136,6 @@ INIT_RUNTIMES = [
     "ruby2.5",
 ]
 
-LAMBDA_IMAGES_RUNTIMES = [
-    "amazon/nodejs14.x-base",
-    "amazon/nodejs12.x-base",
-    "amazon/nodejs10.x-base",
-    "amazon/python3.9-base",
-    "amazon/python3.8-base",
-    "amazon/python3.7-base",
-    "amazon/python3.6-base",
-    "amazon/python2.7-base",
-    "amazon/ruby2.7-base",
-    "amazon/ruby2.5-base",
-    "amazon/go1.x-base",
-    "amazon/java11-base",
-    "amazon/java8.al2-base",
-    "amazon/java8-base",
-    "amazon/dotnet5.0-base",
-    "amazon/dotnetcore3.1-base",
-    "amazon/dotnetcore2.1-base",
-]
-
 LAMBDA_IMAGES_RUNTIMES_MAP = {
     "dotnet5.0": "amazon/dotnet5.0-base",
     "dotnetcore3.1": "amazon/dotnetcore3.1-base",
@@ -175,6 +155,8 @@ LAMBDA_IMAGES_RUNTIMES_MAP = {
     "ruby2.7": "amazon/ruby2.7-base",
     "ruby2.5": "amazon/ruby2.5-base",
 }
+
+LAMBDA_IMAGES_RUNTIMES = LAMBDA_IMAGES_RUNTIMES_MAP.values()
 
 # Schemas Code lang is a MINIMUM supported version
 # - this is why later Lambda runtimes can be mapped to earlier Schemas Code Languages
