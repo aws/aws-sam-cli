@@ -440,9 +440,10 @@ class TestApiGatewayService(TestCase):
         result = self.api_service._request_handler()
         self.assertEqual(result, failure_mock)
 
-    def test_request_handler_errors_when_payload_format_version_wrong(self):
+    @parameterized.expand([param("1.5"), param(2.0)])
+    def test_request_handler_errors_when_payload_format_version_wrong(self, payload_format_version):
         get_current_route = Mock()
-        get_current_route.return_value.payload_format_version = 2.0
+        get_current_route.return_value.payload_format_version = payload_format_version
         self.api_service._get_current_route = get_current_route
 
         with self.assertRaises(PayloadFormatVersionValidateException):

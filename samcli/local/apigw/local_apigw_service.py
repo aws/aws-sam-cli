@@ -292,8 +292,11 @@ class LocalApigwService(BaseLocalService):
 
         # payloadFormatVersion can only support 2 values: "1.0" and "2.0"
         # so we want to do strict validation to make sure it has proper value if provided
+        # https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html
         if route.payload_format_version not in [None, "1.0", "2.0"]:
-            raise PayloadFormatVersionValidateException('payloadFormatVersion must be "1.0" or "2.0"')
+            raise PayloadFormatVersionValidateException(
+                f'{route.payload_format_version} is not a valid value. PayloadFormatVersion must be "1.0" or "2.0"'
+            )
 
         method, endpoint = self.get_request_methods_endpoints(request)
         if method == "OPTIONS" and self.api.cors:
