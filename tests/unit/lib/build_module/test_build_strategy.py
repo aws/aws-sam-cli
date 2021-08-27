@@ -386,10 +386,10 @@ class ParallelBuildStrategyTest(BuildStrategyBaseTest):
         # assert that delegated function calls have been registered in async context
         mock_async_context.add_async_task.assert_has_calls(
             [
-                call(delegate_build_strategy.build_single_function_definition, self.function_build_definition1),
-                call(delegate_build_strategy.build_single_function_definition, self.function_build_definition2),
                 call(delegate_build_strategy.build_single_layer_definition, self.layer_build_definition1),
                 call(delegate_build_strategy.build_single_layer_definition, self.layer_build_definition2),
+                call(delegate_build_strategy.build_single_function_definition, self.function_build_definition1),
+                call(delegate_build_strategy.build_single_function_definition, self.function_build_definition2),
             ]
         )
 
