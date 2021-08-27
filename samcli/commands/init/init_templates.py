@@ -255,7 +255,7 @@ class InitTemplates:
 def get_template_value(value, template):
     if value not in template:
         raise InvalidInitTemplateError(
-            f"Template is missing the value for {value} in manifest file. Please raise a ticket"
+            f"Template is missing the value for {value} in manifest file. Please raise a a github issue."
         )
     return template.get(value)
 
