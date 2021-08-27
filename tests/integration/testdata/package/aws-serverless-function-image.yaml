@@ -7,7 +7,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       PackageType: Image
-      ImageUri: alpine:latest
+      ImageUri: emulation-python3.8:latest
       Events:
         HelloWorld:
           Type: Api

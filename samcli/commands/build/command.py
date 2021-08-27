@@ -38,7 +38,7 @@ Supported Resource Types
 \b
 Supported Runtimes
 ------------------
-1. Python 2.7, 3.6, 3.7, 3.8 using PIP\n
+1. Python 2.7, 3.6, 3.7, 3.8 3.9 using PIP\n
 2. Nodejs 14.x, 12.x, 10.x, 8.10, 6.10 using NPM\n
 3. Ruby 2.5 using Bundler\n
 4. Java 8, Java 11 using Gradle and Maven\n
@@ -316,7 +316,6 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
 
         try:
             artifacts = builder.build()
-
             stack_output_template_path_by_stack_path = {
                 stack.stack_path: stack.get_output_template_path(ctx.build_dir) for stack in ctx.stacks
             }
