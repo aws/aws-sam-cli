@@ -49,8 +49,6 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
         time.sleep(CFN_SLEEP)
         super().setUp()
 
-
-
     @parameterized.expand(
         [
             "aws-serverless-function-image.yaml",
@@ -63,13 +61,16 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
 
         config_file_name = stack_name + ".toml"
         deploy_command_list = self.get_deploy_command_list(
-            template_file=template_path, guided=False, config_file=config_file_name, image_repository=self.ecr_repo_name,
-            stack_name=stack_name, resolve_s3=True, capabilities="CAPABILITY_IAM",
+            template_file=template_path,
+            guided=False,
+            config_file=config_file_name,
+            image_repository=self.ecr_repo_name,
+            stack_name=stack_name,
+            resolve_s3=True,
+            capabilities="CAPABILITY_IAM",
         )
 
-        deploy_process_execute = run_command(
-            deploy_command_list
-        )
+        deploy_process_execute = run_command(deploy_command_list)
 
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
@@ -89,8 +90,6 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
         # Remove the local config file created
         if os.path.isfile(config_file_path):
             os.remove(config_file_path)
-
-
 
     # TODO: Add 3 more tests after Auto ECR is merged to develop
     # 1. Create a stack using guided deploy of type image and delete
