@@ -1,10 +1,21 @@
 """ This module parses a json/yaml file that defines a flow of questions to fulfill the cookiecutter context"""
+import pathlib
+import os
 from typing import Dict, Optional, Tuple
+
+import json
 import yaml
+from jsonschema import validate
+from jsonschema.exceptions import ValidationError as SchemaValidationError
 from samcli.commands.exceptions import UserException
 from samcli.yamlhelper import parse_yaml_file
 from .interactive_flow import InteractiveFlow
 from .question import Question, QuestionFactory
+
+
+QUESTIONS_TEMPLATE_PATH = str(
+    pathlib.Path(os.path.dirname(__file__), "..", "pipeline", "init", "questions.json.schema")
+)
 
 
 class QuestionsNotFoundException(UserException):
@@ -112,8 +123,12 @@ class InteractiveFlowCreator:
         """
 
         try:
-            return parse_yaml_file(file_path=file_path, extra_context=extra_context)
+            with open(QUESTIONS_TEMPLATE_PATH) as f:
+                questions_schema = f.read()
+            questions_yaml = parse_yaml_file(file_path=file_path, extra_context=extra_context)
+            validate(instance=questions_yaml, schema=json.loads(questions_schema))
+            return questions_yaml
         except FileNotFoundError as ex:
             raise QuestionsNotFoundException(f"questions definition file not found at {file_path}") from ex
-        except (KeyError, ValueError, yaml.YAMLError) as ex:
+        except (KeyError, ValueError, yaml.YAMLError, SchemaValidationError) as ex:
             raise QuestionsFailedParsingException(f"Failed to parse questions: {str(ex)}") from ex

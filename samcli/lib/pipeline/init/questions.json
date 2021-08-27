@@ -1,0 +1,182 @@
+{
+  "questions": [{
+    "key": "git_provider_type",
+    "question": "What is the Git provider?",
+    "options": ["Bitbucket", "CodeCommit", "GitHub", "GitHubEnterpriseServer"],
+    "nextQuestion": {
+      "CodeCommit": "codecommit_repository_name"
+    },
+    "defaultNextQuestion": "codestar_full_repository_id"
+  }, {
+    "key": "codestar_full_repository_id",
+    "question": "What is the full repository id (Example: some-user/my-repo)?",
+    "isRequired": true,
+    "defaultNextQuestion": "main_git_branch"
+  }, {
+    "key": "codecommit_repository_name",
+    "question": "What is the CodeCommit repository name?",
+    "isRequired": true
+  }, {
+    "key": "main_git_branch",
+    "question": "What is the Git branch used for production deployments?",
+    "default": "main"
+  }, {
+    "key": "sam_template",
+    "question": "What is the template file path?",
+    "default": "template.yaml"
+  }, {
+    "key": "message_testing_stage_name",
+    "question": "We use the stage name to automatically retrieve the bootstrapped resources created when you ran `sam pipeline bootstrap`.\n",
+    "kind": "info"
+  }, {
+    "key": "message_list_stage_names_testing",
+    "question": {
+      "keyPath": ["stage_names_message"]
+    },
+    "kind": "info"
+  }, {
+    "key": "testing_stage_name",
+    "question": "What is the name of stage 1 (as provided during the bootstrapping)?\nSelect an index or enter the stage name",
+    "isRequired": true
+  }, {
+    "key": "testing_stack_name",
+    "question": "What is the sam application stack name for stage 1?",
+    "isRequired": true,
+    "default": "sam-app"
+  }, {
+    "key": "testing_pipeline_execution_role",
+    "question": "What is the pipeline execution role ARN for stage 1?",
+    "isRequired": true,
+    "allowAutofill": true,
+    "default": {
+      "keyPath": [
+          { "valueOf": "testing_stage_name"},
+          "pipeline_execution_role"
+      ]
+    }
+  }, {
+    "key": "testing_cloudformation_execution_role",
+    "question": "What is the CloudFormation execution role ARN for stage 1?",
+    "isRequired": true,
+    "allowAutofill": true,
+    "default": {
+      "keyPath": [
+          { "valueOf": "testing_stage_name"},
+          "cloudformation_execution_role"
+      ]
+    }
+  }, {
+    "key": "testing_artifacts_bucket",
+    "question": "What is the S3 bucket name for artifacts for stage 1?",
+    "isRequired": true,
+    "allowAutofill": true,
+    "default": {
+      "keyPath": [
+          { "valueOf": "testing_stage_name"},
+          "artifacts_bucket"
+      ]
+    }
+  }, {
+    "key": "testing_image_repository",
+    "question": "What is the ECR repository URI for stage 1?",
+    "allowAutofill": true,
+    "default": {
+      "keyPath": [
+          { "valueOf": "testing_stage_name"},
+          "image_repository"
+      ]
+    }
+  }, {
+    "key": "testing_region",
+    "question": "What is the AWS region for stage 1?",
+    "isRequired": true,
+    "allowAutofill": true,
+    "default": {
+      "keyPath": [
+          { "valueOf": "testing_stage_name"},
+          "region"
+      ]
+    }
+  }, {
+    "key": "message_testing_stage_configured",
+    "question": "Stage 1 configured successfully, configuring stage 2.\n",
+    "kind": "info"
+  }, {
+    "key": "message_list_stage_names_prod",
+    "question": {
+      "keyPath": ["stage_names_message"]
+    },
+    "kind": "info"
+  }, {
+    "key": "prod_stage_name",
+    "question": "What is the name of stage 2 (as provided during the bootstrapping)?\nSelect an index or enter the stage name",
+    "isRequired": true
+  }, {
+    "key": "prod_stack_name",
+    "question": "What is the sam application stack name for stage 2?",
+    "isRequired": true,
+    "default": "sam-app"
+  }, {
+    "key": "prod_pipeline_execution_role",
+    "question": "What is the pipeline execution role ARN for stage 2?",
+    "isRequired": true,
+    "allowAutofill": true,
+    "default": {
+      "keyPath": [
+          { "valueOf": "prod_stage_name"},
+          "pipeline_execution_role"
+      ]
+    }
+  }, {
+    "key": "prod_cloudformation_execution_role",
+    "question": "What is the CloudFormation execution role ARN for stage 2?",
+    "isRequired": true,
+    "allowAutofill": true,
+    "default": {
+      "keyPath": [
+          { "valueOf": "prod_stage_name"},
+          "cloudformation_execution_role"
+      ]
+    }
+  }, {
+    "key": "prod_artifacts_bucket",
+    "question": "What is the S3 bucket name for artifacts for stage 2?",
+    "isRequired": true,
+    "allowAutofill": true,
+    "default": {
+      "keyPath": [
+          { "valueOf": "prod_stage_name"},
+          "artifacts_bucket"
+      ]
+    }
+  }, {
+    "key": "prod_image_repository",
+    "question": "What is the ECR repository URI for stage 2?",
+    "allowAutofill": true,
+    "default": {
+      "keyPath": [
+          { "valueOf": "prod_stage_name"},
+          "image_repository"
+      ]
+    }
+  }, {
+    "key": "prod_region",
+    "question": "What is the AWS region for stage 2?",
+    "isRequired": true,
+    "allowAutofill": true,
+    "default": {
+      "keyPath": [
+          { "valueOf": "prod_stage_name"},
+          "region"
+      ]
+    }
+  }, {
+    "key": "message_prod_stage_configured",
+    "question": "Stage 2 configured successfully.\n",
+    "kind": "info"
+  }, {
+    "key": "instructions",
+    "question": "To deploy this template and connect to the main git branch, run this against the leading account:\n`sam deploy -t codepipeline.yaml --stack-name <stack-name> --capabilities=CAPABILITY_IAM`.",
+    "kind": "info"
+  }]
+}
