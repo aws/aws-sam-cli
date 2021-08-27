@@ -510,24 +510,6 @@ class Resource(DictSectionItem):
     def nested_stack(self, nested_stack: "Stack") -> None:
         self._nested_stack = nested_stack
 
-    def is_packageable(self):
-        """
-        return if the resource is packageable
-        NOTE: we probably want to include a condition to check if the resource is binded to a local asset
-        But in samcli.lib.package.utils.upload_local_artifacts, we handle a case where local_path is None,
-        we would build the parent_dir. This seems to only apply for CFN/SAM project, we can consider to move
-        that logic to CfnIacPlugin. For now, just keep it as is.
-        """
-        if "InlineCode" in self.get("Properties", {}):
-            return False
-        resource_type = self.get("Type", None)
-        packageable_resources = [
-            NESTED_STACKS_RESOURCES,
-            RESOURCES_WITH_LOCAL_PATHS,
-            RESOURCES_WITH_IMAGE_COMPONENT,
-        ]
-        return any(resource_type in p for p in packageable_resources)
-
 
 class Parameter(DictSectionItem):
     """
@@ -663,21 +645,6 @@ class Stack(MutableMapping):
         }
         return any(isinstance(asset, package_type_to_asset_cls_map[package_type]) for asset in self.assets)
 
-    def find_function_resources_of_package_type(self, package_type: str) -> List[Resource]:
-        package_type_to_asset_cls_map = {
-            ZIP: S3Asset,
-            IMAGE: ImageAsset,
-        }
-        _function_resources = []
-        for _, resource in self.get("Resources", DictSection()).items():
-            if (
-                resource.get("Type", "") in [AWS_SERVERLESS_FUNCTION, AWS_LAMBDA_FUNCTION]
-                and resource.assets
-                and isinstance(resource.assets[0], package_type_to_asset_cls_map[package_type])
-            ):
-                _function_resources.append(resource)
-        return _function_resources
-
     def get_overrideable_parameters(self):
         """
         Return a dict of parameters that are override-able, i.e. not added by iac
@@ -794,22 +761,54 @@ class LookupPath:
 
 
 class SamCliContext:
-    def __init__(self, context: Dict[str, Any]):
-        self._context = context
+    def __init__(
+        self,
+        command_options_map: Dict[str, Any],
+        sam_command_name: str,
+        is_guided: bool,
+        is_debugging: bool,
+        profile: Optional[Dict[str, Any]],
+        region: Optional[str],
+    ):
+        self._command_options_map = command_options_map
+        self._sam_command_name = sam_command_name
+        self._is_guided = is_guided
+        self._is_debugging = is_debugging
+        self._profile = profile
+        self._region = region
 
     @property
-    def context_map(self):
+    def command_options_map(self):
         """
         the context retrieved from command line, its key is the command line option
         name, value is corresponding input
         """
-        return self._context
+        return self._command_options_map
+
+    @property
+    def sam_command_name(self):
+        return self._sam_command_name
+
+    @property
+    def is_guided(self):
+        return self._is_guided
+
+    @property
+    def is_debugging(self):
+        return self._is_debugging
+
+    @property
+    def profile(self):
+        return self._profile
+
+    @property
+    def region(self):
+        return self._region
 
 
 class IaCPluginInterface(metaclass=abc.ABCMeta):
     """
     Interface for an IaC Plugin
-    We only require two methods here - get_project and write_project
     """
 
     def __init__(self, context: SamCliContext):
@@ -841,9 +840,9 @@ class IaCPluginInterface(metaclass=abc.ABCMeta):
 
     @staticmethod
     @abc.abstractmethod
-    def get_iac_file_types() -> List[str]:
+    def get_iac_file_patterns() -> List[str]:
         """
-        return a list of file types that define the IaC project
+        return a list of file types/patterns that define the IaC project
         """
         raise NotImplementedError
 

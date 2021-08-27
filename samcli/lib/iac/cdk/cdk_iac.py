@@ -6,7 +6,19 @@ from typing import List
 from samcli.lib.iac.plugins_interfaces import IaCPluginInterface, SamCliProject, Stack
 
 
+# TODO: Implement the new interface methods for the CDK plugin type
 class CdkIacImplementation(IaCPluginInterface):
+    """
+    CDK implementation for the plugins interface.
+    read_project parses the CDK and returns a SamCliProject object
+    write_project writes the updated project
+        back to the build dir and returns true if successful
+    update_packaged_locations updates the package locations and r
+        returns true if successful
+    get_iac_file_types returns a list of file types/patterns associated with
+        the CDK project type
+    """
+
     def read_project(self, lookup_paths: List[str]) -> SamCliProject:
         pass
 
@@ -17,5 +29,5 @@ class CdkIacImplementation(IaCPluginInterface):
         pass
 
     @staticmethod
-    def get_iac_file_types() -> List[str]:
+    def get_iac_file_patterns() -> List[str]:
         return ["cdk.json"]
