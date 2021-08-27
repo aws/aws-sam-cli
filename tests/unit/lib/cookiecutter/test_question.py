@@ -19,7 +19,7 @@ class TestQuestion(TestCase):
         "option3": "key3",
     }
     _ANY_DEFAULT_NEXT_QUESTION_KEY = "default"
-    _ANY_KIND = QuestionKind.default
+    _ANY_KIND = QuestionKind.question
 
     def setUp(self):
         self.question = Question(
