@@ -37,7 +37,7 @@ class TestToTimestamp(TestCase):
 class TestToUtc(TestCase):
     def test_with_timezone(self):
 
-        date = parse_date("2018-07-06 13:09:54 PDT")
+        date = parse_date("2018-07-0613:09:54PDT")
         expected = datetime.datetime(2018, 7, 6, 20, 9, 54)
 
         result = to_utc(date)
