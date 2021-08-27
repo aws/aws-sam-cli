@@ -5,7 +5,7 @@ from typing import Dict, Optional, Tuple
 
 import json
 import yaml
-from jsonschema import validate
+import jsonschema
 from jsonschema.exceptions import ValidationError as SchemaValidationError
 from samcli.commands.exceptions import UserException
 from samcli.yamlhelper import parse_yaml_file
@@ -13,7 +13,7 @@ from .interactive_flow import InteractiveFlow
 from .question import Question, QuestionFactory
 
 
-QUESTIONS_TEMPLATE_FILE = str(
+QUESTIONS_TEMPLATE_FILE_PATH = str(
     pathlib.Path(os.path.dirname(__file__), "..", "pipeline", "init", "questions.json.schema")
 )
 
@@ -123,10 +123,13 @@ class InteractiveFlowCreator:
         """
 
         try:
-            with open(QUESTIONS_TEMPLATE_FILE) as f:
+            with open(QUESTIONS_TEMPLATE_FILE_PATH) as f:
                 questions_schema = f.read()
             questions_yaml = parse_yaml_file(file_path=file_path, extra_context=extra_context)
-            validate(instance=questions_yaml, schema=json.loads(questions_schema))
+            # This is standard JSON validation against our JSON Schema. This will throw a
+            # JSON Schema Validation error in case if JSON structure is not per schema or JSON have
+            # unknown fields.
+            jsonschema.validate(instance=questions_yaml, schema=json.loads(questions_schema))
             return questions_yaml
         except FileNotFoundError as ex:
             raise QuestionsNotFoundException(f"questions definition file not found at {file_path}") from ex
