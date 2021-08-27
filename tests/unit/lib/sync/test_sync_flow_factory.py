@@ -54,55 +54,23 @@ class TestSyncFlowFactory(TestCase):
         result = factory._create_lambda_flow("Function1", resource)
         self.assertEqual(result, None)
 
-    @patch("samcli.lib.sync.sync_flow_factory.is_local_file")
     @patch("samcli.lib.sync.sync_flow_factory.RestApiSyncFlow")
-    def test_create_rest_api_flow(self, rest_api_sync_mock, is_local_file_mock):
+    def test_create_rest_api_flow(self, rest_api_sync_mock):
         factory = self.create_factory()
-        is_local_file_mock.return_value = True
-        resource = {"Properties": {"DefinitionUri": "mock"}}
-        result = factory._create_rest_api_flow("API1", resource)
+        result = factory._create_rest_api_flow("API1", {})
         self.assertEqual(result, rest_api_sync_mock.return_value)
 
-    @patch("samcli.lib.sync.sync_flow_factory.is_local_file")
-    def test_skip_rest_api_flow(self, is_local_file_mock):
-        factory = self.create_factory()
-        is_local_file_mock.return_value = False
-        result = factory._create_rest_api_flow("API1", {})
-        self.assertEqual(result, None)
-
-    @patch("samcli.lib.sync.sync_flow_factory.is_local_file")
     @patch("samcli.lib.sync.sync_flow_factory.HttpApiSyncFlow")
-    def test_create_api_flow(self, http_api_sync_mock, is_local_file_mock):
+    def test_create_api_flow(self, http_api_sync_mock):
         factory = self.create_factory()
-        is_local_file_mock.return_value = True
-        resource = {"Properties": {"DefinitionUri": "mock"}}
-        result = factory._create_api_flow("API1", resource)
+        result = factory._create_api_flow("API1", {})
         self.assertEqual(result, http_api_sync_mock.return_value)
 
-    @patch("samcli.lib.sync.sync_flow_factory.is_local_file")
-    def test_skip_api_flow(self, is_local_file_mock):
-        factory = self.create_factory()
-        is_local_file_mock.return_value = False
-        resource = {"Properties": {"DefinitionUri": "mock"}}
-        result = factory._create_api_flow("API1", resource)
-        self.assertEqual(result, None)
-
-    @patch("samcli.lib.sync.sync_flow_factory.is_local_file")
     @patch("samcli.lib.sync.sync_flow_factory.StepFunctionsSyncFlow")
-    def test_create_stepfunctions_flow(self, stepfunctions_sync_mock, is_local_file_mock):
+    def test_create_stepfunctions_flow(self, stepfunctions_sync_mock):
         factory = self.create_factory()
-        is_local_file_mock.return_value = True
-        resource = {"Properties": {"DefinitionUri": "mock"}}
-        result = factory._create_stepfunctions_flow("StateMachine1", resource)
+        result = factory._create_stepfunctions_flow("StateMachine1", {})
         self.assertEqual(result, stepfunctions_sync_mock.return_value)
-
-    @patch("samcli.lib.sync.sync_flow_factory.is_local_file")
-    def test_skip_stepfunctions_flow(self, is_local_file_mock):
-        factory = self.create_factory()
-        is_local_file_mock.return_value = True
-        resource = {"Properties": {"DefinitionUri": "mock", "DefinitionSubstitutions": "mock"}}
-        result = factory._create_stepfunctions_flow("StateMachine1", resource)
-        self.assertEqual(result, None)
 
     @patch("samcli.lib.sync.sync_flow_factory.get_resource_by_id")
     def test_create_sync_flow(self, get_resource_by_id_mock):
@@ -123,13 +91,3 @@ class TestSyncFlowFactory(TestCase):
 
         self.assertEqual(result, sync_flow)
         generator_mock.assert_called_once_with(factory, resource_identifier, get_resource_by_id)
-
-    @patch("samcli.lib.sync.sync_flow_factory.is_local_file")
-    def test_check_definition_uri(self, is_local_file_mock):
-        resource_identifier = MagicMock()
-        resource_valid = {"Properties": {"DefinitionUri": "mock"}}
-        resource_invalid = {}
-        is_local_file_mock.return_value = True
-
-        self.assertTrue(SyncFlowFactory.check_definition_uri(resource_identifier, resource_valid))
-        self.assertFalse(SyncFlowFactory.check_definition_uri(resource_identifier, resource_invalid))

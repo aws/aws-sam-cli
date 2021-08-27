@@ -20,9 +20,7 @@ from samcli.commands._utils.options import (
     s3_prefix_option,
     kms_key_id_option,
     role_arn_option,
-    list_resource_option,
 )
-from samcli.commands.exceptions import UserException
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.lib.bootstrap.bootstrap import manage_stack
@@ -85,8 +83,7 @@ DEFAULT_TEMPLATE_NAME = "template.yaml"
     multiple=True,
     help="Sync code for all types of the resource.",
 )
-@stack_name_option
-@list_resource_option
+@stack_name_option(required=True)  # pylint: disable=E1120
 @base_dir_option
 @image_repository_option
 @image_repositories_option
@@ -112,7 +109,6 @@ def cli(
     infra: bool,
     code: bool,
     watch: bool,
-    list_resource: bool,
     resource_id: Optional[Tuple[str]],
     resource: Optional[Tuple[str]],
     stack_name: str,
@@ -141,7 +137,6 @@ def cli(
         infra,
         code,
         watch,
-        list_resource,
         resource_id,
         resource,
         stack_name,
@@ -169,10 +164,9 @@ def do_cli(
     infra: bool,
     code: bool,
     watch: bool,
-    list_resource: bool,
     resource_id: Optional[Tuple[str]],
     resource: Optional[Tuple[str]],
-    stack_name: Optional[str],
+    stack_name: str,
     region: str,
     profile: str,
     base_dir: Optional[str],
@@ -198,17 +192,10 @@ def do_cli(
     from samcli.commands.package.package_context import PackageContext
     from samcli.commands.deploy.deploy_context import DeployContext
 
-    if list_resource:
-        s3_bucket = None
-        stack_name = None
-    else:
-        if not stack_name:
-            raise UserException(
-                "Missing option '--stack-name', \
-must provide it through samconfig.toml or command line option to sync your resources"
-            )
-        s3_bucket = manage_stack(profile=profile, region=region)
-        click.echo(f"\n\t\tUsing managed S3 bucket: {s3_bucket}")
+    s3_bucket = manage_stack(profile=profile, region=region)
+    click.echo(f"\n\t\tManaged S3 bucket: {s3_bucket}")
+    click.echo("\t\tA different default S3 bucket can be set in samconfig.toml")
+    click.echo("\t\tOr by specifying --s3-bucket explicitly.")
 
     with BuildContext(
         resource_identifier=None,
@@ -265,9 +252,7 @@ must provide it through samconfig.toml or command line option to sync your resou
                     force_upload=True,
                     signing_profiles=None,
                 ) as deploy_context:
-                    if list_resource:
-                        list_all_resources(template_file, build_context, deploy_context)
-                    elif watch:
+                    if watch:
                         execute_watch(template_file, build_context, package_context, deploy_context)
                     elif code:
                         execute_code_sync(template_file, build_context, deploy_context, resource_id, resource)
@@ -346,7 +331,7 @@ def execute_watch(
     build_context: "BuildContext",
     package_context: "PackageContext",
     deploy_context: "DeployContext",
-) -> None:
+):
     """Start sync watch execution
 
     Parameters
@@ -362,36 +347,3 @@ def execute_watch(
     """
     watch_manager = WatchManager(template, build_context, package_context, deploy_context)
     watch_manager.start()
-
-
-def list_all_resources(
-    template: str,
-    build_context: "BuildContext",
-    deploy_context: "DeployContext",
-) -> None:
-    """Start listing resources that can be synced
-
-    Parameters
-    ----------
-    template : str
-        Template file path
-    build_context : BuildContext
-        BuildContext
-    deploy_context : DeployContext
-        DeployContext
-    """
-    stacks = SamLocalStackProvider.get_stacks(template)[0]
-    factory = SyncFlowFactory(build_context, deploy_context, stacks)
-
-    sync_flow_resource_ids: List[ResourceIdentifier] = get_all_resource_ids(stacks)
-    synced_resources = []
-
-    for resource_id in sync_flow_resource_ids:
-        sync_flow = factory.create_sync_flow(resource_id)
-        if sync_flow:
-            synced_resources.append(resource_id)
-
-    LOG.info("\nListing all the available resources that can be synced.")
-
-    for resource_id in synced_resources:
-        LOG.info(resource_id)
