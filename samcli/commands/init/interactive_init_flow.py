@@ -345,7 +345,7 @@ def _get_dependency_manager(options, dependency_manager, runtime):
     elif dependency_manager and dependency_manager not in valid_dep_managers:
         msg = (
             f"Lambda Runtime {runtime} and dependency manager {dependency_manager} "
-            + "does not have an available initialization template."
+            + "do not have an available initialization template."
         )
         raise InvalidInitTemplateError(msg)
     return dependency_manager

@@ -1835,6 +1835,6 @@ test-project
 
         self.assertTrue(result.exception)
         expected_error_message = (
-            "Lambda Runtime java8 and dependency manager pip does not have an available initialization template."
+            "Lambda Runtime java8 and dependency manager pip do not have an available initialization template."
         )
         self.assertIn(expected_error_message, result.output)
