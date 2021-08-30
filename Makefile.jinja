@@ -1,0 +1,18 @@
+# {{ notice }}
+#
+# Changes should me made in Makefile.jinja and updatetargets.py
+#
+
+# Default value for environment variable. Can be overridden by setting the
+# environment variable.
+SAM_CLI_TELEMETRY ?= 0
+SAM_CLI_DEV ?= 1
+{% for target, contents in targets.items() %}
+{% if contents["description"] %}
+# {{ contents["description"] }}
+{%- endif %}
+{{ target | kebab_case }}:{% for i in contents["prerequisites"] %} {{ i | kebab_case }}{%- endfor %}
+{%- for command in contents["recipe"] %}
+	{{ command }}
+{%- endfor %}
+{%- endfor %}

@@ -1,4 +1,4 @@
-# WARNING! Do not make changes in this file.
+# {{ notice }}
 #
 # Changes should me made in appveyor.yml.jinja and updatetargets.py
 #
@@ -113,15 +113,9 @@ for:
     test_script:
       # Run pylint on pre-dev env to catch import errors
       - "pre-dev-venv\\Scripts\\activate"
-      - "pylint --rcfile .pylintrc samcli"
-      - "mypy setup.py samcli tests"
-      - "# Fail if coverage falls below 95%"
-      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
-      - "pylint --rcfile .pylintrc samcli"
-      - "mypy setup.py samcli tests"
-      - "# Verify function test coverage only for `samcli.local` package"
-      - "@echo Telemetry Status: $[SAM_CLI_TELEMETRY]"
-      - "pytest --cov samcli.local --cov samcli.commands.local --cov-report term-missing tests/functional"
+{%- for command in targets["lint"]["recipe"] + targets["test"]["recipe"] + targets["lint"]["recipe"] + targets["func test"]["recipe"] %}
+      - "{{ command }}"
+{%- endfor %}
       - "deactivate"
 
   -
@@ -187,23 +181,24 @@ for:
       - "python updatetargets.py"
 
       # Dev Tests
-      - "pip install -e '.[dev]'"
-      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
-      - "pylint --rcfile .pylintrc samcli"
-      - "mypy setup.py samcli tests"
-      - "@echo Telemetry Status: $[SAM_CLI_TELEMETRY]"
-      - "pytest --cov samcli.local --cov samcli.commands.local --cov-report term-missing tests/functional"
+{%- for command in targets["init"]["recipe"] + targets["test"]["recipe"] + targets["lint"]["recipe"] + targets["func test"]["recipe"] %}
+{%- if command[0] != "#" %}
+      - "{{ command }}"
+{%- endif %}
+{%- endfor %}
 
       # Runs only in Linux, logging Public ECR when running canary and cred is available
       - sh: "
         if [[ -n $BY_CANARY ]];
           then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
         fi"
-      - sh: "@echo Telemetry Status: $[SAM_CLI_TELEMETRY]"
-      - sh: "pytest tests/integration"
-      - sh: "@echo Telemetry Status: $[SAM_CLI_TELEMETRY]"
-      - sh: "pytest tests/regression"
-      - sh: "black --check setup.py samcli tests"
+
+
+{%- for command in targets["integ test"]["recipe"] + targets["regres test"]["recipe"] + targets["black check"]["recipe"] %}
+{%- if command[0] != "#" %}
+      - sh: "{{ command }}"
+{%- endif %}
+{%- endfor %}
 
       # Set JAVA_HOME to java11
       - sh: "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"

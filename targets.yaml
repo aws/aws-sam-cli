@@ -1,0 +1,66 @@
+black:
+  description: Format with black
+  recipe:
+    - black setup.py samcli tests
+black check:
+  description: Perform format check
+  recipe:
+    - black --check setup.py samcli tests
+dev:
+  prerequisites:
+    - lint
+    - test
+  description: Command to run everytime you make changes to verify everything works
+func test:
+  description: Verify function test coverage only for `samcli.local` package
+  recipe:
+    - '# Verify function test coverage only for `samcli.local` package'
+    - '@echo Telemetry Status: $[SAM_CLI_TELEMETRY]'
+    - pytest --cov samcli.local --cov samcli.commands.local --cov-report term-missing tests/functional
+init:
+  description: Install all dependencies
+  recipe:
+    - pip install -e '.[dev]'
+integ test:
+  description: Run integration tests
+  recipe:
+    - '# Integration tests don''t need code coverage'
+    - '@echo Telemetry Status: $[SAM_CLI_TELEMETRY]'
+    - pytest tests/integration
+lint:
+  description: Linter performs static analysis to catch latent bugs and mypy performs type check
+  recipe:
+    - pylint --rcfile .pylintrc samcli
+    - mypy setup.py samcli tests
+pr:
+  prerequisites:
+    - init
+    - dev
+    - black check
+  description: Verifications to run before sending a pull request
+regres test:
+  description: Run regression tests
+  recipe:
+    - '@echo Telemetry Status: $[SAM_CLI_TELEMETRY]'
+    - pytest tests/regression
+smoke test:
+  description: Smoke tests run in parallel
+  recipe:
+    - '# Smoke tests run in parallel'
+    - pytest -n 4 tests/smoke
+test:
+  description: Run unit tests
+  recipe:
+    - '# Fail if coverage falls below 95%'
+    - pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit
+test cov report:
+  description: Run unit tests with html coverage report
+  recipe:
+    - pytest --cov samcli --cov-report html --cov-fail-under 95 tests/unit
+update reproducible reqs:
+  description: Update reproducable requirements.
+  recipe:
+    - python3.7 -m venv venv-update-reproducible-requirements
+    - venv-update-reproducible-requirements/bin/pip install --upgrade pip-tools pip
+    - venv-update-reproducible-requirements/bin/pip install -r requirements/base.txt
+    - venv-update-reproducible-requirements/bin/pip-compile --generate-hashes --allow-unsafe -o requirements/reproducible-linux.txt

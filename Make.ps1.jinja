@@ -1,0 +1,64 @@
+<#
+{{ notice }}
+
+Changes should me made in Make.ps1.jinja and updatetargets.py
+
+.SYNOPSIS
+    Run on Windows the same commands as in ./Makefile without installing any aditional software.
+
+.DESCRIPTION
+    Run on Windows the same commands as in ./Makefile without installing any aditional software.
+    The only difference is syntax. Instead of make commands use parameters, meaning add '-' before the command.
+    Parameter names are case insensitive.
+    See Examples.
+
+.EXAMPLE
+    ./Make -TestCovReport
+
+.EXAMPLE
+    ./Make -pr
+#>
+[CmdletBinding(DefaultParameterSetName = '_')] # ParameterSetName '_'is just a workaround to redirect to default case
+param (
+{% for target, contents in targets.items() %}
+{% if contents["description"] %}
+    # {{ contents["description"] }}
+{%- endif %}
+    [Parameter(ParameterSetName = '{{ target | camel_case }}')]
+    [switch]
+    ${{ target | camel_case }},
+{%- endfor %}
+)
+
+{% for target, contents in targets.items() %}
+function {{ target | camel_case }} {
+{%- for i in contents["prerequisites"] %}
+    {{ i | camel_case }}
+{%- endfor -%}
+{% for command in contents["recipe"] %}
+    {{ command }}
+{%- endfor %}
+}
+{% endfor %}
+
+if ( -not (Test-Path "env:SAM_CLI_TELEMETRY")) {
+    $env:SAM_CLI_TELEMETRY = 0
+}
+
+$env:SAM_CLI_DEV = 1
+
+try {
+    switch ($true) {
+{% for target, contents in targets.items() %}
+        ${{ target | camel_case }} {
+            {{ target | camel_case }}
+        }
+{%- endfor %}
+        default {
+            Get-Help ./Make
+        }
+    }
+}
+finally {
+    $env:SAM_CLI_DEV = ''
+}
