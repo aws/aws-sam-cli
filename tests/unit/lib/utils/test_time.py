@@ -36,7 +36,7 @@ class TestToTimestamp(TestCase):
 
 
 #TODO: remove the skipping logic once we fix the Segmentation fault raised in appveyor
-@skipIf(True)
+@skipIf(True, "remove the skipping logic once we fix the Segmentation fault raised in appveyor")
 class TestToUtc(TestCase):
     def test_with_timezone(self):
 
@@ -64,7 +64,7 @@ class TestToUtc(TestCase):
 
 
 #TODO: remove the skipping logic once we fix the Segmentation fault raised in appveyor
-@skipIf(True)
+@skipIf(True, "remove the skipping logic once we fix the Segmentation fault raised in appveyor")
 class TestParseDate(TestCase):
     def test_must_parse_date(self):
         date_str = "2018-07-06T13:09:54"
