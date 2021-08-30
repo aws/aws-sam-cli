@@ -18,6 +18,10 @@ class StreamWriter:
         self._stream = stream
         self._auto_flush = auto_flush
 
+    @property
+    def stream(self):
+        return self._stream
+
     def write(self, output):
         """
         Writes specified text to the underlying stream
