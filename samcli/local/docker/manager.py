@@ -188,5 +188,6 @@ class ContainerManager:
         except docker.errors.ImageNotFound:
             return False
 
+
 class DockerImagePullFailedException(Exception):
     pass
