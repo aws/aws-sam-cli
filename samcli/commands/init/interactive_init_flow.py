@@ -189,18 +189,17 @@ def _generate_from_use_case(
             package_type = _get_choice_from_options(None, package_types_options, message, "Package type")
             if package_type == IMAGE:
                 base_image = _get_image_from_runtime(runtime)
-    except Exception as ex:
+    except KeyError as ex:
         raise InvalidInitOptionException(f"Lambda Runtime {runtime} is not supported for {use_case} examples.") from ex
 
     try:
         dependency_manager_options = package_types_options[package_type]
-        dependency_manager = _get_dependency_manager(dependency_manager_options, dependency_manager, runtime)
-
-    except Exception as ex:
+    except KeyError as ex:
         raise InvalidInitOptionException(
             f"{package_type} package type is not supported for {use_case} examples and runtime {runtime} selected."
         ) from ex
 
+    dependency_manager = _get_dependency_manager(dependency_manager_options, dependency_manager, runtime)
     template_chosen = _get_app_template_choice(dependency_manager_options, dependency_manager)
     app_template = template_chosen["appTemplate"]
     location = templates.location_from_app_template(package_type, runtime, base_image, dependency_manager, app_template)
@@ -346,7 +345,7 @@ def _get_dependency_manager(options, dependency_manager, runtime):
     elif dependency_manager and dependency_manager not in valid_dep_managers:
         msg = (
             f"Lambda Runtime {runtime} and dependency manager {dependency_manager} "
-            + "does not have an available initialization template."
+            + "do not have an available initialization template."
         )
         raise InvalidInitTemplateError(msg)
     return dependency_manager
