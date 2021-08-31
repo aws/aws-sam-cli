@@ -353,9 +353,39 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
             redundant_cache_folder = Path(cache_dir, "redundant")
             redundant_cache_folder.mkdir(parents=True)
 
-            cached_build_strategy = CachedBuildStrategy(build_graph, Mock(), temp_base_dir, build_dir, cache_dir, True)
+            cached_build_strategy = CachedBuildStrategy(build_graph, Mock(), temp_base_dir, build_dir, cache_dir, False)
             cached_build_strategy._clean_redundant_cached()
             self.assertTrue(not redundant_cache_folder.exists())
+
+    @patch("samcli.lib.build.build_graph.BuildGraph.update_definition_md5")
+    @patch("samcli.lib.build.build_strategy.CachedBuildStrategy._clean_redundant_cached")
+    def test_exit_build_strategy_for_specific_resource(self, clean_cache_mock, update_md5_mock):
+        with osutils.mkdir_temp() as temp_base_dir:
+            build_dir = Path(temp_base_dir, ".aws-sam", "build")
+            build_dir.mkdir(parents=True)
+            build_graph = BuildGraph(str(build_dir.resolve()))
+            cache_dir = Path(temp_base_dir, ".aws-sam", "cache")
+            cache_dir.mkdir(parents=True)
+
+            cached_build_strategy = CachedBuildStrategy(build_graph, Mock(), temp_base_dir, build_dir, cache_dir, True)
+            cached_build_strategy._exit_build_strategy()
+            update_md5_mock.assert_called_once()
+            clean_cache_mock.assert_not_called()
+
+    @patch("samcli.lib.build.build_graph.BuildGraph.update_definition_md5")
+    @patch("samcli.lib.build.build_strategy.CachedBuildStrategy._clean_redundant_cached")
+    def test_exit_build_strategy(self, clean_cache_mock, update_md5_mock):
+        with osutils.mkdir_temp() as temp_base_dir:
+            build_dir = Path(temp_base_dir, ".aws-sam", "build")
+            build_dir.mkdir(parents=True)
+            build_graph = BuildGraph(str(build_dir.resolve()))
+            cache_dir = Path(temp_base_dir, ".aws-sam", "cache")
+            cache_dir.mkdir(parents=True)
+
+            cached_build_strategy = CachedBuildStrategy(build_graph, Mock(), temp_base_dir, build_dir, cache_dir, False)
+            cached_build_strategy._exit_build_strategy()
+            clean_cache_mock.assert_called_once()
+            update_md5_mock.assert_not_called()
 
 
 class ParallelBuildStrategyTest(BuildStrategyBaseTest):

@@ -1,9 +1,11 @@
 from unittest import TestCase
+from unittest.mock import patch
 from uuid import uuid4
 from pathlib import Path
 
 import tomlkit
 from parameterized import parameterized
+from typing import Dict, cast
 
 from samcli.lib.build.build_graph import (
     FunctionBuildDefinition,
@@ -388,6 +390,95 @@ class TestBuildGraph(TestCase):
             build_definitions = build_graph.get_layer_build_definitions()
             self.assertEqual(len(build_definitions), 2)
             self.assertEqual(build_definitions[1].layer, layer2)
+
+    @patch("samcli.lib.build.build_graph.BuildGraph._write_source_md5")
+    @patch("samcli.lib.build.build_graph.BuildGraph._compare_md5_changes")
+    def test_update_definition_md5_should_succeed(self, compare_md5_mock, write_md5_mock):
+        compare_md5_mock.return_value = {"mock": "md5"}
+        with osutils.mkdir_temp() as temp_base_dir:
+            build_dir = Path(temp_base_dir, ".aws-sam", "build")
+            build_dir.mkdir(parents=True)
+
+            build_graph_path = Path(build_dir.parent, "build.toml")
+            build_graph_path.write_text(TestBuildGraph.BUILD_GRAPH_CONTENTS)
+
+            build_graph = BuildGraph(str(build_dir))
+            build_graph.update_definition_md5()
+            write_md5_mock.assert_called_with({"mock": "md5"}, {"mock": "md5"})
+
+    def test_compare_md5_changes_should_succeed(self):
+        with osutils.mkdir_temp() as temp_base_dir:
+            build_dir = Path(temp_base_dir, ".aws-sam", "build")
+            build_dir.mkdir(parents=True)
+
+            build_graph_path = Path(build_dir.parent, "build.toml")
+            build_graph_path.write_text(TestBuildGraph.BUILD_GRAPH_CONTENTS)
+
+            build_graph = BuildGraph(str(build_dir))
+
+            build_definition = FunctionBuildDefinition(
+                TestBuildGraph.RUNTIME,
+                TestBuildGraph.CODEURI,
+                TestBuildGraph.ZIP,
+                TestBuildGraph.METADATA,
+                TestBuildGraph.SOURCE_MD5,
+                TestBuildGraph.ENV_VARS,
+            )
+            updated_definition = FunctionBuildDefinition(
+                TestBuildGraph.RUNTIME,
+                TestBuildGraph.CODEURI,
+                TestBuildGraph.ZIP,
+                TestBuildGraph.METADATA,
+                "new_value",
+                TestBuildGraph.ENV_VARS,
+            )
+            updated_definition.uuid = build_definition.uuid
+
+            layer_definition = LayerBuildDefinition(
+                TestBuildGraph.LAYER_NAME,
+                TestBuildGraph.LAYER_CODEURI,
+                TestBuildGraph.LAYER_RUNTIME,
+                [TestBuildGraph.LAYER_RUNTIME],
+                TestBuildGraph.SOURCE_MD5,
+                TestBuildGraph.ENV_VARS,
+            )
+            updated_layer = LayerBuildDefinition(
+                TestBuildGraph.LAYER_NAME,
+                TestBuildGraph.LAYER_CODEURI,
+                TestBuildGraph.LAYER_RUNTIME,
+                [TestBuildGraph.LAYER_RUNTIME],
+                "new_value",
+                TestBuildGraph.ENV_VARS,
+            )
+            updated_layer.uuid = layer_definition.uuid
+
+            build_graph._function_build_definitions = [build_definition]
+            build_graph._layer_build_definitions = [layer_definition]
+
+            function_content = BuildGraph._compare_md5_changes(
+                [updated_definition], build_graph._function_build_definitions
+            )
+            layer_content = BuildGraph._compare_md5_changes([updated_layer], build_graph._layer_build_definitions)
+            self.assertEqual(function_content, {build_definition.uuid: "new_value"})
+            self.assertEqual(layer_content, {layer_definition.uuid: "new_value"})
+
+    def test_write_source_md5_should_succeed(self):
+        with osutils.mkdir_temp() as temp_base_dir:
+            build_dir = Path(temp_base_dir, ".aws-sam", "build")
+            build_dir.mkdir(parents=True)
+
+            build_graph_path = Path(build_dir.parent, "build.toml")
+            build_graph_path.write_text(TestBuildGraph.BUILD_GRAPH_CONTENTS)
+
+            build_graph = BuildGraph(str(build_dir))
+
+            build_graph._write_source_md5({TestBuildGraph.UUID: "new_value"}, {TestBuildGraph.LAYER_UUID: "new_value"})
+
+            txt = build_graph_path.read_text()
+            document = cast(Dict, tomlkit.loads(txt))
+
+            self.assertEqual(document["function_build_definitions"][TestBuildGraph.UUID]["source_md5"], "new_value")
+            self.assertEqual(document["layer_build_definitions"][TestBuildGraph.LAYER_UUID]["source_md5"], "new_value")
 
 
 class TestBuildDefinition(TestCase):

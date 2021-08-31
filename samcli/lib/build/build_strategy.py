@@ -203,11 +203,17 @@ class CachedBuildStrategy(BuildStrategy):
         self._is_building_specific_resource = is_building_specific_resource
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        self._clean_redundant_cached()
+        self._exit_build_strategy()
+
+    def _exit_build_strategy(self) -> None:
+        if self._is_building_specific_resource:
+            self._build_graph.update_definition_md5()
+        else:
+            self._clean_redundant_cached()
 
     def build(self) -> Dict[str, str]:
         result = {}
-        with self, self._delegate_build_strategy:
+        with self._delegate_build_strategy:
             result.update(super().build())
         return result
 
@@ -325,7 +331,7 @@ class ParallelBuildStrategy(BuildStrategy):
         Runs all build and collects results from async context
         """
         result = {}
-        with self, self._delegate_build_strategy:
+        with self._delegate_build_strategy:
             # ignore result
             super().build()
             # wait for other executions to complete

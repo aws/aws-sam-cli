@@ -2,9 +2,10 @@
 Holds classes and utility methods related to build graph
 """
 
+import copy
 import logging
 from pathlib import Path
-from typing import Tuple, List, Any, Optional, Dict, cast
+from typing import Sequence, Tuple, List, Any, Optional, Dict, cast
 from uuid import uuid4
 
 import tomlkit
@@ -111,7 +112,6 @@ def _layer_build_definition_to_toml_table(layer_build_definition: "LayerBuildDef
     toml_table[BUILD_METHOD_FIELD] = layer_build_definition.build_method
     toml_table[COMPATIBLE_RUNTIMES_FIELD] = layer_build_definition.compatible_runtimes
     toml_table[SOURCE_MD5_FIELD] = layer_build_definition.source_md5
-    toml_table[LAYER_FIELD] = layer_build_definition.layer.name
     if layer_build_definition.env_vars:
         toml_table[ENV_VARS_FIELD] = layer_build_definition.env_vars
     toml_table[LAYER_FIELD] = layer_build_definition.layer.full_path
@@ -255,6 +255,68 @@ class BuildGraph:
         if persist:
             self._write()
 
+    def update_definition_md5(self) -> None:
+        """
+        Updates the build.toml file with the newest source_md5 values of the partial build's definitions
+
+        This operation needs to be atomic
+        """
+        stored_definitions = copy.deepcopy(self._function_build_definitions)
+        stored_layers = copy.deepcopy(self._layer_build_definitions)
+        self._read()
+
+        function_content = BuildGraph._compare_md5_changes(stored_definitions, self._function_build_definitions)
+        layer_content = BuildGraph._compare_md5_changes(stored_layers, self._layer_build_definitions)
+
+        if function_content or layer_content:
+            self._write_source_md5(function_content, layer_content)
+
+    @staticmethod
+    def _compare_md5_changes(
+        input_list: Sequence["AbstractBuildDefinition"], compared_list: Sequence["AbstractBuildDefinition"]
+    ) -> Dict[str, str]:
+        """
+        Helper to compare the function and layer definition changes in md5 value
+
+        Returns a dictionary that has uuid as key, updated md5 value as value
+        """
+        content = {}
+        for compared_def in compared_list:
+            for stored_def in input_list:
+                if stored_def == compared_def:
+                    old_md5 = compared_def.source_md5
+                    updated_md5 = stored_def.source_md5
+                    uuid = stored_def.uuid
+                    if not old_md5 == updated_md5:
+                        content[uuid] = updated_md5
+        return content
+
+    def _write_source_md5(self, function_content: Dict[str, str], layer_content: Dict[str, str]) -> None:
+        """
+        Helper to write source_md5 values to build.toml file
+        """
+        document = {}
+        if not self._filepath.exists():
+            open(self._filepath, "a+").close()
+
+        txt = self._filepath.read_text()
+        # .loads() returns a TOMLDocument,
+        # and it behaves like a standard dictionary according to https://github.com/sdispater/tomlkit.
+        # in tomlkit 0.7.2, the types are broken (tomlkit#128, #130, #134) so here we convert it to Dict.
+        document = cast(Dict, tomlkit.loads(txt))
+
+        for function_uuid, function_md5 in function_content.items():
+            if function_uuid in document.get(BuildGraph.FUNCTION_BUILD_DEFINITIONS, {}):
+                document[BuildGraph.FUNCTION_BUILD_DEFINITIONS][function_uuid][SOURCE_MD5_FIELD] = function_md5
+                LOG.info("Updated source_md5 field in build.toml for function with UUID %s", function_uuid)
+
+        for layer_uuid, layer_md5 in layer_content.items():
+            if layer_uuid in document.get(BuildGraph.LAYER_BUILD_DEFINITIONS, {}):
+                document[BuildGraph.LAYER_BUILD_DEFINITIONS][layer_uuid][SOURCE_MD5_FIELD] = layer_md5
+                LOG.info("Updated source_md5 field in build.toml for layer with UUID %s", layer_uuid)
+
+        self._filepath.write_text(tomlkit.dumps(document))  # type: ignore
+
     def _read(self) -> None:
         """
         Reads build.toml file into array of build definition
@@ -272,14 +334,14 @@ class BuildGraph:
             document = cast(Dict, tomlkit.loads(txt))
         except OSError:
             LOG.debug("No previous build graph found, generating new one")
-        function_build_definitions_table = document.get(BuildGraph.FUNCTION_BUILD_DEFINITIONS, [])
+        function_build_definitions_table = document.get(BuildGraph.FUNCTION_BUILD_DEFINITIONS, {})
         for function_build_definition_key in function_build_definitions_table:
             function_build_definition = _toml_table_to_function_build_definition(
                 function_build_definition_key, function_build_definitions_table[function_build_definition_key]
             )
             self._function_build_definitions.append(function_build_definition)
 
-        layer_build_definitions_table = document.get(BuildGraph.LAYER_BUILD_DEFINITIONS, [])
+        layer_build_definitions_table = document.get(BuildGraph.LAYER_BUILD_DEFINITIONS, {})
         for layer_build_definition_key in layer_build_definitions_table:
             layer_build_definition = _toml_table_to_layer_build_definition(
                 layer_build_definition_key, layer_build_definitions_table[layer_build_definition_key]

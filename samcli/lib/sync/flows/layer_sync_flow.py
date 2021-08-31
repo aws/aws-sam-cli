@@ -89,7 +89,7 @@ class LayerSyncFlow(SyncFlow):
                 self._build_context.build_dir,
                 self._build_context.base_dir,
                 self._build_context.cache_dir,
-                cached=False,
+                cached=True,
                 is_building_specific_resource=True,
                 manifest_path_override=self._build_context.manifest_path_override,
                 container_manager=self._build_context.container_manager,

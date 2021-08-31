@@ -97,7 +97,7 @@ class TestLayerSyncFlow(TestCase):
             self.build_context_mock.build_dir,
             self.build_context_mock.base_dir,
             self.build_context_mock.cache_dir,
-            cached=False,
+            cached=True,
             is_building_specific_resource=True,
             manifest_path_override=self.build_context_mock.manifest_path_override,
             container_manager=self.build_context_mock.container_manager,
