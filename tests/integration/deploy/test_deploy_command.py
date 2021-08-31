@@ -1,20 +1,22 @@
 import os
 import shutil
 import tempfile
-import uuid
 import time
+import uuid
+from pathlib import Path
 from unittest import skipIf
 
 import boto3
 import docker
+from botocore.config import Config
 from parameterized import parameterized
 
-from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
+from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.integration.package.package_integ_base import PackageIntegBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
-from tests.testing_utils import CommandResult, run_command, run_command_with_input
+from tests.testing_utils import run_command, run_command_with_input
 
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
@@ -30,15 +32,14 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     def setUpClass(cls):
         cls.docker_client = docker.from_env()
         cls.local_images = [
-            ("alpine", "latest"),
-            # below 3 images are for test_deploy_nested_stacks()
-            ("python", "3.9-slim"),
-            ("python", "3.8-slim"),
-            ("python", "3.7-slim"),
+            ("public.ecr.aws/sam/emulation-python3.8", "latest"),
         ]
         # setup some images locally by pulling them.
         for repo, tag in cls.local_images:
             cls.docker_client.api.pull(repository=repo, tag=tag)
+            cls.docker_client.api.tag(f"{repo}:{tag}", "emulation-python3.8", tag="latest")
+            cls.docker_client.api.tag(f"{repo}:{tag}", "emulation-python3.8-2", tag="latest")
+
         # setup signing profile arn & name
         cls.signing_profile_name = os.environ.get("AWS_SIGNING_PROFILE_NAME")
         cls.signing_profile_version_arn = os.environ.get("AWS_SIGNING_PROFILE_VERSION_ARN")
@@ -48,16 +49,21 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     def setUp(self):
         self.cf_client = boto3.client("cloudformation")
         self.sns_arn = os.environ.get("AWS_SNS")
-        self.stack_names = []
+        self.stacks = []
         time.sleep(CFN_SLEEP)
         super().setUp()
 
     def tearDown(self):
         shutil.rmtree(os.path.join(os.getcwd(), ".aws-sam", "build"), ignore_errors=True)
-        for stack_name in self.stack_names:
+        for stack in self.stacks:
             # because of the termination protection, do not delete aws-sam-cli-managed-default stack
+            stack_name = stack["name"]
             if stack_name != SAM_CLI_STACK_NAME:
-                self.cf_client.delete_stack(StackName=stack_name)
+                region = stack.get("region")
+                cf_client = (
+                    self.cf_client if not region else boto3.client("cloudformation", config=Config(region_name=region))
+                )
+                cf_client.delete_stack(StackName=stack_name)
         super().tearDown()
 
     @parameterized.expand(["aws-serverless-function.yaml"])
@@ -73,7 +79,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             self.assertEqual(package_process.process.returncode, 0)
 
             stack_name = self._method_to_stack_name(self.id())
-            self.stack_names.append(stack_name)
+            self.stacks.append({"name": stack_name})
 
             # Deploy and only show changeset.
             deploy_command_list_no_execute = self.get_deploy_command_list(
@@ -114,7 +120,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
-        self.stack_names.append(stack_name)
+        self.stacks.append({"name": stack_name})
 
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(
@@ -140,7 +146,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
-        self.stack_names.append(stack_name)
+        self.stacks.append({"name": stack_name})
 
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(
@@ -167,7 +173,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
-        self.stack_names.append(stack_name)
+        self.stacks.append({"name": stack_name})
 
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(
@@ -194,7 +200,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
-        self.stack_names.append(stack_name)
+        self.stacks.append({"name": stack_name})
 
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(
@@ -225,7 +231,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
 
         run_command(build_command_list)
         stack_name = self._method_to_stack_name(self.id())
-        self.stack_names.append(stack_name)
+        self.stacks.append({"name": stack_name})
         # Should result in a zero exit code.
         deploy_command_list = self.get_deploy_command_list(
             stack_name=stack_name,
@@ -259,7 +265,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
-        self.stack_names.append(stack_name)
+        self.stacks.append({"name": stack_name})
 
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(
@@ -383,7 +389,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
-        self.stack_names.append(stack_name)
+        self.stacks.append({"name": stack_name})
 
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(
@@ -440,7 +446,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
-        self.stack_names.append(stack_name)
+        self.stacks.append({"name": stack_name})
 
         kwargs = {
             "template_file": template_path,
@@ -479,7 +485,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
-        self.stack_names.append(stack_name)
+        self.stacks.append({"name": stack_name})
 
         # Package and Deploy in one go without confirming change set.
         kwargs = {
@@ -515,10 +521,24 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     def test_deploy_inline_no_package(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
         stack_name = self._method_to_stack_name(self.id())
-        self.stack_names.append(stack_name)
+        self.stacks.append({"name": stack_name})
 
         deploy_command_list = self.get_deploy_command_list(
             template_file=template_path, stack_name=stack_name, capabilities="CAPABILITY_IAM"
+        )
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+    @parameterized.expand([("aws-serverless-inline.yaml", "samconfig-read-boolean-tomlkit.toml")])
+    def test_deploy_with_toml_config(self, template_file, config_file):
+        template_path = self.test_data_path.joinpath(template_file)
+        config_path = self.test_data_path.joinpath(config_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path, stack_name=stack_name, config_file=config_path, capabilities="CAPABILITY_IAM"
         )
         deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
@@ -528,7 +548,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
-        self.stack_names.append(stack_name)
+        self.stacks.append({"name": stack_name})
 
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
@@ -539,7 +559,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
 
         # Deploy should succeed with a managed stack
         self.assertEqual(deploy_process_execute.process.returncode, 0)
-        self.stack_names.append(SAM_CLI_STACK_NAME)
+        self.stacks.append({"name": SAM_CLI_STACK_NAME})
         # Remove samconfig.toml
         os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
 
@@ -548,7 +568,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
-        self.stack_names.append(stack_name)
+        self.stacks.append({"name": stack_name})
 
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
@@ -559,7 +579,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
 
         # Deploy should succeed with a managed stack
         self.assertEqual(deploy_process_execute.process.returncode, 0)
-        self.stack_names.append(SAM_CLI_STACK_NAME)
+        self.stacks.append({"name": SAM_CLI_STACK_NAME})
         # Remove samconfig.toml
         os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
 
@@ -568,7 +588,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
-        self.stack_names.append(stack_name)
+        self.stacks.append({"name": stack_name})
 
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
@@ -579,7 +599,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
 
         # Deploy should succeed with a managed stack
         self.assertEqual(deploy_process_execute.process.returncode, 0)
-        self.stack_names.append(SAM_CLI_STACK_NAME)
+        self.stacks.append({"name": SAM_CLI_STACK_NAME})
         # Remove samconfig.toml
         os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
 
@@ -588,7 +608,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
-        self.stack_names.append(stack_name)
+        self.stacks.append({"name": stack_name})
 
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
@@ -599,7 +619,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         )
         # Deploy should succeed with a managed stack
         self.assertEqual(deploy_process_execute.process.returncode, 0)
-        self.stack_names.append(SAM_CLI_STACK_NAME)
+        self.stacks.append({"name": SAM_CLI_STACK_NAME})
         # Remove samconfig.toml
         os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
 
@@ -608,7 +628,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
-        self.stack_names.append(stack_name)
+        self.stacks.append({"name": stack_name})
 
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
@@ -619,7 +639,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         )
         # Deploy should succeed with a managed stack
         self.assertEqual(deploy_process_execute.process.returncode, 0)
-        self.stack_names.append(SAM_CLI_STACK_NAME)
+        self.stacks.append({"name": SAM_CLI_STACK_NAME})
         # Remove samconfig.toml
         os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
 
@@ -628,7 +648,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
-        self.stack_names.append(stack_name)
+        self.stacks.append({"name": stack_name})
 
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
@@ -639,7 +659,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
 
         # Deploy should succeed with a managed stack
         self.assertEqual(deploy_process_execute.process.returncode, 0)
-        self.stack_names.append(SAM_CLI_STACK_NAME)
+        self.stacks.append({"name": SAM_CLI_STACK_NAME})
         # Remove samconfig.toml
         os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
 
@@ -648,7 +668,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
-        self.stack_names.append(stack_name)
+        self.stacks.append({"name": stack_name})
 
         deploy_command_list = self.get_deploy_command_list(
             template_file=template_path,
@@ -676,6 +696,44 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         self.assertEqual(deploy_process_execute.process.returncode, 1)
         self.assertIn("Error reading configuration: Unexpected character", str(deploy_process_execute.stderr))
 
+    @parameterized.expand([("aws-serverless-function.yaml", "samconfig-tags-list.toml")])
+    def test_deploy_with_valid_config_tags_list(self, template_file, config_file):
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+        template_path = self.test_data_path.joinpath(template_file)
+        config_path = self.test_data_path.joinpath(config_file)
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            config_file=config_path,
+            s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
+            capabilities="CAPABILITY_IAM",
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+    @parameterized.expand([("aws-serverless-function.yaml", "samconfig-tags-string.toml")])
+    def test_deploy_with_valid_config_tags_string(self, template_file, config_file):
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+        template_path = self.test_data_path.joinpath(template_file)
+        config_path = self.test_data_path.joinpath(config_file)
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            config_file=config_path,
+            s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
+            capabilities="CAPABILITY_IAM",
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+
     @parameterized.expand([(True, True, True), (False, True, False), (False, False, True), (True, False, True)])
     def test_deploy_with_code_signing_params(self, should_sign, should_enforce, will_succeed):
         """
@@ -695,7 +753,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
                 "AWS_SIGNING_PROFILE_NAME and AWS_SIGNING_PROFILE_VERSION_ARN environment variables"
             )
 
-        self.stack_names.append(stack_name)
+        self.stacks.append({"name": stack_name})
 
         signing_profiles_param = None
         if should_sign:
@@ -729,13 +787,63 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             self.assertEqual(deploy_process_execute.process.returncode, 1)
 
     @parameterized.expand(
+        [
+            ("aws-serverless-application-with-application-id-map.yaml", None, False),
+            ("aws-serverless-application-with-application-id-map.yaml", "us-east-2", True),
+        ]
+    )
+    def test_deploy_sar_with_location_from_map(self, template_file, region, will_succeed):
+        template_path = Path(__file__).resolve().parents[1].joinpath("testdata", "buildcmd", template_file)
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name, "region": region})
+
+        # The default region (us-east-1) has no entry in the map
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities_list=["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
+            region=region,  # the !FindInMap has an entry for use-east-2 region only
+        )
+        deploy_process_execute = run_command(deploy_command_list)
+
+        if will_succeed:
+            self.assertEqual(deploy_process_execute.process.returncode, 0)
+        else:
+            self.assertEqual(deploy_process_execute.process.returncode, 1)
+            self.assertIn("Property \\'ApplicationId\\' cannot be resolved.", str(deploy_process_execute.stderr))
+
+    @parameterized.expand(
+        [
+            ("aws-serverless-application-with-application-id-map.yaml", None, False),
+            ("aws-serverless-application-with-application-id-map.yaml", "us-east-2", True),
+        ]
+    )
+    def test_deploy_guided_sar_with_location_from_map(self, template_file, region, will_succeed):
+        template_path = Path(__file__).resolve().parents[1].joinpath("testdata", "buildcmd", template_file)
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name, "region": region})
+
+        # Package and Deploy in one go without confirming change set.
+        deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
+
+        deploy_process_execute = run_command_with_input(
+            deploy_command_list, f"{stack_name}\n{region}\n\nN\nCAPABILITY_IAM CAPABILITY_AUTO_EXPAND\nN\n".encode()
+        )
+
+        if will_succeed:
+            self.assertEqual(deploy_process_execute.process.returncode, 0)
+        else:
+            self.assertEqual(deploy_process_execute.process.returncode, 1)
+            self.assertIn("Property \\'ApplicationId\\' cannot be resolved.", str(deploy_process_execute.stderr))
+
+    @parameterized.expand(
         [os.path.join("deep-nested", "template.yaml"), os.path.join("deep-nested-image", "template.yaml")]
     )
     def test_deploy_nested_stacks(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
-        self.stack_names.append(stack_name)
+        self.stacks.append({"name": stack_name})
 
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(

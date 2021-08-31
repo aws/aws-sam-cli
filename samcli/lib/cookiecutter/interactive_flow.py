@@ -1,6 +1,10 @@
 """A flow of questions to be asked to the user in an interactive way."""
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List, Tuple
+
+import click
+
 from .question import Question
+from ..utils.colors import Colored
 
 
 class InteractiveFlow:
@@ -19,6 +23,7 @@ class InteractiveFlow:
         self._questions: Dict[str, Question] = questions
         self._first_question_key: str = first_question_key
         self._current_question: Optional[Question] = None
+        self._color = Colored()
 
     def advance_to_next_question(self, current_answer: Optional[Any] = None) -> Optional[Question]:
         """
@@ -40,7 +45,10 @@ class InteractiveFlow:
             self._current_question = self._questions.get(next_question_key) if next_question_key else None
         return self._current_question
 
-    def run(self, context: Dict) -> Dict:
+    def run(
+        self,
+        context: Dict,
+    ) -> Dict:
         """
         starts the flow, collects user's answers to the question and return a new copy of the passed context
         with the answers appended to the copy
@@ -49,14 +57,33 @@ class InteractiveFlow:
         ----------
         context: Dict
             The cookiecutter context before prompting this flow's questions
+            The context can be used to provide default values, and support both str keys and List[str] keys.
 
-        Returns: A new copy of the context with user's answers added to the copy such that each answer is
-                 associated to the key of the corresponding question
+        Returns
+        -------
+        A new copy of the context with user's answers added to the copy such that each answer is
+             associated to the key of the corresponding question
         """
         context = context.copy()
+        answers: List[Tuple[str, Any]] = []
+
         question = self.advance_to_next_question()
         while question:
-            answer = question.ask()
+            answer = question.ask(context=context)
             context[question.key] = answer
+            answers.append((question.key, answer))
             question = self.advance_to_next_question(answer)
+
+        # print summary
+        click.echo(self._color.bold("SUMMARY"))
+        click.echo("We will generate a pipeline config file based on the following information:")
+
+        for question_key, answer in answers:
+            if answer is None:
+                # ignore unanswered questions
+                continue
+
+            question = self._questions[question_key]
+            click.echo(f"\t{question.text}: {self._color.underline(str(answer))}")
+
         return context

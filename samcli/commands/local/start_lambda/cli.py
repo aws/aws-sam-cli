@@ -100,6 +100,8 @@ def cli(
     warm_containers,
     shutdown,
     debug_function,
+    container_host,
+    container_host_interface,
     cdk_context,
     project_type,
     cdk_app,
@@ -130,6 +132,8 @@ def cli(
         warm_containers,
         shutdown,
         debug_function,
+        container_host,
+        container_host_interface,
         iac,
         project,
     )  # pragma: no cover
@@ -155,6 +159,8 @@ def do_cli(  # pylint: disable=R0914
     warm_containers,
     shutdown,
     debug_function,
+    container_host,
+    container_host_interface,
     iac: IacPlugin,
     project: Project,
 ):
@@ -196,6 +202,8 @@ def do_cli(  # pylint: disable=R0914
             warm_container_initialization_mode=warm_containers,
             debug_function=debug_function,
             shutdown=shutdown,
+            container_host=container_host,
+            container_host_interface=container_host_interface,
             iac=iac,
             project=project,
         ) as invoke_context:

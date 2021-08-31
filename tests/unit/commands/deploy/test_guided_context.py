@@ -122,6 +122,9 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Capabilities{self.gc.end_bold}", default=["CAPABILITY_IAM"], type=ANY),
         ]
         self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
+        patched_get_buildable_stacks.assert_called_once_with(
+            ANY, parameter_overrides={}, global_parameter_overrides={"AWS::Region": ANY}
+        )
 
     @patch("samcli.commands.deploy.guided_context.prompt")
     @patch("samcli.commands.deploy.guided_context.confirm")
@@ -781,7 +784,7 @@ class TestGuidedContext(TestCase):
             expected_code_sign_calls = expected_code_sign_calls * (number_of_functions + number_of_layers)
             self.assertEqual(expected_code_sign_calls, patched_code_signer_prompt.call_args_list)
 
-    @patch("samcli.commands.deploy.guided_context.get_session")
+    @patch("samcli.commands.deploy.guided_context.get_default_aws_region")
     @patch("samcli.commands.deploy.guided_context.prompt")
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
@@ -798,7 +801,7 @@ class TestGuidedContext(TestCase):
         patched_manage_stack,
         patched_confirm,
         patched_prompt,
-        patched_get_session,
+        patched_get_default_aws_region,
     ):
         project_mock = self.gc._project
         project_mock.reset_mock()
@@ -817,7 +820,7 @@ class TestGuidedContext(TestCase):
         patched_confirm.side_effect = [True, False, True, True, ""]
         patched_signer_config_per_function.return_value = ({}, {})
         patched_manage_stack.return_value = "managed_s3_stack"
-        patched_get_session.return_value.get_config_variable.return_value = "default_config_region"
+        patched_get_default_aws_region.return_value = "default_config_region"
         # setting the default region to None
         self.gc.region = None
         self.gc.guided_prompts()

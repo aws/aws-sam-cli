@@ -21,7 +21,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
         # 1: SAM type project
         # 1: AWS Quick Start Templates
         # 1: Zip Packagetype
-        # 14: Java runtime
+        # 15: Java runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
         # 3: select event-bridge app from scratch
@@ -33,7 +33,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
 1
 1
 1
-14
+15
 1
 eb-app-maven
 3
@@ -59,7 +59,7 @@ Y
         # 1: SAM type project
         # 1: AWS Quick Start Templates
         # 1: Zip Packagetype
-        # 14: Java runtime
+        # 15: Java runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
         # 3: select event-bridge app from scratch
@@ -71,7 +71,7 @@ Y
 1
 1
 1
-14
+15
 1
 eb-app-maven
 3
@@ -108,7 +108,7 @@ Y
         # 1: SAM type project
         # 1: AWS Quick Start Templates
         # 1: Zip Packagetype
-        # 14: Java Runtime
+        # 15: Java Runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
         # 3: select event-bridge app from scratch
@@ -150,7 +150,7 @@ P
         # 1: SAM type project
         # 1: AWS Quick Start Templates
         # 1: Zip Packagetype
-        # 14: Java Runtime
+        # 15: Java Runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
         # 3: select event-bridge app from scratch
@@ -162,7 +162,7 @@ P
 1
 1
 1
-14
+15
 1
 eb-app-maven
 3
@@ -199,7 +199,7 @@ Y
         # 1: SAM type project
         # 1: AWS Quick Start Templates
         # 1: Zip Packagetype
-        # 9: Python 3.7
+        # 10: Python 3.7
         # eb-app-python37: response to name
         # 3: select event-bridge app from scratch
         # Y: Use default profile
@@ -210,7 +210,7 @@ Y
 1
 1
 1
-9
+10
 eb-app-python37
 3
 Y
@@ -233,7 +233,7 @@ Y
         # 1: SAM type project
         # 1: AWS Quick Start Templates
         # 1: Zip Packagetype
-        # 9: Python 3.7
+        # 10: Python 3.7
         # eb-app-python37: response to name
         # 3: select event-bridge app from scratch
         # N: Use default profile
@@ -246,7 +246,7 @@ Y
 1
 1
 1
-9
+10
 eb-app-python37
 3
 N
@@ -273,7 +273,7 @@ us-east-1
         # 1: SAM type project
         # 1: AWS Quick Start Templates
         # 1: Zip Pacakgetype
-        # 9: Python 3.7
+        # 10: Python 3.7
         # eb-app-python37: response to name
         # 3: select event-bridge app from scratch
         # Y: Use default profile
@@ -284,7 +284,7 @@ us-east-1
 1
 1
 1
-9
+10
 eb-app-python37
 3
 Y
