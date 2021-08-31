@@ -5,6 +5,8 @@ from samcli.lib.iac.cdk.cdk_iac import CdkIacImplementation
 from samcli.lib.iac.cfn.cfn_iac import CfnIacImplementation
 
 
+# TODO: Implement these tests when the classes are fully implemented
+# These tests are included for code coverage
 class TestImplementations(TestCase):
     def test_cfn_implementation(self):
         impl = CfnIacImplementation(Mock())
