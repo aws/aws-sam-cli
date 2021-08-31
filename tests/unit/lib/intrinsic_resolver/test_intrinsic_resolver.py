@@ -7,6 +7,8 @@ from unittest.mock import patch
 
 from parameterized import parameterized
 
+from samcli.lib.iac.interface import Resource, S3Asset, ImageAsset
+
 from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidIntrinsicException
@@ -1115,3 +1117,69 @@ class TestIntrinsicResolverInitialization(TestCase):
 
         resolver.set_intrinsic_key_function_map({"key": lambda_func})
         self.assertTrue(resolver.intrinsic_key_function_map.get("key") == lambda_func)
+
+
+class TestResolveResourceAssets(TestCase):
+    def setUp(self):
+        self.source_path = ".aws-sam/.cdk-out/root_stack_template.json"
+        self.resource = Resource(body={})
+
+    def test_resolve_s3_asset(self):
+        asset = S3Asset()
+        asset.source_path = {"Ref": "SourcePath"}
+        self.resource.assets = [asset]
+
+        input_template = {
+            "Parameters": {"SourcePath": {"Default": self.source_path}},
+            "Resources": {"LambdaFunction": self.resource},
+        }
+
+        output_resource = Resource(
+            body={},
+            assets=[S3Asset(source_path=self.source_path)],
+        )
+
+        symbol_resolver = IntrinsicsSymbolTable(template=input_template, logical_id_translator={})
+        resolver = IntrinsicResolver(template=input_template, symbol_resolver=symbol_resolver)
+        processed_template = resolver.resolve_template()
+        self.assertEqual(processed_template["Resources"]["LambdaFunction"], output_resource)
+
+    def test_resolve_image_asset(self):
+        asset = ImageAsset()
+        asset.source_local_image = {"Ref": "SourceLocalImage"}
+        self.resource.assets = [asset]
+
+        input_template = {
+            "Parameters": {"SourceLocalImage": {"Default": self.source_path}},
+            "Resources": {"LambdaFunction": self.resource},
+        }
+
+        output_resource = Resource(
+            body={},
+            assets=[ImageAsset(source_local_image=self.source_path)],
+        )
+
+        symbol_resolver = IntrinsicsSymbolTable(template=input_template, logical_id_translator={})
+        resolver = IntrinsicResolver(template=input_template, symbol_resolver=symbol_resolver)
+        processed_template = resolver.resolve_template()
+        self.assertEqual(processed_template["Resources"]["LambdaFunction"], output_resource)
+
+    def test_resolve_image_asset_no_image_path(self):
+        asset = ImageAsset()
+        asset.source_path = {"Ref": "SourcePath"}
+        self.resource.assets = [asset]
+
+        input_template = {
+            "Parameters": {"SourcePath": {"Default": self.source_path}},
+            "Resources": {"LambdaFunction": self.resource},
+        }
+
+        output_resource = Resource(
+            body={},
+            assets=[ImageAsset(source_path=self.source_path)],
+        )
+
+        symbol_resolver = IntrinsicsSymbolTable(template=input_template, logical_id_translator={})
+        resolver = IntrinsicResolver(template=input_template, symbol_resolver=symbol_resolver)
+        processed_template = resolver.resolve_template()
+        self.assertEqual(processed_template["Resources"]["LambdaFunction"], output_resource)

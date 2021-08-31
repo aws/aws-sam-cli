@@ -98,7 +98,7 @@ class TestLambdaImage(TestCase):
 
         self.assertEqual(
             lambda_image.build("python3.6", ZIP, None, []),
-            f"amazon/aws-sam-cli-emulation-image-python3.6:rapid-{version}",
+            f"public.ecr.aws/sam/emulation-python3.6:rapid-{version}",
         )
 
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
@@ -149,7 +149,7 @@ class TestLambdaImage(TestCase):
         generate_docker_image_version_patch.assert_called_once_with(["layers1"], "python3.6")
         docker_client_mock.images.get.assert_called_once_with("samcli/lambda:image-version")
         build_image_patch.assert_called_once_with(
-            "amazon/aws-sam-cli-emulation-image-python3.6:latest",
+            "public.ecr.aws/sam/emulation-python3.6:latest",
             "samcli/lambda:image-version",
             ["layers1"],
             stream=stream,
@@ -179,7 +179,7 @@ class TestLambdaImage(TestCase):
         generate_docker_image_version_patch.assert_called_once_with(["layers1"], "python3.6")
         docker_client_mock.images.get.assert_called_once_with("samcli/lambda:image-version")
         build_image_patch.assert_called_once_with(
-            "amazon/aws-sam-cli-emulation-image-python3.6:latest",
+            "public.ecr.aws/sam/emulation-python3.6:latest",
             "samcli/lambda:image-version",
             ["layers1"],
             stream=stream,
@@ -249,7 +249,12 @@ class TestLambdaImage(TestCase):
         handle.write.assert_called_with("Dockerfile content")
         path_patch.assert_called_once_with("cached layers", "dockerfile_uuid")
         docker_client_mock.api.build.assert_called_once_with(
-            fileobj=tarball_fileobj, rm=True, tag="docker_tag", pull=False, custom_context=True
+            fileobj=tarball_fileobj,
+            rm=True,
+            tag="docker_tag",
+            pull=False,
+            custom_context=True,
+            decode=True,
         )
 
         docker_full_path_mock.unlink.assert_called_once()
@@ -292,7 +297,60 @@ class TestLambdaImage(TestCase):
         handle.write.assert_called_with("Dockerfile content")
         path_patch.assert_called_once_with("cached layers", "dockerfile_uuid")
         docker_client_mock.api.build.assert_called_once_with(
-            fileobj=tarball_fileobj, rm=True, tag="docker_tag", pull=False, custom_context=True
+            fileobj=tarball_fileobj,
+            rm=True,
+            tag="docker_tag",
+            pull=False,
+            custom_context=True,
+            decode=True,
+        )
+
+        docker_full_path_mock.unlink.assert_not_called()
+
+    @patch("samcli.local.docker.lambda_image.create_tarball")
+    @patch("samcli.local.docker.lambda_image.uuid")
+    @patch("samcli.local.docker.lambda_image.Path")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._generate_dockerfile")
+    def test_build_image_fails_with_BuildError_from_output(
+        self, generate_dockerfile_patch, path_patch, uuid_patch, create_tarball_patch
+    ):
+        uuid_patch.uuid4.return_value = "uuid"
+        generate_dockerfile_patch.return_value = "Dockerfile content"
+
+        docker_full_path_mock = Mock()
+        docker_full_path_mock.exists.return_value = False
+        path_patch.return_value = docker_full_path_mock
+
+        docker_client_mock = Mock()
+        docker_client_mock.api.build.return_value = [{"stream": "Some text"}, {"error": "Problem in the build!"}]
+        layer_downloader_mock = Mock()
+        layer_downloader_mock.layer_cache = "cached layers"
+
+        tarball_fileobj = Mock()
+        create_tarball_patch.return_value.__enter__.return_value = tarball_fileobj
+
+        layer_version1 = Mock()
+        layer_version1.codeuri = "somevalue"
+        layer_version1.name = "name"
+
+        dockerfile_mock = Mock()
+        m = mock_open(dockerfile_mock)
+        with patch("samcli.local.docker.lambda_image.open", m):
+            with self.assertRaisesRegexp(ImageBuildException, "Problem in the build!"):
+                LambdaImage(layer_downloader_mock, True, False, docker_client=docker_client_mock)._build_image(
+                    "base_image", "docker_tag", [layer_version1]
+                )
+
+        handle = m()
+        handle.write.assert_called_with("Dockerfile content")
+        path_patch.assert_called_once_with("cached layers", "dockerfile_uuid")
+        docker_client_mock.api.build.assert_called_once_with(
+            fileobj=tarball_fileobj,
+            rm=True,
+            tag="docker_tag",
+            pull=False,
+            custom_context=True,
+            decode=True,
         )
 
         docker_full_path_mock.unlink.assert_not_called()
@@ -334,6 +392,11 @@ class TestLambdaImage(TestCase):
         handle.write.assert_called_with("Dockerfile content")
         path_patch.assert_called_once_with("cached layers", "dockerfile_uuid")
         docker_client_mock.api.build.assert_called_once_with(
-            fileobj=tarball_fileobj, rm=True, tag="docker_tag", pull=False, custom_context=True
+            fileobj=tarball_fileobj,
+            rm=True,
+            tag="docker_tag",
+            pull=False,
+            custom_context=True,
+            decode=True,
         )
         docker_full_path_mock.unlink.assert_called_once()

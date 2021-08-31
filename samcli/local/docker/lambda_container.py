@@ -45,6 +45,8 @@ class LambdaContainer(Container):
         memory_mb=128,
         env_vars=None,
         debug_options=None,
+        container_host=None,
+        container_host_interface=None,
     ):
         """
         Initializes the class
@@ -74,6 +76,10 @@ class LambdaContainer(Container):
             Optional. Dictionary containing environment variables passed to container
         debug_options DebugContext
             Optional. Contains container debugging info (port, debugger path)
+        container_host string
+            Optional. Host of locally emulated Lambda container
+        container_host_interface
+            Optional. Interface that Docker host binds ports to
         """
         if not Runtime.has_value(runtime) and not packagetype == IMAGE:
             raise ValueError("Unsupported Lambda runtime {}".format(runtime))
@@ -119,6 +125,8 @@ class LambdaContainer(Container):
             env_vars=env_vars,
             container_opts=additional_options,
             additional_volumes=additional_volumes,
+            container_host=container_host,
+            container_host_interface=container_host_interface,
         )
 
     @staticmethod

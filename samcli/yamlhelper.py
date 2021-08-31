@@ -18,7 +18,7 @@ https://github.com/aws/aws-cli/blob/develop/awscli/customizations/cloudformation
 # pylint: disable=too-many-ancestors
 
 import json
-from typing import Dict, Optional
+from typing import cast, Dict, Optional
 from botocore.compat import OrderedDict
 import yaml
 
@@ -116,20 +116,20 @@ def _dict_constructor(loader, node):
     return OrderedDict(loader.construct_pairs(node))
 
 
-def yaml_parse(yamlstr):
+def yaml_parse(yamlstr) -> Dict:
     """Parse a yaml string"""
     try:
         # PyYAML doesn't support json as well as it should, so if the input
         # is actually just json it is better to parse it with the standard
         # json parser.
-        return json.loads(yamlstr, object_pairs_hook=OrderedDict)
+        return cast(Dict, json.loads(yamlstr, object_pairs_hook=OrderedDict))
     except ValueError:
         yaml.SafeLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _dict_constructor)
         yaml.SafeLoader.add_multi_constructor("!", intrinsics_multi_constructor)
-        return yaml.safe_load(yamlstr)
+        return cast(Dict, yaml.safe_load(yamlstr))
 
 
-def parse_yaml_file(file_path, extra_context: Optional[Dict] = None):
+def parse_yaml_file(file_path, extra_context: Optional[Dict] = None) -> Dict:
     """
     Read the file, do variable substitution, parse it as JSON/YAML
 

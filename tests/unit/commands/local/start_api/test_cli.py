@@ -47,6 +47,9 @@ class TestCli(TestCase):
         self.port = 123
         self.static_dir = "staticdir"
 
+        self.container_host = "localhost"
+        self.container_host_interface = "127.0.0.1"
+
         self.iac = Mock()
         self.project = Mock()
 
@@ -85,6 +88,8 @@ class TestCli(TestCase):
             warm_container_initialization_mode=self.warm_containers,
             debug_function=self.debug_function,
             shutdown=self.shutdown,
+            container_host=self.container_host,
+            container_host_interface=self.container_host_interface,
             iac=self.iac,
             project=self.project,
         )
@@ -193,6 +198,8 @@ class TestCli(TestCase):
             warm_containers=self.warm_containers,
             debug_function=self.debug_function,
             shutdown=self.shutdown,
+            container_host=self.container_host,
+            container_host_interface=self.container_host_interface,
             project_type="CFN",
             iac=self.iac,
             project=self.project,

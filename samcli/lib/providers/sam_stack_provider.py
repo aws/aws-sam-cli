@@ -184,9 +184,15 @@ class SamLocalStackProvider(SamBaseProvider):
             if isinstance(asset, S3Asset) and asset.source_property == "TemplateURL":
                 asset_location = asset.source_property
 
-        template_url = asset_location or resource_properties.get("TemplateURL", "")
+        template_url = asset_location or resource_properties.get("TemplateURL")
 
-        if not isinstance(template_url, str) or SamLocalStackProvider.is_remote_url(template_url):
+        if isinstance(template_url, dict):
+            # This happens when TemplateURL has unresolvable intrinsic functions
+            # and it usually happens in CDK generated template files (#2832).
+            raise RemoteStackLocationNotSupported()
+
+        template_url = cast(str, template_url)
+        if SamLocalStackProvider.is_remote_url(template_url):
             raise RemoteStackLocationNotSupported()
         if template_url.startswith("file://"):
             template_url = unquote(urlparse(template_url).path)
