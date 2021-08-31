@@ -211,7 +211,10 @@ for:
         fi"
 
 
-      - sh: "pytest -vv tests/integration"
+      - sh: "pytest -vv tests/integration/pipeline"
+      - sh: "pytest -vv tests/integration/publish"
+      - sh: "pytest -vv tests/integration/telemetry"
+      - sh: "pytest -vv tests/integration/validate"
       - sh: "pytest -vv tests/regression"
       - sh: "black --check setup.py tests samcli"
 
