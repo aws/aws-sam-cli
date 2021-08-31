@@ -145,7 +145,9 @@ class CfnIacImplementation(IaCPluginInterface):
         stack.extra_details[TEMPLATE_PATH_KEY] = path
         return stack
 
-    def _extract_nested_stack(self, parent_stack_template_path, resource_id, properties, resource_type) -> Stack:
+    def _extract_nested_stack(
+        self, parent_stack_template_path, resource_id, properties, resource_type
+    ) -> Optional[Stack]:
         if not properties:
             return None
 
