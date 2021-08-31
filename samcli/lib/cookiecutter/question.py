@@ -12,7 +12,7 @@ class QuestionKind(Enum):
     info = "info"
     confirm = "confirm"
     choice = "choice"
-    default = "default"
+    question = "question"
 
 
 class Promptable(ABC):
@@ -273,7 +273,7 @@ class QuestionFactory:
         QuestionKind.info: Info,
         QuestionKind.choice: Choice,
         QuestionKind.confirm: Confirm,
-        QuestionKind.default: Question,
+        QuestionKind.question: Question,
     }
 
     @staticmethod
@@ -287,7 +287,7 @@ class QuestionFactory:
         next_question_map = question_json.get("nextQuestion")
         default_next_question = question_json.get("defaultNextQuestion")
         kind_str = question_json.get("kind")
-        kind = QuestionKind(kind_str) if kind_str else QuestionKind.choice if options else QuestionKind.default
+        kind = QuestionKind(kind_str) if kind_str else QuestionKind.choice if options else QuestionKind.question
 
         klass = QuestionFactory.question_classes[kind]
         args = {

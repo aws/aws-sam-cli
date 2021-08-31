@@ -33,6 +33,12 @@ class LambdaResponseParseException(Exception):
     """
 
 
+class PayloadFormatVersionValidateException(Exception):
+    """
+    An exception raised when validation of payload format version fails
+    """
+
+
 class Route:
     API = "Api"
     HTTP = "HttpApi"
@@ -284,12 +290,21 @@ class LocalApigwService(BaseLocalService):
         route = self._get_current_route(request)
         cors_headers = Cors.cors_to_headers(self.api.cors)
 
+        # payloadFormatVersion can only support 2 values: "1.0" and "2.0"
+        # so we want to do strict validation to make sure it has proper value if provided
+        # https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html
+        if route.payload_format_version not in [None, "1.0", "2.0"]:
+            raise PayloadFormatVersionValidateException(
+                f'{route.payload_format_version} is not a valid value. PayloadFormatVersion must be "1.0" or "2.0"'
+            )
+
         method, endpoint = self.get_request_methods_endpoints(request)
         if method == "OPTIONS" and self.api.cors:
             headers = Headers(cors_headers)
             return self.service_response("", headers, 200)
 
         try:
+            # TODO: Rewrite the logic below to use version 2.0 when an invalid value is provided
             # the Lambda Event 2.0 is only used for the HTTP API gateway with defined payload format version equal 2.0
             # or none, as the default value to be used is 2.0
             # https://docs.aws.amazon.com/apigatewayv2/latest/api-reference/apis-apiid-integrations.html#apis-apiid-integrations-prop-createintegrationinput-payloadformatversion
@@ -311,7 +326,7 @@ class LocalApigwService(BaseLocalService):
             return ServiceErrorResponses.lambda_failure_response()
 
         stdout_stream = io.BytesIO()
-        stdout_stream_writer = StreamWriter(stdout_stream, self.is_debugging)
+        stdout_stream_writer = StreamWriter(stdout_stream, auto_flush=True)
 
         try:
             self.lambda_runner.invoke(route.function_name, event, stdout=stdout_stream_writer, stderr=self.stderr)

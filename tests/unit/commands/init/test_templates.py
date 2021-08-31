@@ -15,7 +15,7 @@ class TestTemplates(TestCase):
     @patch("samcli.lib.utils.git_repo.GitRepo._ensure_clone_directory_exists")
     @patch("shutil.copytree")
     def test_location_from_app_template_zip(self, subprocess_mock, git_exec_mock, cd_mock, copy_mock):
-        it = InitTemplates(True)
+        it = InitTemplates()
 
         manifest = {
             "ruby2.5": [
@@ -42,7 +42,7 @@ class TestTemplates(TestCase):
     @patch("samcli.lib.utils.git_repo.GitRepo._ensure_clone_directory_exists")
     @patch("shutil.copytree")
     def test_location_from_app_template_image(self, subprocess_mock, git_exec_mock, cd_mock, copy_mock):
-        it = InitTemplates(True)
+        it = InitTemplates()
 
         manifest = {
             "ruby2.5-image": [
@@ -75,7 +75,7 @@ class TestTemplates(TestCase):
             with patch("samcli.cli.global_config.GlobalConfig.config_dir", new_callable=PropertyMock) as mock_cfg:
                 mock_sub.side_effect = OSError("Fail")
                 mock_cfg.return_value = Path("/tmp/test-sam")
-                it = InitTemplates(True)
+                it = InitTemplates()
                 location, app_template = it.prompt_for_location(ZIP, "ruby2.5", None, "bundler")
                 self.assertTrue(search("cookiecutter-aws-sam-hello-ruby", location))
                 self.assertEqual("hello-world", app_template)
@@ -89,7 +89,7 @@ class TestTemplates(TestCase):
             with patch("samcli.cli.global_config.GlobalConfig.config_dir", new_callable=PropertyMock) as mock_cfg:
                 mock_sub.side_effect = subprocess.CalledProcessError("fail", "fail", "not found".encode("utf-8"))
                 mock_cfg.return_value = Path("/tmp/test-sam")
-                it = InitTemplates(True)
+                it = InitTemplates()
                 location, app_template = it.prompt_for_location(ZIP, "ruby2.5", None, "bundler")
                 self.assertTrue(search("cookiecutter-aws-sam-hello-ruby", location))
                 self.assertEqual("hello-world", app_template)
