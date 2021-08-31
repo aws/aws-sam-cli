@@ -7,6 +7,7 @@ import time
 import logging
 import json
 from unittest import TestCase
+from tests.cdk_testing_utils import CdkPythonEnv
 
 import docker
 import jmespath
@@ -72,6 +73,7 @@ class BuildIntegBase(TestCase):
         container_env_var=None,
         container_env_var_file=None,
         build_image=None,
+        region=None,
     ):
 
         command_list = [self.cmd, "build"]
@@ -116,6 +118,9 @@ class BuildIntegBase(TestCase):
 
         if build_image:
             command_list += ["--build-image", build_image]
+
+        if region:
+            command_list += ["--region", region]
 
         return command_list
 
@@ -396,3 +401,141 @@ class IntrinsicIntegBase(BuildIntegBase):
                 self.assertIn(error_message, process_stderr)
             else:
                 self.assertEqual(0, process_execute.process.returncode)
+
+
+class CDKBuildTestBase(BuildIntegBase):
+    scratch_dir = None
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.scratch_dir = str(Path(__file__).resolve().parent.joinpath(str(uuid.uuid4()).replace("-", "")[:10]))
+        os.mkdir(cls.scratch_dir)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.scratch_dir and shutil.rmtree(cls.scratch_dir, ignore_errors=True)
+        super().tearDownClass()
+
+    def setUp(self):
+        # To invoke a function created by the build command, we need the built artifacts to be in a
+        # location that is shared in Docker. Most temp directories are not shared. Therefore we are
+        # using a scratch space within the test folder that is .gitignored. Contents of this folder
+        # is also deleted after every test run
+        self.working_dir = tempfile.mkdtemp(dir=self.scratch_dir)
+        self.default_build_dir = Path(self.working_dir, ".aws-sam", "build")
+
+    def tearDown(self):
+        self.working_dir and shutil.rmtree(self.working_dir, ignore_errors=True)
+
+    def get_command_list(
+        self,
+        build_dir=None,
+        base_dir=None,
+        manifest_path=None,
+        use_container=None,
+        parameter_overrides=None,
+        mode=None,
+        function_identifier=None,
+        debug=False,
+        cached=False,
+        cache_dir=None,
+        parallel=False,
+        container_env_var=None,
+        container_env_var_file=None,
+        build_image=None,
+        project_type=None,
+        cdk_app=None,
+        cdk_context=None,
+    ):
+
+        command_list = [self.cmd, "build", "-b", str(self.default_build_dir)]
+
+        if parameter_overrides:
+            command_list += ["--parameter-overrides", self._make_parameter_override_arg(parameter_overrides)]
+
+        if build_dir:
+            command_list += ["-b", build_dir]
+
+        if base_dir:
+            command_list += ["-s", base_dir]
+
+        if manifest_path:
+            command_list += ["-m", manifest_path]
+
+        if use_container:
+            command_list += ["--use-container"]
+
+        if debug:
+            command_list += ["--debug"]
+
+        if cached:
+            command_list += ["--cached"]
+
+        if cache_dir:
+            command_list += ["-cd", cache_dir]
+
+        if parallel:
+            command_list += ["--parallel"]
+
+        if container_env_var:
+            command_list += ["--container-env-var", container_env_var]
+
+        if container_env_var_file:
+            command_list += ["--container-env-var-file", container_env_var_file]
+
+        if build_image:
+            command_list += ["--build-image", build_image]
+
+        if project_type:
+            command_list += ["--project-type", project_type]
+
+        if cdk_app:
+            command_list += ["--cdk_app", cdk_app]
+
+        if cdk_context:
+            command_list += ["--cdk_context", cdk_context]
+
+        return command_list
+
+    def verify_build_success(self, source_path, cmd=None):
+        if cmd:
+            cmd_list = cmd
+        else:
+            cmd_list = self.get_command_list()
+
+        LOG.info("Running Command: {}".format(cmd_list))
+
+        process_execute = run_command(cmd_list, cwd=source_path)
+
+        self.assertEqual(0, process_execute.process.returncode)
+        self.assertIn("Build Succeeded", str(process_execute.stdout))
+
+    def verify_invoke_built_function(self, function_logical_id, expected_result, source_path):
+        LOG.info("Invoking built function '{}'".format(function_logical_id))
+
+        cmd_list = [self.cmd, "local", "invoke", function_logical_id, "--project-type", "cdk"]
+
+        process_execute = run_command(cmd_list, cwd=source_path)
+        process_execute.process.wait()
+        process_stdout = process_execute.stdout.decode("utf-8")
+
+        self.assertEqual(json.loads(process_stdout), expected_result)
+
+    def verify_included_expected_project_manifest(self):
+        manifest = {"manifest.json", "tree.json", "cdk.out"}
+        build_artifact_files = set(os.listdir(str(self.default_build_dir)))
+        self.assertTrue(build_artifact_files.intersection(manifest))
+
+
+class CdkBuildIntegPythonBase(CDKBuildTestBase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.cdk_python_env = CdkPythonEnv(cls.scratch_dir)
+
+
+class CdkBuildIntegNodejsBase(CDKBuildTestBase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()

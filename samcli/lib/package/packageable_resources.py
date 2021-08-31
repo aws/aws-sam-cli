@@ -6,6 +6,7 @@ import os
 import shutil
 from typing import Optional, Union
 
+import jmespath
 from botocore.utils import set_value_from_jmespath
 
 from samcli.commands.package import exceptions
@@ -19,8 +20,9 @@ from samcli.lib.package.utils import (
     copy_to_temp_dir,
     upload_local_artifacts,
     upload_local_image_artifacts,
-    is_s3_url,
+    is_s3_protocol_url,
     is_path_value_valid,
+    is_ecr_url,
 )
 
 from samcli.commands._utils.resources import (
@@ -44,6 +46,7 @@ from samcli.commands._utils.resources import (
     METADATA_WITH_LOCAL_PATHS,
     RESOURCES_WITH_LOCAL_PATHS,
     RESOURCES_WITH_IMAGE_COMPONENT,
+    AWS_ECR_REPOSITORY,
 )
 
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -82,6 +85,9 @@ class Resource:
     def do_export(self, resource, parent_dir):
         pass
 
+    def delete(self, resource_id, resource_dict):
+        pass
+
 
 class ResourceZip(Resource):
     """
@@ -99,7 +105,7 @@ class ResourceZip(Resource):
 
     # FIXME: add type annotation once MRO fixed in Iac interface
     def export(self, resource, parent_dir):
-        resource_id = resource.key
+        resource_id = resource.item_id or resource.key
         resource_dict = None
         if isinstance(resource, IacResource):
             resource_dict = resource.get("Properties")
@@ -153,7 +159,7 @@ class ResourceZip(Resource):
         """
         # code signer only accepts files which has '.zip' extension in it
         # so package artifact with '.zip' if it is required to be signed
-        resource_id = resource.key
+        resource_id = resource.item_id or resource.key
         resource_dict = None
         if isinstance(resource, IacResource):
             resource_dict = resource.get("Properties")
@@ -181,6 +187,33 @@ class ResourceZip(Resource):
         if self.iac.should_update_property_after_package(asset):
             set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, uploaded_url)
 
+    def delete(self, resource_id, resource_dict):
+        """
+        Delete the S3 artifact using S3 url referenced by PROPERTY_NAME
+        """
+        if resource_dict is None:
+            return
+
+        s3_info = self.get_property_value(resource_dict)
+        if s3_info["Key"]:
+            self.uploader.delete_artifact(s3_info["Key"], True)
+
+    def get_property_value(self, resource_dict):
+        """
+        Get the s3 property value for this resource
+        """
+        if resource_dict is None:
+            return {"Bucket": None, "Key": None}
+
+        resource_path = jmespath.search(self.PROPERTY_NAME, resource_dict)
+        # In the case where resource_path is pointing to an intrinsinc
+        # ref function, sam delete will delete the stack but skip the deletion of this
+        # artifact, as deletion of intrinsic ref function artifacts is not supported yet.
+        # TODO: Allow deletion of S3 artifacts with intrinsic ref functions.
+        if resource_path and isinstance(resource_path, str):
+            return self.uploader.parse_s3_url(resource_path)
+        return {"Bucket": None, "Key": None}
+
 
 class ResourceImageDict(Resource):
     """
@@ -196,7 +229,7 @@ class ResourceImageDict(Resource):
 
     # FIXME: add type annotation once MRO fixed in Iac interface
     def export(self, resource, parent_dir):
-        resource_id = resource.key
+        resource_id = resource.item_id or resource.key
         resource_dict = None
         if isinstance(resource, IacResource):
             resource_dict = resource.get("Properties")
@@ -233,7 +266,7 @@ class ResourceImageDict(Resource):
         dictionary where the key is EXPORT_PROPERTY_CODE_KEY and value is set to an
         uploaded URL.
         """
-        resource_id = resource.key
+        resource_id = resource.item_id or resource.key
         resource_dict = None
         if isinstance(resource, IacResource):
             resource_dict = resource.get("Properties")
@@ -249,6 +282,23 @@ class ResourceImageDict(Resource):
         if self.iac.should_update_property_after_package(asset):
             set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, {self.EXPORT_PROPERTY_CODE_KEY: uploaded_url})
 
+    def delete(self, resource_id, resource_dict):
+        """
+        Delete the ECR artifact using ECR url in PROPERTY_NAME referenced by EXPORT_PROPERTY_CODE_KEY
+        """
+        if resource_dict is None:
+            return
+
+        remote_path = resource_dict.get(self.PROPERTY_NAME, {}).get(self.EXPORT_PROPERTY_CODE_KEY)
+        # In the case where remote_path is pointing to an intrinsinc
+        # ref function, sam delete will delete the stack but skip the deletion of this
+        # artifact, as deletion of intrinsic ref function artifacts is not supported yet.
+        # TODO: Allow deletion of ECR artifacts with intrinsic ref functions.
+        if isinstance(remote_path, str) and is_ecr_url(remote_path):
+            self.uploader.delete_artifact(
+                image_uri=remote_path, resource_id=resource_id, property_name=self.PROPERTY_NAME
+            )
+
 
 class ResourceImage(Resource):
     """
@@ -263,7 +313,7 @@ class ResourceImage(Resource):
 
     # FIXME: add type annotation once MRO fixed in Iac interface
     def export(self, resource, parent_dir):
-        resource_id = resource.key
+        resource_id = resource.item_id or resource.key
         resource_dict = None
         if isinstance(resource, IacResource):
             resource_dict = resource.get("Properties")
@@ -299,7 +349,7 @@ class ResourceImage(Resource):
         Default export action is to upload artifacts and set the property to
         URL of the uploaded object
         """
-        resource_id = resource.key
+        resource_id = resource.item_id or resource.key
         resource_dict = None
         if isinstance(resource, IacResource):
             resource_dict = resource.get("Properties")
@@ -314,6 +364,23 @@ class ResourceImage(Resource):
         self.iac.update_resource_after_packaging(resource)
         if self.iac.should_update_property_after_package(asset):
             set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, uploaded_url)
+
+    def delete(self, resource_id, resource_dict):
+        """
+        Delete the ECR artifact using ECR url referenced by property_name
+        """
+        if resource_dict is None:
+            return
+
+        remote_path = resource_dict.get(self.PROPERTY_NAME)
+        # In the case where remote_path is pointing to an intrinsinc
+        # ref function, sam delete will delete the stack but skip the deletion of this
+        # artifact, as deletion of intrinsic ref function artifacts is not supported yet.
+        # TODO: Allow deletion of ECR artifacts with intrinsic ref functions.
+        if isinstance(remote_path, str) and is_ecr_url(remote_path):
+            self.uploader.delete_artifact(
+                image_uri=remote_path, resource_id=resource_id, property_name=self.PROPERTY_NAME
+            )
 
 
 class ResourceWithS3UrlDict(ResourceZip):
@@ -334,7 +401,7 @@ class ResourceWithS3UrlDict(ResourceZip):
         Upload to S3 and set property to an dict representing the S3 url
         of the uploaded object
         """
-        resource_id = resource.key
+        resource_id = resource.item_id or resource.key
         resource_dict = None
         if isinstance(resource, IacResource):
             resource_dict = resource.get("Properties")
@@ -359,6 +426,37 @@ class ResourceWithS3UrlDict(ResourceZip):
         self.iac.update_resource_after_packaging(resource)
         if self.iac.should_update_property_after_package(asset):
             set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, parsed_url)
+
+    def delete(self, resource_id, resource_dict):
+        """
+        Delete the S3 artifact using S3 url in the dict PROPERTY_NAME
+        using the bucket at BUCKET_NAME_PROPERTY and key at OBJECT_KEY_PROPERTY
+        """
+        if resource_dict is None:
+            return
+
+        s3_info = self.get_property_value(resource_dict)
+        if s3_info["Key"]:
+            self.uploader.delete_artifact(remote_path=s3_info["Key"], is_key=True)
+
+    def get_property_value(self, resource_dict):
+        """
+        Get the s3 property value for this resource
+        """
+        if resource_dict is None:
+            return {"Bucket": None, "Key": None}
+
+        resource_path = resource_dict.get(self.PROPERTY_NAME, {})
+        s3_bucket = resource_path.get(self.BUCKET_NAME_PROPERTY, None)
+
+        key = resource_path.get(self.OBJECT_KEY_PROPERTY, None)
+        # In the case where resource_path is pointing to an intrinsinc
+        # ref function, sam delete will delete the stack but skip the deletion of this
+        # artifact, as deletion of intrinsic ref function artifacts is not supported yet.
+        # TODO: Allow deletion of S3 artifacts with intrinsic ref functions.
+        if isinstance(s3_bucket, str) and isinstance(key, str):
+            return {"Bucket": s3_bucket, "Key": key}
+        return {"Bucket": None, "Key": None}
 
 
 class ServerlessFunctionResource(ResourceZip):
@@ -526,6 +624,34 @@ class CloudFormationResourceVersionSchemaHandlerPackage(ResourceZip):
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[AWS_CLOUDFORMATION_RESOURCEVERSION][0]
 
 
+class ECRResource(Resource):
+    """
+    Represents CloudFormation resources ECR for deleting the ECR
+    repository with the property name RepositoryName. This class is used
+    only for deleting the repository and not exporting anything.
+    """
+
+    RESOURCE_TYPE = AWS_ECR_REPOSITORY
+    PROPERTY_NAME = RESOURCES_WITH_IMAGE_COMPONENT[RESOURCE_TYPE][0]
+    ARTIFACT_TYPE = ZIP
+    EXPORT_DESTINATION = Destination.ECR
+
+    def delete(self, resource_id, resource_dict):
+        if resource_dict is None:
+            return
+
+        repository_name = self.get_property_value(resource_dict)
+        # TODO: Allow deletion of ECR Repositories with intrinsic ref functions.
+        if repository_name and isinstance(repository_name, str):
+            self.uploader.delete_ecr_repository(physical_id=repository_name)
+
+    def get_property_value(self, resource_dict):
+        if resource_dict is None:
+            return None
+
+        return jmespath.search(self.PROPERTY_NAME, resource_dict)
+
+
 RESOURCES_EXPORT_LIST = [
     ServerlessFunctionResource,
     ServerlessFunctionImageResource,
@@ -547,6 +673,7 @@ RESOURCES_EXPORT_LIST = [
     GlueJobCommandScriptLocationResource,
     CloudFormationModuleVersionModulePackage,
     CloudFormationResourceVersionSchemaHandlerPackage,
+    ECRResource,
 ]
 
 METADATA_EXPORT_LIST = [ServerlessRepoApplicationReadme, ServerlessRepoApplicationLicense]
@@ -557,7 +684,7 @@ def include_transform_export_handler(template_dict, uploader, parent_dir):
         return template_dict
 
     include_location = template_dict.get("Parameters", {}).get("Location", None)
-    if not include_location or not is_path_value_valid(include_location) or is_s3_url(include_location):
+    if not include_location or not is_path_value_valid(include_location) or is_s3_protocol_url(include_location):
         # `include_location` is either empty, or not a string, or an S3 URI
         return template_dict
 

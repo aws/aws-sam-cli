@@ -45,5 +45,10 @@ def tag_translation(image, docker_image_id=None, gen_tag="latest"):
     # NOTE(sriram-mv): Checksum truncation Length is set to 12
     _id = docker_image_id.split(":")[1][:SHA_CHECKSUM_TRUNCATION_LENGTH]
     name, tag = image.split(":")
+    name_parts = name.rsplit("/", 1)
+    if len(name_parts) == 1:
+        name = name_parts[0]
+    else:
+        name = name_parts[1]
     _tag = tag if tag else gen_tag
     return f"{name}-{_id}-{_tag}"

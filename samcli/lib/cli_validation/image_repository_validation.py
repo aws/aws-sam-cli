@@ -15,7 +15,7 @@ LOG = logging.getLogger(__name__)
 def image_repository_validation(func):
     """
     Wrapper Validation function that will run last after the all cli parmaters have been loaded
-    to check for conditions surrounding `--image-repository` and `--image-repositories`. The
+    to check for conditions surrounding `--image-repository`, `--image-repositories`, and `--resolve-image-repos`. The
     reason they are done last instead of in callback functions, is because the options depend
     on each other, and this breaks cyclic dependencies.
 
@@ -28,29 +28,36 @@ def image_repository_validation(func):
         guided = ctx.params.get("guided", False) or ctx.params.get("g", False)
         image_repository = ctx.params.get("image_repository", False)
         image_repositories = ctx.params.get("image_repositories", False) or {}
+        resolve_image_repos = ctx.params.get("resolve_image_repos", False)
         project = kwargs.get("project")
         stack = validate_and_get_project_stack(project, ctx)
 
-        # Check if `--image-repository` or `--image-repositories` are required by
+        # Check if `--image-repository`, `--image-repositories`, or `--resolve-image-repos` are required by
         # looking for resources that have an IMAGE based packagetype.
         required = stack.has_assets_of_package_type(IMAGE) if stack is not None else False
 
         validators = [
             Validator(
-                validation_function=lambda: image_repository and image_repositories,
+                validation_function=lambda: bool(image_repository)
+                + bool(image_repositories)
+                + bool(resolve_image_repos)
+                > 1,
                 exception=click.BadOptionUsage(
                     option_name="--image-repositories",
                     ctx=ctx,
-                    message="Both '--image-repositories' and '--image-repository' cannot be provided. "
-                    "Do you have both specified in the command or in a configuration file?",
+                    message="Only one of the following can be provided: '--image-repositories', "
+                    "'--image-repository', or '--resolve-image-repos'. "
+                    "Do you have multiple specified in the command or in a configuration file?",
                 ),
             ),
             Validator(
-                validation_function=lambda: not guided and not (image_repository or image_repositories) and required,
+                validation_function=lambda: not guided
+                and not (image_repository or image_repositories or resolve_image_repos)
+                and required,
                 exception=click.BadOptionUsage(
                     option_name="--image-repositories",
                     ctx=ctx,
-                    message="Missing option '--image-repository' or '--image-repositories'",
+                    message="Missing option '--image-repository', '--image-repositories', or '--resolve-image-repos'",
                 ),
             ),
             Validator(
@@ -59,11 +66,13 @@ def image_repository_validation(func):
                     set(image_repositories.keys())
                     != set(map(lambda r: r.item_id, stack.find_function_resources_of_package_type(IMAGE)))
                     and image_repositories
+                    and not resolve_image_repos
                 ),
                 exception=click.BadOptionUsage(
                     option_name="--image-repositories",
                     ctx=ctx,
-                    message="Incomplete list of function logical ids specified for '--image-repositories'",
+                    message="Incomplete list of function logical ids specified for '--image-repositories'. "
+                    "You can also add --resolve-image-repos to automatically create missing repositories.",
                 ),
             ),
         ]

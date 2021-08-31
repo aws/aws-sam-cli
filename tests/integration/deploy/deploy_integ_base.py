@@ -30,6 +30,7 @@ class DeployIntegBase(TestCase):
         template_file=None,
         s3_prefix=None,
         capabilities=None,
+        capabilities_list=None,
         force_upload=False,
         notification_arns=None,
         fail_on_empty_changeset=None,
@@ -45,6 +46,10 @@ class DeployIntegBase(TestCase):
         resolve_s3=False,
         config_file=None,
         signing_profiles=None,
+        resolve_image_repos=False,
+        cdk_app=None,
+        cdk_context=None,
+        project_type=None,
     ):
         command_list = [self.base_command(), "deploy"]
 
@@ -58,6 +63,10 @@ class DeployIntegBase(TestCase):
             command_list = command_list + ["--image-repositories", str(image_repositories)]
         if capabilities:
             command_list = command_list + ["--capabilities", str(capabilities)]
+        elif capabilities_list:
+            command_list.append("--capabilities")
+            for capability in capabilities_list:
+                command_list.append(str(capability))
         if parameter_overrides:
             command_list = command_list + ["--parameter-overrides", str(parameter_overrides)]
         if role_arn:
@@ -98,15 +107,27 @@ class DeployIntegBase(TestCase):
             command_list = command_list + ["--config-file", str(config_file)]
         if signing_profiles:
             command_list = command_list + ["--signing-profiles", str(signing_profiles)]
+        if resolve_image_repos:
+            command_list = command_list + ["--resolve-image-repos"]
+        if cdk_app:
+            command_list = command_list + ["--cdk-app", str(cdk_app)]
+        if cdk_context:
+            command_list = command_list + ["--cdk-context", str(cdk_context)]
+        if project_type:
+            command_list = command_list + ["--project-type", str(project_type)]
 
         return command_list
 
-    def get_minimal_build_command_list(self, template_file=None, build_dir=None):
+    def get_minimal_build_command_list(self, template_file=None, build_dir=None, cdk_app=None, cdk_context=None):
         command_list = [self.base_command(), "build"]
 
         if template_file:
             command_list = command_list + ["--template-file", str(template_file)]
         if build_dir:
             command_list = command_list + ["--build-dir", str(build_dir)]
+        if cdk_app:
+            command_list = command_list + ["--cdk-app", str(cdk_app)]
+        if cdk_context:
+            command_list = command_list + ["--cdk-context", str(cdk_context)]
 
         return command_list

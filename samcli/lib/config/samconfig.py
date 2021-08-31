@@ -41,6 +41,12 @@ class SamConfig:
         """
         self.filepath = Path(config_dir, filename or DEFAULT_CONFIG_FILE_NAME)
 
+    def get_stage_names(self):
+        self._read()
+        if isinstance(self.document, dict):
+            return [stage for stage, value in self.document.items() if isinstance(value, dict)]
+        return []
+
     def get_all(self, cmd_names, section, env=DEFAULT_ENV):
         """
         Gets a value from the configuration file for the given environment, command and section
@@ -153,6 +159,10 @@ class SamConfig:
     def exists(self):
         return self.filepath.exists()
 
+    def _ensure_exists(self):
+        self.filepath.parent.mkdir(parents=True, exist_ok=True)
+        self.filepath.touch()
+
     def path(self):
         return str(self.filepath)
 
@@ -183,8 +193,8 @@ class SamConfig:
     def _write(self):
         if not self.document:
             return
-        if not self.exists():
-            open(self.filepath, "a+").close()
+
+        self._ensure_exists()
 
         current_version = self._version() if self._version() else SAM_CONFIG_VERSION
         try:

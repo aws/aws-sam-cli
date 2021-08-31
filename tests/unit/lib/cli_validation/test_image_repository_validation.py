@@ -111,7 +111,10 @@ class TestImageRepositoryValidation(TestCase):
 
         with self.assertRaises(click.BadOptionUsage) as ex:
             self.foobar(project=project_mock)
-        self.assertIn("'--image-repositories' and '--image-repository' cannot be provided", ex.exception.message)
+        self.assertIn(
+            "Only one of the following can be provided: '--image-repositories', '--image-repository', or '--resolve-image-repos'. ",
+            ex.exception.message,
+        )
 
     @patch("samcli.lib.cli_validation.image_repository_validation.click")
     def test_image_repository_validation_failure_IMAGE_image_repositories_incomplete(self, mock_click):
@@ -167,7 +170,10 @@ class TestImageRepositoryValidation(TestCase):
 
         with self.assertRaises(click.BadOptionUsage) as ex:
             self.foobar(project=project_mock)
-        self.assertIn("Missing option '--image-repository' or '--image-repositories'", ex.exception.message)
+        self.assertIn(
+            "Missing option '--image-repository', '--image-repositories', or '--resolve-image-repos'",
+            ex.exception.message,
+        )
 
     @patch("samcli.lib.cli_validation.image_repository_validation.click")
     def test_image_repository_validation_success_missing_image_repositories_guided(self, mock_click):

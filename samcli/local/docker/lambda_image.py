@@ -30,6 +30,7 @@ class Runtime(Enum):
     python36 = "python3.6"
     python37 = "python3.7"
     python38 = "python3.8"
+    python39 = "python3.9"
     ruby25 = "ruby2.5"
     ruby27 = "ruby2.7"
     java8 = "java8"
@@ -54,7 +55,7 @@ class Runtime(Enum):
 
 class LambdaImage:
     _LAYERS_DIR = "/opt"
-    _INVOKE_REPO_PREFIX = "amazon/aws-sam-cli-emulation-image"
+    _INVOKE_REPO_PREFIX = "public.ecr.aws/sam/emulation"
     _SAM_CLI_REPO_NAME = "samcli/lambda"
     _RAPID_SOURCE_PATH = Path(__file__).parent.joinpath("..", "rapid").resolve()
 
@@ -229,11 +230,20 @@ class LambdaImage:
             with create_tarball(tar_paths, tar_filter=tar_filter) as tarballfile:
                 try:
                     resp_stream = self.docker_client.api.build(
-                        fileobj=tarballfile, custom_context=True, rm=True, tag=docker_tag, pull=not self.skip_pull_image
+                        fileobj=tarballfile,
+                        custom_context=True,
+                        rm=True,
+                        tag=docker_tag,
+                        pull=not self.skip_pull_image,
+                        decode=True,
                     )
-                    for _ in resp_stream:
+                    for log in resp_stream:
                         stream_writer.write(".")
                         stream_writer.flush()
+                        if "error" in log:
+                            stream_writer.write("\n")
+                            LOG.exception("Failed to build Docker Image")
+                            raise ImageBuildException("Error building docker image: {}".format(log["error"]))
                     stream_writer.write("\n")
                 except (docker.errors.BuildError, docker.errors.APIError) as ex:
                     stream_writer.write("\n")

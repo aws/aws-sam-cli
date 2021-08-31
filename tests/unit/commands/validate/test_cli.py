@@ -1,5 +1,6 @@
 from unittest import TestCase
 from unittest.mock import Mock, patch
+from collections import namedtuple
 
 from botocore.exceptions import NoCredentialsError
 
@@ -7,6 +8,8 @@ from samcli.commands.exceptions import UserException
 from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException, InvalidSamTemplateException
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.validate.validate import do_cli, _read_sam_file
+
+ctx_mock = namedtuple("ctx", ["profile", "region"])
 
 
 class TestValidateCli(TestCase):
@@ -46,7 +49,7 @@ class TestValidateCli(TestCase):
         template_valiadator.return_value = is_valid_mock
 
         with self.assertRaises(InvalidSamTemplateException):
-            do_cli(ctx=None, template=template_path)
+            do_cli(ctx=ctx_mock(profile="profile", region="region"), template=template_path)
 
     @patch("samcli.commands.validate.lib.sam_template_validator.SamTemplateValidator")
     @patch("samcli.commands.validate.validate.click")
@@ -60,7 +63,7 @@ class TestValidateCli(TestCase):
         template_valiadator.return_value = is_valid_mock
 
         with self.assertRaises(UserException):
-            do_cli(ctx=None, template=template_path)
+            do_cli(ctx=ctx_mock(profile="profile", region="region"), template=template_path)
 
     @patch("samcli.commands.validate.lib.sam_template_validator.SamTemplateValidator")
     @patch("samcli.commands.validate.validate.click")
@@ -73,4 +76,4 @@ class TestValidateCli(TestCase):
         is_valid_mock.is_valid.return_value = True
         template_valiadator.return_value = is_valid_mock
 
-        do_cli(ctx=None, template=template_path)
+        do_cli(ctx=ctx_mock(profile="profile", region="region"), template=template_path)

@@ -1,0 +1,4 @@
+aws-cdk.core~=1.99.0
+aws-cdk.aws_lambda~=1.99.0
+aws-cdk.aws_apigateway~=1.99.0
+aws-cdk.aws_lambda_event_sources~=1.99.0

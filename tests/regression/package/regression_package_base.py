@@ -9,6 +9,8 @@ from unittest import TestCase
 
 import boto3
 
+from samcli.yamlhelper import yaml_parse
+
 S3_SLEEP = 3
 TIMEOUT = 300
 
@@ -108,9 +110,15 @@ class PackageRegressionBase(TestCase):
             self.assertEqual(process.returncode, 0)
             output_aws = output_template_file_aws.read()
 
+        # remove the region name from the template url in cases like nested stacks
+        output_aws = output_aws.replace(b"s3.us-east-1.", b"s3.")
+
         if "use_json" in args and args.get("use_json"):
             output_sam = json.loads(output_sam)
             output_aws = json.loads(output_aws)
+        else:
+            output_sam = yaml_parse(output_sam)
+            output_aws = yaml_parse(output_aws)
 
         if output_aws != output_sam:
             print("output_aws and output_sam are different!!!")
