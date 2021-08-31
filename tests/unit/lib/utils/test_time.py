@@ -35,7 +35,7 @@ class TestToTimestamp(TestCase):
         self.assertEqual(int(timestamp * 1000), utc_to_timestamp(utc))
 
 
-#TODO: remove the skipping logic once we fix the Segmentation fault raised in appveyor
+# TODO: remove the skipping logic once we fix the Segmentation fault raised in appveyor
 @skipIf(True, "remove the skipping logic once we fix the Segmentation fault raised in appveyor")
 class TestToUtc(TestCase):
     def test_with_timezone(self):
@@ -63,7 +63,7 @@ class TestToUtc(TestCase):
         self.assertEqual(expected, result)
 
 
-#TODO: remove the skipping logic once we fix the Segmentation fault raised in appveyor
+# TODO: remove the skipping logic once we fix the Segmentation fault raised in appveyor
 @skipIf(True, "remove the skipping logic once we fix the Segmentation fault raised in appveyor")
 class TestParseDate(TestCase):
     def test_must_parse_date(self):
