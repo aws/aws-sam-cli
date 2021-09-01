@@ -21,8 +21,8 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
         # 2: AWS Quick Start Templates
         # 3: Infrastructure event management - Use case
         # 1: Java Runtime
-        # 1: Zip
-        # 4: select event-bridge app from scratch
+        # 2: Maven
+        # 2: select event-bridge app from scratch
         # test-project: response to name
         # Y: Use default aws configuration
         # 1: select schema from cli_paginator
@@ -32,8 +32,8 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
 2
 3
 1
-1
-4
+2
+2
 eb-app-maven
 Y
 1
@@ -58,8 +58,8 @@ Y
         # 2: AWS Quick Start Templates
         # 3: Infrastructure event management - Use case
         # 1: Java Runtime
-        # 1: Zip
-        # 4: select event-bridge app from scratch
+        # 2: Maven
+        # 2: select event-bridge app from scratch
         # test-project: response to name
         # Y: Use default aws configuration
         # 3: partner registry
@@ -68,8 +68,8 @@ Y
 2
 3
 1
-1
-4
+2
+2
 eb-app-maven
 Y
 3
@@ -104,8 +104,8 @@ Y
         # 2: AWS Quick Start Templates
         # 3: Infrastructure event management - Use case
         # 1: Java Runtime
-        # 1: Zip
-        # 4: select event-bridge app from scratch
+        # 2: Maven
+        # 2: select event-bridge app from scratch
         # eb-app-maven: response to name
         # Y: Use default aws configuration
         # 4: select pagination-registry as registries
@@ -116,8 +116,8 @@ Y
 2
 3
 1
-1
-4
+2
+2
 eb-app-maven
 Y
 4
@@ -143,8 +143,8 @@ P
         # 2: AWS Quick Start Templates
         # 3: Infrastructure event management - Use case
         # 1: Java Runtime
-        # 1: Zip
-        # 4: select event-bridge app from scratch
+        # 2: Maven
+        # 2: select event-bridge app from scratch
         # eb-app-maven: response to name
         # Y: Use default aws configuration
         # 2: select 2p-schema other-schema
@@ -153,8 +153,8 @@ P
 2
 3
 1
-1
-4
+2
+2
 eb-app-maven
 Y
 2
@@ -189,8 +189,7 @@ Y
         # WHEN the user follows interactive init prompts
         # 2: AWS Quick Start Templates
         # 3: Infrastructure event management - Use case
-        # 5: Python 3.7
-        # 1: Zip
+        # 6: Python 3.7
         # 2: select event-bridge app from scratch
         # eb-app-python37: response to name
         # Y: Use default aws configuration
@@ -199,10 +198,9 @@ Y
         user_input = """
 2
 3
-5
-1
+6
 2
-eb-app-maven
+eb-app-python37
 Y
 1
 4
@@ -224,8 +222,7 @@ Y
         # WHEN the user follows interactive init prompts
         # 2: AWS Quick Start Templates
         # 3: Infrastructure event management - Use case
-        # 5: Python 3.7
-        # 1: Zip
+        # 6: Python 3.7
         # 2: select event-bridge app from scratch
         # eb-app-python37: response to name
         # N: Use default profile
@@ -237,8 +234,7 @@ Y
         user_input = """
 2
 3
-5
-1
+6
 2
 eb-app-python37
 3
@@ -265,8 +261,7 @@ us-east-1
         # WHEN the user follows interactive init prompts
         # 2: AWS Quick Start Templates
         # 3: Infrastructure event management - Use case
-        # 5: Python 3.7
-        # 1: Zip
+        # 6: Python 3.7
         # 2: select event-bridge app from scratch
         # eb-app-python37: response to name
         # Y: Use default profile
@@ -276,8 +271,7 @@ us-east-1
         user_input = """
 2
 3
-5
-1
+6
 2
 eb-app-python37
 Y
