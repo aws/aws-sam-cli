@@ -12,7 +12,7 @@ import pytest
 import docker
 
 from tests.integration.local.invoke.layer_utils import LayerUtils
-from .invoke_integ_base import InvokeIntegBase
+from .invoke_integ_base import InvokeIntegBase, InvokeIntegNoDockerPullTestBase
 from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, run_command
 
 # Layers tests require credentials and Appveyor will only add credentials to the env if the PR is from the same repo.
@@ -1066,3 +1066,30 @@ class TestInvokeWithFunctionFullPathToAvoidAmbiguity(InvokeIntegBase):
 
         self.assertEqual(process.returncode, 1)
         self.assertIn("not found in template", process_stderr.decode("utf-8"))
+
+
+@parameterized_class(
+    ("template",),
+    [
+        (Path("template.yml"),),
+    ],
+)
+class TestSamPython36HelloWorldNoDockerPullIntegration(InvokeIntegNoDockerPullTestBase):
+    @pytest.mark.flaky(reruns=0)
+    def test_invoke_returncode_is_zero(self):
+        command_list = self.get_command_list(
+            "HelloWorldServerlessFunction",
+            template_path=self.template_path,
+            event_path=self.event_path,
+            skip_pull_image=True,
+        )
+        print(command_list)
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        self.assertEqual(process.returncode, 0)

@@ -9,8 +9,7 @@ from tests.testing_utils import SKIP_DOCKER_MESSAGE, SKIP_DOCKER_TESTS
 TIMEOUT = 300
 
 
-@skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
-class InvokeIntegBase(TestCase):
+class InvokeIntegAllCasesBase(TestCase):
     template: Optional[Path] = None
 
     @classmethod
@@ -46,6 +45,7 @@ class InvokeIntegBase(TestCase):
         profile=None,
         layer_cache=None,
         docker_network=None,
+        skip_pull_image=None,
     ):
         command_list = [self.cmd, "local", "invoke", function_to_invoke]
 
@@ -78,6 +78,9 @@ class InvokeIntegBase(TestCase):
 
         if region:
             command_list = command_list + ["--region", region]
+
+        if skip_pull_image:
+            command_list = command_list + ["--skip-pull-image"]
 
         return command_list
 
@@ -112,3 +115,12 @@ class InvokeIntegBase(TestCase):
         except TimeoutExpired:
             process.kill()
             raise
+
+
+@skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
+class InvokeIntegBase(InvokeIntegAllCasesBase):
+    pass
+
+
+class InvokeIntegNoDockerPullTestBase(InvokeIntegAllCasesBase):
+    pass
