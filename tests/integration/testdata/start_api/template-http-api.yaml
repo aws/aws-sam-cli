@@ -231,7 +231,7 @@ Resources:
           Properties:
             Method: GET
             Path: /invalidv1responsehash
-            PayloadFormatVersion: 1.0
+            PayloadFormatVersion: "1.0"
 
   ValidV2StringResponseFromLambdaFunction:
     Type: AWS::Serverless::Function
@@ -288,7 +288,7 @@ Resources:
           Properties:
             Method: GET
             Path: /invalidv1responsestring
-            PayloadFormatVersion: 1.0
+            PayloadFormatVersion: "1.0"
 
   Base64ResponseFunction:
     Type: AWS::Serverless::Function
