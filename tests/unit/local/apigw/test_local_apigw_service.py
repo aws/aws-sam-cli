@@ -10,7 +10,12 @@ from werkzeug.datastructures import Headers
 
 from samcli.lib.providers.provider import Api
 from samcli.lib.providers.provider import Cors
-from samcli.local.apigw.local_apigw_service import LocalApigwService, Route, LambdaResponseParseException
+from samcli.local.apigw.local_apigw_service import (
+    LocalApigwService,
+    Route,
+    LambdaResponseParseException,
+    PayloadFormatVersionValidateException,
+)
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 
 
@@ -70,6 +75,7 @@ class TestApiGatewayService(TestCase):
         self.api_service.service_response = make_response_mock
         self.api_service._get_current_route = MagicMock()
         self.api_service._get_current_route.methods = []
+        self.api_service._get_current_route.return_value.payload_format_version = "2.0"
         self.api_service._construct_v_1_0_event = Mock()
 
         parse_output_mock = Mock()
@@ -179,6 +185,7 @@ class TestApiGatewayService(TestCase):
         self.api_service.service_response = make_response_mock
         self.api_service._get_current_route = MagicMock()
         self.api_service._get_current_route.return_value.methods = ["OPTIONS"]
+        self.api_service._get_current_route.return_value.payload_format_version = "1.0"
         self.api_service._construct_v_1_0_event = Mock()
 
         parse_output_mock = Mock()
@@ -203,6 +210,7 @@ class TestApiGatewayService(TestCase):
         self.http_service.service_response = make_response_mock
         self.http_service._get_current_route = MagicMock()
         self.http_service._get_current_route.return_value.methods = ["OPTIONS"]
+        self.http_service._get_current_route.return_value.payload_format_version = "1.0"
         self.http_service._construct_v_1_0_event = Mock()
 
         parse_output_mock = Mock()
@@ -227,6 +235,7 @@ class TestApiGatewayService(TestCase):
         request_mock.return_value = ("test", "test")
         self.api_service.service_response = make_response_mock
         current_route = Mock()
+        current_route.payload_format_version = "2.0"
         self.api_service._get_current_route = MagicMock()
         self.api_service._get_current_route.return_value = current_route
         current_route.methods = []
@@ -264,6 +273,7 @@ class TestApiGatewayService(TestCase):
         self.api_service._get_current_route = MagicMock()
         self.api_service._construct_v_1_0_event = Mock()
         self.api_service._get_current_route.methods = []
+        self.api_service._get_current_route.return_value.payload_format_version = "1.0"
 
         parse_output_mock = Mock()
         parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
@@ -358,6 +368,7 @@ class TestApiGatewayService(TestCase):
         not_found_response_mock = Mock()
         self.api_service._construct_v_1_0_event = Mock()
         self.api_service._get_current_route = MagicMock()
+        self.api_service._get_current_route.return_value.payload_format_version = "2.0"
         self.api_service._get_current_route.methods = []
 
         service_error_responses_patch.lambda_not_found_response.return_value = not_found_response_mock
@@ -395,6 +406,7 @@ class TestApiGatewayService(TestCase):
         self.api_service._construct_v_1_0_event = Mock()
         self.api_service._get_current_route = MagicMock()
         self.api_service._get_current_route.methods = []
+        self.api_service._get_current_route.return_value.payload_format_version = "1.0"
 
         request_mock.return_value = ("test", "test")
         result = self.api_service._request_handler()
@@ -417,6 +429,7 @@ class TestApiGatewayService(TestCase):
         _construct_event.side_effect = UnicodeDecodeError("utf8", b"obj", 1, 2, "reason")
         self.api_service._get_current_route = MagicMock()
         self.api_service._get_current_route.methods = []
+        self.api_service._get_current_route.return_value.payload_format_version = "1.0"
 
         self.api_service._construct_v_1_0_event = _construct_event
 
@@ -426,6 +439,15 @@ class TestApiGatewayService(TestCase):
         request_mock.return_value = ("test", "test")
         result = self.api_service._request_handler()
         self.assertEqual(result, failure_mock)
+
+    @parameterized.expand([param("1.5"), param(2.0)])
+    def test_request_handler_errors_when_payload_format_version_wrong(self, payload_format_version):
+        get_current_route = Mock()
+        get_current_route.return_value.payload_format_version = payload_format_version
+        self.api_service._get_current_route = get_current_route
+
+        with self.assertRaises(PayloadFormatVersionValidateException):
+            self.api_service._request_handler()
 
     def test_get_current_route(self):
         request_mock = Mock()
