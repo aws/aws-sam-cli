@@ -22,7 +22,7 @@ class StreamWriter:
     def stream(self):
         return self._stream
 
-    def write(self, output):
+    def write(self, output, encode=False):
         """
         Writes specified text to the underlying stream
 
@@ -31,7 +31,7 @@ class StreamWriter:
         output bytes-like object
             Bytes to write
         """
-        self._stream.write(output)
+        self._stream.write(output.encode() if encode else output)
 
         if self._auto_flush:
             self._stream.flush()

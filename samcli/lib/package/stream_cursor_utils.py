@@ -24,8 +24,8 @@ def cursor_down(count=1):
     return ESC + str(count) + "B"
 
 
-def clear_line():
-    return ESC + "0K"
+def clear_line(count=0):
+    return ESC + str(count) + "K"
 
 
 cursor_left = ESC + "G"
