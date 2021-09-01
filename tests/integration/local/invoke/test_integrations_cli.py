@@ -1083,7 +1083,6 @@ class TestSamPython36HelloWorldNoDockerPullIntegration(InvokeIntegNoDockerPullTe
             event_path=self.event_path,
             skip_pull_image=True,
         )
-        print(command_list)
 
         process = Popen(command_list, stdout=PIPE)
         try:
