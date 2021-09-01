@@ -191,11 +191,11 @@ for:
       # Runs only in Linux, logging Public ECR when running canary and cred is available
       - sh: "
         if [[ -n $BY_CANARY ]];
-          then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws; 
+          then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
+          # Pull a docker image only once to run some basic tests without Canary
+          else docker pull public.ecr.aws/sam/emulation-python3.6:latest;
         fi"
 
-      # Pull a docker image only once to run some tests withour Canary
-      - sh: "docker pull public.ecr.aws/sam/emulation-python3.6:latest"
       - sh: "pytest -vv tests/integration"
       - sh: "pytest -vv tests/regression"
       - sh: "black --check setup.py tests samcli"
