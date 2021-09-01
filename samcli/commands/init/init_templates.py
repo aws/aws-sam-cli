@@ -2,7 +2,6 @@
 Manages the set of application templates.
 """
 
-import re
 import itertools
 import json
 import logging
@@ -10,17 +9,13 @@ import os
 from pathlib import Path
 from typing import Dict
 
-
 import click
 
 from samcli.cli.main import global_cfg
 from samcli.commands.exceptions import UserException, AppTemplateUpdateException
 from samcli.lib.utils.git_repo import GitRepo, CloneRepoException, CloneRepoUnstableStateException
 from samcli.lib.utils.packagetype import IMAGE
-from samcli.local.common.runtime_template import (
-    RUNTIME_DEP_TEMPLATE_MAPPING,
-    get_local_lambda_images_location,
-)
+from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING, get_local_lambda_images_location
 
 LOG = logging.getLogger(__name__)
 APP_TEMPLATES_REPO_URL = "https://github.com/aws/aws-sam-cli-app-templates"
@@ -32,9 +27,9 @@ class InvalidInitTemplateError(UserException):
 
 
 class InitTemplates:
-    def __init__(self):
+    def __init__(self, no_interactive=False):
+        self._no_interactive = no_interactive
         self._git_repo: GitRepo = GitRepo(url=APP_TEMPLATES_REPO_URL)
-        self.manifest_file_name = "manifest.json"
 
     def prompt_for_location(self, package_type, runtime, base_image, dependency_manager):
         """
@@ -109,12 +104,6 @@ class InitTemplates:
         return bool(entry["appTemplate"] == app_template)
 
     def init_options(self, package_type, runtime, base_image, dependency_manager):
-        self.clone_templates_repo()
-        if self._git_repo.local_path is None:
-            return self._init_options_from_bundle(package_type, runtime, dependency_manager)
-        return self._init_options_from_manifest(package_type, runtime, base_image, dependency_manager)
-
-    def clone_templates_repo(self):
         if not self._git_repo.clone_attempted:
             shared_dir: Path = global_cfg.config_dir
             try:
@@ -122,13 +111,16 @@ class InitTemplates:
             except CloneRepoUnstableStateException as ex:
                 raise AppTemplateUpdateException(str(ex)) from ex
             except (OSError, CloneRepoException):
-                LOG.debug("Clone error, attempting to use an old clone from a previous run")
+                # If can't clone, try using an old clone from a previous run if already exist
                 expected_previous_clone_local_path: Path = shared_dir.joinpath(APP_TEMPLATES_REPO_NAME)
                 if expected_previous_clone_local_path.exists():
                     self._git_repo.local_path = expected_previous_clone_local_path
+        if self._git_repo.local_path is None:
+            return self._init_options_from_bundle(package_type, runtime, dependency_manager)
+        return self._init_options_from_manifest(package_type, runtime, base_image, dependency_manager)
 
     def _init_options_from_manifest(self, package_type, runtime, base_image, dependency_manager):
-        manifest_path = self.get_manifest_path()
+        manifest_path = os.path.join(self._git_repo.local_path, "manifest.json")
         with open(str(manifest_path)) as fp:
             body = fp.read()
             manifest_body = json.loads(body)
@@ -179,88 +171,3 @@ class InitTemplates:
             if option.get("appTemplate") == app_template:
                 return option.get("isDynamicTemplate", False)
         return False
-
-    def get_hello_world_image_template(self, package_type, runtime, base_image, dependency_manager):
-        self.clone_templates_repo()
-        templates = self.init_options(package_type, runtime, base_image, dependency_manager)
-        template_display_name = "hello world"
-        hello_world_template = filter(lambda x: template_display_name in x["displayName"].lower(), list(templates))
-        return list(hello_world_template)
-
-    def get_app_template_location(self, template_directory):
-        return os.path.normpath(os.path.join(self._git_repo.local_path, template_directory))
-
-    def get_manifest_path(self):
-        return Path(self._git_repo.local_path, self.manifest_file_name)
-
-    def get_preprocessed_manifest(self, filter_value=None):
-        """
-        This method get the manifest cloned from the git repo and preprocessed it.
-        Below is the link to manifest:
-        https://github.com/aws/aws-sam-cli-app-templates/blob/master/manifest.json
-
-        The structure of the manifest is shown below:
-        {
-            "dotnetcore2.1": [
-                {
-                    "directory": "dotnetcore2.1/cookiecutter-aws-sam-hello-dotnet",
-                    "displayName": "Hello World Example",
-                    "dependencyManager": "cli-package",
-                    "appTemplate": "hello-world",
-                    "packageType": "Zip",
-                    "useCaseName": "Serverless API"
-                },
-            ]
-        }
-
-        Parameters
-        ----------
-        filter_value : string, optional
-            This could be a runtime or a base-image, by default None
-
-        Returns
-        -------
-        [dict]
-            This is preprocessed manifest with the use_case as key
-        """
-        self.clone_templates_repo()
-        manifest_path = self.get_manifest_path()
-        with open(str(manifest_path)) as fp:
-            body = fp.read()
-            manifest_body = json.loads(body)
-
-        preprocessed_manifest = {}
-        for template_runtime in manifest_body:
-            if filter_value and filter_value != template_runtime:
-                continue
-
-            template_list = manifest_body[template_runtime]
-            for template in template_list:
-                package_type = get_template_value("packageType", template)
-                use_case_name = get_template_value("useCaseName", template)
-                runtime = get_runtime(package_type, template_runtime)
-
-                use_case = preprocessed_manifest.get(use_case_name, {})
-                use_case[runtime] = use_case.get(runtime, {})
-                use_case[runtime][package_type] = use_case[runtime].get(package_type, [])
-                use_case[runtime][package_type].append(template)
-
-                preprocessed_manifest[use_case_name] = use_case
-        return preprocessed_manifest
-
-    def get_bundle_option(self, package_type, runtime, dependency_manager):
-        return self._init_options_from_bundle(package_type, runtime, dependency_manager)
-
-
-def get_template_value(value, template):
-    if value not in template:
-        raise InvalidInitTemplateError(
-            f"Template is missing the value for {value} in manifest file. Please raise a a github issue."
-        )
-    return template.get(value)
-
-
-def get_runtime(package_type, template_runtime):
-    if package_type == IMAGE:
-        template_runtime = re.split("/|-", template_runtime)[1]
-    return template_runtime
