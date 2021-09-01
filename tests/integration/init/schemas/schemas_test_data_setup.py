@@ -33,7 +33,7 @@ class SchemaTestDataSetup(TestCase):
         setup_schema_data_for_pagination("test-pagination", schemas_client)
         setup_non_partner_schema_data("other-schema", schemas_client)
         # WHEN the user follows interactive init prompts
-        # 1: Hello World Application
+        # 1: Hello World Applications
         # 3: Java runtime
         # 2: dependency manager maven
         # eb-app-maven: response to name
