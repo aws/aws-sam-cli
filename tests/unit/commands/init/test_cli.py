@@ -15,12 +15,7 @@ from click.testing import CliRunner
 from samcli.commands.exceptions import UserException
 from samcli.commands.init import cli as init_cmd
 from samcli.commands.init import do_cli as init_cli
-from samcli.commands.init.init_templates import (
-    InitTemplates,
-    APP_TEMPLATES_REPO_URL,
-    get_runtime,
-    InvalidInitTemplateError,
-)
+from samcli.commands.init.init_templates import InitTemplates, APP_TEMPLATES_REPO_URL, get_runtime
 from samcli.lib.init import GenerateProjectFailedError
 from samcli.lib.utils import osutils
 from samcli.lib.utils.git_repo import GitRepo
@@ -1786,55 +1781,3 @@ test-project
             }
         }
         self.assertEqual(preprocess_manifest, expected_result)
-
-    @patch("samcli.lib.utils.git_repo.GitRepo.clone")
-    def test_init_fails_unsupported_dep_mgr_for_runtime(self, git_repo_clone_mock):
-        # WHEN the wrong dependency_manager is passed for a runtime
-        # THEN an exception should be raised
-        with self.assertRaises(InvalidInitTemplateError) as ex:
-            init_cli(
-                ctx=self.ctx,
-                no_interactive=self.no_interactive,
-                location=self.location,
-                pt_explicit=self.pt_explicit,
-                package_type=self.package_type,
-                runtime="java8",
-                base_image=self.base_image,
-                dependency_manager="pip",
-                output_dir=None,
-                name=self.name,
-                app_template=self.app_template,
-                no_input=self.no_input,
-                extra_context=None,
-            )
-        expected_error_message = (
-            "Lambda Runtime java8 and dependency manager pip does not have an available initialization template."
-        )
-        self.assertEqual(str(ex.exception), expected_error_message)
-
-    @patch("samcli.lib.utils.git_repo.GitRepo._ensure_clone_directory_exists")
-    def test_init_cli_with_mismatch_dep_runtime(self, cd_mock):
-        # WHEN the user follows interactive init prompts
-
-        # 1: selecting template source
-        # 1: selecting package type
-        user_input = """
-1
-1
-        """
-        args = [
-            "--name",
-            "untitled6",
-            "--runtime",
-            "java8",
-            "--dependency-manager",
-            "pip",
-        ]
-        runner = CliRunner()
-        result = runner.invoke(init_cmd, args=args, input=user_input)
-
-        self.assertTrue(result.exception)
-        expected_error_message = (
-            "Lambda Runtime java8 and dependency manager pip do not have an available initialization template."
-        )
-        self.assertIn(expected_error_message, result.output)
