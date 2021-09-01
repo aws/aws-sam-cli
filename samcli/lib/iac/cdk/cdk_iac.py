@@ -3,7 +3,7 @@ Provide a CDK implementation of IaCPluginInterface
 """
 from typing import List
 
-from samcli.lib.iac.plugins_interfaces import IaCPluginInterface, SamCliProject, Stack
+from samcli.lib.iac.plugins_interfaces import IaCPluginInterface, SamCliProject, Stack, LookupPath
 
 
 # TODO: Implement the new interface methods for the CDK plugin type
@@ -19,7 +19,7 @@ class CdkIacImplementation(IaCPluginInterface):
         the CDK project type
     """
 
-    def read_project(self, lookup_paths: List[str]) -> SamCliProject:
+    def read_project(self, lookup_paths: List[LookupPath]) -> SamCliProject:
         pass
 
     def write_project(self, project: SamCliProject, build_dir: str) -> bool:

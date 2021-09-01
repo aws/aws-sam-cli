@@ -815,7 +815,7 @@ class IaCPluginInterface(metaclass=abc.ABCMeta):
         self._context = context
 
     @abc.abstractmethod
-    def read_project(self, lookup_paths: List[str]) -> SamCliProject:
+    def read_project(self, lookup_paths: List[LookupPath]) -> SamCliProject:
         """
         Read and parse template of that IaC Platform
         """
