@@ -324,8 +324,7 @@ def _get_schema_template_details(schemas_api_caller):
 
 
 def _get_dependency_manager(options, dependency_manager, runtime):
-
-    valid_dep_managers = (
+    valid_dep_managers = sorted(
         RUNTIME_TO_DEPENDENCY_MANAGERS.get(runtime)
         if not options
         else list(set(template["dependencyManager"] for template in options))
