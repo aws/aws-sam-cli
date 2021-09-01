@@ -33,14 +33,10 @@ class SchemaTestDataSetup(TestCase):
         setup_schema_data_for_pagination("test-pagination", schemas_client)
         setup_non_partner_schema_data("other-schema", schemas_client)
         # WHEN the user follows interactive init prompts
-        # 2: AWS Quick Start Templates
-        # 1: Serverless Application
-        # 6: Java runtime
-        # 1: Zip Packagetype
+        # 1: Hello World Application
+        # 3: Java runtime
         # 2: dependency manager maven
         # eb-app-maven: response to name
-        # Y: clone/update the source repo
-        # 1: hello world
 
         user_input = """
 1
@@ -168,7 +164,8 @@ def _create_3p_schemas(registry_name, schemas_client, no_of_schemas):
     content = (
         '{"openapi":"3.0.0","info":{"version":"1.0.0","title":"TicketCreated"},"paths":{},"components":{"schemas":{"AWSEvent":{"type":"object",'
         '"required":["detail-type","resources","id","source","time","detail","region","version","account"],"x-amazon-events-detail-type":"MongoDB Trigger for '
-        'my_store.reviews","x-amazon-events-source":"aws.partner-mongodb.com","properties":{"detail":{"$ref": "#/components/schemas/TicketCreated"},"detail-type":{"type":"string"},"resources":{"type":"array",'
+        'my_store.reviews","x-amazon-events-source":"aws.partner-mongodb.com","properties":{"detail":{'
+        r'"$ref":"#\/components\/schemas\/aws.partner\/mongodb.com\/Ticket.Created"},"detail-type":{"type":"string"},"resources":{"type":"array",'
         '"items":{"type":"string"}},"id":{"type":"string"},"source":{"type":"string"},"time":{"type":"string","format":"date-time"},'
         '"region":{"type":"string","enum":["ap-south-1","eu-west-3","eu-north-1","eu-west-2","eu-west-1","ap-northeast-2","ap-northeast-1","me-south-1",'
         '"sa-east-1","ca-central-1","ap-east-1","cn-north-1","us-gov-west-1","ap-southeast-1","ap-southeast-2","eu-central-1","us-east-1","us-west-1",'
