@@ -532,14 +532,11 @@ class LocalApigwService(BaseLocalService):
         # we need to move cookies to Set-Cookie headers.
         if isinstance(json_output.get("cookies"), list):
             # add all cookies to Set-Cookie header
-            if "Set-Cookie" not in headers:
-                headers["Set-Cookie"] = ""
-            for cookie in json_output.get("cookies"):
-                headers["Set-Cookie"] = headers["Set-Cookie"] + ";" + cookie
-            # remove the first semi colon and trim the header
-            if headers["Set-Cookie"][0] == ";":
-                headers["Set-Cookie"] = headers["Set-Cookie"][1:]
-            headers["Set-Cookie"] = headers["Set-Cookie"].strip()
+            headers["Set-Cookie"] = (
+                ";".join([
+                    cookie for cookie in [headers.get("Set-Cookie")] + json_output.get("cookies") if cookie
+                ])
+            ).strip()
 
         is_base_64_encoded = json_output.get("isBase64Encoded") or False
 
