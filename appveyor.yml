@@ -189,11 +189,9 @@ for:
       - "pytest -n 4 tests/functional"
 
       # Runs only in Linux, logging Public ECR when running canary and cred is available
-      # If not running canary, pull a docker image only once to run some basic tests
       - sh: "
         if [[ -n $BY_CANARY ]];
           then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
-          else docker pull public.ecr.aws/sam/emulation-python3.6:latest;
         fi"
 
       - sh: "pytest -vv tests/integration"
