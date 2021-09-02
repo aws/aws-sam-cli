@@ -4,6 +4,7 @@ import subprocess
 from unittest import TestCase
 from unittest.mock import ANY, Mock, patch
 
+from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.lib.iac.cdk.cdk_iac import CdkIacImplementation, _collect_assets, _get_cdk_executable_path
 from samcli.lib.iac.cdk.exceptions import CdkToolkitNotInstalledError, InvalidCloudAssemblyError
 from samcli.lib.iac.plugins_interfaces import (
@@ -163,7 +164,7 @@ class TestCdkPlugin(TestCase):
         cloud_assembly_mock = Mock()
         ca_stack_mock = Mock()
         ca_stack_mock.template = {
-            "Resources": {},
+            "Resources": {"Lambda": {"Type": "AWS::LAMBDA::FUNCTION"}},
             "Parameters": {
                 "Param1": {"Type": "String", "Default": "foo"},
             },
@@ -180,13 +181,114 @@ class TestCdkPlugin(TestCase):
         cdk_plugin = CdkIacImplementation(self.sam_cli_context)
         cdk_plugin._build_resources_section = Mock()
         stack = cdk_plugin._build_stack(cloud_assembly_mock, ca_stack_mock)
-        cdk_plugin._build_resources_section.assert_called_once_with(assets, ca_stack_mock, cloud_assembly_mock, ANY, {})
+        cdk_plugin._build_resources_section.assert_called_once_with(
+            assets, ca_stack_mock, cloud_assembly_mock, ANY, ANY
+        )
         self.assertIsInstance(stack, Stack)
         self.assertEqual(stack.stack_id, "test_stack")
         self.assertEqual(stack.name, "test_stack")
         self.assertFalse(stack.is_nested, False)
         self.assertEqual(list(stack.sections.keys()), list(ca_stack_mock.template.keys()))
         self.assertIn("Param1", stack["Parameters"])
+
+    @patch("samcli.lib.iac.cdk.cdk_iac._collect_assets")
+    def test_build_stack_resolves_intrinsics(self, collect_assets_mock):
+        cloud_assembly_mock = Mock()
+        ca_stack_mock = Mock()
+        ca_stack_mock.template = {
+            "Parameters": {
+                "MyStageName": {"Type": "String", "Default": "Production"},
+                "Endpoint": {"Type": "String", "Default": "https://some-domain/endpoint"},
+            },
+            "Resources": {
+                "GetHtmlApi": {
+                    "Type": "AWS::Serverless::Api",
+                    "Properties": {
+                        "Name": "MyGetApi",
+                        "StageName": {"Ref": "MyStageName"},
+                        "DefinitionUri": {"Bucket": "sam-demo-bucket", "Key": "webpage_swagger.json"},
+                        "Variables": {"EndpointUri": {"Ref": "Endpoint"}, "EndpointUri2": "http://example.com"},
+                    },
+                }
+            },
+        }
+        ca_stack_mock.template_file = "to/template"
+        ca_stack_mock.template_full_path = "/path/to/template"
+        assets = {"s3/asset": S3Asset(), "image/asset": ImageAsset()}
+        collect_assets_mock.return_value = assets
+        cdk_plugin = CdkIacImplementation(self.sam_cli_context)
+        stack = cdk_plugin._build_stack(cloud_assembly_mock, ca_stack_mock)
+        resource = (stack.sections.get("Resources")).section_items[0]
+        endpoint_uri = resource.body.get("Properties").get("Variables").get("EndpointUri")
+        stage_name = resource.body.get("Properties").get("StageName")
+        self.assertIsInstance(stack, Stack)
+        self.assertEqual(endpoint_uri, "https://some-domain/endpoint")
+        self.assertEqual(stage_name, "Production")
+
+    @patch("samcli.lib.iac.cdk.cdk_iac._collect_assets")
+    def test_build_stack_no_resources(self, collect_assets_mock):
+        cloud_assembly_mock = Mock()
+        ca_stack_mock = Mock()
+        ca_stack_mock.template = {
+            "Resources": {},
+            "Parameters": {
+                "Param1": {"Type": "String", "Default": "foo"},
+            },
+            "OtherMapping": {},
+            "OtherKey": "other",
+        }
+        assets = {"s3/asset": S3Asset(), "image/asset": ImageAsset()}
+        collect_assets_mock.return_value = assets
+        cdk_plugin = CdkIacImplementation(self.sam_cli_context)
+        cdk_plugin._build_resources_section = Mock()
+        with self.assertRaises(InvalidSamDocumentException) as ctx:
+            cdk_plugin._build_stack(cloud_assembly_mock, ca_stack_mock)
+        self.assertIn("'Resources' section is required", str(ctx.exception))
+
+    @patch("samcli.lib.iac.cdk.cdk_iac._collect_assets")
+    def test_build_stack_parameter_overrides(self, collect_assets_mock):
+        command_params = {
+            "cdk_app": CLOUD_ASSEMBLY_DIR,
+            "parameter_overrides": {"CodeUri": "/new/path/to/code"},
+            "global_parameter_overrides": {"AWS::Region": "us-east-2"},
+        }
+        sam_cli_context = SamCliContext(
+            command_options_map=command_params,
+            sam_command_name="",
+            is_debugging=False,
+            is_guided=False,
+            profile={},
+            region="",
+        )
+        cloud_assembly_mock = Mock()
+        ca_stack_mock = Mock()
+        ca_stack_mock.template = {
+            "Parameters": {
+                "CodeUri": {"Type": "String", "Default": "/path/to/code"},
+                "Endpoint": {"Type": "String", "Default": "https://some-domain/endpoint"},
+            },
+            "Resources": {
+                "GetHtmlApi": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "CodeUri": {"Ref": "CodeUri"},
+                        "Environment": {"Variables": {"Region": {"Ref": "AWS::Region"}}},
+                    },
+                }
+            },
+        }
+        ca_stack_mock.template_file = "to/template"
+        ca_stack_mock.template_full_path = "/path/to/template"
+        assets = {"s3/asset": S3Asset(), "image/asset": ImageAsset()}
+        collect_assets_mock.return_value = assets
+        cdk_plugin = CdkIacImplementation(sam_cli_context)
+        stack = cdk_plugin._build_stack(cloud_assembly_mock, ca_stack_mock)
+        resource = (stack.sections.get("Resources")).section_items[0]
+        code_uri = resource.body.get("Properties").get("CodeUri")
+        region = resource.body.get("Properties").get("Environment").get("Variables").get("Region")
+        self.assertIsInstance(stack, Stack)
+        self.assertEqual(code_uri, "/new/path/to/code")
+        self.assertEqual(region, "us-east-2")
 
     def test_build_resource_section_image_asset(self):
         image_asset = ImageAsset()

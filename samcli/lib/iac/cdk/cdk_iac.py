@@ -30,6 +30,8 @@ from samcli.lib.iac.cdk.plugin import (
     RESOURCE_EXTRA_DETAILS_ORIGINAL_BODY_KEY,
     STACK_EXTRA_DETAILS_TEMPLATE_FILENAME_KEY,
 )
+from samcli.lib.iac.cfn.helpers import get_resolved_cfn_template
+from samcli.lib.iac.constants import PARAMETER_OVERRIDES, GLOBAL_PARAMETER_OVERRIDES
 from samcli.lib.iac.plugins_interfaces import (
     IaCPluginInterface,
     SamCliProject,
@@ -179,7 +181,11 @@ class CdkIacImplementation(IaCPluginInterface):
             for asset_param in asset.extra_details.get("assetParameters", {}).values()
         }
         sections = {}
-        for section_key, section_dict in ca_stack.template.items():
+        options_map = self._context.command_options_map
+        template = get_resolved_cfn_template(
+            ca_stack.template, options_map.get(PARAMETER_OVERRIDES), options_map.get(GLOBAL_PARAMETER_OVERRIDES)
+        )
+        for section_key, section_dict in template.items():
             if section_key == "Resources":
                 section = DictSection(section_key)
                 self._build_resources_section(assets, ca_stack, cloud_assembly, section, section_dict)

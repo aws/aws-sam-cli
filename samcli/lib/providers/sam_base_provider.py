@@ -7,6 +7,7 @@ import logging
 from typing import Any, Dict, Optional, cast, Iterable, Union
 from samcli.commands._utils.resources import AWS_SERVERLESS_APPLICATION, AWS_CLOUDFORMATION_STACK
 from samcli.lib.iac.interface import Stack as IacStack
+from samcli.lib.iac.plugins_interfaces import Stack
 from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
@@ -196,6 +197,50 @@ class SamBaseProvider:
             Processed SAM template
         """
         template_dict = template_dict or IacStack()
+        parameters_values = SamBaseProvider._get_parameter_values(template_dict, parameter_overrides)
+        if template_dict:
+            template_dict = SamTranslatorWrapper(template_dict, parameter_values=parameters_values).run_plugins()
+        if normalize_resource_metadata:
+            ResourceMetadataNormalizer.normalize(template_dict)
+
+        resolver = IntrinsicResolver(
+            template=template_dict,
+            symbol_resolver=IntrinsicsSymbolTable(logical_id_translator=parameters_values, template=template_dict),
+        )
+        template_dict = resolver.resolve_template(ignore_errors=True)
+        return template_dict
+
+    @staticmethod
+    def get_resolved_template_dict(
+        template_dict: Stack,
+        parameter_overrides: Optional[Dict[str, str]] = None,
+        normalize_resource_metadata: bool = True,
+    ) -> Stack:
+        """
+        Given a SAM template dictionary, return a cleaned copy of the template where SAM plugins have been run
+        and parameter values have been substituted.
+
+        Parameters
+        ----------
+        template_dict : dict
+            unprocessed SAM template dictionary
+
+        parameter_overrides: dict
+            Optional dictionary of values for template parameters
+
+        normalize_resource_metadata: bool
+            flag to normalize resource metadata or not; For package and deploy, we don't need to normalize resource
+            metadata, which usually exists in a CDK-synthed template and is used for build and local testing
+
+        Returns
+        -------
+        dict
+            Processed SAM template
+            :param template_dict:
+            :param parameter_overrides:
+            :param normalize_resource_metadata:
+        """
+        template_dict = template_dict or Stack()
         parameters_values = SamBaseProvider._get_parameter_values(template_dict, parameter_overrides)
         if template_dict:
             template_dict = SamTranslatorWrapper(template_dict, parameter_values=parameters_values).run_plugins()
