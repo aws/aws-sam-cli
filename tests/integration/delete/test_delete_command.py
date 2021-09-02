@@ -3,6 +3,7 @@ import shutil
 import tempfile
 import time
 import uuid
+import pytest
 from pathlib import Path
 from unittest import skipIf
 import boto3
@@ -49,6 +50,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
         time.sleep(CFN_SLEEP)
         super().setUp()
 
+    @pytest.mark.flaky(reruns=3)
     def test_delete_command_no_stack_deployed(self):
 
         stack_name = self._method_to_stack_name(self.id())
@@ -80,6 +82,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             "aws-stepfunctions-statemachine.yaml",
         ]
     )
+    @pytest.mark.flaky(reruns=3)
     def test_delete_no_prompts_with_s3_prefix_present_zip(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
@@ -116,6 +119,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             "aws-serverless-function-image.yaml",
         ]
     )
+    @pytest.mark.flaky(reruns=3)
     def test_delete_no_prompts_with_s3_prefix_present_image(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
@@ -152,6 +156,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             "aws-serverless-function.yaml",
         ]
     )
+    @pytest.mark.flaky(reruns=3)
     def test_delete_guided_config_file_present(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
@@ -187,6 +192,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             "aws-serverless-function.yaml",
         ]
     )
+    @pytest.mark.flaky(reruns=3)
     def test_delete_no_config_file_zip(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
@@ -213,6 +219,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             "aws-serverless-function.yaml",
         ]
     )
+    @pytest.mark.flaky(reruns=3)
     def test_delete_no_prompts_no_s3_prefix_zip(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
@@ -251,6 +258,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             "aws-serverless-function-image.yaml",
         ]
     )
+    @pytest.mark.flaky(reruns=3)
     def test_delete_no_prompts_no_s3_prefix_image(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
@@ -289,6 +297,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
     @parameterized.expand(
         [os.path.join("deep-nested", "template.yaml"), os.path.join("deep-nested-image", "template.yaml")]
     )
+    @pytest.mark.flaky(reruns=3)
     def test_delete_nested_stacks(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
@@ -325,6 +334,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
         except ClientError as ex:
             self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
 
+    @pytest.mark.flaky(reruns=3)
     def test_delete_stack_termination_protection_enabled(self):
         template_str = """
         AWSTemplateFormatVersion: '2010-09-09'
@@ -363,12 +373,14 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
         except ClientError as ex:
             self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
 
+    @pytest.mark.flaky(reruns=3)
     def test_no_prompts_no_stack_name(self):
 
         delete_command_list = self.get_delete_command_list(no_prompts=True)
         delete_process_execute = run_command(delete_command_list)
         self.assertEqual(delete_process_execute.process.returncode, 2)
 
+    @pytest.mark.flaky(reruns=3)
     def test_no_prompts_no_region(self):
         stack_name = self._method_to_stack_name(self.id())
 
@@ -381,6 +393,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             "aws-serverless-function.yaml",
         ]
     )
+    @pytest.mark.flaky(reruns=3)
     def test_delete_guided_no_stack_name_no_region(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
@@ -417,6 +430,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             "aws-ecr-repository.yaml",
         ]
     )
+    @pytest.mark.flaky(reruns=3)
     def test_delete_guided_ecr_repository_present(self, template_file):
         template_path = self.delete_test_data_path.joinpath(template_file)
         stack_name = self._method_to_stack_name(self.id())
@@ -452,6 +466,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             "aws-serverless-function-image.yaml",
         ]
     )
+    @pytest.mark.flaky(reruns=3)
     def test_delete_guided_no_s3_prefix_image(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
@@ -492,6 +507,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             "aws-serverless-function-retain.yaml",
         ]
     )
+    @pytest.mark.flaky(reruns=3)
     def test_delete_guided_retain_s3_artifact(self, template_file):
         template_path = self.delete_test_data_path.joinpath(template_file)
         stack_name = self._method_to_stack_name(self.id())
