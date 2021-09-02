@@ -506,7 +506,6 @@ class LocalApigwService(BaseLocalService):
         :return: Tuple(int, dict, str, bool)
         """
         # pylint: disable-msg=too-many-statements
-        # pylint: disable=too-many-branches
         try:
             json_output = json.loads(lambda_output)
         except ValueError as ex:
