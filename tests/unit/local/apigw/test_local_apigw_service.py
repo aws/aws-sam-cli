@@ -1122,7 +1122,7 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
             lambda_output, binary_types=[], flask_request=Mock()
         )
 
-        self.assertEqual(headers["Set-Cookie"], "cookie1=test1;cookie2=test2")
+        self.assertEqual(headers.getlist("Set-Cookie"), ["cookie1=test1", "cookie2=test2"])
 
     def test_invalid_cookies_in_payload_format_version_2(self):
         lambda_output = (
@@ -1146,7 +1146,7 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
             lambda_output, binary_types=[], flask_request=Mock()
         )
 
-        self.assertEqual(headers["Set-Cookie"], "cookie1=test1;cookie2=test2;cookie3=test3")
+        self.assertEqual(headers.getlist("Set-Cookie"), ["cookie1=test1", "cookie2=test2", "cookie3=test3"])
 
     def test_extra_values_skipped(self):
         lambda_output = (

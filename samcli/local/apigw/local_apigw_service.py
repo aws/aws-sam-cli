@@ -506,6 +506,7 @@ class LocalApigwService(BaseLocalService):
         :return: Tuple(int, dict, str, bool)
         """
         # pylint: disable-msg=too-many-statements
+        # pylint: disable=too-many-branches
         try:
             json_output = json.loads(lambda_output)
         except ValueError as ex:
@@ -529,11 +530,14 @@ class LocalApigwService(BaseLocalService):
         # cookies is a new field in payload format version 2.0 (a list)
         # https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html
         # we need to move cookies to Set-Cookie headers.
-        if isinstance(json_output.get("cookies"), list):
-            # add all cookies to Set-Cookie header
-            headers["Set-Cookie"] = (
-                ";".join([cookie for cookie in [headers.get("Set-Cookie")] + json_output.get("cookies") if cookie])
-            ).strip()
+        # each cookie becomes a set-cookie header
+        # MDN link: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie
+        cookies = json_output.get("cookies")
+
+        # cookies needs to be a list, otherwise the format is wrong and we can skip it
+        if isinstance(cookies, list):
+            for cookie in cookies:
+                headers.add("Set-Cookie", cookie)
 
         is_base_64_encoded = json_output.get("isBase64Encoded") or False
 
