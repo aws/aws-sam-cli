@@ -13,6 +13,7 @@ from urllib.parse import unquote, urlparse
 import jmespath
 
 from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.lib.iac.constants import PARAMETER_OVERRIDES, GLOBAL_PARAMETER_OVERRIDES
 from samcli.lib.iac.plugins_interfaces import (
     Asset,
     DictSection,
@@ -25,6 +26,7 @@ from samcli.lib.iac.plugins_interfaces import (
     Stack,
     LookupPath
 )
+from samcli.lib.iac.cfn.helpers import get_resolved_cfn_template
 from samcli.commands._utils.resources import (
     METADATA_WITH_LOCAL_PATHS,
     RESOURCES_WITH_IMAGE_COMPONENT,
@@ -66,9 +68,13 @@ class CfnIacImplementation(IaCPluginInterface):
         super().__init__(context)
 
     def read_project(self, lookup_paths: List[LookupPath]) -> SamCliProject:
-        stacks = [self._build_stack(self._template_file)]
+        stack = self._build_stack(self._template_file)
+        options = self._context.command_options_map
+        resolved_stack = get_resolved_cfn_template(
+            stack, options.get(PARAMETER_OVERRIDES), options.get(GLOBAL_PARAMETER_OVERRIDES)
+        )
 
-        return SamCliProject(stacks)
+        return SamCliProject([resolved_stack])
 
     def write_project(self, project: SamCliProject, build_dir: str) -> bool:
         # TODO
