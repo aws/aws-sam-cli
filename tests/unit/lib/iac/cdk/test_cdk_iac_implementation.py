@@ -265,7 +265,6 @@ class TestCdkPlugin(TestCase):
         ca_stack_mock.template = {
             "Parameters": {
                 "CodeUri": {"Type": "String", "Default": "/path/to/code"},
-                "Endpoint": {"Type": "String", "Default": "https://some-domain/endpoint"},
             },
             "Resources": {
                 "GetHtmlApi": {
