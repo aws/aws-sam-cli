@@ -30,7 +30,6 @@ from samcli.lib.iac.cdk.plugin import (
     RESOURCE_EXTRA_DETAILS_ORIGINAL_BODY_KEY,
     STACK_EXTRA_DETAILS_TEMPLATE_FILENAME_KEY,
 )
-from samcli.lib.iac.cfn.helpers import get_resolved_cfn_template
 from samcli.lib.iac.constants import PARAMETER_OVERRIDES, GLOBAL_PARAMETER_OVERRIDES
 from samcli.lib.iac.plugins_interfaces import (
     IaCPluginInterface,
@@ -47,6 +46,8 @@ from samcli.lib.iac.plugins_interfaces import (
     Parameter,
     LookupPath,
 )
+from samcli.lib.providers.sam_base_provider import SamBaseProvider
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.samlib.resource_metadata_normalizer import (
     ASSET_PATH_METADATA_KEY,
     ASSET_PROPERTY_METADATA_KEY,
@@ -182,8 +183,12 @@ class CdkIacImplementation(IaCPluginInterface):
         }
         sections = {}
         options_map = self._context.command_options_map
-        template = get_resolved_cfn_template(
-            ca_stack.template, options_map.get(PARAMETER_OVERRIDES), options_map.get(GLOBAL_PARAMETER_OVERRIDES)
+        template = SamBaseProvider.get_resolved_template_dict(
+            ca_stack.template,
+            SamLocalStackProvider.merge_parameter_overrides(
+                options_map.get(PARAMETER_OVERRIDES), options_map.get(GLOBAL_PARAMETER_OVERRIDES)
+            ),
+            normalize_resource_metadata=False,
         )
         for section_key, section_dict in template.items():
             if section_key == "Resources":
