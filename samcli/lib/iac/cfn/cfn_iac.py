@@ -86,6 +86,7 @@ class CfnIacImplementation(IaCPluginInterface):
 
     # pylint: disable=too-many-branches
     def _build_stack(self, path: str, is_nested: bool = False, name: Optional[str] = None) -> Stack:
+        asset: Asset
         assets: List[Asset] = []
 
         if os.path.islink(path):
@@ -106,7 +107,7 @@ class CfnIacImplementation(IaCPluginInterface):
             properties = resource.get("Properties", {})
             package_type = properties.get("PackageType", ZIP)
 
-            resource_assets = []
+            resource_assets: List[Asset] = []
 
             if resource_type in NESTED_STACKS_RESOURCES:
                 nested_stack = self._extract_nested_stack(path, resource_id, properties, resource_type)
@@ -138,7 +139,7 @@ class CfnIacImplementation(IaCPluginInterface):
                 continue
             metadata_type = metadata.item_id
             metadata_body = metadata.body
-            metadata_assets = []
+            metadata_assets: List[Asset] = []
             if metadata_type in METADATA_WITH_LOCAL_PATHS:
                 for path_prop_name in METADATA_WITH_LOCAL_PATHS[metadata_type]:
                     asset_path = jmespath.search(path_prop_name, metadata_body)
