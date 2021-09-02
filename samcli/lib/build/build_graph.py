@@ -4,6 +4,7 @@ Holds classes and utility methods related to build graph
 
 import copy
 import logging
+import threading
 from pathlib import Path
 from typing import Sequence, Tuple, List, Any, Optional, Dict, cast
 from uuid import uuid4
@@ -152,6 +153,9 @@ class BuildGraph:
     Contains list of build definitions, with ability to read and write them into build.toml file
     """
 
+    # private lock for build.toml reads and writes
+    __toml_lock = threading.Lock()
+
     # global table build definitions key
     FUNCTION_BUILD_DEFINITIONS = "function_build_definitions"
     LAYER_BUILD_DEFINITIONS = "layer_build_definitions"
@@ -161,7 +165,7 @@ class BuildGraph:
         self._filepath = Path(build_dir).parent.joinpath(DEFAULT_BUILD_GRAPH_FILE_NAME)
         self._function_build_definitions: List["FunctionBuildDefinition"] = []
         self._layer_build_definitions: List["LayerBuildDefinition"] = []
-        self._read()
+        self._atomic_read()
 
     def get_function_build_definitions(self) -> Tuple["FunctionBuildDefinition", ...]:
         return tuple(self._function_build_definitions)
@@ -253,23 +257,25 @@ class BuildGraph:
         ]
         self._layer_build_definitions[:] = [bd for bd in self._layer_build_definitions if bd.layer]
         if persist:
-            self._write()
+            self._atomic_write()
 
     def update_definition_md5(self) -> None:
         """
         Updates the build.toml file with the newest source_md5 values of the partial build's definitions
 
-        This operation needs to be atomic
+        This operation is atomic, that no other thread accesses build.toml
+        during the process of reading and modifying the md5 value
         """
-        stored_definitions = copy.deepcopy(self._function_build_definitions)
-        stored_layers = copy.deepcopy(self._layer_build_definitions)
-        self._read()
+        with BuildGraph.__toml_lock:
+            stored_definitions = copy.deepcopy(self._function_build_definitions)
+            stored_layers = copy.deepcopy(self._layer_build_definitions)
+            self._read()
 
-        function_content = BuildGraph._compare_md5_changes(stored_definitions, self._function_build_definitions)
-        layer_content = BuildGraph._compare_md5_changes(stored_layers, self._layer_build_definitions)
+            function_content = BuildGraph._compare_md5_changes(stored_definitions, self._function_build_definitions)
+            layer_content = BuildGraph._compare_md5_changes(stored_layers, self._layer_build_definitions)
 
-        if function_content or layer_content:
-            self._write_source_md5(function_content, layer_content)
+            if function_content or layer_content:
+                self._write_source_md5(function_content, layer_content)
 
     @staticmethod
     def _compare_md5_changes(
@@ -348,6 +354,15 @@ class BuildGraph:
             )
             self._layer_build_definitions.append(layer_build_definition)
 
+    def _atomic_read(self) -> None:
+        """
+        Performs the _read() method with a global lock acquired
+        It makes sure no other thread accesses build.toml when a read is happening
+        """
+
+        with BuildGraph.__toml_lock:
+            self._read()
+
     def _write(self) -> None:
         """
         Writes build definition details into build.toml file, which would be used by the next build.
@@ -377,6 +392,15 @@ class BuildGraph:
             open(self._filepath, "a+").close()
 
         self._filepath.write_text(tomlkit.dumps(document))
+
+    def _atomic_write(self) -> None:
+        """
+        Performs the _write() method with a global lock acquired
+        It makes sure no other thread accesses build.toml when a write is happening
+        """
+
+        with BuildGraph.__toml_lock:
+            self._write()
 
 
 class AbstractBuildDefinition:
