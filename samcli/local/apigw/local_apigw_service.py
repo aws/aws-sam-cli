@@ -533,9 +533,7 @@ class LocalApigwService(BaseLocalService):
         if isinstance(json_output.get("cookies"), list):
             # add all cookies to Set-Cookie header
             headers["Set-Cookie"] = (
-                ";".join([
-                    cookie for cookie in [headers.get("Set-Cookie")] + json_output.get("cookies") if cookie
-                ])
+                ";".join([cookie for cookie in [headers.get("Set-Cookie")] + json_output.get("cookies") if cookie])
             ).strip()
 
         is_base_64_encoded = json_output.get("isBase64Encoded") or False
