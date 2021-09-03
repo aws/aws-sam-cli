@@ -17,7 +17,7 @@ from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
 from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition, BuildGraph
 from samcli.lib.build.build_strategy import (
     DefaultBuildStrategy,
-    CachedBuildStrategy,
+    CachedOrIncrementalBuildStrategyWrapper,
     ParallelBuildStrategy,
     BuildStrategy,
 )
@@ -152,24 +152,26 @@ class ApplicationBuilder:
             if self._cached:
                 build_strategy = ParallelBuildStrategy(
                     build_graph,
-                    CachedBuildStrategy(
+                    CachedOrIncrementalBuildStrategyWrapper(
                         build_graph,
                         build_strategy,
                         self._base_dir,
                         self._build_dir,
                         self._cache_dir,
+                        self._manifest_path_override,
                         self._is_building_specific_resource,
                     ),
                 )
             else:
                 build_strategy = ParallelBuildStrategy(build_graph, build_strategy)
         elif self._cached:
-            build_strategy = CachedBuildStrategy(
+            build_strategy = CachedOrIncrementalBuildStrategyWrapper(
                 build_graph,
                 build_strategy,
                 self._base_dir,
                 self._build_dir,
                 self._cache_dir,
+                self._manifest_path_override,
                 self._is_building_specific_resource,
             )
 
@@ -393,6 +395,8 @@ class ApplicationBuilder:
         compatible_runtimes: List[str],
         artifact_dir: str,
         container_env_vars: Optional[Dict] = None,
+        dependencies_dir: Optional[str] = None,
+        download_dependencies: bool = True,
     ) -> str:
         """
         Given the layer information, this method will build the Lambda layer. Depending on the configuration
@@ -402,22 +406,23 @@ class ApplicationBuilder:
         ----------
         layer_name : str
             Name or LogicalId of the function
-
         codeuri : str
             Path to where the code lives
-
         specified_workflow : str
             The specified workflow
-
         compatible_runtimes : List[str]
             List of runtimes the layer build is compatible with
-
         artifact_dir : str
             Path to where layer will be build into.
             A subfolder will be created in this directory depending on the specified workflow.
-
         container_env_vars : Optional[Dict]
             An optional dictionary of environment variables to pass to the container.
+        dependencies_dir: Optional[str]
+            An optional string parameter which will be used in lambda builders for downloading dependencies into
+            separate folder
+        download_dependencies: bool
+            An optional boolean parameter to inform lambda builders whether download dependencies or use previously
+            downloaded ones. Default value is True.
 
         Returns
         -------
@@ -456,7 +461,15 @@ class ApplicationBuilder:
                 )
             else:
                 self._build_function_in_process(
-                    config, code_dir, artifact_subdir, scratch_dir, manifest_path, build_runtime, options
+                    config,
+                    code_dir,
+                    artifact_subdir,
+                    scratch_dir,
+                    manifest_path,
+                    build_runtime,
+                    options,
+                    dependencies_dir,
+                    download_dependencies,
                 )
 
             # Not including subfolder in return so that we copy subfolder, instead of copying artifacts inside it.
@@ -472,6 +485,8 @@ class ApplicationBuilder:
         artifact_dir: str,
         metadata: Optional[Dict] = None,
         container_env_vars: Optional[Dict] = None,
+        dependencies_dir: Optional[str] = None,
+        download_dependencies: bool = True,
     ) -> str:
         """
         Given the function information, this method will build the Lambda function. Depending on the configuration
@@ -495,6 +510,12 @@ class ApplicationBuilder:
             AWS Lambda function metadata
         container_env_vars : Optional[Dict]
             An optional dictionary of environment variables to pass to the container.
+        dependencies_dir: Optional[str]
+            An optional string parameter which will be used in lambda builders for downloading dependencies into
+            separate folder
+        download_dependencies: bool
+            An optional boolean parameter to inform lambda builders whether download dependencies or use previously
+            downloaded ones. Default value is True.
 
         Returns
         -------
@@ -546,7 +567,15 @@ class ApplicationBuilder:
                     )
 
                 return self._build_function_in_process(
-                    config, code_dir, artifact_dir, scratch_dir, manifest_path, runtime, options
+                    config,
+                    code_dir,
+                    artifact_dir,
+                    scratch_dir,
+                    manifest_path,
+                    runtime,
+                    options,
+                    dependencies_dir,
+                    download_dependencies,
                 )
 
         # pylint: disable=fixme
@@ -585,6 +614,8 @@ class ApplicationBuilder:
         manifest_path: str,
         runtime: str,
         options: Optional[Dict],
+        dependencies_dir: Optional[str],
+        download_dependencies: bool,
     ) -> str:
 
         builder = LambdaBuilder(
@@ -605,6 +636,8 @@ class ApplicationBuilder:
                 executable_search_paths=config.executable_search_paths,
                 mode=self._mode,
                 options=options,
+                dependencies_dir=dependencies_dir,
+                download_dependencies=download_dependencies
             )
         except LambdaBuilderError as ex:
             raise BuildError(wrapped_from=ex.__class__.__name__, msg=str(ex)) from ex

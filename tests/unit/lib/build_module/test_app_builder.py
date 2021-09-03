@@ -75,7 +75,7 @@ class TestApplicationBuilder_build(TestCase):
         build_layer_mock = Mock()
 
         def build_layer_return(
-            layer_name, layer_codeuri, layer_build_method, layer_compatible_runtimes, artifact_dir, layer_env_vars
+            layer_name, layer_codeuri, layer_build_method, layer_compatible_runtimes, artifact_dir, layer_env_vars, dependencies_dir, download_dependencies
         ):
             return f"{layer_name}_location"
 
@@ -116,6 +116,8 @@ class TestApplicationBuilder_build(TestCase):
                     ANY,
                     self.func1.metadata,
                     ANY,
+                    ANY,
+                    True
                 ),
                 call(
                     self.func2.name,
@@ -126,6 +128,8 @@ class TestApplicationBuilder_build(TestCase):
                     ANY,
                     self.func2.metadata,
                     ANY,
+                    ANY,
+                    True
                 ),
                 call(
                     self.imageFunc1.name,
@@ -136,6 +140,8 @@ class TestApplicationBuilder_build(TestCase):
                     ANY,
                     self.imageFunc1.metadata,
                     ANY,
+                    ANY,
+                    True
                 ),
             ],
             any_order=False,
@@ -150,6 +156,8 @@ class TestApplicationBuilder_build(TestCase):
                     self.layer1.compatible_runtimes,
                     ANY,
                     ANY,
+                    ANY,
+                    True
                 ),
                 call(
                     self.layer2.name,
@@ -158,6 +166,8 @@ class TestApplicationBuilder_build(TestCase):
                     self.layer2.compatible_runtimes,
                     ANY,
                     ANY,
+                    ANY,
+                    True
                 ),
             ]
         )
@@ -165,10 +175,10 @@ class TestApplicationBuilder_build(TestCase):
     @patch("samcli.lib.build.build_graph.BuildGraph._write")
     def test_should_use_function_or_layer_get_build_dir_to_determine_artifact_dir(self, persist_mock):
         def get_func_call_with_artifact_dir(artifact_dir):
-            return call(ANY, ANY, ANY, ANY, ANY, artifact_dir, ANY, ANY)
+            return call(ANY, ANY, ANY, ANY, ANY, artifact_dir, ANY, ANY, ANY, True)
 
         def get_layer_call_with_artifact_dir(artifact_dir):
-            return call(ANY, ANY, ANY, ANY, artifact_dir, ANY)
+            return call(ANY, ANY, ANY, ANY, artifact_dir, ANY, ANY, True)
 
         build_function_mock = Mock()
         build_layer_mock = Mock()
@@ -262,6 +272,8 @@ class TestApplicationBuilder_build(TestCase):
                     ANY,
                     function1_1.metadata,
                     ANY,
+                    ANY,
+                    True
                 ),
                 call(
                     function2.name,
@@ -272,6 +284,8 @@ class TestApplicationBuilder_build(TestCase):
                     ANY,
                     function2.metadata,
                     ANY,
+                    ANY,
+                    True
                 ),
             ],
             any_order=True,
@@ -293,7 +307,7 @@ class TestApplicationBuilder_build(TestCase):
         mock_default_build_strategy.build.assert_called_once()
         self.assertEqual(result, mock_default_build_strategy.build())
 
-    @patch("samcli.lib.build.app_builder.CachedBuildStrategy")
+    @patch("samcli.lib.build.app_builder.CachedOrIncrementalBuildStrategyWrapper")
     def test_cached_run_should_pick_cached_strategy(self, mock_cached_build_strategy_class):
         mock_cached_build_strategy = Mock()
         mock_cached_build_strategy_class.return_value = mock_cached_build_strategy
@@ -326,7 +340,7 @@ class TestApplicationBuilder_build(TestCase):
         self.assertEqual(result, mock_parallel_build_strategy.build())
 
     @patch("samcli.lib.build.app_builder.ParallelBuildStrategy")
-    @patch("samcli.lib.build.app_builder.CachedBuildStrategy")
+    @patch("samcli.lib.build.app_builder.CachedOrIncrementalBuildStrategyWrapper")
     def test_parallel_and_cached_run_should_pick_parallel_with_cached_strategy(
         self, mock_cached_build_strategy_class, mock_parallel_build_strategy_class
     ):
@@ -391,6 +405,8 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             PathValidator("manifest_name"),
             "python3.8",
             None,
+            None,
+            True
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -880,7 +896,7 @@ class TestApplicationBuilder_build_function(TestCase):
         self.builder._build_function(function_name, codeuri, ZIP, runtime, handler, artifacts_dir)
 
         self.builder._build_function_in_process.assert_called_with(
-            config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, None
+            config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, None, None, True
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -913,7 +929,7 @@ class TestApplicationBuilder_build_function(TestCase):
         )
 
         self.builder._build_function_in_process.assert_called_with(
-            config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, None
+            config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, None, None, True
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -1056,7 +1072,7 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
         builder_instance_mock = lambda_builder_mock.return_value = Mock()
 
         result = self.builder._build_function_in_process(
-            config_mock, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime", None
+            config_mock, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime", None, None, True
         )
         self.assertEqual(result, "artifacts_dir")
 
@@ -1075,6 +1091,8 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
             executable_search_paths=config_mock.executable_search_paths,
             mode="mode",
             options=None,
+            dependencies_dir=None,
+            download_dependencies=True,
         )
 
     @patch("samcli.lib.build.app_builder.LambdaBuilder")
@@ -1086,7 +1104,7 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
 
         with self.assertRaises(BuildError):
             self.builder._build_function_in_process(
-                config_mock, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime", None
+                config_mock, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime", None, None, True
             )
 
 

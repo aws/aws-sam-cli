@@ -4,9 +4,10 @@ Holds classes and utility methods related to build graph
 
 import copy
 import logging
+import os
 import threading
 from pathlib import Path
-from typing import Sequence, Tuple, List, Any, Optional, Dict, cast
+from typing import Sequence, Tuple, List, Any, Optional, Dict, cast, NamedTuple
 from uuid import uuid4
 
 import tomlkit
@@ -19,6 +20,8 @@ LOG = logging.getLogger(__name__)
 
 DEFAULT_BUILD_GRAPH_FILE_NAME = "build.toml"
 
+DEFAULT_DEPENDENCIES_DIR = os.path.join(".aws-sam", "deps")
+
 # filed names for the toml table
 PACKAGETYPE_FIELD = "packagetype"
 CODE_URI_FIELD = "codeuri"
@@ -26,6 +29,7 @@ RUNTIME_FIELD = "runtime"
 METADATA_FIELD = "metadata"
 FUNCTIONS_FIELD = "functions"
 SOURCE_MD5_FIELD = "source_md5"
+MANIFEST_MD5_FIELD = "manifest_md5"
 ENV_VARS_FIELD = "env_vars"
 LAYER_NAME_FIELD = "layer_name"
 BUILD_METHOD_FIELD = "build_method"
@@ -53,7 +57,9 @@ def _function_build_definition_to_toml_table(
     if function_build_definition.packagetype == ZIP:
         toml_table[CODE_URI_FIELD] = function_build_definition.codeuri
         toml_table[RUNTIME_FIELD] = function_build_definition.runtime
-        toml_table[SOURCE_MD5_FIELD] = function_build_definition.source_md5
+        if function_build_definition.source_md5:
+            toml_table[SOURCE_MD5_FIELD] = function_build_definition.source_md5
+        toml_table[MANIFEST_MD5_FIELD] = function_build_definition.manifest_md5
     toml_table[PACKAGETYPE_FIELD] = function_build_definition.packagetype
     toml_table[FUNCTIONS_FIELD] = [f.full_path for f in function_build_definition.functions]
 
@@ -87,6 +93,7 @@ def _toml_table_to_function_build_definition(uuid: str, toml_table: tomlkit.api.
         toml_table.get(PACKAGETYPE_FIELD, ZIP),
         dict(toml_table.get(METADATA_FIELD, {})),
         toml_table.get(SOURCE_MD5_FIELD, ""),
+        toml_table.get(MANIFEST_MD5_FIELD, ""),
         dict(toml_table.get(ENV_VARS_FIELD, {})),
     )
     function_build_definition.uuid = uuid
@@ -112,7 +119,9 @@ def _layer_build_definition_to_toml_table(layer_build_definition: "LayerBuildDef
     toml_table[CODE_URI_FIELD] = layer_build_definition.codeuri
     toml_table[BUILD_METHOD_FIELD] = layer_build_definition.build_method
     toml_table[COMPATIBLE_RUNTIMES_FIELD] = layer_build_definition.compatible_runtimes
-    toml_table[SOURCE_MD5_FIELD] = layer_build_definition.source_md5
+    if layer_build_definition.source_md5:
+        toml_table[SOURCE_MD5_FIELD] = layer_build_definition.source_md5
+    toml_table[MANIFEST_MD5_FIELD] = layer_build_definition.manifest_md5
     if layer_build_definition.env_vars:
         toml_table[ENV_VARS_FIELD] = layer_build_definition.env_vars
     toml_table[LAYER_FIELD] = layer_build_definition.layer.full_path
@@ -142,10 +151,19 @@ def _toml_table_to_layer_build_definition(uuid: str, toml_table: tomlkit.api.Tab
         toml_table.get(BUILD_METHOD_FIELD),
         toml_table.get(COMPATIBLE_RUNTIMES_FIELD),
         toml_table.get(SOURCE_MD5_FIELD, ""),
+        toml_table.get(MANIFEST_MD5_FIELD, ""),
         dict(toml_table.get(ENV_VARS_FIELD, {})),
     )
     layer_build_definition.uuid = uuid
     return layer_build_definition
+
+
+class BuildHashingInformation(NamedTuple):
+    """
+    Holds hashing information for the source folder and the manifest file
+    """
+    source_md5: str
+    manifest_md5: str
 
 
 class BuildGraph:
@@ -280,7 +298,7 @@ class BuildGraph:
     @staticmethod
     def _compare_md5_changes(
         input_list: Sequence["AbstractBuildDefinition"], compared_list: Sequence["AbstractBuildDefinition"]
-    ) -> Dict[str, str]:
+    ) -> Dict[str, BuildHashingInformation]:
         """
         Helper to compare the function and layer definition changes in md5 value
 
@@ -292,12 +310,18 @@ class BuildGraph:
                 if stored_def == compared_def:
                     old_md5 = compared_def.source_md5
                     updated_md5 = stored_def.source_md5
+                    old_manifest_md5 = compared_def.manifest_md5
+                    updated_manifest_md5 = stored_def.manifest_md5
                     uuid = stored_def.uuid
-                    if not old_md5 == updated_md5:
-                        content[uuid] = updated_md5
+                    if old_md5 != updated_md5 or old_manifest_md5 != updated_manifest_md5:
+                        content[uuid] = BuildHashingInformation(updated_md5, updated_manifest_md5)
         return content
 
-    def _write_source_md5(self, function_content: Dict[str, str], layer_content: Dict[str, str]) -> None:
+    def _write_source_md5(
+            self,
+            function_content: Dict[str, BuildHashingInformation],
+            layer_content: Dict[str, BuildHashingInformation]
+    ) -> None:
         """
         Helper to write source_md5 values to build.toml file
         """
@@ -311,15 +335,19 @@ class BuildGraph:
         # in tomlkit 0.7.2, the types are broken (tomlkit#128, #130, #134) so here we convert it to Dict.
         document = cast(Dict, tomlkit.loads(txt))
 
-        for function_uuid, function_md5 in function_content.items():
+        for function_uuid, hashing_info in function_content.items():
             if function_uuid in document.get(BuildGraph.FUNCTION_BUILD_DEFINITIONS, {}):
-                document[BuildGraph.FUNCTION_BUILD_DEFINITIONS][function_uuid][SOURCE_MD5_FIELD] = function_md5
-                LOG.info("Updated source_md5 field in build.toml for function with UUID %s", function_uuid)
+                function_build_definition = document[BuildGraph.FUNCTION_BUILD_DEFINITIONS][function_uuid]
+                function_build_definition[SOURCE_MD5_FIELD] = hashing_info.source_md5
+                function_build_definition[MANIFEST_MD5_FIELD] = hashing_info.manifest_md5
+                LOG.info("Updated source_md5 and manifest_md5 field in build.toml for function with UUID %s", function_uuid)
 
-        for layer_uuid, layer_md5 in layer_content.items():
+        for layer_uuid, hashing_info in layer_content.items():
             if layer_uuid in document.get(BuildGraph.LAYER_BUILD_DEFINITIONS, {}):
-                document[BuildGraph.LAYER_BUILD_DEFINITIONS][layer_uuid][SOURCE_MD5_FIELD] = layer_md5
-                LOG.info("Updated source_md5 field in build.toml for layer with UUID %s", layer_uuid)
+                layer_build_definition = document[BuildGraph.LAYER_BUILD_DEFINITIONS][layer_uuid]
+                layer_build_definition[SOURCE_MD5_FIELD] = hashing_info.source_md5
+                layer_build_definition[MANIFEST_MD5_FIELD] = hashing_info.manifest_md5
+                LOG.info("Updated source_md5 and manifest_md5 field in build.toml for layer with UUID %s", layer_uuid)
 
         self._filepath.write_text(tomlkit.dumps(document))  # type: ignore
 
@@ -409,9 +437,16 @@ class AbstractBuildDefinition:
     Build definition holds information about each unique build
     """
 
-    def __init__(self, source_md5: str) -> None:
+    def __init__(self, source_md5: str, manifest_md5: str) -> None:
         self.uuid = str(uuid4())
         self.source_md5 = source_md5
+        self.manifest_md5 = manifest_md5
+        # following properties are used during build time and they don't serialize into build.toml file
+        self.download_dependencies: bool = True
+
+    @property
+    def dependencies_dir(self) -> str:
+        return str(os.path.join(DEFAULT_DEPENDENCIES_DIR, self.uuid))
 
 
 class LayerBuildDefinition(AbstractBuildDefinition):
@@ -426,9 +461,10 @@ class LayerBuildDefinition(AbstractBuildDefinition):
         build_method: Optional[str],
         compatible_runtimes: Optional[List[str]],
         source_md5: str = "",
+        manifest_md5: str = "",
         env_vars: Optional[Dict] = None,
     ):
-        super().__init__(source_md5)
+        super().__init__(source_md5, manifest_md5)
         self.name = name
         self.codeuri = codeuri
         self.build_method = build_method
@@ -482,9 +518,10 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         packagetype: str,
         metadata: Optional[Dict],
         source_md5: str = "",
+        manifest_md5: str = "",
         env_vars: Optional[Dict] = None,
     ) -> None:
-        super().__init__(source_md5)
+        super().__init__(source_md5, manifest_md5)
         self.runtime = runtime
         self.codeuri = codeuri
         self.packagetype = packagetype
