@@ -1631,6 +1631,7 @@ untitled6
                 extra_context=None,
             )
 
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
     def test_init_cli_generate_simple_hello_world_app(self):
         # WHEN the user follows interactive init prompts
         # 1: Hello World application
@@ -1650,10 +1651,10 @@ test-project
             self.assertTrue(expected_output_folder.exists)
             self.assertTrue(expected_output_folder.is_dir())
 
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
     def test_init_cli_generate_simple_java_hello_world_app(self):
         # WHEN the user follows interactive init prompts
         # 1: Hello World application
-        # 3: java
         # 2: Gradle
         # test-project: response to name
         user_input = """
@@ -1671,26 +1672,48 @@ test-project
             self.assertTrue(expected_output_folder.exists)
             self.assertTrue(expected_output_folder.is_dir())
 
-    def test_init_cli_generate_simple_java_hello_world_app_with_base_images(self):
-        # WHEN the user follows interactive init prompts
-        # 1: Hello World application
-        # 2: Maven
-        # test-project: response to name
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    @patch("samcli.commands.init.init_generator.generate_project")
+    @patch("samcli.commands.init.init_templates.InitTemplates.get_app_template_location")
+    @patch("samcli.commands.init.init_templates.InitTemplates.get_hello_world_image_template")
+    def test_init_cli_generate_simple_java_hello_world_app_with_base_images(
+        self, get_hello_world_image_template_mock, get_app_template_location_mock, generate_project_patch
+    ):
+        get_hello_world_image_template_mock.return_value = [
+            {
+                "directory": "java11-image/cookiecutter-aws-sam-hello-java-maven-lambda-image",
+                "displayName": "Hello World Lambda Image Example: Maven",
+                "dependencyManager": "maven",
+                "appTemplate": "hello-world-lambda-image",
+                "packageType": "Image",
+                "useCaseName": "Serverless API",
+            }
+        ]
+        get_app_template_location_mock.return_value = (
+            "tests/unit/commands/init/java11-image/cookiecutter-aws-sam-hello-java-maven-lambda-image.zip"
+        )
         user_input = """
 1
-3
 2
 test-project
             """
-        with tempfile.TemporaryDirectory() as temp:
-            runner = CliRunner()
-            result = runner.invoke(
-                init_cmd, ["--output-dir", temp, "--base-image", "amazon/java11-base"], input=user_input
-            )
-            self.assertFalse(result.exception)
-            expected_output_folder = Path(temp, "test-project")
-            self.assertTrue(expected_output_folder.exists)
-            self.assertTrue(expected_output_folder.is_dir())
+        args = ["--base-image", "amazon/java11-base"]
+        runner = CliRunner()
+        result = runner.invoke(init_cmd, args=args, input=user_input)
+
+        # THEN we should receive no errors
+        self.assertFalse(result.exception)
+
+        generate_project_patch.assert_called_once_with(
+            ANY,
+            IMAGE,
+            "java11",
+            "maven",
+            ".",
+            "test-project",
+            True,
+            ANY,
+        )
 
     def test_must_return_runtime_from_base_image_name(self):
         base_images = [
@@ -2062,3 +2085,41 @@ test-project
         runner = CliRunner()
         result = runner.invoke(init_cmd, ["--dependency-manager", "pip"], input=user_input)
         self.assertTrue(result.exception)
+
+    @patch("samcli.commands.init.init_templates.InitTemplates.init_options")
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    def test_must_get_hello_world_image_template(self, init_options_mock):
+        init_options_mock.return_value = [
+            {
+                "directory": "java11/cookiecutter-aws-sam-hello-java-maven-image",
+                "displayName": "Hello World Example 1: Maven",
+                "dependencyManager": "maven",
+                "appTemplate": "hello-world",
+                "packageType": "Image",
+                "useCaseName": "Serverless API",
+            },
+            {
+                "directory": "java11/cookiecutter-aws-sam-not-java-maven-image",
+                "displayName": "Not Hello Not World Example 1: Maven",
+                "dependencyManager": "maven",
+                "appTemplate": "hello-world",
+                "packageType": "Image",
+                "useCaseName": "Serverless API",
+            },
+        ]
+        init_template_object = InitTemplates()
+        template = init_template_object.get_hello_world_image_template(
+            package_type=ZIP, runtime="java11", base_image="amazon/java11-base", dependency_manager="maven"
+        )
+        expected_template = [
+            {
+                "directory": "java11/cookiecutter-aws-sam-hello-java-maven-image",
+                "displayName": "Hello World Example 1: Maven",
+                "dependencyManager": "maven",
+                "appTemplate": "hello-world",
+                "packageType": "Image",
+                "useCaseName": "Serverless API",
+            },
+        ]
+
+        self.assertEqual(template, expected_template)
