@@ -1,5 +1,5 @@
 import os
-from re import template
+from re import I, template
 import shutil
 import subprocess
 import tempfile
@@ -20,6 +20,7 @@ from samcli.commands.init.init_templates import (
     APP_TEMPLATES_REPO_URL,
     get_runtime,
     InvalidInitTemplateError,
+    get_template_value,
 )
 from samcli.lib.init import GenerateProjectFailedError
 from samcli.lib.utils import osutils
@@ -1670,6 +1671,27 @@ test-project
             self.assertTrue(expected_output_folder.exists)
             self.assertTrue(expected_output_folder.is_dir())
 
+    def test_init_cli_generate_simple_java_hello_world_app_with_base_images(self):
+        # WHEN the user follows interactive init prompts
+        # 1: Hello World application
+        # 2: Maven
+        # test-project: response to name
+        user_input = """
+1
+3
+2
+test-project
+            """
+        with tempfile.TemporaryDirectory() as temp:
+            runner = CliRunner()
+            result = runner.invoke(
+                init_cmd, ["--output-dir", temp, "--base-image", "amazon/java11-base"], input=user_input
+            )
+            self.assertFalse(result.exception)
+            expected_output_folder = Path(temp, "test-project")
+            self.assertTrue(expected_output_folder.exists)
+            self.assertTrue(expected_output_folder.is_dir())
+
     def test_must_return_runtime_from_base_image_name(self):
         base_images = [
             "amazon/dotnet5.0-base",
@@ -1838,3 +1860,205 @@ test-project
             "Lambda Runtime java8 and dependency manager pip do not have an available initialization template."
         )
         self.assertIn(expected_error_message, result.output)
+
+    @patch("samcli.commands.init.init_templates.InitTemplates.get_preprocessed_manifest")
+    @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    def test_init_cli_int_with_multiple_app_templates(
+        self, generate_project_patch, init_options_from_manifest_mock, get_preprocessed_manifest_mock
+    ):
+        init_options_from_manifest_mock.return_value = [
+            {
+                "directory": "java11/cookiecutter-aws-sam-hello1-java-maven",
+                "displayName": "Hello World Example 1: Maven",
+                "dependencyManager": "maven",
+                "appTemplate": "hello-world",
+                "packageType": "Zip",
+                "useCaseName": "Serverless API",
+            },
+            {
+                "directory": "java11/cookiecutter-aws-sam-hello2-java-maven",
+                "displayName": "Hello World Example 2: Maven",
+                "dependencyManager": "maven",
+                "appTemplate": "hello-world_x",
+                "packageType": "Zip",
+                "useCaseName": "Serverless API",
+            },
+        ]
+
+        get_preprocessed_manifest_mock.return_value = {
+            "Serverless API": {
+                "java11": {
+                    "Zip": [
+                        {
+                            "directory": "java11/cookiecutter-aws-sam-hello1-java-maven",
+                            "displayName": "Hello World Example 1: Maven",
+                            "dependencyManager": "maven",
+                            "appTemplate": "hello-world",
+                            "packageType": "Zip",
+                            "useCaseName": "Serverless API",
+                        },
+                        {
+                            "directory": "java11/cookiecutter-aws-sam-hello2-java-maven",
+                            "displayName": "Hello World Example 1: Maven",
+                            "dependencyManager": "maven",
+                            "appTemplate": "hello-world",
+                            "packageType": "Zip",
+                            "useCaseName": "Serverless API",
+                        },
+                    ]
+                }
+            },
+        }
+
+        # WHEN the user follows interactive init prompts
+
+        # 2: AWS Quick Start Templates
+        # 1: Serverless API - Use case
+        # Java11
+        # Package type - Image
+        # Hello World Lambda Image Example: Maven
+        # 1: Hello-world template
+        # test-project: response to name
+
+        user_input = """
+2
+1
+test-project
+            """
+        runner = CliRunner()
+        result = runner.invoke(init_cmd, input=user_input)
+        self.assertFalse(result.exception)
+        generate_project_patch.assert_called_once_with(
+            ANY,
+            ZIP,
+            "java11",
+            "maven",
+            ".",
+            "test-project",
+            True,
+            {"project_name": "test-project", "runtime": "java11"},
+        )
+
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    def test_init_cli_init_must_raise_for_unknown_property(self):
+        template = (
+            {
+                "directory": "java11/cookiecutter-aws-sam-hello1-java-maven",
+                "displayName": "Hello World Example 1: Maven",
+                "dependencyManager": "maven",
+                "appTemplate": "hello-world",
+                "packageType": "Zip",
+                "useCaseName": "Serverless API",
+            },
+        )
+
+        with self.assertRaises(InvalidInitTemplateError):
+            get_template_value("unknown_parameter", template)
+
+    @patch("samcli.commands.init.init_templates.InitTemplates.get_preprocessed_manifest")
+    @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    def test_init_cli_int_must_raise_for_unsupported_runtime(
+        self, init_options_from_manifest_mock, get_preprocessed_manifest_mock
+    ):
+        init_options_from_manifest_mock.return_value = [
+            {
+                "directory": "java11/cookiecutter-aws-sam-hello1-java-maven",
+                "displayName": "Hello World Example 1: Maven",
+                "dependencyManager": "maven",
+                "appTemplate": "hello-world",
+                "packageType": "Zip",
+                "useCaseName": "Serverless API",
+            },
+        ]
+
+        get_preprocessed_manifest_mock.return_value = {
+            "Serverless API": {
+                "java11": {
+                    "Zip": [
+                        {
+                            "directory": "java11/cookiecutter-aws-sam-hello1-java-maven",
+                            "displayName": "Hello World Example 1: Maven",
+                            "dependencyManager": "maven",
+                            "appTemplate": "hello-world",
+                            "packageType": "Zip",
+                            "useCaseName": "Serverless API",
+                        },
+                    ]
+                }
+            },
+        }
+
+        # WHEN the user follows interactive init prompts
+
+        # 2: AWS Quick Start Templates
+        # 1: Serverless API - Use case
+        # Java11
+        # Package type - Image
+        # Hello World Lambda Image Example: Maven
+        # 1: Hello-world template
+        # test-project: response to name
+
+        user_input = """
+2
+1
+test-project
+            """
+        runner = CliRunner()
+        result = runner.invoke(init_cmd, ["--runtime", "python3.7"], input=user_input)
+        self.assertTrue(result.exception)
+
+    @patch("samcli.commands.init.init_templates.InitTemplates.get_preprocessed_manifest")
+    @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    def test_init_cli_int_must_raise_for_unsupported_dependency(
+        self, init_options_from_manifest_mock, get_preprocessed_manifest_mock
+    ):
+        init_options_from_manifest_mock.return_value = [
+            {
+                "directory": "java11/cookiecutter-aws-sam-hello1-java-maven",
+                "displayName": "Hello World Example 1: Maven",
+                "dependencyManager": "maven",
+                "appTemplate": "hello-world",
+                "packageType": "Zip",
+                "useCaseName": "Serverless API",
+            },
+        ]
+
+        get_preprocessed_manifest_mock.return_value = {
+            "Serverless API": {
+                "java11": {
+                    "Zip": [
+                        {
+                            "directory": "java11/cookiecutter-aws-sam-hello1-java-maven",
+                            "displayName": "Hello World Example 1: Maven",
+                            "dependencyManager": "maven",
+                            "appTemplate": "hello-world",
+                            "packageType": "Zip",
+                            "useCaseName": "Serverless API",
+                        },
+                    ]
+                }
+            },
+        }
+
+        # WHEN the user follows interactive init prompts
+
+        # 2: AWS Quick Start Templates
+        # 1: Serverless API - Use case
+        # Java11
+        # Package type - Image
+        # Hello World Lambda Image Example: Maven
+        # 1: Hello-world template
+        # test-project: response to name
+
+        user_input = """
+2
+1
+test-project
+            """
+        runner = CliRunner()
+        result = runner.invoke(init_cmd, ["--dependency-manager", "pip"], input=user_input)
+        self.assertTrue(result.exception)

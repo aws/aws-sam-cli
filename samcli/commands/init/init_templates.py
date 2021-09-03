@@ -11,8 +11,6 @@ from pathlib import Path
 from typing import Dict
 
 
-import click
-
 from samcli.cli.main import global_cfg
 from samcli.commands.exceptions import UserException, AppTemplateUpdateException
 from samcli.lib.utils.git_repo import GitRepo, CloneRepoException, CloneRepoUnstableStateException
@@ -35,59 +33,6 @@ class InitTemplates:
     def __init__(self):
         self._git_repo: GitRepo = GitRepo(url=APP_TEMPLATES_REPO_URL)
         self.manifest_file_name = "manifest.json"
-
-    def prompt_for_location(self, package_type, runtime, base_image, dependency_manager):
-        """
-        Prompt for template location based on other information provided in previous steps.
-
-        Parameters
-        ----------
-        package_type : str
-            the package type, 'Zip' or 'Image', see samcli/lib/utils/packagetype.py
-        runtime : str
-            the runtime string
-        base_image : str
-            the base image string
-        dependency_manager : str
-            the dependency manager string
-
-        Returns
-        -------
-        location : str
-            The location of the template
-        app_template : str
-            The name of the template
-        """
-        options = self.init_options(package_type, runtime, base_image, dependency_manager)
-
-        if len(options) == 1:
-            template_md = options[0]
-        else:
-            choices = list(map(str, range(1, len(options) + 1)))
-            choice_num = 1
-            click.echo("\nAWS quick start application templates:")
-            for o in options:
-                if o.get("displayName") is not None:
-                    msg = "\t" + str(choice_num) + " - " + o.get("displayName")
-                    click.echo(msg)
-                else:
-                    msg = (
-                        "\t"
-                        + str(choice_num)
-                        + " - Default Template for runtime "
-                        + runtime
-                        + " with dependency manager "
-                        + dependency_manager
-                    )
-                    click.echo(msg)
-                choice_num = choice_num + 1
-            choice = click.prompt("Template selection", type=click.Choice(choices), show_choices=False)
-            template_md = options[int(choice) - 1]  # zero index
-        if template_md.get("init_location") is not None:
-            return (template_md["init_location"], template_md["appTemplate"])
-        if template_md.get("directory") is not None:
-            return os.path.join(self._git_repo.local_path, template_md["directory"]), template_md["appTemplate"]
-        raise InvalidInitTemplateError("Invalid template. This should not be possible, please raise an issue.")
 
     def location_from_app_template(self, package_type, runtime, base_image, dependency_manager, app_template):
         options = self.init_options(package_type, runtime, base_image, dependency_manager)
