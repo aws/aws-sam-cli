@@ -46,8 +46,8 @@ class CompanionStackManager:
         self._companion_stack = CompanionStack(stack_name)
         self._builder = CompanionStackBuilder(self._companion_stack)
         self._boto_config = Config(region_name=region if region else None)
-        self._update_stack_waiter_config = {"Delay": 5, "MaxAttempts": 240}
-        self._delete_stack_waiter_config = {"Delay": 5, "MaxAttempts": 120}
+        self._update_stack_waiter_config = {"Delay": 10, "MaxAttempts": 120}
+        self._delete_stack_waiter_config = {"Delay": 10, "MaxAttempts": 120}
         self._s3_bucket = s3_bucket
         self._s3_prefix = s3_prefix
         try:

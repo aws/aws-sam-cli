@@ -1112,6 +1112,42 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
         self.assertIn("Content-Type", headers)
         self.assertEqual(headers["Content-Type"], "text/xml")
 
+    def test_custom_cookies_in_payload_format_version_2(self):
+        lambda_output = (
+            '{"statusCode": 200, "cookies": ["cookie1=test1", "cookie2=test2"], "body": "{\\"message\\":\\"Hello from Lambda\\"}", '
+            '"isBase64Encoded": false}'
+        )
+
+        (_, headers, _) = LocalApigwService._parse_v2_payload_format_lambda_output(
+            lambda_output, binary_types=[], flask_request=Mock()
+        )
+
+        self.assertEqual(headers.getlist("Set-Cookie"), ["cookie1=test1", "cookie2=test2"])
+
+    def test_invalid_cookies_in_payload_format_version_2(self):
+        lambda_output = (
+            '{"statusCode": 200, "cookies": "cookies1=test1", "body": "{\\"message\\":\\"Hello from Lambda\\"}", '
+            '"isBase64Encoded": false}'
+        )
+
+        (_, headers, _) = LocalApigwService._parse_v2_payload_format_lambda_output(
+            lambda_output, binary_types=[], flask_request=Mock()
+        )
+
+        self.assertNotIn("Set-Cookie", headers)
+
+    def test_existed_cookies_in_payload_format_version_2(self):
+        lambda_output = (
+            '{"statusCode": 200, "headers":{"Set-Cookie": "cookie1=test1"}, "cookies": ["cookie2=test2", "cookie3=test3"], "body": "{\\"message\\":\\"Hello from Lambda\\"}", '
+            '"isBase64Encoded": false}'
+        )
+
+        (_, headers, _) = LocalApigwService._parse_v2_payload_format_lambda_output(
+            lambda_output, binary_types=[], flask_request=Mock()
+        )
+
+        self.assertEqual(headers.getlist("Set-Cookie"), ["cookie1=test1", "cookie2=test2", "cookie3=test3"])
+
     def test_extra_values_skipped(self):
         lambda_output = (
             '{"statusCode": 200, "headers": {}, "body": "{\\"message\\":\\"Hello from Lambda\\"}", '
