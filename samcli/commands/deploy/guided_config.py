@@ -111,4 +111,4 @@ class GuidedConfig:
 
     @staticmethod
     def quote_parameter_values(parameter_value: Any) -> str:
-        return '"{}"'.format(parameter_value)
+        return '"{}"'.format(parameter_value.replace('"', r'\"'))
