@@ -72,7 +72,7 @@ class CfnIacImplementation(IaCPluginInterface):
         stack = self._build_stack(self._template_file)
         options = self._context.command_options_map
         resolved_stack = SamBaseProvider.get_resolved_template_dict(
-            stack.template,
+            stack,
             SamLocalStackProvider.merge_parameter_overrides(
                 options.get(PARAMETER_OVERRIDES), options.get(GLOBAL_PARAMETER_OVERRIDES)
             ),
