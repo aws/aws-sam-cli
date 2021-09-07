@@ -24,9 +24,10 @@ from samcli.lib.iac.plugins_interfaces import (
     SamCliContext,
     SamCliProject,
     Stack,
-    LookupPath
+    LookupPath,
 )
-from samcli.lib.iac.cfn.helpers import get_resolved_cfn_template
+from samcli.lib.providers.sam_base_provider import SamBaseProvider
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.commands._utils.resources import (
     METADATA_WITH_LOCAL_PATHS,
     RESOURCES_WITH_IMAGE_COMPONENT,
@@ -70,8 +71,12 @@ class CfnIacImplementation(IaCPluginInterface):
     def read_project(self, lookup_paths: List[LookupPath]) -> SamCliProject:
         stack = self._build_stack(self._template_file)
         options = self._context.command_options_map
-        resolved_stack = get_resolved_cfn_template(
-            stack, options.get(PARAMETER_OVERRIDES), options.get(GLOBAL_PARAMETER_OVERRIDES)
+        resolved_stack = SamBaseProvider.get_resolved_template_dict(
+            stack.template,
+            SamLocalStackProvider.merge_parameter_overrides(
+                options.get(PARAMETER_OVERRIDES), options.get(GLOBAL_PARAMETER_OVERRIDES)
+            ),
+            normalize_resource_metadata=False,
         )
 
         return SamCliProject([resolved_stack])
