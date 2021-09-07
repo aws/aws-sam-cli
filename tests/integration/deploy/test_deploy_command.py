@@ -51,7 +51,6 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     def setUp(self):
         self.cfn_client = boto3.client("cloudformation")
         self.ecr_client = boto3.client("ecr")
-        self.s3_client = boto3.client("s3")
         self.sns_arn = os.environ.get("AWS_SNS")
         self.stacks = []
         time.sleep(CFN_SLEEP)
