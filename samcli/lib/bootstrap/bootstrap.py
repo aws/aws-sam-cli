@@ -81,7 +81,13 @@ def _get_stack_template():
                                 "Resource": {
                                     "Fn::Join": [
                                         "",
-                                        ["arn:", {"Ref": "AWS::Partition"}, ":s3:::", {"Ref": "SamCliSourceBucket"}, "/*"],
+                                        [
+                                            "arn:",
+                                            {"Ref": "AWS::Partition"},
+                                            ":s3:::",
+                                            {"Ref": "SamCliSourceBucket"},
+                                            "/*",
+                                        ],
                                     ]
                                 },
                                 "Principal": {"Service": "serverlessrepo.amazonaws.com"},
