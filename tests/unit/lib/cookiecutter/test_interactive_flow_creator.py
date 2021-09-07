@@ -7,7 +7,6 @@ from samcli.lib.cookiecutter.interactive_flow_creator import (
     QuestionsFailedParsingException,
 )
 from samcli.lib.cookiecutter.question import Question, Choice, Confirm
-from parameterized import parameterized
 
 
 class TestInteractiveFlowCreator(TestCase):
@@ -43,14 +42,6 @@ class TestInteractiveFlowCreator(TestCase):
         self.assertEqual(flow._questions["1st"].__dict__, expected_flow_questions["1st"].__dict__)
         self.assertEqual(flow._questions["2nd"].__dict__, expected_flow_questions["2nd"].__dict__)
         self.assertEqual(flow._questions["3rd"].__dict__, expected_flow_questions["3rd"].__dict__)
-
-    @parameterized.expand(
-        ["questions_missing_key.json", "questions_missing_question.json", "questions_missing_unknown_field.json"]
-    )
-    def test_create_flow_fails_with_non_compliant_json(self, filename):
-        with self.assertRaises(QuestionsFailedParsingException):
-            questions_path = os.path.join(os.path.dirname(__file__), filename)
-            InteractiveFlowCreator.create_flow(flow_definition_path=questions_path)
 
     def test_questions_definition_file_not_found_exception(self):
         with self.assertRaises(QuestionsNotFoundException):
