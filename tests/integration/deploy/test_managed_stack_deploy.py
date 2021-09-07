@@ -41,6 +41,10 @@ class TestManagedStackDeploy(PackageIntegBase, DeployIntegBase):
         self.sns_arn = os.environ.get("AWS_SNS")
         self.stacks = []
         time.sleep(CFN_SLEEP)
+
+        self._delete_managed_stack(self.cfn_client, self.s3_client)
+        self.assertFalse(self._does_stack_exist(self.cfn_client, SAM_CLI_STACK_NAME))
+
         super().setUp()
 
     def tearDown(self):
@@ -58,9 +62,6 @@ class TestManagedStackDeploy(PackageIntegBase, DeployIntegBase):
 
     @parameterized.expand(["aws-serverless-function.yaml"])
     def test_managed_stack_creation_resolve_s3(self, template_file):
-        self._delete_managed_stack(self.cfn_client, self.s3_client)
-        self.assertFalse(self._does_stack_exist(self.cfn_client, SAM_CLI_STACK_NAME))
-
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
@@ -84,8 +85,6 @@ class TestManagedStackDeploy(PackageIntegBase, DeployIntegBase):
 
     @parameterized.expand(["aws-serverless-function.yaml"])
     def test_managed_stack_creation_guided(self, template_file):
-        self._delete_managed_stack(self.cfn_client, self.s3_client)
-        self.assertFalse(self._does_stack_exist(self.cfn_client, SAM_CLI_STACK_NAME))
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
