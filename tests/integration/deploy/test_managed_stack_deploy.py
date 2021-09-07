@@ -1,15 +1,10 @@
 import os
-from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack
 import shutil
-import tempfile
 import time
-import uuid
-from pathlib import Path
 from unittest import skipIf
 
 import boto3
 from botocore.exceptions import ClientError
-import docker
 from botocore.config import Config
 from parameterized import parameterized
 
@@ -57,7 +52,6 @@ class TestManagedStackDeploy(PackageIntegBase, DeployIntegBase):
     def tearDown(self):
         shutil.rmtree(os.path.join(os.getcwd(), ".aws-sam", "build"), ignore_errors=True)
         for stack in self.stacks:
-            # because of the termination protection, do not delete aws-sam-cli-managed-default stack
             stack_name = stack["name"]
             if stack_name != SAM_CLI_STACK_NAME:
                 region = stack.get("region") or DEFAULT_REGION
@@ -65,6 +59,9 @@ class TestManagedStackDeploy(PackageIntegBase, DeployIntegBase):
                     self.cfn_client if not region else boto3.client("cloudformation", config=Config(region_name=region))
                 )
                 cfn_client.delete_stack(StackName=stack_name)
+
+        self._delete_managed_stack(self.cfn_client, self.s3_client, DEFAULT_REGION)
+        self.assertFalse(self._does_stack_exist(self.cfn_client, SAM_CLI_STACK_NAME))
         super().tearDown()
 
     @parameterized.expand(["aws-serverless-function.yaml"])
