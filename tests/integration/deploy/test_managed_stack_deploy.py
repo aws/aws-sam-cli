@@ -80,7 +80,7 @@ class TestManagedStackDeploy(PackageIntegBase, DeployIntegBase):
 
         deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
-        self.assertTrue(self._does_stack_exist(self.cfn_client, SAM_CLI_STACK_NAME))
+        self._managed_stack_sanity_check(self.cfn_client, self.s3_client)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
     def test_managed_stack_creation_guided(self, template_file):
@@ -103,7 +103,7 @@ class TestManagedStackDeploy(PackageIntegBase, DeployIntegBase):
         self.stacks.append({"name": SAM_CLI_STACK_NAME})
         # Remove samconfig.toml
         os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
-        self.assertTrue(self._does_stack_exist(self.cfn_client, SAM_CLI_STACK_NAME))
+        self._managed_stack_sanity_check(self.cfn_client, self.s3_client)
 
     def _method_to_stack_name(self, method_name):
         """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
@@ -132,6 +132,27 @@ class TestManagedStackDeploy(PackageIntegBase, DeployIntegBase):
             waiter_config = {"Delay": 15, "MaxAttempts": 120}
             waiter.wait(StackName=SAM_CLI_STACK_NAME, WaiterConfig=waiter_config)
 
+    def _managed_stack_sanity_check(self, cfn_client, s3_client):
+        if not self._does_stack_exist(cfn_client, SAM_CLI_STACK_NAME):
+            raise ManagedStackError("Managed stack does not exist")
+
+        stack = boto3.resource("cloudformation").Stack(SAM_CLI_STACK_NAME)
+
+        if stack.stack_status not in ["CREATE_COMPLETE", "UPDATE_COMPLETE"]:
+            raise ManagedStackError("Managed stack status is not in CREATE_COMPLETE or UPDATE_COMPLETE")
+
+        resources = stack.resource_summaries.all()
+        for resource in resources:
+            if resource.resource_type == "AWS::S3::Bucket":
+                s3_bucket_name = resource.physical_resource_id
+
+        if not s3_bucket_name:
+            raise ManagedStackError("Managed stack does not have S3 bucket")
+
+        s3 = boto3.resource("s3")
+        if s3.Bucket(s3_bucket_name) not in s3.buckets.all():
+            raise ManagedStackError("Managed stack S3 bucket does not exist")
+
     def _does_stack_exist(self, cfn_client, stack_name):
         try:
             cfn_client.describe_stacks(StackName=stack_name)
@@ -141,3 +162,7 @@ class TestManagedStackDeploy(PackageIntegBase, DeployIntegBase):
             if error_message == f"Stack with id {stack_name} does not exist":
                 return False
             raise e
+
+
+class ManagedStackError(Exception):
+    pass
