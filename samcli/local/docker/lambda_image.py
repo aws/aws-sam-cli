@@ -8,7 +8,6 @@ from enum import Enum
 from pathlib import Path
 
 import sys
-import re
 import platform
 import docker
 
