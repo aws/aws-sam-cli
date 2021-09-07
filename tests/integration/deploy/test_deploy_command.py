@@ -746,30 +746,6 @@ to create a managed default bucket, or run sam deploy --guided",
         deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
-    @parameterized.expand(["aws-serverless-function.yaml"])
-    def test_deploy_with_no_s3_bucket_set_resolve_s3_clean_state(self, template_file):
-        self._delete_managed_stack(self.cfn_client, self.s3_client)
-
-        template_path = self.test_data_path.joinpath(template_file)
-
-        stack_name = self._method_to_stack_name(self.id())
-        self.stacks.append({"name": stack_name})
-
-        deploy_command_list = self.get_deploy_command_list(
-            template_file=template_path,
-            stack_name=stack_name,
-            capabilities="CAPABILITY_IAM",
-            force_upload=True,
-            notification_arns=self.sns_arn,
-            parameter_overrides="Parameter=Clarity",
-            kms_key_id=self.kms_key,
-            tags="integ=true clarity=yes foo_bar=baz",
-            resolve_s3=True,
-        )
-
-        deploy_process_execute = run_command(deploy_command_list)
-        self.assertEqual(deploy_process_execute.process.returncode, 0)
-
     @parameterized.expand([("aws-serverless-function.yaml", "samconfig-invalid-syntax.toml")])
     def test_deploy_with_invalid_config(self, template_file, config_file):
         template_path = self.test_data_path.joinpath(template_file)
@@ -979,35 +955,3 @@ to create a managed default bucket, or run sam deploy --guided",
             except ecr_client.exceptions.RepositoryNotFoundException:
                 pass
         cfn_client.delete_stack(StackName=companion_stack_name)
-
-    def _delete_managed_stack(self, cfn_client, s3_client, wait=True):
-        if not self._does_stack_exist(cfn_client, SAM_CLI_STACK_NAME):
-            return
-
-        stack = boto3.resource("cloudformation").Stack(SAM_CLI_STACK_NAME)
-        resources = stack.resource_summaries.all()
-        for resource in resources:
-            if resource.resource_type == "AWS::S3::Bucket":
-                s3_bucket_name = resource.physical_resource_id
-
-        if s3_bucket_name:
-            s3 = boto3.resource("s3")
-            bucket = s3.Bucket(s3_bucket_name)
-            bucket.object_versions.delete()
-            s3_client.delete_bucket(Bucket=s3_bucket_name)
-        cfn_client.delete_stack(StackName=SAM_CLI_STACK_NAME)
-
-        if wait:
-            waiter = cfn_client.get_waiter("stack_delete_complete")
-            waiter_config = {"Delay": 15, "MaxAttempts": 120}
-            waiter.wait(StackName=SAM_CLI_STACK_NAME, WaiterConfig=waiter_config)
-
-    def _does_stack_exist(self, cfn_client, stack_name):
-        try:
-            cfn_client.describe_stacks(StackName=stack_name)
-            return True
-        except ClientError as e:
-            error_message = e.response.get("Error", {}).get("Message")
-            if error_message == f"Stack with id {stack_name} does not exist":
-                return False
-            raise e
