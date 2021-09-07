@@ -76,7 +76,7 @@ Resources:
     Type: 'AWS::ApiGatewayV2::Integration'
     Properties:
       ApiId: !Ref HTTPAPIGateway
-      PayloadFormatVersion: 1.0
+      PayloadFormatVersion: "1.0"
       IntegrationType: AWS_PROXY
       IntegrationMethod: POST
       IntegrationUri:

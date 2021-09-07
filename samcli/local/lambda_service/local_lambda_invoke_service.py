@@ -145,7 +145,7 @@ class LocalLambdaInvokeService(BaseLocalService):
         request_data = request_data.decode("utf-8")
 
         stdout_stream = io.BytesIO()
-        stdout_stream_writer = StreamWriter(stdout_stream, self.is_debugging)
+        stdout_stream_writer = StreamWriter(stdout_stream, auto_flush=True)
 
         try:
             self.lambda_runner.invoke(function_name, request_data, stdout=stdout_stream_writer, stderr=self.stderr)

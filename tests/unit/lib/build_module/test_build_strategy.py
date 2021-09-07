@@ -218,7 +218,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
         function2.name = "Function2"
         function2.full_path = "Function2"
         function2.packagetype = IMAGE
-        build_definition = FunctionBuildDefinition("3.7", "codeuri", IMAGE, {})
+        build_definition = FunctionBuildDefinition("3.7", "codeuri", IMAGE, {}, env_vars={"FOO": "BAR"})
         # since they have the same metadata, they are put into the same build_definition.
         build_definition.functions = [function1, function2]
 

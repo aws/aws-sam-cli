@@ -1,4 +1,9 @@
+import os
+import shutil
+import subprocess
+import tempfile
 from pathlib import Path
+from typing import Dict, Any
 from unittest import TestCase
 from unittest.mock import patch, ANY
 
@@ -9,8 +14,9 @@ from click.testing import CliRunner
 from samcli.commands.exceptions import UserException
 from samcli.commands.init import cli as init_cmd
 from samcli.commands.init import do_cli as init_cli
-from samcli.commands.init.init_templates import InitTemplates, APP_TEMPLATES_REPO_URL, APP_TEMPLATES_REPO_NAME
+from samcli.commands.init.init_templates import InitTemplates, APP_TEMPLATES_REPO_URL
 from samcli.lib.init import GenerateProjectFailedError
+from samcli.lib.utils import osutils
 from samcli.lib.utils.git_repo import GitRepo
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 
@@ -41,6 +47,38 @@ class TestCli(TestCase):
         self.no_input = False
         self.extra_context = '{"project_name": "testing project", "runtime": "python3.6"}'
         self.extra_context_as_json = {"project_name": "testing project", "runtime": "python3.6"}
+
+    # setup cache for clone, so that if `git clone` is called multiple times on the same URL,
+    # only one clone will happen.
+    clone_cache: Dict[str, Path]
+    patcher: Any
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        # Make (url -> directory) cache to avoid cloning the same thing twice
+        cls.clone_cache = {}
+        cls.patcher = patch("samcli.lib.utils.git_repo.check_output", side_effect=cls.check_output_mock)
+        cls.patcher.start()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.patcher.stop()
+        for _, directory in cls.clone_cache.items():
+            shutil.rmtree(directory.parent)
+
+    @classmethod
+    def check_output_mock(cls, commands, cwd, stderr):
+        git_executable, _, url, clone_name = commands
+        if url not in cls.clone_cache:
+            tempdir = tempfile.NamedTemporaryFile(delete=False).name
+            subprocess.check_output(
+                [git_executable, "clone", url, clone_name],
+                cwd=tempdir,
+                stderr=stderr,
+            )
+            cls.clone_cache[url] = Path(tempdir, clone_name)
+
+        osutils.copytree(str(cls.clone_cache[url]), str(Path(cwd, clone_name)))
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
     @patch("samcli.commands.init.init_generator.generate_project")
@@ -614,14 +652,14 @@ Y
 
         # 1: AWS Quick Start Templates
         # 2: Package type - Image
-        # 13: Java8 base image
+        # 14: Java8 base image
         # 1: dependency manager maven
         # test-project: response to name
 
         user_input = """
 1
 2
-13
+14
 1
 test-project
             """
@@ -1101,3 +1139,251 @@ foo
             True,
             ANY,
         )
+
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
+    def test_init_cli_image_pool_with_base_image_having_multiple_managed_template_but_no_app_template_provided(
+        self,
+        init_options_from_manifest_mock,
+    ):
+        init_options_from_manifest_mock.return_value = [
+            {
+                "directory": "python3.8-image/cookiecutter-aws-sam-hello-python-lambda-image",
+                "displayName": "Hello World Lambda Image Example",
+                "dependencyManager": "pip",
+                "appTemplate": "hello-world-lambda-image",
+                "packageType": "Image",
+            },
+            {
+                "directory": "python3.8-image/cookiecutter-ml-apigw-pytorch",
+                "displayName": "PyTorch Machine Learning Inference API",
+                "dependencyManager": "pip",
+                "appTemplate": "ml-apigw-pytorch",
+                "packageType": "Image",
+            },
+        ]
+        with self.assertRaises(UserException):
+            init_cli(
+                ctx=self.ctx,
+                no_interactive=self.no_interactive,
+                pt_explicit=self.pt_explicit,
+                package_type="Image",
+                base_image="amazon/python3.8-base",
+                dependency_manager="pip",
+                app_template=None,
+                name=self.name,
+                output_dir=self.output_dir,
+                location=None,
+                runtime=None,
+                no_input=self.no_input,
+                extra_context=self.extra_context,
+            )
+
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
+    def test_init_cli_image_pool_with_base_image_having_multiple_managed_template_and_provided_app_template_not_matching_any_managed_templates(
+        self,
+        init_options_from_manifest_mock,
+    ):
+        init_options_from_manifest_mock.return_value = [
+            {
+                "directory": "python3.8-image/cookiecutter-aws-sam-hello-python-lambda-image",
+                "displayName": "Hello World Lambda Image Example",
+                "dependencyManager": "pip",
+                "appTemplate": "hello-world-lambda-image",
+                "packageType": "Image",
+            },
+            {
+                "directory": "python3.8-image/cookiecutter-ml-apigw-pytorch",
+                "displayName": "PyTorch Machine Learning Inference API",
+                "dependencyManager": "pip",
+                "appTemplate": "ml-apigw-pytorch",
+                "packageType": "Image",
+            },
+        ]
+        with self.assertRaises(UserException):
+            init_cli(
+                ctx=self.ctx,
+                no_interactive=self.no_interactive,
+                pt_explicit=self.pt_explicit,
+                package_type="Image",
+                base_image="amazon/python3.8-base",
+                dependency_manager="pip",
+                app_template="Not-ml-apigw-pytorch",  # different value than appTemplates shown in the manifest above
+                name=self.name,
+                output_dir=self.output_dir,
+                location=None,
+                runtime=None,
+                no_input=self.no_input,
+                extra_context=self.extra_context,
+            )
+
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_image_pool_with_base_image_having_multiple_managed_template_with_matching_app_template_provided(
+        self,
+        generate_project_patch,
+        init_options_from_manifest_mock,
+    ):
+        init_options_from_manifest_mock.return_value = [
+            {
+                "directory": "python3.8-image/cookiecutter-aws-sam-hello-python-lambda-image",
+                "displayName": "Hello World Lambda Image Example",
+                "dependencyManager": "pip",
+                "appTemplate": "hello-world-lambda-image",
+                "packageType": "Image",
+            },
+            {
+                "directory": "python3.8-image/cookiecutter-ml-apigw-pytorch",
+                "displayName": "PyTorch Machine Learning Inference API",
+                "dependencyManager": "pip",
+                "appTemplate": "ml-apigw-pytorch",
+                "packageType": "Image",
+            },
+        ]
+        init_cli(
+            ctx=self.ctx,
+            no_interactive=True,
+            pt_explicit=True,
+            package_type="Image",
+            base_image="amazon/python3.8-base",
+            dependency_manager="pip",
+            app_template="ml-apigw-pytorch",  # same value as one appTemplate in the manifest above
+            name=self.name,
+            output_dir=None,
+            location=None,
+            runtime=None,
+            no_input=None,
+            extra_context=None,
+        )
+        generate_project_patch.assert_called_once_with(
+            os.path.normpath("repository/python3.8-image/cookiecutter-ml-apigw-pytorch"),  # location
+            "Image",  # package_type
+            "python3.8",  # runtime
+            "pip",  # dependency_manager
+            self.output_dir,
+            self.name,
+            True,  # no_input
+            ANY,
+        )
+
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_image_pool_with_base_image_having_one_managed_template_does_not_need_app_template_argument(
+        self,
+        generate_project_patch,
+        init_options_from_manifest_mock,
+    ):
+        init_options_from_manifest_mock.return_value = [
+            {
+                "directory": "python3.8-image/cookiecutter-ml-apigw-pytorch",
+                "displayName": "PyTorch Machine Learning Inference API",
+                "dependencyManager": "pip",
+                "appTemplate": "ml-apigw-pytorch",
+                "packageType": "Image",
+            },
+        ]
+        init_cli(
+            ctx=self.ctx,
+            no_interactive=True,
+            pt_explicit=True,
+            package_type="Image",
+            base_image="amazon/python3.8-base",
+            dependency_manager="pip",
+            app_template=None,
+            name=self.name,
+            output_dir=None,
+            location=None,
+            runtime=None,
+            no_input=None,
+            extra_context=None,
+        )
+        generate_project_patch.assert_called_once_with(
+            os.path.normpath("repository/python3.8-image/cookiecutter-ml-apigw-pytorch"),  # location
+            "Image",  # package_type
+            "python3.8",  # runtime
+            "pip",  # dependency_manager
+            self.output_dir,
+            self.name,
+            True,  # no_input
+            ANY,
+        )
+
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_image_pool_with_base_image_having_one_managed_template_with_provided_app_template_matching_the_managed_template(
+        self,
+        generate_project_patch,
+        init_options_from_manifest_mock,
+    ):
+        init_options_from_manifest_mock.return_value = [
+            {
+                "directory": "python3.8-image/cookiecutter-ml-apigw-pytorch",
+                "displayName": "PyTorch Machine Learning Inference API",
+                "dependencyManager": "pip",
+                "appTemplate": "ml-apigw-pytorch",
+                "packageType": "Image",
+            },
+        ]
+        init_cli(
+            ctx=self.ctx,
+            no_interactive=True,
+            pt_explicit=True,
+            package_type="Image",
+            base_image="amazon/python3.8-base",
+            dependency_manager="pip",
+            app_template="ml-apigw-pytorch",  # same value as appTemplate indicated in the manifest above
+            name=self.name,
+            output_dir=None,
+            location=None,
+            runtime=None,
+            no_input=None,
+            extra_context=None,
+        )
+        generate_project_patch.assert_called_once_with(
+            os.path.normpath("repository/python3.8-image/cookiecutter-ml-apigw-pytorch"),  # location
+            "Image",  # package_type
+            "python3.8",  # runtime
+            "pip",  # dependency_manager
+            self.output_dir,
+            self.name,
+            True,  # no_input
+            ANY,
+        )
+
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_image_pool_with_base_image_having_one_managed_template_with_provided_app_template_not_matching_the_managed_template(
+        self,
+        generate_project_patch,
+        init_options_from_manifest_mock,
+    ):
+        init_options_from_manifest_mock.return_value = [
+            {
+                "directory": "python3.8-image/cookiecutter-ml-apigw-pytorch",
+                "displayName": "PyTorch Machine Learning Inference API",
+                "dependencyManager": "pip",
+                "appTemplate": "ml-apigw-pytorch",
+                "packageType": "Image",
+            },
+        ]
+        with (self.assertRaises(UserException)):
+            init_cli(
+                ctx=self.ctx,
+                no_interactive=True,
+                pt_explicit=True,
+                package_type="Image",
+                base_image="amazon/python3.8-base",
+                dependency_manager="pip",
+                app_template="NOT-ml-apigw-pytorch",  # different value than appTemplate shown in the manifest above
+                name=self.name,
+                output_dir=None,
+                location=None,
+                runtime=None,
+                no_input=None,
+                extra_context=None,
+            )

@@ -64,6 +64,9 @@ class PackageIntegBase(TestCase):
         if not cls.pre_created_bucket:
             cls.s3_bucket.create()
             time.sleep(SLEEP)
+            bucket_versioning = s3.BucketVersioning(cls.bucket_name)
+            bucket_versioning.enable()
+            time.sleep(SLEEP)
         if not cls.pre_created_ecr_repo:
             ecr_result = cls.ecr.create_repository(repositoryName=cls.ecr_repo_name)
             cls.ecr_repo_name = ecr_result.get("repository", {}).get("repositoryUri", None)

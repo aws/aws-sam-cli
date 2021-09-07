@@ -33,6 +33,12 @@ class LambdaResponseParseException(Exception):
     """
 
 
+class PayloadFormatVersionValidateException(Exception):
+    """
+    An exception raised when validation of payload format version fails
+    """
+
+
 class Route:
     API = "Api"
     HTTP = "HttpApi"
@@ -289,12 +295,21 @@ class LocalApigwService(BaseLocalService):
         route = self._get_current_route(request)
         cors_headers = Cors.cors_to_headers(self.api.cors)
 
+        # payloadFormatVersion can only support 2 values: "1.0" and "2.0"
+        # so we want to do strict validation to make sure it has proper value if provided
+        # https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html
+        if route.payload_format_version not in [None, "1.0", "2.0"]:
+            raise PayloadFormatVersionValidateException(
+                f'{route.payload_format_version} is not a valid value. PayloadFormatVersion must be "1.0" or "2.0"'
+            )
+
         method, endpoint = self.get_request_methods_endpoints(request)
         if method == "OPTIONS" and self.api.cors:
             headers = Headers(cors_headers)
             return self.service_response("", headers, 200)
 
         try:
+            # TODO: Rewrite the logic below to use version 2.0 when an invalid value is provided
             # the Lambda Event 2.0 is only used for the HTTP API gateway with defined payload format version equal 2.0
             # or none, as the default value to be used is 2.0
             # https://docs.aws.amazon.com/apigatewayv2/latest/api-reference/apis-apiid-integrations.html#apis-apiid-integrations-prop-createintegrationinput-payloadformatversion
@@ -321,7 +336,7 @@ class LocalApigwService(BaseLocalService):
             return ServiceErrorResponses.lambda_failure_response()
 
         stdout_stream = io.BytesIO()
-        stdout_stream_writer = StreamWriter(stdout_stream, self.is_debugging)
+        stdout_stream_writer = StreamWriter(stdout_stream, auto_flush=True)
 
         try:
             self.lambda_runner.invoke(route.function_name, event, stdout=stdout_stream_writer, stderr=self.stderr)
@@ -343,7 +358,7 @@ class LocalApigwService(BaseLocalService):
                 )
             else:
                 (status_code, headers, body) = self._parse_v1_payload_format_lambda_output(
-                    lambda_response, self.api.binary_media_types, request
+                    lambda_response, self.api.binary_media_types, request, route.event_type
                 )
         except LambdaResponseParseException as ex:
             LOG.error("Invalid lambda response received: %s", ex)
@@ -389,13 +404,14 @@ class LocalApigwService(BaseLocalService):
 
     # Consider moving this out to its own class. Logic is started to get dense and looks messy @jfuss
     @staticmethod
-    def _parse_v1_payload_format_lambda_output(lambda_output: str, binary_types, flask_request):
+    def _parse_v1_payload_format_lambda_output(lambda_output: str, binary_types, flask_request, event_type):
         """
         Parses the output from the Lambda Container
 
         :param str lambda_output: Output from Lambda Invoke
         :param binary_types: list of binary types
         :param flask_request: flash request object
+        :param event_type: determines the route event type
         :return: Tuple(int, dict, str, bool)
         """
         # pylint: disable-msg=too-many-statements
@@ -407,6 +423,9 @@ class LocalApigwService(BaseLocalService):
         if not isinstance(json_output, dict):
             raise LambdaResponseParseException(f"Lambda returned {type(json_output)} instead of dict")
 
+        if event_type == Route.HTTP and json_output.get("statusCode") is None:
+            raise LambdaResponseParseException(f"Invalid API Gateway Response Key: statusCode is not in {json_output}")
+
         status_code = json_output.get("statusCode") or 200
         headers = LocalApigwService._merge_response_headers(
             json_output.get("headers") or {}, json_output.get("multiValueHeaders") or {}
@@ -415,7 +434,8 @@ class LocalApigwService(BaseLocalService):
         body = json_output.get("body")
         if body is None:
             LOG.warning("Lambda returned empty body!")
-        is_base_64_encoded = json_output.get("isBase64Encoded") or False
+
+        is_base_64_encoded = LocalApigwService.get_base_64_encoded(event_type, json_output)
 
         try:
             status_code = int(status_code)
@@ -432,8 +452,10 @@ class LocalApigwService(BaseLocalService):
                 f"Non null response bodies should be able to convert to string: {body}"
             ) from ex
 
-        invalid_keys = LocalApigwService._invalid_apig_response_keys(json_output)
-        if invalid_keys:
+        invalid_keys = LocalApigwService._invalid_apig_response_keys(json_output, event_type)
+        # HTTP API Gateway just skip the non allowed lambda response fields, but Rest API gateway fail on
+        # the non allowed fields
+        if event_type == Route.API and invalid_keys:
             raise LambdaResponseParseException(f"Invalid API Gateway Response Keys: {invalid_keys} in {json_output}")
 
         # If the customer doesn't define Content-Type default to application/json
@@ -442,7 +464,16 @@ class LocalApigwService(BaseLocalService):
             headers["Content-Type"] = "application/json"
 
         try:
-            if LocalApigwService._should_base64_decode_body(binary_types, flask_request, headers, is_base_64_encoded):
+            # HTTP API Gateway always decode the lambda response only if isBase64Encoded field in response is True
+            # regardless the response content-type
+            # Rest API Gateway depends on the response content-type and the API configured BinaryMediaTypes to decide
+            # if it will decode the response or not
+            if (event_type == Route.HTTP and is_base_64_encoded) or (
+                event_type == Route.API
+                and LocalApigwService._should_base64_decode_body(
+                    binary_types, flask_request, headers, is_base_64_encoded
+                )
+            ):
                 body = base64.b64decode(body)
         except ValueError as ex:
             LambdaResponseParseException(str(ex))
@@ -450,9 +481,34 @@ class LocalApigwService(BaseLocalService):
         return status_code, headers, body
 
     @staticmethod
+    def get_base_64_encoded(event_type, json_output):
+        # The following behaviour is undocumented behaviour, and based on some trials
+        # Http API gateway checks lambda response for isBase64Encoded field, and ignore base64Encoded
+        # Rest API gateway checks first the field base64Encoded field, if not exist, it checks isBase64Encoded field
+
+        if event_type == Route.API and json_output.get("base64Encoded") is not None:
+            is_base_64_encoded = json_output.get("base64Encoded")
+            field_name = "base64Encoded"
+        elif json_output.get("isBase64Encoded") is not None:
+            is_base_64_encoded = json_output.get("isBase64Encoded")
+            field_name = "isBase64Encoded"
+        else:
+            is_base_64_encoded = False
+            field_name = "isBase64Encoded"
+
+        if isinstance(is_base_64_encoded, str) and is_base_64_encoded in ["true", "True", "false", "False"]:
+            is_base_64_encoded = is_base_64_encoded in ["true", "True"]
+        elif not isinstance(is_base_64_encoded, bool):
+            raise LambdaResponseParseException(
+                f"Invalid API Gateway Response Key: {is_base_64_encoded} is not a valid" f"{field_name}"
+            )
+
+        return is_base_64_encoded
+
+    @staticmethod
     def _parse_v2_payload_format_lambda_output(lambda_output: str, binary_types, flask_request):
         """
-        Parses the output from the Lambda Container
+        Parses the output from the Lambda Container. V2 Payload Format means that the event_type is only HTTP
 
         :param str lambda_output: Output from Lambda Invoke
         :param binary_types: list of binary types
@@ -460,6 +516,7 @@ class LocalApigwService(BaseLocalService):
         :return: Tuple(int, dict, str, bool)
         """
         # pylint: disable-msg=too-many-statements
+        # pylint: disable=too-many-branches
         try:
             json_output = json.loads(lambda_output)
         except ValueError as ex:
@@ -480,6 +537,18 @@ class LocalApigwService(BaseLocalService):
         status_code = json_output.get("statusCode") or 200
         headers = Headers(json_output.get("headers") or {})
 
+        # cookies is a new field in payload format version 2.0 (a list)
+        # https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html
+        # we need to move cookies to Set-Cookie headers.
+        # each cookie becomes a set-cookie header
+        # MDN link: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie
+        cookies = json_output.get("cookies")
+
+        # cookies needs to be a list, otherwise the format is wrong and we can skip it
+        if isinstance(cookies, list):
+            for cookie in cookies:
+                headers.add("Set-Cookie", cookie)
+
         is_base_64_encoded = json_output.get("isBase64Encoded") or False
 
         try:
@@ -497,21 +566,15 @@ class LocalApigwService(BaseLocalService):
                 f"Non null response bodies should be able to convert to string: {body}"
             ) from ex
 
-        # API Gateway only accepts statusCode, body, headers, and isBase64Encoded in
-        # a response shape.
-        # Don't check the response keys when inferring a response, see
-        # https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html#http-api-develop-integrations-lambda.v2.
-        invalid_keys = LocalApigwService._invalid_apig_response_keys(json_output)
-        if "statusCode" in json_output and invalid_keys:
-            raise LambdaResponseParseException(f"Invalid API Gateway Response Keys: {invalid_keys} in {json_output}")
-
         # If the customer doesn't define Content-Type default to application/json
         if "Content-Type" not in headers:
             LOG.info("No Content-Type given. Defaulting to 'application/json'.")
             headers["Content-Type"] = "application/json"
 
         try:
-            if LocalApigwService._should_base64_decode_body(binary_types, flask_request, headers, is_base_64_encoded):
+            # HTTP API Gateway always decode the lambda response only if isBase64Encoded field in response is True
+            # regardless the response content-type
+            if is_base_64_encoded:
                 # Note(xinhol): here in this method we change the type of the variable body multiple times
                 # and confused mypy, we might want to avoid this and use multiple variables here.
                 body = base64.b64decode(body)  # type: ignore
@@ -521,8 +584,10 @@ class LocalApigwService(BaseLocalService):
         return status_code, headers, body
 
     @staticmethod
-    def _invalid_apig_response_keys(output):
+    def _invalid_apig_response_keys(output, event_type):
         allowable = {"statusCode", "body", "headers", "multiValueHeaders", "isBase64Encoded", "cookies"}
+        if event_type == Route.API:
+            allowable.add("base64Encoded")
         invalid_keys = output.keys() - allowable
         return invalid_keys
 

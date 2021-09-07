@@ -3,9 +3,7 @@ include THIRD-PARTY-LICENSES
 include requirements/base.txt
 include requirements/pre-dev.txt
 include requirements/dev.txt
-include samcli/local/rapid/aws-lambda-rie
-recursive-include samcli/lib/init/templates *
-recursive-include samcli/lib *.json
-recursive-include samcli/lib/generated_sample_events *.json
+recursive-include samcli *
 prune tests
-
+global-exclude *.py[cod]
+global-exclude *.DS_Store

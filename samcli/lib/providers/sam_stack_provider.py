@@ -31,9 +31,8 @@ class SamLocalStackProvider(SamBaseProvider):
     ):
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
-        to be valid, normalized and a dictionary. It should be normalized by running all pre-processing
-        before passing to this class. The process of normalization will remove structures like ``Globals``, resolve
-        intrinsic functions etc.
+        to be valid and a dictionary. This class will perform template normalization to remove structures
+        like ``Globals``, resolve intrinsic functions etc.
         This class does not perform any syntactic validation of the template.
         After the class is initialized, any changes to the ``template_dict`` will not be reflected in here.
         You need to explicitly update the class with new template, if necessary.
@@ -163,8 +162,14 @@ class SamLocalStackProvider(SamBaseProvider):
         resource_properties: Dict,
         global_parameter_overrides: Optional[Dict] = None,
     ) -> Optional[Stack]:
-        template_url = resource_properties.get("TemplateURL", "")
+        template_url = resource_properties.get("TemplateURL")
 
+        if isinstance(template_url, dict):
+            # This happens when TemplateURL has unresolvable intrinsic functions
+            # and it usually happens in CDK generated template files (#2832).
+            raise RemoteStackLocationNotSupported()
+
+        template_url = cast(str, template_url)
         if SamLocalStackProvider.is_remote_url(template_url):
             raise RemoteStackLocationNotSupported()
         if template_url.startswith("file://"):

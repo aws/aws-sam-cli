@@ -38,7 +38,7 @@ Supported Resource Types
 \b
 Supported Runtimes
 ------------------
-1. Python 2.7, 3.6, 3.7, 3.8 using PIP\n
+1. Python 2.7, 3.6, 3.7, 3.8 3.9 using PIP\n
 2. Nodejs 14.x, 12.x, 10.x, 8.10, 6.10 using NPM\n
 3. Ruby 2.5 using Bundler\n
 4. Java 8, Java 11 using Gradle and Maven\n
@@ -208,6 +208,7 @@ def cli(
     mode = _get_mode_value_from_envvar("SAM_BUILD_MODE", choices=["debug"])
 
     do_cli(
+        ctx,
         resource_logical_id,
         template_file,
         base_dir,
@@ -229,6 +230,7 @@ def cli(
 
 
 def do_cli(  # pylint: disable=too-many-locals, too-many-statements
+    click_ctx,
     function_identifier: Optional[str],
     template: str,
     base_dir: Optional[str],
@@ -291,6 +293,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         container_env_var=processed_env_vars,
         container_env_var_file=container_env_var_file,
         build_images=processed_build_images,
+        aws_region=click_ctx.region,
     ) as ctx:
         try:
             builder = ApplicationBuilder(
@@ -313,7 +316,6 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
 
         try:
             artifacts = builder.build()
-
             stack_output_template_path_by_stack_path = {
                 stack.stack_path: stack.get_output_template_path(ctx.build_dir) for stack in ctx.stacks
             }

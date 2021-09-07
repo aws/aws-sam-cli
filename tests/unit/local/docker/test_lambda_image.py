@@ -2,13 +2,13 @@ import io
 import tempfile
 
 from unittest import TestCase
-from unittest.mock import patch, Mock, mock_open, ANY
+from unittest.mock import patch, Mock, mock_open, ANY, call
 
 from docker.errors import ImageNotFound, BuildError, APIError
 
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.utils.packagetype import ZIP, IMAGE
-from samcli.local.docker.lambda_image import LambdaImage
+from samcli.local.docker.lambda_image import LambdaImage, RAPID_IMAGE_TAG_PREFIX
 from samcli.commands.local.cli_common.user_exceptions import ImageBuildException
 from samcli import __version__ as version
 
@@ -42,12 +42,13 @@ class TestLambdaImage(TestCase):
         layer_downloader_mock = Mock()
         setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
         docker_client_mock.api.build.return_value = ["mock"]
+        docker_client_mock.images.list.return_value = []
 
         lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=docker_client_mock)
 
         self.assertEqual(
             lambda_image.build(None, IMAGE, "mylambdaimage:v1", []),
-            f"mylambdaimage:rapid-{version}",
+            f"mylambdaimage:{RAPID_IMAGE_TAG_PREFIX}-{version}",
         )
 
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
@@ -63,16 +64,19 @@ class TestLambdaImage(TestCase):
 
         docker_client_mock = Mock()
         docker_client_mock.images.get.return_value = Mock()
+        docker_client_mock.images.list.return_value = []
 
         lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=docker_client_mock)
 
         self.assertEqual(
             lambda_image.build(None, IMAGE, "mylambdaimage:v1", ["mylayer"]),
-            f"mylambdaimage:rapid-{version}",
+            f"mylambdaimage:{RAPID_IMAGE_TAG_PREFIX}-{version}",
         )
 
         # No layers are added, because runtime is not defined.
-        build_image_patch.assert_called_once_with("mylambdaimage:v1", f"mylambdaimage:rapid-{version}", [], stream=ANY)
+        build_image_patch.assert_called_once_with(
+            "mylambdaimage:v1", f"mylambdaimage:{RAPID_IMAGE_TAG_PREFIX}-{version}", [], stream=ANY
+        )
         # No Layers are added.
         layer_downloader_mock.assert_not_called()
 
@@ -98,7 +102,7 @@ class TestLambdaImage(TestCase):
 
         self.assertEqual(
             lambda_image.build("python3.6", ZIP, None, []),
-            f"amazon/aws-sam-cli-emulation-image-python3.6:rapid-{version}",
+            f"public.ecr.aws/sam/emulation-python3.6:{RAPID_IMAGE_TAG_PREFIX}-{version}",
         )
 
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
@@ -137,6 +141,7 @@ class TestLambdaImage(TestCase):
 
         docker_client_mock = Mock()
         docker_client_mock.images.get.side_effect = ImageNotFound("image not found")
+        docker_client_mock.images.list.return_value = []
 
         stream = io.StringIO()
 
@@ -149,7 +154,7 @@ class TestLambdaImage(TestCase):
         generate_docker_image_version_patch.assert_called_once_with(["layers1"], "python3.6")
         docker_client_mock.images.get.assert_called_once_with("samcli/lambda:image-version")
         build_image_patch.assert_called_once_with(
-            "amazon/aws-sam-cli-emulation-image-python3.6:latest",
+            "public.ecr.aws/sam/emulation-python3.6:latest",
             "samcli/lambda:image-version",
             ["layers1"],
             stream=stream,
@@ -167,6 +172,7 @@ class TestLambdaImage(TestCase):
 
         docker_client_mock = Mock()
         docker_client_mock.images.get.side_effect = ImageNotFound("image not found")
+        docker_client_mock.images.list.return_value = []
 
         stream = io.StringIO()
 
@@ -179,7 +185,7 @@ class TestLambdaImage(TestCase):
         generate_docker_image_version_patch.assert_called_once_with(["layers1"], "python3.6")
         docker_client_mock.images.get.assert_called_once_with("samcli/lambda:image-version")
         build_image_patch.assert_called_once_with(
-            "amazon/aws-sam-cli-emulation-image-python3.6:latest",
+            "public.ecr.aws/sam/emulation-python3.6:latest",
             "samcli/lambda:image-version",
             ["layers1"],
             stream=stream,
@@ -249,7 +255,12 @@ class TestLambdaImage(TestCase):
         handle.write.assert_called_with("Dockerfile content")
         path_patch.assert_called_once_with("cached layers", "dockerfile_uuid")
         docker_client_mock.api.build.assert_called_once_with(
-            fileobj=tarball_fileobj, rm=True, tag="docker_tag", pull=False, custom_context=True
+            fileobj=tarball_fileobj,
+            rm=True,
+            tag="docker_tag",
+            pull=False,
+            custom_context=True,
+            decode=True,
         )
 
         docker_full_path_mock.unlink.assert_called_once()
@@ -292,7 +303,60 @@ class TestLambdaImage(TestCase):
         handle.write.assert_called_with("Dockerfile content")
         path_patch.assert_called_once_with("cached layers", "dockerfile_uuid")
         docker_client_mock.api.build.assert_called_once_with(
-            fileobj=tarball_fileobj, rm=True, tag="docker_tag", pull=False, custom_context=True
+            fileobj=tarball_fileobj,
+            rm=True,
+            tag="docker_tag",
+            pull=False,
+            custom_context=True,
+            decode=True,
+        )
+
+        docker_full_path_mock.unlink.assert_not_called()
+
+    @patch("samcli.local.docker.lambda_image.create_tarball")
+    @patch("samcli.local.docker.lambda_image.uuid")
+    @patch("samcli.local.docker.lambda_image.Path")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._generate_dockerfile")
+    def test_build_image_fails_with_BuildError_from_output(
+        self, generate_dockerfile_patch, path_patch, uuid_patch, create_tarball_patch
+    ):
+        uuid_patch.uuid4.return_value = "uuid"
+        generate_dockerfile_patch.return_value = "Dockerfile content"
+
+        docker_full_path_mock = Mock()
+        docker_full_path_mock.exists.return_value = False
+        path_patch.return_value = docker_full_path_mock
+
+        docker_client_mock = Mock()
+        docker_client_mock.api.build.return_value = [{"stream": "Some text"}, {"error": "Problem in the build!"}]
+        layer_downloader_mock = Mock()
+        layer_downloader_mock.layer_cache = "cached layers"
+
+        tarball_fileobj = Mock()
+        create_tarball_patch.return_value.__enter__.return_value = tarball_fileobj
+
+        layer_version1 = Mock()
+        layer_version1.codeuri = "somevalue"
+        layer_version1.name = "name"
+
+        dockerfile_mock = Mock()
+        m = mock_open(dockerfile_mock)
+        with patch("samcli.local.docker.lambda_image.open", m):
+            with self.assertRaisesRegexp(ImageBuildException, "Problem in the build!"):
+                LambdaImage(layer_downloader_mock, True, False, docker_client=docker_client_mock)._build_image(
+                    "base_image", "docker_tag", [layer_version1]
+                )
+
+        handle = m()
+        handle.write.assert_called_with("Dockerfile content")
+        path_patch.assert_called_once_with("cached layers", "dockerfile_uuid")
+        docker_client_mock.api.build.assert_called_once_with(
+            fileobj=tarball_fileobj,
+            rm=True,
+            tag="docker_tag",
+            pull=False,
+            custom_context=True,
+            decode=True,
         )
 
         docker_full_path_mock.unlink.assert_not_called()
@@ -334,6 +398,64 @@ class TestLambdaImage(TestCase):
         handle.write.assert_called_with("Dockerfile content")
         path_patch.assert_called_once_with("cached layers", "dockerfile_uuid")
         docker_client_mock.api.build.assert_called_once_with(
-            fileobj=tarball_fileobj, rm=True, tag="docker_tag", pull=False, custom_context=True
+            fileobj=tarball_fileobj,
+            rm=True,
+            tag="docker_tag",
+            pull=False,
+            custom_context=True,
+            decode=True,
         )
         docker_full_path_mock.unlink.assert_called_once()
+
+    def test_building_new_rapid_image_removes_old_rapid_images(self):
+        repo = "public.ecr.aws/sam/emulation-python3.6"
+        docker_client_mock = Mock()
+        docker_client_mock.api.build.return_value = ["mock"]
+        docker_client_mock.images.get.side_effect = ImageNotFound("image not found")
+        docker_client_mock.images.list.return_value = [
+            Mock(id="old1", tags=[f"{repo}:{RAPID_IMAGE_TAG_PREFIX}-0.00.01"]),
+            Mock(id="old2", tags=[f"{repo}:{RAPID_IMAGE_TAG_PREFIX}-0.00.02"]),
+        ]
+
+        layer_downloader_mock = Mock()
+        setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
+
+        lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=docker_client_mock)
+
+        self.assertEqual(
+            lambda_image.build("python3.6", ZIP, None, []),
+            f"{repo}:{RAPID_IMAGE_TAG_PREFIX}-{version}",
+        )
+
+        docker_client_mock.images.remove.assert_has_calls([call("old1"), call("old2")])
+
+    def test_building_existing_rapid_image_does_not_remove_old_rapid_images(self):
+        repo = "public.ecr.aws/sam/emulation-python3.6"
+        docker_client_mock = Mock()
+        docker_client_mock.api.build.return_value = ["mock"]
+        docker_client_mock.images.list.return_value = [
+            Mock(id="old1", tags=[f"{repo}:{RAPID_IMAGE_TAG_PREFIX}-0.00.01"]),
+            Mock(id="old2", tags=[f"{repo}:{RAPID_IMAGE_TAG_PREFIX}-0.00.02"]),
+        ]
+
+        layer_downloader_mock = Mock()
+        setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
+
+        lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=docker_client_mock)
+
+        self.assertEqual(
+            lambda_image.build("python3.6", ZIP, None, []),
+            f"{repo}:{RAPID_IMAGE_TAG_PREFIX}-{version}",
+        )
+
+        docker_client_mock.images.remove.assert_not_called()
+
+    def test_is_rapid_image(self):
+        self.assertFalse(LambdaImage.is_rapid_image(None))
+        self.assertFalse(LambdaImage.is_rapid_image(""))
+        self.assertFalse(LambdaImage.is_rapid_image("my_repo"))
+        self.assertFalse(LambdaImage.is_rapid_image("my_repo:tag"))
+        self.assertTrue(LambdaImage.is_rapid_image("my_repo:rapid-1.29beta"))
+        self.assertFalse(LambdaImage.is_rapid_image(f"public.ecr.aws/lambda/python:3.9"))
+        self.assertFalse(LambdaImage.is_rapid_image(f"public.ecr.aws/sam/emulation-python3.6:latest"))
+        self.assertTrue(LambdaImage.is_rapid_image(f"public.ecr.aws/sam/emulation-python3.6:rapid-1.29.0"))

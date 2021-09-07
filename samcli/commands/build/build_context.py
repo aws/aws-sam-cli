@@ -4,17 +4,18 @@ Context object used by build command
 
 import logging
 import os
-import shutil
-from typing import Optional, List
 import pathlib
+import shutil
+from typing import Dict, Optional, List
 
+from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
+from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.providers.provider import ResourcesToBuildCollector, Stack, Function, LayerVersion
-from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
-from samcli.local.docker.manager import ContainerManager
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_layer_provider import SamLayerProvider
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+from samcli.local.docker.manager import ContainerManager
 from samcli.local.lambdafn.exceptions import ResourceNotFound
-from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
 
 LOG = logging.getLogger(__name__)
 
@@ -45,6 +46,7 @@ class BuildContext:
         container_env_var: Optional[dict] = None,
         container_env_var_file: Optional[str] = None,
         build_images: Optional[dict] = None,
+        aws_region: Optional[str] = None,
     ) -> None:
 
         self._resource_identifier = resource_identifier
@@ -60,6 +62,10 @@ class BuildContext:
         self._clean = clean
         self._use_container = use_container
         self._parameter_overrides = parameter_overrides
+        # Override certain CloudFormation pseudo-parameters based on values provided by customer
+        self._global_parameter_overrides: Optional[Dict] = None
+        if aws_region:
+            self._global_parameter_overrides = {IntrinsicsSymbolTable.AWS_REGION: aws_region}
         self._docker_network = docker_network
         self._skip_pull_image = skip_pull_image
         self._mode = mode
@@ -76,7 +82,9 @@ class BuildContext:
     def __enter__(self) -> "BuildContext":
 
         self._stacks, remote_stack_full_paths = SamLocalStackProvider.get_stacks(
-            self._template_file, parameter_overrides=self._parameter_overrides
+            self._template_file,
+            parameter_overrides=self._parameter_overrides,
+            global_parameter_overrides=self._global_parameter_overrides,
         )
 
         if remote_stack_full_paths:

@@ -1,17 +1,25 @@
-import re
+import logging
+import os
+import random
 import shutil
 import sys
-import os
-import logging
-import random
-from unittest import skipIf
 from pathlib import Path
-from parameterized import parameterized, parameterized_class
-from subprocess import Popen, PIPE, TimeoutExpired
+from unittest import skipIf
 
 import pytest
+from parameterized import parameterized, parameterized_class
 
 from samcli.lib.utils import osutils
+from tests.testing_utils import (
+    IS_WINDOWS,
+    RUNNING_ON_CI,
+    RUNNING_TEST_FOR_MASTER_ON_CI,
+    RUN_BY_CANARY,
+    CI_OVERRIDE,
+    run_command,
+    SKIP_DOCKER_TESTS,
+    SKIP_DOCKER_MESSAGE,
+)
 from .build_integ_base import (
     BuildIntegBase,
     DedupBuildIntegBase,
@@ -20,22 +28,18 @@ from .build_integ_base import (
     NestedBuildIntegBase,
     IntrinsicIntegBase,
 )
-from tests.testing_utils import (
-    IS_WINDOWS,
-    RUNNING_ON_CI,
-    CI_OVERRIDE,
-    run_command,
-    SKIP_DOCKER_TESTS,
-    SKIP_DOCKER_MESSAGE,
-)
 
 LOG = logging.getLogger(__name__)
 
 TIMEOUT = 420  # 7 mins
 
+# SAR tests require credentials. This is to skip running the test where credentials are not available.
+SKIP_SAR_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
+
 
 @skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    # Hits public ECR pull limitation, move it to canary tests
+    ((not RUN_BY_CANARY) or (IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
@@ -51,7 +55,7 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID_IMAGE = "ImageFunction"
 
-    @parameterized.expand([("3.6", False), ("3.7", False), ("3.8", False)])
+    @parameterized.expand([("3.6", False), ("3.7", False), ("3.8", False), ("3.9", False)])
     @pytest.mark.flaky(reruns=3)
     def test_with_default_requirements(self, runtime, use_container):
         overrides = {
@@ -89,22 +93,27 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
 
     @parameterized.expand(
         [
-            ("python2.7", False),
-            ("python3.6", False),
-            ("python3.7", False),
-            ("python3.8", False),
-            ("python2.7", "use_container"),
-            ("python3.6", "use_container"),
-            ("python3.7", "use_container"),
-            ("python3.8", "use_container"),
+            ("python2.7", "Python", False),
+            ("python3.6", "Python", False),
+            ("python3.7", "Python", False),
+            ("python3.8", "Python", False),
+            ("python3.9", "Python", False),
+            # numpy 1.20.3 (in PythonPEP600/requirements.txt) only support python 3.7+
+            ("python3.7", "PythonPEP600", False),
+            ("python3.8", "PythonPEP600", False),
+            ("python2.7", "Python", "use_container"),
+            ("python3.6", "Python", "use_container"),
+            ("python3.7", "Python", "use_container"),
+            ("python3.8", "Python", "use_container"),
+            ("python3.9", "Python", "use_container"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
-    def test_with_default_requirements(self, runtime, use_container):
+    def test_with_default_requirements(self, runtime, codeuri, use_container):
         if use_container and SKIP_DOCKER_TESTS:
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
-        overrides = {"Runtime": runtime, "CodeUri": "Python", "Handler": "main.handler"}
+        overrides = {"Runtime": runtime, "CodeUri": codeuri, "Handler": "main.handler"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
@@ -334,7 +343,11 @@ class TestBuildCommand_RubyFunctionsWithGemfileInTheRoot(BuildIntegRubyBase):
 class TestBuildCommand_Java(BuildIntegBase):
     EXPECTED_FILES_PROJECT_MANIFEST_GRADLE = {"aws", "lib", "META-INF"}
     EXPECTED_FILES_PROJECT_MANIFEST_MAVEN = {"aws", "lib"}
-    EXPECTED_DEPENDENCIES = {"annotations-2.1.0.jar", "aws-lambda-java-core-1.1.0.jar"}
+    EXPECTED_GRADLE_DEPENDENCIES = {"annotations-2.1.0.jar", "aws-lambda-java-core-1.1.0.jar"}
+    EXPECTED_MAVEN_DEPENDENCIES = {
+        "software.amazon.awssdk.annotations-2.1.0.jar",
+        "com.amazonaws.aws-lambda-java-core-1.1.0.jar",
+    }
 
     FUNCTION_LOGICAL_ID = "Function"
     USING_GRADLE_PATH = os.path.join("Java", "gradle")
@@ -344,60 +357,70 @@ class TestBuildCommand_Java(BuildIntegBase):
 
     @parameterized.expand(
         [
-            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java8", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN),
-            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java8.al2", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java8.al2", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java8.al2", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN),
-            ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java11", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java11", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java11", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN),
-            ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java8", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
+            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java8.al2", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            (
+                "java8.al2",
+                USING_GRADLE_KOTLIN_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            ("java8.al2", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
+            ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java11", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java11", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java11", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
+            ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
-    def test_building_java_in_container(self, runtime, code_path, expected_files):
-        self._test_with_building_java(runtime, code_path, expected_files, "use_container")
+    def test_building_java_in_container(self, runtime, code_path, expected_files, expected_dependencies):
+        self._test_with_building_java(runtime, code_path, expected_files, expected_dependencies, "use_container")
 
     @parameterized.expand(
         [
-            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java8", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN),
-            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java8.al2", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java8.al2", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java8.al2", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN),
-            ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java8", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
+            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java8.al2", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            (
+                "java8.al2",
+                USING_GRADLE_KOTLIN_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            ("java8.al2", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
+            ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
         ]
     )
     @pytest.mark.flaky(reruns=3)
-    def test_building_java8_in_process(self, runtime, code_path, expected_files):
-        self._test_with_building_java(runtime, code_path, expected_files, False)
+    def test_building_java8_in_process(self, runtime, code_path, expected_files, expected_dependencies):
+        self._test_with_building_java(runtime, code_path, expected_files, expected_dependencies, False)
 
     @parameterized.expand(
         [
-            ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java11", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java11", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
-            ("java11", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN),
-            ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+            ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java11", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java11", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java11", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
+            ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
         ]
     )
     @pytest.mark.flaky(reruns=3)
-    def test_building_java11_in_process(self, runtime, code_path, expected_files):
-        self._test_with_building_java(runtime, code_path, expected_files, False)
+    def test_building_java11_in_process(self, runtime, code_path, expected_files, expected_dependencies):
+        self._test_with_building_java(runtime, code_path, expected_files, expected_dependencies, False)
 
-    def _test_with_building_java(self, runtime, code_path, expected_files, use_container):
+    def _test_with_building_java(self, runtime, code_path, expected_files, expected_dependencies, use_container):
         if use_container and SKIP_DOCKER_TESTS:
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
@@ -411,7 +434,7 @@ class TestBuildCommand_Java(BuildIntegBase):
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
-            self.default_build_dir, self.FUNCTION_LOGICAL_ID, expected_files, self.EXPECTED_DEPENDENCIES
+            self.default_build_dir, self.FUNCTION_LOGICAL_ID, expected_files, expected_dependencies
         )
 
         self._verify_resource_property(
@@ -1112,8 +1135,8 @@ class TestBuildWithBuildMethod(BuildIntegBase):
 
         # runtime is chosen based off current python version.
         runtime = self._get_python_version()
-        # BuildMethod is set to the ruby2.7, this should cause failure.
-        overrides = {"Runtime": runtime, "CodeUri": "Provided", "Handler": "main.handler", "BuildMethod": "ruby2.7"}
+        # BuildMethod is set to the java8, this should cause failure.
+        overrides = {"Runtime": runtime, "CodeUri": "Provided", "Handler": "main.handler", "BuildMethod": "java8"}
         manifest_path = os.path.join(self.test_data_path, "Provided", "requirements.txt")
 
         cmdlist = self.get_command_list(
@@ -1167,12 +1190,12 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
             ),
             (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
-            (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
+            (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
             # container
             (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
-            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
+            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
         ]
     )
@@ -1290,12 +1313,12 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
             ),
             (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
-            (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
+            (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
             # container
             (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
-            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
+            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
         ]
     )
@@ -1331,6 +1354,51 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+class TestRepeatedBuildHitsCache(BuildIntegBase):
+    # Use template containing both functions and layers
+    template = "layers-functions-template.yaml"
+
+    @parameterized.expand([(True,), (False,)])
+    @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
+    def test_repeated_cached_build_hits_cache(self, use_container):
+        """
+        Build 2 times to verify that second time hits the cached build
+        """
+
+        parameter_overrides = {
+            "LayerContentUri": "PyLayer",
+            "LayerBuildMethod": "python3.7",
+            "CodeUri": "Python",
+            "Handler": "main.handler",
+            "Runtime": "python3.7",
+            "LayerMakeContentUri": "PyLayerMake",
+        }
+
+        cmdlist = self.get_command_list(
+            use_container=use_container,
+            parameter_overrides=parameter_overrides,
+            cached=True,
+            container_env_var="FOO=BAR" if use_container else None,
+        )
+
+        cache_invalid_output = "Cache is invalid, running build and copying resources to "
+        cache_valid_output = "Valid cache found, copying previously built resources from "
+
+        LOG.info("Running Command (cache should be invalid): %s", cmdlist)
+        command_result = run_command(cmdlist, cwd=self.working_dir).stderr.decode("utf-8")
+        self.assertTrue(cache_invalid_output in command_result)
+        self.assertFalse(cache_valid_output in command_result)
+
+        LOG.info("Re-Running Command (valid cache should exist): %s", cmdlist)
+        command_result = run_command(cmdlist, cwd=self.working_dir).stderr.decode("utf-8")
+        self.assertFalse(cache_invalid_output in command_result)
+        self.assertTrue(cache_valid_output in command_result)
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
 class TestParallelBuilds(DedupBuildIntegBase):
     template = "dedup-functions-template.yaml"
 
@@ -1346,12 +1414,12 @@ class TestParallelBuilds(DedupBuildIntegBase):
             ),
             (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
-            (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
+            (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
             # container
             (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
-            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
+            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
         ]
     )
@@ -1999,3 +2067,36 @@ class TestBuildWithZipFunctionsOrLayers(NestedBuildIntegBase):
                 [""],  # there is only one stack
                 command_result,
             )
+
+
+@skipIf(SKIP_SAR_TESTS, "Skip SAR tests")
+class TestBuildSAR(BuildIntegBase):
+    template = "aws-serverless-application-with-application-id-map.yaml"
+
+    @parameterized.expand(
+        [
+            ("use_container", "us-east-2"),
+            ("use_container", "eu-west-1"),
+            ("use_container", None),
+            (False, "us-east-2"),
+            (False, "eu-west-1"),
+            (False, None),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_sar_application_with_location_resolved_from_map(self, use_container, region):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        cmdlist = self.get_command_list(use_container=use_container, region=region)
+        LOG.info("Running Command: %s", cmdlist)
+        LOG.info(self.working_dir)
+        process_execute = run_command(cmdlist, cwd=self.working_dir)
+
+        if region == "us-east-2":  # Success [the !FindInMap contains an entry for use-east-2 region only]
+            self.assertEqual(process_execute.process.returncode, 0)
+        else:
+            # Using other regions or the default SAM CLI region (us-east-1, in case if None region given)
+            # will fail the build as there is no mapping
+            self.assertEqual(process_execute.process.returncode, 1)
+            self.assertIn("Property \\'ApplicationId\\' cannot be resolved.", str(process_execute.stderr))
