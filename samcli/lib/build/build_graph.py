@@ -3,6 +3,7 @@ Holds classes and utility methods related to build graph
 """
 
 import logging
+from copy import deepcopy
 from pathlib import Path
 from typing import Tuple, List, Any, Optional, Dict, cast
 from uuid import uuid4
@@ -323,9 +324,14 @@ class AbstractBuildDefinition:
     Build definition holds information about each unique build
     """
 
-    def __init__(self, source_md5: str) -> None:
+    def __init__(self, source_md5: str, env_vars: Optional[Dict] = None) -> None:
         self.uuid = str(uuid4())
         self.source_md5 = source_md5
+        self._env_vars = env_vars if env_vars else {}
+
+    @property
+    def env_vars(self) -> Dict:
+        return deepcopy(self._env_vars)
 
 
 class LayerBuildDefinition(AbstractBuildDefinition):
@@ -342,12 +348,11 @@ class LayerBuildDefinition(AbstractBuildDefinition):
         source_md5: str = "",
         env_vars: Optional[Dict] = None,
     ):
-        super().__init__(source_md5)
+        super().__init__(source_md5, env_vars)
         self.name = name
         self.codeuri = codeuri
         self.build_method = build_method
         self.compatible_runtimes = compatible_runtimes
-        self.env_vars = env_vars if env_vars else {}
         # Note(xinhol): In our code, we assume "layer" is never None. We should refactor
         # this and move "layer" out of LayerBuildDefinition to take advantage of type check.
         self.layer: LayerVersion = None  # type: ignore
@@ -398,12 +403,11 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         source_md5: str = "",
         env_vars: Optional[Dict] = None,
     ) -> None:
-        super().__init__(source_md5)
+        super().__init__(source_md5, env_vars)
         self.runtime = runtime
         self.codeuri = codeuri
         self.packagetype = packagetype
         self.metadata = metadata if metadata else {}
-        self.env_vars = env_vars if env_vars else {}
         self.functions: List[Function] = []
 
     def add_function(self, function: Function) -> None:
