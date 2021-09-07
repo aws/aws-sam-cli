@@ -57,7 +57,7 @@ class TestManagedStackDeploy(PackageIntegBase, DeployIntegBase):
         super().tearDown()
 
     @parameterized.expand(["aws-serverless-function.yaml"])
-    def test_managed_stack_creation(self, template_file):
+    def test_managed_stack_creation_resolve_s3(self, template_file):
         self._delete_managed_stack(self.cfn_client, self.s3_client)
         self.assertFalse(self._does_stack_exist(self.cfn_client, SAM_CLI_STACK_NAME))
 
@@ -80,6 +80,29 @@ class TestManagedStackDeploy(PackageIntegBase, DeployIntegBase):
 
         deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
+        self.assertTrue(self._does_stack_exist(self.cfn_client, SAM_CLI_STACK_NAME))
+
+    @parameterized.expand(["aws-serverless-function.yaml"])
+    def test_managed_stack_creation_guided(self, template_file):
+        self._delete_managed_stack(self.cfn_client, self.s3_client)
+        self.assertFalse(self._does_stack_exist(self.cfn_client, SAM_CLI_STACK_NAME))
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        # Package and Deploy in one go without confirming change set.
+        deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
+
+        deploy_process_execute = run_command_with_input(
+            deploy_command_list, "{}\n\n\n\n\n\n\n\n\n".format(stack_name).encode()
+        )
+
+        # Deploy should succeed with a managed stack
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+        self.stacks.append({"name": SAM_CLI_STACK_NAME})
+        # Remove samconfig.toml
+        os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
         self.assertTrue(self._does_stack_exist(self.cfn_client, SAM_CLI_STACK_NAME))
 
     def _method_to_stack_name(self, method_name):
