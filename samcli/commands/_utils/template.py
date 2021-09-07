@@ -47,7 +47,7 @@ def get_template_data(template_file, root_template_path: str = ""):
 
     # if template_file is a relative path , we use root_template_path to convert to absolute path
     if not os.path.isabs(template_file) and root_template_path:
-        template_file = os.path.join(root_template_path, template_file)
+        template_file = os.path.join(os.path.dirname(root_template_path), template_file)
 
     if not pathlib.Path(template_file).exists():
         raise TemplateNotFoundException("Template file not found at {}".format(template_file))
