@@ -449,3 +449,19 @@ class TestLambdaImage(TestCase):
         )
 
         docker_client_mock.images.remove.assert_not_called()
+
+    def test_is_rapid_image(self):
+        self.assertFalse(LambdaImage.is_rapid_image(None))
+        self.assertFalse(LambdaImage.is_rapid_image(""))
+        self.assertFalse(LambdaImage.is_rapid_image("my_repo"))
+        self.assertFalse(LambdaImage.is_rapid_image("my_repo:tag"))
+        self.assertTrue(LambdaImage.is_rapid_image("my_repo:rapid-1.29beta"))
+        self.assertFalse(
+            LambdaImage.is_rapid_image(f"public.ecr.aws/lambda/python:3.9")
+        )
+        self.assertFalse(
+            LambdaImage.is_rapid_image(f"public.ecr.aws/sam/emulation-python3.6:latest")
+        )
+        self.assertTrue(
+            LambdaImage.is_rapid_image(f"public.ecr.aws/sam/emulation-python3.6:rapid-1.29.0")
+        )
