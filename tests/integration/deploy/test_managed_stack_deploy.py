@@ -59,7 +59,7 @@ class TestManagedStackDeploy(PackageIntegBase, DeployIntegBase):
     @parameterized.expand(["aws-serverless-function.yaml"])
     def test_managed_stack_creation(self, template_file):
         self._delete_managed_stack(self.cfn_client, self.s3_client)
-        self.assertFalse(self._does_stack_exist(SAM_CLI_STACK_NAME))
+        self.assertFalse(self._does_stack_exist(self.cfn_client, SAM_CLI_STACK_NAME))
 
         template_path = self.test_data_path.joinpath(template_file)
 
@@ -80,7 +80,7 @@ class TestManagedStackDeploy(PackageIntegBase, DeployIntegBase):
 
         deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
-        self.assertTrue(self._does_stack_exist(SAM_CLI_STACK_NAME))
+        self.assertTrue(self._does_stack_exist(self.cfn_client, SAM_CLI_STACK_NAME))
 
     def _method_to_stack_name(self, method_name):
         """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
