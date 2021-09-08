@@ -1084,6 +1084,6 @@ class TestInvokeContext_get_stacks(TestCase):
         get_stacks_mock.assert_called_with(
             "template_file",
             parameter_overrides=None,
-            root_template_path=os.getcwd(),
+            root_template_dir=os.getcwd(),
             global_parameter_overrides={"AWS::Region": "my-custom-region"},
         )

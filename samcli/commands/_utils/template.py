@@ -5,6 +5,7 @@ import itertools
 import os
 import pathlib
 
+from typing import Optional
 import jmespath
 import yaml
 from botocore.utils import set_value_from_jmespath
@@ -29,7 +30,7 @@ class TemplateFailedParsingException(UserException):
     pass
 
 
-def get_template_data(template_file, root_template_path: str = ""):
+def get_template_data(template_file, root_template_dir: Optional[str] = None):
     """
     Read the template file, parse it as JSON/YAML and return the template as a dictionary.
 
@@ -37,17 +38,17 @@ def get_template_data(template_file, root_template_path: str = ""):
     ----------
     template_file : string
         Path to the template to read
-    root_template_path: string
-        Path of the root SAM Template
+    root_template_dir: string
+        Optional directory of the root SAM Template
 
     Returns
     -------
     Template data as a dictionary
     """
 
-    # if template_file is a relative path , we use root_template_path to convert to absolute path
-    if not os.path.isabs(template_file) and root_template_path:
-        template_file = os.path.join(os.path.dirname(root_template_path), template_file)
+    # if template_file is a relative path , we use root_template_dir to convert to absolute path
+    if not os.path.isabs(template_file) and root_template_dir:
+        template_file = os.path.join(root_template_dir, template_file)
 
     if not pathlib.Path(template_file).exists():
         raise TemplateNotFoundException("Template file not found at {}".format(template_file))

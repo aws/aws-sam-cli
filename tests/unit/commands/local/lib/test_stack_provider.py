@@ -59,7 +59,7 @@ class TestSamBuildableStackProvider(TestCase):
             "",
             "",
             parameter_overrides=None,
-            root_template_path=os.path.dirname(self.template_file),
+            root_template_dir=os.path.dirname(self.template_file),
         )
         self.assertListEqual(
             stacks,
@@ -95,7 +95,7 @@ class TestSamBuildableStackProvider(TestCase):
             grand_child_template_file: LEAF_TEMPLATE,
         }.get(t)
         stacks, remote_stack_full_paths = SamLocalStackProvider.get_stacks(
-            self.template_file, "", "", parameter_overrides=None, root_template_path=os.path.dirname(self.template_file)
+            self.template_file, "", "", parameter_overrides=None, root_template_dir=os.path.dirname(self.template_file)
         )
         self.assertListEqual(
             stacks,
