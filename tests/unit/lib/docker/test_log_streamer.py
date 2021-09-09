@@ -15,10 +15,10 @@ class TestLogStreamer(TestCase):
         self.image = "image:v1"
 
     def test_logstreamer_init(self):
-        LogStreamer(stream=self.stream, error_class=APIError)
+        LogStreamer(stream=self.stream)
 
     def test_logstreamer_stream_progress(self):
-        log_streamer = LogStreamer(stream=self.stream, error_class=APIError)
+        log_streamer = LogStreamer(stream=self.stream)
         log_streamer.stream_progress(
             iter(
                 [

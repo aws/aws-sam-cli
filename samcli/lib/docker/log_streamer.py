@@ -5,7 +5,6 @@ import os
 from typing import Dict
 
 import docker
-from docker.errors import APIError
 
 from samcli.lib.package.stream_cursor_utils import (
     CursorUpFormatter,
@@ -16,11 +15,14 @@ from samcli.lib.package.stream_cursor_utils import (
 from samcli.lib.utils.stream_writer import StreamWriter
 
 
+class LogStreamError(Exception):
+    def __init__(self, msg: str) -> None:
+        Exception.__init__(self, msg)
+
+
 class LogStreamer:
-    def __init__(self, stream: StreamWriter, error_class: APIError.__class__, error_msg_prefix=""):
+    def __init__(self, stream: StreamWriter):
         self._stream = stream
-        self._error_class = error_class
-        self._error_msg_prefix = error_msg_prefix
         self._cursor_up_formatter = CursorUpFormatter()
         self._cursor_down_formatter = CursorDownFormatter()
         self._cursor_left_formatter = CursorLeftFormatter()
@@ -40,7 +42,9 @@ class LogStreamer:
             error = log.get("error", "")
             change_cursor_count = 0
             if _id:
-                try:
+                if _id not in ids:
+                    ids[_id] = len(ids)
+                else:
                     curr_log_line_id = ids[_id]
                     change_cursor_count = len(ids) - curr_log_line_id
                     self._stream.write(
@@ -48,12 +52,8 @@ class LogStreamer:
                         + self._cursor_left_formatter.cursor_format(),
                         encode=True,
                     )
-                except KeyError:
-                    ids[_id] = len(ids)
-            else:
-                ids = dict()
 
-            self._stream_write(_id, status, stream, progress, error, self._error_class)
+            self._stream_write(_id, status, stream, progress, error)
 
             if _id:
                 self._stream.write(
@@ -63,9 +63,7 @@ class LogStreamer:
                 )
         self._stream.write(os.linesep, encode=True)
 
-    def _stream_write(
-        self, _id: str, status: str, stream: bytes, progress: str, error: str, error_class: APIError.__class__
-    ):
+    def _stream_write(self, _id: str, status: str, stream: bytes, progress: str, error: str):
         """
         Write stream information to stderr, if the stream information contains a log id,
         use the carriage return character to rewrite that particular line.
@@ -74,10 +72,9 @@ class LogStreamer:
         :param stream: stream, usually stderr
         :param progress: docker log progress
         :param error: docker log error
-        :param error_class: Exception class to raise
         """
         if error:
-            raise error_class(msg=self._error_msg_prefix + error if self._error_msg_prefix else error)
+            raise LogStreamError(msg=error)
         if not status and not stream:
             return
 

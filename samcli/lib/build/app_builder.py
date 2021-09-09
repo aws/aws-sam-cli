@@ -21,6 +21,7 @@ from samcli.lib.build.build_strategy import (
     ParallelBuildStrategy,
     BuildStrategy,
 )
+from samcli.lib.docker.log_streamer import LogStreamer, LogStreamError
 from samcli.lib.providers.provider import ResourcesToBuildCollector, Function, get_full_path, Stack, LayerVersion
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.lib.utils.colors import Colored
@@ -40,7 +41,6 @@ from .exceptions import (
     UnsupportedBuilderLibraryVersionError,
 )
 from .workflow_config import get_workflow_config, get_layer_subfolder, supports_build_in_container, CONFIG
-from ..docker.log_streamer import LogStreamer
 
 LOG = logging.getLogger(__name__)
 
@@ -367,8 +367,11 @@ class ApplicationBuilder:
         function_name str
             Name of the function that is being built
         """
-        build_log_streamer = LogStreamer(self._stream_writer, DockerBuildFailed, f"{function_name} failed to build: ")
-        build_log_streamer.stream_progress(build_logs)
+        build_log_streamer = LogStreamer(self._stream_writer)
+        try:
+            build_log_streamer.stream_progress(build_logs)
+        except LogStreamError as ex:
+            raise DockerBuildFailed(msg=f"{function_name} failed to build: {str(ex)}") from ex
 
     def _build_layer(
         self,

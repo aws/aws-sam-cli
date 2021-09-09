@@ -17,7 +17,7 @@ from samcli.commands.package.exceptions import (
     ECRAuthorizationError,
     DeleteArtifactFailedError,
 )
-from samcli.lib.docker.log_streamer import LogStreamer
+from samcli.lib.docker.log_streamer import LogStreamer, LogStreamError
 from samcli.lib.package.image_utils import tag_translation
 from samcli.lib.utils.osutils import stderr
 from samcli.lib.utils.stream_writer import StreamWriter
@@ -40,7 +40,7 @@ class ECRUploader:
         self.tag = tag
         self.auth_config = {}
         self.stream = StreamWriter(stream=stream, auto_flush=True)
-        self.log_streamer = LogStreamer(stream=self.stream, error_class=DockerPushFailedError)
+        self.log_streamer = LogStreamer(stream=self.stream)
         self.login_session_active = False
 
     def login(self):
@@ -85,7 +85,7 @@ class ECRUploader:
             )
             self.log_streamer.stream_progress(push_logs)
 
-        except (BuildError, APIError) as ex:
+        except (BuildError, APIError, LogStreamError) as ex:
             raise DockerPushFailedError(msg=str(ex)) from ex
 
         return f"{repository}:{_tag}"
