@@ -27,7 +27,6 @@ from samcli.lib.iac.plugins_interfaces import (
     LookupPath,
 )
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
-from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.commands._utils.resources import (
     METADATA_WITH_LOCAL_PATHS,
     RESOURCES_WITH_IMAGE_COMPONENT,
@@ -70,16 +69,7 @@ class CfnIacImplementation(IaCPluginInterface):
 
     def read_project(self, lookup_paths: List[LookupPath]) -> SamCliProject:
         stack = self._build_stack(self._template_file)
-        options = self._context.command_options_map
-        resolved_stack = SamBaseProvider.get_resolved_template_dict(
-            stack,
-            SamLocalStackProvider.merge_parameter_overrides(
-                options.get(PARAMETER_OVERRIDES), options.get(GLOBAL_PARAMETER_OVERRIDES)
-            ),
-            normalize_resource_metadata=False,
-        )
-
-        return SamCliProject([resolved_stack])
+        return SamCliProject([stack])
 
     def write_project(self, project: SamCliProject, build_dir: str) -> bool:
         # TODO
@@ -102,7 +92,15 @@ class CfnIacImplementation(IaCPluginInterface):
         stack = Stack(is_nested=is_nested, name=name, assets=assets, origin_dir=os.path.dirname(path))
 
         template_dict = get_template_data(path)
-        for key, value in template_dict.items():
+        options = self._context.command_options_map
+        resolved_stack = SamBaseProvider.get_resolved_template_dict(
+            template_dict,
+            SamLocalStackProvider.merge_parameter_overrides(
+                options.get(PARAMETER_OVERRIDES), options.get(GLOBAL_PARAMETER_OVERRIDES)
+            ),
+            normalize_resource_metadata=False,
+        )
+        for key, value in resolved_stack.items():
             stack[key] = value
 
         resources_section = stack.get("Resources", DictSection())
