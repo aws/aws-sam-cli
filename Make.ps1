@@ -85,7 +85,7 @@ param (
     # Update reproducable requirements.
     [Parameter(ParameterSetName = 'UpdateReproducibleReqs')]
     [switch]
-    $UpdateReproducibleReqs,
+    $UpdateReproducibleReqs
 )
 
 

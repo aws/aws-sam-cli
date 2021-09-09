@@ -26,7 +26,7 @@ param (
 {%- endif %}
     [Parameter(ParameterSetName = '{{ target | camel_case }}')]
     [switch]
-    ${{ target | camel_case }},
+    ${{ target | camel_case }}{{ "," if not loop.last else "" }}
 {%- endfor %}
 )
 
