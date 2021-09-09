@@ -26,14 +26,14 @@ param (
 {%- endif %}
     [Parameter(ParameterSetName = '{{ target | camel_case }}')]
     [switch]
-    ${{ target | camel_case }}{{ "," if not loop.last else "" }}
+    $Fn{{ target | camel_case }}{{ "," if not loop.last else "" }}
 {%- endfor %}
 )
 
 {% for target, contents in targets.items() %}
-function {{ target | camel_case }} {
+function Fn{{ target | camel_case }} {
 {%- for i in contents["prerequisites"] %}
-    {{ i | camel_case }}
+    Fn{{ i | camel_case }}
 {%- endfor -%}
 {% for command in contents["recipe"] %}
     {{ command }}
@@ -50,8 +50,8 @@ $env:SAM_CLI_DEV = 1
 try {
     switch ($true) {
 {% for target, contents in targets.items() %}
-        ${{ target | camel_case }} {
-            {{ target | camel_case }}
+        Fn${{ target | camel_case }} {
+            Fn{{ target | camel_case }}
         }
 {%- endfor %}
         default {

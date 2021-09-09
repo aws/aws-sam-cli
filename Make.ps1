@@ -25,130 +25,130 @@ param (
     # Format with black
     [Parameter(ParameterSetName = 'Black')]
     [switch]
-    $Black,
+    $FnBlack,
 
     # Perform format check
     [Parameter(ParameterSetName = 'BlackCheck')]
     [switch]
-    $BlackCheck,
+    $FnBlackCheck,
 
     # Command to run everytime you make changes to verify everything works
     [Parameter(ParameterSetName = 'Dev')]
     [switch]
-    $Dev,
+    $FnDev,
 
     # Verify function test coverage only for `samcli.local` package
     [Parameter(ParameterSetName = 'FuncTest')]
     [switch]
-    $FuncTest,
+    $FnFuncTest,
 
     # Install all dependencies
     [Parameter(ParameterSetName = 'Init')]
     [switch]
-    $Init,
+    $FnInit,
 
     # Run integration tests
     [Parameter(ParameterSetName = 'IntegTest')]
     [switch]
-    $IntegTest,
+    $FnIntegTest,
 
     # Linter performs static analysis to catch latent bugs and mypy performs type check
     [Parameter(ParameterSetName = 'Lint')]
     [switch]
-    $Lint,
+    $FnLint,
 
     # Verifications to run before sending a pull request
     [Parameter(ParameterSetName = 'Pr')]
     [switch]
-    $Pr,
+    $FnPr,
 
     # Run regression tests
     [Parameter(ParameterSetName = 'RegresTest')]
     [switch]
-    $RegresTest,
+    $FnRegresTest,
 
     # Smoke tests run in parallel
     [Parameter(ParameterSetName = 'SmokeTest')]
     [switch]
-    $SmokeTest,
+    $FnSmokeTest,
 
     # Run unit tests
     [Parameter(ParameterSetName = 'Test')]
     [switch]
-    $Test,
+    $FnTest,
 
     # Run unit tests with html coverage report
     [Parameter(ParameterSetName = 'TestCovReport')]
     [switch]
-    $TestCovReport,
+    $FnTestCovReport,
 
     # Update reproducable requirements.
     [Parameter(ParameterSetName = 'UpdateReproducibleReqs')]
     [switch]
-    $UpdateReproducibleReqs
+    $FnUpdateReproducibleReqs
 )
 
 
-function Black {
+function FnBlack {
     black setup.py samcli tests
 }
 
-function BlackCheck {
+function FnBlackCheck {
     black --check setup.py samcli tests
 }
 
-function Dev {
-    Lint
-    Test
+function FnDev {
+    FnLint
+    FnTest
 }
 
-function FuncTest {
+function FnFuncTest {
     # Verify function test coverage only for `samcli.local` package
     @echo Telemetry Status: $[SAM_CLI_TELEMETRY]
     pytest --cov samcli.local --cov samcli.commands.local --cov-report term-missing tests/functional
 }
 
-function Init {
+function FnInit {
     pip install -e '.[dev]'
 }
 
-function IntegTest {
+function FnIntegTest {
     # Integration tests don't need code coverage
     @echo Telemetry Status: $[SAM_CLI_TELEMETRY]
     pytest tests/integration
 }
 
-function Lint {
+function FnLint {
     pylint --rcfile .pylintrc samcli
     mypy setup.py samcli tests
 }
 
-function Pr {
-    Init
-    Dev
-    BlackCheck
+function FnPr {
+    FnInit
+    FnDev
+    FnBlackCheck
 }
 
-function RegresTest {
+function FnRegresTest {
     @echo Telemetry Status: $[SAM_CLI_TELEMETRY]
     pytest tests/regression
 }
 
-function SmokeTest {
+function FnSmokeTest {
     # Smoke tests run in parallel
     pytest -n 4 tests/smoke
 }
 
-function Test {
+function FnTest {
     # Fail if coverage falls below 95%
     pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit
 }
 
-function TestCovReport {
+function FnTestCovReport {
     pytest --cov samcli --cov-report html --cov-fail-under 95 tests/unit
 }
 
-function UpdateReproducibleReqs {
+function FnUpdateReproducibleReqs {
     python3.7 -m venv venv-update-reproducible-requirements
     venv-update-reproducible-requirements/bin/pip install --upgrade pip-tools pip
     venv-update-reproducible-requirements/bin/pip install -r requirements/base.txt
@@ -165,44 +165,44 @@ $env:SAM_CLI_DEV = 1
 try {
     switch ($true) {
 
-        $Black {
-            Black
+        Fn$Black {
+            FnBlack
         }
-        $BlackCheck {
-            BlackCheck
+        Fn$BlackCheck {
+            FnBlackCheck
         }
-        $Dev {
-            Dev
+        Fn$Dev {
+            FnDev
         }
-        $FuncTest {
-            FuncTest
+        Fn$FuncTest {
+            FnFuncTest
         }
-        $Init {
-            Init
+        Fn$Init {
+            FnInit
         }
-        $IntegTest {
-            IntegTest
+        Fn$IntegTest {
+            FnIntegTest
         }
-        $Lint {
-            Lint
+        Fn$Lint {
+            FnLint
         }
-        $Pr {
-            Pr
+        Fn$Pr {
+            FnPr
         }
-        $RegresTest {
-            RegresTest
+        Fn$RegresTest {
+            FnRegresTest
         }
-        $SmokeTest {
-            SmokeTest
+        Fn$SmokeTest {
+            FnSmokeTest
         }
-        $Test {
-            Test
+        Fn$Test {
+            FnTest
         }
-        $TestCovReport {
-            TestCovReport
+        Fn$TestCovReport {
+            FnTestCovReport
         }
-        $UpdateReproducibleReqs {
-            UpdateReproducibleReqs
+        Fn$UpdateReproducibleReqs {
+            FnUpdateReproducibleReqs
         }
         default {
             Get-Help ./Make
