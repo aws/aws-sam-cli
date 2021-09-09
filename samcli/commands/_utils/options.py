@@ -682,6 +682,21 @@ def role_arn_option(f):
     return role_arn_click_option()(f)
 
 
+def resolve_image_repos_click_option():
+    return click.option(
+        "--resolve-image-repos",
+        required=False,
+        is_flag=True,
+        help="Automatically create and delete ECR repositories for image-based functions in non-guided deployments. "
+        "A companion stack containing ECR repos for each function will be deployed along with the template stack. "
+        "Automatically created image repositories will be deleted if the corresponding functions are removed.",
+    )
+
+
+def resolve_image_repos_option(f):
+    return resolve_image_repos_click_option()(f)
+
+
 def _space_separated_list_func_type(value):
     if isinstance(value, str):
         return value.split(" ")

@@ -1,5 +1,4 @@
 """Test sam deploy command"""
-from samcli.lib.package.s3_uploader import S3Uploader
 from unittest import TestCase
 from unittest.mock import ANY, patch, MagicMock, Mock
 import tempfile

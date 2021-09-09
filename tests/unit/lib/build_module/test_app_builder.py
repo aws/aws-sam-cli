@@ -75,7 +75,14 @@ class TestApplicationBuilder_build(TestCase):
         build_layer_mock = Mock()
 
         def build_layer_return(
-            layer_name, layer_codeuri, layer_build_method, layer_compatible_runtimes, artifact_dir, layer_env_vars, dependencies_dir, download_dependencies
+            layer_name,
+            layer_codeuri,
+            layer_build_method,
+            layer_compatible_runtimes,
+            artifact_dir,
+            layer_env_vars,
+            dependencies_dir,
+            download_dependencies,
         ):
             return f"{layer_name}_location"
 
@@ -117,7 +124,7 @@ class TestApplicationBuilder_build(TestCase):
                     self.func1.metadata,
                     ANY,
                     ANY,
-                    True
+                    True,
                 ),
                 call(
                     self.func2.name,
@@ -129,7 +136,7 @@ class TestApplicationBuilder_build(TestCase):
                     self.func2.metadata,
                     ANY,
                     ANY,
-                    True
+                    True,
                 ),
                 call(
                     self.imageFunc1.name,
@@ -141,7 +148,7 @@ class TestApplicationBuilder_build(TestCase):
                     self.imageFunc1.metadata,
                     ANY,
                     ANY,
-                    True
+                    True,
                 ),
             ],
             any_order=False,
@@ -157,7 +164,7 @@ class TestApplicationBuilder_build(TestCase):
                     ANY,
                     ANY,
                     ANY,
-                    True
+                    True,
                 ),
                 call(
                     self.layer2.name,
@@ -167,7 +174,7 @@ class TestApplicationBuilder_build(TestCase):
                     ANY,
                     ANY,
                     ANY,
-                    True
+                    True,
                 ),
             ]
         )
@@ -273,7 +280,7 @@ class TestApplicationBuilder_build(TestCase):
                     function1_1.metadata,
                     ANY,
                     ANY,
-                    True
+                    True,
                 ),
                 call(
                     function2.name,
@@ -285,7 +292,7 @@ class TestApplicationBuilder_build(TestCase):
                     function2.metadata,
                     ANY,
                     ANY,
-                    True
+                    True,
                 ),
             ],
             any_order=True,
@@ -406,7 +413,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             "python3.8",
             None,
             None,
-            True
+            True,
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")

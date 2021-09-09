@@ -85,6 +85,17 @@ Resources:
             Auth:
              Authorizer: NONE
             Path: /cognito
+<<<<<<< HEAD
+=======
+        CognitoAnyMethod:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyApiWithCognitoAuth
+            Method: any
+            Auth:
+              Authorizer: NONE
+            Path: /any/cognito
+>>>>>>> cef0bfaaa544fcd4dd555b3ce6dcb9c76cc12839
         LambdaToken:
           Type: Api
           Properties:
@@ -93,6 +104,17 @@ Resources:
             Auth:
              Authorizer: NONE
             Path: /lambda-token
+<<<<<<< HEAD
+=======
+        LambdaTokenAnyMethod:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyApiWithLambdaTokenAuth
+            Method: any
+            Auth:
+              Authorizer: NONE
+            Path: /any/lambda-token
+>>>>>>> cef0bfaaa544fcd4dd555b3ce6dcb9c76cc12839
         LambdaRequest:
           Type: Api
           Properties:
@@ -101,6 +123,17 @@ Resources:
               Authorizer: NONE
             Method: get
             Path: /lambda-request
+<<<<<<< HEAD
+=======
+        LambdaRequestAnyMethod:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyApiWithLambdaRequestAuth
+            Auth:
+              Authorizer: NONE
+            Method: any
+            Path: /any/lambda-request
+>>>>>>> cef0bfaaa544fcd4dd555b3ce6dcb9c76cc12839
 
   MyUserPool:
     Type: AWS::Cognito::UserPool

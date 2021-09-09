@@ -8,6 +8,7 @@ import os
 import threading
 from pathlib import Path
 from typing import Sequence, Tuple, List, Any, Optional, Dict, cast, NamedTuple
+from copy import deepcopy
 from uuid import uuid4
 
 import tomlkit
@@ -162,6 +163,7 @@ class BuildHashingInformation(NamedTuple):
     """
     Holds hashing information for the source folder and the manifest file
     """
+
     source_md5: str
     manifest_md5: str
 
@@ -318,9 +320,7 @@ class BuildGraph:
         return content
 
     def _write_source_md5(
-            self,
-            function_content: Dict[str, BuildHashingInformation],
-            layer_content: Dict[str, BuildHashingInformation]
+        self, function_content: Dict[str, BuildHashingInformation], layer_content: Dict[str, BuildHashingInformation]
     ) -> None:
         """
         Helper to write source_md5 values to build.toml file
@@ -340,7 +340,9 @@ class BuildGraph:
                 function_build_definition = document[BuildGraph.FUNCTION_BUILD_DEFINITIONS][function_uuid]
                 function_build_definition[SOURCE_MD5_FIELD] = hashing_info.source_md5
                 function_build_definition[MANIFEST_MD5_FIELD] = hashing_info.manifest_md5
-                LOG.info("Updated source_md5 and manifest_md5 field in build.toml for function with UUID %s", function_uuid)
+                LOG.info(
+                    "Updated source_md5 and manifest_md5 field in build.toml for function with UUID %s", function_uuid
+                )
 
         for layer_uuid, hashing_info in layer_content.items():
             if layer_uuid in document.get(BuildGraph.LAYER_BUILD_DEFINITIONS, {}):
@@ -437,16 +439,21 @@ class AbstractBuildDefinition:
     Build definition holds information about each unique build
     """
 
-    def __init__(self, source_md5: str, manifest_md5: str) -> None:
+    def __init__(self, source_md5: str, manifest_md5: str, env_vars: Optional[Dict] = None) -> None:
         self.uuid = str(uuid4())
         self.source_md5 = source_md5
         self.manifest_md5 = manifest_md5
         # following properties are used during build time and they don't serialize into build.toml file
         self.download_dependencies: bool = True
+        self._env_vars = env_vars if env_vars else {}
 
     @property
     def dependencies_dir(self) -> str:
         return str(os.path.join(DEFAULT_DEPENDENCIES_DIR, self.uuid))
+
+    @property
+    def env_vars(self) -> Dict:
+        return deepcopy(self._env_vars)
 
 
 class LayerBuildDefinition(AbstractBuildDefinition):
@@ -464,12 +471,11 @@ class LayerBuildDefinition(AbstractBuildDefinition):
         manifest_md5: str = "",
         env_vars: Optional[Dict] = None,
     ):
-        super().__init__(source_md5, manifest_md5)
+        super().__init__(source_md5, manifest_md5, env_vars)
         self.name = name
         self.codeuri = codeuri
         self.build_method = build_method
         self.compatible_runtimes = compatible_runtimes
-        self.env_vars = env_vars if env_vars else {}
         # Note(xinhol): In our code, we assume "layer" is never None. We should refactor
         # this and move "layer" out of LayerBuildDefinition to take advantage of type check.
         self.layer: LayerVersion = None  # type: ignore
@@ -521,12 +527,11 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         manifest_md5: str = "",
         env_vars: Optional[Dict] = None,
     ) -> None:
-        super().__init__(source_md5, manifest_md5)
+        super().__init__(source_md5, manifest_md5, env_vars)
         self.runtime = runtime
         self.codeuri = codeuri
         self.packagetype = packagetype
         self.metadata = metadata if metadata else {}
-        self.env_vars = env_vars if env_vars else {}
         self.functions: List[Function] = []
 
     def add_function(self, function: Function) -> None:

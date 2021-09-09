@@ -13,8 +13,13 @@ from samcli.lib.utils.async_utils import AsyncContext
 from samcli.lib.utils.hash import dir_checksum
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.build.dependency_hash_generator import DependencyHashGenerator
-from samcli.lib.build.build_graph import BuildGraph, FunctionBuildDefinition, LayerBuildDefinition, \
-    AbstractBuildDefinition, DEFAULT_DEPENDENCIES_DIR
+from samcli.lib.build.build_graph import (
+    BuildGraph,
+    FunctionBuildDefinition,
+    LayerBuildDefinition,
+    AbstractBuildDefinition,
+    DEFAULT_DEPENDENCIES_DIR,
+)
 from samcli.lib.build.exceptions import MissingBuildMethodException
 
 LOG = logging.getLogger(__name__)
@@ -385,11 +390,11 @@ class IncrementalBuildStrategy(BuildStrategy):
     """
 
     def __init__(
-            self,
-            build_graph: BuildGraph,
-            delegate_build_strategy: BuildStrategy,
-            base_dir: str,
-            manifest_path_override: Optional[str],
+        self,
+        build_graph: BuildGraph,
+        delegate_build_strategy: BuildStrategy,
+        base_dir: str,
+        manifest_path_override: Optional[str],
     ):
         super().__init__(build_graph)
         self._delegate_build_strategy = delegate_build_strategy
@@ -408,27 +413,22 @@ class IncrementalBuildStrategy(BuildStrategy):
 
     def build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
         self._check_whether_manifest_is_changed(
-            layer_definition,
-            layer_definition.codeuri,
-            layer_definition.build_method
+            layer_definition, layer_definition.codeuri, layer_definition.build_method
         )
         return self._delegate_build_strategy.build_single_layer_definition(layer_definition)
 
     def _check_whether_manifest_is_changed(
-            self,
-            build_definition: AbstractBuildDefinition,
-            codeuri: Optional[str],
-            runtime: Optional[str],
+        self,
+        build_definition: AbstractBuildDefinition,
+        codeuri: Optional[str],
+        runtime: Optional[str],
     ) -> None:
         """
         Checks whether the manifest file have been changed by comparing its md5 with previously stored one and updates
         download_dependencies property of build definition to True, if it is changed
         """
         manifest_hash = DependencyHashGenerator(
-            cast(str, codeuri),
-            self._base_dir,
-            cast(str, runtime),
-            self._manifest_path_override
+            cast(str, codeuri), self._base_dir, cast(str, runtime), self._manifest_path_override
         ).hash
 
         is_manifest_changed = True
@@ -438,7 +438,7 @@ class IncrementalBuildStrategy(BuildStrategy):
                 build_definition.manifest_md5 = manifest_hash
                 LOG.info(
                     "Manifest is changed for %s, downloading dependencies and copying/building source",
-                    build_definition.uuid
+                    build_definition.uuid,
                 )
             else:
                 LOG.info("Manifest is not changed for %s, running incremental build", build_definition.uuid)
@@ -467,14 +467,14 @@ class CachedOrIncrementalBuildStrategyWrapper(BuildStrategy):
     }
 
     def __init__(
-            self,
-            build_graph: BuildGraph,
-            delegate_build_strategy: BuildStrategy,
-            base_dir: str,
-            build_dir: str,
-            cache_dir: str,
-            manifest_path_override: Optional[str],
-            is_building_specific_resource: bool,
+        self,
+        build_graph: BuildGraph,
+        delegate_build_strategy: BuildStrategy,
+        base_dir: str,
+        build_dir: str,
+        cache_dir: str,
+        manifest_path_override: Optional[str],
+        is_building_specific_resource: bool,
     ):
         super().__init__(build_graph)
         self._incremental_build_strategy = IncrementalBuildStrategy(
@@ -503,14 +503,14 @@ class CachedOrIncrementalBuildStrategyWrapper(BuildStrategy):
             LOG.debug(
                 "Running incremental build for runtime %s for build definition %s",
                 build_definition.runtime,
-                build_definition.uuid
+                build_definition.uuid,
             )
             return self._incremental_build_strategy.build_single_function_definition(build_definition)
 
         LOG.debug(
             "Running incremental build for runtime %s for build definition %s",
             build_definition.runtime,
-            build_definition.uuid
+            build_definition.uuid,
         )
         return self._cached_build_strategy.build_single_function_definition(build_definition)
 
@@ -519,14 +519,14 @@ class CachedOrIncrementalBuildStrategyWrapper(BuildStrategy):
             LOG.debug(
                 "Running incremental build for runtime %s for build definition %s",
                 layer_definition.build_method,
-                layer_definition.uuid
+                layer_definition.uuid,
             )
             return self._incremental_build_strategy.build_single_layer_definition(layer_definition)
 
         LOG.debug(
             "Running cached build for runtime %s for build definition %s",
             layer_definition.build_method,
-            layer_definition.uuid
+            layer_definition.uuid,
         )
         return self._cached_build_strategy.build_single_layer_definition(layer_definition)
 

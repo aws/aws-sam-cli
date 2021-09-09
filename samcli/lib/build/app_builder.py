@@ -31,7 +31,7 @@ from samcli.lib.utils.resources import (
 )
 from samcli.lib.providers.provider import ResourcesToBuildCollector, Function, get_full_path, Stack, LayerVersion
 from samcli.lib.utils.colors import Colored
-import samcli.lib.utils.osutils as osutils
+from samcli.lib.utils import osutils
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
@@ -637,7 +637,7 @@ class ApplicationBuilder:
                 mode=self._mode,
                 options=options,
                 dependencies_dir=dependencies_dir,
-                download_dependencies=download_dependencies
+                download_dependencies=download_dependencies,
             )
         except LambdaBuilderError as ex:
             raise BuildError(wrapped_from=ex.__class__.__name__, msg=str(ex)) from ex

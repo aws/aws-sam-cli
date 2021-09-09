@@ -19,11 +19,13 @@ _SAM_CLI_COMMAND_PACKAGES = [
     "samcli.commands.local.local",
     "samcli.commands.package",
     "samcli.commands.deploy",
+    "samcli.commands.delete",
     "samcli.commands.logs",
     "samcli.commands.publish",
     "samcli.commands.traces",
     "samcli.commands.sync",
     "samcli.commands.test",
+    "samcli.commands.pipeline.pipeline",
     # We intentionally do not expose the `bootstrap` command for now. We might open it up later
     # "samcli.commands.bootstrap",
 ]
