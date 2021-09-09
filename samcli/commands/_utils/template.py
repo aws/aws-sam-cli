@@ -46,7 +46,8 @@ def get_template_data(template_file, root_template_dir: Optional[str] = None):
     Template data as a dictionary
     """
 
-    # if template_file is a relative path , we use root_template_dir to convert to absolute path
+    # since we don't convert code path to absolute path in normalize_resource_path
+    # we need to convert it to absolute path if it is relative path
     if not os.path.isabs(template_file) and root_template_dir:
         template_file = os.path.join(root_template_dir, template_file)
 

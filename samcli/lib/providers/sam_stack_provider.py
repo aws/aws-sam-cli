@@ -367,6 +367,9 @@ class SamLocalStackProvider(SamBaseProvider):
             # absolute paths are not robust as relative paths. So here prefer to use relative path.
             stack_file_path = os.path.relpath(os.path.realpath(stack_file_path))
 
+        # we would like to get relative code path if the input code path is relative (because of a bug)
+        # so it would get resolved to correct value using --docker-volume-basedir option later
+        # TODO: figure out is it possible to combine this with resolve_code_path in codeuri.py
         if root_template_dir:
             return os.path.relpath(os.path.join(os.path.dirname(stack_file_path), path), root_template_dir)
 
