@@ -46,8 +46,9 @@ def get_template_data(template_file, root_template_dir: Optional[str] = None):
     Template data as a dictionary
     """
 
-    # since we don't convert code path to absolute path in normalize_resource_path
-    # we need to convert it to absolute path if it is relative path
+    # converting code path to absolute in normalize_resource_path will produce a bug
+    # it won't be resolved to correct value in resolve_code_path in codeuri.py later
+    # so we decided to convert it to absolute path here instead of in normalize_resource_path
     if not os.path.isabs(template_file) and root_template_dir:
         template_file = os.path.join(root_template_dir, template_file)
 
