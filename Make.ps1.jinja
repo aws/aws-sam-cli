@@ -24,9 +24,9 @@ param (
 {% if contents["description"] %}
     # {{ contents["description"] }}
 {%- endif %}
-    [Parameter(ParameterSetName = '{{ target | camel_case }}')]
+    [Parameter(ParameterSetName = 'Fn{{ target | camel_case }}')]
     [switch]
-    $Fn{{ target | camel_case }}{{ "," if not loop.last else "" }}
+    ${{ target | camel_case }}{{ "," if not loop.last else "" }}
 {%- endfor %}
 )
 
@@ -36,7 +36,11 @@ function Fn{{ target | camel_case }} {
     Fn{{ i | camel_case }}
 {%- endfor -%}
 {% for command in contents["recipe"] %}
+{%- if command[0] == "@" %}
+    {{ command[1:] }}
+{%- else %}
     {{ command }}
+{%- endif %}
 {%- endfor %}
 }
 {% endfor %}
@@ -50,7 +54,7 @@ $env:SAM_CLI_DEV = 1
 try {
     switch ($true) {
 {% for target, contents in targets.items() %}
-        Fn${{ target | camel_case }} {
+        ${{ target | camel_case }} {
             Fn{{ target | camel_case }}
         }
 {%- endfor %}

@@ -23,69 +23,69 @@ param (
 
 
     # Format with black
-    [Parameter(ParameterSetName = 'Black')]
+    [Parameter(ParameterSetName = 'FnBlack')]
     [switch]
-    $FnBlack,
+    $Black,
 
     # Perform format check
-    [Parameter(ParameterSetName = 'BlackCheck')]
+    [Parameter(ParameterSetName = 'FnBlackCheck')]
     [switch]
-    $FnBlackCheck,
+    $BlackCheck,
 
     # Command to run everytime you make changes to verify everything works
-    [Parameter(ParameterSetName = 'Dev')]
+    [Parameter(ParameterSetName = 'FnDev')]
     [switch]
-    $FnDev,
+    $Dev,
 
     # Verify function test coverage only for `samcli.local` package
-    [Parameter(ParameterSetName = 'FuncTest')]
+    [Parameter(ParameterSetName = 'FnFuncTest')]
     [switch]
-    $FnFuncTest,
+    $FuncTest,
 
     # Install all dependencies
-    [Parameter(ParameterSetName = 'Init')]
+    [Parameter(ParameterSetName = 'FnInit')]
     [switch]
-    $FnInit,
+    $Init,
 
     # Run integration tests
-    [Parameter(ParameterSetName = 'IntegTest')]
+    [Parameter(ParameterSetName = 'FnIntegTest')]
     [switch]
-    $FnIntegTest,
+    $IntegTest,
 
     # Linter performs static analysis to catch latent bugs and mypy performs type check
-    [Parameter(ParameterSetName = 'Lint')]
+    [Parameter(ParameterSetName = 'FnLint')]
     [switch]
-    $FnLint,
+    $Lint,
 
     # Verifications to run before sending a pull request
-    [Parameter(ParameterSetName = 'Pr')]
+    [Parameter(ParameterSetName = 'FnPr')]
     [switch]
-    $FnPr,
+    $Pr,
 
     # Run regression tests
-    [Parameter(ParameterSetName = 'RegresTest')]
+    [Parameter(ParameterSetName = 'FnRegresTest')]
     [switch]
-    $FnRegresTest,
+    $RegresTest,
 
     # Smoke tests run in parallel
-    [Parameter(ParameterSetName = 'SmokeTest')]
+    [Parameter(ParameterSetName = 'FnSmokeTest')]
     [switch]
-    $FnSmokeTest,
+    $SmokeTest,
 
     # Run unit tests
-    [Parameter(ParameterSetName = 'Test')]
+    [Parameter(ParameterSetName = 'FnTest')]
     [switch]
-    $FnTest,
+    $Test,
 
     # Run unit tests with html coverage report
-    [Parameter(ParameterSetName = 'TestCovReport')]
+    [Parameter(ParameterSetName = 'FnTestCovReport')]
     [switch]
-    $FnTestCovReport,
+    $TestCovReport,
 
     # Update reproducable requirements.
-    [Parameter(ParameterSetName = 'UpdateReproducibleReqs')]
+    [Parameter(ParameterSetName = 'FnUpdateReproducibleReqs')]
     [switch]
-    $FnUpdateReproducibleReqs
+    $UpdateReproducibleReqs
 )
 
 
@@ -104,7 +104,7 @@ function FnDev {
 
 function FnFuncTest {
     # Verify function test coverage only for `samcli.local` package
-    @echo Telemetry Status: $[SAM_CLI_TELEMETRY]
+    echo Telemetry Status: $[SAM_CLI_TELEMETRY]
     pytest --cov samcli.local --cov samcli.commands.local --cov-report term-missing tests/functional
 }
 
@@ -114,7 +114,7 @@ function FnInit {
 
 function FnIntegTest {
     # Integration tests don't need code coverage
-    @echo Telemetry Status: $[SAM_CLI_TELEMETRY]
+    echo Telemetry Status: $[SAM_CLI_TELEMETRY]
     pytest tests/integration
 }
 
@@ -130,7 +130,7 @@ function FnPr {
 }
 
 function FnRegresTest {
-    @echo Telemetry Status: $[SAM_CLI_TELEMETRY]
+    echo Telemetry Status: $[SAM_CLI_TELEMETRY]
     pytest tests/regression
 }
 
@@ -165,43 +165,43 @@ $env:SAM_CLI_DEV = 1
 try {
     switch ($true) {
 
-        Fn$Black {
+        $Black {
             FnBlack
         }
-        Fn$BlackCheck {
+        $BlackCheck {
             FnBlackCheck
         }
-        Fn$Dev {
+        $Dev {
             FnDev
         }
-        Fn$FuncTest {
+        $FuncTest {
             FnFuncTest
         }
-        Fn$Init {
+        $Init {
             FnInit
         }
-        Fn$IntegTest {
+        $IntegTest {
             FnIntegTest
         }
-        Fn$Lint {
+        $Lint {
             FnLint
         }
-        Fn$Pr {
+        $Pr {
             FnPr
         }
-        Fn$RegresTest {
+        $RegresTest {
             FnRegresTest
         }
-        Fn$SmokeTest {
+        $SmokeTest {
             FnSmokeTest
         }
-        Fn$Test {
+        $Test {
             FnTest
         }
-        Fn$TestCovReport {
+        $TestCovReport {
             FnTestCovReport
         }
-        Fn$UpdateReproducibleReqs {
+        $UpdateReproducibleReqs {
             FnUpdateReproducibleReqs
         }
         default {
