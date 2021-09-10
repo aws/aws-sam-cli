@@ -78,9 +78,9 @@ class TestXRayServiceGraphPuller(TestCase):
         patched_xray_service_graph_event.assert_not_called()
         self.consumer.consume.assert_not_called()
 
-    @patch("samcli.lib.observability.xray_traces.xray_service_graph_event_puller.time")
-    @patch("samcli.lib.observability.xray_traces.xray_service_graph_event_puller.to_timestamp")
-    @patch("samcli.lib.observability.xray_traces.xray_service_graph_event_puller.to_datetime")
+    @patch("samcli.lib.observability.xray_traces.xray_event_puller.time")
+    @patch("samcli.lib.observability.xray_traces.xray_event_puller.to_timestamp")
+    @patch("samcli.lib.observability.xray_traces.xray_event_puller.to_datetime")
     def test_tail_with_no_data(self, patched_to_datetime, patched_to_timestamp, patched_time):
         start_time = Mock()
 
@@ -99,9 +99,9 @@ class TestXRayServiceGraphPuller(TestCase):
 
             patched_load_time_period.assert_has_calls([call(ANY, ANY) for _ in range(self.max_retries)])
 
-    @patch("samcli.lib.observability.xray_traces.xray_service_graph_event_puller.time")
-    @patch("samcli.lib.observability.xray_traces.xray_service_graph_event_puller.to_timestamp")
-    @patch("samcli.lib.observability.xray_traces.xray_service_graph_event_puller.to_datetime")
+    @patch("samcli.lib.observability.xray_traces.xray_event_puller.time")
+    @patch("samcli.lib.observability.xray_traces.xray_event_puller.to_timestamp")
+    @patch("samcli.lib.observability.xray_traces.xray_event_puller.to_datetime")
     def test_tail_with_with_data(self, patched_to_datetime, patched_to_timestamp, patched_time):
         start_time = Mock()
         given_start_time = 5
@@ -128,7 +128,7 @@ class TestXRayServiceGraphPuller(TestCase):
 
                 patched_load_time_period.assert_has_calls([call(ANY, ANY) for _ in range(self.max_retries + 1)])
 
-    @patch("samcli.lib.observability.xray_traces.xray_service_graph_event_puller.time")
+    @patch("samcli.lib.observability.xray_traces.xray_event_puller.time")
     def test_with_throttling(self, patched_time):
         with patch.object(
             self.xray_service_graph_puller, "load_time_period", wraps=self.xray_service_graph_puller.load_time_period
