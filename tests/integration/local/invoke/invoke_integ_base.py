@@ -21,6 +21,7 @@ class InvokeIntegBase(TestCase):
         cls.event_path = str(cls.test_data_path.joinpath("invoke", "event.json"))
         cls.event_utf8_path = str(cls.test_data_path.joinpath("invoke", "event_utf8.json"))
         cls.env_var_path = str(cls.test_data_path.joinpath("invoke", "vars.json"))
+        cls.docker_volume_basedir = str(cls.test_data_path.joinpath("invoke", "nested-templates"))
 
     @staticmethod
     def get_integ_dir():
@@ -46,6 +47,7 @@ class InvokeIntegBase(TestCase):
         profile=None,
         layer_cache=None,
         docker_network=None,
+        docker_volume_basedir=None,
     ):
         command_list = [self.cmd, "local", "invoke", function_to_invoke]
 
@@ -78,6 +80,9 @@ class InvokeIntegBase(TestCase):
 
         if region:
             command_list = command_list + ["--region", region]
+
+        if docker_volume_basedir:
+            command_list = command_list + ["--docker-volume-basedir", docker_volume_basedir]
 
         return command_list
 
