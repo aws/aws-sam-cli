@@ -626,19 +626,17 @@ class ApplicationBuilder:
 
         runtime = runtime.replace(".al2", "")
 
+        kwargs = {
+            "runtime": runtime,
+            "executable_search_paths": config.executable_search_paths,
+            "mode": self._mode,
+            "options": options,
+            "dependencies_dir": dependencies_dir,
+            "download_dependencies": download_dependencies,
+        }
+
         try:
-            builder.build(
-                source_dir,
-                artifacts_dir,
-                scratch_dir,
-                manifest_path,
-                runtime=runtime,
-                executable_search_paths=config.executable_search_paths,
-                mode=self._mode,
-                options=options,
-                dependencies_dir=dependencies_dir,
-                download_dependencies=download_dependencies,
-            )
+            builder.build(source_dir, artifacts_dir, scratch_dir, manifest_path, **kwargs)
         except LambdaBuilderError as ex:
             raise BuildError(wrapped_from=ex.__class__.__name__, msg=str(ex)) from ex
 
