@@ -10,7 +10,10 @@ from typing import List, Optional, Dict, cast, Union
 
 import docker
 import docker.errors
-from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
+from aws_lambda_builders import (
+    RPC_PROTOCOL_VERSION as lambda_builders_protocol_version,
+    __version__ as lambda_builders_version,
+)
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
@@ -631,9 +634,11 @@ class ApplicationBuilder:
             "executable_search_paths": config.executable_search_paths,
             "mode": self._mode,
             "options": options,
-            "dependencies_dir": dependencies_dir,
-            "download_dependencies": download_dependencies,
         }
+        # todo: remove this check once the lambda builder release is finished
+        if lambda_builders_version == "1.8.0":
+            kwargs["dependencies_dir"] = dependencies_dir
+            kwargs["download_dependencies"] = download_dependencies
 
         try:
             builder.build(source_dir, artifacts_dir, scratch_dir, manifest_path, **kwargs)
