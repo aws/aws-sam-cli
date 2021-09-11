@@ -1,35 +1,30 @@
 import json
-import shutil
-import os
-import copy
-import tempfile
 from distutils.dir_util import copy_tree
-from unittest import skipIf
 
-from parameterized import parameterized, parameterized_class
 from subprocess import Popen, PIPE, TimeoutExpired
 from timeit import default_timer as timer
 import pytest
-import docker
 
-from tests.integration.local.invoke.layer_utils import LayerUtils
-from .invoke_integ_base import InvokeIntegBase, CDKInvokeIntegPythonBase
-from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
+from .invoke_integ_base import CDKInvokeIntegPythonBase
+from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 
 # Layers tests require credentials and Appveyor will only add credentials to the env if the PR is from the same repo.
-# This is to restrict layers tests to run outside of Appveyor, when the branch is not master and tests are not run by Canary.
+# This is to restrict layers tests to run outside of Appveyor,
+# when the branch is not master and tests are not run by Canary.
 SKIP_LAYERS_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
-from pathlib import Path
 
 TIMEOUT = 300
 
 
 class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
+    def setUp(self):
+        super().setUp()
+        self.construct_definition_path = self.test_data_path.joinpath("cdk", "python", "aws-lambda-function")
+        copy_tree(self.construct_definition_path, self.working_dir)
+
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returncode_is_zero(self):
-        test_data_path = self.test_data_path.joinpath("cdk", "python", "aws-lambda-function")
-        copy_tree(test_data_path, self.working_dir)
         command_list = self.get_command_list(
             "AwsLambdaFunctionStack/helloworld-serverless-function", event_path=self.event_path
         )
@@ -44,8 +39,6 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_utf8_event(self):
-        test_data_path = self.test_data_path.joinpath("cdk", "python", "aws-lambda-function")
-        copy_tree(test_data_path, self.working_dir)
         command_list = self.get_command_list(
             "AwsLambdaFunctionStack/helloworld-serverless-function", event_path=self.event_utf8_path
         )
@@ -60,9 +53,7 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
         self.assertEqual(process.returncode, 0)
 
     @pytest.mark.flaky(reruns=3)
-    def test_invoke_returns_execpted_results(self):
-        test_data_path = self.test_data_path.joinpath("cdk", "python", "aws-lambda-function")
-        copy_tree(test_data_path, self.working_dir)
+    def test_invoke_returns_expected_results(self):
         command_list = self.get_command_list(
             "AwsLambdaFunctionStack/helloworld-serverless-function", event_path=self.event_path
         )
@@ -79,8 +70,6 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_timeout_set(self):
-        test_data_path = self.test_data_path.joinpath("cdk", "python", "aws-lambda-function")
-        copy_tree(test_data_path, self.working_dir)
         command_list = self.get_command_list("AwsLambdaFunctionStack/timeout-function", event_path=self.event_path)
 
         start = timer()
@@ -110,8 +99,6 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_env_vars(self):
-        test_data_path = self.test_data_path.joinpath("cdk", "python", "aws-lambda-function")
-        copy_tree(test_data_path, self.working_dir)
         command_list = self.get_command_list(
             "AwsLambdaFunctionStack/custom-env-vars-function", event_path=self.event_path
         )
@@ -127,8 +114,6 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_when_function_writes_stdout(self):
-        test_data_path = self.test_data_path.joinpath("cdk", "python", "aws-lambda-function")
-        copy_tree(test_data_path, self.working_dir)
         command_list = self.get_command_list(
             "AwsLambdaFunctionStack/write-to-stdout-function", event_path=self.event_path
         )
@@ -148,8 +133,6 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_when_function_writes_stderr(self):
-        test_data_path = self.test_data_path.joinpath("cdk", "python", "aws-lambda-function")
-        copy_tree(test_data_path, self.working_dir)
         command_list = self.get_command_list(
             "AwsLambdaFunctionStack/write-to-stderr-function", event_path=self.event_path
         )
@@ -167,8 +150,6 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returns_expected_result_when_no_event_given(self):
-        test_data_path = self.test_data_path.joinpath("cdk", "python", "aws-lambda-function")
-        copy_tree(test_data_path, self.working_dir)
         command_list = self.get_command_list("AwsLambdaFunctionStack/echo-event-function")
         process = Popen(command_list, stdout=PIPE, cwd=self.working_dir)
         try:
@@ -184,8 +165,6 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_parameters_overrides(self):
-        test_data_path = self.test_data_path.joinpath("cdk", "python", "aws-lambda-function")
-        copy_tree(test_data_path, self.working_dir)
         command_list = self.get_command_list(
             "AwsLambdaFunctionStack/echo-env-with-parameters",
             event_path=self.event_path,
@@ -202,3 +181,37 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
         self.assertIsNone(environ.get("TimeOut"))
         self.assertEqual(environ["MyRuntimeVersion"], "v0")
         self.assertEqual(environ["EmptyDefaultParameter"], "")
+
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_returns_expected_results_python_function_construct(self):
+        command_list = self.get_command_list(
+            "AwsLambdaFunctionStack/python-function-construct", event_path=self.event_path
+        )
+
+        process = Popen(command_list, stdout=PIPE, cwd=self.working_dir)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip()
+        self.assertEqual(process_stdout.decode("utf-8"), '"Hello world"')
+
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_returns_expected_results_docker_lambda_construct(self):
+        command_list = self.get_command_list(
+            "AwsLambdaFunctionStack/lambda-docker-function", event_path=self.event_path
+        )
+
+        process = Popen(command_list, stdout=PIPE, cwd=self.working_dir)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip()
+        out = json.loads(process_stdout)
+
+        self.assertEqual(json.loads(out.get("body")).get("message"), "Hello world from Docker!")

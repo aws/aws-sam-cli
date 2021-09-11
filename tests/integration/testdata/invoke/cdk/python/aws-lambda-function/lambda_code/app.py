@@ -1,19 +1,20 @@
-import json
 import os
 import sys
 
 
 def handler(event, context):
-    print ("value1 = " + event["key1"])
-    print ("value2 = " + event["key2"])
-    print ("value3 = " + event["key3"])
+    print("value1 = " + event["key1"])
+    print("value2 = " + event["key2"])
+    print("value3 = " + event["key3"])
 
     sys.stdout.write("Docker Lambda is writing to stderr")
 
     return "Hello world"
 
+
 def timeout_handler(event, context):
     return ""
+
 
 def custom_env_var_echo_handler(event, context):
     return os.environ.get("CustomEnvVar")
@@ -30,8 +31,10 @@ def write_to_stderr(event, context):
 
     return "wrote to stderr"
 
+
 def echo_event(event, context):
     return event
+
 
 def parameter_echo_handler(event, context):
     return dict(os.environ)

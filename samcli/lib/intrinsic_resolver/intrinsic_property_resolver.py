@@ -257,7 +257,7 @@ class IntrinsicResolver:
         return processed_template
 
     def resolve_resources_assets(self, ignore_errors):
-        for _, resource in self._resources.items():
+        for logical_id, resource in self._resources.items():
             if isinstance(resource, Resource):
                 for asset in resource.assets:
                     if isinstance(asset, S3Asset):
@@ -270,9 +270,8 @@ class IntrinsicResolver:
                                 asset.source_local_image, ignore_errors, parent_function=asset.source_property
                             )
                         else:
-                            asset.source_path = self.intrinsic_property_resolver(
-                                asset.source_path, ignore_errors, parent_function=asset.source_property
-                            )
+                            image_tag = asset.image_tag
+                            asset.source_local_image = f"{logical_id}:{image_tag}"
 
     def resolve_attribute(self, cloud_formation_property, ignore_errors=False):
         """
