@@ -1749,6 +1749,7 @@ class TestCFNTemplateWithRestApiAndHttpApiGateways(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"operation_name": "MyOperationName"})
 
+
 class TestCFNTemplateHttpApiWithSwaggerBody(StartApiIntegBaseClass):
     template_path = "/testdata/start_api/cfn-http-api-with-swagger-body.yaml"
 
@@ -1768,7 +1769,6 @@ class TestCFNTemplateHttpApiWithSwaggerBody(StartApiIntegBaseClass):
         # operationName or operationId shouldn't be processed by Httpapi swaggers
         self.assertIsNone(response_data.get("requestContext", {}).get("operationName"))
         self.assertIsNone(response_data.get("requestContext", {}).get("operationId"))
-
 
 
 class TestWarmContainersBaseClass(StartApiIntegBaseClass):
