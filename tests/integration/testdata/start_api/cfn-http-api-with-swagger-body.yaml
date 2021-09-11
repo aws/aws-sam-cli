@@ -61,6 +61,7 @@ Resources:
           /echoeventbody:
             get:
               responses: {}
+              operationId: 'postOperationIdShouldNotBeInHttpApi'
               x-amazon-apigateway-integration:
                 httpMethod: POST
                 payloadFormatVersion: '2.0'
@@ -76,6 +77,7 @@ Resources:
           - x-apigateway-header
           allowMethods:
           - GET
+          - POST
           allowOrigins:
           - https://example.com
           maxAge: 600
