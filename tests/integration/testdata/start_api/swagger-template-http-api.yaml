@@ -73,7 +73,7 @@ Resources:
             get:
               responses: {}
               x-amazon-apigateway-integration:
-                operationid: 'OperationNameShouldNotAppear'
+                operationId: 'OperationNameShouldNotAppear'
                 httpMethod: GET
                 type: aws_proxy
                 payloadFormatVersion: '1.0'

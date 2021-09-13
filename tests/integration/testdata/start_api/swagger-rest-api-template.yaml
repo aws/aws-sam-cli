@@ -75,7 +75,7 @@ Resources:
           "/printeventwithoperationidfunction":
             get:
               x-amazon-apigateway-integration:
-                operationid: 'MyOperationName'
+                operationId: 'MyOperationName'
                 httpMethod: POST
                 type: aws_proxy
                 uri:

@@ -825,7 +825,7 @@ class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
         response = requests.get(self.url + "/printeventwithoperationidfunction", timeout=300)
         self.assertEqual(response.status_code, 200)
         response_data = response.json()
-        self.assertIsNone(response_data.get("requestContext", {}).get("operationId"), "MyOperationName")
+        self.assertEqual(response_data.get("requestContext", {}).get("operationName"), "MyOperationName")
 
 
 class TestServiceResponses(StartApiIntegBaseClass):

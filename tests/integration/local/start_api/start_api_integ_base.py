@@ -52,7 +52,6 @@ class StartApiIntegBaseClass(TestCase):
                 ["ParameterKey={},ParameterValue={}".format(key, value) for key, value in cls.build_overrides.items()]
             )
             command_list += ["--parameter-overrides", overrides_arg]
-        command_list += ["--debug"]
         working_dir = str(Path(cls.template).resolve().parents[0])
         run_command(command_list, cwd=working_dir)
 

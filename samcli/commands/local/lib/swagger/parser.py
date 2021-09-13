@@ -87,13 +87,19 @@ class SwaggerParser:
                     # Convert to a more commonly used method notation
                     method = self._ANY_METHOD
                 payload_format_version = self._get_payload_format_version(method_config)
+                # The OperationName is only sent to the Lambda Function from API Gateway V1(Rest API).
+                # For Http Apis (v2), API Gateway never sends the OperationName.
+                if event_type == Route.API:
+                    operation_id = self._get_operation_id(method_config)
+                else:
+                    operation_id = None
                 route = Route(
                     function_name,
                     full_path,
                     methods=[method],
                     event_type=event_type,
                     payload_format_version=payload_format_version,
-                    operation_name=method_config.get("operationId"),
+                    operation_name=operation_id,
                     stack_path=self.stack_path,
                 )
                 result.append(route)
@@ -169,3 +175,23 @@ class SwaggerParser:
             return None
 
         return integration.get("payloadFormatVersion")
+
+    def _get_operation_id(self, method_config):
+        """
+        Get the "operationId" from the Integration defined in the method configuration.
+
+        Parameters
+        ----------
+        method_config : dict
+            Dictionary containing the method configuration which might contain integration settings
+
+        Returns
+        -------
+        string or None
+            Payload format version, if exists. None, if not.
+        """
+        integration = self._get_integration(method_config)
+        if integration is None:
+            return None
+
+        return integration.get("operationId")
