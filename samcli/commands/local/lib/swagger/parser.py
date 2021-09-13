@@ -169,23 +169,3 @@ class SwaggerParser:
             return None
 
         return integration.get("payloadFormatVersion")
-
-    def _get_operation_id(self, method_config):
-        """
-        Get the "operationId" from the Integration defined in the method configuration.
-
-        Parameters
-        ----------
-        method_config : dict
-            Dictionary containing the method configuration which might contain integration settings
-
-        Returns
-        -------
-        string or None
-            Payload format version, if exists. None, if not.
-        """
-        integration = self._get_integration(method_config)
-        if integration is None:
-            return None
-
-        return integration.get("operationId")
