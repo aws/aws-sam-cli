@@ -90,7 +90,7 @@ class SwaggerParser:
                 # The OperationName is only sent to the Lambda Function from API Gateway V1(Rest API).
                 # For Http Apis (v2), API Gateway never sends the OperationName.
                 if event_type == Route.API:
-                    operation_id = self._get_operation_id(method_config)
+                    operation_id = method_config.get("operationId")
                 else:
                     operation_id = None
                 route = Route(

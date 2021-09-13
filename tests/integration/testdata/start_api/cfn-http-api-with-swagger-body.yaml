@@ -77,7 +77,6 @@ Resources:
           - x-apigateway-header
           allowMethods:
           - GET
-          - POST
           allowOrigins:
           - https://example.com
           maxAge: 600
