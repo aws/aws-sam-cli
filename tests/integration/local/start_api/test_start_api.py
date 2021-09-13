@@ -824,8 +824,7 @@ class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
         """
         response = requests.get(self.url + "/printeventwithoperationidfunction", timeout=300)
         self.assertEqual(response.status_code, 200)
-        response_data = response.json()
-        self.assertEqual(response_data.get("requestContext", {}).get("operationName"), "MyOperationName")
+        self.assertEqual(response.json().get("requestContext", {}).get("operationName"), "MyOperationName")
 
 
 class TestServiceResponses(StartApiIntegBaseClass):
@@ -1732,7 +1731,10 @@ class TestCFNTemplateWithRestApiAndHttpApiGateways(StartApiIntegBaseClass):
         response = requests.get(self.url + "/http-api-with-operation-name", timeout=300)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"operation_name": "MyOperationName"})
+        response_data = response.json()
+        # operationName or operationId shouldn't be processed by Httpapi
+        self.assertIsNone(response_data.get("requestContext", {}).get("operationName"))
+        self.assertIsNone(response_data.get("requestContext", {}).get("operationId"))
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
