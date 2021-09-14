@@ -1,6 +1,6 @@
 # Cookiecutter SAM for dotNet based Lambda functions
 
-This is a [Cookiecutter](https://github.com/audreyr/cookiecutter) template to create a Serverless Hello World App based on Serverless Application Model (SAM) and dotnet 2.0.
+This is a [Cookiecutter](https://github.com/audreyr/cookiecutter) template to create a Serverless Hello World App based on Serverless Application Model (SAM) and dotnet 3.1.
 
 It is important to note that you should not try to `git clone` this project but use `cookiecutter` CLI instead as ``{{cookiecutter.project_name}}`` will be rendered based on your input and therefore all variables and files will be rendered properly.
 

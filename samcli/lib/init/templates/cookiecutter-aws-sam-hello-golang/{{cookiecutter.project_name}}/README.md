@@ -4,9 +4,9 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 
 ```bash
 .
+├── Makefile                    <-- Make to automate build
 ├── README.md                   <-- This instructions file
 ├── hello-world                 <-- Source code for a lambda function
-│   ├── go.mod                  <-- Go dependency definitions
 │   ├── main.go                 <-- Lambda function code
 │   └── main_test.go            <-- Unit tests
 └── template.yaml
@@ -17,10 +17,20 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 * AWS CLI already configured with Administrator permission
 * [Docker installed](https://www.docker.com/community-edition)
 * [Golang](https://golang.org)
+* SAM CLI - [Install the SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
 
-### Building
+## Setup process
 
-Golang is a statically compiled language, meaning that in order to run it you have to build the executable target. Ensure your `go.mod` file in your application directory has all of your dependencies, and simply run `sam build` to build your application using Go modules.
+### Installing dependencies & building the target 
+
+In this example we use the built-in `sam build` to automatically download all the dependencies and package our build target.   
+Read more about [SAM Build here](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-build.html) 
+
+The `sam build` command is wrapped inside of the `Makefile`. To execute this simply run
+ 
+```shell
+make
+```
 
 ### Local development
 
@@ -46,7 +56,7 @@ Events:
 
 ## Packaging and deployment
 
-AWS Lambda Python runtime requires a flat folder with all dependencies including the application. SAM will use `CodeUri` property to know where to look up for both application and dependencies:
+AWS Lambda Golang runtime requires a flat folder with the executable generated on build step. SAM will use `CodeUri` property to know where to look up for the application:
 
 ```yaml
 ...

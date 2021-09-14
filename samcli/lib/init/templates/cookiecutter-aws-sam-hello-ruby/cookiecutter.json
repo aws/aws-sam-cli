@@ -1,4 +1,4 @@
 {
     "project_name": "Name of the project",
-    "runtime": "ruby2.5"
+    "runtime": "ruby2.7"
 }

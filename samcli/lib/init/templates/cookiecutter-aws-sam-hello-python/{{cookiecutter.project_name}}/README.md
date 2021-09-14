@@ -20,6 +20,7 @@ The AWS Toolkit is an open source plug-in for popular IDEs that uses the SAM CLI
 * [PhpStorm](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
 * [PyCharm](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
 * [RubyMine](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
+* [DataGrip](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
 * [VS Code](https://docs.aws.amazon.com/toolkit-for-vscode/latest/userguide/welcome.html)
 * [Visual Studio](https://docs.aws.amazon.com/toolkit-for-visual-studio/latest/user-guide/welcome.html)
 
@@ -30,17 +31,13 @@ The Serverless Application Model Command Line Interface (SAM CLI) is an extensio
 To use the SAM CLI, you need the following tools.
 
 * SAM CLI - [Install the SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
-{%- if cookiecutter.runtime == 'python2.7' %}
-* [Python 2.7 installed](https://www.python.org/downloads/)
-{%- else %}
 * [Python 3 installed](https://www.python.org/downloads/)
-{%- endif %}
 * Docker - [Install Docker community edition](https://hub.docker.com/search/?type=edition&offering=community)
 
 To build and deploy your application for the first time, run the following in your shell:
 
 ```bash
-sam build
+sam build --use-container
 sam deploy --guided
 ```
 
@@ -56,10 +53,10 @@ You can find your API Gateway Endpoint URL in the output values displayed after 
 
 ## Use the SAM CLI to build and test locally
 
-Build your application with the `sam build` command.
+Build your application with the `sam build --use-container` command.
 
 ```bash
-{{ cookiecutter.project_name }}$ sam build
+{{ cookiecutter.project_name }}$ sam build --use-container
 ```
 
 The SAM CLI installs dependencies defined in `hello_world/requirements.txt`, creates a deployment package, and saves it in the `.aws-sam/build` folder.
@@ -105,13 +102,17 @@ To simplify troubleshooting, SAM CLI has a command called `sam logs`. `sam logs`
 
 You can find more information and examples about filtering Lambda function logs in the [SAM CLI Documentation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-logging.html).
 
-## Unit tests
+## Tests
 
-Tests are defined in the `tests` folder in this project. Use PIP to install the [pytest](https://docs.pytest.org/en/latest/) and run unit tests.
+Tests are defined in the `tests` folder in this project. Use PIP to install the test dependencies and run tests.
 
 ```bash
-{{ cookiecutter.project_name }}$ pip install pytest pytest-mock --user
-{{ cookiecutter.project_name }}$ python -m pytest tests/ -v
+{{ cookiecutter.project_name }}$ pip install -r tests/requirements.txt --user
+# unit test
+{{ cookiecutter.project_name }}$ python -m pytest tests/unit -v
+# integration test, requiring deploying the stack first.
+# Create the env variable AWS_SAM_STACK_NAME with the name of the stack we are testing
+{{ cookiecutter.project_name }}$ AWS_SAM_STACK_NAME=<stack-name> python -m pytest tests/integration -v
 ```
 
 ## Cleanup

@@ -2,6 +2,9 @@
 
 A cookiecutter template to create a Python Hello world boilerplate using [Serverless Application Model (SAM)](https://github.com/awslabs/serverless-application-model).
 
+This template creates a Serverless Application that reacts to EC2 Instance State change events, demonstrating the power of event-driven development with Amazon EventBridge.
+
+
 ## Requirements
 
 * [AWS SAM CLI](https://github.com/awslabs/aws-sam-cli)

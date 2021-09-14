@@ -1,6 +1,7 @@
 require 'json'
 require 'test/unit'
 require 'mocha/test_unit'
+require 'httparty'
 
 require_relative '../../hello_world/app'
 
@@ -82,13 +83,13 @@ class HelloWorldTest < Test::Unit::TestCase
       statusCode: 200,
       body: {
         message: 'Hello World!',
-        location: '1.1.1.1'
+#         location: '1.1.1.1'
       }.to_json
     }
   end
 
   def test_lambda_handler
-    HTTParty.expects(:get).with('http://checkip.amazonaws.com/').returns(mock_response)
+#     HTTParty.expects(:get).with('http://checkip.amazonaws.com/').returns(mock_response)
     assert_equal(lambda_handler(event: event, context: ''), expected_result)
   end
 end
