@@ -40,20 +40,3 @@ def get_iac_plugin(project_type, command_params, with_build):
     project = iac_plugin.get_project(lookup_paths)
 
     return iac_plugin, project
-
-
-def inject_iac_plugin(with_build: bool):
-    def inner(func):
-        def wrapper(*args, **kwargs):
-            project_type = kwargs.get("project_type", ProjectTypes.CFN.value)
-
-            iac_plugin, project = get_iac_plugin(project_type, kwargs, with_build)
-
-            kwargs["iac"] = iac_plugin
-            kwargs["project"] = project
-
-            return func(*args, **kwargs)
-
-        return wrapper
-
-    return inner

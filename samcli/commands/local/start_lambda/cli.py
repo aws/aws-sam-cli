@@ -6,8 +6,8 @@ import logging
 import click
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
-from samcli.commands._utils.iac_validations import iac_options_validation
-from samcli.commands._utils.options import project_type_click_option, cdk_click_options
+from samcli.commands._utils.iac_project_validator import IacProjectValidator
+from samcli.commands._utils.options import plugin_common_options
 from samcli.commands.local.cli_common.options import (
     invoke_common_options,
     service_common_options,
@@ -16,7 +16,8 @@ from samcli.commands.local.cli_common.options import (
 )
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.iac.interface import Project, IacPlugin
-from samcli.lib.iac.utils.helpers import inject_iac_plugin
+
+from samcli.lib.iac.utils.iac_project_resolver import IacProjectResolver
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
@@ -63,15 +64,12 @@ Here is a Python example:
 )
 @configuration_option(provider=TomlProvider(section="parameters"))
 @service_common_options(3001)
-@project_type_click_option(include_build=True)
 @invoke_common_options
 @warm_containers_common_options
 @local_common_options
 @cli_framework_options
 @aws_creds_options
-@cdk_click_options
-@inject_iac_plugin(with_build=True)
-@iac_options_validation(require_stack=False)
+@plugin_common_options
 @pass_context
 @track_command
 @check_newer_version
@@ -102,15 +100,18 @@ def cli(
     debug_function,
     container_host,
     container_host_interface,
-    cdk_context,
     project_type,
     cdk_app,
-    iac: IacPlugin,
-    project: Project,
+    cdk_context,
 ):
     """
     `sam local start-lambda` command entry point
     """
+    click_ctx = click.get_current_context()
+    project_preprocessor = IacProjectResolver(click_ctx)
+    project_type, iac, project = project_preprocessor.resolve_project()
+    project_validator = IacProjectValidator(click_ctx, project)
+    project_validator.iac_options_validation()
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
     do_cli(
         ctx,

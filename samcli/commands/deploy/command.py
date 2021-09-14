@@ -8,8 +8,7 @@ import click
 from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.cli.types import ImageRepositoryType, ImageRepositoriesType
-from samcli.commands.package.validations import package_option_validation
-from samcli.commands._utils.iac_validations import iac_options_validation
+from samcli.commands._utils.iac_project_validator import IacProjectValidator
 from samcli.commands._utils.options import (
     capabilities_override_option,
     metadata_override_option,
@@ -20,16 +19,14 @@ from samcli.commands._utils.options import (
     template_click_option,
     signing_profiles_option,
     image_repositories_callback,
-    cdk_click_options,
-    project_type_click_option,
+    plugin_common_options,
 )
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
+from samcli.lib.iac.utils.iac_project_resolver import IacProjectResolver
 from samcli.lib.telemetry.metric import track_command
-from samcli.lib.cli_validation.image_repository_validation import image_repository_validation
 from samcli.lib.utils import osutils
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.utils.version_checker import check_newer_version
-from samcli.lib.iac.utils.helpers import inject_iac_plugin
 
 SHORT_HELP = "Deploy an AWS SAM application."
 
@@ -53,7 +50,6 @@ LOG = logging.getLogger(__name__)
     help=HELP_TEXT,
 )
 @configuration_option(provider=TomlProvider(section=CONFIG_SECTION))
-@project_type_click_option(include_build=True)
 @click.option(
     "--guided",
     "-g",
@@ -172,11 +168,7 @@ LOG = logging.getLogger(__name__)
 @capabilities_override_option
 @aws_creds_options
 @common_options
-@cdk_click_options
-@inject_iac_plugin(with_build=True)
-@iac_options_validation(require_stack=True)
-@package_option_validation
-@image_repository_validation
+@plugin_common_options
 @pass_context
 @track_command
 @check_newer_version
@@ -210,12 +202,17 @@ def cli(
     project_type,
     cdk_app,
     cdk_context,
-    iac,
-    project,
 ):
     """
     `sam deploy` command entry point
     """
+    click_ctx = click.get_current_context()
+    project_preprocessor = IacProjectResolver(click_ctx)
+    project_type, iac, project = project_preprocessor.resolve_project()
+    project_validator = IacProjectValidator(click_ctx, project)
+    project_validator.iac_options_validation()
+    project_validator.package_option_validation()
+    project_validator.image_repository_validation()
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
     do_cli(
         template_file,

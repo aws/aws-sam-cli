@@ -8,19 +8,18 @@ from typing import List, Optional, Dict, Tuple
 import click
 
 from samcli.cli.context import Context
-from samcli.commands._utils.iac_validations import iac_options_validation
+from samcli.commands._utils.iac_project_validator import IacProjectValidator
 from samcli.commands._utils.options import (
     template_option_without_build,
     docker_common_options,
     parameter_override_option,
-    project_type_click_option,
-    cdk_click_options,
+    plugin_common_options,
 )
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands.build.build_constants import DEFAULT_BUILD_DIR, DEFAULT_CACHE_DIR
 from samcli.lib.build.exceptions import BuildInsideContainerError
 from samcli.lib.iac.interface import IacPlugin, Project
-from samcli.lib.iac.utils.helpers import inject_iac_plugin
+from samcli.lib.iac.utils.iac_project_resolver import IacProjectResolver
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
@@ -172,16 +171,13 @@ $ sam build MyFunction
     "requests=1.x and the latest request module version changes from 1.1 to 1.2, "
     "SAM will not pull the latest version until you run a non-cached build.",
 )
-@project_type_click_option(include_build=False)
-@cdk_click_options
+@plugin_common_options
 @template_option_without_build
 @parameter_override_option
 @docker_common_options
 @cli_framework_options
 @aws_creds_options
 @click.argument("resource_logical_id", required=False)
-@inject_iac_plugin(with_build=False)
-@iac_options_validation(require_stack=False)
 @pass_context
 @track_command
 @check_newer_version
@@ -206,17 +202,20 @@ def cli(
     parameter_overrides: dict,
     config_file: str,
     config_env: str,
-    project_type: str,
     cdk_app: Optional[str],
-    cdk_context: Optional[List[str]],
-    iac: IacPlugin,
-    project: Project,
+    project_type: Optional[str],
+    cdk_context: Optional[Tuple[str]],
 ) -> None:
     """
     `sam build` command entry point
     """
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
     mode = _get_mode_value_from_envvar("SAM_BUILD_MODE", choices=["debug"])
+    click_ctx = click.get_current_context()
+    project_preprocessor = IacProjectResolver(click_ctx)
+    project_type, iac, project = project_preprocessor.resolve_project()
+    project_validator = IacProjectValidator(click_ctx, project)
+    project_validator.iac_options_validation()
     do_cli(
         ctx,
         resource_logical_id,

@@ -1,8 +1,8 @@
 from unittest import TestCase
 from unittest.mock import Mock, MagicMock, patch
 
-from samcli.lib.iac.interface import LookupPathType, ProjectTypes, LookupPath
-from samcli.lib.iac.utils.helpers import get_iac_plugin, inject_iac_plugin
+from samcli.lib.iac.interface import ProjectTypes
+from samcli.lib.iac.utils.helpers import get_iac_plugin
 
 
 class TestGetIacPlugin(TestCase):
@@ -33,35 +33,3 @@ class TestGetIacPlugin(TestCase):
         CdkIacPluginMock.assert_called_once_with(command_params)
         self.assertEqual(iac_plugin, cdk_iac_plugin_mock)
         self.assertEqual(project, cdk_iac_plugin_mock.get_project.return_value)
-
-
-class TestInjectIacPlugin(TestCase):
-    @patch("samcli.lib.iac.utils.helpers.get_iac_plugin")
-    def test_inject_iac_plugin_cfn_with_build(self, get_iac_plugin_mock):
-        iac_plugin_mock = Mock()
-        project_mock = Mock()
-        get_iac_plugin_mock.return_value = (iac_plugin_mock, project_mock)
-
-        @inject_iac_plugin(True)
-        def func(*args, **kwargs):
-            return kwargs
-
-        result = func(project_type=ProjectTypes.CFN.value)
-
-        get_iac_plugin_mock.assert_called_once_with(
-            ProjectTypes.CFN.value,
-            {
-                "project_type": ProjectTypes.CFN.value,
-                "iac": iac_plugin_mock,
-                "project": project_mock,
-            },
-            True,
-        )
-        self.assertEqual(
-            result,
-            {
-                "project_type": ProjectTypes.CFN.value,
-                "iac": iac_plugin_mock,
-                "project": project_mock,
-            },
-        )
