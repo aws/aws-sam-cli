@@ -57,19 +57,12 @@ class IacProjectResolver:
         :return: Project type
         """
         project_type_from_cmd_line = self._params.get("project_type")
-        return self._detect_project_type(project_type_from_cmd_line, include_build_folder)
+        return self._get_project_type(project_type_from_cmd_line, include_build_folder)
 
-    def _detect_project_type(self, project_type_from_cmd_line: Optional[str], include_build_folder: bool) -> str:
-        LOG.debug("Determining project type...")
+    def _get_project_type(self, project_type_from_cmd_line: Optional[str], include_build_folder: bool) -> str:
 
-        if self._find_cfn_template(include_build_folder):
-            LOG.debug("The project is a CFN project.")
-            detected_project_type = ProjectTypes.CFN.value
-        elif self._find_cdk_file():
-            LOG.debug("The project is a CDK project.")
-            detected_project_type = ProjectTypes.CDK.value
-        else:
-            detected_project_type = ProjectTypes.CFN.value
+        detected_project_type = self._detect_project_type(include_build_folder)
+
         if not project_type_from_cmd_line:
             return detected_project_type
 
@@ -82,6 +75,18 @@ class IacProjectResolver:
             )
         LOG.debug("Using customized project type %s.", project_type_from_cmd_line)
         return project_type_from_cmd_line
+
+    def _detect_project_type(self, include_build_folder: bool) -> str:
+
+        LOG.debug("Determining project type...")
+
+        if self._find_cfn_template(include_build_folder):
+            LOG.debug("The project is a CFN project.")
+            return ProjectTypes.CFN.value
+        if self._find_cdk_file():
+            LOG.debug("The project is a CDK project.")
+            return ProjectTypes.CDK.value
+        return ProjectTypes.CFN.value
 
     def _find_cfn_template(self, include_build_folder: bool) -> bool:
         """

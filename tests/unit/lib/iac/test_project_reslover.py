@@ -1,62 +1,100 @@
-#
-# class TestProjectTypeCallback(TestCase):
-#     @patch("samcli.commands._utils.options.determine_project_type")
-#     def test_raise_error_if_detected_not_match_inputted(self, determine_project_type_mock):
-#         context_mock = MockContext(info_name="test", parent=None, params=Mock())
-#         param_mock = Mock()
-#         param_mock.name = "--project-type"
-#         provided_value = "CDK"
-#         detected_value = "CFN"
-#         include_build = True
-#         determine_project_type_mock.return_value = detected_value
-#         with self.assertRaises(click.BadOptionUsage) as ex:
-#             project_type_callback(context_mock, param_mock, provided_value, include_build)
-#         self.assertEqual(ex.exception.option_name, param_mock.name)
-#         self.assertEqual(
-#             ex.exception.message, "It seems your project type is CFN. However, you specified CDK in --project-type"
-#         )
-#
-#     @patch("samcli.commands._utils.options.determine_project_type")
-#     def test_return_detected_project_type(self, determine_project_type_mock):
-#         context_mock = MockContext(info_name="test", parent=None, params=Mock())
-#         param_mock = Mock()
-#         param_mock.name = "--project-type"
-#         detected_value = "CFN"
-#         include_build = True
-#         determine_project_type_mock.return_value = detected_value
-#         self.assertEqual(project_type_callback(context_mock, param_mock, None, include_build), detected_value)
-#
-#     @patch("samcli.commands._utils.options.determine_project_type")
-#     def test_return_provided_project_type(self, determine_project_type_mock):
-#         context_mock = MockContext(info_name="test", parent=None, params=Mock())
-#         param_mock = Mock()
-#         param_mock.name = "--project-type"
-#         detected_value = "CFN"
-#         provided_value = "CFN"
-#         include_build = True
-#         determine_project_type_mock.return_value = detected_value
-#         self.assertEqual(project_type_callback(context_mock, param_mock, provided_value, include_build), provided_value)
-#
-#
-# class TestDetermineProjectType(TestCase):
-#     @patch("samcli.commands._utils.options.find_cfn_template")
-#     @patch("samcli.commands._utils.options.find_cdk_file")
-#     def test_return_cfn_type(self, find_cdk_file_mock, find_cfn_template_mock):
-#         find_cfn_template_mock.return_value = True
-#         find_cdk_file_mock.return_value = False
-#         self.assertEqual(determine_project_type(True), "CFN")
-#
-#     @patch("samcli.commands._utils.options.find_cfn_template")
-#     @patch("samcli.commands._utils.options.find_cdk_file")
-#     def test_return_cdk_type(self, find_cdk_file_mock, find_cfn_template_mock):
-#         find_cfn_template_mock.return_value = False
-#         find_cdk_file_mock.return_value = True
-#         self.assertEqual(determine_project_type(True), "CDK")
-#
-#     @patch("samcli.commands._utils.options.find_cfn_template")
-#     @patch("samcli.commands._utils.options.find_cdk_file")
-#     def test_return_default(self, find_cdk_file_mock, find_cfn_template_mock):
-#         find_cfn_template_mock.return_value = False
-#         find_cdk_file_mock.return_value = False
-#         self.assertEqual(determine_project_type(True), "CFN")
-#
+import os
+from unittest import TestCase
+
+import click
+from unittest.mock import patch, MagicMock, Mock
+
+from samcli.lib.iac.utils.iac_project_resolver import IacProjectResolver
+
+
+def _make_ctx_params_side_effect_func(params):
+    def side_effect(key, default=None):
+        return params.get(key, default)
+
+    return side_effect
+
+
+def _find_in_paths_side_effect_func(paths):
+    def side_effect(path):
+        if path in paths:
+            return True
+        return False
+
+    return side_effect
+
+
+class TestProjectTypeResolver(TestCase):
+    @patch("samcli.lib.iac.utils.iac_project_resolver.os.path.exists")
+    def test_raise_error_if_detected_not_match_inputted(self, os_path_exist_mock):
+        params = {"project_type": "CDK"}
+        context_mock = MagicMock()
+        context_mock.params.get.side_effect = _make_ctx_params_side_effect_func(params)
+
+        include_build = True
+        mock_template_exist_path = ["template.yaml"]
+        os_path_exist_mock.side_effect = _find_in_paths_side_effect_func(mock_template_exist_path)
+
+        projector_validator = IacProjectResolver(context_mock)
+        with self.assertRaises(click.BadOptionUsage) as ex:
+            projector_validator.resolve_project(include_build)
+        self.assertEqual(ex.exception.option_name, "--project-type")
+        self.assertEqual(
+            ex.exception.message, "It seems your project type is CFN. However, you specified CDK in --project-type"
+        )
+
+    @patch("samcli.lib.iac.utils.iac_project_resolver.os.path.exists")
+    def test_return_detected_project_type_without_default(self, os_path_exist_mock):
+        context_mock = MagicMock()
+
+        include_build = True
+        mock_template_exist_path = ["cdk.json"]
+        os_path_exist_mock.side_effect = _find_in_paths_side_effect_func(mock_template_exist_path)
+        expected_project_type = "CDK"
+
+        projector_validator = IacProjectResolver(context_mock)
+        self.assertEqual(projector_validator._get_project_type(None, include_build), expected_project_type)
+
+    @patch("samcli.lib.iac.utils.iac_project_resolver.os.path.exists")
+    def test_return_detected_project_type_with_default(self, os_path_exist_mock):
+        context_mock = MagicMock()
+
+        include_build = True
+        mock_template_exist_path = ["cdk.json"]
+        os_path_exist_mock.side_effect = _find_in_paths_side_effect_func(mock_template_exist_path)
+        expected_project_type = "CDK"
+        provided_project_type = "CDK"
+
+        projector_validator = IacProjectResolver(context_mock)
+        self.assertEqual(
+            projector_validator._get_project_type(provided_project_type, include_build), expected_project_type
+        )
+
+    @patch("samcli.lib.iac.utils.iac_project_resolver.os.path.exists")
+    def test_detect_cfn_project_type(self, os_path_exist_mock):
+        context_mock = MagicMock()
+
+        include_build = True
+        mock_template_exist_path = [os.path.join(".aws-sam", "build", "template.yaml")]
+        os_path_exist_mock.side_effect = _find_in_paths_side_effect_func(mock_template_exist_path)
+        projector_validator = IacProjectResolver(context_mock)
+        self.assertEqual(projector_validator._detect_project_type(include_build), "CFN")
+
+    @patch("samcli.lib.iac.utils.iac_project_resolver.os.path.exists")
+    def test_return_cdk_project_type(self, os_path_exist_mock):
+        context_mock = MagicMock()
+
+        include_build = False
+        mock_template_exist_path = ["cdk.json"]
+        os_path_exist_mock.side_effect = _find_in_paths_side_effect_func(mock_template_exist_path)
+        projector_validator = IacProjectResolver(context_mock)
+        self.assertEqual(projector_validator._detect_project_type(include_build), "CDK")
+
+    @patch("samcli.lib.iac.utils.iac_project_resolver.os.path.exists")
+    def test_return_default_project_type(self, os_path_exist_mock):
+        context_mock = MagicMock()
+
+        include_build = True
+        mock_template_exist_path = []
+        os_path_exist_mock.side_effect = _find_in_paths_side_effect_func(mock_template_exist_path)
+        projector_validator = IacProjectResolver(context_mock)
+        self.assertEqual(projector_validator._detect_project_type(include_build), "CFN")

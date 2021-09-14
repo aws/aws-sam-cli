@@ -83,7 +83,7 @@ class IacProjectValidator:
 
     def package_option_validation(self):
         """
-        Validation function specific to pack options.
+        Validation function specific to package options.
         """
         stack = validate_and_get_project_stack(self._project, self._ctx)
 
