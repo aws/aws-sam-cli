@@ -213,9 +213,9 @@ def cli(
     mode = _get_mode_value_from_envvar("SAM_BUILD_MODE", choices=["debug"])
     click_ctx = click.get_current_context()
     project_preprocessor = IacProjectResolver(click_ctx)
-    project_type, iac, project = project_preprocessor.resolve_project()
+    project_type, iac, project = project_preprocessor.resolve_project(include_build_folder=False, with_build=False)
     project_validator = IacProjectValidator(click_ctx, project)
-    project_validator.iac_options_validation()
+    project_validator.iac_options_validation(require_stack=False)
     do_cli(
         ctx,
         resource_logical_id,

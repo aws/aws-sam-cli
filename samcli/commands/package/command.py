@@ -156,9 +156,9 @@ def cli(
     """
     click_ctx = click.get_current_context()
     project_preprocessor = IacProjectResolver(click_ctx)
-    project_type, iac, project = project_preprocessor.resolve_project()
+    project_type, iac, project = project_preprocessor.resolve_project(with_build=True, include_build_folder=True)
     project_validator = IacProjectValidator(click_ctx, project)
-    project_validator.iac_options_validation()
+    project_validator.iac_options_validation(require_stack=True)
     project_validator.package_option_validation()
     project_validator.image_repository_validation()
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
