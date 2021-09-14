@@ -3,7 +3,6 @@ from installer.pyinstaller.hidden_imports import SAM_CLI_HIDDEN_IMPORTS
 
 hiddenimports = SAM_CLI_HIDDEN_IMPORTS
 
-<<<<<<< HEAD
 hiddenimports = [
     "cookiecutter.extensions",
     "jinja2_time",
@@ -23,8 +22,6 @@ hiddenimports = [
     "aws_lambda_builders.workflows",
     "configparser",
 ]
-=======
->>>>>>> cef0bfaaa544fcd4dd555b3ce6dcb9c76cc12839
 datas = (
     hooks.collect_data_files("samcli")
     + hooks.collect_data_files("samtranslator")
