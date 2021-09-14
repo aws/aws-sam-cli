@@ -101,6 +101,23 @@ class TestECRUploader(TestCase):
 
         ecr_uploader.login()
 
+    @patch("samcli.lib.package.ecr_uploader.base64")
+    def test_directly_upload_login_success(self, base64_mock):
+        base64_mock.b64decode.return_value = b"username:password"
+
+        self.ecr_client.get_authorization_token.return_value = {
+            "authorizationData": [{"authorizationToken": "auth_token", "proxyEndpoint": "proxy"}]
+        }
+        ecr_uploader = ECRUploader(
+            docker_client=self.docker_client,
+            ecr_client=self.ecr_client,
+            ecr_repo=self.ecr_repo,
+            ecr_repo_multi=self.ecr_repo_multi,
+            tag=self.tag,
+        )
+
+        ecr_uploader.upload("myimage:v1", "Myresource")
+
     @parameterized.expand([(BuildError,), (APIError,)])
     def test_upload_failure(self, error):
         image = "myimage:v1"
