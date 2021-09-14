@@ -32,6 +32,7 @@ from samcli.lib.utils.resources import (
     AWS_SERVERLESS_FUNCTION,
     AWS_SERVERLESS_LAYERVERSION,
 )
+from samcli.lib.docker.log_streamer import LogStreamer, LogStreamError
 from samcli.lib.providers.provider import ResourcesToBuildCollector, Function, get_full_path, Stack, LayerVersion
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils import osutils
@@ -128,7 +129,7 @@ class ApplicationBuilder:
         self._container_manager = container_manager
         self._parallel = parallel
         self._mode = mode
-        self._stream_writer = stream_writer if stream_writer else StreamWriter(osutils.stderr())
+        self._stream_writer = stream_writer if stream_writer else StreamWriter(stream=osutils.stderr(), auto_flush=True)
         self._docker_client = docker_client if docker_client else docker.from_env()
 
         self._deprecated_runtimes = {"nodejs4.3", "nodejs6.10", "nodejs8.10", "dotnetcore2.0"}
@@ -378,17 +379,11 @@ class ApplicationBuilder:
         function_name str
             Name of the function that is being built
         """
-        for log in build_logs:
-            if log:
-                log_stream = log.get("stream")
-                error_stream = log.get("error")
-
-                if error_stream:
-                    raise DockerBuildFailed(f"{function_name} failed to build: {error_stream}")
-
-                if log_stream:
-                    self._stream_writer.write(str.encode(log_stream))
-                    self._stream_writer.flush()
+        build_log_streamer = LogStreamer(self._stream_writer)
+        try:
+            build_log_streamer.stream_progress(build_logs)
+        except LogStreamError as ex:
+            raise DockerBuildFailed(msg=f"{function_name} failed to build: {str(ex)}") from ex
 
     def _build_layer(
         self,
