@@ -664,6 +664,30 @@ class TestStartApiWithSwaggerHttpApis(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_http_api_payload_v1_should_not_have_operation_id(self):
+        response = requests.get(self.url + "/httpapi-operation-id-v1", timeout=300)
+        self.assertEqual(response.status_code, 200)
+
+        response_data = response.json()
+        self.assertEqual(response_data.get("version", {}), "1.0")
+        # operationName or operationId shouldn't be processed by Httpapi swaggers
+        self.assertIsNone(response_data.get("requestContext", {}).get("operationName"))
+        self.assertIsNone(response_data.get("requestContext", {}).get("operationId"))
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_http_api_payload_v2_should_not_have_operation_id(self):
+        response = requests.get(self.url + "/httpapi-operation-id-v2", timeout=300)
+        self.assertEqual(response.status_code, 200)
+
+        response_data = response.json()
+        self.assertEqual(response_data.get("version", {}), "2.0")
+        # operationName or operationId shouldn't be processed by Httpapi swaggers
+        self.assertIsNone(response_data.get("requestContext", {}).get("operationName"))
+        self.assertIsNone(response_data.get("requestContext", {}).get("operationId"))
+
 
 class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
     template_path = "/testdata/start_api/swagger-rest-api-template.yaml"
@@ -791,6 +815,16 @@ class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("Content-Type"), "image/gif")
         self.assertEqual(response.content, expected)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_rest_api_operation_id(self):
+        """
+        Binary data is returned correctly
+        """
+        response = requests.get(self.url + "/printeventwithoperationidfunction", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json().get("requestContext", {}).get("operationName"), "MyOperationName")
 
 
 class TestServiceResponses(StartApiIntegBaseClass):
@@ -1693,11 +1727,29 @@ class TestCFNTemplateWithRestApiAndHttpApiGateways(StartApiIntegBaseClass):
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
+    def test_http_api_with_operation_name_is_reachable(self):
+        response = requests.get(self.url + "/http-api-with-operation-name", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+        # operationName or operationId shouldn't be processed by Httpapi
+        self.assertIsNone(response_data.get("requestContext", {}).get("operationName"))
+        self.assertIsNone(response_data.get("requestContext", {}).get("operationId"))
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
     def test_rest_api_is_reachable(self):
         response = requests.get(self.url + "/rest-api", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_rest_api_with_operation_name_is_reachable(self):
+        response = requests.get(self.url + "/rest-api-with-operation-name", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"operation_name": "MyOperationName"})
 
 
 class TestCFNTemplateHttpApiWithSwaggerBody(StartApiIntegBaseClass):
@@ -1716,6 +1768,9 @@ class TestCFNTemplateHttpApiWithSwaggerBody(StartApiIntegBaseClass):
         self.assertEqual(response_data.get("version", {}), "2.0")
         self.assertIsNone(response_data.get("multiValueHeaders"))
         self.assertIsNotNone(response_data.get("cookies"))
+        # operationName or operationId shouldn't be processed by Httpapi swaggers
+        self.assertIsNone(response_data.get("requestContext", {}).get("operationName"))
+        self.assertIsNone(response_data.get("requestContext", {}).get("operationId"))
 
 
 class TestWarmContainersBaseClass(StartApiIntegBaseClass):

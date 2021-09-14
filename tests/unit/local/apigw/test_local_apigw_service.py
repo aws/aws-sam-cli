@@ -22,7 +22,12 @@ from samcli.local.lambdafn.exceptions import FunctionNotFound
 class TestApiGatewayService(TestCase):
     def setUp(self):
         self.function_name = Mock()
-        self.api_gateway_route = Route(methods=["GET"], function_name=self.function_name, path="/")
+        self.api_gateway_route = Route(
+            methods=["GET"],
+            function_name=self.function_name,
+            path="/",
+            operation_name="getRestApi",
+        )
         self.http_gateway_route = Route(
             methods=["GET"], function_name=self.function_name, path="/", event_type=Route.HTTP
         )
@@ -77,6 +82,7 @@ class TestApiGatewayService(TestCase):
 
         self.api_service.service_response = make_response_mock
         self.api_service._get_current_route = MagicMock()
+        self.api_service._get_current_route.return_value = self.api_gateway_route
         self.api_service._get_current_route.methods = []
         self.api_service._get_current_route.return_value.payload_format_version = "2.0"
         self.api_service._construct_v_1_0_event = Mock()
@@ -95,7 +101,7 @@ class TestApiGatewayService(TestCase):
 
         self.assertEqual(result, make_response_mock)
         self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
-        self.api_service._construct_v_1_0_event.assert_called_with(ANY, ANY, ANY, ANY, ANY, ANY)
+        self.api_service._construct_v_1_0_event.assert_called_with(ANY, ANY, ANY, ANY, ANY, "getRestApi")
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     def test_http_request_must_invoke_lambda(self, request_mock):
@@ -151,7 +157,7 @@ class TestApiGatewayService(TestCase):
 
         self.assertEqual(result, make_response_mock)
         self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
-        self.http_service._construct_v_1_0_event.assert_called_with(ANY, ANY, ANY, ANY, ANY, "getV1")
+        self.http_service._construct_v_1_0_event.assert_called_with(ANY, ANY, ANY, ANY, ANY, None)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     def test_http_v2_payload_request_must_invoke_lambda(self, request_mock):
