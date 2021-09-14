@@ -16,16 +16,49 @@ if platform.system().lower() == "windows":
         pass
 
 
-def cursor_up(count=1):
-    return ESC + str(count) + "A"
+class CursorFormatter:
+    """
+    Base class for defining how cursor is to be manipulated.
+    """
+
+    def __init__(self):
+        pass
+
+    def cursor_format(self, count):
+        pass
 
 
-def cursor_down(count=1):
-    return ESC + str(count) + "B"
+class CursorUpFormatter(CursorFormatter):
+    """
+    Class for formatting and outputting moving the cursor up within the stream of bytes.
+    """
+
+    def cursor_format(self, count=0):
+        return ESC + str(count) + "A"
 
 
-def clear_line():
-    return ESC + "0K"
+class CursorDownFormatter(CursorFormatter):
+    """
+    Class for formatting and outputting moving the cursor down within the stream of bytes.
+    """
+
+    def cursor_format(self, count=0):
+        return ESC + str(count) + "B"
 
 
-cursor_left = ESC + "G"
+class ClearLineFormatter(CursorFormatter):
+    """
+    Class for formatting and outputting clearing the cursor within the stream of bytes.
+    """
+
+    def cursor_format(self, count=0):
+        return ESC + str(count) + "K"
+
+
+class CursorLeftFormatter(CursorFormatter):
+    """
+    Class for formatting and outputting moving the cursor left within the stream of bytes.
+    """
+
+    def cursor_format(self, count=0):
+        return ESC + str(count) + "G"

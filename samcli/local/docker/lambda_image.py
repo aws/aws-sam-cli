@@ -8,7 +8,6 @@ from enum import Enum
 from pathlib import Path
 
 import sys
-import re
 import platform
 import docker
 
@@ -328,6 +327,8 @@ class LambdaImage:
         : return bool: True, if the image name ends with rapid-$SAM_CLI_VERSION. False, otherwise
         """
 
-        if not re.search(fr":{RAPID_IMAGE_TAG_PREFIX}-\d+\.\d+.\d+$", image_name):
+        try:
+            return image_name.split(":")[1].startswith(f"{RAPID_IMAGE_TAG_PREFIX}-")
+        except (IndexError, AttributeError):
+            # split() returned 1 or less items or image_name is None
             return False
-        return True
