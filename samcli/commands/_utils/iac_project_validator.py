@@ -85,7 +85,7 @@ class IacProjectValidator:
         """
         Validation function specific to pack options.
         """
-        stack = self._validate_and_get_project_stack()
+        stack = validate_and_get_project_stack(self._project, self._ctx)
 
         # NOTE(sriram-mv): Both params and default_map need to be checked, as the option can be either be
         # passed in directly or through configuration file.
@@ -109,7 +109,7 @@ class IacProjectValidator:
         guided = self._params.get("guided", False) or self._params.get("g", False)
         image_repository = self._params.get("image_repository", False)
         image_repositories = self._params.get("image_repositories", False) or {}
-        stack = self._validate_and_get_project_stack()
+        stack = validate_and_get_project_stack(self._project, self._ctx)
 
         # Check if `--image-repository` or `--image-repositories` are required by
         # looking for resources that have an IMAGE based packagetype.
@@ -151,23 +151,23 @@ class IacProjectValidator:
             validator.validate()
         # Call Original function after validation.
 
-    def _validate_and_get_project_stack(self):
-        """
-        Util to validate the stack to be packaged
-        it checks if the project contains only one stack,
-        or the stack-name option should be provided
-        """
-        guided = self._params.get("guided", False) or self._params.get("g", False)
-        if len(self._project.stacks) == 1:
-            stack = self._project.stacks[0]
-        else:
-            stack_name = self._params.get("stack_name")
-            if stack_name is None and not guided:
-                raise click.BadOptionUsage(
-                    option_name="--stack-name",
-                    ctx=self._ctx,
-                    message="You must specify stack name via --stack-name as your project contains more than one "
-                    "stack.",
-                )
-            stack = self._project.find_stack_by_name(stack_name)
-        return stack
+
+def validate_and_get_project_stack(project, ctx):
+    """
+    Util to validate the stack to be packaged
+    it checks if the project contains only one stack,
+    or the stack-name option should be provided
+    """
+    guided = ctx.params.get("guided", False) or ctx.params.get("g", False)
+    if len(project.stacks) == 1:
+        stack = project.stacks[0]
+    else:
+        stack_name = ctx.params.get("stack_name")
+        if stack_name is None and not guided:
+            raise click.BadOptionUsage(
+                option_name="--stack-name",
+                ctx=ctx,
+                message="You must specify stack name via --stack-name as your project contains more than one " "stack.",
+            )
+        stack = project.find_stack_by_name(stack_name)
+    return stack

@@ -8,6 +8,7 @@ import shutil
 import tempfile
 from pathlib import Path
 from contextlib import contextmanager
+
 from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV
 
 from click.testing import CliRunner
@@ -104,7 +105,7 @@ class TestSamConfigForAllCommands(TestCase):
             do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")))
 
     @patch("samcli.commands.build.command.do_cli")
-    @patch("samcli.lib.iac.utils.helpers.get_iac_plugin")
+    @patch("samcli.lib.iac.utils.iac_project_resolver.get_iac_plugin")
     def test_build(self, get_iac_plugin_mock, do_cli_mock):
         config_values = {
             "resource_logical_id": "foo",
@@ -162,11 +163,11 @@ class TestSamConfigForAllCommands(TestCase):
                 (),
                 "CFN",
                 iac_mock,
-                project_mock,
+                ANY,
             )
 
     @patch("samcli.commands.build.command.do_cli")
-    @patch("samcli.lib.iac.utils.helpers.get_iac_plugin")
+    @patch("samcli.lib.iac.utils.iac_project_resolver.get_iac_plugin")
     def test_build_with_container_env_vars(self, get_iac_plugin_mock, do_cli_mock):
         config_values = {
             "resource_logical_id": "foo",
@@ -221,12 +222,12 @@ class TestSamConfigForAllCommands(TestCase):
                 "env_vars_file",
                 (),
                 "CFN",
-                iac_mock,
-                project_mock,
+                ANY,
+                ANY,
             )
 
     @patch("samcli.commands.build.command.do_cli")
-    @patch("samcli.lib.iac.utils.helpers.get_iac_plugin")
+    @patch("samcli.lib.iac.utils.iac_project_resolver.get_iac_plugin")
     def test_build_with_build_images(self, get_iac_plugin_mock, do_cli_mock):
         config_values = {
             "resource_logical_id": "foo",
@@ -282,12 +283,12 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 ("Function1=image_1", "image_2"),
                 "CFN",
-                iac_mock,
-                project_mock,
+                ANY,
+                ANY,
             )
 
     @patch("samcli.commands.local.invoke.cli.do_cli")
-    @patch("samcli.lib.iac.utils.helpers.get_iac_plugin")
+    @patch("samcli.lib.iac.utils.iac_project_resolver.get_iac_plugin")
     def test_local_invoke(self, get_iac_plugin_mock, do_cli_mock):
         config_values = {
             "function_logical_id": "foo",
@@ -351,12 +352,12 @@ class TestSamConfigForAllCommands(TestCase):
                 "localhost",
                 "127.0.0.1",
                 "CFN",
-                iac_mock,
-                project_mock,
+                ANY,
+                ANY,
             )
 
     @patch("samcli.commands.local.start_api.cli.do_cli")
-    @patch("samcli.lib.iac.utils.helpers.get_iac_plugin")
+    @patch("samcli.lib.iac.utils.iac_project_resolver.get_iac_plugin")
     def test_local_start_api(self, get_iac_plugin_mock, do_cli_mock):
 
         config_values = {
@@ -423,12 +424,12 @@ class TestSamConfigForAllCommands(TestCase):
                 "localhost",
                 "127.0.0.1",
                 "CFN",
-                iac_mock,
-                project_mock,
+                ANY,
+                ANY,
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
-    @patch("samcli.lib.iac.utils.helpers.get_iac_plugin")
+    @patch("samcli.lib.iac.utils.iac_project_resolver.get_iac_plugin")
     def test_local_start_lambda(self, get_iac_plugin_mock, do_cli_mock):
 
         config_values = {
@@ -492,14 +493,16 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 "localhost",
                 "127.0.0.1",
-                iac_mock,
-                project_mock,
+                ANY,
+                ANY,
             )
 
     @patch("samcli.commands.package.command.do_cli")
-    @patch("samcli.lib.iac.utils.helpers.get_iac_plugin")
+    @patch("samcli.lib.iac.utils.iac_project_resolver.get_iac_plugin")
+    @patch("samcli.commands._utils.iac_project_validator.validate_and_get_project_stack")
     def test_package(
         self,
+        validate_and_get_project_stack_mock,
         get_iac_plugin_mock,
         do_cli_mock,
     ):
@@ -516,15 +519,15 @@ class TestSamConfigForAllCommands(TestCase):
             "output_template_file": "output.yaml",
             "signing_profiles": "function=profile:owner",
         }
-
         with samconfig_parameters(["package"], self.scratch_dir, **config_values) as config_path:
 
             from samcli.commands.package.command import cli
 
             iac_mock = MagicMock()
             project_mock = MagicMock()
-            project_mock.stacks = [MagicMock()]
+            project_stacks_mock = MagicMock()
             get_iac_plugin_mock.return_value = (iac_mock, project_mock)
+            validate_and_get_project_stack_mock.return_value = project_stacks_mock
 
             LOG.debug(Path(config_path).read_text())
             runner = CliRunner()
@@ -553,14 +556,14 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 False,
                 "CFN",
-                iac_mock,
-                project_mock,
+                ANY,
+                ANY,
                 None,
             )
 
     @patch("samcli.commands._utils.options.get_template_artifacts_format")
     @patch("samcli.commands.package.command.do_cli")
-    @patch("samcli.lib.iac.utils.helpers.get_iac_plugin")
+    @patch("samcli.lib.iac.utils.iac_project_resolver.get_iac_plugin")
     def test_package_with_image_repository_and_image_repositories(
         self, get_iac_plugin_mock, do_cli_mock, get_template_artifacts_format_mock
     ):
@@ -595,7 +598,7 @@ class TestSamConfigForAllCommands(TestCase):
 
             self.assertIsNotNone(result.exception)
 
-    @patch("samcli.lib.iac.utils.helpers.get_iac_plugin")
+    @patch("samcli.lib.iac.utils.iac_project_resolver.get_iac_plugin")
     @patch("samcli.commands.deploy.command.do_cli")
     def test_deploy(self, do_cli_mock, get_iac_plugin_mock):
 
@@ -668,11 +671,11 @@ class TestSamConfigForAllCommands(TestCase):
                 "samconfig.toml",
                 "default",
                 "CFN",
-                iac_mock,
-                project_mock,
+                ANY,
+                ANY,
             )
 
-    @patch("samcli.lib.iac.utils.helpers.get_iac_plugin")
+    @patch("samcli.lib.iac.utils.iac_project_resolver.get_iac_plugin")
     @patch("samcli.commands.deploy.command.do_cli")
     def test_deploy_image_repositories_and_image_repository(self, do_cli_mock, get_iac_plugin_mock):
 
@@ -711,7 +714,7 @@ class TestSamConfigForAllCommands(TestCase):
             result = runner.invoke(cli, [])
             self.assertIsNotNone(result.exception)
 
-    @patch("samcli.lib.iac.utils.helpers.get_iac_plugin")
+    @patch("samcli.lib.iac.utils.iac_project_resolver.get_iac_plugin")
     @patch("samcli.commands.deploy.command.do_cli")
     def test_deploy_different_parameter_override_format(self, do_cli_mock, get_iac_plugin_mock):
 
@@ -784,8 +787,8 @@ class TestSamConfigForAllCommands(TestCase):
                 "samconfig.toml",
                 "default",
                 "CFN",
-                iac_mock,
-                project_mock,
+                ANY,
+                ANY,
             )
 
     @patch("samcli.commands.logs.command.do_cli")
@@ -868,7 +871,7 @@ class TestSamConfigWithOverrides(TestCase):
         self.scratch_dir = None
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
-    @patch("samcli.lib.iac.utils.helpers.get_iac_plugin")
+    @patch("samcli.lib.iac.utils.iac_project_resolver.get_iac_plugin")
     def test_override_with_cli_params(self, get_iac_plugin_mock, do_cli_mock):
 
         config_values = {
@@ -972,12 +975,12 @@ class TestSamConfigWithOverrides(TestCase):
                 None,
                 "localhost",
                 "127.0.0.1",
-                iac_mock,
-                project_mock,
+                ANY,
+                ANY,
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
-    @patch("samcli.lib.iac.utils.helpers.get_iac_plugin")
+    @patch("samcli.lib.iac.utils.iac_project_resolver.get_iac_plugin")
     def test_override_with_cli_params_and_envvars(self, get_iac_plugin_mock, do_cli_mock):
 
         config_values = {
@@ -1073,8 +1076,8 @@ class TestSamConfigWithOverrides(TestCase):
                 None,
                 "localhost",
                 "127.0.0.1",
-                iac_mock,
-                project_mock,
+                ANY,
+                ANY,
             )
 
     @patch("samcli.commands.validate.validate.do_cli")
