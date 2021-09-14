@@ -104,7 +104,6 @@ class TestDeleteContext(TestCase):
             ]
 
         self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
-        self.assertEqual(delete_context.region, "us-east-1")
 
     @patch.object(
         TomlProvider,
