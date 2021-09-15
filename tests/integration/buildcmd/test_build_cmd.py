@@ -615,6 +615,9 @@ class TestBuildCommand_Go_Modules(BuildIntegBase):
     @parameterized.expand([("go1.x", "Go", None, False), ("go1.x", "Go", "debug", "use_container")])
     @pytest.mark.flaky(reruns=3)
     def test_with_go(self, runtime, code_uri, mode, use_container):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         overrides = {"Runtime": runtime, "CodeUri": code_uri, "Handler": "hello-world"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
