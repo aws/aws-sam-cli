@@ -1,6 +1,7 @@
 import shutil
-import signal
+import tempfile
 import uuid
+from distutils.dir_util import copy_tree
 from typing import Optional, Dict
 from unittest import TestCase, skipIf
 import threading
@@ -10,6 +11,7 @@ import os
 import random
 from pathlib import Path
 
+from tests.cdk_testing_utils import CdkPythonEnv
 from tests.testing_utils import SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE, run_command
 
 
@@ -26,6 +28,7 @@ class StartLambdaIntegBaseClass(TestCase):
 
     @classmethod
     def setUpClass(cls):
+        cls.cmd = cls.base_command()
         # This is the directory for tests/integration which will be used to file the testdata
         # files for integ tests
         cls.template = cls.integration_dir + cls.template_path
@@ -39,12 +42,21 @@ class StartLambdaIntegBaseClass(TestCase):
         cls.thread.setDaemon(True)
         cls.thread.start()
 
+    @staticmethod
+    def get_integ_dir():
+        return Path(__file__).resolve().parents[2]
+
     @classmethod
-    def build(cls):
+    def base_command(cls):
         command = "sam"
         if os.getenv("SAM_CLI_DEV"):
             command = "samdev"
-        command_list = [command, "build"]
+
+        return command
+
+    @classmethod
+    def build(cls):
+        command_list = [cls.cmd, "build"]
         if cls.build_overrides:
             overrides_arg = " ".join(
                 ["ParameterKey={},ParameterValue={}".format(key, value) for key, value in cls.build_overrides.items()]
@@ -133,3 +145,58 @@ class WatchWarmContainersIntegBaseClass(StartLambdaIntegBaseClass):
         if Path(working_dir).resolve().exists():
             shutil.rmtree(working_dir)
         super().tearDownClass()
+
+
+@skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
+class CDKStartLambdaBaseClass(StartLambdaIntegBaseClass):
+    @classmethod
+    def setUpClass(cls):
+        cls.test_data_path = cls.get_integ_dir().joinpath("testdata", "invoke")
+        cls.scratch_dir = str(Path(__file__).resolve().parent.joinpath(str(uuid.uuid4()).replace("-", "")[:10]))
+        os.mkdir(cls.scratch_dir)
+        cls.working_dir = tempfile.mkdtemp(dir=cls.scratch_dir)
+        construct_definition_path = cls.test_data_path.joinpath("cdk", "python", "aws-lambda-function")
+        copy_tree(construct_definition_path, cls.working_dir)
+        os.chdir(cls.working_dir)
+        super().setUpClass()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.scratch_dir and shutil.rmtree(cls.scratch_dir, ignore_errors=True)
+        super().tearDownClass()
+
+    def setUp(self):
+        self.working_dir = tempfile.mkdtemp(dir=self.scratch_dir)
+
+    def get_command_list(
+        self,
+        project_type="CDK",
+    ):
+        command_list = [self.cmd, "local", "start-lambda", "-p", self.port]
+
+        if project_type:
+            command_list = command_list + ["--project-type", str(project_type)]
+
+        return command_list
+
+    @classmethod
+    def start_lambda(cls, wait_time=10):
+        command_list = cls.get_command_list(cls)
+
+        if cls.container_mode:
+            command_list += ["--warm-containers", cls.container_mode]
+
+        if cls.parameter_overrides:
+            command_list += ["--parameter-overrides", cls._make_parameter_override_arg(cls.parameter_overrides)]
+
+        cls.start_lambda_process = Popen(command_list)
+        time.sleep(wait_time)
+
+
+@skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
+class CDKStartLambdaIntegPythonBase(CDKStartLambdaBaseClass):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.cdk_python_env = CdkPythonEnv(cls.scratch_dir)
+        cls.cdk_python_env.install_dependencies(str(cls.test_data_path.joinpath("cdk", "python", "requirements.txt")))

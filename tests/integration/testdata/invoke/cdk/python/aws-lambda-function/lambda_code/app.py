@@ -2,6 +2,10 @@ import os
 import sys
 
 
+def hello_world_handler(event, context):
+    return "Hello world!"
+
+
 def handler(event, context):
     print("value1 = " + event["key1"])
     print("value2 = " + event["key2"])
