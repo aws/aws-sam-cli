@@ -133,12 +133,13 @@ class ECRRepo:
             self._output_logical_id = self._function_logical_id[:52] + self._function_md5[:8] + "Out"
         return self._output_logical_id
 
-    def get_domain(self, region: str) -> str:
+    @staticmethod
+    def get_domain(region: str) -> str:
         # https://docs.aws.amazon.com/general/latest/gr/ecr.html
         if region.startswith("cn-"):
             return "amazonaws.com.cn"
         return "amazonaws.com"
 
     def get_repo_uri(self, account_id, region) -> str:
-        domain = self.get_domain(region)
+        domain = ECRRepo.get_domain(region)
         return f"{account_id}.dkr.ecr.{region}.{domain}/{self.physical_id}"
