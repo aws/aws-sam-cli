@@ -17,11 +17,10 @@ LOG = logging.getLogger(__name__)
 
 
 class AbstractXRayPuller(ObservabilityPuller):
-
     def __init__(
-            self,
-            max_retries: int = 1000,
-            poll_interval: int = 1,
+        self,
+        max_retries: int = 1000,
+        poll_interval: int = 1,
     ):
         """
         Parameters
@@ -79,11 +78,7 @@ class XRayTracePuller(AbstractXRayPuller):
     """
 
     def __init__(
-            self,
-            xray_client: Any,
-            consumer: ObservabilityEventConsumer,
-            max_retries: int = 1000,
-            poll_interval: int = 1
+        self, xray_client: Any, consumer: ObservabilityEventConsumer, max_retries: int = 1000, poll_interval: int = 1
     ):
         """
         Parameters

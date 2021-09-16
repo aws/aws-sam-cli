@@ -19,11 +19,7 @@ class XRayServiceGraphPuller(AbstractXRayPuller):
     """
 
     def __init__(
-            self,
-            xray_client: Any,
-            consumer: ObservabilityEventConsumer,
-            max_retries: int = 1000,
-            poll_interval: int = 1
+        self, xray_client: Any, consumer: ObservabilityEventConsumer, max_retries: int = 1000, poll_interval: int = 1
     ):
         """
         Parameters
