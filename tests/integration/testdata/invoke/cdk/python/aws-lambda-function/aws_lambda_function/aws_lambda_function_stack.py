@@ -18,7 +18,7 @@ class AwsLambdaFunctionStack(cdk.Stack):
 
         CfnParameter(self, "ModeEnvVariable", type="String")
 
-        hello_world_function = _lambda.Function(
+        _lambda.Function(
             scope=self,
             id="helloworld-function",
             function_name="HelloWorldFunction",
@@ -27,8 +27,6 @@ class AwsLambdaFunctionStack(cdk.Stack):
             handler="app.hello_world_handler",
             environment={"MODE": Fn.ref("ModeEnvVariable")},
         )
-        api = _apigw.LambdaRestApi(self, 'ApiGateway', handler=hello_world_function)
-        hello_world_function.add_event_source(ApiEventSource("GET", "/endpoint"))
 
         _lambda.Function(
             scope=self,

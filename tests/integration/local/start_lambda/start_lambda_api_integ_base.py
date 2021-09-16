@@ -170,25 +170,26 @@ class CDKStartLambdaBaseClass(StartLambdaIntegBaseClass):
 
     def get_command_list(
         self,
+        container_mode,
+        parameter_overrides,
         project_type="CDK",
     ):
         command_list = [self.cmd, "local", "start-lambda", "-p", self.port]
 
+        if container_mode:
+            command_list += ["--warm-containers", container_mode]
+
+        if parameter_overrides:
+            command_list += ["--parameter-overrides", self._make_parameter_override_arg(parameter_overrides)]
+
         if project_type:
-            command_list = command_list + ["--project-type", str(project_type)]
+            command_list += ["--project-type", str(project_type)]
 
         return command_list
 
     @classmethod
-    def start_lambda(cls, wait_time=10):
-        command_list = cls.get_command_list(cls)
-
-        if cls.container_mode:
-            command_list += ["--warm-containers", cls.container_mode]
-
-        if cls.parameter_overrides:
-            command_list += ["--parameter-overrides", cls._make_parameter_override_arg(cls.parameter_overrides)]
-
+    def start_lambda(cls, wait_time=20):
+        command_list = cls.get_command_list(cls(), cls.container_mode, cls.parameter_overrides)
         cls.start_lambda_process = Popen(command_list)
         time.sleep(wait_time)
 

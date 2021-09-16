@@ -190,7 +190,7 @@ class TestWarmContainersBaseClass(CDKStartLambdaIntegPythonBase):
 
 
 class TestWarmContainers(TestWarmContainersBaseClass):
-    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    template_path = "/testdata/invoke/cdk/python/aws-lambda-function"
     container_mode = ContainersInitializationMode.EAGER.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
@@ -219,7 +219,7 @@ class TestWarmContainersInitialization(TestWarmContainersBaseClass):
 
 
 class TestLazyContainers(TestWarmContainersBaseClass):
-    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    template_path = "/testdata/invoke/cdk/python/aws-lambda-function"
     container_mode = ContainersInitializationMode.LAZY.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
