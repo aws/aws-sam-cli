@@ -8,13 +8,12 @@ from typing import List, Optional
 from samcli.commands.exceptions import UserException
 from samcli.commands.logs.console_consumers import CWConsoleEventConsumer
 from samcli.commands.traces.traces_puller_factory import generate_trace_puller
-from samcli.lib.observability.cw_logs.cw_log_consumers import CWFileEventConsumer
 from samcli.lib.observability.cw_logs.cw_log_formatters import (
     CWColorizeErrorsFormatter,
     CWJsonFormatter,
     CWKeywordHighlighterFormatter,
     CWPrettyPrintFormatter,
-    CWAddNewLineIfItDoesntExist,
+    CWAddNewLineIfItDoesntExist, CWLogEventJSONMapper,
 )
 from samcli.lib.observability.cw_logs.cw_log_group_provider import LogGroupProvider
 from samcli.lib.observability.cw_logs.cw_log_puller import CWLogPuller
@@ -43,7 +42,7 @@ def generate_puller(
     resource_information_list: List[CloudFormationResourceSummary],
     filter_pattern: Optional[str] = None,
     additional_cw_log_groups: Optional[List[str]] = None,
-    output_dir: Optional[str] = None,
+    unformatted: bool = False,
     include_tracing: bool = False,
 ) -> ObservabilityPuller:
     """
@@ -62,8 +61,9 @@ def generate_puller(
     additional_cw_log_groups : Optional[str]
         Optional list of additional CloudWatch log groups which will be used to fetch
         log events from.
-    output_dir : Optional[str]
-        Optional parameter to store output of the events into a file in the given folder
+    unformatted : bool
+        By default, logs and traces are printed with a format for terminal. If this option is provided, the events
+        will be printed unformatted in JSON.
     include_tracing: bool
         A flag to include the xray traces log or not
 
@@ -88,7 +88,7 @@ def generate_puller(
             )
             continue
 
-        consumer = generate_consumer(filter_pattern, output_dir, resource_information.logical_resource_id)
+        consumer = generate_consumer(filter_pattern, unformatted, resource_information.logical_resource_id)
         pullers.append(
             CWLogPuller(
                 boto_client_provider("logs"),
@@ -100,7 +100,7 @@ def generate_puller(
 
     # populate puller instances for the additional CloudWatch log groups
     for cw_log_group in additional_cw_log_groups:
-        consumer = generate_consumer(filter_pattern, output_dir)
+        consumer = generate_consumer(filter_pattern, unformatted)
         pullers.append(
             CWLogPuller(
                 boto_client_provider("logs"),
@@ -111,7 +111,7 @@ def generate_puller(
 
     # if tracing flag is set, add the xray traces puller to fetch debug traces
     if include_tracing:
-        trace_puller = generate_trace_puller(boto_client_provider("xray"), output_dir)
+        trace_puller = generate_trace_puller(boto_client_provider("xray"), unformatted)
         pullers.append(trace_puller)
 
     # if no puller have been collected, raise an exception since there is nothing to pull
@@ -123,32 +123,22 @@ def generate_puller(
 
 
 def generate_consumer(
-    filter_pattern: Optional[str] = None, output_dir: Optional[str] = None, resource_name: Optional[str] = None
+    filter_pattern: Optional[str] = None, unformatted: bool = False, resource_name: Optional[str] = None
 ):
     """
     Generates consumer instance with the given variables.
-    If output directory have been provided, then it will return file consumer.
+    If unformatted is True, then it will return consumer with formatters for just JSON.
     If not, it will return console consumer
     """
-    if output_dir:
-        return generate_file_consumer(output_dir, resource_name)
+    if unformatted:
+        return generate_unformatted_consumer()
 
     return generate_console_consumer(filter_pattern)
 
 
-def generate_file_consumer(
-    output_directory: str,
-    file_prefix: Optional[str],
-) -> ObservabilityEventConsumer:
+def generate_unformatted_consumer() -> ObservabilityEventConsumer:
     """
-    Creates file event consumer, which is used to store events into a file
-
-    Parameters
-    ----------
-    output_directory : str
-        Output directory where the files will be stored
-    file_prefix : str
-        Prefix of the file, rest of the file name will have unique string
+    Creates event consumer, which prints CW Log Events unformatted as JSON into terminal
 
     Returns
     -------
@@ -156,10 +146,9 @@ def generate_file_consumer(
     """
     return ObservabilityEventConsumerDecorator(
         [
-            CWJsonFormatter(),
-            CWAddNewLineIfItDoesntExist(),
+            CWLogEventJSONMapper(),
         ],
-        CWFileEventConsumer(output_directory, file_prefix),
+        CWConsoleEventConsumer(True),
     )
 
 

@@ -84,7 +84,7 @@ def cli(
     include_traces,
     start_time,
     end_time,
-    output_dir,
+    unformatted,
     cw_log_group,
     config_file,
     config_env,
@@ -95,7 +95,7 @@ def cli(
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(
-        name, stack_name, filter, tail, include_traces, start_time, end_time, cw_log_group, output_dir, ctx.region
+        name, stack_name, filter, tail, include_traces, start_time, end_time, cw_log_group, unformatted, ctx.region
     )  # pragma: no cover
 
 
@@ -108,7 +108,7 @@ def do_cli(
     start_time,
     end_time,
     cw_log_groups,
-    output_directory,
+    unformatted,
     region,
 ):
     """
@@ -135,7 +135,7 @@ def do_cli(
         resource_logical_id_resolver.get_resource_information(fetch_all_when_no_resource_name_given),
         filter_pattern,
         cw_log_groups,
-        output_directory,
+        unformatted,
         include_tracing,
     )
 

@@ -368,10 +368,11 @@ def common_observability_click_options():
             "become available.",
         ),
         click.option(
-            "--output-dir",
-            type=click.Path(file_okay=False, dir_okay=True, writable=True, resolve_path=True, exists=True),
-            help="Output directory, when defined all new events will be stored into given directory and each "
-            "event will be separated by a new line feed.",
+            "--unformatted",
+            "-u",
+            is_flag=True,
+            help="Print events without any text formatting in JSON. This option might be useful if you are reading "
+            "output into another tool.",
         ),
     ]
 

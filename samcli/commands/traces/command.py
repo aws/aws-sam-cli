@@ -39,17 +39,17 @@ def cli(
     start_time,
     end_time,
     tail,
-    output_dir,
+    unformatted,
     config_file,
     config_env,
 ):
     """
     `sam traces` command entry point
     """
-    do_cli(trace_id, start_time, end_time, tail, output_dir, ctx.region)
+    do_cli(trace_id, start_time, end_time, tail, unformatted, ctx.region)
 
 
-def do_cli(trace_ids, start_time, end_time, tailing, output_dir, region):
+def do_cli(trace_ids, start_time, end_time, tailing, unformatted, region):
     """
     Implementation of the ``cli`` method
     """
@@ -66,7 +66,7 @@ def do_cli(trace_ids, start_time, end_time, tailing, output_dir, region):
     xray_client = boto3.client("xray", config=boto_config)
 
     # generate puller depending on the parameters
-    puller = generate_trace_puller(xray_client, output_dir)
+    puller = generate_trace_puller(xray_client, unformatted)
 
     if trace_ids:
         puller.load_events(trace_ids)

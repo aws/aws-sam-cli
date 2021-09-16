@@ -6,7 +6,7 @@ from parameterized import parameterized
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION
 from samcli.commands.logs.puller_factory import (
     generate_puller,
-    generate_file_consumer,
+    generate_unformatted_consumer,
     generate_console_consumer,
     NoPullerGeneratedException,
     generate_consumer,
@@ -16,16 +16,16 @@ from samcli.commands.logs.puller_factory import (
 class TestPullerFactory(TestCase):
     @parameterized.expand(
         [
-            (None, None, None),
-            ("filter_pattern", None, None),
-            ("filter_pattern", ["cw_log_groups"], None),
-            ("filter_pattern", ["cw_log_groups"], "output_dir"),
-            (None, ["cw_log_groups"], "output_dir"),
-            (None, None, "output_dir"),
+            (None, None, False),
+            ("filter_pattern", None, False),
+            ("filter_pattern", ["cw_log_groups"], False),
+            ("filter_pattern", ["cw_log_groups"], True),
+            (None, ["cw_log_groups"], True),
+            (None, None, True),
         ]
     )
     @patch("samcli.commands.logs.puller_factory.generate_console_consumer")
-    @patch("samcli.commands.logs.puller_factory.generate_file_consumer")
+    @patch("samcli.commands.logs.puller_factory.generate_unformatted_consumer")
     @patch("samcli.commands.logs.puller_factory.CWLogPuller")
     @patch("samcli.commands.logs.puller_factory.generate_trace_puller")
     @patch("samcli.commands.logs.puller_factory.ObservabilityCombinedPuller")
@@ -33,11 +33,11 @@ class TestPullerFactory(TestCase):
         self,
         param_filter_pattern,
         param_cw_log_groups,
-        param_output_dir,
+        param_unformatted,
         patched_combined_puller,
         patched_xray_puller,
         patched_cw_log_puller,
-        patched_file_consumer,
+        patched_unformatted_consumer,
         patched_console_consumer,
     ):
         mock_logs_client = Mock()
@@ -56,8 +56,8 @@ class TestPullerFactory(TestCase):
         mocked_consumers = mocked_resource_consumers + mocked_cw_specific_consumers
 
         # depending on the output_dir param patch file consumer or console consumer
-        if param_output_dir:
-            patched_file_consumer.side_effect = mocked_consumers
+        if param_unformatted:
+            patched_unformatted_consumer.side_effect = mocked_consumers
         else:
             patched_console_consumer.side_effect = mocked_consumers
 
@@ -76,13 +76,13 @@ class TestPullerFactory(TestCase):
             mock_resource_info_list,
             param_filter_pattern,
             param_cw_log_groups,
-            param_output_dir,
+            param_unformatted,
             True,
         )
 
         self.assertEqual(puller, mocked_combined_puller)
 
-        patched_xray_puller.assert_called_once_with(mock_xray_client, param_output_dir)
+        patched_xray_puller.assert_called_once_with(mock_xray_client, param_unformatted)
 
         patched_cw_log_puller.assert_has_calls(
             [call(mock_logs_client, consumer, ANY, ANY) for consumer in mocked_resource_consumers]
@@ -95,8 +95,8 @@ class TestPullerFactory(TestCase):
         patched_combined_puller.assert_called_with(mocked_pullers)
 
         # depending on the output_dir param assert calls for file consumer or console consumer
-        if param_output_dir:
-            patched_file_consumer.assert_has_calls([call(param_output_dir, ANY) for _ in mocked_consumers])
+        if param_unformatted:
+            patched_unformatted_consumer.assert_has_calls([call() for _ in mocked_consumers])
         else:
             patched_console_consumer.assert_has_calls([call(param_filter_pattern) for _ in mocked_consumers])
 
@@ -139,66 +139,57 @@ class TestPullerFactory(TestCase):
 
     @parameterized.expand(
         [
-            ("output_dir",),
-            (None,),
+            (False,),
+            (True,),
         ]
     )
-    @patch("samcli.commands.logs.puller_factory.generate_file_consumer")
+    @patch("samcli.commands.logs.puller_factory.generate_unformatted_consumer")
     @patch("samcli.commands.logs.puller_factory.generate_console_consumer")
-    def test_generate_consumer(self, param_output_dir, patched_console_consumer, patched_file_consumer):
+    def test_generate_consumer(self, param_unformatted, patched_console_consumer, patched_unformatted_consumer):
         given_filter_pattern = Mock()
         given_resource_name = Mock()
 
         given_console_consumer = Mock()
         patched_console_consumer.return_value = given_console_consumer
         given_file_consumer = Mock()
-        patched_file_consumer.return_value = given_file_consumer
+        patched_unformatted_consumer.return_value = given_file_consumer
 
-        actual_consumer = generate_consumer(given_filter_pattern, param_output_dir, given_resource_name)
+        actual_consumer = generate_consumer(given_filter_pattern, param_unformatted, given_resource_name)
 
-        if param_output_dir:
-            patched_file_consumer.assert_called_with(param_output_dir, given_resource_name)
+        if param_unformatted:
+            patched_unformatted_consumer.assert_called_with()
             self.assertEqual(actual_consumer, given_file_consumer)
         else:
             patched_console_consumer.assert_called_with(given_filter_pattern)
             self.assertEqual(actual_consumer, given_console_consumer)
 
     @patch("samcli.commands.logs.puller_factory.ObservabilityEventConsumerDecorator")
-    @patch("samcli.commands.logs.puller_factory.CWJsonFormatter")
-    @patch("samcli.commands.logs.puller_factory.CWAddNewLineIfItDoesntExist")
-    @patch("samcli.commands.logs.puller_factory.CWFileEventConsumer")
-    def test_generate_file_consumer(
+    @patch("samcli.commands.logs.puller_factory.CWLogEventJSONMapper")
+    @patch("samcli.commands.logs.puller_factory.CWConsoleEventConsumer")
+    def test_generate_unformatted_consumer(
         self,
         patched_event_consumer,
-        patched_new_line_mapper,
         patched_json_formatter,
         patched_decorated_consumer,
     ):
-        mock_output_dir = Mock()
-        mock_file_prefix = Mock()
-
         expected_consumer = Mock()
         patched_decorated_consumer.return_value = expected_consumer
 
         expected_event_consumer = Mock()
         patched_event_consumer.return_value = expected_event_consumer
 
-        expected_new_line_mapper = Mock()
-        patched_new_line_mapper.return_value = expected_new_line_mapper
-
         expected_json_formatter = Mock()
         patched_json_formatter.return_value = expected_json_formatter
 
-        consumer = generate_file_consumer(mock_output_dir, mock_file_prefix)
+        consumer = generate_unformatted_consumer()
 
         self.assertEqual(expected_consumer, consumer)
 
         patched_decorated_consumer.assert_called_with(
-            [expected_json_formatter, expected_new_line_mapper], expected_event_consumer
+            [expected_json_formatter], expected_event_consumer
         )
-        patched_event_consumer.assert_called_with(mock_output_dir, mock_file_prefix)
+        patched_event_consumer.assert_called_with(True)
         patched_json_formatter.assert_called_once()
-        patched_new_line_mapper.assert_called_once()
 
     @patch("samcli.commands.logs.puller_factory.Colored")
     @patch("samcli.commands.logs.puller_factory.ObservabilityEventConsumerDecorator")

@@ -6,9 +6,9 @@ from unittest import TestCase
 
 from samcli.lib.observability.xray_traces.xray_event_mappers import (
     XRayTraceConsoleMapper,
-    XRayTraceFileMapper,
+    XRayTraceJSONMapper,
     XRayServiceGraphConsoleMapper,
-    XRayServiceGraphFileMapper,
+    XRayServiceGraphJSONMapper,
 )
 from samcli.lib.observability.xray_traces.xray_events import XRayTraceEvent, XRayServiceGraphEvent
 from samcli.lib.utils.time import to_utc, utc_to_timestamp, timestamp_to_iso
@@ -87,15 +87,16 @@ class TestXRayTraceConsoleMapper(AbstraceXRayTraceMapperTest):
             self.validate_segments(segments.sub_segments, message)
 
 
-class TestXRayTraceFileMapper(AbstraceXRayTraceMapperTest):
+class TestXRayTraceJSONMapper(AbstraceXRayTraceMapperTest):
     def test_escaped_json_will_be_dict(self):
-        file_mapper = XRayTraceFileMapper()
-        mapped_event = file_mapper.map(self.trace_event)
+        json_mapper = XRayTraceJSONMapper()
+        mapped_event = json_mapper.map(self.trace_event)
 
         segments = mapped_event.event.get("Segments")
         self.assertTrue(isinstance(segments, list))
         for segment in segments:
             self.assertTrue(isinstance(segment, dict))
+        self.assertEqual(mapped_event.event, json.loads(mapped_event.message))
 
 
 class AbstractXRayServiceGraphMapperTest(TestCase):
@@ -169,8 +170,8 @@ class TestXRayServiceGraphConsoleMapper(AbstractXRayServiceGraphMapperTest):
 class TestXRayServiceGraphFileMapper(AbstractXRayServiceGraphMapperTest):
     def test_datetime_object_convert_to_iso_string(self):
         actual_datetime = datetime(2015, 1, 1)
-        file_mapper = XRayServiceGraphFileMapper()
-        mapped_event = file_mapper.map(self.service_graph_event)
+        json_mapper = XRayServiceGraphJSONMapper()
+        mapped_event = json_mapper.map(self.service_graph_event)
         mapped_dict = mapped_event.event
 
         self.validate_start_and_end_time(actual_datetime, mapped_dict)
@@ -180,6 +181,7 @@ class TestXRayServiceGraphFileMapper(AbstractXRayServiceGraphMapperTest):
             edges = service.get("Edges", [])
             for edge in edges:
                 self.validate_start_and_end_time(actual_datetime, edge)
+        self.assertEqual(mapped_event.event, json.loads(mapped_event.message))
 
     def validate_start_and_end_time(self, datetime_obj, event_dict):
         self.validate_datetime_object_to_iso_string("StartTime", datetime_obj, event_dict)

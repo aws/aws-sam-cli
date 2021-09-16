@@ -110,3 +110,13 @@ class CWAddNewLineIfItDoesntExist(ObservabilityEventMapper):
             return f"{event}\n"
         # no-action for unknown events
         return event
+
+
+class CWLogEventJSONMapper(ObservabilityEventMapper[CWLogEvent]):
+    """
+    Converts given CWLogEvent into JSON string
+    """
+
+    def map(self, event: CWLogEvent) -> CWLogEvent:
+        event.message = json.dumps(event.event)
+        return event

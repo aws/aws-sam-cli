@@ -1,6 +1,7 @@
 """
 Contains mapper implementations of XRay events
 """
+import json
 from copy import deepcopy
 from typing import List
 
@@ -51,9 +52,10 @@ class XRayTraceConsoleMapper(ObservabilityEventMapper[XRayTraceEvent]):
         return formatted_str
 
 
-class XRayTraceFileMapper(ObservabilityEventMapper[XRayTraceEvent]):
+class XRayTraceJSONMapper(ObservabilityEventMapper[XRayTraceEvent]):
     """
     Original response from xray client contains json in an escaped string. This mapper re-constructs Json object again
+    and converts into JSON string that can be printed into console.
     """
 
     # pylint: disable=R0201
@@ -62,6 +64,7 @@ class XRayTraceFileMapper(ObservabilityEventMapper[XRayTraceEvent]):
         segments = [segment.document for segment in event.segments]
         mapped_event["Segments"] = segments
         event.event = mapped_event
+        event.message = json.dumps(mapped_event)
         return event
 
 
@@ -125,9 +128,10 @@ class XRayServiceGraphConsoleMapper(ObservabilityEventMapper[XRayServiceGraphEve
         return formatted_str
 
 
-class XRayServiceGraphFileMapper(ObservabilityEventMapper[XRayServiceGraphEvent]):
+class XRayServiceGraphJSONMapper(ObservabilityEventMapper[XRayServiceGraphEvent]):
     """
-    Original response from xray client contains datetime object. This mapper convert datetime object to iso string
+    Original response from xray client contains datetime object. This mapper convert datetime object to iso string,
+    and converts final JSON object into string.
     """
 
     def map(self, event: XRayServiceGraphEvent) -> XRayServiceGraphEvent:
@@ -142,6 +146,7 @@ class XRayServiceGraphFileMapper(ObservabilityEventMapper[XRayServiceGraphEvent]
                 self._convert_start_and_end_time_to_iso(edge)
 
         event.event = mapped_event
+        event.message = json.dumps(mapped_event)
         return event
 
     def _convert_start_and_end_time_to_iso(self, event):
