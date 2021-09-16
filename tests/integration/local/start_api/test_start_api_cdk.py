@@ -608,7 +608,6 @@ class TestStartApiWithSwaggerApis(CDKStartApiIntegPythonBase):
         self.assertEqual(response.headers.get("Content-Type"), "image/gif")
         self.assertEqual(response.content, expected)
 
-
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_decoded_binary_response_base64encoded_field_is_priority(self):
