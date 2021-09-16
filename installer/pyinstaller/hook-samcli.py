@@ -1,4 +1,7 @@
 from PyInstaller.utils import hooks
+from installer.pyinstaller.hidden_imports import SAM_CLI_HIDDEN_IMPORTS
+
+hiddenimports = SAM_CLI_HIDDEN_IMPORTS
 
 hiddenimports = [
     "cookiecutter.extensions",

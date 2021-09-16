@@ -10,7 +10,10 @@ from typing import List, Optional, Dict, cast, Union
 
 import docker
 import docker.errors
-from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
+from aws_lambda_builders import (
+    RPC_PROTOCOL_VERSION as lambda_builders_protocol_version,
+    __version__ as lambda_builders_version,
+)
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
@@ -29,9 +32,10 @@ from samcli.lib.utils.resources import (
     AWS_SERVERLESS_FUNCTION,
     AWS_SERVERLESS_LAYERVERSION,
 )
+from samcli.lib.docker.log_streamer import LogStreamer, LogStreamError
 from samcli.lib.providers.provider import ResourcesToBuildCollector, Function, get_full_path, Stack, LayerVersion
 from samcli.lib.utils.colors import Colored
-import samcli.lib.utils.osutils as osutils
+from samcli.lib.utils import osutils
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
@@ -125,7 +129,7 @@ class ApplicationBuilder:
         self._container_manager = container_manager
         self._parallel = parallel
         self._mode = mode
-        self._stream_writer = stream_writer if stream_writer else StreamWriter(osutils.stderr())
+        self._stream_writer = stream_writer if stream_writer else StreamWriter(stream=osutils.stderr(), auto_flush=True)
         self._docker_client = docker_client if docker_client else docker.from_env()
 
         self._deprecated_runtimes = {"nodejs4.3", "nodejs6.10", "nodejs8.10", "dotnetcore2.0"}
@@ -375,17 +379,11 @@ class ApplicationBuilder:
         function_name str
             Name of the function that is being built
         """
-        for log in build_logs:
-            if log:
-                log_stream = log.get("stream")
-                error_stream = log.get("error")
-
-                if error_stream:
-                    raise DockerBuildFailed(f"{function_name} failed to build: {error_stream}")
-
-                if log_stream:
-                    self._stream_writer.write(str.encode(log_stream))
-                    self._stream_writer.flush()
+        build_log_streamer = LogStreamer(self._stream_writer)
+        try:
+            build_log_streamer.stream_progress(build_logs)
+        except LogStreamError as ex:
+            raise DockerBuildFailed(msg=f"{function_name} failed to build: {str(ex)}") from ex
 
     def _build_layer(
         self,
@@ -626,19 +624,19 @@ class ApplicationBuilder:
 
         runtime = runtime.replace(".al2", "")
 
+        kwargs = {
+            "runtime": runtime,
+            "executable_search_paths": config.executable_search_paths,
+            "mode": self._mode,
+            "options": options,
+        }
+        # todo: remove this check once the lambda builder release is finished
+        if lambda_builders_version == "1.8.0":
+            kwargs["dependencies_dir"] = dependencies_dir
+            kwargs["download_dependencies"] = download_dependencies
+
         try:
-            builder.build(
-                source_dir,
-                artifacts_dir,
-                scratch_dir,
-                manifest_path,
-                runtime=runtime,
-                executable_search_paths=config.executable_search_paths,
-                mode=self._mode,
-                options=options,
-                dependencies_dir=dependencies_dir,
-                download_dependencies=download_dependencies
-            )
+            builder.build(source_dir, artifacts_dir, scratch_dir, manifest_path, **kwargs)
         except LambdaBuilderError as ex:
             raise BuildError(wrapped_from=ex.__class__.__name__, msg=str(ex)) from ex
 

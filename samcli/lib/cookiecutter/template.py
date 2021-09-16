@@ -3,15 +3,17 @@ This is the core module of the cookiecutter workflow, it defines how to create a
 values of the context and how to generate a project from the given template and provided context
 """
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
+
 from cookiecutter.exceptions import RepositoryNotFound, UnknownRepoType
 from cookiecutter.main import cookiecutter
+
 from samcli.commands.exceptions import UserException
 from samcli.lib.init.arbitrary_project import generate_non_cookiecutter_project
+from .exceptions import GenerateProjectFailedError, InvalidLocationError, PreprocessingError, PostprocessingError
 from .interactive_flow import InteractiveFlow
 from .plugin import Plugin
 from .processor import Processor
-from .exceptions import GenerateProjectFailedError, InvalidLocationError, PreprocessingError, PostprocessingError
 
 LOG = logging.getLogger(__name__)
 
@@ -41,6 +43,8 @@ class Template:
         An optional series of plugins to be plugged in. A plugin defines its own interactive_flow, preprocessor
         and postprocessor. A plugin is a sub-set of the template, if there is a common behavior among multiple
         templates, it is better to be extracted to a plugin that can then be plugged in to each of these templates.
+    metadata: Optional[Dict]
+        An optional dictionary with extra information about the template
 
     Methods
     -------
@@ -61,6 +65,7 @@ class Template:
         preprocessors: Optional[List[Processor]] = None,
         postprocessors: Optional[List[Processor]] = None,
         plugins: Optional[List[Plugin]] = None,
+        metadata: Optional[Dict] = None,
     ):
         """
         Initialize the class
@@ -84,6 +89,8 @@ class Template:
             An optional series of plugins to be plugged in. A plugin defines its own interactive_flow, preprocessor
             and postprocessor. A plugin is a sub-set of the template, if there is a common behavior among multiple
             templates, it is better to be extracted to a plugin that can then be plugged in to each of these templates.
+        metadata: Optional[Dict]
+            An optional dictionary with extra information about the template
         """
         self._location = location
         self._interactive_flows = interactive_flows or []
@@ -97,8 +104,9 @@ class Template:
                 self._preprocessors.append(plugin.preprocessor)
             if plugin.postprocessor:
                 self._postprocessors.append(plugin.postprocessor)
+        self.metadata = metadata
 
-    def run_interactive_flows(self) -> Dict:
+    def run_interactive_flows(self, context: Optional[Dict] = None) -> Dict:
         """
         prompt the user a series of questions' flows and gather the answers to create the cookiecutter context.
         The questions are identified by keys. If multiple questions, whether within the same flow or across
@@ -112,14 +120,14 @@ class Template:
             A Dictionary in the form of {question.key: answer} representing user's answers to the flows' questions
         """
         try:
-            context: Dict[str, Any] = {}
+            context = context if context else {}
             for flow in self._interactive_flows:
                 context = flow.run(context)
             return context
         except Exception as e:
             raise UserException(str(e), wrapped_from=e.__class__.__name__) from e
 
-    def generate_project(self, context: Dict):
+    def generate_project(self, context: Dict, output_dir: str) -> None:
         """
         Generates a project based on this cookiecutter template and the given context. The context is first
         processed and manipulated by series of preprocessors(if any) then the project is generated and finally
@@ -129,6 +137,8 @@ class Template:
         ----------
         context: Dict
             the cookiecutter context to fulfill the values of cookiecutter.json keys
+        output_dir: str
+            the directory where project will be generated in
 
         Raise:
         ------
@@ -144,7 +154,13 @@ class Template:
 
         try:
             LOG.debug("Baking a new template with cookiecutter with all parameters")
-            cookiecutter(template=self._location, output_dir=".", no_input=True, extra_context=context)
+            cookiecutter(
+                template=self._location,
+                output_dir=output_dir,
+                no_input=True,
+                extra_context=context,
+                overwrite_if_exists=True,
+            )
         except RepositoryNotFound as e:
             # cookiecutter.json is not found in the template. Let's just clone it directly without
             # using cookiecutter and call it done.

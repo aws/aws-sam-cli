@@ -458,6 +458,25 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process_stdout = stdout.strip()
         self.assertEqual(process_stdout.decode("utf-8"), '"git init passed"')
 
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_with_docker_volume_basedir(self):
+        command_list = self.get_command_list(
+            "HelloWorldServerlessFunction",
+            template_path=self.template_path,
+            event_path=self.event_path,
+            docker_volume_basedir=self.docker_volume_basedir,
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip()
+        self.assertEqual(process_stdout.decode("utf-8"), '"Hello world"')
+
 
 class TestSamInstrinsicsAndPlugins(InvokeIntegBase):
     template = Path("template-pseudo-params.yaml")

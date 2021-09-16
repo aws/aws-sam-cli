@@ -16,38 +16,24 @@ from samcli.lib.utils.time import to_timestamp, to_datetime
 LOG = logging.getLogger(__name__)
 
 
-class XRayTracePuller(ObservabilityPuller):
-    """
-    ObservabilityPuller implementation which pulls XRay trace information by summarizing XRay traces first
-    and then getting them as a batch later.
-    """
-
+class AbstractXRayPuller(ObservabilityPuller):
     def __init__(
         self,
-        xray_client: Any,
-        consumer: ObservabilityEventConsumer,
         max_retries: int = 1000,
         poll_interval: int = 1,
     ):
         """
         Parameters
         ----------
-        xray_client : boto3.client
-            XRay boto3 client instance
-        consumer :  ObservabilityEventConsumer
-            Consumer instance which will process pulled events
         max_retries : int
             Optional maximum number of retries which can be used to pull information. Default value is 1000
         poll_interval : int
             Optional interval value that will be used to wait between calls in tail operation. Default value is 1
         """
-        self.xray_client = xray_client
-        self.consumer = consumer
-        self.latest_event_time = 0
         self._max_retries = max_retries
         self._poll_interval = poll_interval
         self._had_data = False
-        self._previous_trace_ids: Set[str] = set()
+        self.latest_event_time = 0
 
     def tail(self, start_time: Optional[datetime] = None, filter_pattern: Optional[str] = None):
         if start_time:
@@ -83,6 +69,33 @@ class XRayTracePuller(ObservabilityPuller):
                 self._had_data = False
 
             time.sleep(self._poll_interval)
+
+
+class XRayTracePuller(AbstractXRayPuller):
+    """
+    ObservabilityPuller implementation which pulls XRay trace information by summarizing XRay traces first
+    and then getting them as a batch later.
+    """
+
+    def __init__(
+        self, xray_client: Any, consumer: ObservabilityEventConsumer, max_retries: int = 1000, poll_interval: int = 1
+    ):
+        """
+        Parameters
+        ----------
+        xray_client : boto3.client
+            XRay boto3 client instance
+        consumer :  ObservabilityEventConsumer
+            Consumer instance which will process pulled events
+        max_retries : int
+            Optional maximum number of retries which can be used to pull information. Default value is 1000
+        poll_interval : int
+            Optional interval value that will be used to wait between calls in tail operation. Default value is 1
+        """
+        super().__init__(max_retries, poll_interval)
+        self.xray_client = xray_client
+        self.consumer = consumer
+        self._previous_trace_ids: Set[str] = set()
 
     def load_time_period(
         self,

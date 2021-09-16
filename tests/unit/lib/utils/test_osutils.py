@@ -7,7 +7,7 @@ import sys
 
 from unittest import TestCase
 from unittest.mock import patch
-import samcli.lib.utils.osutils as osutils
+from samcli.lib.utils import osutils
 
 
 class Test_mkdir_temp(TestCase):

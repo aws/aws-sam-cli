@@ -26,7 +26,9 @@ from samcli.lib.build.build_graph import (
     _toml_table_to_layer_build_definition,
     BuildGraph,
     InvalidBuildGraphException,
-    LayerBuildDefinition, MANIFEST_MD5_FIELD, BuildHashingInformation,
+    LayerBuildDefinition,
+    MANIFEST_MD5_FIELD,
+    BuildHashingInformation,
 )
 from samcli.lib.providers.provider import Function, LayerVersion
 from samcli.lib.utils import osutils
@@ -112,7 +114,9 @@ class TestConversionFunctions(TestCase):
         self.assertEqual(toml_table[ENV_VARS_FIELD], build_definition.env_vars)
 
     def test_layer_build_definition_to_toml_table(self):
-        build_definition = LayerBuildDefinition("name", "codeuri", "method", ["runtime"], "source_md5", "manifest_md5", env_vars={"env_vars": "value"})
+        build_definition = LayerBuildDefinition(
+            "name", "codeuri", "method", ["runtime"], "source_md5", "manifest_md5", env_vars={"env_vars": "value"}
+        )
         build_definition.layer = generate_function()
 
         toml_table = _layer_build_definition_to_toml_table(build_definition)
@@ -496,16 +500,22 @@ class TestBuildGraph(TestCase):
 
             build_graph._write_source_md5(
                 {TestBuildGraph.UUID: BuildHashingInformation("new_value", "new_manifest_value")},
-                {TestBuildGraph.LAYER_UUID: BuildHashingInformation("new_value", "new_manifest_value")}
+                {TestBuildGraph.LAYER_UUID: BuildHashingInformation("new_value", "new_manifest_value")},
             )
 
             txt = build_graph_path.read_text()
             document = cast(Dict, tomlkit.loads(txt))
 
             self.assertEqual(document["function_build_definitions"][TestBuildGraph.UUID][SOURCE_MD5_FIELD], "new_value")
-            self.assertEqual(document["function_build_definitions"][TestBuildGraph.UUID][MANIFEST_MD5_FIELD], "new_manifest_value")
-            self.assertEqual(document["layer_build_definitions"][TestBuildGraph.LAYER_UUID][SOURCE_MD5_FIELD], "new_value")
-            self.assertEqual(document["layer_build_definitions"][TestBuildGraph.LAYER_UUID][MANIFEST_MD5_FIELD], "new_manifest_value")
+            self.assertEqual(
+                document["function_build_definitions"][TestBuildGraph.UUID][MANIFEST_MD5_FIELD], "new_manifest_value"
+            )
+            self.assertEqual(
+                document["layer_build_definitions"][TestBuildGraph.LAYER_UUID][SOURCE_MD5_FIELD], "new_value"
+            )
+            self.assertEqual(
+                document["layer_build_definitions"][TestBuildGraph.LAYER_UUID][MANIFEST_MD5_FIELD], "new_manifest_value"
+            )
 
 
 class TestBuildDefinition(TestCase):
@@ -527,8 +537,12 @@ class TestBuildDefinition(TestCase):
         self.assertRaises(InvalidBuildGraphException, build_definition.get_function_name)
 
     def test_same_runtime_codeuri_metadata_should_reflect_as_same_object(self):
-        build_definition1 = FunctionBuildDefinition("runtime", "codeuri", ZIP, {"key": "value"}, "source_md5", "manifest_md5")
-        build_definition2 = FunctionBuildDefinition("runtime", "codeuri", ZIP, {"key": "value"}, "source_md5", "manifest_md5")
+        build_definition1 = FunctionBuildDefinition(
+            "runtime", "codeuri", ZIP, {"key": "value"}, "source_md5", "manifest_md5"
+        )
+        build_definition2 = FunctionBuildDefinition(
+            "runtime", "codeuri", ZIP, {"key": "value"}, "source_md5", "manifest_md5"
+        )
 
         self.assertEqual(build_definition1, build_definition2)
 

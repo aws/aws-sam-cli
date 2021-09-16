@@ -2,30 +2,24 @@
 This file contains puller implementations for XRay
 """
 import logging
-import time
 from datetime import datetime
 from typing import Optional, Any, List, Set
 
-from botocore.exceptions import ClientError
-
-from samcli.lib.observability.observability_info_puller import ObservabilityPuller, ObservabilityEventConsumer
+from samcli.lib.observability.observability_info_puller import ObservabilityEventConsumer
+from samcli.lib.observability.xray_traces.xray_event_puller import AbstractXRayPuller
 from samcli.lib.observability.xray_traces.xray_events import XRayServiceGraphEvent
-from samcli.lib.utils.time import to_timestamp, to_datetime, to_utc, utc_to_timestamp
+from samcli.lib.utils.time import to_utc, utc_to_timestamp
 
 LOG = logging.getLogger(__name__)
 
 
-class XRayServiceGraphPuller(ObservabilityPuller):
+class XRayServiceGraphPuller(AbstractXRayPuller):
     """
     ObservabilityPuller implementation which pulls XRay Service Graph
     """
 
     def __init__(
-        self,
-        xray_client: Any,
-        consumer: ObservabilityEventConsumer,
-        max_retries: int = 1000,
-        poll_interval: int = 1,
+        self, xray_client: Any, consumer: ObservabilityEventConsumer, max_retries: int = 1000, poll_interval: int = 1
     ):
         """
         Parameters
@@ -39,48 +33,10 @@ class XRayServiceGraphPuller(ObservabilityPuller):
         poll_interval : int
             Optional interval value that will be used to wait between calls in tail operation. Default value is 1
         """
+        super().__init__(max_retries, poll_interval)
         self.xray_client = xray_client
         self.consumer = consumer
-        self.latest_event_time = 0
-        self._max_retries = max_retries
-        self._poll_interval = poll_interval
-        self._had_data = False
         self._previous_xray_service_graphs: Set[str] = set()
-
-    def tail(self, start_time: Optional[datetime] = None, filter_pattern: Optional[str] = None):
-        if start_time:
-            self.latest_event_time = to_timestamp(start_time)
-
-        counter = self._max_retries
-        while counter > 0:
-            LOG.debug("Tailing XRay traces starting at %s", self.latest_event_time)
-
-            counter -= 1
-            try:
-                self.load_time_period(to_datetime(self.latest_event_time), datetime.utcnow())
-            except ClientError as err:
-                error_code = err.response.get("Error", {}).get("Code")
-                if error_code == "ThrottlingException":
-                    # if throttled, increase poll interval by 1 second each time
-                    if self._poll_interval == 1:
-                        self._poll_interval += 1
-                    else:
-                        self._poll_interval **= 2
-                    LOG.warning(
-                        "Throttled by XRay API, increasing the poll interval time to %s seconds",
-                        self._poll_interval,
-                    )
-                else:
-                    # if exception is other than throttling re-raise
-                    LOG.error("Failed while fetching new AWS X-Ray Service Graph events", exc_info=err)
-                    raise err
-
-            if self._had_data:
-                counter = self._max_retries
-                self.latest_event_time += 1
-                self._had_data = False
-
-            time.sleep(self._poll_interval)
 
     def load_time_period(
         self,

@@ -21,6 +21,8 @@ from samcli import __version__ as version
 
 LOG = logging.getLogger(__name__)
 
+RAPID_IMAGE_TAG_PREFIX = "rapid"
+
 
 class Runtime(Enum):
     nodejs10x = "nodejs10.x"
@@ -30,6 +32,7 @@ class Runtime(Enum):
     python36 = "python3.6"
     python37 = "python3.7"
     python38 = "python3.8"
+    python39 = "python3.9"
     ruby25 = "ruby2.5"
     ruby27 = "ruby2.7"
     java8 = "java8"
@@ -54,7 +57,7 @@ class Runtime(Enum):
 
 class LambdaImage:
     _LAYERS_DIR = "/opt"
-    _INVOKE_REPO_PREFIX = "amazon/aws-sam-cli-emulation-image"
+    _INVOKE_REPO_PREFIX = "public.ecr.aws/sam/emulation"
     _SAM_CLI_REPO_NAME = "samcli/lambda"
     _RAPID_SOURCE_PATH = Path(__file__).parent.joinpath("..", "rapid").resolve()
 
@@ -113,7 +116,8 @@ class LambdaImage:
         # Default image tag to be the base image with a tag of 'rapid' instead of latest.
         # If the image name had a digest, removing the @ so that a valid image name can be constructed
         # to use for the local invoke image name.
-        image_tag = f"{image_name.split(':')[0].replace('@', '')}:rapid-{version}"
+        image_repo = image_name.split(":")[0].replace("@", "")
+        image_tag = f"{image_repo}:{RAPID_IMAGE_TAG_PREFIX}-{version}"
 
         downloaded_layers = []
 
@@ -131,6 +135,10 @@ class LambdaImage:
         except docker.errors.ImageNotFound:
             LOG.info("Image was not found.")
             image_not_found = True
+
+        # If building a new rapid image, delete older rapid images of the same repo
+        if image_not_found and image_tag == f"{image_repo}:{RAPID_IMAGE_TAG_PREFIX}-{version}":
+            self._remove_rapid_images(image_repo)
 
         if (
             self.force_image_build
@@ -287,3 +295,40 @@ class LambdaImage:
         for layer in layers:
             dockerfile_content = dockerfile_content + f"ADD {layer.name} {LambdaImage._LAYERS_DIR}\n"
         return dockerfile_content
+
+    def _remove_rapid_images(self, repo: str) -> None:
+        """
+        Remove all rapid images for given repo
+
+        Parameters
+        ----------
+        repo string
+            Repo for which rapid images will be removed
+        """
+        LOG.info("Removing rapid images for repo %s", repo)
+        try:
+            for image in self.docker_client.images.list(name=repo):
+                for tag in image.tags:
+                    if self.is_rapid_image(tag):
+                        try:
+                            self.docker_client.images.remove(image.id)
+                        except docker.errors.APIError as ex:
+                            LOG.warning("Failed to remove rapid image with ID: %s", image.id, exc_info=ex)
+                        break
+        except docker.errors.APIError as ex:
+            LOG.warning("Failed getting images from repo %s", repo, exc_info=ex)
+
+    @staticmethod
+    def is_rapid_image(image_name: str) -> bool:
+        """
+        Is the image tagged as a RAPID clone?
+
+        : param string image_name: Name of the image
+        : return bool: True, if the image name ends with rapid-$SAM_CLI_VERSION. False, otherwise
+        """
+
+        try:
+            return image_name.split(":")[1].startswith(f"{RAPID_IMAGE_TAG_PREFIX}-")
+        except (IndexError, AttributeError):
+            # split() returned 1 or less items or image_name is None
+            return False

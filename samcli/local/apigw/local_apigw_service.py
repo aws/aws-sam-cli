@@ -33,6 +33,12 @@ class LambdaResponseParseException(Exception):
     """
 
 
+class PayloadFormatVersionValidateException(Exception):
+    """
+    An exception raised when validation of payload format version fails
+    """
+
+
 class Route:
     API = "Api"
     HTTP = "HttpApi"
@@ -284,12 +290,21 @@ class LocalApigwService(BaseLocalService):
         route = self._get_current_route(request)
         cors_headers = Cors.cors_to_headers(self.api.cors)
 
+        # payloadFormatVersion can only support 2 values: "1.0" and "2.0"
+        # so we want to do strict validation to make sure it has proper value if provided
+        # https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html
+        if route.payload_format_version not in [None, "1.0", "2.0"]:
+            raise PayloadFormatVersionValidateException(
+                f'{route.payload_format_version} is not a valid value. PayloadFormatVersion must be "1.0" or "2.0"'
+            )
+
         method, endpoint = self.get_request_methods_endpoints(request)
         if method == "OPTIONS" and self.api.cors:
             headers = Headers(cors_headers)
             return self.service_response("", headers, 200)
 
         try:
+            # TODO: Rewrite the logic below to use version 2.0 when an invalid value is provided
             # the Lambda Event 2.0 is only used for the HTTP API gateway with defined payload format version equal 2.0
             # or none, as the default value to be used is 2.0
             # https://docs.aws.amazon.com/apigatewayv2/latest/api-reference/apis-apiid-integrations.html#apis-apiid-integrations-prop-createintegrationinput-payloadformatversion
@@ -311,7 +326,7 @@ class LocalApigwService(BaseLocalService):
             return ServiceErrorResponses.lambda_failure_response()
 
         stdout_stream = io.BytesIO()
-        stdout_stream_writer = StreamWriter(stdout_stream, self.is_debugging)
+        stdout_stream_writer = StreamWriter(stdout_stream, auto_flush=True)
 
         try:
             self.lambda_runner.invoke(route.function_name, event, stdout=stdout_stream_writer, stderr=self.stderr)
@@ -491,6 +506,7 @@ class LocalApigwService(BaseLocalService):
         :return: Tuple(int, dict, str, bool)
         """
         # pylint: disable-msg=too-many-statements
+        # pylint: disable=too-many-branches
         try:
             json_output = json.loads(lambda_output)
         except ValueError as ex:
@@ -510,6 +526,18 @@ class LocalApigwService(BaseLocalService):
 
         status_code = json_output.get("statusCode") or 200
         headers = Headers(json_output.get("headers") or {})
+
+        # cookies is a new field in payload format version 2.0 (a list)
+        # https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html
+        # we need to move cookies to Set-Cookie headers.
+        # each cookie becomes a set-cookie header
+        # MDN link: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie
+        cookies = json_output.get("cookies")
+
+        # cookies needs to be a list, otherwise the format is wrong and we can skip it
+        if isinstance(cookies, list):
+            for cookie in cookies:
+                headers.add("Set-Cookie", cookie)
 
         is_base_64_encoded = json_output.get("isBase64Encoded") or False
 

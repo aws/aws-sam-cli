@@ -705,32 +705,7 @@ class TestInvokeContext_stdout_property(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.osutils.stdout")
     @patch("samcli.commands.local.cli_common.invoke_context.StreamWriter")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
-    def test_enable_auto_flush_if_debug(self, SamFunctionProviderMock, StreamWriterMock, osutils_stdout_mock, ExitMock):
-
-        context = InvokeContext(template_file="template", debug_ports=[6000])
-
-        context._get_stacks = Mock()
-        context._get_stacks.return_value = [Mock()]
-        context._get_env_vars_value = Mock()
-        context._setup_log_file = Mock()
-
-        container_manager_mock = Mock()
-        context._get_container_manager = Mock(return_value=container_manager_mock)
-
-        with patch.object(type(container_manager_mock), "is_docker_reachable", create=True, return_value=True):
-            with context:
-                context.stdout
-
-        StreamWriterMock.assert_called_once_with(ANY, True)
-
-    @patch.object(InvokeContext, "__exit__")
-    @patch("samcli.commands.local.cli_common.invoke_context.osutils.stdout")
-    @patch("samcli.commands.local.cli_common.invoke_context.StreamWriter")
-    @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
-    def test_must_not_enable_auto_flush_if_not_debug(
-        self, SamFunctionProviderMock, StreamWriterMock, osutils_stdout_mock, ExitMock
-    ):
-
+    def test_must_enable_auto_flush(self, SamFunctionProviderMock, StreamWriterMock, osutils_stdout_mock, ExitMock):
         context = InvokeContext(template_file="template")
 
         context._get_stacks = Mock()
@@ -745,7 +720,7 @@ class TestInvokeContext_stdout_property(TestCase):
             with context:
                 context.stdout
 
-        StreamWriterMock.assert_called_once_with(ANY, False)
+        StreamWriterMock.assert_called_once_with(ANY, auto_flush=True)
 
     @patch.object(InvokeContext, "__exit__")
     @patch("samcli.commands.local.cli_common.invoke_context.osutils.stdout")
@@ -754,7 +729,6 @@ class TestInvokeContext_stdout_property(TestCase):
     def test_must_use_stdout_if_no_log_file_handle(
         self, SamFunctionProviderMock, StreamWriterMock, osutils_stdout_mock, ExitMock
     ):
-
         stream_writer_mock = Mock()
         StreamWriterMock.return_value = stream_writer_mock
 
@@ -811,9 +785,7 @@ class TestInvokeContext_stderr_property(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.osutils.stderr")
     @patch("samcli.commands.local.cli_common.invoke_context.StreamWriter")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
-    def test_must_enable_auto_flush_if_debug(
-        self, SamFunctionProviderMock, StreamWriterMock, osutils_stderr_mock, ExitMock
-    ):
+    def test_must_enable_auto_flush(self, SamFunctionProviderMock, StreamWriterMock, osutils_stderr_mock, ExitMock):
 
         context = InvokeContext(template_file="template", debug_ports=[6000])
 
@@ -829,31 +801,7 @@ class TestInvokeContext_stderr_property(TestCase):
             with context:
                 context.stderr
 
-        StreamWriterMock.assert_called_once_with(ANY, True)
-
-    @patch.object(InvokeContext, "__exit__")
-    @patch("samcli.commands.local.cli_common.invoke_context.osutils.stderr")
-    @patch("samcli.commands.local.cli_common.invoke_context.StreamWriter")
-    @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
-    def test_must_not_enable_auto_flush_if_not_debug(
-        self, SamFunctionProviderMock, StreamWriterMock, osutils_stderr_mock, ExitMock
-    ):
-
-        context = InvokeContext(template_file="template")
-
-        context._get_stacks = Mock()
-        context._get_stacks.return_value = [Mock()]
-        context._get_env_vars_value = Mock()
-        context._setup_log_file = Mock()
-
-        container_manager_mock = Mock()
-        context._get_container_manager = Mock(return_value=container_manager_mock)
-
-        with patch.object(type(container_manager_mock), "is_docker_reachable", create=True, return_value=True):
-            with context:
-                context.stderr
-
-        StreamWriterMock.assert_called_once_with(ANY, False)
+        StreamWriterMock.assert_called_once_with(ANY, auto_flush=True)
 
     @patch.object(InvokeContext, "__exit__")
     @patch("samcli.commands.local.cli_common.invoke_context.osutils.stderr")
@@ -1134,5 +1082,8 @@ class TestInvokeContext_get_stacks(TestCase):
         invoke_context = InvokeContext("template_file", aws_region="my-custom-region")
         invoke_context._get_stacks()
         get_stacks_mock.assert_called_with(
-            "template_file", parameter_overrides=None, global_parameter_overrides={"AWS::Region": "my-custom-region"}
+            "template_file",
+            parameter_overrides=None,
+            root_template_dir=os.getcwd(),  # using getcwd() because InvokeContext resolve relative path using cwd
+            global_parameter_overrides={"AWS::Region": "my-custom-region"},
         )

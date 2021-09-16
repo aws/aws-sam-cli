@@ -29,12 +29,12 @@ class SamLocalStackProvider(SamBaseProvider):
         template_dict: Dict,
         parameter_overrides: Optional[Dict] = None,
         global_parameter_overrides: Optional[Dict] = None,
+        root_template_dir: Optional[str] = None,
     ):
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
-        to be valid, normalized and a dictionary. It should be normalized by running all pre-processing
-        before passing to this class. The process of normalization will remove structures like ``Globals``, resolve
-        intrinsic functions etc.
+        to be valid and a dictionary. This class will perform template normalization to remove structures
+        like ``Globals``, resolve intrinsic functions etc.
         This class does not perform any syntactic validation of the template.
         After the class is initialized, any changes to the ``template_dict`` will not be reflected in here.
         You need to explicitly update the class with new template, if necessary.
@@ -45,6 +45,7 @@ class SamLocalStackProvider(SamBaseProvider):
             to get substituted within the template
         :param dict global_parameter_overrides: Optional dictionary of values for SAM template global parameters that
             might want to get substituted within the template and all its child templates
+        :param str root_template_dir: Optional directory of root SAM Template.
         """
 
         self._template_file = template_file
@@ -55,6 +56,7 @@ class SamLocalStackProvider(SamBaseProvider):
         )
         self._resources = self._template_dict.get("Resources", {})
         self._global_parameter_overrides = global_parameter_overrides
+        self._root_template_dir = root_template_dir
 
         LOG.debug("%d stacks found in the template", len(self._resources))
 
@@ -111,11 +113,19 @@ class SamLocalStackProvider(SamBaseProvider):
             try:
                 if resource_type == AWS_SERVERLESS_APPLICATION:
                     stack = SamLocalStackProvider._convert_sam_application_resource(
-                        self._template_file, self._stack_path, name, resource_properties
+                        self._template_file,
+                        self._stack_path,
+                        name,
+                        resource_properties,
+                        root_template_dir=self._root_template_dir,
                     )
                 if resource_type == AWS_CLOUDFORMATION_STACK:
                     stack = SamLocalStackProvider._convert_cfn_stack_resource(
-                        self._template_file, self._stack_path, name, resource_properties
+                        self._template_file,
+                        self._stack_path,
+                        name,
+                        resource_properties,
+                        root_template_dir=self._root_template_dir,
                     )
             except RemoteStackLocationNotSupported:
                 self.remote_stack_full_paths.append(get_full_path(self._stack_path, name))
@@ -131,6 +141,7 @@ class SamLocalStackProvider(SamBaseProvider):
         stack_path: str,
         name: str,
         resource_properties: Dict,
+        root_template_dir: Optional[str] = None,
         global_parameter_overrides: Optional[Dict] = None,
     ) -> Optional[Stack]:
         location = resource_properties.get("Location")
@@ -144,7 +155,7 @@ class SamLocalStackProvider(SamBaseProvider):
         if location.startswith("file://"):
             location = unquote(urlparse(location).path)
         else:
-            location = SamLocalStackProvider.normalize_resource_path(template_file, location)
+            location = SamLocalStackProvider.normalize_resource_path(template_file, location, root_template_dir)
 
         return Stack(
             parent_stack_path=stack_path,
@@ -153,7 +164,7 @@ class SamLocalStackProvider(SamBaseProvider):
             parameters=SamLocalStackProvider.merge_parameter_overrides(
                 resource_properties.get("Parameters", {}), global_parameter_overrides
             ),
-            template_dict=get_template_data(location),
+            template_dict=get_template_data(location, root_template_dir),
         )
 
     @staticmethod
@@ -162,6 +173,7 @@ class SamLocalStackProvider(SamBaseProvider):
         stack_path: str,
         name: str,
         resource_properties: Dict,
+        root_template_dir: Optional[str] = None,
         global_parameter_overrides: Optional[Dict] = None,
     ) -> Optional[Stack]:
         template_url = resource_properties.get("TemplateURL")
@@ -177,7 +189,7 @@ class SamLocalStackProvider(SamBaseProvider):
         if template_url.startswith("file://"):
             template_url = unquote(urlparse(template_url).path)
         else:
-            template_url = SamLocalStackProvider.normalize_resource_path(template_file, template_url)
+            template_url = SamLocalStackProvider.normalize_resource_path(template_file, template_url, root_template_dir)
 
         return Stack(
             parent_stack_path=stack_path,
@@ -186,7 +198,7 @@ class SamLocalStackProvider(SamBaseProvider):
             parameters=SamLocalStackProvider.merge_parameter_overrides(
                 resource_properties.get("Parameters", {}), global_parameter_overrides
             ),
-            template_dict=get_template_data(template_url),
+            template_dict=get_template_data(template_url, root_template_dir),
         )
 
     @staticmethod
@@ -196,6 +208,7 @@ class SamLocalStackProvider(SamBaseProvider):
         name: str = "",
         parameter_overrides: Optional[Dict] = None,
         global_parameter_overrides: Optional[Dict] = None,
+        root_template_dir: Optional[str] = None,
     ) -> Tuple[List[Stack], List[str]]:
         """
         Recursively extract stacks from a template file.
@@ -214,7 +227,8 @@ class SamLocalStackProvider(SamBaseProvider):
         global_parameter_overrides: Optional[Dict]
             Optional dictionary of values for SAM template global parameters
             that might want to get substituted within the template and its child templates
-
+        root_template_dir: str
+            Optional directory of root SAM Template. By default it is None unless we pass in a value.
         Returns
         -------
         stacks: List[Stack]
@@ -222,7 +236,7 @@ class SamLocalStackProvider(SamBaseProvider):
         remote_stack_full_paths : List[str]
             The list of full paths of detected remote stacks
         """
-        template_dict = get_template_data(template_file)
+        template_dict = get_template_data(template_file, root_template_dir)
         stacks = [
             Stack(
                 stack_path,
@@ -235,7 +249,12 @@ class SamLocalStackProvider(SamBaseProvider):
         remote_stack_full_paths: List[str] = []
 
         current = SamLocalStackProvider(
-            template_file, stack_path, template_dict, parameter_overrides, global_parameter_overrides
+            template_file,
+            stack_path,
+            template_dict,
+            parameter_overrides,
+            global_parameter_overrides,
+            root_template_dir,
         )
         remote_stack_full_paths.extend(current.remote_stack_full_paths)
 
@@ -246,6 +265,7 @@ class SamLocalStackProvider(SamBaseProvider):
                 child_stack.name,
                 child_stack.parameters,
                 global_parameter_overrides,
+                root_template_dir=root_template_dir,
             )
             stacks.extend(stacks_in_child)
             remote_stack_full_paths.extend(remote_stack_full_paths_in_child)
@@ -292,7 +312,7 @@ class SamLocalStackProvider(SamBaseProvider):
         return merged_parameter_overrides
 
     @staticmethod
-    def normalize_resource_path(stack_file_path: str, path: str) -> str:
+    def normalize_resource_path(stack_file_path: str, path: str, root_template_dir: Optional[str] = None) -> str:
         """
         Convert resource paths found in nested stack to ones resolvable from root stack.
         For example,
@@ -329,6 +349,8 @@ class SamLocalStackProvider(SamBaseProvider):
             The file path of the stack containing the resource
         path
             the raw path read from the template dict
+        root_template_dir
+            Optional directory of root SAM Template
 
         Returns
         -------
@@ -345,5 +367,11 @@ class SamLocalStackProvider(SamBaseProvider):
             # in case customers move the build artifacts among different machines (e.g., git or file sharing)
             # absolute paths are not robust as relative paths. So here prefer to use relative path.
             stack_file_path = os.path.relpath(os.path.realpath(stack_file_path))
+
+        # we would like to get relative code path if the input code path is relative (because of a bug)
+        # so it would get resolved to correct value using --docker-volume-basedir option later
+        # TODO: figure out is it possible to combine this with resolve_code_path in codeuri.py
+        if root_template_dir:
+            return os.path.relpath(os.path.join(os.path.dirname(stack_file_path), path), root_template_dir)
 
         return os.path.normpath(os.path.join(os.path.dirname(stack_file_path), path))

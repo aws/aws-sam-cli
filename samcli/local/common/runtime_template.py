@@ -15,7 +15,7 @@ _lambda_images_templates = os.path.join(_init_path, "lib", "init", "image_templa
 RUNTIME_DEP_TEMPLATE_MAPPING = {
     "python": [
         {
-            "runtimes": ["python3.8", "python3.7", "python3.6", "python2.7"],
+            "runtimes": ["python3.9", "python3.8", "python3.7", "python3.6", "python2.7"],
             "dependency_manager": "pip",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-python"),
             "build": True,
@@ -23,7 +23,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "ruby": [
         {
-            "runtimes": ["ruby2.5", "ruby2.7"],
+            "runtimes": ["ruby2.7", "ruby2.5"],
             "dependency_manager": "bundler",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-ruby"),
             "build": True,
@@ -79,6 +79,7 @@ def get_local_lambda_images_location(mapping, runtime):
 
 
 RUNTIME_TO_DEPENDENCY_MANAGERS = {
+    "python3.9": ["pip"],
     "python3.8": ["pip"],
     "python3.7": ["pip"],
     "python3.6": ["pip"],
@@ -109,49 +110,53 @@ RUNTIMES: Set[str] = set(
 )
 
 # When adding new Lambda runtimes, please update SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING
-# Order here should be a the group of the latest versions of runtimes followed by runtime groups
+# Runtimes are ordered in alphabetical fashion with reverse version order (latest versions first)
 INIT_RUNTIMES = [
-    # latest of each runtime version
-    "nodejs14.x",
-    "python3.8",
-    "ruby2.7",
-    "go1.x",
-    "java11",
+    # dotnetcore runtimes in descending order
+    "dotnet5.0",
     "dotnetcore3.1",
-    # older nodejs runtimes
+    "dotnetcore2.1",
+    "go1.x",
+    # java runtimes in descending order
+    "java11",
+    "java8.al2",
+    "java8",
+    # nodejs runtimes in descending order
+    "nodejs14.x",
     "nodejs12.x",
     "nodejs10.x",
-    # older python runtimes
+    # python runtimes in descending order
+    "python3.9",
+    "python3.8",
     "python3.7",
     "python3.6",
     "python2.7",
-    # older ruby runtimes
+    # ruby runtimes in descending order
+    "ruby2.7",
     "ruby2.5",
-    # older java runtimes
-    "java8.al2",
-    "java8",
-    # older dotnetcore runtimes
-    "dotnetcore2.1",
 ]
 
-LAMBDA_IMAGES_RUNTIMES = [
-    "amazon/nodejs14.x-base",
-    "amazon/nodejs12.x-base",
-    "amazon/nodejs10.x-base",
-    "amazon/python3.8-base",
-    "amazon/python3.7-base",
-    "amazon/python3.6-base",
-    "amazon/python2.7-base",
-    "amazon/ruby2.7-base",
-    "amazon/ruby2.5-base",
-    "amazon/go1.x-base",
-    "amazon/java11-base",
-    "amazon/java8.al2-base",
-    "amazon/java8-base",
-    "amazon/dotnet5.0-base",
-    "amazon/dotnetcore3.1-base",
-    "amazon/dotnetcore2.1-base",
-]
+LAMBDA_IMAGES_RUNTIMES_MAP = {
+    "dotnet5.0": "amazon/dotnet5.0-base",
+    "dotnetcore3.1": "amazon/dotnetcore3.1-base",
+    "dotnetcore2.1": "amazon/dotnetcore2.1-base",
+    "go1.x": "amazon/go1.x-base",
+    "java11": "amazon/java11-base",
+    "java8.al2": "amazon/java8.al2-base",
+    "java8": "amazon/java8-base",
+    "nodejs14.x": "amazon/nodejs14.x-base",
+    "nodejs12.x": "amazon/nodejs12.x-base",
+    "nodejs10.x": "amazon/nodejs10.x-base",
+    "python3.9": "amazon/python3.9-base",
+    "python3.8": "amazon/python3.8-base",
+    "python3.7": "amazon/python3.7-base",
+    "python3.6": "amazon/python3.6-base",
+    "python2.7": "amazon/python2.7-base",
+    "ruby2.7": "amazon/ruby2.7-base",
+    "ruby2.5": "amazon/ruby2.5-base",
+}
+
+LAMBDA_IMAGES_RUNTIMES = LAMBDA_IMAGES_RUNTIMES_MAP.values()
 
 # Schemas Code lang is a MINIMUM supported version
 # - this is why later Lambda runtimes can be mapped to earlier Schemas Code Languages
@@ -162,4 +167,5 @@ SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
     "python3.7": "Python36",
     "python3.6": "Python36",
     "python3.8": "Python36",
+    "python3.9": "Python36",
 }

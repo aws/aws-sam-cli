@@ -9,7 +9,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional, IO, cast, Tuple, Any
 
-import samcli.lib.utils.osutils as osutils
+from samcli.lib.utils import osutils
 from samcli.lib.providers.provider import Stack, Function
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.async_utils import AsyncContext
@@ -354,7 +354,7 @@ class InvokeContext:
             Stream writer for stdout
         """
         stream = self._log_file_handle if self._log_file_handle else osutils.stdout()
-        return StreamWriter(stream, self._is_debugging)
+        return StreamWriter(stream, auto_flush=True)
 
     @property
     def stderr(self) -> StreamWriter:
@@ -367,7 +367,7 @@ class InvokeContext:
             Stream writer for stderr
         """
         stream = self._log_file_handle if self._log_file_handle else osutils.stderr()
-        return StreamWriter(stream, self._is_debugging)
+        return StreamWriter(stream, auto_flush=True)
 
     @property
     def stacks(self) -> List[Stack]:
@@ -404,6 +404,8 @@ class InvokeContext:
                 self._template_file,
                 parameter_overrides=self._parameter_overrides,
                 global_parameter_overrides=self._global_parameter_overrides,
+                # root_template_dir will be used to convert relative path to absolute path
+                root_template_dir=os.path.dirname(os.path.abspath(self._template_file)),
             )
             return stacks
         except (TemplateNotFoundException, TemplateFailedParsingException) as ex:

@@ -12,15 +12,15 @@ attrs==20.3.0 \
     --hash=sha256:31b2eced602aa8423c2aea9c76a724617ed67cf9513173fd3a4f03e3a929c7e6 \
     --hash=sha256:832aa3cde19744e49938b91fea06d69ecb9e649c93ba974535d08ad92164f700
     # via jsonschema
-aws-lambda-builders==1.4.0 \
-    --hash=sha256:3f885433bb71bae653b520e3cf4c31fe5f5b977cb770d42c631af155cd60fd2b \
-    --hash=sha256:5d4e4ecb3d3290f0eec1f62b7b0d9d6b91160ae71447d95899eede392d05f75f \
-    --hash=sha256:d32f79cf67b189a7598793f69797f284b2eb9a9fada562175b1e854187f95aed
+aws-lambda-builders==1.7.0 \
+    --hash=sha256:260ac4b86e8962bc3e0da87cbdc077fc5bfcaecfde1d7c1b00e3bfca5a6732dc \
+    --hash=sha256:29958a1aa8639717d1e29fa3de4f674fd45f6f23b836c13aa8856dc9cd595d98 \
+    --hash=sha256:58eb5253f98b5a1cd882e70a6bbdb715bf30a3b1cb7094b1b7062a8566346caf
     # via aws-sam-cli (setup.py)
-aws-sam-translator==1.37.0 \
-    --hash=sha256:12cbf4af9e95acf73dabfbc44af990dc1e880f35697bb8c04f31b3bb90ab5526 \
-    --hash=sha256:26e4866627e4284afc367bee2bd04d3cf23cecc8ff879b419457715a738395a9 \
-    --hash=sha256:6884d942a815450637bac48e297996df2dacc27077d25ced09d8e9ce1f6a585c
+aws-sam-translator==1.38.0 \
+    --hash=sha256:0ecadda9cf5ab2318f57f1253181a2151e4c53cd35d21717a923c075a5a65cb6 \
+    --hash=sha256:dc6b816bb5cfd9709299f9b263fc0cf5ae60aca4166d1c90413ece651f1556bb \
+    --hash=sha256:ee7c7c5e44ec67202622ca877140545496527ffcc45da3beeda966f007443a88
     # via aws-sam-cli (setup.py)
 binaryornot==0.4.4 \
     --hash=sha256:359501dfc9d40632edc9fac890e19542db1a287bbcfa58175b66658392018061 \
@@ -64,9 +64,9 @@ cookiecutter==1.7.2 \
     --hash=sha256:430eb882d028afb6102c084bab6cf41f6559a77ce9b18dc6802e3bc0cc5f4a30 \
     --hash=sha256:efb6b2d4780feda8908a873e38f0e61778c23f6a2ea58215723bcceb5b515dac
     # via aws-sam-cli (setup.py)
-dateparser==0.7.6 \
-    --hash=sha256:7552c994f893b5cb8fcf103b4cd2ff7f57aab9bfd2619fdf0cf571c0740fd90b \
-    --hash=sha256:e875efd8c57c85c2d02b238239878db59ff1971f5a823457fcc69e493bf6ebfa
+dateparser==1.0.0 \
+    --hash=sha256:159cc4e01a593706a15cd4e269a0b3345edf3aef8bf9278a57dac8adf5bf1e4a \
+    --hash=sha256:17202df32c7a36e773136ff353aa3767e987f8b3e27374c39fd21a30a803d6f8
     # via aws-sam-cli (setup.py)
 docker==4.2.2 \
     --hash=sha256:03a46400c4080cb6f7aa997f881ddd84fef855499ece219d75fbdb53289c17ab \

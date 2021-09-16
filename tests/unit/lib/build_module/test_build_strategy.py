@@ -10,7 +10,9 @@ from samcli.lib.build.build_strategy import (
     ParallelBuildStrategy,
     BuildStrategy,
     DefaultBuildStrategy,
-    CachedBuildStrategy, CachedOrIncrementalBuildStrategyWrapper, IncrementalBuildStrategy,
+    CachedBuildStrategy,
+    CachedOrIncrementalBuildStrategyWrapper,
+    IncrementalBuildStrategy,
 )
 from samcli.lib.utils import osutils
 from pathlib import Path
@@ -447,12 +449,13 @@ class ParallelBuildStrategyTest(BuildStrategyBaseTest):
 
 @patch("samcli.lib.build.build_strategy.DependencyHashGenerator")
 class TestIncrementalBuildStrategy(TestCase):
-
     def setUp(self):
         self.build_function = Mock()
         self.build_layer = Mock()
         self.build_graph = Mock()
-        self.delegate_build_strategy = DefaultBuildStrategy(self.build_graph, Mock(), self.build_function, self.build_layer)
+        self.delegate_build_strategy = DefaultBuildStrategy(
+            self.build_graph, Mock(), self.build_function, self.build_layer
+        )
         self.build_strategy = IncrementalBuildStrategy(
             self.build_graph,
             self.delegate_build_strategy,
@@ -470,9 +473,7 @@ class TestIncrementalBuildStrategy(TestCase):
         self.build_graph.get_layer_build_definitions.return_value = []
 
         self.build_strategy.build()
-        self.build_function.assert_called_with(
-            ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY, False
-        )
+        self.build_function.assert_called_with(ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY, False)
 
     def test_assert_incremental_build_layer(self, patched_manifest_hash):
         same_hash = "same_hash"
@@ -484,15 +485,12 @@ class TestIncrementalBuildStrategy(TestCase):
         self.build_graph.get_layer_build_definitions.return_value = [given_layer_build_def]
 
         self.build_strategy.build()
-        self.build_layer.assert_called_with(
-            ANY, ANY, ANY, ANY, ANY, ANY, ANY, False
-        )
+        self.build_layer.assert_called_with(ANY, ANY, ANY, ANY, ANY, ANY, ANY, False)
 
 
 @patch("samcli.lib.build.build_graph.BuildGraph._write")
 @patch("samcli.lib.build.build_graph.BuildGraph._read")
 class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
-
     def setUp(self) -> None:
         self.build_graph = BuildGraph("build/graph/location")
 
@@ -506,46 +504,52 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
             False,
         )
 
-    @parameterized.expand([
-        "python3.7",
-        "nodejs12.x",
-        "ruby2.7",
-    ])
+    @parameterized.expand(
+        [
+            "python3.7",
+            "nodejs12.x",
+            "ruby2.7",
+        ]
+    )
     def test_will_call_incremental_build_strategy(self, mocked_read, mocked_write, runtime):
-        build_definition = FunctionBuildDefinition(
-            runtime, "codeuri", "packate_type", {}
-        )
+        build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", {})
         self.build_graph.put_function_build_definition(build_definition, Mock())
-        with patch.object(self.build_strategy, "_incremental_build_strategy") as patched_incremental_build_strategy, \
-            patch.object(self.build_strategy, "_cached_build_strategy") as patched_cached_build_strategy:
-                self.build_strategy.build()
+        with patch.object(
+            self.build_strategy, "_incremental_build_strategy"
+        ) as patched_incremental_build_strategy, patch.object(
+            self.build_strategy, "_cached_build_strategy"
+        ) as patched_cached_build_strategy:
+            self.build_strategy.build()
 
-                patched_incremental_build_strategy.build_single_function_definition.assert_called_with(build_definition)
-                patched_cached_build_strategy.assert_not_called()
+            patched_incremental_build_strategy.build_single_function_definition.assert_called_with(build_definition)
+            patched_cached_build_strategy.assert_not_called()
 
-    @parameterized.expand([
-        "dotnetcore2.1",
-        "go1.x",
-        "java11",
-    ])
+    @parameterized.expand(
+        [
+            "dotnetcore2.1",
+            "go1.x",
+            "java11",
+        ]
+    )
     def test_will_call_cached_build_strategy(self, mocked_read, mocked_write, runtime):
-        build_definition = FunctionBuildDefinition(
-            runtime, "codeuri", "packate_type", {}
-        )
+        build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", {})
         self.build_graph.put_function_build_definition(build_definition, Mock())
-        with patch.object(self.build_strategy, "_incremental_build_strategy") as patched_incremental_build_strategy, \
-                patch.object(self.build_strategy, "_cached_build_strategy") as patched_cached_build_strategy:
+        with patch.object(
+            self.build_strategy, "_incremental_build_strategy"
+        ) as patched_incremental_build_strategy, patch.object(
+            self.build_strategy, "_cached_build_strategy"
+        ) as patched_cached_build_strategy:
             self.build_strategy.build()
 
             patched_cached_build_strategy.build_single_function_definition.assert_called_with(build_definition)
             patched_incremental_build_strategy.assert_not_called()
 
-    @parameterized.expand([
-        (True,), (False,)
-    ])
+    @parameterized.expand([(True,), (False,)])
     @patch("samcli.lib.build.build_strategy.CachedBuildStrategy._clean_redundant_cached")
     @patch("samcli.lib.build.build_strategy.IncrementalBuildStrategy._clean_redundant_dependencies")
-    def test_exit_build_strategy_for_specific_resource(self, is_building_specific_resource, clean_cache_mock, clean_dep_mock, mocked_read, mocked_write):
+    def test_exit_build_strategy_for_specific_resource(
+        self, is_building_specific_resource, clean_cache_mock, clean_dep_mock, mocked_read, mocked_write
+    ):
         with osutils.mkdir_temp() as temp_base_dir:
             build_dir = Path(temp_base_dir, ".aws-sam", "build")
             build_dir.mkdir(parents=True)
@@ -556,7 +560,9 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
             mocked_build_graph.get_layer_build_definitions.return_value = []
             mocked_build_graph.get_function_build_definitions.return_value = []
 
-            cached_build_strategy = CachedOrIncrementalBuildStrategyWrapper(mocked_build_graph, Mock(), temp_base_dir, build_dir, cache_dir, None, is_building_specific_resource)
+            cached_build_strategy = CachedOrIncrementalBuildStrategyWrapper(
+                mocked_build_graph, Mock(), temp_base_dir, build_dir, cache_dir, None, is_building_specific_resource
+            )
 
             cached_build_strategy.build()
 
