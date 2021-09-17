@@ -374,3 +374,15 @@ class SamLocalStackProvider(SamBaseProvider):
             return os.path.relpath(os.path.join(os.path.dirname(stack_file_path), path), root_template_dir)
 
         return os.path.normpath(os.path.join(os.path.dirname(stack_file_path), path))
+
+
+def is_local_path(path: str):
+    return bool(path) and not isinstance(path, dict) and not SamLocalStackProvider.is_remote_url(path)
+
+
+def get_local_path(path: str, parent_path: str):
+    if path.startswith("file://"):
+        path = unquote(urlparse(path).path)
+    else:
+        path = SamLocalStackProvider.normalize_resource_path(parent_path, path)
+    return path

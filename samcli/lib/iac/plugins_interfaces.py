@@ -608,7 +608,7 @@ class Stack(MutableMapping):
         return self._sections
 
     @property
-    def assets(self) -> Optional[List[Asset]]:
+    def assets(self) -> List[Asset]:
         return self._assets
 
     @assets.setter
