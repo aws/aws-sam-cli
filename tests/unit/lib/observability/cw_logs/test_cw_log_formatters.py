@@ -10,7 +10,8 @@ from samcli.lib.observability.cw_logs.cw_log_formatters import (
     CWColorizeErrorsFormatter,
     CWKeywordHighlighterFormatter,
     CWJsonFormatter,
-    CWAddNewLineIfItDoesntExist, CWLogEventJSONMapper,
+    CWAddNewLineIfItDoesntExist,
+    CWLogEventJSONMapper,
 )
 
 
@@ -157,11 +158,9 @@ class TestCWAddNewLineIfItDoesntExist(TestCase):
 
 
 class TestCWLogEventJSONMapper(TestCase):
-
     def test_mapper(self):
         given_event = CWLogEvent("log_group", {"message": "input"})
         mapper = CWLogEventJSONMapper()
 
         mapped_event = mapper.map(given_event)
         self.assertEqual(mapped_event.message, json.dumps(given_event.event))
-

@@ -185,9 +185,7 @@ class TestPullerFactory(TestCase):
 
         self.assertEqual(expected_consumer, consumer)
 
-        patched_decorated_consumer.assert_called_with(
-            [expected_json_formatter], expected_event_consumer
-        )
+        patched_decorated_consumer.assert_called_with([expected_json_formatter], expected_event_consumer)
         patched_event_consumer.assert_called_with(True)
         patched_json_formatter.assert_called_once()
 

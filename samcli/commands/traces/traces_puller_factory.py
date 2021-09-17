@@ -13,7 +13,8 @@ from samcli.lib.observability.observability_info_puller import (
 from samcli.lib.observability.xray_traces.xray_event_mappers import (
     XRayTraceConsoleMapper,
     XRayServiceGraphConsoleMapper,
-    XRayServiceGraphJSONMapper, XRayTraceJSONMapper,
+    XRayServiceGraphJSONMapper,
+    XRayTraceJSONMapper,
 )
 from samcli.lib.observability.xray_traces.xray_event_puller import XRayTracePuller
 from samcli.lib.observability.xray_traces.xray_service_graph_event_puller import XRayServiceGraphPuller

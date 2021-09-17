@@ -13,7 +13,8 @@ from samcli.lib.observability.cw_logs.cw_log_formatters import (
     CWJsonFormatter,
     CWKeywordHighlighterFormatter,
     CWPrettyPrintFormatter,
-    CWAddNewLineIfItDoesntExist, CWLogEventJSONMapper,
+    CWAddNewLineIfItDoesntExist,
+    CWLogEventJSONMapper,
 )
 from samcli.lib.observability.cw_logs.cw_log_group_provider import LogGroupProvider
 from samcli.lib.observability.cw_logs.cw_log_puller import CWLogPuller

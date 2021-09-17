@@ -7,11 +7,12 @@ from samcli.commands.logs.console_consumers import CWConsoleEventConsumer
 
 
 class TestCWConsoleEventConsumer(TestCase):
-
-    @parameterized.expand([
-        (True,),
-        (False,),
-    ])
+    @parameterized.expand(
+        [
+            (True,),
+            (False,),
+        ]
+    )
     @patch("samcli.commands.logs.console_consumers.click")
     def test_consumer_with_event(self, add_newline, patched_click):
         consumer = CWConsoleEventConsumer(add_newline)
