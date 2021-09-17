@@ -117,6 +117,7 @@ class CWLogEventJSONMapper(ObservabilityEventMapper[CWLogEvent]):
     Converts given CWLogEvent into JSON string
     """
 
-    def map(self, event: CWLogEvent) -> CWLogEvent:
+    # pylint: disable=no-self-use
+    def map(self, event: CWLogEvent) -> CWLogEvent: 
         event.message = json.dumps(event.event)
         return event
