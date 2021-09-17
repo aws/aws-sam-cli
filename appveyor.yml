@@ -190,8 +190,16 @@ for:
 
       # Runs only in Linux, logging Public ECR when running canary and cred is available
       - sh: "
+        if [[ -n $BY_CANARY ]] && [[ -n $DOCKER_USER ]] && [[ -n $DOCKER_PASS ]];
+          then echo Logging in Docker Hub; echo $DOCKER_PASS | docker login --username $DOCKER_USER --password-stdin registry-1.docker.io;
+        fi"
+      - sh: "
         if [[ -n $BY_CANARY ]];
-          then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
+          then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws; 
+        fi"
+      - sh: "
+        if [[ -n $BY_CANARY ]] || [[ -n $PRIVATE ]];
+          then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws; 
         fi"
 
       - sh: "pytest -vv tests/integration"

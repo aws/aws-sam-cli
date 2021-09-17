@@ -25,7 +25,7 @@ from samcli.lib.package.utils import (
     is_ecr_url,
 )
 
-from samcli.commands._utils.resources import (
+from samcli.lib.utils.resources import (
     AWS_SERVERLESSREPO_APPLICATION,
     AWS_SERVERLESS_FUNCTION,
     AWS_SERVERLESS_API,

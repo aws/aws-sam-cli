@@ -33,7 +33,7 @@ from samcli.lib.deploy.deployer import Deployer
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
-from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
+from samcli.lib.utils.boto_utils import get_boto_config_with_user_agent
 from samcli.yamlhelper import yaml_parse
 
 LOG = logging.getLogger(__name__)
@@ -70,6 +70,7 @@ class DeployContext:
         profile,
         confirm_changeset,
         signing_profiles,
+        use_changeset,
     ):
         self.template_file = template_file
         self.stack_name = stack_name
@@ -97,6 +98,7 @@ class DeployContext:
         self.deployer = None
         self.confirm_changeset = confirm_changeset
         self.signing_profiles = signing_profiles
+        self.use_changeset = use_changeset
 
     def __enter__(self):
         return self
@@ -151,6 +153,7 @@ class DeployContext:
             display_parameter_overrides,
             self.confirm_changeset,
             self.signing_profiles,
+            self.use_changeset,
         )
         return self.deploy(
             self.stack_name,
@@ -165,6 +168,7 @@ class DeployContext:
             region,
             self.fail_on_empty_changeset,
             self.confirm_changeset,
+            self.use_changeset,
         )
 
     def deploy(
@@ -181,6 +185,7 @@ class DeployContext:
         region,
         fail_on_empty_changeset=True,
         confirm_changeset=False,
+        use_changeset=True,
     ):
         """
         Deploy the stack to cloudformation.
@@ -213,6 +218,8 @@ class DeployContext:
             Should fail when changeset is empty
         confirm_changeset : bool
             Should wait for customer's confirm before executing the changeset
+        use_changeset : bool
+            Involve creation of changesets, false when using sam sync
         """
         stacks, _ = SamLocalStackProvider.get_stacks(
             self.template_file,
@@ -225,36 +232,55 @@ class DeployContext:
             if not authorization_required:
                 click.secho(f"{resource} may not have authorization defined.", fg="yellow")
 
-        try:
-            result, changeset_type = self.deployer.create_and_wait_for_changeset(
-                stack_name=stack_name,
-                cfn_template=template_str,
-                parameter_values=parameters,
-                capabilities=capabilities,
-                role_arn=role_arn,
-                notification_arns=notification_arns,
-                s3_uploader=s3_uploader,
-                tags=tags,
-            )
-            click.echo(self.MSG_SHOWCASE_CHANGESET.format(changeset_id=result["Id"]))
+        if use_changeset:
+            try:
+                result, changeset_type = self.deployer.create_and_wait_for_changeset(
+                    stack_name=stack_name,
+                    cfn_template=template_str,
+                    parameter_values=parameters,
+                    capabilities=capabilities,
+                    role_arn=role_arn,
+                    notification_arns=notification_arns,
+                    s3_uploader=s3_uploader,
+                    tags=tags,
+                )
+                click.echo(self.MSG_SHOWCASE_CHANGESET.format(changeset_id=result["Id"]))
 
-            if no_execute_changeset:
-                return
-
-            if confirm_changeset:
-                click.secho(self.MSG_CONFIRM_CHANGESET_HEADER, fg="yellow")
-                click.secho("=" * len(self.MSG_CONFIRM_CHANGESET_HEADER), fg="yellow")
-                if not click.confirm(f"{self.MSG_CONFIRM_CHANGESET}", default=False):
+                if no_execute_changeset:
                     return
 
-            self.deployer.execute_changeset(result["Id"], stack_name)
-            self.deployer.wait_for_execute(stack_name, changeset_type)
-            click.echo(self.MSG_EXECUTE_SUCCESS.format(stack_name=stack_name, region=region))
+                if confirm_changeset:
+                    click.secho(self.MSG_CONFIRM_CHANGESET_HEADER, fg="yellow")
+                    click.secho("=" * len(self.MSG_CONFIRM_CHANGESET_HEADER), fg="yellow")
+                    if not click.confirm(f"{self.MSG_CONFIRM_CHANGESET}", default=False):
+                        return
 
-        except deploy_exceptions.ChangeEmptyError as ex:
-            if fail_on_empty_changeset:
+                self.deployer.execute_changeset(result["Id"], stack_name)
+                self.deployer.wait_for_execute(stack_name, changeset_type)
+                click.echo(self.MSG_EXECUTE_SUCCESS.format(stack_name=stack_name, region=region))
+
+            except deploy_exceptions.ChangeEmptyError as ex:
+                if fail_on_empty_changeset:
+                    raise
+                LOG.error(str(ex))
+
+        else:
+            try:
+                result = self.deployer.sync(
+                    stack_name=stack_name,
+                    cfn_template=template_str,
+                    parameter_values=parameters,
+                    capabilities=capabilities,
+                    role_arn=role_arn,
+                    notification_arns=notification_arns,
+                    s3_uploader=s3_uploader,
+                    tags=tags,
+                )
+                LOG.info(result)
+
+            except deploy_exceptions.DeployFailedError as ex:
+                LOG.error(str(ex))
                 raise
-            click.echo(str(ex))
 
     @staticmethod
     def merge_parameters(template_dict: Dict, parameter_overrides: Dict) -> List[Dict]:
