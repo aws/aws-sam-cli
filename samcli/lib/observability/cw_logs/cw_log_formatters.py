@@ -118,6 +118,6 @@ class CWLogEventJSONMapper(ObservabilityEventMapper[CWLogEvent]):
     """
 
     # pylint: disable=no-self-use
-    def map(self, event: CWLogEvent) -> CWLogEvent: 
+    def map(self, event: CWLogEvent) -> CWLogEvent:
         event.message = json.dumps(event.event)
         return event
