@@ -547,8 +547,11 @@ class CachedOrIncrementalBuildStrategyWrapper(BuildStrategy):
 
     @staticmethod
     def _is_incremental_build_supported(runtime: Optional[str]) -> bool:
+        if not runtime:
+            return False
+
         for supported_runtime_prefix in CachedOrIncrementalBuildStrategyWrapper.SUPPORTED_RUNTIME_PREFIXES:
-            if cast(str, runtime).startswith(supported_runtime_prefix):
+            if runtime.startswith(supported_runtime_prefix):
                 return True
 
         return False
