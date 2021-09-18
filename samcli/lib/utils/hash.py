@@ -3,39 +3,42 @@ Hash calculation utilities for files and directories.
 """
 import os
 import hashlib
-from typing import List, Optional
+from typing import Any, cast, List, Optional
 
 BLOCK_SIZE = 4096
 
 
-def file_checksum(file_name: str) -> str:
+def file_checksum(file_name: str, hash_generator: Any = None) -> str:
     """
 
     Parameters
     ----------
     file_name: file name of the file for which md5 checksum is required.
 
+    hash_generator: hashlib _Hash object for generating hashes. Defaults to hashlib.md5.
+
     Returns
     -------
-    md5 checksum of the given file.
+    checksum of the given file.
 
     """
+    # Default value is set here because default values are static mutable in Python
+    if not hash_generator:
+        hash_generator = hashlib.md5()
     with open(file_name, "rb") as file_handle:
-        md5 = hashlib.md5()
-
         # Save current cursor position and reset cursor to start of file
         curpos = file_handle.tell()
         file_handle.seek(0)
 
         buf = file_handle.read(BLOCK_SIZE)
         while buf:
-            md5.update(buf)
+            hash_generator.update(buf)
             buf = file_handle.read(BLOCK_SIZE)
 
         # Restore file cursor's position
         file_handle.seek(curpos)
 
-        return md5.hexdigest()
+        return cast(str, hash_generator.hexdigest())
 
 
 def dir_checksum(directory: str, followlinks: bool = True, ignore_list: Optional[List[str]] = None) -> str:

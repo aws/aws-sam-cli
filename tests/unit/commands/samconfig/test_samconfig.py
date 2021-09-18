@@ -536,10 +536,14 @@ class TestSamConfigForAllCommands(TestCase):
             self.assertIsNotNone(result.exception)
 
     @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
+    @patch("samcli.commands._utils.template.get_template_artifacts_format")
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
     @patch("samcli.commands.deploy.command.do_cli")
-    def test_deploy(self, do_cli_mock, get_template_artifacts_format_mock):
+    def test_deploy(self, do_cli_mock, template_artifacts_mock1, template_artifacts_mock2, template_artifacts_mock3):
 
-        get_template_artifacts_format_mock.return_value = [ZIP]
+        template_artifacts_mock1.return_value = [ZIP]
+        template_artifacts_mock2.return_value = [ZIP]
+        template_artifacts_mock3.return_value = [ZIP]
         config_values = {
             "template_file": "mytemplate.yaml",
             "stack_name": "mystack",
@@ -644,10 +648,16 @@ class TestSamConfigForAllCommands(TestCase):
             self.assertIsNotNone(result.exception)
 
     @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
+    @patch("samcli.commands._utils.template.get_template_artifacts_format")
     @patch("samcli.commands.deploy.command.do_cli")
-    def test_deploy_different_parameter_override_format(self, do_cli_mock, get_template_artifacts_format_mock):
+    def test_deploy_different_parameter_override_format(
+        self, do_cli_mock, template_artifacts_mock1, template_artifacts_mock2, template_artifacts_mock3
+    ):
 
-        get_template_artifacts_format_mock.return_value = [ZIP]
+        template_artifacts_mock1.return_value = [ZIP]
+        template_artifacts_mock2.return_value = [ZIP]
+        template_artifacts_mock3.return_value = [ZIP]
 
         config_values = {
             "template_file": "mytemplate.yaml",
@@ -719,12 +729,15 @@ class TestSamConfigForAllCommands(TestCase):
     @patch("samcli.commands.logs.command.do_cli")
     def test_logs(self, do_cli_mock):
         config_values = {
-            "name": "myfunction",
+            "name": ["myfunction"],
             "stack_name": "mystack",
             "filter": "myfilter",
             "tail": True,
+            "include_traces": True,
             "start_time": "starttime",
             "end_time": "endtime",
+            "cw_log_group": ["cw_log_group"],
+            "region": "myregion",
         }
 
         with samconfig_parameters(["logs"], self.scratch_dir, **config_values) as config_path:
@@ -740,7 +753,18 @@ class TestSamConfigForAllCommands(TestCase):
                 LOG.exception("Command failed", exc_info=result.exc_info)
             self.assertIsNone(result.exception)
 
-            do_cli_mock.assert_called_with("myfunction", "mystack", "myfilter", True, "starttime", "endtime")
+            do_cli_mock.assert_called_with(
+                ("myfunction",),
+                "mystack",
+                "myfilter",
+                True,
+                True,
+                "starttime",
+                "endtime",
+                ("cw_log_group",),
+                False,
+                "myregion",
+            )
 
     @patch("samcli.commands.publish.command.do_cli")
     def test_publish(self, do_cli_mock):

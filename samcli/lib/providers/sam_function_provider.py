@@ -4,6 +4,12 @@ Class that provides functions from a given SAM template
 import logging
 from typing import Dict, List, Optional, cast, Iterator, Any
 
+from samcli.lib.utils.resources import (
+    AWS_LAMBDA_FUNCTION,
+    AWS_LAMBDA_LAYERVERSION,
+    AWS_SERVERLESS_FUNCTION,
+    AWS_SERVERLESS_LAYERVERSION,
+)
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
 from samcli.lib.providers.exceptions import InvalidLayerReference
 from samcli.lib.utils.colors import Colored
@@ -129,7 +135,7 @@ class SamFunctionProvider(SamBaseProvider):
                 if resource_metadata:
                     resource_properties["Metadata"] = resource_metadata
 
-                if resource_type in [SamFunctionProvider.SERVERLESS_FUNCTION, SamFunctionProvider.LAMBDA_FUNCTION]:
+                if resource_type in [AWS_SERVERLESS_FUNCTION, AWS_LAMBDA_FUNCTION]:
                     resource_package_type = resource_properties.get("PackageType", ZIP)
 
                     code_property_key = SamBaseProvider.CODE_PROPERTY_KEYS[resource_type]
@@ -156,7 +162,7 @@ class SamFunctionProvider(SamBaseProvider):
                             SamFunctionProvider._warn_imageuri_extraction(resource_type, name, image_property_key)
                         continue
 
-                if resource_type == SamFunctionProvider.SERVERLESS_FUNCTION:
+                if resource_type == AWS_SERVERLESS_FUNCTION:
                     layers = SamFunctionProvider._parse_layer_info(
                         stack,
                         resource_properties.get("Layers", []),
@@ -172,7 +178,7 @@ class SamFunctionProvider(SamBaseProvider):
                     )
                     result[function.full_path] = function
 
-                elif resource_type == SamFunctionProvider.LAMBDA_FUNCTION:
+                elif resource_type == AWS_LAMBDA_FUNCTION:
                     layers = SamFunctionProvider._parse_layer_info(
                         stack,
                         resource_properties.get("Layers", []),
@@ -428,8 +434,8 @@ class SamFunctionProvider(SamBaseProvider):
         layer_logical_id = cast(str, layer.get("Ref"))
         layer_resource = stack.resources.get(layer_logical_id)
         if not layer_resource or layer_resource.get("Type", "") not in (
-            SamFunctionProvider.SERVERLESS_LAYER,
-            SamFunctionProvider.LAMBDA_LAYER,
+            AWS_SERVERLESS_LAYERVERSION,
+            AWS_LAMBDA_LAYERVERSION,
         ):
             raise InvalidLayerReference()
 
@@ -438,7 +444,7 @@ class SamFunctionProvider(SamBaseProvider):
         compatible_runtimes = layer_properties.get("CompatibleRuntimes")
         codeuri: Optional[str] = None
 
-        if resource_type in [SamFunctionProvider.LAMBDA_LAYER, SamFunctionProvider.SERVERLESS_LAYER]:
+        if resource_type in [AWS_LAMBDA_LAYERVERSION, AWS_SERVERLESS_LAYERVERSION]:
             code_property_key = SamBaseProvider.CODE_PROPERTY_KEYS[resource_type]
             if SamBaseProvider._is_s3_location(layer_properties.get(code_property_key)):
                 # Content can be a dictionary of S3 Bucket/Key or a S3 URI, neither of which are supported

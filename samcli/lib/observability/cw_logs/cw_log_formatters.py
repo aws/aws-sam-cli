@@ -4,6 +4,7 @@ Contains all mappers (formatters) for CloudWatch logs
 import json
 import logging
 from json import JSONDecodeError
+from typing import Any
 
 from samcli.lib.observability.cw_logs.cw_log_event import CWLogEvent
 from samcli.lib.observability.observability_info_puller import ObservabilityEventMapper
@@ -91,4 +92,32 @@ class CWPrettyPrintFormatter(ObservabilityEventMapper[CWLogEvent]):
         timestamp = self._colored.yellow(timestamp_to_iso(int(event.timestamp)))
         log_stream_name = self._colored.cyan(event.log_stream_name)
         event.message = f"{log_stream_name} {timestamp} {event.message}"
+        return event
+
+
+class CWAddNewLineIfItDoesntExist(ObservabilityEventMapper):
+    """
+    Mapper implementation which will add new lines at the end of events if it is not already there
+    """
+
+    def map(self, event: Any) -> Any:
+        # if it is a CWLogEvent, append new line at the end of event.message
+        if isinstance(event, CWLogEvent) and not event.message.endswith("\n"):
+            event.message = f"{event.message}\n"
+            return event
+        # if event is a string, then append new line at the end of the string
+        if isinstance(event, str) and not event.endswith("\n"):
+            return f"{event}\n"
+        # no-action for unknown events
+        return event
+
+
+class CWLogEventJSONMapper(ObservabilityEventMapper[CWLogEvent]):
+    """
+    Converts given CWLogEvent into JSON string
+    """
+
+    # pylint: disable=no-self-use
+    def map(self, event: CWLogEvent) -> CWLogEvent:
+        event.message = json.dumps(event.event)
         return event
