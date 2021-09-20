@@ -135,7 +135,7 @@ class ECRRepo:
 
     @staticmethod
     def get_domain(region: str) -> str:
-        # https://docs.aws.amazon.com/general/latest/gr/ecr.html
+        # https://docs.amazonaws.cn/en_us/aws/latest/userguide/endpoints-Beijing.html
         if region.startswith("cn-"):
             return "amazonaws.com.cn"
         return "amazonaws.com"
