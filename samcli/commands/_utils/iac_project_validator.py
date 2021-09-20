@@ -55,6 +55,10 @@ class IacProjectValidator:
         guided = self._params.get("guided", False) or self._params.get("g", False)
         stack_name = self._params.get("stack_name")
         if self._project and require_stack and not guided:
+            # Check if the stack name is defined if the project (e.g. CDK project) needs a stack name
+            # Fail the validation if:
+            # 1. The "--stack-name" is not defined and there is more than one stack in the project
+            # 2. The "--stack-name" is defined, but the stack doesn't exist in the project.
             if selected_project_type in project_types_requring_stack_check:
                 if stack_name is not None:
                     if self._project.find_stack_by_name(stack_name) is None:
@@ -69,10 +73,12 @@ class IacProjectValidator:
                         ctx=self._ctx,
                         message="More than one stack found. Use '--stack-name' to specify the stack.",
                     )
-            if len(self._command_path.split(" ", 1)) > 1:
-                command_path = self._command_path.split(" ", 1)[-1]
-            else:
-                command_path = self._command_path
+            # "sam deploy" specific: fail validation if "--stack-name" is not given in "sam deploy" unguided mode.
+            command_path = (
+                self._command_path.split(" ", 1)[-1]
+                if len(self._command_path.split(" ", 1)) > 1
+                else self._command_path
+            )
             if command_path == "deploy" and not stack_name:
                 raise click.BadOptionUsage(
                     option_name="--stack-name",
