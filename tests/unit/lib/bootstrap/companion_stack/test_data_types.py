@@ -80,7 +80,7 @@ class TestECRRepo(TestCase):
         )
         self.assertEqual(
             self.ecr_repo.get_repo_uri("12345", "cn-north-1"),
-            "12345.dkr.ecr.us-west-2.amazonaws.com.cn/parentstacknameabcdefgh/functionaqwertyuirepo",
+            "12345.dkr.ecr.cn-north-1.amazonaws.com.cn/parentstacknameabcdefgh/functionaqwertyuirepo",
         )
 
     def test_physical_id_cutoff(self):
