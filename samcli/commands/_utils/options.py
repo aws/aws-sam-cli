@@ -376,13 +376,15 @@ def plugin_common_options(f):
     """
     click options specific for cdk or cfn project type , and common options for both types of projects
     """
-    options = [
+    common_options = [
         click.option(
             "--project-type",
             help="Project Type",
             is_eager=True,
             type=click.Choice(ProjectTypes.__members__, case_sensitive=False),
         ),
+    ]
+    cdk_options = [
         click.option(
             "--cdk-app",
             required=False,
@@ -399,6 +401,8 @@ def plugin_common_options(f):
             "e.g. sam build --cdk-context Key1=Value1 --cdk-context Key2=Value2",
         ),
     ]
+    cfn_options = []
+    options = common_options + cdk_options + cfn_options
 
     for option in options:
         option(f)

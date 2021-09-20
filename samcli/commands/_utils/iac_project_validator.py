@@ -8,14 +8,14 @@ from click import Context
 
 from samcli.commands._utils.exceptions import PackageResolveS3AndS3SetError, PackageResolveS3AndS3NotSetError
 from samcli.commands._utils.option_validator import Validator
-from samcli.lib.iac.interface import ProjectTypes
+from samcli.lib.iac.interface import ProjectTypes, Project
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 
 LOG = logging.getLogger(__name__)
 
 
 class IacProjectValidator:
-    def __init__(self, click_ctx: Context, project):
+    def __init__(self, click_ctx: Context, project: Project):
         self._ctx = click_ctx
         self._params = click_ctx.params
         self._command_path = click_ctx.command_path

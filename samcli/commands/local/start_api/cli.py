@@ -96,8 +96,9 @@ def cli(
     `sam local start-api` command entry point
     """
     click_ctx = click.get_current_context()
-    project_preprocessor = IacProjectResolver(click_ctx)
-    project_type, iac, project = project_preprocessor.resolve_project(include_build_folder=True, with_build=True)
+    project_type, iac, project = IacProjectResolver(click_ctx).resolve_project(
+        include_build_folder=True, with_build=True
+    )
     project_validator = IacProjectValidator(click_ctx, project)
     project_validator.iac_options_validation(require_stack=False)
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
