@@ -33,17 +33,22 @@ class SchemaTestDataSetup(TestCase):
         setup_schema_data_for_pagination("test-pagination", schemas_client)
         setup_non_partner_schema_data("other-schema", schemas_client)
         # WHEN the user follows interactive init prompts
-        # 1: Hello World Applications
-        # 3: Java runtime
-        # 2: dependency manager maven
+        # 1: AWS Quick Start Templates
+        # 1: Zip Packagetype
+        # 13: Java runtime
+        # 1: dependency manager maven
         # eb-app-maven: response to name
+        # Y: clone/update the source repo
+        # 1: hello world
 
         user_input = """
 1
-3
-2
+1
+13
+1
 eb-app-maven
-
+1
+1
                 """
         with tempfile.TemporaryDirectory() as temp:
             runner = CliRunner()
