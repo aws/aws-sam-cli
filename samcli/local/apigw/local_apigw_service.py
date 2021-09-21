@@ -323,21 +323,25 @@ class LocalApigwService(BaseLocalService):
                     self.api.stage_variables,
                     route_key,
                 )
-            else:
-
+            elif route.event_type == Route.API:
                 # The OperationName is only sent to the Lambda Function from API Gateway V1(Rest API).
-                # For Http Apis (v2), API Gateway never sends the OperationName.
-                if route.event_type == Route.API:
-                    operation_name = route.operation_name
-                else:
-                    operation_name = None
                 event = self._construct_v_1_0_event(
                     request,
                     self.port,
                     self.api.binary_media_types,
                     self.api.stage_name,
                     self.api.stage_variables,
-                    operation_name,
+                    route.operation_name,
+                )
+            else:
+                # For Http Apis (v2), API Gateway never sends the OperationName.
+                event = self._construct_v_1_0_event(
+                    request,
+                    self.port,
+                    self.api.binary_media_types,
+                    self.api.stage_name,
+                    self.api.stage_variables,
+                    None,
                 )
         except UnicodeDecodeError:
             return ServiceErrorResponses.lambda_failure_response()

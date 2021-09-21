@@ -673,8 +673,9 @@ class TestStartApiWithSwaggerHttpApis(StartApiIntegBaseClass):
         response_data = response.json()
         self.assertEqual(response_data.get("version", {}), "1.0")
         # operationName or operationId shouldn't be processed by Httpapi swaggers
-        self.assertIsNone(response_data.get("requestContext", {}).get("operationName"))
-        self.assertIsNone(response_data.get("requestContext", {}).get("operationId"))
+        request_context_keys = [key.lower() for key in response_data.get("requestContext", {}).keys()]
+        self.assertTrue("operationid" not in request_context_keys)
+        self.assertTrue("operationname" not in request_context_keys)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -685,8 +686,10 @@ class TestStartApiWithSwaggerHttpApis(StartApiIntegBaseClass):
         response_data = response.json()
         self.assertEqual(response_data.get("version", {}), "2.0")
         # operationName or operationId shouldn't be processed by Httpapi swaggers
-        self.assertIsNone(response_data.get("requestContext", {}).get("operationName"))
-        self.assertIsNone(response_data.get("requestContext", {}).get("operationId"))
+        request_context_keys = [key.lower() for key in response_data.get("requestContext", {}).keys()]
+        print(request_context_keys)
+        self.assertTrue("operationid" not in request_context_keys)
+        self.assertTrue("operationname" not in request_context_keys)
 
 
 class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
@@ -1733,8 +1736,9 @@ class TestCFNTemplateWithRestApiAndHttpApiGateways(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         response_data = response.json()
         # operationName or operationId shouldn't be processed by Httpapi
-        self.assertIsNone(response_data.get("requestContext", {}).get("operationName"))
-        self.assertIsNone(response_data.get("requestContext", {}).get("operationId"))
+        request_context_keys = [key.lower() for key in response_data.get("requestContext", {}).keys()]
+        self.assertTrue("operationid" not in request_context_keys)
+        self.assertTrue("operationname" not in request_context_keys)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -1769,8 +1773,9 @@ class TestCFNTemplateHttpApiWithSwaggerBody(StartApiIntegBaseClass):
         self.assertIsNone(response_data.get("multiValueHeaders"))
         self.assertIsNotNone(response_data.get("cookies"))
         # operationName or operationId shouldn't be processed by Httpapi swaggers
-        self.assertIsNone(response_data.get("requestContext", {}).get("operationName"))
-        self.assertIsNone(response_data.get("requestContext", {}).get("operationId"))
+        request_context_keys = [key.lower() for key in response_data.get("requestContext", {}).keys()]
+        self.assertTrue("operationid" not in request_context_keys)
+        self.assertTrue("operationname" not in request_context_keys)
 
 
 class TestWarmContainersBaseClass(StartApiIntegBaseClass):
