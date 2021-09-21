@@ -334,7 +334,7 @@ class LocalApigwService(BaseLocalService):
                     route.operation_name,
                 )
             else:
-                # For Http Apis (v2), API Gateway never sends the OperationName.
+                # For Http Apis with payload version 1.0, API Gateway never sends the OperationName.
                 event = self._construct_v_1_0_event(
                     request,
                     self.port,
