@@ -687,7 +687,6 @@ class TestStartApiWithSwaggerHttpApis(StartApiIntegBaseClass):
         self.assertEqual(response_data.get("version", {}), "2.0")
         # operationName or operationId shouldn't be processed by Httpapi swaggers
         request_context_keys = [key.lower() for key in response_data.get("requestContext", {}).keys()]
-        print(request_context_keys)
         self.assertTrue("operationid" not in request_context_keys)
         self.assertTrue("operationname" not in request_context_keys)
 
