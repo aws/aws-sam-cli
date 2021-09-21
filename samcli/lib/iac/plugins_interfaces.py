@@ -9,7 +9,7 @@ from collections import OrderedDict
 from collections.abc import Callable, Mapping, MutableMapping
 from copy import deepcopy
 from enum import Enum
-from typing import List, Any, Dict, Iterator, Optional
+from typing import List, Any, Dict, Iterator, Optional, Union
 from uuid import uuid4
 import logging
 
@@ -645,7 +645,7 @@ class Stack(MutableMapping):
         """
         return {key: val for key, val in self.get("Parameters", {}).items() if not val.added_by_iac}
 
-    def as_dict(self) -> Any:
+    def as_dict(self) -> Union[MutableMapping, Mapping]:
         """
         return the stack as a dict for JSON serialization
         """
@@ -841,7 +841,7 @@ class IaCPluginInterface(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
 
-def _make_dict(obj: Any) -> Any:
+def _make_dict(obj: Union[MutableMapping, Mapping]) -> Union[MutableMapping, Mapping]:
     if not isinstance(obj, MutableMapping):
         return obj
     to_return = dict()

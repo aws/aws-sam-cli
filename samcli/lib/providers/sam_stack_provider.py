@@ -3,7 +3,7 @@ Class that provides all nested stacks from a given SAM template
 """
 import logging
 import os
-from typing import Optional, Dict, cast, List, Iterator, Tuple, Any
+from typing import Optional, Dict, cast, List, Iterator, Tuple, Union
 from urllib.parse import unquote, urlparse
 
 from samcli.commands._utils.template import get_template_data
@@ -376,7 +376,7 @@ class SamLocalStackProvider(SamBaseProvider):
         return os.path.normpath(os.path.join(os.path.dirname(stack_file_path), path))
 
 
-def is_local_path(path: Any) -> bool:
+def is_local_path(path: Union[Dict, str]) -> bool:
     return bool(path) and not isinstance(path, dict) and not SamLocalStackProvider.is_remote_url(path)
 
 
