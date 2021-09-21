@@ -28,7 +28,6 @@ class StartLambdaIntegBaseClass(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.cmd = cls.base_command()
         # This is the directory for tests/integration which will be used to file the testdata
         # files for integ tests
         cls.template = cls.integration_dir + cls.template_path
@@ -46,8 +45,8 @@ class StartLambdaIntegBaseClass(TestCase):
     def get_integ_dir():
         return Path(__file__).resolve().parents[2]
 
-    @classmethod
-    def base_command(cls):
+    @property
+    def base_command(self):
         command = "sam"
         if os.getenv("SAM_CLI_DEV"):
             command = "samdev"
@@ -56,7 +55,7 @@ class StartLambdaIntegBaseClass(TestCase):
 
     @classmethod
     def build(cls):
-        command_list = [cls.cmd, "build"]
+        command_list = [cls.base_command, "build"]
         if cls.build_overrides:
             overrides_arg = " ".join(
                 ["ParameterKey={},ParameterValue={}".format(key, value) for key, value in cls.build_overrides.items()]
@@ -174,7 +173,7 @@ class CDKStartLambdaBaseClass(StartLambdaIntegBaseClass):
         parameter_overrides,
         project_type="CDK",
     ):
-        command_list = [self.cmd, "local", "start-lambda", "-p", self.port]
+        command_list = [self.base_command, "local", "start-lambda", "-p", self.port]
 
         if container_mode:
             command_list += ["--warm-containers", container_mode]

@@ -6,7 +6,7 @@ from timeit import default_timer as timer
 import pytest
 
 from .invoke_integ_base import CDKInvokeIntegPythonBase
-from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
+from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, run_command
 
 # Layers tests require credentials and Appveyor will only add credentials to the env if the PR is from the same repo.
 # This is to restrict layers tests to run outside of Appveyor,
@@ -28,29 +28,18 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
         command_list = self.get_command_list(
             "AwsLambdaFunctionStack/helloworld-serverless-function", event_path=self.event_path
         )
-        process = Popen(command_list, stdout=PIPE, cwd=self.working_dir)
-        try:
-            process.communicate(timeout=TIMEOUT)
-        except TimeoutExpired:
-            process.kill()
-            raise
+        process_execute = run_command(command_list, cwd=self.working_dir)
 
-        self.assertEqual(process.returncode, 0)
+        self.assertEqual(process_execute.process.returncode, 0)
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_utf8_event(self):
         command_list = self.get_command_list(
             "AwsLambdaFunctionStack/helloworld-serverless-function", event_path=self.event_utf8_path
         )
+        process_execute = run_command(command_list, cwd=self.working_dir)
 
-        process = Popen(command_list, stdout=PIPE, cwd=self.working_dir)
-        try:
-            process.communicate(timeout=TIMEOUT)
-        except TimeoutExpired:
-            process.kill()
-            raise
-
-        self.assertEqual(process.returncode, 0)
+        self.assertEqual(process_execute.process.returncode, 0)
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returns_expected_results(self):
@@ -58,14 +47,9 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
             "AwsLambdaFunctionStack/helloworld-serverless-function", event_path=self.event_path
         )
 
-        process = Popen(command_list, stdout=PIPE, cwd=self.working_dir)
-        try:
-            stdout, _ = process.communicate(timeout=TIMEOUT)
-        except TimeoutExpired:
-            process.kill()
-            raise
+        process_execute = run_command(command_list, cwd=self.working_dir)
 
-        process_stdout = stdout.strip()
+        process_stdout = process_execute.stdout.strip()
         self.assertEqual(process_stdout.decode("utf-8"), '"Hello world"')
 
     @pytest.mark.flaky(reruns=3)
@@ -73,24 +57,20 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
         command_list = self.get_command_list("AwsLambdaFunctionStack/timeout-function", event_path=self.event_path)
 
         start = timer()
-        process = Popen(command_list, stdout=PIPE, cwd=self.working_dir)
-        try:
-            stdout, _ = process.communicate(timeout=TIMEOUT)
-        except TimeoutExpired:
-            process.kill()
-            raise
+
+        process_execute = run_command(command_list, cwd=self.working_dir)
 
         end = timer()
 
         wall_clock_cli_duration = end - start
 
-        process_stdout = stdout.strip()
+        process_stdout = process_execute.stdout.strip()
 
         # validate the time of the cli (timeout is set to 5s)
         self.assertGreater(wall_clock_cli_duration, 5)
         self.assertLess(wall_clock_cli_duration, 20)
 
-        self.assertEqual(process.returncode, 0)
+        self.assertEqual(process_execute.process.returncode, 0)
         self.assertEqual(
             process_stdout.decode("utf-8"),
             '""',
@@ -103,13 +83,9 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
             "AwsLambdaFunctionStack/custom-env-vars-function", event_path=self.event_path
         )
 
-        process = Popen(command_list, stdout=PIPE, cwd=self.working_dir)
-        try:
-            stdout, _ = process.communicate(timeout=TIMEOUT)
-        except TimeoutExpired:
-            process.kill()
-            raise
-        process_stdout = stdout.strip()
+        process_execute = run_command(command_list, cwd=self.working_dir)
+        process_stdout = process_execute.stdout.strip()
+
         self.assertEqual(process_stdout.decode("utf-8"), '"MyVar"')
 
     @pytest.mark.flaky(reruns=3)
@@ -118,15 +94,10 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
             "AwsLambdaFunctionStack/write-to-stdout-function", event_path=self.event_path
         )
 
-        process = Popen(command_list, stdout=PIPE, stderr=PIPE, cwd=self.working_dir)
-        try:
-            stdout, stderr = process.communicate(timeout=TIMEOUT)
-        except TimeoutExpired:
-            process.kill()
-            raise
+        process_execute = run_command(command_list, cwd=self.working_dir)
 
-        process_stdout = stdout.strip()
-        process_stderr = stderr.strip()
+        process_stdout = process_execute.stdout.strip()
+        process_stderr = process_execute.stderr.strip()
 
         self.assertIn("Docker Lambda is writing to stdout", process_stderr.decode("utf-8"))
         self.assertIn("wrote to stdout", process_stdout.decode("utf-8"))
@@ -137,30 +108,21 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
             "AwsLambdaFunctionStack/write-to-stderr-function", event_path=self.event_path
         )
 
-        process = Popen(command_list, stderr=PIPE, cwd=self.working_dir)
-        try:
-            _, stderr = process.communicate(timeout=TIMEOUT)
-        except TimeoutExpired:
-            process.kill()
-            raise
+        process_execute = run_command(command_list, cwd=self.working_dir)
 
-        process_stderr = stderr.strip()
+        process_stderr = process_execute.stderr.strip()
 
         self.assertIn("Docker Lambda is writing to stderr", process_stderr.decode("utf-8"))
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returns_expected_result_when_no_event_given(self):
         command_list = self.get_command_list("AwsLambdaFunctionStack/echo-event-function")
-        process = Popen(command_list, stdout=PIPE, cwd=self.working_dir)
-        try:
-            stdout, _ = process.communicate(timeout=TIMEOUT)
-        except TimeoutExpired:
-            process.kill()
-            raise
 
-        process_stdout = stdout.strip()
+        process_execute = run_command(command_list, cwd=self.working_dir)
 
-        self.assertEqual(process.returncode, 0)
+        process_stdout = process_execute.stdout.strip()
+
+        self.assertEqual(process_execute.process.returncode, 0)
         self.assertEqual("{}", process_stdout.decode("utf-8"))
 
     @pytest.mark.flaky(reruns=3)
@@ -170,14 +132,11 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
             event_path=self.event_path,
             parameter_overrides={"MyRuntimeVersion": "v0", "TimeOut": "100"},
         )
-        process = Popen(command_list, stdout=PIPE, cwd=self.working_dir)
-        try:
-            stdout, _ = process.communicate(timeout=TIMEOUT)
-        except TimeoutExpired:
-            process.kill()
-            raise
-        process_stdout = stdout.strip()
+
+        process_execute = run_command(command_list, cwd=self.working_dir)
+        process_stdout = process_execute.stdout.strip()
         environ = json.loads(process_stdout.decode("utf-8"))
+
         self.assertIsNone(environ.get("TimeOut"))
         self.assertEqual(environ["MyRuntimeVersion"], "v0")
         self.assertEqual(environ["EmptyDefaultParameter"], "")
@@ -188,14 +147,9 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
             "AwsLambdaFunctionStack/python-function-construct", event_path=self.event_path
         )
 
-        process = Popen(command_list, stdout=PIPE, cwd=self.working_dir)
-        try:
-            stdout, _ = process.communicate(timeout=TIMEOUT)
-        except TimeoutExpired:
-            process.kill()
-            raise
+        process_execute = run_command(command_list, cwd=self.working_dir)
+        process_stdout = process_execute.stdout.strip()
 
-        process_stdout = stdout.strip()
         self.assertEqual(process_stdout.decode("utf-8"), '"Hello world"')
 
     @pytest.mark.flaky(reruns=3)
@@ -204,14 +158,8 @@ class TestCdkPythonHelloWorldIntegration(CDKInvokeIntegPythonBase):
             "AwsLambdaFunctionStack/lambda-docker-function", event_path=self.event_path
         )
 
-        process = Popen(command_list, stdout=PIPE, cwd=self.working_dir)
-        try:
-            stdout, _ = process.communicate(timeout=TIMEOUT)
-        except TimeoutExpired:
-            process.kill()
-            raise
-
-        process_stdout = stdout.strip()
+        process_execute = run_command(command_list, cwd=self.working_dir)
+        process_stdout = process_execute.stdout.strip()
         out = json.loads(process_stdout)
 
         self.assertEqual(json.loads(out.get("body")).get("message"), "Hello world from Docker!")

@@ -28,7 +28,6 @@ class StartApiIntegBaseClass(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.cmd = cls.base_command()
         # This is the directory for tests/integration which will be used to file the testdata
         # files for integ tests
         cls.template = cls.integration_dir + cls.template_path
@@ -49,8 +48,8 @@ class StartApiIntegBaseClass(TestCase):
     def get_integ_dir():
         return Path(__file__).resolve().parents[2]
 
-    @classmethod
-    def base_command(cls):
+    @property
+    def base_command(self):
         command = "sam"
         if os.getenv("SAM_CLI_DEV"):
             command = "samdev"
@@ -59,7 +58,7 @@ class StartApiIntegBaseClass(TestCase):
 
     @classmethod
     def build(cls):
-        command = cls.cmd
+        command = cls.base_command
         command_list = [command, "build"]
         if cls.build_overrides:
             overrides_arg = " ".join(
@@ -177,7 +176,7 @@ class CDKStartApiBaseClass(StartApiIntegBaseClass):
         parameter_overrides,
         project_type="CDK",
     ):
-        command_list = [self.cmd, "local", "start-api", "-p", self.port]
+        command_list = [self.base_command, "local", "start-api", "-p", self.port]
 
         if container_mode:
             command_list += ["--warm-containers", container_mode]

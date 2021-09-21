@@ -19,7 +19,6 @@ class InvokeIntegBase(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.cmd = cls.base_command()
         cls.test_data_path = cls.get_integ_dir().joinpath("testdata")
         cls.template_path = str(cls.test_data_path.joinpath("invoke", cls.template))
         cls.event_path = str(cls.test_data_path.joinpath("invoke", "event.json"))
@@ -30,8 +29,8 @@ class InvokeIntegBase(TestCase):
     def get_integ_dir():
         return Path(__file__).resolve().parents[2]
 
-    @classmethod
-    def base_command(cls):
+    @property
+    def base_command(self):
         command = "sam"
         if os.getenv("SAM_CLI_DEV"):
             command = "samdev"
@@ -51,7 +50,7 @@ class InvokeIntegBase(TestCase):
         layer_cache=None,
         docker_network=None,
     ):
-        command_list = [self.cmd, "local", "invoke", function_to_invoke]
+        command_list = [self.base_command, "local", "invoke", function_to_invoke]
 
         if template_path:
             command_list = command_list + ["-t", template_path]
@@ -92,7 +91,7 @@ class InvokeIntegBase(TestCase):
         parallel=None,
         use_container=None,
     ):
-        command_list = [self.cmd, "build"]
+        command_list = [self.base_command, "build"]
 
         if template_path:
             command_list = command_list + ["-t", template_path]
