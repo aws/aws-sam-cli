@@ -372,7 +372,7 @@ def _space_separated_list_func_type(value):
 _space_separated_list_func_type.__name__ = "LIST"
 
 
-def plugin_common_options(f):
+def plugin_additional_options(f):
     """
     click options specific for cdk or cfn project type , and common options for both types of projects
     """

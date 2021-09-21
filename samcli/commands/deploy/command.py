@@ -19,7 +19,7 @@ from samcli.commands._utils.options import (
     template_click_option,
     signing_profiles_option,
     image_repositories_callback,
-    plugin_common_options,
+    plugin_additional_options,
 )
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
 from samcli.lib.iac.utils.iac_project_resolver import IacProjectResolver
@@ -168,7 +168,7 @@ LOG = logging.getLogger(__name__)
 @capabilities_override_option
 @aws_creds_options
 @common_options
-@plugin_common_options
+@plugin_additional_options
 @pass_context
 @track_command
 @check_newer_version

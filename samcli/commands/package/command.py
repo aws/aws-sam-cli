@@ -14,7 +14,7 @@ from samcli.commands._utils.options import (
     metadata_override_option,
     template_click_option,
     no_progressbar_option,
-    plugin_common_options,
+    plugin_additional_options,
 )
 from samcli.commands._utils.resources import resources_generator
 from samcli.lib.bootstrap.bootstrap import manage_stack
@@ -123,7 +123,7 @@ The following resources and their property locations are supported.
 @no_progressbar_option
 @common_options
 @aws_creds_options
-@plugin_common_options
+@plugin_additional_options
 @pass_context
 @track_command
 @track_template_warnings([CodeDeployWarning.__name__, CodeDeployConditionWarning.__name__])

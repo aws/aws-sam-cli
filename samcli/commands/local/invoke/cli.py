@@ -7,7 +7,7 @@ import click
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands._utils.iac_project_validator import IacProjectValidator
-from samcli.commands._utils.options import plugin_common_options
+from samcli.commands._utils.options import plugin_additional_options
 from samcli.commands.local.cli_common.options import invoke_common_options, local_common_options
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.iac.interface import IacPlugin, Project
@@ -52,7 +52,7 @@ STDIN_FILE_NAME = "-"
 @cli_framework_options
 @aws_creds_options
 @click.argument("function_logical_id", required=False)
-@plugin_common_options
+@plugin_additional_options
 @pass_context
 @track_command  # pylint: disable=R0914
 @check_newer_version

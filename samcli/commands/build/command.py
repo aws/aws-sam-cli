@@ -13,7 +13,7 @@ from samcli.commands._utils.options import (
     template_option_without_build,
     docker_common_options,
     parameter_override_option,
-    plugin_common_options,
+    plugin_additional_options,
 )
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands.build.build_constants import DEFAULT_BUILD_DIR, DEFAULT_CACHE_DIR
@@ -171,7 +171,7 @@ $ sam build MyFunction
     "requests=1.x and the latest request module version changes from 1.1 to 1.2, "
     "SAM will not pull the latest version until you run a non-cached build.",
 )
-@plugin_common_options
+@plugin_additional_options
 @template_option_without_build
 @parameter_override_option
 @docker_common_options

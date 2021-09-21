@@ -7,7 +7,7 @@ import click
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands._utils.iac_project_validator import IacProjectValidator
-from samcli.commands._utils.options import plugin_common_options
+from samcli.commands._utils.options import plugin_additional_options
 from samcli.commands.local.cli_common.options import (
     invoke_common_options,
     service_common_options,
@@ -69,7 +69,7 @@ Here is a Python example:
 @local_common_options
 @cli_framework_options
 @aws_creds_options
-@plugin_common_options
+@plugin_additional_options
 @pass_context
 @track_command
 @check_newer_version
