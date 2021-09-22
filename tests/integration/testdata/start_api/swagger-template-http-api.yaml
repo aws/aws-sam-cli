@@ -69,6 +69,26 @@ Resources:
                 type: aws_proxy
                 uri:
                   Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EchoBase64EventBodyFunction.Arn}/invocations
+          "/httpapi-operation-id-v1":
+            get:
+              responses: {}
+              operationId: 'OperationNameShouldNotAppear'
+              x-amazon-apigateway-integration:
+                httpMethod: GET
+                type: aws_proxy
+                payloadFormatVersion: '1.0'
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EchoEventHandlerHttpApiFunction.Arn}/invocations
+          "/httpapi-operation-id-v2":
+            get:
+              responses: {}
+              operationId: 'OperationNameShouldNotAppear'
+              x-amazon-apigateway-integration:
+                httpMethod: GET
+                type: aws_proxy
+                payloadFormatVersion: '2.0'
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EchoEventHandlerHttpApiFunction.Arn}/invocations
 
   MyHttpApiLambdaFunction:
     Type: AWS::Serverless::Function

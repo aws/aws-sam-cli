@@ -19,6 +19,20 @@ Resources:
         Value: SAM
       Timeout: 3
     Type: AWS::Lambda::Function
+  HelloWorldFunctionWithOperationName:
+    Properties:
+      Handler: main.operation_name_handler
+      Code: '.'
+      Role:
+        Fn::GetAtt:
+          - HelloWorldFunctionRole
+          - Arn
+      Runtime: python3.6
+      Tags:
+        - Key: lambda:createdBy
+          Value: SAM
+      Timeout: 3
+    Type: AWS::Lambda::Function
   HelloWorldFunctionRole:
     Properties:
       AssumeRolePolicyDocument:
@@ -81,6 +95,15 @@ Resources:
       IntegrationMethod: POST
       IntegrationUri:
         Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${HelloWorldFunction.Arn}/invocations
+  MyIntegrationWithOperationName:
+    Type: 'AWS::ApiGatewayV2::Integration'
+    Properties:
+      ApiId: !Ref HTTPAPIGateway
+      PayloadFormatVersion: "1.0"
+      IntegrationType: AWS_PROXY
+      IntegrationMethod: POST
+      IntegrationUri:
+        Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${HelloWorldFunctionWithOperationName.Arn}/invocations
   MyRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -90,6 +113,16 @@ Resources:
       - /
       - - integrations
         - !Ref MyIntegration
+  MyRouteWithOperationName:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HTTPAPIGateway
+      OperationName: 'MyOperationName'
+      RouteKey: 'GET /http-api-with-operation-name'
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref MyIntegrationWithOperationName
   RestApiGateway:
     Type: AWS::ApiGateway::RestApi
     Properties:
@@ -140,5 +173,40 @@ Resources:
               - :lambda:path/2015-03-31/functions/
               - Fn::GetAtt:
                   - HelloWorldFunction
+                  - Arn
+              - /invocations
+  RestApiGatewayWithOperationNameResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - RestApiGateway
+          - RootResourceId
+      PathPart: "rest-api-with-operation-name"
+      RestApiId:
+        Ref: RestApiGateway
+  RestApiGatewayWithOperationNameMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      OperationName: 'MyOperationName'
+      ResourceId:
+        Ref: RestApiGatewayWithOperationNameResource
+      RestApiId:
+        Ref: RestApiGateway
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - HelloWorldFunctionWithOperationName
                   - Arn
               - /invocations
