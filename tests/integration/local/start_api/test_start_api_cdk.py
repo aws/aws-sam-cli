@@ -18,9 +18,6 @@ class TestService(CDKStartApiIntegPythonBase):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
-    def test_static_directory(self):
-        pass
-
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_calling_proxy_endpoint(self):

@@ -107,15 +107,6 @@ class InvokeIntegBase(TestCase):
 
         return command_list
 
-    def run_command(self, command_list, env=None):
-        process = Popen(command_list, stdout=PIPE, env=env)
-        try:
-            (stdout, stderr) = process.communicate(timeout=TIMEOUT)
-            return stdout, stderr, process.returncode
-        except TimeoutExpired:
-            process.kill()
-            raise
-
 
 @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
 class CDKInvokeIntegBase(InvokeIntegBase):
