@@ -2,9 +2,6 @@
 Provide a CFN implementation of IaCPluginInterface
 """
 
-# pylint: skip-file
-# TODO: stop skipping once we remove the implementation in samcli/lib/iac/cfn_iac.py
-
 import os
 import logging
 from typing import List, Optional
