@@ -6,8 +6,8 @@ import logging
 import click
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
-from samcli.commands._utils.iac_validations import iac_options_validation
-from samcli.commands._utils.options import project_type_click_option, cdk_click_options
+from samcli.commands._utils.iac_project_validator import IacProjectValidator
+from samcli.commands._utils.options import plugin_additional_options
 from samcli.commands.local.cli_common.options import (
     invoke_common_options,
     service_common_options,
@@ -15,7 +15,8 @@ from samcli.commands.local.cli_common.options import (
     local_common_options,
 )
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
-from samcli.lib.iac.utils.helpers import inject_iac_plugin
+
+from samcli.lib.iac.utils.iac_project_resolver import IacProjectResolver
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
@@ -50,15 +51,12 @@ and point SAM to the directory or file containing build artifacts.
     default="public",
     help="Any static assets (e.g. CSS/Javascript/HTML) files located in this directory " "will be presented at /",
 )
-@project_type_click_option(include_build=True)
 @invoke_common_options
 @warm_containers_common_options
 @local_common_options
 @cli_framework_options
 @aws_creds_options  # pylint: disable=R0914
-@cdk_click_options
-@inject_iac_plugin(with_build=True)
-@iac_options_validation(require_stack=False)
+@plugin_additional_options
 @pass_context
 @track_command
 @check_newer_version
@@ -91,14 +89,18 @@ def cli(
     container_host,
     container_host_interface,
     project_type,
-    cdk_context,
     cdk_app,
-    iac,
-    project,
+    cdk_context,
 ):
     """
     `sam local start-api` command entry point
     """
+    click_ctx = click.get_current_context()
+    project_type, iac, project = IacProjectResolver(click_ctx).resolve_project(
+        include_build_folder=True, with_build=True
+    )
+    project_validator = IacProjectValidator(click_ctx, project)
+    project_validator.iac_options_validation(require_stack=False)
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
     do_cli(
         ctx,

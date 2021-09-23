@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 
 
 def hello_world_handler(event, context):
@@ -14,7 +15,7 @@ def handler(event, context):
     sys.stdout.write("Docker Lambda is writing to stderr")
 
     return "Hello world"
-
+  
 
 def timeout_handler(event, context):
     return ""

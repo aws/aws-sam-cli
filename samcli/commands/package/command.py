@@ -7,24 +7,21 @@ import click
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, aws_creds_options, print_cmdline_args
 from samcli.cli.types import ImageRepositoryType, ImageRepositoriesType
-from samcli.lib.cli_validation.image_repository_validation import image_repository_validation
-from samcli.commands.package.validations import package_option_validation
-from samcli.commands._utils.iac_validations import iac_options_validation
+from samcli.commands._utils.iac_project_validator import IacProjectValidator
 from samcli.commands._utils.options import (
     signing_profiles_option,
     image_repositories_callback,
-    cdk_click_options,
-    project_type_click_option,
     metadata_override_option,
     template_click_option,
     no_progressbar_option,
+    plugin_additional_options,
 )
 from samcli.commands._utils.resources import resources_generator
 from samcli.lib.bootstrap.bootstrap import manage_stack
+from samcli.lib.iac.utils.iac_project_resolver import IacProjectResolver
 from samcli.lib.telemetry.metric import track_command, track_template_warnings
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.lib.warnings.sam_cli_warning import CodeDeployWarning, CodeDeployConditionWarning
-from samcli.lib.iac.utils.helpers import inject_iac_plugin
 
 SHORT_HELP = "Package an AWS SAM application."
 
@@ -55,7 +52,6 @@ The following resources and their property locations are supported.
 
 @click.command("package", short_help=SHORT_HELP, help=HELP_TEXT, context_settings=dict(max_content_width=120))
 @configuration_option(provider=TomlProvider(section="parameters"))
-@project_type_click_option(include_build=True)
 @template_click_option(include_build=True)
 @click.option(
     "--s3-bucket",
@@ -127,11 +123,7 @@ The following resources and their property locations are supported.
 @no_progressbar_option
 @common_options
 @aws_creds_options
-@cdk_click_options
-@inject_iac_plugin(with_build=True)
-@iac_options_validation(require_stack=True)
-@package_option_validation
-@image_repository_validation
+@plugin_additional_options
 @pass_context
 @track_command
 @track_template_warnings([CodeDeployWarning.__name__, CodeDeployConditionWarning.__name__])
@@ -154,16 +146,22 @@ def cli(
     resolve_s3,
     config_file,
     config_env,
+    stack_name,
     project_type,
     cdk_app,
     cdk_context,
-    iac,
-    project,
-    stack_name,
 ):
     """
     `sam package` command entry point
     """
+    click_ctx = click.get_current_context()
+    project_type, iac, project = IacProjectResolver(click_ctx).resolve_project(
+        with_build=True, include_build_folder=True
+    )
+    project_validator = IacProjectValidator(click_ctx, project)
+    project_validator.iac_options_validation(require_stack=True)
+    project_validator.package_option_validation()
+    project_validator.image_repository_validation()
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(
