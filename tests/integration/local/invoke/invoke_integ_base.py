@@ -7,9 +7,8 @@ from unittest import TestCase, skipIf
 from pathlib import Path
 from subprocess import Popen, PIPE, TimeoutExpired
 
-from samcli.lib.iac.interface import ProjectTypes
 from tests.cdk_testing_utils import CdkPythonEnv
-from tests.testing_utils import SKIP_DOCKER_MESSAGE, SKIP_DOCKER_TESTS, run_command
+from tests.testing_utils import SKIP_DOCKER_MESSAGE, SKIP_DOCKER_TESTS
 
 TIMEOUT = 300
 
@@ -20,7 +19,6 @@ class InvokeIntegBase(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.cmd = cls.base_command()
         cls.test_data_path = cls.get_integ_dir().joinpath("testdata")
         cls.template_path = str(cls.test_data_path.joinpath("invoke", cls.template))
         cls.event_path = str(cls.test_data_path.joinpath("invoke", "event.json"))
@@ -31,8 +29,8 @@ class InvokeIntegBase(TestCase):
     def get_integ_dir():
         return Path(__file__).resolve().parents[2]
 
-    @classmethod
-    def base_command(cls):
+    @property
+    def base_command(self):
         command = "sam"
         if os.getenv("SAM_CLI_DEV"):
             command = "samdev"
@@ -52,7 +50,7 @@ class InvokeIntegBase(TestCase):
         layer_cache=None,
         docker_network=None,
     ):
-        command_list = [self.cmd, "local", "invoke", function_to_invoke]
+        command_list = [self.base_command, "local", "invoke", function_to_invoke]
 
         if template_path:
             command_list = command_list + ["-t", template_path]
@@ -93,7 +91,7 @@ class InvokeIntegBase(TestCase):
         parallel=None,
         use_container=None,
     ):
-        command_list = [self.cmd, "build"]
+        command_list = [self.base_command, "build"]
 
         if template_path:
             command_list = command_list + ["-t", template_path]
@@ -108,15 +106,6 @@ class InvokeIntegBase(TestCase):
             command_list = command_list + ["-u"]
 
         return command_list
-
-    def run_command(self, command_list, env=None):
-        process = Popen(command_list, stdout=PIPE, env=env)
-        try:
-            (stdout, stderr) = process.communicate(timeout=TIMEOUT)
-            return stdout, stderr, process.returncode
-        except TimeoutExpired:
-            process.kill()
-            raise
 
 
 @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
