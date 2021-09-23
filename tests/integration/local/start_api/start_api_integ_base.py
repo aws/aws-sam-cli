@@ -1,5 +1,7 @@
 import shutil
+import tempfile
 import uuid
+from distutils.dir_util import copy_tree
 from typing import Optional, Dict
 from unittest import TestCase, skipIf
 import threading
@@ -9,6 +11,7 @@ import os
 import random
 from pathlib import Path
 
+from tests.cdk_testing_utils import CdkPythonEnv
 from tests.testing_utils import SKIP_DOCKER_MESSAGE, SKIP_DOCKER_TESTS, run_command
 
 
@@ -41,11 +44,21 @@ class StartApiIntegBaseClass(TestCase):
         cls.thread.setDaemon(True)
         cls.thread.start()
 
-    @classmethod
-    def build(cls):
+    @staticmethod
+    def get_integ_dir():
+        return Path(__file__).resolve().parents[2]
+
+    @property
+    def base_command(self):
         command = "sam"
         if os.getenv("SAM_CLI_DEV"):
             command = "samdev"
+
+        return command
+
+    @classmethod
+    def build(cls):
+        command = cls.base_command
         command_list = [command, "build"]
         if cls.build_overrides:
             overrides_arg = " ".join(
@@ -134,3 +147,59 @@ class WatchWarmContainersIntegBaseClass(StartApiIntegBaseClass):
         if Path(working_dir).resolve().exists():
             shutil.rmtree(working_dir)
         super().tearDownClass()
+
+
+@skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
+class CDKStartApiBaseClass(StartApiIntegBaseClass):
+    @classmethod
+    def setUpClass(cls):
+        cls.test_data_path = cls.get_integ_dir().joinpath("testdata", "start_api")
+        cls.scratch_dir = str(Path(__file__).resolve().parent.joinpath(str(uuid.uuid4()).replace("-", "")[:10]))
+        os.mkdir(cls.scratch_dir)
+        cls.working_dir = tempfile.mkdtemp(dir=cls.scratch_dir)
+        construct_definition_path = cls.get_integ_dir().joinpath(cls.template_path)
+        copy_tree(construct_definition_path, cls.working_dir)
+        os.chdir(cls.working_dir)
+        super().setUpClass()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.scratch_dir and shutil.rmtree(cls.scratch_dir, ignore_errors=True)
+        super().tearDownClass()
+
+    def setUp(self):
+        self.working_dir = tempfile.mkdtemp(dir=self.scratch_dir)
+
+    def get_command_list(
+        self,
+        container_mode,
+        parameter_overrides,
+        project_type="CDK",
+    ):
+        command_list = [self.base_command, "local", "start-api", "-p", self.port]
+
+        if container_mode:
+            command_list += ["--warm-containers", container_mode]
+
+        if parameter_overrides:
+            command_list += ["--parameter-overrides", self._make_parameter_override_arg(parameter_overrides)]
+
+        if project_type:
+            command_list += ["--project-type", str(project_type)]
+
+        return command_list
+
+    @classmethod
+    def start_api(cls, wait_time=20):
+        command_list = cls.get_command_list(cls(), cls.container_mode, cls.parameter_overrides)
+        cls.start_api_process = Popen(command_list)
+        time.sleep(wait_time)
+
+
+@skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
+class CDKStartApiIntegPythonBase(CDKStartApiBaseClass):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.cdk_python_env = CdkPythonEnv(cls.scratch_dir)
+        cls.cdk_python_env.install_dependencies(str(cls.test_data_path.joinpath("cdk", "python", "requirements.txt")))
