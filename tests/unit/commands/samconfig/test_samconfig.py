@@ -105,7 +105,7 @@ class TestSamConfigForAllCommands(TestCase):
             do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")))
 
     @patch("samcli.commands.build.command.do_cli")
-    @patch("samcli.lib.iac.utils.iac_project_resolver.get_iac_plugin")
+    @patch("samcli.lib.iac.utils.iac_project_resolver.IacProjectResolver.get_iac_plugin")
     def test_build(self, get_iac_plugin_mock, do_cli_mock):
         config_values = {
             "resource_logical_id": "foo",
@@ -167,7 +167,7 @@ class TestSamConfigForAllCommands(TestCase):
             )
 
     @patch("samcli.commands.build.command.do_cli")
-    @patch("samcli.lib.iac.utils.iac_project_resolver.get_iac_plugin")
+    @patch("samcli.lib.iac.utils.iac_project_resolver.IacProjectResolver.get_iac_plugin")
     def test_build_with_container_env_vars(self, get_iac_plugin_mock, do_cli_mock):
         config_values = {
             "resource_logical_id": "foo",
@@ -227,7 +227,7 @@ class TestSamConfigForAllCommands(TestCase):
             )
 
     @patch("samcli.commands.build.command.do_cli")
-    @patch("samcli.lib.iac.utils.iac_project_resolver.get_iac_plugin")
+    @patch("samcli.lib.iac.utils.iac_project_resolver.IacProjectResolver.get_iac_plugin")
     def test_build_with_build_images(self, get_iac_plugin_mock, do_cli_mock):
         config_values = {
             "resource_logical_id": "foo",
@@ -288,7 +288,7 @@ class TestSamConfigForAllCommands(TestCase):
             )
 
     @patch("samcli.commands.local.invoke.cli.do_cli")
-    @patch("samcli.lib.iac.utils.iac_project_resolver.get_iac_plugin")
+    @patch("samcli.lib.iac.utils.iac_project_resolver.IacProjectResolver.get_iac_plugin")
     def test_local_invoke(self, get_iac_plugin_mock, do_cli_mock):
         config_values = {
             "function_logical_id": "foo",
@@ -357,7 +357,7 @@ class TestSamConfigForAllCommands(TestCase):
             )
 
     @patch("samcli.commands.local.start_api.cli.do_cli")
-    @patch("samcli.lib.iac.utils.iac_project_resolver.get_iac_plugin")
+    @patch("samcli.lib.iac.utils.iac_project_resolver.IacProjectResolver.get_iac_plugin")
     def test_local_start_api(self, get_iac_plugin_mock, do_cli_mock):
 
         config_values = {
@@ -429,7 +429,7 @@ class TestSamConfigForAllCommands(TestCase):
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
-    @patch("samcli.lib.iac.utils.iac_project_resolver.get_iac_plugin")
+    @patch("samcli.lib.iac.utils.iac_project_resolver.IacProjectResolver.get_iac_plugin")
     def test_local_start_lambda(self, get_iac_plugin_mock, do_cli_mock):
 
         config_values = {
@@ -498,7 +498,7 @@ class TestSamConfigForAllCommands(TestCase):
             )
 
     @patch("samcli.commands.package.command.do_cli")
-    @patch("samcli.lib.iac.utils.iac_project_resolver.get_iac_plugin")
+    @patch("samcli.lib.iac.utils.iac_project_resolver.IacProjectResolver.get_iac_plugin")
     @patch("samcli.commands._utils.iac_project_validator.validate_and_get_project_stack")
     def test_package(
         self,
@@ -563,7 +563,7 @@ class TestSamConfigForAllCommands(TestCase):
 
     @patch("samcli.commands._utils.options.get_template_artifacts_format")
     @patch("samcli.commands.package.command.do_cli")
-    @patch("samcli.lib.iac.utils.iac_project_resolver.get_iac_plugin")
+    @patch("samcli.lib.iac.utils.iac_project_resolver.IacProjectResolver.get_iac_plugin")
     def test_package_with_image_repository_and_image_repositories(
         self, get_iac_plugin_mock, do_cli_mock, get_template_artifacts_format_mock
     ):
@@ -598,7 +598,7 @@ class TestSamConfigForAllCommands(TestCase):
 
             self.assertIsNotNone(result.exception)
 
-    @patch("samcli.lib.iac.utils.iac_project_resolver.get_iac_plugin")
+    @patch("samcli.lib.iac.utils.iac_project_resolver.IacProjectResolver.get_iac_plugin")
     @patch("samcli.commands.deploy.command.do_cli")
     def test_deploy(self, do_cli_mock, get_iac_plugin_mock):
 
@@ -675,7 +675,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ANY,
             )
 
-    @patch("samcli.lib.iac.utils.iac_project_resolver.get_iac_plugin")
+    @patch("samcli.lib.iac.utils.iac_project_resolver.IacProjectResolver.get_iac_plugin")
     @patch("samcli.commands.deploy.command.do_cli")
     def test_deploy_image_repositories_and_image_repository(self, do_cli_mock, get_iac_plugin_mock):
 
@@ -714,7 +714,7 @@ class TestSamConfigForAllCommands(TestCase):
             result = runner.invoke(cli, [])
             self.assertIsNotNone(result.exception)
 
-    @patch("samcli.lib.iac.utils.iac_project_resolver.get_iac_plugin")
+    @patch("samcli.lib.iac.utils.iac_project_resolver.IacProjectResolver.get_iac_plugin")
     @patch("samcli.commands.deploy.command.do_cli")
     def test_deploy_different_parameter_override_format(self, do_cli_mock, get_iac_plugin_mock):
 
@@ -871,7 +871,7 @@ class TestSamConfigWithOverrides(TestCase):
         self.scratch_dir = None
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
-    @patch("samcli.lib.iac.utils.iac_project_resolver.get_iac_plugin")
+    @patch("samcli.lib.iac.utils.iac_project_resolver.IacProjectResolver.get_iac_plugin")
     def test_override_with_cli_params(self, get_iac_plugin_mock, do_cli_mock):
 
         config_values = {
@@ -980,7 +980,7 @@ class TestSamConfigWithOverrides(TestCase):
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
-    @patch("samcli.lib.iac.utils.iac_project_resolver.get_iac_plugin")
+    @patch("samcli.lib.iac.utils.iac_project_resolver.IacProjectResolver.get_iac_plugin")
     def test_override_with_cli_params_and_envvars(self, get_iac_plugin_mock, do_cli_mock):
 
         config_values = {

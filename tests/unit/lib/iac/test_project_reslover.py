@@ -4,6 +4,7 @@ from unittest import TestCase
 import click
 from unittest.mock import patch, MagicMock, Mock
 
+from samcli.lib.iac.interface import ProjectTypes
 from samcli.lib.iac.utils.iac_project_resolver import IacProjectResolver
 
 
@@ -98,3 +99,41 @@ class TestProjectTypeResolver(TestCase):
         os_path_exist_mock.side_effect = _find_in_paths_side_effect_func(mock_template_exist_path)
         projector_validator = IacProjectResolver(context_mock)
         self.assertEqual(projector_validator._detect_project_type(include_build), "CFN")
+
+
+class TestGetIacPlugin(TestCase):
+    @patch("samcli.lib.iac.utils.iac_project_resolver.CfnIacPlugin")
+    def test_get_iac_plugin_cfn_with_build(self, CfnIacPluginMock):
+        cfn_iac_plugin_mock = Mock()
+        cfn_iac_plugin_mock.get_project = Mock()
+        cfn_iac_plugin_mock.get_project.return_value = Mock()
+        CfnIacPluginMock.return_value = cfn_iac_plugin_mock
+        command_params = MagicMock()
+        command_params.get.return_value = "some_build_dir"
+
+        iac_plugin, project = IacProjectResolver.get_iac_plugin(
+            ProjectTypes.CFN.value,
+            command_params,
+            True,
+        )
+        CfnIacPluginMock.assert_called_once_with(command_params)
+        self.assertEqual(iac_plugin, cfn_iac_plugin_mock)
+        self.assertEqual(project, cfn_iac_plugin_mock.get_project.return_value)
+
+    @patch("samcli.lib.iac.utils.iac_project_resolver.CdkPlugin")
+    def test_get_iac_plugin_cdk_with_build(self, CdkIacPluginMock):
+        cdk_iac_plugin_mock = Mock()
+        cdk_iac_plugin_mock.get_project = Mock()
+        cdk_iac_plugin_mock.get_project.return_value = Mock()
+        CdkIacPluginMock.return_value = cdk_iac_plugin_mock
+        command_params = MagicMock()
+        command_params.get.return_value = "some_build_dir"
+
+        iac_plugin, project = IacProjectResolver.get_iac_plugin(
+            ProjectTypes.CDK.value,
+            command_params,
+            True,
+        )
+        CdkIacPluginMock.assert_called_once_with(command_params)
+        self.assertEqual(iac_plugin, cdk_iac_plugin_mock)
+        self.assertEqual(project, cdk_iac_plugin_mock.get_project.return_value)

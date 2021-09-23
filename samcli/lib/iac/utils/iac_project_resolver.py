@@ -4,13 +4,15 @@ Provide IacProjectResolver to process IaC project information from command line 
 
 import logging
 import os
+import pathlib
 
 from typing import List, Tuple, Optional
 from click import Context
 import click
 
-from samcli.lib.iac.interface import ProjectTypes, IacPlugin, Project
-from samcli.lib.iac.utils.helpers import get_iac_plugin
+from samcli.lib.iac.cdk.plugin import CdkPlugin
+from samcli.lib.iac.cfn_iac import CfnIacPlugin
+from samcli.lib.iac.interface import ProjectTypes, IacPlugin, Project, LookupPath, LookupPathType
 
 LOG = logging.getLogger(__name__)
 
@@ -43,7 +45,7 @@ class IacProjectResolver:
         :return: tuple (Project type, IaCPlugin, Project)
         """
         project_type = self._resolve_project_type(include_build_folder)
-        iac_plugin, project = get_iac_plugin(project_type, self._params, with_build)
+        iac_plugin, project = self.get_iac_plugin(project_type, self._params, with_build)
         return project_type, iac_plugin, project
 
     def _resolve_project_type(self, include_build_folder: bool) -> str:
@@ -112,3 +114,31 @@ class IacProjectResolver:
             if os.path.exists(path):
                 return True
         return False
+
+    @staticmethod
+    def get_iac_plugin(project_type, command_params, with_build):
+        LOG.debug("IAC Plugin getting project...")
+        iac_plugins = {
+            ProjectTypes.CFN.value: CfnIacPlugin,
+            ProjectTypes.CDK.value: CdkPlugin,
+        }
+        if project_type is None or project_type not in iac_plugins:
+            raise click.BadOptionUsage(
+                option_name="--project-type",
+                message=f"{project_type} is invalid project type option value, the value should be one"
+                f"of the following {[ptype.value for ptype in ProjectTypes]} ",
+            )
+        iac_plugin = iac_plugins[project_type](command_params)
+        lookup_paths = []
+
+        if with_build:
+            from samcli.commands.build.build_constants import DEFAULT_BUILD_DIR
+
+            # is this correct? --build-dir is only used for "build" (for writing)
+            # but with_true is True for "local" commands only
+            build_dir = command_params.get("build_dir", DEFAULT_BUILD_DIR)
+            lookup_paths.append(LookupPath(build_dir, LookupPathType.BUILD))
+        lookup_paths.append(LookupPath(str(pathlib.Path.cwd()), LookupPathType.SOURCE))
+        project = iac_plugin.get_project(lookup_paths)
+
+        return iac_plugin, project
