@@ -95,6 +95,15 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     "PackageType": IMAGE,
                 },
             },
+            "SamFuncWithImage4": {
+                # ImageUri is unsupported ECR location, but metadata is still provided, build
+                "Type": "AWS::Serverless::Function",
+                "Properties": {
+                    "ImageUri": "123456789012.dkr.ecr.us-east-1.amazonaws.com/myrepo:myimage",
+                    "PackageType": IMAGE,
+                },
+                "Metadata": {"DockerTag": "tag", "DockerContext": "./image", "Dockerfile": "Dockerfile"},
+            },
             "LambdaFunc1": {
                 "Type": "AWS::Lambda::Function",
                 "Properties": {
@@ -125,6 +134,15 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     "Code": {"ImageUri": "123456789012.dkr.ecr.us-east-1.amazonaws.com/myrepo"},
                     "PackageType": IMAGE,
                 },
+            },
+            "LambdaFuncWithImage4": {
+                # ImageUri is unsupported ECR location, but metadata is still provided, build
+                "Type": "AWS::Lambda::Function",
+                "Properties": {
+                    "Code": {"ImageUri": "123456789012.dkr.ecr.us-east-1.amazonaws.com/myrepo"},
+                    "PackageType": IMAGE,
+                },
+                "Metadata": {"DockerTag": "tag", "DockerContext": "./image", "Dockerfile": "Dockerfile"},
             },
             "LambdaFuncWithInlineCode": {
                 "Type": "AWS::Lambda::Function",
@@ -338,6 +356,33 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             ),
             ("SamFuncWithImage3", None),  # imageuri is ecr location, ignored
             (
+                "SamFuncWithImage4",  # despite imageuri is ecr location, the necessary metadata is still provided, build
+                Function(
+                    name="SamFuncWithImage4",
+                    functionname="SamFuncWithImage4",
+                    runtime=None,
+                    handler=None,
+                    codeuri=".",
+                    memory=None,
+                    timeout=None,
+                    environment=None,
+                    rolearn=None,
+                    layers=[],
+                    events=None,
+                    inlinecode=None,
+                    imageuri="123456789012.dkr.ecr.us-east-1.amazonaws.com/myrepo:myimage",
+                    imageconfig=None,
+                    packagetype=IMAGE,
+                    metadata={
+                        "DockerTag": "tag",
+                        "DockerContext": os.path.join("image"),
+                        "Dockerfile": "Dockerfile",
+                    },
+                    codesign_config_arn=None,
+                    stack_path="",
+                ),
+            ),
+            (
                 "SamFuncWithFunctionNameOverride-x",
                 Function(
                     name="SamFuncWithFunctionNameOverride",
@@ -416,6 +461,33 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                 ),
             ),
             ("LambdaFuncWithImage3", None),  # imageuri is a ecr location, ignored
+            (
+                "LambdaFuncWithImage4",  # despite imageuri is ecr location, the necessary metadata is still provided, build
+                Function(
+                    name="LambdaFuncWithImage4",
+                    functionname="LambdaFuncWithImage4",
+                    runtime=None,
+                    handler=None,
+                    codeuri=".",
+                    memory=None,
+                    timeout=None,
+                    environment=None,
+                    rolearn=None,
+                    layers=[],
+                    events=None,
+                    metadata={
+                        "DockerTag": "tag",
+                        "DockerContext": os.path.join("image"),
+                        "Dockerfile": "Dockerfile",
+                    },
+                    inlinecode=None,
+                    imageuri="123456789012.dkr.ecr.us-east-1.amazonaws.com/myrepo",
+                    imageconfig=None,
+                    packagetype=IMAGE,
+                    codesign_config_arn=None,
+                    stack_path="",
+                ),
+            ),
             (
                 "LambdaFuncWithInlineCode",
                 Function(
@@ -595,10 +667,12 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             "SamFunctions",
             "SamFuncWithImage1",
             "SamFuncWithImage2",
+            "SamFuncWithImage4",
             "SamFuncWithInlineCode",
             "SamFuncWithFunctionNameOverride",
             "LambdaFuncWithImage1",
             "LambdaFuncWithImage2",
+            "LambdaFuncWithImage4",
             "LambdaFuncWithInlineCode",
             "LambdaFuncWithLocalPath",
             "LambdaFuncWithFunctionNameOverride",

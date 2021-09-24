@@ -10,7 +10,7 @@ from samcli.lib.iac.plugins_interfaces import SamCliContext, ProjectTypes
 
 class TestGetIaC(TestCase):
     def test_get_cfn_impl(self):
-        context_map = {"project_type": "CFN"}
+        context_map = {"project_type": "CFN", "template_file": "input-template-file"}
         context = SamCliContext(
             command_options_map=context_map,
             sam_command_name="",

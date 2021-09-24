@@ -3,7 +3,7 @@ Class that provides all nested stacks from a given SAM template
 """
 import logging
 import os
-from typing import Optional, Dict, cast, List, Iterator, Tuple
+from typing import Optional, Dict, cast, List, Iterator, Tuple, Union
 from urllib.parse import unquote, urlparse
 
 from samcli.commands._utils.template import get_template_data
@@ -345,3 +345,15 @@ class SamLocalStackProvider(SamBaseProvider):
             stack_file_path = os.path.relpath(os.path.realpath(stack_file_path))
 
         return os.path.normpath(os.path.join(os.path.dirname(stack_file_path), path))
+
+
+def is_local_path(path: Union[Dict, str]) -> bool:
+    return bool(path) and not isinstance(path, dict) and not SamLocalStackProvider.is_remote_url(path)
+
+
+def get_local_path(path: str, parent_path: str) -> str:
+    if path.startswith("file://"):
+        path = unquote(urlparse(path).path)
+    else:
+        path = SamLocalStackProvider.normalize_resource_path(parent_path, path)
+    return path
