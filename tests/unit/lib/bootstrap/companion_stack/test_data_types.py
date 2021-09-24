@@ -78,10 +78,6 @@ class TestECRRepo(TestCase):
             self.ecr_repo.get_repo_uri("12345", "us-west-2"),
             "12345.dkr.ecr.us-west-2.amazonaws.com/parentstacknameabcdefgh/functionaqwertyuirepo",
         )
-        self.assertEqual(
-            self.ecr_repo.get_repo_uri("12345", "cn-north-1"),
-            "12345.dkr.ecr.cn-north-1.amazonaws.com.cn/parentstacknameabcdefgh/functionaqwertyuirepo",
-        )
 
     def test_physical_id_cutoff(self):
         self.companion_stack_mock.escaped_parent_stack_name = "s" * 128
