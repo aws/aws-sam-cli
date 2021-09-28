@@ -20,6 +20,9 @@ from samcli.commands._utils.options import (
     s3_prefix_option,
     kms_key_id_option,
     role_arn_option,
+    DEFAULT_BUILD_DIR,
+    DEFAULT_CACHE_DIR,
+    DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER
 )
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
@@ -36,7 +39,6 @@ from samcli.lib.providers.provider import (
     get_all_resource_ids,
     get_unique_resource_ids,
 )
-from samcli.commands._utils.options import DEFAULT_BUILD_DIR, DEFAULT_CACHE_DIR
 from samcli.cli.context import Context
 from samcli.lib.sync.watch_manager import WatchManager
 
@@ -83,6 +85,13 @@ DEFAULT_TEMPLATE_NAME = "template.yaml"
     multiple=True,
     help="Sync code for all types of the resource.",
 )
+@click.option(
+    "--dependency-layer/--no-dependency-layer",
+    default=True,
+    is_flag=True,
+    help="This option separates the dependencies of individual function into another layer, for speeding up the sync"
+    "process"
+)
 @stack_name_option(required=True)  # pylint: disable=E1120
 @base_dir_option
 @image_repository_option
@@ -111,6 +120,7 @@ def cli(
     watch: bool,
     resource_id: Optional[Tuple[str]],
     resource: Optional[Tuple[str]],
+    dependency_layer: bool,
     stack_name: str,
     base_dir: Optional[str],
     parameter_overrides: dict,
@@ -139,6 +149,7 @@ def cli(
         watch,
         resource_id,
         resource,
+        dependency_layer,
         stack_name,
         ctx.region,
         ctx.profile,
@@ -166,6 +177,7 @@ def do_cli(
     watch: bool,
     resource_id: Optional[Tuple[str]],
     resource: Optional[Tuple[str]],
+    dependency_layer: bool,
     stack_name: str,
     region: str,
     profile: str,
@@ -197,11 +209,13 @@ def do_cli(
     click.echo("\t\tA different default S3 bucket can be set in samconfig.toml")
     click.echo("\t\tOr by specifying --s3-bucket explicitly.")
 
+    build_dir = DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER if dependency_layer else DEFAULT_BUILD_DIR
+    LOG.debug("Using build directory as %s", build_dir)
     with BuildContext(
         resource_identifier=None,
         template_file=template_file,
         base_dir=base_dir,
-        build_dir=DEFAULT_BUILD_DIR,
+        build_dir=build_dir,
         cache_dir=DEFAULT_CACHE_DIR,
         clean=True,
         use_container=False,
@@ -209,8 +223,10 @@ def do_cli(
         parallel=True,
         parameter_overrides=parameter_overrides,
         mode=mode,
+        create_auto_dependency_layer=dependency_layer,
+        stack_name=stack_name,
     ) as build_context:
-        built_template = os.path.join(".aws-sam", "build", DEFAULT_TEMPLATE_NAME)
+        built_template = os.path.join(build_dir, DEFAULT_TEMPLATE_NAME)
 
         with osutils.tempfile_platform_independent() as output_template_file:
             with PackageContext(

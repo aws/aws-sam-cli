@@ -88,7 +88,7 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
                 mode=self._build_context.mode,
             )
             LOG.debug("%sBuilding Function", self.log_prefix)
-            self._artifact_folder = builder.build().get(self._function_identifier)
+            self._artifact_folder = builder.build().artifacts.get(self._function_identifier)
 
         zip_file_path = os.path.join(tempfile.gettempdir(), "data-" + uuid.uuid4().hex)
         self._zip_file = make_zip(zip_file_path, self._artifact_folder)

@@ -30,7 +30,7 @@ class TestImageFunctionSyncFlow(TestCase):
     def test_gather_resources(self, session_mock, builder_mock):
         get_mock = MagicMock()
         get_mock.return_value = "ImageName1"
-        builder_mock.return_value.build.return_value.get = get_mock
+        builder_mock.return_value.build.return_value.artifacts.get = get_mock
         sync_flow = self.create_function_sync_flow()
 
         sync_flow.set_up()
