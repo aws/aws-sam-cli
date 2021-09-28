@@ -309,6 +309,10 @@ class RequestContextV2:
         :param str request_id: Request Id for the request (Default: generated uuid id)
         :param str route_key: The route key for the route.
         :param str stage: Api Gateway V2 Stage
+        :param int request_time_epoch: Optional, an epoch timestamp to override the request time
+        :param datetime request_time: Optional, a datetime object to override the request time
+        :param str domain_name: Optional, the name of the domain
+        :param str domain_prefix: Optional, the prefix of the domain
         """
 
         self.account_id = account_id
@@ -317,6 +321,10 @@ class RequestContextV2:
         self.request_id = request_id
         self.route_key = route_key
         self.stage = stage
+        self.request_time_epoch = request_time_epoch
+        self.request_time = request_time
+        self.domain_name = domain_name
+        self.domain_prefix = domain_prefix
 
     def to_dict(self):
         """
