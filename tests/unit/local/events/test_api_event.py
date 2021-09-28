@@ -1,6 +1,9 @@
 from unittest import TestCase
 from unittest.mock import Mock
 
+from time import time
+from datetime import datetime
+
 from samcli.local.events.api_event import (
     ContextIdentity,
     ContextHTTP,
@@ -240,16 +243,24 @@ class TestRequestContextV2(TestCase):
     def test_to_dict(self):
         http_mock = Mock()
         http_mock.to_dict.return_value = {"method": "POST"}
+        request_time_epoch = int(time())
+        request_time = datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000")
 
-        request_context = RequestContextV2("account_id", "api_id", http_mock, "request_id", "route_key", "stage")
+        request_context = RequestContextV2(
+            "account_id", "api_id", http_mock, "request_id", "route_key", "stage", request_time_epoch, request_time
+        )
 
         expected = {
             "accountId": "account_id",
             "apiId": "api_id",
+            "domainName": "localhost",
+            "domainPrefix": "localhost",
             "http": http_mock.to_dict(),
             "requestId": "request_id",
             "routeKey": "route_key",
             "stage": "stage",
+            "time": request_time,
+            "timeEpoch": request_time_epoch,
         }
 
         self.assertEqual(request_context.to_dict(), expected)
@@ -260,10 +271,14 @@ class TestRequestContextV2(TestCase):
         expected = {
             "accountId": "123456789012",
             "apiId": "1234567890",
+            "domainName": "localhost",
+            "domainPrefix": "localhost",
             "http": {},
             "requestId": "",
             "routeKey": None,
             "stage": None,
+            "time": None,
+            "timeEpoch": None,
         }
 
         request_context_dict = request_context.to_dict()
