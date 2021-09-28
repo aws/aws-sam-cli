@@ -61,7 +61,8 @@ def dir_checksum(
     ignore_set = set(ignore_list or [])
     if hashing_method == "sha256":
         hash_dir = hashlib.sha256()
-    hash_dir = hashlib.md5()
+    else:
+        hash_dir = hashlib.md5()
     files = list()
     # Walk through given directory and find all directories and files.
     for dirpath, dirnames, filenames in os.walk(directory, followlinks=followlinks):
