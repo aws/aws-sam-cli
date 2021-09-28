@@ -295,6 +295,10 @@ class RequestContextV2:
         request_id=str(uuid.uuid4()),
         route_key=None,
         stage=None,
+        request_time_epoch=int(time()),
+        request_time=datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000"),
+        domain_name = "localhost",
+        domain_prefix = "localhost"
     ):
         """
         Constructs a RequestContext Version 2.
@@ -332,6 +336,10 @@ class RequestContextV2:
             "requestId": self.request_id,
             "routeKey": self.route_key,
             "stage": self.stage,
+            "time": self.request_time,
+            "timeEpoch": self.request_time_epoch,
+            "domainName": "localhost",
+            "domainPrefix": "localhost"
         }
 
         return json_dict
