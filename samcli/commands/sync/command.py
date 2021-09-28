@@ -197,6 +197,9 @@ def do_cli(
     click.echo("\t\tA different default S3 bucket can be set in samconfig.toml")
     click.echo("\t\tOr by specifying --s3-bucket explicitly.")
 
+    click.echo("\n\t\tDefault capabilities applied: CAPABILITY_NAMED_IAM, CAPABILITY_AUTO_EXPAND")
+    click.echo("To override with customized capabilities, use --capabitilies flag or set it in samconfig.toml")
+
     with BuildContext(
         resource_identifier=None,
         template_file=template_file,
