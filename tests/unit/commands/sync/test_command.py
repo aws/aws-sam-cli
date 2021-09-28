@@ -4,8 +4,11 @@ from parameterized import parameterized
 
 from samcli.commands.sync.command import do_cli, execute_code_sync, execute_watch
 from samcli.lib.providers.provider import ResourceIdentifier
-from samcli.commands._utils.options import DEFAULT_BUILD_DIR, DEFAULT_CACHE_DIR, \
-    DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER
+from samcli.commands._utils.options import (
+    DEFAULT_BUILD_DIR,
+    DEFAULT_CACHE_DIR,
+    DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER,
+)
 
 
 def get_mock_sam_config():
@@ -238,7 +241,7 @@ class TestDoCli(TestCase):
             mode=self.mode,
             cached=True,
             create_auto_dependency_layer=auto_dependency_layer,
-            stack_name=self.stack_name
+            stack_name=self.stack_name,
         )
 
         PackageContextMock.assert_called_with(

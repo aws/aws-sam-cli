@@ -21,36 +21,27 @@ class NestedStackBuilder(AbstractStackBuilder):
         return bool(self._template_dict.get("Resources", {}))
 
     def add_function(
-            self,
-            stack_name: str,
-            layer_contents_folder: str,
-            function: Function,
+        self,
+        stack_name: str,
+        layer_contents_folder: str,
+        function: Function,
     ) -> str:
         function_logical_id_hash = str_checksum(function.name)
         stack_name_hash = str_checksum(stack_name)
         layer_logical_id = f"{function.name[:48]}{function_logical_id_hash[:8]}DepLayer"
-        layer_name = f"{stack_name[:16]}{stack_name_hash[:8]}{function.name[:22]}{function_logical_id_hash[:8]}" \
-                     f"DepLayer"
+        layer_name = (
+            f"{stack_name[:16]}{stack_name_hash[:8]}{function.name[:22]}{function_logical_id_hash[:8]}" f"DepLayer"
+        )
 
         self.add_resource(
             layer_logical_id,
-            self._get_layer_dict(
-                function.name,
-                layer_name,
-                layer_contents_folder,
-                cast(str, function.runtime)
-            )
+            self._get_layer_dict(function.name, layer_name, layer_contents_folder, cast(str, function.runtime)),
         )
         self.add_output(layer_logical_id, {"Ref": layer_logical_id})
         return layer_logical_id
 
     @staticmethod
-    def _get_layer_dict(
-            function_logical_id: str,
-            layer_name: str,
-            layer_contents_folder: str,
-            function_runtime: str
-    ):
+    def _get_layer_dict(function_logical_id: str, layer_name: str, layer_contents_folder: str, function_runtime: str):
         return {
             "Type": AWS_SERVERLESS_LAYERVERSION,
             "Properties": {
@@ -58,10 +49,8 @@ class NestedStackBuilder(AbstractStackBuilder):
                 "Description": f"Auto created layer for dependencies of function {function_logical_id}",
                 "ContentUri": layer_contents_folder,
                 "RetentionPolicy": "Delete",
-                "CompatibleRuntimes": [
-                    function_runtime
-                ]
-            }
+                "CompatibleRuntimes": [function_runtime],
+            },
         }
 
     @staticmethod
@@ -69,7 +58,5 @@ class NestedStackBuilder(AbstractStackBuilder):
         return {
             "Type": AWS_CLOUDFORMATION_STACK,
             "DeletionPolicy": "Delete",
-            "Properties": {
-                "TemplateURL": nested_template_location
-            }
+            "Properties": {"TemplateURL": nested_template_location},
         }

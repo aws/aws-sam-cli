@@ -20,25 +20,18 @@ LOG = logging.getLogger(__name__)
 NESTED_STACK_NAME = "AwsSamAutoDependencyLayerNestedStack"
 
 # Resources which we support creating dependency layer
-SUPPORTED_RESOURCES = {
-    AWS_SERVERLESS_FUNCTION,
-    AWS_LAMBDA_FUNCTION
-}
+SUPPORTED_RESOURCES = {AWS_SERVERLESS_FUNCTION, AWS_LAMBDA_FUNCTION}
 
 # Languages which we support creating dependency layer
-SUPPORTED_LANGUAGES = {
-    "python",
-    "nodejs",
-    "java"
-}
+SUPPORTED_LANGUAGES = {"python", "nodejs", "java"}
 
 
 def generate_auto_dependency_layer_stack(
-        stack_name: str,
-        build_dir: str,
-        stack_location: str,
-        current_template: Dict,
-        app_build_result: ApplicationBuildResult
+    stack_name: str,
+    build_dir: str,
+    stack_location: str,
+    current_template: Dict,
+    app_build_result: ApplicationBuildResult,
 ) -> Dict:
     """
     Loops through all resources, and for the supported ones (SUPPORTED_RESOURCES and SUPPORTED_LANGUAGES)
@@ -65,15 +58,13 @@ def generate_auto_dependency_layer_stack(
 
     stack = Stack("", stack_name, stack_location, {}, template_dict=template)
     function_provider = SamFunctionProvider([stack], ignore_code_extraction_warnings=True)
-    zip_functions = [
-        function for function in function_provider.get_all() if function.packagetype == ZIP
-    ]
+    zip_functions = [function for function in function_provider.get_all() if function.packagetype == ZIP]
 
     for zip_function in zip_functions:
         if zip_function.name not in artifacts.keys():
             LOG.debug(
                 "Function %s is not built within SAM CLI, skipping for auto dependency layer creation",
-                zip_function.name
+                zip_function.name,
             )
             continue
 
@@ -88,7 +79,7 @@ def generate_auto_dependency_layer_stack(
             LOG.debug(
                 "For function %s, runtime %s is not supported for auto dependency layer creation",
                 zip_function.name,
-                zip_function.runtime
+                zip_function.runtime,
             )
             continue
 
@@ -107,22 +98,17 @@ def generate_auto_dependency_layer_stack(
 
         # add a simple README file for discoverability
         with open(os.path.join(dependencies_dir, "AWS_SAM_CLI_README"), "w+") as f:
-            f.write(f"This layer contains dependencies of function {zip_function.name} "
-                    "and automatically added by 'sam sync'")
+            f.write(
+                f"This layer contains dependencies of function {zip_function.name} "
+                "and automatically added by 'sam sync'"
+            )
 
         layer_output_key = nested_stack_builder.add_function(stack_name, dependencies_dir, zip_function)
 
         # add layer reference back to function
         function_properties = resources.get(zip_function.name).get("Properties", {})
         function_layers = function_properties.get("Layers", [])
-        function_layers.append(
-            {
-                "Fn:GettAtt": [
-                    NESTED_STACK_NAME,
-                    f"Outputs.{layer_output_key}"
-                ]
-            }
-        )
+        function_layers.append({"Fn:GettAtt": [NESTED_STACK_NAME, f"Outputs.{layer_output_key}"]})
         function_properties["Layers"] = function_layers
 
     if not nested_stack_builder.is_any_function_added():
@@ -132,7 +118,5 @@ def generate_auto_dependency_layer_stack(
     nested_template_location = os.path.join(build_dir, "nested_template.yaml")
     move_template(stack_location, nested_template_location, nested_stack_builder.build_as_dict())
 
-    resources[NESTED_STACK_NAME] = nested_stack_builder.get_nested_stack_reference_resource(
-        nested_template_location
-    )
+    resources[NESTED_STACK_NAME] = nested_stack_builder.get_nested_stack_reference_resource(nested_template_location)
     return template

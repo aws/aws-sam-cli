@@ -59,9 +59,9 @@ class ApplicationBuildResult(NamedTuple):
     """
     Result of the application build, build_graph and the built artifacts in dictionary
     """
+
     build_graph: BuildGraph
     artifacts: Dict[str, str]
-
 
 
 class ApplicationBuilder:

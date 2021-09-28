@@ -22,7 +22,7 @@ from samcli.commands._utils.options import (
     role_arn_option,
     DEFAULT_BUILD_DIR,
     DEFAULT_CACHE_DIR,
-    DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER
+    DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER,
 )
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
@@ -90,7 +90,7 @@ DEFAULT_TEMPLATE_NAME = "template.yaml"
     default=True,
     is_flag=True,
     help="This option separates the dependencies of individual function into another layer, for speeding up the sync"
-    "process"
+    "process",
 )
 @stack_name_option(required=True)  # pylint: disable=E1120
 @base_dir_option

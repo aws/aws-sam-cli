@@ -7,7 +7,6 @@ from tests.unit.lib.build_module.test_build_graph import generate_function
 
 
 class TestNestedStackBuilder(TestCase):
-
     def setUp(self) -> None:
         self.nested_stack_builder = NestedStackBuilder()
 
@@ -59,8 +58,3 @@ class TestNestedStackBuilder(TestCase):
         layer_output_value = layer_output.get("Value")
         self.assertIn("Ref", layer_output_value)
         self.assertEqual(layer_output_value.get("Ref"), layer_logical_id)
-
-
-
-
-
