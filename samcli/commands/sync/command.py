@@ -53,6 +53,7 @@ Update/sync local artifacts to AWS
 SHORT_HELP = "Sync a project to AWS"
 
 DEFAULT_TEMPLATE_NAME = "template.yaml"
+DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 
 
 @click.command("sync", help=HELP_TEXT, short_help=SHORT_HELP)
@@ -96,7 +97,7 @@ DEFAULT_TEMPLATE_NAME = "template.yaml"
 @metadata_option
 @notification_arns_option
 @tags_option
-@capabilities_option(default=("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"))  # pylint: disable=E1120
+@capabilities_option(default=DEFAULT_CAPABILITIES)  # pylint: disable=E1120
 @pass_context
 @track_command
 @image_repository_validation
@@ -197,7 +198,7 @@ def do_cli(
     click.echo("\t\tA different default S3 bucket can be set in samconfig.toml")
     click.echo("\t\tOr by specifying --s3-bucket explicitly.")
 
-    click.echo("\n\t\tDefault capabilities applied: CAPABILITY_NAMED_IAM, CAPABILITY_AUTO_EXPAND")
+    click.echo(f"\n\t\tDefault capabilities applied: {DEFAULT_CAPABILITIES}")
     click.echo("To override with customized capabilities, use --capabitilies flag or set it in samconfig.toml")
 
     with BuildContext(
