@@ -42,7 +42,7 @@ def file_checksum(file_name: str, hash_generator: Any = None) -> str:
 
 
 def dir_checksum(
-    directory: str, followlinks: bool = True, ignore_list: Optional[List[str]] = None, hashing_method: str = "md5"
+    directory: str, followlinks: bool = True, ignore_list: Optional[List[str]] = None, hash_generator: Any = None
 ) -> str:
     """
 
@@ -51,7 +51,7 @@ def dir_checksum(
     directory : A directory with an absolute path
     followlinks: Follow symbolic links through the given directory
     ignore_list: The list of file/directory names to ignore in checksum
-    hashing_method: The hashing method used to generate checksum
+    hash_generator: The hashing method used to generate checksum
 
     Returns
     -------
@@ -59,10 +59,8 @@ def dir_checksum(
 
     """
     ignore_set = set(ignore_list or [])
-    if hashing_method == "sha256":
-        hash_dir = hashlib.sha256()
-    else:
-        hash_dir = hashlib.md5()
+    if not hash_generator:
+        hash_generator = hashlib.md5()
     files = list()
     # Walk through given directory and find all directories and files.
     for dirpath, dirnames, filenames in os.walk(directory, followlinks=followlinks):
@@ -79,11 +77,11 @@ def dir_checksum(
 
     files.sort()
     for file in files:
-        hash_dir.update(os.path.relpath(file, directory).encode("utf-8"))
+        hash_generator.update(os.path.relpath(file, directory).encode("utf-8"))
         filepath_checksum = file_checksum(file)
-        hash_dir.update(filepath_checksum.encode("utf-8"))
+        hash_generator.update(filepath_checksum.encode("utf-8"))
 
-    return hash_dir.hexdigest()
+    return cast(str, hash_generator.hexdigest())
 
 
 def str_checksum(content: str) -> str:

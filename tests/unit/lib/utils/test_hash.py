@@ -1,3 +1,5 @@
+
+import hashlib
 import os
 import shutil
 import tempfile
@@ -98,8 +100,8 @@ class TestHash(TestCase):
         _file = tempfile.NamedTemporaryFile(delete=False, dir=self.temp_dir)
         _file.write(b"Testfile")
         _file.close()
-        checksum_sha256 = dir_checksum(os.path.dirname(_file.name), hashing_method="sha256")
-        checksum_md5 = dir_checksum(os.path.dirname(_file.name), hashing_method="md5")
+        checksum_sha256 = dir_checksum(os.path.dirname(_file.name), hash_generator=hashlib.sha256())
+        checksum_md5 = dir_checksum(os.path.dirname(_file.name), hashlib.md5())
         checksum_default = dir_checksum(os.path.dirname(_file.name))
         self.assertEqual(checksum_default, checksum_md5)
         self.assertNotEqual(checksum_md5, checksum_sha256)

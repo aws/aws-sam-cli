@@ -1,6 +1,7 @@
 """
 Keeps implementation of different build strategies
 """
+import hashlib
 import logging
 import pathlib
 import shutil
@@ -246,7 +247,7 @@ class CachedBuildStrategy(BuildStrategy):
             return self._delegate_build_strategy.build_single_function_definition(build_definition)
 
         code_dir = str(pathlib.Path(self._base_dir, cast(str, build_definition.codeuri)).resolve())
-        source_hash = dir_checksum(code_dir, ignore_list=[".aws-sam"], hashing_method="sha256")
+        source_hash = dir_checksum(code_dir, ignore_list=[".aws-sam"], hash_generator=hashlib.sha256())
         cache_function_dir = pathlib.Path(self._cache_dir, build_definition.uuid)
         function_build_results = {}
 
@@ -285,7 +286,7 @@ class CachedBuildStrategy(BuildStrategy):
         Builds single layer definition with caching
         """
         code_dir = str(pathlib.Path(self._base_dir, cast(str, layer_definition.codeuri)).resolve())
-        source_hash = dir_checksum(code_dir, ignore_list=[".aws-sam"], hashing_method="sha256")
+        source_hash = dir_checksum(code_dir, ignore_list=[".aws-sam"], hash_generator=hashlib.sha256())
         cache_function_dir = pathlib.Path(self._cache_dir, layer_definition.uuid)
         layer_build_result = {}
 
