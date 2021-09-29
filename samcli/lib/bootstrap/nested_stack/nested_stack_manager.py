@@ -23,7 +23,7 @@ NESTED_STACK_NAME = "AwsSamAutoDependencyLayerNestedStack"
 SUPPORTED_RESOURCES = {AWS_SERVERLESS_FUNCTION, AWS_LAMBDA_FUNCTION}
 
 # Languages which we support creating dependency layer
-SUPPORTED_LANGUAGES = {"python", "nodejs", "java"}
+SUPPORTED_LANGUAGES = ("python", "nodejs", "java")
 
 
 def generate_auto_dependency_layer_stack(
@@ -69,13 +69,7 @@ def generate_auto_dependency_layer_stack(
             continue
 
         # check if runtime/language is supported
-        is_runtime_supported = False
-        for supported_language in SUPPORTED_LANGUAGES:
-            if cast(str, zip_function.runtime).startswith(supported_language):
-                is_runtime_supported = True
-                break
-
-        if not is_runtime_supported:
+        if not zip_function.runtime.startswith(SUPPORTED_LANGUAGES):
             LOG.debug(
                 "For function %s, runtime %s is not supported for auto dependency layer creation",
                 zip_function.name,
