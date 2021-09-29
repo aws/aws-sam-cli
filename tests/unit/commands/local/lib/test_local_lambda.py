@@ -2,9 +2,12 @@
 Testing local lambda runner
 """
 import os
+from platform import architecture
 from unittest import TestCase
 from unittest.mock import Mock, patch
 from parameterized import parameterized, param
+
+from samcli.lib.utils.architecture import X86_64, ARM64
 
 from samcli.commands.local.cli_common.user_exceptions import InvokeContextException
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
@@ -16,6 +19,7 @@ from samcli.commands.local.lib.exceptions import (
     OverridesNotWellDefinedError,
     NoPrivilegeException,
     InvalidIntermediateImageError,
+    UnsupportedRuntimeArchitectureError,
 )
 
 
@@ -235,6 +239,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             imageuri=None,
             imageconfig=None,
             packagetype=ZIP,
+            architectures=[X86_64],
             codesign_config_arn=None,
         )
 
@@ -284,6 +289,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             imageuri=None,
             imageconfig=None,
             packagetype=ZIP,
+            architectures=[X86_64],
             codesign_config_arn=None,
         )
 
@@ -323,6 +329,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             imageuri=None,
             imageconfig=None,
             packagetype=ZIP,
+            architectures=[X86_64],
             codesign_config_arn=None,
         )
 
@@ -398,6 +405,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             imageuri=None,
             imageconfig=None,
             packagetype=ZIP,
+            architectures=[ARM64],
             codesign_config_arn=None,
         )
 
@@ -418,6 +426,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             memory=function.memory,
             timeout=function.timeout,
             env_vars=env_vars,
+            architecture=ARM64,
         )
 
         resolve_code_path_patch.assert_called_with(self.cwd, function.codeuri)
@@ -459,6 +468,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             imageuri=None,
             imageconfig=None,
             packagetype=ZIP,
+            architectures=[X86_64],
             codesign_config_arn=None,
         )
 
@@ -479,6 +489,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             memory=function.memory,
             timeout=function.timeout,
             env_vars=env_vars,
+            architecture=X86_64,
         )
 
         resolve_code_path_patch.assert_called_with(self.cwd, "codeuri")
@@ -513,6 +524,7 @@ class TestLocalLambda_invoke(TestCase):
 
         self.function_provider_mock.get_all.return_value = [function]
         self.local_lambda.get_invoke_config = Mock()
+        self.local_lambda.validate_architecture_runtime = Mock()
         self.local_lambda.get_invoke_config.return_value = invoke_config
 
         self.local_lambda.invoke(name, event, stdout, stderr)
@@ -537,6 +549,7 @@ class TestLocalLambda_invoke(TestCase):
 
         self.function_provider_mock.get.return_value = function
         self.local_lambda.get_invoke_config = Mock()
+        self.local_lambda.validate_architecture_runtime = Mock()
         self.local_lambda.get_invoke_config.return_value = invoke_config
 
         self.local_lambda.invoke(name, event, stdout, stderr)
@@ -559,6 +572,7 @@ class TestLocalLambda_invoke(TestCase):
 
         self.function_provider_mock.get_all.return_value = [function]
         self.local_lambda.get_invoke_config = Mock()
+        self.local_lambda.validate_architecture_runtime = Mock()
         self.local_lambda.get_invoke_config.return_value = invoke_config
 
         os_error = OSError()
@@ -576,6 +590,7 @@ class TestLocalLambda_invoke(TestCase):
 
         self.function_provider_mock.get_all.return_value = [function]
         self.local_lambda.get_invoke_config = Mock()
+        self.local_lambda.validate_architecture_runtime = Mock()
         self.local_lambda.get_invoke_config.return_value = invoke_config
 
         os_error = OSError()
@@ -603,6 +618,7 @@ class TestLocalLambda_invoke(TestCase):
 
         self.function_provider_mock.get.return_value = function
         self.local_lambda.get_invoke_config = Mock()
+        self.local_lambda.validate_architecture_runtime = Mock()
         self.local_lambda.get_invoke_config.return_value = invoke_config
         self.runtime_mock.invoke = Mock(side_effect=ContainerResponseException)
         # No exception raised back
@@ -618,6 +634,7 @@ class TestLocalLambda_invoke(TestCase):
 
         self.function_provider_mock.get.return_value = function
         self.local_lambda.get_invoke_config = Mock()
+        self.local_lambda.validate_architecture_runtime = Mock()
         self.local_lambda.get_invoke_config.return_value = invoke_config
         self.local_lambda.invoke(name, event, stdout, stderr)
         self.runtime_mock.invoke.assert_called_with(
@@ -641,6 +658,44 @@ class TestLocalLambda_invoke(TestCase):
 
         with self.assertRaises(InvalidIntermediateImageError):
             self.local_lambda.invoke(name, event, stdout, stderr)
+
+    @parameterized.expand(
+        [
+            ("nodejs10.x", X86_64, ZIP),
+            ("java8.al2", ARM64, ZIP),
+            ("dotnetcore3.1", ARM64, ZIP),
+            (None, X86_64, IMAGE),
+            (None, ARM64, IMAGE),
+            (None, X86_64, IMAGE),
+        ]
+    )
+    def test_must_pass_for_support_runtime_architecture(self, runtime, arch, packagetype):
+        function = Mock(
+            functionname="name", handler="app.handler", runtime=runtime, packagetype=packagetype, architectures=[arch]
+        )
+        self.local_lambda.validate_architecture_runtime(function)
+
+    @parameterized.expand(
+        [
+            ("nodejs10.x", ARM64),
+            ("python2.7", ARM64),
+            ("python3.6", ARM64),
+            ("python3.7", ARM64),
+            ("ruby2.5", ARM64),
+            ("java8", ARM64),
+            ("go1.x", ARM64),
+            ("provided", ARM64),
+        ]
+    )
+    def test_must_raise_for_unsupported_runtime_architecture(self, runtime, arch):
+        function = Mock(
+            functionname="name", handler="app.handler", runtime=runtime, architectures=[arch], packagetype=ZIP
+        )
+
+        with self.assertRaises(UnsupportedRuntimeArchitectureError) as ex:
+            self.local_lambda.validate_architecture_runtime(function)
+
+        self.assertEqual(str(ex.exception), f"Runtime {runtime} is not supported on '{arch}' architecture")
 
 
 class TestLocalLambda_invoke_with_container_host_option(TestCase):
@@ -675,6 +730,7 @@ class TestLocalLambda_invoke_with_container_host_option(TestCase):
 
         self.function_provider_mock.get_all.return_value = [function]
         self.local_lambda.get_invoke_config = Mock()
+        self.local_lambda.validate_architecture_runtime = Mock()
         self.local_lambda.get_invoke_config.return_value = invoke_config
 
         self.local_lambda.invoke(name, event, stdout, stderr)

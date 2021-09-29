@@ -6,7 +6,7 @@ import json
 import logging
 import pathlib
 
-from .container import Container
+from samcli.local.docker.container import Container
 
 LOG = logging.getLogger(__name__)
 
@@ -31,6 +31,7 @@ class LambdaBuildContainer(Container):
         source_dir,
         manifest_path,
         runtime,
+        architecture,
         optimizations=None,
         options=None,
         executable_search_paths=None,
@@ -39,7 +40,6 @@ class LambdaBuildContainer(Container):
         env_vars=None,
         image=None,
     ):
-
         abs_manifest_path = pathlib.Path(manifest_path).resolve()
         manifest_file_name = abs_manifest_path.name
         manifest_dir = str(abs_manifest_path.parent)
@@ -74,10 +74,11 @@ class LambdaBuildContainer(Container):
             options,
             executable_search_paths,
             mode,
+            architecture,
         )
 
         if image is None:
-            image = LambdaBuildContainer._get_image(runtime)
+            image = LambdaBuildContainer._get_image(runtime, architecture)
         entry = LambdaBuildContainer._get_entrypoint(request_json)
         cmd = []
 
@@ -117,6 +118,7 @@ class LambdaBuildContainer(Container):
         options,
         executable_search_paths,
         mode,
+        architecture,
     ):
 
         runtime = runtime.replace(".al2", "")
@@ -143,6 +145,7 @@ class LambdaBuildContainer(Container):
                     "options": options,
                     "executable_search_paths": executable_search_paths,
                     "mode": mode,
+                    "architecture": architecture,
                 },
             }
         )
@@ -236,5 +239,35 @@ class LambdaBuildContainer(Container):
         return result
 
     @staticmethod
-    def _get_image(runtime):
-        return f"{LambdaBuildContainer._IMAGE_URI_PREFIX}-{runtime}:{LambdaBuildContainer._IMAGE_TAG}"
+    def _get_image(runtime, architecture):
+        """
+        Parameters
+        ----------
+        runtime : str
+            Name of the Lambda runtime
+        architecture : str
+            Architecture type either 'x86_64' or 'arm64
+
+        Returns
+        -------
+        str
+            valid image name
+        """
+        return f"{LambdaBuildContainer._IMAGE_URI_PREFIX}-{runtime}:" + LambdaBuildContainer.get_image_tag(architecture)
+
+    @staticmethod
+    def get_image_tag(architecture):
+        """
+        Returns the lambda build image tag for an architecture
+
+        Parameters
+        ----------
+        architecture : str
+            Architecture
+
+        Returns
+        -------
+        str
+            Image tag
+        """
+        return f"{LambdaBuildContainer._IMAGE_TAG}-{architecture}"

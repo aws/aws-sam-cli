@@ -4,9 +4,14 @@ from unittest.mock import Mock
 
 from parameterized import parameterized
 
+from samcli.lib.utils.architecture import X86_64, ARM64
 
-from samcli.lib.providers.provider import LayerVersion, Stack, _get_build_dir
-from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, UnsupportedIntrinsic
+from samcli.lib.providers.provider import LayerVersion, Stack, _get_build_dir, Function
+from samcli.commands.local.cli_common.user_exceptions import (
+    InvalidLayerVersionArn,
+    UnsupportedIntrinsic,
+    InvalidFunctionPropertyType,
+)
 
 
 def make_resource(stack_path, name):
@@ -38,6 +43,49 @@ class TestProvider(TestCase):
     def test_stack_get_output_template_path(self, parent_stack_path, name, output_template_path):
         root_stack = Stack(parent_stack_path, name, None, None, None)
         self.assertEqual(root_stack.get_output_template_path("builddir"), output_template_path)
+
+
+class TestFunction(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.function = Function(
+            "name",
+            "functionname",
+            "runtime",
+            10,
+            3,
+            "handler",
+            "imageuri",
+            "packagetype",
+            "imageconfig",
+            "codeuri",
+            None,
+            "rolearn",
+            [],
+            None,
+            None,
+            None,
+            None,
+            [ARM64],
+            "stackpath",
+        )
+
+    @parameterized.expand(
+        [
+            ([ARM64], ARM64),
+            ([], X86_64),
+            ([X86_64], X86_64),
+        ]
+    )
+    def test_architecture(self, architectures, architecture):
+        self.function = self.function._replace(architectures=architectures)
+        self.assertEqual(self.function.architecture, architecture)
+
+    def test_invalid_architecture(self):
+        self.function = self.function._replace(architectures=[X86_64, ARM64])
+        with self.assertRaises(InvalidFunctionPropertyType) as e:
+            self.function.architecture
+        self.assertEqual(str(e.exception), "Function name property Architectures should be a list of length 1")
 
 
 class TestLayerVersion(TestCase):
@@ -93,3 +141,34 @@ class TestLayerVersion(TestCase):
 
         with self.assertRaises(UnsupportedIntrinsic):
             LayerVersion(intrinsic_arn, ".")
+
+    def test_compatible_architectures_returned(self):
+        layer_version = LayerVersion(
+            "arn:aws:lambda:region:account-id:layer:layer-name:1",
+            None,
+            [],
+            {"BuildMethod": "dummy_build_method"},
+            [ARM64],
+        )
+
+        self.assertEqual(layer_version.compatible_architectures, [ARM64])
+
+    def test_layer_build_architecture_returned(self):
+        layer_version = LayerVersion(
+            "arn:aws:lambda:region:account-id:layer:layer-name:1",
+            None,
+            [],
+            {"BuildMethod": "dummy_build_method", "BuildArchitecture": ARM64},
+            [ARM64],
+        )
+        self.assertEqual(layer_version.build_architecture, ARM64)
+
+    def test_no_layer_build_architecture_returned(self):
+        layer_version = LayerVersion(
+            "arn:aws:lambda:region:account-id:layer:layer-name:1",
+            None,
+            [],
+            {"BuildMethod": "dummy_build_method"},
+            [ARM64],
+        )
+        self.assertEqual(layer_version.build_architecture, X86_64)
