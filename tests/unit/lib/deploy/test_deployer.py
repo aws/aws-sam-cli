@@ -322,15 +322,17 @@ class TestDeployer(TestCase):
             self.deployer.wait_for_changeset("test-id", "test-stack")
 
     def test_execute_changeset(self):
-        self.deployer.execute_changeset("id", "test")
-        self.deployer._client.execute_change_set.assert_called_with(ChangeSetName="id", StackName="test")
+        self.deployer.execute_changeset("id", "test", True)
+        self.deployer._client.execute_change_set.assert_called_with(
+            ChangeSetName="id", StackName="test", DisableRollback=True
+        )
 
     def test_execute_changeset_exception(self):
         self.deployer._client.execute_change_set = MagicMock(
             side_effect=ClientError(error_response={"Error": {"Message": "Error"}}, operation_name="execute_changeset")
         )
         with self.assertRaises(DeployFailedError):
-            self.deployer.execute_changeset("id", "test")
+            self.deployer.execute_changeset("id", "test", True)
 
     def test_get_last_event_time(self):
         timestamp = datetime.utcnow()
@@ -594,10 +596,10 @@ class TestDeployer(TestCase):
 
     def test_check_stack_status(self):
         self.assertEqual(self.deployer._check_stack_complete("CREATE_COMPLETE"), True)
-        self.assertEqual(self.deployer._check_stack_complete("CREATE_FAILED"), False)
+        self.assertEqual(self.deployer._check_stack_complete("CREATE_FAILED"), True)
         self.assertEqual(self.deployer._check_stack_complete("CREATE_IN_PROGRESS"), False)
         self.assertEqual(self.deployer._check_stack_complete("DELETE_COMPLETE"), True)
-        self.assertEqual(self.deployer._check_stack_complete("DELETE_FAILED"), False)
+        self.assertEqual(self.deployer._check_stack_complete("DELETE_FAILED"), True)
         self.assertEqual(self.deployer._check_stack_complete("DELETE_IN_PROGRESS"), False)
         self.assertEqual(self.deployer._check_stack_complete("REVIEW_IN_PROGRESS"), False)
         self.assertEqual(self.deployer._check_stack_complete("ROLLBACK_COMPLETE"), True)
@@ -606,17 +608,17 @@ class TestDeployer(TestCase):
         self.assertEqual(self.deployer._check_stack_complete("UPDATE_COMPLETE_CLEANUP_IN_PROGRESS"), False)
         self.assertEqual(self.deployer._check_stack_complete("UPDATE_IN_PROGRESS"), False)
         self.assertEqual(self.deployer._check_stack_complete("UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS"), False)
-        self.assertEqual(self.deployer._check_stack_complete("UPDATE_ROLLBACK_FAILED"), False)
+        self.assertEqual(self.deployer._check_stack_complete("UPDATE_ROLLBACK_FAILED"), True)
         self.assertEqual(self.deployer._check_stack_complete("UPDATE_ROLLBACK_IN_PROGRESS"), False)
 
     @patch("time.sleep")
     def test_wait_for_execute(self, patched_time):
         self.deployer.describe_stack_events = MagicMock()
         self.deployer._client.get_waiter = MagicMock(return_value=MockCreateUpdateWaiter())
-        self.deployer.wait_for_execute("test", "CREATE")
-        self.deployer.wait_for_execute("test", "UPDATE")
+        self.deployer.wait_for_execute("test", "CREATE", False)
+        self.deployer.wait_for_execute("test", "UPDATE", True)
         with self.assertRaises(RuntimeError):
-            self.deployer.wait_for_execute("test", "DESTRUCT")
+            self.deployer.wait_for_execute("test", "DESTRUCT", False)
 
         self.deployer._client.get_waiter = MagicMock(
             return_value=MockCreateUpdateWaiter(
@@ -628,7 +630,7 @@ class TestDeployer(TestCase):
             )
         )
         with self.assertRaises(DeployFailedError):
-            self.deployer.wait_for_execute("test", "CREATE")
+            self.deployer.wait_for_execute("test", "CREATE", False)
 
     def test_create_and_wait_for_changeset(self):
         self.deployer.create_changeset = MagicMock(return_value=({"Id": "test"}, "create"))
@@ -729,7 +731,7 @@ class TestDeployer(TestCase):
         self.deployer._client.get_waiter = MagicMock(return_value=MockCreateUpdateWaiter())
         self.deployer._display_stack_outputs = MagicMock()
         self.deployer.get_stack_outputs = MagicMock(return_value=None)
-        self.deployer.wait_for_execute("test", "CREATE")
+        self.deployer.wait_for_execute("test", "CREATE", False)
         self.assertEqual(self.deployer._display_stack_outputs.call_count, 0)
 
     @patch("time.sleep")
@@ -748,5 +750,5 @@ class TestDeployer(TestCase):
         self.deployer._client.get_waiter = MagicMock(return_value=MockCreateUpdateWaiter())
         self.deployer._display_stack_outputs = MagicMock()
         self.deployer.get_stack_outputs = MagicMock(return_value=outputs["Stacks"][0]["Outputs"])
-        self.deployer.wait_for_execute("test", "CREATE")
+        self.deployer.wait_for_execute("test", "CREATE", False)
         self.assertEqual(self.deployer._display_stack_outputs.call_count, 1)

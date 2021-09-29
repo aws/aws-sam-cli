@@ -22,6 +22,7 @@ import logging
 import time
 from datetime import datetime
 from typing import Dict, List
+import click
 
 import botocore
 
@@ -307,16 +308,19 @@ class Deployer:
                 stack_name=stack_name, msg="ex: {0} Status: {1}. Reason: {2}".format(ex, status, reason)
             ) from ex
 
-    def execute_changeset(self, changeset_id, stack_name):
+    def execute_changeset(self, changeset_id, stack_name, disable_rollback):
         """
         Calls CloudFormation to execute changeset
 
         :param changeset_id: ID of the changeset
         :param stack_name: Name or ID of the stack
+        :param disable_rollback: Preserve the state of previously provisioned resources when an operation fails.
         :return: Response from execute-change-set call
         """
         try:
-            return self._client.execute_change_set(ChangeSetName=changeset_id, StackName=stack_name)
+            return self._client.execute_change_set(
+                ChangeSetName=changeset_id, StackName=stack_name, DisableRollback=disable_rollback
+            )
         except botocore.exceptions.ClientError as ex:
             raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
 
@@ -403,9 +407,9 @@ class Deployer:
 
     @staticmethod
     def _check_stack_complete(status: str) -> bool:
-        return "COMPLETE" in status and "CLEANUP" not in status
+        return "IN_PROGRESS" not in status
 
-    def wait_for_execute(self, stack_name, changeset_type):
+    def wait_for_execute(self, stack_name, changeset_type, disable_rollback):
         """
         Wait for changeset to execute and return when execution completes.
         If the stack has "Outputs," they will be printed.
@@ -416,6 +420,8 @@ class Deployer:
             The name of the stack
         changeset_type : str
             The type of the changeset, 'CREATE' or 'UPDATE'
+        disable_rollback : bool
+            Preserves the state of previously provisioned resources when an operation fails
         """
         sys.stdout.write(
             "\n{} - Waiting for stack create/update "
@@ -441,6 +447,9 @@ class Deployer:
             waiter.wait(StackName=stack_name, WaiterConfig=waiter_config)
         except botocore.exceptions.WaiterError as ex:
             LOG.debug("Execute changeset waiter exception", exc_info=ex)
+            if disable_rollback:
+                msg = self._gen_deploy_failed_with_rollback_disabled_msg(stack_name)
+                click.secho(msg, fg="red")
 
             raise deploy_exceptions.DeployFailedError(stack_name=stack_name, msg=str(ex))
 
@@ -501,3 +510,14 @@ class Deployer:
 
         except botocore.exceptions.ClientError as ex:
             raise DeployStackOutPutFailedError(stack_name=stack_name, msg=str(ex)) from ex
+
+    @staticmethod
+    def _gen_deploy_failed_with_rollback_disabled_msg(stack_name):
+        return """\nFailed to deploy stack with automatic rollback disabled\n
+Actions you can take next
+=========================
+[*] Fix issues and try deploying again
+[*] Roll back stack to the last known stable state: aws cloudformation rollback-stack --stack-name {stack_name}
+""".format(
+            stack_name=stack_name
+        )

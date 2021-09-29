@@ -167,6 +167,13 @@ LOG = logging.getLogger(__name__)
     "A companion stack containing ECR repos for each function will be deployed along with the template stack. "
     "Automatically created image repositories will be deleted if the corresponding functions are removed.",
 )
+@click.option(
+    "--disable-rollback/--no-disable-rollback",
+    default=False,
+    required=False,
+    is_flag=True,
+    help="Preserves the state of previously provisioned resources when an operation fails.",
+)
 @metadata_override_option
 @notification_arns_override_option
 @tags_override_option
@@ -208,6 +215,7 @@ def cli(
     resolve_image_repos,
     config_file,
     config_env,
+    disable_rollback,
 ):
     """
     `sam deploy` command entry point
@@ -241,6 +249,7 @@ def cli(
         config_file,
         config_env,
         resolve_image_repos,
+        disable_rollback,
     )  # pragma: no cover
 
 
@@ -272,6 +281,7 @@ def do_cli(
     config_file,
     config_env,
     resolve_image_repos,
+    disable_rollback,
 ):
     """
     Implementation of the ``cli`` method
@@ -299,6 +309,7 @@ def do_cli(
             config_section=CONFIG_SECTION,
             config_env=config_env,
             config_file=config_file,
+            disable_rollback=disable_rollback,
         )
         guided_context.run()
     else:
@@ -361,5 +372,6 @@ def do_cli(
             profile=profile,
             confirm_changeset=guided_context.confirm_changeset if guided else confirm_changeset,
             signing_profiles=guided_context.signing_profiles if guided else signing_profiles,
+            disable_rollback=guided_context.disable_rollback if guided else disable_rollback,
         ) as deploy_context:
             deploy_context.run()

@@ -59,6 +59,7 @@ class GuidedContext:
         config_section=None,
         config_env=None,
         config_file=None,
+        disable_rollback=None,
     ):
         self.template_file = template_file
         self.stack_name = stack_name
@@ -89,6 +90,7 @@ class GuidedContext:
         self.end_bold = "\033[0m"
         self.color = Colored()
         self.function_provider = None
+        self.disable_rollback = disable_rollback
 
     @property
     def guided_capabilities(self):
@@ -146,6 +148,9 @@ class GuidedContext:
             f"\t{self.start_bold}Allow SAM CLI IAM role creation{self.end_bold}", default=True
         )
 
+        click.secho("\t#Preserves the state of previously provisioned resources when an operation fails")
+        disable_rollback = confirm(f"\t{self.start_bold}Disable rollback{self.end_bold}", default=self.disable_rollback)
+
         if not capabilities_confirm:
             input_capabilities = prompt(
                 f"\t{self.start_bold}Capabilities{self.end_bold}",
@@ -194,6 +199,7 @@ class GuidedContext:
         self.config_env = config_env if config_env else default_config_env
         self.config_file = config_file if config_file else default_config_file
         self.confirm_changeset = confirm_changeset
+        self.disable_rollback = disable_rollback
 
     def prompt_authorization(self, stacks: List[Stack]):
         auth_required_per_resource = auth_per_resource(stacks)
@@ -560,6 +566,7 @@ class GuidedContext:
                 confirm_changeset=self.confirm_changeset,
                 capabilities=self._capabilities,
                 signing_profiles=self.signing_profiles,
+                disable_rollback=self.disable_rollback,
             )
 
     @staticmethod
