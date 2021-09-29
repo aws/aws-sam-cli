@@ -114,7 +114,8 @@ class XRayTracePuller(AbstractXRayPuller):
             trace_summaries = result.get("TraceSummaries", [])
             for trace_summary in trace_summaries:
                 trace_id = trace_summary.get("Id", None)
-                if trace_id not in self._previous_trace_ids:
+                is_partial = trace_summary.get("IsPartial", False)
+                if not is_partial and trace_id not in self._previous_trace_ids:
                     trace_ids.append(trace_id)
                     self._previous_trace_ids.add(trace_id)
 

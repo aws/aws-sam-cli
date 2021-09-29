@@ -83,6 +83,21 @@ class TestXrayTracePuller(TestCase):
             collected_trace_ids = [item.get("Id") for item in given_trace_summaries[0].get("TraceSummaries", [])]
             patched_load_events.assert_called_with(collected_trace_ids)
 
+    def test_load_time_period_with_partial_result(self):
+        given_paginator = Mock()
+        self.xray_client.get_paginator.return_value = given_paginator
+
+        given_trace_summaries = [{"TraceSummaries": [{"Id": str(uuid.uuid4()), "IsPartial": True} for _ in range(10)]}]
+        given_paginator.paginate.return_value = given_trace_summaries
+
+        start_time = "start_time"
+        end_time = "end_time"
+        with patch.object(self.xray_trace_puller, "load_events") as patched_load_events:
+            self.xray_trace_puller.load_time_period(start_time, end_time)
+            given_paginator.paginate.assert_called_with(TimeRangeType="TraceId", StartTime=start_time, EndTime=end_time)
+
+            patched_load_events.assert_called_with([])
+
     @patch("samcli.lib.observability.xray_traces.xray_event_puller.time")
     @patch("samcli.lib.observability.xray_traces.xray_event_puller.to_timestamp")
     @patch("samcli.lib.observability.xray_traces.xray_event_puller.to_datetime")
