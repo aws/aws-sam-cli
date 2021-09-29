@@ -83,6 +83,7 @@ class TestApplicationBuilder_build(TestCase):
             layer_env_vars,
             dependencies_dir,
             download_dependencies,
+            combine_dependencies,
         ):
             return f"{layer_name}_location"
 
@@ -125,6 +126,7 @@ class TestApplicationBuilder_build(TestCase):
                     ANY,
                     ANY,
                     True,
+                    True,
                 ),
                 call(
                     self.func2.name,
@@ -137,6 +139,7 @@ class TestApplicationBuilder_build(TestCase):
                     ANY,
                     ANY,
                     True,
+                    True,
                 ),
                 call(
                     self.imageFunc1.name,
@@ -148,6 +151,7 @@ class TestApplicationBuilder_build(TestCase):
                     self.imageFunc1.metadata,
                     ANY,
                     ANY,
+                    True,
                     True,
                 ),
             ],
@@ -165,6 +169,7 @@ class TestApplicationBuilder_build(TestCase):
                     ANY,
                     ANY,
                     True,
+                    True,
                 ),
                 call(
                     self.layer2.name,
@@ -175,6 +180,7 @@ class TestApplicationBuilder_build(TestCase):
                     ANY,
                     ANY,
                     True,
+                    True,
                 ),
             ]
         )
@@ -182,10 +188,10 @@ class TestApplicationBuilder_build(TestCase):
     @patch("samcli.lib.build.build_graph.BuildGraph._write")
     def test_should_use_function_or_layer_get_build_dir_to_determine_artifact_dir(self, persist_mock):
         def get_func_call_with_artifact_dir(artifact_dir):
-            return call(ANY, ANY, ANY, ANY, ANY, artifact_dir, ANY, ANY, ANY, True)
+            return call(ANY, ANY, ANY, ANY, ANY, artifact_dir, ANY, ANY, ANY, True, True)
 
         def get_layer_call_with_artifact_dir(artifact_dir):
-            return call(ANY, ANY, ANY, ANY, artifact_dir, ANY, ANY, True)
+            return call(ANY, ANY, ANY, ANY, artifact_dir, ANY, ANY, True, True)
 
         build_function_mock = Mock()
         build_layer_mock = Mock()
@@ -281,6 +287,7 @@ class TestApplicationBuilder_build(TestCase):
                     ANY,
                     ANY,
                     True,
+                    True,
                 ),
                 call(
                     function2.name,
@@ -292,6 +299,7 @@ class TestApplicationBuilder_build(TestCase):
                     function2.metadata,
                     ANY,
                     ANY,
+                    True,
                     True,
                 ),
             ],
@@ -413,6 +421,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             "python3.8",
             None,
             None,
+            True,
             True,
         )
 
@@ -903,7 +912,7 @@ class TestApplicationBuilder_build_function(TestCase):
         self.builder._build_function(function_name, codeuri, ZIP, runtime, handler, artifacts_dir)
 
         self.builder._build_function_in_process.assert_called_with(
-            config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, None, None, True
+            config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, None, None, True, True
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -936,7 +945,7 @@ class TestApplicationBuilder_build_function(TestCase):
         )
 
         self.builder._build_function_in_process.assert_called_with(
-            config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, None, None, True
+            config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, None, None, True, True
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -1079,7 +1088,8 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
         builder_instance_mock = lambda_builder_mock.return_value = Mock()
 
         result = self.builder._build_function_in_process(
-            config_mock, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime", None, None, True
+            config_mock, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime", None, None, True,
+            True
         )
         self.assertEqual(result, "artifacts_dir")
 
@@ -1101,6 +1111,7 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
             # todo: put the two checks back after app builder release
             # dependencies_dir=None,
             # download_dependencies=True,
+            # combine_dependencies=True,
         )
 
     @patch("samcli.lib.build.app_builder.LambdaBuilder")
@@ -1112,7 +1123,8 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
 
         with self.assertRaises(BuildError):
             self.builder._build_function_in_process(
-                config_mock, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime", None, None, True
+                config_mock, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime", None, None, True,
+                True
             )
 
 

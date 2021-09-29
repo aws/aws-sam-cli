@@ -395,6 +395,7 @@ class ApplicationBuilder:
         container_env_vars: Optional[Dict] = None,
         dependencies_dir: Optional[str] = None,
         download_dependencies: bool = True,
+        combine_dependencies: bool = True,
     ) -> str:
         """
         Given the layer information, this method will build the Lambda layer. Depending on the configuration
@@ -421,6 +422,9 @@ class ApplicationBuilder:
         download_dependencies: bool
             An optional boolean parameter to inform lambda builders whether download dependencies or use previously
             downloaded ones. Default value is True.
+        combine_dependencies: bool
+            An optional bool parameter to inform lambda builders whether we should separate the source code and
+            dependencies or not.
 
         Returns
         -------
@@ -468,6 +472,7 @@ class ApplicationBuilder:
                     options,
                     dependencies_dir,
                     download_dependencies,
+                    combine_dependencies,
                 )
 
             # Not including subfolder in return so that we copy subfolder, instead of copying artifacts inside it.
@@ -485,6 +490,7 @@ class ApplicationBuilder:
         container_env_vars: Optional[Dict] = None,
         dependencies_dir: Optional[str] = None,
         download_dependencies: bool = True,
+        combine_dependencies: bool = True,
     ) -> str:
         """
         Given the function information, this method will build the Lambda function. Depending on the configuration
@@ -514,6 +520,9 @@ class ApplicationBuilder:
         download_dependencies: bool
             An optional boolean parameter to inform lambda builders whether download dependencies or use previously
             downloaded ones. Default value is True.
+        combine_dependencies: bool
+            An optional bool parameter to inform lambda builders whether we should separate the source code and
+            dependencies or not.
 
         Returns
         -------
@@ -574,6 +583,7 @@ class ApplicationBuilder:
                     options,
                     dependencies_dir,
                     download_dependencies,
+                    combine_dependencies,
                 )
 
         # pylint: disable=fixme
@@ -614,6 +624,7 @@ class ApplicationBuilder:
         options: Optional[Dict],
         dependencies_dir: Optional[str],
         download_dependencies: bool,
+        combine_dependencies: bool,
     ) -> str:
 
         builder = LambdaBuilder(
@@ -634,6 +645,8 @@ class ApplicationBuilder:
         if lambda_builders_version == "1.8.0":
             kwargs["dependencies_dir"] = dependencies_dir
             kwargs["download_dependencies"] = download_dependencies
+            kwargs["combine_dependencies"] = combine_dependencies
+
 
         try:
             builder.build(source_dir, artifacts_dir, scratch_dir, manifest_path, **kwargs)
