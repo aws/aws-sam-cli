@@ -77,7 +77,7 @@ class InvokeContext:
         shutdown: bool = False,
         container_host: Optional[str] = None,
         container_host_interface: Optional[str] = None,
-        invoke_image: Optional[str] = None
+        invoke_image: Optional[str] = None,
     ) -> None:
         """
         Initialize the context

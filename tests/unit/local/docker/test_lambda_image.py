@@ -26,6 +26,7 @@ class TestLambdaImage(TestCase):
         self.assertFalse(lambda_image.skip_pull_image)
         self.assertFalse(lambda_image.force_image_build)
         self.assertEqual(lambda_image.docker_client, "docker_client")
+        self.assertIsNone(lambda_image.invoke_image)
 
     @patch("samcli.local.docker.lambda_image.docker")
     def test_initialization_with_defaults(self, docker_patch):
@@ -38,6 +39,7 @@ class TestLambdaImage(TestCase):
         self.assertFalse(lambda_image.skip_pull_image)
         self.assertFalse(lambda_image.force_image_build)
         self.assertEqual(lambda_image.docker_client, docker_client_mock)
+        self.assertIsNone(lambda_image.invoke_image)
 
     def test_building_image_with_no_runtime_only_image(self):
         docker_client_mock = Mock()
@@ -124,6 +126,24 @@ class TestLambdaImage(TestCase):
         self.assertEqual(
             lambda_image.build("python3.6", ZIP, None, [], ARM64),
             f"public.ecr.aws/sam/emulation-python3.6:{RAPID_IMAGE_TAG_PREFIX}-{version}-arm64",
+        )
+
+    def test_building_image_with_custom_image_uri(self):
+        docker_client_mock = Mock()
+        layer_downloader_mock = Mock()
+        setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
+        docker_client_mock.api.build.return_value = ["mock"]
+
+        lambda_image = LambdaImage(
+            layer_downloader_mock,
+            False,
+            False,
+            docker_client=docker_client_mock,
+            invoke_image="amazon/aws-sam-cli-emulation-image-python3.6",
+        )
+        self.assertEqual(
+            lambda_image.build("python3.6", ZIP, None, []),
+            f"amazon/aws-sam-cli-emulation-image-python3.6:{RAPID_IMAGE_TAG_PREFIX}-{version}",
         )
 
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
