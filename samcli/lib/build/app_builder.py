@@ -642,11 +642,10 @@ class ApplicationBuilder:
             "options": options,
         }
         # todo: remove this check once the lambda builder release is finished
-        if lambda_builders_version == "1.8.0":
+        if lambda_builders_version == "1.9.0":
             kwargs["dependencies_dir"] = dependencies_dir
             kwargs["download_dependencies"] = download_dependencies
             kwargs["combine_dependencies"] = combine_dependencies
-
 
         try:
             builder.build(source_dir, artifacts_dir, scratch_dir, manifest_path, **kwargs)
