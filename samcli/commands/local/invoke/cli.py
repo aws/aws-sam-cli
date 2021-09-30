@@ -42,6 +42,18 @@ STDIN_FILE_NAME = "-"
     "is not specified, no event is assumed. Pass in the value '-' to input JSON via stdin",
 )
 @click.option("--no-event", is_flag=True, default=True, help="DEPRECATED: By default no event is assumed.", hidden=True)
+@click.option(
+    "--invoke-image",
+    "-ii",
+    default=None,
+    required=False,
+    help="Container image URIs for invoking functions. "
+    "You can specify the image URI used for the local function invocation "
+    "(--invoke-image public.ecr.aws/sam/build-nodejs14.x:latest). "
+    "You can specify for each individual function with "
+    "If a function does not have invoke image specified, the default SAM CLI "
+    "emulation image will be used.",
+)
 @invoke_common_options
 @local_common_options
 @cli_framework_options
@@ -74,6 +86,7 @@ def cli(
     config_env,
     container_host,
     container_host_interface,
+    invoke_image,
 ):
     """
     `sam local invoke` command entry point
@@ -101,6 +114,7 @@ def cli(
         parameter_overrides,
         container_host,
         container_host_interface,
+        invoke_image,
     )  # pragma: no cover
 
 
@@ -125,6 +139,7 @@ def do_cli(  # pylint: disable=R0914
     parameter_overrides,
     container_host,
     container_host_interface,
+    invoke_image,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -169,6 +184,7 @@ def do_cli(  # pylint: disable=R0914
             shutdown=shutdown,
             container_host=container_host,
             container_host_interface=container_host_interface,
+            invoke_image=invoke_image,
         ) as context:
 
             # Invoke the function
