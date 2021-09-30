@@ -62,7 +62,6 @@ def generate_project(
     GenerateProjectFailedError
         If the process of baking a project fails
     """
-
     template = None
 
     if runtime and package_type == ZIP:

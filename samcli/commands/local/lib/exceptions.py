@@ -1,6 +1,7 @@
 """
 Custom exceptions raised by this local library
 """
+from samcli.commands.exceptions import UserException
 
 
 class NoApisDefined(Exception):
@@ -25,4 +26,10 @@ class InvalidIntermediateImageError(Exception):
     """
     Raised when there is no valid intermediate image to build on top of
     for Image based PackageTypes.
+    """
+
+
+class UnsupportedRuntimeArchitectureError(UserException):
+    """
+    Raised when runtime does not support architecture
     """

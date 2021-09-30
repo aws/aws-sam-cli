@@ -72,6 +72,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ZIP,
                 "nodejs10.x",
                 None,
+                None,
                 "maven",
                 "myoutput",
                 "myname",

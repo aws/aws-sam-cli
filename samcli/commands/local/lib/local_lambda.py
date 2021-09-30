@@ -4,7 +4,7 @@ Implementation of Local Lambda runner
 
 import os
 import logging
-from typing import Any, Dict, Optional, cast
+from typing import Any, Dict, Optional, cast, List
 import boto3
 
 from botocore.credentials import Credentials
@@ -18,10 +18,16 @@ from samcli.local.docker.container import ContainerResponseException
 from samcli.local.lambdafn.env_vars import EnvironmentVariables
 from samcli.local.lambdafn.config import FunctionConfig
 from samcli.local.lambdafn.exceptions import FunctionNotFound
-from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
-from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError, NoPrivilegeException
+from samcli.commands.local.lib.exceptions import (
+    OverridesNotWellDefinedError,
+    NoPrivilegeException,
+    InvalidIntermediateImageError,
+    UnsupportedRuntimeArchitectureError,
+)
 from samcli.lib.providers.provider import Function
 from samcli.local.lambdafn.runtime import LambdaRuntime
+from samcli.lib.utils.architecture import X86_64, ARM64
+
 
 LOG = logging.getLogger(__name__)
 
@@ -33,6 +39,27 @@ class LocalLambdaRunner:
     """
 
     MAX_DEBUG_TIMEOUT = 36000  # 10 hours in seconds
+
+    SUPPORTED_RUNTIMES: Dict[str, List[str]] = {
+        "nodejs10.x": [X86_64],
+        "nodejs12.x": [ARM64, X86_64],
+        "nodejs14.x": [ARM64, X86_64],
+        "python2.7": [X86_64],
+        "python3.6": [X86_64],
+        "python3.7": [X86_64],
+        "python3.8": [ARM64, X86_64],
+        "python3.9": [ARM64, X86_64],
+        "ruby2.5": [X86_64],
+        "ruby2.7": [ARM64, X86_64],
+        "java8": [X86_64],
+        "java8.al2": [ARM64, X86_64],
+        "java11": [ARM64, X86_64],
+        "go1.x": [X86_64],
+        "dotnetcore2.1": [X86_64],
+        "dotnetcore3.1": [ARM64, X86_64],
+        "provided": [X86_64],
+        "provided.al2": [ARM64, X86_64],
+    }
 
     def __init__(
         self,
@@ -123,6 +150,9 @@ class LocalLambdaRunner:
                     f"ImageUri not provided for Function: {function_identifier} of PackageType: {function.packagetype}"
                 )
             LOG.info("Invoking Container created from %s", function.imageuri)
+
+        self.validate_architecture_runtime(function)
+
         config = self.get_invoke_config(function)
 
         # Invoke the function
@@ -194,6 +224,7 @@ class LocalLambdaRunner:
             packagetype=function.packagetype,
             code_abs_path=code_abs_path,
             layers=function.layers,
+            architecture=function.architecture,
             memory=function.memory,
             timeout=function_timeout,
             env_vars=env_vars,
@@ -317,3 +348,27 @@ class LocalLambdaRunner:
             result["sessiontoken"] = creds.token
 
         return result
+
+    def validate_architecture_runtime(self, function: Function) -> None:
+        """
+        Validates that a function runtime and architecture are compatible for invoking
+
+        Parameters
+        ----------
+        function : samcli.commands.local.lib.provider.Function
+            Lambda function
+
+        Raises
+        ------
+        samcli.commands.local.lib.exceptions.UnsupportedRuntimeArchitectureError
+            If the runtime and architecture are not compatible
+        """
+        if function.packagetype == IMAGE:
+            return
+
+        runtime_architectures = self.SUPPORTED_RUNTIMES.get(cast(str, function.runtime), [])
+
+        if function.architectures and function.architectures[0] not in runtime_architectures:
+            raise UnsupportedRuntimeArchitectureError(
+                f"Runtime {function.runtime} is not supported on '{function.architectures[0]}' architecture"
+            )
