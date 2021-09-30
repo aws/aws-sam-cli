@@ -5,6 +5,8 @@ from unittest.mock import patch, PropertyMock, Mock, call
 
 from parameterized import parameterized
 
+from samcli.lib.utils.architecture import X86_64, ARM64
+
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
 from samcli.lib.providers.provider import Function, LayerVersion, Stack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
@@ -249,6 +251,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageconfig=None,
                     packagetype=ZIP,
                     codesign_config_arn=None,
+                    architectures=None,
                     stack_path="",
                 ),
             ),
@@ -272,6 +275,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageconfig=None,
                     packagetype=ZIP,
                     codesign_config_arn=None,
+                    architectures=None,
                     stack_path="",
                 ),
             ),
@@ -295,6 +299,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageconfig=None,
                     packagetype=ZIP,
                     codesign_config_arn=None,
+                    architectures=None,
                     stack_path="",
                 ),
             ),
@@ -324,6 +329,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                         "Dockerfile": "Dockerfile",
                     },
                     codesign_config_arn=None,
+                    architectures=None,
                     stack_path="",
                 ),
             ),
@@ -351,6 +357,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                         "Dockerfile": "Dockerfile",
                     },
                     codesign_config_arn=None,
+                    architectures=None,
                     stack_path="",
                 ),
             ),
@@ -379,6 +386,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                         "Dockerfile": "Dockerfile",
                     },
                     codesign_config_arn=None,
+                    architectures=None,
                     stack_path="",
                 ),
             ),
@@ -402,6 +410,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageconfig=None,
                     packagetype=ZIP,
                     codesign_config_arn=None,
+                    architectures=None,
                     stack_path="",
                 ),
             ),
@@ -430,6 +439,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageconfig=None,
                     packagetype=IMAGE,
                     codesign_config_arn=None,
+                    architectures=None,
                     stack_path="",
                 ),
             ),
@@ -457,6 +467,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageconfig=None,
                     packagetype=IMAGE,
                     codesign_config_arn=None,
+                    architectures=None,
                     stack_path="",
                 ),
             ),
@@ -485,6 +496,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageconfig=None,
                     packagetype=IMAGE,
                     codesign_config_arn=None,
+                    architectures=None,
                     stack_path="",
                 ),
             ),
@@ -508,6 +520,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageuri=None,
                     imageconfig=None,
                     packagetype=ZIP,
+                    architectures=None,
                     stack_path="",
                 ),
             ),
@@ -531,6 +544,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageuri=None,
                     imageconfig=None,
                     packagetype=ZIP,
+                    architectures=None,
                     stack_path="",
                 ),
             ),
@@ -554,6 +568,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageconfig=None,
                     packagetype=ZIP,
                     codesign_config_arn=None,
+                    architectures=None,
                     stack_path="",
                 ),
             ),
@@ -577,6 +592,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageconfig=None,
                     packagetype=ZIP,
                     codesign_config_arn="codeSignConfigArn",
+                    architectures=None,
                     stack_path="",
                 ),
             ),
@@ -600,6 +616,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageconfig=None,
                     packagetype=ZIP,
                     codesign_config_arn=None,
+                    architectures=None,
                     stack_path="ChildStack",
                 ),
             ),
@@ -623,6 +640,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageconfig=None,
                     packagetype=ZIP,
                     codesign_config_arn=None,
+                    architectures=None,
                     stack_path="ChildStack",
                 ),
             ),
@@ -650,6 +668,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageconfig=None,
                     packagetype=IMAGE,
                     codesign_config_arn=None,
+                    architectures=None,
                     stack_path="ChildStack",
                 ),
             ),
@@ -836,6 +855,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             "Environment": "myenvironment",
             "Role": "myrole",
             "Layers": ["Layer1", "Layer2"],
+            "Architectures": [X86_64],
         }
 
         expected = Function(
@@ -856,6 +876,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             imageconfig=None,
             packagetype=ZIP,
             codesign_config_arn=None,
+            architectures=[X86_64],
             stack_path=STACK_PATH,
         )
 
@@ -896,6 +917,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             imageconfig={"WorkingDirectory": "/var/task", "Command": "/bin/bash", "EntryPoint": "echo Hello!"},
             packagetype=IMAGE,
             codesign_config_arn=None,
+            architectures=None,
             stack_path=STACK_PATH,
         )
 
@@ -926,6 +948,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             imageconfig=None,
             packagetype=ZIP,
             codesign_config_arn=None,
+            architectures=None,
             stack_path=STACK_PATH,
         )
 
@@ -950,6 +973,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             "MemorySize": "mymemorysize",
             "Timeout": "30",
             "Handler": "index.handler",
+            "Architectures": [X86_64],
         }
 
         expected = Function(
@@ -970,6 +994,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             imageconfig=None,
             packagetype=ZIP,
             codesign_config_arn=None,
+            architectures=[X86_64],
             stack_path=STACK_PATH,
         )
 
@@ -987,6 +1012,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             "MemorySize": "mymemorysize",
             "Timeout": "30",
             "Handler": "index.handler",
+            "Architectures": [ARM64],
         }
 
         expected = Function(
@@ -1007,6 +1033,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             imageconfig=None,
             packagetype=ZIP,
             codesign_config_arn=None,
+            architectures=[ARM64],
             stack_path=STACK_PATH,
         )
 
@@ -1061,6 +1088,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             imageconfig=None,
             packagetype=ZIP,
             codesign_config_arn=None,
+            architectures=None,
             stack_path=STACK_PATH,
         )
 
@@ -1078,6 +1106,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             "Timeout": "30",
             "Handler": "myhandler",
             "Environment": "myenvironment",
+            "Architectures": [ARM64],
         }
 
         expected = Function(
@@ -1098,6 +1127,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             imageconfig=None,
             packagetype=ZIP,
             codesign_config_arn=None,
+            architectures=[ARM64],
             stack_path=STACK_PATH,
         )
 
@@ -1128,6 +1158,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             imageconfig=None,
             packagetype=ZIP,
             codesign_config_arn=None,
+            architectures=None,
             stack_path=STACK_PATH,
         )
 
@@ -1239,6 +1270,7 @@ class TestSamFunctionProvider_get(TestCase):
             imageconfig=None,
             packagetype=None,
             codesign_config_arn=None,
+            architectures=None,
             stack_path=STACK_PATH,
         )
         provider.functions = {"func1": function}

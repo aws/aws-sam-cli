@@ -92,6 +92,7 @@ class TestLambdaContainer_init(TestCase):
             code_dir=self.code_dir,
             layers=[],
             lambda_image=image_builder_mock,
+            architecture="arm64",
             env_vars=self.env_var,
             memory_mb=self.memory_mb,
             debug_options=self.debug_options,
@@ -106,7 +107,9 @@ class TestLambdaContainer_init(TestCase):
         self.assertEqual(expected_env_vars, container._env_vars)
         self.assertEqual(self.memory_mb, container._memory_limit_mb)
 
-        get_image_mock.assert_called_with(image_builder_mock, self.runtime, self.packagetype, self.imageuri, [])
+        get_image_mock.assert_called_with(
+            image_builder_mock, self.runtime, self.packagetype, self.imageuri, [], "arm64"
+        )
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_debug_settings_mock.assert_called_with(self.runtime, self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
@@ -160,6 +163,7 @@ class TestLambdaContainer_init(TestCase):
             code_dir=self.code_dir,
             layers=[],
             lambda_image=image_builder_mock,
+            architecture="arm64",
             env_vars=self.env_var,
             memory_mb=self.memory_mb,
             debug_options=self.debug_options,
@@ -174,7 +178,9 @@ class TestLambdaContainer_init(TestCase):
         self.assertEqual({**expected_env_vars, **{"AWS_LAMBDA_FUNCTION_HANDLER": "mycommand"}}, container._env_vars)
         self.assertEqual(self.memory_mb, container._memory_limit_mb)
 
-        get_image_mock.assert_called_with(image_builder_mock, self.runtime, self.packagetype, self.imageuri, [])
+        get_image_mock.assert_called_with(
+            image_builder_mock, self.runtime, self.packagetype, self.imageuri, [], "arm64"
+        )
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
         get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options)
@@ -195,6 +201,7 @@ class TestLambdaContainer_init(TestCase):
         self.packagetype = IMAGE
         self.imageuri = "mylambda_image:v1"
         self.runtime = None
+        self.architecture = "x86_64"
 
         image = IMAGE
         ports = {"a": "b"}
@@ -228,6 +235,7 @@ class TestLambdaContainer_init(TestCase):
             code_dir=self.code_dir,
             layers=[],
             lambda_image=image_builder_mock,
+            architecture=self.architecture,
             env_vars=self.env_var,
             memory_mb=self.memory_mb,
             debug_options=self.debug_options,
@@ -245,7 +253,7 @@ class TestLambdaContainer_init(TestCase):
         self.assertEqual(expected_env_vars, container._env_vars)
         self.assertEqual(self.memory_mb, container._memory_limit_mb)
 
-        get_image_mock.assert_called_with(image_builder_mock, self.runtime, IMAGE, self.imageuri, [])
+        get_image_mock.assert_called_with(image_builder_mock, self.runtime, IMAGE, self.imageuri, [], "x86_64")
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
         get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options)
@@ -300,6 +308,7 @@ class TestLambdaContainer_init(TestCase):
             code_dir=self.code_dir,
             layers=[],
             lambda_image=image_builder_mock,
+            architecture="x86_64",
             env_vars=self.env_var,
             memory_mb=self.memory_mb,
             debug_options=self.debug_options,
@@ -318,7 +327,7 @@ class TestLambdaContainer_init(TestCase):
         )
         self.assertEqual(self.memory_mb, container._memory_limit_mb)
 
-        get_image_mock.assert_called_with(image_builder_mock, self.runtime, IMAGE, self.imageuri, [])
+        get_image_mock.assert_called_with(image_builder_mock, self.runtime, IMAGE, self.imageuri, [], "x86_64")
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
         get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options)
@@ -379,6 +388,7 @@ class TestLambdaContainer_init(TestCase):
             env_vars=self.env_var,
             memory_mb=self.memory_mb,
             debug_options=self.debug_options,
+            architecture="x86_64",
         )
 
         self.assertEqual(image, container._image)
@@ -386,13 +396,17 @@ class TestLambdaContainer_init(TestCase):
         self.assertEqual(self.image_config["WorkingDirectory"], container._working_dir)
         self.assertEqual(self.code_dir, container._host_dir)
         self.assertEqual(ports, container._exposed_ports)
-        self.assertEqual(LambdaContainer._DEFAULT_ENTRYPOINT + self.image_config["EntryPoint"], container._entrypoint)
+        self.assertEqual(
+            LambdaContainer._DEFAULT_ENTRYPOINT + self.image_config["EntryPoint"], container._entrypoint, "x86_64"
+        )
         self.assertEqual(
             {**expected_env_vars, **{"AWS_LAMBDA_FUNCTION_HANDLER": "my-imageconfig-command"}}, container._env_vars
         )
         self.assertEqual(self.memory_mb, container._memory_limit_mb)
 
-        get_image_mock.assert_called_with(image_builder_mock, self.runtime, self.packagetype, self.imageuri, [])
+        get_image_mock.assert_called_with(
+            image_builder_mock, self.runtime, self.packagetype, self.imageuri, [], "x86_64"
+        )
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
         get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options)
@@ -413,6 +427,7 @@ class TestLambdaContainer_init(TestCase):
                 code_dir=self.code_dir,
                 layers=[],
                 lambda_image=image_builder_mock,
+                architecture="x86_64",
             )
 
         self.assertEqual(str(context.exception), "Unsupported Lambda runtime foo")
@@ -463,16 +478,12 @@ class TestLambdaContainer_get_image(TestCase):
 
         self.assertEqual(
             LambdaContainer._get_image(
-                lambda_image=image_builder,
-                runtime="foo",
-                packagetype=ZIP,
-                image=None,
-                layers=[],
+                lambda_image=image_builder, runtime="foo", packagetype=ZIP, image=None, layers=[], architecture="arm64"
             ),
             expected,
         )
 
-        image_builder.build.assert_called_with("foo", ZIP, None, [])
+        image_builder.build.assert_called_with("foo", ZIP, None, [], "arm64")
 
 
 class TestLambdaContainer_get_debug_settings(TestCase):

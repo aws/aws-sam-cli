@@ -14,6 +14,8 @@ import socket
 import docker
 import requests
 
+from samcli.lib.utils.architecture import ARM64, validate_architecture
+
 from samcli.local.docker.exceptions import NoFreePortsError
 
 LOG = logging.getLogger(__name__)
@@ -94,3 +96,61 @@ def is_docker_reachable(docker_client):
     except errors:
         LOG.debug("Docker is not reachable", exc_info=True)
         return False
+
+
+def get_rapid_name(architecture: str) -> str:
+    """
+    Return the name of the rapid binary to use for an architecture
+
+    Parameters
+    ----------
+    architecture : str
+        Architecture
+
+    Returns
+    -------
+    str
+        "aws-lambda-rie-" + architecture
+    """
+    validate_architecture(architecture)
+
+    return "aws-lambda-rie-" + architecture
+
+
+def get_image_arch(architecture: str) -> str:
+    """
+    Returns the docker image architecture value corresponding to the
+    Lambda architecture value
+
+    Parameters
+    ----------
+    architecture : str
+        Lambda architecture
+
+    Returns
+    -------
+    str
+        Docker image architecture
+    """
+    validate_architecture(architecture)
+
+    return "arm64" if architecture == ARM64 else "amd64"
+
+
+def get_docker_platform(architecture: str) -> str:
+    """
+    Returns the platform to pass to the docker client for a given architecture
+
+    Parameters
+    ----------
+    architecture : str
+        Architecture
+
+    Returns
+    -------
+    str
+        linux/arm64 for arm64, linux/amd64 otherwise
+    """
+    validate_architecture(architecture)
+
+    return f"linux/{get_image_arch(architecture)}"
