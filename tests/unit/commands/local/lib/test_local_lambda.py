@@ -514,7 +514,8 @@ class TestLocalLambda_invoke(TestCase):
             debug_context=self.debug_context,
         )
 
-    def test_must_work(self):
+    @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
+    def test_must_work(self, patched_validate_architecture_runtime):
         name = "name"
         event = "event"
         stdout = "stdout"
@@ -524,7 +525,6 @@ class TestLocalLambda_invoke(TestCase):
 
         self.function_provider_mock.get_all.return_value = [function]
         self.local_lambda.get_invoke_config = Mock()
-        self.local_lambda.validate_architecture_runtime = Mock()
         self.local_lambda.get_invoke_config.return_value = invoke_config
 
         self.local_lambda.invoke(name, event, stdout, stderr)
@@ -539,7 +539,8 @@ class TestLocalLambda_invoke(TestCase):
             container_host_interface=None,
         )
 
-    def test_must_work_packagetype_ZIP(self):
+    @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
+    def test_must_work_packagetype_ZIP(self, patched_validate_architecture_runtime):
         name = "name"
         event = "event"
         stdout = "stdout"
@@ -549,7 +550,6 @@ class TestLocalLambda_invoke(TestCase):
 
         self.function_provider_mock.get.return_value = function
         self.local_lambda.get_invoke_config = Mock()
-        self.local_lambda.validate_architecture_runtime = Mock()
         self.local_lambda.get_invoke_config.return_value = invoke_config
 
         self.local_lambda.invoke(name, event, stdout, stderr)
@@ -564,7 +564,8 @@ class TestLocalLambda_invoke(TestCase):
             container_host_interface=None,
         )
 
-    def test_must_raise_if_no_privilege(self):
+    @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
+    def test_must_raise_if_no_privilege(self, patched_validate_architecture_runtime):
         function = Mock()
         function.name = "name"
         function.functionname = "FunctionLogicalId"
@@ -572,7 +573,6 @@ class TestLocalLambda_invoke(TestCase):
 
         self.function_provider_mock.get_all.return_value = [function]
         self.local_lambda.get_invoke_config = Mock()
-        self.local_lambda.validate_architecture_runtime = Mock()
         self.local_lambda.get_invoke_config.return_value = invoke_config
 
         os_error = OSError()
@@ -582,7 +582,8 @@ class TestLocalLambda_invoke(TestCase):
         with self.assertRaises(NoPrivilegeException):
             self.local_lambda.invoke("name", "event")
 
-    def test_must_raise_os_error(self):
+    @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
+    def test_must_raise_os_error(self, patched_validate_architecture_runtime):
         function = Mock()
         function.name = "name"
         function.functionname = "FunctionLogicalId"
@@ -590,7 +591,6 @@ class TestLocalLambda_invoke(TestCase):
 
         self.function_provider_mock.get_all.return_value = [function]
         self.local_lambda.get_invoke_config = Mock()
-        self.local_lambda.validate_architecture_runtime = Mock()
         self.local_lambda.get_invoke_config.return_value = invoke_config
 
         os_error = OSError()
@@ -610,7 +610,8 @@ class TestLocalLambda_invoke(TestCase):
         with self.assertRaises(FunctionNotFound):
             self.local_lambda.invoke("name", "event")
 
-    def test_must_not_raise_if_invoked_container_has_no_response(self):
+    @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
+    def test_must_not_raise_if_invoked_container_has_no_response(self, patched_validate_architecture_runtime):
         function = Mock()
         function.name = "name"
         function.functionname = "FunctionLogicalId"
@@ -618,13 +619,13 @@ class TestLocalLambda_invoke(TestCase):
 
         self.function_provider_mock.get.return_value = function
         self.local_lambda.get_invoke_config = Mock()
-        self.local_lambda.validate_architecture_runtime = Mock()
         self.local_lambda.get_invoke_config.return_value = invoke_config
         self.runtime_mock.invoke = Mock(side_effect=ContainerResponseException)
         # No exception raised back
         self.local_lambda.invoke("name", "event")
 
-    def test_works_if_imageuri_and_Image_packagetype(self):
+    @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
+    def test_works_if_imageuri_and_Image_packagetype(self, patched_validate_architecture_runtime):
         name = "name"
         event = "event"
         stdout = "stdout"
@@ -634,7 +635,6 @@ class TestLocalLambda_invoke(TestCase):
 
         self.function_provider_mock.get.return_value = function
         self.local_lambda.get_invoke_config = Mock()
-        self.local_lambda.validate_architecture_runtime = Mock()
         self.local_lambda.get_invoke_config.return_value = invoke_config
         self.local_lambda.invoke(name, event, stdout, stderr)
         self.runtime_mock.invoke.assert_called_with(
@@ -659,44 +659,6 @@ class TestLocalLambda_invoke(TestCase):
         with self.assertRaises(InvalidIntermediateImageError):
             self.local_lambda.invoke(name, event, stdout, stderr)
 
-    @parameterized.expand(
-        [
-            ("nodejs10.x", X86_64, ZIP),
-            ("java8.al2", ARM64, ZIP),
-            ("dotnetcore3.1", ARM64, ZIP),
-            (None, X86_64, IMAGE),
-            (None, ARM64, IMAGE),
-            (None, X86_64, IMAGE),
-        ]
-    )
-    def test_must_pass_for_support_runtime_architecture(self, runtime, arch, packagetype):
-        function = Mock(
-            functionname="name", handler="app.handler", runtime=runtime, packagetype=packagetype, architectures=[arch]
-        )
-        self.local_lambda.validate_architecture_runtime(function)
-
-    @parameterized.expand(
-        [
-            ("nodejs10.x", ARM64),
-            ("python2.7", ARM64),
-            ("python3.6", ARM64),
-            ("python3.7", ARM64),
-            ("ruby2.5", ARM64),
-            ("java8", ARM64),
-            ("go1.x", ARM64),
-            ("provided", ARM64),
-        ]
-    )
-    def test_must_raise_for_unsupported_runtime_architecture(self, runtime, arch):
-        function = Mock(
-            functionname="name", handler="app.handler", runtime=runtime, architectures=[arch], packagetype=ZIP
-        )
-
-        with self.assertRaises(UnsupportedRuntimeArchitectureError) as ex:
-            self.local_lambda.validate_architecture_runtime(function)
-
-        self.assertEqual(str(ex.exception), f"Runtime {runtime} is not supported on '{arch}' architecture")
-
 
 class TestLocalLambda_invoke_with_container_host_option(TestCase):
     def setUp(self):
@@ -720,7 +682,8 @@ class TestLocalLambda_invoke_with_container_host_option(TestCase):
             container_host_interface=self.container_host_interface,
         )
 
-    def test_must_work(self):
+    @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
+    def test_must_work(self, patched_validate_architecture_runtime):
         name = "name"
         event = "event"
         stdout = "stdout"
@@ -730,7 +693,6 @@ class TestLocalLambda_invoke_with_container_host_option(TestCase):
 
         self.function_provider_mock.get_all.return_value = [function]
         self.local_lambda.get_invoke_config = Mock()
-        self.local_lambda.validate_architecture_runtime = Mock()
         self.local_lambda.get_invoke_config.return_value = invoke_config
 
         self.local_lambda.invoke(name, event, stdout, stderr)
