@@ -51,7 +51,7 @@ def dir_checksum(
     directory : A directory with an absolute path
     followlinks: Follow symbolic links through the given directory
     ignore_list: The list of file/directory names to ignore in checksum
-    hash_generator: The hashing method used to generate checksum
+    hash_generator: The hashing method (hashlib _Hash object) that generates checksum. Defaults to hashlib.md5.
 
     Returns
     -------
