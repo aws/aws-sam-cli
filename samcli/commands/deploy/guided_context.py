@@ -41,6 +41,7 @@ LOG = logging.getLogger(__name__)
 
 
 class GuidedContext:
+    # pylint: disable=too-many-statements
     def __init__(
         self,
         template_file,
