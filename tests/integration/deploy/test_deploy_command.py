@@ -5,7 +5,7 @@ import tempfile
 import time
 import uuid
 from pathlib import Path
-from unittest import skipIf
+from unittest import skipIf, skip
 
 import boto3
 from botocore.exceptions import ClientError
@@ -928,6 +928,245 @@ to create a managed default bucket, or run sam deploy --guided",
         self.assertEqual(deploy_process_execute.process.returncode, 0)
         # verify child stack ChildStackX's creation
         self.assertRegex(process_stdout, r"CREATE_COMPLETE.+ChildStackX")
+
+    @parameterized.expand(["aws-dynamodb-error.yaml"])
+    def test_deploy_create_failed_rollback(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
+            image_repository=self.ecr_repo_name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="ShardCountParameter=1",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 1)
+
+        stderr = deploy_process_execute.stderr.strip()
+        self.assertIn(
+            bytes(
+                f"Error: Failed to create/update the stack: {stack_name}, Waiter StackCreateComplete failed: "
+                f'Waiter encountered a terminal failure state: For expression "Stacks[].StackStatus" '
+                f'we matched expected path: "ROLLBACK_COMPLETE" at least once',
+                encoding="utf-8",
+            ),
+            stderr,
+        )
+
+    @skip("skip until cloudformation bug is fixed")
+    @parameterized.expand(["aws-dynamodb-error.yaml"])
+    def test_deploy_create_failed_disable_rollback(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
+            image_repository=self.ecr_repo_name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="ShardCountParameter=1",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+            disable_rollback=True,
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 1)
+
+        stderr = deploy_process_execute.stderr.strip()
+        self.assertIn(
+            bytes(
+                f"Error: Failed to create/update the stack: {stack_name}, Waiter StackCreateComplete failed: "
+                f'Waiter encountered a terminal failure state: For expression "Stacks[].StackStatus" '
+                f'we matched expected path: "CREATE_FAILED" at least once',
+                encoding="utf-8",
+            ),
+            stderr,
+        )
+
+        # Fix template and deploy again
+        template_path = self.test_data_path.joinpath("aws-dynamodb-error-fixed.yaml")
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
+            image_repository=self.ecr_repo_name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="ShardCountParameter=1",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+            disable_rollback=True,
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+    @parameterized.expand(["aws-serverless-function.yaml"])
+    def test_deploy_update_failed_rollback(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        # First deploy a simple template that should work
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
+            image_repository=self.ecr_repo_name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+        # Now update stack with failing template
+        template_path = self.test_data_path.joinpath("aws-dynamodb-error.yaml")
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
+            image_repository=self.ecr_repo_name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="ShardCountParameter=1",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 1)
+
+        stderr = deploy_process_execute.stderr.strip()
+        self.assertIn(
+            bytes(
+                f"Error: Failed to create/update the stack: {stack_name}, Waiter StackUpdateComplete failed: "
+                f'Waiter encountered a terminal failure state: For expression "Stacks[].StackStatus" '
+                f'we matched expected path: "UPDATE_ROLLBACK_COMPLETE" at least once',
+                encoding="utf-8",
+            ),
+            stderr,
+        )
+
+    @parameterized.expand(["aws-serverless-function.yaml"])
+    def test_deploy_update_failed_disable_rollback(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        # First deploy a simple template that should work
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
+            image_repository=self.ecr_repo_name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+        # Now update stack with failing template
+        template_path = self.test_data_path.joinpath("aws-dynamodb-error.yaml")
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
+            image_repository=self.ecr_repo_name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="ShardCountParameter=1",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+            disable_rollback=True,
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 1)
+
+        stderr = deploy_process_execute.stderr.strip()
+        self.assertIn(
+            bytes(
+                f"Error: Failed to create/update the stack: {stack_name}, Waiter StackUpdateComplete failed: "
+                f'Waiter encountered a terminal failure state: For expression "Stacks[].StackStatus" '
+                f'we matched expected path: "UPDATE_FAILED" at least once',
+                encoding="utf-8",
+            ),
+            stderr,
+        )
+
+        # Fix template and deploy again
+        template_path = self.test_data_path.joinpath("aws-dynamodb-error-fixed.yaml")
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
+            image_repository=self.ecr_repo_name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="ShardCountParameter=1",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+            disable_rollback=True,
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
 
     def _method_to_stack_name(self, method_name):
         """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""

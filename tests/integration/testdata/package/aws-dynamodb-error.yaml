@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: A sample template to fix & remediate
+Parameters:
+  ShardCountParameter:
+    Type: Number
+    Description: The number of shards for the Kinesis stream
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+  MyQueue:
+    Type: AWS::SQS::Queue
+  MyStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      ShardCount: !Ref ShardCountParameter
+  MyTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: "ArtistId"
+          AttributeType: "S"
+        - AttributeName: "Concert"
+          AttributeType: "S"
+        - AttributeName: "TicketSales"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "ArtistId"
+          KeyType: "HASH"
+        - AttributeName: "Concert"
+          KeyType: "RANGE"
+      KinesisStreamSpecification:
+        StreamArn: !GetAtt MyStream.Arn
+Outputs:
+  BucketName:
+    Value: !Ref MyBucket
+    Description: The name of my S3 bucket
+  QueueName:
+    Value: !GetAtt MyQueue.QueueName
+    Description: The name of my SQS queue
+  StreamName:
+    Value: !Ref MyStream
+    Description: The name of my Kinesis stream
+  TableName:
+    Value: !Ref MyTable
+    Description: The name of my DynamoDB table
