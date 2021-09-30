@@ -148,15 +148,15 @@ class GuidedContext:
             f"\t{self.start_bold}Allow SAM CLI IAM role creation{self.end_bold}", default=True
         )
 
-        click.secho("\t#Preserves the state of previously provisioned resources when an operation fails")
-        disable_rollback = confirm(f"\t{self.start_bold}Disable rollback{self.end_bold}", default=self.disable_rollback)
-
         if not capabilities_confirm:
             input_capabilities = prompt(
                 f"\t{self.start_bold}Capabilities{self.end_bold}",
                 default=list(default_capabilities),
                 type=FuncParamType(func=_space_separated_list_func_type),
             )
+
+        click.secho("\t#Preserves the state of previously provisioned resources when an operation fails")
+        disable_rollback = confirm(f"\t{self.start_bold}Disable rollback{self.end_bold}", default=self.disable_rollback)
 
         self.prompt_authorization(stacks)
         self.prompt_code_signing_settings(stacks)
