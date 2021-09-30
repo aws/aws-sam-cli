@@ -18,6 +18,7 @@ from tests.testing_utils import (
     CI_OVERRIDE,
     run_command,
     SKIP_DOCKER_TESTS,
+    SKIP_DOCKER_BUILD,
     SKIP_DOCKER_MESSAGE,
 )
 from .build_integ_base import (
@@ -96,12 +97,11 @@ class TestBuildCommand_PythonFunctions(BuildIntegPythonBase):
             # numpy 1.20.3 (in PythonPEP600/requirements.txt) only support python 3.7+
             ("python3.7", "PythonPEP600", False),
             ("python3.8", "PythonPEP600", False),
-            # TODO: Uncomment after new build images release
-            # ("python2.7", "Python", "use_container"),
-            # ("python3.6", "Python", "use_container"),
-            # ("python3.7", "Python", "use_container"),
-            # ("python3.8", "Python", "use_container"),
-            # ("python3.9", "Python", "use_container"),
+            ("python2.7", "Python", "use_container"),
+            ("python3.6", "Python", "use_container"),
+            ("python3.7", "Python", "use_container"),
+            ("python3.8", "Python", "use_container"),
+            ("python3.9", "Python", "use_container"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -125,15 +125,13 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
             # numpy 1.20.3 (in PythonPEP600/requirements.txt) only support python 3.7+
             ("python3.7", "PythonPEP600", False, "x86_64"),
             ("python3.8", "PythonPEP600", False, "x86_64"),
-            # TODO: Uncomment after new build images release
-            # ("python2.7", "Python", "use_container", "x86_64"),
-            # ("python3.6", "Python", "use_container", "x86_64"),
-            # ("python3.7", "Python", "use_container", "x86_64"),
-            # ("python3.8", "Python", "use_container", "x86_64"),
+            ("python2.7", "Python", "use_container", "x86_64"),
+            ("python3.6", "Python", "use_container", "x86_64"),
+            ("python3.7", "Python", "use_container", "x86_64"),
+            ("python3.8", "Python", "use_container", "x86_64"),
             ("python3.8", "Python", False, "arm64"),
             ("python3.8", "PythonPEP600", False, "arm64"),
-            # TODO: Uncomment after new build images release
-            # ("python3.8", "Python", "use_container", "arm64"),
+            ("python3.8", "Python", "use_container", "arm64"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -169,15 +167,14 @@ class TestBuildCommand_NodeFunctions(BuildIntegNodeBase):
             ("nodejs10.x", False),
             ("nodejs12.x", False),
             ("nodejs14.x", False),
-            # TODO: Uncomment after new build images release
-            # ("nodejs10.x", "use_container"),
-            # ("nodejs12.x", "use_container"),
-            # ("nodejs14.x", "use_container"),
+            ("nodejs10.x", "use_container"),
+            ("nodejs12.x", "use_container"),
+            ("nodejs14.x", "use_container"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
     def test_building_default_package_json(self, runtime, use_container):
-        if use_container and SKIP_DOCKER_TESTS:
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
         self._test_with_default_package_json(runtime, use_container, self.test_data_path)
 
@@ -190,20 +187,18 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
             ("nodejs10.x", False, "x86_64"),
             ("nodejs12.x", False, "x86_64"),
             ("nodejs14.x", False, "x86_64"),
-            # TODO: Uncomment after new build images release
-            # ("nodejs10.x", "use_container", "x86_64"),
-            # ("nodejs12.x", "use_container", "x86_64"),
-            # ("nodejs14.x", "use_container", "x86_64"),
+            ("nodejs10.x", "use_container", "x86_64"),
+            ("nodejs12.x", "use_container", "x86_64"),
+            ("nodejs14.x", "use_container", "x86_64"),
             ("nodejs12.x", False, "arm64"),
             ("nodejs14.x", False, "arm64"),
-            # TODO: Uncomment after new build images release
-            # ("nodejs12.x", "use_container", "arm64"),
-            # ("nodejs14.x", "use_container", "arm64"),
+            ("nodejs12.x", "use_container", "arm64"),
+            ("nodejs14.x", "use_container", "arm64"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
     def test_building_default_package_json(self, runtime, use_container, architecture):
-        if use_container and SKIP_DOCKER_TESTS:
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
         self._test_with_default_package_json(runtime, use_container, self.test_data_path, architecture)
 
@@ -215,7 +210,7 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
 class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
     @parameterized.expand(["ruby2.5", "ruby2.7"])
     @pytest.mark.flaky(reruns=3)
-    @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_building_ruby_in_container(self, runtime):
         self._test_with_default_gemfile(runtime, "use_container", "Ruby", self.test_data_path)
 
@@ -232,12 +227,11 @@ class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
 class TestBuildCommand_RubyFunctions_With_Architecture(BuildIntegRubyBase):
     template = "template_with_architecture.yaml"
 
-    # TODO: Uncomment after new build images release
-    # @parameterized.expand(["ruby2.5", "ruby2.7", ("ruby2.7", "arm64")])
-    # @pytest.mark.flaky(reruns=3)
-    # @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
-    # def test_building_ruby_in_container_with_specified_architecture(self, runtime, architecture="x86_64"):
-    #     self._test_with_default_gemfile(runtime, "use_container", "Ruby", self.test_data_path, architecture)
+    @parameterized.expand(["ruby2.5", "ruby2.7", ("ruby2.7", "arm64")])
+    @pytest.mark.flaky(reruns=3)
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+    def test_building_ruby_in_container_with_specified_architecture(self, runtime, architecture="x86_64"):
+        self._test_with_default_gemfile(runtime, "use_container", "Ruby", self.test_data_path, architecture)
 
     @parameterized.expand(["ruby2.5", "ruby2.7", ("ruby2.7", "arm64")])
     @pytest.mark.flaky(reruns=3)
@@ -301,37 +295,36 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
     USING_GRADLE_KOTLIN_PATH = os.path.join("Java", "gradle-kotlin")
     USING_MAVEN_PATH = os.path.join("Java", "maven")
 
-    # TODO: Uncomment after new build images release
-    # @parameterized.expand(
-    #     [
-    #         ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-    #         ("java8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-    #         ("java8", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-    #         ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
-    #         ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-    #         ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-    #         ("java8.al2", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-    #         (
-    #             "java8.al2",
-    #             USING_GRADLE_KOTLIN_PATH,
-    #             EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-    #             EXPECTED_GRADLE_DEPENDENCIES,
-    #         ),
-    #         ("java8.al2", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
-    #         ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-    #         ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-    #         ("java11", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-    #         ("java11", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-    #         ("java11", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
-    #         ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-    #     ]
-    # )
-    # @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
-    # @pytest.mark.flaky(reruns=3)
-    # def test_building_java_in_container(self, runtime, code_path, expected_files, expected_dependencies):
-    #     self._test_with_building_java(
-    #         runtime, code_path, expected_files, expected_dependencies, "use_container", self.test_data_path
-    #     )
+    @parameterized.expand(
+        [
+            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java8", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
+            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java8.al2", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            (
+                "java8.al2",
+                USING_GRADLE_KOTLIN_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            ("java8.al2", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
+            ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java11", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java11", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java11", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
+            ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+        ]
+    )
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+    @pytest.mark.flaky(reruns=3)
+    def test_building_java_in_container(self, runtime, code_path, expected_files, expected_dependencies):
+        self._test_with_building_java(
+            runtime, code_path, expected_files, expected_dependencies, "use_container", self.test_data_path
+        )
 
     @parameterized.expand(
         [
@@ -394,75 +387,74 @@ class TestBuildCommand_Java_With_Specified_Architecture(BuildIntegJavaBase):
     USING_GRADLE_KOTLIN_PATH = os.path.join("Java", "gradle-kotlin")
     USING_MAVEN_PATH = os.path.join("Java", "maven")
 
-    # TODO: Uncomment after new build images release
-    # @parameterized.expand(
-    #     [
-    #         (
-    #             "java8.al2",
-    #             USING_GRADLE_PATH,
-    #             EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-    #             EXPECTED_GRADLE_DEPENDENCIES,
-    #             "arm64",
-    #         ),
-    #         (
-    #             "java8.al2",
-    #             USING_GRADLEW_PATH,
-    #             EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-    #             EXPECTED_GRADLE_DEPENDENCIES,
-    #             "arm64",
-    #         ),
-    #         (
-    #             "java8.al2",
-    #             USING_GRADLE_KOTLIN_PATH,
-    #             EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-    #             EXPECTED_GRADLE_DEPENDENCIES,
-    #             "arm64",
-    #         ),
-    #         (
-    #             "java8.al2",
-    #             USING_MAVEN_PATH,
-    #             EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
-    #             EXPECTED_MAVEN_DEPENDENCIES,
-    #             "arm64",
-    #         ),
-    #         (
-    #             "java11",
-    #             USING_GRADLE_PATH,
-    #             EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-    #             EXPECTED_GRADLE_DEPENDENCIES,
-    #             "arm64",
-    #         ),
-    #         (
-    #             "java11",
-    #             USING_GRADLEW_PATH,
-    #             EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-    #             EXPECTED_GRADLE_DEPENDENCIES,
-    #             "arm64",
-    #         ),
-    #         (
-    #             "java11",
-    #             USING_GRADLE_KOTLIN_PATH,
-    #             EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-    #             EXPECTED_GRADLE_DEPENDENCIES,
-    #             "arm64",
-    #         ),
-    #         ("java11", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES, "arm64"),
-    #     ]
-    # )
-    # @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
-    # @pytest.mark.flaky(reruns=3)
-    # def test_building_java_in_container_with_arm64_architecture(
-    #     self, runtime, code_path, expected_files, expected_dependencies, architecture
-    # ):
-    #     self._test_with_building_java(
-    #         runtime,
-    #         code_path,
-    #         expected_files,
-    #         expected_dependencies,
-    #         "use_container",
-    #         self.test_data_path,
-    #         architecture,
-    #     )
+    @parameterized.expand(
+        [
+            (
+                "java8.al2",
+                USING_GRADLE_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                EXPECTED_GRADLE_DEPENDENCIES,
+                "arm64",
+            ),
+            (
+                "java8.al2",
+                USING_GRADLEW_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                EXPECTED_GRADLE_DEPENDENCIES,
+                "arm64",
+            ),
+            (
+                "java8.al2",
+                USING_GRADLE_KOTLIN_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                EXPECTED_GRADLE_DEPENDENCIES,
+                "arm64",
+            ),
+            (
+                "java8.al2",
+                USING_MAVEN_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                EXPECTED_MAVEN_DEPENDENCIES,
+                "arm64",
+            ),
+            (
+                "java11",
+                USING_GRADLE_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                EXPECTED_GRADLE_DEPENDENCIES,
+                "arm64",
+            ),
+            (
+                "java11",
+                USING_GRADLEW_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                EXPECTED_GRADLE_DEPENDENCIES,
+                "arm64",
+            ),
+            (
+                "java11",
+                USING_GRADLE_KOTLIN_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                EXPECTED_GRADLE_DEPENDENCIES,
+                "arm64",
+            ),
+            ("java11", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES, "arm64"),
+        ]
+    )
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+    @pytest.mark.flaky(reruns=3)
+    def test_building_java_in_container_with_arm64_architecture(
+        self, runtime, code_path, expected_files, expected_dependencies, architecture
+    ):
+        self._test_with_building_java(
+            runtime,
+            code_path,
+            expected_files,
+            expected_dependencies,
+            "use_container",
+            self.test_data_path,
+            architecture,
+        )
 
     @parameterized.expand(
         [
@@ -629,7 +621,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         self.verify_docker_container_cleanedup(runtime)
 
     @parameterized.expand([("dotnetcore2.1", "Dotnetcore2.1"), ("dotnetcore3.1", "Dotnetcore3.1")])
-    @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
     def test_must_fail_with_container(self, runtime, code_uri):
         use_container = True
@@ -673,7 +665,7 @@ class TestBuildCommand_Go_Modules(BuildIntegGoBase):
     @parameterized.expand([("go1.x", "Go", None, False), ("go1.x", "Go", "debug", True)])
     @pytest.mark.flaky(reruns=3)
     def test_building_go(self, runtime, code_uri, mode, use_container):
-        if use_container and SKIP_DOCKER_TESTS:
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         self._test_with_go(runtime, code_uri, mode, self.test_data_path, use_container=use_container)
@@ -740,16 +732,14 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
     @parameterized.expand(
         [
             ("python3.7", False, "FunctionOne"),
-            # TODO: Uncomment after new build images release
-            # ("python3.7", "use_container", "FunctionOne"),
+            ("python3.7", "use_container", "FunctionOne"),
             ("python3.7", False, "FunctionTwo"),
-            # TODO: Uncomment after new build images release
-            # ("python3.7", "use_container", "FunctionTwo"),
+            ("python3.7", "use_container", "FunctionTwo"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
     def test_build_single_function(self, runtime, use_container, function_identifier):
-        if use_container and SKIP_DOCKER_TESTS:
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         overrides = {"Runtime": runtime, "CodeUri": "Python", "Handler": "main.handler"}
@@ -803,15 +793,9 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
     EXPECTED_FILES_PROJECT_MANIFEST = {"__init__.py", "main.py", "requirements.txt"}
     EXPECTED_LAYERS_FILES_PROJECT_MANIFEST = {"__init__.py", "layer.py", "numpy", "requirements.txt"}
 
-    @parameterized.expand(
-        [
-            ("python3.7", False, "LayerOne"),
-            # TODO: Uncomment after new build images release
-            # ("python3.7", "use_container", "LayerOne")
-        ]
-    )
+    @parameterized.expand([("python3.7", False, "LayerOne"), ("python3.7", "use_container", "LayerOne")])
     def test_build_single_layer(self, runtime, use_container, layer_identifier):
-        if use_container and SKIP_DOCKER_TESTS:
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         overrides = {"LayerBuildMethod": runtime, "LayerContentUri": "PyLayer"}
@@ -833,14 +817,10 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         )
 
     @parameterized.expand(
-        [
-            ("makefile", False, "LayerWithMakefile"),
-            # TODO: Uncomment after new build images release
-            # ("makefile", "use_container", "LayerWithMakefile")
-        ]
+        [("makefile", False, "LayerWithMakefile"), ("makefile", "use_container", "LayerWithMakefile")]
     )
     def test_build_layer_with_makefile(self, build_method, use_container, layer_identifier):
-        if use_container and SKIP_DOCKER_TESTS:
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         overrides = {"LayerBuildMethod": build_method, "LayerMakeContentUri": "PyLayerMake"}
@@ -861,15 +841,9 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             "python",
         )
 
-    @parameterized.expand(
-        [
-            ("python3.7", False, "LayerTwo"),
-            # TODO: Uncomment after new build images release
-            # ("python3.7", "use_container", "LayerTwo")
-        ]
-    )
+    @parameterized.expand([("python3.7", False, "LayerTwo"), ("python3.7", "use_container", "LayerTwo")])
     def test_build_fails_with_missing_metadata(self, runtime, use_container, layer_identifier):
-        if use_container and SKIP_DOCKER_TESTS:
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         overrides = {"LayerBuildMethod": runtime, "LayerContentUri": "PyLayer"}
@@ -883,15 +857,9 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
 
         self.assertFalse(self.default_build_dir.joinpath(layer_identifier).exists())
 
-    @parameterized.expand(
-        [
-            ("python3.7", False),
-            # TODO: Uncomment after new build images release
-            # ("python3.7", "use_container")
-        ]
-    )
+    @parameterized.expand([("python3.7", False), ("python3.7", "use_container")])
     def test_build_function_and_layer(self, runtime, use_container):
-        if use_container and SKIP_DOCKER_TESTS:
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         overrides = {
@@ -925,15 +893,9 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             self.verify_docker_container_cleanedup(runtime)
             self.verify_pulling_only_latest_tag(runtime)
 
-    @parameterized.expand(
-        [
-            ("python3.7", False),
-            # TODO: Uncomment after new build images release
-            # ("python3.7", "use_container")
-        ]
-    )
+    @parameterized.expand([("python3.7", False), ("python3.7", "use_container")])
     def test_build_function_with_dependent_layer(self, runtime, use_container):
-        if use_container and SKIP_DOCKER_TESTS:
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         overrides = {
@@ -1004,11 +966,9 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegProvidedBase):
     @parameterized.expand(
         [
             ("provided", False, None),
-            # TODO: Uncomment after new build images release
-            # ("provided", "use_container", "Makefile-container"),
+            ("provided", "use_container", "Makefile-container"),
             ("provided.al2", False, None),
-            # TODO: Uncomment after new build images release
-            # ("provided.al2", "use_container", "Makefile-container"),
+            ("provided.al2", "use_container", "Makefile-container"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -1029,17 +989,13 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture(BuildIntegP
     @parameterized.expand(
         [
             ("provided", False, None, "x86_64"),
-            # TODO: Uncomment after new build images release
-            # ("provided", "use_container", "Makefile-container", "x86_64"),
+            ("provided", "use_container", "Makefile-container", "x86_64"),
             ("provided.al2", False, None, "x86_64"),
-            # TODO: Uncomment after new build images release
-            # ("provided.al2", "use_container", "Makefile-container", "x86_64"),
+            ("provided.al2", "use_container", "Makefile-container", "x86_64"),
             ("provided", False, None, "arm64"),
-            # TODO: Uncomment after new build images release
-            # ("provided", "use_container", "Makefile-container", "arm64"),
+            ("provided", "use_container", "Makefile-container", "arm64"),
             ("provided.al2", False, None, "arm64"),
-            # TODO: Uncomment after new build images release
-            # ("provided.al2", "use_container", "Makefile-container", "arm64"),
+            ("provided.al2", "use_container", "Makefile-container", "arm64"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -1059,16 +1015,10 @@ class TestBuildWithBuildMethod(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID = "Function"
 
-    @parameterized.expand(
-        [
-            (False, None, "makefile"),
-            # TODO: Uncomment after new build images release
-            # ("use_container", "Makefile-container", "makefile")
-        ]
-    )
+    @parameterized.expand([(False, None, "makefile"), ("use_container", "Makefile-container", "makefile")])
     @pytest.mark.flaky(reruns=3)
     def test_with_makefile_builder_specified_python_runtime(self, use_container, manifest, build_method):
-        if use_container and SKIP_DOCKER_TESTS:
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         # runtime is chosen based off current python version.
@@ -1102,16 +1052,10 @@ class TestBuildWithBuildMethod(BuildIntegBase):
             self.verify_docker_container_cleanedup(runtime)
             self.verify_pulling_only_latest_tag(runtime)
 
-    @parameterized.expand(
-        [
-            (False,),
-            # TODO: Uncomment after new build images release
-            # ("use_container")
-        ]
-    )
+    @parameterized.expand([(False,), ("use_container")])
     @pytest.mark.flaky(reruns=3)
     def test_with_native_builder_specified_python_runtime(self, use_container):
-        if use_container and SKIP_DOCKER_TESTS:
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         # runtime is chosen based off current python version.
@@ -1145,16 +1089,10 @@ class TestBuildWithBuildMethod(BuildIntegBase):
             self.verify_docker_container_cleanedup(runtime)
             self.verify_pulling_only_latest_tag(runtime)
 
-    @parameterized.expand(
-        [
-            (False,),
-            # TODO: Uncomment after new build images release
-            # ("use_container")
-        ]
-    )
+    @parameterized.expand([(False,), ("use_container")])
     @pytest.mark.flaky(reruns=3)
     def test_with_wrong_builder_specified_python_runtime(self, use_container):
-        if use_container and SKIP_DOCKER_TESTS:
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         # runtime is chosen based off current python version.
@@ -1217,16 +1155,15 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
             # container
-            # TODO: Uncomment after new build images release
-            # (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            # (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
-            # (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
-            # (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
+            (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
+            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
+            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
     def test_dedup_build(self, use_container, code_uri, function1_handler, function2_handler, runtime):
-        if use_container and SKIP_DOCKER_TESTS:
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         """
@@ -1262,7 +1199,7 @@ class TestBuildWithDedupImageBuilds(DedupBuildIntegBase):
     @parameterized.expand([(True,), (False,)])
     @pytest.mark.flaky(reruns=3)
     def test_dedup_build(self, use_container):
-        if use_container and SKIP_DOCKER_TESTS:
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         """
@@ -1341,16 +1278,15 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
             # container
-            # TODO: Uncomment after new build images release
-            # (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            # (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
-            # (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
-            # (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
+            (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
+            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
+            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
     def test_cache_build(self, use_container, code_uri, function1_handler, function2_handler, runtime):
-        if use_container and SKIP_DOCKER_TESTS:
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         """
@@ -1385,7 +1321,7 @@ class TestRepeatedBuildHitsCache(BuildIntegBase):
     template = "layers-functions-template.yaml"
 
     @parameterized.expand([(True,), (False,)])
-    @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_repeated_cached_build_hits_cache(self, use_container):
         """
         Build 2 times to verify that second time hits the cached build
@@ -1443,11 +1379,10 @@ class TestParallelBuilds(DedupBuildIntegBase):
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
             # container
-            # TODO: Uncomment after new build images release
-            # (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            # (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
-            # (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
-            # (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
+            (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
+            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
+            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -1455,7 +1390,7 @@ class TestParallelBuilds(DedupBuildIntegBase):
         """
         Build template above and verify that each function call returns as expected
         """
-        if use_container and SKIP_DOCKER_TESTS:
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         overrides = {
@@ -1488,13 +1423,12 @@ class TestBuildWithInlineCode(BuildIntegBase):
     @parameterized.expand(
         [
             (False,),
-            # TODO: Uncomment after new build images release
-            # ("use_container",),
+            ("use_container",),
         ]
     )
     @pytest.mark.flaky(reruns=3)
     def test_inline_not_built(self, use_container):
-        if use_container and SKIP_DOCKER_TESTS:
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         cmdlist = self.get_command_list(use_container=use_container)
@@ -1534,30 +1468,29 @@ class TestBuildWithInlineCode(BuildIntegBase):
 class TestBuildWithJsonContainerEnvVars(BuildIntegBase):
     template = "container_env_vars_template.yml"
 
-    # TODO: Uncomment after new build images release
-    # @parameterized.expand(
-    #     [
-    #         ("use_container", "env_vars_function.json"),
-    #         ("use_container", "env_vars_parameters.json"),
-    #     ]
-    # )
-    # @pytest.mark.flaky(reruns=3)
-    # def test_json_env_vars_passed(self, use_container, env_vars_file):
-    #     if use_container and SKIP_DOCKER_TESTS:
-    #         self.skipTest(SKIP_DOCKER_MESSAGE)
+    @parameterized.expand(
+        [
+            ("use_container", "env_vars_function.json"),
+            ("use_container", "env_vars_parameters.json"),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_json_env_vars_passed(self, use_container, env_vars_file):
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
 
-    #     cmdlist = self.get_command_list(
-    #         use_container=use_container, container_env_var_file=self.get_env_file(env_vars_file)
-    #     )
+        cmdlist = self.get_command_list(
+            use_container=use_container, container_env_var_file=self.get_env_file(env_vars_file)
+        )
 
-    #     LOG.info("Running Command: {}".format(cmdlist))
-    #     run_command(cmdlist, cwd=self.working_dir)
+        LOG.info("Running Command: {}".format(cmdlist))
+        run_command(cmdlist, cwd=self.working_dir)
 
-    #     self._verify_built_env_var(self.default_build_dir)
+        self._verify_built_env_var(self.default_build_dir)
 
-    #     if use_container:
-    #         self.verify_docker_container_cleanedup("python3.7")
-    #         self.verify_pulling_only_latest_tag("python3.7")
+        if use_container:
+            self.verify_docker_container_cleanedup("python3.7")
+            self.verify_pulling_only_latest_tag("python3.7")
 
     @staticmethod
     def get_env_file(filename):
@@ -1586,28 +1519,27 @@ class TestBuildWithJsonContainerEnvVars(BuildIntegBase):
 class TestBuildWithInlineContainerEnvVars(BuildIntegBase):
     template = "container_env_vars_template.yml"
 
-    # TODO: Uncomment after new build images release
-    # @parameterized.expand(
-    #     [
-    #         ("use_container", "TEST_ENV_VAR=MyVar"),
-    #         ("use_container", "CheckEnvVarsFunction.TEST_ENV_VAR=MyVar"),
-    #     ]
-    # )
-    # @pytest.mark.flaky(reruns=3)
-    # def test_inline_env_vars_passed(self, use_container, inline_env_var):
-    #     if use_container and SKIP_DOCKER_TESTS:
-    #         self.skipTest(SKIP_DOCKER_MESSAGE)
+    @parameterized.expand(
+        [
+            ("use_container", "TEST_ENV_VAR=MyVar"),
+            ("use_container", "CheckEnvVarsFunction.TEST_ENV_VAR=MyVar"),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_inline_env_vars_passed(self, use_container, inline_env_var):
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
 
-    #     cmdlist = self.get_command_list(use_container=use_container, container_env_var=inline_env_var)
+        cmdlist = self.get_command_list(use_container=use_container, container_env_var=inline_env_var)
 
-    #     LOG.info("Running Command: {}".format(cmdlist))
-    #     run_command(cmdlist, cwd=self.working_dir)
+        LOG.info("Running Command: {}".format(cmdlist))
+        run_command(cmdlist, cwd=self.working_dir)
 
-    #     self._verify_built_env_var(self.default_build_dir)
+        self._verify_built_env_var(self.default_build_dir)
 
-    #     if use_container:
-    #         self.verify_docker_container_cleanedup("python3.7")
-    #         self.verify_pulling_only_latest_tag("python3.7")
+        if use_container:
+            self.verify_docker_container_cleanedup("python3.7")
+            self.verify_pulling_only_latest_tag("python3.7")
 
     def _verify_built_env_var(self, build_dir):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
@@ -1631,17 +1563,16 @@ class TestBuildWithNestedStacks(NestedBuildIntegBase):
 
     @parameterized.expand(
         [
-            # TODO: Uncomment after new build images release
-            # (
-            #     "use_container",
-            #     True,
-            #     True,
-            # ),
-            # (
-            #     "use_container",
-            #     False,
-            #     False,
-            # ),
+            (
+                "use_container",
+                True,
+                True,
+            ),
+            (
+                "use_container",
+                False,
+                False,
+            ),
             (
                 False,
                 True,
@@ -1651,7 +1582,7 @@ class TestBuildWithNestedStacks(NestedBuildIntegBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_nested_build(self, use_container, cached, parallel):
-        if use_container and SKIP_DOCKER_TESTS:
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         """
@@ -1729,7 +1660,7 @@ class TestBuildWithNestedStacks3Level(NestedBuildIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_nested_build(self):
-        if SKIP_DOCKER_TESTS:
+        if SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         cmdlist = self.get_command_list(
@@ -1794,7 +1725,7 @@ class TestBuildWithNestedStacks3LevelWithSymlink(NestedBuildIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_nested_build(self):
-        if SKIP_DOCKER_TESTS:
+        if SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         cmdlist = self.get_command_list(use_container=True, cached=True, parallel=True)
@@ -1858,17 +1789,16 @@ class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
 
     @parameterized.expand(
         [
-            # TODO: Uncomment after new build images release
-            # (
-            #     "use_container",
-            #     True,
-            #     True,
-            # ),
-            # (
-            #     "use_container",
-            #     False,
-            #     False,
-            # ),
+            (
+                "use_container",
+                True,
+                True,
+            ),
+            (
+                "use_container",
+                False,
+                False,
+            ),
             (
                 False,
                 True,
@@ -1878,7 +1808,7 @@ class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_nested_build(self, use_container, cached, parallel):
-        if use_container and SKIP_DOCKER_TESTS:
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         """
@@ -1937,28 +1867,27 @@ class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
 class TestBuildWithCustomBuildImage(BuildIntegBase):
     template = "build_image_function.yaml"
 
-    # TODO: Uncomment after new build images release
-    # @parameterized.expand(
-    #     [
-    #         ("use_container", None),
-    #         ("use_container", "amazon/aws-sam-cli-build-image-python3.7:latest"),
-    #     ]
-    # )
-    # @pytest.mark.flaky(reruns=3)
-    # def test_custom_build_image_succeeds(self, use_container, build_image):
-    #     if use_container and SKIP_DOCKER_TESTS:
-    #         self.skipTest(SKIP_DOCKER_MESSAGE)
+    @parameterized.expand(
+        [
+            ("use_container", None),
+            ("use_container", "amazon/aws-sam-cli-build-image-python3.7:latest"),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_custom_build_image_succeeds(self, use_container, build_image):
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
 
-    #     cmdlist = self.get_command_list(use_container=use_container, build_image=build_image)
+        cmdlist = self.get_command_list(use_container=use_container, build_image=build_image)
 
-    #     command_result = run_command(cmdlist, cwd=self.working_dir)
-    #     stderr = command_result.stderr
-    #     process_stderr = stderr.strip()
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        stderr = command_result.stderr
+        process_stderr = stderr.strip()
 
-    #     self._verify_right_image_pulled(build_image, process_stderr)
-    #     self._verify_build_succeeds(self.default_build_dir)
+        self._verify_right_image_pulled(build_image, process_stderr)
+        self._verify_build_succeeds(self.default_build_dir)
 
-    #     self.verify_docker_container_cleanedup("python3.7")
+        self.verify_docker_container_cleanedup("python3.7")
 
     def _verify_right_image_pulled(self, build_image, process_stderr):
         image_name = build_image if build_image is not None else "public.ecr.aws/sam/build-python3.7:latest"
@@ -2001,7 +1930,7 @@ class TestBuildWithCustomBuildImage(BuildIntegBase):
 class TestBuildPassingLayerAcrossStacks(IntrinsicIntegBase):
     @pytest.mark.flaky(reruns=3)
     def test_nested_build(self):
-        if SKIP_DOCKER_TESTS:
+        if SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         """
@@ -2043,7 +1972,7 @@ class TestBuildWithS3FunctionsOrLayers(NestedBuildIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_functions_layers_with_s3_codeuri(self):
-        if SKIP_DOCKER_TESTS:
+        if SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         """
@@ -2077,7 +2006,7 @@ class TestBuildWithZipFunctionsOrLayers(NestedBuildIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_functions_layers_with_s3_codeuri(self):
-        if SKIP_DOCKER_TESTS:
+        if SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         """
@@ -2108,10 +2037,9 @@ class TestBuildSAR(BuildIntegBase):
 
     @parameterized.expand(
         [
-            # TODO: Uncomment after new build images release
-            # ("use_container", "us-east-2"),
-            # ("use_container", "eu-west-1"),
-            # ("use_container", None),
+            ("use_container", "us-east-2"),
+            ("use_container", "eu-west-1"),
+            ("use_container", None),
             (False, "us-east-2"),
             (False, "eu-west-1"),
             (False, None),
@@ -2119,7 +2047,7 @@ class TestBuildSAR(BuildIntegBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_sar_application_with_location_resolved_from_map(self, use_container, region):
-        if use_container and SKIP_DOCKER_TESTS:
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         cmdlist = self.get_command_list(use_container=use_container, region=region)
