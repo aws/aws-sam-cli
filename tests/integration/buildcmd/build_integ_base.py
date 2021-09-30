@@ -16,7 +16,7 @@ from pathlib import Path
 from samcli.lib.utils.architecture import X86_64
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from samcli.yamlhelper import yaml_parse
-from tests.testing_utils import IS_WINDOWS, run_command, SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE
+from tests.testing_utils import IS_WINDOWS, run_command, SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE, SKIP_DOCKER_BUILD
 
 LOG = logging.getLogger(__name__)
 
@@ -381,7 +381,8 @@ class BuildIntegGoBase(BuildIntegBase):
         )
 
         expected = "{'message': 'Hello World'}"
-        if not SKIP_DOCKER_TESTS:
+        if not SKIP_DOCKER_TESTS and architecture == X86_64:
+            # ARM64 is not supported yet for invoking
             self._verify_invoke_built_function(
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
             )
@@ -422,7 +423,7 @@ class BuildIntegJavaBase(BuildIntegBase):
         relative_path,
         architecture=None,
     ):
-        if use_container and SKIP_DOCKER_TESTS:
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         overrides = self.get_override(runtime, code_path, architecture, "aws.example.Hello::myHandler")
@@ -506,7 +507,7 @@ class BuildIntegPythonBase(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
 
     def _test_with_default_requirements(self, runtime, codeuri, use_container, relative_path, architecture=None):
-        if use_container and SKIP_DOCKER_TESTS:
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         overrides = self.get_override(runtime, codeuri, architecture, "main.handler")
@@ -582,7 +583,7 @@ class BuildIntegProvidedBase(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
 
     def _test_with_Makefile(self, runtime, use_container, manifest, architecture=None):
-        if use_container and SKIP_DOCKER_TESTS:
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         overrides = self.get_override(runtime, "Provided", architecture, "main.handler")
