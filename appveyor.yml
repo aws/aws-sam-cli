@@ -173,6 +173,9 @@ for:
       - ps: "If ($env:INSTALL_PY_37_PIP) {python3.7 get-pip.py --user}"
       - ps: "If ($env:INSTALL_PY_36_PIP) {python3.6 get-pip.py --user}"
 
+      # required for RIE with arm64 in linux
+      - sh: "docker run --rm --privileged multiarch/qemu-user-static --reset -p yes"
+
     build_script:
       - "python -c \"import sys; print(sys.executable)\""
 
