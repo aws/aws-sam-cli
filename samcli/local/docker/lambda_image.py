@@ -13,6 +13,7 @@ import docker
 
 from samcli.commands.local.cli_common.user_exceptions import ImageBuildException
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
+from samcli.lib.utils.architecture import has_runtime_multi_arch_image
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.lib.utils.tar import create_tarball
@@ -108,7 +109,8 @@ class LambdaImage:
         if packagetype == IMAGE:
             image_name = image
         elif packagetype == ZIP:
-            image_name = f"{self._INVOKE_REPO_PREFIX}-{runtime}:latest-{architecture}"
+            tag_name = f"latest-{architecture}" if has_runtime_multi_arch_image(runtime) else "latest"
+            image_name = f"{self._INVOKE_REPO_PREFIX}-{runtime}:{tag_name}"
 
         if not image_name:
             raise InvalidIntermediateImageError(f"Invalid PackageType, PackageType needs to be one of [{ZIP}, {IMAGE}]")

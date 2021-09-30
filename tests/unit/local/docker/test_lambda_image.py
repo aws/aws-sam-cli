@@ -5,6 +5,7 @@ from unittest import TestCase
 from unittest.mock import patch, Mock, mock_open, ANY, call
 
 from docker.errors import ImageNotFound, BuildError, APIError
+from parameterized import parameterized
 
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.utils.packagetype import ZIP, IMAGE
@@ -149,10 +150,16 @@ class TestLambdaImage(TestCase):
         docker_client_mock.images.get.assert_called_once_with("samcli/lambda:image-version")
         build_image_patch.assert_not_called()
 
+    @parameterized.expand(
+        [
+            ("python3.6", "public.ecr.aws/sam/emulation-python3.6:latest"),
+            ("python3.8", "public.ecr.aws/sam/emulation-python3.8:latest-x86_64"),
+        ]
+    )
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
     @patch("samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version")
     def test_force_building_image_that_doesnt_already_exists(
-        self, generate_docker_image_version_patch, build_image_patch
+        self, runtime, image_name, generate_docker_image_version_patch, build_image_patch
     ):
         layer_downloader_mock = Mock()
         layer_downloader_mock.download_all.return_value = ["layers1"]
@@ -166,25 +173,31 @@ class TestLambdaImage(TestCase):
         stream = io.StringIO()
 
         lambda_image = LambdaImage(layer_downloader_mock, False, True, docker_client=docker_client_mock)
-        actual_image_id = lambda_image.build("python3.6", ZIP, None, ["layers1"], X86_64, stream=stream)
+        actual_image_id = lambda_image.build(runtime, ZIP, None, ["layers1"], X86_64, stream=stream)
 
         self.assertEqual(actual_image_id, "samcli/lambda:image-version")
 
         layer_downloader_mock.download_all.assert_called_once_with(["layers1"], True)
-        generate_docker_image_version_patch.assert_called_once_with(["layers1"], "python3.6", X86_64)
+        generate_docker_image_version_patch.assert_called_once_with(["layers1"], runtime, X86_64)
         docker_client_mock.images.get.assert_called_once_with("samcli/lambda:image-version")
         build_image_patch.assert_called_once_with(
-            "public.ecr.aws/sam/emulation-python3.6:latest-x86_64",
+            image_name,
             "samcli/lambda:image-version",
             ["layers1"],
             X86_64,
             stream=stream,
         )
 
+    @parameterized.expand(
+        [
+            ("python3.6", "public.ecr.aws/sam/emulation-python3.6:latest"),
+            ("python3.8", "public.ecr.aws/sam/emulation-python3.8:latest-arm64"),
+        ]
+    )
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
     @patch("samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version")
     def test_not_force_building_image_that_doesnt_already_exists(
-        self, generate_docker_image_version_patch, build_image_patch
+        self, runtime, image_name, generate_docker_image_version_patch, build_image_patch
     ):
         layer_downloader_mock = Mock()
         layer_downloader_mock.download_all.return_value = ["layers1"]
@@ -198,15 +211,15 @@ class TestLambdaImage(TestCase):
         stream = io.StringIO()
 
         lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=docker_client_mock)
-        actual_image_id = lambda_image.build("python3.6", ZIP, None, ["layers1"], ARM64, stream=stream)
+        actual_image_id = lambda_image.build(runtime, ZIP, None, ["layers1"], ARM64, stream=stream)
 
         self.assertEqual(actual_image_id, "samcli/lambda:image-version")
 
         layer_downloader_mock.download_all.assert_called_once_with(["layers1"], False)
-        generate_docker_image_version_patch.assert_called_once_with(["layers1"], "python3.6", ARM64)
+        generate_docker_image_version_patch.assert_called_once_with(["layers1"], runtime, ARM64)
         docker_client_mock.images.get.assert_called_once_with("samcli/lambda:image-version")
         build_image_patch.assert_called_once_with(
-            "public.ecr.aws/sam/emulation-python3.6:latest-arm64",
+            image_name,
             "samcli/lambda:image-version",
             ["layers1"],
             ARM64,
