@@ -142,7 +142,7 @@ class TestLambdaImage(TestCase):
             invoke_image="amazon/aws-sam-cli-emulation-image-python3.6",
         )
         self.assertEqual(
-            lambda_image.build("python3.6", ZIP, None, []),
+            lambda_image.build("python3.6", ZIP, None, [], X86_64),
             f"amazon/aws-sam-cli-emulation-image-python3.6:{RAPID_IMAGE_TAG_PREFIX}-{version}",
         )
 
