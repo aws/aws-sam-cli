@@ -1,6 +1,7 @@
 """
 Keeps implementation of different build strategies
 """
+import hashlib
 import logging
 import pathlib
 import shutil
@@ -213,7 +214,7 @@ class CachedBuildStrategy(BuildStrategy):
     """
     Cached implementation of Build Strategy
     For each function and layer, it first checks if there is a valid cache, and if there is, it copies from previous
-    build. If caching is invalid, it builds function or layer from scratch and updates cache folder and md5 of the
+    build. If caching is invalid, it builds function or layer from scratch and updates cache folder and hash of the
     function or layer.
     For actual building, it uses delegate implementation
     """
@@ -246,11 +247,11 @@ class CachedBuildStrategy(BuildStrategy):
             return self._delegate_build_strategy.build_single_function_definition(build_definition)
 
         code_dir = str(pathlib.Path(self._base_dir, cast(str, build_definition.codeuri)).resolve())
-        source_md5 = dir_checksum(code_dir, ignore_list=[".aws-sam"])
+        source_hash = dir_checksum(code_dir, ignore_list=[".aws-sam"], hash_generator=hashlib.sha256())
         cache_function_dir = pathlib.Path(self._cache_dir, build_definition.uuid)
         function_build_results = {}
 
-        if not cache_function_dir.exists() or build_definition.source_md5 != source_md5:
+        if not cache_function_dir.exists() or build_definition.source_hash != source_hash:
             LOG.info(
                 "Cache is invalid, running build and copying resources to function build definition of %s",
                 build_definition.uuid,
@@ -261,7 +262,7 @@ class CachedBuildStrategy(BuildStrategy):
             if cache_function_dir.exists():
                 shutil.rmtree(str(cache_function_dir))
 
-            build_definition.source_md5 = source_md5
+            build_definition.source_hash = source_hash
             # Since all the build contents are same for a build definition, just copy any one of them into the cache
             for _, value in build_result.items():
                 osutils.copytree(value, cache_function_dir)
@@ -285,11 +286,11 @@ class CachedBuildStrategy(BuildStrategy):
         Builds single layer definition with caching
         """
         code_dir = str(pathlib.Path(self._base_dir, cast(str, layer_definition.codeuri)).resolve())
-        source_md5 = dir_checksum(code_dir, ignore_list=[".aws-sam"])
+        source_hash = dir_checksum(code_dir, ignore_list=[".aws-sam"], hash_generator=hashlib.sha256())
         cache_function_dir = pathlib.Path(self._cache_dir, layer_definition.uuid)
         layer_build_result = {}
 
-        if not cache_function_dir.exists() or layer_definition.source_md5 != source_md5:
+        if not cache_function_dir.exists() or layer_definition.source_hash != source_hash:
             LOG.info(
                 "Cache is invalid, running build and copying resources to layer build definition of %s",
                 layer_definition.uuid,
@@ -300,7 +301,7 @@ class CachedBuildStrategy(BuildStrategy):
             if cache_function_dir.exists():
                 shutil.rmtree(str(cache_function_dir))
 
-            layer_definition.source_md5 = source_md5
+            layer_definition.source_hash = source_hash
             # Since all the build contents are same for a build definition, just copy any one of them into the cache
             for _, value in build_result.items():
                 osutils.copytree(value, cache_function_dir)
@@ -385,7 +386,7 @@ class IncrementalBuildStrategy(BuildStrategy):
     and download_dependencies (bool) options.
 
     This build strategy sets whether we need to download dependencies again (download_dependencies option) by comparing
-    the md5 of the manifest file of the given runtime as well as the dependencies directory location
+    the hash of the manifest file of the given runtime as well as the dependencies directory location
     (dependencies_dir option).
     """
 
@@ -424,7 +425,7 @@ class IncrementalBuildStrategy(BuildStrategy):
         runtime: Optional[str],
     ) -> None:
         """
-        Checks whether the manifest file have been changed by comparing its md5 with previously stored one and updates
+        Checks whether the manifest file have been changed by comparing its hash with previously stored one and updates
         download_dependencies property of build definition to True, if it is changed
         """
         manifest_hash = DependencyHashGenerator(
@@ -433,9 +434,9 @@ class IncrementalBuildStrategy(BuildStrategy):
 
         is_manifest_changed = True
         if manifest_hash:
-            is_manifest_changed = manifest_hash != build_definition.manifest_md5
+            is_manifest_changed = manifest_hash != build_definition.manifest_hash
             if is_manifest_changed:
-                build_definition.manifest_md5 = manifest_hash
+                build_definition.manifest_hash = manifest_hash
                 LOG.info(
                     "Manifest is changed for %s, downloading dependencies and copying/building source",
                     build_definition.uuid,
@@ -447,7 +448,7 @@ class IncrementalBuildStrategy(BuildStrategy):
 
     def _clean_redundant_dependencies(self) -> None:
         """
-        Update build definitions with possible new manifest md5 information and clean the redundant dependencies folder
+        Update build definitions with possible new manifest hash information and clean the redundant dependencies folder
         """
         uuids = {bd.uuid for bd in self._build_graph.get_function_build_definitions()}
         uuids.update({ld.uuid for ld in self._build_graph.get_layer_build_definitions()})
@@ -539,7 +540,7 @@ class CachedOrIncrementalBuildStrategyWrapper(BuildStrategy):
         IncrementalBuildStrategy so that it will still continue to clean-up redundant folders.
         """
         if self._is_building_specific_resource:
-            self._build_graph.update_definition_md5()
+            self._build_graph.update_definition_hash()
         else:
             self._build_graph.clean_redundant_definitions_and_update(not self._is_building_specific_resource)
             self._cached_build_strategy._clean_redundant_cached()
