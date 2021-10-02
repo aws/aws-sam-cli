@@ -1,10 +1,9 @@
 import os
 from unittest import TestCase
-from unittest.mock import Mock, patch, mock_open, ANY
+from unittest.mock import Mock, patch, ANY, call
 
 from samcli.lib.bootstrap.nested_stack.nested_stack_manager import (
-    generate_auto_dependency_layer_stack,
-    NESTED_STACK_NAME,
+    NESTED_STACK_NAME, NestedStackManager,
 )
 from samcli.lib.build.app_builder import ApplicationBuildResult
 from samcli.lib.utils import osutils
@@ -20,18 +19,20 @@ class TestNestedStackManager(TestCase):
     def test_nothing_to_add(self):
         template = {}
         app_build_result = ApplicationBuildResult(Mock(), {})
-        result = generate_auto_dependency_layer_stack(
+        nested_stack_manager = NestedStackManager(
             self.stack_name, self.build_dir, self.stack_location, template, app_build_result
         )
+        result = nested_stack_manager.generate_auto_dependency_layer_stack()
 
         self.assertEqual(template, result)
 
     def test_unsupported_resource(self):
         template = {"Resources": {"MySqsQueue": {"Type": AWS_SQS_QUEUE}}}
         app_build_result = ApplicationBuildResult(Mock(), {})
-        result = generate_auto_dependency_layer_stack(
+        nested_stack_manager = NestedStackManager(
             self.stack_name, self.build_dir, self.stack_location, template, app_build_result
         )
+        result = nested_stack_manager.generate_auto_dependency_layer_stack()
 
         self.assertEqual(template, result)
 
@@ -45,9 +46,10 @@ class TestNestedStackManager(TestCase):
             }
         }
         app_build_result = ApplicationBuildResult(Mock(), {"MyFunction": "path/to/build/dir"})
-        result = generate_auto_dependency_layer_stack(
+        nested_stack_manager = NestedStackManager(
             self.stack_name, self.build_dir, self.stack_location, template, app_build_result
         )
+        result = nested_stack_manager.generate_auto_dependency_layer_stack()
 
         self.assertEqual(template, result)
 
@@ -58,9 +60,10 @@ class TestNestedStackManager(TestCase):
             }
         }
         app_build_result = ApplicationBuildResult(Mock(), {"MyFunction": "path/to/build/dir"})
-        result = generate_auto_dependency_layer_stack(
+        nested_stack_manager = NestedStackManager(
             self.stack_name, self.build_dir, self.stack_location, template, app_build_result
         )
+        result = nested_stack_manager.generate_auto_dependency_layer_stack()
 
         self.assertEqual(template, result)
 
@@ -71,9 +74,10 @@ class TestNestedStackManager(TestCase):
         build_graph = Mock()
         build_graph.get_function_build_definitions.return_value = []
         app_build_result = ApplicationBuildResult(build_graph, {"MyFunction": "path/to/build/dir"})
-        result = generate_auto_dependency_layer_stack(
+        nested_stack_manager = NestedStackManager(
             self.stack_name, self.build_dir, self.stack_location, template, app_build_result
         )
+        result = nested_stack_manager.generate_auto_dependency_layer_stack()
 
         self.assertEqual(template, result)
 
@@ -83,20 +87,22 @@ class TestNestedStackManager(TestCase):
             "Resources": {"MyFunction": {"Type": AWS_SERVERLESS_FUNCTION, "Properties": {"Runtime": "python3.8"}}}
         }
 
-        with osutils.mkdir_temp() as tmp_dir:
-            # prepare build graph
-            dependencies_dir = tmp_dir
-            function = Mock()
-            function.name = "MyFunction"
-            functions = [function]
-            build_graph = Mock()
-            function_definition_mock = Mock(dependencies_dir=dependencies_dir, functions=functions)
-            build_graph.get_function_build_definitions.return_value = [function_definition_mock]
-            app_build_result = ApplicationBuildResult(build_graph, {"MyFunction": "path/to/build/dir"})
+        # prepare build graph
+        dependencies_dir = Mock()
+        function = Mock()
+        function.name = "MyFunction"
+        functions = [function]
+        build_graph = Mock()
+        function_definition_mock = Mock(dependencies_dir=dependencies_dir, functions=functions)
+        build_graph.get_function_build_definitions.return_value = [function_definition_mock]
+        app_build_result = ApplicationBuildResult(build_graph, {"MyFunction": "path/to/build/dir"})
 
-            result = generate_auto_dependency_layer_stack(
-                self.stack_name, self.build_dir, self.stack_location, template, app_build_result
-            )
+        nested_stack_manager = NestedStackManager(
+            self.stack_name, self.build_dir, self.stack_location, template, app_build_result
+        )
+
+        with patch.object(nested_stack_manager, "_add_layer_readme_info") as patched_add_readme:
+            result = nested_stack_manager.generate_auto_dependency_layer_stack()
 
             patched_move_template.assert_called_with(
                 self.stack_location, os.path.join(self.build_dir, "nested_template.yaml"), ANY
@@ -107,3 +113,14 @@ class TestNestedStackManager(TestCase):
             self.assertIn(NESTED_STACK_NAME, resources.keys())
 
             self.assertTrue(resources.get("MyFunction", {}).get("Properties", {}).get("Layers", []))
+
+    def test_adding_readme_file(self):
+        with patch("builtins.open") as patched_open:
+            dependencies_dir = "dependencies"
+            function_name = "function_name"
+            NestedStackManager._add_layer_readme_info(dependencies_dir, function_name)
+            patched_open.assert_has_calls([
+                call(f"{dependencies_dir}/AWS_SAM_CLI_README", "w+"),
+                call().__enter__().write(
+                    f"This layer contains dependencies of function {function_name} and automatically added by AWS SAM CLI command 'sam sync'")
+            ], any_order=True)

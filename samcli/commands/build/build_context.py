@@ -11,7 +11,7 @@ from typing import Dict, Optional, List
 import click
 
 from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
-from samcli.lib.bootstrap.nested_stack.nested_stack_manager import generate_auto_dependency_layer_stack
+from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NestedStackManager
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.providers.provider import ResourcesToBuildCollector, Stack, Function, LayerVersion
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
@@ -189,9 +189,10 @@ class BuildContext:
 
                 if self._create_auto_dependency_layer:
                     LOG.debug("Auto creating dependency layer for each function resource into a nested stack")
-                    modified_template = generate_auto_dependency_layer_stack(
+                    nested_stack_manager = NestedStackManager(
                         self._stack_name, self.build_dir, stack.location, modified_template, build_result
                     )
+                    modified_template = nested_stack_manager.generate_auto_dependency_layer_stack()
                 move_template(stack.location, output_template_path, modified_template)
 
             click.secho("\nBuild Succeeded", fg="green")

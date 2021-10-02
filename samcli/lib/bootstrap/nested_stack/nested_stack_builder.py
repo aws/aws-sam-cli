@@ -8,6 +8,9 @@ from samcli.lib.providers.provider import Function
 from samcli.lib.utils.hash import str_checksum
 from samcli.lib.utils.resources import AWS_SERVERLESS_LAYERVERSION, AWS_CLOUDFORMATION_STACK
 
+CREATED_BY_METADATA_KEY = "CreatedBy"
+CREATED_BY_METADATA_VALUE = "AWS SAM CLI sync command"
+
 
 class NestedStackBuilder(AbstractStackBuilder):
     """
@@ -16,6 +19,7 @@ class NestedStackBuilder(AbstractStackBuilder):
 
     def __init__(self):
         super().__init__("AWS SAM CLI Nested Stack for Auto Dependency Layer Creation")
+        self.add_metadata(CREATED_BY_METADATA_KEY, CREATED_BY_METADATA_VALUE)
 
     def is_any_function_added(self) -> bool:
         return bool(self._template_dict.get("Resources", {}))
@@ -51,6 +55,9 @@ class NestedStackBuilder(AbstractStackBuilder):
                 "RetentionPolicy": "Delete",
                 "CompatibleRuntimes": [function_runtime],
             },
+            "Metadata": {
+                CREATED_BY_METADATA_KEY: CREATED_BY_METADATA_VALUE
+            }
         }
 
     @staticmethod
@@ -59,4 +66,7 @@ class NestedStackBuilder(AbstractStackBuilder):
             "Type": AWS_CLOUDFORMATION_STACK,
             "DeletionPolicy": "Delete",
             "Properties": {"TemplateURL": nested_template_location},
+            "Metadata": {
+                CREATED_BY_METADATA_KEY: CREATED_BY_METADATA_VALUE
+            }
         }
