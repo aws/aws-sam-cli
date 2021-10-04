@@ -60,11 +60,6 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @configuration_option(provider=TomlProvider(section="parameters"))
 @template_option_without_build
 @click.option(
-    "--infra",
-    is_flag=True,
-    help="Sync infrastructure",
-)
-@click.option(
     "--code",
     is_flag=True,
     help="Sync code resources. This includes Lambda Functions, API Gateway, and Step Functions.",
@@ -107,7 +102,6 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 def cli(
     ctx: Context,
     template_file: str,
-    infra: bool,
     code: bool,
     watch: bool,
     resource_id: Optional[Tuple[str]],
@@ -135,7 +129,6 @@ def cli(
 
     do_cli(
         template_file,
-        infra,
         code,
         watch,
         resource_id,
@@ -162,7 +155,6 @@ def cli(
 
 def do_cli(
     template_file: str,
-    infra: bool,
     code: bool,
     watch: bool,
     resource_id: Optional[Tuple[str]],
