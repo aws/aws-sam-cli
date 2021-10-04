@@ -49,6 +49,8 @@ LOG = logging.getLogger(__name__)
 
 HELP_TEXT = """
 Update/sync local artifacts to AWS
+
+By default, the sync command runs a full stack update, you can specify --code or --watch to which modes
 """
 SHORT_HELP = "Sync a project to AWS"
 
@@ -59,11 +61,6 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @click.command("sync", help=HELP_TEXT, short_help=SHORT_HELP)
 @configuration_option(provider=TomlProvider(section="parameters"))
 @template_option_without_build
-@click.option(
-    "--infra",
-    is_flag=True,
-    help="Sync infrastructure",
-)
 @click.option(
     "--code",
     is_flag=True,
@@ -107,7 +104,6 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 def cli(
     ctx: Context,
     template_file: str,
-    infra: bool,
     code: bool,
     watch: bool,
     resource_id: Optional[Tuple[str]],
@@ -135,7 +131,6 @@ def cli(
 
     do_cli(
         template_file,
-        infra,
         code,
         watch,
         resource_id,
@@ -162,7 +157,6 @@ def cli(
 
 def do_cli(
     template_file: str,
-    infra: bool,
     code: bool,
     watch: bool,
     resource_id: Optional[Tuple[str]],
