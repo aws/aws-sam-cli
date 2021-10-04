@@ -49,6 +49,8 @@ LOG = logging.getLogger(__name__)
 
 HELP_TEXT = """
 Update/sync local artifacts to AWS
+
+By default, the sync command runs a full stack update, you can specify --code or --watch to which modes
 """
 SHORT_HELP = "Sync a project to AWS"
 
