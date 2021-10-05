@@ -456,7 +456,7 @@ class TestWriteStack(TestCase):
         )
         resource.assets.append(s3_asset)
 
-        _write_stack(stack, "cloud_assembly_dir", "build_dir")
+        _write_stack(stack, "build_dir")
         undo_normalize_mock.assert_called_once_with(resource)
         self.assertEqual(resource["Metadata"]["aws:asset:path"], "updated_source_path")
         move_template_mock.assert_called_once_with(
@@ -489,7 +489,7 @@ class TestWriteStack(TestCase):
         )
         resource.assets.append(image_asset)
 
-        _write_stack(stack, "cloud_assembly_dir", "build_dir")
+        _write_stack(stack, "build_dir")
         undo_normalize_mock.assert_called_once_with(resource)
         self.assertIn("aws:asset:local_image", resource["Metadata"])
         self.assertEqual(resource["Metadata"]["aws:asset:local_image"], "image:tag")
@@ -530,11 +530,11 @@ class TestWriteStack(TestCase):
             sections={"Resources": {}}, extra_details={"template_file": "hello.nested-stack.json"}
         )
 
-        self.original_func(stack, "cloud_assembly_dir", "build_dir")
+        self.original_func(stack, "build_dir")
         undo_normalize_mock.assert_called_once_with(resource)
         self.assertEqual(resource["Metadata"]["aws:asset:path"], "build_dir/nested_stack")
         self.assertEqual(s3_asset.updated_source_path, "build_dir/nested_stack")
-        write_stack_mock.assert_called_once_with(resource.nested_stack, "cloud_assembly_dir", "build_dir")
+        write_stack_mock.assert_called_once_with(resource.nested_stack, "build_dir")
         move_template_mock.assert_called_once_with(
             "src_template_path", "stack_build_location", stack, output_format=TemplateFormat.JSON
         )
@@ -730,5 +730,5 @@ class TestUpdateBuiltArtifacts(TestCase):
         with patch("samcli.lib.iac.cdk.cdk_iac.open", self.mock_open):
             project = SamCliProject(stacks=[])
             collect_project_assets_mock.return_value = self.collect_project_assets_mock_return_value
-            _update_built_artifacts(project, "cloud_assembly_dir", "build_dir")
+            _update_built_artifacts(project, "build_dir")
             json_dumps_mock.assert_called_once_with(self.updated_manifest, indent=4)

@@ -117,10 +117,10 @@ class CdkIacImplementation(IaCPluginInterface):
         for filename in [MANIFEST_FILENAME, TREE_FILENAME, OUT_FILENAME]:
             shutil.copy2(os.path.join(self._cloud_assembly_dir, filename), os.path.join(build_dir, filename))
 
-        _update_built_artifacts(project, self._cloud_assembly_dir, build_dir)
+        _update_built_artifacts(project, build_dir)
 
         for stack in project.stacks:
-            _write_stack(stack, self._cloud_assembly_dir, build_dir)
+            _write_stack(stack, build_dir)
 
         return True
 
@@ -371,7 +371,7 @@ def _collect_assets(
     return assets
 
 
-def _write_stack(stack: Stack, cloud_assembly_dir: str, build_dir: str) -> None:
+def _write_stack(stack: Stack, build_dir: str) -> None:
     # write template
     src_template_path = os.path.join(stack.origin_dir, stack.extra_details[STACK_EXTRA_DETAILS_TEMPLATE_FILENAME_KEY])
     stack_build_location = os.path.join(build_dir, stack.extra_details[STACK_EXTRA_DETAILS_TEMPLATE_FILENAME_KEY])
@@ -387,7 +387,7 @@ def _write_stack(stack: Stack, cloud_assembly_dir: str, build_dir: str) -> None:
                 updated_path = asset.updated_source_path or asset.source_path
                 resource[METADATA_KEY][ASSET_PATH_METADATA_KEY] = updated_path
         if resource.nested_stack:
-            _write_stack(resource.nested_stack, cloud_assembly_dir, build_dir)
+            _write_stack(resource.nested_stack, build_dir)
             for asset in resource.assets:
                 if isinstance(asset, S3Asset) and asset.source_property in NESTED_STACKS_RESOURCES.values():
                     nested_stack_file_name = resource.nested_stack.extra_details[
@@ -404,7 +404,7 @@ def _undo_normalize_resource_metadata(resource: Resource) -> None:
             resource[key] = val
 
 
-def _update_built_artifacts(project: SamCliProject, cloud_assembly_dir: str, build_dir: str) -> None:
+def _update_built_artifacts(project: SamCliProject, build_dir: str) -> None:
     with open(os.path.join(build_dir, MANIFEST_FILENAME), "r") as f:
         manifest_dict = json.loads(f.read())
 
