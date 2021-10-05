@@ -2,10 +2,13 @@ import os
 import subprocess
 
 from unittest import TestCase
-from unittest.mock import ANY, Mock, patch
+from unittest.mock import ANY, Mock, patch, mock_open
 
+from samcli.commands._utils.template import TemplateFormat
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
-from samcli.lib.iac.cdk.cdk_iac import CdkIacImplementation, _collect_assets, _get_cdk_executable_path
+from samcli.lib.iac.cdk.cdk_iac import CdkIacImplementation, _collect_assets, _get_cdk_executable_path, \
+    _update_built_artifacts, _update_asset_params_default_values, _write_stack, _undo_normalize_resource_metadata, \
+    _collect_stack_assets, _collect_project_assets, _shallow_clone_asset
 from samcli.lib.iac.cdk.exceptions import CdkToolkitNotInstalledError, InvalidCloudAssemblyError
 from samcli.lib.iac.plugins_interfaces import (
     SamCliContext,
@@ -423,11 +426,309 @@ class TestGetCdkExecutablePath(TestCase):
             _get_cdk_executable_path()
 
 
-# TODO: Implement these tests when the classes are fully implemented
-# These tests are included for code coverage
-class TestImplementations(TestCase):
-    def test_cdk_implementation(self):
-        impl = CdkIacImplementation(Mock())
-        impl.update_packaged_locations(Mock())
-        impl.write_project(Mock(), Mock())
-        self.assertTrue(True)
+class TestWriteStack(TestCase):
+    def setUp(self):
+        self.original_func = _write_stack
+
+    @patch("os.path.join", side_effect=["src_template_path", "stack_build_location", "build_dir/nested_stack"])
+    @patch("samcli.lib.iac.cdk.cdk_iac._undo_normalize_resource_metadata")
+    @patch("samcli.lib.iac.cdk.cdk_iac.move_template")
+    def test_write_stack_s3_asset(self, move_template_mock, undo_normalize_mock, path_join_mock):
+        stack = Stack(stack_id="test_stack")
+        stack["Resources"] = DictSection("Resources")
+        stack.extra_details["template_file"] = "template_file"
+        resource = Resource(
+            "Function1",
+            body={
+                "Type": "AWS::Lambda::Function",
+                "Properties": {},
+                "Metadata": {
+                    "aws:cdk:path": "stack/resouce",
+                    "aws:asset:path": "source_asset",
+                    "aws:asset:property": "Code",
+                },
+            },
+        )
+        stack["Resources"]["Function1"] = resource
+        s3_asset = S3Asset(
+            asset_id="id",
+            updated_source_path="updated_source_path",
+        )
+        resource.assets.append(s3_asset)
+
+        _write_stack(stack, "cloud_assembly_dir", "build_dir")
+        undo_normalize_mock.assert_called_once_with(resource)
+        self.assertEqual(resource["Metadata"]["aws:asset:path"], "updated_source_path")
+        move_template_mock.assert_called_once_with(
+            "src_template_path", "stack_build_location", stack, output_format=TemplateFormat.JSON
+        )
+
+    @patch("os.path.join", side_effect=["src_template_path", "stack_build_location", "build_dir/nested_stack"])
+    @patch("samcli.lib.iac.cdk.cdk_iac._undo_normalize_resource_metadata")
+    @patch("samcli.lib.iac.cdk.cdk_iac.move_template")
+    def test_write_stack_image_asset(self, move_template_mock, undo_normalize_mock, path_join_mock):
+        stack = Stack(stack_id="test_stack")
+        stack["Resources"] = DictSection("Resources")
+        stack.extra_details["template_file"] = "template_file"
+        resource = Resource(
+            "Function1",
+            body={
+                "Type": "AWS::Lambda::Function",
+                "Properties": {},
+                "Metadata": {
+                    "aws:cdk:path": "stack/resouce",
+                    "aws:asset:path": "source_asset",
+                    "aws:asset:property": "Code",
+                },
+            },
+        )
+        stack["Resources"]["Function1"] = resource
+        image_asset = ImageAsset(
+            asset_id="id",
+            source_local_image="image:tag",
+        )
+        resource.assets.append(image_asset)
+
+        _write_stack(stack, "cloud_assembly_dir", "build_dir")
+        undo_normalize_mock.assert_called_once_with(resource)
+        self.assertIn("aws:asset:local_image", resource["Metadata"])
+        self.assertEqual(resource["Metadata"]["aws:asset:local_image"], "image:tag")
+        move_template_mock.assert_called_once_with(
+            "src_template_path", "stack_build_location", stack, output_format=TemplateFormat.JSON
+        )
+
+    @patch("os.path.join", side_effect=["src_template_path", "stack_build_location", "build_dir/nested_stack"])
+    @patch("samcli.lib.iac.cdk.cdk_iac._undo_normalize_resource_metadata")
+    @patch("samcli.lib.iac.cdk.cdk_iac.move_template")
+    @patch("samcli.lib.iac.cdk.cdk_iac._write_stack")
+    def test_write_stack_s3_asset_nested_stack(
+        self, write_stack_mock, move_template_mock, undo_normalize_mock, path_join_mock
+    ):
+        stack = Stack(stack_id="test_stack")
+        stack["Resources"] = DictSection("Resources")
+        stack.extra_details["template_file"] = "template_file"
+        resource = Resource(
+            "NestedStack",
+            body={
+                "Type": "AWS::Lambda::Function",
+                "Properties": {},
+                "Metadata": {
+                    "aws:cdk:path": "stack/resouce",
+                    "aws:asset:path": "source_asset",
+                    "aws:asset:property": "TemplateURL",
+                },
+            },
+        )
+        stack["Resources"]["Function1"] = resource
+        s3_asset = S3Asset(
+            asset_id="id",
+            updated_source_path="updated_source_path",
+            source_property="TemplateURL",
+        )
+        resource.assets.append(s3_asset)
+        resource.nested_stack = Stack(
+            sections={"Resources": {}}, extra_details={"template_file": "hello.nested-stack.json"}
+        )
+
+        self.original_func(stack, "cloud_assembly_dir", "build_dir")
+        undo_normalize_mock.assert_called_once_with(resource)
+        self.assertEqual(resource["Metadata"]["aws:asset:path"], "build_dir/nested_stack")
+        self.assertEqual(s3_asset.updated_source_path, "build_dir/nested_stack")
+        write_stack_mock.assert_called_once_with(resource.nested_stack, "cloud_assembly_dir", "build_dir")
+        move_template_mock.assert_called_once_with(
+            "src_template_path", "stack_build_location", stack, output_format=TemplateFormat.JSON
+        )
+
+
+class TestUndoNormalizeResourceMetadata(TestCase):
+    def test_undo_normalize_resource_metadata(self):
+        resource = Resource("Function")
+        resource["Key"] = "NewVal"
+        resource.extra_details["original_body"] = {"Key": "OriginalVal"}
+        _undo_normalize_resource_metadata(resource)
+        self.assertEqual(resource["Key"], "OriginalVal")
+
+
+class TestCollectStackAssets(TestCase):
+    def setUp(self):
+        self.original_func = _collect_stack_assets
+
+    def test_collect_stack_assets(self):
+        s3_asset = S3Asset(asset_id="s3")
+        image_asset = ImageAsset(asset_id="image")
+        stack = Stack()
+        dict_section = DictSection()
+        dict_section["Function1"] = Resource(assets=[s3_asset])
+        dict_section["Function2"] = Resource(assets=[image_asset])
+        stack.sections["Resources"] = dict_section
+
+        collected = _collect_stack_assets(stack)
+        self.assertIn("s3", collected)
+        self.assertIn("image", collected)
+        self.assertEqual(collected["s3"], s3_asset)
+        self.assertEqual(collected["image"], image_asset)
+
+    @patch("samcli.lib.iac.cdk.cdk_iac._collect_stack_assets")
+    def test_collect_stack_assets_nested_stack(self, collect_stack_assets_mock):
+        nested_stack_asset = S3Asset(asset_id="nested_stack")
+        stack = Stack()
+        dict_section = DictSection()
+        nested_stack = Stack(sections={"Resources": {}})
+        dict_section["NestedStack"] = Resource(assets=[nested_stack_asset], nested_stack=nested_stack)
+        stack.sections["Resources"] = dict_section
+
+        collected = self.original_func(stack)
+        self.assertIn("nested_stack", collected)
+        self.assertEqual(collected["nested_stack"], nested_stack_asset)
+        collect_stack_assets_mock.assert_called_once_with(nested_stack)
+
+
+class TestCollectProjectAssets(TestCase):
+    @patch(
+        "samcli.lib.iac.cdk.cdk_iac._collect_stack_assets",
+        side_effect=[{"1": S3Asset(asset_id="1")}, {"2": ImageAsset(asset_id="2")}],
+    )
+    def test_collect_project_assets(self, collect_stack_assets_mock):
+        project = SamCliProject(stacks=[Stack(name="stack1"), Stack(name="stack2")])
+        assets, root_stack_names = _collect_project_assets(project)
+        self.assertIn("stack1", assets)
+        self.assertIn("1", assets["stack1"])
+        self.assertIn("stack2", assets)
+        self.assertIn("2", assets["stack2"])
+        self.assertIn("stack1", root_stack_names)
+        self.assertIn("stack2", root_stack_names)
+
+
+class TestShallowCloneAsset(TestCase):
+    def test_shallow_clone_s3_asset(self):
+        s3_asset = S3Asset()
+        collected_s3_asset = S3Asset(
+            source_path="collected_path",
+            source_property="collected_property",
+            updated_source_path="collected_updated_path",
+            destinations=[Mock()],
+            object_version="collected_version",
+            object_key="colected_key",
+            bucket_name="collected_bucket",
+        )
+        collected_assets = {"id": collected_s3_asset}
+        _shallow_clone_asset(s3_asset, "id", collected_assets)
+        self.assertNotEqual(s3_asset, collected_s3_asset)
+        self.assertEqual(s3_asset.source_path, collected_s3_asset.source_path)
+        self.assertEqual(s3_asset.source_property, collected_s3_asset.source_property)
+        self.assertEqual(s3_asset.updated_source_path, collected_s3_asset.updated_source_path)
+        self.assertEqual(s3_asset.destinations, collected_s3_asset.destinations)
+        self.assertEqual(s3_asset.object_version, collected_s3_asset.object_version)
+        self.assertEqual(s3_asset.object_key, collected_s3_asset.object_key)
+        self.assertEqual(s3_asset.bucket_name, collected_s3_asset.bucket_name)
+
+    def test_shallow_clone_image_asset(self):
+        image_asset = ImageAsset()
+        collected_image_asset = ImageAsset(
+            source_local_image="source_local_image",
+            target="target",
+            build_args={"foo": "bar"},
+            docker_file_name="Dockerfile",
+            image_tag="tag",
+            registry="registry",
+            repository_name="repo",
+        )
+        collected_assets = {"id": collected_image_asset}
+        _shallow_clone_asset(image_asset, "id", collected_assets)
+        self.assertNotEqual(image_asset, collected_image_asset)
+        self.assertEqual(image_asset.source_local_image, collected_image_asset.source_local_image)
+        self.assertEqual(image_asset.target, collected_image_asset.target)
+        self.assertEqual(image_asset.build_args, collected_image_asset.build_args)
+        self.assertEqual(image_asset.docker_file_name, collected_image_asset.docker_file_name)
+        self.assertEqual(image_asset.image_tag, collected_image_asset.image_tag)
+        self.assertEqual(image_asset.registry, collected_image_asset.registry)
+        self.assertEqual(image_asset.repository_name, collected_image_asset.repository_name)
+
+
+class TestUpdateAssetParamsDefaultValues(TestCase):
+    def test_update_asset_params_default_values(self):
+        asset = S3Asset(
+            asset_id="asset",
+            bucket_name="bucket",
+            object_key="key",
+            object_version="version",
+            extra_details={
+                "assetParameters": {
+                    "s3BucketParameter": "xxx",
+                    "s3KeyParameter": "yyy",
+                    "artifactHashParameter": "zzz",
+                }
+            },
+        )
+
+        parameters = DictSection("Parameters")
+        parameters["xxx"] = {"Type": "String"}
+        parameters["yyy"] = {"Type": "String"}
+        parameters["zzz"] = {"Type": "String"}
+
+        _update_asset_params_default_values(asset, parameters)
+        self.assertIn("Default", parameters["xxx"])
+        self.assertEqual(parameters["xxx"]["Default"], "bucket")
+        self.assertIn("Default", parameters["yyy"])
+        self.assertEqual(parameters["yyy"]["Default"], "key||version")
+        self.assertIn("Default", parameters["zzz"])
+        self.assertEqual(parameters["zzz"]["Default"], "asset")
+
+
+class TestUpdateBuiltArtifacts(TestCase):
+    def setUp(self):
+        self.manifest_dict = {
+            "artifacts": {
+                "root-stack-1": {
+                    "metadata": {
+                        "/root-stack-1": [
+                            {
+                                "type": "aws:cdk:asset",
+                                "data": {
+                                    "id": "asset1",
+                                    "packaging": "zip",
+                                    "path": "original_path",
+                                },
+                            }
+                        ]
+                    }
+                },
+                "root-stack-2": {},
+            }
+        }
+        self.updated_manifest = {
+            "artifacts": {
+                "root-stack-1": {
+                    "metadata": {
+                        "/root-stack-1": [
+                            {
+                                "type": "aws:cdk:asset",
+                                "data": {
+                                    "id": "asset1",
+                                    "packaging": "zip",
+                                    "path": "updated_source_path",
+                                },
+                            }
+                        ]
+                    }
+                },
+                "root-stack-2": {},
+            }
+        }
+        self.assets = {"root-stack-1": {"asset1": S3Asset(updated_source_path="updated_source_path")}}
+        self.mock_open = mock_open()
+        self.collect_project_assets_mock_return_value = (self.assets, ["root-stack-1"])
+
+    @patch("os.path.join", return_value="path/to/file")
+    @patch("json.loads")
+    @patch("json.dumps")
+    @patch("samcli.lib.iac.cdk.cdk_iac._collect_project_assets")
+    def test_update_built_artifacts(
+        self, collect_project_assets_mock, json_dumps_mock, json_loads_mock, os_path_join_mock
+    ):
+        json_loads_mock.return_value = self.manifest_dict
+        with patch("samcli.lib.iac.cdk.cdk_iac.open", self.mock_open):
+            project = SamCliProject(stacks=[])
+            collect_project_assets_mock.return_value = self.collect_project_assets_mock_return_value
+            _update_built_artifacts(project, "cloud_assembly_dir", "build_dir")
+            json_dumps_mock.assert_called_once_with(self.updated_manifest, indent=4)

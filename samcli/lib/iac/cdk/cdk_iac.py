@@ -4,6 +4,7 @@ Provide a CDK implementation of IaCPluginInterface
 
 # pylint: skip-file
 import copy
+import json
 import logging
 import os
 import platform
@@ -14,6 +15,7 @@ from pathlib import Path
 from typing import List, Optional, Dict, Union, Mapping
 
 from samcli.commands._utils.resources import NESTED_STACKS_RESOURCES
+from samcli.commands._utils.template import TemplateFormat, move_template
 from samcli.lib.iac.cdk.cloud_assembly import CloudAssembly, CloudAssemblyStack, CloudAssemblyNestedStack
 from samcli.lib.iac.cdk.constants import (
     MANIFEST_FILENAME,
@@ -25,11 +27,6 @@ from samcli.lib.iac.cdk.constants import (
     CONTAINER_IMAGE_ASSET_PACKAGING,
 )
 from samcli.lib.iac.cdk.exceptions import InvalidCloudAssemblyError, CdkToolkitNotInstalledError, CdkSynthError
-from samcli.lib.iac.cdk.plugin import (
-    TEMP_CDK_OUT,
-    RESOURCE_EXTRA_DETAILS_ORIGINAL_BODY_KEY,
-    STACK_EXTRA_DETAILS_TEMPLATE_FILENAME_KEY,
-)
 from samcli.lib.iac.constants import PARAMETER_OVERRIDES, GLOBAL_PARAMETER_OVERRIDES
 from samcli.lib.iac.plugins_interfaces import (
     IaCPluginInterface,
@@ -44,7 +41,7 @@ from samcli.lib.iac.plugins_interfaces import (
     SimpleSection,
     DictSectionItem,
     Parameter,
-    LookupPath,
+    LookupPath, Asset,
 )
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
@@ -52,10 +49,15 @@ from samcli.lib.samlib.resource_metadata_normalizer import (
     ASSET_PATH_METADATA_KEY,
     ASSET_PROPERTY_METADATA_KEY,
     ASSET_LOCAL_IMAGE_METADATA_KEY,
-    ResourceMetadataNormalizer,
+    ResourceMetadataNormalizer, METADATA_KEY,
 )
 
 LOG = logging.getLogger(__name__)
+
+TEMP_CDK_OUT = ".aws-sam/.cdk-out"
+CDK_CONFIG_FILENAME = "cdk.json"
+STACK_EXTRA_DETAILS_TEMPLATE_FILENAME_KEY = "template_file"
+RESOURCE_EXTRA_DETAILS_ORIGINAL_BODY_KEY = "original_body"
 
 
 # TODO: Implement the new interface methods for the CDK plugin type
@@ -108,14 +110,26 @@ class CdkIacImplementation(IaCPluginInterface):
         return project
 
     def write_project(self, project: SamCliProject, build_dir: str) -> bool:
-        pass
+        """
+        Write project to a template (or a set of templates),
+        move the template(s) to build_path
+        """
+        for filename in [MANIFEST_FILENAME, TREE_FILENAME, OUT_FILENAME]:
+            shutil.copy2(os.path.join(self._cloud_assembly_dir, filename), os.path.join(build_dir, filename))
+
+        _update_built_artifacts(project, self._cloud_assembly_dir, build_dir)
+
+        for stack in project.stacks:
+            _write_stack(stack, self._cloud_assembly_dir, build_dir)
+
+        return True
 
     def update_packaged_locations(self, stack: Stack) -> bool:
         pass
 
     @staticmethod
     def get_iac_file_patterns() -> List[str]:
-        return ["cdk.json"]
+        return [CDK_CONFIG_FILENAME]
 
     def _cdk_synth(self, app: Optional[str] = None, context: Optional[List] = None) -> str:
         """
@@ -285,6 +299,40 @@ class CdkIacImplementation(IaCPluginInterface):
                         ]
             section[logical_id] = resource
 
+    # TODO: Refactor the following methods when refactoring package command
+    def should_update_property_after_package(self, asset: Asset) -> bool:
+        if isinstance(asset, S3Asset):
+            # S3 Asset is binded with Asset Parameter. Thus, property should not be updated.
+            return False
+        return True
+
+    def update_asset_params_default_values_after_packaging(self, stack: Stack, parameters: DictSection) -> None:
+        """
+        Populate default values for asset parameters
+        """
+        resources = stack.get("Resources", DictSection())
+        for resource in resources.values():
+            # undo normalize resource metadata
+            # update asset param default values
+            if resource.assets and resource.assets[0]:
+                asset = resource.assets[0]
+                if isinstance(asset, S3Asset) and "assetParameters" in asset.extra_details:
+                    _update_asset_params_default_values(asset, parameters)
+
+            # recursively do the same on nested stack
+            if resource.nested_stack:
+                self.update_asset_params_default_values_after_packaging(resource.nested_stack, parameters)
+                resource.assets = []
+                resource.nested_stack = None
+
+    def update_resource_after_packaging(self, resource: Resource) -> None:
+        """
+        Update resource property to reference asset parameters
+        """
+        if resource.assets and resource.assets[0]:
+            asset = resource.assets[0]
+            if isinstance(asset, S3Asset) and "assetParameters" in asset.extra_details:
+                _undo_normalize_resource_metadata(resource)
 
 def _collect_assets(
     ca_stack: Union[CloudAssemblyStack, CloudAssemblyNestedStack]
@@ -321,6 +369,137 @@ def _collect_assets(
                     build_args=ca_asset.get("buildArgs", None),
                 )
     return assets
+
+
+def _write_stack(stack: Stack, cloud_assembly_dir: str, build_dir: str) -> None:
+    # write template
+    src_template_path = os.path.join(stack.origin_dir, stack.extra_details[STACK_EXTRA_DETAILS_TEMPLATE_FILENAME_KEY])
+    stack_build_location = os.path.join(build_dir, stack.extra_details[STACK_EXTRA_DETAILS_TEMPLATE_FILENAME_KEY])
+
+    resources = stack.get("Resources", {})
+    for _, resource in resources.items():
+        _undo_normalize_resource_metadata(resource)
+        if resource.assets:
+            asset = resource.assets[0]
+            if isinstance(asset, ImageAsset) and asset.source_local_image is not None:
+                resource[METADATA_KEY][ASSET_LOCAL_IMAGE_METADATA_KEY] = asset.source_local_image
+            elif isinstance(asset, S3Asset) and ASSET_PATH_METADATA_KEY in resource.get(METADATA_KEY, {}):
+                updated_path = asset.updated_source_path or asset.source_path
+                resource[METADATA_KEY][ASSET_PATH_METADATA_KEY] = updated_path
+        if resource.nested_stack:
+            _write_stack(resource.nested_stack, cloud_assembly_dir, build_dir)
+            for asset in resource.assets:
+                if isinstance(asset, S3Asset) and asset.source_property in NESTED_STACKS_RESOURCES.values():
+                    nested_stack_file_name = resource.nested_stack.extra_details[
+                        STACK_EXTRA_DETAILS_TEMPLATE_FILENAME_KEY
+                    ]
+                    asset.updated_source_path = os.path.join(build_dir, nested_stack_file_name)
+                    resource[METADATA_KEY][ASSET_PATH_METADATA_KEY] = asset.updated_source_path
+    move_template(src_template_path, stack_build_location, stack, output_format=TemplateFormat.JSON)
+
+
+def _undo_normalize_resource_metadata(resource: Resource) -> None:
+    if RESOURCE_EXTRA_DETAILS_ORIGINAL_BODY_KEY in resource.extra_details:
+        for key, val in resource.extra_details[RESOURCE_EXTRA_DETAILS_ORIGINAL_BODY_KEY].items():
+            resource[key] = val
+
+
+def _update_built_artifacts(project: SamCliProject, cloud_assembly_dir: str, build_dir: str) -> None:
+    with open(os.path.join(build_dir, MANIFEST_FILENAME), "r") as f:
+        manifest_dict = json.loads(f.read())
+
+    assets, root_stack_names = _collect_project_assets(project)
+
+    for artifact_name, artifact in manifest_dict.get("artifacts", {}).items():
+        if artifact_name not in root_stack_names:
+            continue
+        metadata = artifact.get("metadata", {})
+        stack_metadata_items = metadata.get(f"/{artifact_name}", [])
+        stack_assets = assets.get(artifact_name, {})
+        for item in stack_metadata_items:
+            if item.get("type", None) != "aws:cdk:asset":
+                continue
+            asset_data = item.get("data", {})
+
+            if asset_data["id"] not in stack_assets:
+                continue
+
+            if asset_data.get("packaging", None) == "zip":
+                stack_asset = stack_assets[asset_data["id"]]
+                updated_path = stack_asset.updated_source_path or stack_asset.source_path
+
+                asset_data["path"] = updated_path
+                item["data"] = asset_data
+
+    with open(os.path.join(build_dir, MANIFEST_FILENAME), "w") as f:
+        f.write(json.dumps(manifest_dict, indent=4))
+
+
+def _collect_project_assets(project):
+    assets: Dict[str, Asset] = {}
+    root_stack_names = []
+    for stack in project.stacks:
+        assets[stack.name] = _collect_stack_assets(stack)
+        root_stack_names.append(stack.name)
+    return assets, root_stack_names
+
+
+def _collect_stack_assets(stack: Stack) -> Dict[str, Asset]:
+    collected_assets: Dict[str, Asset] = {}
+    sections: Dict = stack.sections or {}
+    for _, section in sections.items():
+        if not isinstance(section, DictSection):
+            continue
+        for section_item in section.section_items:
+            assets = section_item.assets or []
+            for asset in assets:
+                collected_assets[asset.asset_id] = asset
+            if not isinstance(section_item, Resource) or not section_item.nested_stack:
+                continue
+
+            nested_stack_assets = _collect_stack_assets(section_item.nested_stack)
+            for asset_id, asset in nested_stack_assets.items():
+                if asset_id in collected_assets:
+                    _shallow_clone_asset(asset, asset_id, collected_assets)
+                else:
+                    collected_assets[asset_id] = asset
+
+    return collected_assets
+
+
+def _shallow_clone_asset(asset, asset_id, collected_assets):
+    if isinstance(asset, S3Asset):
+        asset.updated_source_path = collected_assets[asset_id].updated_source_path
+        asset.source_property = collected_assets[asset_id].source_property
+        asset.source_path = collected_assets[asset_id].source_path
+        asset.destinations = collected_assets[asset_id].destinations
+        asset.object_version = collected_assets[asset_id].object_version
+        asset.object_key = collected_assets[asset_id].object_key
+        asset.bucket_name = collected_assets[asset_id].bucket_name
+    elif isinstance(asset, ImageAsset):
+        asset.source_local_image = collected_assets[asset_id].source_local_image
+        asset.target = collected_assets[asset_id].target
+        asset.build_args = collected_assets[asset_id].build_args
+        asset.docker_file_name = collected_assets[asset_id].docker_file_name
+        asset.image_tag = collected_assets[asset_id].image_tag
+        asset.registry = collected_assets[asset_id].registry
+        asset.repository_name = collected_assets[asset_id].repository_name
+
+
+def _update_asset_params_default_values(asset: S3Asset, parameters: DictSection) -> None:
+    s3_bucket_param_key = asset.extra_details["assetParameters"].get("s3BucketParameter")
+    s3_bucket_param_val = asset.bucket_name
+    if s3_bucket_param_key is not None and s3_bucket_param_val is not None and s3_bucket_param_key in parameters:
+        parameters[s3_bucket_param_key]["Default"] = s3_bucket_param_val
+    s3_key_param_key = asset.extra_details["assetParameters"].get("s3KeyParameter")
+    s3_key_val = asset.object_key
+    s3_version_val = asset.object_version or ""
+    if s3_key_param_key is not None and s3_key_val is not None and s3_key_param_key in parameters:
+        parameters[s3_key_param_key]["Default"] = s3_key_val + "||" + s3_version_val
+    artifact_hash_key = asset.extra_details["assetParameters"].get("artifactHashParameter")
+    artifact_hash_val = asset.asset_id
+    if artifact_hash_key is not None and artifact_hash_val is not None and artifact_hash_key in parameters:
+        parameters[artifact_hash_key]["Default"] = artifact_hash_val
 
 
 def _get_cdk_executable_path() -> str:
