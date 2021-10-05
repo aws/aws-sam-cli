@@ -41,7 +41,8 @@ from samcli.lib.iac.plugins_interfaces import (
     SimpleSection,
     DictSectionItem,
     Parameter,
-    LookupPath, Asset,
+    LookupPath,
+    Asset,
 )
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
@@ -49,7 +50,8 @@ from samcli.lib.samlib.resource_metadata_normalizer import (
     ASSET_PATH_METADATA_KEY,
     ASSET_PROPERTY_METADATA_KEY,
     ASSET_LOCAL_IMAGE_METADATA_KEY,
-    ResourceMetadataNormalizer, METADATA_KEY,
+    ResourceMetadataNormalizer,
+    METADATA_KEY,
 )
 
 LOG = logging.getLogger(__name__)
@@ -333,6 +335,7 @@ class CdkIacImplementation(IaCPluginInterface):
             asset = resource.assets[0]
             if isinstance(asset, S3Asset) and "assetParameters" in asset.extra_details:
                 _undo_normalize_resource_metadata(resource)
+
 
 def _collect_assets(
     ca_stack: Union[CloudAssemblyStack, CloudAssemblyNestedStack]

@@ -6,9 +6,18 @@ from unittest.mock import ANY, Mock, patch, mock_open
 
 from samcli.commands._utils.template import TemplateFormat
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
-from samcli.lib.iac.cdk.cdk_iac import CdkIacImplementation, _collect_assets, _get_cdk_executable_path, \
-    _update_built_artifacts, _update_asset_params_default_values, _write_stack, _undo_normalize_resource_metadata, \
-    _collect_stack_assets, _collect_project_assets, _shallow_clone_asset
+from samcli.lib.iac.cdk.cdk_iac import (
+    CdkIacImplementation,
+    _collect_assets,
+    _get_cdk_executable_path,
+    _update_built_artifacts,
+    _update_asset_params_default_values,
+    _write_stack,
+    _undo_normalize_resource_metadata,
+    _collect_stack_assets,
+    _collect_project_assets,
+    _shallow_clone_asset,
+)
 from samcli.lib.iac.cdk.exceptions import CdkToolkitNotInstalledError, InvalidCloudAssemblyError
 from samcli.lib.iac.plugins_interfaces import (
     SamCliContext,
