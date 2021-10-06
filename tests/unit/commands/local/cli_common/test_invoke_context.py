@@ -41,7 +41,7 @@ class TestInvokeContext__enter__(TestCase):
             aws_region="region",
             aws_profile="profile",
             shutdown=False,
-            invoke_image="image",
+            invoke_images={None: "image"},
         )
 
         template_dict = "template_dict"
@@ -76,7 +76,7 @@ class TestInvokeContext__enter__(TestCase):
         self.assertEqual(invoke_context._container_manager, container_manager_mock)
         self.assertEqual(invoke_context._containers_mode, ContainersMode.COLD)
         self.assertEqual(invoke_context._containers_initializing_mode, ContainersInitializationMode.LAZY)
-        self.assertEqual(invoke_context._invoke_image, "image")
+        self.assertEqual(invoke_context._invoke_images, {None: "image"})
 
         invoke_context._get_stacks.assert_called_once()
         SamFunctionProviderMock.assert_called_with(stacks)
@@ -122,7 +122,7 @@ class TestInvokeContext__enter__(TestCase):
             aws_profile="profile",
             warm_container_initialization_mode=ContainersInitializationMode.EAGER.value,
             shutdown=True,
-            invoke_image="image",
+            invoke_images={None: "image"},
         )
 
         _initialize_all_functions_containers_mock = Mock()
@@ -160,7 +160,7 @@ class TestInvokeContext__enter__(TestCase):
         self.assertEqual(invoke_context._container_manager, container_manager_mock)
         self.assertEqual(invoke_context._containers_mode, ContainersMode.WARM)
         self.assertEqual(invoke_context._containers_initializing_mode, ContainersInitializationMode.EAGER)
-        self.assertEqual(invoke_context._invoke_image, "image")
+        self.assertEqual(invoke_context._invoke_images, {None: "image"})
 
         invoke_context._get_stacks.assert_called_once()
         SamFunctionProviderMock.assert_called_with(stacks)
@@ -208,7 +208,7 @@ class TestInvokeContext__enter__(TestCase):
             warm_container_initialization_mode=ContainersInitializationMode.EAGER.value,
             debug_function="",
             shutdown=True,
-            invoke_image="image",
+            invoke_images={None: "image"},
         )
 
         _initialize_all_functions_containers_mock = Mock()
@@ -245,7 +245,7 @@ class TestInvokeContext__enter__(TestCase):
         self.assertEqual(invoke_context._container_manager, container_manager_mock)
         self.assertEqual(invoke_context._containers_mode, ContainersMode.WARM)
         self.assertEqual(invoke_context._containers_initializing_mode, ContainersInitializationMode.EAGER)
-        self.assertEqual(invoke_context._invoke_image, "image")
+        self.assertEqual(invoke_context._invoke_images, {None: "image"})
 
         invoke_context._get_stacks.assert_called_once()
         SamFunctionProviderMock.assert_called_with(stacks)
@@ -293,7 +293,7 @@ class TestInvokeContext__enter__(TestCase):
             warm_container_initialization_mode=ContainersInitializationMode.LAZY.value,
             debug_function="debug_function",
             shutdown=True,
-            invoke_image="image",
+            invoke_images={None: "image"},
         )
 
         template_dict = "template_dict"
@@ -328,7 +328,7 @@ class TestInvokeContext__enter__(TestCase):
         self.assertEqual(invoke_context._container_manager, container_manager_mock)
         self.assertEqual(invoke_context._containers_mode, ContainersMode.WARM)
         self.assertEqual(invoke_context._containers_initializing_mode, ContainersInitializationMode.LAZY)
-        self.assertEqual(invoke_context._invoke_image, "image")
+        self.assertEqual(invoke_context._invoke_images, {None: "image"})
 
         invoke_context._get_stacks.assert_called_once()
         SamFunctionProviderMock.assert_called_with(stacks)
@@ -452,7 +452,7 @@ class TestInvokeContextAsContextManager(TestCase):
             debugger_path="path-to-debugger",
             debug_args="args",
             aws_profile="profile",
-            invoke_image="image",
+            invoke_images={None: "image"},
         ) as context:
             self.assertEqual(context_obj, context)
 
@@ -543,7 +543,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             self.assertEqual(result, runner_mock)
 
             LambdaRuntimeMock.assert_called_with(container_manager_mock, image_mock)
-            lambda_image_patch.assert_called_once_with(download_mock, True, True, invoke_image=None)
+            lambda_image_patch.assert_called_once_with(download_mock, True, True, invoke_images=None)
             LocalLambdaMock.assert_called_with(
                 local_runtime=runtime_mock,
                 function_provider=ANY,
@@ -616,7 +616,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             self.assertEqual(result, runner_mock)
 
             WarmLambdaRuntimeMock.assert_called_with(container_manager_mock, image_mock)
-            lambda_image_patch.assert_called_once_with(download_mock, True, True, invoke_image=None)
+            lambda_image_patch.assert_called_once_with(download_mock, True, True, invoke_images=None)
             LocalLambdaMock.assert_called_with(
                 local_runtime=runtime_mock,
                 function_provider=ANY,
@@ -690,7 +690,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             self.assertEqual(result, runner_mock)
 
             LambdaRuntimeMock.assert_called_with(container_manager_mock, image_mock)
-            lambda_image_patch.assert_called_once_with(download_mock, True, True, invoke_image=None)
+            lambda_image_patch.assert_called_once_with(download_mock, True, True, invoke_images=None)
             LocalLambdaMock.assert_called_with(
                 local_runtime=runtime_mock,
                 function_provider=ANY,
@@ -744,7 +744,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             debug_args="args",
             aws_profile="profile",
             aws_region="region",
-            invoke_image="image",
+            invoke_images={None: "image"},
         )
         self.context.get_cwd = Mock()
         self.context.get_cwd.return_value = cwd
@@ -764,7 +764,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             self.assertEqual(result, runner_mock)
 
             LambdaRuntimeMock.assert_called_with(container_manager_mock, image_mock)
-            lambda_image_patch.assert_called_once_with(download_mock, True, True, invoke_image="image")
+            lambda_image_patch.assert_called_once_with(download_mock, True, True, invoke_images={None: "image"})
             LocalLambdaMock.assert_called_with(
                 local_runtime=runtime_mock,
                 function_provider=ANY,

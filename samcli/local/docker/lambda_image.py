@@ -63,7 +63,7 @@ class LambdaImage:
     _SAM_CLI_REPO_NAME = "samcli/lambda"
     _RAPID_SOURCE_PATH = Path(__file__).parent.joinpath("..", "rapid").resolve()
 
-    def __init__(self, layer_downloader, skip_pull_image, force_image_build, docker_client=None, invoke_image=None):
+    def __init__(self, layer_downloader, skip_pull_image, force_image_build, docker_client=None, invoke_images=None):
         """
 
         Parameters
@@ -81,9 +81,9 @@ class LambdaImage:
         self.skip_pull_image = skip_pull_image
         self.force_image_build = force_image_build
         self.docker_client = docker_client or docker.from_env()
-        self.invoke_image = invoke_image
+        self.invoke_images = invoke_images
 
-    def build(self, runtime, packagetype, image, layers, architecture, stream=None):
+    def build(self, runtime, packagetype, image, layers, architecture, stream=None, function=None):
         """
         Build the image if one is not already on the system that matches the runtime and layers
 
@@ -111,7 +111,13 @@ class LambdaImage:
             image_name = image
         elif packagetype == ZIP:
             tag_name = f"latest-{architecture}" if has_runtime_multi_arch_image(runtime) else "latest"
-            image_name = self.invoke_image if self.invoke_image else f"{self._INVOKE_REPO_PREFIX}-{runtime}:{tag_name}"
+            if self.invoke_images:
+                if function and self.invoke_images.get(function):
+                    image_name = self.invoke_images.get(function)
+                else:
+                    image_name = self.invoke_images.get(None)
+            if not image_name:
+                image_name = f"{self._INVOKE_REPO_PREFIX}-{runtime}:{tag_name}"
 
         if not image_name:
             raise InvalidIntermediateImageError(f"Invalid PackageType, PackageType needs to be one of [{ZIP}, {IMAGE}]")

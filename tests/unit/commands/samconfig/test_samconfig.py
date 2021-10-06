@@ -280,7 +280,7 @@ class TestSamConfigForAllCommands(TestCase):
             "force_image_build": True,
             "shutdown": True,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
-            "invoke_image": "image"
+            "invoke_image": ["image"],
         }
 
         # NOTE: Because we don't load the full Click BaseCommand here, this is mounted as top-level command
@@ -319,7 +319,7 @@ class TestSamConfigForAllCommands(TestCase):
                 {"Key": "Value", "Key2": "Value2"},
                 "localhost",
                 "127.0.0.1",
-                "image",
+                ("image",),
             )
 
     @patch("samcli.commands.local.start_api.cli.do_cli")
@@ -343,6 +343,7 @@ class TestSamConfigForAllCommands(TestCase):
             "force_image_build": True,
             "shutdown": False,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
+            "invoke_image": ["image"],
         }
 
         # NOTE: Because we don't load the full Click BaseCommand here, this is mounted as top-level command
@@ -383,6 +384,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 "localhost",
                 "127.0.0.1",
+                ("image",),
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
@@ -405,6 +407,7 @@ class TestSamConfigForAllCommands(TestCase):
             "force_image_build": True,
             "shutdown": False,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value",
+            "invoke_image": ["image"],
         }
 
         # NOTE: Because we don't load the full Click BaseCommand here, this is mounted as top-level command
@@ -444,6 +447,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 "localhost",
                 "127.0.0.1",
+                ("image",),
             )
 
     @patch("samcli.lib.cli_validation.image_repository_validation.get_template_function_resource_ids")
@@ -818,6 +822,7 @@ class TestSamConfigWithOverrides(TestCase):
             "force_image_build": True,
             "shutdown": False,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value",
+            "invoke_image": ["image"],
         }
 
         # NOTE: Because we don't load the full Click BaseCommand here, this is mounted as top-level command
@@ -898,6 +903,7 @@ class TestSamConfigWithOverrides(TestCase):
                 None,
                 "localhost",
                 "127.0.0.1",
+                ("image",),
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
@@ -919,6 +925,7 @@ class TestSamConfigWithOverrides(TestCase):
             "skip_pull_image": True,
             "force_image_build": False,
             "shutdown": False,
+            "invoke_image": ["image"],
         }
 
         # NOTE: Because we don't load the full Click BaseCommand here, this is mounted as top-level command
@@ -991,6 +998,7 @@ class TestSamConfigWithOverrides(TestCase):
                 None,
                 "localhost",
                 "127.0.0.1",
+                ("image",),
             )
 
     @patch("samcli.commands.validate.validate.do_cli")
