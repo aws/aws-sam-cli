@@ -227,7 +227,7 @@ class LambdaContainer(Container):
         str
             Name of Docker Image for the given runtime
         """
-        return lambda_image.build(runtime, packagetype, image, layers, architecture, function)
+        return lambda_image.build(runtime, packagetype, image, layers, architecture, function=function)
 
     @staticmethod
     def _get_config(lambda_image, image):

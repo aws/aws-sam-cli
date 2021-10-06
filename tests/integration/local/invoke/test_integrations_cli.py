@@ -207,7 +207,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
             "HelloWorldServerlessFunction",
             template_path=self.template_path,
             event_path=self.event_path,
-            invoke_image=("amazon/aws-sam-cli-emulation-image-python3.6"),
+            invoke_image="amazon/aws-sam-cli-emulation-image-python3.6",
         )
 
         process = Popen(command_list, stdout=PIPE)
