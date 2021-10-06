@@ -394,7 +394,7 @@ class Deployer:
                         continue
                     break  # reached here only if break from inner loop!
 
-                if self._check_stack_complete(stack_status):
+                if self._check_stack_not_in_progress(stack_status):
                     stack_change_in_progress = False
                     break
             except botocore.exceptions.ClientError as ex:
@@ -406,7 +406,7 @@ class Deployer:
                 time.sleep(math.pow(self.backoff, retry_attempts))
 
     @staticmethod
-    def _check_stack_complete(status: str) -> bool:
+    def _check_stack_not_in_progress(status: str) -> bool:
         return "IN_PROGRESS" not in status
 
     def wait_for_execute(self, stack_name, changeset_type, disable_rollback):

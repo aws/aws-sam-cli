@@ -595,21 +595,23 @@ class TestDeployer(TestCase):
         self.assertEqual(patched_math.pow.call_args_list, [call(2, 1), call(2, 2), call(2, 3)])
 
     def test_check_stack_status(self):
-        self.assertEqual(self.deployer._check_stack_complete("CREATE_COMPLETE"), True)
-        self.assertEqual(self.deployer._check_stack_complete("CREATE_FAILED"), True)
-        self.assertEqual(self.deployer._check_stack_complete("CREATE_IN_PROGRESS"), False)
-        self.assertEqual(self.deployer._check_stack_complete("DELETE_COMPLETE"), True)
-        self.assertEqual(self.deployer._check_stack_complete("DELETE_FAILED"), True)
-        self.assertEqual(self.deployer._check_stack_complete("DELETE_IN_PROGRESS"), False)
-        self.assertEqual(self.deployer._check_stack_complete("REVIEW_IN_PROGRESS"), False)
-        self.assertEqual(self.deployer._check_stack_complete("ROLLBACK_COMPLETE"), True)
-        self.assertEqual(self.deployer._check_stack_complete("ROLLBACK_IN_PROGRESS"), False)
-        self.assertEqual(self.deployer._check_stack_complete("UPDATE_COMPLETE"), True)
-        self.assertEqual(self.deployer._check_stack_complete("UPDATE_COMPLETE_CLEANUP_IN_PROGRESS"), False)
-        self.assertEqual(self.deployer._check_stack_complete("UPDATE_IN_PROGRESS"), False)
-        self.assertEqual(self.deployer._check_stack_complete("UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS"), False)
-        self.assertEqual(self.deployer._check_stack_complete("UPDATE_ROLLBACK_FAILED"), True)
-        self.assertEqual(self.deployer._check_stack_complete("UPDATE_ROLLBACK_IN_PROGRESS"), False)
+        self.assertEqual(self.deployer._check_stack_not_in_progress("CREATE_COMPLETE"), True)
+        self.assertEqual(self.deployer._check_stack_not_in_progress("CREATE_FAILED"), True)
+        self.assertEqual(self.deployer._check_stack_not_in_progress("CREATE_IN_PROGRESS"), False)
+        self.assertEqual(self.deployer._check_stack_not_in_progress("DELETE_COMPLETE"), True)
+        self.assertEqual(self.deployer._check_stack_not_in_progress("DELETE_FAILED"), True)
+        self.assertEqual(self.deployer._check_stack_not_in_progress("DELETE_IN_PROGRESS"), False)
+        self.assertEqual(self.deployer._check_stack_not_in_progress("REVIEW_IN_PROGRESS"), False)
+        self.assertEqual(self.deployer._check_stack_not_in_progress("ROLLBACK_COMPLETE"), True)
+        self.assertEqual(self.deployer._check_stack_not_in_progress("ROLLBACK_IN_PROGRESS"), False)
+        self.assertEqual(self.deployer._check_stack_not_in_progress("UPDATE_COMPLETE"), True)
+        self.assertEqual(self.deployer._check_stack_not_in_progress("UPDATE_COMPLETE_CLEANUP_IN_PROGRESS"), False)
+        self.assertEqual(self.deployer._check_stack_not_in_progress("UPDATE_IN_PROGRESS"), False)
+        self.assertEqual(
+            self.deployer._check_stack_not_in_progress("UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS"), False
+        )
+        self.assertEqual(self.deployer._check_stack_not_in_progress("UPDATE_ROLLBACK_FAILED"), True)
+        self.assertEqual(self.deployer._check_stack_not_in_progress("UPDATE_ROLLBACK_IN_PROGRESS"), False)
 
     @patch("time.sleep")
     def test_wait_for_execute(self, patched_time):
