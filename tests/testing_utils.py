@@ -19,8 +19,7 @@ SKIP_DOCKER_TESTS = RUNNING_ON_CI and not RUN_BY_CANARY
 # Set to True temporarily if the integration tests require updated build images
 # Build images aren't published until after the CLI is released
 # The CLI integration tests thus cannot succeed if they require new build images (chicken-egg problem)
-# TODO: Set to False after new build images release
-SKIP_DOCKER_BUILD = True
+SKIP_DOCKER_BUILD = False
 
 SKIP_DOCKER_MESSAGE = "Skipped Docker test: running on CI not in canary or new build images are required"
 
