@@ -11,6 +11,7 @@ from typing import Dict, Optional, List
 import click
 
 from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
+from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.providers.provider import ResourcesToBuildCollector, Stack, Function, LayerVersion
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
@@ -134,6 +135,9 @@ class BuildContext:
             cache_path = pathlib.Path(self._cache_dir)
             cache_path.mkdir(mode=self._BUILD_DIR_PERMISSIONS, parents=True, exist_ok=True)
             self._cache_dir = str(cache_path.resolve())
+
+            dependencies_path = pathlib.Path(DEFAULT_DEPENDENCIES_DIR)
+            dependencies_path.mkdir(mode=self._BUILD_DIR_PERMISSIONS, parents=True, exist_ok=True)
 
         if self._use_container:
             self._container_manager = ContainerManager(
