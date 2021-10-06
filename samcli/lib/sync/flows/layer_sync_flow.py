@@ -6,12 +6,13 @@ import os
 import re
 import tempfile
 import uuid
+from abc import ABC, abstractmethod
 from typing import Any, TYPE_CHECKING, cast, Dict, List, Optional
 
 from boto3.session import Session
 from samcli.lib.build.app_builder import ApplicationBuilder
 from samcli.lib.package.utils import make_zip
-from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_by_id
+from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_by_id, Function
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.sync.exceptions import MissingPhysicalResourceError, NoLayerVersionsFoundError
 from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall
@@ -25,19 +26,19 @@ if TYPE_CHECKING:
 LOG = logging.getLogger(__name__)
 
 
-class LayerSyncFlow(SyncFlow):
-    """SyncFlow for Lambda Layers"""
+class AbstractLayerSyncFlow(SyncFlow, ABC):
+    """
+    AbstractLayerSyncFlow contains common operations for a Layer sync.
+    """
 
-    _layer_identifier: str
+    _lambda_client: Any
     _layer_physical_name: Optional[str]
     _old_layer_version: Optional[int]
     _new_layer_version: Optional[int]
-    _artifact_folder: Optional[str]
+    _layer_identifier: str
+    _artifact_folder: str
     _zip_file: Optional[str]
     _local_sha: Optional[str]
-    _s3_client: Any
-    _lambda_client: Any
-    _stacks: List[Stack]
 
     def __init__(
         self,
@@ -55,8 +56,131 @@ class LayerSyncFlow(SyncFlow):
 
     def set_up(self) -> None:
         super().set_up()
-        self._s3_client = cast(Session, self._session).client("s3")
         self._lambda_client = cast(Session, self._session).client("lambda")
+
+    def compare_remote(self) -> bool:
+        """
+        Compare Sha256 of the deployed layer code vs the one just built, True if they are same, False otherwise
+        """
+        self._old_layer_version = self._get_latest_layer_version()
+        old_layer_info = self._lambda_client.get_layer_version(
+            LayerName=self._layer_physical_name,
+            VersionNumber=self._old_layer_version,
+        )
+        remote_sha = base64.b64decode(old_layer_info.get("Content", {}).get("CodeSha256", "")).hex()
+        LOG.debug("%sLocal SHA: %s Remote SHA: %s", self.log_prefix, self._local_sha, remote_sha)
+
+        return self._local_sha == remote_sha
+
+    def _get_latest_layer_version(self):
+        """Fetches all layer versions from remote and returns the latest one"""
+        layer_versions = self._lambda_client.list_layer_versions(LayerName=self._layer_physical_name).get(
+            "LayerVersions", []
+        )
+        if not layer_versions:
+            raise NoLayerVersionsFoundError(self._layer_physical_name)
+        return layer_versions[0].get("Version")
+
+    def sync(self) -> None:
+        """
+        Publish new layer version, and delete the existing (old) one
+        """
+        LOG.debug("%sPublishing new Layer Version", self.log_prefix)
+        self._new_layer_version = self._publish_new_layer_version()
+        self._delete_old_layer_version()
+
+    def gather_dependencies(self) -> List[SyncFlow]:
+        if self._zip_file and os.path.exists(self._zip_file):
+            os.remove(self._zip_file)
+
+        dependencies: List[SyncFlow] = list()
+        dependent_functions = self._get_dependent_functions()
+        if self._stacks:
+            for function in dependent_functions:
+                if self._layer_identifier in [layer.full_path for layer in function.layers]:
+                    LOG.debug(
+                        "%sAdding function %s for updating its Layers with this new version",
+                        self.log_prefix,
+                        function.name,
+                    )
+                    dependencies.append(
+                        FunctionLayerReferenceSync(
+                            function.full_path,
+                            cast(str, self._layer_physical_name),
+                            cast(int, self._new_layer_version),
+                            self._build_context,
+                            self._deploy_context,
+                            self._physical_id_mapping,
+                            self._stacks,
+                        )
+                    )
+        return dependencies
+
+    def _get_resource_api_calls(self) -> List[ResourceAPICall]:
+        return [ResourceAPICall(self._layer_identifier, ["Build"])]
+
+    def _equality_keys(self) -> Any:
+        return self._layer_identifier
+
+    def _publish_new_layer_version(self) -> int:
+        """
+        Publish new layer version and keep new layer version arn so that we can update related functions
+        """
+        compatible_runtimes = self._get_compatible_runtimes()
+        with open(cast(str, self._zip_file), "rb") as zip_file:
+            data = zip_file.read()
+            layer_publish_result = self._lambda_client.publish_layer_version(
+                LayerName=self._layer_physical_name, Content={"ZipFile": data}, CompatibleRuntimes=compatible_runtimes
+            )
+            LOG.debug("%sPublish Layer Version Result %s", self.log_prefix, layer_publish_result)
+            return int(layer_publish_result.get("Version"))
+
+    def _delete_old_layer_version(self) -> None:
+        """
+        Delete old layer version for not hitting the layer version limit
+        """
+        LOG.debug(
+            "%sDeleting old Layer Version %s:%s", self.log_prefix, self._old_layer_version, self._old_layer_version
+        )
+        delete_layer_version_result = self._lambda_client.delete_layer_version(
+            LayerName=self._layer_physical_name,
+            VersionNumber=self._old_layer_version,
+        )
+        LOG.debug("%sDelete Layer Version Result %s", self.log_prefix, delete_layer_version_result)
+
+    @abstractmethod
+    def _get_compatible_runtimes(self) -> List[str]:
+        """
+        Returns compatible runtimes of the Layer instance that is going to be synced
+
+        Returns
+        -------
+        List[str]
+            List of strings which identifies the compatible runtimes for this layer
+        """
+        raise NotImplementedError("_get_compatible_runtimes not implemented")
+
+    @abstractmethod
+    def _get_dependent_functions(self) -> List[Function]:
+        """
+        Returns list of Function instances, which is depending on this Layer. This information is used to setup
+        dependency sync flows, which will update each function's configuration with new layer version.
+
+        Returns
+        -------
+        List[Function]
+            List of Function instances which uses this Layer
+        """
+        raise NotImplementedError("_get_dependent_functions not implemented")
+
+
+class LayerSyncFlow(AbstractLayerSyncFlow):
+    """SyncFlow for Lambda Layers"""
+
+    _new_layer_version: Optional[int]
+
+    def set_up(self) -> None:
+        super().set_up()
 
         # if layer is a serverless layer, its physical id contains hashes, try to find layer resource
         if self._layer_identifier not in self._physical_id_mapping:
@@ -103,96 +227,13 @@ class LayerSyncFlow(SyncFlow):
         LOG.debug("%sCreated artifact ZIP file: %s", self.log_prefix, self._zip_file)
         self._local_sha = file_checksum(cast(str, self._zip_file), hashlib.sha256())
 
-    def compare_remote(self) -> bool:
-        """
-        Compare Sha256 of the deployed layer code vs the one just built, True if they are same, False otherwise
-        """
-        self._old_layer_version = self._get_latest_layer_version()
-        old_layer_info = self._lambda_client.get_layer_version(
-            LayerName=self._layer_physical_name,
-            VersionNumber=self._old_layer_version,
-        )
-        remote_sha = base64.b64decode(old_layer_info.get("Content", {}).get("CodeSha256", "")).hex()
-        LOG.debug("%sLocal SHA: %s Remote SHA: %s", self.log_prefix, self._local_sha, remote_sha)
-
-        return self._local_sha == remote_sha
-
-    def sync(self) -> None:
-        """
-        Publish new layer version, and delete the existing (old) one
-        """
-        LOG.debug("%sPublishing new Layer Version", self.log_prefix)
-        self._new_layer_version = self._publish_new_layer_version()
-        self._delete_old_layer_version()
-
-    def _publish_new_layer_version(self) -> int:
-        """
-        Publish new layer version and keep new layer version arn so that we can update related functions
-        """
+    def _get_compatible_runtimes(self):
         layer_resource = cast(Dict[str, Any], self._get_resource(self._layer_identifier))
-        compatible_runtimes = layer_resource.get("Properties", {}).get("CompatibleRuntimes", [])
-        with open(cast(str, self._zip_file), "rb") as zip_file:
-            data = zip_file.read()
-            layer_publish_result = self._lambda_client.publish_layer_version(
-                LayerName=self._layer_physical_name, Content={"ZipFile": data}, CompatibleRuntimes=compatible_runtimes
-            )
-            LOG.debug("%sPublish Layer Version Result %s", self.log_prefix, layer_publish_result)
-            return int(layer_publish_result.get("Version"))
+        return layer_resource.get("Properties", {}).get("CompatibleRuntimes", [])
 
-    def _delete_old_layer_version(self) -> None:
-        """
-        Delete old layer version for not hitting the layer version limit
-        """
-        LOG.debug(
-            "%sDeleting old Layer Version %s:%s", self.log_prefix, self._old_layer_version, self._old_layer_version
-        )
-        delete_layer_version_result = self._lambda_client.delete_layer_version(
-            LayerName=self._layer_physical_name,
-            VersionNumber=self._old_layer_version,
-        )
-        LOG.debug("%sDelete Layer Version Result %s", self.log_prefix, delete_layer_version_result)
-
-    def gather_dependencies(self) -> List[SyncFlow]:
-        if self._zip_file and os.path.exists(self._zip_file):
-            os.remove(self._zip_file)
-
-        dependencies: List[SyncFlow] = list()
-        if self._stacks:
-            function_provider = SamFunctionProvider(self._stacks)
-            for function in function_provider.get_all():
-                if self._layer_identifier in [layer.full_path for layer in function.layers]:
-                    LOG.debug(
-                        "%sAdding function %s for updating its Layers with this new version",
-                        self.log_prefix,
-                        function.name,
-                    )
-                    dependencies.append(
-                        FunctionLayerReferenceSync(
-                            function.full_path,
-                            cast(str, self._layer_physical_name),
-                            cast(int, self._new_layer_version),
-                            self._build_context,
-                            self._deploy_context,
-                            self._physical_id_mapping,
-                            self._stacks,
-                        )
-                    )
-        return dependencies
-
-    def _get_resource_api_calls(self) -> List[ResourceAPICall]:
-        return [ResourceAPICall(self._layer_identifier, ["Build"])]
-
-    def _get_latest_layer_version(self):
-        """Fetches all layer versions from remote and returns the latest one"""
-        layer_versions = self._lambda_client.list_layer_versions(LayerName=self._layer_physical_name).get(
-            "LayerVersions", []
-        )
-        if not layer_versions:
-            raise NoLayerVersionsFoundError(self._layer_physical_name)
-        return layer_versions[0].get("Version")
-
-    def _equality_keys(self) -> Any:
-        return self._layer_identifier
+    def _get_dependent_functions(self) -> List[Function]:
+        function_provider = SamFunctionProvider(self._stacks)
+        return list(function_provider.get_all())
 
 
 class FunctionLayerReferenceSync(SyncFlow):

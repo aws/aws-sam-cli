@@ -30,12 +30,8 @@ class NestedStackBuilder(AbstractStackBuilder):
         layer_contents_folder: str,
         function: Function,
     ) -> str:
-        function_logical_id_hash = str_checksum(function.name)
-        stack_name_hash = str_checksum(stack_name)
-        layer_logical_id = f"{function.name[:48]}{function_logical_id_hash[:8]}DepLayer"
-        layer_name = (
-            f"{stack_name[:16]}{stack_name_hash[:8]}{function.name[:22]}{function_logical_id_hash[:8]}" f"DepLayer"
-        )
+        layer_logical_id = self.get_layer_logical_id(function.name)
+        layer_name = self.get_layer_name(stack_name, function.name)
 
         self.add_resource(
             layer_logical_id,
@@ -43,6 +39,17 @@ class NestedStackBuilder(AbstractStackBuilder):
         )
         self.add_output(layer_logical_id, {"Ref": layer_logical_id})
         return layer_logical_id
+
+    @staticmethod
+    def get_layer_logical_id(function_name: str) -> str:
+        function_logical_id_hash = str_checksum(function_name)
+        return f"{function_name[:48]}{function_logical_id_hash[:8]}DepLayer"
+
+    @staticmethod
+    def get_layer_name(stack_name: str, function_name: str) -> str:
+        function_logical_id_hash = str_checksum(function_name)
+        stack_name_hash = str_checksum(stack_name)
+        return  f"{stack_name[:16]}{stack_name_hash[:8]}{function_name[:22]}{function_logical_id_hash[:8]}" f"DepLayer"
 
     @staticmethod
     def _get_layer_dict(function_logical_id: str, layer_name: str, layer_contents_folder: str, function_runtime: str):

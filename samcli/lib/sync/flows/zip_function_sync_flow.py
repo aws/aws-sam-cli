@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional, TYPE_CHECKING, cast
 
 from boto3.session import Session
 
+from samcli.lib.build.build_graph import BuildGraph
 from samcli.lib.providers.provider import Stack
 
 from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow
@@ -36,6 +37,8 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
     _artifact_folder: Optional[str]
     _zip_file: Optional[str]
     _local_sha: Optional[str]
+    build_graph: Optional[BuildGraph]
+    resource_calls: List[ResourceAPICall]
 
     def __init__(
         self,
@@ -65,10 +68,15 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
         self._artifact_folder = None
         self._zip_file = None
         self._local_sha = None
+        self.build_graph = None
+        self.resource_calls = list()
 
     def set_up(self) -> None:
         super().set_up()
         self._s3_client = cast(Session, self._session).client("s3")
+
+        for layer in self._function.layers:
+            self.resource_calls.append(ResourceAPICall(layer.full_path, ["Build"]))
 
     def gather_resources(self) -> None:
         """Build function and ZIP it into a temp file in self._zip_file"""
@@ -88,7 +96,9 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
                 mode=self._build_context.mode,
             )
             LOG.debug("%sBuilding Function", self.log_prefix)
-            self._artifact_folder = builder.build().artifacts.get(self._function_identifier)
+            build_result = builder.build()
+            self.build_graph = build_result.build_graph
+            self._artifact_folder = build_result.artifacts.get(self._function_identifier)
 
         zip_file_path = os.path.join(tempfile.gettempdir(), "data-" + uuid.uuid4().hex)
         self._zip_file = make_zip(zip_file_path, self._artifact_folder)
@@ -139,7 +149,4 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
             os.remove(self._zip_file)
 
     def _get_resource_api_calls(self) -> List[ResourceAPICall]:
-        resource_calls = list()
-        for layer in self._function.layers:
-            resource_calls.append(ResourceAPICall(layer.full_path, ["Build"]))
-        return resource_calls
+        return self.resource_calls

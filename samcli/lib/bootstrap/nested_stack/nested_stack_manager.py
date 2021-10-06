@@ -3,14 +3,18 @@ nested stack manager to generate nested stack information and update original te
 """
 import logging
 import os
+import shutil
 from copy import deepcopy
+from pathlib import Path
 from typing import Dict, Optional, cast
 
 from samcli.commands._utils.template import move_template
 from samcli.lib.bootstrap.nested_stack.nested_stack_builder import NestedStackBuilder
 from samcli.lib.build.app_builder import ApplicationBuildResult
+from samcli.lib.build.workflow_config import get_layer_subfolder
 from samcli.lib.providers.provider import Stack, Function
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
+from samcli.lib.utils import osutils
 from samcli.lib.utils.packagetype import ZIP
 from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION, AWS_LAMBDA_FUNCTION
 
@@ -81,7 +85,7 @@ class NestedStackManager:
             if not self._is_function_supported(zip_function):
                 continue
 
-            dependencies_dir = self._get_dependencies_dir(zip_function)
+            dependencies_dir = self._get_dependencies_dir(zip_function.name)
             if not dependencies_dir:
                 LOG.debug(
                     "Dependency folder can't be found for %s, skipping auto dependency layer creation",
@@ -103,14 +107,17 @@ class NestedStackManager:
         return template
 
     def _add_layer(self, dependencies_dir: str, function: Function, resources: Dict):
-        self._add_layer_readme_info(dependencies_dir, function.name)
+        layer_logical_id = NestedStackBuilder.get_layer_logical_id(function.name)
+        layer_location = self.update_layer_folder(
+            self._build_dir, dependencies_dir, layer_logical_id, function.name, function.runtime
+        )
 
-        layer_output_key = self._nested_stack_builder.add_function(self._stack_name, dependencies_dir, function)
+        layer_output_key = self._nested_stack_builder.add_function(self._stack_name, layer_location, function)
 
         # add layer reference back to function
         function_properties = cast(Dict, resources.get(function.name)).get("Properties", {})
         function_layers = function_properties.get("Layers", [])
-        function_layers.append({"Fn:GettAtt": [NESTED_STACK_NAME, f"Outputs.{layer_output_key}"]})
+        function_layers.append({"Fn::GetAtt": [NESTED_STACK_NAME, f"Outputs.{layer_output_key}"]})
         function_properties["Layers"] = function_layers
 
     @staticmethod
@@ -121,6 +128,28 @@ class NestedStackManager:
                 f"This layer contains dependencies of function {function_name} "
                 "and automatically added by AWS SAM CLI command 'sam sync'"
             )
+
+    @staticmethod
+    def update_layer_folder(
+            build_dir, dependencies_dir: str, layer_logical_id: str, function_name: str, function_runtime: Optional[str]
+    ) -> str:
+        """
+        Creates build folder for auto dependency layer by moving dependencies into sub folder which is defined
+        by the runtime
+        """
+        if not function_runtime:
+            # TODO change with specific exception
+            raise ValueError("No runtime provided for the layer")
+
+        layer_root_folder = Path(build_dir).joinpath(layer_logical_id)
+        if layer_root_folder.exists():
+            shutil.rmtree(layer_root_folder)
+        layer_contents_folder = layer_root_folder.joinpath(get_layer_subfolder(function_runtime))
+        # TODO use folder permissions from build context
+        layer_contents_folder.mkdir(0o755, parents=True)
+        osutils.copytree(dependencies_dir, str(layer_contents_folder))
+        NestedStackManager._add_layer_readme_info(str(layer_root_folder), function_name)
+        return str(layer_root_folder)
 
     def _is_function_supported(self, function: Function):
         """
@@ -145,15 +174,12 @@ class NestedStackManager:
 
         return True
 
-    def _get_dependencies_dir(self, function: Function) -> Optional[str]:
+    def _get_dependencies_dir(self, function_logical_id: str) -> Optional[str]:
         """
         Returns dependency directory information for function
         """
-        dependencies_dir = None
-        for function_build_definition in self._app_build_result.build_graph.get_function_build_definitions():
-            for build_definition_function in function_build_definition.functions:
-                if build_definition_function.name == function.name:
-                    dependencies_dir = function_build_definition.dependencies_dir
-                    break
+        function_build_definition = self._app_build_result.build_graph.get_function_build_definition_with_logical_id(
+            function_logical_id
+        )
 
-        return dependencies_dir
+        return function_build_definition.dependencies_dir if function_build_definition else None

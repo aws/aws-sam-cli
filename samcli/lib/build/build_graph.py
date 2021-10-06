@@ -193,6 +193,31 @@ class BuildGraph:
     def get_layer_build_definitions(self) -> Tuple["LayerBuildDefinition", ...]:
         return tuple(self._layer_build_definitions)
 
+    def get_function_build_definition_with_logical_id(
+            self,
+            function_logial_id: str
+    ) -> Optional["FunctionBuildDefinition"]:
+        """
+        Returns FunctionBuildDefinition instance of given function logical id.
+
+        Parameters
+        ----------
+        function_logial_id : str
+            Function logical id that will be searched in the function build definitions
+
+        Returns
+        -------
+        Optional[FunctionBuildDefinition]
+            If a function build definition found returns it, otherwise returns None
+
+        """
+        for function_build_definition in self._function_build_definitions:
+            for build_definition_function in function_build_definition.functions:
+                if build_definition_function.name == function_logial_id:
+                    return function_build_definition
+        return None
+
+
     def put_function_build_definition(
         self, function_build_definition: "FunctionBuildDefinition", function: Function
     ) -> None:
