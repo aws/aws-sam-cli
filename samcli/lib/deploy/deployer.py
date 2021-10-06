@@ -513,7 +513,7 @@ class Deployer:
 
     @staticmethod
     def _gen_deploy_failed_with_rollback_disabled_msg(stack_name):
-        return """\nFailed to deploy stack with automatic rollback disabled\n
+        return """\nFailed to deploy. Automatic rollback disabled for this deployment.\n
 Actions you can take next
 =========================
 [*] Fix issues and try deploying again
