@@ -144,8 +144,12 @@ class SamFunctionProvider(SamBaseProvider):
                             SamFunctionProvider._warn_code_extraction(resource_type, name, code_property_key)
                         continue
 
-                    if resource_package_type == IMAGE and SamBaseProvider._is_ecr_uri(
-                        resource_properties.get(image_property_key)
+                    if (
+                        resource_package_type == IMAGE
+                        and SamBaseProvider._is_ecr_uri(resource_properties.get(image_property_key))
+                        and not SamFunctionProvider._metadata_has_necessary_entries_for_image_function_to_be_built(
+                            resource_metadata
+                        )
                     ):
                         # ImageUri can be an ECR uri, which is not supported
                         if not ignore_code_extraction_warnings:
@@ -344,6 +348,7 @@ class SamFunctionProvider(SamBaseProvider):
             metadata=metadata,
             inlinecode=inlinecode,
             codesign_config_arn=resource_properties.get("CodeSigningConfigArn", None),
+            architectures=resource_properties.get("Architectures", None),
         )
 
     @staticmethod
@@ -460,3 +465,19 @@ class SamFunctionProvider(SamBaseProvider):
         if not candidates:
             raise RuntimeError(f"Cannot find resources with stack_path = {stack_path}")
         return candidates[0]
+
+    @staticmethod
+    def _metadata_has_necessary_entries_for_image_function_to_be_built(metadata: Optional[Dict[str, Any]]) -> bool:
+        """
+        > Note: If the PackageType property is set to Image, then either ImageUri is required,
+          or you must build your application with necessary Metadata entries in the AWS SAM template file.
+          https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html#sam-function-imageuri
+
+        When ImageUri and Metadata are both provided, we will try to determine whether to treat the function
+        as to be built or to be skipped. When we skip it whenever "ImageUri" is provided,
+        we introduced a breaking change https://github.com/aws/aws-sam-cli/issues/3239
+
+        This function is used to check whether there are the customers have "intention" to
+        let AWS SAM CLI to build this image function.
+        """
+        return isinstance(metadata, dict) and bool(metadata.get("DockerContext"))

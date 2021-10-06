@@ -93,6 +93,7 @@ class SwaggerParser:
                     methods=[method],
                     event_type=event_type,
                     payload_format_version=payload_format_version,
+                    operation_name=method_config.get("operationId"),
                     stack_path=self.stack_path,
                 )
                 result.append(route)

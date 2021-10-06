@@ -5,7 +5,6 @@ import logging
 import pathlib
 import shutil
 from abc import abstractmethod, ABC
-from copy import deepcopy
 from typing import Callable, Dict, List, Any, Optional, cast
 
 from samcli.commands.build.exceptions import MissingBuildMethodException
@@ -14,6 +13,7 @@ from samcli.lib.utils.async_utils import AsyncContext
 from samcli.lib.utils.hash import dir_checksum
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.build.build_graph import BuildGraph, FunctionBuildDefinition, LayerBuildDefinition
+
 
 LOG = logging.getLogger(__name__)
 
@@ -88,8 +88,8 @@ class DefaultBuildStrategy(BuildStrategy):
         self,
         build_graph: BuildGraph,
         build_dir: str,
-        build_function: Callable[[str, str, str, str, Optional[str], str, dict, dict], str],
-        build_layer: Callable[[str, str, str, List[str], str, dict], str],
+        build_function: Callable[[str, str, str, str, str, Optional[str], str, dict, dict], str],
+        build_layer: Callable[[str, str, str, List[str], str, str, dict], str],
     ) -> None:
         super().__init__(build_graph)
         self._build_dir = build_dir
@@ -102,10 +102,11 @@ class DefaultBuildStrategy(BuildStrategy):
         """
         function_build_results = {}
         LOG.info(
-            "Building codeuri: %s runtime: %s metadata: %s functions: %s",
+            "Building codeuri: %s runtime: %s metadata: %s architecture: %s functions: %s",
             build_definition.codeuri,
             build_definition.runtime,
             build_definition.metadata,
+            build_definition.architecture,
             [function.full_path for function in build_definition.functions],
         )
 
@@ -115,20 +116,17 @@ class DefaultBuildStrategy(BuildStrategy):
 
         LOG.debug("Building to following folder %s", single_build_dir)
 
-        # we should create a copy and pass it down, otherwise additional env vars like LAMBDA_BUILDERS_LOG_LEVEL
-        # will make cache invalid all the time
-        container_env_vars = deepcopy(build_definition.env_vars)
-
         # when a function is passed here, it is ZIP function, codeuri and runtime are not None
         result = self._build_function(
             build_definition.get_function_name(),
             build_definition.codeuri,  # type: ignore
             build_definition.packagetype,
             build_definition.runtime,  # type: ignore
+            build_definition.architecture,
             build_definition.get_handler_name(),
             single_build_dir,
             build_definition.metadata,
-            container_env_vars,
+            build_definition.env_vars,
         )
         function_build_results[single_full_path] = result
 
@@ -171,6 +169,7 @@ class DefaultBuildStrategy(BuildStrategy):
                 layer.codeuri,  # type: ignore
                 layer.build_method,
                 layer.compatible_runtimes,  # type: ignore
+                layer.build_architecture,
                 single_build_dir,
                 layer_definition.env_vars,
             )

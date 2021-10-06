@@ -1,3 +1,4 @@
+from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack
 from unittest import TestCase
 from unittest.mock import patch, call, MagicMock
 
@@ -103,7 +104,6 @@ class TestDeleteContext(TestCase):
             ]
 
         self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
-        self.assertEqual(delete_context.region, "us-east-1")
 
     @patch.object(
         TomlProvider,
@@ -294,6 +294,7 @@ class TestDeleteContext(TestCase):
     @patch.object(S3Uploader, "delete_artifact", MagicMock())
     @patch.object(ECRUploader, "delete_ecr_repository", MagicMock())
     @patch.object(Template, "get_ecr_repos", MagicMock(side_effect=({}, {"logical_id": {"Repository": "test_id"}})))
+    @patch.object(CompanionStack, "stack_name", "Companion-Stack-Name")
     def test_guided_prompts_ecr_companion_stack_present_execute_run(
         self, patched_click_get_current_context, patched_confirm, patched_get_cf_template_name
     ):
@@ -339,7 +340,7 @@ class TestDeleteContext(TestCase):
                 call(
                     click.style(
                         "\tDo you you want to delete the ECR companion stack"
-                        + " test-098f6bcd-CompanionStack in the region us-east-1 ?",
+                        + " Companion-Stack-Name in the region us-east-1 ?",
                         bold=True,
                     ),
                     default=False,
@@ -368,15 +369,16 @@ class TestDeleteContext(TestCase):
     @patch.object(S3Uploader, "delete_prefix_artifacts", MagicMock())
     @patch.object(ECRUploader, "delete_ecr_repository", MagicMock())
     @patch.object(Template, "get_ecr_repos", MagicMock(return_value=({"logical_id": {"Repository": "test_id"}})))
+    @patch.object(CompanionStack, "stack_name", "Companion-Stack-Name")
     def test_no_prompts_input_is_ecr_companion_stack_present_execute_run(
         self, patched_click_get_current_context, patched_click_echo, patched_get_cf_template_name
     ):
         CfnUtils.get_stack_template.return_value = {
-            "TemplateBody": {"Metadata": {"CompanionStackname": "test-098f6bcd-CompanionStack"}}
+            "TemplateBody": {"Metadata": {"CompanionStackname": "Companion-Stack-Name"}}
         }
         patched_get_cf_template_name.return_value = "hello.template"
         with DeleteContext(
-            stack_name="test-098f6bcd-CompanionStack",
+            stack_name="Companion-Stack-Name",
             region="us-east-1",
             config_file="samconfig.toml",
             config_env="default",
@@ -388,7 +390,7 @@ class TestDeleteContext(TestCase):
 
             delete_context.run()
             expected_click_echo_calls = [
-                call("\t- Deleting Cloudformation stack test-098f6bcd-CompanionStack"),
+                call("\t- Deleting Cloudformation stack Companion-Stack-Name"),
                 call("\nDeleted successfully"),
             ]
             self.assertEqual(expected_click_echo_calls, patched_click_echo.call_args_list)
@@ -403,7 +405,7 @@ class TestDeleteContext(TestCase):
         "wait_for_delete",
         MagicMock(
             side_effect=(
-                CfDeleteFailedStatusError("test-098f6bcd-CompanionStack", "Mock WaitError"),
+                CfDeleteFailedStatusError("Companion-Stack-Name", "Mock WaitError"),
                 {},
                 CfDeleteFailedStatusError("test", "Mock WaitError"),
                 {},
