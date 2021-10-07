@@ -33,7 +33,7 @@ from samcli.commands._utils.resources import (
     RESOURCES_WITH_LOCAL_PATHS,
     NESTED_STACKS_RESOURCES,
 )
-from samcli.commands._utils.template import get_template_data
+from samcli.commands._utils.template import get_template_data, move_template
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider, is_local_path, get_local_path
 
 LOG = logging.getLogger(__name__)
@@ -72,8 +72,9 @@ class CfnIacImplementation(IaCPluginInterface):
         return SamCliProject([stack])
 
     def write_project(self, project: SamCliProject, build_dir: str) -> bool:
-        # TODO
-        pass
+        for stack in project.stacks:
+            _write_stack(stack, build_dir)
+        return True
 
     def update_packaged_locations(self, stack: Stack) -> bool:
         # TODO
@@ -180,3 +181,22 @@ class CfnIacImplementation(IaCPluginInterface):
     @staticmethod
     def get_iac_file_patterns() -> List[str]:
         return ["template.yaml", "template.yml", "template.json"]
+
+
+def _write_stack(stack: Stack, build_dir: str):
+    stack_id = stack.stack_id or ""
+    stack_build_location = os.path.join(build_dir, stack_id, "template.yaml")
+    stack.extra_details[TEMPLATE_BUILD_PATH_KEY] = stack_build_location
+
+    resources_section = stack.get("Resources", DictSection())
+    for resource in resources_section.section_items:
+        resource_type = resource.get("Type", None)
+        if resource_type in NESTED_STACKS_RESOURCES and resource.nested_stack:
+            nested_stack = resource.nested_stack
+            _write_stack(nested_stack, os.path.dirname(stack_build_location))
+            nested_stack_location_property_name = NESTED_STACKS_RESOURCES[resource_type]
+            for asset in resource.assets:
+                if isinstance(asset, S3Asset) and asset.source_property == nested_stack_location_property_name:
+                    asset.updated_source_path = nested_stack.extra_details[TEMPLATE_BUILD_PATH_KEY]
+
+    move_template(stack.extra_details[TEMPLATE_PATH_KEY], stack_build_location, stack)

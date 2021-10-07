@@ -3,13 +3,18 @@ import os
 from unittest import TestCase
 from unittest.mock import patch, Mock, ANY
 
+from samcli.commands._utils.template import TemplateFormat
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
-from samcli.lib.iac.cfn.cfn_iac import CfnIacImplementation
+from samcli.lib.iac.cfn.cfn_iac import CfnIacImplementation, _write_stack, TEMPLATE_BUILD_PATH_KEY
 from samcli.lib.iac.plugins_interfaces import (
     SamCliContext,
     SamCliProject,
     Stack,
     DictSectionItem,
+    DictSection,
+    Resource,
+    S3Asset,
+    ImageAsset,
 )
 
 GENERIC_CFN_TEMPLATE = {
@@ -176,3 +181,61 @@ class TestCfnPlugin(TestCase):
         self.assertIsInstance(stack, Stack)
         self.assertEqual(code_uri, "/new/path/to/code")
         self.assertEqual(region, "us-east-2")
+
+
+class TestWriteStack(TestCase):
+    def setUp(self):
+        self.original_func = _write_stack
+
+    @patch("samcli.lib.iac.cfn.cfn_iac.move_template")
+    def test_write_stack(self, move_template_mock):
+        stack = Stack(stack_id="test_stack")
+        stack["Resources"] = DictSection("Resources")
+        stack.extra_details["template_path"] = "template_path"
+        resource = Resource(
+            "Function1",
+            body={
+                "Type": "AWS::Lambda::Function",
+                "Properties": {},
+            },
+        )
+        stack["Resources"]["Function1"] = resource
+        s3_asset = S3Asset(
+            asset_id="id",
+            updated_source_path="updated_source_path",
+        )
+        resource.assets.append(s3_asset)
+        build_location = "build_dir/test_stack/template.yaml"
+        _write_stack(stack, "build_dir")
+        move_template_mock.assert_called_once_with("template_path", build_location, stack)
+        self.assertEqual(stack.extra_details[TEMPLATE_BUILD_PATH_KEY], build_location)
+
+    @patch("samcli.lib.iac.cfn.cfn_iac.move_template")
+    @patch("samcli.lib.iac.cfn.cfn_iac._write_stack")
+    def test_write_stack_s3_asset_nested_stack(self, write_stack_mock, move_template_mock):
+        stack = Stack(stack_id="test_stack")
+        stack["Resources"] = DictSection("Resources")
+        stack.extra_details["template_path"] = "template_path"
+        resource = Resource(
+            "NestedStack",
+            body={
+                "Type": "AWS::Serverless::Application",
+                "Properties": {},
+            },
+        )
+        stack["Resources"]["Function1"] = resource
+        s3_asset = S3Asset(
+            asset_id="id",
+            updated_source_path="updated_source_path",
+            source_property="Location",
+        )
+        resource.assets.append(s3_asset)
+        resource.nested_stack = Stack(
+            sections={"Resources": {}}, extra_details={"template_build_path": "hello.nested-stack.json"}
+        )
+
+        build_location = "build_dir/test_stack/template.yaml"
+        self.original_func(stack, "build_dir")
+        self.assertEqual(s3_asset.updated_source_path, "hello.nested-stack.json")
+        write_stack_mock.assert_called_once_with(resource.nested_stack, "build_dir/test_stack")
+        move_template_mock.assert_called_once_with("template_path", build_location, stack)
