@@ -38,7 +38,6 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
     _zip_file: Optional[str]
     _local_sha: Optional[str]
     build_graph: Optional[BuildGraph]
-    resource_calls: List[ResourceAPICall]
 
     def __init__(
         self,
@@ -68,15 +67,11 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
         self._artifact_folder = None
         self._zip_file = None
         self._local_sha = None
-        self.build_graph = None
-        self.resource_calls = list()
+        self._build_graph = None
 
     def set_up(self) -> None:
         super().set_up()
         self._s3_client = cast(Session, self._session).client("s3")
-
-        for layer in self._function.layers:
-            self.resource_calls.append(ResourceAPICall(layer.full_path, ["Build"]))
 
     def gather_resources(self) -> None:
         """Build function and ZIP it into a temp file in self._zip_file"""
@@ -97,7 +92,7 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
             )
             LOG.debug("%sBuilding Function", self.log_prefix)
             build_result = builder.build()
-            self.build_graph = build_result.build_graph
+            self._build_graph = build_result.build_graph
             self._artifact_folder = build_result.artifacts.get(self._function_identifier)
 
         zip_file_path = os.path.join(tempfile.gettempdir(), "data-" + uuid.uuid4().hex)
@@ -149,4 +144,7 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
             os.remove(self._zip_file)
 
     def _get_resource_api_calls(self) -> List[ResourceAPICall]:
-        return self.resource_calls
+        resource_calls = list()
+        for layer in self._function.layers:
+            resource_calls.append(ResourceAPICall(layer.full_path, ["Build"]))
+        return resource_calls

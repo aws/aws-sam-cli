@@ -3,7 +3,7 @@ import logging
 from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, cast, Union
 
 from samcli.lib.providers.provider import Stack, get_resource_by_id, ResourceIdentifier
-from samcli.lib.sync.flows.auto_dependency_layer_flow import AutoDependencyLayerParentSyncFlow
+from samcli.lib.sync.flows.auto_dependency_layer_sync_flow import AutoDependencyLayerParentSyncFlow
 from samcli.lib.sync.flows.layer_sync_flow import LayerSyncFlow
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.resource_type_based_factory import ResourceTypeBasedFactory
