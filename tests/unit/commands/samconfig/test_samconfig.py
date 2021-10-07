@@ -803,6 +803,83 @@ class TestSamConfigForAllCommands(TestCase):
             info_result = json.loads(result.output)
             self.assertTrue("version" in info_result)
 
+    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_function_resource_ids")
+    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
+    @patch("samcli.commands._utils.template.get_template_artifacts_format")
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
+    @patch("samcli.commands.sync.command.do_cli")
+    def test_sync(
+        self,
+        do_cli_mock,
+        template_artifacts_mock1,
+        template_artifacts_mock2,
+        template_artifacts_mock3,
+        template_artifacts_mock4,
+    ):
+
+        template_artifacts_mock1.return_value = [ZIP]
+        template_artifacts_mock2.return_value = [ZIP]
+        template_artifacts_mock3.return_value = [ZIP]
+        template_artifacts_mock4.return_value = ["HelloWorldFunction"]
+
+        config_values = {
+            "template_file": "mytemplate.yaml",
+            "stack_name": "mystack",
+            "image_repository": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
+            "base_dir": "path",
+            "s3_prefix": "myprefix",
+            "kms_key_id": "mykms",
+            "parameter_overrides": 'Key1=Value1 Key2="Multiple spaces in the value"',
+            "capabilities": "cap1 cap2",
+            "no_execute_changeset": True,
+            "role_arn": "arn",
+            "notification_arns": "notify1 notify2",
+            "tags": 'a=tag1 b="tag with spaces"',
+            "metadata": '{"m1": "value1", "m2": "value2"}',
+            "guided": True,
+            "confirm_changeset": True,
+            "region": "myregion",
+            "signing_profiles": "function=profile:owner",
+        }
+
+        with samconfig_parameters(["sync"], self.scratch_dir, **config_values) as config_path:
+            from samcli.commands.sync.command import cli
+
+            LOG.debug(Path(config_path).read_text())
+            runner = CliRunner()
+            result = runner.invoke(cli, [])
+
+            LOG.info(result.output)
+            LOG.info(result.exception)
+            if result.exception:
+                LOG.exception("Command failed", exc_info=result.exc_info)
+            self.assertIsNone(result.exception)
+
+            do_cli_mock.assert_called_with(
+                str(Path(os.getcwd(), "mytemplate.yaml")),
+                False,
+                False,
+                (),
+                (),
+                "mystack",
+                "myregion",
+                None,
+                "path",
+                {"Key1": "Value1", "Key2": "Multiple spaces in the value"},
+                None,
+                "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
+                None,
+                "myprefix",
+                "mykms",
+                ["cap1", "cap2"],
+                "arn",
+                ["notify1", "notify2"],
+                {"a": "tag1", "b": "tag with spaces"},
+                {"m1": "value1", "m2": "value2"},
+                "samconfig.toml",
+                "default",
+            )
+
 
 class TestSamConfigWithOverrides(TestCase):
     def setUp(self):

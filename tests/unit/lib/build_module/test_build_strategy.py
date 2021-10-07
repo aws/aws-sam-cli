@@ -248,7 +248,7 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
     CODEURI = "hello_world_python/"
     RUNTIME = "python3.8"
     FUNCTION_UUID = "3c1c254e-cd4b-4d94-8c74-7ab870b36063"
-    SOURCE_MD5 = "cae49aa393d669e850bd49869905099d"
+    SOURCE_HASH = "cae49aa393d669e850bd49869905099d"
     LAYER_UUID = "761ce752-d1c8-4e07-86a0-f64778cdd108"
     LAYER_METHOD = "nodejs12.x"
 
@@ -258,7 +258,7 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
     codeuri = "{CODEURI}"
     packagetype = "{ZIP}"
     runtime = "{RUNTIME}"
-    source_md5 = "{SOURCE_MD5}"
+    source_hash = "{SOURCE_HASH}"
     functions = ["HelloWorldPython", "HelloWorldPython2"]
 
     [layer_build_definitions]
@@ -267,7 +267,7 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
     codeuri = "sum_layer/"
     build_method = "nodejs12.x"
     compatible_runtimes = ["nodejs12.x"]
-    source_md5 = "{SOURCE_MD5}"
+    source_hash = "{SOURCE_HASH}"
     layer = "SumLayer"
     """
 
@@ -301,7 +301,7 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
             cache_dir.mkdir(parents=True)
 
             exists_mock.return_value = True
-            dir_checksum_mock.return_value = CachedBuildStrategyTest.SOURCE_MD5
+            dir_checksum_mock.return_value = CachedBuildStrategyTest.SOURCE_HASH
 
             build_graph_path = Path(build_dir.parent, "build.toml")
             build_graph_path.write_text(CachedBuildStrategyTest.BUILD_GRAPH_CONTENTS)
@@ -468,7 +468,7 @@ class TestIncrementalBuildStrategy(TestCase):
         patched_manifest_hash_instance = Mock(hash=same_hash)
         patched_manifest_hash.return_value = patched_manifest_hash_instance
 
-        given_function_build_def = Mock(manifest_md5=same_hash, functions=[Mock()])
+        given_function_build_def = Mock(manifest_hash=same_hash, functions=[Mock()])
         self.build_graph.get_function_build_definitions.return_value = [given_function_build_def]
         self.build_graph.get_layer_build_definitions.return_value = []
 
@@ -480,7 +480,7 @@ class TestIncrementalBuildStrategy(TestCase):
         patched_manifest_hash_instance = Mock(hash=same_hash)
         patched_manifest_hash.return_value = patched_manifest_hash_instance
 
-        given_layer_build_def = Mock(manifest_md5=same_hash, functions=[Mock()])
+        given_layer_build_def = Mock(manifest_hash=same_hash, functions=[Mock()])
         self.build_graph.get_function_build_definitions.return_value = []
         self.build_graph.get_layer_build_definitions.return_value = [given_layer_build_def]
 
@@ -567,12 +567,12 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
             cached_build_strategy.build()
 
             if is_building_specific_resource:
-                mocked_build_graph.update_definition_md5.assert_called_once()
+                mocked_build_graph.update_definition_hash.assert_called_once()
                 mocked_build_graph.clean_redundant_definitions_and_update.assert_not_called()
                 clean_cache_mock.assert_not_called()
                 clean_dep_mock.assert_not_called()
             else:
-                mocked_build_graph.update_definition_md5.assert_not_called()
+                mocked_build_graph.update_definition_hash.assert_not_called()
                 mocked_build_graph.clean_redundant_definitions_and_update.assert_called_once()
                 clean_cache_mock.assert_called_once()
                 clean_dep_mock.assert_called_once()

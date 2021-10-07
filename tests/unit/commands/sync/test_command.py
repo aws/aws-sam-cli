@@ -46,7 +46,7 @@ class TestDoCli(TestCase):
         self.config_file = "mock-default-filename"
         MOCK_SAM_CONFIG.reset_mock()
 
-    @parameterized.expand([(True, False, False, True), (False, False, False, False)])
+    @parameterized.expand([(False, False, True), (False, False, False)])
     @patch("samcli.commands.sync.command.execute_code_sync")
     @patch("samcli.commands.build.command.click")
     @patch("samcli.commands.build.build_context.BuildContext")
@@ -58,7 +58,6 @@ class TestDoCli(TestCase):
     @patch("samcli.commands.sync.command.manage_stack")
     def test_infra_must_succeed_sync(
         self,
-        infra,
         code,
         watch,
         auto_dependency_layer,
@@ -82,9 +81,8 @@ class TestDoCli(TestCase):
 
         do_cli(
             self.template_file,
-            infra,
-            code,
-            watch,
+            False,
+            False,
             self.resource_id,
             self.resource,
             auto_dependency_layer,
@@ -167,7 +165,7 @@ class TestDoCli(TestCase):
         deploy_context_mock.run.assert_called_once_with()
         execute_code_sync_mock.assert_not_called()
 
-    @parameterized.expand([(False, False, True, False)])
+    @parameterized.expand([(False, True, False)])
     @patch("samcli.commands.sync.command.execute_watch")
     @patch("samcli.commands.build.command.click")
     @patch("samcli.commands.build.build_context.BuildContext")
@@ -179,7 +177,6 @@ class TestDoCli(TestCase):
     @patch("samcli.commands.sync.command.manage_stack")
     def test_watch_must_succeed_sync(
         self,
-        infra,
         code,
         watch,
         auto_dependency_layer,
@@ -203,9 +200,8 @@ class TestDoCli(TestCase):
 
         do_cli(
             self.template_file,
-            infra,
-            code,
-            watch,
+            False,
+            True,
             self.resource_id,
             self.resource,
             auto_dependency_layer,
@@ -287,7 +283,7 @@ class TestDoCli(TestCase):
             self.template_file, build_context_mock, package_context_mock, deploy_context_mock
         )
 
-    @parameterized.expand([(False, True, False, True)])
+    @parameterized.expand([(True, False, True)])
     @patch("samcli.commands.sync.command.execute_code_sync")
     @patch("samcli.commands.build.command.click")
     @patch("samcli.commands.build.build_context.BuildContext")
@@ -299,7 +295,6 @@ class TestDoCli(TestCase):
     @patch("samcli.commands.sync.command.manage_stack")
     def test_code_must_succeed_sync(
         self,
-        infra,
         code,
         watch,
         auto_dependency_layer,
@@ -323,9 +318,8 @@ class TestDoCli(TestCase):
 
         do_cli(
             self.template_file,
-            infra,
-            code,
-            watch,
+            True,
+            False,
             self.resource_id,
             self.resource,
             auto_dependency_layer,
