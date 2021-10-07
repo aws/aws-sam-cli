@@ -260,6 +260,7 @@ Resources:
             - Effect: "Allow"
               Action:
                 - "ecr:GetDownloadUrlForLayer"
+                - "ecr:BatchDeleteImage"
                 - "ecr:BatchGetImage"
                 - "ecr:BatchCheckLayerAvailability"
                 - "ecr:PutImage"
