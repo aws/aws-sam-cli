@@ -11,7 +11,6 @@ from samcli.lib.iac.cdk.cdk_iac import (
     _collect_assets,
     _get_cdk_executable_path,
     _update_built_artifacts,
-    _update_asset_params_default_values,
     _write_stack,
     _undo_normalize_resource_metadata,
     _collect_stack_assets,
@@ -652,36 +651,6 @@ class TestShallowCloneAsset(TestCase):
         self.assertEqual(image_asset.image_tag, collected_image_asset.image_tag)
         self.assertEqual(image_asset.registry, collected_image_asset.registry)
         self.assertEqual(image_asset.repository_name, collected_image_asset.repository_name)
-
-
-class TestUpdateAssetParamsDefaultValues(TestCase):
-    def test_update_asset_params_default_values(self):
-        asset = S3Asset(
-            asset_id="asset",
-            bucket_name="bucket",
-            object_key="key",
-            object_version="version",
-            extra_details={
-                "assetParameters": {
-                    "s3BucketParameter": "xxx",
-                    "s3KeyParameter": "yyy",
-                    "artifactHashParameter": "zzz",
-                }
-            },
-        )
-
-        parameters = DictSection("Parameters")
-        parameters["xxx"] = {"Type": "String"}
-        parameters["yyy"] = {"Type": "String"}
-        parameters["zzz"] = {"Type": "String"}
-
-        _update_asset_params_default_values(asset, parameters)
-        self.assertIn("Default", parameters["xxx"])
-        self.assertEqual(parameters["xxx"]["Default"], "bucket")
-        self.assertIn("Default", parameters["yyy"])
-        self.assertEqual(parameters["yyy"]["Default"], "key||version")
-        self.assertIn("Default", parameters["zzz"])
-        self.assertEqual(parameters["zzz"]["Default"], "asset")
 
 
 class TestUpdateBuiltArtifacts(TestCase):

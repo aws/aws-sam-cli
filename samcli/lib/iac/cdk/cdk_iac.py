@@ -301,41 +301,6 @@ class CdkIacImplementation(IaCPluginInterface):
                         ]
             section[logical_id] = resource
 
-    # TODO: Refactor the following methods when refactoring package command
-    def should_update_property_after_package(self, asset: Asset) -> bool:
-        if isinstance(asset, S3Asset):
-            # S3 Asset is binded with Asset Parameter. Thus, property should not be updated.
-            return False
-        return True
-
-    def update_asset_params_default_values_after_packaging(self, stack: Stack, parameters: DictSection) -> None:
-        """
-        Populate default values for asset parameters
-        """
-        resources = stack.get("Resources", DictSection())
-        for resource in resources.values():
-            # undo normalize resource metadata
-            # update asset param default values
-            if resource.assets and resource.assets[0]:
-                asset = resource.assets[0]
-                if isinstance(asset, S3Asset) and "assetParameters" in asset.extra_details:
-                    _update_asset_params_default_values(asset, parameters)
-
-            # recursively do the same on nested stack
-            if resource.nested_stack:
-                self.update_asset_params_default_values_after_packaging(resource.nested_stack, parameters)
-                resource.assets = []
-                resource.nested_stack = None
-
-    def update_resource_after_packaging(self, resource: Resource) -> None:
-        """
-        Update resource property to reference asset parameters
-        """
-        if resource.assets and resource.assets[0]:
-            asset = resource.assets[0]
-            if isinstance(asset, S3Asset) and "assetParameters" in asset.extra_details:
-                _undo_normalize_resource_metadata(resource)
-
 
 def _collect_assets(
     ca_stack: Union[CloudAssemblyStack, CloudAssemblyNestedStack]
@@ -487,22 +452,6 @@ def _shallow_clone_asset(asset, asset_id, collected_assets):
         asset.image_tag = collected_assets[asset_id].image_tag
         asset.registry = collected_assets[asset_id].registry
         asset.repository_name = collected_assets[asset_id].repository_name
-
-
-def _update_asset_params_default_values(asset: S3Asset, parameters: DictSection) -> None:
-    s3_bucket_param_key = asset.extra_details["assetParameters"].get("s3BucketParameter")
-    s3_bucket_param_val = asset.bucket_name
-    if s3_bucket_param_key is not None and s3_bucket_param_val is not None and s3_bucket_param_key in parameters:
-        parameters[s3_bucket_param_key]["Default"] = s3_bucket_param_val
-    s3_key_param_key = asset.extra_details["assetParameters"].get("s3KeyParameter")
-    s3_key_val = asset.object_key
-    s3_version_val = asset.object_version or ""
-    if s3_key_param_key is not None and s3_key_val is not None and s3_key_param_key in parameters:
-        parameters[s3_key_param_key]["Default"] = s3_key_val + "||" + s3_version_val
-    artifact_hash_key = asset.extra_details["assetParameters"].get("artifactHashParameter")
-    artifact_hash_val = asset.asset_id
-    if artifact_hash_key is not None and artifact_hash_val is not None and artifact_hash_key in parameters:
-        parameters[artifact_hash_key]["Default"] = artifact_hash_val
 
 
 def _get_cdk_executable_path() -> str:
