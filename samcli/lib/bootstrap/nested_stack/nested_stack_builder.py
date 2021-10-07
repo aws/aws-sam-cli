@@ -41,9 +41,9 @@ class NestedStackBuilder(AbstractStackBuilder):
         return layer_logical_id
 
     @staticmethod
-    def get_layer_logical_id(function_name: str) -> str:
-        function_logical_id_hash = str_checksum(function_name)
-        return f"{function_name[:48]}{function_logical_id_hash[:8]}DepLayer"
+    def get_layer_logical_id(function_logical_id: str) -> str:
+        function_logical_id_hash = str_checksum(function_logical_id)
+        return f"{function_logical_id[:48]}{function_logical_id_hash[:8]}DepLayer"
 
     @staticmethod
     def get_layer_name(stack_name: str, function_name: str) -> str:
