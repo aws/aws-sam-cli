@@ -724,7 +724,7 @@ COPY main.py ./"""
         ("/testdata/invoke/nested-templates/template-parent.yaml",),
     ],
 )
-class TestLambdaService(StartLambdaIntegBaseClass):
+class TestLambdaServiceWithCustomInvokeImages(StartLambdaIntegBaseClass):
 
     invoke_image = [
         "amazon/aws-sam-cli-emulation-image-python3.6",

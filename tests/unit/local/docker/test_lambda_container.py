@@ -499,7 +499,7 @@ class TestLambdaContainer_get_image(TestCase):
             expected,
         )
 
-        image_builder.build.assert_called_with("foo", ZIP, None, [], "arm64", None)
+        image_builder.build.assert_called_with("foo", ZIP, None, [], "arm64", function=None)
 
 
 class TestLambdaContainer_get_debug_settings(TestCase):
