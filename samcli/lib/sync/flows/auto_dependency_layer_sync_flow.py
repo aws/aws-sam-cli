@@ -6,7 +6,7 @@ import logging
 import os
 import tempfile
 import uuid
-from typing import List, TYPE_CHECKING, Dict, cast, Any, Optional
+from typing import List, TYPE_CHECKING, Dict, cast, Optional
 
 from samcli.lib.bootstrap.nested_stack.nested_stack_builder import NestedStackBuilder
 from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NestedStackManager
@@ -14,6 +14,7 @@ from samcli.lib.build.build_graph import BuildGraph
 from samcli.lib.package.utils import make_zip
 from samcli.lib.providers.provider import Function, Stack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
+from samcli.lib.sync.exceptions import MissingFunctionBuildDefinition, InvalidRuntimeDefinitionForFunction
 from samcli.lib.sync.flows.layer_sync_flow import AbstractLayerSyncFlow
 from samcli.lib.sync.flows.zip_function_sync_flow import ZipFunctionSyncFlow
 from samcli.lib.sync.sync_flow import SyncFlow
@@ -26,7 +27,7 @@ if TYPE_CHECKING:
 LOG = logging.getLogger(__name__)
 
 
-class _AutoDependencyLayerSyncFlow(AbstractLayerSyncFlow):
+class AutoDependencyLayerSyncFlow(AbstractLayerSyncFlow):
     """
     Auto Dependency Layer, Layer Sync flow.
     It creates auto dependency layer files out of function dependencies, and syncs layer code and then updates
@@ -60,10 +61,8 @@ class _AutoDependencyLayerSyncFlow(AbstractLayerSyncFlow):
 
     def gather_resources(self) -> None:
         function_build_definitions = cast(BuildGraph, self._build_graph).get_function_build_definitions()
-
         if not function_build_definitions:
-            # todo replace with proper exception type
-            raise ValueError("Build definition for function cannot be found")
+            raise MissingFunctionBuildDefinition(self._function_identifier)
 
         self._artifact_folder = function_build_definitions[0].dependencies_dir
         NestedStackManager.update_layer_folder(
@@ -82,8 +81,10 @@ class _AutoDependencyLayerSyncFlow(AbstractLayerSyncFlow):
         return [function] if function else []
 
     def _get_compatible_runtimes(self) -> List[str]:
-        function_resource = cast(Dict[str, Any], self._get_resource(self._function_identifier))
-        return [function_resource.get("Properties", {}).get("Runtime")]
+        function = SamFunctionProvider(self._stacks).get(self._function_identifier)
+        if not function or not function.runtime:
+            raise InvalidRuntimeDefinitionForFunction(self._function_identifier)
+        return [function.runtime]
 
 
 class AutoDependencyLayerParentSyncFlow(ZipFunctionSyncFlow):
@@ -100,9 +101,9 @@ class AutoDependencyLayerParentSyncFlow(ZipFunctionSyncFlow):
         """
         parent_dependencies = super().gather_dependencies()
         parent_dependencies.append(
-            _AutoDependencyLayerSyncFlow(
+            AutoDependencyLayerSyncFlow(
                 self._function_identifier,
-                self._build_graph,
+                cast(BuildGraph, self._build_graph),
                 self._build_context,
                 self._deploy_context,
                 self._physical_id_mapping,

@@ -4,6 +4,7 @@ from uuid import uuid4
 from pathlib import Path
 
 import tomlkit
+from mock import Mock
 from parameterized import parameterized
 from typing import Dict, cast
 
@@ -516,6 +517,24 @@ class TestBuildGraph(TestCase):
             self.assertEqual(
                 document["layer_build_definitions"][TestBuildGraph.LAYER_UUID][MANIFEST_MD5_FIELD], "new_manifest_value"
             )
+
+    def test_empty_get_function_build_definition_with_logical_id(self):
+        build_graph = BuildGraph("build_dir")
+        self.assertIsNone(build_graph.get_function_build_definition_with_logical_id("function_logical_id"))
+
+    def test_get_function_build_definition_with_logical_id(self):
+        build_graph = BuildGraph("build_dir")
+        logical_id = "function_logical_id"
+        function = Mock()
+        function.name = logical_id
+        function_build_definition = Mock(functions=[function])
+        build_graph._function_build_definitions = [
+            function_build_definition
+        ]
+
+        self.assertEqual(
+            build_graph.get_function_build_definition_with_logical_id(logical_id), function_build_definition
+        )
 
 
 class TestBuildDefinition(TestCase):

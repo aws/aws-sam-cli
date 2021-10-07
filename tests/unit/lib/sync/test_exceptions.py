@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 from samcli.lib.sync.exceptions import (
     MissingPhysicalResourceError,
     NoLayerVersionsFoundError,
-    SyncFlowException,
+    SyncFlowException, MissingFunctionBuildDefinition, InvalidRuntimeDefinitionForFunction,
 )
 
 
@@ -32,3 +32,17 @@ class TestNoLayerVersionsFoundError(TestCase):
     def test_exception(self):
         exception = NoLayerVersionsFoundError("layer_name_arn")
         self.assertEqual(exception.layer_name_arn, "layer_name_arn")
+
+
+class TestMissingFunctionBuildDefinition(TestCase):
+    def test_exception(self):
+        function_logical_id = "function_logical_id"
+        exception = MissingFunctionBuildDefinition(function_logical_id)
+        self.assertEqual(exception.function_logical_id, function_logical_id)
+
+
+class TestInvalidRuntimeDefinitionForFunction(TestCase):
+    def test_exception(self):
+        function_logical_id = "function_logical_id"
+        exception = InvalidRuntimeDefinitionForFunction(function_logical_id)
+        self.assertEqual(exception.function_logical_id, function_logical_id)

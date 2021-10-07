@@ -58,3 +58,22 @@ class TestNestedStackBuilder(TestCase):
         layer_output_value = layer_output.get("Value")
         self.assertIn("Ref", layer_output_value)
         self.assertEqual(layer_output_value.get("Ref"), layer_logical_id)
+
+    def test_get_layer_logical_id(self):
+        function_logical_id = "function_logical_id"
+        layer_logical_id = NestedStackBuilder.get_layer_logical_id(function_logical_id)
+
+        self.assertTrue(layer_logical_id.startswith(function_logical_id[:48]))
+        self.assertTrue(layer_logical_id.endswith("DepLayer"))
+        self.assertLessEqual(len(layer_logical_id), 64)
+
+    def test_get_layer_name(self):
+        function_logical_id = "function_logical_id"
+        stack_name = "function_logical_id"
+        layer_name = NestedStackBuilder.get_layer_name(stack_name, function_logical_id)
+
+        self.assertTrue(layer_name.startswith(stack_name[:16]))
+        self.assertTrue(layer_name.endswith("DepLayer"))
+        self.assertIn(function_logical_id[:22], layer_name)
+        self.assertLessEqual(len(layer_name), 64)
+

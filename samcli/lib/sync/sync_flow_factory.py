@@ -1,6 +1,6 @@
 """SyncFlow Factory for creating SyncFlows based on resource types"""
 import logging
-from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, cast, Union
+from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, cast
 
 from samcli.lib.providers.provider import Stack, get_resource_by_id, ResourceIdentifier
 from samcli.lib.sync.flows.auto_dependency_layer_sync_flow import AutoDependencyLayerParentSyncFlow
@@ -82,7 +82,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
 
     def _create_lambda_flow(
         self, resource_identifier: ResourceIdentifier, resource: Dict[str, Any]
-    ) -> Optional[Union[FunctionSyncFlow, AutoDependencyLayerParentSyncFlow]]:
+    ) -> Optional[FunctionSyncFlow]:
         package_type = resource.get("Properties", dict()).get("PackageType", ZIP)
         if package_type == ZIP:
             if self._auto_dependency_layer:

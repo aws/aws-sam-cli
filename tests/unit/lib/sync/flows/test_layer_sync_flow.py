@@ -32,7 +32,6 @@ class TestLayerSyncFlow(TestCase):
                 patched_super_setup.assert_called_once()
                 patched_session.assert_has_calls(
                     [
-                        call.client("s3"),
                         call.client("lambda"),
                     ]
                 )
@@ -49,7 +48,6 @@ class TestLayerSyncFlow(TestCase):
                 patched_super_setup.assert_called_once()
                 patched_session.assert_has_calls(
                     [
-                        call.client("s3"),
                         call.client("lambda"),
                     ]
                 )

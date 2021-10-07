@@ -37,7 +37,7 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
     _artifact_folder: Optional[str]
     _zip_file: Optional[str]
     _local_sha: Optional[str]
-    build_graph: Optional[BuildGraph]
+    _build_graph: Optional[BuildGraph]
 
     def __init__(
         self,

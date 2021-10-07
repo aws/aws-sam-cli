@@ -6,7 +6,7 @@ from botocore.exceptions import ClientError
 from samcli.lib.sync.exceptions import (
     MissingPhysicalResourceError,
     NoLayerVersionsFoundError,
-    SyncFlowException,
+    SyncFlowException, MissingFunctionBuildDefinition, InvalidRuntimeDefinitionForFunction,
 )
 from unittest import TestCase
 from unittest.mock import ANY, MagicMock, call, patch
@@ -74,6 +74,41 @@ class TestSyncFlowExecutor(TestCase):
                     "Cannot find any versions for layer %s.%s",
                     exception.layer_name_arn,
                     HELP_TEXT_FOR_SYNC_INFRA,
+                )
+            ]
+        )
+
+    @patch("samcli.lib.sync.sync_flow_executor.LOG")
+    def test_default_exception_handler_missing_function_build_exception(self, log_mock):
+        sync_flow_exception = MagicMock(spec=SyncFlowException)
+        exception = MagicMock(spec=MissingFunctionBuildDefinition)
+        exception.function_logical_id = "function_logical_id"
+        sync_flow_exception.exception = exception
+
+        default_exception_handler(sync_flow_exception)
+        log_mock.error.assert_has_calls(
+            [
+                call(
+                    "Cannot find build definition for function %s.%s",
+                    exception.function_logical_id,
+                    HELP_TEXT_FOR_SYNC_INFRA,
+                )
+            ]
+        )
+
+    @patch("samcli.lib.sync.sync_flow_executor.LOG")
+    def test_default_exception_handler_invalid_runtime_exception(self, log_mock):
+        sync_flow_exception = MagicMock(spec=SyncFlowException)
+        exception = MagicMock(spec=InvalidRuntimeDefinitionForFunction)
+        exception.function_logical_id = "function_logical_id"
+        sync_flow_exception.exception = exception
+
+        default_exception_handler(sync_flow_exception)
+        log_mock.error.assert_has_calls(
+            [
+                call(
+                    "No Runtime information found for function resource named %s",
+                    exception.function_logical_id,
                 )
             ]
         )

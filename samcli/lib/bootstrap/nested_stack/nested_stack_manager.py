@@ -14,7 +14,9 @@ from samcli.lib.build.app_builder import ApplicationBuildResult
 from samcli.lib.build.workflow_config import get_layer_subfolder
 from samcli.lib.providers.provider import Stack, Function
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
+from samcli.lib.sync.exceptions import InvalidRuntimeDefinitionForFunction
 from samcli.lib.utils import osutils
+from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.lib.utils.packagetype import ZIP
 from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION, AWS_LAMBDA_FUNCTION
 
@@ -131,24 +133,26 @@ class NestedStackManager:
 
     @staticmethod
     def update_layer_folder(
-            build_dir, dependencies_dir: str, layer_logical_id: str, function_name: str, function_runtime: Optional[str]
+            build_dir: str,
+            dependencies_dir: str,
+            layer_logical_id: str,
+            function_logical_id: str,
+            function_runtime: Optional[str]
     ) -> str:
         """
         Creates build folder for auto dependency layer by moving dependencies into sub folder which is defined
         by the runtime
         """
         if not function_runtime:
-            # TODO change with specific exception
-            raise ValueError("No runtime provided for the layer")
+            raise InvalidRuntimeDefinitionForFunction(function_logical_id)
 
         layer_root_folder = Path(build_dir).joinpath(layer_logical_id)
         if layer_root_folder.exists():
             shutil.rmtree(layer_root_folder)
         layer_contents_folder = layer_root_folder.joinpath(get_layer_subfolder(function_runtime))
-        # TODO use folder permissions from build context
-        layer_contents_folder.mkdir(0o755, parents=True)
+        layer_contents_folder.mkdir(BUILD_DIR_PERMISSIONS, parents=True)
         osutils.copytree(dependencies_dir, str(layer_contents_folder))
-        NestedStackManager._add_layer_readme_info(str(layer_root_folder), function_name)
+        NestedStackManager._add_layer_readme_info(str(layer_root_folder), function_logical_id)
         return str(layer_root_folder)
 
     def _is_function_supported(self, function: Function):

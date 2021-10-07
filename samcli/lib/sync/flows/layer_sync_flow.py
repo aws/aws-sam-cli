@@ -36,7 +36,7 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
     _old_layer_version: Optional[int]
     _new_layer_version: Optional[int]
     _layer_identifier: str
-    _artifact_folder: str
+    _artifact_folder: Optional[str]
     _zip_file: Optional[str]
     _local_sha: Optional[str]
 
@@ -53,6 +53,8 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
         self._layer_physical_name = None
         self._old_layer_version = None
         self._new_layer_version = None
+        self._zip_file = None
+        self._artifact_folder = None
 
     def set_up(self) -> None:
         super().set_up()

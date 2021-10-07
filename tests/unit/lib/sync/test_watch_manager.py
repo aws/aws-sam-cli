@@ -44,7 +44,7 @@ class TestWatchManager(TestCase):
         ]
         self.watch_manager._update_stacks()
         get_stacks_mock.assert_called_once_with(self.template)
-        sync_flow_factory_mock.assert_called_once_with(self.build_context, self.deploy_context, stacks)
+        sync_flow_factory_mock.assert_called_once_with(self.build_context, self.deploy_context, stacks, False)
         sync_flow_factory_mock.return_value.load_physical_id_mapping.assert_called_once_with()
         trigger_factory_mock.assert_called_once_with(stacks)
 

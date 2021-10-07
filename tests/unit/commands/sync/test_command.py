@@ -284,7 +284,11 @@ class TestDoCli(TestCase):
             signing_profiles=None,
         )
         execute_watch_mock.assert_called_once_with(
-            self.template_file, build_context_mock, package_context_mock, deploy_context_mock
+            self.template_file,
+            build_context_mock,
+            package_context_mock,
+            deploy_context_mock,
+            auto_dependency_layer
         )
 
     @parameterized.expand([(False, True, False, True)])
@@ -348,7 +352,12 @@ class TestDoCli(TestCase):
             self.config_env,
         )
         execute_code_sync_mock.assert_called_once_with(
-            self.template_file, build_context_mock, deploy_context_mock, self.resource_id, self.resource
+            self.template_file,
+            build_context_mock,
+            deploy_context_mock,
+            self.resource_id,
+            self.resource,
+            auto_dependency_layer
         )
 
 
@@ -379,7 +388,12 @@ class TestSyncCode(TestCase):
         }
 
         execute_code_sync(
-            self.template_file, self.build_context, self.deploy_context, resource_identifier_strings, resource_types
+            self.template_file,
+            self.build_context,
+            self.deploy_context,
+            resource_identifier_strings,
+            resource_types,
+            True
         )
 
         sync_flow_factory_mock.return_value.create_sync_flow.assert_called_once_with(ResourceIdentifier("Function1"))
@@ -411,7 +425,12 @@ class TestSyncCode(TestCase):
         }
 
         execute_code_sync(
-            self.template_file, self.build_context, self.deploy_context, resource_identifier_strings, resource_types
+            self.template_file,
+            self.build_context,
+            self.deploy_context,
+            resource_identifier_strings,
+            resource_types,
+            True
         )
 
         sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function1"))
@@ -449,7 +468,12 @@ class TestSyncCode(TestCase):
             ResourceIdentifier("Function3"),
         }
         execute_code_sync(
-            self.template_file, self.build_context, self.deploy_context, resource_identifier_strings, resource_types
+            self.template_file,
+            self.build_context,
+            self.deploy_context,
+            resource_identifier_strings,
+            resource_types,
+            True
         )
 
         sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function1"))
@@ -490,7 +514,12 @@ class TestSyncCode(TestCase):
             ResourceIdentifier("Function4"),
         }
         execute_code_sync(
-            self.template_file, self.build_context, self.deploy_context, resource_identifier_strings, resource_types
+            self.template_file,
+            self.build_context,
+            self.deploy_context,
+            resource_identifier_strings,
+            resource_types,
+            True
         )
 
         sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function1"))
@@ -531,7 +560,7 @@ class TestSyncCode(TestCase):
             ResourceIdentifier("Function3"),
             ResourceIdentifier("Function4"),
         ]
-        execute_code_sync(self.template_file, self.build_context, self.deploy_context, "", [])
+        execute_code_sync(self.template_file, self.build_context, self.deploy_context, "", [], True)
 
         sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function1"))
         sync_flow_executor_mock.return_value.add_sync_flow.assert_any_call(sync_flows[0])
@@ -558,14 +587,18 @@ class TestWatch(TestCase):
         self.package_context = MagicMock()
         self.deploy_context = MagicMock()
 
+    @parameterized.expand([(True,), (False,)])
     @patch("samcli.commands.sync.command.WatchManager")
     def test_execute_watch(
         self,
+        auto_dependency_layer,
         watch_manager_mock,
     ):
-        execute_watch(self.template_file, self.build_context, self.package_context, self.deploy_context)
+        execute_watch(
+            self.template_file, self.build_context, self.package_context, self.deploy_context, auto_dependency_layer
+        )
 
         watch_manager_mock.assert_called_once_with(
-            self.template_file, self.build_context, self.package_context, self.deploy_context
+            self.template_file, self.build_context, self.package_context, self.deploy_context, auto_dependency_layer
         )
         watch_manager_mock.return_value.start.assert_called_once_with()
