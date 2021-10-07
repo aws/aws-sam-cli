@@ -255,13 +255,18 @@ class DeployContext:
                     return
 
             self.deployer.execute_changeset(result["Id"], stack_name, disable_rollback)
-            self.deployer.wait_for_execute(stack_name, changeset_type, disable_rollback)
+            self.deployer.wait_for_execute(stack_name, changeset_type)
             click.echo(self.MSG_EXECUTE_SUCCESS.format(stack_name=stack_name, region=region))
 
         except deploy_exceptions.ChangeEmptyError as ex:
             if fail_on_empty_changeset:
                 raise
             click.echo(str(ex))
+        except deploy_exceptions.DeployFailedError as ex:
+            if disable_rollback:
+                msg = self._gen_deploy_failed_with_rollback_disabled_msg(stack_name)
+                click.secho(msg, fg="red")
+            raise
 
     @staticmethod
     def merge_parameters(template_dict: Dict, parameter_overrides: Dict) -> List[Dict]:
@@ -293,3 +298,14 @@ class DeployContext:
             parameter_values.append(obj)
 
         return parameter_values
+
+    @staticmethod
+    def _gen_deploy_failed_with_rollback_disabled_msg(stack_name):
+        return """\nFailed to deploy. Automatic rollback disabled for this deployment.\n
+Actions you can take next
+=========================
+[*] Fix issues and try deploying again
+[*] Roll back stack to the last known stable state: aws cloudformation rollback-stack --stack-name {stack_name}
+""".format(
+            stack_name=stack_name
+        )

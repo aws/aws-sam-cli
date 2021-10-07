@@ -617,10 +617,10 @@ class TestDeployer(TestCase):
     def test_wait_for_execute(self, patched_time):
         self.deployer.describe_stack_events = MagicMock()
         self.deployer._client.get_waiter = MagicMock(return_value=MockCreateUpdateWaiter())
-        self.deployer.wait_for_execute("test", "CREATE", False)
-        self.deployer.wait_for_execute("test", "UPDATE", True)
+        self.deployer.wait_for_execute("test", "CREATE")
+        self.deployer.wait_for_execute("test", "UPDATE")
         with self.assertRaises(RuntimeError):
-            self.deployer.wait_for_execute("test", "DESTRUCT", False)
+            self.deployer.wait_for_execute("test", "DESTRUCT")
 
         self.deployer._client.get_waiter = MagicMock(
             return_value=MockCreateUpdateWaiter(
@@ -632,7 +632,7 @@ class TestDeployer(TestCase):
             )
         )
         with self.assertRaises(DeployFailedError):
-            self.deployer.wait_for_execute("test", "CREATE", False)
+            self.deployer.wait_for_execute("test", "CREATE")
 
     def test_create_and_wait_for_changeset(self):
         self.deployer.create_changeset = MagicMock(return_value=({"Id": "test"}, "create"))
@@ -733,7 +733,7 @@ class TestDeployer(TestCase):
         self.deployer._client.get_waiter = MagicMock(return_value=MockCreateUpdateWaiter())
         self.deployer._display_stack_outputs = MagicMock()
         self.deployer.get_stack_outputs = MagicMock(return_value=None)
-        self.deployer.wait_for_execute("test", "CREATE", False)
+        self.deployer.wait_for_execute("test", "CREATE")
         self.assertEqual(self.deployer._display_stack_outputs.call_count, 0)
 
     @patch("time.sleep")
@@ -752,5 +752,5 @@ class TestDeployer(TestCase):
         self.deployer._client.get_waiter = MagicMock(return_value=MockCreateUpdateWaiter())
         self.deployer._display_stack_outputs = MagicMock()
         self.deployer.get_stack_outputs = MagicMock(return_value=outputs["Stacks"][0]["Outputs"])
-        self.deployer.wait_for_execute("test", "CREATE", False)
+        self.deployer.wait_for_execute("test", "CREATE")
         self.assertEqual(self.deployer._display_stack_outputs.call_count, 1)
