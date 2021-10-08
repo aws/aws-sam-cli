@@ -10,9 +10,9 @@ from threading import RLock
 from concurrent.futures import ThreadPoolExecutor, Future
 
 from botocore.exceptions import ClientError
-from samcli.lib.providers.exceptions import MissingLocalDefinition
 
 from samcli.lib.utils.colors import Colored
+from samcli.lib.providers.exceptions import MissingLocalDefinition
 from samcli.lib.sync.exceptions import (
     MissingPhysicalResourceError,
     NoLayerVersionsFoundError,
