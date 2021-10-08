@@ -5,7 +5,7 @@ import tempfile
 import time
 import uuid
 from pathlib import Path
-from unittest import skipIf, skip
+from unittest import skipIf
 
 import boto3
 from botocore.exceptions import ClientError
@@ -966,7 +966,6 @@ to create a managed default bucket, or run sam deploy --guided",
             stderr,
         )
 
-    @skip("skip until cloudformation bug is fixed")
     @parameterized.expand(["aws-dynamodb-error.yaml"])
     def test_deploy_create_failed_disable_rollback(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
