@@ -10,6 +10,7 @@ from threading import RLock
 from concurrent.futures import ThreadPoolExecutor, Future
 
 from botocore.exceptions import ClientError
+from samcli.lib.providers.exceptions import MissingLocalDefinition
 
 from samcli.lib.utils.colors import Colored
 from samcli.lib.sync.exceptions import (
@@ -78,6 +79,12 @@ def default_exception_handler(sync_flow_exception: SyncFlowException) -> None:
         LOG.error(exception.response.get("Error", dict()).get("Message", ""))
     elif isinstance(exception, NoLayerVersionsFoundError):
         LOG.error("Cannot find any versions for layer %s.%s", exception.layer_name_arn, HELP_TEXT_FOR_SYNC_INFRA)
+    elif isinstance(exception, MissingLocalDefinition):
+        LOG.error(
+            "Resource %s does not have %s specified. Skipping the sync.",
+            str(exception.resource_identifier),
+            exception.property_name,
+        )
     else:
         raise exception
 

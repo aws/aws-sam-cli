@@ -59,7 +59,7 @@ class HttpApiSyncFlow(GenericApiSyncFlow):
         api_physical_id = self.get_physical_id(self._api_identifier)
         if self._definition_uri is None:
             LOG.error(
-                "%sImport HttpApi fails since no DefinitionUri defined in the template, \
+                "%sImport HttpApi is skipped since no DefinitionUri defined in the template, \
 if you are using DefinitionBody please run sam sync --infra",
                 self.log_prefix,
             )

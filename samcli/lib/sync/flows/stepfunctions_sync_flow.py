@@ -97,7 +97,7 @@ class StepFunctionsSyncFlow(SyncFlow):
         state_machine_arn = self.get_physical_id(self._state_machine_identifier)
         if self._definition_uri is None:
             LOG.error(
-                "%sUpdate State Machine fails since no DefinitionUri defined in the template, \
+                "%sUpdate State Machine is skipped since no DefinitionUri defined in the template, \
 if you are using inline Definition please run sam sync --infra",
                 self.log_prefix,
             )
