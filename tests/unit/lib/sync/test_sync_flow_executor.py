@@ -91,9 +91,10 @@ class TestSyncFlowExecutor(TestCase):
         log_mock.error.assert_has_calls(
             [
                 call(
-                    "Resource %s does not have %s specified. Skipping the sync.",
+                    "Resource %s does not have %s specified. Skipping the sync.%s",
                     exception.resource_identifier,
                     exception.property_name,
+                    HELP_TEXT_FOR_SYNC_INFRA,
                 )
             ]
         )
