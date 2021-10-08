@@ -1098,7 +1098,7 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
             executable_search_paths=config_mock.executable_search_paths,
             mode="mode",
             options=None,
-            # todo: put the two checks back after app builder release
+            # todo: put the three checks back after app builder release
             # dependencies_dir=None,
             # download_dependencies=True,
             # combine_dependencies=True,
