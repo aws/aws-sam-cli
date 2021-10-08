@@ -48,6 +48,7 @@ class TestDeployCliCommand(TestCase):
         self.config_file = "mock-default-filename"
         self.signing_profiles = None
         self.resolve_image_repos = False
+        self.disable_rollback = False
         MOCK_SAM_CONFIG.reset_mock()
 
         self.companion_stack_manager_patch = patch("samcli.commands.deploy.guided_context.CompanionStackManager")
@@ -98,6 +99,7 @@ class TestDeployCliCommand(TestCase):
             config_env=self.config_env,
             config_file=self.config_file,
             resolve_image_repos=self.resolve_image_repos,
+            disable_rollback=self.disable_rollback,
         )
 
         mock_deploy_context.assert_called_with(
@@ -121,6 +123,7 @@ class TestDeployCliCommand(TestCase):
             profile=self.profile,
             confirm_changeset=self.confirm_changeset,
             signing_profiles=self.signing_profiles,
+            disable_rollback=self.disable_rollback,
         )
 
         context_mock.run.assert_called_with()
@@ -159,7 +162,7 @@ class TestDeployCliCommand(TestCase):
         context_mock = Mock()
         mockauth_per_resource.return_value = [("HelloWorldResource1", False), ("HelloWorldResource2", False)]
         mock_deploy_context.return_value.__enter__.return_value = context_mock
-        mock_confirm.side_effect = [True, True, True, False]
+        mock_confirm.side_effect = [True, True, False, True, False]
         mock_prompt.side_effect = [
             "sam-app",
             "us-east-1",
@@ -208,6 +211,7 @@ class TestDeployCliCommand(TestCase):
                     config_env=self.config_env,
                     config_file=self.config_file,
                     resolve_image_repos=self.resolve_image_repos,
+                    disable_rollback=self.disable_rollback,
                 )
 
     @patch("samcli.commands.package.command.click")
@@ -251,7 +255,7 @@ class TestDeployCliCommand(TestCase):
         mock_sam_function_provider.return_value.get_all.return_value = [function_mock]
         mockauth_per_resource.return_value = [("HelloWorldResource", False)]
         mock_deploy_context.return_value.__enter__.return_value = context_mock
-        mock_confirm.side_effect = [True, False, True, True, True, True]
+        mock_confirm.side_effect = [True, False, True, True, True, True, True]
         mock_prompt.side_effect = [
             "sam-app",
             "us-east-1",
@@ -300,6 +304,7 @@ class TestDeployCliCommand(TestCase):
                 config_env=self.config_env,
                 config_file=self.config_file,
                 resolve_image_repos=self.resolve_image_repos,
+                disable_rollback=self.disable_rollback,
             )
 
             mock_deploy_context.assert_called_with(
@@ -323,6 +328,7 @@ class TestDeployCliCommand(TestCase):
                 profile=self.profile,
                 confirm_changeset=True,
                 signing_profiles=self.signing_profiles,
+                disable_rollback=True,
             )
 
             context_mock.run.assert_called_with()
@@ -342,6 +348,7 @@ class TestDeployCliCommand(TestCase):
                 stack_name="sam-app",
                 s3_prefix="sam-app",
                 signing_profiles=self.signing_profiles,
+                disable_rollback=True,
             )
             mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
             self.assertEqual(context_mock.run.call_count, 1)
@@ -406,7 +413,7 @@ class TestDeployCliCommand(TestCase):
             "testconfig.toml",
             "test-env",
         ]
-        mock_confirm.side_effect = [True, False, True, True, True, True]
+        mock_confirm.side_effect = [True, False, True, True, True, True, True]
 
         mock_managed_stack.return_value = "managed-s3-bucket"
         mock_signer_config_per_function.return_value = ({}, {})
@@ -439,6 +446,7 @@ class TestDeployCliCommand(TestCase):
             config_env=self.config_env,
             config_file=self.config_file,
             resolve_image_repos=self.resolve_image_repos,
+            disable_rollback=self.disable_rollback,
         )
 
         mock_deploy_context.assert_called_with(
@@ -466,13 +474,14 @@ class TestDeployCliCommand(TestCase):
             profile=self.profile,
             confirm_changeset=True,
             signing_profiles=self.signing_profiles,
+            disable_rollback=True,
         )
 
         context_mock.run.assert_called_with()
         mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
         self.assertEqual(context_mock.run.call_count, 1)
 
-        self.assertEqual(MOCK_SAM_CONFIG.put.call_count, 8)
+        self.assertEqual(MOCK_SAM_CONFIG.put.call_count, 9)
         self.assertEqual(
             MOCK_SAM_CONFIG.put.call_args_list,
             [
@@ -482,6 +491,7 @@ class TestDeployCliCommand(TestCase):
                 call(["deploy"], "parameters", "region", "us-east-1", env="test-env"),
                 call(["deploy"], "parameters", "confirm_changeset", True, env="test-env"),
                 call(["deploy"], "parameters", "capabilities", "CAPABILITY_IAM", env="test-env"),
+                call(["deploy"], "parameters", "disable_rollback", True, env="test-env"),
                 call(
                     ["deploy"],
                     "parameters",
@@ -557,7 +567,7 @@ class TestDeployCliCommand(TestCase):
             "testconfig.toml",
             "test-env",
         ]
-        mock_confirm.side_effect = [True, False, True, True, True, True]
+        mock_confirm.side_effect = [True, False, True, True, True, True, True]
         mock_get_cmd_names.return_value = ["deploy"]
         mock_managed_stack.return_value = "managed-s3-bucket"
         mock_signer_config_per_function.return_value = ({}, {})
@@ -590,6 +600,7 @@ class TestDeployCliCommand(TestCase):
             config_file=self.config_file,
             signing_profiles=self.signing_profiles,
             resolve_image_repos=self.resolve_image_repos,
+            disable_rollback=self.disable_rollback,
         )
 
         mock_deploy_context.assert_called_with(
@@ -613,13 +624,14 @@ class TestDeployCliCommand(TestCase):
             profile=self.profile,
             confirm_changeset=True,
             signing_profiles=self.signing_profiles,
+            disable_rollback=True,
         )
 
         context_mock.run.assert_called_with()
         mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
         self.assertEqual(context_mock.run.call_count, 1)
 
-        self.assertEqual(MOCK_SAM_CONFIG.put.call_count, 8)
+        self.assertEqual(MOCK_SAM_CONFIG.put.call_count, 9)
         self.assertEqual(
             MOCK_SAM_CONFIG.put.call_args_list,
             [
@@ -629,6 +641,7 @@ class TestDeployCliCommand(TestCase):
                 call(["deploy"], "parameters", "region", "us-east-1", env="test-env"),
                 call(["deploy"], "parameters", "confirm_changeset", True, env="test-env"),
                 call(["deploy"], "parameters", "capabilities", "CAPABILITY_IAM", env="test-env"),
+                call(["deploy"], "parameters", "disable_rollback", True, env="test-env"),
                 call(["deploy"], "parameters", "parameter_overrides", 'a="b"', env="test-env"),
                 call(
                     ["deploy"],
@@ -687,7 +700,7 @@ class TestDeployCliCommand(TestCase):
             "us-east-1",
             ("CAPABILITY_IAM",),
         ]
-        mock_confirm.side_effect = [True, False, True, False, True, True]
+        mock_confirm.side_effect = [True, True, False, True, False, True, True]
 
         mock_managed_stack.return_value = "managed-s3-bucket"
         mock_signer_config_per_function.return_value = ({}, {})
@@ -722,6 +735,7 @@ class TestDeployCliCommand(TestCase):
                 config_env=self.config_env,
                 signing_profiles=self.signing_profiles,
                 resolve_image_repos=self.resolve_image_repos,
+                disable_rollback=self.disable_rollback,
             )
 
             mock_deploy_context.assert_called_with(
@@ -745,6 +759,7 @@ class TestDeployCliCommand(TestCase):
                 profile=self.profile,
                 confirm_changeset=True,
                 signing_profiles=self.signing_profiles,
+                disable_rollback=self.disable_rollback,
             )
 
             context_mock.run.assert_called_with()
@@ -792,6 +807,7 @@ class TestDeployCliCommand(TestCase):
             config_env=self.config_env,
             signing_profiles=self.signing_profiles,
             resolve_image_repos=self.resolve_image_repos,
+            disable_rollback=self.disable_rollback,
         )
 
         mock_deploy_context.assert_called_with(
@@ -815,6 +831,7 @@ class TestDeployCliCommand(TestCase):
             profile=self.profile,
             confirm_changeset=self.confirm_changeset,
             signing_profiles=self.signing_profiles,
+            disable_rollback=self.disable_rollback,
         )
 
         context_mock.run.assert_called_with()
@@ -850,6 +867,7 @@ class TestDeployCliCommand(TestCase):
                 config_env=self.config_env,
                 signing_profiles=self.signing_profiles,
                 resolve_image_repos=self.resolve_image_repos,
+                disable_rollback=self.disable_rollback,
             )
 
     @patch("samcli.commands.package.command.click")
@@ -899,6 +917,7 @@ class TestDeployCliCommand(TestCase):
             config_env=self.config_env,
             signing_profiles=self.signing_profiles,
             resolve_image_repos=True,
+            disable_rollback=self.disable_rollback,
         )
 
         mock_deploy_context.assert_called_with(
@@ -922,6 +941,7 @@ class TestDeployCliCommand(TestCase):
             profile=self.profile,
             confirm_changeset=self.confirm_changeset,
             signing_profiles=self.signing_profiles,
+            disable_rollback=self.disable_rollback,
         )
 
         context_mock.run.assert_called_with()
