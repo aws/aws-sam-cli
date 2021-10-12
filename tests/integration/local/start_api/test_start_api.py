@@ -1338,14 +1338,17 @@ class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_cors_global_get(self):
         """
-        This tests that the Cors are added to post requests when the global property is set
+        This tests that Allow-Origin CORS header is added to GET requests when the global property is set,
+        but other CORS headers are not needed.
         """
         response = requests.get(self.url + "/onlysetstatuscode", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content.decode("utf-8"), "")
         self.assertEqual(response.headers.get("Content-Type"), "application/json")
-        self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), None)
+        self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "*")
+        # note: Vary is not needed when allowed origin is wildcard (*)
+        self.assertEqual(response.headers.get("Vary"), None)
         self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), None)
         self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), None)
         self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), None)
@@ -1622,6 +1625,18 @@ class TestCFNTemplateQuickCreatedHttpApiWithDefaultRoute(StartApiIntegBaseClass)
         self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), "GET,OPTIONS")
         self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), "true")
         self.assertEqual(response.headers.get("Access-Control-Max-Age"), "600")
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_cors_get(self):
+        """
+        CORS header for allow-origin should also be returned on a GET request.
+        """
+        response = requests.get(self.url + "/anypath/anypath", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "https://example.com")
+        self.assertEqual(response.headers.get("Vary"), "Origin")
 
 
 @parameterized_class(

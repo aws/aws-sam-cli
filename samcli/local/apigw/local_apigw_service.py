@@ -375,7 +375,19 @@ class LocalApigwService(BaseLocalService):
             LOG.error("Invalid lambda response received: %s", ex)
             return ServiceErrorResponses.lambda_failure_response()
 
+        self._add_cors_headers_to_response(method, headers, cors_headers)
         return self.service_response(body, headers, status_code)
+
+    @staticmethod
+    def _add_cors_headers_to_response(method, response_headers, cors_headers):
+        # If the CORS headers are present and one of the allowed methods is being used,
+        # add the allow-origin header to the response.
+        # On Origin other than the wildcard (*), include Vary: Origin
+        allow_origin = cors_headers.get("Access-Control-Allow-Origin")
+        if method in cors_headers.get("Access-Control-Allow-Methods", []) and allow_origin:
+            response_headers.add_header("Access-Control-Allow-Origin", allow_origin)
+            if allow_origin != "*":
+                response_headers.add_header("Vary", "Origin")
 
     def _get_current_route(self, flask_request):
         """
