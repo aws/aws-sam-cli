@@ -79,6 +79,7 @@ class ApplicationBuilder:
         container_env_var: Optional[Dict] = None,
         container_env_var_file: Optional[str] = None,
         build_images: Optional[Dict] = None,
+        combine_dependencies: bool = True,
     ) -> None:
         """
         Initialize the class
@@ -117,6 +118,9 @@ class ApplicationBuilder:
             An optional path to file that contains environment variables to pass to the container
         build_images : Optional[Dict]
             An optional dictionary of build images to be used for building functions
+        combine_dependencies: bool
+            An optional bool parameter to inform lambda builders whether we should separate the source code and
+            dependencies or not.
         """
         self._resources_to_build = resources_to_build
         self._build_dir = build_dir
@@ -137,6 +141,7 @@ class ApplicationBuilder:
         self._container_env_var = container_env_var
         self._container_env_var_file = container_env_var_file
         self._build_images = build_images or {}
+        self._combine_dependencies = combine_dependencies
 
     def build(self) -> Dict[str, str]:
         """
@@ -631,9 +636,10 @@ class ApplicationBuilder:
             "options": options,
         }
         # todo: remove this check once the lambda builder release is finished
-        if lambda_builders_version == "1.8.0":
+        if lambda_builders_version == "1.9.0":
             kwargs["dependencies_dir"] = dependencies_dir
             kwargs["download_dependencies"] = download_dependencies
+            kwargs["combine_dependencies"] = self._combine_dependencies
 
         try:
             builder.build(source_dir, artifacts_dir, scratch_dir, manifest_path, **kwargs)
