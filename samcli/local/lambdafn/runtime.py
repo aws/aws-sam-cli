@@ -81,6 +81,7 @@ class LambdaRuntime:
             self._image_builder,
             function_config.architecture,
             memory_mb=function_config.memory,
+            rolearn=function_config.rolearn,
             env_vars=env_vars,
             debug_options=debug_context,
             container_host=container_host,

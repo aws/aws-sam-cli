@@ -4,6 +4,8 @@ Represents Lambda runtime containers.
 import logging
 from typing import List
 
+import boto3
+
 from samcli.local.docker.lambda_debug_settings import LambdaDebugSettings
 from samcli.lib.utils.packagetype import IMAGE
 from .container import Container
@@ -43,6 +45,7 @@ class LambdaContainer(Container):
         layers,
         lambda_image,
         architecture,
+        rolearn,
         memory_mb=128,
         env_vars=None,
         debug_options=None,
@@ -75,6 +78,8 @@ class LambdaContainer(Container):
             Architecture type either x86_64 or arm64 on AWS lambda
         memory_mb int
             Optional. Max limit of memory in MegaBytes this Lambda function can use.
+        rolearn str
+            Execution role for the lambda function to assume
         env_vars dict
             Optional. Dictionary containing environment variables passed to container
         debug_options DebugContext
@@ -115,6 +120,15 @@ class LambdaContainer(Container):
             if isinstance(_additional_entrypoint_args, list) and entry == self._DEFAULT_ENTRYPOINT:
                 _entrypoint = _entrypoint + _additional_entrypoint_args
             _work_dir = (image_config.get("WorkingDirectory") if image_config else None) or config.get("WorkingDir")
+
+        if rolearn:
+            sts_client = boto3.client('sts')
+            response = sts_client.assume_role(RoleArn=rolearn, RoleSessionName="AssumeRoleLambdaSession")
+            temp_credentials = response['Credentials']
+            LOG.debug("Assumed role %s and got temporary credentials.", rolearn)
+            env_vars["AWS_ACCESS_KEY_ID"] = temp_credentials['AccessKeyId']
+            env_vars["AWS_SECRET_ACCESS_KEY"] = temp_credentials['SecretAccessKey']
+            env_vars["AWS_SESSION_TOKEN"] = temp_credentials['SessionToken']
 
         env_vars = {**env_vars, **container_env_vars}
         super().__init__(

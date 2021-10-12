@@ -25,6 +25,7 @@ class FunctionConfig:
         code_abs_path,
         layers,
         architecture,
+        rolearn=None,
         memory=None,
         timeout=None,
         env_vars=None,
@@ -50,6 +51,8 @@ class FunctionConfig:
             List of Layers
         architecture : str
             Architecture type either x86_64 or arm64 on AWS lambda
+        rolearn : str
+            Execution role for the lambda function to assume
         memory : int, optional
             Function memory limit in MB, by default None
         timeout : int, optional
@@ -74,6 +77,7 @@ class FunctionConfig:
         self.layers = layers
         self.memory = memory or self._DEFAULT_MEMORY
         self.architecture = architecture
+        self.rolearn = rolearn
 
         self.timeout = timeout or self._DEFAULT_TIMEOUT_SECONDS
 

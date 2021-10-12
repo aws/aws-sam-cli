@@ -202,6 +202,7 @@ class LocalLambdaRunner:
             code_abs_path=code_abs_path,
             layers=function.layers,
             architecture=function.architecture,
+            rolearn=function.rolearn,
             memory=function.memory,
             timeout=function_timeout,
             env_vars=env_vars,
