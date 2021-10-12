@@ -10,14 +10,24 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 
 import click
+from dataclasses import dataclass
 
 
 LOG = logging.getLogger(__name__)
 
 CONFIG_FILENAME = "metadata.json"
 INSTALLATION_ID_KEY = "installationId"
-TELEMETRY_ENABLED_KEY = "telemetryEnabled"
 LAST_VERSION_CHECK_KEY = "lastVersionCheck"
+
+
+@dataclass(frozen=True, eq=True)
+class Flag:
+    config_key: str
+    env_var_key: str
+
+
+TELEMETRY_FLAG = Flag("telemetryEnabled", "SAM_CLI_TELEMETRY")
+EXPERIMENTAL_FLAG = Flag("experimentalEnabled", "SAM_CLI_EXPERIMENTAL")
 
 
 class GlobalConfig:
@@ -29,7 +39,22 @@ class GlobalConfig:
     the base directory, depending on platform.
     """
 
-    def __init__(self, config_dir=None, installation_id=None, telemetry_enabled=None, last_version_check=None):
+    __instance: Optional["GlobalConfig"] = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls.__instance is None:
+            cls.__instance = cls._instance = super().__new__(cls, *args, **kwargs)
+
+        return GlobalConfig.__instance
+
+    def __init__(
+        self,
+        config_dir=None,
+        installation_id=None,
+        telemetry_enabled=None,
+        last_version_check=None,
+        experimental_enabled=None,
+    ):
         """
         Initializes the class, with options provided to assist with testing.
 
@@ -42,6 +67,7 @@ class GlobalConfig:
         self._installation_id = installation_id
         self._telemetry_enabled = telemetry_enabled
         self._last_version_check = last_version_check
+        self._experimental_enabled = experimental_enabled
 
     @property
     def config_dir(self) -> Path:
@@ -81,7 +107,7 @@ class GlobalConfig:
             return None
 
     @property
-    def telemetry_enabled(self):
+    def telemetry_enabled(self) -> bool:
         """
         Check if telemetry is enabled for this installation. Default value of
         False. It first tries to get value from SAM_CLI_TELEMETRY environment variable. If its not set,
@@ -102,20 +128,9 @@ class GlobalConfig:
         Boolean flag value. True if telemetry is enabled for this installation,
         False otherwise.
         """
-        if self._telemetry_enabled is not None:
-            return self._telemetry_enabled
-
-        # If environment variable is set, its value takes precedence over the value from config file.
-        env_name = "SAM_CLI_TELEMETRY"
-        if env_name in os.environ:
-            return os.getenv(env_name) in ("1", 1)
-
-        try:
-            self._telemetry_enabled = self._get_value(TELEMETRY_ENABLED_KEY)
-            return self._telemetry_enabled
-        except (ValueError, IOError, OSError) as ex:
-            LOG.debug("Error when retrieving telemetry_enabled flag", exc_info=ex)
-            return False
+        if self._telemetry_enabled is None:
+            self._telemetry_enabled = self._get_flag(TELEMETRY_FLAG.config_key, TELEMETRY_FLAG.env_var_key)
+        return self._telemetry_enabled
 
     @telemetry_enabled.setter
     def telemetry_enabled(self, value):
@@ -158,6 +173,19 @@ class GlobalConfig:
     def last_version_check(self, value):
         self._set_value(LAST_VERSION_CHECK_KEY, value)
         self._last_version_check = value
+
+    def _get_flag(self, config_key: str, env_var_name: str) -> bool:
+        if env_var_name and env_var_name in os.environ:
+            return os.getenv(env_var_name) in ("1", 1)
+
+        try:
+            config_value = self._get_value(config_key)
+            if isinstance(config_value, bool):
+                return config_value
+        except (ValueError, IOError, OSError) as ex:
+            LOG.debug("Error when retrieving %s flag", config_key, exc_info=ex)
+
+        return False
 
     def _get_value(self, key: str) -> Optional[Any]:
         cfg_path = self._get_config_file_path(CONFIG_FILENAME)
