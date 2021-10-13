@@ -76,4 +76,3 @@ class TestNestedStackBuilder(TestCase):
         self.assertTrue(layer_name.endswith("DepLayer"))
         self.assertIn(function_logical_id[:22], layer_name)
         self.assertLessEqual(len(layer_name), 64)
-

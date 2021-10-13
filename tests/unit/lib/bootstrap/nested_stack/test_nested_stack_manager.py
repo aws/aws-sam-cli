@@ -124,7 +124,7 @@ class TestNestedStackManager(TestCase):
             function_name = "function_name"
             NestedStackManager._add_layer_readme_info(dependencies_dir, function_name)
             patched_open.assert_has_calls([
-                call(f"{dependencies_dir}/AWS_SAM_CLI_README", "w+"),
+                call(os.path.join(dependencies_dir, "AWS_SAM_CLI_README"), "w+"),
                 call().__enter__().write(
                     f"This layer contains dependencies of function {function_name} and automatically added by AWS SAM CLI command 'sam sync'")
             ], any_order=True)

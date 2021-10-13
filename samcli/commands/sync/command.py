@@ -210,6 +210,9 @@ def do_cli(
     build_dir = DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER if dependency_layer else DEFAULT_BUILD_DIR
     LOG.debug("Using build directory as %s", build_dir)
 
+    build_dir = DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER if dependency_layer else DEFAULT_BUILD_DIR
+    LOG.debug("Using build directory as %s", build_dir)
+
     with BuildContext(
         resource_identifier=None,
         template_file=template_file,
