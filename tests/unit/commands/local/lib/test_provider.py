@@ -15,6 +15,7 @@ from samcli.lib.providers.provider import (
     get_resource_by_id,
     get_resource_ids_by_type,
     get_unique_resource_ids,
+    Function,
 )
 from samcli.commands.local.cli_common.user_exceptions import (
     InvalidLayerVersionArn,

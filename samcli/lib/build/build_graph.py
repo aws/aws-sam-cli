@@ -446,7 +446,9 @@ class AbstractBuildDefinition:
     Build definition holds information about each unique build
     """
 
-    def __init__(self, source_hash: str, manifest_hash: str, env_vars: Optional[Dict] = None, architecture: str = X86_64) -> None:
+    def __init__(
+        self, source_hash: str, manifest_hash: str, env_vars: Optional[Dict] = None, architecture: str = X86_64
+    ) -> None:
         self.uuid = str(uuid4())
         self.source_hash = source_hash
         self.manifest_hash = manifest_hash
@@ -578,7 +580,7 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         return (
             "BuildDefinition("
             f"{self.runtime}, {self.codeuri}, {self.packagetype}, {self.source_hash}, "
-            f"{self.uuid}, {self.metadata}, {self.env_vars},  {self.architecture}, "
+            f"{self.uuid}, {self.metadata}, {self.env_vars}, {self.architecture}, "
             f"{[f.functionname for f in self.functions]})"
         )
 

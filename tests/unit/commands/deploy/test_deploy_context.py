@@ -182,6 +182,7 @@ class TestSamDeployCommand(TestCase):
             confirm_changeset=False,
             signing_profiles=None,
             use_changeset=False,
+            disable_rollback=False,
         )
         patched_get_buildable_stacks.return_value = (Mock(), [])
         patched_auth_required.return_value = [("HelloWorldFunction", False)]

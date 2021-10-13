@@ -102,7 +102,14 @@ def generate_layer(
 class TestConversionFunctions(TestCase):
     def test_function_build_definition_to_toml_table(self):
         build_definition = FunctionBuildDefinition(
-            "runtime", "codeuri", ZIP, X86_64, {"key": "value"}, "source_hash", "manifest_hash", env_vars={"env_vars": "value1"}
+            "runtime",
+            "codeuri",
+            ZIP,
+            X86_64,
+            {"key": "value"},
+            "source_hash",
+            "manifest_hash",
+            env_vars={"env_vars": "value1"},
         )
         build_definition.add_function(generate_function())
 
@@ -119,7 +126,14 @@ class TestConversionFunctions(TestCase):
 
     def test_layer_build_definition_to_toml_table(self):
         build_definition = LayerBuildDefinition(
-            "name", "codeuri", "method", ["runtime"], ARM64, "source_hash", "manifest_hash", env_vars={"env_vars": "value"}
+            "name",
+            "codeuri",
+            "method",
+            ["runtime"],
+            ARM64,
+            "source_hash",
+            "manifest_hash",
+            env_vars={"env_vars": "value"},
         )
         build_definition.layer = generate_function()
 
@@ -197,7 +211,9 @@ class TestConversionFunctions(TestCase):
         self.assertEqual(toml_table[RUNTIME_FIELD], build_definition.runtime)
         self.assertEqual(toml_table[METADATA_FIELD], build_definition.metadata)
         self.assertEqual(toml_table[FUNCTIONS_FIELD], [f.name for f in build_definition.functions])
-        self.assertEqual(toml_table[SOURCE_MD5_FIELD], build_definition.source_md5)
+        if build_definition.source_hash:
+            self.assertEqual(toml_table[SOURCE_HASH_FIELD], build_definition.source_hash)
+        self.assertEqual(toml_table[MANIFEST_HASH_FIELD], build_definition.manifest_hash)
         self.assertEqual(toml_table[ARCHITECTURE_FIELD], build_definition.architecture)
 
     def test_minimal_layer_build_definition_to_toml_table(self):
@@ -211,7 +227,9 @@ class TestConversionFunctions(TestCase):
         self.assertEqual(toml_table[BUILD_METHOD_FIELD], build_definition.build_method)
         self.assertEqual(toml_table[COMPATIBLE_RUNTIMES_FIELD], build_definition.compatible_runtimes)
         self.assertEqual(toml_table[LAYER_FIELD], build_definition.layer.name)
-        self.assertEqual(toml_table[SOURCE_MD5_FIELD], build_definition.source_md5)
+        if build_definition.source_hash:
+            self.assertEqual(toml_table[SOURCE_HASH_FIELD], build_definition.source_hash)
+        self.assertEqual(toml_table[MANIFEST_HASH_FIELD], build_definition.manifest_hash)
         self.assertEqual(toml_table[ARCHITECTURE_FIELD], build_definition.architecture)
 
     def test_minimal_toml_table_to_function_build_definition(self):
@@ -229,7 +247,8 @@ class TestConversionFunctions(TestCase):
         self.assertEqual(build_definition.metadata, {})
         self.assertEqual(build_definition.uuid, uuid)
         self.assertEqual(build_definition.functions, [])
-        self.assertEqual(build_definition.source_md5, "")
+        self.assertEqual(build_definition.source_hash, "")
+        self.assertEqual(build_definition.manifest_hash, "")
         self.assertEqual(build_definition.env_vars, {})
         self.assertEqual(build_definition.architecture, X86_64)
 
@@ -249,7 +268,8 @@ class TestConversionFunctions(TestCase):
         self.assertEqual(build_definition.uuid, uuid)
         self.assertEqual(build_definition.compatible_runtimes, toml_table[COMPATIBLE_RUNTIMES_FIELD])
         self.assertEqual(build_definition.layer, None)
-        self.assertEqual(build_definition.source_md5, "")
+        self.assertEqual(build_definition.source_hash, "")
+        self.assertEqual(build_definition.manifest_hash, "")
         self.assertEqual(build_definition.env_vars, {})
         self.assertEqual(build_definition.architecture, X86_64)
 
@@ -526,6 +546,7 @@ class TestBuildGraph(TestCase):
                 TestBuildGraph.RUNTIME,
                 TestBuildGraph.CODEURI,
                 TestBuildGraph.ZIP,
+                TestBuildGraph.ARCHITECTURE_FIELD,
                 TestBuildGraph.METADATA,
                 TestBuildGraph.SOURCE_HASH,
                 TestBuildGraph.MANIFEST_HASH,
@@ -535,6 +556,7 @@ class TestBuildGraph(TestCase):
                 TestBuildGraph.RUNTIME,
                 TestBuildGraph.CODEURI,
                 TestBuildGraph.ZIP,
+                TestBuildGraph.ARCHITECTURE_FIELD,
                 TestBuildGraph.METADATA,
                 "new_value",
                 "new_manifest_value",
@@ -547,6 +569,7 @@ class TestBuildGraph(TestCase):
                 TestBuildGraph.LAYER_CODEURI,
                 TestBuildGraph.LAYER_RUNTIME,
                 [TestBuildGraph.LAYER_RUNTIME],
+                TestBuildGraph.ARCHITECTURE_FIELD,
                 TestBuildGraph.SOURCE_HASH,
                 TestBuildGraph.MANIFEST_HASH,
                 TestBuildGraph.ENV_VARS,
@@ -556,6 +579,7 @@ class TestBuildGraph(TestCase):
                 TestBuildGraph.LAYER_CODEURI,
                 TestBuildGraph.LAYER_RUNTIME,
                 [TestBuildGraph.LAYER_RUNTIME],
+                TestBuildGraph.ARCHITECTURE_FIELD,
                 "new_value",
                 "new_manifest_value",
                 TestBuildGraph.ENV_VARS,
@@ -716,12 +740,16 @@ class TestBuildDefinition(TestCase):
         self.assertNotEqual(build_definition1, build_definition2)
 
     def test_euqality_with_another_object(self):
-        build_definition = FunctionBuildDefinition("runtime", "codeuri", ZIP, X86_64, None, "source_hash", "manifest_hash")
+        build_definition = FunctionBuildDefinition(
+            "runtime", "codeuri", ZIP, X86_64, None, "source_hash", "manifest_hash"
+        )
         self.assertNotEqual(build_definition, {})
 
     def test_str_representation(self):
-        build_definition = FunctionBuildDefinition("runtime", "codeuri", ZIP, ARM64, None, "source_hash", "manifest_hash")
+        build_definition = FunctionBuildDefinition(
+            "runtime", "codeuri", ZIP, ARM64, None, "source_hash", "manifest_hash"
+        )
         self.assertEqual(
             str(build_definition),
-            f"BuildDefinition(runtime, codeuri, Zip, arm64, source_hash, {build_definition.uuid}, {{}}, {{}}, [])",
+            f"BuildDefinition(runtime, codeuri, Zip, source_hash, {build_definition.uuid}, {{}}, {{}}, arm64, [])",
         )

@@ -1163,7 +1163,16 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
         builder_instance_mock = lambda_builder_mock.return_value = Mock()
 
         result = self.builder._build_function_in_process(
-            config_mock, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime", X86_64, None, None, True,
+            config_mock,
+            "source_dir",
+            "artifacts_dir",
+            "scratch_dir",
+            "manifest_path",
+            "runtime",
+            X86_64,
+            None,
+            None,
+            True,
         )
         self.assertEqual(result, "artifacts_dir")
 
@@ -1198,7 +1207,16 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
 
         with self.assertRaises(BuildError):
             self.builder._build_function_in_process(
-                config_mock, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime", X86_64, None, None, True,
+                config_mock,
+                "source_dir",
+                "artifacts_dir",
+                "scratch_dir",
+                "manifest_path",
+                "runtime",
+                X86_64,
+                None,
+                None,
+                True,
             )
 
 

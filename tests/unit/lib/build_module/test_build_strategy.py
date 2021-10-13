@@ -478,7 +478,7 @@ class TestIncrementalBuildStrategy(TestCase):
         self.build_graph.get_layer_build_definitions.return_value = []
 
         self.build_strategy.build()
-        self.build_function.assert_called_with(ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY, False)
+        self.build_function.assert_called_with(ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY, False)
 
     def test_assert_incremental_build_layer(self, patched_manifest_hash):
         same_hash = "same_hash"
@@ -490,7 +490,7 @@ class TestIncrementalBuildStrategy(TestCase):
         self.build_graph.get_layer_build_definitions.return_value = [given_layer_build_def]
 
         self.build_strategy.build()
-        self.build_layer.assert_called_with(ANY, ANY, ANY, ANY, ANY, ANY, ANY, False)
+        self.build_layer.assert_called_with(ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY, False)
 
 
 @patch("samcli.lib.build.build_graph.BuildGraph._write")
@@ -517,7 +517,7 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
         ]
     )
     def test_will_call_incremental_build_strategy(self, mocked_read, mocked_write, runtime):
-        build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", {})
+        build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", X86_64, {})
         self.build_graph.put_function_build_definition(build_definition, Mock())
         with patch.object(
             self.build_strategy, "_incremental_build_strategy"
@@ -537,7 +537,7 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
         ]
     )
     def test_will_call_cached_build_strategy(self, mocked_read, mocked_write, runtime):
-        build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", {})
+        build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", X86_64, {})
         self.build_graph.put_function_build_definition(build_definition, Mock())
         with patch.object(
             self.build_strategy, "_incremental_build_strategy"

@@ -148,6 +148,7 @@ class TestDoCli(TestCase):
             use_changeset=False,
             force_upload=True,
             signing_profiles=None,
+            disable_rollback=False,
         )
         package_context_mock.run.assert_called_once_with()
         deploy_context_mock.run.assert_called_once_with()
@@ -259,6 +260,7 @@ class TestDoCli(TestCase):
             use_changeset=False,
             force_upload=True,
             signing_profiles=None,
+            disable_rollback=False,
         )
         execute_watch_mock.assert_called_once_with(
             self.template_file, build_context_mock, package_context_mock, deploy_context_mock

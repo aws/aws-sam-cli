@@ -564,11 +564,11 @@ class Deployer:
         try:
             if exists:
                 result = self.update_stack(**kwargs)
-                self.wait_for_execute(stack_name, "UPDATE")
+                self.wait_for_execute(stack_name, "UPDATE", False)
                 LOG.info("\nStack update succeeded. Sync infra completed.\n")
             else:
                 result = self.create_stack(**kwargs)
-                self.wait_for_execute(stack_name, "CREATE")
+                self.wait_for_execute(stack_name, "CREATE", False)
                 LOG.info("\nStack creation succeeded. Sync infra completed.\n")
 
             return result

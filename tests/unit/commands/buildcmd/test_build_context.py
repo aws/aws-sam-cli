@@ -587,17 +587,16 @@ class TestBuildContext_setup_build_dir(TestCase):
         shutil_patch.rmtree.assert_not_called()
         pathlib_patch.Path.cwd.assert_called_once()
 
-class TestBuildContext_setup_cached_and_deps_dir(TestCase):
 
-    @parameterized.expand([
-        (True,),
-        (False,)
-    ])
+class TestBuildContext_setup_cached_and_deps_dir(TestCase):
+    @parameterized.expand([(True,), (False,)])
     @patch("samcli.commands.build.build_context.pathlib.Path")
     @patch("samcli.commands.build.build_context.SamLocalStackProvider")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
-    def test_cached_dir_and_deps_dir_creation(self, cached, patched_layer, patched_function, patched_stack, patched_path):
+    def test_cached_dir_and_deps_dir_creation(
+        self, cached, patched_layer, patched_function, patched_stack, patched_path
+    ):
         patched_stack.get_stacks.return_value = ([], None)
         build_context = BuildContext(
             resource_identifier="function_identifier",
@@ -607,18 +606,21 @@ class TestBuildContext_setup_cached_and_deps_dir(TestCase):
             cache_dir="cache_dir",
             parallel=False,
             mode="mode",
-            cached=cached
+            cached=cached,
         )
 
         with patch.object(build_context, "_setup_build_dir"):
             build_context.set_up()
 
-            call_assertion = lambda: patched_path.assert_has_calls([
-                call("cache_dir"),
-                call().mkdir(exist_ok=True, mode=BuildContext._BUILD_DIR_PERMISSIONS, parents=True),
-                call(DEFAULT_DEPENDENCIES_DIR),
-                call().mkdir(exist_ok=True, mode=BuildContext._BUILD_DIR_PERMISSIONS, parents=True)
-            ], any_order=True)
+            call_assertion = lambda: patched_path.assert_has_calls(
+                [
+                    call("cache_dir"),
+                    call().mkdir(exist_ok=True, mode=BuildContext._BUILD_DIR_PERMISSIONS, parents=True),
+                    call(DEFAULT_DEPENDENCIES_DIR),
+                    call().mkdir(exist_ok=True, mode=BuildContext._BUILD_DIR_PERMISSIONS, parents=True),
+                ],
+                any_order=True,
+            )
 
             # if it is cached validate calls above is made,
             # otherwise validate an assertion will be raised since they are not called
@@ -627,6 +629,7 @@ class TestBuildContext_setup_cached_and_deps_dir(TestCase):
             else:
                 with self.assertRaises(AssertionError):
                     call_assertion()
+
 
 class TestBuildContext_run(TestCase):
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
