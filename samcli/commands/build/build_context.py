@@ -141,7 +141,6 @@ class BuildContext:
 
             dependencies_path = pathlib.Path(DEFAULT_DEPENDENCIES_DIR)
             dependencies_path.mkdir(mode=BUILD_DIR_PERMISSIONS, parents=True, exist_ok=True)
-
         if self._use_container:
             self._container_manager = ContainerManager(
                 docker_network_id=self._docker_network, skip_pull_image=self._skip_pull_image

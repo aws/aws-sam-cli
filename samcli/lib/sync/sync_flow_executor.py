@@ -12,6 +12,7 @@ from concurrent.futures import ThreadPoolExecutor, Future
 from botocore.exceptions import ClientError
 
 from samcli.lib.utils.colors import Colored
+from samcli.lib.providers.exceptions import MissingLocalDefinition
 from samcli.lib.sync.exceptions import (
     MissingPhysicalResourceError,
     NoLayerVersionsFoundError,
@@ -84,6 +85,13 @@ def default_exception_handler(sync_flow_exception: SyncFlowException) -> None:
         )
     elif isinstance(exception, InvalidRuntimeDefinitionForFunction):
         LOG.error("No Runtime information found for function resource named %s", exception.function_logical_id)
+    elif isinstance(exception, MissingLocalDefinition):
+        LOG.error(
+            "Resource %s does not have %s specified. Skipping the sync.%s",
+            exception.resource_identifier,
+            exception.property_name,
+            HELP_TEXT_FOR_SYNC_INFRA,
+        )
     else:
         raise exception
 

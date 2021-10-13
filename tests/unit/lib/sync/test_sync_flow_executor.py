@@ -3,6 +3,7 @@ from queue import Queue
 from samcli.lib.sync.sync_flow import SyncFlow
 
 from botocore.exceptions import ClientError
+from samcli.lib.providers.exceptions import MissingLocalDefinition
 from samcli.lib.sync.exceptions import (
     MissingPhysicalResourceError,
     NoLayerVersionsFoundError,
@@ -91,6 +92,25 @@ class TestSyncFlowExecutor(TestCase):
                 call(
                     "Cannot find build definition for function %s.%s",
                     exception.function_logical_id,
+                    HELP_TEXT_FOR_SYNC_INFRA,
+                )
+            ]
+        )
+    
+    def test_default_exception_missing_local_definition(self, log_mock):
+        sync_flow_exception = MagicMock(spec=SyncFlowException)
+        exception = MagicMock(spec=MissingLocalDefinition)
+        exception.resource_identifier = "resource"
+        exception.property_name = "property"
+        sync_flow_exception.exception = exception
+
+        default_exception_handler(sync_flow_exception)
+        log_mock.error.assert_has_calls(
+            [
+                call(
+                    "Resource %s does not have %s specified. Skipping the sync.%s",
+                    exception.resource_identifier,
+                    exception.property_name,
                     HELP_TEXT_FOR_SYNC_INFRA,
                 )
             ]
