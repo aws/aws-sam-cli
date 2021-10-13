@@ -71,6 +71,7 @@ class DeployContext:
         confirm_changeset,
         signing_profiles,
         use_changeset,
+        disable_rollback,
     ):
         self.template_file = template_file
         self.stack_name = stack_name
@@ -99,6 +100,7 @@ class DeployContext:
         self.confirm_changeset = confirm_changeset
         self.signing_profiles = signing_profiles
         self.use_changeset = use_changeset
+        self.disable_rollback = disable_rollback
 
     def __enter__(self):
         return self
@@ -154,6 +156,7 @@ class DeployContext:
             self.confirm_changeset,
             self.signing_profiles,
             self.use_changeset,
+            self.disable_rollback,
         )
         return self.deploy(
             self.stack_name,
@@ -169,6 +172,7 @@ class DeployContext:
             self.fail_on_empty_changeset,
             self.confirm_changeset,
             self.use_changeset,
+            self.disable_rollback,
         )
 
     def deploy(
@@ -186,6 +190,7 @@ class DeployContext:
         fail_on_empty_changeset=True,
         confirm_changeset=False,
         use_changeset=True,
+        disable_rollback=False,
     ):
         """
         Deploy the stack to cloudformation.
@@ -220,6 +225,8 @@ class DeployContext:
             Should wait for customer's confirm before executing the changeset
         use_changeset : bool
             Involve creation of changesets, false when using sam sync
+        disable_rollback : bool
+            Preserves the state of previously provisioned resources when an operation fails
         """
         stacks, _ = SamLocalStackProvider.get_stacks(
             self.template_file,
@@ -255,8 +262,8 @@ class DeployContext:
                     if not click.confirm(f"{self.MSG_CONFIRM_CHANGESET}", default=False):
                         return
 
-                self.deployer.execute_changeset(result["Id"], stack_name)
-                self.deployer.wait_for_execute(stack_name, changeset_type)
+                self.deployer.execute_changeset(result["Id"], stack_name, disable_rollback)
+                self.deployer.wait_for_execute(stack_name, changeset_type, disable_rollback)
                 click.echo(self.MSG_EXECUTE_SUCCESS.format(stack_name=stack_name, region=region))
 
             except deploy_exceptions.ChangeEmptyError as ex:

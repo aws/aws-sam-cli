@@ -94,6 +94,13 @@ LOG = logging.getLogger(__name__)
     is_flag=True,
     help="Prompt to confirm if the computed changeset is to be deployed by SAM CLI.",
 )
+@click.option(
+    "--disable-rollback/--no-disable-rollback",
+    default=False,
+    required=False,
+    is_flag=True,
+    help="Preserves the state of previously provisioned resources when an operation fails.",
+)
 @stack_name_option
 @s3_bucket_option
 @image_repository_option
@@ -146,6 +153,7 @@ def cli(
     resolve_image_repos,
     config_file,
     config_env,
+    disable_rollback,
 ):
     """
     `sam deploy` command entry point
@@ -179,6 +187,7 @@ def cli(
         config_file,
         config_env,
         resolve_image_repos,
+        disable_rollback,
     )  # pragma: no cover
 
 
@@ -210,6 +219,7 @@ def do_cli(
     config_file,
     config_env,
     resolve_image_repos,
+    disable_rollback,
 ):
     """
     Implementation of the ``cli`` method
@@ -237,6 +247,7 @@ def do_cli(
             config_section=CONFIG_SECTION,
             config_env=config_env,
             config_file=config_file,
+            disable_rollback=disable_rollback,
         )
         guided_context.run()
     else:
@@ -300,5 +311,6 @@ def do_cli(
             confirm_changeset=guided_context.confirm_changeset if guided else confirm_changeset,
             signing_profiles=guided_context.signing_profiles if guided else signing_profiles,
             use_changeset=True,
+            disable_rollback=guided_context.disable_rollback if guided else disable_rollback,
         ) as deploy_context:
             deploy_context.run()

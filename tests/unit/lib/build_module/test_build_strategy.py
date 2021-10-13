@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch, MagicMock, call, ANY
 
 from parameterized import parameterized
 
+from samcli.lib.utils.architecture import X86_64, ARM64
 from samcli.lib.build.exceptions import MissingBuildMethodException
 from samcli.lib.build.build_graph import BuildGraph, FunctionBuildDefinition, LayerBuildDefinition
 from samcli.lib.build.build_strategy import (
@@ -40,8 +41,8 @@ class BuildStrategyBaseTest(TestCase):
         self.function2.get_build_dir = Mock()
         self.function2.full_path = Mock()
 
-        self.function_build_definition1 = FunctionBuildDefinition("runtime", "codeuri", ZIP, {})
-        self.function_build_definition2 = FunctionBuildDefinition("runtime2", "codeuri", ZIP, {})
+        self.function_build_definition1 = FunctionBuildDefinition("runtime", "codeuri", ZIP, X86_64, {})
+        self.function_build_definition2 = FunctionBuildDefinition("runtime2", "codeuri", ZIP, X86_64, {})
         self.build_graph.put_function_build_definition(self.function_build_definition1, self.function1_1)
         self.build_graph.put_function_build_definition(self.function_build_definition1, self.function1_2)
         self.build_graph.put_function_build_definition(self.function_build_definition2, self.function2)
@@ -49,8 +50,8 @@ class BuildStrategyBaseTest(TestCase):
         self.layer1 = Mock()
         self.layer2 = Mock()
 
-        self.layer_build_definition1 = LayerBuildDefinition("layer1", "codeuri", "build_method", [])
-        self.layer_build_definition2 = LayerBuildDefinition("layer2", "codeuri", "build_method", [])
+        self.layer_build_definition1 = LayerBuildDefinition("layer1", "codeuri", "build_method", [], X86_64)
+        self.layer_build_definition2 = LayerBuildDefinition("layer2", "codeuri", "build_method", [], X86_64)
         self.build_graph.put_layer_build_definition(self.layer_build_definition1, self.layer1)
         self.build_graph.put_layer_build_definition(self.layer_build_definition2, self.layer2)
 
@@ -125,7 +126,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
     def test_layer_build_should_fail_when_no_build_method_is_provided(self, mock_copy_tree):
         given_layer = Mock()
         given_layer.build_method = None
-        layer_build_definition = LayerBuildDefinition("layer1", "codeuri", "build_method", [])
+        layer_build_definition = LayerBuildDefinition("layer1", "codeuri", "build_method", [], X86_64)
         layer_build_definition.layer = given_layer
 
         build_graph = Mock(spec=BuildGraph)
@@ -156,6 +157,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                     self.function_build_definition1.codeuri,
                     ZIP,
                     self.function_build_definition1.runtime,
+                    self.function_build_definition1.architecture,
                     self.function_build_definition1.get_handler_name(),
                     self.function_build_definition1.get_build_dir(given_build_dir),
                     self.function_build_definition1.metadata,
@@ -168,6 +170,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                     self.function_build_definition2.codeuri,
                     ZIP,
                     self.function_build_definition2.runtime,
+                    self.function_build_definition2.architecture,
                     self.function_build_definition2.get_handler_name(),
                     self.function_build_definition2.get_build_dir(given_build_dir),
                     self.function_build_definition2.metadata,
@@ -186,6 +189,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                     self.layer1.codeuri,
                     self.layer1.build_method,
                     self.layer1.compatible_runtimes,
+                    self.layer1.build_architecture,
                     self.layer1.get_build_dir(given_build_dir),
                     self.layer_build_definition1.env_vars,
                     self.layer_build_definition1.dependencies_dir,
@@ -196,6 +200,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                     self.layer2.codeuri,
                     self.layer2.build_method,
                     self.layer2.compatible_runtimes,
+                    self.layer2.build_architecture,
                     self.layer2.get_build_dir(given_build_dir),
                     self.layer_build_definition2.env_vars,
                     self.layer_build_definition2.dependencies_dir,
@@ -207,7 +212,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
         # since artifact dir is now determined in samcli/lib/providers/provider.py
         # we will not do assertion here
 
-        # assert that function1_2 artifacts have been copied from already built function1_1
+        # # assert that function1_2 artifacts have been copied from already built function1_1
         mock_copy_tree.assert_called_with(
             self.function_build_definition1.get_build_dir(given_build_dir),
             self.function1_2.get_build_dir(given_build_dir),
@@ -231,7 +236,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
         function2.name = "Function2"
         function2.full_path = "Function2"
         function2.packagetype = IMAGE
-        build_definition = FunctionBuildDefinition("3.7", "codeuri", IMAGE, {}, env_vars={"FOO": "BAR"})
+        build_definition = FunctionBuildDefinition("3.7", "codeuri", IMAGE, X86_64, {}, env_vars={"FOO": "BAR"})
         # since they have the same metadata, they are put into the same build_definition.
         build_definition.functions = [function1, function2]
 

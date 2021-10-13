@@ -72,6 +72,14 @@ Resources:
                 type: aws_proxy
                 uri:
                   Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyNonServerlessLambdaFunction.Arn}/invocations
+          "/printeventwithoperationidfunction":
+            get:
+              operationId: 'MyOperationName'
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EchoEventBodyFunction.Arn}/invocations
         swagger: '2.0'
         x-amazon-apigateway-binary-media-types:
           - image/gif

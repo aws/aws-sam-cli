@@ -50,7 +50,7 @@ class TestSamBuildableStackProvider(TestCase):
                 }
             }
         }
-        self.get_template_data_mock.side_effect = lambda t, m: {
+        self.get_template_data_mock.side_effect = lambda t: {
             self.template_file: template,
             child_location_path: LEAF_TEMPLATE,
         }.get(t)
@@ -59,7 +59,6 @@ class TestSamBuildableStackProvider(TestCase):
             "",
             "",
             parameter_overrides=None,
-            root_template_dir=os.path.dirname(self.template_file),
         )
         self.assertListEqual(
             stacks,
@@ -89,13 +88,16 @@ class TestSamBuildableStackProvider(TestCase):
                 }
             }
         }
-        self.get_template_data_mock.side_effect = lambda t, m: {
+        self.get_template_data_mock.side_effect = lambda t: {
             self.template_file: template,
             child_template_file: child_template,
             grand_child_template_file: LEAF_TEMPLATE,
         }.get(t)
         stacks, remote_stack_full_paths = SamLocalStackProvider.get_stacks(
-            self.template_file, "", "", parameter_overrides=None, root_template_dir=os.path.dirname(self.template_file)
+            self.template_file,
+            "",
+            "",
+            parameter_overrides=None,
         )
         self.assertListEqual(
             stacks,
@@ -117,7 +119,7 @@ class TestSamBuildableStackProvider(TestCase):
                 }
             }
         }
-        self.get_template_data_mock.side_effect = lambda t, m: {
+        self.get_template_data_mock.side_effect = lambda t: {
             self.template_file: template,
         }.get(t)
         stacks, remote_stack_full_paths = SamLocalStackProvider.get_stacks(
@@ -156,7 +158,7 @@ class TestSamBuildableStackProvider(TestCase):
                 }
             }
         }
-        self.get_template_data_mock.side_effect = lambda t, m: {
+        self.get_template_data_mock.side_effect = lambda t: {
             template_file: template,
             child_location_path: LEAF_TEMPLATE,
         }.get(t)
@@ -197,7 +199,7 @@ class TestSamBuildableStackProvider(TestCase):
                 }
             }
         }
-        self.get_template_data_mock.side_effect = lambda t, m: {
+        self.get_template_data_mock.side_effect = lambda t: {
             template_file: template,
             child_location_path: LEAF_TEMPLATE,
         }.get(t)

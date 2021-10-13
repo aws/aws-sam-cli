@@ -16,6 +16,8 @@ import tomlkit
 from samcli.lib.build.exceptions import InvalidBuildGraphException
 from samcli.lib.providers.provider import Function, LayerVersion
 from samcli.lib.utils.packagetype import ZIP
+from samcli.lib.utils.architecture import X86_64
+
 
 LOG = logging.getLogger(__name__)
 
@@ -36,6 +38,7 @@ LAYER_NAME_FIELD = "layer_name"
 BUILD_METHOD_FIELD = "build_method"
 COMPATIBLE_RUNTIMES_FIELD = "compatible_runtimes"
 LAYER_FIELD = "layer"
+ARCHITECTURE_FIELD = "architecture"
 
 
 def _function_build_definition_to_toml_table(
@@ -58,6 +61,7 @@ def _function_build_definition_to_toml_table(
     if function_build_definition.packagetype == ZIP:
         toml_table[CODE_URI_FIELD] = function_build_definition.codeuri
         toml_table[RUNTIME_FIELD] = function_build_definition.runtime
+        toml_table[ARCHITECTURE_FIELD] = function_build_definition.architecture
         if function_build_definition.source_hash:
             toml_table[SOURCE_HASH_FIELD] = function_build_definition.source_hash
         toml_table[MANIFEST_HASH_FIELD] = function_build_definition.manifest_hash
@@ -92,6 +96,7 @@ def _toml_table_to_function_build_definition(uuid: str, toml_table: tomlkit.api.
         toml_table.get(RUNTIME_FIELD),
         toml_table.get(CODE_URI_FIELD),
         toml_table.get(PACKAGETYPE_FIELD, ZIP),
+        toml_table.get(ARCHITECTURE_FIELD, X86_64),
         dict(toml_table.get(METADATA_FIELD, {})),
         toml_table.get(SOURCE_HASH_FIELD, ""),
         toml_table.get(MANIFEST_HASH_FIELD, ""),
@@ -120,6 +125,7 @@ def _layer_build_definition_to_toml_table(layer_build_definition: "LayerBuildDef
     toml_table[CODE_URI_FIELD] = layer_build_definition.codeuri
     toml_table[BUILD_METHOD_FIELD] = layer_build_definition.build_method
     toml_table[COMPATIBLE_RUNTIMES_FIELD] = layer_build_definition.compatible_runtimes
+    toml_table[ARCHITECTURE_FIELD] = layer_build_definition.architecture
     if layer_build_definition.source_hash:
         toml_table[SOURCE_HASH_FIELD] = layer_build_definition.source_hash
     toml_table[MANIFEST_HASH_FIELD] = layer_build_definition.manifest_hash
@@ -151,6 +157,7 @@ def _toml_table_to_layer_build_definition(uuid: str, toml_table: tomlkit.api.Tab
         toml_table.get(CODE_URI_FIELD),
         toml_table.get(BUILD_METHOD_FIELD),
         toml_table.get(COMPATIBLE_RUNTIMES_FIELD),
+        toml_table.get(ARCHITECTURE_FIELD, X86_64),
         toml_table.get(SOURCE_HASH_FIELD, ""),
         toml_table.get(MANIFEST_HASH_FIELD, ""),
         dict(toml_table.get(ENV_VARS_FIELD, {})),
@@ -439,13 +446,14 @@ class AbstractBuildDefinition:
     Build definition holds information about each unique build
     """
 
-    def __init__(self, source_hash: str, manifest_hash: str, env_vars: Optional[Dict] = None) -> None:
+    def __init__(self, source_hash: str, manifest_hash: str, env_vars: Optional[Dict] = None, architecture: str = X86_64) -> None:
         self.uuid = str(uuid4())
         self.source_hash = source_hash
         self.manifest_hash = manifest_hash
+        self._env_vars = env_vars if env_vars else {}
+        self.architecture = architecture
         # following properties are used during build time and they don't serialize into build.toml file
         self.download_dependencies: bool = True
-        self._env_vars = env_vars if env_vars else {}
 
     @property
     def dependencies_dir(self) -> str:
@@ -467,11 +475,12 @@ class LayerBuildDefinition(AbstractBuildDefinition):
         codeuri: Optional[str],
         build_method: Optional[str],
         compatible_runtimes: Optional[List[str]],
+        architecture: str,
         source_hash: str = "",
         manifest_hash: str = "",
         env_vars: Optional[Dict] = None,
     ):
-        super().__init__(source_hash, manifest_hash, env_vars)
+        super().__init__(source_hash, manifest_hash, env_vars, architecture)
         self.name = name
         self.codeuri = codeuri
         self.build_method = build_method
@@ -483,7 +492,7 @@ class LayerBuildDefinition(AbstractBuildDefinition):
     def __str__(self) -> str:
         return (
             f"LayerBuildDefinition({self.name}, {self.codeuri}, {self.source_hash}, {self.uuid}, "
-            f"{self.build_method}, {self.compatible_runtimes}, {self.env_vars})"
+            f"{self.build_method}, {self.compatible_runtimes}, {self.architecture}, {self.env_vars})"
         )
 
     def __eq__(self, other: Any) -> bool:
@@ -509,6 +518,7 @@ class LayerBuildDefinition(AbstractBuildDefinition):
             and self.build_method == other.build_method
             and self.compatible_runtimes == other.compatible_runtimes
             and self.env_vars == other.env_vars
+            and self.architecture == other.architecture
         )
 
 
@@ -522,12 +532,13 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         runtime: Optional[str],
         codeuri: Optional[str],
         packagetype: str,
+        architecture: str,
         metadata: Optional[Dict],
         source_hash: str = "",
         manifest_hash: str = "",
         env_vars: Optional[Dict] = None,
     ) -> None:
-        super().__init__(source_hash, manifest_hash, env_vars)
+        super().__init__(source_hash, manifest_hash, env_vars, architecture)
         self.runtime = runtime
         self.codeuri = codeuri
         self.packagetype = packagetype
@@ -567,7 +578,7 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         return (
             "BuildDefinition("
             f"{self.runtime}, {self.codeuri}, {self.packagetype}, {self.source_hash}, "
-            f"{self.uuid}, {self.metadata}, {self.env_vars}, "
+            f"{self.uuid}, {self.metadata}, {self.env_vars},  {self.architecture}, "
             f"{[f.functionname for f in self.functions]})"
         )
 
@@ -598,4 +609,5 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
             and self.packagetype == other.packagetype
             and self.metadata == other.metadata
             and self.env_vars == other.env_vars
+            and self.architecture == other.architecture
         )

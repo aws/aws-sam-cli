@@ -23,6 +23,7 @@ from samcli.lib.build.build_graph import (
 )
 from samcli.lib.build.exceptions import MissingBuildMethodException
 
+
 LOG = logging.getLogger(__name__)
 
 
@@ -117,8 +118,8 @@ class DefaultBuildStrategy(BuildStrategy):
         self,
         build_graph: BuildGraph,
         build_dir: str,
-        build_function: Callable[[str, str, str, str, Optional[str], str, dict, dict, Optional[str], bool], str],
-        build_layer: Callable[[str, str, str, List[str], str, dict, Optional[str], bool], str],
+        build_function: Callable[[str, str, str, str, str, Optional[str], str, dict, dict, Optional[str], bool], str],
+        build_layer: Callable[[str, str, str, List[str], str, str, dict, Optional[str], bool], str],
     ) -> None:
         super().__init__(build_graph)
         self._build_dir = build_dir
@@ -131,10 +132,11 @@ class DefaultBuildStrategy(BuildStrategy):
         """
         function_build_results = {}
         LOG.info(
-            "Building codeuri: %s runtime: %s metadata: %s functions: %s",
+            "Building codeuri: %s runtime: %s metadata: %s architecture: %s functions: %s",
             build_definition.codeuri,
             build_definition.runtime,
             build_definition.metadata,
+            build_definition.architecture,
             [function.full_path for function in build_definition.functions],
         )
 
@@ -154,6 +156,7 @@ class DefaultBuildStrategy(BuildStrategy):
             build_definition.codeuri,  # type: ignore
             build_definition.packagetype,
             build_definition.runtime,  # type: ignore
+            build_definition.architecture,
             build_definition.get_handler_name(),
             single_build_dir,
             build_definition.metadata,
@@ -202,6 +205,7 @@ class DefaultBuildStrategy(BuildStrategy):
                 layer.codeuri,  # type: ignore
                 layer.build_method,
                 layer.compatible_runtimes,  # type: ignore
+                layer.build_architecture,
                 single_build_dir,
                 layer_definition.env_vars,
                 layer_definition.dependencies_dir,

@@ -63,3 +63,9 @@ class NotAvailableInRegion(UserException):
     """
     Calling service not available (launched) in specified region
     """
+
+
+class InvalidFunctionPropertyType(UserException):
+    """
+    Function property given in the template is Invalid
+    """

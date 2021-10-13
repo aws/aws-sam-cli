@@ -151,7 +151,7 @@ class ApiCollector:
         grouped_routes: Dict[str, Route] = {}
 
         for route in routes:
-            key = "{}-{}-{}".format(route.stack_path, route.function_name, route.path)
+            key = "{}-{}-{}-{}".format(route.stack_path, route.function_name, route.path, route.operation_name or "")
             config = grouped_routes.get(key, None)
             methods = route.methods
             if config:
@@ -163,6 +163,7 @@ class ApiCollector:
                 methods=sorted_methods,
                 event_type=route.event_type,
                 payload_format_version=route.payload_format_version,
+                operation_name=route.operation_name,
                 stack_path=route.stack_path,
             )
         return list(grouped_routes.values())
