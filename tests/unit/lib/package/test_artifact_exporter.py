@@ -1750,7 +1750,7 @@ class TestArtifactExporter(unittest.TestCase):
             uploaders=self.uploaders_mock,
             code_signer=self.code_signer_mock,
             resources_to_export=resources_to_export,
-            iac=self.iac_mock
+            iac=self.iac_mock,
         )
 
         template_exporter.delete(retain_resources=[])
@@ -1786,7 +1786,7 @@ class TestArtifactExporter(unittest.TestCase):
             uploaders=self.uploaders_mock,
             code_signer=self.code_signer_mock,
             resources_to_export=resources_to_export,
-            iac=self.iac_mock
+            iac=self.iac_mock,
         )
 
         repos = template_exporter.get_ecr_repos()
@@ -1838,7 +1838,7 @@ class TestArtifactExporter(unittest.TestCase):
             uploaders=self.uploaders_mock,
             code_signer=self.code_signer_mock,
             resources_to_export=resources_to_export,
-            iac=self.iac_mock
+            iac=self.iac_mock,
         )
 
         s3_info = template_exporter.get_s3_info()

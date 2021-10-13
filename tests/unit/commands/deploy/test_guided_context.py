@@ -252,9 +252,20 @@ class TestGuidedContext(TestCase):
         ]
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
-        patched_confirm.side_effect = [True, False, False, True, False, True, True]
+        patched_confirm.side_effect = [True, False, True, False, True, True]
         patched_manage_stack.return_value = "managed_s3_stack"
-
+        iac_mock = Mock()
+        gc = GuidedContext(
+            stack_name="test",
+            s3_bucket="s3_b",
+            s3_prefix="s3_p",
+            confirm_changeset=True,
+            region="region",
+            image_repository=None,
+            image_repositories=None,
+            iac=iac_mock,
+            project=self.project_mock,
+        )
         project_mock = self.gc._project
         project_mock.reset_mock()
         iac_stack_mock = MagicMock()
@@ -265,12 +276,11 @@ class TestGuidedContext(TestCase):
         project_mock.find_stack_by_name.return_value = None
         project_mock.default_stack = iac_stack_mock
 
-        self.gc.guided_prompts()
+        gc.guided_prompts()
         # Now to check for all the defaults on confirmations.
         expected_confirmation_calls = [
             call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
-            call(f"\t{self.gc.start_bold}Disable rollback{self.gc.end_bold}", default=False),
             call(
                 f"\t{self.gc.start_bold}HelloWorldFunction may not have authorization defined, Is this okay?{self.gc.end_bold}",
                 default=False,
@@ -300,7 +310,6 @@ class TestGuidedContext(TestCase):
         expected_click_secho_calls = [
             call("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy"),
             call("\t#SAM needs permission to be able to create roles to connect to the resources in your template"),
-            call("\t#Preserves the state of previously provisioned resources when an operation fails"),
         ]
         self.assertEqual(expected_click_secho_calls, patched_click_secho.call_args_list)
 
@@ -340,7 +349,19 @@ class TestGuidedContext(TestCase):
         patched_confirm.side_effect = [True, False, True, False, True, True]
         patched_manage_stack.return_value = "managed_s3_stack"
         patched_signer_config_per_function.return_value = ({}, {})
-        project_mock = self.gc._project
+        iac_mock = Mock()
+        gc = GuidedContext(
+            stack_name="test",
+            s3_bucket="s3_b",
+            s3_prefix="s3_p",
+            confirm_changeset=True,
+            region="region",
+            image_repository=None,
+            image_repositories=None,
+            iac=iac_mock,
+            project=self.project_mock,
+        )
+        project_mock = gc._project
         project_mock.reset_mock()
         iac_stack_mock = MagicMock()
         iac_stack_mock.origin_dir = "dir"
@@ -349,7 +370,8 @@ class TestGuidedContext(TestCase):
         iac_stack_mock.get_overrideable_parameters.return_value = {}
         project_mock.find_stack_by_name.return_value = None
         project_mock.default_stack = iac_stack_mock
-        self.gc.guided_prompts()
+
+        gc.guided_prompts()
         # Now to check for all the defaults on confirmations.
         expected_confirmation_calls = [
             call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),
@@ -359,10 +381,10 @@ class TestGuidedContext(TestCase):
                 default=False,
             ),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
-            # call(
-            #     f"\t {self.gc.start_bold}Create managed ECR repositories for all functions?{self.gc.end_bold}",
-            #     default=True,
-            # ),
+            call(
+                f"\t {self.gc.start_bold}Create managed ECR repositories for all functions?{self.gc.end_bold}",
+                default=True,
+            ),
             call(
                 f"\t {self.gc.start_bold}Delete the unreferenced repositories listed above when deploying?{self.gc.end_bold}",
                 default=False,
@@ -546,8 +568,19 @@ class TestGuidedContext(TestCase):
         patched_confirm.side_effect = [True, False, True, False, False, True]
         patched_manage_stack.return_value = "managed_s3_stack"
         patched_signer_config_per_function.return_value = ({}, {})
-
-        project_mock = self.gc._project
+        iac_mock = Mock()
+        gc = GuidedContext(
+            stack_name="test",
+            s3_bucket="s3_b",
+            s3_prefix="s3_p",
+            confirm_changeset=True,
+            region="region",
+            image_repository=None,
+            image_repositories=None,
+            iac=iac_mock,
+            project=self.project_mock,
+        )
+        project_mock = gc._project
         project_mock.reset_mock()
         iac_stack_mock = MagicMock()
         iac_stack_mock.origin_dir = "dir"
@@ -557,7 +590,7 @@ class TestGuidedContext(TestCase):
         project_mock.find_stack_by_name.return_value = None
         project_mock.default_stack = iac_stack_mock
 
-        self.gc.guided_prompts()
+        gc.guided_prompts()
         # Now to check for all the defaults on confirmations.
         expected_confirmation_calls = [
             call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),
@@ -843,7 +876,7 @@ class TestGuidedContext(TestCase):
         iac_stack_mock.origin_dir = "dir"
         iac_stack_mock.name = ""
         iac_stack_mock.has_assets_of_package_type.return_value = False
-        iac_stack_mock.get_overrideable_parameters.return_value = {}
+        iac_stack_mock.get_overrideable_parameters.return_value = {"MyTestKey": {"Default": "MyTemplateDefaultVal"}}
         project_mock.find_stack_by_name.return_value = None
         project_mock.default_stack = iac_stack_mock
         self.gc.guided_prompts()
@@ -906,7 +939,7 @@ class TestGuidedContext(TestCase):
         iac_stack_mock.origin_dir = "dir"
         iac_stack_mock.name = ""
         iac_stack_mock.has_assets_of_package_type.return_value = False
-        iac_stack_mock.get_overrideable_parameters.return_value = {}
+        iac_stack_mock.get_overrideable_parameters.return_value = {"MyTestKey": {"Default": "MyTemplateDefaultVal"}}
         project_mock.find_stack_by_name.return_value = None
         project_mock.default_stack = iac_stack_mock
         self.gc.guided_prompts()

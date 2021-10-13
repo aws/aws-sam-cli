@@ -844,7 +844,7 @@ test-project
             ".",
             "test-project",
             True,
-            {"project_name": "test-project", "runtime": "nodejs14.x", 'architectures': {'value': ['x86_64']}},
+            {"project_name": "test-project", "runtime": "nodejs14.x", "architectures": {"value": ["x86_64"]}},
         )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
