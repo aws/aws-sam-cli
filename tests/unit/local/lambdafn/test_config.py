@@ -25,6 +25,7 @@ class TestFunctionConfig(TestCase):
         self.timeout = 34
         self.env_vars_mock = Mock()
         self.layers = ["layer1"]
+        self.architecture = "arm64"
 
     def test_init_with_env_vars(self):
         config = FunctionConfig(
@@ -36,6 +37,7 @@ class TestFunctionConfig(TestCase):
             self.packagetype,
             self.code_path,
             self.layers,
+            self.architecture,
             memory=self.memory,
             timeout=self.timeout,
             env_vars=self.env_vars_mock,
@@ -67,6 +69,7 @@ class TestFunctionConfig(TestCase):
             self.packagetype,
             self.code_path,
             self.layers,
+            self.architecture,
         )
 
         self.assertEqual(config.name, self.name)
@@ -95,6 +98,7 @@ class TestFunctionConfig(TestCase):
             self.packagetype,
             self.code_path,
             self.layers,
+            self.architecture,
             memory=self.memory,
             timeout="34",
             env_vars=self.env_vars_mock,
@@ -129,6 +133,7 @@ class TestFunctionConfigInvalidTimeouts(TestCase):
         self.memory = 1234
         self.env_vars_mock = Mock()
         self.layers = ["layer1"]
+        self.architecture = "x86_64"
 
     @parameterized.expand(
         [
@@ -151,6 +156,7 @@ class TestFunctionConfigInvalidTimeouts(TestCase):
                 self.imageconfig,
                 self.code_path,
                 self.layers,
+                self.architecture,
                 memory=self.memory,
                 timeout=timeout,
                 env_vars=self.env_vars_mock,
@@ -175,6 +181,7 @@ class TestFunctionConfig_equals(TestCase):
         self.timeout = 34
         self.env_vars_mock = Mock()
         self.layers = ["layer1"]
+        self.architecture = "arm64"
 
     def test_equals_function_config(self):
         config1 = FunctionConfig(
@@ -186,6 +193,7 @@ class TestFunctionConfig_equals(TestCase):
             self.packagetype,
             self.code_path,
             self.layers,
+            self.architecture,
             memory=self.memory,
             timeout=self.timeout,
             env_vars=self.env_vars_mock,
@@ -200,6 +208,7 @@ class TestFunctionConfig_equals(TestCase):
             self.packagetype,
             self.code_path,
             self.layers,
+            self.architecture,
             memory=self.memory,
             timeout=self.timeout,
             env_vars=self.env_vars_mock,
@@ -217,6 +226,7 @@ class TestFunctionConfig_equals(TestCase):
             self.packagetype,
             self.code_path,
             self.layers,
+            self.architecture,
             memory=self.memory,
             timeout=self.timeout,
             env_vars=self.env_vars_mock,
@@ -231,6 +241,7 @@ class TestFunctionConfig_equals(TestCase):
             self.packagetype,
             self.code_path,
             self.layers,
+            self.architecture,
             memory=self.memory,
             timeout=self.timeout,
             env_vars=self.env_vars_mock,

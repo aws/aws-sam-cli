@@ -19,9 +19,10 @@ from samcli.local.common.runtime_template import (
     INIT_CDK_LANGUAGES,
 )
 from samcli.lib.telemetry.metric import track_command
-from samcli.commands.init.interactive_init_flow import _get_runtime_from_image
+from samcli.commands.init.interactive_init_flow import _get_runtime_from_image, get_architectures
 from samcli.commands.local.cli_common.click_mutex import Mutex
 from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.lib.utils.architecture import X86_64, ARM64
 
 LOG = logging.getLogger(__name__)
 
@@ -42,9 +43,11 @@ Common usage:
     \b
     Initializes a new SAM project using project templates without an interactive workflow:
     \b
-    $ sam init --name sam-app --runtime nodejs10.x --dependency-manager npm --app-template hello-world
+    $ sam init --name sam-app --runtime nodejs14.x --dependency-manager npm --app-template hello-world
     \b
-    $ sam init --name sam-app --package-type image --base-image nodejs10.x-base
+    $ sam init --name sam-app --runtime nodejs14.x --architecture arm64
+    \b
+    $ sam init --name sam-app --package-type image --base-image nodejs14.x-base
     \b
     Initializes a new SAM project using custom template in a Git/Mercurial repository
     \b
@@ -139,6 +142,13 @@ def non_interactive_validation(func):
     ],
 )
 @click.option(
+    "-a",
+    "--architecture",
+    type=click.Choice([ARM64, X86_64]),
+    help="Architectures your Lambda function will run on",
+    cls=Mutex,
+)
+@click.option(
     "-l",
     "--location",
     help="Template location (git, mercurial, http(s), zip, path)",
@@ -227,6 +237,7 @@ def cli(
     location,
     package_type,
     runtime,
+    architecture,
     base_image,
     dependency_manager,
     output_dir,
@@ -249,6 +260,7 @@ def cli(
         PackageType.explicit,
         package_type,
         runtime,
+        architecture,
         base_image,
         dependency_manager,
         output_dir,
@@ -269,6 +281,7 @@ def do_cli(
     pt_explicit,
     package_type,
     runtime,
+    architecture,
     base_image,
     dependency_manager,
     output_dir,
@@ -316,7 +329,7 @@ def do_cli(
                 project_type, cdk_language, package_type, runtime, base_image, dependency_manager, app_template
             )
             no_input = True
-        extra_context = _get_cookiecutter_template_context(name, runtime, extra_context)
+        extra_context = _get_cookiecutter_template_context(name, runtime, architecture, extra_context)
 
         if not output_dir:
             output_dir = "."
@@ -340,6 +353,7 @@ def do_cli(
             pt_explicit,
             package_type,
             runtime,
+            architecture,
             base_image,
             dependency_manager,
             output_dir,
@@ -362,7 +376,7 @@ def _deprecate_notification(runtime):
         LOG.warning(Colored().yellow(message))
 
 
-def _get_cookiecutter_template_context(name, runtime, extra_context):
+def _get_cookiecutter_template_context(name, runtime, architecture, extra_context):
     default_context = {}
     extra_context_dict = {}
 
@@ -372,6 +386,7 @@ def _get_cookiecutter_template_context(name, runtime, extra_context):
     if name is not None:
         default_context["project_name"] = name
 
+    default_context["architectures"] = {"value": get_architectures(architecture)}
     if extra_context is not None:
         try:
             extra_context_dict = json.loads(extra_context)

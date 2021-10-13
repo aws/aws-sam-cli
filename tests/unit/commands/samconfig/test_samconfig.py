@@ -17,7 +17,6 @@ from unittest import TestCase
 from unittest.mock import patch, ANY, Mock, MagicMock
 import logging
 
-from samcli.lib.iac.interface import ProjectTypes
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 
 LOG = logging.getLogger()
@@ -73,6 +72,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 ZIP,
                 "nodejs10.x",
+                None,
                 None,
                 "maven",
                 "myoutput",
@@ -673,6 +673,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "CFN",
                 ANY,
                 ANY,
+                False,
             )
 
     @patch("samcli.lib.iac.utils.iac_project_resolver.IacProjectResolver.get_iac_plugin")
@@ -789,6 +790,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "CFN",
                 ANY,
                 ANY,
+                False,
             )
 
     @patch("samcli.commands.logs.command.do_cli")

@@ -4,7 +4,7 @@ Integration tests for init command
 from unittest import TestCase
 
 from parameterized import parameterized
-from subprocess import Popen, TimeoutExpired, PIPE
+from subprocess import STDOUT, Popen, TimeoutExpired, PIPE
 import os
 import shutil
 import tempfile
@@ -26,6 +26,8 @@ class TestBasicInitCommand(TestCase):
                     "nodejs10.x",
                     "--dependency-manager",
                     "npm",
+                    "--architecture",
+                    "arm64",
                     "--app-template",
                     "hello-world",
                     "--name",
@@ -185,6 +187,99 @@ class TestBasicInitCommand(TestCase):
 
             self.assertEqual(process.returncode, 0)
             self.assertTrue(Path(temp, "sam-app-maven").is_dir())
+
+    def test_init_command_passes_with_arm_architecture(self):
+        with tempfile.TemporaryDirectory() as temp:
+            process = Popen(
+                [
+                    _get_command(),
+                    "init",
+                    "--runtime",
+                    "nodejs14.x",
+                    "--dependency-manager",
+                    "npm",
+                    "--app-template",
+                    "hello-world",
+                    "--name",
+                    "sam-app",
+                    "--no-interactive",
+                    "-o",
+                    temp,
+                    "--architecture",
+                    "arm64",
+                ]
+            )
+            try:
+                process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            self.assertEqual(process.returncode, 0)
+            self.assertTrue(Path(temp, "sam-app").is_dir())
+
+    def test_init_command_passes_with_x86_64_architecture(self):
+        with tempfile.TemporaryDirectory() as temp:
+            process = Popen(
+                [
+                    _get_command(),
+                    "init",
+                    "--runtime",
+                    "nodejs14.x",
+                    "--dependency-manager",
+                    "npm",
+                    "--app-template",
+                    "hello-world",
+                    "--name",
+                    "sam-app",
+                    "--no-interactive",
+                    "-o",
+                    temp,
+                    "--architecture",
+                    "x86_64",
+                ]
+            )
+            try:
+                process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            self.assertEqual(process.returncode, 0)
+            self.assertTrue(Path(temp, "sam-app").is_dir())
+
+    def test_init_command_passes_with_unknown_architecture(self):
+        with tempfile.TemporaryDirectory() as temp:
+            process = Popen(
+                [
+                    _get_command(),
+                    "init",
+                    "--runtime",
+                    "nodejs14.x",
+                    "--dependency-manager",
+                    "npm",
+                    "--app-template",
+                    "hello-world",
+                    "--name",
+                    "sam-app",
+                    "--no-interactive",
+                    "-o",
+                    temp,
+                    "--architecture",
+                    "unknown_arch",
+                ]
+            )
+            capture_output = ""
+            try:
+                process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired as e:
+                capture_output = e.output
+                process.kill()
+                raise
+
+            self.assertEqual(process.returncode, 2)
+            msg = "Invalid value for '-a' / '--architecture': invalid choice: unknown_arch. (choose from arm64, x86_64)"
+            self.assertIn(capture_output, msg)
 
 
 class TestInitForParametersCompatibility(TestCase):

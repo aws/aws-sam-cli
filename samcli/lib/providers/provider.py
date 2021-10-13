@@ -9,9 +9,14 @@ import posixpath
 from collections import namedtuple
 from typing import Set, NamedTuple, Optional, List, Dict, Union, cast, Iterator, TYPE_CHECKING
 
-from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, UnsupportedIntrinsic
 from samcli.lib.iac.interface import Stack as IacStack, DictSection
+from samcli.commands.local.cli_common.user_exceptions import (
+    InvalidLayerVersionArn,
+    UnsupportedIntrinsic,
+    InvalidFunctionPropertyType,
+)
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
+from samcli.lib.utils.architecture import X86_64
 
 if TYPE_CHECKING:
     # avoid circular import, https://docs.python.org/3/library/typing.html#typing.TYPE_CHECKING
@@ -63,6 +68,8 @@ class Function(NamedTuple):
     inlinecode: Optional[str]
     # Code Signing config ARN
     codesign_config_arn: Optional[str]
+    # Architecture Type
+    architectures: Optional[List[str]]
     # The path of the stack relative to the root stack, it is empty for functions in root stack
     stack_path: str = ""
 
@@ -82,6 +89,31 @@ class Function(NamedTuple):
         Return the artifact directory based on the build root dir
         """
         return _get_build_dir(self, build_root_dir)
+
+    @property
+    def architecture(self) -> str:
+        """
+        Returns the architecture to use to build and invoke the function
+
+        Returns
+        -------
+        str
+            Architecture
+
+        Raises
+        ------
+        InvalidFunctionPropertyType
+            If the architectures value is invalid
+        """
+        if not self.architectures:
+            return X86_64
+
+        arch_list = cast(list, self.architectures)
+        if len(arch_list) != 1:
+            raise InvalidFunctionPropertyType(
+                f"Function {self.name} property Architectures should be a list of length 1"
+            )
+        return str(arch_list[0])
 
 
 class ResourcesToBuildCollector:
@@ -133,6 +165,7 @@ class LayerVersion:
         codeuri: Optional[str],
         compatible_runtimes: Optional[List[str]] = None,
         metadata: Optional[Dict] = None,
+        compatible_architectures: Optional[List[str]] = None,
         stack_path: str = "",
     ) -> None:
         """
@@ -159,6 +192,9 @@ class LayerVersion:
         self.is_defined_within_template = bool(codeuri)
         self._build_method = cast(Optional[str], metadata.get("BuildMethod", None))
         self._compatible_runtimes = compatible_runtimes
+
+        self._build_architecture = cast(str, metadata.get("BuildArchitecture", X86_64))
+        self._compatible_architectures = compatible_architectures
 
     @staticmethod
     def _compute_layer_version(is_defined_within_template: bool, arn: str) -> Optional[int]:
@@ -291,6 +327,26 @@ class LayerVersion:
             "ChildStackA/GrandChildStackB/ALayerInNestedStack"
         """
         return get_full_path(self.stack_path, self.name)
+
+    @property
+    def build_architecture(self) -> str:
+        """
+        Returns
+        -------
+        str
+            Return buildArchitecture declared in MetaData
+        """
+        return self._build_architecture
+
+    @property
+    def compatible_architectures(self) -> Optional[List[str]]:
+        """
+        Returns
+        -------
+        Optional[List[str]]
+            Return list of compatible architecture
+        """
+        return self._compatible_architectures
 
     def get_build_dir(self, build_root_dir: str) -> str:
         """

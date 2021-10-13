@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from parameterized import parameterized
 
+from samcli.lib.utils.architecture import X86_64, ARM64
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 
 
@@ -42,6 +43,7 @@ class TestLambdaBuildContainer_init(TestCase):
             options="options",
             log_level="log-level",
             mode="mode",
+            architecture="arm64",
         )
 
         self.assertEqual(container.image, image)
@@ -63,7 +65,7 @@ class TestLambdaBuildContainer_init(TestCase):
 
         make_request_mock.assert_called_once()
         get_entrypoint_mock.assert_called_once_with(request)
-        get_image_mock.assert_called_once_with("runtime")
+        get_image_mock.assert_called_once_with("runtime", "arm64")
         get_container_dirs_mock.assert_called_once_with(
             str(pathlib.Path("/foo/source").resolve()), str(pathlib.Path("/bar").resolve())
         )
@@ -91,6 +93,7 @@ class TestLambdaBuildContainer_make_request(TestCase):
             "options",
             "executable_search_paths",
             "mode",
+            "architecture",
         )
 
         self.maxDiff = None  # Print whole json diff
@@ -116,6 +119,7 @@ class TestLambdaBuildContainer_make_request(TestCase):
                     "options": "options",
                     "executable_search_paths": "executable_search_paths",
                     "mode": "mode",
+                    "architecture": "architecture",
                 },
             },
         )
@@ -159,12 +163,23 @@ class TestLambdaBuildContainer_get_container_dirs(TestCase):
 class TestLambdaBuildContainer_get_image(TestCase):
     @parameterized.expand(
         [
-            ("myruntime", "public.ecr.aws/sam/build-myruntime:latest"),
-            ("nodejs10.x", "public.ecr.aws/sam/build-nodejs10.x:latest"),
+            ("myruntime", ARM64, "public.ecr.aws/sam/build-myruntime:latest-arm64"),
+            ("nodejs10.x", X86_64, "public.ecr.aws/sam/build-nodejs10.x:latest-x86_64"),
         ]
     )
-    def test_must_get_image_name(self, runtime, expected_image_name):
-        self.assertEqual(expected_image_name, LambdaBuildContainer._get_image(runtime))
+    def test_must_get_image_name(self, runtime, architecture, expected_image_name):
+        self.assertEqual(expected_image_name, LambdaBuildContainer._get_image(runtime, architecture))
+
+
+class TestLambdaBuildContainer_get_image_tag(TestCase):
+    @parameterized.expand(
+        [
+            (ARM64, "latest-arm64"),
+            (X86_64, "latest-x86_64"),
+        ]
+    )
+    def test_must_get_image_tag(self, architecture, expected_image_tag):
+        self.assertEqual(expected_image_tag, LambdaBuildContainer.get_image_tag(architecture))
 
 
 class TestLambdaBuildContainer_get_entrypoint(TestCase):

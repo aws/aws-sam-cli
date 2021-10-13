@@ -10,14 +10,24 @@ from werkzeug.datastructures import Headers
 
 from samcli.lib.providers.provider import Api
 from samcli.lib.providers.provider import Cors
-from samcli.local.apigw.local_apigw_service import LocalApigwService, Route, LambdaResponseParseException
+from samcli.local.apigw.local_apigw_service import (
+    LocalApigwService,
+    Route,
+    LambdaResponseParseException,
+    PayloadFormatVersionValidateException,
+)
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 
 
 class TestApiGatewayService(TestCase):
     def setUp(self):
         self.function_name = Mock()
-        self.api_gateway_route = Route(methods=["GET"], function_name=self.function_name, path="/")
+        self.api_gateway_route = Route(
+            methods=["GET"],
+            function_name=self.function_name,
+            path="/",
+            operation_name="getRestApi",
+        )
         self.http_gateway_route = Route(
             methods=["GET"], function_name=self.function_name, path="/", event_type=Route.HTTP
         )
@@ -27,6 +37,7 @@ class TestApiGatewayService(TestCase):
             path="/v1",
             event_type=Route.HTTP,
             payload_format_version="1.0",
+            operation_name="getV1",
         )
         self.http_v2_payload_route = Route(
             methods=["GET"],
@@ -34,6 +45,7 @@ class TestApiGatewayService(TestCase):
             path="/v2",
             event_type=Route.HTTP,
             payload_format_version="2.0",
+            operation_name="getV2",
         )
         self.http_v2_default_payload_route = Route(
             methods=["x-amazon-apigateway-any-method"],
@@ -41,6 +53,7 @@ class TestApiGatewayService(TestCase):
             path="$default",
             event_type=Route.HTTP,
             payload_format_version="2.0",
+            # no operation_name for default route
         )
         self.api_list_of_routes = [self.api_gateway_route]
         self.http_list_of_routes = [
@@ -69,7 +82,9 @@ class TestApiGatewayService(TestCase):
 
         self.api_service.service_response = make_response_mock
         self.api_service._get_current_route = MagicMock()
+        self.api_service._get_current_route.return_value = self.api_gateway_route
         self.api_service._get_current_route.methods = []
+        self.api_service._get_current_route.return_value.payload_format_version = "2.0"
         self.api_service._construct_v_1_0_event = Mock()
 
         parse_output_mock = Mock()
@@ -86,7 +101,7 @@ class TestApiGatewayService(TestCase):
 
         self.assertEqual(result, make_response_mock)
         self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
-        self.api_service._construct_v_1_0_event.assert_called_with(ANY, ANY, ANY, ANY, ANY)
+        self.api_service._construct_v_1_0_event.assert_called_with(ANY, ANY, ANY, ANY, ANY, "getRestApi")
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     def test_http_request_must_invoke_lambda(self, request_mock):
@@ -142,7 +157,7 @@ class TestApiGatewayService(TestCase):
 
         self.assertEqual(result, make_response_mock)
         self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
-        self.http_service._construct_v_1_0_event.assert_called_with(ANY, ANY, ANY, ANY, ANY)
+        self.http_service._construct_v_1_0_event.assert_called_with(ANY, ANY, ANY, ANY, ANY, None)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     def test_http_v2_payload_request_must_invoke_lambda(self, request_mock):
@@ -179,6 +194,7 @@ class TestApiGatewayService(TestCase):
         self.api_service.service_response = make_response_mock
         self.api_service._get_current_route = MagicMock()
         self.api_service._get_current_route.return_value.methods = ["OPTIONS"]
+        self.api_service._get_current_route.return_value.payload_format_version = "1.0"
         self.api_service._construct_v_1_0_event = Mock()
 
         parse_output_mock = Mock()
@@ -203,6 +219,7 @@ class TestApiGatewayService(TestCase):
         self.http_service.service_response = make_response_mock
         self.http_service._get_current_route = MagicMock()
         self.http_service._get_current_route.return_value.methods = ["OPTIONS"]
+        self.http_service._get_current_route.return_value.payload_format_version = "1.0"
         self.http_service._construct_v_1_0_event = Mock()
 
         parse_output_mock = Mock()
@@ -227,6 +244,7 @@ class TestApiGatewayService(TestCase):
         request_mock.return_value = ("test", "test")
         self.api_service.service_response = make_response_mock
         current_route = Mock()
+        current_route.payload_format_version = "2.0"
         self.api_service._get_current_route = MagicMock()
         self.api_service._get_current_route.return_value = current_route
         current_route.methods = []
@@ -264,6 +282,7 @@ class TestApiGatewayService(TestCase):
         self.api_service._get_current_route = MagicMock()
         self.api_service._construct_v_1_0_event = Mock()
         self.api_service._get_current_route.methods = []
+        self.api_service._get_current_route.return_value.payload_format_version = "1.0"
 
         parse_output_mock = Mock()
         parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
@@ -358,6 +377,7 @@ class TestApiGatewayService(TestCase):
         not_found_response_mock = Mock()
         self.api_service._construct_v_1_0_event = Mock()
         self.api_service._get_current_route = MagicMock()
+        self.api_service._get_current_route.return_value.payload_format_version = "2.0"
         self.api_service._get_current_route.methods = []
 
         service_error_responses_patch.lambda_not_found_response.return_value = not_found_response_mock
@@ -395,6 +415,7 @@ class TestApiGatewayService(TestCase):
         self.api_service._construct_v_1_0_event = Mock()
         self.api_service._get_current_route = MagicMock()
         self.api_service._get_current_route.methods = []
+        self.api_service._get_current_route.return_value.payload_format_version = "1.0"
 
         request_mock.return_value = ("test", "test")
         result = self.api_service._request_handler()
@@ -417,6 +438,7 @@ class TestApiGatewayService(TestCase):
         _construct_event.side_effect = UnicodeDecodeError("utf8", b"obj", 1, 2, "reason")
         self.api_service._get_current_route = MagicMock()
         self.api_service._get_current_route.methods = []
+        self.api_service._get_current_route.return_value.payload_format_version = "1.0"
 
         self.api_service._construct_v_1_0_event = _construct_event
 
@@ -426,6 +448,15 @@ class TestApiGatewayService(TestCase):
         request_mock.return_value = ("test", "test")
         result = self.api_service._request_handler()
         self.assertEqual(result, failure_mock)
+
+    @parameterized.expand([param("1.5"), param(2.0)])
+    def test_request_handler_errors_when_payload_format_version_wrong(self, payload_format_version):
+        get_current_route = Mock()
+        get_current_route.return_value.payload_format_version = payload_format_version
+        self.api_service._get_current_route = get_current_route
+
+        with self.assertRaises(PayloadFormatVersionValidateException):
+            self.api_service._request_handler()
 
     def test_get_current_route(self):
         request_mock = Mock()
@@ -1089,6 +1120,42 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
 
         self.assertIn("Content-Type", headers)
         self.assertEqual(headers["Content-Type"], "text/xml")
+
+    def test_custom_cookies_in_payload_format_version_2(self):
+        lambda_output = (
+            '{"statusCode": 200, "cookies": ["cookie1=test1", "cookie2=test2"], "body": "{\\"message\\":\\"Hello from Lambda\\"}", '
+            '"isBase64Encoded": false}'
+        )
+
+        (_, headers, _) = LocalApigwService._parse_v2_payload_format_lambda_output(
+            lambda_output, binary_types=[], flask_request=Mock()
+        )
+
+        self.assertEqual(headers.getlist("Set-Cookie"), ["cookie1=test1", "cookie2=test2"])
+
+    def test_invalid_cookies_in_payload_format_version_2(self):
+        lambda_output = (
+            '{"statusCode": 200, "cookies": "cookies1=test1", "body": "{\\"message\\":\\"Hello from Lambda\\"}", '
+            '"isBase64Encoded": false}'
+        )
+
+        (_, headers, _) = LocalApigwService._parse_v2_payload_format_lambda_output(
+            lambda_output, binary_types=[], flask_request=Mock()
+        )
+
+        self.assertNotIn("Set-Cookie", headers)
+
+    def test_existed_cookies_in_payload_format_version_2(self):
+        lambda_output = (
+            '{"statusCode": 200, "headers":{"Set-Cookie": "cookie1=test1"}, "cookies": ["cookie2=test2", "cookie3=test3"], "body": "{\\"message\\":\\"Hello from Lambda\\"}", '
+            '"isBase64Encoded": false}'
+        )
+
+        (_, headers, _) = LocalApigwService._parse_v2_payload_format_lambda_output(
+            lambda_output, binary_types=[], flask_request=Mock()
+        )
+
+        self.assertEqual(headers.getlist("Set-Cookie"), ["cookie1=test1", "cookie2=test2", "cookie3=test3"])
 
     def test_extra_values_skipped(self):
         lambda_output = (

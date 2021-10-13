@@ -49,6 +49,7 @@ class DeployIntegBase(TestCase):
         cdk_app=None,
         cdk_context=None,
         project_type=None,
+        resolve_image_repos=False,
     ):
         command_list = [self.base_command(), "deploy"]
 
@@ -112,6 +113,8 @@ class DeployIntegBase(TestCase):
             command_list = command_list + ["--cdk-context", str(cdk_context)]
         if project_type:
             command_list = command_list + ["--project-type", str(project_type)]
+        if resolve_image_repos:
+            command_list = command_list + ["--resolve-image-repos"]
 
         return command_list
 

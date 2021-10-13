@@ -105,10 +105,12 @@ class SamLayerProvider(SamBaseProvider):
                     codeuri = code_asset_uri or SamBaseProvider._extract_codeuri(resource_properties, code_property_key)
 
                     compatible_runtimes = resource_properties.get("CompatibleRuntimes")
+                    compatible_architectures = resource_properties.get("CompatibleArchitectures", None)
+
                     metadata = resource.get("Metadata", None)
                     layers.append(
                         self._convert_lambda_layer_resource(
-                            stack, layer_id, name, codeuri, compatible_runtimes, metadata
+                            stack, layer_id, name, codeuri, compatible_runtimes, metadata, compatible_architectures
                         )
                     )
         return layers
@@ -121,6 +123,7 @@ class SamLayerProvider(SamBaseProvider):
         codeuri: str,
         compatible_runtimes: Optional[List[str]],
         metadata: Optional[Dict],
+        compatible_architectures: Optional[List[str]],
     ) -> LayerVersion:
         """
         Convert layer resource into {LayerVersion} object.
@@ -135,6 +138,8 @@ class SamLayerProvider(SamBaseProvider):
             list of compatible runtimes
         metadata
             dictionary of layer metadata
+        compatible_architectures
+            list of compatible architecture
         Returns
         -------
         LayerVersion
@@ -150,5 +155,6 @@ class SamLayerProvider(SamBaseProvider):
             codeuri,
             compatible_runtimes,
             metadata,
+            compatible_architectures=compatible_architectures,
             stack_path=stack.stack_path,
         )

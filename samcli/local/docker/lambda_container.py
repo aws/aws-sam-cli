@@ -42,6 +42,7 @@ class LambdaContainer(Container):
         code_dir,
         layers,
         lambda_image,
+        architecture,
         memory_mb=128,
         env_vars=None,
         debug_options=None,
@@ -70,6 +71,8 @@ class LambdaContainer(Container):
             List of layers
         lambda_image samcli.local.docker.lambda_image.LambdaImage
             LambdaImage that can be used to build the image needed for starting the container
+        architecture str
+            Architecture type either x86_64 or arm64 on AWS lambda
         memory_mb int
             Optional. Max limit of memory in MegaBytes this Lambda function can use.
         env_vars dict
@@ -84,7 +87,7 @@ class LambdaContainer(Container):
         if not Runtime.has_value(runtime) and not packagetype == IMAGE:
             raise ValueError("Unsupported Lambda runtime {}".format(runtime))
 
-        image = LambdaContainer._get_image(lambda_image, runtime, packagetype, imageuri, layers)
+        image = LambdaContainer._get_image(lambda_image, runtime, packagetype, imageuri, layers, architecture)
         ports = LambdaContainer._get_exposed_ports(debug_options)
         config = LambdaContainer._get_config(lambda_image, image)
         entry, container_env_vars = LambdaContainer._get_debug_settings(runtime, debug_options)
@@ -192,25 +195,32 @@ class LambdaContainer(Container):
         return volumes
 
     @staticmethod
-    def _get_image(lambda_image: LambdaImage, runtime: str, packagetype: str, image: str, layers: List[str]):
+    def _get_image(
+        lambda_image: LambdaImage, runtime: str, packagetype: str, image: str, layers: List[str], architecture: str
+    ):
         """
-        Returns the name of Docker Image for the given runtime
 
         Parameters
         ----------
-        lambda_image samcli.local.docker.lambda_image.LambdaImage
+        lambda_image : LambdaImage
             LambdaImage that can be used to build the image needed for starting the container
-        runtime str
+        runtime : str
             Name of the Lambda runtime
-        layers list(str)
+        packagetype : str
+            Package type for the lambda function which is either zip or image.
+        image : str
+            Name of the Lambda Image which is of the form {image}:{tag}
+        layers : List[str]
             List of layers
+        architecture : str
+            Architecture type either x86_64 or arm64 on AWS lambda
 
         Returns
         -------
         str
             Name of Docker Image for the given runtime
         """
-        return lambda_image.build(runtime, packagetype, image, layers)
+        return lambda_image.build(runtime, packagetype, image, layers, architecture)
 
     @staticmethod
     def _get_config(lambda_image, image):

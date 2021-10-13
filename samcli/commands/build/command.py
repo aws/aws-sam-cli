@@ -332,7 +332,6 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
 
         try:
             artifacts = builder.build()
-
             for stack in ctx.stacks:
                 builder.update_template(stack, artifacts)
 

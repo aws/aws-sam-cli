@@ -82,6 +82,7 @@ class RequestContext:
         domain_name=None,
         request_time_epoch=int(time()),
         request_time=datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000"),
+        operation_name=None,
     ):
         """
         Constructs a RequestContext
@@ -96,6 +97,7 @@ class RequestContext:
         :param ContextIdentity identity: Identity for the Request
         :param str extended_request_id:
         :param str path:
+        :param str operation_name: Swagger operationId for the route
         :param str protocol: Optional, the protocal to make the request
         :param str domain_name: Optional, the name of the domain
         :param int request_time_epoch: Optional, an epoch timestamp to override the request time
@@ -116,6 +118,7 @@ class RequestContext:
         self.domain_name = domain_name
         self.request_time_epoch = request_time_epoch
         self.request_time = request_time
+        self.operation_name = operation_name
 
     def to_dict(self):
         """
@@ -143,6 +146,9 @@ class RequestContext:
             "requestTimeEpoch": self.request_time_epoch,
             "requestTime": self.request_time,
         }
+
+        if self.operation_name is not None:
+            json_dict["operationName"] = self.operation_name
 
         return json_dict
 

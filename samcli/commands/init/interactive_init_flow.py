@@ -26,6 +26,7 @@ from samcli.commands.init.init_generator import do_generate
 from samcli.commands.init.init_templates import InitTemplates
 from samcli.lib.utils.osutils import remove
 from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.lib.utils.architecture import X86_64
 
 LOG = logging.getLogger(__name__)
 
@@ -37,6 +38,7 @@ def do_interactive(
     pt_explicit,
     package_type,
     runtime,
+    architecture,
     base_image,
     dependency_manager,
     output_dir,
@@ -86,6 +88,7 @@ def do_interactive(
             output_dir,
             name,
             app_template,
+            architecture,
         )
 
 
@@ -118,6 +121,7 @@ def _generate_from_app_template(
     output_dir,
     name,
     app_template,
+    architecture,
 ):
     extra_context = None
     if package_type == IMAGE:
@@ -128,16 +132,25 @@ def _generate_from_app_template(
     if not name:
         name = click.prompt("\nProject name", type=str, default="sam-app")
     templates = InitTemplates()
+    final_architecture = get_architectures(architecture)
     if app_template is not None:
         location = templates.location_from_app_template(
             project_type, cdk_language, package_type, runtime, base_image, dependency_manager, app_template
         )
-        extra_context = {"project_name": name, "runtime": runtime}
+        extra_context = {
+            "project_name": name,
+            "runtime": runtime,
+            "architectures": {"value": final_architecture},
+        }
     else:
         location, app_template = templates.prompt_for_location(
             project_type, cdk_language, package_type, runtime, base_image, dependency_manager
         )
-        extra_context = {"project_name": name, "runtime": runtime}
+        extra_context = {
+            "project_name": name,
+            "runtime": runtime,
+            "architectures": {"value": final_architecture},
+        }
 
     # executing event_bridge logic if call is for Schema dynamic template
     is_dynamic_schemas_template = templates.is_dynamic_schemas_template(
@@ -159,6 +172,7 @@ def _generate_from_app_template(
     -----------------------
     Name: {name}
     Runtime: {runtime}
+    Architectures: {final_architecture[0]}
     Dependency Manager: {dependency_manager}
     Application Template: {app_template}
     Output Directory: {output_dir}
@@ -173,6 +187,7 @@ def _generate_from_app_template(
     -----------------------
     Name: {name}
     Base Image: {base_image}
+    Architectures: {final_architecture[0]}
     Dependency Manager: {dependency_manager}
     Output Directory: {output_dir}
     Project Type: {project_type.value} {cdk_language_msg}
@@ -290,3 +305,10 @@ def _package_schemas_code(runtime, schemas_api_caller, schema_template_details, 
         ) from e
     finally:
         remove(download_location.name)
+
+
+def get_architectures(architecture):
+    """
+    Returns list of architecture value based on the init input value
+    """
+    return [X86_64] if architecture is None else [architecture]

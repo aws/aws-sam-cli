@@ -61,6 +61,7 @@ Resources:
           /echoeventbody:
             get:
               responses: {}
+              operationId: 'postOperationIdShouldNotBeInHttpApi'
               x-amazon-apigateway-integration:
                 httpMethod: POST
                 payloadFormatVersion: '2.0'

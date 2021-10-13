@@ -5,6 +5,8 @@ from unittest.mock import patch, PropertyMock, Mock, call
 
 from parameterized import parameterized
 
+from samcli.lib.utils.architecture import X86_64, ARM64
+
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
 from samcli.lib.iac.interface import Stack as IacStack, DictSection, Resource
 from samcli.lib.providers.provider import Function, LayerVersion, Stack
@@ -96,6 +98,15 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     "PackageType": IMAGE,
                 },
             },
+            "SamFuncWithImage4": {
+                # ImageUri is unsupported ECR location, but metadata is still provided, build
+                "Type": "AWS::Serverless::Function",
+                "Properties": {
+                    "ImageUri": "123456789012.dkr.ecr.us-east-1.amazonaws.com/myrepo:myimage",
+                    "PackageType": IMAGE,
+                },
+                "Metadata": {"DockerTag": "tag", "DockerContext": "./image", "Dockerfile": "Dockerfile"},
+            },
             "LambdaFunc1": {
                 "Type": "AWS::Lambda::Function",
                 "Properties": {
@@ -126,6 +137,15 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     "Code": {"ImageUri": "123456789012.dkr.ecr.us-east-1.amazonaws.com/myrepo"},
                     "PackageType": IMAGE,
                 },
+            },
+            "LambdaFuncWithImage4": {
+                # ImageUri is unsupported ECR location, but metadata is still provided, build
+                "Type": "AWS::Lambda::Function",
+                "Properties": {
+                    "Code": {"ImageUri": "123456789012.dkr.ecr.us-east-1.amazonaws.com/myrepo"},
+                    "PackageType": IMAGE,
+                },
+                "Metadata": {"DockerTag": "tag", "DockerContext": "./image", "Dockerfile": "Dockerfile"},
             },
             "LambdaFuncWithInlineCode": {
                 "Type": "AWS::Lambda::Function",
@@ -232,6 +252,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageconfig=None,
                     packagetype=ZIP,
                     codesign_config_arn=None,
+                    architectures=None,
                     stack_path="",
                 ),
             ),
@@ -256,6 +277,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageconfig=None,
                     packagetype=ZIP,
                     codesign_config_arn=None,
+                    architectures=None,
                     stack_path="",
                 ),
             ),
@@ -280,6 +302,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageconfig=None,
                     packagetype=ZIP,
                     codesign_config_arn=None,
+                    architectures=None,
                     stack_path="",
                 ),
             ),
@@ -311,6 +334,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     },
                     codesign_config_arn=None,
                     stack_path="",
+                    architectures=None,
                 ),
             ),
             (
@@ -338,6 +362,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                         "Dockerfile": "Dockerfile",
                     },
                     codesign_config_arn=None,
+                    architectures=None,
                     stack_path="",
                 ),
             ),
@@ -363,6 +388,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageconfig=None,
                     packagetype=ZIP,
                     codesign_config_arn=None,
+                    architectures=None,
                     stack_path="",
                 ),
             ),
@@ -392,6 +418,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageconfig=None,
                     packagetype=IMAGE,
                     codesign_config_arn=None,
+                    architectures=None,
                     stack_path="",
                 ),
             ),
@@ -420,6 +447,32 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageconfig=None,
                     packagetype=IMAGE,
                     codesign_config_arn=None,
+                    architectures=None,
+                    stack_path="",
+                ),
+            ),
+            (
+                "LambdaFuncWithInlineCode",
+                Function(
+                    function_id="LambdaFuncWithInlineCode",
+                    name="LambdaFuncWithInlineCode",
+                    functionname="LambdaFuncWithInlineCode",
+                    runtime="nodejs4.3",
+                    handler="index.handler",
+                    codeuri=None,
+                    memory=None,
+                    timeout=None,
+                    environment=None,
+                    rolearn=None,
+                    layers=[],
+                    events=None,
+                    metadata=None,
+                    inlinecode="testcode",
+                    codesign_config_arn=None,
+                    imageuri=None,
+                    imageconfig=None,
+                    packagetype=ZIP,
+                    architectures=None,
                     stack_path="",
                 ),
             ),
@@ -446,6 +499,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageconfig=None,
                     packagetype=ZIP,
                     stack_path="",
+                    architectures=None,
                 ),
             ),
             (
@@ -469,6 +523,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageuri=None,
                     imageconfig=None,
                     packagetype=ZIP,
+                    architectures=None,
                     stack_path="",
                 ),
             ),
@@ -493,6 +548,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageconfig=None,
                     packagetype=ZIP,
                     codesign_config_arn=None,
+                    architectures=None,
                     stack_path="",
                 ),
             ),
@@ -517,6 +573,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageconfig=None,
                     packagetype=ZIP,
                     codesign_config_arn="codeSignConfigArn",
+                    architectures=None,
                     stack_path="",
                 ),
             ),
@@ -541,6 +598,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageconfig=None,
                     packagetype=ZIP,
                     codesign_config_arn=None,
+                    architectures=None,
                     stack_path="ChildStack",
                 ),
             ),
@@ -565,6 +623,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageconfig=None,
                     packagetype=ZIP,
                     codesign_config_arn=None,
+                    architectures=None,
                     stack_path="ChildStack",
                 ),
             ),
@@ -593,6 +652,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     imageconfig=None,
                     packagetype=IMAGE,
                     codesign_config_arn=None,
+                    architectures=None,
                     stack_path="ChildStack",
                 ),
             ),
@@ -610,10 +670,12 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             "SamFunctions",
             "SamFuncWithImage1",
             "SamFuncWithImage2",
+            "SamFuncWithImage4",
             "SamFuncWithInlineCode",
             "SamFuncWithFunctionNameOverride",
             "LambdaFuncWithImage1",
             "LambdaFuncWithImage2",
+            "LambdaFuncWithImage4",
             "LambdaFuncWithInlineCode",
             "LambdaFuncWithLocalPath",
             "LambdaFuncWithFunctionNameOverride",
@@ -798,6 +860,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
                     "Environment": "myenvironment",
                     "Role": "myrole",
                     "Layers": ["Layer1", "Layer2"],
+                    "Architectures": [X86_64],
                 }
             },
         )
@@ -821,6 +884,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             imageconfig=None,
             packagetype=ZIP,
             codesign_config_arn=None,
+            architectures=[X86_64],
             stack_path=STACK_PATH,
         )
 
@@ -871,6 +935,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             imageconfig={"WorkingDirectory": "/var/task", "Command": "/bin/bash", "EntryPoint": "echo Hello!"},
             packagetype=IMAGE,
             codesign_config_arn=None,
+            architectures=None,
             stack_path=STACK_PATH,
         )
 
@@ -902,6 +967,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             imageconfig=None,
             packagetype=ZIP,
             codesign_config_arn=None,
+            architectures=None,
             stack_path=STACK_PATH,
         )
 
@@ -929,6 +995,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
                     "MemorySize": "mymemorysize",
                     "Timeout": "30",
                     "Handler": "index.handler",
+                    "Architectures": [X86_64],
                 }
             },
         )
@@ -952,6 +1019,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             imageconfig=None,
             packagetype=ZIP,
             codesign_config_arn=None,
+            architectures=[X86_64],
             stack_path=STACK_PATH,
         )
 
@@ -972,6 +1040,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
                     "MemorySize": "mymemorysize",
                     "Timeout": "30",
                     "Handler": "index.handler",
+                    "Architectures": [ARM64],
                 }
             },
         )
@@ -995,6 +1064,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             imageconfig=None,
             packagetype=ZIP,
             codesign_config_arn=None,
+            architectures=[ARM64],
             stack_path=STACK_PATH,
         )
 
@@ -1060,6 +1130,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             imageconfig=None,
             packagetype=ZIP,
             codesign_config_arn=None,
+            architectures=None,
             stack_path=STACK_PATH,
         )
 
@@ -1080,6 +1151,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
                     "Timeout": "30",
                     "Handler": "myhandler",
                     "Environment": "myenvironment",
+                    "Architectures": [ARM64],
                 }
             },
         )
@@ -1103,6 +1175,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             imageconfig=None,
             packagetype=ZIP,
             codesign_config_arn=None,
+            architectures=[ARM64],
             stack_path=STACK_PATH,
         )
 
@@ -1134,6 +1207,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             imageconfig=None,
             packagetype=ZIP,
             codesign_config_arn=None,
+            architectures=None,
             stack_path=STACK_PATH,
         )
 
@@ -1250,6 +1324,7 @@ class TestSamFunctionProvider_get(TestCase):
             imageconfig=None,
             packagetype=None,
             codesign_config_arn=None,
+            architectures=None,
             stack_path=STACK_PATH,
         )
         provider.functions = {"func1": function}

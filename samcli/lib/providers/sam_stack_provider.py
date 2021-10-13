@@ -4,7 +4,7 @@ Class that provides all nested stacks from a given SAM template
 import logging
 import os
 import posixpath
-from typing import Optional, Dict, cast, List, Iterator, Tuple
+from typing import Optional, Dict, cast, List, Iterator, Tuple, Union
 from urllib.parse import unquote, urlparse
 
 from samcli.lib.iac.interface import Stack as IacStack, Resource as IacResource, S3Asset
@@ -33,9 +33,8 @@ class SamLocalStackProvider(SamBaseProvider):
     ):
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
-        to be valid, normalized and a dictionary. It should be normalized by running all pre-processing
-        before passing to this class. The process of normalization will remove structures like ``Globals``, resolve
-        intrinsic functions etc.
+        to be valid and a dictionary. This class will perform template normalization to remove structures
+        like ``Globals``, resolve intrinsic functions etc.
         This class does not perform any syntactic validation of the template.
         After the class is initialized, any changes to the ``template_dict`` will not be reflected in here.
         You need to explicitly update the class with new template, if necessary.
@@ -381,11 +380,11 @@ class SamLocalStackProvider(SamBaseProvider):
         return os.path.normpath(os.path.join(stack_origin_dir_path, path))
 
 
-def is_local_path(path: str):
+def is_local_path(path: Union[Dict, str]) -> bool:
     return bool(path) and not isinstance(path, dict) and not SamLocalStackProvider.is_remote_url(path)
 
 
-def get_local_path(path: str, parent_path: str):
+def get_local_path(path: str, parent_path: str) -> str:
     if path.startswith("file://"):
         path = unquote(urlparse(path).path)
     else:

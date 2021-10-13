@@ -79,6 +79,7 @@ class LambdaRuntime:
             code_dir,
             layers,
             self._image_builder,
+            function_config.architecture,
             memory_mb=function_config.memory,
             env_vars=env_vars,
             debug_options=debug_context,

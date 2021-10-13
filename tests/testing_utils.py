@@ -15,7 +15,13 @@ RUN_BY_CANARY = os.environ.get("BY_CANARY", False)
 
 # Tests require docker suffers from Docker Hub request limit
 SKIP_DOCKER_TESTS = RUNNING_ON_CI and not RUN_BY_CANARY
-SKIP_DOCKER_MESSAGE = "The test which sends requests to docker hub is likely to fail due to request limit"
+
+# Set to True temporarily if the integration tests require updated build images
+# Build images aren't published until after the CLI is released
+# The CLI integration tests thus cannot succeed if they require new build images (chicken-egg problem)
+SKIP_DOCKER_BUILD = False
+
+SKIP_DOCKER_MESSAGE = "Skipped Docker test: running on CI not in canary or new build images are required"
 
 LOG = logging.getLogger(__name__)
 

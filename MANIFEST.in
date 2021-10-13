@@ -9,4 +9,5 @@ recursive-include samcli/lib/pipeline *
 recursive-include samcli/lib *.json
 recursive-include samcli/lib/generated_sample_events *.json
 prune tests
-
+global-exclude *.py[cod]
+global-exclude *.DS_Store
