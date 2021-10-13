@@ -26,6 +26,7 @@ from samcli.lib.utils.packagetype import ZIP, IMAGE
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml|json]"
 DEFAULT_STACK_NAME = "sam-app"
 DEFAULT_BUILD_DIR = os.path.join(".aws-sam", "build")
+DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER = os.path.join(".aws-sam", "auto-dependency-layer")
 DEFAULT_CACHE_DIR = os.path.join(".aws-sam", "cache")
 
 LOG = logging.getLogger(__name__)

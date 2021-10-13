@@ -39,7 +39,7 @@ class TestZipFunctionSyncFlow(TestCase):
     ):
         get_mock = MagicMock()
         get_mock.return_value = "ArtifactFolder1"
-        builder_mock.return_value.build.return_value.get = get_mock
+        builder_mock.return_value.build.return_value.artifacts.get = get_mock
         uuid4_mock.return_value.hex = "uuid_value"
         gettempdir_mock.return_value = "temp_folder"
         make_zip_mock.return_value = "zip_file"

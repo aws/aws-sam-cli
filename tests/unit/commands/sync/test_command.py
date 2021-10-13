@@ -4,7 +4,11 @@ from parameterized import parameterized
 
 from samcli.commands.sync.command import do_cli, execute_code_sync, execute_watch
 from samcli.lib.providers.provider import ResourceIdentifier
-from samcli.commands._utils.options import DEFAULT_BUILD_DIR, DEFAULT_CACHE_DIR
+from samcli.commands._utils.options import (
+    DEFAULT_BUILD_DIR,
+    DEFAULT_CACHE_DIR,
+    DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER,
+)
 
 
 def get_mock_sam_config():
@@ -42,6 +46,7 @@ class TestDoCli(TestCase):
         self.config_file = "mock-default-filename"
         MOCK_SAM_CONFIG.reset_mock()
 
+    @parameterized.expand([(False, False, True), (False, False, False)])
     @patch("samcli.commands.sync.command.execute_code_sync")
     @patch("samcli.commands.build.command.click")
     @patch("samcli.commands.build.build_context.BuildContext")
@@ -53,6 +58,9 @@ class TestDoCli(TestCase):
     @patch("samcli.commands.sync.command.manage_stack")
     def test_infra_must_succeed_sync(
         self,
+        code,
+        watch,
+        auto_dependency_layer,
         manage_stack_mock,
         os_mock,
         DeployContextMock,
@@ -77,6 +85,7 @@ class TestDoCli(TestCase):
             False,
             self.resource_id,
             self.resource,
+            auto_dependency_layer,
             self.stack_name,
             self.region,
             self.profile,
@@ -96,11 +105,12 @@ class TestDoCli(TestCase):
             self.config_env,
         )
 
+        build_dir = DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER if auto_dependency_layer else DEFAULT_BUILD_DIR
         BuildContextMock.assert_called_with(
             resource_identifier=None,
             template_file=self.template_file,
             base_dir=self.base_dir,
-            build_dir=DEFAULT_BUILD_DIR,
+            build_dir=build_dir,
             cache_dir=DEFAULT_CACHE_DIR,
             clean=True,
             use_container=False,
@@ -108,6 +118,8 @@ class TestDoCli(TestCase):
             parameter_overrides=self.parameter_overrides,
             mode=self.mode,
             cached=True,
+            create_auto_dependency_layer=auto_dependency_layer,
+            stack_name=self.stack_name,
         )
 
         PackageContextMock.assert_called_with(
@@ -153,6 +165,7 @@ class TestDoCli(TestCase):
         deploy_context_mock.run.assert_called_once_with()
         execute_code_sync_mock.assert_not_called()
 
+    @parameterized.expand([(False, True, False)])
     @patch("samcli.commands.sync.command.execute_watch")
     @patch("samcli.commands.build.command.click")
     @patch("samcli.commands.build.build_context.BuildContext")
@@ -164,6 +177,9 @@ class TestDoCli(TestCase):
     @patch("samcli.commands.sync.command.manage_stack")
     def test_watch_must_succeed_sync(
         self,
+        code,
+        watch,
+        auto_dependency_layer,
         manage_stack_mock,
         os_mock,
         DeployContextMock,
@@ -188,6 +204,7 @@ class TestDoCli(TestCase):
             True,
             self.resource_id,
             self.resource,
+            auto_dependency_layer,
             self.stack_name,
             self.region,
             self.profile,
@@ -219,6 +236,8 @@ class TestDoCli(TestCase):
             parameter_overrides=self.parameter_overrides,
             mode=self.mode,
             cached=True,
+            create_auto_dependency_layer=auto_dependency_layer,
+            stack_name=self.stack_name,
         )
 
         PackageContextMock.assert_called_with(
@@ -264,6 +283,7 @@ class TestDoCli(TestCase):
             self.template_file, build_context_mock, package_context_mock, deploy_context_mock
         )
 
+    @parameterized.expand([(True, False, True)])
     @patch("samcli.commands.sync.command.execute_code_sync")
     @patch("samcli.commands.build.command.click")
     @patch("samcli.commands.build.build_context.BuildContext")
@@ -275,6 +295,9 @@ class TestDoCli(TestCase):
     @patch("samcli.commands.sync.command.manage_stack")
     def test_code_must_succeed_sync(
         self,
+        code,
+        watch,
+        auto_dependency_layer,
         manage_stack_mock,
         os_mock,
         DeployContextMock,
@@ -299,6 +322,7 @@ class TestDoCli(TestCase):
             False,
             self.resource_id,
             self.resource,
+            auto_dependency_layer,
             self.stack_name,
             self.region,
             self.profile,

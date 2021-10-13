@@ -96,7 +96,7 @@ class LayerSyncFlow(SyncFlow):
                 mode=self._build_context.mode,
             )
             LOG.debug("%sBuilding Layer", self.log_prefix)
-            self._artifact_folder = builder.build().get(self._layer_identifier)
+            self._artifact_folder = builder.build().artifacts.get(self._layer_identifier)
 
         zip_file_path = os.path.join(tempfile.gettempdir(), f"data-{uuid.uuid4().hex}")
         self._zip_file = make_zip(zip_file_path, self._artifact_folder)

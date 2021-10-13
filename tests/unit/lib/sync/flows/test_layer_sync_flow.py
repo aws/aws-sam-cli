@@ -77,7 +77,7 @@ class TestLayerSyncFlow(TestCase):
 
         given_app_builder = Mock()
         given_artifact_folder = Mock()
-        given_app_builder.build().get.return_value = given_artifact_folder
+        given_app_builder.build().artifacts.get.return_value = given_artifact_folder
         patched_app_builder.return_value = given_app_builder
 
         given_zip_location = Mock()

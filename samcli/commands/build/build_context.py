@@ -11,6 +11,7 @@ from typing import Dict, Optional, List
 import click
 
 from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
+from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NestedStackManager
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.providers.provider import ResourcesToBuildCollector, Stack, Function, LayerVersion
@@ -66,6 +67,8 @@ class BuildContext:
         container_env_var_file: Optional[str] = None,
         build_images: Optional[dict] = None,
         aws_region: Optional[str] = None,
+        create_auto_dependency_layer: bool = False,
+        stack_name: Optional[str] = None,
     ) -> None:
 
         self._resource_identifier = resource_identifier
@@ -93,6 +96,8 @@ class BuildContext:
         self._container_env_var = container_env_var
         self._container_env_var_file = container_env_var_file
         self._build_images = build_images
+        self._create_auto_dependency_layer = create_auto_dependency_layer
+        self._stack_name = stack_name
 
         self._function_provider: Optional[SamFunctionProvider] = None
         self._layer_provider: Optional[SamLayerProvider] = None
@@ -172,7 +177,8 @@ class BuildContext:
             raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
 
         try:
-            artifacts = builder.build()
+            build_result = builder.build()
+            artifacts = build_result.artifacts
 
             stack_output_template_path_by_stack_path = {
                 stack.stack_path: stack.get_output_template_path(self.build_dir) for stack in self.stacks
@@ -183,7 +189,15 @@ class BuildContext:
                     artifacts,
                     stack_output_template_path_by_stack_path,
                 )
-                move_template(stack.location, stack.get_output_template_path(self.build_dir), modified_template)
+                output_template_path = stack.get_output_template_path(self.build_dir)
+
+                if self._create_auto_dependency_layer:
+                    LOG.debug("Auto creating dependency layer for each function resource into a nested stack")
+                    nested_stack_manager = NestedStackManager(
+                        self._stack_name, self.build_dir, stack.location, modified_template, build_result
+                    )
+                    modified_template = nested_stack_manager.generate_auto_dependency_layer_stack()
+                move_template(stack.location, output_template_path, modified_template)
 
             click.secho("\nBuild Succeeded", fg="green")
 
@@ -337,6 +351,10 @@ Commands you can use next
             if self._resource_identifier
             else self.collect_all_build_resources()
         )
+
+    @property
+    def create_auto_dependency_layer(self) -> bool:
+        return self._create_auto_dependency_layer
 
     def collect_build_resources(self, resource_identifier: str) -> ResourcesToBuildCollector:
         """Collect a single buildable resource and its dependencies.

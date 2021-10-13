@@ -75,7 +75,7 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
             container_manager=self._build_context.container_manager,
             mode=self._build_context.mode,
         )
-        self._image_name = builder.build().get(self._function_identifier)
+        self._image_name = builder.build().artifacts.get(self._function_identifier)
 
     def compare_remote(self) -> bool:
         return False

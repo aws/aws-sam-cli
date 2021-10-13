@@ -1,5 +1,5 @@
 import os
-from samcli.lib.build.app_builder import ApplicationBuilder
+from samcli.lib.build.app_builder import ApplicationBuilder, ApplicationBuildResult
 from unittest import TestCase
 from unittest.mock import patch, Mock, ANY, call
 
@@ -665,7 +665,8 @@ class TestBuildContext_run(TestCase):
         resources_mock.return_value = Mock()
 
         builder_mock = ApplicationBuilderMock.return_value = Mock()
-        artifacts = builder_mock.build.return_value = "artifacts"
+        artifacts = "artifacts"
+        builder_mock.build.return_value = ApplicationBuildResult(Mock(), artifacts)
         modified_template_root = "modified template 1"
         modified_template_child = "modified template 2"
         builder_mock.update_template.side_effect = [modified_template_root, modified_template_child]
