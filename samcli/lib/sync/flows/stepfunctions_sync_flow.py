@@ -96,11 +96,6 @@ class StepFunctionsSyncFlow(SyncFlow):
     def sync(self) -> None:
         state_machine_arn = self.get_physical_id(self._state_machine_identifier)
         if self._definition_uri is None:
-            LOG.error(
-                "%sUpdate State Machine fails since no DefinitionUri defined in the template, \
-if you are using inline Definition please run sam sync --infra",
-                self.log_prefix,
-            )
             raise MissingLocalDefinition(ResourceIdentifier(self._state_machine_identifier), "DefinitionUri")
         LOG.debug("%sTrying to update State Machine definition", self.log_prefix)
         response = self._stepfunctions_client.update_state_machine(
