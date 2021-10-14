@@ -40,20 +40,20 @@ class AutoDependencyLayerSyncFlow(AbstractLayerSyncFlow):
     _build_graph: Optional[BuildGraph]
 
     def __init__(
-            self,
-            function_identifier: str,
-            build_graph: BuildGraph,
-            build_context: "BuildContext",
-            deploy_context: "DeployContext",
-            physical_id_mapping: Dict[str, str],
-            stacks: List[Stack],
+        self,
+        function_identifier: str,
+        build_graph: BuildGraph,
+        build_context: "BuildContext",
+        deploy_context: "DeployContext",
+        physical_id_mapping: Dict[str, str],
+        stacks: List[Stack],
     ):
         super().__init__(
             NestedStackBuilder.get_layer_logical_id(function_identifier),
             build_context,
             deploy_context,
             physical_id_mapping,
-            stacks
+            stacks,
         )
         self._function_identifier = function_identifier
         self._layer_physical_name = NestedStackBuilder.get_layer_name(deploy_context.stack_name, function_identifier)
@@ -70,18 +70,18 @@ class AutoDependencyLayerSyncFlow(AbstractLayerSyncFlow):
             self._artifact_folder,
             self._layer_identifier,
             self._function_identifier,
-            self._get_compatible_runtimes()[0]
+            self._get_compatible_runtimes()[0],
         )
         zip_file_path = os.path.join(tempfile.gettempdir(), "data-" + uuid.uuid4().hex)
         self._zip_file = make_zip(zip_file_path, self._artifact_folder)
         self._local_sha = file_checksum(cast(str, self._zip_file), hashlib.sha256())
 
     def _get_dependent_functions(self) -> List[Function]:
-        function = SamFunctionProvider(self._stacks).get(self._function_identifier)
+        function = SamFunctionProvider(cast(List[Stack], self._stacks)).get(self._function_identifier)
         return [function] if function else []
 
     def _get_compatible_runtimes(self) -> List[str]:
-        function = SamFunctionProvider(self._stacks).get(self._function_identifier)
+        function = SamFunctionProvider(cast(List[Stack], self._stacks)).get(self._function_identifier)
         if not function or not function.runtime:
             raise InvalidRuntimeDefinitionForFunction(self._function_identifier)
         return [function.runtime]
@@ -107,7 +107,7 @@ class AutoDependencyLayerParentSyncFlow(ZipFunctionSyncFlow):
                 self._build_context,
                 self._deploy_context,
                 self._physical_id_mapping,
-                self._stacks
+                cast(List[Stack], self._stacks),
             )
         )
         return parent_dependencies

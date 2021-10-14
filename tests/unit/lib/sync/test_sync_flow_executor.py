@@ -7,7 +7,9 @@ from samcli.lib.providers.exceptions import MissingLocalDefinition
 from samcli.lib.sync.exceptions import (
     MissingPhysicalResourceError,
     NoLayerVersionsFoundError,
-    SyncFlowException, MissingFunctionBuildDefinition, InvalidRuntimeDefinitionForFunction,
+    SyncFlowException,
+    MissingFunctionBuildDefinition,
+    InvalidRuntimeDefinitionForFunction,
 )
 from unittest import TestCase
 from unittest.mock import ANY, MagicMock, call, patch
@@ -96,7 +98,8 @@ class TestSyncFlowExecutor(TestCase):
                 )
             ]
         )
-    
+
+    @patch("samcli.lib.sync.sync_flow_executor.LOG")
     def test_default_exception_missing_local_definition(self, log_mock):
         sync_flow_exception = MagicMock(spec=SyncFlowException)
         exception = MagicMock(spec=MissingLocalDefinition)

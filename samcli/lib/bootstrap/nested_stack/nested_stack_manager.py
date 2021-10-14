@@ -42,12 +42,12 @@ class NestedStackManager:
     _nested_stack_builder: NestedStackBuilder
 
     def __init__(
-            self,
-            stack_name: str,
-            build_dir: str,
-            stack_location: str,
-            current_template: Dict,
-            app_build_result: ApplicationBuildResult
+        self,
+        stack_name: str,
+        build_dir: str,
+        stack_location: str,
+        current_template: Dict,
+        app_build_result: ApplicationBuildResult,
     ):
         """
         Parameters
@@ -91,7 +91,7 @@ class NestedStackManager:
             if not dependencies_dir:
                 LOG.debug(
                     "Dependency folder can't be found for %s, skipping auto dependency layer creation",
-                    zip_function.name
+                    zip_function.name,
                 )
                 continue
 
@@ -105,7 +105,8 @@ class NestedStackManager:
         move_template(self._stack_location, nested_template_location, self._nested_stack_builder.build_as_dict())
 
         resources[NESTED_STACK_NAME] = self._nested_stack_builder.get_nested_stack_reference_resource(
-            nested_template_location)
+            nested_template_location
+        )
         return template
 
     def _add_layer(self, dependencies_dir: str, function: Function, resources: Dict):
@@ -133,11 +134,11 @@ class NestedStackManager:
 
     @staticmethod
     def update_layer_folder(
-            build_dir: str,
-            dependencies_dir: str,
-            layer_logical_id: str,
-            function_logical_id: str,
-            function_runtime: Optional[str]
+        build_dir: str,
+        dependencies_dir: str,
+        layer_logical_id: str,
+        function_logical_id: str,
+        function_runtime: Optional[str],
     ) -> str:
         """
         Creates build folder for auto dependency layer by moving dependencies into sub folder which is defined

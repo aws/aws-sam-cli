@@ -1,10 +1,9 @@
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 from uuid import uuid4
 from pathlib import Path
 
 import tomlkit
-from mock import Mock
 from parameterized import parameterized
 from typing import Dict, cast
 
@@ -531,9 +530,7 @@ class TestBuildGraph(TestCase):
         function = Mock()
         function.name = logical_id
         function_build_definition = Mock(functions=[function])
-        build_graph._function_build_definitions = [
-            function_build_definition
-        ]
+        build_graph._function_build_definitions = [function_build_definition]
 
         self.assertEqual(
             build_graph.get_function_build_definition_with_logical_id(logical_id), function_build_definition

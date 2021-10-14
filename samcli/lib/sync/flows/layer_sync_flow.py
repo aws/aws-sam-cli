@@ -189,7 +189,7 @@ class LayerSyncFlow(AbstractLayerSyncFlow):
             expression = re.compile(f"^{self._layer_identifier}[0-9a-z]{{10}}$")
             for logical_id, _ in self._physical_id_mapping.items():
                 # Skip over resources that do exist in the template as generated LayerVersion should not be in there
-                if get_resource_by_id(self._stacks, ResourceIdentifier(logical_id), True):
+                if get_resource_by_id(cast(List[Stack], self._stacks), ResourceIdentifier(logical_id), True):
                     continue
                 # Check if logical ID starts with serverless layer and has 10 characters behind
                 if not expression.match(logical_id):
@@ -234,7 +234,7 @@ class LayerSyncFlow(AbstractLayerSyncFlow):
         return layer_resource.get("Properties", {}).get("CompatibleRuntimes", [])
 
     def _get_dependent_functions(self) -> List[Function]:
-        function_provider = SamFunctionProvider(self._stacks)
+        function_provider = SamFunctionProvider(cast(List[Stack], self._stacks))
         return list(function_provider.get_all())
 
 

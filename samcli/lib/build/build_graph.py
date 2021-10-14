@@ -194,8 +194,7 @@ class BuildGraph:
         return tuple(self._layer_build_definitions)
 
     def get_function_build_definition_with_logical_id(
-            self,
-            function_logial_id: str
+        self, function_logial_id: str
     ) -> Optional["FunctionBuildDefinition"]:
         """
         Returns FunctionBuildDefinition instance of given function logical id.
@@ -216,7 +215,6 @@ class BuildGraph:
                 if build_definition_function.name == function_logial_id:
                     return function_build_definition
         return None
-
 
     def put_function_build_definition(
         self, function_build_definition: "FunctionBuildDefinition", function: Function

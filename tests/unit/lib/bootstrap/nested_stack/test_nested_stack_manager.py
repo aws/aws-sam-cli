@@ -3,7 +3,8 @@ from unittest import TestCase
 from unittest.mock import Mock, patch, ANY, call
 
 from samcli.lib.bootstrap.nested_stack.nested_stack_manager import (
-    NESTED_STACK_NAME, NestedStackManager,
+    NESTED_STACK_NAME,
+    NestedStackManager,
 )
 from samcli.lib.build.app_builder import ApplicationBuildResult
 from samcli.lib.sync.exceptions import InvalidRuntimeDefinitionForFunction
@@ -123,21 +124,21 @@ class TestNestedStackManager(TestCase):
             dependencies_dir = "dependencies"
             function_name = "function_name"
             NestedStackManager._add_layer_readme_info(dependencies_dir, function_name)
-            patched_open.assert_has_calls([
-                call(os.path.join(dependencies_dir, "AWS_SAM_CLI_README"), "w+"),
-                call().__enter__().write(
-                    f"This layer contains dependencies of function {function_name} and automatically added by AWS SAM CLI command 'sam sync'")
-            ], any_order=True)
+            patched_open.assert_has_calls(
+                [
+                    call(os.path.join(dependencies_dir, "AWS_SAM_CLI_README"), "w+"),
+                    call()
+                    .__enter__()
+                    .write(
+                        f"This layer contains dependencies of function {function_name} and automatically added by AWS SAM CLI command 'sam sync'"
+                    ),
+                ],
+                any_order=True,
+            )
 
     def test_update_layer_folder_raise_exception_with_no_runtime(self):
         with self.assertRaises(InvalidRuntimeDefinitionForFunction):
-            NestedStackManager.update_layer_folder(
-                Mock(),
-                Mock(),
-                Mock(),
-                Mock(),
-                None
-            )
+            NestedStackManager.update_layer_folder(Mock(), Mock(), Mock(), Mock(), None)
 
     @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.Path")
     @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.shutil")
@@ -157,11 +158,7 @@ class TestNestedStackManager(TestCase):
         patched_path.return_value.joinpath.return_value = layer_root_folder
 
         layer_folder = NestedStackManager.update_layer_folder(
-            build_dir,
-            dependencies_dir,
-            layer_logical_id,
-            function_logical_id,
-            function_runtime
+            build_dir, dependencies_dir, layer_logical_id, function_logical_id, function_runtime
         )
 
         patched_shutil.rmtree.assert_called_with(layer_root_folder)

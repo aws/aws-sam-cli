@@ -48,11 +48,11 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
     _auto_dependency_layer: bool
 
     def __init__(
-            self,
-            build_context: "BuildContext",
-            deploy_context: "DeployContext",
-            stacks: List[Stack],
-            auto_dependency_layer: bool
+        self,
+        build_context: "BuildContext",
+        deploy_context: "DeployContext",
+        stacks: List[Stack],
+        auto_dependency_layer: bool,
     ) -> None:
         """
         Parameters

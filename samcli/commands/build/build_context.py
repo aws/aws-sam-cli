@@ -41,7 +41,6 @@ LOG = logging.getLogger(__name__)
 
 
 class BuildContext:
-
     def __init__(
         self,
         resource_identifier: Optional[str],

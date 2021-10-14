@@ -3,7 +3,9 @@ from unittest.mock import MagicMock
 from samcli.lib.sync.exceptions import (
     MissingPhysicalResourceError,
     NoLayerVersionsFoundError,
-    SyncFlowException, MissingFunctionBuildDefinition, InvalidRuntimeDefinitionForFunction,
+    SyncFlowException,
+    MissingFunctionBuildDefinition,
+    InvalidRuntimeDefinitionForFunction,
 )
 
 

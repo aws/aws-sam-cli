@@ -12,16 +12,11 @@ from samcli.lib.sync.flows.layer_sync_flow import FunctionLayerReferenceSync
 
 
 class TestAutoDependencyLayerParentSyncFlow(TestCase):
-
     @patch("samcli.lib.sync.flows.auto_dependency_layer_sync_flow.super")
     def test_gather_dependencies(self, patched_super):
         patched_super.return_value.gather_dependencies.return_value = []
         auto_dependency_sync_flow = AutoDependencyLayerParentSyncFlow(
-            "function_identifier",
-            Mock(),
-            Mock(stack_name="stack_name"),
-            Mock(),
-            [Mock()]
+            "function_identifier", Mock(), Mock(stack_name="stack_name"), Mock(), [Mock()]
         )
 
         dependencies = auto_dependency_sync_flow.gather_dependencies()
@@ -30,7 +25,6 @@ class TestAutoDependencyLayerParentSyncFlow(TestCase):
 
 
 class TestAutoDependencyLayerSyncFlow(TestCase):
-
     def setUp(self) -> None:
         self.build_graph = Mock(spec=BuildGraph)
         self.stack_name = "stack_name"
@@ -42,7 +36,7 @@ class TestAutoDependencyLayerSyncFlow(TestCase):
             Mock(build_dir=self.build_dir),
             Mock(stack_name=self.stack_name),
             Mock(),
-            [Mock()]
+            [Mock()],
         )
 
     def test_gather_resources_fail_when_no_function_build_definition_found(self):
@@ -63,12 +57,12 @@ class TestAutoDependencyLayerSyncFlow(TestCase):
     @patch("samcli.lib.sync.flows.auto_dependency_layer_sync_flow.tempfile")
     @patch("samcli.lib.sync.flows.auto_dependency_layer_sync_flow.NestedStackManager")
     def test_gather_resources(
-            self,
-            patched_nested_stack_manager,
-            patched_tempfile,
-            patched_make_zip,
-            patched_file_checksum,
-            patched_uuid,
+        self,
+        patched_nested_stack_manager,
+        patched_tempfile,
+        patched_make_zip,
+        patched_file_checksum,
+        patched_uuid,
     ):
         dependencies_dir = "dependencies_dir"
         tmpdir = "tmpdir"
@@ -79,9 +73,7 @@ class TestAutoDependencyLayerSyncFlow(TestCase):
         patched_tempfile.gettempdir.return_value = tmpdir
         patched_uuid.uuid4.return_value = Mock(hex=uuid_hex)
         patched_make_zip.return_value = zipfile
-        self.build_graph.get_function_build_definitions.return_value = [
-            Mock(dependencies_dir=dependencies_dir)
-        ]
+        self.build_graph.get_function_build_definitions.return_value = [Mock(dependencies_dir=dependencies_dir)]
 
         with patch.object(self.sync_flow, "_get_compatible_runtimes") as patched_comp_runtimes:
             patched_comp_runtimes.return_value = [runtime]

@@ -20,7 +20,9 @@ class TestWatchManager(TestCase):
         self.build_context = MagicMock()
         self.package_context = MagicMock()
         self.deploy_context = MagicMock()
-        self.watch_manager = WatchManager(self.template, self.build_context, self.package_context, self.deploy_context, False)
+        self.watch_manager = WatchManager(
+            self.template, self.build_context, self.package_context, self.deploy_context, False
+        )
 
     def tearDown(self) -> None:
         self.path_observer_patch.stop()

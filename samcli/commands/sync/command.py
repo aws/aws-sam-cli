@@ -206,7 +206,7 @@ def do_cli(
 
     click.echo(f"\n\t\tDefault capabilities applied: {DEFAULT_CAPABILITIES}")
     click.echo("To override with customized capabilities, use --capabitilies flag or set it in samconfig.toml")
-    
+
     build_dir = DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER if dependency_layer else DEFAULT_BUILD_DIR
     LOG.debug("Using build directory as %s", build_dir)
 

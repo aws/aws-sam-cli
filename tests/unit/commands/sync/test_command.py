@@ -280,11 +280,7 @@ class TestDoCli(TestCase):
             signing_profiles=None,
         )
         execute_watch_mock.assert_called_once_with(
-            self.template_file,
-            build_context_mock,
-            package_context_mock,
-            deploy_context_mock,
-            auto_dependency_layer
+            self.template_file, build_context_mock, package_context_mock, deploy_context_mock, auto_dependency_layer
         )
 
     @parameterized.expand([(True, False, True)])
@@ -351,7 +347,7 @@ class TestDoCli(TestCase):
             deploy_context_mock,
             self.resource_id,
             self.resource,
-            auto_dependency_layer
+            auto_dependency_layer,
         )
 
 
@@ -387,7 +383,7 @@ class TestSyncCode(TestCase):
             self.deploy_context,
             resource_identifier_strings,
             resource_types,
-            True
+            True,
         )
 
         sync_flow_factory_mock.return_value.create_sync_flow.assert_called_once_with(ResourceIdentifier("Function1"))
@@ -424,7 +420,7 @@ class TestSyncCode(TestCase):
             self.deploy_context,
             resource_identifier_strings,
             resource_types,
-            True
+            True,
         )
 
         sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function1"))
@@ -467,7 +463,7 @@ class TestSyncCode(TestCase):
             self.deploy_context,
             resource_identifier_strings,
             resource_types,
-            True
+            True,
         )
 
         sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function1"))
@@ -513,7 +509,7 @@ class TestSyncCode(TestCase):
             self.deploy_context,
             resource_identifier_strings,
             resource_types,
-            True
+            True,
         )
 
         sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function1"))

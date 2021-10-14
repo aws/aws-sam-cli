@@ -49,8 +49,10 @@ class NestedStackBuilder(AbstractStackBuilder):
     def get_layer_name(stack_name: str, function_logical_id: str) -> str:
         function_logical_id_hash = str_checksum(function_logical_id)
         stack_name_hash = str_checksum(stack_name)
-        return  f"{stack_name[:16]}{stack_name_hash[:8]}-{function_logical_id[:22]}{function_logical_id_hash[:8]}" \
-                f"-DepLayer"
+        return (
+            f"{stack_name[:16]}{stack_name_hash[:8]}-{function_logical_id[:22]}{function_logical_id_hash[:8]}"
+            f"-DepLayer"
+        )
 
     @staticmethod
     def _get_layer_dict(function_logical_id: str, layer_name: str, layer_contents_folder: str, function_runtime: str):
@@ -63,9 +65,7 @@ class NestedStackBuilder(AbstractStackBuilder):
                 "RetentionPolicy": "Delete",
                 "CompatibleRuntimes": [function_runtime],
             },
-            "Metadata": {
-                CREATED_BY_METADATA_KEY: CREATED_BY_METADATA_VALUE
-            }
+            "Metadata": {CREATED_BY_METADATA_KEY: CREATED_BY_METADATA_VALUE},
         }
 
     @staticmethod
@@ -74,7 +74,5 @@ class NestedStackBuilder(AbstractStackBuilder):
             "Type": AWS_CLOUDFORMATION_STACK,
             "DeletionPolicy": "Delete",
             "Properties": {"TemplateURL": nested_template_location},
-            "Metadata": {
-                CREATED_BY_METADATA_KEY: CREATED_BY_METADATA_VALUE
-            }
+            "Metadata": {CREATED_BY_METADATA_KEY: CREATED_BY_METADATA_VALUE},
         }
