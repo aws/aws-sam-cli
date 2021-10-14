@@ -174,3 +174,7 @@ class TestZipFunctionSyncFlow(TestCase):
         self.assertEqual(len(result), 2)
         resource_api_call_mock.assert_any_call("Layer1", ["Build"])
         resource_api_call_mock.assert_any_call("Layer2", ["Build"])
+
+    def test_combine_dependencies(self):
+        sync_flow = self.create_function_sync_flow()
+        self.assertTrue(sync_flow._combine_dependencies())

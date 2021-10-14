@@ -17,6 +17,8 @@ from samcli.lib.sync.exceptions import (
     MissingPhysicalResourceError,
     NoLayerVersionsFoundError,
     SyncFlowException,
+    MissingFunctionBuildDefinition,
+    InvalidRuntimeDefinitionForFunction,
 )
 
 from samcli.lib.utils.lock_distributor import LockDistributor, LockDistributorType
@@ -79,6 +81,12 @@ def default_exception_handler(sync_flow_exception: SyncFlowException) -> None:
         LOG.error(exception.response.get("Error", dict()).get("Message", ""))
     elif isinstance(exception, NoLayerVersionsFoundError):
         LOG.error("Cannot find any versions for layer %s.%s", exception.layer_name_arn, HELP_TEXT_FOR_SYNC_INFRA)
+    elif isinstance(exception, MissingFunctionBuildDefinition):
+        LOG.error(
+            "Cannot find build definition for function %s.%s", exception.function_logical_id, HELP_TEXT_FOR_SYNC_INFRA
+        )
+    elif isinstance(exception, InvalidRuntimeDefinitionForFunction):
+        LOG.error("No Runtime information found for function resource named %s", exception.function_logical_id)
     elif isinstance(exception, MissingLocalDefinition):
         LOG.error(
             "Resource %s does not have %s specified. Skipping the sync.%s",

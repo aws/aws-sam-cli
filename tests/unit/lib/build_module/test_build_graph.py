@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 from uuid import uuid4
 from pathlib import Path
 
@@ -519,6 +519,22 @@ class TestBuildGraph(TestCase):
                 document["layer_build_definitions"][TestBuildGraph.LAYER_UUID][MANIFEST_HASH_FIELD],
                 "new_manifest_value",
             )
+
+    def test_empty_get_function_build_definition_with_logical_id(self):
+        build_graph = BuildGraph("build_dir")
+        self.assertIsNone(build_graph.get_function_build_definition_with_logical_id("function_logical_id"))
+
+    def test_get_function_build_definition_with_logical_id(self):
+        build_graph = BuildGraph("build_dir")
+        logical_id = "function_logical_id"
+        function = Mock()
+        function.name = logical_id
+        function_build_definition = Mock(functions=[function])
+        build_graph._function_build_definitions = [function_build_definition]
+
+        self.assertEqual(
+            build_graph.get_function_build_definition_with_logical_id(logical_id), function_build_definition
+        )
 
 
 class TestBuildDefinition(TestCase):

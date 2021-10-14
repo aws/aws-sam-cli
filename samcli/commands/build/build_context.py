@@ -18,6 +18,7 @@ from samcli.lib.providers.provider import ResourcesToBuildCollector, Stack, Func
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_layer_provider import SamLayerProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.local.docker.manager import ContainerManager
 from samcli.local.lambdafn.exceptions import ResourceNotFound
 from samcli.lib.build.exceptions import BuildInsideContainerError
@@ -40,10 +41,6 @@ LOG = logging.getLogger(__name__)
 
 
 class BuildContext:
-    # Build directories need not be world writable.
-    # This is usually a optimal permission for directories
-    _BUILD_DIR_PERMISSIONS = 0o755
-
     def __init__(
         self,
         resource_identifier: Optional[str],
@@ -138,12 +135,11 @@ class BuildContext:
 
         if self._cached:
             cache_path = pathlib.Path(self._cache_dir)
-            cache_path.mkdir(mode=self._BUILD_DIR_PERMISSIONS, parents=True, exist_ok=True)
+            cache_path.mkdir(mode=BUILD_DIR_PERMISSIONS, parents=True, exist_ok=True)
             self._cache_dir = str(cache_path.resolve())
 
             dependencies_path = pathlib.Path(DEFAULT_DEPENDENCIES_DIR)
-            dependencies_path.mkdir(mode=self._BUILD_DIR_PERMISSIONS, parents=True, exist_ok=True)
-
+            dependencies_path.mkdir(mode=BUILD_DIR_PERMISSIONS, parents=True, exist_ok=True)
         if self._use_container:
             self._container_manager = ContainerManager(
                 docker_network_id=self._docker_network, skip_pull_image=self._skip_pull_image
@@ -172,6 +168,7 @@ class BuildContext:
                 container_env_var=self._container_env_var,
                 container_env_var_file=self._container_env_var_file,
                 build_images=self._build_images,
+                combine_dependencies=not self._create_auto_dependency_layer,
             )
         except FunctionNotFound as ex:
             raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
@@ -279,7 +276,7 @@ Commands you can use next
             # build folder contains something inside. Clear everything.
             shutil.rmtree(build_dir)
 
-        build_path.mkdir(mode=BuildContext._BUILD_DIR_PERMISSIONS, parents=True, exist_ok=True)
+        build_path.mkdir(mode=BUILD_DIR_PERMISSIONS, parents=True, exist_ok=True)
 
         # ensure path resolving is done after creation: https://bugs.python.org/issue32434
         return str(build_path.resolve())

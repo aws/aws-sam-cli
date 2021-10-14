@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional, TYPE_CHECKING, cast
 
 from boto3.session import Session
 
+from samcli.lib.build.build_graph import BuildGraph
 from samcli.lib.providers.provider import Stack
 
 from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow
@@ -36,6 +37,7 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
     _artifact_folder: Optional[str]
     _zip_file: Optional[str]
     _local_sha: Optional[str]
+    _build_graph: Optional[BuildGraph]
 
     def __init__(
         self,
@@ -65,6 +67,7 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
         self._artifact_folder = None
         self._zip_file = None
         self._local_sha = None
+        self._build_graph = None
 
     def set_up(self) -> None:
         super().set_up()
@@ -86,9 +89,12 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
                 manifest_path_override=self._build_context.manifest_path_override,
                 container_manager=self._build_context.container_manager,
                 mode=self._build_context.mode,
+                combine_dependencies=self._combine_dependencies(),
             )
             LOG.debug("%sBuilding Function", self.log_prefix)
-            self._artifact_folder = builder.build().artifacts.get(self._function_identifier)
+            build_result = builder.build()
+            self._build_graph = build_result.build_graph
+            self._artifact_folder = build_result.artifacts.get(self._function_identifier)
 
         zip_file_path = os.path.join(tempfile.gettempdir(), "data-" + uuid.uuid4().hex)
         self._zip_file = make_zip(zip_file_path, self._artifact_folder)
@@ -143,3 +149,7 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
         for layer in self._function.layers:
             resource_calls.append(ResourceAPICall(layer.full_path, ["Build"]))
         return resource_calls
+
+    @staticmethod
+    def _combine_dependencies() -> bool:
+        return True

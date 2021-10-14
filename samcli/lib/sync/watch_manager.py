@@ -42,6 +42,7 @@ class WatchManager:
     _trigger_factory: Optional[CodeTriggerFactory]
     _waiting_infra_sync: bool
     _color: Colored
+    _auto_dependency_layer: bool
 
     def __init__(
         self,
@@ -49,6 +50,7 @@ class WatchManager:
         build_context: "BuildContext",
         package_context: "PackageContext",
         deploy_context: "DeployContext",
+        auto_dependency_layer: bool,
     ):
         """Manager for sync watch execution logic.
         This manager will observe template and its code resources.
@@ -70,6 +72,7 @@ class WatchManager:
         self._build_context = build_context
         self._package_context = package_context
         self._deploy_context = deploy_context
+        self._auto_dependency_layer = auto_dependency_layer
 
         self._sync_flow_factory = None
         self._sync_flow_executor = ContinuousSyncFlowExecutor()
@@ -94,7 +97,9 @@ class WatchManager:
         This should be called whenever there is a change to the template.
         """
         self._stacks = SamLocalStackProvider.get_stacks(self._template)[0]
-        self._sync_flow_factory = SyncFlowFactory(self._build_context, self._deploy_context, self._stacks)
+        self._sync_flow_factory = SyncFlowFactory(
+            self._build_context, self._deploy_context, self._stacks, self._auto_dependency_layer
+        )
         self._sync_flow_factory.load_physical_id_mapping()
         self._trigger_factory = CodeTriggerFactory(self._stacks)
 

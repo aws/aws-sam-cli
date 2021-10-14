@@ -3,10 +3,13 @@ from unittest import TestCase
 from unittest.mock import Mock, patch, ANY, call
 
 from samcli.lib.bootstrap.nested_stack.nested_stack_manager import (
-    NESTED_STACK_NAME, NestedStackManager,
+    NESTED_STACK_NAME,
+    NestedStackManager,
 )
 from samcli.lib.build.app_builder import ApplicationBuildResult
+from samcli.lib.sync.exceptions import InvalidRuntimeDefinitionForFunction
 from samcli.lib.utils import osutils
+from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.lib.utils.resources import AWS_SQS_QUEUE, AWS_SERVERLESS_FUNCTION
 
 
@@ -67,12 +70,13 @@ class TestNestedStackManager(TestCase):
 
         self.assertEqual(template, result)
 
-    def test_no_dependencies_dir(self):
+    @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.osutils")
+    def test_no_dependencies_dir(self, patched_osutils):
         template = {
             "Resources": {"MyFunction": {"Type": AWS_SERVERLESS_FUNCTION, "Properties": {"Runtime": "python3.8"}}}
         }
         build_graph = Mock()
-        build_graph.get_function_build_definitions.return_value = []
+        build_graph.get_function_build_definition_with_logical_id.return_value = None
         app_build_result = ApplicationBuildResult(build_graph, {"MyFunction": "path/to/build/dir"})
         nested_stack_manager = NestedStackManager(
             self.stack_name, self.build_dir, self.stack_location, template, app_build_result
@@ -82,7 +86,8 @@ class TestNestedStackManager(TestCase):
         self.assertEqual(template, result)
 
     @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.move_template")
-    def test_with_zip_function(self, patched_move_template):
+    @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.osutils")
+    def test_with_zip_function(self, patched_osutils, patched_move_template):
         template = {
             "Resources": {"MyFunction": {"Type": AWS_SERVERLESS_FUNCTION, "Properties": {"Runtime": "python3.8"}}}
         }
@@ -94,7 +99,7 @@ class TestNestedStackManager(TestCase):
         functions = [function]
         build_graph = Mock()
         function_definition_mock = Mock(dependencies_dir=dependencies_dir, functions=functions)
-        build_graph.get_function_build_definitions.return_value = [function_definition_mock]
+        build_graph.get_function_build_definition_with_logical_id.return_value = function_definition_mock
         app_build_result = ApplicationBuildResult(build_graph, {"MyFunction": "path/to/build/dir"})
 
         nested_stack_manager = NestedStackManager(
@@ -119,8 +124,45 @@ class TestNestedStackManager(TestCase):
             dependencies_dir = "dependencies"
             function_name = "function_name"
             NestedStackManager._add_layer_readme_info(dependencies_dir, function_name)
-            patched_open.assert_has_calls([
-                call(os.path.join(dependencies_dir, "AWS_SAM_CLI_README"), "w+"),
-                call().__enter__().write(
-                    f"This layer contains dependencies of function {function_name} and automatically added by AWS SAM CLI command 'sam sync'")
-            ], any_order=True)
+            patched_open.assert_has_calls(
+                [
+                    call(os.path.join(dependencies_dir, "AWS_SAM_CLI_README"), "w+"),
+                    call()
+                    .__enter__()
+                    .write(
+                        f"This layer contains dependencies of function {function_name} and automatically added by AWS SAM CLI command 'sam sync'"
+                    ),
+                ],
+                any_order=True,
+            )
+
+    def test_update_layer_folder_raise_exception_with_no_runtime(self):
+        with self.assertRaises(InvalidRuntimeDefinitionForFunction):
+            NestedStackManager.update_layer_folder(Mock(), Mock(), Mock(), Mock(), None)
+
+    @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.Path")
+    @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.shutil")
+    @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.osutils")
+    @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.NestedStackManager._add_layer_readme_info")
+    def test_update_layer_folder(self, patched_add_layer_readme, patched_osutils, patched_shutil, patched_path):
+        build_dir = "build_dir"
+        dependencies_dir = "dependencies_dir"
+        layer_logical_id = "layer_logical_id"
+        function_logical_id = "function_logical_id"
+        function_runtime = "python3.9"
+
+        layer_contents_folder = Mock()
+        layer_root_folder = Mock()
+        layer_root_folder.exists.return_value = True
+        layer_root_folder.joinpath.return_value = layer_contents_folder
+        patched_path.return_value.joinpath.return_value = layer_root_folder
+
+        layer_folder = NestedStackManager.update_layer_folder(
+            build_dir, dependencies_dir, layer_logical_id, function_logical_id, function_runtime
+        )
+
+        patched_shutil.rmtree.assert_called_with(layer_root_folder)
+        layer_contents_folder.mkdir.assert_called_with(BUILD_DIR_PERMISSIONS, parents=True)
+        patched_osutils.copytree.assert_called_with(dependencies_dir, str(layer_contents_folder))
+        patched_add_layer_readme.assert_called_with(str(layer_root_folder), function_logical_id)
+        self.assertEqual(layer_folder, str(layer_root_folder))

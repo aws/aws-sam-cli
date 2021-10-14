@@ -5,9 +5,12 @@ from samcli.lib.sync.sync_flow_factory import SyncFlowFactory
 
 
 class TestSyncFlowFactory(TestCase):
-    def create_factory(self):
+    def create_factory(self, auto_dependency_layer: bool = False):
         factory = SyncFlowFactory(
-            build_context=MagicMock(), deploy_context=MagicMock(), stacks=[MagicMock(), MagicMock()]
+            build_context=MagicMock(),
+            deploy_context=MagicMock(),
+            stacks=[MagicMock(), MagicMock()],
+            auto_dependency_layer=auto_dependency_layer,
         )
         return factory
 
@@ -31,6 +34,17 @@ class TestSyncFlowFactory(TestCase):
         resource = {"Properties": {"PackageType": "Zip"}}
         result = factory._create_lambda_flow("Function1", resource)
         self.assertEqual(result, zip_function_mock.return_value)
+
+    @patch("samcli.lib.sync.sync_flow_factory.ImageFunctionSyncFlow")
+    @patch("samcli.lib.sync.sync_flow_factory.ZipFunctionSyncFlow")
+    @patch("samcli.lib.sync.sync_flow_factory.AutoDependencyLayerParentSyncFlow")
+    def test_create_lambda_flow_zip_with_auto_dependency_layer(
+        self, auto_dependency_layer_mock, zip_function_mock, image_function_mock
+    ):
+        factory = self.create_factory(True)
+        resource = {"Properties": {"PackageType": "Zip"}}
+        result = factory._create_lambda_flow("Function1", resource)
+        self.assertEqual(result, auto_dependency_layer_mock.return_value)
 
     @patch("samcli.lib.sync.sync_flow_factory.ImageFunctionSyncFlow")
     @patch("samcli.lib.sync.sync_flow_factory.ZipFunctionSyncFlow")

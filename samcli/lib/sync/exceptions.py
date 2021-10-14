@@ -103,3 +103,31 @@ class NoLayerVersionsFoundError(Exception):
 
 class MissingLockException(Exception):
     """Exception for not having an associated lock to be used."""
+
+
+class MissingFunctionBuildDefinition(Exception):
+    """This is used when no build definition found for particular function"""
+
+    _function_logical_id: str
+
+    def __init__(self, function_logical_id: str):
+        super().__init__(f"Build definition for {function_logical_id} can't be found")
+        self._function_logical_id = function_logical_id
+
+    @property
+    def function_logical_id(self) -> str:
+        return self._function_logical_id
+
+
+class InvalidRuntimeDefinitionForFunction(Exception):
+    """This is used when no Runtime information is defined for a function resource"""
+
+    _function_logical_id: str
+
+    def __init__(self, function_logical_id):
+        super().__init__(f"Invalid Runtime definition for {function_logical_id}")
+        self._function_logical_id = function_logical_id
+
+    @property
+    def function_logical_id(self):
+        return self._function_logical_id
