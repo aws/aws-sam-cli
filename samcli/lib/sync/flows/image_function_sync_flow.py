@@ -13,7 +13,7 @@ from samcli.lib.package.ecr_uploader import ECRUploader
 from samcli.lib.build.app_builder import ApplicationBuilder
 from samcli.lib.sync.sync_flow import ResourceAPICall
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.build.build_context import BuildContext
 

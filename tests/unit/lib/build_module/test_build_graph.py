@@ -4,6 +4,7 @@ from uuid import uuid4
 from pathlib import Path
 
 import tomlkit
+from samcli.lib.utils.architecture import X86_64, ARM64
 from parameterized import parameterized
 from typing import Dict, cast
 
@@ -22,6 +23,7 @@ from samcli.lib.build.build_graph import (
     BUILD_METHOD_FIELD,
     COMPATIBLE_RUNTIMES_FIELD,
     LAYER_FIELD,
+    ARCHITECTURE_FIELD,
     _toml_table_to_function_build_definition,
     _toml_table_to_layer_build_definition,
     BuildGraph,
@@ -53,6 +55,7 @@ def generate_function(
     codesign_config_arn="codesign_config_arn",
     metadata=None,
     inlinecode=None,
+    architectures=[X86_64],
     stack_path="",
 ):
     if metadata is None:
@@ -76,6 +79,7 @@ def generate_function(
         metadata,
         inlinecode,
         codesign_config_arn,
+        architectures,
         stack_path,
     )
 
@@ -98,12 +102,18 @@ def generate_layer(
 class TestConversionFunctions(TestCase):
     def test_function_build_definition_to_toml_table(self):
         build_definition = FunctionBuildDefinition(
-            "runtime", "codeuri", ZIP, {"key": "value"}, "source_hash", "manifest_hash", env_vars={"env_vars": "value1"}
+            "runtime",
+            "codeuri",
+            ZIP,
+            X86_64,
+            {"key": "value"},
+            "source_hash",
+            "manifest_hash",
+            env_vars={"env_vars": "value1"},
         )
         build_definition.add_function(generate_function())
 
         toml_table = _function_build_definition_to_toml_table(build_definition)
-
         self.assertEqual(toml_table[CODE_URI_FIELD], build_definition.codeuri)
         self.assertEqual(toml_table[PACKAGETYPE_FIELD], build_definition.packagetype)
         self.assertEqual(toml_table[RUNTIME_FIELD], build_definition.runtime)
@@ -112,10 +122,18 @@ class TestConversionFunctions(TestCase):
         self.assertEqual(toml_table[SOURCE_HASH_FIELD], build_definition.source_hash)
         self.assertEqual(toml_table[MANIFEST_HASH_FIELD], build_definition.manifest_hash)
         self.assertEqual(toml_table[ENV_VARS_FIELD], build_definition.env_vars)
+        self.assertEqual(toml_table[ARCHITECTURE_FIELD], build_definition.architecture)
 
     def test_layer_build_definition_to_toml_table(self):
         build_definition = LayerBuildDefinition(
-            "name", "codeuri", "method", ["runtime"], "source_hash", "manifest_hash", env_vars={"env_vars": "value"}
+            "name",
+            "codeuri",
+            "method",
+            ["runtime"],
+            ARM64,
+            "source_hash",
+            "manifest_hash",
+            env_vars={"env_vars": "value"},
         )
         build_definition.layer = generate_function()
 
@@ -129,6 +147,7 @@ class TestConversionFunctions(TestCase):
         self.assertEqual(toml_table[SOURCE_HASH_FIELD], build_definition.source_hash)
         self.assertEqual(toml_table[MANIFEST_HASH_FIELD], build_definition.manifest_hash)
         self.assertEqual(toml_table[ENV_VARS_FIELD], build_definition.env_vars)
+        self.assertEqual(toml_table[ARCHITECTURE_FIELD], build_definition.architecture)
 
     def test_toml_table_to_function_build_definition(self):
         toml_table = tomlkit.table()
@@ -140,6 +159,7 @@ class TestConversionFunctions(TestCase):
         toml_table[SOURCE_HASH_FIELD] = "source_hash"
         toml_table[MANIFEST_HASH_FIELD] = "manifest_hash"
         toml_table[ENV_VARS_FIELD] = {"env_vars": "value"}
+        toml_table[ARCHITECTURE_FIELD] = X86_64
         uuid = str(uuid4())
 
         build_definition = _toml_table_to_function_build_definition(uuid, toml_table)
@@ -153,6 +173,7 @@ class TestConversionFunctions(TestCase):
         self.assertEqual(build_definition.source_hash, toml_table[SOURCE_HASH_FIELD])
         self.assertEqual(build_definition.manifest_hash, toml_table[MANIFEST_HASH_FIELD])
         self.assertEqual(build_definition.env_vars, toml_table[ENV_VARS_FIELD])
+        self.assertEqual(build_definition.architecture, toml_table[ARCHITECTURE_FIELD])
 
     def test_toml_table_to_layer_build_definition(self):
         toml_table = tomlkit.table()
@@ -164,6 +185,7 @@ class TestConversionFunctions(TestCase):
         toml_table[SOURCE_HASH_FIELD] = "source_hash"
         toml_table[MANIFEST_HASH_FIELD] = "manifest_hash"
         toml_table[ENV_VARS_FIELD] = {"env_vars": "value"}
+        toml_table[ARCHITECTURE_FIELD] = ARM64
         uuid = str(uuid4())
 
         build_definition = _toml_table_to_layer_build_definition(uuid, toml_table)
@@ -177,6 +199,79 @@ class TestConversionFunctions(TestCase):
         self.assertEqual(build_definition.source_hash, toml_table[SOURCE_HASH_FIELD])
         self.assertEqual(build_definition.manifest_hash, toml_table[MANIFEST_HASH_FIELD])
         self.assertEqual(build_definition.env_vars, toml_table[ENV_VARS_FIELD])
+        self.assertEqual(build_definition.architecture, toml_table[ARCHITECTURE_FIELD])
+
+    def test_minimal_function_build_definition_to_toml_table(self):
+        build_definition = FunctionBuildDefinition("runtime", "codeuri", ZIP, X86_64, {"key": "value"})
+        build_definition.add_function(generate_function())
+
+        toml_table = _function_build_definition_to_toml_table(build_definition)
+        self.assertEqual(toml_table[CODE_URI_FIELD], build_definition.codeuri)
+        self.assertEqual(toml_table[PACKAGETYPE_FIELD], build_definition.packagetype)
+        self.assertEqual(toml_table[RUNTIME_FIELD], build_definition.runtime)
+        self.assertEqual(toml_table[METADATA_FIELD], build_definition.metadata)
+        self.assertEqual(toml_table[FUNCTIONS_FIELD], [f.name for f in build_definition.functions])
+        if build_definition.source_hash:
+            self.assertEqual(toml_table[SOURCE_HASH_FIELD], build_definition.source_hash)
+        self.assertEqual(toml_table[MANIFEST_HASH_FIELD], build_definition.manifest_hash)
+        self.assertEqual(toml_table[ARCHITECTURE_FIELD], build_definition.architecture)
+
+    def test_minimal_layer_build_definition_to_toml_table(self):
+        build_definition = LayerBuildDefinition("name", "codeuri", "method", "runtime", ARM64)
+        build_definition.layer = generate_function()
+
+        toml_table = _layer_build_definition_to_toml_table(build_definition)
+
+        self.assertEqual(toml_table[LAYER_NAME_FIELD], build_definition.name)
+        self.assertEqual(toml_table[CODE_URI_FIELD], build_definition.codeuri)
+        self.assertEqual(toml_table[BUILD_METHOD_FIELD], build_definition.build_method)
+        self.assertEqual(toml_table[COMPATIBLE_RUNTIMES_FIELD], build_definition.compatible_runtimes)
+        self.assertEqual(toml_table[LAYER_FIELD], build_definition.layer.name)
+        if build_definition.source_hash:
+            self.assertEqual(toml_table[SOURCE_HASH_FIELD], build_definition.source_hash)
+        self.assertEqual(toml_table[MANIFEST_HASH_FIELD], build_definition.manifest_hash)
+        self.assertEqual(toml_table[ARCHITECTURE_FIELD], build_definition.architecture)
+
+    def test_minimal_toml_table_to_function_build_definition(self):
+        toml_table = tomlkit.table()
+        toml_table[CODE_URI_FIELD] = "codeuri"
+        toml_table[RUNTIME_FIELD] = "runtime"
+        toml_table[FUNCTIONS_FIELD] = ["function1"]
+        uuid = str(uuid4())
+
+        build_definition = _toml_table_to_function_build_definition(uuid, toml_table)
+
+        self.assertEqual(build_definition.codeuri, toml_table[CODE_URI_FIELD])
+        self.assertEqual(build_definition.packagetype, ZIP)
+        self.assertEqual(build_definition.runtime, toml_table[RUNTIME_FIELD])
+        self.assertEqual(build_definition.metadata, {})
+        self.assertEqual(build_definition.uuid, uuid)
+        self.assertEqual(build_definition.functions, [])
+        self.assertEqual(build_definition.source_hash, "")
+        self.assertEqual(build_definition.manifest_hash, "")
+        self.assertEqual(build_definition.env_vars, {})
+        self.assertEqual(build_definition.architecture, X86_64)
+
+    def test_minimal_toml_table_to_layer_build_definition(self):
+        toml_table = tomlkit.table()
+        toml_table[LAYER_NAME_FIELD] = "name"
+        toml_table[CODE_URI_FIELD] = "codeuri"
+        toml_table[BUILD_METHOD_FIELD] = "method"
+        toml_table[COMPATIBLE_RUNTIMES_FIELD] = "runtime"
+        uuid = str(uuid4())
+
+        build_definition = _toml_table_to_layer_build_definition(uuid, toml_table)
+
+        self.assertEqual(build_definition.name, toml_table[LAYER_NAME_FIELD])
+        self.assertEqual(build_definition.codeuri, toml_table[CODE_URI_FIELD])
+        self.assertEqual(build_definition.build_method, toml_table[BUILD_METHOD_FIELD])
+        self.assertEqual(build_definition.uuid, uuid)
+        self.assertEqual(build_definition.compatible_runtimes, toml_table[COMPATIBLE_RUNTIMES_FIELD])
+        self.assertEqual(build_definition.layer, None)
+        self.assertEqual(build_definition.source_hash, "")
+        self.assertEqual(build_definition.manifest_hash, "")
+        self.assertEqual(build_definition.env_vars, {})
+        self.assertEqual(build_definition.architecture, X86_64)
 
 
 class TestBuildGraph(TestCase):
@@ -192,6 +287,8 @@ class TestBuildGraph(TestCase):
     SOURCE_HASH = "cae49aa393d669e850bd49869905099d"
     MANIFEST_HASH = "rty87gh393d669e850bd49869905099e"
     ENV_VARS = {"env_vars": "value"}
+    ARCHITECTURE_FIELD = ARM64
+    LAYER_ARCHITECTURE = X86_64
 
     BUILD_GRAPH_CONTENTS = f"""
     [function_build_definitions]
@@ -201,6 +298,7 @@ class TestBuildGraph(TestCase):
     source_hash = "{SOURCE_HASH}"
     manifest_hash = "{MANIFEST_HASH}"
     packagetype = "{ZIP}"
+    architecture = "{ARCHITECTURE_FIELD}"
     functions = ["HelloWorldPython", "HelloWorldPython2"]
     [function_build_definitions.{UUID}.metadata]
     Test = "{METADATA['Test']}"
@@ -214,6 +312,7 @@ class TestBuildGraph(TestCase):
     codeuri = "{LAYER_CODEURI}"
     build_method = "{LAYER_RUNTIME}"
     compatible_runtimes = ["{LAYER_RUNTIME}"]
+    architecture = "{LAYER_ARCHITECTURE}"
     source_hash = "{SOURCE_HASH}"
     manifest_hash = "{MANIFEST_HASH}"
     layer = "SumLayer"
@@ -246,6 +345,7 @@ class TestBuildGraph(TestCase):
                 TestBuildGraph.RUNTIME,
                 TestBuildGraph.CODEURI,
                 TestBuildGraph.ZIP,
+                TestBuildGraph.ARCHITECTURE_FIELD,
                 TestBuildGraph.METADATA,
                 TestBuildGraph.SOURCE_HASH,
                 TestBuildGraph.MANIFEST_HASH,
@@ -303,6 +403,7 @@ class TestBuildGraph(TestCase):
                 self.assertEqual(function_build_definition.codeuri, TestBuildGraph.CODEURI)
                 self.assertEqual(function_build_definition.runtime, TestBuildGraph.RUNTIME)
                 self.assertEqual(function_build_definition.packagetype, TestBuildGraph.ZIP)
+                self.assertEqual(function_build_definition.architecture, TestBuildGraph.ARCHITECTURE_FIELD)
                 self.assertEqual(function_build_definition.metadata, TestBuildGraph.METADATA)
                 self.assertEqual(function_build_definition.source_hash, TestBuildGraph.SOURCE_HASH)
                 self.assertEqual(function_build_definition.manifest_hash, TestBuildGraph.MANIFEST_HASH)
@@ -331,6 +432,7 @@ class TestBuildGraph(TestCase):
                 TestBuildGraph.RUNTIME,
                 TestBuildGraph.CODEURI,
                 TestBuildGraph.ZIP,
+                TestBuildGraph.ARCHITECTURE_FIELD,
                 TestBuildGraph.METADATA,
                 TestBuildGraph.SOURCE_HASH,
                 TestBuildGraph.MANIFEST_HASH,
@@ -353,6 +455,7 @@ class TestBuildGraph(TestCase):
                 "another_runtime",
                 "another_codeuri",
                 TestBuildGraph.ZIP,
+                ARM64,
                 None,
                 "another_source_hash",
                 "another_manifest_hash",
@@ -381,6 +484,7 @@ class TestBuildGraph(TestCase):
                 TestBuildGraph.LAYER_CODEURI,
                 TestBuildGraph.LAYER_RUNTIME,
                 [TestBuildGraph.LAYER_RUNTIME],
+                TestBuildGraph.LAYER_ARCHITECTURE,
                 TestBuildGraph.SOURCE_HASH,
                 TestBuildGraph.MANIFEST_HASH,
                 TestBuildGraph.ENV_VARS,
@@ -442,6 +546,7 @@ class TestBuildGraph(TestCase):
                 TestBuildGraph.RUNTIME,
                 TestBuildGraph.CODEURI,
                 TestBuildGraph.ZIP,
+                TestBuildGraph.ARCHITECTURE_FIELD,
                 TestBuildGraph.METADATA,
                 TestBuildGraph.SOURCE_HASH,
                 TestBuildGraph.MANIFEST_HASH,
@@ -451,6 +556,7 @@ class TestBuildGraph(TestCase):
                 TestBuildGraph.RUNTIME,
                 TestBuildGraph.CODEURI,
                 TestBuildGraph.ZIP,
+                TestBuildGraph.ARCHITECTURE_FIELD,
                 TestBuildGraph.METADATA,
                 "new_value",
                 "new_manifest_value",
@@ -463,6 +569,7 @@ class TestBuildGraph(TestCase):
                 TestBuildGraph.LAYER_CODEURI,
                 TestBuildGraph.LAYER_RUNTIME,
                 [TestBuildGraph.LAYER_RUNTIME],
+                TestBuildGraph.ARCHITECTURE_FIELD,
                 TestBuildGraph.SOURCE_HASH,
                 TestBuildGraph.MANIFEST_HASH,
                 TestBuildGraph.ENV_VARS,
@@ -472,6 +579,7 @@ class TestBuildGraph(TestCase):
                 TestBuildGraph.LAYER_CODEURI,
                 TestBuildGraph.LAYER_RUNTIME,
                 [TestBuildGraph.LAYER_RUNTIME],
+                TestBuildGraph.ARCHITECTURE_FIELD,
                 "new_value",
                 "new_manifest_value",
                 TestBuildGraph.ENV_VARS,
@@ -540,16 +648,15 @@ class TestBuildGraph(TestCase):
 class TestBuildDefinition(TestCase):
     def test_single_function_should_return_function_and_handler_name(self):
         build_definition = FunctionBuildDefinition(
-            "runtime", "codeuri", ZIP, "metadata", "source_hash", "manifest_hash", {"env_vars": "value"}
+            "runtime", "codeuri", ZIP, X86_64, "metadata", "source_hash", "manifest_hash", {"env_vars": "value"}
         )
         build_definition.add_function(generate_function())
-
         self.assertEqual(build_definition.get_handler_name(), "handler")
         self.assertEqual(build_definition.get_function_name(), "name")
 
     def test_no_function_should_raise_exception(self):
         build_definition = FunctionBuildDefinition(
-            "runtime", "codeuri", ZIP, "metadata", "source_hash", "manifest_hash", {"env_vars": "value"}
+            "runtime", "codeuri", ZIP, X86_64, "metadata", "source_hash", "manifest_hash", {"env_vars": "value"}
         )
 
         self.assertRaises(InvalidBuildGraphException, build_definition.get_handler_name)
@@ -557,20 +664,20 @@ class TestBuildDefinition(TestCase):
 
     def test_same_runtime_codeuri_metadata_should_reflect_as_same_object(self):
         build_definition1 = FunctionBuildDefinition(
-            "runtime", "codeuri", ZIP, {"key": "value"}, "source_hash", "manifest_hash"
+            "runtime", "codeuri", ZIP, ARM64, {"key": "value"}, "source_hash", "manifest_hash"
         )
         build_definition2 = FunctionBuildDefinition(
-            "runtime", "codeuri", ZIP, {"key": "value"}, "source_hash", "manifest_hash"
+            "runtime", "codeuri", ZIP, ARM64, {"key": "value"}, "source_hash", "manifest_hash"
         )
 
         self.assertEqual(build_definition1, build_definition2)
 
     def test_same_env_vars_reflect_as_same_object(self):
         build_definition1 = FunctionBuildDefinition(
-            "runtime", "codeuri", ZIP, {"key": "value"}, "source_hash", "manifest_hash", {"env_vars": "value"}
+            "runtime", "codeuri", ZIP, X86_64, {"key": "value"}, "source_hash", "manifest_hash", {"env_vars": "value"}
         )
         build_definition2 = FunctionBuildDefinition(
-            "runtime", "codeuri", ZIP, {"key": "value"}, "source_hash", "manifest_hash", {"env_vars": "value"}
+            "runtime", "codeuri", ZIP, X86_64, {"key": "value"}, "source_hash", "manifest_hash", {"env_vars": "value"}
         )
 
         self.assertEqual(build_definition1, build_definition2)
@@ -623,28 +730,42 @@ class TestBuildDefinition(TestCase):
     def test_different_runtime_codeuri_metadata_should_not_reflect_as_same_object(
         self, runtime1, codeuri1, metadata1, source_hash_1, runtime2, codeuri2, metadata2, source_hash_2
     ):
-        build_definition1 = FunctionBuildDefinition(runtime1, codeuri1, ZIP, metadata1, source_hash_1)
-        build_definition2 = FunctionBuildDefinition(runtime2, codeuri2, ZIP, metadata2, source_hash_2)
+        build_definition1 = FunctionBuildDefinition(runtime1, codeuri1, ZIP, ARM64, metadata1, source_hash_1)
+        build_definition2 = FunctionBuildDefinition(runtime2, codeuri2, ZIP, ARM64, metadata2, source_hash_2)
+
+        self.assertNotEqual(build_definition1, build_definition2)
+
+    def test_different_architecture_should_not_reflect_as_same_object(self):
+        build_definition1 = FunctionBuildDefinition(
+            "runtime", "codeuri", ZIP, X86_64, {"key": "value"}, "source_md5", {"env_vars": "value"}
+        )
+        build_definition2 = FunctionBuildDefinition(
+            "runtime", "codeuri", ZIP, ARM64, {"key": "value"}, "source_md5", {"env_vars": "value"}
+        )
 
         self.assertNotEqual(build_definition1, build_definition2)
 
     def test_different_env_vars_should_not_reflect_as_same_object(self):
         build_definition1 = FunctionBuildDefinition(
-            "runtime", "codeuri", ZIP, {"key": "value"}, "source_hash", "manifest_hash", {"env_vars": "value1"}
+            "runtime", "codeuri", ZIP, ARM64, {"key": "value"}, "source_hash", "manifest_hash", {"env_vars": "value1"}
         )
         build_definition2 = FunctionBuildDefinition(
-            "runtime", "codeuri", ZIP, {"key": "value"}, "source_hash", "manifest_hash", {"env_vars": "value2"}
+            "runtime", "codeuri", ZIP, ARM64, {"key": "value"}, "source_hash", "manifest_hash", {"env_vars": "value2"}
         )
 
         self.assertNotEqual(build_definition1, build_definition2)
 
     def test_euqality_with_another_object(self):
-        build_definition = FunctionBuildDefinition("runtime", "codeuri", ZIP, None, "source_hash", "manifest_hash")
+        build_definition = FunctionBuildDefinition(
+            "runtime", "codeuri", ZIP, X86_64, None, "source_hash", "manifest_hash"
+        )
         self.assertNotEqual(build_definition, {})
 
     def test_str_representation(self):
-        build_definition = FunctionBuildDefinition("runtime", "codeuri", ZIP, None, "source_hash", "manifest_hash")
+        build_definition = FunctionBuildDefinition(
+            "runtime", "codeuri", ZIP, ARM64, None, "source_hash", "manifest_hash"
+        )
         self.assertEqual(
             str(build_definition),
-            f"BuildDefinition(runtime, codeuri, Zip, source_hash, {build_definition.uuid}, {{}}, {{}}, [])",
+            f"BuildDefinition(runtime, codeuri, Zip, source_hash, {build_definition.uuid}, {{}}, {{}}, arm64, [])",
         )

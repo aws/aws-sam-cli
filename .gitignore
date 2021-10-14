@@ -389,6 +389,10 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# Code coverage
+cov.xml
+coverage.xml
+
 # Temporary scratch directory used by the tests
 tests/integration/buildcmd/scratch
 tests/integration/testdata/buildcmd/Dotnetcore2.0/bin

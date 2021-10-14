@@ -19,6 +19,7 @@ Resources:
       CodeUri: !Ref CodeUri
       Timeout: 600
 
+
   OtherRelativePathResource:
     Type: AWS::ApiGateway::RestApi
     Properties:

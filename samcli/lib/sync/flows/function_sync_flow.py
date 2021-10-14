@@ -11,7 +11,7 @@ from samcli.local.lambdafn.exceptions import FunctionNotFound
 
 from samcli.lib.sync.sync_flow import SyncFlow
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.build.build_context import BuildContext
 

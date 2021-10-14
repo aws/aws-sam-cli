@@ -17,6 +17,7 @@ from pathlib import Path
 
 from samcli import __version__ as version
 from samcli.local.docker.lambda_image import RAPID_IMAGE_TAG_PREFIX
+from samcli.lib.utils.architecture import X86_64
 
 TIMEOUT = 300
 
@@ -437,7 +438,7 @@ class TestDeleteOldRapidImages(InvokeIntegBase):
                 path=self.test_data_invoke_path, dockerfile="Dockerfile", tag=tag, decode=True, nocache=True
             ):
                 print(log)
-        self.new_rapid_image_tag = f"{self.repo}:{RAPID_IMAGE_TAG_PREFIX}-{version}"
+        self.new_rapid_image_tag = f"{self.repo}:{RAPID_IMAGE_TAG_PREFIX}-{version}-{X86_64}"
 
     def tearDown(self):
         for tag in self.old_rapid_image_tags + [self.new_rapid_image_tag] + self.other_repo_tags:

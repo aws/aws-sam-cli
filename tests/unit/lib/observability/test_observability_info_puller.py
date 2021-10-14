@@ -104,3 +104,25 @@ class TestObservabilityCombinedPuller(TestCase):
                 call.run_async(),
             ]
         )
+
+    @patch("samcli.lib.observability.observability_info_puller.AsyncContext")
+    def test_load_events(self, patched_async_context):
+        mocked_async_context = Mock()
+        patched_async_context.return_value = mocked_async_context
+
+        mock_puller_1 = Mock()
+        mock_puller_2 = Mock()
+
+        combined_puller = ObservabilityCombinedPuller([mock_puller_1, mock_puller_2])
+
+        given_event_ids = [Mock(), Mock()]
+        combined_puller.load_events(given_event_ids)
+
+        patched_async_context.assert_called_once()
+        mocked_async_context.assert_has_calls(
+            [
+                call.add_async_task(mock_puller_1.load_events, given_event_ids),
+                call.add_async_task(mock_puller_2.load_events, given_event_ids),
+                call.run_async(),
+            ]
+        )

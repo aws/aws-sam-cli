@@ -107,3 +107,18 @@ class TestAutoDependencyLayerSyncFlow(TestCase):
             dependencies = self.sync_flow.gather_dependencies()
             self.assertEqual(len(dependencies), 1)
             self.assertIsInstance(dependencies[0], FunctionLayerReferenceSync)
+
+    @patch("samcli.lib.sync.flows.auto_dependency_layer_sync_flow.SamFunctionProvider")
+    def test_get_dependent_functions(self, patched_function_provider):
+        given_function_in_template = Mock()
+        patched_function_provider.return_value.get.return_value = given_function_in_template
+
+        self.assertEqual(self.sync_flow._get_dependent_functions(), [given_function_in_template])
+
+    @patch("samcli.lib.sync.flows.auto_dependency_layer_sync_flow.SamFunctionProvider")
+    def test_get_compatible_runtimes(self, patched_function_provider):
+        given_runtime = "python3.9"
+        given_function_in_template = Mock(runtime=given_runtime)
+        patched_function_provider.return_value.get.return_value = given_function_in_template
+
+        self.assertEqual(self.sync_flow._get_compatible_runtimes(), [given_runtime])

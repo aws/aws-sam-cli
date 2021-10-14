@@ -52,6 +52,7 @@ class Route:
         event_type: str = API,
         payload_format_version: Optional[str] = None,
         is_default_route: bool = False,
+        operation_name=None,
         stack_path: str = "",
     ):
         """
@@ -63,6 +64,7 @@ class Route:
         :param str event_type: Type of the event. "Api" or "HttpApi"
         :param str payload_format_version: version of payload format
         :param bool is_default_route: determines if the default route or not
+        :param string operation_name: Swagger operationId for the route
         :param str stack_path: path of the stack the route is located
         """
         self.methods = self.normalize_method(methods)
@@ -71,6 +73,7 @@ class Route:
         self.event_type = event_type
         self.payload_format_version = payload_format_version
         self.is_default_route = is_default_route
+        self.operation_name = operation_name
         self.stack_path = stack_path
 
     def __eq__(self, other):
@@ -79,6 +82,7 @@ class Route:
             and sorted(self.methods) == sorted(other.methods)
             and self.function_name == other.function_name
             and self.path == other.path
+            and self.operation_name == other.operation_name
             and self.stack_path == other.stack_path
         )
 
@@ -164,6 +168,7 @@ class LocalApigwService(BaseLocalService):
         # This will normalize all endpoints and strip any trailing '/'
         self._app.url_map.strict_slashes = False
         default_route = None
+
         for api_gateway_route in self.api.routes:
             if api_gateway_route.path == "$default":
                 default_route = api_gateway_route
@@ -318,9 +323,25 @@ class LocalApigwService(BaseLocalService):
                     self.api.stage_variables,
                     route_key,
                 )
-            else:
+            elif route.event_type == Route.API:
+                # The OperationName is only sent to the Lambda Function from API Gateway V1(Rest API).
                 event = self._construct_v_1_0_event(
-                    request, self.port, self.api.binary_media_types, self.api.stage_name, self.api.stage_variables
+                    request,
+                    self.port,
+                    self.api.binary_media_types,
+                    self.api.stage_name,
+                    self.api.stage_variables,
+                    route.operation_name,
+                )
+            else:
+                # For Http Apis with payload version 1.0, API Gateway never sends the OperationName.
+                event = self._construct_v_1_0_event(
+                    request,
+                    self.port,
+                    self.api.binary_media_types,
+                    self.api.stage_name,
+                    self.api.stage_variables,
+                    None,
                 )
         except UnicodeDecodeError:
             return ServiceErrorResponses.lambda_failure_response()
@@ -641,7 +662,9 @@ class LocalApigwService(BaseLocalService):
         return processed_headers
 
     @staticmethod
-    def _construct_v_1_0_event(flask_request, port, binary_types, stage_name=None, stage_variables=None):
+    def _construct_v_1_0_event(
+        flask_request, port, binary_types, stage_name=None, stage_variables=None, operation_name=None
+    ):
         """
         Helper method that constructs the Event to be passed to Lambda
 
@@ -687,6 +710,7 @@ class LocalApigwService(BaseLocalService):
             path=endpoint,
             protocol=protocol,
             domain_name=host,
+            operation_name=operation_name,
         )
 
         headers_dict, multi_value_headers_dict = LocalApigwService._event_headers(flask_request, port)

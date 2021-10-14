@@ -1,3 +1,4 @@
+from abc import abstractmethod, ABC
 from unittest import TestCase
 from unittest.mock import ANY, MagicMock, mock_open, patch
 
@@ -14,7 +15,6 @@ class TestRestApiSyncFlow(TestCase):
             physical_id_mapping={},
             stacks=[MagicMock()],
         )
-        sync_flow._get_resource_api_calls = MagicMock()
         return sync_flow
 
     @patch("samcli.lib.sync.sync_flow.Session")
@@ -82,3 +82,19 @@ class TestRestApiSyncFlow(TestCase):
         with patch("builtins.open", mock_open(read_data='{"key": "value"}'.encode("utf-8"))) as mock_file:
             with self.assertRaises(MissingLocalDefinition):
                 sync_flow.sync()
+
+    def test_compare_remote(self):
+        sync_flow = self.create_sync_flow()
+        self.assertFalse(sync_flow.compare_remote())
+
+    def test_gather_dependencies(self):
+        sync_flow = self.create_sync_flow()
+        self.assertEqual(sync_flow.gather_dependencies(), [])
+
+    def test_equality_keys(self):
+        sync_flow = self.create_sync_flow()
+        self.assertEqual(sync_flow._equality_keys(), sync_flow._api_identifier)
+
+    def test_get_resource_api_calls(self):
+        sync_flow = self.create_sync_flow()
+        self.assertEqual(sync_flow._get_resource_api_calls(), [])

@@ -8,6 +8,9 @@ GIF_IMAGE_BASE64 = "R0lGODdhAQABAJEAAAAAAP///wAAAAAAACH5BAkAAAIALAAAAAABAAEAAAIC
 def handler(event, context):
     return {"statusCode": 200, "body": json.dumps({"hello": "world"})}
 
+def operation_name_handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"operation_name": event["requestContext"].get("operationName", "")})}
+
 
 def echo_event_handler(event, context):
     return {"statusCode": 200, "body": json.dumps(event)}

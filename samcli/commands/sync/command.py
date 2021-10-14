@@ -42,7 +42,7 @@ from samcli.lib.providers.provider import (
 from samcli.cli.context import Context
 from samcli.lib.sync.watch_manager import WatchManager
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.package.package_context import PackageContext
     from samcli.commands.build.build_context import BuildContext
@@ -269,6 +269,7 @@ def do_cli(
                     use_changeset=False,
                     force_upload=True,
                     signing_profiles=None,
+                    disable_rollback=False,
                 ) as deploy_context:
                     if watch:
                         execute_watch(template_file, build_context, package_context, deploy_context, dependency_layer)
