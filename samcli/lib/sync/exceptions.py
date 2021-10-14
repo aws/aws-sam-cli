@@ -1,7 +1,7 @@
 """Exceptions related to sync functionalities"""
 from typing import Dict, Optional, TYPE_CHECKING
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from samcli.lib.sync.sync_flow import SyncFlow
 
 

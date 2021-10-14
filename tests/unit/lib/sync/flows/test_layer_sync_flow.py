@@ -422,3 +422,9 @@ class TestFunctionLayerReferenceSync(TestCase):
             self.function_layer_sync._equality_keys(),
             (self.function_identifier, self.layer_name, self.new_layer_version),
         )
+
+    def test_compare_remote(self):
+        self.assertFalse(self.function_layer_sync.compare_remote())
+
+    def test_gather_dependencies(self):
+        self.assertEqual(self.function_layer_sync.gather_dependencies(), [])

@@ -19,7 +19,7 @@ from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall
 from samcli.lib.sync.sync_flow_executor import HELP_TEXT_FOR_SYNC_INFRA
 from samcli.lib.utils.hash import file_checksum
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.build.build_context import BuildContext
     from samcli.commands.deploy.deploy_context import DeployContext
 

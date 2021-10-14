@@ -14,7 +14,6 @@ class TestHttpApiSyncFlow(TestCase):
             physical_id_mapping={},
             stacks=[MagicMock()],
         )
-        sync_flow._get_resource_api_calls = MagicMock()
         return sync_flow
 
     @patch("samcli.lib.sync.sync_flow.Session")
@@ -82,3 +81,29 @@ class TestHttpApiSyncFlow(TestCase):
         with patch("builtins.open", mock_open(read_data='{"key": "value"}'.encode("utf-8"))) as mock_file:
             with self.assertRaises(MissingLocalDefinition):
                 sync_flow.sync()
+
+    def test_compare_remote(self):
+        sync_flow = self.create_sync_flow()
+        self.assertFalse(sync_flow.compare_remote())
+
+    def test_gather_dependencies(self):
+        sync_flow = self.create_sync_flow()
+        self.assertEqual(sync_flow.gather_dependencies(), [])
+
+    def test_equality_keys(self):
+        sync_flow = self.create_sync_flow()
+        self.assertEqual(sync_flow._equality_keys(), sync_flow._api_identifier)
+
+    def test_get_resource_api_calls(self):
+        sync_flow = self.create_sync_flow()
+        self.assertEqual(sync_flow._get_resource_api_calls(), [])
+
+    @patch("samcli.lib.sync.flows.generic_api_sync_flow.get_resource_by_id")
+    def test_gather_with_no_definition_uri_and_swagger(self, patched_get_resource_by_id):
+        patched_get_resource_by_id.return_value = None
+
+        sync_flow = self.create_sync_flow()
+        sync_flow.gather_resources()
+
+        self.assertIsNone(sync_flow._definition_uri)
+        self.assertIsNone(sync_flow._swagger_body)

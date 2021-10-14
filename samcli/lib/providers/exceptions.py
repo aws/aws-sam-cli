@@ -5,7 +5,7 @@ Exceptions used by providers
 from typing import TYPE_CHECKING
 
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from samcli.lib.providers.provider import ResourceIdentifier
 
 

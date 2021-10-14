@@ -12,7 +12,7 @@ from samcli.lib.providers.provider import ResourceIdentifier, Stack
 from samcli.lib.utils.lock_distributor import LockDistributor, LockChain
 from samcli.lib.sync.exceptions import MissingLockException, MissingPhysicalResourceError
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.build.build_context import BuildContext
 

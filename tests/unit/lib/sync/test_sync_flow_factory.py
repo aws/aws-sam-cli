@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, Mock
 
 from samcli.lib.sync.sync_flow_factory import SyncFlowFactory
 
@@ -86,6 +86,14 @@ class TestSyncFlowFactory(TestCase):
         result = factory._create_stepfunctions_flow("StateMachine1", {})
         self.assertEqual(result, stepfunctions_sync_mock.return_value)
 
+    @patch("samcli.lib.sync.sync_flow_factory.StepFunctionsSyncFlow")
+    def test_create_stepfunctions_flow_with_no_definition_subs(self, stepfunctions_sync_mock):
+        factory = self.create_factory()
+        result = factory._create_stepfunctions_flow(
+            "StateMachine1", {"Properties": {"DefinitionSubstitutions": Mock()}}
+        )
+        self.assertIsNone(result)
+
     @patch("samcli.lib.sync.sync_flow_factory.get_resource_by_id")
     def test_create_sync_flow(self, get_resource_by_id_mock):
         factory = self.create_factory()
@@ -105,3 +113,23 @@ class TestSyncFlowFactory(TestCase):
 
         self.assertEqual(result, sync_flow)
         generator_mock.assert_called_once_with(factory, resource_identifier, get_resource_by_id)
+
+    @patch("samcli.lib.sync.sync_flow_factory.get_resource_by_id")
+    def test_create_unknown_resource_sync_flow(self, get_resource_by_id_mock):
+        get_resource_by_id_mock.return_value = None
+        factory = self.create_factory()
+        self.assertIsNone(factory.create_sync_flow(MagicMock()))
+
+    @patch("samcli.lib.sync.sync_flow_factory.get_resource_by_id")
+    def test_create_none_generator_sync_flow(self, get_resource_by_id_mock):
+        factory = self.create_factory()
+
+        resource_identifier = MagicMock()
+        get_resource_by_id = MagicMock()
+        get_resource_by_id_mock.return_value = get_resource_by_id
+
+        get_generator_function_mock = MagicMock()
+        get_generator_function_mock.return_value = None
+        factory._get_generator_function = get_generator_function_mock
+
+        self.assertIsNone(factory.create_sync_flow(resource_identifier))

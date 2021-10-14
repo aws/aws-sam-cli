@@ -15,7 +15,6 @@ class TestImageFunctionSyncFlow(TestCase):
             stacks=[MagicMock()],
             docker_client=MagicMock(),
         )
-        sync_flow._get_resource_api_calls = MagicMock()
         return sync_flow
 
     @patch("samcli.lib.sync.sync_flow.Session")
@@ -107,3 +106,19 @@ class TestImageFunctionSyncFlow(TestCase):
         sync_flow._lambda_client.update_function_code.assert_called_once_with(
             FunctionName="PhysicalFunction1", ImageUri="image_uri"
         )
+
+    @patch("samcli.lib.sync.flows.image_function_sync_flow.ECRUploader")
+    @patch("samcli.lib.sync.sync_flow.Session")
+    def test_sync_with_no_image(self, session_mock, uploader_mock):
+        sync_flow = self.create_function_sync_flow()
+        sync_flow._image_name = None
+        sync_flow.sync()
+        uploader_mock.return_value.upload.assert_not_called()
+
+    def test_compare_remote(self):
+        sync_flow = self.create_function_sync_flow()
+        self.assertFalse(sync_flow.compare_remote())
+
+    def test_get_resource_api_calls(self):
+        sync_flow = self.create_function_sync_flow()
+        self.assertEqual(sync_flow._get_resource_api_calls(), [])

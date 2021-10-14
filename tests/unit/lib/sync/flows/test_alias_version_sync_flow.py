@@ -18,7 +18,6 @@ class TestAliasVersionSyncFlow(TestCase):
             physical_id_mapping={},
             stacks=[MagicMock()],
         )
-        sync_flow._get_resource_api_calls = MagicMock()
         return sync_flow
 
     @patch("samcli.lib.sync.sync_flow.Session")
@@ -48,3 +47,15 @@ class TestAliasVersionSyncFlow(TestCase):
     def test_equality_keys(self):
         sync_flow = self.create_sync_flow()
         self.assertEqual(sync_flow._equality_keys(), ("Function1", "Alias1"))
+
+    def test_gather_dependencies(self):
+        sync_flow = self.create_sync_flow()
+        self.assertEqual(sync_flow.gather_dependencies(), [])
+
+    def test_get_resource_api_calls(self):
+        sync_flow = self.create_sync_flow()
+        self.assertEqual(sync_flow._get_resource_api_calls(), [])
+
+    def test_compare_remote(self):
+        sync_flow = self.create_sync_flow()
+        self.assertFalse(sync_flow.compare_remote())

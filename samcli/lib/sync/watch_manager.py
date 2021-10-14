@@ -20,7 +20,7 @@ from samcli.lib.sync.exceptions import MissingPhysicalResourceError, SyncFlowExc
 from samcli.lib.utils.resource_trigger import OnChangeCallback, TemplateTrigger
 from samcli.lib.sync.continuous_sync_flow_executor import ContinuousSyncFlowExecutor
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.package.package_context import PackageContext
     from samcli.commands.build.build_context import BuildContext

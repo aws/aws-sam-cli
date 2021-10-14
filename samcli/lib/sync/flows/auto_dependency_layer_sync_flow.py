@@ -20,7 +20,7 @@ from samcli.lib.sync.flows.zip_function_sync_flow import ZipFunctionSyncFlow
 from samcli.lib.sync.sync_flow import SyncFlow
 from samcli.lib.utils.hash import file_checksum
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.build.build_context import BuildContext
 

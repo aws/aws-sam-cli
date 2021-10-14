@@ -17,7 +17,7 @@ from samcli.commands.local.cli_common.user_exceptions import (
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.lib.utils.architecture import X86_64
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     # avoid circular import, https://docs.python.org/3/library/typing.html#typing.TYPE_CHECKING
     from samcli.local.apigw.local_apigw_service import Route
 

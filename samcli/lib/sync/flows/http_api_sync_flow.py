@@ -10,7 +10,7 @@ from samcli.lib.providers.exceptions import MissingLocalDefinition
 
 # BuildContext and DeployContext will only be imported for type checking to improve performance
 # since no instances of contexts will be instantiated in this class
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.build.build_context import BuildContext
     from samcli.commands.deploy.deploy_context import DeployContext
 
