@@ -11,12 +11,14 @@ from typing import Dict, Optional, List
 import click
 
 from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
+from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NestedStackManager
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.providers.provider import ResourcesToBuildCollector, Stack, Function, LayerVersion
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_layer_provider import SamLayerProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.local.docker.manager import ContainerManager
 from samcli.local.lambdafn.exceptions import ResourceNotFound
 from samcli.lib.build.exceptions import BuildInsideContainerError
@@ -39,10 +41,6 @@ LOG = logging.getLogger(__name__)
 
 
 class BuildContext:
-    # Build directories need not be world writable.
-    # This is usually a optimal permission for directories
-    _BUILD_DIR_PERMISSIONS = 0o755
-
     def __init__(
         self,
         resource_identifier: Optional[str],
@@ -66,6 +64,8 @@ class BuildContext:
         container_env_var_file: Optional[str] = None,
         build_images: Optional[dict] = None,
         aws_region: Optional[str] = None,
+        create_auto_dependency_layer: bool = False,
+        stack_name: Optional[str] = None,
     ) -> None:
 
         self._resource_identifier = resource_identifier
@@ -93,6 +93,8 @@ class BuildContext:
         self._container_env_var = container_env_var
         self._container_env_var_file = container_env_var_file
         self._build_images = build_images
+        self._create_auto_dependency_layer = create_auto_dependency_layer
+        self._stack_name = stack_name
 
         self._function_provider: Optional[SamFunctionProvider] = None
         self._layer_provider: Optional[SamLayerProvider] = None
@@ -133,12 +135,11 @@ class BuildContext:
 
         if self._cached:
             cache_path = pathlib.Path(self._cache_dir)
-            cache_path.mkdir(mode=self._BUILD_DIR_PERMISSIONS, parents=True, exist_ok=True)
+            cache_path.mkdir(mode=BUILD_DIR_PERMISSIONS, parents=True, exist_ok=True)
             self._cache_dir = str(cache_path.resolve())
 
             dependencies_path = pathlib.Path(DEFAULT_DEPENDENCIES_DIR)
-            dependencies_path.mkdir(mode=self._BUILD_DIR_PERMISSIONS, parents=True, exist_ok=True)
-
+            dependencies_path.mkdir(mode=BUILD_DIR_PERMISSIONS, parents=True, exist_ok=True)
         if self._use_container:
             self._container_manager = ContainerManager(
                 docker_network_id=self._docker_network, skip_pull_image=self._skip_pull_image
@@ -167,12 +168,14 @@ class BuildContext:
                 container_env_var=self._container_env_var,
                 container_env_var_file=self._container_env_var_file,
                 build_images=self._build_images,
+                combine_dependencies=not self._create_auto_dependency_layer,
             )
         except FunctionNotFound as ex:
             raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
 
         try:
-            artifacts = builder.build()
+            build_result = builder.build()
+            artifacts = build_result.artifacts
 
             stack_output_template_path_by_stack_path = {
                 stack.stack_path: stack.get_output_template_path(self.build_dir) for stack in self.stacks
@@ -183,7 +186,15 @@ class BuildContext:
                     artifacts,
                     stack_output_template_path_by_stack_path,
                 )
-                move_template(stack.location, stack.get_output_template_path(self.build_dir), modified_template)
+                output_template_path = stack.get_output_template_path(self.build_dir)
+
+                if self._create_auto_dependency_layer:
+                    LOG.debug("Auto creating dependency layer for each function resource into a nested stack")
+                    nested_stack_manager = NestedStackManager(
+                        self._stack_name, self.build_dir, stack.location, modified_template, build_result
+                    )
+                    modified_template = nested_stack_manager.generate_auto_dependency_layer_stack()
+                move_template(stack.location, output_template_path, modified_template)
 
             click.secho("\nBuild Succeeded", fg="green")
 
@@ -265,7 +276,7 @@ Commands you can use next
             # build folder contains something inside. Clear everything.
             shutil.rmtree(build_dir)
 
-        build_path.mkdir(mode=BuildContext._BUILD_DIR_PERMISSIONS, parents=True, exist_ok=True)
+        build_path.mkdir(mode=BUILD_DIR_PERMISSIONS, parents=True, exist_ok=True)
 
         # ensure path resolving is done after creation: https://bugs.python.org/issue32434
         return str(build_path.resolve())
@@ -337,6 +348,10 @@ Commands you can use next
             if self._resource_identifier
             else self.collect_all_build_resources()
         )
+
+    @property
+    def create_auto_dependency_layer(self) -> bool:
+        return self._create_auto_dependency_layer
 
     def collect_build_resources(self, resource_identifier: str) -> ResourcesToBuildCollector:
         """Collect a single buildable resource and its dependencies.

@@ -1,11 +1,12 @@
 import os
-from samcli.lib.build.app_builder import ApplicationBuilder
+from samcli.lib.build.app_builder import ApplicationBuilder, ApplicationBuildResult
 from unittest import TestCase
 from unittest.mock import patch, Mock, ANY, call
 
 from parameterized import parameterized
 
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
+from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.local.lambdafn.exceptions import ResourceNotFound
 from samcli.commands.build.build_context import BuildContext
 from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
@@ -615,9 +616,9 @@ class TestBuildContext_setup_cached_and_deps_dir(TestCase):
             call_assertion = lambda: patched_path.assert_has_calls(
                 [
                     call("cache_dir"),
-                    call().mkdir(exist_ok=True, mode=BuildContext._BUILD_DIR_PERMISSIONS, parents=True),
+                    call().mkdir(exist_ok=True, mode=BUILD_DIR_PERMISSIONS, parents=True),
                     call(DEFAULT_DEPENDENCIES_DIR),
-                    call().mkdir(exist_ok=True, mode=BuildContext._BUILD_DIR_PERMISSIONS, parents=True),
+                    call().mkdir(exist_ok=True, mode=BUILD_DIR_PERMISSIONS, parents=True),
                 ],
                 any_order=True,
             )
@@ -658,6 +659,7 @@ class TestBuildContext_run(TestCase):
 
         root_stack = Mock()
         root_stack.is_root_stack = True
+        auto_dependency_layer = False
         root_stack.get_output_template_path = Mock(return_value="./build_dir/template.yaml")
         child_stack = Mock()
         child_stack.get_output_template_path = Mock(return_value="./build_dir/abcd/template.yaml")
@@ -668,7 +670,8 @@ class TestBuildContext_run(TestCase):
         resources_mock.return_value = Mock()
 
         builder_mock = ApplicationBuilderMock.return_value = Mock()
-        artifacts = builder_mock.build.return_value = "artifacts"
+        artifacts = "artifacts"
+        builder_mock.build.return_value = ApplicationBuildResult(Mock(), artifacts)
         modified_template_root = "modified template 1"
         modified_template_child = "modified template 2"
         builder_mock.update_template.side_effect = [modified_template_root, modified_template_child]
@@ -704,6 +707,7 @@ class TestBuildContext_run(TestCase):
             container_env_var={},
             container_env_var_file=None,
             build_images={},
+            create_auto_dependency_layer=auto_dependency_layer,
         ) as build_context:
             build_context.run()
 
@@ -721,6 +725,7 @@ class TestBuildContext_run(TestCase):
                 container_env_var=build_context._container_env_var,
                 container_env_var_file=build_context._container_env_var_file,
                 build_images=build_context._build_images,
+                combine_dependencies=not auto_dependency_layer,
             )
             builder_mock.build.assert_called_once()
             builder_mock.update_template.assert_has_calls(

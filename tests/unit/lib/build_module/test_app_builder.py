@@ -106,7 +106,7 @@ class TestApplicationBuilder_build(TestCase):
             build_image_function_mock_return,
         ]
 
-        result = self.builder.build()
+        result = self.builder.build().artifacts
         self.maxDiff = None
 
         self.assertEqual(
@@ -268,7 +268,7 @@ class TestApplicationBuilder_build(TestCase):
             function1_2.get_build_dir(build_dir),
         ]
 
-        result = builder.build()
+        result = builder.build().artifacts
 
         # result should contain all 3 functions as expected
         self.assertEqual(
@@ -324,7 +324,7 @@ class TestApplicationBuilder_build(TestCase):
         builder = ApplicationBuilder(Mock(), "builddir", "basedir", "cachedir")
         builder._get_build_graph = get_build_graph_mock
 
-        result = builder.build()
+        result = builder.build().artifacts
 
         mock_default_build_strategy.build.assert_called_once()
         self.assertEqual(result, mock_default_build_strategy.build())
@@ -340,7 +340,7 @@ class TestApplicationBuilder_build(TestCase):
         builder = ApplicationBuilder(Mock(), "builddir", "basedir", "cachedir", cached=True)
         builder._get_build_graph = get_build_graph_mock
 
-        result = builder.build()
+        result = builder.build().artifacts
 
         mock_cached_build_strategy.build.assert_called_once()
         self.assertEqual(result, mock_cached_build_strategy.build())
@@ -356,7 +356,7 @@ class TestApplicationBuilder_build(TestCase):
         builder = ApplicationBuilder(Mock(), "builddir", "basedir", "cachedir", parallel=True)
         builder._get_build_graph = get_build_graph_mock
 
-        result = builder.build()
+        result = builder.build().artifacts
 
         mock_parallel_build_strategy.build.assert_called_once()
         self.assertEqual(result, mock_parallel_build_strategy.build())
@@ -378,7 +378,7 @@ class TestApplicationBuilder_build(TestCase):
         builder = ApplicationBuilder(Mock(), "builddir", "basedir", "cachedir", parallel=True)
         builder._get_build_graph = get_build_graph_mock
 
-        result = builder.build()
+        result = builder.build().artifacts
 
         mock_parallel_build_strategy.build.assert_called_once()
         self.assertEqual(result, mock_parallel_build_strategy.build())

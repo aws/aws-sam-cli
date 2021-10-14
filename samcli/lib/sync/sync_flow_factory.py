@@ -3,6 +3,7 @@ import logging
 from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, cast
 
 from samcli.lib.providers.provider import Stack, get_resource_by_id, ResourceIdentifier
+from samcli.lib.sync.flows.auto_dependency_layer_sync_flow import AutoDependencyLayerParentSyncFlow
 from samcli.lib.sync.flows.layer_sync_flow import LayerSyncFlow
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.resource_type_based_factory import ResourceTypeBasedFactory
@@ -44,8 +45,15 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
     _deploy_context: "DeployContext"
     _build_context: "BuildContext"
     _physical_id_mapping: Dict[str, str]
+    _auto_dependency_layer: bool
 
-    def __init__(self, build_context: "BuildContext", deploy_context: "DeployContext", stacks: List[Stack]) -> None:
+    def __init__(
+        self,
+        build_context: "BuildContext",
+        deploy_context: "DeployContext",
+        stacks: List[Stack],
+        auto_dependency_layer: bool,
+    ) -> None:
         """
         Parameters
         ----------
@@ -59,6 +67,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
         super().__init__(stacks)
         self._deploy_context = deploy_context
         self._build_context = build_context
+        self._auto_dependency_layer = auto_dependency_layer
         self._physical_id_mapping = dict()
 
     def load_physical_id_mapping(self) -> None:
@@ -76,6 +85,15 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
     ) -> Optional[FunctionSyncFlow]:
         package_type = resource.get("Properties", dict()).get("PackageType", ZIP)
         if package_type == ZIP:
+            if self._auto_dependency_layer:
+                return AutoDependencyLayerParentSyncFlow(
+                    str(resource_identifier),
+                    self._build_context,
+                    self._deploy_context,
+                    self._physical_id_mapping,
+                    self._stacks,
+                )
+
             return ZipFunctionSyncFlow(
                 str(resource_identifier),
                 self._build_context,

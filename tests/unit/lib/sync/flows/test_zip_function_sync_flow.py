@@ -39,7 +39,7 @@ class TestZipFunctionSyncFlow(TestCase):
     ):
         get_mock = MagicMock()
         get_mock.return_value = "ArtifactFolder1"
-        builder_mock.return_value.build.return_value.get = get_mock
+        builder_mock.return_value.build.return_value.artifacts.get = get_mock
         uuid4_mock.return_value.hex = "uuid_value"
         gettempdir_mock.return_value = "temp_folder"
         make_zip_mock.return_value = "zip_file"
@@ -174,3 +174,7 @@ class TestZipFunctionSyncFlow(TestCase):
         self.assertEqual(len(result), 2)
         resource_api_call_mock.assert_any_call("Layer1", ["Build"])
         resource_api_call_mock.assert_any_call("Layer2", ["Build"])
+
+    def test_combine_dependencies(self):
+        sync_flow = self.create_function_sync_flow()
+        self.assertTrue(sync_flow._combine_dependencies())

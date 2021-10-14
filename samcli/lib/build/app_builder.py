@@ -6,7 +6,7 @@ import io
 import json
 import logging
 import pathlib
-from typing import List, Optional, Dict, cast, Union
+from typing import List, Optional, Dict, cast, Union, NamedTuple
 
 import docker
 import docker.errors
@@ -55,6 +55,15 @@ from .exceptions import (
 from .workflow_config import get_workflow_config, get_layer_subfolder, supports_build_in_container, CONFIG
 
 LOG = logging.getLogger(__name__)
+
+
+class ApplicationBuildResult(NamedTuple):
+    """
+    Result of the application build, build_graph and the built artifacts in dictionary
+    """
+
+    build_graph: BuildGraph
+    artifacts: Dict[str, str]
 
 
 class ApplicationBuilder:
@@ -145,14 +154,15 @@ class ApplicationBuilder:
         self._build_images = build_images or {}
         self._combine_dependencies = combine_dependencies
 
-    def build(self) -> Dict[str, str]:
+    def build(self) -> ApplicationBuildResult:
         """
         Build the entire application
 
         Returns
         -------
-        dict
-            Returns the path to where each resource was built as a map of resource's LogicalId to the path string
+        ApplicationBuildResult
+            Returns the build graph and the path to where each resource was built as a map of resource's LogicalId
+            to the path string
         """
         build_graph = self._get_build_graph(self._container_env_var, self._container_env_var_file)
         build_strategy: BuildStrategy = DefaultBuildStrategy(
@@ -186,7 +196,7 @@ class ApplicationBuilder:
                 self._is_building_specific_resource,
             )
 
-        return build_strategy.build()
+        return ApplicationBuildResult(build_graph, build_strategy.build())
 
     def _get_build_graph(
         self, inline_env_vars: Optional[Dict] = None, env_vars_file: Optional[str] = None
