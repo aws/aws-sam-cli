@@ -659,6 +659,7 @@ class TestBuildContext_run(TestCase):
 
         root_stack = Mock()
         root_stack.is_root_stack = True
+        auto_dependency_layer = False
         root_stack.get_output_template_path = Mock(return_value="./build_dir/template.yaml")
         child_stack = Mock()
         child_stack.get_output_template_path = Mock(return_value="./build_dir/abcd/template.yaml")
@@ -706,6 +707,7 @@ class TestBuildContext_run(TestCase):
             container_env_var={},
             container_env_var_file=None,
             build_images={},
+            create_auto_dependency_layer=auto_dependency_layer,
         ) as build_context:
             build_context.run()
 
@@ -723,6 +725,7 @@ class TestBuildContext_run(TestCase):
                 container_env_var=build_context._container_env_var,
                 container_env_var_file=build_context._container_env_var_file,
                 build_images=build_context._build_images,
+                combine_dependencies=not auto_dependency_layer,
             )
             builder_mock.build.assert_called_once()
             builder_mock.update_template.assert_has_calls(

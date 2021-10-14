@@ -12,16 +12,21 @@ from samcli.lib.sync.flows.layer_sync_flow import FunctionLayerReferenceSync
 
 
 class TestAutoDependencyLayerParentSyncFlow(TestCase):
-    @patch("samcli.lib.sync.flows.auto_dependency_layer_sync_flow.super")
-    def test_gather_dependencies(self, patched_super):
-        patched_super.return_value.gather_dependencies.return_value = []
-        auto_dependency_sync_flow = AutoDependencyLayerParentSyncFlow(
+    def setUp(self) -> None:
+        self.sync_flow = AutoDependencyLayerParentSyncFlow(
             "function_identifier", Mock(), Mock(stack_name="stack_name"), Mock(), [Mock()]
         )
 
-        dependencies = auto_dependency_sync_flow.gather_dependencies()
+    @patch("samcli.lib.sync.flows.auto_dependency_layer_sync_flow.super")
+    def test_gather_dependencies(self, patched_super):
+        patched_super.return_value.gather_dependencies.return_value = []
+
+        dependencies = self.sync_flow.gather_dependencies()
         self.assertEqual(len(dependencies), 1)
         self.assertIsInstance(dependencies[0], AutoDependencyLayerSyncFlow)
+
+    def test_combine_dependencies(self):
+        self.assertFalse(self.sync_flow._combine_dependencies())
 
 
 class TestAutoDependencyLayerSyncFlow(TestCase):

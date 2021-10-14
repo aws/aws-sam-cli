@@ -168,6 +168,7 @@ class BuildContext:
                 container_env_var=self._container_env_var,
                 container_env_var_file=self._container_env_var_file,
                 build_images=self._build_images,
+                combine_dependencies=not self._create_auto_dependency_layer,
             )
         except FunctionNotFound as ex:
             raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex

@@ -89,6 +89,7 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
                 manifest_path_override=self._build_context.manifest_path_override,
                 container_manager=self._build_context.container_manager,
                 mode=self._build_context.mode,
+                combine_dependencies=self._combine_dependencies(),
             )
             LOG.debug("%sBuilding Function", self.log_prefix)
             build_result = builder.build()
@@ -148,3 +149,7 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
         for layer in self._function.layers:
             resource_calls.append(ResourceAPICall(layer.full_path, ["Build"]))
         return resource_calls
+
+    @staticmethod
+    def _combine_dependencies() -> bool:
+        return True

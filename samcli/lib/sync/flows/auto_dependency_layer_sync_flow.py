@@ -111,3 +111,7 @@ class AutoDependencyLayerParentSyncFlow(ZipFunctionSyncFlow):
             )
         )
         return parent_dependencies
+
+    @staticmethod
+    def _combine_dependencies() -> bool:
+        return False
