@@ -768,7 +768,7 @@ class LocalApigwService(BaseLocalService):
             # Flask does not parse/decode the request data. We should do it ourselves
             request_data = request_data.decode("utf-8")
 
-        query_string_dict, _ = LocalApigwService._query_string_params(flask_request)
+        query_string_dict = LocalApigwService._query_string_params_v_2_0(flask_request)
 
         cookies = LocalApigwService._event_http_cookies(flask_request)
         headers = LocalApigwService._event_http_headers(flask_request, port)
@@ -824,6 +824,36 @@ class LocalApigwService(BaseLocalService):
                 multi_value_query_string_dict[query_string_key] = query_string_list
 
         return query_string_dict, multi_value_query_string_dict
+
+    @staticmethod
+    def _query_string_params_v_2_0(flask_request):
+        """
+        Constructs an APIGW equivalent query string dictionary using the 2.0 format
+
+        Parameters
+        ----------
+        flask_request request
+            Request from Flask
+
+        Returns dict (str: str)
+        -------
+            Empty dict if no query params where in the request otherwise returns a dictionary of key to value
+
+        """
+        query_string_dict = {}
+
+        # Flask returns an ImmutableMultiDict so convert to a dictionary that becomes
+        # a dict(str: list) then iterate over
+        for query_string_key, query_string_list in flask_request.args.lists():
+            query_string_value_length = len(query_string_list)
+
+            # if the list is empty, default to empty string
+            if not query_string_value_length:
+                query_string_dict[query_string_key] = ""
+            else:
+                query_string_dict[query_string_key] = ",".join(query_string_list)
+
+        return query_string_dict
 
     @staticmethod
     def _event_headers(flask_request, port):

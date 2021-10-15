@@ -1103,6 +1103,51 @@ class TestServiceRequests(StartApiIntegBaseClass):
         self.assertEqual(response_data.get("multiValueHeaders").get("X-Forwarded-Port"), [self.port])
 
 
+class TestServiceRequestsWithHttpApi(StartApiIntegBaseClass):
+    """
+    Test Class centered around the different requests that can happen; specifically testing the change
+    in format for mulivalue query parameters in payload format v2 (HTTP APIs)
+    """
+
+    template_path = "/testdata/start_api/swagger-template-http-api.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_request_with_multi_value_headers(self):
+        response = requests.get(
+            self.url + "/echoeventbody",
+            headers={"Content-Type": "application/x-www-form-urlencoded, image/gif"},
+            timeout=300,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+        self.assertEqual(response_data.get("version"), "2.0")
+        self.assertIsNone(response_data.get("multiValueHeaders"))
+        self.assertEqual(
+            response_data.get("headers").get("Content-Type"), "application/x-www-form-urlencoded, image/gif"
+        )
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_request_with_list_of_query_params(self):
+        """
+        Query params given should be put into the Event to Lambda
+        """
+        response = requests.get(self.url + "/echoeventbody", params={"key": ["value", "value2"]}, timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+
+        response_data = response.json()
+
+        self.assertEqual(response_data.get("version"), "2.0")
+        self.assertEqual(response_data.get("queryStringParameters"), {"key": "value,value2"})
+        self.assertIsNone(response_data.get("multiValueQueryStringParameters"))
+
+
 class TestStartApiWithStage(StartApiIntegBaseClass):
     """
     Test Class centered around the different responses that can happen in Lambda and pass through start-api
