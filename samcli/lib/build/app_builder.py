@@ -451,7 +451,9 @@ class ApplicationBuilder:
             if self._container_manager:
                 # None key represents the global build image for all functions/layers
                 if config.language == "provided":
-                    LOG.warning("For container layer build, first compatible runtime is chosen as build target for container.")
+                    LOG.warning(
+                        "For container layer build, first compatible runtime is chosen as build target for container."
+                    )
                     # Only set to this value if specified workflow is makefile
                     # which will result in config language as provided
                     build_runtime = compatible_runtimes[0]
