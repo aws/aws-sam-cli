@@ -596,6 +596,20 @@ class TestBuildGraph(TestCase):
             self.assertEqual(function_content, {build_definition.uuid: ("new_value", "new_manifest_value")})
             self.assertEqual(layer_content, {layer_definition.uuid: ("new_value", "new_manifest_value")})
 
+    @parameterized.expand(
+        [
+            ("manifest_hash", "manifest_hash", False),
+            ("manifest_hash", "new_manifest_hash", True),
+        ]
+    )
+    def test_compare_hash_changes_should_preserve_download_dependencies(
+        self, old_manifest, new_manifest, download_dependencies
+    ):
+        updated_definition = FunctionBuildDefinition("runtime", "codeuri", ZIP, X86_64, {}, manifest_hash=old_manifest)
+        existing_definition = FunctionBuildDefinition("runtime", "codeuri", ZIP, X86_64, {}, manifest_hash=new_manifest)
+        BuildGraph._compare_hash_changes([updated_definition], [existing_definition])
+        self.assertEqual(existing_definition.download_dependencies, download_dependencies)
+
     def test_write_source_hash_should_succeed(self):
         with osutils.mkdir_temp() as temp_base_dir:
             build_dir = Path(temp_base_dir, ".aws-sam", "build")

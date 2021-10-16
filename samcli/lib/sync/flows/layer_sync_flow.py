@@ -99,23 +99,17 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
         dependent_functions = self._get_dependent_functions()
         if self._stacks:
             for function in dependent_functions:
-                if self._layer_identifier in [layer.full_path for layer in function.layers]:
-                    LOG.debug(
-                        "%sAdding function %s for updating its Layers with this new version",
-                        self.log_prefix,
-                        function.name,
+                dependencies.append(
+                    FunctionLayerReferenceSync(
+                        function.full_path,
+                        cast(str, self._layer_physical_name),
+                        cast(int, self._new_layer_version),
+                        self._build_context,
+                        self._deploy_context,
+                        self._physical_id_mapping,
+                        self._stacks,
                     )
-                    dependencies.append(
-                        FunctionLayerReferenceSync(
-                            function.full_path,
-                            cast(str, self._layer_physical_name),
-                            cast(int, self._new_layer_version),
-                            self._build_context,
-                            self._deploy_context,
-                            self._physical_id_mapping,
-                            self._stacks,
-                        )
-                    )
+                )
         return dependencies
 
     def _get_resource_api_calls(self) -> List[ResourceAPICall]:
@@ -235,7 +229,17 @@ class LayerSyncFlow(AbstractLayerSyncFlow):
 
     def _get_dependent_functions(self) -> List[Function]:
         function_provider = SamFunctionProvider(cast(List[Stack], self._stacks))
-        return list(function_provider.get_all())
+
+        dependent_functions = []
+        for function in function_provider.get_all():
+            if self._layer_identifier in [layer.full_path for layer in function.layers]:
+                LOG.debug(
+                    "%sAdding function %s for updating its Layers with this new version",
+                    self.log_prefix,
+                    function.name,
+                )
+                dependent_functions.append(function)
+        return dependent_functions
 
 
 class FunctionLayerReferenceSync(SyncFlow):
