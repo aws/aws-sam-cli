@@ -171,7 +171,7 @@ class NestedStackManager:
         return self.is_runtime_supported(function.runtime)
 
     @staticmethod
-    def is_runtime_supported(runtime: str) -> bool:
+    def is_runtime_supported(runtime: Optional[str]) -> bool:
         # check if runtime/language is supported
         if not runtime or not runtime.startswith(SUPPORTED_LANGUAGES):
             LOG.debug(
