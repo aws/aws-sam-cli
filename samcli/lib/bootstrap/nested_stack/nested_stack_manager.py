@@ -168,12 +168,15 @@ class NestedStackManager:
             )
             return False
 
+        return self.is_runtime_supported(function.runtime)
+
+    @staticmethod
+    def is_runtime_supported(runtime: str) -> bool:
         # check if runtime/language is supported
-        if not function.runtime or not function.runtime.startswith(SUPPORTED_LANGUAGES):
+        if not runtime or not runtime.startswith(SUPPORTED_LANGUAGES):
             LOG.debug(
-                "For function %s, runtime %s is not supported for auto dependency layer creation",
-                function.name,
-                function.runtime,
+                "Runtime %s is not supported for auto dependency layer creation",
+                runtime,
             )
             return False
 
