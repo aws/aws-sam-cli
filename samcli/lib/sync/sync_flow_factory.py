@@ -75,8 +75,8 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
         LOG.debug("Loading physical ID mapping")
         self._physical_id_mapping = get_physical_id_mapping(
             get_boto_resource_provider_with_config(
-                region=self._deploy_context.region if self._deploy_context.region else None,
-                profile=self._deploy_context.profile if self._deploy_context.profile else None,
+                region=self._deploy_context.region,
+                profile=self._deploy_context.profile,
             ),
             self._deploy_context.stack_name,
         )
