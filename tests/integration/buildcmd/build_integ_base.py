@@ -148,7 +148,7 @@ class BuildIntegBase(TestCase):
         self.assertIn(
             len(images),
             [1, 2],
-            f"Other version of the build image {image_name} was pulled",
+            f"Other version of the build image {image_name} was pulled. Currently pulled images: {images}",
         )
         image_tag = f"{image_name}:latest-{arch}"
         for t in images[0].tags:
