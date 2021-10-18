@@ -145,9 +145,9 @@ class BuildIntegBase(TestCase):
             0,
             f"Image {image_name} was not pulled",
         )
-        self.assertEqual(
+        self.assertIn(
             len(images),
-            1,
+            [1, 2],
             f"Other version of the build image {image_name} was pulled",
         )
         image_tag = f"{image_name}:latest-{arch}"
