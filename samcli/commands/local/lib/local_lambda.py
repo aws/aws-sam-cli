@@ -2,25 +2,29 @@
 Implementation of Local Lambda runner
 """
 
-import os
 import logging
+import os
 from typing import Any, Dict, Optional, cast
-import boto3
 
+import boto3
 from botocore.credentials import Credentials
 
 from samcli.commands.local.lib.debug_context import DebugContext
+from samcli.commands.local.lib.exceptions import (
+    OverridesNotWellDefinedError,
+    NoPrivilegeException,
+    InvalidIntermediateImageError,
+)
+from samcli.lib.providers.provider import Function
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
+from samcli.lib.utils.architecture import validate_architecture_runtime
 from samcli.lib.utils.codeuri import resolve_code_path
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.container import ContainerResponseException
-from samcli.local.lambdafn.env_vars import EnvironmentVariables
 from samcli.local.lambdafn.config import FunctionConfig
+from samcli.local.lambdafn.env_vars import EnvironmentVariables
 from samcli.local.lambdafn.exceptions import FunctionNotFound
-from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
-from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError, NoPrivilegeException
-from samcli.lib.providers.provider import Function
 from samcli.local.lambdafn.runtime import LambdaRuntime
 
 LOG = logging.getLogger(__name__)
@@ -123,6 +127,9 @@ class LocalLambdaRunner:
                     f"ImageUri not provided for Function: {function_identifier} of PackageType: {function.packagetype}"
                 )
             LOG.info("Invoking Container created from %s", function.imageuri)
+
+        validate_architecture_runtime(function)
+
         config = self.get_invoke_config(function)
 
         # Invoke the function
@@ -194,6 +201,7 @@ class LocalLambdaRunner:
             packagetype=function.packagetype,
             code_abs_path=code_abs_path,
             layers=function.layers,
+            architecture=function.architecture,
             memory=function.memory,
             timeout=function_timeout,
             env_vars=env_vars,

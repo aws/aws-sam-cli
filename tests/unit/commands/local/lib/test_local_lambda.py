@@ -2,9 +2,12 @@
 Testing local lambda runner
 """
 import os
+from platform import architecture
 from unittest import TestCase
 from unittest.mock import Mock, patch
 from parameterized import parameterized, param
+
+from samcli.lib.utils.architecture import X86_64, ARM64
 
 from samcli.commands.local.cli_common.user_exceptions import InvokeContextException
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
@@ -16,6 +19,7 @@ from samcli.commands.local.lib.exceptions import (
     OverridesNotWellDefinedError,
     NoPrivilegeException,
     InvalidIntermediateImageError,
+    UnsupportedRuntimeArchitectureError,
 )
 
 
@@ -235,6 +239,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             imageuri=None,
             imageconfig=None,
             packagetype=ZIP,
+            architectures=[X86_64],
             codesign_config_arn=None,
         )
 
@@ -284,6 +289,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             imageuri=None,
             imageconfig=None,
             packagetype=ZIP,
+            architectures=[X86_64],
             codesign_config_arn=None,
         )
 
@@ -323,6 +329,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             imageuri=None,
             imageconfig=None,
             packagetype=ZIP,
+            architectures=[X86_64],
             codesign_config_arn=None,
         )
 
@@ -398,6 +405,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             imageuri=None,
             imageconfig=None,
             packagetype=ZIP,
+            architectures=[ARM64],
             codesign_config_arn=None,
         )
 
@@ -418,6 +426,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             memory=function.memory,
             timeout=function.timeout,
             env_vars=env_vars,
+            architecture=ARM64,
         )
 
         resolve_code_path_patch.assert_called_with(self.cwd, function.codeuri)
@@ -459,6 +468,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             imageuri=None,
             imageconfig=None,
             packagetype=ZIP,
+            architectures=[X86_64],
             codesign_config_arn=None,
         )
 
@@ -479,6 +489,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             memory=function.memory,
             timeout=function.timeout,
             env_vars=env_vars,
+            architecture=X86_64,
         )
 
         resolve_code_path_patch.assert_called_with(self.cwd, "codeuri")
@@ -503,7 +514,8 @@ class TestLocalLambda_invoke(TestCase):
             debug_context=self.debug_context,
         )
 
-    def test_must_work(self):
+    @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
+    def test_must_work(self, patched_validate_architecture_runtime):
         name = "name"
         event = "event"
         stdout = "stdout"
@@ -527,7 +539,8 @@ class TestLocalLambda_invoke(TestCase):
             container_host_interface=None,
         )
 
-    def test_must_work_packagetype_ZIP(self):
+    @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
+    def test_must_work_packagetype_ZIP(self, patched_validate_architecture_runtime):
         name = "name"
         event = "event"
         stdout = "stdout"
@@ -551,7 +564,8 @@ class TestLocalLambda_invoke(TestCase):
             container_host_interface=None,
         )
 
-    def test_must_raise_if_no_privilege(self):
+    @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
+    def test_must_raise_if_no_privilege(self, patched_validate_architecture_runtime):
         function = Mock()
         function.name = "name"
         function.functionname = "FunctionLogicalId"
@@ -568,7 +582,8 @@ class TestLocalLambda_invoke(TestCase):
         with self.assertRaises(NoPrivilegeException):
             self.local_lambda.invoke("name", "event")
 
-    def test_must_raise_os_error(self):
+    @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
+    def test_must_raise_os_error(self, patched_validate_architecture_runtime):
         function = Mock()
         function.name = "name"
         function.functionname = "FunctionLogicalId"
@@ -595,7 +610,8 @@ class TestLocalLambda_invoke(TestCase):
         with self.assertRaises(FunctionNotFound):
             self.local_lambda.invoke("name", "event")
 
-    def test_must_not_raise_if_invoked_container_has_no_response(self):
+    @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
+    def test_must_not_raise_if_invoked_container_has_no_response(self, patched_validate_architecture_runtime):
         function = Mock()
         function.name = "name"
         function.functionname = "FunctionLogicalId"
@@ -608,7 +624,8 @@ class TestLocalLambda_invoke(TestCase):
         # No exception raised back
         self.local_lambda.invoke("name", "event")
 
-    def test_works_if_imageuri_and_Image_packagetype(self):
+    @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
+    def test_works_if_imageuri_and_Image_packagetype(self, patched_validate_architecture_runtime):
         name = "name"
         event = "event"
         stdout = "stdout"
@@ -665,7 +682,8 @@ class TestLocalLambda_invoke_with_container_host_option(TestCase):
             container_host_interface=self.container_host_interface,
         )
 
-    def test_must_work(self):
+    @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
+    def test_must_work(self, patched_validate_architecture_runtime):
         name = "name"
         event = "event"
         stdout = "stdout"

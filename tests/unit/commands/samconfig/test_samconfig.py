@@ -72,6 +72,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ZIP,
                 "nodejs10.x",
                 None,
+                None,
                 "maven",
                 "myoutput",
                 "myname",
@@ -561,6 +562,7 @@ class TestSamConfigForAllCommands(TestCase):
             "confirm_changeset": True,
             "region": "myregion",
             "signing_profiles": "function=profile:owner",
+            "disable_rollback": True,
         }
 
         with samconfig_parameters(["deploy"], self.scratch_dir, **config_values) as config_path:
@@ -605,6 +607,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "samconfig.toml",
                 "default",
                 False,
+                True,
             )
 
     @patch("samcli.commands.deploy.command.do_cli")
@@ -670,6 +673,7 @@ class TestSamConfigForAllCommands(TestCase):
             "confirm_changeset": True,
             "region": "myregion",
             "signing_profiles": "function=profile:owner",
+            "disable_rollback": True,
         }
 
         with samconfig_parameters(["deploy"], self.scratch_dir, **config_values) as config_path:
@@ -714,6 +718,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "samconfig.toml",
                 "default",
                 False,
+                True,
             )
 
     @patch("samcli.commands.logs.command.do_cli")
