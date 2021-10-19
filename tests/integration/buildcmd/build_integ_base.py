@@ -13,7 +13,7 @@ import docker
 import jmespath
 from pathlib import Path
 
-from samcli.lib.utils.architecture import X86_64
+from samcli.lib.utils.architecture import X86_64, has_runtime_multi_arch_image
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from samcli.yamlhelper import yaml_parse
 from tests.testing_utils import IS_WINDOWS, run_command, SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE, SKIP_DOCKER_BUILD
@@ -135,11 +135,12 @@ class BuildIntegBase(TestCase):
         )
         self.assertFalse(bool(samcli_containers), "Build containers have not been removed")
 
-    def verify_pulled_image(self, runtime, architecture):
+    def verify_pulled_image(self, runtime, architecture=X86_64):
         docker_client = docker.from_env()
         image_name = f"{LambdaBuildContainer._IMAGE_URI_PREFIX}-{runtime}"
         images = docker_client.images.list(name=image_name)
-        arch = architecture if architecture else X86_64
+        architecture = architecture if architecture and "provided" not in runtime else X86_64
+        tag_name = LambdaBuildContainer.get_image_tag(architecture)
         self.assertGreater(
             len(images),
             0,
@@ -150,8 +151,8 @@ class BuildIntegBase(TestCase):
             [1, 2],
             f"Other version of the build image {image_name} was pulled. Currently pulled images: {images}",
         )
-        image_tag = f"{image_name}:latest-{arch}"
-        for t in images[0].tags:
+        image_tag = f"{image_name}:{tag_name}"
+        for t in [tag for image in images for tag in image.tags]:
             if t == image_tag:
                 # Found, pass
                 return
