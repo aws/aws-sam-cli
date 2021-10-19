@@ -294,7 +294,7 @@ class RequestContextV2:
         http=None,
         request_id=str(uuid.uuid4()),
         route_key=None,
-        stage="$default",
+        stage=None,
         request_time_epoch=None,
         request_time=None,
         domain_name="localhost",
@@ -308,7 +308,7 @@ class RequestContextV2:
         :param ContextHTTP http: HTTP for the request
         :param str request_id: Request Id for the request (Default: generated uuid id)
         :param str route_key: The route key for the route.
-        :param str stage: Api Gateway V2 Stage (Default: $default)
+        :param str stage: Api Gateway V2 Stage
         :param int request_time_epoch: Optional, an epoch timestamp to override the request time
         :param datetime request_time: Optional, a datetime object to override the request time
         :param str domain_name: Optional, the name of the domain (Default: localhost)

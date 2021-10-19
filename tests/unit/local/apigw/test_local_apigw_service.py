@@ -1528,7 +1528,7 @@ class TestService_construct_event_http(TestCase):
                 }},
                 "requestId": "",
                 "routeKey": "GET /endpoint",
-                "stage": null,
+                "stage": "$default",
                 "time": \"{self.request_time}\",
                 "timeEpoch": {self.request_time_epoch}
             }},
