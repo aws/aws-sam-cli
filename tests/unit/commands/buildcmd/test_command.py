@@ -5,7 +5,7 @@ from unittest import TestCase
 from unittest.mock import Mock, patch, call
 from parameterized import parameterized
 
-from samcli.commands.build.command import do_cli, _get_mode_value_from_envvar, _process_env_var, _process_image_options
+from samcli.commands.build.command import do_cli, _get_mode_value_from_envvar
 from samcli.commands.exceptions import UserException
 from samcli.lib.build.app_builder import (
     BuildError,

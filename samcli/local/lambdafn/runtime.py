@@ -85,7 +85,7 @@ class LambdaRuntime:
             debug_options=debug_context,
             container_host=container_host,
             container_host_interface=container_host_interface,
-            function=function_config.name,
+            function_name=function_config.name,
         )
         try:
             # create the container.

@@ -128,6 +128,8 @@ class InvokeContext:
             Optional. Host of locally emulated Lambda container
         container_host_interface string
             Optional. Interface that Docker host binds ports to
+        invoke_images dict
+            Optional. A dictionary that defines the custom invoke image URI of each function
         """
         self._template_file = template_file
         self._function_identifier = function_identifier

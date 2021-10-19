@@ -13,7 +13,7 @@ from samcli.commands._utils.options import (
     docker_common_options,
     parameter_override_option,
 )
-from samcli.commands._utils.utils import _process_env_var, _process_image_options
+from samcli.commands._utils.value_parser import process_env_var, process_image_options
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.lib.build.exceptions import BuildInsideContainerError
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
@@ -273,8 +273,8 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     if use_container:
         LOG.info("Starting Build inside a container")
 
-    processed_env_vars = _process_env_var(container_env_var)
-    processed_build_images = _process_image_options(build_image)
+    processed_env_vars = process_env_var(container_env_var)
+    processed_build_images = process_image_options(build_image)
 
     with BuildContext(
         function_identifier,

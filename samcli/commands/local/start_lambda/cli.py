@@ -17,7 +17,7 @@ from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.local.docker.exceptions import ContainerNotStartableException
-from samcli.commands._utils.utils import _process_image_options
+from samcli.commands._utils.value_parser import process_image_options
 
 LOG = logging.getLogger(__name__)
 
@@ -166,7 +166,7 @@ def do_cli(  # pylint: disable=R0914
 
     LOG.debug("local start_lambda command is called")
 
-    processed_invoke_images = _process_image_options(invoke_image)
+    processed_invoke_images = process_image_options(invoke_image)
 
     # Pass all inputs to setup necessary context to invoke function locally.
     # Handler exception raised by the processor for invalid args and print errors

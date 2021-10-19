@@ -52,7 +52,7 @@ class TestLambdaContainer_init(TestCase):
         self.debug_options = DebugContext(
             debug_args="a=b c=d e=f", debug_ports=[1235], container_env_vars={"debug_var": "debug_value"}
         )
-        self.function = "function"
+        self.function_name = "function_name"
 
     @patch.object(LambdaContainer, "_get_image")
     @patch.object(LambdaContainer, "_get_exposed_ports")
@@ -97,7 +97,7 @@ class TestLambdaContainer_init(TestCase):
             env_vars=self.env_var,
             memory_mb=self.memory_mb,
             debug_options=self.debug_options,
-            function=self.function,
+            function_name=self.function_name,
         )
 
         self.assertEqual(image, container._image)
@@ -110,7 +110,7 @@ class TestLambdaContainer_init(TestCase):
         self.assertEqual(self.memory_mb, container._memory_limit_mb)
 
         get_image_mock.assert_called_with(
-            image_builder_mock, self.runtime, self.packagetype, self.imageuri, [], "arm64", self.function
+            image_builder_mock, self.runtime, self.packagetype, self.imageuri, [], "arm64", self.function_name
         )
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_debug_settings_mock.assert_called_with(self.runtime, self.debug_options)
@@ -169,7 +169,7 @@ class TestLambdaContainer_init(TestCase):
             env_vars=self.env_var,
             memory_mb=self.memory_mb,
             debug_options=self.debug_options,
-            function=self.function,
+            function_name=self.function_name,
         )
 
         self.assertEqual(image, container._image)
@@ -182,7 +182,7 @@ class TestLambdaContainer_init(TestCase):
         self.assertEqual(self.memory_mb, container._memory_limit_mb)
 
         get_image_mock.assert_called_with(
-            image_builder_mock, self.runtime, self.packagetype, self.imageuri, [], "arm64", self.function
+            image_builder_mock, self.runtime, self.packagetype, self.imageuri, [], "arm64", self.function_name
         )
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
@@ -242,7 +242,7 @@ class TestLambdaContainer_init(TestCase):
             env_vars=self.env_var,
             memory_mb=self.memory_mb,
             debug_options=self.debug_options,
-            function=self.function,
+            function_name=self.function_name,
         )
 
         self.assertEqual(image, container._image)
@@ -258,7 +258,7 @@ class TestLambdaContainer_init(TestCase):
         self.assertEqual(self.memory_mb, container._memory_limit_mb)
 
         get_image_mock.assert_called_with(
-            image_builder_mock, self.runtime, IMAGE, self.imageuri, [], "x86_64", self.function
+            image_builder_mock, self.runtime, IMAGE, self.imageuri, [], "x86_64", self.function_name
         )
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
@@ -318,7 +318,7 @@ class TestLambdaContainer_init(TestCase):
             env_vars=self.env_var,
             memory_mb=self.memory_mb,
             debug_options=self.debug_options,
-            function=self.function,
+            function_name=self.function_name,
         )
 
         self.assertEqual(image, container._image)
@@ -335,7 +335,7 @@ class TestLambdaContainer_init(TestCase):
         self.assertEqual(self.memory_mb, container._memory_limit_mb)
 
         get_image_mock.assert_called_with(
-            image_builder_mock, self.runtime, IMAGE, self.imageuri, [], "x86_64", self.function
+            image_builder_mock, self.runtime, IMAGE, self.imageuri, [], "x86_64", self.function_name
         )
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
@@ -398,7 +398,7 @@ class TestLambdaContainer_init(TestCase):
             memory_mb=self.memory_mb,
             debug_options=self.debug_options,
             architecture="x86_64",
-            function=self.function,
+            function_name=self.function_name,
         )
 
         self.assertEqual(image, container._image)
@@ -415,7 +415,7 @@ class TestLambdaContainer_init(TestCase):
         self.assertEqual(self.memory_mb, container._memory_limit_mb)
 
         get_image_mock.assert_called_with(
-            image_builder_mock, self.runtime, self.packagetype, self.imageuri, [], "x86_64", self.function
+            image_builder_mock, self.runtime, self.packagetype, self.imageuri, [], "x86_64", self.function_name
         )
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
@@ -494,12 +494,12 @@ class TestLambdaContainer_get_image(TestCase):
                 image=None,
                 layers=[],
                 architecture="arm64",
-                function=None,
+                function_name=None,
             ),
             expected,
         )
 
-        image_builder.build.assert_called_with("foo", ZIP, None, [], "arm64", function=None)
+        image_builder.build.assert_called_with("foo", ZIP, None, [], "arm64", function_name=None)
 
 
 class TestLambdaContainer_get_debug_settings(TestCase):

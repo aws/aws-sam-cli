@@ -83,7 +83,7 @@ class LambdaImage:
         self.docker_client = docker_client or docker.from_env()
         self.invoke_images = invoke_images
 
-    def build(self, runtime, packagetype, image, layers, architecture, stream=None, function=None):
+    def build(self, runtime, packagetype, image, layers, architecture, stream=None, function_name=None):
         """
         Build the image if one is not already on the system that matches the runtime and layers
 
@@ -99,6 +99,8 @@ class LambdaImage:
             List of layers
         architecture
             Architecture type either x86_64 or arm64 on AWS lambda
+        function_name str
+            The name of the function that the image is building for
 
         Returns
         -------
@@ -110,13 +112,10 @@ class LambdaImage:
         if packagetype == IMAGE:
             image_name = image
         elif packagetype == ZIP:
-            tag_name = f"latest-{architecture}" if has_runtime_multi_arch_image(runtime) else "latest"
             if self.invoke_images:
-                if function and self.invoke_images.get(function):
-                    image_name = self.invoke_images.get(function)
-                else:
-                    image_name = self.invoke_images.get(None)
+                image_name = self.invoke_images.get(function_name, self.invoke_images.get(None))
             if not image_name:
+                tag_name = f"latest-{architecture}" if has_runtime_multi_arch_image(runtime) else "latest"
                 image_name = f"{self._INVOKE_REPO_PREFIX}-{runtime}:{tag_name}"
 
         if not image_name:

@@ -1,5 +1,5 @@
 """
-Utilities commonly used to process information for commands
+Parsing utilities commonly used to process information for commands
 """
 import logging
 from typing import Optional, Dict, Tuple
@@ -9,7 +9,7 @@ from samcli.commands.exceptions import InvalidImageException
 LOG = logging.getLogger(__name__)
 
 
-def _process_env_var(container_env_var: Optional[Tuple[str]]) -> Dict:
+def process_env_var(container_env_var: Optional[Tuple[str]]) -> Dict:
     """
     Parameters
     ----------
@@ -48,7 +48,7 @@ def _process_env_var(container_env_var: Optional[Tuple[str]]) -> Dict:
     return processed_env_vars
 
 
-def _process_image_options(image_args: Optional[Tuple[str]]) -> Dict:
+def process_image_options(image_args: Optional[Tuple[str]]) -> Dict:
     """
     Parameters
     ----------
