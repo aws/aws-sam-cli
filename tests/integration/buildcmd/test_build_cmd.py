@@ -37,8 +37,6 @@ from .build_integ_base import (
 
 LOG = logging.getLogger(__name__)
 
-TIMEOUT = 420  # 7 mins
-
 # SAR tests require credentials. This is to skip running the test where credentials are not available.
 SKIP_SAR_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
@@ -760,7 +758,7 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
 
         if use_container:
             self.verify_docker_container_cleanedup(runtime)
-            self.verify_pulling_only_latest_tag(runtime)
+            self.verify_pulled_image(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
@@ -891,7 +889,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             )
         if use_container:
             self.verify_docker_container_cleanedup(runtime)
-            self.verify_pulling_only_latest_tag(runtime)
+            self.verify_pulled_image(runtime)
 
     @parameterized.expand([("python3.7", False), ("python3.7", "use_container")])
     def test_build_function_with_dependent_layer(self, runtime, use_container):
@@ -928,7 +926,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             )
         if use_container:
             self.verify_docker_container_cleanedup(runtime)
-            self.verify_pulling_only_latest_tag(runtime)
+            self.verify_pulled_image(runtime)
 
     def _verify_built_artifact(
         self, build_dir, resource_logical_id, expected_files, code_property_name, artifact_subfolder=""
@@ -1050,7 +1048,7 @@ class TestBuildWithBuildMethod(BuildIntegBase):
 
         if use_container:
             self.verify_docker_container_cleanedup(runtime)
-            self.verify_pulling_only_latest_tag(runtime)
+            self.verify_pulled_image(runtime)
 
     @parameterized.expand([(False,), ("use_container")])
     @pytest.mark.flaky(reruns=3)
@@ -1087,7 +1085,7 @@ class TestBuildWithBuildMethod(BuildIntegBase):
 
         if use_container:
             self.verify_docker_container_cleanedup(runtime)
-            self.verify_pulling_only_latest_tag(runtime)
+            self.verify_pulled_image(runtime)
 
     @parameterized.expand([(False,), ("use_container")])
     @pytest.mark.flaky(reruns=3)
@@ -1440,7 +1438,7 @@ class TestBuildWithInlineCode(BuildIntegBase):
 
         if use_container:
             self.verify_docker_container_cleanedup("python3.7")
-            self.verify_pulling_only_latest_tag("python3.7")
+            self.verify_pulled_image("python3.7")
 
     def _verify_built_artifact(self, build_dir):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
@@ -1490,7 +1488,7 @@ class TestBuildWithJsonContainerEnvVars(BuildIntegBase):
 
         if use_container:
             self.verify_docker_container_cleanedup("python3.7")
-            self.verify_pulling_only_latest_tag("python3.7")
+            self.verify_pulled_image("python3.7")
 
     @staticmethod
     def get_env_file(filename):
@@ -1539,7 +1537,7 @@ class TestBuildWithInlineContainerEnvVars(BuildIntegBase):
 
         if use_container:
             self.verify_docker_container_cleanedup("python3.7")
-            self.verify_pulling_only_latest_tag("python3.7")
+            self.verify_pulled_image("python3.7")
 
     def _verify_built_env_var(self, build_dir):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
