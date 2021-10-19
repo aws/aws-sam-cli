@@ -742,7 +742,7 @@ class LocalApigwService(BaseLocalService):
         flask_request,
         port,
         binary_types,
-        stage_name="$default",
+        stage_name=None,
         stage_variables=None,
         route_key=None,
         request_time_epoch=int(time()),

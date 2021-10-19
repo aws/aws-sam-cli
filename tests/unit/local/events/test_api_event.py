@@ -276,7 +276,7 @@ class TestRequestContextV2(TestCase):
             "http": {},
             "requestId": "",
             "routeKey": None,
-            "stage": None,
+            "stage": "$default",
             "time": None,
             "timeEpoch": None,
         }

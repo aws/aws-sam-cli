@@ -337,6 +337,11 @@ class RequestContextV2:
         if self.http:
             http_dict = self.http.to_dict()
 
+        # this could get explicitly passed in as None further up the
+        # chain so coalescing to $default here to ensure it's never empty
+        if self.stage is None:
+            self.stage = "$default"
+
         json_dict = {
             "accountId": self.account_id,
             "apiId": self.api_id,
