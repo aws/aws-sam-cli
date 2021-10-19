@@ -2,6 +2,8 @@ import os
 from unittest import TestCase
 from unittest.mock import Mock, patch, ANY, call
 
+from parameterized import parameterized
+
 from samcli.lib.bootstrap.nested_stack.nested_stack_manager import (
     NESTED_STACK_NAME,
     NestedStackManager,
@@ -166,3 +168,7 @@ class TestNestedStackManager(TestCase):
         patched_osutils.copytree.assert_called_with(dependencies_dir, str(layer_contents_folder))
         patched_add_layer_readme.assert_called_with(str(layer_root_folder), function_logical_id)
         self.assertEqual(layer_folder, str(layer_root_folder))
+
+    @parameterized.expand([("python3.8", True), ("ruby2.7", False)])
+    def test_is_runtime_supported(self, runtime, supported):
+        self.assertEqual(NestedStackManager.is_runtime_supported(runtime), supported)
