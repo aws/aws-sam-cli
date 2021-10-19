@@ -448,13 +448,15 @@ class ApplicationBuilder:
             # By default prefer to build in-process for speed
             build_runtime = specified_workflow
             options = ApplicationBuilder._get_build_options(layer_name, config.language, None)
-            if config.language == "provided":
-                LOG.warning("First compatible runtime has been chosen as build runtime")
-                # Only set to this value if specified workflow is makefile
-                # which will result in config language as provided
-                build_runtime = compatible_runtimes[0]
             if self._container_manager:
                 # None key represents the global build image for all functions/layers
+                if config.language == "provided":
+                    LOG.warning(
+                        "For container layer build, first compatible runtime is chosen as build target for container."
+                    )
+                    # Only set to this value if specified workflow is makefile
+                    # which will result in config language as provided
+                    build_runtime = compatible_runtimes[0]
                 global_image = self._build_images.get(None)
                 image = self._build_images.get(layer_name, global_image)
                 self._build_function_on_container(
