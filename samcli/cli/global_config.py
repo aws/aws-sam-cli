@@ -5,17 +5,16 @@ import json
 import logging
 import uuid
 import os
+import threading
+
 from pathlib import Path
 from typing import Optional, Dict, Any, Type, TypeVar, overload
+from dataclasses import dataclass
 
 import click
-import threading
-from dataclasses import dataclass
 
 
 LOG = logging.getLogger(__name__)
-
-DEFAULT_CONFIG_FILENAME = "metadata.json"
 
 
 @dataclass(frozen=True, eq=True)
@@ -38,6 +37,9 @@ class GlobalConfig:
     Generally uses '~/.aws-sam/' or 'C:\\Users\\<user>\\AppData\\Roaming\\AWS SAM' as
     the base directory, depending on platform.
     """
+
+    DEFAULT_CONFIG_FILENAME: str = "metadata.json"
+    _DIR_INJECT_ENV_VAR: str = "__SAM_CLI_APP_DIR"
 
     # Static singleton instance
     __instance: Optional["GlobalConfig"] = None
@@ -67,8 +69,8 @@ class GlobalConfig:
     @property
     def config_dir(self) -> Path:
         if not self._config_dir:
-            if "__SAM_CLI_APP_DIR" in os.environ:
-                self._config_dir = Path(os.environ.get("__SAM_CLI_APP_DIR"))
+            if GlobalConfig._DIR_INJECT_ENV_VAR in os.environ:
+                self._config_dir = Path(os.environ.get(GlobalConfig._DIR_INJECT_ENV_VAR))
             else:
                 self._config_dir = Path(click.get_app_dir("AWS SAM", force_posix=True))
         return self._config_dir
@@ -82,7 +84,7 @@ class GlobalConfig:
     @property
     def config_filename(self) -> str:
         if not self._config_filename:
-            self._config_filename = DEFAULT_CONFIG_FILENAME
+            self._config_filename = GlobalConfig.DEFAULT_CONFIG_FILENAME
         return self._config_filename
 
     @config_filename.setter
