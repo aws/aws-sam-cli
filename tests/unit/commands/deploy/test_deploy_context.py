@@ -31,6 +31,7 @@ class TestSamDeployCommand(TestCase):
             profile=None,
             confirm_changeset=False,
             signing_profiles=None,
+            disable_rollback=False,
         )
 
     def test_template_improper(self):
