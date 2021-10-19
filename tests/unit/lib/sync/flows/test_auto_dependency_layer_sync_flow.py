@@ -156,7 +156,7 @@ class TestAutoDependencyLayerSyncFlow(TestCase):
 
         self.sync_flow.set_up()
 
-        self.assertEqual(self.sync_flow._layer_physical_name, layer_physical_name)
+        self.assertEqual(self.sync_flow._layer_arn, layer_physical_name)
         patched_nested_stack_builder.get_layer_name.assert_called_with(
             self.sync_flow._deploy_context.stack_name, self.sync_flow._function_identifier
         )

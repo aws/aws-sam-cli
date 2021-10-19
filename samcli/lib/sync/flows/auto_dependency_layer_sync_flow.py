@@ -70,7 +70,7 @@ class AutoDependencyLayerSyncFlow(AbstractLayerSyncFlow):
         layer_versions = self._lambda_client.list_layer_versions(LayerName=layer_name).get("LayerVersions", [])
         if not layer_versions:
             raise NoLayerVersionsFoundError(layer_name)
-        self._layer_physical_name = layer_versions[0].get("LayerVersionArn").rsplit(":", 1)[0]
+        self._layer_arn = layer_versions[0].get("LayerVersionArn").rsplit(":", 1)[0]
 
     def gather_resources(self) -> None:
         function_build_definitions = cast(BuildGraph, self._build_graph).get_function_build_definitions()
