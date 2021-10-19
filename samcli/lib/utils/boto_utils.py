@@ -1,7 +1,7 @@
 """
 This module contains utility functions for boto3 library
 """
-from typing import Any
+from typing import Any, Optional
 from typing_extensions import Protocol
 
 import boto3
@@ -40,7 +40,9 @@ class BotoProviderType(Protocol):
         ...
 
 
-def get_boto_client_provider_with_config(**kwargs) -> BotoProviderType:
+def get_boto_client_provider_with_config(
+    region: Optional[str] = None, profile: Optional[str] = None, **kwargs
+) -> BotoProviderType:
     """
     Returns a wrapper function for boto client with given configuration. It can be used like;
 
@@ -49,6 +51,10 @@ def get_boto_client_provider_with_config(**kwargs) -> BotoProviderType:
 
     Parameters
     ----------
+    region: Optional[str]
+        AWS region name
+    profile: Optional[str]
+        Profile name from credentials
     kwargs :
         Key-value params that will be passed to get_boto_config_with_user_agent
 
@@ -57,12 +63,14 @@ def get_boto_client_provider_with_config(**kwargs) -> BotoProviderType:
         A callable function which will return a boto client
     """
     # ignore typing because mypy tries to assert client_name with a valid service name
-    return lambda client_name: boto3.session.Session().client(
+    return lambda client_name: boto3.session.Session(region_name=region, profile_name=profile).client(  # type: ignore
         client_name, config=get_boto_config_with_user_agent(**kwargs)
     )
 
 
-def get_boto_resource_provider_with_config(**kwargs) -> BotoProviderType:
+def get_boto_resource_provider_with_config(
+    region: Optional[str] = None, profile: Optional[str] = None, **kwargs
+) -> BotoProviderType:
     """
     Returns a wrapper function for boto resource with given configuration. It can be used like;
 
@@ -71,6 +79,10 @@ def get_boto_resource_provider_with_config(**kwargs) -> BotoProviderType:
 
     Parameters
     ----------
+    region: Optional[str]
+        AWS region name
+    profile: Optional[str]
+        Profile name from credentials
     kwargs :
         Key-value params that will be passed to get_boto_config_with_user_agent
 
@@ -79,6 +91,6 @@ def get_boto_resource_provider_with_config(**kwargs) -> BotoProviderType:
         A callable function which will return a boto resource
     """
     # ignore typing because mypy tries to assert client_name with a valid service name
-    return lambda resource_name: boto3.session.Session().resource(
-        resource_name, config=get_boto_config_with_user_agent(**kwargs)
-    )
+    return lambda resource_name: boto3.session.Session(
+        region_name=region, profile_name=profile  # type: ignore
+    ).resource(resource_name, config=get_boto_config_with_user_agent(**kwargs))
