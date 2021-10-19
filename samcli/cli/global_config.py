@@ -221,6 +221,9 @@ class GlobalConfig:
         self,
         config_entry: ConfigEntry,
         default: None = None,
+        # Defaulting to T for typing hack.
+        # This default is not actually used.
+        # https://github.com/python/mypy/issues/3737
         value_type: Type[T] = T,
         write_default: bool = False,
         reload_config: bool = False,
@@ -235,8 +238,6 @@ class GlobalConfig:
         write_default=False,
         reload_config=False,
     ):
-        if isinstance(value_type, TypeVar):  # Typing hack: https://github.com/python/mypy/issues/3737
-            value_type = object
         with self._access_lock:
             return self._get_value(
                 config_entry,
