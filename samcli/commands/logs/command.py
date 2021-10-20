@@ -11,6 +11,7 @@ from samcli.cli.main import pass_context, common_options as cli_framework_option
 from samcli.commands._utils.options import common_observability_options
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
+from samcli.commands._utils.experimental import ExperimentalFlag, force_experimental_option, experimental
 
 LOG = logging.getLogger(__name__)
 
@@ -69,12 +70,14 @@ $ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
     "to resources, please also provide their names as well",
 )
 @common_observability_options
+@experimental
 @cli_framework_options
 @aws_creds_options
 @pass_context
 @track_command
 @check_newer_version
 @print_cmdline_args
+@force_experimental_option("tail", option=ExperimentalFlag.Accelerate)
 def cli(
     ctx,
     name,

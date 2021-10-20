@@ -1,8 +1,10 @@
 """Experimental flag"""
-from dataclasses import dataclass
 import sys
+
+from dataclasses import dataclass
 from functools import wraps
 from typing import List, Dict
+
 import click
 
 from samcli.cli.global_config import ConfigEntry, GlobalConfig
@@ -123,13 +125,13 @@ def experimental_click_option(default: bool):
 
 
 @parameterized_option
-def experimental_option(f, default: bool = False):
+def experimental(f, default: bool = False):
     """Decorator for adding --beta-features and --no-beta-features click options to a command."""
     return experimental_click_option(default)(f)
 
 
 @parameterized_option
-def force_experimental_option(f, prompt=EXPERIMENTAL_PROMPT):
+def force_experimental(f, prompt=EXPERIMENTAL_PROMPT):
     """Decorator for adding --beta-features and --no-beta-features click options to a command.
     If experimental flag env var or --beta-features flag is not specified, this will then
     prompt the user for confirmation.
@@ -146,6 +148,26 @@ def force_experimental_option(f, prompt=EXPERIMENTAL_PROMPT):
         return wrapped_func
 
     return experimental_click_option(False)(wrap(f))
+
+
+@parameterized_option
+def force_experimental_option(
+    f, option: str, config_entry: ExperimentalEntry = ExperimentalFlag.All, prompt=EXPERIMENTAL_PROMPT
+):
+    """Decorator for making a specific option to be experimental.
+    A prompt will be shown if experimental is not enabled and the option is specified.
+    """
+
+    def wrap(func):
+        @wraps(func)
+        def wrapped_func(*args, **kwargs):
+            if kwargs[option] and not prompt_experimental(config_entry=config_entry, prompt=prompt):
+                sys.exit(1)
+            return func(*args, **kwargs)
+
+        return wrapped_func
+
+    return wrap(f)
 
 
 def prompt_experimental(
