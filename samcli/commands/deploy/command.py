@@ -17,14 +17,12 @@ from samcli.commands._utils.options import (
     template_click_option,
     signing_profiles_option,
     stack_name_option,
-    s3_bucket_option,
     image_repository_option,
     image_repositories_option,
     s3_prefix_option,
     kms_key_id_option,
     use_json_option,
     force_upload_option,
-    resolve_s3_option,
     role_arn_option,
     resolve_image_repos_option,
 )
@@ -68,6 +66,22 @@ LOG = logging.getLogger(__name__)
 )
 @template_click_option(include_build=True)
 @click.option(
+    "--s3-bucket",
+    required=False,
+    help="The name of the S3 bucket where this command uploads your "
+    "CloudFormation template. This is required the deployments of "
+    "templates sized greater than 51,200 bytes",
+)
+@click.option(
+    "--resolve-s3",
+    required=False,
+    is_flag=True,
+    help="Automatically resolve s3 bucket for non-guided deployments. "
+    "Enabling this option will also create a managed default s3 bucket for you. "
+    "If you do not provide a --s3-bucket value, the managed bucket will be used. "
+    "Do not use --s3-guided parameter with this option.",
+)
+@click.option(
     "--no-execute-changeset",
     required=False,
     is_flag=True,
@@ -102,7 +116,6 @@ LOG = logging.getLogger(__name__)
     help="Preserves the state of previously provisioned resources when an operation fails.",
 )
 @stack_name_option
-@s3_bucket_option
 @image_repository_option
 @image_repositories_option
 @force_upload_option
