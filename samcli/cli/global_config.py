@@ -7,7 +7,6 @@ import uuid
 import os
 import threading
 
-from enum import Enum
 from pathlib import Path
 from typing import Optional, Dict, Any, Type, TypeVar, overload
 from dataclasses import dataclass
@@ -20,11 +19,15 @@ LOG = logging.getLogger(__name__)
 
 @dataclass(frozen=True, eq=True)
 class ConfigEntry:
+    """Data class for storing configuration related keys"""
+
     config_key: Optional[str]
     env_var_key: Optional[str]
 
 
 class DefaultEntry:
+    """Set of default configuration entries integrated with GlobalConfig"""
+
     INSTALLATION_ID = ConfigEntry("installationId", None)
     LAST_VERSION_CHECK = ConfigEntry("lastVersionCheck", None)
     TELEMETRY = ConfigEntry("telemetryEnabled", "SAM_CLI_TELEMETRY")
@@ -32,15 +35,18 @@ class DefaultEntry:
 
 class GlobalConfig:
     """
-    Contains helper methods for global configuration files and values. Handles
-    configuration file creation, updates, and fetching in a platform-neutral way.
+    A singleton for accessing configurations from environmental variables and
+    configuration file. Singleton is used to enforce immutability, access locking,
+    and rapid configuration modification.
 
     Generally uses '~/.aws-sam/' or 'C:\\Users\\<user>\\AppData\\Roaming\\AWS SAM' as
     the base directory, depending on platform.
     """
 
     DEFAULT_CONFIG_FILENAME: str = "metadata.json"
-    _DIR_INJECT_ENV_VAR: str = "__SAM_CLI_APP_DIR"
+
+    # Env var for injecting dir in integration tests
+    _DIR_INJECTION_ENV_VAR: str = "__SAM_CLI_APP_DIR"
 
     # Static singleton instance
     __instance: Optional["GlobalConfig"] = None
@@ -51,16 +57,21 @@ class GlobalConfig:
     _config_data: Dict[str, Any]
 
     def __new__(cls, *args, **kwargs):
+        """Singleton __new__ method to check whether the instance exists or not."""
         if cls.__instance is None:
             cls.__instance = cls._instance = super().__new__(cls, *args, **kwargs)
 
         return GlobalConfig.__instance
 
     def __init__(self, config_dir: Optional[Path] = None, config_filename: Optional[str] = None):
-        """
-        Initializes the class, with options provided to assist with testing.
+        """Options for updating
 
-        :param config_dir: Optional, overrides the default config directory path.
+        Parameters
+        ----------
+        config_dir : Optional[Path], optional
+            Directory in which the config file should reside in, by default None
+        config_filename : Optional[str], optional
+            Configuration filename, by default None
         """
         self._access_lock = threading.RLock()
         self._config_dir = config_dir
@@ -69,21 +80,46 @@ class GlobalConfig:
 
     @property
     def config_dir(self) -> Path:
+        """
+        Returns
+        -------
+        Path
+            Path object for the configuration directory.
+        """
         if not self._config_dir:
-            if GlobalConfig._DIR_INJECT_ENV_VAR in os.environ:
-                self._config_dir = Path(os.environ.get(GlobalConfig._DIR_INJECT_ENV_VAR))
+            if GlobalConfig._DIR_INJECTION_ENV_VAR in os.environ:
+                # Set dir to the one specified in _DIR_INJECTION_ENV_VAR environmental variable
+                # This is used for existing integration tests
+                self._config_dir = Path(os.environ.get(GlobalConfig._DIR_INJECTION_ENV_VAR))
             else:
                 self._config_dir = Path(click.get_app_dir("AWS SAM", force_posix=True))
         return self._config_dir
 
     @config_dir.setter
     def config_dir(self, dir_path: Path) -> None:
+        """
+        Parameters
+        ----------
+        dir_path : Path
+            Directory path object for the configuration.
+
+        Raises
+        ------
+        ValueError
+            ValueError will be raised if the path is not a directory.
+        """
         if not dir_path.is_dir():
             raise ValueError("config_dir must be a directory.")
         self._config_dir = dir_path
 
     @property
     def config_filename(self) -> str:
+        """
+        Returns
+        -------
+        str
+            Filename for the configuration.
+        """
         if not self._config_filename:
             self._config_filename = GlobalConfig.DEFAULT_CONFIG_FILENAME
         return self._config_filename
@@ -94,6 +130,12 @@ class GlobalConfig:
 
     @property
     def config_path(self) -> Path:
+        """
+        Returns
+        -------
+        Path
+            Path object for the configuration file (config_dir + config_filename).
+        """
         return Path(self.config_dir, self.config_filename)
 
     @property
@@ -134,7 +176,7 @@ class GlobalConfig:
         False. It first tries to get value from SAM_CLI_TELEMETRY environment variable. If its not set,
         then it fetches the value from config file.
 
-        To enable telemetry, set SAM_CLI_TELEMETRY environment variable equal to integer 1 or string '1'.
+        To enable telemetry, set SAM_CLI_TELEMETRY environment variable equal to string '1'.
         All other values including words like 'True', 'true', 'false', 'False', 'abcd' etc will disable Telemetry
 
         Examples
@@ -184,10 +226,27 @@ class GlobalConfig:
         self.set_value(DefaultEntry.LAST_VERSION_CHECK, value)
 
     def set_value(self, config_entry: ConfigEntry, value: Any, is_flag: bool = False, flush: bool = True) -> None:
+        """Set the value of a configuration. The associated env var will be updated as well.
+
+        Parameters
+        ----------
+        config_entry : ConfigEntry
+            Configuration entry to be set
+        value : Any
+            Value of the configuration
+        is_flag : bool, optional
+            If is_flag is True, then env var will be set to "1" or "0" instead of boolean values.
+            This is useful for backward compatibility with the old configuration format where
+            configuration file and env var has different values.
+            By default False
+        flush : bool, optional
+            Should the value be written to configuration file, by default True
+        """
         with self._access_lock:
             self._set_value(config_entry, value, is_flag, flush)
 
     def _set_value(self, config_entry: ConfigEntry, value: Any, is_flag: bool, flush: bool) -> None:
+        """set_value without locking. Non-thread safe."""
         if config_entry.env_var_key:
             if is_flag:
                 os.environ[config_entry.env_var_key] = "1" if value else "0"
@@ -201,7 +260,7 @@ class GlobalConfig:
                 self._flush_config()
 
     T = TypeVar("T")
-
+    # Overloads are only used for type hinting.
     @overload
     def get_value(
         self,
@@ -228,12 +287,41 @@ class GlobalConfig:
         ...
 
     def get_value(self, config_entry: ConfigEntry, default=None, value_type=object, is_flag=False, reload_config=False):
+        """Get the corresponding value of a configuration entry.
+
+        Parameters
+        ----------
+        config_entry : ConfigEntry
+            Configuration entry for which the value will be loaded.
+        default : [type], optional
+            The default value to be returned if the configuration does not exist,
+            encountered an error, or in the incorrect type.
+            By default None
+        value_type : [type], optional
+            The type of the value that should be expected.
+            If the value is not this type, default will be returned.
+            By default object
+        is_flag : bool, optional
+            If is_flag is True, then env var will be set to "1" or "0" instead of boolean values.
+            This is useful for backward compatibility with the old configuration format where
+            configuration file and env var has different values.
+            By default False
+        reload_config : bool, optional
+            Whether configuration file should be reloaded before getting the value.
+            By default False
+
+        Returns
+        -------
+        [value_type]
+            Value in the type specified by value_type
+        """
         with self._access_lock:
             return self._get_value(config_entry, default, value_type, is_flag, reload_config)
 
     def _get_value(
         self, config_entry: ConfigEntry, default: Optional[T], value_type: Type[T], is_flag: bool, reload_config: bool
     ) -> Optional[T]:
+        """get_value without locking. Non-thread safe."""
         value = None
         try:
             if config_entry.env_var_key:
@@ -260,6 +348,7 @@ class GlobalConfig:
         return value
 
     def _load_config(self) -> None:
+        """Reload configurations from file and populate self._config_data"""
         if not self.config_path.exists():
             self._config_data = {}
             return
@@ -269,6 +358,7 @@ class GlobalConfig:
         self._config_data = json_body
 
     def _flush_config(self) -> None:
+        """Write configurations in self._config_data to file"""
         json_str = json.dumps(self._config_data, indent=4)
         if not self.config_dir.exists():
             self.config_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
