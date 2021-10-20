@@ -59,7 +59,7 @@ class GlobalConfig:
     def __new__(cls, *args, **kwargs):
         """Singleton __new__ method to check whether the instance exists or not."""
         if cls.__instance is None:
-            cls.__instance = cls._instance = super().__new__(cls, *args, **kwargs)
+            cls.__instance = cls._instance = super().__new__(cls)
 
         return GlobalConfig.__instance
 
@@ -112,6 +112,7 @@ class GlobalConfig:
         if not dir_path.is_dir():
             raise ValueError("config_dir must be a directory.")
         self._config_dir = dir_path
+        self._load_config()
 
     @property
     def config_filename(self) -> str:
@@ -191,7 +192,7 @@ class GlobalConfig:
         ----------
         config_entry : ConfigEntry
             Configuration entry for which the value will be loaded.
-        default : [value_type], optional
+        default : value_type, optional
             The default value to be returned if the configuration does not exist,
             encountered an error, or in the incorrect type.
             By default None
@@ -229,7 +230,7 @@ class GlobalConfig:
         try:
             if config_entry.env_var_key:
                 value = os.environ.get(config_entry.env_var_key)
-                if is_flag:
+                if value is not None and is_flag:
                     value = value in ("1", 1)
 
             if value is None and config_entry.config_key:
@@ -289,10 +290,17 @@ class GlobalConfig:
         if not self.config_path.exists():
             self._config_data = {}
             return
-
-        body = self.config_path.read_text()
-        json_body = json.loads(body)
-        self._config_data = json_body
+        try:
+            body = self.config_path.read_text()
+            json_body = json.loads(body)
+            self._config_data = json_body
+        except (OSError, ValueError) as ex:
+            LOG.debug(
+                "Error when loading global config file: %s",
+                self.config_path,
+                exc_info=ex,
+            )
+            self._config_data = {}
 
     def _flush_config(self) -> None:
         """Write configurations in self._config_data to file"""

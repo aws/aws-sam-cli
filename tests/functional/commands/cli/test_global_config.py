@@ -4,7 +4,7 @@ import shutil
 import os
 from time import time
 
-from unittest.mock import mock_open, patch
+from unittest.mock import MagicMock, patch
 from unittest import TestCase
 from samcli.cli.global_config import GlobalConfig
 from pathlib import Path
@@ -13,15 +13,19 @@ from pathlib import Path
 class TestGlobalConfig(TestCase):
     def setUp(self):
         self._cfg_dir = tempfile.mkdtemp()
-        self._previous_telemetry_environ = os.environ.get("SAM_CLI_TELEMETRY")
-        os.environ.pop("SAM_CLI_TELEMETRY")
+        if "SAM_CLI_TELEMETRY" in os.environ:
+            os.environ.pop("SAM_CLI_TELEMETRY")
+        self.saved_env_var = dict(os.environ)
 
     def tearDown(self):
         shutil.rmtree(self._cfg_dir)
-        os.environ["SAM_CLI_TELEMETRY"] = self._previous_telemetry_environ
+        GlobalConfig.__instance = None
+        os.environ.clear()
+        os.environ.update(self.saved_env_var)
 
     def test_installation_id_with_side_effect(self):
-        gc = GlobalConfig(config_dir=self._cfg_dir)
+        gc = GlobalConfig()
+        gc.config_dir = Path(self._cfg_dir)
         installation_id = gc.installation_id
         expected_path = Path(self._cfg_dir, "metadata.json")
         json_body = json.loads(expected_path.read_text())
@@ -36,7 +40,8 @@ class TestGlobalConfig(TestCase):
         with open(str(path), "w") as f:
             cfg = {"foo": "bar"}
             f.write(json.dumps(cfg, indent=4) + "\n")
-        gc = GlobalConfig(config_dir=self._cfg_dir)
+        gc = GlobalConfig()
+        gc.config_dir = Path(self._cfg_dir)
         installation_id = gc.installation_id
         json_body = json.loads(path.read_text())
         self.assertEqual(installation_id, json_body["installationId"])
@@ -47,25 +52,24 @@ class TestGlobalConfig(TestCase):
         with open(str(path), "w") as f:
             cfg = {"installationId": "stub-uuid"}
             f.write(json.dumps(cfg, indent=4) + "\n")
-        gc = GlobalConfig(config_dir=self._cfg_dir)
+        gc = GlobalConfig()
+        gc.config_dir = Path(self._cfg_dir)
         installation_id = gc.installation_id
         self.assertEqual("stub-uuid", installation_id)
-
-    def test_init_override(self):
-        gc = GlobalConfig(installation_id="foo")
-        installation_id = gc.installation_id
-        self.assertEqual("foo", installation_id)
 
     def test_invalid_json(self):
         path = Path(self._cfg_dir, "metadata.json")
         with open(str(path), "w") as f:
             f.write("NOT JSON, PROBABLY VALID YAML AM I RIGHT!?")
-        gc = GlobalConfig(config_dir=self._cfg_dir)
-        self.assertIsNone(gc.installation_id)
+        gc = GlobalConfig()
+        gc.config_dir = Path(self._cfg_dir)
+        self.assertIsInstance(gc.installation_id, str)
         self.assertFalse(gc.telemetry_enabled)
 
     def test_telemetry_flag_provided(self):
-        gc = GlobalConfig(telemetry_enabled=True)
+        gc = GlobalConfig()
+        gc.config_dir = Path(self._cfg_dir)
+        gc.telemetry_enabled = True
         self.assertTrue(gc.telemetry_enabled)
 
     def test_telemetry_flag_from_cfg(self):
@@ -73,11 +77,13 @@ class TestGlobalConfig(TestCase):
         with open(str(path), "w") as f:
             cfg = {"telemetryEnabled": True}
             f.write(json.dumps(cfg, indent=4) + "\n")
-        gc = GlobalConfig(config_dir=self._cfg_dir)
+        gc = GlobalConfig()
+        gc.config_dir = Path(self._cfg_dir)
         self.assertTrue(gc.telemetry_enabled)
 
     def test_telemetry_flag_no_file(self):
-        gc = GlobalConfig(config_dir=self._cfg_dir)
+        gc = GlobalConfig()
+        gc.config_dir = Path(self._cfg_dir)
         self.assertFalse(gc.telemetry_enabled)
 
     def test_telemetry_flag_not_in_cfg(self):
@@ -85,12 +91,14 @@ class TestGlobalConfig(TestCase):
         with open(str(path), "w") as f:
             cfg = {"installationId": "stub-uuid"}
             f.write(json.dumps(cfg, indent=4) + "\n")
-        gc = GlobalConfig(config_dir=self._cfg_dir)
+        gc = GlobalConfig()
+        gc.config_dir = Path(self._cfg_dir)
         self.assertFalse(gc.telemetry_enabled)
 
     def test_set_telemetry_flag_no_file(self):
         path = Path(self._cfg_dir, "metadata.json")
-        gc = GlobalConfig(config_dir=self._cfg_dir)
+        gc = GlobalConfig()
+        gc.config_dir = Path(self._cfg_dir)
         self.assertFalse(gc.telemetry_enabled)  # pre-state test
         gc.telemetry_enabled = True
         from_gc = gc.telemetry_enabled
@@ -104,7 +112,8 @@ class TestGlobalConfig(TestCase):
         with open(str(path), "w") as f:
             cfg = {"installationId": "stub-uuid"}
             f.write(json.dumps(cfg, indent=4) + "\n")
-        gc = GlobalConfig(config_dir=self._cfg_dir)
+        gc = GlobalConfig()
+        gc.config_dir = Path(self._cfg_dir)
         gc.telemetry_enabled = True
         json_body = json.loads(path.read_text())
         self.assertTrue(gc.telemetry_enabled)
@@ -115,7 +124,8 @@ class TestGlobalConfig(TestCase):
         with open(str(path), "w") as f:
             cfg = {"telemetryEnabled": True}
             f.write(json.dumps(cfg, indent=4) + "\n")
-        gc = GlobalConfig(config_dir=self._cfg_dir)
+        gc = GlobalConfig()
+        gc.config_dir = Path(self._cfg_dir)
         self.assertTrue(gc.telemetry_enabled)
         gc.telemetry_enabled = False
         json_body = json.loads(path.read_text())
@@ -127,12 +137,16 @@ class TestGlobalConfig(TestCase):
         with open(str(path), "w") as f:
             cfg = {"telemetryEnabled": True}
             f.write(json.dumps(cfg, indent=4) + "\n")
-        gc = GlobalConfig(config_dir=self._cfg_dir, telemetry_enabled=False)
+        gc = GlobalConfig()
+        gc.config_dir = Path(self._cfg_dir)
+        gc.telemetry_enabled = False
         self.assertFalse(gc.telemetry_enabled)
 
     def test_last_version_check_value_provided(self):
         last_version_check_value = time()
-        gc = GlobalConfig(last_version_check=last_version_check_value)
+        gc = GlobalConfig()
+        gc.config_dir = Path(self._cfg_dir)
+        gc.last_version_check = last_version_check_value
         self.assertEqual(gc.last_version_check, last_version_check_value)
 
     def test_last_version_check_value_cfg(self):
@@ -141,11 +155,13 @@ class TestGlobalConfig(TestCase):
         with open(str(path), "w") as f:
             cfg = {"lastVersionCheck": last_version_check_value}
             f.write(json.dumps(cfg, indent=4) + "\n")
-        gc = GlobalConfig(config_dir=self._cfg_dir)
+        gc = GlobalConfig()
+        gc.config_dir = Path(self._cfg_dir)
         self.assertEqual(gc.last_version_check, last_version_check_value)
 
     def test_last_version_check_value_no_file(self):
         gc = GlobalConfig(config_dir=self._cfg_dir)
+        gc.config_dir = Path(self._cfg_dir)
         self.assertIsNone(gc.last_version_check)
 
     def test_last_version_check_value_not_in_cfg(self):
@@ -153,12 +169,14 @@ class TestGlobalConfig(TestCase):
         with open(str(path), "w") as f:
             cfg = {"installationId": "stub-uuid"}
             f.write(json.dumps(cfg, indent=4) + "\n")
-        gc = GlobalConfig(config_dir=self._cfg_dir)
+        gc = GlobalConfig()
+        gc.config_dir = Path(self._cfg_dir)
         self.assertIsNone(gc.last_version_check)
 
     def test_set_last_version_check_value_no_file(self):
         path = Path(self._cfg_dir, "metadata.json")
-        gc = GlobalConfig(config_dir=self._cfg_dir)
+        gc = GlobalConfig()
+        gc.config_dir = Path(self._cfg_dir)
         self.assertIsNone(gc.last_version_check)  # pre-state test
 
         last_version_check_value = time()
@@ -173,7 +191,8 @@ class TestGlobalConfig(TestCase):
         with open(str(path), "w") as f:
             cfg = {"installationId": "stub-uuid"}
             f.write(json.dumps(cfg, indent=4) + "\n")
-        gc = GlobalConfig(config_dir=self._cfg_dir)
+        gc = GlobalConfig()
+        gc.config_dir = Path(self._cfg_dir)
 
         last_version_check_value = time()
         gc.last_version_check = last_version_check_value
@@ -187,7 +206,8 @@ class TestGlobalConfig(TestCase):
             cfg = {"lastVersionCheck": last_version_check_value}
             f.write(json.dumps(cfg, indent=4) + "\n")
 
-        gc = GlobalConfig(config_dir=self._cfg_dir)
+        gc = GlobalConfig()
+        gc.config_dir = Path(self._cfg_dir)
         self.assertEqual(gc.last_version_check, last_version_check_value)
 
         last_version_check_new_value = time()
@@ -202,25 +222,29 @@ class TestGlobalConfig(TestCase):
         with open(str(path), "w") as f:
             cfg = {"lastVersionCheck": last_version_check_value}
             f.write(json.dumps(cfg, indent=4) + "\n")
-        gc = GlobalConfig(config_dir=self._cfg_dir, last_version_check=last_version_check_value_override)
+        gc = GlobalConfig()
+        gc.config_dir = Path(self._cfg_dir)
+        gc.last_version_check = last_version_check_value_override
         self.assertEqual(gc.last_version_check, last_version_check_value_override)
 
-    def test_setter_raises_on_invalid_json(self):
+    def test_setter_on_invalid_json(self):
         path = Path(self._cfg_dir, "metadata.json")
         with open(str(path), "w") as f:
             f.write("NOT JSON, PROBABLY VALID YAML AM I RIGHT!?")
-        gc = GlobalConfig(config_dir=self._cfg_dir)
-        with self.assertRaises(ValueError):
-            gc.telemetry_enabled = True
+        gc = GlobalConfig()
+        gc.config_dir = Path(self._cfg_dir)
+        gc.telemetry_enabled = True
+        self.assertTrue(gc.telemetry_enabled)
 
     def test_setter_cannot_open_file(self):
         path = Path(self._cfg_dir, "metadata.json")
         with open(str(path), "w") as f:
             cfg = {"telemetryEnabled": True}
             f.write(json.dumps(cfg, indent=4) + "\n")
-        m = mock_open()
-        m.side_effect = IOError("fail")
-        gc = GlobalConfig(config_dir=self._cfg_dir)
-        with patch("samcli.cli.global_config.open", m):
-            with self.assertRaises(IOError):
+        m = MagicMock()
+        m.side_effect = OSError("fail")
+        gc = GlobalConfig()
+        gc.config_dir = Path(self._cfg_dir)
+        with patch("samcli.cli.global_config.Path.write_text", m):
+            with self.assertRaises(OSError):
                 gc.telemetry_enabled = True
