@@ -77,7 +77,7 @@ $ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
 @track_command
 @check_newer_version
 @print_cmdline_args
-@force_experimental_option("tail", option=ExperimentalFlag.Accelerate)
+@force_experimental_option("tail", config_entry=ExperimentalFlag.Accelerate)
 def cli(
     ctx,
     name,
