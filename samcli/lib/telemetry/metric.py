@@ -25,7 +25,7 @@ WARNING_ANNOUNCEMENT = "WARNING: {}"
 
 """
 Global variables are evil but this is a justified usage.
-This creates a versitile telemetry tracking no matter where in the code. Something like a Logger.
+This creates a versatile telemetry tracking no matter where in the code. Something like a Logger.
 No side effect will result in this as it is write-only for code outside of telemetry.
 Decorators should be used to minimize logic involving telemetry.
 """
@@ -238,7 +238,7 @@ def capture_parameter(metric_name, key, parameter_identifier, parameter_nested_i
 
 def capture_return_value(metric_name, key, as_list=False):
     """
-    Decorator for capturing the reutrn value of the function.
+    Decorator for capturing the return value of the function.
 
     :param metric_name Name of the metric
     :param key Key for storing the captured parameter
