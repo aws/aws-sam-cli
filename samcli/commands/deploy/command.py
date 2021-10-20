@@ -123,7 +123,6 @@ LOG = logging.getLogger(__name__)
 @kms_key_id_option
 @role_arn_option
 @use_json_option
-@resolve_s3_option
 @resolve_image_repos_option
 @metadata_option
 @notification_arns_option
