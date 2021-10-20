@@ -469,17 +469,19 @@ def stack_name_option(f, required=False):
     return stack_name_click_option(required)(f)
 
 
-def s3_bucket_click_option():
+def s3_bucket_click_option(guided):
+    callback = None if guided else partial(artifact_callback, artifact=ZIP)
     return click.option(
         "--s3-bucket",
         required=False,
-        callback=partial(artifact_callback, artifact=ZIP),
+        callback=callback,
         help="The name of the S3 bucket where this command uploads the artifacts that are referenced in your template.",
     )
 
 
-def s3_bucket_option(f):
-    return s3_bucket_click_option()(f)
+@parameterized_option
+def s3_bucket_option(f, guided=False):
+    return s3_bucket_click_option(guided)(f)
 
 
 def build_dir_click_option():
@@ -646,19 +648,24 @@ def force_upload_option(f):
     return force_upload_click_option()(f)
 
 
-def resolve_s3_click_option():
+def resolve_s3_click_option(guided):
     from samcli.commands.package.exceptions import PackageResolveS3AndS3SetError, PackageResolveS3AndS3NotSetError
 
-    return click.option(
-        "--resolve-s3",
-        required=False,
-        is_flag=True,
-        callback=partial(
+    callback = (
+        None
+        if guided
+        else partial(
             resolve_s3_callback,
             artifact=ZIP,
             exc_set=PackageResolveS3AndS3SetError,
             exc_not_set=PackageResolveS3AndS3NotSetError,
-        ),
+        )
+    )
+    return click.option(
+        "--resolve-s3",
+        required=False,
+        is_flag=True,
+        callback=callback,
         help="Automatically resolve s3 bucket for non-guided deployments. "
         "Enabling this option will also create a managed default s3 bucket for you. "
         "If you do not provide a --s3-bucket value, the managed bucket will be used. "
@@ -666,8 +673,9 @@ def resolve_s3_click_option():
     )
 
 
-def resolve_s3_option(f):
-    return resolve_s3_click_option()(f)
+@parameterized_option
+def resolve_s3_option(f, guided=False):
+    return resolve_s3_click_option(guided)(f)
 
 
 def role_arn_click_option():

@@ -102,7 +102,7 @@ LOG = logging.getLogger(__name__)
     help="Preserves the state of previously provisioned resources when an operation fails.",
 )
 @stack_name_option
-@s3_bucket_option
+@s3_bucket_option(guided=True)  # pylint: disable=E1120
 @image_repository_option
 @image_repositories_option
 @force_upload_option
@@ -110,7 +110,7 @@ LOG = logging.getLogger(__name__)
 @kms_key_id_option
 @role_arn_option
 @use_json_option
-@resolve_s3_option
+@resolve_s3_option(guided=True)  # pylint: disable=E1120
 @resolve_image_repos_option
 @metadata_option
 @notification_arns_option
