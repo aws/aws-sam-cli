@@ -8,7 +8,7 @@ import os
 import threading
 
 from pathlib import Path
-from typing import Optional, Dict, Any, Type, TypeVar, overload
+from typing import Optional, Dict, Any, Type, TypeVar, cast, overload
 from dataclasses import dataclass
 
 import click
@@ -51,7 +51,7 @@ class GlobalConfig:
     # Static singleton instance
     __instance: Optional["GlobalConfig"] = None
 
-    _access_lock: threading.Lock
+    _access_lock: threading.RLock
     _config_dir: Optional[Path]
     _config_filename: Optional[str]
     _config_data: Dict[str, Any]
@@ -90,7 +90,8 @@ class GlobalConfig:
             if GlobalConfig._DIR_INJECTION_ENV_VAR in os.environ:
                 # Set dir to the one specified in _DIR_INJECTION_ENV_VAR environmental variable
                 # This is used for existing integration tests
-                self._config_dir = Path(os.environ.get(GlobalConfig._DIR_INJECTION_ENV_VAR))
+                env_var_path = os.environ.get(GlobalConfig._DIR_INJECTION_ENV_VAR)
+                self._config_dir = Path(cast(str, env_var_path))
             else:
                 self._config_dir = Path(click.get_app_dir("AWS SAM", force_posix=True))
         return self._config_dir
@@ -137,6 +138,168 @@ class GlobalConfig:
             Path object for the configuration file (config_dir + config_filename).
         """
         return Path(self.config_dir, self.config_filename)
+
+    T = TypeVar("T")
+    # Overloads are only used for type hinting.
+    # Overload for case where is_flag is set
+    @overload
+    def get_value(
+        self,
+        config_entry: ConfigEntry,
+        default: bool,
+        value_type: Type[bool],
+        is_flag: bool,
+        reload_config: bool = False,
+    ) -> bool:
+        ...
+
+    # Overload for case where type is specified
+    @overload
+    def get_value(
+        self,
+        config_entry: ConfigEntry,
+        default: Optional[T] = None,
+        value_type: Type[T] = T,
+        is_flag: bool = False,
+        reload_config: bool = False,
+    ) -> Optional[T]:
+        ...
+
+    # Overload for case where type is not specified and default to object
+    @overload
+    def get_value(
+        self,
+        config_entry: ConfigEntry,
+        default: Any = None,
+        value_type: object = object,
+        is_flag: bool = False,
+        reload_config: bool = False,
+    ) -> Any:
+        ...
+
+    def get_value(
+        self,
+        config_entry,
+        default=None,
+        value_type=object,
+        is_flag=False,
+        reload_config=False,
+    ) -> Any:
+        """Get the corresponding value of a configuration entry.
+
+        Parameters
+        ----------
+        config_entry : ConfigEntry
+            Configuration entry for which the value will be loaded.
+        default : [value_type], optional
+            The default value to be returned if the configuration does not exist,
+            encountered an error, or in the incorrect type.
+            By default None
+        value_type : Type, optional
+            The type of the value that should be expected.
+            If the value is not this type, default will be returned.
+            By default object
+        is_flag : bool, optional
+            If is_flag is True, then env var will be set to "1" or "0" instead of boolean values.
+            This is useful for backward compatibility with the old configuration format where
+            configuration file and env var has different values.
+            By default False
+        reload_config : bool, optional
+            Whether configuration file should be reloaded before getting the value.
+            By default False
+
+        Returns
+        -------
+        [value_type]
+            Value in the type specified by value_type
+        """
+        with self._access_lock:
+            return self._get_value(config_entry, default, value_type, is_flag, reload_config)
+
+    def _get_value(
+        self,
+        config_entry: ConfigEntry,
+        default: Optional[T],
+        value_type: Type[T],
+        is_flag: bool,
+        reload_config: bool,
+    ) -> Optional[T]:
+        """get_value without locking. Non-thread safe."""
+        value: Any = None
+        try:
+            if config_entry.env_var_key:
+                value = os.environ.get(config_entry.env_var_key)
+                if is_flag:
+                    value = value in ("1", 1)
+
+            if value is None and config_entry.config_key:
+                if reload_config:
+                    self._load_config()
+                value = self._config_data.get(config_entry.config_key)
+
+            if value is None or not isinstance(value, value_type):
+                return default
+        except (ValueError, OSError) as ex:
+            LOG.debug(
+                "Error when retrieving config_key: %s env_var_key: %s",
+                config_entry.config_key,
+                config_entry.env_var_key,
+                exc_info=ex,
+            )
+            return default
+
+        return value
+
+    def set_value(self, config_entry: ConfigEntry, value: Any, is_flag: bool = False, flush: bool = True) -> None:
+        """Set the value of a configuration. The associated env var will be updated as well.
+
+        Parameters
+        ----------
+        config_entry : ConfigEntry
+            Configuration entry to be set
+        value : Any
+            Value of the configuration
+        is_flag : bool, optional
+            If is_flag is True, then env var will be set to "1" or "0" instead of boolean values.
+            This is useful for backward compatibility with the old configuration format where
+            configuration file and env var has different values.
+            By default False
+        flush : bool, optional
+            Should the value be written to configuration file, by default True
+        """
+        with self._access_lock:
+            self._set_value(config_entry, value, is_flag, flush)
+
+    def _set_value(self, config_entry: ConfigEntry, value: Any, is_flag: bool, flush: bool) -> None:
+        """set_value without locking. Non-thread safe."""
+        if config_entry.env_var_key:
+            if is_flag:
+                os.environ[config_entry.env_var_key] = "1" if value else "0"
+            else:
+                os.environ[config_entry.env_var_key] = value
+
+        if config_entry.config_key:
+            self._config_data[config_entry.config_key] = value
+
+            if flush:
+                self._flush_config()
+
+    def _load_config(self) -> None:
+        """Reload configurations from file and populate self._config_data"""
+        if not self.config_path.exists():
+            self._config_data = {}
+            return
+
+        body = self.config_path.read_text()
+        json_body = json.loads(body)
+        self._config_data = json_body
+
+    def _flush_config(self) -> None:
+        """Write configurations in self._config_data to file"""
+        json_str = json.dumps(self._config_data, indent=4)
+        if not self.config_dir.exists():
+            self.config_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+        self.config_path.write_text(json_str)
 
     @property
     def installation_id(self):
@@ -191,7 +354,7 @@ class GlobalConfig:
         Boolean flag value. True if telemetry is enabled for this installation,
         False otherwise.
         """
-        return self.get_value(DefaultEntry.TELEMETRY, default=None, value_type=object, is_flag=True)
+        return self.get_value(DefaultEntry.TELEMETRY, default=False, value_type=bool, is_flag=True)
 
     @telemetry_enabled.setter
     def telemetry_enabled(self, value: bool) -> None:
@@ -224,142 +387,3 @@ class GlobalConfig:
     @last_version_check.setter
     def last_version_check(self, value: float):
         self.set_value(DefaultEntry.LAST_VERSION_CHECK, value)
-
-    def set_value(self, config_entry: ConfigEntry, value: Any, is_flag: bool = False, flush: bool = True) -> None:
-        """Set the value of a configuration. The associated env var will be updated as well.
-
-        Parameters
-        ----------
-        config_entry : ConfigEntry
-            Configuration entry to be set
-        value : Any
-            Value of the configuration
-        is_flag : bool, optional
-            If is_flag is True, then env var will be set to "1" or "0" instead of boolean values.
-            This is useful for backward compatibility with the old configuration format where
-            configuration file and env var has different values.
-            By default False
-        flush : bool, optional
-            Should the value be written to configuration file, by default True
-        """
-        with self._access_lock:
-            self._set_value(config_entry, value, is_flag, flush)
-
-    def _set_value(self, config_entry: ConfigEntry, value: Any, is_flag: bool, flush: bool) -> None:
-        """set_value without locking. Non-thread safe."""
-        if config_entry.env_var_key:
-            if is_flag:
-                os.environ[config_entry.env_var_key] = "1" if value else "0"
-            else:
-                os.environ[config_entry.env_var_key] = value
-
-        if config_entry.config_key:
-            self._config_data[config_entry.config_key] = value
-
-            if flush:
-                self._flush_config()
-
-    T = TypeVar("T")
-    # Overloads are only used for type hinting.
-    @overload
-    def get_value(
-        self,
-        config_entry: ConfigEntry,
-        default: T,
-        value_type: Type[T],
-        is_flag: bool,
-        reload_config: bool,
-    ) -> T:
-        ...
-
-    @overload
-    def get_value(
-        self,
-        config_entry: ConfigEntry,
-        default: None = None,
-        # Defaulting to T for typing hack.
-        # This default is not actually used.
-        # https://github.com/python/mypy/issues/3737
-        value_type: Type[T] = T,
-        is_flag: bool = False,
-        reload_config: bool = False,
-    ) -> Optional[T]:
-        ...
-
-    def get_value(self, config_entry: ConfigEntry, default=None, value_type=object, is_flag=False, reload_config=False):
-        """Get the corresponding value of a configuration entry.
-
-        Parameters
-        ----------
-        config_entry : ConfigEntry
-            Configuration entry for which the value will be loaded.
-        default : [type], optional
-            The default value to be returned if the configuration does not exist,
-            encountered an error, or in the incorrect type.
-            By default None
-        value_type : [type], optional
-            The type of the value that should be expected.
-            If the value is not this type, default will be returned.
-            By default object
-        is_flag : bool, optional
-            If is_flag is True, then env var will be set to "1" or "0" instead of boolean values.
-            This is useful for backward compatibility with the old configuration format where
-            configuration file and env var has different values.
-            By default False
-        reload_config : bool, optional
-            Whether configuration file should be reloaded before getting the value.
-            By default False
-
-        Returns
-        -------
-        [value_type]
-            Value in the type specified by value_type
-        """
-        with self._access_lock:
-            return self._get_value(config_entry, default, value_type, is_flag, reload_config)
-
-    def _get_value(
-        self, config_entry: ConfigEntry, default: Optional[T], value_type: Type[T], is_flag: bool, reload_config: bool
-    ) -> Optional[T]:
-        """get_value without locking. Non-thread safe."""
-        value = None
-        try:
-            if config_entry.env_var_key:
-                value = os.environ.get(config_entry.env_var_key)
-                if is_flag:
-                    value = value in ("1", 1)
-
-            if value is None and config_entry.config_key:
-                if reload_config:
-                    self._load_config()
-                value = self._config_data.get(config_entry.config_key)
-
-            if value is None or not isinstance(value, value_type):
-                return default
-        except (ValueError, OSError) as ex:
-            LOG.debug(
-                "Error when retrieving config_key: %s env_var_key: %s",
-                config_entry.config_key,
-                config_entry.env_var_key,
-                exc_info=ex,
-            )
-            return default
-
-        return value
-
-    def _load_config(self) -> None:
-        """Reload configurations from file and populate self._config_data"""
-        if not self.config_path.exists():
-            self._config_data = {}
-            return
-
-        body = self.config_path.read_text()
-        json_body = json.loads(body)
-        self._config_data = json_body
-
-    def _flush_config(self) -> None:
-        """Write configurations in self._config_data to file"""
-        json_str = json.dumps(self._config_data, indent=4)
-        if not self.config_dir.exists():
-            self.config_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
-        self.config_path.write_text(json_str)
