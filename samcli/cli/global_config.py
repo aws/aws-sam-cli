@@ -8,7 +8,7 @@ import os
 import threading
 
 from pathlib import Path
-from typing import Optional, Dict, Any, Type, TypeVar, cast, overload
+from typing import List, Optional, Dict, Any, Type, TypeVar, cast, overload
 from dataclasses import dataclass
 
 import click
@@ -23,6 +23,7 @@ class ConfigEntry:
 
     config_key: Optional[str]
     env_var_key: Optional[str]
+    persistent: bool = True
 
 
 class DefaultEntry:
@@ -64,7 +65,10 @@ class GlobalConfig(metaclass=Singleton):
     _access_lock: threading.RLock
     _config_dir: Optional[Path]
     _config_filename: Optional[str]
+    # Dictionary storing config data mapped directly to the content of the config file
     _config_data: Optional[Dict[str, Any]]
+    # config_keys that should be flushed to file
+    _persistent_fields: List[str]
 
     def __init__(self):
         """__init__ should only be called once due to Singleton metaclass"""
@@ -72,6 +76,7 @@ class GlobalConfig(metaclass=Singleton):
         self._config_dir = None
         self._config_filename = None
         self._config_data = None
+        self._persistent_fields = list()
 
     @property
     def config_dir(self) -> Path:
@@ -280,6 +285,11 @@ class GlobalConfig(metaclass=Singleton):
                 self._load_config()
             self._config_data[config_entry.config_key] = value
 
+            if config_entry.persistent:
+                self._persistent_fields.append(config_entry.config_key)
+            elif config_entry.config_key in self._persistent_fields:
+                self._persistent_fields.remove(config_entry.config_key)
+
             if flush:
                 self._flush_config()
 
@@ -292,6 +302,10 @@ class GlobalConfig(metaclass=Singleton):
             body = self.config_path.read_text()
             json_body = json.loads(body)
             self._config_data = json_body
+            # Default existing fields to be persistent
+            # so that they will be kept when flushed back
+            for key in json_body:
+                self._persistent_fields.append(key)
         except (OSError, ValueError) as ex:
             LOG.debug(
                 "Error when loading global config file: %s",
@@ -302,7 +316,10 @@ class GlobalConfig(metaclass=Singleton):
 
     def _flush_config(self) -> None:
         """Write configurations in self._config_data to file"""
-        json_str = json.dumps(self._config_data, indent=4)
+        if not self._config_data:
+            return
+        config_data = {key: value for (key, value) in self._config_data.items() if key in self._persistent_fields}
+        json_str = json.dumps(config_data, indent=4)
         if not self.config_dir.exists():
             self.config_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
         self.config_path.write_text(json_str)

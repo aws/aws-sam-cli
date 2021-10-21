@@ -25,6 +25,7 @@ class ExperimentalEntry(ConfigEntry):
 
     config_key: str
     env_var_key: str
+    persistent: bool = False
 
 
 class ExperimentalFlag:

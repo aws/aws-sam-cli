@@ -1,5 +1,5 @@
 import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 from unittest import TestCase
 from samcli.cli.global_config import ConfigEntry, DefaultEntry, GlobalConfig
 from pathlib import Path
@@ -168,7 +168,15 @@ class TestGlobalConfig(TestCase):
         GlobalConfig().set_value(ConfigEntry("config_key", "ENV_VAR"), "value", False, True)
         self.assertEqual(os.environ["ENV_VAR"], "value")
         self.assertEqual(GlobalConfig()._config_data["config_key"], "value")
-        self.json_mock.dumps.assert_called_once()
+        self.json_mock.dumps.assert_called_once_with({"config_key": "value"}, indent=ANY)
+        self.path_write_mock.assert_called_once()
+
+    def test_set_value_non_persistent(self):
+        self.patch_environ({"ENV_VAR": "env_var_value"})
+        GlobalConfig().set_value(ConfigEntry("config_key", "ENV_VAR", False), "value", False, True)
+        self.assertEqual(os.environ["ENV_VAR"], "value")
+        self.assertEqual(GlobalConfig()._config_data["config_key"], "value")
+        self.json_mock.dumps.assert_called_once_with({}, indent=ANY)
         self.path_write_mock.assert_called_once()
 
     def test_set_value_no_flush(self):
@@ -219,6 +227,8 @@ class TestGlobalConfig(TestCase):
 
     def test_flush_config(self):
         self.path_exists_mock.return_value = False
+        GlobalConfig()._persistent_fields = ["a"]
+        GlobalConfig()._config_data = {"a": 1}
         GlobalConfig()._flush_config()
         self.json_mock.dumps.assert_called_once()
         self.path_mkdir_mock.assert_called_once()
