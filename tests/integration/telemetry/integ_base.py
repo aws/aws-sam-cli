@@ -36,7 +36,7 @@ class IntegBase(TestCase):
         self.maxDiff = None  # Show full JSON Diff
 
         self.config_dir = tempfile.mkdtemp()
-        self._gc = GlobalConfig(config_dir=self.config_dir)
+        self._gc = GlobalConfig()
 
     def tearDown(self):
         self.config_dir and shutil.rmtree(self.config_dir)

@@ -1,7 +1,6 @@
 import os
-from unittest.mock import MagicMock, mock_open, patch, Mock
+from unittest.mock import MagicMock, patch
 from unittest import TestCase
-from parameterized import parameterized
 from samcli.cli.global_config import ConfigEntry, DefaultEntry, GlobalConfig
 from pathlib import Path
 

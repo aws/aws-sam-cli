@@ -69,7 +69,7 @@ def set_experimental(config_entry: ExperimentalEntry = ExperimentalFlag.All, ena
     gc.set_value(config_entry, enabled, is_flag=True, flush=False)
 
 
-def get_all_experimental_flags() -> List[ExperimentalEntry]:
+def get_all_experimental() -> List[ExperimentalEntry]:
     """
     Returns
     -------
@@ -79,7 +79,7 @@ def get_all_experimental_flags() -> List[ExperimentalEntry]:
     return [getattr(ExperimentalFlag, name) for name in dir(ExperimentalFlag) if not name.startswith("__")]
 
 
-def get_all_experimental_flag_statues() -> Dict[str, bool]:
+def get_all_experimental_statues() -> Dict[str, bool]:
     """Get statues of all experimental flags in a dictionary.
 
     Returns
@@ -87,14 +87,12 @@ def get_all_experimental_flag_statues() -> Dict[str, bool]:
     Dict[str, bool]
         Dictionary with key as configuration value and value as enabled or disabled.
     """
-    return {
-        entry.config_key: is_experimental_enabled(entry) for entry in get_all_experimental_flags() if entry.config_key
-    }
+    return {entry.config_key: is_experimental_enabled(entry) for entry in get_all_experimental() if entry.config_key}
 
 
-def turn_off_all_experimental():
+def disable_all_experimental():
     """Turn off all experimental flags in the ExperimentalFlag class."""
-    for entry in get_all_experimental_flags():
+    for entry in get_all_experimental():
         set_experimental(entry, False)
 
 
@@ -109,7 +107,7 @@ def _experimental_option_callback(ctx, param, enabled: bool):
     if enabled:
         set_experimental(ExperimentalFlag.All, True)
     else:
-        turn_off_all_experimental()
+        disable_all_experimental()
 
 
 def experimental_click_option(default: bool):

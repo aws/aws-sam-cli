@@ -78,6 +78,8 @@ $ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
 @check_newer_version
 @print_cmdline_args
 @force_experimental_option("tail", config_entry=ExperimentalFlag.Accelerate)  # pylint: disable=E1120
+@force_experimental_option("cw_log_group", config_entry=ExperimentalFlag.Accelerate)  # pylint: disable=E1120
+@force_experimental_option("unformatted", config_entry=ExperimentalFlag.Accelerate)  # pylint: disable=E1120
 def cli(
     ctx,
     name,
