@@ -32,7 +32,7 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
     """
 
     _lambda_client: Any
-    _layer_physical_name: Optional[str]
+    _layer_arn: Optional[str]
     _old_layer_version: Optional[int]
     _new_layer_version: Optional[int]
     _layer_identifier: str
@@ -50,7 +50,7 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
     ):
         super().__init__(build_context, deploy_context, physical_id_mapping, f"Layer {layer_identifier}", stacks)
         self._layer_identifier = layer_identifier
-        self._layer_physical_name = None
+        self._layer_arn = None
         self._old_layer_version = None
         self._new_layer_version = None
         self._zip_file = None
@@ -66,7 +66,7 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
         """
         self._old_layer_version = self._get_latest_layer_version()
         old_layer_info = self._lambda_client.get_layer_version(
-            LayerName=self._layer_physical_name,
+            LayerName=self._layer_arn,
             VersionNumber=self._old_layer_version,
         )
         remote_sha = base64.b64decode(old_layer_info.get("Content", {}).get("CodeSha256", "")).hex()
@@ -76,11 +76,9 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
 
     def _get_latest_layer_version(self):
         """Fetches all layer versions from remote and returns the latest one"""
-        layer_versions = self._lambda_client.list_layer_versions(LayerName=self._layer_physical_name).get(
-            "LayerVersions", []
-        )
+        layer_versions = self._lambda_client.list_layer_versions(LayerName=self._layer_arn).get("LayerVersions", [])
         if not layer_versions:
-            raise NoLayerVersionsFoundError(self._layer_physical_name)
+            raise NoLayerVersionsFoundError(self._layer_arn)
         return layer_versions[0].get("Version")
 
     def sync(self) -> None:
@@ -99,23 +97,17 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
         dependent_functions = self._get_dependent_functions()
         if self._stacks:
             for function in dependent_functions:
-                if self._layer_identifier in [layer.full_path for layer in function.layers]:
-                    LOG.debug(
-                        "%sAdding function %s for updating its Layers with this new version",
-                        self.log_prefix,
-                        function.name,
+                dependencies.append(
+                    FunctionLayerReferenceSync(
+                        function.full_path,
+                        cast(str, self._layer_arn),
+                        cast(int, self._new_layer_version),
+                        self._build_context,
+                        self._deploy_context,
+                        self._physical_id_mapping,
+                        self._stacks,
                     )
-                    dependencies.append(
-                        FunctionLayerReferenceSync(
-                            function.full_path,
-                            cast(str, self._layer_physical_name),
-                            cast(int, self._new_layer_version),
-                            self._build_context,
-                            self._deploy_context,
-                            self._physical_id_mapping,
-                            self._stacks,
-                        )
-                    )
+                )
         return dependencies
 
     def _get_resource_api_calls(self) -> List[ResourceAPICall]:
@@ -132,7 +124,7 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
         with open(cast(str, self._zip_file), "rb") as zip_file:
             data = zip_file.read()
             layer_publish_result = self._lambda_client.publish_layer_version(
-                LayerName=self._layer_physical_name, Content={"ZipFile": data}, CompatibleRuntimes=compatible_runtimes
+                LayerName=self._layer_arn, Content={"ZipFile": data}, CompatibleRuntimes=compatible_runtimes
             )
             LOG.debug("%sPublish Layer Version Result %s", self.log_prefix, layer_publish_result)
             return int(layer_publish_result.get("Version"))
@@ -145,7 +137,7 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
             "%sDeleting old Layer Version %s:%s", self.log_prefix, self._old_layer_version, self._old_layer_version
         )
         delete_layer_version_result = self._lambda_client.delete_layer_version(
-            LayerName=self._layer_physical_name,
+            LayerName=self._layer_arn,
             VersionNumber=self._old_layer_version,
         )
         LOG.debug("%sDelete Layer Version Result %s", self.log_prefix, delete_layer_version_result)
@@ -195,7 +187,7 @@ class LayerSyncFlow(AbstractLayerSyncFlow):
                 if not expression.match(logical_id):
                     continue
 
-                self._layer_physical_name = self.get_physical_id(logical_id).rsplit(":", 1)[0]
+                self._layer_arn = self.get_physical_id(logical_id).rsplit(":", 1)[0]
                 LOG.debug("%sLayer physical name has been set to %s", self.log_prefix, self._layer_identifier)
                 break
             else:
@@ -204,7 +196,7 @@ class LayerSyncFlow(AbstractLayerSyncFlow):
                     self._physical_id_mapping,
                 )
         else:
-            self._layer_physical_name = self.get_physical_id(self._layer_identifier).rsplit(":", 1)[0]
+            self._layer_arn = self.get_physical_id(self._layer_identifier).rsplit(":", 1)[0]
             LOG.debug("%sLayer physical name has been set to %s", self.log_prefix, self._layer_identifier)
 
     def gather_resources(self) -> None:
@@ -235,7 +227,17 @@ class LayerSyncFlow(AbstractLayerSyncFlow):
 
     def _get_dependent_functions(self) -> List[Function]:
         function_provider = SamFunctionProvider(cast(List[Stack], self._stacks))
-        return list(function_provider.get_all())
+
+        dependent_functions = []
+        for function in function_provider.get_all():
+            if self._layer_identifier in [layer.full_path for layer in function.layers]:
+                LOG.debug(
+                    "%sAdding function %s for updating its Layers with this new version",
+                    self.log_prefix,
+                    function.name,
+                )
+                dependent_functions.append(function)
+        return dependent_functions
 
 
 class FunctionLayerReferenceSync(SyncFlow):
@@ -248,14 +250,14 @@ class FunctionLayerReferenceSync(SyncFlow):
     _lambda_client: Any
 
     _function_identifier: str
-    _layer_physical_name: str
+    _layer_arn: str
     _old_layer_version: int
     _new_layer_version: int
 
     def __init__(
         self,
         function_identifier: str,
-        layer_physical_name: str,
+        layer_arn: str,
         new_layer_version: int,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
@@ -270,7 +272,7 @@ class FunctionLayerReferenceSync(SyncFlow):
             stacks=stacks,
         )
         self._function_identifier = function_identifier
-        self._layer_physical_name = layer_physical_name
+        self._layer_arn = layer_arn
         self._new_layer_version = new_layer_version
 
     def set_up(self) -> None:
@@ -294,7 +296,7 @@ class FunctionLayerReferenceSync(SyncFlow):
             return
 
         with lock:
-            new_layer_arn = f"{self._layer_physical_name}:{self._new_layer_version}"
+            new_layer_arn = f"{self._layer_arn}:{self._new_layer_version}"
 
             function_physical_id = self.get_physical_id(self._function_identifier)
             get_function_result = self._lambda_client.get_function(FunctionName=function_physical_id)
@@ -313,14 +315,14 @@ class FunctionLayerReferenceSync(SyncFlow):
                 return
 
             # Check function uses layer
-            old_layer_arn = [layer_arn for layer_arn in layer_arns if layer_arn.startswith(self._layer_physical_name)]
+            old_layer_arn = [layer_arn for layer_arn in layer_arns if layer_arn.startswith(self._layer_arn)]
             old_layer_arn = old_layer_arn[0] if len(old_layer_arn) == 1 else None
             if not old_layer_arn:
                 LOG.warning(
                     "%sLambda Function (%s) does not have layer (%s).%s",
                     self.log_prefix,
                     self._function_identifier,
-                    self._layer_physical_name,
+                    self._layer_arn,
                     HELP_TEXT_FOR_SYNC_INFRA,
                 )
                 return
@@ -343,4 +345,4 @@ class FunctionLayerReferenceSync(SyncFlow):
         return []
 
     def _equality_keys(self) -> Any:
-        return self._function_identifier, self._layer_physical_name, self._new_layer_version
+        return self._function_identifier, self._layer_arn, self._new_layer_version
