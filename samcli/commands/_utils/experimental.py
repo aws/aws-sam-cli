@@ -7,6 +7,8 @@ from typing import List, Dict, Optional
 
 import click
 
+from samcli.cli.context import Context
+
 from samcli.cli.global_config import ConfigEntry, GlobalConfig
 from samcli.commands._utils.options import parameterized_option
 
@@ -105,9 +107,11 @@ def _experimental_option_callback(ctx, param, enabled: Optional[bool]):
     If --no-beta-features is set, enabled will be False,
     we should turn off all experimental flags, overriding existing env vars.
     """
-    if enabled is True:
+    if enabled is None:
+        return
+    elif enabled:
         set_experimental(ExperimentalFlag.All, True)
-    elif enabled is False:
+    else:
         disable_all_experimental()
 
 
@@ -130,7 +134,9 @@ def experimental(f, default: Optional[bool] = None):
 
 
 @parameterized_option
-def force_experimental(f, prompt=EXPERIMENTAL_PROMPT):
+def force_experimental(
+    f, config_entry: ExperimentalEntry = ExperimentalFlag.All, prompt=EXPERIMENTAL_PROMPT, default=None
+):
     """Decorator for adding --beta-features and --no-beta-features click options to a command.
     If experimental flag env var or --beta-features flag is not specified, this will then
     prompt the user for confirmation.
@@ -140,13 +146,14 @@ def force_experimental(f, prompt=EXPERIMENTAL_PROMPT):
     def wrap(func):
         @wraps(func)
         def wrapped_func(*args, **kwargs):
-            if not prompt_experimental(prompt=prompt):
+            if not prompt_experimental(config_entry=config_entry, prompt=prompt):
                 sys.exit(1)
+            Context.get_current_context().experimental = True
             return func(*args, **kwargs)
 
         return wrapped_func
 
-    return experimental_click_option(False)(wrap(f))
+    return experimental_click_option(default)(wrap(f))
 
 
 @parameterized_option
@@ -160,8 +167,10 @@ def force_experimental_option(
     def wrap(func):
         @wraps(func)
         def wrapped_func(*args, **kwargs):
-            if kwargs[option] and not prompt_experimental(config_entry=config_entry, prompt=prompt):
-                sys.exit(1)
+            if kwargs[option]:
+                if not prompt_experimental(config_entry=config_entry, prompt=prompt):
+                    sys.exit(1)
+                Context.get_current_context().experimental = True
             return func(*args, **kwargs)
 
         return wrapped_func

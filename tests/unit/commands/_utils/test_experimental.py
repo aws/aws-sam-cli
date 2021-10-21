@@ -82,8 +82,9 @@ class TestExperimental(TestCase):
         set_experimental_mock.assert_not_called()
         disable_all_experimental_mock.assert_called_once()
 
+    @patch("samcli.commands._utils.experimental.Context")
     @patch("samcli.commands._utils.experimental.prompt_experimental")
-    def test_force_experimental_option_true(self, prompt_experimental_mock):
+    def test_force_experimental_option_true(self, prompt_experimental_mock, context_mock):
         config_entry = MagicMock()
         prompt = "abc"
         prompt_experimental_mock.return_value = True
