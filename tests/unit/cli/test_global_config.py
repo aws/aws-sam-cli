@@ -1,124 +1,276 @@
-from unittest.mock import mock_open, patch, Mock
+import os
+from unittest.mock import MagicMock, mock_open, patch, Mock
 from unittest import TestCase
 from parameterized import parameterized
-from samcli.cli.global_config import GlobalConfig
+from samcli.cli.global_config import ConfigEntry, DefaultEntry, GlobalConfig
 from pathlib import Path
 
 
 class TestGlobalConfig(TestCase):
-    def test_config_write_error(self):
-        m = mock_open()
-        m.side_effect = IOError("fail")
-        gc = GlobalConfig()
-        with patch("samcli.cli.global_config.open", m):
-            installation_id = gc.installation_id
-            self.assertIsNone(installation_id)
+    def setUp(self):
+        # Force singleton to recreate after each test
+        GlobalConfig._Singleton__instance = None
 
-    def test_unable_to_create_dir(self):
-        m = mock_open()
-        m.side_effect = OSError("Permission DENIED")
-        gc = GlobalConfig()
-        with patch("samcli.cli.global_config.Path.mkdir", m):
-            installation_id = gc.installation_id
-            self.assertIsNone(installation_id)
-            telemetry_enabled = gc.telemetry_enabled
-            self.assertFalse(telemetry_enabled)
+        path_write_patch = patch("samcli.cli.global_config.Path.write_text")
+        self.path_write_mock = path_write_patch.start()
+        self.addCleanup(path_write_patch.stop)
 
-    def test_setter_cannot_open_path(self):
-        m = mock_open()
-        m.side_effect = IOError("fail")
-        gc = GlobalConfig()
-        with patch("samcli.cli.global_config.open", m):
-            with self.assertRaises(IOError):
-                gc.telemetry_enabled = True
+        path_read_patch = patch("samcli.cli.global_config.Path.read_text")
+        self.path_read_mock = path_read_patch.start()
+        self.addCleanup(path_read_patch.stop)
 
-    @patch("samcli.cli.global_config.click")
-    def test_config_dir_default(self, mock_click):
-        mock_click.get_app_dir.return_value = "mock/folders"
-        gc = GlobalConfig()
-        self.assertEqual(Path("mock/folders"), gc.config_dir)
-        mock_click.get_app_dir.assert_called_once_with("AWS SAM", force_posix=True)
+        path_exists_patch = patch("samcli.cli.global_config.Path.exists")
+        self.path_exists_mock = path_exists_patch.start()
+        self.path_exists_mock.return_value = True
+        self.addCleanup(path_exists_patch.stop)
 
-    def test_explicit_installation_id(self):
-        gc = GlobalConfig(installation_id="foobar")
-        self.assertEqual("foobar", gc.installation_id)
+        path_mkdir_patch = patch("samcli.cli.global_config.Path.mkdir")
+        self.path_mkdir_mock = path_mkdir_patch.start()
+        self.addCleanup(path_mkdir_patch.stop)
 
-    @patch("samcli.cli.global_config.uuid")
-    @patch("samcli.cli.global_config.Path")
-    @patch("samcli.cli.global_config.click")
-    def test_setting_installation_id(self, mock_click, mock_path, mock_uuid):
-        gc = GlobalConfig()
-        mock_uuid.uuid4.return_value = "SevenLayerDipMock"
-        path_mock = Mock()
-        joinpath_mock = Mock()
-        joinpath_mock.exists.return_value = False
-        path_mock.joinpath.return_value = joinpath_mock
-        mock_path.return_value = path_mock
-        mock_click.get_app_dir.return_value = "mock/folders"
-        mock_io = mock_open(Mock())
-        with patch("samcli.cli.global_config.open", mock_io):
-            self.assertEqual("SevenLayerDipMock", gc.installation_id)
+        json_patch = patch("samcli.cli.global_config.json")
+        self.json_mock = json_patch.start()
+        self.json_mock.loads.return_value = {}
+        self.json_mock.dumps.return_value = "{}"
+        self.addCleanup(json_patch.stop)
 
-    def test_explicit_telemetry_enabled(self):
-        gc = GlobalConfig(telemetry_enabled=True)
-        self.assertTrue(gc.telemetry_enabled)
+        click_patch = patch("samcli.cli.global_config.click")
+        self.click_mock = click_patch.start()
+        self.click_mock.get_app_dir.return_value = "app_dir"
+        self.addCleanup(click_patch.stop)
 
-    @patch("samcli.cli.global_config.Path")
-    @patch("samcli.cli.global_config.click")
-    @patch("samcli.cli.global_config.os")
-    def test_missing_telemetry_flag(self, mock_os, mock_click, mock_path):
-        gc = GlobalConfig()
-        mock_click.get_app_dir.return_value = "mock/folders"
-        path_mock = Mock()
-        joinpath_mock = Mock()
-        joinpath_mock.exists.return_value = False
-        path_mock.joinpath.return_value = joinpath_mock
-        mock_path.return_value = path_mock
-        mock_os.environ = {}  # env var is not set
-        self.assertIsNone(gc.telemetry_enabled)
+        threading_patch = patch("samcli.cli.global_config.threading")
+        self.threading_mock = threading_patch.start()
+        self.addCleanup(threading_patch.stop)
 
-    @patch("samcli.cli.global_config.Path")
-    @patch("samcli.cli.global_config.click")
-    @patch("samcli.cli.global_config.os")
-    def test_error_reading_telemetry_flag(self, mock_os, mock_click, mock_path):
-        gc = GlobalConfig()
-        mock_click.get_app_dir.return_value = "mock/folders"
-        path_mock = Mock()
-        joinpath_mock = Mock()
-        joinpath_mock.exists.return_value = True
-        path_mock.joinpath.return_value = joinpath_mock
-        mock_path.return_value = path_mock
-        mock_os.environ = {}  # env var is not set
+        self.patch_environ({})
 
-        m = mock_open()
-        m.side_effect = IOError("fail")
-        with patch("samcli.cli.global_config.open", m):
-            self.assertFalse(gc.telemetry_enabled)
+    def patch_environ(self, values):
+        environ_patch = patch.dict(os.environ, values, clear=True)
+        environ_patch.start()
+        self.addCleanup(environ_patch.stop)
 
-    @parameterized.expand(
-        [
-            # Only values of '1' and 1 will enable Telemetry. Everything will disable.
-            (1, True),
-            ("1", True),
-            (0, False),
-            ("0", False),
-            # words true, True, False, False etc will disable telemetry
-            ("true", False),
-            ("True", False),
-            ("False", False),
-        ]
-    )
-    @patch("samcli.cli.global_config.os")
-    @patch("samcli.cli.global_config.click")
-    def test_set_telemetry_through_env_variable(self, env_value, expected_result, mock_click, mock_os):
-        gc = GlobalConfig()
+    def tearDown(self):
+        # Force singleton to recreate after each test
+        GlobalConfig._Singleton__instance = None
 
-        mock_os.environ = {"SAM_CLI_TELEMETRY": env_value}
-        mock_os.getenv.return_value = env_value
+    def test_singleton(self):
+        gc1 = GlobalConfig()
+        gc2 = GlobalConfig()
+        self.assertTrue(gc1 is gc2)
 
-        self.assertEqual(gc.telemetry_enabled, expected_result)
+    def test_default_config_dir(self):
+        self.assertEqual(GlobalConfig().config_dir, Path("app_dir"))
 
-        mock_os.getenv.assert_called_once_with("SAM_CLI_TELEMETRY")
+    def test_inject_config_dir(self):
+        self.patch_environ({"__SAM_CLI_APP_DIR": "inject_dir"})
+        self.assertEqual(GlobalConfig().config_dir, Path("inject_dir"))
 
-        # When environment variable is set, we shouldn't be reading the real config file at all.
-        mock_click.get_app_dir.assert_not_called()
+    @patch("samcli.cli.global_config.Path.is_dir")
+    def test_set_config_dir(self, is_dir_mock):
+        is_dir_mock.return_value = True
+        GlobalConfig().config_dir = Path("new_app_dir")
+        self.assertEqual(GlobalConfig().config_dir, Path("new_app_dir"))
+        self.assertIsNone(GlobalConfig()._config_data)
+
+    @patch("samcli.cli.global_config.Path.is_dir")
+    def test_set_config_dir_not_dir(self, is_dir_mock):
+        is_dir_mock.return_value = False
+        with self.assertRaises(ValueError):
+            GlobalConfig().config_dir = Path("new_app_dir")
+        self.assertEqual(GlobalConfig().config_dir, Path("app_dir"))
+
+    def test_default_config_filename(self):
+        self.assertEqual(GlobalConfig().config_filename, "metadata.json")
+
+    def test_set_config_filename(self):
+        GlobalConfig().config_filename = "new_metadata.json"
+        self.assertEqual(GlobalConfig().config_filename, "new_metadata.json")
+        self.assertIsNone(GlobalConfig()._config_data)
+
+    def test_default_config_path(self):
+        self.assertEqual(GlobalConfig().config_path, Path("app_dir", "metadata.json"))
+
+    def test_get_value_locking(self):
+        GlobalConfig()._get_value = MagicMock()
+        GlobalConfig().get_value(MagicMock(), True, object, False, True)
+        GlobalConfig()._access_lock.__enter__.assert_called_once()
+        GlobalConfig()._get_value.assert_called_once()
+
+    def test_set_value_locking(self):
+        GlobalConfig()._set_value = MagicMock()
+        GlobalConfig().set_value(MagicMock(), MagicMock(), True, True)
+        GlobalConfig()._access_lock.__enter__.assert_called_once()
+        GlobalConfig()._set_value.assert_called_once()
+
+    def test_get_value_env_var_only(self):
+        self.patch_environ({"ENV_VAR": "env_var_value"})
+        result = GlobalConfig().get_value(
+            ConfigEntry(None, "ENV_VAR"), default="default", value_type=str, is_flag=False, reload_config=False
+        )
+        self.assertEqual(result, "env_var_value")
+
+    def test_get_value_env_var_and_config_priority(self):
+        self.patch_environ({"ENV_VAR": "env_var_value"})
+        result = GlobalConfig().get_value(
+            ConfigEntry("config_key", "ENV_VAR"), default="default", value_type=str, is_flag=False, reload_config=False
+        )
+        self.assertEqual(result, "env_var_value")
+
+    def test_get_value_config_only(self):
+        self.patch_environ({"ENV_VAR": "env_var_value"})
+        self.json_mock.loads.return_value = {"config_key": "config_value"}
+        result = GlobalConfig().get_value(
+            ConfigEntry("config_key", None), default="default", value_type=str, is_flag=False, reload_config=False
+        )
+        self.assertEqual(result, "config_value")
+
+    def test_get_value_error_default(self):
+        self.patch_environ({"ENV_VAR": "env_var_value"})
+        self.json_mock.loads.side_effect = ValueError()
+        result = GlobalConfig().get_value(
+            ConfigEntry("config_key", None), default="default", value_type=str, is_flag=False, reload_config=False
+        )
+        self.assertEqual(result, "default")
+
+    def test_get_value_incorrect_type_default(self):
+        self.patch_environ({"ENV_VAR": "env_var_value"})
+        self.json_mock.loads.return_value = {"config_key": 1}
+        result = GlobalConfig().get_value(
+            ConfigEntry("config_key", None), default="default", value_type=str, is_flag=True, reload_config=False
+        )
+        self.assertEqual(result, "default")
+
+    def test_get_value_flag_env_var_True(self):
+        self.patch_environ({"ENV_VAR": "1"})
+        self.json_mock.loads.return_value = {"config_key": False}
+        result = GlobalConfig().get_value(
+            ConfigEntry("config_key", "ENV_VAR"), default=False, value_type=bool, is_flag=True, reload_config=False
+        )
+        self.assertTrue(result)
+
+    def test_get_value_flag_env_var_False(self):
+        self.patch_environ({"ENV_VAR": "0"})
+        self.json_mock.loads.return_value = {"config_key": True}
+        result = GlobalConfig().get_value(
+            ConfigEntry("config_key", "ENV_VAR"), default=True, value_type=bool, is_flag=True, reload_config=False
+        )
+        self.assertFalse(result)
+
+    def test_get_value_flag_config_True(self):
+        self.json_mock.loads.return_value = {"config_key": True}
+        result = GlobalConfig().get_value(
+            ConfigEntry("config_key", "ENV_VAR"), default=False, value_type=bool, is_flag=True, reload_config=False
+        )
+        self.assertTrue(result)
+
+    def test_set_value(self):
+        self.patch_environ({"ENV_VAR": "env_var_value"})
+        GlobalConfig().set_value(ConfigEntry("config_key", "ENV_VAR"), "value", False, True)
+        self.assertEqual(os.environ["ENV_VAR"], "value")
+        self.assertEqual(GlobalConfig()._config_data["config_key"], "value")
+        self.json_mock.dumps.assert_called_once()
+        self.path_write_mock.assert_called_once()
+
+    def test_set_value_no_flush(self):
+        self.patch_environ({"ENV_VAR": "env_var_value"})
+        GlobalConfig().set_value(ConfigEntry("config_key", "ENV_VAR"), "value", False, False)
+        self.assertEqual(os.environ["ENV_VAR"], "value")
+        self.assertEqual(GlobalConfig()._config_data["config_key"], "value")
+        self.json_mock.dumps.assert_not_called()
+        self.path_write_mock.assert_not_called()
+
+    def test_set_value_flag_true(self):
+        self.patch_environ({"ENV_VAR": "env_var_value"})
+        GlobalConfig().set_value(ConfigEntry("config_key", "ENV_VAR"), True, True, True)
+        self.assertEqual(os.environ["ENV_VAR"], "1")
+        self.assertEqual(GlobalConfig()._config_data["config_key"], True)
+        self.json_mock.dumps.assert_called_once()
+        self.path_write_mock.assert_called_once()
+
+    def test_set_value_flag_false(self):
+        self.patch_environ({"ENV_VAR": "env_var_value"})
+        GlobalConfig().set_value(ConfigEntry("config_key", "ENV_VAR"), False, True, True)
+        self.assertEqual(os.environ["ENV_VAR"], "0")
+        self.assertEqual(GlobalConfig()._config_data["config_key"], False)
+        self.json_mock.dumps.assert_called_once()
+        self.path_write_mock.assert_called_once()
+
+    def test_load_config(self):
+        self.path_exists_mock.return_value = True
+        self.json_mock.loads.return_value = {"a": "b"}
+        self.assertIsNone(GlobalConfig()._config_data)
+        GlobalConfig()._load_config()
+        self.assertEqual(GlobalConfig()._config_data, {"a": "b"})
+
+    def test_load_config_file_does_not_exist(self):
+        self.path_exists_mock.return_value = False
+        self.json_mock.loads.return_value = {"a": "b"}
+        self.assertIsNone(GlobalConfig()._config_data)
+        GlobalConfig()._load_config()
+        self.assertEqual(GlobalConfig()._config_data, {})
+
+    def test_load_config_error(self):
+        self.path_exists_mock.return_value = True
+        self.json_mock.loads.return_value = {"a": "b"}
+        self.json_mock.loads.side_effect = ValueError()
+        self.assertIsNone(GlobalConfig()._config_data)
+        GlobalConfig()._load_config()
+        self.assertEqual(GlobalConfig()._config_data, {})
+
+    def test_flush_config(self):
+        self.path_exists_mock.return_value = False
+        GlobalConfig()._flush_config()
+        self.json_mock.dumps.assert_called_once()
+        self.path_mkdir_mock.assert_called_once()
+        self.path_write_mock.assert_called_once()
+
+    @patch("samcli.cli.global_config.uuid.uuid4")
+    def test_get_installation_id_saved(self, uuid_mock):
+        self.json_mock.loads.return_value = {DefaultEntry.INSTALLATION_ID.config_key: "saved_uuid"}
+        uuid_mock.return_value = "default_uuid"
+        result = GlobalConfig().installation_id
+        self.assertEqual(result, "saved_uuid")
+
+    @patch("samcli.cli.global_config.uuid.uuid4")
+    def test_get_installation_id_default(self, uuid_mock):
+        self.json_mock.loads.return_value = {}
+        uuid_mock.return_value = "default_uuid"
+        result = GlobalConfig().installation_id
+        self.assertEqual(result, "default_uuid")
+
+    def test_get_telemetry_enabled(self):
+        self.patch_environ({DefaultEntry.TELEMETRY.env_var_key: "1"})
+        self.json_mock.loads.return_value = {DefaultEntry.TELEMETRY.config_key: True}
+        result = GlobalConfig().telemetry_enabled
+        self.assertEqual(result, True)
+
+    def test_get_telemetry_disabled(self):
+        self.patch_environ({DefaultEntry.TELEMETRY.env_var_key: "0"})
+        self.json_mock.loads.return_value = {DefaultEntry.TELEMETRY.config_key: True}
+        result = GlobalConfig().telemetry_enabled
+        self.assertEqual(result, False)
+
+    def test_get_telemetry_default(self):
+        self.patch_environ({"__SAM_CLI_APP_DIR": "inject_dir"})
+        result = GlobalConfig().telemetry_enabled
+        self.assertEqual(result, False)
+
+    def test_set_telemetry(self):
+        GlobalConfig().telemetry_enabled = True
+        self.assertEqual(os.environ[DefaultEntry.TELEMETRY.env_var_key], "1")
+        self.assertEqual(GlobalConfig()._config_data[DefaultEntry.TELEMETRY.config_key], True)
+
+    def test_set_telemetry(self):
+        GlobalConfig().telemetry_enabled = True
+        self.assertEqual(os.environ[DefaultEntry.TELEMETRY.env_var_key], "1")
+        self.assertEqual(GlobalConfig()._config_data[DefaultEntry.TELEMETRY.config_key], True)
+
+    def test_get_last_version_check(self):
+        self.json_mock.loads.return_value = {DefaultEntry.LAST_VERSION_CHECK.config_key: 123.4}
+        result = GlobalConfig().last_version_check
+        self.assertEqual(result, 123.4)
+
+    def test_set_last_version_check(self):
+        GlobalConfig().last_version_check = 123.4
+        self.assertEqual(GlobalConfig()._config_data[DefaultEntry.LAST_VERSION_CHECK.config_key], 123.4)

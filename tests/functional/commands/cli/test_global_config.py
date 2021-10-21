@@ -19,7 +19,8 @@ class TestGlobalConfig(TestCase):
 
     def tearDown(self):
         shutil.rmtree(self._cfg_dir)
-        GlobalConfig.__instance = None
+        # Force singleton to recreate after each test
+        GlobalConfig._Singleton__instance = None
         os.environ.clear()
         os.environ.update(self.saved_env_var)
 
@@ -160,7 +161,7 @@ class TestGlobalConfig(TestCase):
         self.assertEqual(gc.last_version_check, last_version_check_value)
 
     def test_last_version_check_value_no_file(self):
-        gc = GlobalConfig(config_dir=self._cfg_dir)
+        gc = GlobalConfig()
         gc.config_dir = Path(self._cfg_dir)
         self.assertIsNone(gc.last_version_check)
 

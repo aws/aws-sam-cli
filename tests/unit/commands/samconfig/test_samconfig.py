@@ -8,6 +8,7 @@ import shutil
 import tempfile
 from pathlib import Path
 from contextlib import contextmanager
+from samcli.commands._utils.experimental import ExperimentalFlag, set_experimental
 from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV
 
 from click.testing import CliRunner
@@ -737,7 +738,7 @@ class TestSamConfigForAllCommands(TestCase):
             "name": ["myfunction"],
             "stack_name": "mystack",
             "filter": "myfilter",
-            "tail": True,
+            "tail": False,
             "include_traces": True,
             "start_time": "starttime",
             "end_time": "endtime",
@@ -745,6 +746,47 @@ class TestSamConfigForAllCommands(TestCase):
             "region": "myregion",
         }
 
+        with samconfig_parameters(["logs"], self.scratch_dir, **config_values) as config_path:
+            from samcli.commands.logs.command import cli
+
+            LOG.debug(Path(config_path).read_text())
+            runner = CliRunner()
+            result = runner.invoke(cli, [])
+
+            LOG.info(result.output)
+            LOG.info(result.exception)
+            if result.exception:
+                LOG.exception("Command failed", exc_info=result.exc_info)
+            self.assertIsNone(result.exception)
+
+            do_cli_mock.assert_called_with(
+                ("myfunction",),
+                "mystack",
+                "myfilter",
+                False,
+                True,
+                "starttime",
+                "endtime",
+                ("cw_log_group",),
+                False,
+                "myregion",
+            )
+
+    @patch("samcli.commands._utils.experimental.is_experimental_enabled")
+    @patch("samcli.commands.logs.command.do_cli")
+    def test_logs_tail(self, do_cli_mock, experimental_mock):
+        config_values = {
+            "name": ["myfunction"],
+            "stack_name": "mystack",
+            "filter": "myfilter",
+            "tail": True,
+            "include_traces": True,
+            "start_time": "starttime",
+            "end_time": "endtime",
+            "cw_log_group": ["cw_log_group"],
+            "region": "myregion",
+        }
+        experimental_mock.return_value = True
         with samconfig_parameters(["logs"], self.scratch_dir, **config_values) as config_path:
             from samcli.commands.logs.command import cli
 
@@ -808,6 +850,7 @@ class TestSamConfigForAllCommands(TestCase):
             info_result = json.loads(result.output)
             self.assertTrue("version" in info_result)
 
+    @patch("samcli.commands._utils.experimental.is_experimental_enabled")
     @patch("samcli.lib.cli_validation.image_repository_validation.get_template_function_resource_ids")
     @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
     @patch("samcli.commands._utils.template.get_template_artifacts_format")
@@ -820,12 +863,14 @@ class TestSamConfigForAllCommands(TestCase):
         template_artifacts_mock2,
         template_artifacts_mock3,
         template_artifacts_mock4,
+        experimental_mock,
     ):
 
         template_artifacts_mock1.return_value = [ZIP]
         template_artifacts_mock2.return_value = [ZIP]
         template_artifacts_mock3.return_value = [ZIP]
         template_artifacts_mock4.return_value = ["HelloWorldFunction"]
+        experimental_mock.return_value = True
 
         config_values = {
             "template_file": "mytemplate.yaml",

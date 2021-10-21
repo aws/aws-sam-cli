@@ -33,7 +33,18 @@ class DefaultEntry:
     TELEMETRY = ConfigEntry("telemetryEnabled", "SAM_CLI_TELEMETRY")
 
 
-class GlobalConfig:
+class Singleton(type):
+    def __init__(cls, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        cls.__instance = None
+
+    def __call__(cls, *args, **kwargs):
+        if cls.__instance is None:
+            cls.__instance = super().__call__(*args, **kwargs)
+        return cls.__instance
+
+
+class GlobalConfig(metaclass=Singleton):
     """
     A singleton for accessing configurations from environmental variables and
     configuration file. Singleton is used to enforce immutability, access locking,
@@ -49,34 +60,18 @@ class GlobalConfig:
     _DIR_INJECTION_ENV_VAR: str = "__SAM_CLI_APP_DIR"
 
     # Static singleton instance
-    __instance: Optional["GlobalConfig"] = None
 
     _access_lock: threading.RLock
     _config_dir: Optional[Path]
     _config_filename: Optional[str]
-    _config_data: Dict[str, Any]
+    _config_data: Optional[Dict[str, Any]]
 
-    def __new__(cls, *args, **kwargs):
-        """Singleton __new__ method to check whether the instance exists or not."""
-        if cls.__instance is None:
-            cls.__instance = cls._instance = super().__new__(cls)
-
-        return GlobalConfig.__instance
-
-    def __init__(self, config_dir: Optional[Path] = None, config_filename: Optional[str] = None):
-        """Options for updating
-
-        Parameters
-        ----------
-        config_dir : Optional[Path], optional
-            Directory in which the config file should reside in, by default None
-        config_filename : Optional[str], optional
-            Configuration filename, by default None
-        """
+    def __init__(self):
+        """__init__ should only be called once due to Singleton metaclass"""
         self._access_lock = threading.RLock()
-        self._config_dir = config_dir
-        self._config_filename = config_filename
-        self._load_config()
+        self._config_dir = None
+        self._config_filename = None
+        self._config_data = None
 
     @property
     def config_dir(self) -> Path:
@@ -112,7 +107,7 @@ class GlobalConfig:
         if not dir_path.is_dir():
             raise ValueError("config_dir must be a directory.")
         self._config_dir = dir_path
-        self._load_config()
+        self._config_data = None
 
     @property
     def config_filename(self) -> str:
@@ -129,6 +124,7 @@ class GlobalConfig:
     @config_filename.setter
     def config_filename(self, filename: str) -> None:
         self._config_filename = filename
+        self._config_data = None
 
     @property
     def config_path(self) -> Path:
@@ -234,7 +230,7 @@ class GlobalConfig:
                     value = value in ("1", 1)
 
             if value is None and config_entry.config_key:
-                if reload_config:
+                if reload_config or self._config_data is None:
                     self._load_config()
                 value = self._config_data.get(config_entry.config_key)
 
@@ -280,6 +276,8 @@ class GlobalConfig:
                 os.environ[config_entry.env_var_key] = value
 
         if config_entry.config_key:
+            if self._config_data is None:
+                self._load_config()
             self._config_data[config_entry.config_key] = value
 
             if flush:
