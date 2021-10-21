@@ -109,7 +109,8 @@ def _experimental_option_callback(ctx, param, enabled: Optional[bool]):
     """
     if enabled is None:
         return
-    elif enabled:
+
+    if enabled:
         set_experimental(ExperimentalFlag.All, True)
     else:
         disable_all_experimental()
