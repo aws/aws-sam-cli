@@ -742,7 +742,7 @@ class TestSamConfigForAllCommands(TestCase):
             "include_traces": True,
             "start_time": "starttime",
             "end_time": "endtime",
-            "cw_log_group": ["cw_log_group"],
+            "cw_log_group": [],
             "region": "myregion",
         }
 
@@ -767,7 +767,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 "starttime",
                 "endtime",
-                ("cw_log_group",),
+                (),
                 False,
                 "myregion",
             )
