@@ -1,13 +1,10 @@
 import os
 from unittest.mock import MagicMock, call, patch
 from unittest import TestCase
-from samcli.cli.global_config import ConfigEntry, DefaultEntry, GlobalConfig
-from pathlib import Path
 
 from samcli.commands._utils.experimental import (
     _experimental_option_callback,
     disable_all_experimental,
-    experimental,
     force_experimental_option,
     get_all_experimental_statues,
     get_all_experimental,
@@ -17,40 +14,12 @@ from samcli.commands._utils.experimental import (
 )
 
 
-class TestGlobalConfig(TestCase):
+class TestExperimental(TestCase):
     def setUp(self):
 
         gc_patch = patch("samcli.commands._utils.experimental.GlobalConfig")
         self.gc_mock = gc_patch.start()
         self.addCleanup(gc_patch.stop)
-
-        path_read_patch = patch("samcli.cli.global_config.Path.read_text")
-        self.path_read_mock = path_read_patch.start()
-        self.addCleanup(path_read_patch.stop)
-
-        path_exists_patch = patch("samcli.cli.global_config.Path.exists")
-        self.path_exists_mock = path_exists_patch.start()
-        self.path_exists_mock.return_value = True
-        self.addCleanup(path_exists_patch.stop)
-
-        path_mkdir_patch = patch("samcli.cli.global_config.Path.mkdir")
-        self.path_mkdir_mock = path_mkdir_patch.start()
-        self.addCleanup(path_mkdir_patch.stop)
-
-        json_patch = patch("samcli.cli.global_config.json")
-        self.json_mock = json_patch.start()
-        self.json_mock.loads.return_value = {}
-        self.json_mock.dumps.return_value = "{}"
-        self.addCleanup(json_patch.stop)
-
-        click_patch = patch("samcli.cli.global_config.click")
-        self.click_mock = click_patch.start()
-        self.click_mock.get_app_dir.return_value = "app_dir"
-        self.addCleanup(click_patch.stop)
-
-        threading_patch = patch("samcli.cli.global_config.threading")
-        self.threading_mock = threading_patch.start()
-        self.addCleanup(threading_patch.stop)
 
         self.patch_environ({})
 
@@ -112,10 +81,6 @@ class TestGlobalConfig(TestCase):
         _experimental_option_callback(MagicMock(), MagicMock(), False)
         set_experimental_mock.assert_not_called()
         disable_all_experimental_mock.assert_called_once()
-
-    @patch("samcli.commands._utils.experimental.click.option")
-    def test_experimental_flag(self, option_mock):
-        pass
 
     @patch("samcli.commands._utils.experimental.prompt_experimental")
     def test_force_experimental_option_true(self, prompt_experimental_mock):

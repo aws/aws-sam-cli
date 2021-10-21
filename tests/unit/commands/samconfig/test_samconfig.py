@@ -732,8 +732,9 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
             )
 
+    @patch("samcli.commands._utils.experimental.is_experimental_enabled")
     @patch("samcli.commands.logs.command.do_cli")
-    def test_logs(self, do_cli_mock):
+    def test_logs(self, do_cli_mock, experimental_mock):
         config_values = {
             "name": ["myfunction"],
             "stack_name": "mystack",
@@ -745,6 +746,7 @@ class TestSamConfigForAllCommands(TestCase):
             "cw_log_group": [],
             "region": "myregion",
         }
+        experimental_mock.return_value = False
 
         with samconfig_parameters(["logs"], self.scratch_dir, **config_values) as config_path:
             from samcli.commands.logs.command import cli
