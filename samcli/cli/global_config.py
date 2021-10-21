@@ -356,7 +356,7 @@ class GlobalConfig(metaclass=Singleton):
         return value
 
     @property
-    def telemetry_enabled(self) -> bool:
+    def telemetry_enabled(self) -> Optional[bool]:
         """
         Check if telemetry is enabled for this installation. Default value of
         False. It first tries to get value from SAM_CLI_TELEMETRY environment variable. If its not set,
@@ -377,7 +377,7 @@ class GlobalConfig(metaclass=Singleton):
         Boolean flag value. True if telemetry is enabled for this installation,
         False otherwise.
         """
-        return self.get_value(DefaultEntry.TELEMETRY, default=False, value_type=bool, is_flag=True)
+        return self.get_value(DefaultEntry.TELEMETRY, default=None, value_type=bool, is_flag=True)
 
     @telemetry_enabled.setter
     def telemetry_enabled(self, value: bool) -> None:

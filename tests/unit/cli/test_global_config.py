@@ -263,7 +263,7 @@ class TestGlobalConfig(TestCase):
     def test_get_telemetry_default(self):
         self.patch_environ({"__SAM_CLI_APP_DIR": "inject_dir"})
         result = GlobalConfig().telemetry_enabled
-        self.assertEqual(result, False)
+        self.assertIsNone(result)
 
     def test_set_telemetry(self):
         GlobalConfig().telemetry_enabled = True
