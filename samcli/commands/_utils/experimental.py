@@ -105,9 +105,11 @@ def _experimental_option_callback(ctx, param, enabled: Optional[bool]):
     If --no-beta-features is set, enabled will be False,
     we should turn off all experimental flags, overriding existing env vars.
     """
-    if enabled is True:
+    if enabled is None:
+        return
+    elif enabled:
         set_experimental(ExperimentalFlag.All, True)
-    elif enabled is False:
+    else:
         disable_all_experimental()
 
 
