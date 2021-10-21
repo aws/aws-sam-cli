@@ -739,11 +739,9 @@ class TestSamConfigForAllCommands(TestCase):
             "name": ["myfunction"],
             "stack_name": "mystack",
             "filter": "myfilter",
-            "tail": False,
             "include_traces": True,
             "start_time": "starttime",
             "end_time": "endtime",
-            "cw_log_group": [],
             "region": "myregion",
         }
         experimental_mock.return_value = False
