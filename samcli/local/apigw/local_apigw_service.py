@@ -5,9 +5,6 @@ import logging
 import base64
 from typing import List, Optional
 
-from time import time
-from datetime import datetime
-
 from flask import Flask, request
 from werkzeug.datastructures import Headers
 from werkzeug.routing import BaseConverter
@@ -739,14 +736,7 @@ class LocalApigwService(BaseLocalService):
 
     @staticmethod
     def _construct_v_2_0_event_http(
-        flask_request,
-        port,
-        binary_types,
-        stage_name=None,
-        stage_variables=None,
-        route_key=None,
-        request_time_epoch=int(time()),
-        request_time=datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000"),
+        flask_request, port, binary_types, stage_name=None, stage_variables=None, route_key=None
     ):
         """
         Helper method that constructs the Event 2.0 to be passed to Lambda
@@ -783,14 +773,7 @@ class LocalApigwService(BaseLocalService):
         cookies = LocalApigwService._event_http_cookies(flask_request)
         headers = LocalApigwService._event_http_headers(flask_request, port)
         context_http = ContextHTTP(method=method, path=flask_request.path, source_ip=flask_request.remote_addr)
-        context = RequestContextV2(
-            http=context_http,
-            route_key=route_key,
-            stage=stage_name,
-            request_time_epoch=request_time_epoch,
-            request_time=request_time,
-        )
-
+        context = RequestContextV2(http=context_http, route_key=route_key, stage=stage_name)
         event = ApiGatewayV2LambdaEvent(
             route_key=route_key,
             raw_path=flask_request.path,
