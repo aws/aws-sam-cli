@@ -1,7 +1,6 @@
 import base64
 import copy
 import json
-from time import time
 from datetime import datetime
 from unittest import TestCase
 
@@ -1497,58 +1496,47 @@ class TestService_construct_event_http(TestCase):
         cookies_mock.keys.return_value = ["cookie1", "cookie2"]
         cookies_mock.get.side_effect = ["test", "test"]
         self.request_mock.cookies = cookies_mock
-        self.request_time_epoch = int(time())
-        self.request_time = datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000")
 
-        expected = f"""
-        {{
+        expected = """
+        {
             "version": "2.0",
             "routeKey": "GET /endpoint",
             "rawPath": "/endpoint",
             "rawQueryString": "query=params",
             "cookies": ["cookie1=test", "cookie2=test"],
-            "headers": {{
+            "headers": {
                 "Content-Type": "application/json",
                 "X-Test": "Value",
                 "X-Forwarded-Proto": "http",
                 "X-Forwarded-Port": "3000"
-            }},
-            "queryStringParameters": {{"query": "params"}},
-            "requestContext": {{
+            },
+            "queryStringParameters": {"query": "params"},
+            "requestContext": {
                 "accountId": "123456789012",
                 "apiId": "1234567890",
-                "domainName": "localhost",
-                "domainPrefix": "localhost",
-                "http": {{
+                "http": {
                     "method": "GET",
                     "path": "/endpoint",
                     "protocol": "HTTP/1.1",
                     "sourceIp": "190.0.0.0",
                     "userAgent": "Custom User Agent String"
-                }},
+                },
                 "requestId": "",
                 "routeKey": "GET /endpoint",
-                "stage": "$default",
-                "time": \"{self.request_time}\",
-                "timeEpoch": {self.request_time_epoch}
-            }},
+                "stage": null
+            },
             "body": "DATA!!!!",
-            "pathParameters": {{"path": "params"}},
+            "pathParameters": {"path": "params"},
             "stageVariables": null,
             "isBase64Encoded": false
-        }}
+        }
         """
 
         self.expected_dict = json.loads(expected)
 
     def test_construct_event_with_data(self):
         actual_event_str = LocalApigwService._construct_v_2_0_event_http(
-            self.request_mock,
-            3000,
-            binary_types=[],
-            route_key="GET /endpoint",
-            request_time_epoch=self.request_time_epoch,
-            request_time=self.request_time,
+            self.request_mock, 3000, binary_types=[], route_key="GET /endpoint"
         )
         print("DEBUG: json.loads(actual_event_str)", json.loads(actual_event_str))
         print("DEBUG: self.expected_dict", self.expected_dict)
@@ -1562,12 +1550,7 @@ class TestService_construct_event_http(TestCase):
         self.expected_dict["body"] = None
 
         actual_event_str = LocalApigwService._construct_v_2_0_event_http(
-            self.request_mock,
-            3000,
-            binary_types=[],
-            route_key="GET /endpoint",
-            request_time_epoch=self.request_time_epoch,
-            request_time=self.request_time,
+            self.request_mock, 3000, binary_types=[], route_key="GET /endpoint"
         )
         actual_event_dict = json.loads(actual_event_str)
         self.assertEqual(len(actual_event_dict["requestContext"]["requestId"]), 36)
@@ -1595,12 +1578,7 @@ class TestService_construct_event_http(TestCase):
         self.maxDiff = None
 
         actual_event_str = LocalApigwService._construct_v_2_0_event_http(
-            self.request_mock,
-            3000,
-            binary_types=[],
-            route_key="GET /endpoint",
-            request_time_epoch=self.request_time_epoch,
-            request_time=self.request_time,
+            self.request_mock, 3000, binary_types=[], route_key="GET /endpoint"
         )
         actual_event_dict = json.loads(actual_event_str)
         self.assertEqual(len(actual_event_dict["requestContext"]["requestId"]), 36)
