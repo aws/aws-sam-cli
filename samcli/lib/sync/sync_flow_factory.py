@@ -146,14 +146,6 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
     def _create_stepfunctions_flow(
         self, resource_identifier: ResourceIdentifier, resource: Dict[str, Any]
     ) -> Optional[SyncFlow]:
-        definition_substitutions = resource.get("Properties", dict()).get("DefinitionSubstitutions", None)
-        if definition_substitutions:
-            LOG.warning(
-                "DefinitionSubstitutions property is specified in resource %s. Skipping this resource. "
-                "Code sync for StepFunctions does not go through CFN, please run sam sync --infra to update.",
-                resource_identifier,
-            )
-            return None
         return StepFunctionsSyncFlow(
             str(resource_identifier),
             self._build_context,

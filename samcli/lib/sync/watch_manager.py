@@ -16,7 +16,7 @@ from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.path_observer import HandlerObserver
 
 from samcli.lib.sync.sync_flow_factory import SyncFlowFactory
-from samcli.lib.sync.exceptions import MissingPhysicalResourceError, SyncFlowException
+from samcli.lib.sync.exceptions import InfraSyncRequiredError, MissingPhysicalResourceError, SyncFlowException
 from samcli.lib.utils.resource_trigger import OnChangeCallback, TemplateTrigger
 from samcli.lib.sync.continuous_sync_flow_executor import ContinuousSyncFlowExecutor
 
@@ -228,6 +228,14 @@ class WatchManager:
         exception = sync_flow_exception.exception
         if isinstance(exception, MissingPhysicalResourceError):
             LOG.warning(self._color.yellow("Missing physical resource. Infra sync will be started."))
+            self.queue_infra_sync()
+        elif isinstance(exception, InfraSyncRequiredError):
+            LOG.warning(
+                self._color.yellow(
+                    f"Infra sync is required for {exception.resource_identifier} due to: "
+                    + f"{exception.reason}. Infra sync will be started."
+                )
+            )
             self.queue_infra_sync()
         else:
             LOG.error(self._color.red("Code sync encountered an error."), exc_info=exception)
