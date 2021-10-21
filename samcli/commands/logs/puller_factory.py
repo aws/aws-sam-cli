@@ -84,9 +84,7 @@ def generate_puller(
             resource_information.physical_resource_id,
         )
         if not cw_log_group_name:
-            LOG.warning(
-                "Can't find CloudWatch LogGroup name for resource (%s)", resource_information.logical_resource_id
-            )
+            LOG.debug("Can't find CloudWatch LogGroup name for resource (%s)", resource_information.logical_resource_id)
             continue
 
         consumer = generate_consumer(filter_pattern, unformatted, resource_information.logical_resource_id)

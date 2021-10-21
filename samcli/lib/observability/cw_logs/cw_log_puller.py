@@ -119,9 +119,9 @@ class CWLogPuller(ObservabilityPuller):
                 self._invalid_log_group = False
             except self.logs_client.exceptions.ResourceNotFoundException:
                 if not self._invalid_log_group:
-                    LOG.warning(
+                    LOG.debug(
                         "The specified log group %s does not exist. "
-                        "Please make sure logging is enable and log group is created",
+                        "This may be due to your resource have not been invoked yet.",
                         self.cw_log_group,
                     )
                     self._invalid_log_group = True
