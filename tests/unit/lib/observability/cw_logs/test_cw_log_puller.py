@@ -131,8 +131,6 @@ class TestCWLogPuller_load_time_period(TestCase):
             self.fetcher.load_time_period(start_time=start, end_time=end, filter_pattern=pattern)
             self.assertFalse(self.fetcher._invalid_log_group)
 
-        patched_log.warning.assert_called_once()
-
     def test_must_paginate_using_next_token(self):
         """Make three API calls, first two returns a nextToken and last does not."""
         token = "token"
