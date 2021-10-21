@@ -89,7 +89,8 @@ class TestNestedStackManager(TestCase):
 
     @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.move_template")
     @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.osutils")
-    def test_with_zip_function(self, patched_osutils, patched_move_template):
+    @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.os.path.isdir")
+    def test_with_zip_function(self, patched_isdir, patched_osutils, patched_move_template):
         template = {
             "Resources": {"MyFunction": {"Type": AWS_SERVERLESS_FUNCTION, "Properties": {"Runtime": "python3.8"}}}
         }
@@ -103,6 +104,7 @@ class TestNestedStackManager(TestCase):
         function_definition_mock = Mock(dependencies_dir=dependencies_dir, functions=functions)
         build_graph.get_function_build_definition_with_logical_id.return_value = function_definition_mock
         app_build_result = ApplicationBuildResult(build_graph, {"MyFunction": "path/to/build/dir"})
+        patched_isdir.return_value = True
 
         nested_stack_manager = NestedStackManager(
             self.stack_name, self.build_dir, self.stack_location, template, app_build_result
@@ -146,7 +148,41 @@ class TestNestedStackManager(TestCase):
     @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.shutil")
     @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.osutils")
     @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.NestedStackManager._add_layer_readme_info")
-    def test_update_layer_folder(self, patched_add_layer_readme, patched_osutils, patched_shutil, patched_path):
+    @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.os.path.isdir")
+    def test_update_layer_folder(
+        self, patched_isdir, patched_add_layer_readme, patched_osutils, patched_shutil, patched_path
+    ):
+        build_dir = "build_dir"
+        dependencies_dir = "dependencies_dir"
+        layer_logical_id = "layer_logical_id"
+        function_logical_id = "function_logical_id"
+        function_runtime = "python3.9"
+
+        layer_contents_folder = Mock()
+        layer_root_folder = Mock()
+        layer_root_folder.exists.return_value = True
+        layer_root_folder.joinpath.return_value = layer_contents_folder
+        patched_path.return_value.joinpath.return_value = layer_root_folder
+        patched_isdir.return_value = True
+
+        layer_folder = NestedStackManager.update_layer_folder(
+            build_dir, dependencies_dir, layer_logical_id, function_logical_id, function_runtime
+        )
+
+        patched_shutil.rmtree.assert_called_with(layer_root_folder)
+        layer_contents_folder.mkdir.assert_called_with(BUILD_DIR_PERMISSIONS, parents=True)
+        patched_osutils.copytree.assert_called_with(dependencies_dir, str(layer_contents_folder))
+        patched_add_layer_readme.assert_called_with(str(layer_root_folder), function_logical_id)
+        self.assertEqual(layer_folder, str(layer_root_folder))
+
+    @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.Path")
+    @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.shutil")
+    @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.osutils")
+    @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.NestedStackManager._add_layer_readme_info")
+    @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.os.path.isdir")
+    def test_corruption_dep_dir(
+        self, patched_isdir, patched_add_layer_readme, patched_osutils, patched_shutil, patched_path
+    ):
         build_dir = "build_dir"
         dependencies_dir = "dependencies_dir"
         layer_logical_id = "layer_logical_id"
@@ -159,15 +195,16 @@ class TestNestedStackManager(TestCase):
         layer_root_folder.joinpath.return_value = layer_contents_folder
         patched_path.return_value.joinpath.return_value = layer_root_folder
 
-        layer_folder = NestedStackManager.update_layer_folder(
-            build_dir, dependencies_dir, layer_logical_id, function_logical_id, function_runtime
-        )
+        expected_error_message = "The dependency directory dependencies_dir does not exist. \
+It may be due to previous dependency copy failure or build folder corruption. \
+Try deleting the build folder (.aws-sam by default) and rerun."
+        patched_isdir.return_value = False
 
-        patched_shutil.rmtree.assert_called_with(layer_root_folder)
-        layer_contents_folder.mkdir.assert_called_with(BUILD_DIR_PERMISSIONS, parents=True)
-        patched_osutils.copytree.assert_called_with(dependencies_dir, str(layer_contents_folder))
-        patched_add_layer_readme.assert_called_with(str(layer_root_folder), function_logical_id)
-        self.assertEqual(layer_folder, str(layer_root_folder))
+        with self.assertRaises(FileNotFoundError) as error:
+            NestedStackManager.update_layer_folder(
+                build_dir, dependencies_dir, layer_logical_id, function_logical_id, function_runtime
+            )
+        self.assertEqual(str(error.exception), expected_error_message)
 
     @parameterized.expand([("python3.8", True), ("ruby2.7", False)])
     def test_is_runtime_supported(self, runtime, supported):
