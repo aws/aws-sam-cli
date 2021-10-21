@@ -3,7 +3,7 @@ import sys
 
 from dataclasses import dataclass
 from functools import wraps
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 import click
 
@@ -97,21 +97,21 @@ def disable_all_experimental():
         set_experimental(entry, False)
 
 
-def _experimental_option_callback(ctx, param, enabled: bool):
+def _experimental_option_callback(ctx, param, enabled: Optional[bool]):
     """Click parameter callback for --beta-features or --no-beta-features.
-    If neither is specified, this function will not be called.
+    If neither is specified, enabled will be None.
     If --beta-features is set, enabled will be True,
     we should turn on all experimental flags.
     If --no-beta-features is set, enabled will be False,
     we should turn off all experimental flags, overriding existing env vars.
     """
-    if enabled:
+    if enabled is True:
         set_experimental(ExperimentalFlag.All, True)
-    else:
+    elif enabled is False:
         disable_all_experimental()
 
 
-def experimental_click_option(default: bool):
+def experimental_click_option(default: Optional[bool]):
     return click.option(
         "--beta-features/--no-beta-features",
         default=default,
@@ -124,7 +124,7 @@ def experimental_click_option(default: bool):
 
 
 @parameterized_option
-def experimental(f, default: bool = False):
+def experimental(f, default: Optional[bool] = None):
     """Decorator for adding --beta-features and --no-beta-features click options to a command."""
     return experimental_click_option(default)(f)
 
