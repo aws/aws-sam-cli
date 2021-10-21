@@ -237,7 +237,7 @@ class GlobalConfig(metaclass=Singleton):
             if value is None and config_entry.config_key:
                 if reload_config or self._config_data is None:
                     self._load_config()
-                value = self._config_data.get(config_entry.config_key)
+                value = cast(dict, self._config_data).get(config_entry.config_key)
 
             if value is None or not isinstance(value, value_type):
                 return default
@@ -283,7 +283,7 @@ class GlobalConfig(metaclass=Singleton):
         if config_entry.config_key:
             if self._config_data is None:
                 self._load_config()
-            self._config_data[config_entry.config_key] = value
+            cast(dict, self._config_data)[config_entry.config_key] = value
 
             if config_entry.persistent:
                 self._persistent_fields.append(config_entry.config_key)
