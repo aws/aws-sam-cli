@@ -52,7 +52,7 @@ class TestLayerSyncFlow(TestCase):
                     ]
                 )
 
-        self.assertEqual(self.layer_sync_flow._layer_physical_name, "layer_version_arn")
+        self.assertEqual(self.layer_sync_flow._layer_arn, "layer_version_arn")
 
     def test_setup_with_unknown_layer(self):
         given_layer_name_with_hashes = f"SomeOtherLayerabcdefghij"
@@ -129,7 +129,7 @@ class TestLayerSyncFlow(TestCase):
         with patch.object(self.layer_sync_flow, "_get_latest_layer_version") as patched_get_latest_layer_version:
             given_layer_name = Mock()
             given_latest_layer_version = Mock()
-            self.layer_sync_flow._layer_physical_name = given_layer_name
+            self.layer_sync_flow._layer_arn = given_layer_name
             patched_get_latest_layer_version.return_value = given_latest_layer_version
 
             compare_result = self.layer_sync_flow.compare_remote()
@@ -157,7 +157,7 @@ class TestLayerSyncFlow(TestCase):
         given_zip_file = Mock()
         self.layer_sync_flow._zip_file = given_zip_file
 
-        self.layer_sync_flow._layer_physical_name = given_layer_name
+        self.layer_sync_flow._layer_arn = given_layer_name
 
         with patch.object(self.layer_sync_flow, "_get_resource") as patched_get_resource:
             with patch("builtins.open", mock_open(read_data="data")) as mock_file:
@@ -185,7 +185,7 @@ class TestLayerSyncFlow(TestCase):
         given_lambda_client = Mock()
         self.layer_sync_flow._lambda_client = given_lambda_client
 
-        self.layer_sync_flow._layer_physical_name = given_layer_name
+        self.layer_sync_flow._layer_arn = given_layer_name
         self.layer_sync_flow._old_layer_version = given_layer_version
 
         self.layer_sync_flow._delete_old_layer_version()
@@ -231,7 +231,7 @@ class TestLayerSyncFlow(TestCase):
         self.layer_sync_flow._stacks = Mock()
 
         given_layer_physical_name = Mock()
-        self.layer_sync_flow._layer_physical_name = given_layer_physical_name
+        self.layer_sync_flow._layer_arn = given_layer_physical_name
 
         self.layer_sync_flow._zip_file = Mock()
 
@@ -288,7 +288,7 @@ class TestLayerSyncFlow(TestCase):
         self.layer_sync_flow._stacks = Mock()
 
         given_layer_physical_name = Mock()
-        self.layer_sync_flow._layer_physical_name = given_layer_physical_name
+        self.layer_sync_flow._layer_arn = given_layer_physical_name
 
         self.layer_sync_flow._zip_file = Mock()
 
@@ -312,7 +312,7 @@ class TestLayerSyncFlow(TestCase):
         given_lambda_client = Mock()
         given_lambda_client.list_layer_versions.return_value = {"LayerVersions": [{"Version": given_version}]}
         self.layer_sync_flow._lambda_client = given_lambda_client
-        self.layer_sync_flow._layer_physical_name = given_layer_name
+        self.layer_sync_flow._layer_arn = given_layer_name
 
         latest_layer_version = self.layer_sync_flow._get_latest_layer_version()
 
@@ -324,7 +324,7 @@ class TestLayerSyncFlow(TestCase):
         given_lambda_client = Mock()
         given_lambda_client.list_layer_versions.return_value = {"LayerVersions": []}
         self.layer_sync_flow._lambda_client = given_lambda_client
-        self.layer_sync_flow._layer_physical_name = given_layer_name
+        self.layer_sync_flow._layer_arn = given_layer_name
 
         with self.assertRaises(NoLayerVersionsFoundError):
             self.layer_sync_flow._get_latest_layer_version()

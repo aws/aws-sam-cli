@@ -40,7 +40,7 @@ class AbstractXRayPuller(ObservabilityPuller):
             self.latest_event_time = to_timestamp(start_time)
 
         counter = self._max_retries
-        while counter > 0:
+        while counter > 0 and not self.cancelled:
             LOG.debug("Tailing XRay traces starting at %s", self.latest_event_time)
 
             counter -= 1

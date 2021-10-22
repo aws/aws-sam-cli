@@ -45,6 +45,9 @@ class ObservabilityPuller(ABC):
     Interface definition for pulling observability information.
     """
 
+    # used to cancel indefinitely running processes (eg: tail)
+    cancelled: bool = False
+
     @abstractmethod
     def tail(self, start_time: Optional[datetime] = None, filter_pattern: Optional[str] = None):
         """
@@ -180,7 +183,12 @@ class ObservabilityCombinedPuller(ObservabilityPuller):
             LOG.debug("Adding task 'tail' for puller (%s)", puller)
             async_context.add_async_task(puller.tail, start_time, filter_pattern)
         LOG.debug("Running all 'tail' tasks in parallel")
-        async_context.run_async()
+        try:
+            async_context.run_async()
+        except KeyboardInterrupt:
+            LOG.info(" CTRL+C received, cancelling...")
+            for puller in self._pullers:
+                puller.cancelled = True
 
     def load_time_period(
         self,

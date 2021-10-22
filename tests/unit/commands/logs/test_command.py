@@ -16,6 +16,7 @@ class TestLogsCliCommand(TestCase):
         self.end_time = "end"
         self.output_dir = "output_dir"
         self.region = "region"
+        self.profile = "profile"
 
     @parameterized.expand(
         [
@@ -86,6 +87,7 @@ class TestLogsCliCommand(TestCase):
             cw_log_group,
             self.output_dir,
             self.region,
+            self.profile,
         )
 
         patched_parse_time.assert_has_calls(
@@ -95,8 +97,8 @@ class TestLogsCliCommand(TestCase):
             ]
         )
 
-        patched_boto_client_provider.assert_called_with(region_name=self.region)
-        patched_boto_resource_provider.assert_called_with(region_name=self.region)
+        patched_boto_client_provider.assert_called_with(region=self.region, profile=self.profile)
+        patched_boto_resource_provider.assert_called_with(region=self.region, profile=self.profile)
 
         patched_resource_physical_id_resolver.assert_called_with(
             mocked_resource_provider, self.stack_name, self.function_name

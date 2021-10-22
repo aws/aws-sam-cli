@@ -101,7 +101,7 @@ class LogGroupProvider:
         stage_info = apigw2_client.get_stage(ApiId=http_api_id, StageName=stage)
         log_setting = stage_info.get("AccessLogSettings", None)
         if not log_setting:
-            LOG.warning("Access logging is disabled for http api id (%s)", http_api_id)
+            LOG.warning("Access logging is disabled for HTTP API ID (%s)", http_api_id)
             return None
         log_group_name = str(log_setting.get("DestinationArn").split(":")[-1])
         return log_group_name
@@ -143,5 +143,6 @@ class LogGroupProvider:
                 log_group_arn_parts = log_group_arn.split(":")
                 log_group_name = log_group_arn_parts[6]
                 return str(log_group_name)
+        LOG.warning("Logging is not configured for StepFunctions (%s)")
 
         return None

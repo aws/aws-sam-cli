@@ -14,7 +14,11 @@ from samcli.lib.build.build_graph import BuildGraph
 from samcli.lib.package.utils import make_zip
 from samcli.lib.providers.provider import Function, Stack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
-from samcli.lib.sync.exceptions import MissingFunctionBuildDefinition, InvalidRuntimeDefinitionForFunction
+from samcli.lib.sync.exceptions import (
+    MissingFunctionBuildDefinition,
+    InvalidRuntimeDefinitionForFunction,
+    NoLayerVersionsFoundError,
+)
 from samcli.lib.sync.flows.layer_sync_flow import AbstractLayerSyncFlow
 from samcli.lib.sync.flows.zip_function_sync_flow import ZipFunctionSyncFlow
 from samcli.lib.sync.sync_flow import SyncFlow
@@ -56,18 +60,26 @@ class AutoDependencyLayerSyncFlow(AbstractLayerSyncFlow):
             stacks,
         )
         self._function_identifier = function_identifier
-        self._layer_physical_name = NestedStackBuilder.get_layer_name(deploy_context.stack_name, function_identifier)
         self._build_graph = build_graph
+
+    def set_up(self) -> None:
+        super().set_up()
+
+        # find layer's physical id
+        layer_name = NestedStackBuilder.get_layer_name(self._deploy_context.stack_name, self._function_identifier)
+        layer_versions = self._lambda_client.list_layer_versions(LayerName=layer_name).get("LayerVersions", [])
+        if not layer_versions:
+            raise NoLayerVersionsFoundError(layer_name)
+        self._layer_arn = layer_versions[0].get("LayerVersionArn").rsplit(":", 1)[0]
 
     def gather_resources(self) -> None:
         function_build_definitions = cast(BuildGraph, self._build_graph).get_function_build_definitions()
         if not function_build_definitions:
             raise MissingFunctionBuildDefinition(self._function_identifier)
 
-        self._artifact_folder = function_build_definitions[0].dependencies_dir
-        NestedStackManager.update_layer_folder(
+        self._artifact_folder = NestedStackManager.update_layer_folder(
             self._build_context.build_dir,
-            self._artifact_folder,
+            function_build_definitions[0].dependencies_dir,
             self._layer_identifier,
             self._function_identifier,
             self._get_compatible_runtimes()[0],
@@ -100,16 +112,24 @@ class AutoDependencyLayerParentSyncFlow(ZipFunctionSyncFlow):
         Return auto dependency layer sync flow along with parent dependencies
         """
         parent_dependencies = super().gather_dependencies()
-        parent_dependencies.append(
-            AutoDependencyLayerSyncFlow(
-                self._function_identifier,
-                cast(BuildGraph, self._build_graph),
-                self._build_context,
-                self._deploy_context,
-                self._physical_id_mapping,
-                cast(List[Stack], self._stacks),
+
+        function_build_definitions = cast(BuildGraph, self._build_graph).get_function_build_definitions()
+        if not function_build_definitions:
+            raise MissingFunctionBuildDefinition(self._function.name)
+
+        # don't queue up auto dependency layer, if dependencies are not changes
+        need_dependency_layer_sync = function_build_definitions[0].download_dependencies
+        if need_dependency_layer_sync:
+            parent_dependencies.append(
+                AutoDependencyLayerSyncFlow(
+                    self._function_identifier,
+                    cast(BuildGraph, self._build_graph),
+                    self._build_context,
+                    self._deploy_context,
+                    self._physical_id_mapping,
+                    cast(List[Stack], self._stacks),
+                )
             )
-        )
         return parent_dependencies
 
     @staticmethod

@@ -100,7 +100,17 @@ def cli(
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(
-        name, stack_name, filter, tail, include_traces, start_time, end_time, cw_log_group, unformatted, ctx.region
+        name,
+        stack_name,
+        filter,
+        tail,
+        include_traces,
+        start_time,
+        end_time,
+        cw_log_group,
+        unformatted,
+        ctx.region,
+        ctx.profile,
     )  # pragma: no cover
 
 
@@ -115,6 +125,7 @@ def do_cli(
     cw_log_groups,
     unformatted,
     region,
+    profile,
 ):
     """
     Implementation of the ``cli`` method
@@ -129,8 +140,8 @@ def do_cli(
     sanitized_start_time = parse_time(start_time, "start-time")
     sanitized_end_time = parse_time(end_time, "end-time") or datetime.utcnow()
 
-    boto_client_provider = get_boto_client_provider_with_config(region_name=region)
-    boto_resource_provider = get_boto_resource_provider_with_config(region_name=region)
+    boto_client_provider = get_boto_client_provider_with_config(region=region, profile=profile)
+    boto_resource_provider = get_boto_resource_provider_with_config(region=region, profile=profile)
     resource_logical_id_resolver = ResourcePhysicalIdResolver(boto_resource_provider, stack_name, names)
 
     # only fetch all resources when no CloudWatch log group defined

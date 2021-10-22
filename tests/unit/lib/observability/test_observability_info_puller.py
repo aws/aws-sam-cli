@@ -78,6 +78,33 @@ class TestObservabilityCombinedPuller(TestCase):
         )
 
     @patch("samcli.lib.observability.observability_info_puller.AsyncContext")
+    def test_tail_cancel(self, patched_async_context):
+        mocked_async_context = Mock()
+        mocked_async_context.run_async.side_effect = KeyboardInterrupt()
+        patched_async_context.return_value = mocked_async_context
+
+        mock_puller_1 = Mock()
+        mock_puller_2 = Mock()
+
+        combined_puller = ObservabilityCombinedPuller([mock_puller_1, mock_puller_2])
+
+        given_start_time = Mock()
+        given_filter_pattern = Mock()
+        combined_puller.tail(given_start_time, given_filter_pattern)
+
+        patched_async_context.assert_called_once()
+        mocked_async_context.assert_has_calls(
+            [
+                call.add_async_task(mock_puller_1.tail, given_start_time, given_filter_pattern),
+                call.add_async_task(mock_puller_2.tail, given_start_time, given_filter_pattern),
+                call.run_async(),
+            ]
+        )
+
+        self.assertTrue(mock_puller_1.cancelled)
+        self.assertTrue(mock_puller_2.cancelled)
+
+    @patch("samcli.lib.observability.observability_info_puller.AsyncContext")
     def test_load_time_period(self, patched_async_context):
         mocked_async_context = Mock()
         patched_async_context.return_value = mocked_async_context

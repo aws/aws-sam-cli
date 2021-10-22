@@ -24,7 +24,6 @@ from tests.testing_utils import run_command, run_command_with_input
 # This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
 SKIP_DELETE_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 CFN_SLEEP = 3
-TIMEOUT = 300
 CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
 
 

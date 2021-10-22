@@ -45,7 +45,11 @@ class TestBotoUtils(TestCase):
         patched_get_config.return_value = given_config
 
         given_config_param = Mock()
-        client_generator = get_boto_client_provider_with_config(param=given_config_param)
+        given_profile = Mock()
+        given_region = Mock()
+        client_generator = get_boto_client_provider_with_config(
+            region=given_region, profile=given_profile, param=given_config_param
+        )
 
         given_service_client = Mock()
         patched_boto3.session.Session().client.return_value = given_service_client
@@ -54,6 +58,7 @@ class TestBotoUtils(TestCase):
 
         self.assertEqual(client, given_service_client)
         patched_get_config.assert_called_with(param=given_config_param)
+        patched_boto3.session.Session.assert_called_with(region_name=given_region, profile_name=given_profile)
         patched_boto3.session.Session().client.assert_called_with("service", config=given_config)
 
     @patch("samcli.lib.utils.boto_utils.get_boto_config_with_user_agent")
@@ -63,7 +68,11 @@ class TestBotoUtils(TestCase):
         patched_get_config.return_value = given_config
 
         given_config_param = Mock()
-        client_generator = get_boto_resource_provider_with_config(param=given_config_param)
+        given_profile = Mock()
+        given_region = Mock()
+        client_generator = get_boto_resource_provider_with_config(
+            region=given_region, profile=given_profile, param=given_config_param
+        )
 
         given_service_client = Mock()
         patched_boto3.session.Session().resource.return_value = given_service_client
@@ -72,4 +81,5 @@ class TestBotoUtils(TestCase):
 
         self.assertEqual(client, given_service_client)
         patched_get_config.assert_called_with(param=given_config_param)
+        patched_boto3.session.Session.assert_called_with(region_name=given_region, profile_name=given_profile)
         patched_boto3.session.Session().resource.assert_called_with("service", config=given_config)

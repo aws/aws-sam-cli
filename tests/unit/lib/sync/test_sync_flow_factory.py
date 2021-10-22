@@ -42,9 +42,20 @@ class TestSyncFlowFactory(TestCase):
         self, auto_dependency_layer_mock, zip_function_mock, image_function_mock
     ):
         factory = self.create_factory(True)
-        resource = {"Properties": {"PackageType": "Zip"}}
+        resource = {"Properties": {"PackageType": "Zip", "Runtime": "python3.8"}}
         result = factory._create_lambda_flow("Function1", resource)
         self.assertEqual(result, auto_dependency_layer_mock.return_value)
+
+    @patch("samcli.lib.sync.sync_flow_factory.ImageFunctionSyncFlow")
+    @patch("samcli.lib.sync.sync_flow_factory.ZipFunctionSyncFlow")
+    @patch("samcli.lib.sync.sync_flow_factory.AutoDependencyLayerParentSyncFlow")
+    def test_create_lambda_flow_zip_with_unsupported_runtime_auto_dependency_layer(
+        self, auto_dependency_layer_mock, zip_function_mock, image_function_mock
+    ):
+        factory = self.create_factory(True)
+        resource = {"Properties": {"PackageType": "Zip", "Runtime": "ruby2.7"}}
+        result = factory._create_lambda_flow("Function1", resource)
+        self.assertEqual(result, zip_function_mock.return_value)
 
     @patch("samcli.lib.sync.sync_flow_factory.ImageFunctionSyncFlow")
     @patch("samcli.lib.sync.sync_flow_factory.ZipFunctionSyncFlow")
