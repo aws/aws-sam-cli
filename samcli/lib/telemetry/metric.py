@@ -32,8 +32,6 @@ Decorators should be used to minimize logic involving telemetry.
 """
 _METRICS = dict()
 
-_experimental: bool = False
-
 
 def send_installed_metric():
     LOG.debug("Sending Installed Metric")
