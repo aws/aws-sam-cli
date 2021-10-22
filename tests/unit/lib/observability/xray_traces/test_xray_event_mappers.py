@@ -1,6 +1,7 @@
 import json
 import time
 import uuid
+import logging
 from datetime import datetime
 from unittest import TestCase
 
@@ -12,6 +13,9 @@ from samcli.lib.observability.xray_traces.xray_event_mappers import (
 )
 from samcli.lib.observability.xray_traces.xray_events import XRayTraceEvent, XRayServiceGraphEvent
 from samcli.lib.utils.time import to_utc, utc_to_timestamp, timestamp_to_iso
+
+LOG = logging.getLogger()
+logging.basicConfig()
 
 
 class AbstraceXRayTraceMapperTest(TestCase):
@@ -69,6 +73,7 @@ class TestXRayTraceConsoleMapper(AbstraceXRayTraceMapperTest):
             f"XRay Event at ({event_timestamp}) with id ({self.trace_event.id}) and duration ({self.trace_event.duration:.3f}s)"
             in mapped_event.message
         )
+        LOG.info(mapped_event.message)
 
         self.validate_segments(self.trace_event.segments, mapped_event.message)
 
