@@ -2,6 +2,7 @@ import os
 import tempfile
 from unittest import skipIf
 
+from boto3 import Session
 from click.testing import CliRunner
 from samcli.commands.init import cli as init_cmd
 from pathlib import Path
@@ -13,6 +14,7 @@ from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RU
 # Schemas tests require credentials. This is to skip running the test where credentials are not available.
 SKIP_SCHEMA_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
+REGION_NAME = Session().region_name
 
 @skipIf(SKIP_SCHEMA_TESTS, "Skip schema test")
 class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
@@ -231,7 +233,7 @@ Y
         # 1: select aws.events as registries
         # 1: select aws schema
 
-        user_input = """
+        user_input = f"""
 1
 1
 10
@@ -239,7 +241,7 @@ eb-app-python37
 3
 N
 2
-us-east-1
+{REGION_NAME}
 1
 1
         """

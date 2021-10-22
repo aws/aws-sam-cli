@@ -9,6 +9,7 @@ from unittest.mock import Mock
 
 import boto3
 import botocore.exceptions
+from boto3 import Session
 from botocore.exceptions import ClientError
 
 from samcli.lib.pipeline.bootstrap.stage import Stage
@@ -52,7 +53,7 @@ class InitIntegBase(PipelineBase):
 
 
 class BootstrapIntegBase(PipelineBase):
-    region = "us-east-1"
+    region = Session().region_name
     stack_names: List[str]
     cf_client: Any
     randomized_stage_suffix: str

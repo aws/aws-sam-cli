@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time, sleep
 import json
 import docker
+from boto3 import Session
 from parameterized import parameterized, parameterized_class
 
 import pytest
@@ -17,6 +18,8 @@ from botocore.exceptions import ClientError
 from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
 from .start_lambda_api_integ_base import StartLambdaIntegBaseClass, WatchWarmContainersIntegBaseClass
 
+REGION_NAME = Session().region_name
+
 
 class TestParallelRequests(StartLambdaIntegBaseClass):
     template_path = "/testdata/invoke/template.yml"
@@ -26,7 +29,7 @@ class TestParallelRequests(StartLambdaIntegBaseClass):
         self.lambda_client = boto3.client(
             "lambda",
             endpoint_url=self.url,
-            region_name="us-east-1",
+            region_name=REGION_NAME,
             use_ssl=False,
             verify=False,
             config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
@@ -65,7 +68,7 @@ class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
         self.lambda_client = boto3.client(
             "lambda",
             endpoint_url=self.url,
-            region_name="us-east-1",
+            region_name=REGION_NAME,
             use_ssl=False,
             verify=False,
             config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
@@ -124,7 +127,7 @@ class TestLambdaService(StartLambdaIntegBaseClass):
         self.lambda_client = boto3.client(
             "lambda",
             endpoint_url=self.url,
-            region_name="us-east-1",
+            region_name=REGION_NAME,
             use_ssl=False,
             verify=False,
             config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
@@ -233,7 +236,7 @@ class TestWarmContainersBaseClass(StartLambdaIntegBaseClass):
         self.lambda_client = boto3.client(
             "lambda",
             endpoint_url=self.url,
-            region_name="us-east-1",
+            region_name=REGION_NAME,
             use_ssl=False,
             verify=False,
             config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
@@ -358,7 +361,7 @@ class TestImagePackageType(StartLambdaIntegBaseClass):
         self.lambda_client = boto3.client(
             "lambda",
             endpoint_url=self.url,
-            region_name="us-east-1",
+            region_name=REGION_NAME,
             use_ssl=False,
             verify=False,
             config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
@@ -388,7 +391,7 @@ class TestImagePackageTypeWithEagerWarmContainersMode(StartLambdaIntegBaseClass)
         self.lambda_client = boto3.client(
             "lambda",
             endpoint_url=self.url,
-            region_name="us-east-1",
+            region_name=REGION_NAME,
             use_ssl=False,
             verify=False,
             config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
@@ -418,7 +421,7 @@ class TestImagePackageTypeWithEagerLazyContainersMode(StartLambdaIntegBaseClass)
         self.lambda_client = boto3.client(
             "lambda",
             endpoint_url=self.url,
-            region_name="us-east-1",
+            region_name=REGION_NAME,
             use_ssl=False,
             verify=False,
             config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
@@ -471,7 +474,7 @@ def handler(event, context):
         self.lambda_client = boto3.client(
             "lambda",
             endpoint_url=self.url,
-            region_name="us-east-1",
+            region_name=REGION_NAME,
             use_ssl=False,
             verify=False,
             config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
@@ -548,7 +551,7 @@ COPY main.py ./"""
         self.lambda_client = boto3.client(
             "lambda",
             endpoint_url=self.url,
-            region_name="us-east-1",
+            region_name=REGION_NAME,
             use_ssl=False,
             verify=False,
             config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
@@ -612,7 +615,7 @@ def handler(event, context):
         self.lambda_client = boto3.client(
             "lambda",
             endpoint_url=self.url,
-            region_name="us-east-1",
+            region_name=REGION_NAME,
             use_ssl=False,
             verify=False,
             config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
@@ -689,7 +692,7 @@ COPY main.py ./"""
         self.lambda_client = boto3.client(
             "lambda",
             endpoint_url=self.url,
-            region_name="us-east-1",
+            region_name=REGION_NAME,
             use_ssl=False,
             verify=False,
             config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),

@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest import skipIf
 import boto3
 import docker
+from boto3 import Session
 from botocore.config import Config
 from parameterized import parameterized
 from botocore.exceptions import ClientError
@@ -26,6 +27,7 @@ SKIP_DELETE_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_
 CFN_SLEEP = 3
 CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
 
+REGION_NAME = Session().region_name
 
 @skipIf(SKIP_DELETE_TESTS, "Skip delete tests in CI/CD only")
 class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
@@ -54,7 +56,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
 
         stack_name = self._method_to_stack_name(self.id())
 
-        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region="us-east-1", no_prompts=True)
+        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region=REGION_NAME, no_prompts=True)
 
         delete_process_execute = run_command(delete_command_list)
         self.assertEqual(delete_process_execute.process.returncode, 0)
@@ -98,7 +100,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
 
         config_file_path = self.test_data_path.joinpath(config_file_name)
         delete_command_list = self.get_delete_command_list(
-            stack_name=stack_name, config_file=config_file_path, region="us-east-1", no_prompts=True
+            stack_name=stack_name, config_file=config_file_path, region=REGION_NAME, no_prompts=True
         )
 
         delete_process_execute = run_command(delete_command_list)
@@ -135,7 +137,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
 
         config_file_path = self.test_data_path.joinpath(config_file_name)
         delete_command_list = self.get_delete_command_list(
-            stack_name=stack_name, config_file=config_file_path, region="us-east-1", no_prompts=True
+            stack_name=stack_name, config_file=config_file_path, region=REGION_NAME, no_prompts=True
         )
 
         delete_process_execute = run_command(delete_command_list)
@@ -203,7 +205,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             deploy_command_list, "{}\n\n\n\n\nn\n\n\n".format(stack_name).encode()
         )
 
-        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region="us-east-1", no_prompts=True)
+        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region=REGION_NAME, no_prompts=True)
 
         delete_process_execute = run_command(delete_command_list)
         self.assertEqual(delete_process_execute.process.returncode, 0)
@@ -236,12 +238,12 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             no_execute_changeset=False,
             tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
-            region="us-east-1",
+            region=REGION_NAME,
         )
 
         deploy_process_execute = run_command(deploy_command_list)
 
-        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region="us-east-1", no_prompts=True)
+        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region=REGION_NAME, no_prompts=True)
 
         delete_process_execute = run_command(delete_command_list)
 
@@ -277,12 +279,12 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             no_execute_changeset=False,
             tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
-            region="us-east-1",
+            region=REGION_NAME,
         )
 
         deploy_process_execute = run_command(deploy_command_list)
 
-        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region="us-east-1", no_prompts=True)
+        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region=REGION_NAME, no_prompts=True)
 
         delete_process_execute = run_command(delete_command_list)
 
@@ -322,7 +324,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
 
         deploy_process_execute = run_command(deploy_command_list)
 
-        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region="us-east-1", no_prompts=True)
+        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region=REGION_NAME, no_prompts=True)
 
         delete_process_execute = run_command(delete_command_list)
 
@@ -349,7 +351,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
 
         self.cf_client.create_stack(StackName=stack_name, TemplateBody=template_str, EnableTerminationProtection=True)
 
-        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region="us-east-1", no_prompts=True)
+        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region=REGION_NAME, no_prompts=True)
 
         delete_process_execute = run_command(delete_command_list)
 
@@ -410,7 +412,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             no_execute_changeset=False,
             tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
-            region="us-east-1",
+            region=REGION_NAME,
         )
         deploy_process_execute = run_command(deploy_command_list)
 
@@ -446,11 +448,11 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             no_execute_changeset=False,
             tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
-            region="us-east-1",
+            region=REGION_NAME,
         )
         deploy_process_execute = run_command(deploy_command_list)
 
-        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region="us-east-1")
+        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region=REGION_NAME)
         delete_process_execute = run_command_with_input(delete_command_list, "y\ny\ny\n".encode())
 
         self.assertEqual(delete_process_execute.process.returncode, 0)
@@ -485,12 +487,12 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             no_execute_changeset=False,
             tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
-            region="us-east-1",
+            region=REGION_NAME,
         )
 
         deploy_process_execute = run_command(deploy_command_list)
 
-        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region="us-east-1")
+        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region=REGION_NAME)
 
         delete_process_execute = run_command_with_input(delete_command_list, "y\n".encode())
 
@@ -523,11 +525,11 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             no_execute_changeset=False,
             tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
-            region="us-east-1",
+            region=REGION_NAME,
         )
         deploy_process_execute = run_command(deploy_command_list)
 
-        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region="us-east-1")
+        delete_command_list = self.get_delete_command_list(stack_name=stack_name, region=REGION_NAME)
         delete_process_execute = run_command_with_input(delete_command_list, "y\nn\nn\n".encode())
 
         self.assertEqual(delete_process_execute.process.returncode, 0)
