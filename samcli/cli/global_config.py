@@ -232,7 +232,7 @@ class GlobalConfig(metaclass=Singleton):
             if config_entry.env_var_key:
                 value = os.environ.get(config_entry.env_var_key)
                 if value is not None and is_flag:
-                    value = value in ("1", 1)
+                    value = value == "1"
 
             if value is None and config_entry.config_key:
                 if reload_config or self._config_data is None:
