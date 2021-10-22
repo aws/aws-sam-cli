@@ -6,11 +6,25 @@ from samcli.commands.local.lib.swagger.parser import SwaggerParser
 from samcli.commands.local.lib.swagger.reader import SwaggerReader
 from samcli.lib.providers.api_collector import ApiCollector
 
-from samcli.lib.providers.provider import Cors, Stack
+from samcli.lib.providers.provider import (
+    Cors,
+    Stack,
+    CORS_ORIGIN_HEADER,
+    CORS_HEADERS_HEADER,
+    CORS_METHODS_HEADER,
+    CORS_CREDENTIALS_HEADER,
+    CORS_MAX_AGE_HEADER,
+)
 from samcli.local.apigw.local_apigw_service import Route
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 
 LOG = logging.getLogger(__name__)
+
+ALLOW_HEADERS = "AllowHeaders"
+ALLOW_ORIGIN = "AllowOrigin"
+ALLOW_METHODS = "AllowMethods"
+ALLOW_CREDENTIALS = "AllowCredentials"
+MAX_AGE = "MaxAge"
 
 
 class CfnBaseApiProvider:
@@ -88,16 +102,16 @@ class CfnBaseApiProvider:
         """
         cors = None
         if cors_prop and isinstance(cors_prop, dict):
-            allow_methods = self._get_cors_prop(cors_prop, "AllowMethods")
+            allow_methods = self._get_cors_prop(cors_prop, ALLOW_METHODS)
             if allow_methods:
                 allow_methods = CfnBaseApiProvider.normalize_cors_allow_methods(allow_methods)
             else:
                 allow_methods = ",".join(sorted(Route.ANY_HTTP_METHODS))
 
-            allow_origin = self._get_cors_prop(cors_prop, "AllowOrigin")
-            allow_headers = self._get_cors_prop(cors_prop, "AllowHeaders")
-            allow_credentials = self._get_cors_prop(cors_prop, "AllowCredentials", True)
-            max_age = self._get_cors_prop(cors_prop, "MaxAge")
+            allow_origin = self._get_cors_prop(cors_prop, ALLOW_ORIGIN)
+            allow_headers = self._get_cors_prop(cors_prop, ALLOW_HEADERS)
+            allow_credentials = self._get_cors_prop(cors_prop, ALLOW_CREDENTIALS, True)
+            max_age = self._get_cors_prop(cors_prop, MAX_AGE)
 
             cors = Cors(
                 allow_origin=allow_origin,
@@ -122,6 +136,44 @@ class CfnBaseApiProvider:
                 max_age=None,
             )
         return cors
+
+    def extract_cors_from_method(self, cors_dict: Dict) -> Optional[Cors]:
+        """
+        Extract the cors parameters from an AWS::ApiGateway::Method.
+
+        Parameters
+        ----------
+        cors_dict : dict
+            A dict of cors parameters in the format of ResponseParameters
+
+        Return
+        ------
+        A Cors object with the relevant cors headers from the ResponseParameters
+        """
+        cors_props = {
+            ALLOW_HEADERS: cors_dict.get(CfnBaseApiProvider._get_response_header(CORS_HEADERS_HEADER)),
+            ALLOW_METHODS: cors_dict.get(CfnBaseApiProvider._get_response_header(CORS_METHODS_HEADER)),
+            ALLOW_ORIGIN: cors_dict.get(CfnBaseApiProvider._get_response_header(CORS_ORIGIN_HEADER)),
+            ALLOW_CREDENTIALS: cors_dict.get(CfnBaseApiProvider._get_response_header(CORS_CREDENTIALS_HEADER)),
+            MAX_AGE: cors_dict.get(CfnBaseApiProvider._get_response_header(CORS_MAX_AGE_HEADER)),
+        }
+        return self.extract_cors(cors_props)
+
+    @staticmethod
+    def _get_response_header(allow_method: str) -> str:
+        """
+        Get the full response header key with the cors method type.
+
+        Parameters
+        ----------
+        allow_method : str
+            The type of cors header
+
+        Return
+        ------
+        A string matching the ResponseParameters key format
+        """
+        return "method.response.header." + allow_method
 
     @staticmethod
     def _get_cors_prop(cors_dict: Dict, prop_name: str, allow_bool: bool = False) -> Optional[str]:

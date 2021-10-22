@@ -106,9 +106,9 @@ class AwsLambdaFunctionStack(cdk.Stack):
         echo_event_handler_function.add_event_source(ApiEventSource("GET", "/{proxy+}"))
 
         cors_options = CorsOptions(
-            allow_origins=["'*''"],
-            allow_methods=["'GET'"],
-            allow_headers=["'origin'", "'x-requested-with'"],
+            allow_origins=['*'],
+            allow_methods=['GET'],
+            allow_headers=['origin', 'x-requested-with'],
             allow_credentials=True,
             max_age=max_age
         )

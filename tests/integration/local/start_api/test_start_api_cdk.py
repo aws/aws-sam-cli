@@ -620,30 +620,29 @@ class TestStartApiWithSwaggerApis(CDKStartApiIntegPythonBase):
         self.assertEqual(response.content, expected)
 
 
-# TODO: Figure out why OPTIONS requests throw an error in sam-cli
-# class TestServiceCorsSwaggerRequests(CDKStartApiIntegPythonBase):
-#     """
-#     Test to check that the correct headers are being added with Cors with swagger code
-#     """
-#
-#     template_path = "testdata/start_api/cdk/python/aws-api-resource"
-#     binary_data_file = "testdata/start_api/binarydata.gif"
-#
-#     def setUp(self):
-#         self.url = "http://127.0.0.1:{}".format(self.port)
-#
-#     @pytest.mark.flaky(reruns=3)
-#     @pytest.mark.timeout(timeout=600, method="thread")
-#     def test_cors_swagger_options(self):
-#         """
-#         This tests that the Cors are added to option requests in the swagger template
-#         """
-#         response = requests.options(self.url + "/echobase64eventbody", timeout=300)
-#
-#         self.assertEqual(response.status_code, 200)
-#
-#         self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "*")
-#         self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), "origin, x-requested-with")
-#         self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), "GET,OPTIONS")
-#         self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), "true")
-#         self.assertEqual(response.headers.get("Access-Control-Max-Age"), "510")
+class TestServiceCorsRequests(CDKStartApiIntegPythonBase):
+    """
+    Test to check that the correct headers are being added with Cors
+    """
+
+    template_path = "testdata/start_api/cdk/python/aws-api-resource"
+    binary_data_file = "testdata/start_api/binarydata.gif"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_cors_swagger_options(self):
+        """
+        This tests that the Cors are added to option requests in the swagger template
+        """
+        response = requests.options(self.url + "/echobase64eventbody", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "*")
+        self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), "origin,x-requested-with")
+        self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), "GET,OPTIONS")
+        self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), "true")
+        self.assertEqual(response.headers.get("Access-Control-Max-Age"), "510")
