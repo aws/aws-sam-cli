@@ -771,6 +771,7 @@ class TestSamConfigForAllCommands(TestCase):
                 (),
                 False,
                 "myregion",
+                None,
             )
 
     @patch("samcli.commands._utils.experimental.is_experimental_enabled")
