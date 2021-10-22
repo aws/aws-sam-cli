@@ -270,11 +270,6 @@ class TestGlobalConfig(TestCase):
         self.assertEqual(os.environ[DefaultEntry.TELEMETRY.env_var_key], "1")
         self.assertEqual(GlobalConfig()._config_data[DefaultEntry.TELEMETRY.config_key], True)
 
-    def test_set_telemetry(self):
-        GlobalConfig().telemetry_enabled = True
-        self.assertEqual(os.environ[DefaultEntry.TELEMETRY.env_var_key], "1")
-        self.assertEqual(GlobalConfig()._config_data[DefaultEntry.TELEMETRY.config_key], True)
-
     def test_get_last_version_check(self):
         self.json_mock.loads.return_value = {DefaultEntry.LAST_VERSION_CHECK.config_key: 123.4}
         result = GlobalConfig().last_version_check
