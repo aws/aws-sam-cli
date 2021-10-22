@@ -345,11 +345,7 @@ class GlobalConfig(metaclass=Singleton):
         -------
         A string containing the installation UUID, or None in case of an error.
         """
-        value = self.get_value(
-            DefaultEntry.INSTALLATION_ID,
-            default=None,
-            value_type=str,
-        )
+        value = self.get_value(DefaultEntry.INSTALLATION_ID, default=None, value_type=str, reload_config=True)
         if not value:
             value = str(uuid.uuid4())
             self.set_value(DefaultEntry.INSTALLATION_ID, value)

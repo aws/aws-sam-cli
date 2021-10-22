@@ -1,5 +1,6 @@
 """Experimental flag"""
 import sys
+import logging
 
 from dataclasses import dataclass
 from functools import wraps
@@ -7,12 +8,22 @@ from typing import List, Dict, Optional
 
 import click
 
+from samcli.cli.context import Context
+
 from samcli.cli.global_config import ConfigEntry, GlobalConfig
 from samcli.commands._utils.options import parameterized_option
+from samcli.lib.utils.colors import Colored
+
+LOG = logging.getLogger(__name__)
 
 EXPERIMENTAL_PROMPT = """
 This feature is currently in beta. Visit the docs page to learn more about the AWS Beta terms https://aws.amazon.com/service-terms/.
 Enter Y to proceed with the command, or enter N to cancel:
+"""
+
+EXPERIMENTAL_WARNING = """
+Experimental features are enabled for this session.
+Visit the docs page to learn more about the AWS Beta terms https://aws.amazon.com/service-terms/.
 """
 
 EXPERIMENTAL_ENV_VAR_PREFIX = "SAM_CLI_BETA_"
@@ -97,6 +108,20 @@ def disable_all_experimental():
         set_experimental(entry, False)
 
 
+def _update_experimental_context(show_warning=True):
+    """Set experimental for the current click context.
+
+    Parameters
+    ----------
+    show_warning : bool, optional
+        Should warning be shown, by default True
+    """
+    if not Context.get_current_context().experimental:
+        Context.get_current_context().experimental = True
+        if show_warning:
+            LOG.warning(Colored().yellow(EXPERIMENTAL_WARNING))
+
+
 def _experimental_option_callback(ctx, param, enabled: Optional[bool]):
     """Click parameter callback for --beta-features or --no-beta-features.
     If neither is specified, enabled will be None.
@@ -133,7 +158,9 @@ def experimental(f, default: Optional[bool] = None):
 
 
 @parameterized_option
-def force_experimental(f, prompt=EXPERIMENTAL_PROMPT):
+def force_experimental(
+    f, config_entry: ExperimentalEntry = ExperimentalFlag.All, prompt=EXPERIMENTAL_PROMPT, default=None
+):
     """Decorator for adding --beta-features and --no-beta-features click options to a command.
     If experimental flag env var or --beta-features flag is not specified, this will then
     prompt the user for confirmation.
@@ -143,13 +170,14 @@ def force_experimental(f, prompt=EXPERIMENTAL_PROMPT):
     def wrap(func):
         @wraps(func)
         def wrapped_func(*args, **kwargs):
-            if not prompt_experimental(prompt=prompt):
+            if not prompt_experimental(config_entry=config_entry, prompt=prompt):
                 sys.exit(1)
+            _update_experimental_context()
             return func(*args, **kwargs)
 
         return wrapped_func
 
-    return experimental_click_option(False)(wrap(f))
+    return experimental_click_option(default)(wrap(f))
 
 
 @parameterized_option
@@ -163,8 +191,10 @@ def force_experimental_option(
     def wrap(func):
         @wraps(func)
         def wrapped_func(*args, **kwargs):
-            if kwargs[option] and not prompt_experimental(config_entry=config_entry, prompt=prompt):
-                sys.exit(1)
+            if kwargs[option]:
+                if not prompt_experimental(config_entry=config_entry, prompt=prompt):
+                    sys.exit(1)
+                _update_experimental_context()
             return func(*args, **kwargs)
 
         return wrapped_func
