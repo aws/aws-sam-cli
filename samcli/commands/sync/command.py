@@ -24,6 +24,7 @@ from samcli.commands._utils.options import (
     DEFAULT_CACHE_DIR,
     DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER,
 )
+from samcli.commands._utils.experimental import force_experimental
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.lib.bootstrap.bootstrap import manage_stack
@@ -104,6 +105,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @notification_arns_option
 @tags_option
 @capabilities_option(default=DEFAULT_CAPABILITIES)  # pylint: disable=E1120
+@force_experimental
 @pass_context
 @track_command
 @image_repository_validation

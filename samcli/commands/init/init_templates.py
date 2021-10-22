@@ -10,8 +10,8 @@ from pathlib import Path
 from typing import Dict
 
 import click
+from samcli.cli.global_config import GlobalConfig
 
-from samcli.cli.main import global_cfg
 from samcli.commands.exceptions import UserException, AppTemplateUpdateException
 from samcli.lib.utils.git_repo import GitRepo, CloneRepoException, CloneRepoUnstableStateException
 from samcli.lib.utils.packagetype import IMAGE
@@ -105,7 +105,7 @@ class InitTemplates:
 
     def init_options(self, package_type, runtime, base_image, dependency_manager):
         if not self._git_repo.clone_attempted:
-            shared_dir: Path = global_cfg.config_dir
+            shared_dir: Path = GlobalConfig().config_dir
             try:
                 self._git_repo.clone(clone_dir=shared_dir, clone_name=APP_TEMPLATES_REPO_NAME, replace_existing=True)
             except CloneRepoUnstableStateException as ex:
