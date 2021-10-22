@@ -1,3 +1,4 @@
+import json
 import os
 import time
 import shutil
@@ -166,17 +167,105 @@ def _create_registry_if_not_exist(registry_name, schemas_client):
 
 
 def _create_3p_schemas(registry_name, schemas_client, no_of_schemas):
-    content = (
-        '{"openapi":"3.0.0","info":{"version":"1.0.0","title":"TicketCreated"},"paths":{},"components":{"schemas":{"AWSEvent":{"type":"object",'
-        '"required":["detail-type","resources","id","source","time","detail","region","version","account"],"x-amazon-events-detail-type":"MongoDB Trigger for '
-        'my_store.reviews","x-amazon-events-source":"aws.partner-mongodb.com","properties":{"detail":{'
-        r'"$ref":"#\/components\/schemas\/aws.partner\/mongodb.com\/Ticket.Created"},"detail-type":{"type":"string"},"resources":{"type":"array",'
-        '"items":{"type":"string"}},"id":{"type":"string"},"source":{"type":"string"},"time":{"type":"string","format":"date-time"},'
-        '"region":{"type":"string","enum":["ap-south-1","eu-west-3","eu-north-1","eu-west-2","eu-west-1","ap-northeast-2","ap-northeast-1","me-south-1",'
-        '"sa-east-1","ca-central-1","ap-east-1","cn-north-1","us-gov-west-1","ap-southeast-1","ap-southeast-2","eu-central-1","us-east-1","us-west-1",'
-        '"cn-northwest-1","us-west-2"]},"version":{"type":"string"},"account":{"type":"string"}}},"TicketCreated":{"type":"object","required":["creator",'
-        '"department","ticketId"],"properties":{"creator":{"type":"string"},"department":{"type":"string"},"ticketId":{"type":"string"}}}}}} '
-    )
+    content = (json.dumps(
+        {
+            "openapi": "3.0.0",
+            "info": {
+                "version": "1.0.0",
+                "title": "TicketCreated"
+            },
+            "paths": {},
+            "components": {
+                "schemas": {
+                    "AWSEvent": {
+                        "type": "object",
+                        "required": [
+                            "detail-type",
+                            "resources",
+                            "id",
+                            "source",
+                            "time",
+                            "detail",
+                            "region",
+                            "version",
+                            "account"
+                        ],
+                        "properties": {
+                            "detail-type": {
+                                "type": "string"
+                            },
+                            "resources": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "id": {
+                                "type": "string"
+                            },
+                            "source": {
+                                "type": "string"
+                            },
+                            "time": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "region": {
+                                "type": "string",
+                                "enum": [
+                                    "ap-south-1",
+                                    "eu-west-3",
+                                    "eu-north-1",
+                                    "eu-west-2",
+                                    "eu-west-1",
+                                    "ap-northeast-2",
+                                    "ap-northeast-1",
+                                    "me-south-1",
+                                    "sa-east-1",
+                                    "ca-central-1",
+                                    "ap-east-1",
+                                    "cn-north-1",
+                                    "us-gov-west-1",
+                                    "ap-southeast-1",
+                                    "ap-southeast-2",
+                                    "eu-central-1",
+                                    "us-east-1",
+                                    "us-west-1",
+                                    "cn-northwest-1",
+                                    "us-west-2"
+                                ]
+                            },
+                            "version": {
+                                "type": "string"
+                            },
+                            "account": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "TicketCreated": {
+                        "type": "object",
+                        "required": [
+                            "creator",
+                            "department",
+                            "ticketId"
+                        ],
+                        "properties": {
+                            "creator": {
+                                "type": "string"
+                            },
+                            "department": {
+                                "type": "string"
+                            },
+                            "ticketId": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ))
     for i in range(0, no_of_schemas):
         schema_name = "schema_test-%s" % i
         _create_schema_if_not_exist(registry_name, schema_name, content, "1", "test-schema", "OpenApi3", schemas_client)
@@ -184,8 +273,33 @@ def _create_3p_schemas(registry_name, schemas_client, no_of_schemas):
 
 def _create_2p_schemas(registry_name, schemas_client):
     content = (
-        '{"openapi":"3.0.0","info":{"version":"1.0.0","title":"SomeAwesomeSchema"},"paths":{},"components":{"schemas":{"Some Awesome Schema":{"type":"object",'
-        '"required":["foo","bar","baz"],"properties":{"foo":{"type":"string"},"bar":{"type":"string"},"baz":{"type":"string"}}}}}} '
+        json.dumps({
+            "openapi": "3.0.0",
+            "info": {
+                "version": "1.0.0",
+                "title": "SomeAwesomeSchema"
+            },
+            "paths": {},
+            "components": {
+                "schemas": {
+                    "Some Awesome Schema": {
+                        "type": "object",
+                        "required": ["foo", "bar", "baz"],
+                        "properties": {
+                            "foo": {
+                                "type": "string"
+                            },
+                            "bar": {
+                                "type": "string"
+                            },
+                            "baz": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        })
     )
     for i in range(0, 2):
         schema_name = "schema_test-%s" % i
