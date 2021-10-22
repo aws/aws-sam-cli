@@ -1,8 +1,10 @@
 import json
 import time
 import uuid
-from datetime import datetime
+import logging
+from datetime import datetime, timezone
 from unittest import TestCase
+from unittest.mock import MagicMock, patch
 
 from samcli.lib.observability.xray_traces.xray_event_mappers import (
     XRayTraceConsoleMapper,
@@ -12,6 +14,9 @@ from samcli.lib.observability.xray_traces.xray_event_mappers import (
 )
 from samcli.lib.observability.xray_traces.xray_events import XRayTraceEvent, XRayServiceGraphEvent
 from samcli.lib.utils.time import to_utc, utc_to_timestamp, timestamp_to_iso
+
+LOG = logging.getLogger()
+logging.basicConfig()
 
 
 class AbstraceXRayTraceMapperTest(TestCase):
@@ -59,18 +64,23 @@ class AbstraceXRayTraceMapperTest(TestCase):
 
 class TestXRayTraceConsoleMapper(AbstraceXRayTraceMapperTest):
     def test_console_mapper(self):
-        console_mapper = XRayTraceConsoleMapper()
-        mapped_event = console_mapper.map(self.trace_event)
+        with patch("samcli.lib.observability.xray_traces.xray_event_mappers.datetime") as fromtimestamp_mock:
+            fromtimestamp_mock.side_effect = lambda *args, **kw: datetime(*args, **kw)
+            fromtimestamp_mock.fromtimestamp.return_value = datetime(2021, 10, 18, 17, 32, 59, 270000)
 
-        self.assertTrue(isinstance(mapped_event, XRayTraceEvent))
+            console_mapper = XRayTraceConsoleMapper()
+            mapped_event = console_mapper.map(self.trace_event)
 
-        event_timestamp = "2021-10-18T17:32:59.270000"
-        self.assertTrue(
-            f"XRay Event at ({event_timestamp}) with id ({self.trace_event.id}) and duration ({self.trace_event.duration:.3f}s)"
-            in mapped_event.message
-        )
+            self.assertTrue(isinstance(mapped_event, XRayTraceEvent))
 
-        self.validate_segments(self.trace_event.segments, mapped_event.message)
+            event_timestamp = "2021-10-18T17:32:59.270000"
+            LOG.info(mapped_event.message)
+            self.assertTrue(
+                f"XRay Event at ({event_timestamp}) with id ({self.trace_event.id}) and duration ({self.trace_event.duration:.3f}s)"
+                in mapped_event.message
+            )
+
+            self.validate_segments(self.trace_event.segments, mapped_event.message)
 
     def validate_segments(self, segments, message):
         for segment in segments:

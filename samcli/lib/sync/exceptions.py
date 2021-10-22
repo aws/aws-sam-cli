@@ -33,6 +33,46 @@ class SyncFlowException(Exception):
         return self._exception
 
 
+class InfraSyncRequiredError(Exception):
+    """Exception used if SyncFlow cannot handle the sync and an infra sync is required"""
+
+    _resource_identifier: Optional[str]
+    _reason: Optional[str]
+
+    def __init__(self, resource_identifier: Optional[str] = None, reason: Optional[str] = ""):
+        """
+        Parameters
+        ----------
+        resource_identifier : str
+            Logical resource identifier
+        reason : str
+            Reason for requiring infra sync
+        """
+        super().__init__(f"{resource_identifier} cannot be code synced.")
+        self._resource_identifier = resource_identifier
+        self._reason = reason
+
+    @property
+    def resource_identifier(self) -> Optional[str]:
+        """
+        Returns
+        -------
+        str
+            Resource identifier of the resource that does not have a remote/physical counterpart
+        """
+        return self._resource_identifier
+
+    @property
+    def reason(self) -> Optional[str]:
+        """
+        Returns
+        -------
+        str
+            Reason to why the SyncFlow cannot sync the resource
+        """
+        return self._reason
+
+
 class MissingPhysicalResourceError(Exception):
     """Exception used for not having a remote/physical counterpart for a local stack resource"""
 
