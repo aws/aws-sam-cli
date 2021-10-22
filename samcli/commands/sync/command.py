@@ -56,6 +56,13 @@ By default, the sync command runs a full stack update, you can specify --code or
 """
 SHORT_HELP = "Sync a project to AWS"
 
+CONFIRMATION_TEXT = """
+The SAM CLI will use the AWS Lambda, Amazon API Gateway, and AWS StepFunctions APIs to upload your code without 
+performing a CloudFormation deployment. This will cause drift in your CloudFormation stack. 
+**The watch command should only be used against a development stack**.
+Confirm that you are synchronizing a development stack
+"""
+
 DEFAULT_TEMPLATE_NAME = "template.yaml"
 DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 
@@ -198,6 +205,10 @@ def do_cli(
     from samcli.commands.build.build_context import BuildContext
     from samcli.commands.package.package_context import PackageContext
     from samcli.commands.deploy.deploy_context import DeployContext
+
+    if watch:
+        if not click.confirm(f"{CONFIRMATION_TEXT}", default=False):
+            return
 
     s3_bucket = manage_stack(profile=profile, region=region)
     click.echo(f"\n\t\tManaged S3 bucket: {s3_bucket}")
