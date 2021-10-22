@@ -347,6 +347,7 @@ class BuildGraph:
                     uuid = stored_def.uuid
                     if old_hash != updated_hash or old_manifest_hash != updated_manifest_hash:
                         content[uuid] = BuildHashingInformation(updated_hash, updated_manifest_hash)
+                    compared_def.download_dependencies = old_manifest_hash != updated_manifest_hash
         return content
 
     def _write_source_hash(

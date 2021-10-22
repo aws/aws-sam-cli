@@ -812,6 +812,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ("cw_log_group",),
                 False,
                 "myregion",
+                None,
             )
 
     @patch("samcli.commands.publish.command.do_cli")

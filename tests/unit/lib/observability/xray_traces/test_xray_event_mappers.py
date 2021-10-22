@@ -19,17 +19,14 @@ class AbstraceXRayTraceMapperTest(TestCase):
         self.trace_event = XRayTraceEvent(
             {
                 "Id": str(uuid.uuid4()),
-                "name": str(uuid.uuid4()),
-                "start_time": time.time(),
-                "end_time": time.time(),
-                "http": {"response": {"status": 200}},
-                "subsegments": [
+                "Duration": 2.1,
+                "Segments": [
                     {
                         "Id": str(uuid.uuid4()),
                         "Document": json.dumps(
                             {
                                 "name": str(uuid.uuid4()),
-                                "start_time": time.time(),
+                                "start_time": 1634603579.27,  # 2021-10-18T17:32:59.270000
                                 "end_time": time.time(),
                                 "http": {"response": {"status": 200}},
                             }
@@ -67,7 +64,7 @@ class TestXRayTraceConsoleMapper(AbstraceXRayTraceMapperTest):
 
         self.assertTrue(isinstance(mapped_event, XRayTraceEvent))
 
-        event_timestamp = timestamp_to_iso(self.trace_event.timestamp)
+        event_timestamp = "2021-10-18T17:32:59.270000"
         self.assertTrue(
             f"XRay Event at ({event_timestamp}) with id ({self.trace_event.id}) and duration ({self.trace_event.duration:.3f}s)"
             in mapped_event.message
@@ -84,7 +81,7 @@ class TestXRayTraceConsoleMapper(AbstraceXRayTraceMapperTest):
                 )
             else:
                 self.assertTrue(f" - {segment.get_duration():.3f}s - {segment.name}" in message)
-            self.validate_segments(segments.sub_segments, message)
+            self.validate_segments(segment.sub_segments, message)
 
 
 class TestXRayTraceJSONMapper(AbstraceXRayTraceMapperTest):

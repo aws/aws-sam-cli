@@ -3,6 +3,7 @@ Contains mapper implementations of XRay events
 """
 import json
 from copy import deepcopy
+from datetime import datetime
 from typing import List
 
 from samcli.lib.observability.observability_info_puller import ObservabilityEventMapper
@@ -22,7 +23,7 @@ class XRayTraceConsoleMapper(ObservabilityEventMapper[XRayTraceEvent]):
 
     def map(self, event: XRayTraceEvent) -> XRayTraceEvent:
         formatted_segments = self.format_segments(event.segments)
-        iso_formatted_timestamp = timestamp_to_iso(event.timestamp)
+        iso_formatted_timestamp = datetime.fromtimestamp(event.timestamp).isoformat()
         mapped_message = (
             f"\nXRay Event at ({iso_formatted_timestamp}) with id ({event.id}) and duration ({event.duration:.3f}s)"
             f"{formatted_segments}"

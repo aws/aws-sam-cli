@@ -2,6 +2,7 @@
 import logging
 from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, cast
 
+from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NestedStackManager
 from samcli.lib.providers.provider import Stack, get_resource_by_id, ResourceIdentifier
 from samcli.lib.sync.flows.auto_dependency_layer_sync_flow import AutoDependencyLayerParentSyncFlow
 from samcli.lib.sync.flows.layer_sync_flow import LayerSyncFlow
@@ -75,7 +76,8 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
         LOG.debug("Loading physical ID mapping")
         self._physical_id_mapping = get_physical_id_mapping(
             get_boto_resource_provider_with_config(
-                region_name=self._deploy_context.region if self._deploy_context.region else None
+                region=self._deploy_context.region,
+                profile=self._deploy_context.profile,
             ),
             self._deploy_context.stack_name,
         )
@@ -83,9 +85,12 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
     def _create_lambda_flow(
         self, resource_identifier: ResourceIdentifier, resource: Dict[str, Any]
     ) -> Optional[FunctionSyncFlow]:
-        package_type = resource.get("Properties", dict()).get("PackageType", ZIP)
+        resource_properties = resource.get("Properties", dict())
+        package_type = resource_properties.get("PackageType", ZIP)
+        runtime = resource_properties.get("Runtime")
         if package_type == ZIP:
-            if self._auto_dependency_layer:
+            # only return auto dependency layer sync if runtime is supported
+            if self._auto_dependency_layer and NestedStackManager.is_runtime_supported(runtime):
                 return AutoDependencyLayerParentSyncFlow(
                     str(resource_identifier),
                     self._build_context,
