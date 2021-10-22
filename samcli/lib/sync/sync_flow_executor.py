@@ -14,6 +14,7 @@ from botocore.exceptions import ClientError
 from samcli.lib.utils.colors import Colored
 from samcli.lib.providers.exceptions import MissingLocalDefinition
 from samcli.lib.sync.exceptions import (
+    InfraSyncRequiredError,
     MissingPhysicalResourceError,
     NoLayerVersionsFoundError,
     SyncFlowException,
@@ -26,7 +27,7 @@ from samcli.lib.sync.sync_flow import SyncFlow
 
 LOG = logging.getLogger(__name__)
 
-HELP_TEXT_FOR_SYNC_INFRA = " Try sam sync --infra or sam deploy."
+HELP_TEXT_FOR_SYNC_INFRA = " Try sam sync without --code or sam deploy."
 
 
 @dataclass(frozen=True, eq=True)
@@ -73,6 +74,13 @@ def default_exception_handler(sync_flow_exception: SyncFlowException) -> None:
     exception = sync_flow_exception.exception
     if isinstance(exception, MissingPhysicalResourceError):
         LOG.error("Cannot find resource %s in remote.%s", exception.resource_identifier, HELP_TEXT_FOR_SYNC_INFRA)
+    elif isinstance(exception, InfraSyncRequiredError):
+        LOG.error(
+            "Cannot code sync for %s due to: %s.%s",
+            exception.resource_identifier,
+            exception.reason,
+            HELP_TEXT_FOR_SYNC_INFRA,
+        )
     elif (
         isinstance(exception, ClientError)
         and exception.response.get("Error", dict()).get("Code", "") == "ResourceNotFoundException"

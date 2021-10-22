@@ -7,7 +7,9 @@ from boto3.session import Session
 
 from samcli.lib.providers.provider import Stack, get_resource_by_id, ResourceIdentifier
 from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall
+from samcli.lib.sync.exceptions import InfraSyncRequiredError
 from samcli.lib.providers.exceptions import MissingLocalDefinition
+
 
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
@@ -19,8 +21,8 @@ LOG = logging.getLogger(__name__)
 class StepFunctionsSyncFlow(SyncFlow):
     _state_machine_identifier: str
     _stepfunctions_client: Any
-    _definition_uri: Optional[str]
     _stacks: List[Stack]
+    _definition_uri: Optional[str]
     _states_definition: Optional[str]
 
     def __init__(
@@ -53,13 +55,21 @@ class StepFunctionsSyncFlow(SyncFlow):
             stacks=stacks,
         )
         self._state_machine_identifier = state_machine_identifier
+        self._resource = get_resource_by_id(self._stacks, ResourceIdentifier(self._state_machine_identifier))
         self._stepfunctions_client = None
+        self._definition_uri = None
+        self._states_definition = None
 
     def set_up(self) -> None:
         super().set_up()
         self._stepfunctions_client = cast(Session, self._session).client("stepfunctions")
 
     def gather_resources(self) -> None:
+        if not self._resource:
+            return
+        definition_substitutions = self._resource.get("Properties", dict()).get("DefinitionSubstitutions", None)
+        if definition_substitutions:
+            raise InfraSyncRequiredError(self._state_machine_identifier, "DefinitionSubstitutions field is specified.")
         self._definition_uri = self._get_definition_file(self._state_machine_identifier)
         self._states_definition = self._process_definition_file()
 
@@ -71,10 +81,9 @@ class StepFunctionsSyncFlow(SyncFlow):
             return states_data
 
     def _get_definition_file(self, state_machine_identifier: str) -> Optional[str]:
-        state_machine_resource = get_resource_by_id(self._stacks, ResourceIdentifier(state_machine_identifier))
-        if state_machine_resource is None:
+        if self._resource is None:
             return None
-        properties = state_machine_resource.get("Properties", {})
+        properties = self._resource.get("Properties", {})
         definition_file = properties.get("DefinitionUri")
         return cast(Optional[str], definition_file)
 

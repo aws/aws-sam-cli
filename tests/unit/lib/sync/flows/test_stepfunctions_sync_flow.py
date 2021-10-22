@@ -3,10 +3,18 @@ from unittest import TestCase
 from unittest.mock import ANY, MagicMock, mock_open, patch
 
 from samcli.lib.sync.flows.stepfunctions_sync_flow import StepFunctionsSyncFlow
+from samcli.lib.sync.exceptions import InfraSyncRequiredError
 
 
 class TestStepFunctionsSyncFlow(TestCase):
+    def setUp(self) -> None:
+        get_resource_patch = patch("samcli.lib.sync.flows.stepfunctions_sync_flow.get_resource_by_id")
+        self.get_resource_mock = get_resource_patch.start()
+        self.get_resource_mock.return_value = {"Properties": {"DefinitionUri": "test_uri"}}
+        self.addCleanup(get_resource_patch.stop)
+
     def create_sync_flow(self):
+        patch("samcli.lib.sync.flows.stepfunctions_sync_flow.get_resource_by_id")
         sync_flow = StepFunctionsSyncFlow(
             "StateMachine1",
             build_context=MagicMock(),
@@ -48,12 +56,12 @@ class TestStepFunctionsSyncFlow(TestCase):
     def test_get_definition_file(self, get_resource_mock):
         sync_flow = self.create_sync_flow()
 
-        get_resource_mock.return_value = {"Properties": {"DefinitionUri": "test_uri"}}
+        sync_flow._resource = {"Properties": {"DefinitionUri": "test_uri"}}
         result_uri = sync_flow._get_definition_file("test")
 
         self.assertEqual(result_uri, "test_uri")
 
-        get_resource_mock.return_value = {"Properties": {}}
+        sync_flow._resource = {"Properties": {}}
         result_uri = sync_flow._get_definition_file("test")
 
         self.assertEqual(result_uri, None)
@@ -64,6 +72,24 @@ class TestStepFunctionsSyncFlow(TestCase):
         with patch("builtins.open", mock_open(read_data='{"key": "value"}')) as mock_file:
             data = sync_flow._process_definition_file()
             self.assertEqual(data, '{"key": "value"}')
+
+    @patch("samcli.lib.sync.sync_flow.Session")
+    def test_failed_gather_resources_definition_substitution(self, session_mock):
+        self.get_resource_mock.return_value = {"Properties": {"DefinitionSubstitutions": {"a": "b"}}}
+        sync_flow = self.create_sync_flow()
+
+        sync_flow.get_physical_id = MagicMock()
+        sync_flow.get_physical_id.return_value = "PhysicalApi1"
+
+        sync_flow._get_definition_file = MagicMock()
+        sync_flow._get_definition_file.return_value = "file.yaml"
+
+        sync_flow.set_up()
+        sync_flow._definition_uri = None
+
+        with patch("builtins.open", mock_open(read_data='{"key": "value"}')) as mock_file:
+            with self.assertRaises(InfraSyncRequiredError):
+                sync_flow.gather_resources()
 
     @patch("samcli.lib.sync.sync_flow.Session")
     def test_failed_gather_resources(self, session_mock):
