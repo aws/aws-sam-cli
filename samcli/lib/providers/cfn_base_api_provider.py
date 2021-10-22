@@ -157,6 +157,8 @@ class CfnBaseApiProvider:
             ALLOW_CREDENTIALS: cors_dict.get(CfnBaseApiProvider._get_response_header(CORS_CREDENTIALS_HEADER)),
             MAX_AGE: cors_dict.get(CfnBaseApiProvider._get_response_header(CORS_MAX_AGE_HEADER)),
         }
+        if all(value is None for value in cors_props.values()):
+            return None
         return self.extract_cors(cors_props)
 
     @staticmethod
