@@ -225,11 +225,11 @@ class TestGlobalConfig(TestCase):
         GlobalConfig()._load_config()
         self.assertEqual(GlobalConfig()._config_data, {})
 
-    def test_flush_config(self):
+    def test_write_config(self):
         self.path_exists_mock.return_value = False
         GlobalConfig()._persistent_fields = ["a"]
         GlobalConfig()._config_data = {"a": 1}
-        GlobalConfig()._flush_config()
+        GlobalConfig()._write_config()
         self.json_mock.dumps.assert_called_once()
         self.path_mkdir_mock.assert_called_once()
         self.path_write_mock.assert_called_once()

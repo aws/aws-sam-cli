@@ -291,7 +291,7 @@ class GlobalConfig(metaclass=Singleton):
                 self._persistent_fields.remove(config_entry.config_key)
 
             if flush:
-                self._flush_config()
+                self._write_config()
 
     def _load_config(self) -> None:
         """Reload configurations from file and populate self._config_data"""
@@ -314,7 +314,7 @@ class GlobalConfig(metaclass=Singleton):
             )
             self._config_data = {}
 
-    def _flush_config(self) -> None:
+    def _write_config(self) -> None:
         """Write configurations in self._config_data to file"""
         if not self._config_data:
             return
