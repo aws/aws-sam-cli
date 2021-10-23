@@ -186,16 +186,14 @@ class ApplicationBuilder:
             else:
                 build_strategy = ParallelBuildStrategy(build_graph, build_strategy)
         elif self._cached:
-            build_strategy = (
-                CachedOrIncrementalBuildStrategyWrapper(
-                    build_graph,
-                    build_strategy,
-                    self._base_dir,
-                    self._build_dir,
-                    self._cache_dir,
-                    self._manifest_path_override,
-                    self._is_building_specific_resource,
-                )
+            build_strategy = CachedOrIncrementalBuildStrategyWrapper(
+                build_graph,
+                build_strategy,
+                self._base_dir,
+                self._build_dir,
+                self._cache_dir,
+                self._manifest_path_override,
+                self._is_building_specific_resource,
             )
 
         return ApplicationBuildResult(build_graph, build_strategy.build())

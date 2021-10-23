@@ -519,12 +519,7 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
     )
     @patch("samcli.lib.build.build_strategy.is_experimental_enabled")
     def test_will_call_incremental_build_strategy(
-            self,
-            mocked_read,
-            mocked_write,
-            runtime,
-            experimental_enabled,
-            patched_experimental
+        self, mocked_read, mocked_write, runtime, experimental_enabled, patched_experimental
     ):
         patched_experimental.return_value = experimental_enabled
         build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", X86_64, {})
