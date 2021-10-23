@@ -60,6 +60,29 @@ Update/sync local artifacts to AWS
 
 By default, the sync command runs a full stack update, you can specify --code or --watch to which modes
 """
+
+SYNC_CONFIRMATION_TEXT = """
+The SAM CLI will use the AWS Lambda, Amazon API Gateway, and AWS StepFunctions APIs to upload your code without 
+performing a CloudFormation deployment. This will cause drift in your CloudFormation stack. 
+**The sync command should only be used against a development stack**.
+Confirm that you are synchronizing a development stack.
+
+Enter Y to proceed with the command, or enter N to cancel:
+"""
+
+SYNC_CONFIRMATION_TEXT_WITH_BETA = """
+This feature is currently in beta. Visit the docs page to learn more about the AWS Beta terms https://aws.amazon.com/service-terms/.
+
+The SAM CLI will use the AWS Lambda, Amazon API Gateway, and AWS StepFunctions APIs to upload your code without 
+performing a CloudFormation deployment. This will cause drift in your CloudFormation stack. 
+**The sync command should only be used against a development stack**.
+
+Confirm that you are synchronizing a development stack and want to turn on beta features.
+
+Enter Y to proceed with the command, or enter N to cancel:
+"""
+
+
 SHORT_HELP = "Sync a project to AWS"
 
 DEFAULT_TEMPLATE_NAME = "template.yaml"
@@ -220,29 +243,10 @@ def do_cli(
     build_dir = DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER if dependency_layer else DEFAULT_BUILD_DIR
     LOG.debug("Using build directory as %s", build_dir)
 
-    confirmation_text = """
-The SAM CLI will use the AWS Lambda, Amazon API Gateway, and AWS StepFunctions APIs to upload your code without 
-performing a CloudFormation deployment. This will cause drift in your CloudFormation stack. 
-**The sync command should only be used against a development stack**.
-Confirm that you are synchronizing a development stack.
-
-Enter Y to proceed with the command, or enter N to cancel:
-"""
+    confirmation_text = SYNC_CONFIRMATION_TEXT
 
     if not is_experimental_enabled(ExperimentalFlag.Accelerate):
-        confirmation_text = """
-        
-
-This feature is currently in beta. Visit the docs page to learn more about the AWS Beta terms https://aws.amazon.com/service-terms/.
-
-The SAM CLI will use the AWS Lambda, Amazon API Gateway, and AWS StepFunctions APIs to upload your code without 
-performing a CloudFormation deployment. This will cause drift in your CloudFormation stack. 
-**The sync command should only be used against a development stack**.
-
-Confirm that you are synchronizing a development stack and want to turn on beta features.
-
-Enter Y to proceed with the command, or enter N to cancel:
-"""
+        confirmation_text = SYNC_CONFIRMATION_TEXT_WITH_BETA
 
     if not click.confirm(Colored().yellow(confirmation_text), default=False):
         return
