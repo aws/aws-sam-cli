@@ -24,12 +24,6 @@ from samcli.commands._utils.options import (
     DEFAULT_CACHE_DIR,
     DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER,
 )
-from samcli.commands._utils.experimental import (
-    ExperimentalFlag,
-    experimental,
-    is_experimental_enabled,
-    set_experimental,
-)
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.version_checker import check_newer_version
@@ -48,6 +42,11 @@ from samcli.lib.providers.provider import (
 )
 from samcli.cli.context import Context
 from samcli.lib.sync.watch_manager import WatchManager
+from samcli.commands._utils.experimental import (
+    ExperimentalFlag,
+    experimental,
+    is_experimental_enabled,
+)
 
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext

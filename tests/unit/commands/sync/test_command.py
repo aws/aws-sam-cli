@@ -47,6 +47,7 @@ class TestDoCli(TestCase):
         MOCK_SAM_CONFIG.reset_mock()
 
     @parameterized.expand([(False, False, True), (False, False, False)])
+    @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.execute_code_sync")
     @patch("samcli.commands.build.command.click")
     @patch("samcli.commands.build.build_context.BuildContext")
@@ -70,6 +71,7 @@ class TestDoCli(TestCase):
         BuildContextMock,
         mock_build_click,
         execute_code_sync_mock,
+        click_mock,
     ):
 
         build_context_mock = Mock()
@@ -167,6 +169,7 @@ class TestDoCli(TestCase):
         execute_code_sync_mock.assert_not_called()
 
     @parameterized.expand([(False, True, False)])
+    @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.execute_watch")
     @patch("samcli.commands.build.command.click")
     @patch("samcli.commands.build.build_context.BuildContext")
@@ -190,6 +193,7 @@ class TestDoCli(TestCase):
         BuildContextMock,
         mock_build_click,
         execute_watch_mock,
+        click_mock,
     ):
 
         build_context_mock = Mock()
@@ -286,6 +290,7 @@ class TestDoCli(TestCase):
         )
 
     @parameterized.expand([(True, False, True)])
+    @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.execute_code_sync")
     @patch("samcli.commands.build.command.click")
     @patch("samcli.commands.build.build_context.BuildContext")
@@ -309,6 +314,7 @@ class TestDoCli(TestCase):
         BuildContextMock,
         mock_build_click,
         execute_code_sync_mock,
+        click_mock,
     ):
 
         build_context_mock = Mock()
@@ -359,6 +365,7 @@ class TestSyncCode(TestCase):
         self.build_context = MagicMock()
         self.deploy_context = MagicMock()
 
+    @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.sync.command.SyncFlowFactory")
     @patch("samcli.commands.sync.command.SyncFlowExecutor")
@@ -369,6 +376,7 @@ class TestSyncCode(TestCase):
         sync_flow_executor_mock,
         sync_flow_factory_mock,
         get_stacks_mock,
+        click_mock,
     ):
 
         resource_identifier_strings = ["Function1"]
@@ -395,6 +403,7 @@ class TestSyncCode(TestCase):
             get_stacks_mock.return_value[0], resource_identifier_strings, []
         )
 
+    @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.sync.command.SyncFlowFactory")
     @patch("samcli.commands.sync.command.SyncFlowExecutor")
@@ -405,6 +414,7 @@ class TestSyncCode(TestCase):
         sync_flow_executor_mock,
         sync_flow_factory_mock,
         get_stacks_mock,
+        click_mock,
     ):
 
         resource_identifier_strings = ["Function1", "Function2"]
@@ -438,6 +448,7 @@ class TestSyncCode(TestCase):
             get_stacks_mock.return_value[0], resource_identifier_strings, []
         )
 
+    @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.sync.command.SyncFlowFactory")
     @patch("samcli.commands.sync.command.SyncFlowExecutor")
@@ -448,6 +459,7 @@ class TestSyncCode(TestCase):
         sync_flow_executor_mock,
         sync_flow_factory_mock,
         get_stacks_mock,
+        click_mock,
     ):
 
         resource_identifier_strings = ["Function1", "Function2"]
@@ -484,6 +496,7 @@ class TestSyncCode(TestCase):
             get_stacks_mock.return_value[0], resource_identifier_strings, ["Type1"]
         )
 
+    @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.sync.command.SyncFlowFactory")
     @patch("samcli.commands.sync.command.SyncFlowExecutor")
@@ -494,6 +507,7 @@ class TestSyncCode(TestCase):
         sync_flow_executor_mock,
         sync_flow_factory_mock,
         get_stacks_mock,
+        click_mock,
     ):
         resource_identifier_strings = ["Function1", "Function2"]
         resource_types = ["Type1", "Type2"]
@@ -533,6 +547,7 @@ class TestSyncCode(TestCase):
             get_stacks_mock.return_value[0], resource_identifier_strings, ["Type1", "Type2"]
         )
 
+    @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.sync.command.SyncFlowFactory")
     @patch("samcli.commands.sync.command.SyncFlowExecutor")
@@ -543,6 +558,7 @@ class TestSyncCode(TestCase):
         sync_flow_executor_mock,
         sync_flow_factory_mock,
         get_stacks_mock,
+        click_mock,
     ):
         sync_flows = [MagicMock(), MagicMock(), MagicMock(), MagicMock()]
         sync_flow_factory_mock.return_value.create_sync_flow.side_effect = sync_flows
@@ -580,11 +596,13 @@ class TestWatch(TestCase):
         self.deploy_context = MagicMock()
 
     @parameterized.expand([(True,), (False,)])
+    @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.WatchManager")
     def test_execute_watch(
         self,
         auto_dependency_layer,
         watch_manager_mock,
+        click_mock,
     ):
         execute_watch(
             self.template_file, self.build_context, self.package_context, self.deploy_context, auto_dependency_layer
