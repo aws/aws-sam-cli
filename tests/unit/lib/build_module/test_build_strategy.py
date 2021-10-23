@@ -511,12 +511,22 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
 
     @parameterized.expand(
         [
-            "python3.7",
-            "nodejs12.x",
-            "ruby2.7",
+            ("python3.7", True),
+            ("nodejs12.x", True),
+            ("ruby2.7", True),
+            ("python3.7", False),
         ]
     )
-    def test_will_call_incremental_build_strategy(self, mocked_read, mocked_write, runtime):
+    @patch("samcli.lib.build.build_strategy.is_experimental_enabled")
+    def test_will_call_incremental_build_strategy(
+            self,
+            mocked_read,
+            mocked_write,
+            runtime,
+            experimental_enabled,
+            patched_experimental
+    ):
+        patched_experimental.return_value = experimental_enabled
         build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", X86_64, {})
         self.build_graph.put_function_build_definition(build_definition, Mock())
         with patch.object(
@@ -526,8 +536,12 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
         ) as patched_cached_build_strategy:
             self.build_strategy.build()
 
-            patched_incremental_build_strategy.build_single_function_definition.assert_called_with(build_definition)
-            patched_cached_build_strategy.assert_not_called()
+            if experimental_enabled:
+                patched_incremental_build_strategy.build_single_function_definition.assert_called_with(build_definition)
+                patched_cached_build_strategy.assert_not_called()
+            else:
+                patched_cached_build_strategy.build_single_function_definition.assert_called_with(build_definition)
+                patched_incremental_build_strategy.assert_not_called()
 
     @parameterized.expand(
         [

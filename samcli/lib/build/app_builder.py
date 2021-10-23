@@ -18,10 +18,8 @@ from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
 
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
-from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
 from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition, BuildGraph
 from samcli.lib.build.build_strategy import (
-    CachedBuildStrategy,
     DefaultBuildStrategy,
     CachedOrIncrementalBuildStrategyWrapper,
     ParallelBuildStrategy,
@@ -183,14 +181,6 @@ class ApplicationBuilder:
                         self._cache_dir,
                         self._manifest_path_override,
                         self._is_building_specific_resource,
-                    )
-                    if is_experimental_enabled(ExperimentalFlag.Accelerate)
-                    else CachedBuildStrategy(
-                        build_graph,
-                        build_strategy,
-                        self._base_dir,
-                        self._build_dir,
-                        self._cache_dir,
                     ),
                 )
             else:
@@ -205,14 +195,6 @@ class ApplicationBuilder:
                     self._cache_dir,
                     self._manifest_path_override,
                     self._is_building_specific_resource,
-                )
-                if is_experimental_enabled(ExperimentalFlag.Accelerate)
-                else CachedBuildStrategy(
-                    build_graph,
-                    build_strategy,
-                    self._base_dir,
-                    self._build_dir,
-                    self._cache_dir,
                 )
             )
 

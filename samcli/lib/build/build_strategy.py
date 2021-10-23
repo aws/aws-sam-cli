@@ -9,6 +9,7 @@ from abc import abstractmethod, ABC
 from copy import deepcopy
 from typing import Callable, Dict, List, Any, Optional, cast, Set
 
+from samcli.commands._utils.experimental import is_experimental_enabled, ExperimentalFlag
 from samcli.lib.utils import osutils
 from samcli.lib.utils.async_utils import AsyncContext
 from samcli.lib.utils.hash import dir_checksum
@@ -552,7 +553,7 @@ class CachedOrIncrementalBuildStrategyWrapper(BuildStrategy):
 
     @staticmethod
     def _is_incremental_build_supported(runtime: Optional[str]) -> bool:
-        if not runtime:
+        if not runtime or not is_experimental_enabled(ExperimentalFlag.Accelerate):
             return False
 
         for supported_runtime_prefix in CachedOrIncrementalBuildStrategyWrapper.SUPPORTED_RUNTIME_PREFIXES:
