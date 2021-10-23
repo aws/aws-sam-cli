@@ -8,6 +8,7 @@ from typing import List, Optional, Dict, Tuple
 import click
 
 from samcli.cli.context import Context
+from samcli.commands._utils.experimental import experimental
 from samcli.commands._utils.options import (
     template_option_without_build,
     docker_common_options,
@@ -134,6 +135,7 @@ $ sam build MyFunction
 @template_option_without_build
 @parameter_override_option
 @docker_common_options
+@experimental
 @cli_framework_options
 @aws_creds_options
 @click.argument("resource_logical_id", required=False)
