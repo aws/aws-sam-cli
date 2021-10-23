@@ -24,8 +24,8 @@ from samcli.commands._utils.options import (
     DEFAULT_CACHE_DIR,
     DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER,
 )
-from samcli.commands._utils.experimental import ExperimentalFlag, force_experimental
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
+from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.cli_validation.image_repository_validation import image_repository_validation
@@ -42,6 +42,11 @@ from samcli.lib.providers.provider import (
 )
 from samcli.cli.context import Context
 from samcli.lib.sync.watch_manager import WatchManager
+from samcli.commands._utils.experimental import (
+    ExperimentalFlag,
+    experimental,
+    is_experimental_enabled,
+)
 
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.deploy.deploy_context import DeployContext
@@ -55,6 +60,29 @@ Update/sync local artifacts to AWS
 
 By default, the sync command runs a full stack update, you can specify --code or --watch to which modes
 """
+
+SYNC_CONFIRMATION_TEXT = """
+The SAM CLI will use the AWS Lambda, Amazon API Gateway, and AWS StepFunctions APIs to upload your code without 
+performing a CloudFormation deployment. This will cause drift in your CloudFormation stack. 
+**The sync command should only be used against a development stack**.
+Confirm that you are synchronizing a development stack.
+
+Enter Y to proceed with the command, or enter N to cancel:
+"""
+
+SYNC_CONFIRMATION_TEXT_WITH_BETA = """
+This feature is currently in beta. Visit the docs page to learn more about the AWS Beta terms https://aws.amazon.com/service-terms/.
+
+The SAM CLI will use the AWS Lambda, Amazon API Gateway, and AWS StepFunctions APIs to upload your code without 
+performing a CloudFormation deployment. This will cause drift in your CloudFormation stack. 
+**The sync command should only be used against a development stack**.
+
+Confirm that you are synchronizing a development stack and want to turn on beta features.
+
+Enter Y to proceed with the command, or enter N to cancel:
+"""
+
+
 SHORT_HELP = "Sync a project to AWS"
 
 DEFAULT_TEMPLATE_NAME = "template.yaml"
@@ -105,7 +133,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @notification_arns_option
 @tags_option
 @capabilities_option(default=DEFAULT_CAPABILITIES)  # pylint: disable=E1120
-@force_experimental(config_entry=ExperimentalFlag.Accelerate)  # pylint: disable=E1120
+@experimental
 @pass_context
 @track_command
 @image_repository_validation
@@ -214,6 +242,14 @@ def do_cli(
 
     build_dir = DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER if dependency_layer else DEFAULT_BUILD_DIR
     LOG.debug("Using build directory as %s", build_dir)
+
+    confirmation_text = SYNC_CONFIRMATION_TEXT
+
+    if not is_experimental_enabled(ExperimentalFlag.Accelerate):
+        confirmation_text = SYNC_CONFIRMATION_TEXT_WITH_BETA
+
+    if not click.confirm(Colored().yellow(confirmation_text), default=False):
+        return
 
     with BuildContext(
         resource_identifier=None,
