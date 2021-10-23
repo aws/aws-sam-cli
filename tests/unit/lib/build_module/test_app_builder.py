@@ -329,18 +329,11 @@ class TestApplicationBuilder_build(TestCase):
         mock_default_build_strategy.build.assert_called_once()
         self.assertEqual(result, mock_default_build_strategy.build())
 
-    @patch("samcli.lib.build.app_builder.is_experimental_enabled")
-    @patch("samcli.lib.build.app_builder.CachedBuildStrategy")
     @patch("samcli.lib.build.app_builder.CachedOrIncrementalBuildStrategyWrapper")
-    def test_cached_run_should_pick_cached_strategy_experimental(
+    def test_cached_run_should_pick_incremental_strategy(
         self,
         mock_cached_and_incremental_build_strategy_class,
-        mock_cached_build_strategy_class,
-        experimental_enabled_mock,
     ):
-        experimental_enabled_mock.return_value = True
-        mock_cached_build_strategy = Mock()
-        mock_cached_build_strategy_class.return_value = mock_cached_build_strategy
         mock_cached_and_incremental_build_strategy = Mock()
         mock_cached_and_incremental_build_strategy_class.return_value = mock_cached_and_incremental_build_strategy
 
@@ -352,36 +345,8 @@ class TestApplicationBuilder_build(TestCase):
 
         result = builder.build().artifacts
 
-        mock_cached_build_strategy.build.assert_not_called()
         mock_cached_and_incremental_build_strategy.build.assert_called_once()
         self.assertEqual(result, mock_cached_and_incremental_build_strategy.build())
-
-    @patch("samcli.lib.build.app_builder.is_experimental_enabled")
-    @patch("samcli.lib.build.app_builder.CachedBuildStrategy")
-    @patch("samcli.lib.build.app_builder.CachedOrIncrementalBuildStrategyWrapper")
-    def test_cached_run_should_pick_cached_strategy_non_experimental(
-        self,
-        mock_cached_and_incremental_build_strategy_class,
-        mock_cached_build_strategy_class,
-        experimental_enabled_mock,
-    ):
-        experimental_enabled_mock.return_value = False
-        mock_cached_build_strategy = Mock()
-        mock_cached_build_strategy_class.return_value = mock_cached_build_strategy
-        mock_cached_and_incremental_build_strategy = Mock()
-        mock_cached_and_incremental_build_strategy_class.return_value = mock_cached_and_incremental_build_strategy
-
-        build_graph_mock = Mock()
-        get_build_graph_mock = Mock(return_value=build_graph_mock)
-
-        builder = ApplicationBuilder(Mock(), "builddir", "basedir", "cachedir", cached=True)
-        builder._get_build_graph = get_build_graph_mock
-
-        result = builder.build().artifacts
-
-        mock_cached_build_strategy.build.assert_called_once()
-        mock_cached_and_incremental_build_strategy.build.assert_not_called()
-        self.assertEqual(result, mock_cached_build_strategy.build())
 
     @patch("samcli.lib.build.app_builder.ParallelBuildStrategy")
     def test_parallel_run_should_pick_parallel_strategy(self, mock_parallel_build_strategy_class):
@@ -399,52 +364,13 @@ class TestApplicationBuilder_build(TestCase):
         mock_parallel_build_strategy.build.assert_called_once()
         self.assertEqual(result, mock_parallel_build_strategy.build())
 
-    @patch("samcli.lib.build.app_builder.is_experimental_enabled")
     @patch("samcli.lib.build.app_builder.ParallelBuildStrategy")
-    @patch("samcli.lib.build.app_builder.CachedBuildStrategy")
     @patch("samcli.lib.build.app_builder.CachedOrIncrementalBuildStrategyWrapper")
-    def test_parallel_and_cached_run_should_pick_parallel_with_cached_strategy_non_experimental(
+    def test_parallel_and_cached_run_should_pick_parallel_with_incremental(
         self,
         mock_cached_and_incremental_build_strategy_class,
-        mock_cached_build_strategy_class,
         mock_parallel_build_strategy_class,
-        experimental_enabled_mock,
     ):
-        experimental_enabled_mock.return_value = False
-        mock_cached_build_strategy = Mock()
-        mock_cached_build_strategy_class.return_value = mock_cached_build_strategy
-        mock_cached_and_incremental_build_strategy = Mock()
-        mock_cached_and_incremental_build_strategy_class.return_value = mock_cached_and_incremental_build_strategy
-        mock_parallel_build_strategy = Mock()
-        mock_parallel_build_strategy_class.return_value = mock_parallel_build_strategy
-
-        build_graph_mock = Mock()
-        get_build_graph_mock = Mock(return_value=build_graph_mock)
-
-        builder = ApplicationBuilder(Mock(), "builddir", "basedir", "cachedir", parallel=True, cached=True)
-        builder._get_build_graph = get_build_graph_mock
-
-        result = builder.build().artifacts
-
-        mock_parallel_build_strategy_class.assert_called_once_with(ANY, mock_cached_build_strategy)
-
-        mock_parallel_build_strategy.build.assert_called_once()
-        self.assertEqual(result, mock_parallel_build_strategy.build())
-
-    @patch("samcli.lib.build.app_builder.is_experimental_enabled")
-    @patch("samcli.lib.build.app_builder.ParallelBuildStrategy")
-    @patch("samcli.lib.build.app_builder.CachedBuildStrategy")
-    @patch("samcli.lib.build.app_builder.CachedOrIncrementalBuildStrategyWrapper")
-    def test_parallel_and_cached_run_should_pick_parallel_with_cached_strategy_experimental(
-        self,
-        mock_cached_and_incremental_build_strategy_class,
-        mock_cached_build_strategy_class,
-        mock_parallel_build_strategy_class,
-        experimental_enabled_mock,
-    ):
-        experimental_enabled_mock.return_value = True
-        mock_cached_build_strategy = Mock()
-        mock_cached_build_strategy_class.return_value = mock_cached_build_strategy
         mock_cached_and_incremental_build_strategy = Mock()
         mock_cached_and_incremental_build_strategy_class.return_value = mock_cached_and_incremental_build_strategy
         mock_parallel_build_strategy = Mock()
