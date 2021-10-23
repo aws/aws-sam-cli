@@ -1,6 +1,6 @@
 version: 1.0.{build}
 image: 
-  - Ubuntu
+  - Ubuntu2004
   - Visual Studio 2019
 
 environment:
@@ -123,7 +123,7 @@ for:
   - 
     matrix:
       only:
-        - image: Ubuntu
+        - image: Ubuntu2004
 
     install:
       # apt repo for python3.9 installation
