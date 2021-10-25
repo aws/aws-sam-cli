@@ -188,6 +188,9 @@ for:
       - ps: "If ($env:INSTALL_PY_37_PIP) {python3.7 get-pip.py --user}"
       - ps: "If ($env:INSTALL_PY_36_PIP) {python3.6 get-pip.py --user}"
 
+      # update ca-certificates which causes failures with newest golang library
+      - sh: "sudo apt-get install --reinstall ca-certificates"
+
     build_script:
       - "python -c \"import sys; print(sys.executable)\""
 
