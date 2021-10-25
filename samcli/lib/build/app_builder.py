@@ -675,21 +675,21 @@ class ApplicationBuilder:
 
         runtime = runtime.replace(".al2", "")
 
-        kwargs = {
-            "runtime": runtime,
-            "executable_search_paths": config.executable_search_paths,
-            "mode": self._mode,
-            "options": options,
-            "architecture": architecture,
-        }
-        # todo: remove this check once the lambda builder release is finished
-        if lambda_builders_version == "1.9.0":
-            kwargs["dependencies_dir"] = dependencies_dir
-            kwargs["download_dependencies"] = download_dependencies
-            kwargs["combine_dependencies"] = self._combine_dependencies
-
         try:
-            builder.build(source_dir, artifacts_dir, scratch_dir, manifest_path, **kwargs)
+            builder.build(
+                source_dir,
+                artifacts_dir,
+                scratch_dir,
+                manifest_path,
+                runtime=runtime,
+                executable_search_paths=config.executable_search_paths,
+                mode=self._mode,
+                options=options,
+                architecture=architecture,
+                dependencies_dir=dependencies_dir,
+                download_dependencies=download_dependencies,
+                combine_dependencies=self._combine_dependencies,
+            )
         except LambdaBuilderError as ex:
             raise BuildError(wrapped_from=ex.__class__.__name__, msg=str(ex)) from ex
 

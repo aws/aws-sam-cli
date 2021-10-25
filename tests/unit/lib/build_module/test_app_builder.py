@@ -1198,10 +1198,9 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
             mode="mode",
             options=None,
             architecture=X86_64,
-            # todo: put the three checks back after app builder release
-            # dependencies_dir=None,
-            # download_dependencies=True,
-            # combine_dependencies=True,
+            dependencies_dir=None,
+            download_dependencies=True,
+            combine_dependencies=True,
         )
 
     @patch("samcli.lib.build.app_builder.LambdaBuilder")
