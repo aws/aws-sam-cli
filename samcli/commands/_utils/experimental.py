@@ -223,4 +223,7 @@ def prompt_experimental(
     """
     if is_experimental_enabled(config_entry):
         return True
-    return click.confirm(prompt, default=False)
+    confirmed = click.confirm(prompt, default=False)
+    if confirmed:
+        set_experimental(config_entry=config_entry, enabled=True)
+    return confirmed
