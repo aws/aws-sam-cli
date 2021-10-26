@@ -269,7 +269,7 @@ class DeployContext:
             except deploy_exceptions.ChangeEmptyError as ex:
                 if fail_on_empty_changeset:
                     raise
-                LOG.error(str(ex))
+                click.echo(str(ex))
 
         else:
             try:
