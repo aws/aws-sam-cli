@@ -162,7 +162,7 @@ class DefaultBuildStrategy(BuildStrategy):
             single_build_dir,
             build_definition.metadata,
             container_env_vars,
-            build_definition.dependencies_dir,
+            build_definition.dependencies_dir if is_experimental_enabled(ExperimentalFlag.Accelerate) else None,
             build_definition.download_dependencies,
         )
         function_build_results[single_full_path] = result
