@@ -53,7 +53,7 @@ class LogGroupProvider:
         return "/aws/lambda/{}".format(function_name)
 
     @staticmethod
-    @force_experimental(config_entry=ExperimentalFlag.Accelerate) # pylint: disable=E1120
+    @force_experimental(config_entry=ExperimentalFlag.Accelerate)  # pylint: disable=E1120
     def for_apigw_rest_api(rest_api_id: str, stage: str = "Prod") -> str:
         """
         Returns the CloudWatch Log Group Name created by default for the AWS Api gateway rest api with given id
@@ -76,7 +76,7 @@ class LogGroupProvider:
         return "API-Gateway-Execution-Logs_{}/{}".format(rest_api_id, stage)
 
     @staticmethod
-    @force_experimental(config_entry=ExperimentalFlag.Accelerate) # pylint: disable=E1120
+    @force_experimental(config_entry=ExperimentalFlag.Accelerate)  # pylint: disable=E1120
     def for_apigwv2_http_api(
         boto_client_provider: BotoProviderType, http_api_id: str, stage: str = "$default"
     ) -> Optional[str]:
@@ -110,7 +110,7 @@ class LogGroupProvider:
         return log_group_name
 
     @staticmethod
-    @force_experimental(config_entry=ExperimentalFlag.Accelerate) # pylint: disable=E1120
+    @force_experimental(config_entry=ExperimentalFlag.Accelerate)  # pylint: disable=E1120
     def for_step_functions(
         boto_client_provider: BotoProviderType,
         step_function_name: str,
