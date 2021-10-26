@@ -2,6 +2,9 @@ import os
 import shutil
 import subprocess
 import tempfile
+import logging
+from unittest.case import expectedFailure
+import pytest
 from pathlib import Path
 from typing import Dict, Any
 from unittest import TestCase
@@ -27,7 +30,6 @@ from samcli.lib.utils import osutils
 from samcli.lib.utils.git_repo import GitRepo
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.architecture import X86_64, ARM64
-from samcli.cli.main import global_cfg
 
 
 class MockInitTemplates:
@@ -2141,21 +2143,27 @@ test-project
             {"project_name": "test-project", "runtime": "java11", "architectures": {"value": ["x86_64"]}},
         )
 
+    @pytest.fixture(autouse=True)
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    def get_caplog(self, caplog):
+        self._caplog = caplog
+
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
     def test_init_cli_init_must_raise_for_unknown_property(self):
-        template = (
-            {
-                "directory": "java11/cookiecutter-aws-sam-hello1-java-maven",
-                "displayName": "Hello World Example 1: Maven",
-                "dependencyManager": "maven",
-                "appTemplate": "hello-world",
-                "packageType": "Zip",
-                "useCaseName": "Serverless API",
-            },
-        )
+        template = {
+            "directory": "java11/cookiecutter-aws-sam-hello1-java-maven",
+            "displayName": "Hello World Example 1: Maven",
+            "dependencyManager": "maven",
+            "appTemplate": "hello-world",
+            "packageType": "Zip",
+            "useCaseName": "Serverless API",
+        }
 
-        with self.assertRaises(InvalidInitTemplateError):
-            get_template_value("unknown_parameter", template)
+        expected_msg = f"Template is missing the value for unknown_parameter in manifest file. Please raise a github issue. Template details: {template}"
+        self._caplog.set_level(logging.DEBUG)
+        result = get_template_value("unknown_parameter", template)
+        self.assertEqual(result, None)
+        self.assertIn(expected_msg, self._caplog.text)
 
     @patch("samcli.commands.init.init_templates.InitTemplates.get_preprocessed_manifest")
     @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")

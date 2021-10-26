@@ -127,8 +127,8 @@ def _generate_from_use_case(
     architecture,
 ):
     templates = InitTemplates()
-    filter_value = runtime if runtime else base_image
-    preprocessed_options = templates.get_preprocessed_manifest(filter_value)
+    runtime_or_base_image = runtime if runtime else base_image
+    preprocessed_options = templates.get_preprocessed_manifest(runtime_or_base_image)
 
     question = "Choose an AWS Quick Start application template"
     use_case = _get_choice_from_options(
@@ -139,7 +139,7 @@ def _generate_from_use_case(
     )
 
     default_app_template_properties = _generate_default_hello_world_application(
-        use_case, package_type, runtime, dependency_manager, pt_explicit
+        use_case, package_type, runtime, base_image, dependency_manager, pt_explicit
     )
 
     chosen_app_template_properties = _get_app_template_properties(
@@ -189,10 +189,32 @@ def _generate_from_use_case(
         _package_schemas_code(runtime, schemas_api_caller, schema_template_details, output_dir, name, location)
 
 
-def _generate_default_hello_world_application(use_case, package_type, runtime, dependency_manager, pt_explicit):
-    if use_case == "Hello World Example":
-        question = "Use the most popular runtime and package type? (Nodejs and zip)"
-        if click.confirm(f"\n{question}"):
+def _generate_default_hello_world_application(
+    use_case, package_type, runtime, base_image, dependency_manager, pt_explicit
+):
+    """
+    Generate the default Hello World template if Hello World Example is selected
+    Parameters
+    ----------
+    use_case : string
+        Type of template example selected
+    package_type : str
+        The package type, 'Zip' or 'Image', see samcli/lib/utils/packagetype.py
+    runtime : str
+        AWS Lambda function runtime
+    dependency_manager : str
+        dependency manager
+    pt_explicit : bool
+        True --package-type was passed or Vice versa
+
+    Returns
+    -------
+    tuple
+        configuration for a default Hello World Example
+    """
+
+    if use_case == "Hello World Example" and not (runtime or base_image):
+        if click.confirm("\n Use the most popular runtime and package type? (Nodejs and zip)"):
             runtime, package_type, dependency_manager, pt_explicit = "nodejs14.x", ZIP, "npm", True
     return (runtime, package_type, dependency_manager, pt_explicit)
 
@@ -207,22 +229,20 @@ def _get_app_template_properties(preprocessed_options, use_case, base_image, tem
     if base_image:
         runtime = _get_runtime_from_image(base_image)
 
-    try:
-        package_types_options = runtime_options[runtime]
-        if not pt_explicit:
-            message = "What package type would you like to use?"
-            package_type = _get_choice_from_options(None, package_types_options, message, "Package type")
-            if package_type == IMAGE:
-                base_image = _get_image_from_runtime(runtime)
-    except KeyError as ex:
-        raise InvalidInitOptionException(f"Lambda Runtime {runtime} is not supported for {use_case} examples.") from ex
+    package_types_options = runtime_options.get(runtime)
+    if not package_types_options:
+        raise InvalidInitOptionException(f"Lambda Runtime {runtime} is not supported for {use_case} examples.")
+    if not pt_explicit:
+        message = "What package type would you like to use?"
+        package_type = _get_choice_from_options(None, package_types_options, message, "Package type")
+        if package_type == IMAGE:
+            base_image = _get_image_from_runtime(runtime)
 
-    try:
-        dependency_manager_options = package_types_options[package_type]
-    except KeyError as ex:
+    dependency_manager_options = package_types_options.get(package_type)
+    if not dependency_manager_options:
         raise InvalidInitOptionException(
             f"{package_type} package type is not supported for {use_case} examples and runtime {runtime} selected."
-        ) from ex
+        )
 
     dependency_manager = _get_dependency_manager(dependency_manager_options, dependency_manager, runtime)
     template_chosen = _get_app_template_choice(dependency_manager_options, dependency_manager)
@@ -237,6 +257,9 @@ def _get_choice_from_options(chosen, options, question, msg):
     click_choices = []
 
     options_list = options if isinstance(options, list) else list(options.keys())
+
+    if not options_list:
+        raise InvalidInitOptionException(f"There are no {msg} options available to be selected.")
 
     if len(options_list) == 1:
         click.echo(
@@ -257,17 +280,6 @@ def _get_choice_from_options(chosen, options, question, msg):
 
 
 def get_sorted_runtimes(options_list):
-    """
-    sort lst of runtime name in an ascending order and version in a descending order
-    Parameters
-    ----------
-    options_list : [list]
-        list of runtimes
-    Returns
-    -------
-    [list]
-        list of sorted runtimes
-    """
     runtimes = []
     for runtime in options_list:
         position = INIT_RUNTIMES.index(runtime)

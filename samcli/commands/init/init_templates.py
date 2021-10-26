@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 from typing import Dict
 
-from samcli.cli.main import global_cfg
+from samcli.cli.global_config import GlobalConfig
 from samcli.commands.exceptions import UserException, AppTemplateUpdateException
 from samcli.lib.utils.git_repo import GitRepo, CloneRepoException, CloneRepoUnstableStateException
 from samcli.lib.utils.packagetype import IMAGE
@@ -170,14 +170,16 @@ class InitTemplates:
             for template in template_list:
                 package_type = get_template_value("packageType", template)
                 use_case_name = get_template_value("useCaseName", template)
+                if not package_type or not use_case_name:
+                    continue
                 runtime = get_runtime(package_type, template_runtime)
-
                 use_case = preprocessed_manifest.get(use_case_name, {})
                 use_case[runtime] = use_case.get(runtime, {})
                 use_case[runtime][package_type] = use_case[runtime].get(package_type, [])
                 use_case[runtime][package_type].append(template)
 
                 preprocessed_manifest[use_case_name] = use_case
+
         return preprocessed_manifest
 
     def get_bundle_option(self, package_type, runtime, dependency_manager):
@@ -186,8 +188,9 @@ class InitTemplates:
 
 def get_template_value(value, template):
     if value not in template:
-        raise InvalidInitTemplateError(
-            f"Template is missing the value for {value} in manifest file. Please raise a a github issue."
+        LOG.debug(
+            f"Template is missing the value for {value} in manifest file. Please raise a github issue."
+            + f" Template details: {template}"
         )
     return template.get(value)
 
