@@ -150,7 +150,7 @@ def do_cli(
     else:
         click.echo(
             "You can now use 'sam logs' without --name parameter, "
-            "which will pull the logs from all possible resources in your stack."
+            "which will pull the logs from all supported resources in your stack."
         )
 
     sanitized_start_time = parse_time(start_time, "start-time")
