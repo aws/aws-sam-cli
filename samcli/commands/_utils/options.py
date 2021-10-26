@@ -455,10 +455,11 @@ def notification_arns_option(f):
     return notification_arns_click_option()(f)
 
 
-def stack_name_click_option(required):
+def stack_name_click_option(required, callback):
     return click.option(
         "--stack-name",
         required=required,
+        callback=callback,
         help="The name of the AWS CloudFormation stack you're deploying to. "
         "If you specify an existing stack, the command updates the stack. "
         "If you specify a new stack, the command creates it.",
@@ -466,8 +467,8 @@ def stack_name_click_option(required):
 
 
 @parameterized_option
-def stack_name_option(f, required=False):
-    return stack_name_click_option(required)(f)
+def stack_name_option(f, required=False, callback=None):
+    return stack_name_click_option(required, callback)(f)
 
 
 def s3_bucket_click_option(guided):

@@ -9,6 +9,7 @@ from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.commands._utils.options import (
     capabilities_option,
+    guided_deploy_stack_name,
     metadata_option,
     notification_arns_option,
     parameter_override_option,
@@ -101,7 +102,7 @@ LOG = logging.getLogger(__name__)
     is_flag=True,
     help="Preserves the state of previously provisioned resources when an operation fails.",
 )
-@stack_name_option
+@stack_name_option(callback=guided_deploy_stack_name)  # pylint: disable=E1120
 @s3_bucket_option(guided=True)  # pylint: disable=E1120
 @image_repository_option
 @image_repositories_option
