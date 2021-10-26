@@ -146,19 +146,14 @@ class NestedStackManager:
         """
         if not function_runtime:
             raise InvalidRuntimeDefinitionForFunction(function_logical_id)
-        if not os.path.isdir(dependencies_dir):
-            raise FileNotFoundError(
-                f"The dependency directory {dependencies_dir} does not exist. "
-                "It may be due to previous dependency copy failure or build folder corruption. "
-                "Try deleting the build folder (.aws-sam by default) and rerun.",
-            )
 
         layer_root_folder = Path(build_dir).joinpath(layer_logical_id)
         if layer_root_folder.exists():
             shutil.rmtree(layer_root_folder)
         layer_contents_folder = layer_root_folder.joinpath(get_layer_subfolder(function_runtime))
         layer_contents_folder.mkdir(BUILD_DIR_PERMISSIONS, parents=True)
-        osutils.copytree(dependencies_dir, str(layer_contents_folder))
+        if os.path.isdir(dependencies_dir):
+            osutils.copytree(dependencies_dir, str(layer_contents_folder))
         NestedStackManager._add_layer_readme_info(str(layer_root_folder), function_logical_id)
         return str(layer_root_folder)
 
