@@ -36,8 +36,7 @@ def read_version():
     return re.search(r"__version__ = \"([^']+)\"", content).group(1)
 
 
-# TODO(wchengru): The cmd name is for beta release only, need to change back to "sam" when GA
-cmd_name = "sam-acc"
+cmd_name = "sam"
 if os.getenv("SAM_CLI_DEV"):
     # We are installing in a dev environment
     cmd_name = "samdev"
