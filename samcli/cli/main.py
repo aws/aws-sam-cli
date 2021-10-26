@@ -27,9 +27,6 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s", datefm
 pass_context = click.make_pass_decorator(Context)
 
 
-global_cfg = GlobalConfig()
-
-
 def common_options(f):
     """
     Common CLI options used by all commands. Ex: --debug
@@ -118,11 +115,12 @@ def cli(ctx):
     You can find more in-depth guide about the SAM specification here:
     https://github.com/awslabs/serverless-application-model.
     """
-    if global_cfg.telemetry_enabled is None:
+    gc = GlobalConfig()
+    if gc.telemetry_enabled is None:
         enabled = True
 
         try:
-            global_cfg.telemetry_enabled = enabled
+            gc.telemetry_enabled = enabled
 
             if enabled:
                 click.secho(TELEMETRY_PROMPT, fg="yellow", err=True)

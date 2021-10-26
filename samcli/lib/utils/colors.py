@@ -2,7 +2,17 @@
 Wrapper to generated colored messages for printing in Terminal
 """
 
+import platform
+import os
+
 import click
+
+# Enables ANSI escape codes on Windows
+if platform.system().lower() == "windows":
+    try:
+        os.system("color")
+    except Exception:
+        pass
 
 
 class Colored:

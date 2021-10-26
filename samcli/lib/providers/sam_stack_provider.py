@@ -10,6 +10,7 @@ from samcli.commands._utils.template import get_template_data
 from samcli.lib.providers.exceptions import RemoteStackLocationNotSupported
 from samcli.lib.providers.provider import Stack, get_full_path
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
+from samcli.lib.utils.resources import AWS_CLOUDFORMATION_STACK, AWS_SERVERLESS_APPLICATION
 
 LOG = logging.getLogger(__name__)
 
@@ -107,11 +108,11 @@ class SamLocalStackProvider(SamBaseProvider):
 
             stack: Optional[Stack] = None
             try:
-                if resource_type == SamLocalStackProvider.SERVERLESS_APPLICATION:
+                if resource_type == AWS_SERVERLESS_APPLICATION:
                     stack = SamLocalStackProvider._convert_sam_application_resource(
                         self._template_file, self._stack_path, name, resource_properties
                     )
-                if resource_type == SamLocalStackProvider.CLOUDFORMATION_STACK:
+                if resource_type == AWS_CLOUDFORMATION_STACK:
                     stack = SamLocalStackProvider._convert_cfn_stack_resource(
                         self._template_file, self._stack_path, name, resource_properties
                     )

@@ -5,19 +5,68 @@ Common CLI options shared by various commands
 import os
 import logging
 from functools import partial
+import types
 
 import click
 from click.types import FuncParamType
 
 from samcli.commands._utils.template import get_template_data, TemplateNotFoundException
-from samcli.cli.types import CfnParameterOverridesType, CfnMetadataType, CfnTags, SigningProfilesOptionType
+from samcli.cli.types import (
+    CfnParameterOverridesType,
+    CfnMetadataType,
+    CfnTags,
+    SigningProfilesOptionType,
+    ImageRepositoryType,
+    ImageRepositoriesType,
+)
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 from samcli.commands._utils.template import get_template_artifacts_format
+from samcli.lib.utils.packagetype import ZIP, IMAGE
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml|json]"
 DEFAULT_STACK_NAME = "sam-app"
+DEFAULT_BUILD_DIR = os.path.join(".aws-sam", "build")
+DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER = os.path.join(".aws-sam", "auto-dependency-layer")
+DEFAULT_CACHE_DIR = os.path.join(".aws-sam", "cache")
 
 LOG = logging.getLogger(__name__)
+
+
+def parameterized_option(option):
+    """Meta decorator for option decorators.
+    This adds the ability to specify optional parameters for option decorators.
+
+    Usage:
+        @parameterized_option
+        def some_option(f, required=False)
+            ...
+
+        @some_option
+        def command(...)
+
+        or
+
+        @some_option(required=True)
+        def command(...)
+    """
+
+    def parameter_wrapper(*args, **kwargs):
+        if len(args) == 1 and isinstance(args[0], types.FunctionType):
+            # Case when option decorator does not have parameter
+            # @stack_name_option
+            # def command(...)
+            return option(args[0])
+
+        # Case when option decorator does have parameter
+        # @stack_name_option("a", "b")
+        # def command(...)
+
+        def option_wrapper(f):
+            return option(f, *args, **kwargs)
+
+        return option_wrapper
+
+    return parameter_wrapper
 
 
 def get_or_default_template_file_name(ctx, param, provided_value, include_build):
@@ -296,6 +345,47 @@ def signing_profiles_option(f):
     return signing_profiles_click_option()(f)
 
 
+def common_observability_click_options():
+    return [
+        click.option(
+            "--start-time",
+            "-s",
+            default="10m ago",
+            help="Fetch events starting at this time. Time can be relative values like '5mins ago', 'yesterday' or "
+            "formatted timestamp like '2018-01-01 10:10:10'. Defaults to '10mins ago'.",
+        ),
+        click.option(
+            "--end-time",
+            "-e",
+            default=None,
+            help="Fetch events up to this time. Time can be relative values like '5mins ago', 'tomorrow' or "
+            "formatted timestamp like '2018-01-01 10:10:10'",
+        ),
+        click.option(
+            "--tail",
+            "-t",
+            is_flag=True,
+            help="Tail events. This will ignore the end time argument and continue to fetch events as they "
+            "become available. [Beta Feature] If in beta --tail without a --name will pull from all possible resources",
+        ),
+        click.option(
+            "--unformatted",
+            "-u",
+            is_flag=True,
+            help="[Beta Feature] "
+            "Print events without any text formatting in JSON. This option might be useful if you are reading "
+            "output into another tool.",
+        ),
+    ]
+
+
+def common_observability_options(f):
+    for option in common_observability_click_options():
+        option(f)
+
+    return f
+
+
 def metadata_click_option():
     return click.option(
         "--metadata",
@@ -304,31 +394,33 @@ def metadata_click_option():
     )
 
 
-def metadata_override_option(f):
+def metadata_option(f):
     return metadata_click_option()(f)
 
 
-def capabilities_click_option():
+def capabilities_click_option(default):
     return click.option(
         "--capabilities",
         cls=OptionNargs,
         required=False,
+        default=default,
         type=FuncParamType(func=_space_separated_list_func_type),
-        help="A list of  capabilities  that  you  must  specify"
-        "before  AWS  Cloudformation  can create certain stacks. Some stack tem-"
-        "plates might include resources that can affect permissions in your  AWS"
-        "account,  for  example, by creating new AWS Identity and Access Manage-"
-        "ment (IAM) users. For those stacks,  you  must  explicitly  acknowledge"
-        "their  capabilities by specifying this parameter. The only valid values"
-        "are CAPABILITY_IAM and CAPABILITY_NAMED_IAM. If you have IAM resources,"
-        "you  can specify either capability. If you have IAM resources with cus-"
-        "tom names, you must specify CAPABILITY_NAMED_IAM. If you don't  specify"
-        "this  parameter, this action returns an InsufficientCapabilities error.",
+        help="A list of capabilities that you must specify "
+        "before AWS Cloudformation can create certain stacks. Some stack templates "
+        "might include resources that can affect permissions in your AWS "
+        "account, for example, by creating new AWS Identity and Access Management "
+        "(IAM) users. For those stacks, you must explicitly acknowledge "
+        "their capabilities by specifying this parameter. The only valid values"
+        "are CAPABILITY_IAM and CAPABILITY_NAMED_IAM. If you have IAM resources, "
+        "you can specify either capability. If you have IAM resources with custom "
+        "names, you must specify CAPABILITY_NAMED_IAM. If you don't specify "
+        "this parameter, this action returns an InsufficientCapabilities error.",
     )
 
 
-def capabilities_override_option(f):
-    return capabilities_click_option()(f)
+@parameterized_option
+def capabilities_option(f, default=None):
+    return capabilities_click_option(default)(f)
 
 
 def tags_click_option():
@@ -343,7 +435,7 @@ def tags_click_option():
     )
 
 
-def tags_override_option(f):
+def tags_option(f):
     return tags_click_option()(f)
 
 
@@ -359,8 +451,262 @@ def notification_arns_click_option():
     )
 
 
-def notification_arns_override_option(f):
+def notification_arns_option(f):
     return notification_arns_click_option()(f)
+
+
+def stack_name_click_option(required, callback):
+    return click.option(
+        "--stack-name",
+        required=required,
+        callback=callback,
+        help="The name of the AWS CloudFormation stack you're deploying to. "
+        "If you specify an existing stack, the command updates the stack. "
+        "If you specify a new stack, the command creates it.",
+    )
+
+
+@parameterized_option
+def stack_name_option(f, required=False, callback=None):
+    return stack_name_click_option(required, callback)(f)
+
+
+def s3_bucket_click_option(guided):
+    callback = None if guided else partial(artifact_callback, artifact=ZIP)
+    return click.option(
+        "--s3-bucket",
+        required=False,
+        callback=callback,
+        help="The name of the S3 bucket where this command uploads the artifacts that are referenced in your template.",
+    )
+
+
+@parameterized_option
+def s3_bucket_option(f, guided=False):
+    return s3_bucket_click_option(guided)(f)
+
+
+def build_dir_click_option():
+    return click.option(
+        "--build-dir",
+        "-b",
+        default=DEFAULT_BUILD_DIR,
+        type=click.Path(file_okay=False, dir_okay=True, writable=True),  # Must be a directory
+        help="Path to a folder where the built artifacts will be stored. "
+        "This directory will be first removed before starting a build.",
+    )
+
+
+def build_dir_option(f):
+    return build_dir_click_option()(f)
+
+
+def cache_dir_click_option():
+    return click.option(
+        "--cache-dir",
+        "-cd",
+        default=DEFAULT_CACHE_DIR,
+        type=click.Path(file_okay=False, dir_okay=True, writable=True),  # Must be a directory
+        help="The folder where the cache artifacts will be stored when --cached is specified. "
+        "The default cache directory is .aws-sam/cache",
+    )
+
+
+def cache_dir_option(f):
+    return cache_dir_click_option()(f)
+
+
+def base_dir_click_option():
+    return click.option(
+        "--base-dir",
+        "-s",
+        default=None,
+        type=click.Path(dir_okay=True, file_okay=False),  # Must be a directory
+        help="Resolve relative paths to function's source code with respect to this folder. Use this if "
+        "SAM template and your source code are not in same enclosing folder. By default, relative paths "
+        "are resolved with respect to the SAM template's location",
+    )
+
+
+def base_dir_option(f):
+    return base_dir_click_option()(f)
+
+
+def manifest_click_option():
+    return click.option(
+        "--manifest",
+        "-m",
+        default=None,
+        type=click.Path(),
+        help="Path to a custom dependency manifest (e.g., package.json) to use instead of the default one",
+    )
+
+
+def manifest_option(f):
+    return manifest_click_option()(f)
+
+
+def cached_click_option():
+    return click.option(
+        "--cached",
+        "-c",
+        is_flag=True,
+        help="Enable cached builds. Use this flag to reuse build artifacts that have not changed from previous builds. "
+        "AWS SAM evaluates whether you have made any changes to files in your project directory. \n\n"
+        "Note: AWS SAM does not evaluate whether changes have been made to third party modules "
+        "that your project depends on, where you have not provided a specific version. "
+        "For example, if your Python function includes a requirements.txt file with the following entry "
+        "requests=1.x and the latest request module version changes from 1.1 to 1.2, "
+        "SAM will not pull the latest version until you run a non-cached build.",
+    )
+
+
+def cached_option(f):
+    return cached_click_option()(f)
+
+
+def image_repository_click_option():
+    return click.option(
+        "--image-repository",
+        callback=partial(artifact_callback, artifact=IMAGE),
+        type=ImageRepositoryType(),
+        required=False,
+        help="ECR repo uri where this command uploads the image artifacts that are referenced in your template.",
+    )
+
+
+def image_repository_option(f):
+    return image_repository_click_option()(f)
+
+
+def image_repositories_click_option():
+    return click.option(
+        "--image-repositories",
+        multiple=True,
+        callback=image_repositories_callback,
+        type=ImageRepositoriesType(),
+        required=False,
+        help="Specify mapping of Function Logical ID to ECR Repo uri, of the form Function_Logical_ID=ECR_Repo_Uri."
+        "This option can be specified multiple times.",
+    )
+
+
+def image_repositories_option(f):
+    return image_repositories_click_option()(f)
+
+
+def s3_prefix_click_option():
+    return click.option(
+        "--s3-prefix",
+        required=False,
+        help="A prefix name that the command adds to the artifacts "
+        "name when it uploads them to the S3 bucket. The prefix name is a "
+        "path name (folder name) for the S3 bucket.",
+    )
+
+
+def s3_prefix_option(f):
+    return s3_prefix_click_option()(f)
+
+
+def kms_key_id_click_option():
+    return click.option(
+        "--kms-key-id",
+        required=False,
+        help="The ID of an AWS KMS key that the command uses to encrypt artifacts that are at rest in the S3 bucket.",
+    )
+
+
+def kms_key_id_option(f):
+    return kms_key_id_click_option()(f)
+
+
+def use_json_click_option():
+    return click.option(
+        "--use-json",
+        required=False,
+        is_flag=True,
+        help="Indicates whether to use JSON as the format for "
+        "the output AWS CloudFormation template. YAML is used by default.",
+    )
+
+
+def use_json_option(f):
+    return use_json_click_option()(f)
+
+
+def force_upload_click_option():
+    return click.option(
+        "--force-upload",
+        required=False,
+        is_flag=True,
+        help="Indicates whether to override existing files "
+        "in the S3 bucket. Specify this flag to upload artifacts even if they "
+        "match existing artifacts in the S3 bucket.",
+    )
+
+
+def force_upload_option(f):
+    return force_upload_click_option()(f)
+
+
+def resolve_s3_click_option(guided):
+    from samcli.commands.package.exceptions import PackageResolveS3AndS3SetError, PackageResolveS3AndS3NotSetError
+
+    callback = (
+        None
+        if guided
+        else partial(
+            resolve_s3_callback,
+            artifact=ZIP,
+            exc_set=PackageResolveS3AndS3SetError,
+            exc_not_set=PackageResolveS3AndS3NotSetError,
+        )
+    )
+    return click.option(
+        "--resolve-s3",
+        required=False,
+        is_flag=True,
+        callback=callback,
+        help="Automatically resolve s3 bucket for non-guided deployments. "
+        "Enabling this option will also create a managed default s3 bucket for you. "
+        "If you do not provide a --s3-bucket value, the managed bucket will be used. "
+        "Do not use --s3-guided parameter with this option.",
+    )
+
+
+@parameterized_option
+def resolve_s3_option(f, guided=False):
+    return resolve_s3_click_option(guided)(f)
+
+
+def role_arn_click_option():
+    return click.option(
+        "--role-arn",
+        required=False,
+        help="The Amazon Resource Name (ARN) of an  AWS  Identity "
+        "and  Access  Management (IAM) role that AWS CloudFormation assumes when "
+        "executing the change set.",
+    )
+
+
+def role_arn_option(f):
+    return role_arn_click_option()(f)
+
+
+def resolve_image_repos_click_option():
+    return click.option(
+        "--resolve-image-repos",
+        required=False,
+        is_flag=True,
+        help="Automatically create and delete ECR repositories for image-based functions in non-guided deployments. "
+        "A companion stack containing ECR repos for each function will be deployed along with the template stack. "
+        "Automatically created image repositories will be deleted if the corresponding functions are removed.",
+    )
+
+
+def resolve_image_repos_option(f):
+    return resolve_image_repos_click_option()(f)
 
 
 def _space_separated_list_func_type(value):

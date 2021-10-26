@@ -2,53 +2,20 @@ import os
 import click
 
 from unittest import TestCase
-from unittest.mock import Mock, patch, call
+from unittest.mock import Mock, patch
 from parameterized import parameterized
 
 from samcli.commands.build.command import do_cli, _get_mode_value_from_envvar, _process_env_var, _process_image_options
-from samcli.commands.exceptions import UserException
-from samcli.lib.build.app_builder import (
-    BuildError,
-    UnsupportedBuilderLibraryVersionError,
-    BuildInsideContainerError,
-    ContainerBuildNotSupported,
-)
-from samcli.lib.build.workflow_config import UnsupportedRuntimeException
-from samcli.local.lambdafn.exceptions import FunctionNotFound
-
-
-class DeepWrap(Exception):
-    pass
 
 
 class TestDoCli(TestCase):
+    @patch("samcli.commands.build.command.click")
     @patch("samcli.commands.build.build_context.BuildContext")
-    @patch("samcli.lib.build.app_builder.ApplicationBuilder")
-    @patch("samcli.commands._utils.template.move_template")
     @patch("samcli.commands.build.command.os")
-    def test_must_succeed_build(self, os_mock, move_template_mock, ApplicationBuilderMock, BuildContextMock):
+    def test_must_succeed_build(self, os_mock, BuildContextMock, mock_build_click):
 
         ctx_mock = Mock()
-
-        # create stack mocks
-        root_stack = Mock()
-        root_stack.is_root_stack = True
-        root_stack.get_output_template_path = Mock(return_value="./build_dir/template.yaml")
-        child_stack = Mock()
-        child_stack.get_output_template_path = Mock(return_value="./build_dir/abcd/template.yaml")
-        ctx_mock.stacks = [root_stack, child_stack]
-        stack_output_template_path_by_stack_path = {
-            root_stack.stack_path: "./build_dir/template.yaml",
-            child_stack.stack_path: "./build_dir/abcd/template.yaml",
-        }
-
-        BuildContextMock.return_value.__enter__ = Mock()
         BuildContextMock.return_value.__enter__.return_value = ctx_mock
-        builder_mock = ApplicationBuilderMock.return_value = Mock()
-        artifacts = builder_mock.build.return_value = "artifacts"
-        modified_template_root = "modified template 1"
-        modified_template_child = "modified template 2"
-        builder_mock.update_template.side_effect = [modified_template_root, modified_template_child]
 
         do_cli(
             ctx_mock,
@@ -63,7 +30,7 @@ class TestDoCli(TestCase):
             "parallel",
             "manifest_path",
             "docker_network",
-            "skip_pull",
+            "skip_pull_image",
             "parameter_overrides",
             "mode",
             (""),
@@ -71,132 +38,28 @@ class TestDoCli(TestCase):
             (),
         )
 
-        ApplicationBuilderMock.assert_called_once_with(
-            ctx_mock.resources_to_build,
-            ctx_mock.build_dir,
-            ctx_mock.base_dir,
-            ctx_mock.cache_dir,
-            ctx_mock.cached,
-            ctx_mock.is_building_specific_resource,
-            manifest_path_override=ctx_mock.manifest_path_override,
-            container_manager=ctx_mock.container_manager,
-            mode=ctx_mock.mode,
+        BuildContextMock.assert_called_with(
+            "function_identifier",
+            "template",
+            "base_dir",
+            "build_dir",
+            "cache_dir",
+            "cached",
+            clean="clean",
+            use_container="use_container",
             parallel="parallel",
+            parameter_overrides="parameter_overrides",
+            manifest_path="manifest_path",
+            docker_network="docker_network",
+            skip_pull_image="skip_pull_image",
+            mode="mode",
             container_env_var={},
             container_env_var_file="container_env_var_file",
             build_images={},
+            aws_region=ctx_mock.region,
         )
-        builder_mock.build.assert_called_once()
-        builder_mock.update_template.assert_has_calls(
-            [
-                call(
-                    root_stack,
-                    artifacts,
-                    stack_output_template_path_by_stack_path,
-                )
-            ],
-            [
-                call(
-                    child_stack,
-                    artifacts,
-                    stack_output_template_path_by_stack_path,
-                )
-            ],
-        )
-        move_template_mock.assert_has_calls(
-            [
-                call(
-                    root_stack.location,
-                    stack_output_template_path_by_stack_path[root_stack.stack_path],
-                    modified_template_root,
-                ),
-                call(
-                    child_stack.location,
-                    stack_output_template_path_by_stack_path[child_stack.stack_path],
-                    modified_template_child,
-                ),
-            ]
-        )
-
-    @parameterized.expand(
-        [
-            (UnsupportedRuntimeException(), "UnsupportedRuntimeException"),
-            (BuildInsideContainerError(), "BuildInsideContainerError"),
-            (BuildError(wrapped_from=DeepWrap().__class__.__name__, msg="Test"), "DeepWrap"),
-            (ContainerBuildNotSupported(), "ContainerBuildNotSupported"),
-            (
-                UnsupportedBuilderLibraryVersionError(container_name="name", error_msg="msg"),
-                "UnsupportedBuilderLibraryVersionError",
-            ),
-        ]
-    )
-    @patch("samcli.commands.build.build_context.BuildContext")
-    @patch("samcli.lib.build.app_builder.ApplicationBuilder")
-    def test_must_catch_known_exceptions(self, exception, wrapped_exception, ApplicationBuilderMock, BuildContextMock):
-
-        ctx_mock = Mock()
-        BuildContextMock.return_value.__enter__ = Mock()
-        BuildContextMock.return_value.__enter__.return_value = ctx_mock
-        builder_mock = ApplicationBuilderMock.return_value = Mock()
-
-        builder_mock.build.side_effect = exception
-
-        with self.assertRaises(UserException) as ctx:
-            do_cli(
-                ctx_mock,
-                "function_identifier",
-                "template",
-                "base_dir",
-                "build_dir",
-                "cache_dir",
-                "clean",
-                "use_container",
-                "cached",
-                "parallel",
-                "manifest_path",
-                "docker_network",
-                "skip_pull",
-                "parameteroverrides",
-                "mode",
-                (""),
-                "container_env_var_file",
-                (),
-            )
-
-        self.assertEqual(str(ctx.exception), str(exception))
-        self.assertEqual(wrapped_exception, ctx.exception.wrapped_from)
-
-    @patch("samcli.commands.build.build_context.BuildContext")
-    @patch("samcli.lib.build.app_builder.ApplicationBuilder")
-    def test_must_catch_function_not_found_exception(self, ApplicationBuilderMock, BuildContextMock):
-        ctx_mock = Mock()
-        BuildContextMock.return_value.__enter__ = Mock()
-        BuildContextMock.return_value.__enter__.return_value = ctx_mock
-        ApplicationBuilderMock.side_effect = FunctionNotFound("Function Not Found")
-
-        with self.assertRaises(UserException) as ctx:
-            do_cli(
-                ctx_mock,
-                "function_identifier",
-                "template",
-                "base_dir",
-                "build_dir",
-                "cache_dir",
-                "clean",
-                "use_container",
-                "cached",
-                "parallel",
-                "manifest_path",
-                "docker_network",
-                "skip_pull",
-                "parameteroverrides",
-                "mode",
-                (""),
-                "container_env_var_file",
-                (),
-            )
-
-        self.assertEqual(str(ctx.exception), "Function Not Found")
+        ctx_mock.run.assert_called_with()
+        self.assertEqual(ctx_mock.run.call_count, 1)
 
 
 class TestGetModeValueFromEnvvar(TestCase):

@@ -24,11 +24,15 @@ from samcli.lib.iac.plugins_interfaces import (
     LookupPath,
 )
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
-from samcli.commands._utils.resources import (
+from samcli.lib.utils.resources import (
     METADATA_WITH_LOCAL_PATHS,
     RESOURCES_WITH_IMAGE_COMPONENT,
     RESOURCES_WITH_LOCAL_PATHS,
     NESTED_STACKS_RESOURCES,
+    AWS_SERVERLESS_FUNCTION,
+    AWS_LAMBDA_FUNCTION,
+    AWS_SERVERLESS_LAYERVERSION,
+    AWS_LAMBDA_LAYERVERSION,
 )
 from samcli.commands._utils.template import get_template_data
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider, is_local_path, get_local_path
@@ -40,10 +44,10 @@ TEMPLATE_PATH_KEY = "template_path"
 TEMPLATE_BUILD_PATH_KEY = "template_build_path"
 
 BASE_DIR_RESOURCES = [
-    SamLocalStackProvider.SERVERLESS_FUNCTION,
-    SamLocalStackProvider.LAMBDA_FUNCTION,
-    SamLocalStackProvider.SERVERLESS_LAYER,
-    SamLocalStackProvider.LAMBDA_LAYER,
+    AWS_SERVERLESS_FUNCTION,
+    AWS_LAMBDA_FUNCTION,
+    AWS_SERVERLESS_LAYERVERSION,
+    AWS_LAMBDA_LAYERVERSION,
 ]
 
 

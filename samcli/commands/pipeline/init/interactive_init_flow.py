@@ -11,8 +11,8 @@ from textwrap import dedent
 from typing import Dict, List, Tuple
 
 import click
+from samcli.cli.global_config import GlobalConfig
 
-from samcli.cli.main import global_cfg
 from samcli.commands.exceptions import (
     AppPipelineTemplateMetadataException,
     PipelineTemplateCloneException,
@@ -34,7 +34,7 @@ from ..bootstrap.cli import (
 )
 
 LOG = logging.getLogger(__name__)
-shared_path: Path = global_cfg.config_dir
+shared_path: Path = GlobalConfig().config_dir
 APP_PIPELINE_TEMPLATES_REPO_URL = "https://github.com/aws/aws-sam-cli-pipeline-init-templates.git"
 APP_PIPELINE_TEMPLATES_REPO_LOCAL_NAME = "aws-sam-cli-app-pipeline-templates"
 CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME = "custom-pipeline-template"
