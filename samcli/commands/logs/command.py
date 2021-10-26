@@ -138,7 +138,7 @@ def do_cli(
     from samcli.commands.logs.puller_factory import generate_puller
     from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config, get_boto_resource_provider_with_config
 
-    if not names:
+    if not names or len(names) > 1:
         if not prompt_experimental(ExperimentalFlag.Accelerate):
             return
     else:
