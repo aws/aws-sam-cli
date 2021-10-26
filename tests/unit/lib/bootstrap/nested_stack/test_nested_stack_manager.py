@@ -180,7 +180,7 @@ class TestNestedStackManager(TestCase):
     @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.osutils")
     @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.NestedStackManager._add_layer_readme_info")
     @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.os.path.isdir")
-    def test_corruption_dep_dir(
+    def test_skipping_dependency_copy_when_function_has_no_dependencies(
         self, patched_isdir, patched_add_layer_readme, patched_osutils, patched_shutil, patched_path
     ):
         build_dir = "build_dir"
@@ -195,16 +195,12 @@ class TestNestedStackManager(TestCase):
         layer_root_folder.joinpath.return_value = layer_contents_folder
         patched_path.return_value.joinpath.return_value = layer_root_folder
 
-        expected_error_message = "The dependency directory dependencies_dir does not exist. \
-It may be due to previous dependency copy failure or build folder corruption. \
-Try deleting the build folder (.aws-sam by default) and rerun."
         patched_isdir.return_value = False
 
-        with self.assertRaises(FileNotFoundError) as error:
-            NestedStackManager.update_layer_folder(
-                build_dir, dependencies_dir, layer_logical_id, function_logical_id, function_runtime
-            )
-        self.assertEqual(str(error.exception), expected_error_message)
+        NestedStackManager.update_layer_folder(
+            build_dir, dependencies_dir, layer_logical_id, function_logical_id, function_runtime
+        )
+        patched_osutils.copytree.assert_not_called()
 
     @parameterized.expand([("python3.8", True), ("ruby2.7", False)])
     def test_is_runtime_supported(self, runtime, supported):

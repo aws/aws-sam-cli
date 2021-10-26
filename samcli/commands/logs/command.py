@@ -11,7 +11,8 @@ from samcli.cli.main import pass_context, common_options as cli_framework_option
 from samcli.commands._utils.options import common_observability_options
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
-from samcli.commands._utils.experimental import ExperimentalFlag, force_experimental_option, experimental
+from samcli.commands._utils.experimental import ExperimentalFlag, force_experimental_option, experimental, \
+    prompt_experimental
 
 LOG = logging.getLogger(__name__)
 
@@ -136,6 +137,13 @@ def do_cli(
     from samcli.commands.logs.logs_context import parse_time, ResourcePhysicalIdResolver
     from samcli.commands.logs.puller_factory import generate_puller
     from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config, get_boto_resource_provider_with_config
+
+    if not names:
+        if not prompt_experimental(ExperimentalFlag.Accelerate):
+            return
+    else:
+        click.echo("You can now use 'sam logs' without --name parameter, "
+                   "which will pull the logs from all possible resources in your stack.")
 
     sanitized_start_time = parse_time(start_time, "start-time")
     sanitized_end_time = parse_time(end_time, "end-time") or datetime.utcnow()
