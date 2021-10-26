@@ -17,6 +17,7 @@ from samcli.commands._utils.options import (
     _TEMPLATE_OPTION_DEFAULT_VALUE,
     guided_deploy_stack_name,
     artifact_callback,
+    parameterized_option,
     resolve_s3_callback,
     image_repositories_callback,
     _space_separated_list_func_type,
@@ -463,3 +464,33 @@ class TestSpaceSeparatedListInvalidDataTypes:
     def test_raise_value_error(self, test_input):
         with pytest.raises(ValueError):
             _space_separated_list_func_type(test_input)
+
+
+class TestParameterizedOption(TestCase):
+    @parameterized_option
+    def option_dec_with_value(f, value=2):
+        def wrapper():
+            return f(value)
+
+        return wrapper
+
+    @parameterized_option
+    def option_dec_without_value(f, value=2):
+        def wrapper():
+            return f(value)
+
+        return wrapper
+
+    @option_dec_with_value(5)
+    def some_function_with_value(value):
+        return value + 2
+
+    @option_dec_without_value
+    def some_function_without_value(value):
+        return value + 2
+
+    def test_option_dec_with_value(self):
+        self.assertEqual(TestParameterizedOption.some_function_with_value(), 7)
+
+    def test_option_dec_without_value(self):
+        self.assertEqual(TestParameterizedOption.some_function_without_value(), 4)

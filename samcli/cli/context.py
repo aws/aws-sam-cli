@@ -44,6 +44,7 @@ class Context:
         self._aws_region = None
         self._aws_profile = None
         self._session_id = str(uuid.uuid4())
+        self._experimental = False
 
     @property
     def debug(self):
@@ -96,6 +97,14 @@ class Context:
         command terminates.
         """
         return self._session_id
+
+    @property
+    def experimental(self):
+        return self._experimental
+
+    @experimental.setter
+    def experimental(self, value):
+        self._experimental = value
 
     @property
     def command_path(self):

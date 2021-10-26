@@ -13,6 +13,16 @@ class CWConsoleEventConsumer(ObservabilityEventConsumer[CWLogEvent]):
     Consumer implementation that will consume given event as outputting into console
     """
 
-    # pylint: disable=R0201
+    def __init__(self, add_newline: bool = False):
+        """
+
+        Parameters
+        ----------
+        add_newline : bool
+            If it is True, it will add a new line at the end of each echo operation. Otherwise it will always print
+            into same line when echo is called.
+        """
+        self._add_newline = add_newline
+
     def consume(self, event: CWLogEvent):
-        click.echo(event.message, nl=False)
+        click.echo(event.message, nl=self._add_newline)

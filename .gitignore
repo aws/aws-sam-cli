@@ -307,6 +307,11 @@ env.bak/
 venv.bak/
 venv-update-reproducible-requirements/
 
+env.*/
+venv.*/
+.env.*/
+.venv.*/
+
 # Spyder project settings
 .spyderproject
 .spyproject

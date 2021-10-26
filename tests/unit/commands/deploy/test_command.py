@@ -47,6 +47,7 @@ class TestDeployCliCommand(TestCase):
         self.config_env = "mock-default-env"
         self.config_file = "mock-default-filename"
         self.signing_profiles = None
+        self.use_changeset = True
         self.resolve_image_repos = False
         self.disable_rollback = False
         MOCK_SAM_CONFIG.reset_mock()
@@ -123,6 +124,7 @@ class TestDeployCliCommand(TestCase):
             profile=self.profile,
             confirm_changeset=self.confirm_changeset,
             signing_profiles=self.signing_profiles,
+            use_changeset=self.use_changeset,
             disable_rollback=self.disable_rollback,
         )
 
@@ -328,6 +330,7 @@ class TestDeployCliCommand(TestCase):
                 profile=self.profile,
                 confirm_changeset=True,
                 signing_profiles=self.signing_profiles,
+                use_changeset=self.use_changeset,
                 disable_rollback=True,
             )
 
@@ -474,6 +477,7 @@ class TestDeployCliCommand(TestCase):
             profile=self.profile,
             confirm_changeset=True,
             signing_profiles=self.signing_profiles,
+            use_changeset=self.use_changeset,
             disable_rollback=True,
         )
 
@@ -624,6 +628,7 @@ class TestDeployCliCommand(TestCase):
             profile=self.profile,
             confirm_changeset=True,
             signing_profiles=self.signing_profiles,
+            use_changeset=self.use_changeset,
             disable_rollback=True,
         )
 
@@ -759,6 +764,7 @@ class TestDeployCliCommand(TestCase):
                 profile=self.profile,
                 confirm_changeset=True,
                 signing_profiles=self.signing_profiles,
+                use_changeset=self.use_changeset,
                 disable_rollback=self.disable_rollback,
             )
 
@@ -831,6 +837,7 @@ class TestDeployCliCommand(TestCase):
             profile=self.profile,
             confirm_changeset=self.confirm_changeset,
             signing_profiles=self.signing_profiles,
+            use_changeset=self.use_changeset,
             disable_rollback=self.disable_rollback,
         )
 
@@ -941,6 +948,7 @@ class TestDeployCliCommand(TestCase):
             profile=self.profile,
             confirm_changeset=self.confirm_changeset,
             signing_profiles=self.signing_profiles,
+            use_changeset=True,
             disable_rollback=self.disable_rollback,
         )
 
