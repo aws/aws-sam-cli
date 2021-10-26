@@ -135,45 +135,6 @@ class TestPackageImage(PackageIntegBase):
         self.assertEqual(2, process.returncode)
         self.assertIn("Error: Missing option '--image-repository'", process_stderr.decode("utf-8"))
 
-    @parameterized.expand(["aws-serverless-function-image.yaml"])
-    def test_package_template_and_s3_arn(self, template_file):
-        template_path = self.test_data_path.joinpath(template_file)
-        s3_arn = f"arn:aws:s3:::{self.s3_bucket.name}"
-        command_list = self.get_command_list(s3_bucket=s3_arn, template=template_path)
-
-        process = Popen(command_list, stdout=PIPE, stderr=PIPE)
-        try:
-            _, stderr = process.communicate(timeout=TIMEOUT)
-        except TimeoutExpired:
-            process.kill()
-            raise
-        process_stderr = stderr.strip()
-
-        self.assertEqual(2, process.returncode)
-        self.assertIn("Error: Missing option '--image-repository'", process_stderr.decode("utf-8"))
-
-    @parameterized.expand(["aws-serverless-function-image.yaml"])
-    def test_package_template_and_wrong_s3_arn(self, template_file):
-        template_path = self.test_data_path.joinpath(template_file)
-        s3_arn = f"arn:s3:{self.s3_bucket.name}"
-        command_list = self.get_command_list(s3_bucket=s3_arn, template=template_path)
-
-        process = Popen(command_list, stdout=PIPE, stderr=PIPE)
-        try:
-            _, stderr = process.communicate(timeout=TIMEOUT)
-        except TimeoutExpired:
-            process.kill()
-            raise
-        process_stderr = stderr.strip()
-
-        self.assertEqual(2, process.returncode)
-        self.assertIn(
-            "Error: Unexpected ARN format. ARN should have at least 5 partitions separated by ':'. Received '{s3_arn}' instead.".format(
-                s3_arn=str(s3_arn)
-            ),
-            process_stderr.decode("utf-8"),
-        )
-
     @parameterized.expand(["aws-serverless-application-image.yaml"])
     def test_package_template_with_image_function_in_nested_application(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)

@@ -221,7 +221,6 @@ def artifact_callback(ctx, param, provided_value, artifact):
         raise click.BadOptionUsage(option_name=param.name, ctx=ctx, message=f"Missing option '{param.opts[0]}'")
 
     return s3_bucket_arn(ctx, param, provided_value)
-    # return provided_value
 
 
 def resolve_s3_callback(ctx, param, provided_value, artifact, exc_set, exc_not_set):
