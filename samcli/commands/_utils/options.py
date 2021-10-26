@@ -366,13 +366,14 @@ def common_observability_click_options():
             "-t",
             is_flag=True,
             help="Tail events. This will ignore the end time argument and continue to fetch events as they "
-            "become available.",
+            "become available. [Beta Feature] If in beta --tail without a --name will pull from all possible resources",
         ),
         click.option(
             "--unformatted",
             "-u",
             is_flag=True,
-            help="Print events without any text formatting in JSON. This option might be useful if you are reading "
+            help="[Beta Feature] "
+            "Print events without any text formatting in JSON. This option might be useful if you are reading "
             "output into another tool.",
         ),
     ]

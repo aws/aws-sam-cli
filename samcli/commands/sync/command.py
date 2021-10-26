@@ -56,7 +56,7 @@ if TYPE_CHECKING:  # pragma: no cover
 LOG = logging.getLogger(__name__)
 
 HELP_TEXT = """
-Update/sync local artifacts to AWS
+[Beta Feature] Update/sync local artifacts to AWS
 
 By default, the sync command runs a full stack update, you can specify --code or --watch to which modes
 """
@@ -83,7 +83,7 @@ Enter Y to proceed with the command, or enter N to cancel:
 """
 
 
-SHORT_HELP = "Sync a project to AWS"
+SHORT_HELP = "[Beta Feature] Sync a project to AWS"
 
 DEFAULT_TEMPLATE_NAME = "template.yaml"
 DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")

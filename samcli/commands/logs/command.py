@@ -43,9 +43,10 @@ $ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
     "-n",
     multiple=True,
     help="Name(s) of your AWS Lambda function. If this function is a part of a CloudFormation stack, "
-    "this can be the LogicalID of function resource in the CloudFormation/SAM template. Multiple names can be provided"
-    "by repeating the parameter again. If it is not provided and no --cw-log-group have been given, it will scan"
-    "given stack and find all possible resources, and start pulling log information from them",
+    "this can be the LogicalID of function resource in the CloudFormation/SAM template. "
+    "[Beta Feature] Multiple names can be provided by repeating the parameter again. "
+    "If it is not provided and no --cw-log-group have been given, it will scan "
+    "given stack and find all possible resources, and start pulling log information from them.",
 )
 @click.option("--stack-name", default=None, help="Name of the AWS CloudFormation stack that the function is a part of.")
 @click.option(
@@ -60,12 +61,13 @@ $ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
     "--include-traces",
     "-i",
     is_flag=True,
-    help="Include the XRay traces in the log output.",
+    help="[Beta Feature] Include the XRay traces in the log output.",
 )
 @click.option(
     "--cw-log-group",
     multiple=True,
-    help="Additional CloudWatch Log group names that are not auto-discovered based upon --name parameter. "
+    help="[Beta Feature] "
+    "Additional CloudWatch Log group names that are not auto-discovered based upon --name parameter. "
     "When provided, it will only tail the given CloudWatch Log groups. If you want to tail log groups related "
     "to resources, please also provide their names as well",
 )
