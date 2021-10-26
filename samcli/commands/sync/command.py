@@ -46,6 +46,7 @@ from samcli.commands._utils.experimental import (
     ExperimentalFlag,
     experimental,
     is_experimental_enabled,
+    set_experimental,
 )
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -250,6 +251,8 @@ def do_cli(
 
     if not click.confirm(Colored().yellow(confirmation_text), default=False):
         return
+
+    set_experimental(ExperimentalFlag.Accelerate)
 
     with BuildContext(
         resource_identifier=None,
