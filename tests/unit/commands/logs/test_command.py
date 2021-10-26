@@ -6,6 +6,7 @@ from parameterized import parameterized
 from samcli.commands.logs.command import do_cli
 
 
+@patch("samcli.commands._utils.experimental.is_experimental_enabled")
 class TestLogsCliCommand(TestCase):
     def setUp(self):
 
@@ -57,6 +58,7 @@ class TestLogsCliCommand(TestCase):
         patched_parse_time,
         patched_resource_physical_id_resolver,
         patched_generate_puller,
+        patched_is_experimental_enabled,
     ):
         mocked_start_time = Mock()
         mocked_end_time = Mock()

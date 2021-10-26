@@ -11,8 +11,12 @@ from samcli.cli.main import pass_context, common_options as cli_framework_option
 from samcli.commands._utils.options import common_observability_options
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
-from samcli.commands._utils.experimental import ExperimentalFlag, force_experimental_option, experimental, \
-    prompt_experimental
+from samcli.commands._utils.experimental import (
+    ExperimentalFlag,
+    force_experimental_option,
+    experimental,
+    prompt_experimental,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -144,8 +148,10 @@ def do_cli(
         if not prompt_experimental(ExperimentalFlag.Accelerate):
             return
     else:
-        click.echo("You can now use 'sam logs' without --name parameter, "
-                   "which will pull the logs from all possible resources in your stack.")
+        click.echo(
+            "You can now use 'sam logs' without --name parameter, "
+            "which will pull the logs from all possible resources in your stack."
+        )
 
     sanitized_start_time = parse_time(start_time, "start-time")
     sanitized_end_time = parse_time(end_time, "end-time") or datetime.utcnow()
