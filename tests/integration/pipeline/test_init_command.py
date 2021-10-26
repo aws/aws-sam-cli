@@ -7,9 +7,9 @@ from unittest import skipIf
 
 from parameterized import parameterized
 
-from samcli.cli.main import global_cfg
 from samcli.commands.pipeline.bootstrap.cli import PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME
 from samcli.commands.pipeline.init.interactive_init_flow import APP_PIPELINE_TEMPLATES_REPO_LOCAL_NAME
+from samcli.cli.global_config import GlobalConfig
 from tests.integration.pipeline.base import InitIntegBase, BootstrapIntegBase
 from tests.integration.pipeline.test_bootstrap_command import SKIP_BOOTSTRAP_TESTS, CREDENTIAL_PROFILE
 from tests.testing_utils import run_command_with_inputs
@@ -36,7 +36,7 @@ QUICK_START_JENKINS_INPUTS_WITHOUT_AUTO_FILL = [
     "prod-ecr",
     "us-west-2",
 ]
-SHARED_PATH: Path = global_cfg.config_dir
+SHARED_PATH: Path = GlobalConfig().config_dir
 EXPECTED_JENKINS_FILE_PATH = Path(
     SHARED_PATH, APP_PIPELINE_TEMPLATES_REPO_LOCAL_NAME, "tests", "testfile_jenkins", "expected"
 )

@@ -7,7 +7,7 @@ from samcli.commands.exceptions import UserException
 from samcli.commands.local.lib.exceptions import UnsupportedRuntimeArchitectureError
 from samcli.lib.utils.packagetype import IMAGE
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from samcli.lib.providers.provider import Function
 
 X86_64 = "x86_64"

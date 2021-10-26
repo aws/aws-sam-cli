@@ -4,7 +4,6 @@ Contains information about newer version checker for SAM CLI
 import logging
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Optional
 
 import click
 from requests import get
@@ -77,7 +76,7 @@ def _inform_newer_version(force_check=False) -> None:
         LOG.debug("New version check failed", exc_info=e)
     finally:
         if need_to_update_last_check_time:
-            update_last_check_time(global_config)
+            update_last_check_time()
 
 
 def fetch_and_compare_versions() -> None:
@@ -95,17 +94,13 @@ def fetch_and_compare_versions() -> None:
         click.echo(f"To download: {AWS_SAM_CLI_INSTALL_DOCS}", err=True)
 
 
-def update_last_check_time(global_config: Optional[GlobalConfig]) -> None:
+def update_last_check_time() -> None:
     """
     Update last_check_time in GlobalConfig
-    Parameters
-    ----------
-    global_config: GlobalConfig
-        GlobalConfig object that have been read
     """
     try:
-        if global_config:
-            global_config.last_version_check = datetime.utcnow().timestamp()
+        gc = GlobalConfig()
+        gc.last_version_check = datetime.utcnow().timestamp()
     except Exception as e:
         LOG.debug("Updating last version check time was failed", exc_info=e)
 

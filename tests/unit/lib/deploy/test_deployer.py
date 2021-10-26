@@ -1,3 +1,4 @@
+from logging import captureWarnings
 import uuid
 import time
 from datetime import datetime, timedelta
@@ -754,3 +755,107 @@ class TestDeployer(TestCase):
         self.deployer.get_stack_outputs = MagicMock(return_value=outputs["Stacks"][0]["Outputs"])
         self.deployer.wait_for_execute("test", "CREATE", False)
         self.assertEqual(self.deployer._display_stack_outputs.call_count, 1)
+
+    def test_sync_update_stack(self):
+        self.deployer.has_stack = MagicMock(return_value=True)
+        self.deployer.wait_for_execute = MagicMock()
+        self.deployer.sync(
+            stack_name="test",
+            cfn_template=" ",
+            parameter_values=[
+                {"ParameterKey": "a", "ParameterValue": "b"},
+            ],
+            capabilities=["CAPABILITY_IAM"],
+            role_arn="role-arn",
+            notification_arns=[],
+            s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
+            tags={"unit": "true"},
+        )
+
+        self.assertEqual(self.deployer._client.update_stack.call_count, 1)
+        self.deployer._client.update_stack.assert_called_with(
+            Capabilities=["CAPABILITY_IAM"],
+            NotificationARNs=[],
+            Parameters=[{"ParameterKey": "a", "ParameterValue": "b"}],
+            RoleARN="role-arn",
+            StackName="test",
+            Tags={"unit": "true"},
+            TemplateURL=ANY,
+        )
+
+    def test_sync_update_stack_exception(self):
+        self.deployer.has_stack = MagicMock(return_value=True)
+        self.deployer.wait_for_execute = MagicMock()
+        self.deployer._client.update_stack = MagicMock(side_effect=Exception)
+        with self.assertRaises(DeployFailedError):
+            self.deployer.sync(
+                stack_name="test",
+                cfn_template=" ",
+                parameter_values=[
+                    {"ParameterKey": "a", "ParameterValue": "b"},
+                ],
+                capabilities=["CAPABILITY_IAM"],
+                role_arn="role-arn",
+                notification_arns=[],
+                s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
+                tags={"unit": "true"},
+            )
+
+    def test_sync_create_stack(self):
+        self.deployer.has_stack = MagicMock(return_value=False)
+        self.deployer.wait_for_execute = MagicMock()
+        self.deployer.sync(
+            stack_name="test",
+            cfn_template=" ",
+            parameter_values=[
+                {"ParameterKey": "a", "ParameterValue": "b"},
+            ],
+            capabilities=["CAPABILITY_IAM"],
+            role_arn="role-arn",
+            notification_arns=[],
+            s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
+            tags={"unit": "true"},
+        )
+
+        self.assertEqual(self.deployer._client.create_stack.call_count, 1)
+        self.deployer._client.create_stack.assert_called_with(
+            Capabilities=["CAPABILITY_IAM"],
+            NotificationARNs=[],
+            Parameters=[{"ParameterKey": "a", "ParameterValue": "b"}],
+            RoleARN="role-arn",
+            StackName="test",
+            Tags={"unit": "true"},
+            TemplateURL=ANY,
+        )
+
+    def test_sync_create_stack_exception(self):
+        self.deployer.has_stack = MagicMock(return_value=False)
+        self.deployer.wait_for_execute = MagicMock()
+        self.deployer._client.create_stack = MagicMock(side_effect=Exception)
+        with self.assertRaises(DeployFailedError):
+            self.deployer.sync(
+                stack_name="test",
+                cfn_template=" ",
+                parameter_values=[
+                    {"ParameterKey": "a", "ParameterValue": "b"},
+                ],
+                capabilities=["CAPABILITY_IAM"],
+                role_arn="role-arn",
+                notification_arns=[],
+                s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
+                tags={"unit": "true"},
+            )
+
+    def test_process_kwargs(self):
+        kwargs = {"Capabilities": []}
+        capabilities = ["CAPABILITY_IAM"]
+        role_arn = "role-arn"
+        notification_arns = ["arn"]
+
+        expected = {
+            "Capabilities": ["CAPABILITY_IAM"],
+            "RoleARN": "role-arn",
+            "NotificationARNs": ["arn"],
+        }
+        result = self.deployer._process_kwargs(kwargs, None, capabilities, role_arn, notification_arns)
+        self.assertEqual(expected, result)
