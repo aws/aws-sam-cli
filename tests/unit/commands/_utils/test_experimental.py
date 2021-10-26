@@ -96,12 +96,15 @@ class TestExperimental(TestCase):
         func(param=1)
         prompt_experimental_mock.assert_called_once_with(config_entry=config_entry, prompt=prompt)
 
+    @patch("samcli.commands._utils.experimental.set_experimental")
     @patch("samcli.commands._utils.experimental.click.confirm")
     @patch("samcli.commands._utils.experimental.is_experimental_enabled")
-    def test_prompt_experimental(self, enabled_mock, confirm_mock):
+    def test_prompt_experimental(self, enabled_mock, confirm_mock, set_experimental_mock):
         config_entry = MagicMock()
         prompt = "abc"
         enabled_mock.return_value = False
+        confirm_mock.return_value = True
         prompt_experimental(config_entry, prompt)
+        set_experimental_mock.assert_called_once_with(config_entry=config_entry, enabled=True)
         enabled_mock.assert_called_once_with(config_entry)
         confirm_mock.assert_called_once_with(prompt, default=False)
