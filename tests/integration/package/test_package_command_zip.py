@@ -461,6 +461,71 @@ class TestPackageZip(PackageIntegBase):
                 process_stdout,
             )
 
+    @parameterized.expand(["aws-serverless-function.yaml"])
+    def test_package_with_s3_arn(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+        s3_prefix = "integ_test_prefix"
+        s3_arn = f"arn:aws:s3:::{self.s3_bucket.name}"
+
+        with tempfile.NamedTemporaryFile(delete=False) as output_template:
+            command_list = self.get_command_list(
+                template_file=template_path,
+                s3_prefix=s3_prefix,
+                s3_bucket=s3_arn,
+                output_template_file=output_template.name,
+                force_upload=True,
+            )
+
+            process = Popen(command_list, stdout=PIPE)
+            try:
+                stdout, _ = process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
+            process_stdout = stdout.strip()
+
+            self.assertIn(
+                bytes(
+                    "Successfully packaged artifacts and wrote output template to file {output_template_file}".format(
+                        output_template_file=str(output_template.name)
+                    ),
+                    encoding="utf-8",
+                ),
+                process_stdout,
+            )
+
+    @parameterized.expand(["aws-serverless-function.yaml"])
+    def test_package_with_wrong_s3_arn(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+        s3_prefix = "integ_test_prefix"
+        s3_arn = f"arn:aw:s4:::{self.s3_bucket.name}"
+
+        with tempfile.NamedTemporaryFile(delete=False) as output_template:
+            command_list = self.get_command_list(
+                template_file=template_path,
+                s3_prefix=s3_prefix,
+                s3_bucket=s3_arn,
+                output_template_file=output_template.name,
+                force_upload=True,
+            )
+
+            process = Popen(command_list, stdout=PIPE, stderr=PIPE)
+            try:
+                _, stderr = process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
+            process_stderr = stderr.strip()
+            self.assertIn(
+                bytes(
+                    "Error: Unexpected ARN format. ARN should have at least 5 partitions separated by ':'. Received '{s3_arn}' instead.".format(
+                        s3_arn=str(s3_arn)
+                    ),
+                    encoding="utf-8",
+                ),
+                process_stderr,
+            )
+
     @parameterized.expand([(True,), (False,)])
     def test_package_with_no_progressbar(self, no_progressbar):
         template_path = self.test_data_path.joinpath("aws-serverless-function.yaml")

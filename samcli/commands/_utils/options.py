@@ -160,6 +160,33 @@ def image_repositories_callback(ctx, param, provided_value):
     return image_repositories if image_repositories else None
 
 
+def s3_bucket_arn(ctx, param, provided_value):
+    """
+    Check is s3 bucket is ARN or bucket name and return bucket name.
+    :param ctx: Click Context
+    :param param: Param name
+    :param provided_value: Value provided by Click, after being processed by user.
+    :return: s3 bucket name.
+    """
+
+    if provided_value is not None and provided_value.lower().startswith("arn"):
+        try:
+            (_, aws, s3, _, _, s3_bucket) = provided_value.split(":", 5)
+            if not aws.lower() == "aws":
+                raise ValueError
+            if not s3.lower() == "s3":
+                raise ValueError
+        except ValueError as err:
+            raise click.BadOptionUsage(
+                option_name=param.name,
+                ctx=ctx,
+                message=f"Unexpected ARN format. ARN should have at least 5 partitions separated by ':'. "
+                f"Received '{provided_value}' instead.",
+            ) from err
+        return s3_bucket
+    return provided_value
+
+
 def artifact_callback(ctx, param, provided_value, artifact):
     """
     Provide an error if there are zip/image artifact based resources,
@@ -193,7 +220,8 @@ def artifact_callback(ctx, param, provided_value, artifact):
     elif required and not provided_value and param.name == "s3_bucket":
         raise click.BadOptionUsage(option_name=param.name, ctx=ctx, message=f"Missing option '{param.opts[0]}'")
 
-    return provided_value
+    return s3_bucket_arn(ctx, param, provided_value)
+    # return provided_value
 
 
 def resolve_s3_callback(ctx, param, provided_value, artifact, exc_set, exc_not_set):
