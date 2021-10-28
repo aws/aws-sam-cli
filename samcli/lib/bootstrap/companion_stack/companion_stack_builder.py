@@ -1,15 +1,13 @@
 """
     Companion stack template builder
 """
-import json
-
-from typing import Dict
+from typing import Dict, cast
 
 from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack, ECRRepo
-from samcli import __version__ as VERSION
+from samcli.lib.bootstrap.stack_builder import AbstractStackBuilder
 
 
-class CompanionStackBuilder:
+class CompanionStackBuilder(AbstractStackBuilder):
     """
     CFN template builder for the companion stack
     """
@@ -19,8 +17,10 @@ class CompanionStackBuilder:
     _repo_mapping: Dict[str, ECRRepo]
 
     def __init__(self, companion_stack: CompanionStack) -> None:
+        super().__init__("AWS SAM CLI Managed ECR Repo Stack")
         self._companion_stack = companion_stack
         self._repo_mapping: Dict[str, ECRRepo] = dict()
+        self.add_metadata("CompanionStackname", self._companion_stack.stack_name)
 
     def add_function(self, function_logical_id: str) -> None:
         """
@@ -42,30 +42,11 @@ class CompanionStackBuilder:
         str
             CFN template for companions stack
         """
-        template_dict = self._build_template_dict()
         for _, ecr_repo in self._repo_mapping.items():
-            template_dict["Resources"][ecr_repo.logical_id] = self._build_repo_dict(ecr_repo)
-            template_dict["Outputs"][ecr_repo.output_logical_id] = CompanionStackBuilder._build_output_dict(ecr_repo)
+            self.add_resource(cast(str, ecr_repo.logical_id), self._build_repo_dict(ecr_repo))
+            self.add_output(cast(str, ecr_repo.output_logical_id), CompanionStackBuilder._build_output_dict(ecr_repo))
 
-        return json.dumps(template_dict)
-
-    def _build_template_dict(self) -> Dict:
-        """
-        Build Companion stack template dictionary with Resources and Outputs not filled
-        Returns
-        -------
-        dict
-            Companion stack template dictionary
-        """
-        template = {
-            "AWSTemplateFormatVersion": "2010-09-09",
-            "Transform": "AWS::Serverless-2016-10-31",
-            "Description": "AWS SAM CLI Managed ECR Repo Stack",
-            "Metadata": {"SamCliInfo": VERSION, "CompanionStackname": self._companion_stack.stack_name},
-            "Resources": {},
-            "Outputs": {},
-        }
-        return template
+        return super().build()
 
     def _build_repo_dict(self, repo: ECRRepo) -> Dict:
         """
@@ -104,7 +85,7 @@ class CompanionStackBuilder:
         }
 
     @staticmethod
-    def _build_output_dict(repo: ECRRepo) -> Dict:
+    def _build_output_dict(repo: ECRRepo) -> str:
         """
         Build a single ECR repo output resource dictionary
 
@@ -118,9 +99,7 @@ class CompanionStackBuilder:
         dict
             ECR repo output resource dictionary
         """
-        return {
-            "Value": f"!Sub ${{AWS::AccountId}}.dkr.ecr.${{AWS::Region}}.${{AWS::URLSuffix}}/${{{repo.logical_id}}}"
-        }
+        return f"!Sub ${{AWS::AccountId}}.dkr.ecr.${{AWS::Region}}.${{AWS::URLSuffix}}/${{{repo.logical_id}}}"
 
     @property
     def repo_mapping(self) -> Dict[str, ECRRepo]:

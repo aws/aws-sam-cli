@@ -17,6 +17,7 @@ from samcli.cli.global_config import GlobalConfig
 from samcli.lib.warnings.sam_cli_warning import TemplateWarningsChecker
 from samcli.commands.exceptions import UserException
 from samcli.lib.telemetry.cicd import CICDDetector, CICDPlatform
+from samcli.commands._utils.experimental import get_all_experimental_statues
 from .telemetry import Telemetry
 
 LOG = logging.getLogger(__name__)
@@ -25,7 +26,7 @@ WARNING_ANNOUNCEMENT = "WARNING: {}"
 
 """
 Global variables are evil but this is a justified usage.
-This creates a versitile telemetry tracking no matter where in the code. Something like a Logger.
+This creates a versatile telemetry tracking no matter where in the code. Something like a Logger.
 No side effect will result in this as it is write-only for code outside of telemetry.
 Decorators should be used to minimize logic involving telemetry.
 """
@@ -107,7 +108,6 @@ def track_command(func):
 
     def wrapped(*args, **kwargs):
         telemetry = Telemetry()
-        metric = Metric("commandRun")
 
         exception = None
         return_value = None
@@ -138,10 +138,14 @@ def track_command(func):
 
         try:
             ctx = Context.get_current_context()
+            metric_name = "commandRunExperimental" if ctx.experimental else "commandRun"
+            metric = Metric(metric_name)
             metric.add_data("awsProfileProvided", bool(ctx.profile))
             metric.add_data("debugFlagProvided", bool(ctx.debug))
             metric.add_data("region", ctx.region or "")
             metric.add_data("commandName", ctx.command_path)  # Full command path. ex: sam local start-api
+            if ctx.experimental:
+                metric.add_data("metricSpecificAttributes", get_all_experimental_statues())
             # Metric about command's execution characteristics
             metric.add_data("duration", duration_fn())
             metric.add_data("exitReason", exit_reason)
@@ -238,7 +242,7 @@ def capture_parameter(metric_name, key, parameter_identifier, parameter_nested_i
 
 def capture_return_value(metric_name, key, as_list=False):
     """
-    Decorator for capturing the reutrn value of the function.
+    Decorator for capturing the return value of the function.
 
     :param metric_name Name of the metric
     :param key Key for storing the captured parameter

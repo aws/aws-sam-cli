@@ -36,7 +36,8 @@ class IntegBase(TestCase):
         self.maxDiff = None  # Show full JSON Diff
 
         self.config_dir = tempfile.mkdtemp()
-        self._gc = GlobalConfig(config_dir=self.config_dir)
+        self._gc = GlobalConfig()
+        self._gc.config_dir = Path(self.config_dir)
 
     def tearDown(self):
         self.config_dir and shutil.rmtree(self.config_dir)
@@ -49,9 +50,9 @@ class IntegBase(TestCase):
 
         return command
 
-    def run_cmd(self, stdin_data="", optout_envvar_value=None):
+    def run_cmd(self, cmd_list=None, stdin_data="", optout_envvar_value=None):
         # Any command will work for this test suite
-        cmd_list = [self.cmd, "local", "generate-event", "s3", "put"]
+        cmd_list = cmd_list or [self.cmd, "local", "generate-event", "s3", "put"]
 
         env = os.environ.copy()
 
