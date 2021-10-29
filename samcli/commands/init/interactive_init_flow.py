@@ -143,7 +143,7 @@ def _generate_from_app_template(
     Application Template: {app_template}
     Output Directory: {output_dir}
     
-   Next application steps can be found in the README file at {output_dir}/{name}/README.md
+    Next application steps can be found in the README file at {output_dir}/{name}/README.md
     
     Commands you can use next
     =========================
@@ -160,7 +160,7 @@ def _generate_from_app_template(
     Dependency Manager: {dependency_manager}
     Output Directory: {output_dir}
 
-     Next application steps can be found in the README file at {output_dir}/{name}/README.md
+    Next application steps can be found in the README file at {output_dir}/{name}/README.md
     
     Commands you can use next
     =========================
