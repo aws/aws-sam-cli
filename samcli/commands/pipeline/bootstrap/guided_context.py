@@ -76,17 +76,17 @@ class GuidedContext:
 
         try:
             account_id = get_current_account_id(self.profile)
-            click.echo(self.color.green(f"Associated account {account_id} with stage {self.stage_name}."))
+            click.echo(self.color.green(f"Associated account {account_id} with configuration {self.stage_name}."))
         except CredentialsError as ex:
             click.echo(f"{self.color.red(ex.message)}\n")
             self._prompt_account_id()
 
     def _prompt_stage_name(self) -> None:
         click.echo(
-            "Enter a name for this stage. This will be referenced later when you use the sam pipeline init command:"
+            "Enter a configuration name for this stage. This will be referenced later when you use the sam pipeline init command:"
         )
         self.stage_name = click.prompt(
-            "Stage name",
+            "Configuration name",
             default=self.stage_name,
             type=click.STRING,
         )
@@ -144,7 +144,7 @@ class GuidedContext:
     def _get_user_inputs(self) -> List[Tuple[str, Callable[[], None]]]:
         return [
             (f"Account: {get_current_account_id(self.profile)}", self._prompt_account_id),
-            (f"Stage name: {self.stage_name}", self._prompt_stage_name),
+            (f"Configuration name: {self.stage_name}", self._prompt_stage_name),
             (f"Region: {self.region}", self._prompt_region_name),
             (
                 f"Pipeline user ARN: {self.pipeline_user_arn}"
@@ -186,7 +186,7 @@ class GuidedContext:
         """
         click.secho(self.color.bold("[1] Stage definition"))
         if self.stage_name:
-            click.echo(f"Stage name: {self.stage_name}")
+            click.echo(f"Configuration name: {self.stage_name}")
         else:
             self._prompt_stage_name()
         click.echo()

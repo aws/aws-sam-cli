@@ -244,7 +244,7 @@ def _load_pipeline_bootstrap_resources() -> Tuple[List[str], Dict[str, str]]:
 
     # pre-load the list of stage names detected from pipelineconfig.toml
     stage_names_message = (
-        "Here are the stage names detected "
+        "Here are the configuration names detected "
         + f"in {os.path.join(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)}:\n"
         + "\n".join([f"\t{index + 1} - {stage_name}" for index, stage_name in enumerate(stage_names)])
     )
