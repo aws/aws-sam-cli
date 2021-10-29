@@ -505,7 +505,7 @@ def s3_bucket_click_option(guided):
         required=False,
         callback=callback,
         help="The arn or name of the S3 bucket where this command uploads the artifacts that are referenced in your "
-             "template.",
+        "template.",
     )
 
 
