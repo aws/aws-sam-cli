@@ -152,8 +152,7 @@ class InteractiveInitFlow:
                         resources.
 
                         We recommend using an individual AWS account profiles for each stage in your
-                        pipeline. You can set these profiles up using [little bit of info on how to do
-                        this/docs].
+                        pipeline. You can set these profiles up using aws configure or ~/.aws/credentials see [https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-getting-started-set-up-credentials.html].
                         """
                     )
                 )
