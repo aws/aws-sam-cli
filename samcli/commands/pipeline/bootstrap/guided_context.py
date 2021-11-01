@@ -83,7 +83,8 @@ class GuidedContext:
 
     def _prompt_stage_name(self) -> None:
         click.echo(
-            "Enter a configuration name for this stage. This will be referenced later when you use the sam pipeline init command:"
+            "Enter a configuration name for this stage. "
+            "This will be referenced later when you use the sam pipeline init command:"
         )
         self.stage_name = click.prompt(
             "Configuration name",
