@@ -5,7 +5,7 @@ from samcli.commands._utils.experimental import set_experimental, ExperimentalFl
 from samcli.lib.observability.cw_logs.cw_log_group_provider import LogGroupProvider
 
 
-@patch("samcli.commands._utils.experimental._update_experimental_context")
+@patch("samcli.commands._utils.experimental.update_experimental_context")
 class TestLogGroupProvider_for_lambda_function(TestCase):
     def setUp(self) -> None:
         set_experimental(config_entry=ExperimentalFlag.Accelerate, enabled=True)
