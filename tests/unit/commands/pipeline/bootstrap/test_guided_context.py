@@ -56,7 +56,7 @@ class TestGuidedContext(TestCase):
         )
         gc.run()
         prompt_account_id_mock.assert_called_once()
-        self.assertTrue(self.did_prompt_text_like("Configuration Name", click_mock.prompt))
+        self.assertTrue(self.did_prompt_text_like("Stage Name", click_mock.prompt))
         self.assertTrue(self.did_prompt_text_like("Pipeline IAM user", click_mock.prompt))
         self.assertTrue(self.did_prompt_text_like("Pipeline execution role", click_mock.prompt))
         self.assertTrue(self.did_prompt_text_like("CloudFormation execution role", click_mock.prompt))
