@@ -45,7 +45,7 @@ class GuidedContext:
 
     def _prompt_account_id(self) -> None:
         profiles = list_available_profiles()
-        click.echo("The following AWS credential sources are available to use:")
+        click.echo("The following AWS credential sources are available to use.")
         click.echo(
             dedent(
                 f"""\
