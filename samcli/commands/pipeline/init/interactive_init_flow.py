@@ -123,16 +123,20 @@ class InteractiveInitFlow:
             )
             return self._generate_from_pipeline_template(pipeline_template_local_dir)
 
-    def _prompt_run_bootstrap_within_pipeline_init(self, stage_names: List[str], number_of_stages: int) -> bool:
+    def _prompt_run_bootstrap_within_pipeline_init(
+        self,
+        stage_configuration_names: List[str],
+        number_of_stages: int
+    ) -> bool:
         """
         Prompt bootstrap if `--bootstrap` flag is provided. Return True if bootstrap process is executed.
         """
-        if not stage_names:
+        if not stage_configuration_names:
             click.echo("[!] None detected in this account.")
         else:
             click.echo(
                 Colored().yellow(
-                    f"Only {len(stage_names)} stage(s) were detected, "
+                    f"Only {len(stage_configuration_names)} stage(s) were detected, "
                     f"fewer than what the template requires: {number_of_stages}."
                 )
             )
@@ -158,12 +162,12 @@ class InteractiveInitFlow:
                     )
                 )
 
-                click.echo(Colored().bold(f"\nStage {len(stage_names) + 1} Setup\n"))
+                click.echo(Colored().bold(f"\nStage {len(stage_configuration_names) + 1} Setup\n"))
                 do_bootstrap(
                     region=None,
                     profile=None,
                     interactive=True,
-                    stage_name=None,
+                    stage_configuration_name=None,
                     pipeline_user_arn=None,
                     pipeline_execution_role_arn=None,
                     cloudformation_execution_role_arn=None,
@@ -205,9 +209,9 @@ class InteractiveInitFlow:
         _draw_stage_diagram(number_of_stages)
         while True:
             click.echo("Checking for existing stages...\n")
-            stage_names, bootstrap_context = _load_pipeline_bootstrap_resources()
-            if len(stage_names) < number_of_stages and self._prompt_run_bootstrap_within_pipeline_init(
-                stage_names, number_of_stages
+            stage_configuration_names, bootstrap_context = _load_pipeline_bootstrap_resources()
+            if len(stage_configuration_names) < number_of_stages and self._prompt_run_bootstrap_within_pipeline_init(
+                stage_configuration_names, number_of_stages
             ):
                 # the customers just went through the bootstrap process,
                 # refresh the pipeline bootstrap resources and see whether bootstrap is still needed
@@ -231,11 +235,15 @@ def _load_pipeline_bootstrap_resources() -> Tuple[List[str], Dict[str, str]]:
         context[str(["stage_names_message"])] = ""
         return [], context
 
-    # config.get_stage_names() will return the list of
+    # config.get_stage_configuration_names() will return the list of
     # bootstrapped stage names and "default" which is used to store shared values
     # we don't want to include "default" here.
-    stage_names = [stage_name for stage_name in config.get_stage_names() if stage_name != "default"]
-    for index, stage in enumerate(stage_names):
+    stage_configuration_names = [
+        stage_configuration_name for stage_configuration_name
+            in config.get_stage_configuration_names()
+            if stage_configuration_name != "default"
+        ]
+    for index, stage in enumerate(stage_configuration_names):
         for key, value in config.get_all(_get_bootstrap_command_names(), section, stage).items():
             context[str([stage, key])] = value
             # create an index alias for each stage name
@@ -246,11 +254,14 @@ def _load_pipeline_bootstrap_resources() -> Tuple[List[str], Dict[str, str]]:
     stage_names_message = (
         "Here are the configuration names detected "
         + f"in {os.path.join(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)}:\n"
-        + "\n".join([f"\t{index + 1} - {stage_name}" for index, stage_name in enumerate(stage_names)])
+        + "\n".join([f"\t{index + 1} - {stage_configuration_name}"
+                     for index, stage_configuration_name
+                     in enumerate(stage_configuration_names)
+                    ])
     )
     context[str(["stage_names_message"])] = stage_names_message
 
-    return stage_names, context
+    return stage_configuration_names, context
 
 
 def _copy_dir_contents_to_cwd(source_dir: str) -> List[str]:

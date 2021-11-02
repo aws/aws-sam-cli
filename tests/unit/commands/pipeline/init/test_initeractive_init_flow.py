@@ -157,8 +157,8 @@ class TestInteractiveInitFlow(TestCase):
         config_file = Mock()
         samconfig_mock.return_value = config_file
         config_file.exists.return_value = True
-        config_file.get_stage_names.return_value = ["testing", "prod"]
-        config_file.get_stage_names.return_value = ["testing", "prod"]
+        config_file.get_stage_configuration_names.return_value = ["testing", "prod"]
+        config_file.get_stage_configuration_names.return_value = ["testing", "prod"]
         config_file.get_all.return_value = {"pipeline_execution_role": "arn:aws:iam::123456789012:role/execution-role"}
 
         click_mock.prompt.side_effect = [
@@ -426,7 +426,7 @@ class TestInteractiveInitFlowWithBootstrap(TestCase):
         config_file = Mock()
         samconfig_mock.return_value = config_file
         config_file.exists.return_value = True
-        config_file.get_stage_names.return_value = ["testing"]
+        config_file.get_stage_configuration_names.return_value = ["testing"]
         config_file.get_all.return_value = {"pipeline_execution_role": "arn:aws:iam::123456789012:role/execution-role"}
         _get_pipeline_template_metadata_mock.return_value = {"number_of_stages": 2}
 
@@ -465,7 +465,7 @@ class TestInteractiveInitFlowWithBootstrap(TestCase):
     @patch("samcli.lib.cookiecutter.question.click")
     def test_with_bootstrap_answer_yes(
         self,
-        get_stage_name_side_effects,
+        get_stage_configuration_name_side_effects,
         _prompt_run_bootstrap_expected_calls,
         click_mock,
         _get_pipeline_template_metadata_mock,
@@ -504,7 +504,7 @@ class TestInteractiveInitFlowWithBootstrap(TestCase):
         config_file = Mock()
         samconfig_mock.return_value = config_file
         config_file.exists.return_value = True
-        config_file.get_stage_names.side_effect = get_stage_name_side_effects
+        config_file.get_stage_configuration_names.side_effect = get_stage_configuration_name_side_effects
         config_file.get_all.return_value = {"pipeline_execution_role": "arn:aws:iam::123456789012:role/execution-role"}
         _get_pipeline_template_metadata_mock.return_value = {"number_of_stages": 2}
 

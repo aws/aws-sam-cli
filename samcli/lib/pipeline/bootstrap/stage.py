@@ -145,7 +145,9 @@ class Stage:
 
         if self.did_user_provide_all_required_resources():
             click.secho(
-                self.color.yellow(f"\nAll required resources for the {self.name} environment exist, skipping creation.")
+                self.color.yellow(
+                    f"\nAll required resources for the {self.name} configuration exist, skipping creation."
+                )
             )
             return True
 
@@ -326,5 +328,5 @@ class Stage:
             click.secho(self.color.green(f"\tAWS_SECRET_ACCESS_KEY: {self.pipeline_user.secret_access_key}"))
 
     def _get_stack_name(self) -> str:
-        sanitized_stage_name: str = re.sub("[^0-9a-zA-Z]+", "-", self.name)
-        return f"{STACK_NAME_PREFIX}-{sanitized_stage_name}-{STAGE_RESOURCES_STACK_NAME_SUFFIX}"
+        sanitized_stage_configuration_name: str = re.sub("[^0-9a-zA-Z]+", "-", self.name)
+        return f"{STACK_NAME_PREFIX}-{sanitized_stage_configuration_name}-{STAGE_RESOURCES_STACK_NAME_SUFFIX}"

@@ -35,13 +35,13 @@ CFN_OUTPUT_TO_CONFIG_KEY = {
 class TestBootstrap(BootstrapIntegBase):
     @parameterized.expand([("create_image_repository",), (False,)])
     def test_interactive_with_no_resources_provided(self, create_image_repository):
-        stage_name, stack_name = self._get_stage_and_stack_name()
+        stage_configuration_name, stack_name = self._get_stage_and_stack_name()
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list()
 
         inputs = [
-            stage_name,
+            stage_configuration_name,
             CREDENTIAL_PROFILE,
             self.region,  # region
             "",  # pipeline user
@@ -86,15 +86,15 @@ class TestBootstrap(BootstrapIntegBase):
                 set(self._extract_created_resource_logical_ids(stack_name)),
             )
             CFN_OUTPUT_TO_CONFIG_KEY["ImageRepository"] = "image_repository"
-            self.validate_pipeline_config(stack_name, stage_name, list(CFN_OUTPUT_TO_CONFIG_KEY.keys()))
+            self.validate_pipeline_config(stack_name, stage_configuration_name, list(CFN_OUTPUT_TO_CONFIG_KEY.keys()))
             del CFN_OUTPUT_TO_CONFIG_KEY["ImageRepository"]
         else:
             self.assertSetEqual(common_resources, set(self._extract_created_resource_logical_ids(stack_name)))
-            self.validate_pipeline_config(stack_name, stage_name)
+            self.validate_pipeline_config(stack_name, stage_configuration_name)
 
     @parameterized.expand([("create_image_repository",), (False,)])
     def test_non_interactive_with_no_resources_provided(self, create_image_repository):
-        stage_name, stack_name = self._get_stage_and_stack_name()
+        stage_configuration_name, stack_name = self._get_stage_and_stack_name()
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list(
@@ -111,13 +111,13 @@ class TestBootstrap(BootstrapIntegBase):
         self.assertIn("Missing required parameter", stderr)
 
     def test_interactive_with_all_required_resources_provided(self):
-        stage_name, stack_name = self._get_stage_and_stack_name()
+        stage_configuration_name, stack_name = self._get_stage_and_stack_name()
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list()
 
         inputs = [
-            stage_name,
+            stage_configuration_name,
             CREDENTIAL_PROFILE,
             self.region,  # region
             "arn:aws:iam::123:user/user-name",  # pipeline user
@@ -135,12 +135,12 @@ class TestBootstrap(BootstrapIntegBase):
         self.assertIn("skipping creation", stdout)
 
     def test_no_interactive_with_all_required_resources_provided(self):
-        stage_name, stack_name = self._get_stage_and_stack_name()
+        stage_configuration_name, stack_name = self._get_stage_and_stack_name()
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list(
             no_interactive=True,
-            stage_name=stage_name,
+            stage_configuration_name=stage_configuration_name,
             pipeline_user="arn:aws:iam::123:user/user-name",  # pipeline user
             pipeline_execution_role="arn:aws:iam::123:role/role-name",  # Pipeline execution role
             cloudformation_execution_role="arn:aws:iam::123:role/role-name",  # CloudFormation execution role
@@ -155,7 +155,7 @@ class TestBootstrap(BootstrapIntegBase):
         stdout = bootstrap_process_execute.stdout.decode()
         self.assertIn("skipping creation", stdout)
 
-    def validate_pipeline_config(self, stack_name, stage_name, cfn_keys_to_check=None):
+    def validate_pipeline_config(self, stack_name, stage_configuration_name, cfn_keys_to_check=None):
         # Get output values from cloudformation
         if cfn_keys_to_check is None:
             cfn_keys_to_check = list(CFN_OUTPUT_TO_CONFIG_KEY.keys())
@@ -169,7 +169,7 @@ class TestBootstrap(BootstrapIntegBase):
 
         # Get values saved in config file
         config = SamConfig(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)
-        config_values = config.get_all(["pipeline", "bootstrap"], "parameters", stage_name)
+        config_values = config.get_all(["pipeline", "bootstrap"], "parameters", stage_configuration_name)
         config_values = {**config_values, **config.get_all(["pipeline", "bootstrap"], "parameters")}
 
         for key in CFN_OUTPUT_TO_CONFIG_KEY:
@@ -185,12 +185,12 @@ class TestBootstrap(BootstrapIntegBase):
 
     @parameterized.expand([("confirm_changeset",), (False,)])
     def test_no_interactive_with_some_required_resources_provided(self, confirm_changeset: bool):
-        stage_name, stack_name = self._get_stage_and_stack_name()
+        stage_configuration_name, stack_name = self._get_stage_and_stack_name()
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list(
             no_interactive=True,
-            stage_name=stage_name,
+            stage_configuration_name=stage_configuration_name,
             pipeline_user="arn:aws:iam::123:user/user-name",  # pipeline user
             pipeline_execution_role="arn:aws:iam::123:role/role-name",  # Pipeline execution role
             # CloudFormation execution role missing
@@ -212,13 +212,13 @@ class TestBootstrap(BootstrapIntegBase):
         self.assertIn("CloudFormationExecutionRole", self._extract_created_resource_logical_ids(stack_name))
 
     def test_interactive_cancelled_by_user(self):
-        stage_name, stack_name = self._get_stage_and_stack_name()
+        stage_configuration_name, stack_name = self._get_stage_and_stack_name()
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list()
 
         inputs = [
-            stage_name,
+            stage_configuration_name,
             CREDENTIAL_PROFILE,
             self.region,  # region
             "arn:aws:iam::123:user/user-name",  # pipeline user
@@ -238,13 +238,13 @@ class TestBootstrap(BootstrapIntegBase):
         self.assertFalse(self._stack_exists(stack_name))
 
     def test_interactive_with_some_required_resources_provided(self):
-        stage_name, stack_name = self._get_stage_and_stack_name()
+        stage_configuration_name, stack_name = self._get_stage_and_stack_name()
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list()
 
         inputs = [
-            stage_name,
+            stage_configuration_name,
             CREDENTIAL_PROFILE,
             self.region,  # region
             "arn:aws:iam::123:user/user-name",  # pipeline user
@@ -263,24 +263,24 @@ class TestBootstrap(BootstrapIntegBase):
         self.assertIn("Successfully created!", stdout)
         # make sure the not provided resource is the only resource created.
         self.assertIn("CloudFormationExecutionRole", self._extract_created_resource_logical_ids(stack_name))
-        self.validate_pipeline_config(stack_name, stage_name)
+        self.validate_pipeline_config(stack_name, stage_configuration_name)
 
     def test_interactive_pipeline_user_only_created_once(self):
         """
         Create 3 stages, only the first stage resource stack creates
         a pipeline user, and the remaining two share the same pipeline user.
         """
-        stage_names = []
+        stage_configuration_names = []
         for suffix in ["1", "2", "3"]:
-            stage_name, stack_name = self._get_stage_and_stack_name(suffix)
-            stage_names.append(stage_name)
+            stage_configuration_name, stack_name = self._get_stage_and_stack_name(suffix)
+            stage_configuration_names.append(stage_configuration_name)
             self.stack_names.append(stack_name)
 
         bootstrap_command_list = self.get_bootstrap_command_list()
 
-        for i, stage_name in enumerate(stage_names):
+        for i, stage_configuration_name in enumerate(stage_configuration_names):
             inputs = [
-                stage_name,
+                stage_configuration_name,
                 CREDENTIAL_PROFILE,
                 self.region,  # region
                 *([""] if i == 0 else []),  # pipeline user
@@ -306,17 +306,17 @@ class TestBootstrap(BootstrapIntegBase):
                 self.assertTrue("PipelineUser" in resources)
                 self.assertTrue("PipelineUserAccessKey" in resources)
                 self.assertTrue("PipelineUserSecretKey" in resources)
-                self.validate_pipeline_config(self.stack_names[i], stage_name)
+                self.validate_pipeline_config(self.stack_names[i], stage_configuration_name)
             else:
                 self.assertIn("skipping creation", stdout)
 
     @parameterized.expand([("ArtifactsBucket",), ("ArtifactsLoggingBucket",)])
     def test_bootstrapped_buckets_accept_ssl_requests_only(self, bucket_logical_id):
-        stage_name, stack_name = self._get_stage_and_stack_name()
+        stage_configuration_name, stack_name = self._get_stage_and_stack_name()
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list(
-            stage_name=stage_name, no_interactive=True, no_confirm_changeset=True, region=self.region
+            stage_configuration_name=stage_configuration_name, no_interactive=True, no_confirm_changeset=True, region=self.region
         )
 
         bootstrap_process_execute = run_command(bootstrap_command_list)
@@ -350,11 +350,11 @@ class TestBootstrap(BootstrapIntegBase):
         )
 
     def test_bootstrapped_artifacts_bucket_has_server_access_log_enabled(self):
-        stage_name, stack_name = self._get_stage_and_stack_name()
+        stage_configuration_name, stack_name = self._get_stage_and_stack_name()
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list(
-            stage_name=stage_name, no_interactive=True, no_confirm_changeset=True, region=self.region
+            stage_configuration_name=stage_configuration_name, no_interactive=True, no_confirm_changeset=True, region=self.region
         )
 
         bootstrap_process_execute = run_command(bootstrap_command_list)
