@@ -243,7 +243,7 @@ class TestInitWithBootstrap(BootstrapIntegBase):
         ]
         init_process_execute = run_command_with_inputs(self.command_list, inputs)
         self.assertEqual(init_process_execute.process.returncode, 0)
-        self.assertIn("Here are the configuration names detected", init_process_execute.stdout.decode())
+        self.assertIn("Here are the stage names detected", init_process_execute.stdout.decode())
         self.assertIn(stage_names[0], init_process_execute.stdout.decode())
         self.assertIn(stage_names[1], init_process_execute.stdout.decode())
 
@@ -296,6 +296,6 @@ class TestInitWithBootstrap(BootstrapIntegBase):
         ]
         init_process_execute = run_command_with_inputs(self.command_list, inputs)
         self.assertEqual(init_process_execute.process.returncode, 0)
-        self.assertIn("Here are the configuration names detected", init_process_execute.stdout.decode())
+        self.assertIn("Here are the stage names detected", init_process_execute.stdout.decode())
         self.assertIn(stage_names[0], init_process_execute.stdout.decode())
         self.assertIn(stage_names[1], init_process_execute.stdout.decode())

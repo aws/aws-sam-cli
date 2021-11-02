@@ -151,7 +151,7 @@ class Stage:
 
         missing_resources_msg: str = self._get_non_user_provided_resources_msg()
         click.echo(
-            f"This will create the following required resources for the '{self.name}' configuration: \n"
+            f"This will create the following required resources for the '{self.name}' environment: \n"
             f"{missing_resources_msg}"
         )
         if confirm_changeset:
