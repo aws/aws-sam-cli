@@ -202,17 +202,17 @@ class TestInitWithBootstrap(BootstrapIntegBase):
         super().tearDown()
 
     def test_without_stages_in_pipeline_config(self):
-        stage_names = []
+        stage_configuration_names = []
         for suffix in ["1", "2"]:
-            stage_name, stack_name = self._get_stage_and_stack_name(suffix)
-            stage_names.append(stage_name)
+            stage_configuration_name, stack_name = self._get_stage_and_stack_name(suffix)
+            stage_configuration_names.append(stage_configuration_name)
             self.stack_names.append(stack_name)
 
         inputs = [
             "1",  # quick start
             "1",  # jenkins, this depends on the template repo.
             "y",  # Do you want to go through stage setup process now?
-            stage_names[0],
+            stage_configuration_names[0],
             CREDENTIAL_PROFILE,
             self.region,
             "",  # pipeline user
@@ -223,7 +223,7 @@ class TestInitWithBootstrap(BootstrapIntegBase):
             "",  # Confirm summary
             "y",  # Create resources
             "y",  # Do you want to go through stage setup process now?
-            stage_names[1],
+            stage_configuration_names[1],
             CREDENTIAL_PROFILE,
             self.region,
             "",  # pipeline user
@@ -243,21 +243,21 @@ class TestInitWithBootstrap(BootstrapIntegBase):
         ]
         init_process_execute = run_command_with_inputs(self.command_list, inputs)
         self.assertEqual(init_process_execute.process.returncode, 0)
-        self.assertIn("Here are the stage names detected", init_process_execute.stdout.decode())
-        self.assertIn(stage_names[0], init_process_execute.stdout.decode())
-        self.assertIn(stage_names[1], init_process_execute.stdout.decode())
+        self.assertIn("Here are the configuration names detected", init_process_execute.stdout.decode())
+        self.assertIn(stage_configuration_names[0], init_process_execute.stdout.decode())
+        self.assertIn(stage_configuration_names[1], init_process_execute.stdout.decode())
 
     def test_with_one_stages_in_pipeline_config(self):
-        stage_names = []
+        stage_configuration_names = []
         for suffix in ["1", "2"]:
-            stage_name, stack_name = self._get_stage_and_stack_name(suffix)
-            stage_names.append(stage_name)
+            stage_configuration_name, stack_name = self._get_stage_and_stack_name(suffix)
+            stage_configuration_names.append(stage_configuration_name)
             self.stack_names.append(stack_name)
 
         bootstrap_command_list = self.get_bootstrap_command_list()
 
         inputs = [
-            stage_names[0],
+            stage_configuration_names[0],
             CREDENTIAL_PROFILE,
             self.region,  # region
             "",  # pipeline user
@@ -277,7 +277,7 @@ class TestInitWithBootstrap(BootstrapIntegBase):
             "1",  # quick start
             "1",  # jenkins, this depends on the template repo.
             "y",  # Do you want to go through stage setup process now?
-            stage_names[1],
+            stage_configuration_names[1],
             CREDENTIAL_PROFILE,
             self.region,
             "",  # Pipeline execution role
@@ -296,6 +296,6 @@ class TestInitWithBootstrap(BootstrapIntegBase):
         ]
         init_process_execute = run_command_with_inputs(self.command_list, inputs)
         self.assertEqual(init_process_execute.process.returncode, 0)
-        self.assertIn("Here are the stage names detected", init_process_execute.stdout.decode())
-        self.assertIn(stage_names[0], init_process_execute.stdout.decode())
-        self.assertIn(stage_names[1], init_process_execute.stdout.decode())
+        self.assertIn("Here are the configuration names detected", init_process_execute.stdout.decode())
+        self.assertIn(stage_configuration_names[0], init_process_execute.stdout.decode())
+        self.assertIn(stage_configuration_names[1], init_process_execute.stdout.decode())
