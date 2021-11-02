@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch, call, MagicMock
 
 from samcli.lib.pipeline.bootstrap.stage import Stage
 
-ANY_STAGE_NAME = "ANY_STAGE_NAME"
+ANY_STAGE_CONFIGURATION_NAME = "ANY_STAGE_CONFIGURATION_NAME"
 ANY_PIPELINE_USER_ARN = "ANY_PIPELINE_USER_ARN"
 ANY_PIPELINE_EXECUTION_ROLE_ARN = "ANY_PIPELINE_EXECUTION_ROLE_ARN"
 ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN = "ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN"
@@ -13,9 +13,9 @@ ANY_ARN = "ANY_ARN"
 
 
 class TestStage(TestCase):
-    def test_stage_name_is_the_only_required_field_to_initialize_an_stage(self):
-        stage: Stage = Stage(name=ANY_STAGE_NAME)
-        self.assertEqual(stage.name, ANY_STAGE_NAME)
+    def test_stage_configuration_name_is_the_only_required_field_to_initialize_an_stage(self):
+        stage: Stage = Stage(name=ANY_STAGE_CONFIGURATION_NAME)
+        self.assertEqual(stage.name, ANY_STAGE_CONFIGURATION_NAME)
         self.assertIsNone(stage.aws_profile)
         self.assertIsNone(stage.aws_region)
         self.assertIsNotNone(stage.pipeline_user)
@@ -28,25 +28,25 @@ class TestStage(TestCase):
             Stage()
 
     def test_did_user_provide_all_required_resources_when_not_all_resources_are_provided(self):
-        stage: Stage = Stage(name=ANY_STAGE_NAME)
+        stage: Stage = Stage(name=ANY_STAGE_CONFIGURATION_NAME)
         self.assertFalse(stage.did_user_provide_all_required_resources())
-        stage: Stage = Stage(name=ANY_STAGE_NAME, pipeline_user_arn=ANY_PIPELINE_USER_ARN)
+        stage: Stage = Stage(name=ANY_STAGE_CONFIGURATION_NAME, pipeline_user_arn=ANY_PIPELINE_USER_ARN)
         self.assertFalse(stage.did_user_provide_all_required_resources())
         stage: Stage = Stage(
-            name=ANY_STAGE_NAME,
+            name=ANY_STAGE_CONFIGURATION_NAME,
             pipeline_user_arn=ANY_PIPELINE_USER_ARN,
             pipeline_execution_role_arn=ANY_PIPELINE_EXECUTION_ROLE_ARN,
         )
         self.assertFalse(stage.did_user_provide_all_required_resources())
         stage: Stage = Stage(
-            name=ANY_STAGE_NAME,
+            name=ANY_STAGE_CONFIGURATION_NAME,
             pipeline_user_arn=ANY_PIPELINE_USER_ARN,
             pipeline_execution_role_arn=ANY_PIPELINE_EXECUTION_ROLE_ARN,
             cloudformation_execution_role_arn=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
         )
         self.assertFalse(stage.did_user_provide_all_required_resources())
         stage: Stage = Stage(
-            name=ANY_STAGE_NAME,
+            name=ANY_STAGE_CONFIGURATION_NAME,
             pipeline_user_arn=ANY_PIPELINE_USER_ARN,
             pipeline_execution_role_arn=ANY_PIPELINE_EXECUTION_ROLE_ARN,
             cloudformation_execution_role_arn=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
@@ -57,7 +57,7 @@ class TestStage(TestCase):
 
     def test_did_user_provide_all_required_resources_ignore_image_repository_if_it_is_not_required(self):
         stage: Stage = Stage(
-            name=ANY_STAGE_NAME,
+            name=ANY_STAGE_CONFIGURATION_NAME,
             pipeline_user_arn=ANY_PIPELINE_USER_ARN,
             pipeline_execution_role_arn=ANY_PIPELINE_EXECUTION_ROLE_ARN,
             cloudformation_execution_role_arn=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
@@ -68,7 +68,7 @@ class TestStage(TestCase):
 
     def test_did_user_provide_all_required_resources_when_image_repository_is_required(self):
         stage: Stage = Stage(
-            name=ANY_STAGE_NAME,
+            name=ANY_STAGE_CONFIGURATION_NAME,
             pipeline_user_arn=ANY_PIPELINE_USER_ARN,
             pipeline_execution_role_arn=ANY_PIPELINE_EXECUTION_ROLE_ARN,
             cloudformation_execution_role_arn=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
@@ -77,7 +77,7 @@ class TestStage(TestCase):
         )
         self.assertFalse(stage.did_user_provide_all_required_resources())
         stage: Stage = Stage(
-            name=ANY_STAGE_NAME,
+            name=ANY_STAGE_CONFIGURATION_NAME,
             pipeline_user_arn=ANY_PIPELINE_USER_ARN,
             pipeline_execution_role_arn=ANY_PIPELINE_EXECUTION_ROLE_ARN,
             cloudformation_execution_role_arn=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
@@ -98,7 +98,7 @@ class TestStage(TestCase):
         pipeline_user_secret_pair_mock.return_value = ("id", "secret")
         stack_output.get.return_value = ANY_ARN
         manage_stack_mock.return_value = stack_output
-        stage: Stage = Stage(name=ANY_STAGE_NAME)
+        stage: Stage = Stage(name=ANY_STAGE_CONFIGURATION_NAME)
 
         self.assertFalse(stage.did_user_provide_all_required_resources())
 
@@ -121,7 +121,7 @@ class TestStage(TestCase):
         self, did_user_provide_all_required_resources_mock, manage_stack_mock, click_mock
     ):
         did_user_provide_all_required_resources_mock.return_value = True
-        stage: Stage = Stage(name=ANY_STAGE_NAME)
+        stage: Stage = Stage(name=ANY_STAGE_CONFIGURATION_NAME)
         stage.bootstrap(confirm_changeset=False)
         manage_stack_mock.assert_not_called()
 
@@ -133,7 +133,7 @@ class TestStage(TestCase):
     ):
         click_mock.confirm.return_value = False
         pipeline_user_secret_pair_mock.return_value = ("id", "secret")
-        stage: Stage = Stage(name=ANY_STAGE_NAME)
+        stage: Stage = Stage(name=ANY_STAGE_CONFIGURATION_NAME)
         stage.bootstrap(confirm_changeset=False)
         click_mock.confirm.assert_not_called()
         manage_stack_mock.assert_called_once()
@@ -148,7 +148,7 @@ class TestStage(TestCase):
         self, manage_stack_mock, click_mock
     ):
         click_mock.confirm.return_value = False
-        stage: Stage = Stage(name=ANY_STAGE_NAME)
+        stage: Stage = Stage(name=ANY_STAGE_CONFIGURATION_NAME)
         stage.bootstrap(confirm_changeset=True)
         manage_stack_mock.assert_not_called()
 
@@ -160,7 +160,7 @@ class TestStage(TestCase):
     ):
         click_mock.confirm.return_value = True
         pipeline_user_secret_pair_mock.return_value = ("id", "secret")
-        stage: Stage = Stage(name=ANY_STAGE_NAME)
+        stage: Stage = Stage(name=ANY_STAGE_CONFIGURATION_NAME)
         stage.bootstrap(confirm_changeset=True)
         manage_stack_mock.assert_called_once()
 
@@ -173,7 +173,7 @@ class TestStage(TestCase):
         click_mock.confirm.return_value = True
         pipeline_user_secret_pair_mock.return_value = ("id", "secret")
         stage: Stage = Stage(
-            name=ANY_STAGE_NAME,
+            name=ANY_STAGE_CONFIGURATION_NAME,
             pipeline_user_arn=ANY_PIPELINE_USER_ARN,
             artifacts_bucket_arn=ANY_ARTIFACTS_BUCKET_ARN,
             create_image_repository=True,
@@ -203,7 +203,7 @@ class TestStage(TestCase):
         stack_output = Mock()
         stack_output.get.return_value = ANY_ARN
         manage_stack_mock.return_value = stack_output
-        stage: Stage = Stage(name=ANY_STAGE_NAME)
+        stage: Stage = Stage(name=ANY_STAGE_CONFIGURATION_NAME)
         click_mock.confirm.return_value = True
 
         # verify resources' ARNS are empty
@@ -227,12 +227,12 @@ class TestStage(TestCase):
         cmd_names = ["any", "commands"]
         samconfig_instance_mock = Mock()
         samconfig_mock.return_value = samconfig_instance_mock
-        stage: Stage = Stage(name=ANY_STAGE_NAME)
+        stage: Stage = Stage(name=ANY_STAGE_CONFIGURATION_NAME)
 
         empty_ecr_call = call(
             cmd_names=cmd_names,
             section="parameters",
-            env=ANY_STAGE_NAME,
+            env=ANY_STAGE_CONFIGURATION_NAME,
             key="image_repository",
             value="",
         )
@@ -255,7 +255,7 @@ class TestStage(TestCase):
             call(
                 cmd_names=cmd_names,
                 section="parameters",
-                env=ANY_STAGE_NAME,
+                env=ANY_STAGE_CONFIGURATION_NAME,
                 key="pipeline_execution_role",
                 value=ANY_PIPELINE_EXECUTION_ROLE_ARN,
             ),
@@ -269,7 +269,7 @@ class TestStage(TestCase):
             call(
                 cmd_names=cmd_names,
                 section="parameters",
-                env=ANY_STAGE_NAME,
+                env=ANY_STAGE_CONFIGURATION_NAME,
                 key="cloudformation_execution_role",
                 value=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
             ),
@@ -283,7 +283,7 @@ class TestStage(TestCase):
             call(
                 cmd_names=cmd_names,
                 section="parameters",
-                env=ANY_STAGE_NAME,
+                env=ANY_STAGE_CONFIGURATION_NAME,
                 key="artifacts_bucket",
                 value="artifact_bucket_name",
             ),
@@ -297,7 +297,7 @@ class TestStage(TestCase):
             call(
                 cmd_names=cmd_names,
                 section="parameters",
-                env=ANY_STAGE_NAME,
+                env=ANY_STAGE_CONFIGURATION_NAME,
                 key="image_repository",
                 value="111111111111.dkr.ecr.us-east-2.amazonaws.com/image_repository_name",
             )
@@ -329,7 +329,7 @@ class TestStage(TestCase):
     def test_save_config_ignores_exceptions_thrown_while_calculating_artifacts_bucket_name(self, samconfig_mock):
         samconfig_instance_mock = Mock()
         samconfig_mock.return_value = samconfig_instance_mock
-        stage: Stage = Stage(name=ANY_STAGE_NAME, artifacts_bucket_arn="invalid ARN")
+        stage: Stage = Stage(name=ANY_STAGE_CONFIGURATION_NAME, artifacts_bucket_arn="invalid ARN")
         # calling artifacts_bucket.name() during save_config() will raise a ValueError exception, we need to make sure
         # this exception is swallowed so that other configs can be safely saved to the pipelineconfig.toml file
         stage.save_config(config_dir="any_config_dir", filename="any_pipeline.toml", cmd_names=["any", "commands"])
@@ -338,7 +338,7 @@ class TestStage(TestCase):
     def test_save_config_ignores_exceptions_thrown_while_calculating_image_repository_uri(self, samconfig_mock):
         samconfig_instance_mock = Mock()
         samconfig_mock.return_value = samconfig_instance_mock
-        stage: Stage = Stage(name=ANY_STAGE_NAME, image_repository_arn="invalid ARN")
+        stage: Stage = Stage(name=ANY_STAGE_CONFIGURATION_NAME, image_repository_arn="invalid ARN")
         # calling image_repository.get_uri() during save_config() will raise a ValueError exception, we need to make
         # sure this exception is swallowed so that other configs can be safely saved to the pipelineconfig.toml file
         stage.save_config(config_dir="any_config_dir", filename="any_pipeline.toml", cmd_names=["any", "commands"])
@@ -346,20 +346,20 @@ class TestStage(TestCase):
     @patch.object(Stage, "save_config")
     def test_save_config_safe(self, save_config_mock):
         save_config_mock.side_effect = Exception
-        stage: Stage = Stage(name=ANY_STAGE_NAME)
+        stage: Stage = Stage(name=ANY_STAGE_CONFIGURATION_NAME)
         stage.save_config_safe(config_dir="any_config_dir", filename="any_pipeline.toml", cmd_names=["commands"])
         save_config_mock.assert_called_once_with("any_config_dir", "any_pipeline.toml", ["commands"])
 
     @patch("samcli.lib.pipeline.bootstrap.stage.click")
     def test_print_resources_summary_when_no_resources_provided_by_the_user(self, click_mock):
-        stage: Stage = Stage(name=ANY_STAGE_NAME)
+        stage: Stage = Stage(name=ANY_STAGE_CONFIGURATION_NAME)
         stage.print_resources_summary()
         self.assert_summary_has_a_message_like("The following resources were created in your account", click_mock.secho)
 
     @patch("samcli.lib.pipeline.bootstrap.stage.click")
     def test_print_resources_summary_when_all_resources_are_provided_by_the_user(self, click_mock):
         stage: Stage = Stage(
-            name=ANY_STAGE_NAME,
+            name=ANY_STAGE_CONFIGURATION_NAME,
             pipeline_user_arn=ANY_PIPELINE_USER_ARN,
             pipeline_execution_role_arn=ANY_PIPELINE_EXECUTION_ROLE_ARN,
             cloudformation_execution_role_arn=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
@@ -375,7 +375,7 @@ class TestStage(TestCase):
     @patch("samcli.lib.pipeline.bootstrap.stage.click")
     def test_print_resources_summary_when_some_resources_are_provided_by_the_user(self, click_mock):
         stage: Stage = Stage(
-            name=ANY_STAGE_NAME,
+            name=ANY_STAGE_CONFIGURATION_NAME,
             pipeline_user_arn=ANY_PIPELINE_USER_ARN,
             artifacts_bucket_arn=ANY_ARTIFACTS_BUCKET_ARN,
             create_image_repository=True,
@@ -388,13 +388,15 @@ class TestStage(TestCase):
     def test_print_resources_summary_prints_the_credentials_of_the_pipeline_user_iff_not_provided_by_the_user(
         self, click_mock
     ):
-        stage_with_provided_pipeline_user: Stage = Stage(name=ANY_STAGE_NAME, pipeline_user_arn=ANY_PIPELINE_USER_ARN)
+        stage_with_provided_pipeline_user: Stage = Stage(
+            name=ANY_STAGE_CONFIGURATION_NAME, pipeline_user_arn=ANY_PIPELINE_USER_ARN
+        )
         stage_with_provided_pipeline_user.print_resources_summary()
         self.assert_summary_does_not_have_a_message_like("AWS_ACCESS_KEY_ID", click_mock.secho)
         self.assert_summary_does_not_have_a_message_like("AWS_SECRET_ACCESS_KEY", click_mock.secho)
         click_mock.secho.reset_mock()
 
-        stage_without_provided_pipeline_user: Stage = Stage(name=ANY_STAGE_NAME)
+        stage_without_provided_pipeline_user: Stage = Stage(name=ANY_STAGE_CONFIGURATION_NAME)
         stage_without_provided_pipeline_user.print_resources_summary()
         self.assert_summary_has_a_message_like("AWS_ACCESS_KEY_ID", click_mock.secho)
         self.assert_summary_has_a_message_like("AWS_SECRET_ACCESS_KEY", click_mock.secho)

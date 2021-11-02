@@ -5,7 +5,7 @@ from parameterized import parameterized
 
 from samcli.commands.pipeline.bootstrap.guided_context import GuidedContext
 
-ANY_STAGE_NAME = "ANY_STAGE_NAME"
+ANY_STAGE_CONFIGURATION_NAME = "ANY_STAGE_CONFIGURATION_NAME"
 ANY_PIPELINE_USER_ARN = "ANY_PIPELINE_USER_ARN"
 ANY_PIPELINE_EXECUTION_ROLE_ARN = "ANY_PIPELINE_EXECUTION_ROLE_ARN"
 ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN = "ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN"
@@ -26,7 +26,7 @@ class TestGuidedContext(TestCase):
         click_mock.confirm.return_value = False
         click_mock.prompt = Mock(return_value="0")
         gc: GuidedContext = GuidedContext(
-            stage_name=ANY_STAGE_NAME,
+            stage_configuration_name=ANY_STAGE_CONFIGURATION_NAME,
             pipeline_user_arn=ANY_PIPELINE_USER_ARN,
             pipeline_execution_role_arn=ANY_PIPELINE_EXECUTION_ROLE_ARN,
             cloudformation_execution_role_arn=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
@@ -56,7 +56,7 @@ class TestGuidedContext(TestCase):
         )
         gc.run()
         prompt_account_id_mock.assert_called_once()
-        self.assertTrue(self.did_prompt_text_like("Stage Name", click_mock.prompt))
+        self.assertTrue(self.did_prompt_text_like("Configuration Name", click_mock.prompt))
         self.assertTrue(self.did_prompt_text_like("Pipeline IAM user", click_mock.prompt))
         self.assertTrue(self.did_prompt_text_like("Pipeline execution role", click_mock.prompt))
         self.assertTrue(self.did_prompt_text_like("CloudFormation execution role", click_mock.prompt))
@@ -75,7 +75,7 @@ class TestGuidedContext(TestCase):
         # 2 - Yes, I need a help creating one
         # 3 - I already have an ECR image repository
         gc_without_ecr_info: GuidedContext = GuidedContext(
-            stage_name=ANY_STAGE_NAME,
+            stage_configuration_name=ANY_STAGE_CONFIGURATION_NAME,
             pipeline_user_arn=ANY_PIPELINE_USER_ARN,
             pipeline_execution_role_arn=ANY_PIPELINE_EXECUTION_ROLE_ARN,
             cloudformation_execution_role_arn=ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
