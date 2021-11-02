@@ -76,9 +76,9 @@ class GuidedContext:
 
         try:
             account_id = get_current_account_id(self.profile)
-            click.echo(self.color.green(
-                f"Associated account {account_id} with configuration {self.stage_configuration_name}."
-                ))
+            click.echo(
+                self.color.green(f"Associated account {account_id} with configuration {self.stage_configuration_name}.")
+            )
         except CredentialsError as ex:
             click.echo(f"{self.color.red(ex.message)}\n")
             self._prompt_account_id()

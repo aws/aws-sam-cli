@@ -388,7 +388,9 @@ class TestStage(TestCase):
     def test_print_resources_summary_prints_the_credentials_of_the_pipeline_user_iff_not_provided_by_the_user(
         self, click_mock
     ):
-        stage_with_provided_pipeline_user: Stage = Stage(name=ANY_STAGE_CONFIGURATION_NAME, pipeline_user_arn=ANY_PIPELINE_USER_ARN)
+        stage_with_provided_pipeline_user: Stage = Stage(
+            name=ANY_STAGE_CONFIGURATION_NAME, pipeline_user_arn=ANY_PIPELINE_USER_ARN
+        )
         stage_with_provided_pipeline_user.print_resources_summary()
         self.assert_summary_does_not_have_a_message_like("AWS_ACCESS_KEY_ID", click_mock.secho)
         self.assert_summary_does_not_have_a_message_like("AWS_SECRET_ACCESS_KEY", click_mock.secho)

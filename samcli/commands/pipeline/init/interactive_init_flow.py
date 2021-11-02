@@ -124,9 +124,7 @@ class InteractiveInitFlow:
             return self._generate_from_pipeline_template(pipeline_template_local_dir)
 
     def _prompt_run_bootstrap_within_pipeline_init(
-        self,
-        stage_configuration_names: List[str],
-        number_of_stages: int
+        self, stage_configuration_names: List[str], number_of_stages: int
     ) -> bool:
         """
         Prompt bootstrap if `--bootstrap` flag is provided. Return True if bootstrap process is executed.
@@ -239,10 +237,10 @@ def _load_pipeline_bootstrap_resources() -> Tuple[List[str], Dict[str, str]]:
     # bootstrapped stage names and "default" which is used to store shared values
     # we don't want to include "default" here.
     stage_configuration_names = [
-        stage_configuration_name for stage_configuration_name
-            in config.get_stage_configuration_names()
-            if stage_configuration_name != "default"
-        ]
+        stage_configuration_name
+        for stage_configuration_name in config.get_stage_configuration_names()
+        if stage_configuration_name != "default"
+    ]
     for index, stage in enumerate(stage_configuration_names):
         for key, value in config.get_all(_get_bootstrap_command_names(), section, stage).items():
             context[str([stage, key])] = value
@@ -254,10 +252,12 @@ def _load_pipeline_bootstrap_resources() -> Tuple[List[str], Dict[str, str]]:
     stage_names_message = (
         "Here are the configuration names detected "
         + f"in {os.path.join(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)}:\n"
-        + "\n".join([f"\t{index + 1} - {stage_configuration_name}"
-                     for index, stage_configuration_name
-                     in enumerate(stage_configuration_names)
-                    ])
+        + "\n".join(
+            [
+                f"\t{index + 1} - {stage_configuration_name}"
+                for index, stage_configuration_name in enumerate(stage_configuration_names)
+            ]
+        )
     )
     context[str(["stage_names_message"])] = stage_names_message
 

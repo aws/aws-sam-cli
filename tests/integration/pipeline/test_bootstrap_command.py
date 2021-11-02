@@ -316,7 +316,10 @@ class TestBootstrap(BootstrapIntegBase):
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list(
-            stage_configuration_name=stage_configuration_name, no_interactive=True, no_confirm_changeset=True, region=self.region
+            stage_configuration_name=stage_configuration_name,
+            no_interactive=True,
+            no_confirm_changeset=True,
+            region=self.region,
         )
 
         bootstrap_process_execute = run_command(bootstrap_command_list)
@@ -354,7 +357,10 @@ class TestBootstrap(BootstrapIntegBase):
         self.stack_names = [stack_name]
 
         bootstrap_command_list = self.get_bootstrap_command_list(
-            stage_configuration_name=stage_configuration_name, no_interactive=True, no_confirm_changeset=True, region=self.region
+            stage_configuration_name=stage_configuration_name,
+            no_interactive=True,
+            no_confirm_changeset=True,
+            region=self.region,
         )
 
         bootstrap_process_execute = run_command(bootstrap_command_list)
