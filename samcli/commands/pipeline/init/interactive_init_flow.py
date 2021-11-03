@@ -67,10 +67,9 @@ class InteractiveInitFlow:
             )
         )
 
-        click.echo("Select a pipeline structure template to get started:")
         pipeline_template_source_question = Choice(
             key="pipeline-template-source",
-            text="Select template",
+            text="Select a pipeline template to get started:",
             options=[SAM_PIPELINE_TEMPLATE_SOURCE, CUSTOM_PIPELINE_TEMPLATE_SOURCE],
             is_required=True,
         )
@@ -154,7 +153,7 @@ class InteractiveInitFlow:
                         resources.
 
                         We recommend using an individual AWS account profiles for each stage in your
-                        pipeline. You can set these profiles up using aws configure or ~/.aws/credentials see
+                        pipeline. You can set these profiles up using aws configure or ~/.aws/credentials. See
                         [https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-getting-started-set-up-credentials.html].
                         """  # pylint: disable=C0301
                     )
@@ -250,7 +249,7 @@ def _load_pipeline_bootstrap_resources() -> Tuple[List[str], Dict[str, str]]:
 
     # pre-load the list of stage names detected from pipelineconfig.toml
     stage_names_message = (
-        "Here are the configuration names detected "
+        "Here are the stage configuration names detected "
         + f"in {os.path.join(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)}:\n"
         + "\n".join(
             [
@@ -390,7 +389,10 @@ def _prompt_cicd_provider(available_providers: List[Provider]) -> Provider:
         return available_providers[0]
 
     question_to_choose_provider = Choice(
-        key="provider", text="CI/CD system", options=[p.display_name for p in available_providers], is_required=True
+        key="provider",
+        text="Select CI/CD system",
+        options=[p.display_name for p in available_providers],
+        is_required=True,
     )
     chosen_provider_display_name = question_to_choose_provider.ask()
     return next(p for p in available_providers if p.display_name == chosen_provider_display_name)

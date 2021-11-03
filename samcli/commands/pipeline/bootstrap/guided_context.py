@@ -45,7 +45,7 @@ class GuidedContext:
 
     def _prompt_account_id(self) -> None:
         profiles = list_available_profiles()
-        click.echo("The following AWS credential sources are available to use:")
+        click.echo("The following AWS credential sources are available to use.")
         click.echo(
             dedent(
                 f"""\
@@ -89,7 +89,7 @@ class GuidedContext:
             "This will be referenced later when you use the sam pipeline init command:"
         )
         self.stage_configuration_name = click.prompt(
-            "Configuration name",
+            "Stage configuration name",
             default=self.stage_configuration_name,
             type=click.STRING,
         )
@@ -147,7 +147,7 @@ class GuidedContext:
     def _get_user_inputs(self) -> List[Tuple[str, Callable[[], None]]]:
         return [
             (f"Account: {get_current_account_id(self.profile)}", self._prompt_account_id),
-            (f"Configuration name: {self.stage_configuration_name}", self._prompt_stage_configuration_name),
+            (f"Stage configuration name: {self.stage_configuration_name}", self._prompt_stage_configuration_name),
             (f"Region: {self.region}", self._prompt_region_name),
             (
                 f"Pipeline user ARN: {self.pipeline_user_arn}"
@@ -189,7 +189,7 @@ class GuidedContext:
         """
         click.secho(self.color.bold("[1] Stage definition"))
         if self.stage_configuration_name:
-            click.echo(f"Configuration name: {self.stage_configuration_name}")
+            click.echo(f"Stage configuration name: {self.stage_configuration_name}")
         else:
             self._prompt_stage_configuration_name()
         click.echo()
