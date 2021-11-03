@@ -142,9 +142,9 @@ def _generate_from_app_template(
     Dependency Manager: {dependency_manager}
     Application Template: {app_template}
     Output Directory: {output_dir}
-    
-    Next steps can be found in the README file at {output_dir}/{name}/README.md
-        """
+
+    Next application steps can be found in the README file at {output_dir}/{name}/README.md
+    """
     elif package_type == IMAGE:
         summary_msg = f"""
     -----------------------
@@ -156,10 +156,16 @@ def _generate_from_app_template(
     Dependency Manager: {dependency_manager}
     Output Directory: {output_dir}
 
-    Next steps can be found in the README file at {output_dir}/{name}/README.md
-        """
+    Next application steps can be found in the README file at {output_dir}/{name}/README.md
+    """
 
     click.echo(summary_msg)
+    next_commands_msg = f"""
+    Commands you can use next
+    =========================
+    [*] Create pipeline: cd {name} && sam pipeline init --bootstrap
+    """
+    click.secho(next_commands_msg, fg="yellow")
     do_generate(location, package_type, runtime, dependency_manager, output_dir, name, no_input, extra_context)
     # executing event_bridge logic if call is for Schema dynamic template
     if is_dynamic_schemas_template:
