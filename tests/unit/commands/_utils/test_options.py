@@ -4,6 +4,7 @@ Test the common CLI options
 
 import os
 from datetime import datetime
+import tempfile
 
 from unittest import TestCase
 from unittest.mock import patch, MagicMock
@@ -38,6 +39,24 @@ class TestGetOrDefaultTemplateFileName(TestCase):
 
         result = get_or_default_template_file_name(None, None, filename, include_build=False)
         self.assertEqual(result, expected)
+
+    @patch("samcli.commands._utils.options.tempfile")
+    @patch("samcli.commands._utils.options.sys")
+    def test_must_return_stdin_temp_file(self, sys_mock, tempfile_mock):
+        ctx = Mock()
+        fp = tempfile.NamedTemporaryFile()
+
+        filename = "-"
+        expected = fp.name
+
+        tempfile_mock.mkstemp.return_value = (None, fp.name)
+        sys_mock.stdin.read.return_value = "foo"
+
+        result = get_or_default_template_file_name(ctx, None, filename, include_build=False)
+        self.assertEqual(result, expected)
+        self.assertEqual(ctx.tmpfile, expected)
+
+        fp.close()
 
     @patch("samcli.commands._utils.options.os")
     def test_must_return_yml_extension(self, os_mock):
