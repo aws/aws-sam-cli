@@ -4,7 +4,9 @@ Common CLI options shared by various commands
 
 import os
 import logging
-from functools import partial
+from functools import partial, wraps
+import sys
+import tempfile
 import types
 
 import click
@@ -22,6 +24,7 @@ from samcli.cli.types import (
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 from samcli.commands._utils.template import get_template_artifacts_format
 from samcli.lib.utils.packagetype import ZIP, IMAGE
+from samcli.lib.utils import osutils
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml|json]"
 DEFAULT_STACK_NAME = "sam-app"
@@ -69,6 +72,26 @@ def parameterized_option(option):
     return parameter_wrapper
 
 
+def remove_stdin_tmpfile(f):
+    """
+    Remove the temporary file created by get_or_default_template_file_name
+
+    :param f: Callback function
+    """
+
+    @wraps(f)
+    def wrapper(ctx, *args, **kwargs):
+        try:
+            f(ctx, *args, **kwargs)
+        finally:
+            tmpfile = getattr(ctx, "tmpfile", None)
+            if tmpfile:
+                LOG.debug("Removing temporary file %s", tmpfile)
+                osutils.remove(tmpfile)
+
+    return wrapper
+
+
 def get_or_default_template_file_name(ctx, param, provided_value, include_build):
     """
     Default value for the template file name option is more complex than what Click can handle.
@@ -81,6 +104,18 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
     :param include_build: A boolean to set whether to search build template or not.
     :return: Actual value to be used in the CLI
     """
+
+    if provided_value == "-":
+        # "-" is a special value that tells us to read the template from stdin
+        LOG.debug("Using SAM Template from stdin")
+        _, tmpfile = tempfile.mkstemp()
+
+        with open(tmpfile, "w") as f:
+            f.write(sys.stdin.read())
+
+        setattr(ctx, "tmpfile", tmpfile)
+
+        return tmpfile
 
     original_template_path = os.path.abspath(provided_value)
 

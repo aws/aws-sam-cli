@@ -28,6 +28,7 @@ from samcli.commands._utils.options import (
     resolve_s3_option,
     role_arn_option,
     resolve_image_repos_option,
+    remove_stdin_tmpfile,
 )
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
 from samcli.lib.telemetry.metric import track_command
@@ -127,6 +128,7 @@ LOG = logging.getLogger(__name__)
 @track_command
 @check_newer_version
 @print_cmdline_args
+@remove_stdin_tmpfile
 def cli(
     ctx,
     template_file,
