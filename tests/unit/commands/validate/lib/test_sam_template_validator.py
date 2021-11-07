@@ -306,3 +306,131 @@ class TestSamTemplateValidator(TestCase):
 
         # check template
         self.assertEqual(validator.sam_template.get("Resources"), {})
+
+    def test_DefinitionBody_gets_replaced_in_api(self):
+        template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Resources": {
+                "ServerlessFunction": {"Type": "AWS::Serverless::Function"},
+                "ServerlessApi": {
+                    "Type": "AWS::Serverless::Api",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "DefinitionBody": {
+                            "Fn::Transform": {
+                                "Name": "AWS::Include",
+                                "Parameters": {"Location": "./tests/unit/commands/validate/lib/openapi/openapi.yaml"},
+                            }
+                        },
+                    },
+                },
+            },
+        }
+
+        managed_policy_mock = Mock()
+
+        validator = SamTemplateValidator(template, managed_policy_mock)
+
+        validator._replace_local_openapi()
+
+        template_resources = validator.sam_template.get("Resources")
+        self.assertIn("DefinitionBody", template_resources.get("ServerlessApi").get("Properties"))
+        self.assertNotIn(
+            "Fn::Transform", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody")
+        )
+        self.assertIn("openapi", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
+
+    def test_DefinitionBody_not_replaced_if_file_not_found(self):
+        template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Resources": {
+                "ServerlessApi": {
+                    "Type": "AWS::Serverless::HttpApi",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "DefinitionBody": {
+                            "Fn::Transform": {
+                                "Name": "AWS::Include",
+                                "Parameters": {"Location": "./tests/unit/commands/validate/lib/openapi/notafile.yaml"},
+                            }
+                        },
+                    },
+                }
+            },
+        }
+
+        managed_policy_mock = Mock()
+
+        validator = SamTemplateValidator(template, managed_policy_mock)
+
+        validator._replace_local_openapi()
+
+        template_resources = validator.sam_template.get("Resources")
+        self.assertIn("DefinitionBody", template_resources.get("ServerlessApi").get("Properties"))
+        self.assertNotIn("openapi", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
+        self.assertIn("Fn::Transform", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
+
+    def test_DefinitionBody_gets_replaced_if_json(self):
+        template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Resources": {
+                "ServerlessApi": {
+                    "Type": "AWS::Serverless::HttpApi",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "DefinitionBody": {
+                            "Fn::Transform": {
+                                "Name": "AWS::Include",
+                                "Parameters": {"Location": "./tests/unit/commands/validate/lib/openapi/openapi.json"},
+                            }
+                        },
+                    },
+                }
+            },
+        }
+
+        managed_policy_mock = Mock()
+
+        validator = SamTemplateValidator(template, managed_policy_mock)
+
+        validator._replace_local_openapi()
+
+        template_resources = validator.sam_template.get("Resources")
+        self.assertIn("DefinitionBody", template_resources.get("ServerlessApi").get("Properties"))
+        self.assertNotIn(
+            "Fn::Transform", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody")
+        )
+        self.assertIn("openapi", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
+
+    def test_DefinitionBody_not_replaced_if_not_include(self):
+        template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Resources": {
+                "ServerlessApi": {
+                    "Type": "AWS::Serverless::HttpApi",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "DefinitionBody": {
+                            "Fn::Transform": {
+                                "Name": "AWS::NotInclude",
+                            }
+                        },
+                    },
+                }
+            },
+        }
+
+        managed_policy_mock = Mock()
+
+        validator = SamTemplateValidator(template, managed_policy_mock)
+
+        validator._replace_local_openapi()
+
+        template_resources = validator.sam_template.get("Resources")
+        self.assertIn("DefinitionBody", template_resources.get("ServerlessApi").get("Properties"))
+        self.assertNotIn("openapi", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
+        self.assertIn("Fn::Transform", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
