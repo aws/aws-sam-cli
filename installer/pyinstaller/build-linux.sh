@@ -23,7 +23,7 @@ fi
 
 set -eu
 
-yum install -y zlib-devel openssl-devel
+yum install -y zlib-devel openssl-devel libffi-devel
 
 echo "Making Folders"
 mkdir -p .build/src
@@ -43,6 +43,7 @@ cd Python-$python_version
 ./configure --enable-shared
 make -j8
 make install
+ldconfig
 cd ..
 
 echo "Installing Python Libraries"
