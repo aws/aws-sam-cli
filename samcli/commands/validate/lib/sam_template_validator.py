@@ -154,7 +154,7 @@ class SamTemplateValidator:
         #       Location: openapi.yaml
         resources = self.sam_template.get("Resources", {})
         for _, resource in resources.items():
-            if not resource.get("Type") in "AWS::Serverless::Api,AWS::Serverless::HttpApi":
+            if not resource.get("Type", "") in "AWS::Serverless::Api,AWS::Serverless::HttpApi":
                 continue
 
             transform_dict = resource.get("Properties", {}).get("DefinitionBody", {}).get("Fn::Transform", {})
