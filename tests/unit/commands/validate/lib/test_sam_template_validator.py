@@ -288,7 +288,6 @@ class TestSamTemplateValidator(TestCase):
             template_resources.get("ServerlessFunctionZip").get("Properties").get("CodeUri"), "s3://bucket/value"
         )
 
-
     def test_replace_local_codeuri_in_global_section(self):
         template = {
             "AWSTemplateFormatVersion": "2010-09-09",
