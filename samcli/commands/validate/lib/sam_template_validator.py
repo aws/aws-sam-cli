@@ -11,7 +11,7 @@ from samtranslator.translator.translator import Translator
 from boto3.session import Session
 
 from samcli.lib.utils.packagetype import ZIP, IMAGE
-from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION
+from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION, AWS_SERVERLESS_API, AWS_SERVERLESS_HTTPAPI
 from samcli.yamlhelper import yaml_dump, parse_yaml_file
 from .exceptions import InvalidSamDocumentException
 
@@ -154,7 +154,7 @@ class SamTemplateValidator:
         #       Location: openapi.yaml
         resources = self.sam_template.get("Resources", {})
         for _, resource in resources.items():
-            if not resource.get("Type", "") in "AWS::Serverless::Api,AWS::Serverless::HttpApi":
+            if not resource.get("Type", "") in [AWS_SERVERLESS_API, AWS_SERVERLESS_HTTPAPI]:
                 continue
 
             transform_dict = resource.get("Properties", {}).get("DefinitionBody", {}).get("Fn::Transform", {})
