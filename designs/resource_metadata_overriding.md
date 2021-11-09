@@ -10,7 +10,7 @@ customers using AWS Cloud Development Kit (CDK).
 What is the problem?
 --------------------
 
-Customers have different ways to define their AWS Resources. As of writing (Jan. 2109),
+Customers have different ways to define their AWS Resources. As of writing (Jan. 2019),
 SAM CLI supports the use case of defining an application in CloudFormation/SAM (a super
 set of CloudFormation). These CloudFormation/SAM applications are written in `json` or `yaml`
 and deployed through AWS CloudFormation. Frameworks like CDK offer customers an alternative
