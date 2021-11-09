@@ -841,6 +841,81 @@ class TestCloudFormationProviderWithApiGatewayV2(TestCase):
         self.assertEqual(expected_cors, provider.api.cors)
 
 
+class TestApiGatewayMethodCorsSettings(TestCase):
+    def test_cors_set_in_method(self):
+        expected_cors = Cors(
+            allow_origin="*",
+            allow_methods="DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
+            allow_headers="Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent",
+            max_age=None,
+            allow_credentials=None,
+        )
+
+        template = {
+            "Resources": {
+                "ApiOPTIONS": {
+                    "Type": "AWS::ApiGateway::Method",
+                    "Properties": {
+                        "HttpMethod": "OPTIONS",
+                        "Integration": {
+                            "IntegrationResponses": [
+                                {
+                                    "ResponseParameters": {
+                                        "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'",
+                                        "method.response.header.Access-Control-Allow-Origin": "'*'",
+                                        "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET,PUT,POST,DELETE,PATCH,HEAD'",
+                                    },
+                                    "StatusCode": "204",
+                                }
+                            ]
+                        },
+                    },
+                }
+            }
+        }
+        provider = ApiProvider(make_mock_stacks_from_template(template))
+        self.assertEqual(expected_cors, provider.api.cors)
+
+    def test_cors_not_set_for_other_integration_responses(self):
+        template = {
+            "Resources": {
+                "APIMethod": {
+                    "Type": "AWS::ApiGateway::Method",
+                    "Properties": {
+                        "HttpMethod": "GET",
+                        "Integration": {
+                            "IntegrationResponses": [
+                                {
+                                    "ResponseParameters": {
+                                        "method.response.header.Header": "Some-header",
+                                    },
+                                    "StatusCode": "200",
+                                }
+                            ]
+                        },
+                    },
+                }
+            }
+        }
+        provider = ApiProvider(make_mock_stacks_from_template(template))
+        self.assertIsNone(provider.api.cors)
+
+    def test_empty_integration_array(self):
+        template = {
+            "Resources": {
+                "APIMethod": {
+                    "Type": "AWS::ApiGateway::Method",
+                    "Properties": {
+                        "HttpMethod": "GET",
+                        "Integration": {"IntegrationResponses": None},
+                    },
+                }
+            }
+        }
+        provider = ApiProvider(make_mock_stacks_from_template(template))
+        self.assertIsNone(provider.api.cors)
+
+
 class TestCloudFormationProviderWithApiGatewayV2Route(TestCase):
     def test_basic_http_api_routes(self):
         template = {

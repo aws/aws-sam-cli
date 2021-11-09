@@ -193,6 +193,18 @@ class CfnApiProvider(CfnBaseApiProvider):
         integration = properties.get("Integration", {})
         content_type = integration.get("ContentType")
 
+        # CORS can be set through AWS::ApiGateway::Method IntegrationResponses.ResponseParameters
+        # This is how CDK sets defaultCorsPreflightOptions
+        cors = None
+        integration_responses = integration.get("IntegrationResponses")
+        if integration_responses:
+            for responses in integration_responses:
+                response_parameters = responses.get("ResponseParameters")
+                if response_parameters:
+                    cors = self.extract_cors_from_method(response_parameters)
+        if cors:
+            collector.cors = cors
+
         content_handling = integration.get("ContentHandling")
 
         if content_handling == CfnApiProvider.METHOD_BINARY_TYPE and content_type:
