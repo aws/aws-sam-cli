@@ -1,8 +1,6 @@
 """SyncFlow for RestApi"""
 import logging
-from typing import Dict, List, TYPE_CHECKING, cast
-
-from boto3.session import Session
+from typing import Dict, List, TYPE_CHECKING
 
 from samcli.lib.sync.flows.generic_api_sync_flow import GenericApiSyncFlow
 from samcli.lib.providers.provider import ResourceIdentifier, Stack
@@ -53,7 +51,7 @@ class RestApiSyncFlow(GenericApiSyncFlow):
 
     def set_up(self) -> None:
         super().set_up()
-        self._api_client = cast(Session, self._session).client("apigateway")
+        self._api_client = self._boto_client("apigateway")
 
     def sync(self) -> None:
         api_physical_id = self.get_physical_id(self._api_identifier)
