@@ -36,6 +36,9 @@ echo "Copying Source"
 cp -r ../[!.]* ./src
 cp -r ./src/* ./output/aws-sam-cli-src
 
+echo "Removing CI Scripts"
+rm -vf ./output/aws-sam-cli-src/appveyor*.yml
+
 echo "Installing Python"
 curl "https://www.python.org/ftp/python/${python_version}/Python-${python_version}.tgz" --output python.tgz
 tar -xzf python.tgz
