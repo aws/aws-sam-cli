@@ -23,7 +23,7 @@ fi
 
 set -eu
 
-yum install -y zlib-devel openssl-devel
+yum install -y zlib-devel openssl-devel libffi-devel
 
 echo "Making Folders"
 mkdir -p .build/src
@@ -36,6 +36,9 @@ echo "Copying Source"
 cp -r ../[!.]* ./src
 cp -r ./src/* ./output/aws-sam-cli-src
 
+echo "Removing CI Scripts"
+rm -vf ./output/aws-sam-cli-src/appveyor*.yml
+
 echo "Installing Python"
 curl "https://www.python.org/ftp/python/${python_version}/Python-${python_version}.tgz" --output python.tgz
 tar -xzf python.tgz
@@ -43,6 +46,7 @@ cd Python-$python_version
 ./configure --enable-shared
 make -j8
 make install
+ldconfig
 cd ..
 
 echo "Installing Python Libraries"

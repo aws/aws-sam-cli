@@ -114,7 +114,7 @@ def cli(
         region=ctx.region,
         profile=ctx.profile,
         interactive=interactive,
-        stage_name=stage,
+        stage_configuration_name=stage,
         pipeline_user_arn=pipeline_user,
         pipeline_execution_role_arn=pipeline_execution_role,
         cloudformation_execution_role_arn=cloudformation_execution_role,
@@ -131,7 +131,7 @@ def do_cli(
     region: Optional[str],
     profile: Optional[str],
     interactive: bool,
-    stage_name: Optional[str],
+    stage_configuration_name: Optional[str],
     pipeline_user_arn: Optional[str],
     pipeline_execution_role_arn: Optional[str],
     cloudformation_execution_role_arn: Optional[str],
@@ -167,7 +167,7 @@ def do_cli(
 
         guided_context = GuidedContext(
             profile=profile,
-            stage_name=stage_name,
+            stage_configuration_name=stage_configuration_name,
             pipeline_user_arn=pipeline_user_arn,
             pipeline_execution_role_arn=pipeline_execution_role_arn,
             cloudformation_execution_role_arn=cloudformation_execution_role_arn,
@@ -177,7 +177,7 @@ def do_cli(
             region=region,
         )
         guided_context.run()
-        stage_name = guided_context.stage_name
+        stage_configuration_name = guided_context.stage_configuration_name
         pipeline_user_arn = guided_context.pipeline_user_arn
         pipeline_execution_role_arn = guided_context.pipeline_execution_role_arn
         cloudformation_execution_role_arn = guided_context.cloudformation_execution_role_arn
@@ -187,11 +187,11 @@ def do_cli(
         region = guided_context.region
         profile = guided_context.profile
 
-    if not stage_name:
+    if not stage_configuration_name:
         raise click.UsageError("Missing required parameter '--stage'")
 
     environment: Stage = Stage(
-        name=stage_name,
+        name=stage_configuration_name,
         aws_profile=profile,
         aws_region=region,
         pipeline_user_arn=pipeline_user_arn,

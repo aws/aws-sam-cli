@@ -5,7 +5,12 @@ Base class for SAM Template providers
 import logging
 
 from typing import Any, Dict, Optional, cast, Iterable, Union
-from samcli.commands._utils.resources import AWS_SERVERLESS_APPLICATION, AWS_CLOUDFORMATION_STACK
+from samcli.lib.utils.resources import (
+    AWS_LAMBDA_FUNCTION,
+    AWS_SERVERLESS_FUNCTION,
+    AWS_LAMBDA_LAYERVERSION,
+    AWS_SERVERLESS_LAYERVERSION,
+)
 from samcli.lib.iac.plugins_interfaces import Stack
 from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
@@ -22,24 +27,18 @@ class SamBaseProvider:
     Base class for SAM Template providers
     """
 
-    SERVERLESS_FUNCTION = "AWS::Serverless::Function"
-    LAMBDA_FUNCTION = "AWS::Lambda::Function"
-    SERVERLESS_LAYER = "AWS::Serverless::LayerVersion"
-    LAMBDA_LAYER = "AWS::Lambda::LayerVersion"
-    SERVERLESS_APPLICATION = AWS_SERVERLESS_APPLICATION
-    CLOUDFORMATION_STACK = AWS_CLOUDFORMATION_STACK
     DEFAULT_CODEURI = "."
 
     CODE_PROPERTY_KEYS = {
-        LAMBDA_FUNCTION: "Code",
-        SERVERLESS_FUNCTION: "CodeUri",
-        LAMBDA_LAYER: "Content",
-        SERVERLESS_LAYER: "ContentUri",
+        AWS_LAMBDA_FUNCTION: "Code",
+        AWS_SERVERLESS_FUNCTION: "CodeUri",
+        AWS_LAMBDA_LAYERVERSION: "Content",
+        AWS_SERVERLESS_LAYERVERSION: "ContentUri",
     }
 
     IMAGE_PROPERTY_KEYS = {
-        LAMBDA_FUNCTION: "Code",
-        SERVERLESS_FUNCTION: "ImageUri",
+        AWS_LAMBDA_FUNCTION: "Code",
+        AWS_SERVERLESS_FUNCTION: "ImageUri",
     }
 
     def get(self, name: str) -> Optional[Any]:

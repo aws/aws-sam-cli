@@ -3,42 +3,47 @@ Hash calculation utilities for files and directories.
 """
 import os
 import hashlib
-from typing import List, Optional
+from typing import Any, cast, List, Optional
 
 BLOCK_SIZE = 4096
 
 
-def file_checksum(file_name: str) -> str:
+def file_checksum(file_name: str, hash_generator: Any = None) -> str:
     """
 
     Parameters
     ----------
     file_name: file name of the file for which md5 checksum is required.
 
+    hash_generator: hashlib _Hash object for generating hashes. Defaults to hashlib.md5.
+
     Returns
     -------
-    md5 checksum of the given file.
+    checksum of the given file.
 
     """
+    # Default value is set here because default values are static mutable in Python
+    if not hash_generator:
+        hash_generator = hashlib.md5()
     with open(file_name, "rb") as file_handle:
-        md5 = hashlib.md5()
-
         # Save current cursor position and reset cursor to start of file
         curpos = file_handle.tell()
         file_handle.seek(0)
 
         buf = file_handle.read(BLOCK_SIZE)
         while buf:
-            md5.update(buf)
+            hash_generator.update(buf)
             buf = file_handle.read(BLOCK_SIZE)
 
         # Restore file cursor's position
         file_handle.seek(curpos)
 
-        return md5.hexdigest()
+        return cast(str, hash_generator.hexdigest())
 
 
-def dir_checksum(directory: str, followlinks: bool = True, ignore_list: Optional[List[str]] = None) -> str:
+def dir_checksum(
+    directory: str, followlinks: bool = True, ignore_list: Optional[List[str]] = None, hash_generator: Any = None
+) -> str:
     """
 
     Parameters
@@ -46,14 +51,16 @@ def dir_checksum(directory: str, followlinks: bool = True, ignore_list: Optional
     directory : A directory with an absolute path
     followlinks: Follow symbolic links through the given directory
     ignore_list: The list of file/directory names to ignore in checksum
+    hash_generator: The hashing method (hashlib _Hash object) that generates checksum. Defaults to hashlib.md5.
 
     Returns
     -------
-    md5 checksum of the directory.
+    checksum hash of the directory.
 
     """
     ignore_set = set(ignore_list or [])
-    md5_dir = hashlib.md5()
+    if not hash_generator:
+        hash_generator = hashlib.md5()
     files = list()
     # Walk through given directory and find all directories and files.
     for dirpath, dirnames, filenames in os.walk(directory, followlinks=followlinks):
@@ -70,11 +77,11 @@ def dir_checksum(directory: str, followlinks: bool = True, ignore_list: Optional
 
     files.sort()
     for file in files:
-        md5_dir.update(os.path.relpath(file, directory).encode("utf-8"))
+        hash_generator.update(os.path.relpath(file, directory).encode("utf-8"))
         filepath_checksum = file_checksum(file)
-        md5_dir.update(filepath_checksum.encode("utf-8"))
+        hash_generator.update(filepath_checksum.encode("utf-8"))
 
-    return md5_dir.hexdigest()
+    return cast(str, hash_generator.hexdigest())
 
 
 def str_checksum(content: str) -> str:

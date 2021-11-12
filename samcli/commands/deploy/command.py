@@ -7,18 +7,27 @@ import click
 
 from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
-from samcli.cli.types import ImageRepositoryType, ImageRepositoriesType
 from samcli.commands._utils.options import (
-    capabilities_override_option,
+    capabilities_option,
     guided_deploy_stack_name,
-    metadata_override_option,
-    notification_arns_override_option,
+    metadata_option,
+    notification_arns_option,
     parameter_override_option,
     no_progressbar_option,
-    tags_override_option,
+    tags_option,
     template_click_option,
     signing_profiles_option,
-    image_repositories_callback,
+    stack_name_option,
+    s3_bucket_option,
+    image_repository_option,
+    image_repositories_option,
+    s3_prefix_option,
+    kms_key_id_option,
+    use_json_option,
+    force_upload_option,
+    resolve_s3_option,
+    role_arn_option,
+    resolve_image_repos_option,
 )
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
 from samcli.lib.telemetry.metric import track_command
@@ -60,56 +69,6 @@ LOG = logging.getLogger(__name__)
 )
 @template_click_option(include_build=True)
 @click.option(
-    "--stack-name",
-    required=False,
-    callback=guided_deploy_stack_name,
-    help="The name of the AWS CloudFormation stack you're deploying to. "
-    "If you specify an existing stack, the command updates the stack. "
-    "If you specify a new stack, the command creates it.",
-)
-@click.option(
-    "--s3-bucket",
-    required=False,
-    help="The name of the S3 bucket where this command uploads your "
-    "CloudFormation template. This is required the deployments of "
-    "templates sized greater than 51,200 bytes",
-)
-@click.option(
-    "--image-repository",
-    type=ImageRepositoryType(),
-    required=False,
-    help="ECR repo uri where this command uploads the image artifacts that are referenced in your template.",
-)
-@click.option(
-    "--image-repositories",
-    multiple=True,
-    callback=image_repositories_callback,
-    type=ImageRepositoriesType(),
-    required=False,
-    help="Specify mapping of Function Logical ID to ECR Repo uri, of the form Function_Logical_ID=ECR_Repo_Uri."
-    "This option can be specified multiple times.",
-)
-@click.option(
-    "--force-upload",
-    required=False,
-    is_flag=True,
-    help="Indicates whether to override existing files in the S3 bucket. "
-    "Specify this flag to upload artifacts even if they "
-    "match existing artifacts in the S3 bucket.",
-)
-@click.option(
-    "--s3-prefix",
-    required=False,
-    help="A prefix name that the command adds to the "
-    "artifacts' name when it uploads them to the S3 bucket. "
-    "The prefix name is a path name (folder name) for the S3 bucket.",
-)
-@click.option(
-    "--kms-key-id",
-    required=False,
-    help="The ID of an AWS KMS key that the command uses to encrypt artifacts that are at rest in the S3 bucket.",
-)
-@click.option(
     "--no-execute-changeset",
     required=False,
     is_flag=True,
@@ -119,13 +78,6 @@ LOG = logging.getLogger(__name__)
     "change set and then exits without executing the change set. if "
     "the changeset looks satisfactory, the stack changes can be made by "
     "running the same command without specifying `--no-execute-changeset`",
-)
-@click.option(
-    "--role-arn",
-    required=False,
-    help="The Amazon Resource Name (ARN) of an  AWS  Identity "
-    "and  Access  Management (IAM) role that AWS CloudFormation assumes when "
-    "executing the change set.",
 )
 @click.option(
     "--fail-on-empty-changeset/--no-fail-on-empty-changeset",
@@ -144,43 +96,30 @@ LOG = logging.getLogger(__name__)
     help="Prompt to confirm if the computed changeset is to be deployed by SAM CLI.",
 )
 @click.option(
-    "--use-json",
-    required=False,
-    is_flag=True,
-    help="Indicates whether to use JSON as the format for "
-    "the output AWS CloudFormation template. YAML is used by default.",
-)
-@click.option(
-    "--resolve-s3",
-    required=False,
-    is_flag=True,
-    help="Automatically resolve s3 bucket for non-guided deployments. "
-    "Enabling this option will also create a managed default s3 bucket for you. "
-    "If you do not provide a --s3-bucket value, the managed bucket will be used. "
-    "Do not use --s3-guided parameter with this option.",
-)
-@click.option(
-    "--resolve-image-repos",
-    required=False,
-    is_flag=True,
-    help="Automatically create and delete ECR repositories for image-based functions in non-guided deployments. "
-    "A companion stack containing ECR repos for each function will be deployed along with the template stack. "
-    "Automatically created image repositories will be deleted if the corresponding functions are removed.",
-)
-@click.option(
     "--disable-rollback/--no-disable-rollback",
     default=False,
     required=False,
     is_flag=True,
     help="Preserves the state of previously provisioned resources when an operation fails.",
 )
-@metadata_override_option
-@notification_arns_override_option
-@tags_override_option
+@stack_name_option(callback=guided_deploy_stack_name)  # pylint: disable=E1120
+@s3_bucket_option(guided=True)  # pylint: disable=E1120
+@image_repository_option
+@image_repositories_option
+@force_upload_option
+@s3_prefix_option
+@kms_key_id_option
+@role_arn_option
+@use_json_option
+@resolve_s3_option(guided=True)  # pylint: disable=E1120
+@resolve_image_repos_option
+@metadata_option
+@notification_arns_option
+@tags_option
 @parameter_override_option
 @signing_profiles_option
 @no_progressbar_option
-@capabilities_override_option
+@capabilities_option
 @aws_creds_options
 @common_options
 @image_repository_validation
@@ -372,6 +311,7 @@ def do_cli(
             profile=profile,
             confirm_changeset=guided_context.confirm_changeset if guided else confirm_changeset,
             signing_profiles=guided_context.signing_profiles if guided else signing_profiles,
+            use_changeset=True,
             disable_rollback=guided_context.disable_rollback if guided else disable_rollback,
         ) as deploy_context:
             deploy_context.run()

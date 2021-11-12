@@ -107,27 +107,18 @@ class TestVersionChecker(TestCase):
             ]
         )
 
-    @patch("samcli.cli.global_config.GlobalConfig._set_value")
-    @patch("samcli.cli.global_config.GlobalConfig._get_value")
-    def test_update_last_check_time(self, mock_gc_get_value, mock_gc_set_value):
-        mock_gc_get_value.return_value = None
-        global_config = GlobalConfig()
-        self.assertIsNone(global_config.last_version_check)
+    @patch("samcli.lib.utils.version_checker.GlobalConfig")
+    @patch("samcli.lib.utils.version_checker.datetime")
+    def test_update_last_check_time(self, mock_datetime, mock_gc):
+        mock_datetime.utcnow.return_value.timestamp.return_value = 12345
+        update_last_check_time()
+        self.assertEqual(mock_gc.return_value.last_version_check, 12345)
 
-        update_last_check_time(global_config)
-        self.assertIsNotNone(global_config.last_version_check)
-
-        mock_gc_set_value.assert_has_calls([call("lastVersionCheck", ANY)])
-
-    @patch("samcli.cli.global_config.GlobalConfig._set_value")
-    @patch("samcli.cli.global_config.GlobalConfig._get_value")
+    @patch("samcli.cli.global_config.GlobalConfig.set_value")
+    @patch("samcli.cli.global_config.GlobalConfig.get_value")
     def test_update_last_check_time_should_return_when_exception_is_raised(self, mock_gc_get_value, mock_gc_set_value):
         mock_gc_set_value.side_effect = Exception()
-        global_config = GlobalConfig()
-        update_last_check_time(global_config)
-
-    def test_update_last_check_time_should_return_when_global_config_is_none(self):
-        update_last_check_time(None)
+        update_last_check_time()
 
     def test_last_check_time_none_should_return_true(self):
         self.assertTrue(is_version_check_overdue(None))
