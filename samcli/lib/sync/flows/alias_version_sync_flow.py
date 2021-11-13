@@ -1,8 +1,6 @@
 """SyncFlow for Lambda Function Alias and Version"""
 import logging
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, cast
-
-from boto3.session import Session
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from samcli.lib.providers.provider import Stack
 from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall
@@ -61,7 +59,7 @@ class AliasVersionSyncFlow(SyncFlow):
 
     def set_up(self) -> None:
         super().set_up()
-        self._lambda_client = cast(Session, self._session).client("lambda")
+        self._lambda_client = self._boto_client("lambda")
 
     def gather_resources(self) -> None:
         pass

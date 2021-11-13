@@ -1,6 +1,6 @@
 from samcli.lib.providers.provider import ResourceIdentifier
 from unittest import TestCase
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, call, patch, Mock
 
 from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall
 from samcli.lib.utils.lock_distributor import LockChain
@@ -57,6 +57,23 @@ class TestSyncFlow(TestCase):
         sync_flow.set_up()
         session_mock.assert_called_once()
         self.assertIsNotNone(sync_flow._session)
+
+    @patch("samcli.lib.sync.sync_flow.get_boto_client_provider_from_session_with_config")
+    @patch.multiple(SyncFlow, __abstractmethods__=set())
+    def test_boto_client(self, patched_get_client):
+        client_name = "lambda"
+        given_client_generator = Mock()
+        patched_get_client.return_value = given_client_generator
+        given_client = Mock()
+        given_client_generator.return_value = given_client
+
+        sync_flow = self.create_sync_flow()
+        with patch.object(sync_flow, "_session") as patched_session:
+            client = sync_flow._boto_client(client_name)
+
+            patched_get_client.assert_called_with(patched_session)
+            given_client_generator.assert_called_with(client_name)
+            self.assertEqual(client, given_client)
 
     @patch("samcli.lib.sync.sync_flow.Session")
     @patch.multiple(SyncFlow, __abstractmethods__=set())
