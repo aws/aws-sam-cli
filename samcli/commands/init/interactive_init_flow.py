@@ -164,6 +164,7 @@ def _generate_from_app_template(
     Commands you can use next
     =========================
     [*] Create pipeline: cd {name} && sam pipeline init --bootstrap
+    [*] Test Function In The Cloud: sam sync --stack-name {{stack-name}} --watch
     """
     click.secho(next_commands_msg, fg="yellow")
     do_generate(location, package_type, runtime, dependency_manager, output_dir, name, no_input, extra_context)

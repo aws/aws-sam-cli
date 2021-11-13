@@ -252,6 +252,7 @@ Built Template   : {template}
 Commands you can use next
 =========================
 [*] Invoke Function: {invokecmd}
+[*] Test Function In The Cloud: sam sync --stack-name {{stack-name}} --watch
 [*] Deploy: {deploycmd}
         """.format(
             invokecmd=invoke_cmd, deploycmd=deploy_cmd, artifacts_dir=artifacts_dir, template=output_template_path
