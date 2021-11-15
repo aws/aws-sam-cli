@@ -9,6 +9,7 @@ from boto3.session import Session
 from samcli.lib.providers.provider import get_resource_by_id
 
 from samcli.lib.providers.provider import ResourceIdentifier, Stack
+from samcli.lib.utils.boto_utils import get_boto_client_provider_from_session_with_config
 from samcli.lib.utils.lock_distributor import LockDistributor, LockChain
 from samcli.lib.sync.exceptions import MissingLockException, MissingPhysicalResourceError
 
@@ -72,6 +73,9 @@ class SyncFlow(ABC):
     def set_up(self) -> None:
         """Clients and other expensives setups should be handled here instead of constructor"""
         self._session = Session(profile_name=self._deploy_context.profile, region_name=self._deploy_context.region)
+
+    def _boto_client(self, client_name: str):
+        return get_boto_client_provider_from_session_with_config(cast(Session, self._session))(client_name)
 
     @abstractmethod
     def gather_resources(self) -> None:

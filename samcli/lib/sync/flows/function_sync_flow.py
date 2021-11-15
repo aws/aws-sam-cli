@@ -2,8 +2,6 @@
 import logging
 from typing import Any, Dict, List, TYPE_CHECKING, cast
 
-from boto3.session import Session
-
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.sync.flows.alias_version_sync_flow import AliasVersionSyncFlow
 from samcli.lib.providers.provider import Function, Stack
@@ -64,7 +62,7 @@ class FunctionSyncFlow(SyncFlow):
 
     def set_up(self) -> None:
         super().set_up()
-        self._lambda_client = cast(Session, self._session).client("lambda")
+        self._lambda_client = self._boto_client("lambda")
         self._lambda_waiter = self._lambda_client.get_waiter("function_updated")
 
     def gather_dependencies(self) -> List[SyncFlow]:
