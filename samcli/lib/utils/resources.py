@@ -1,26 +1,49 @@
 """
-Enums for Resources and thier Location Properties, along with utility functions
+Enums for Resources and their Location Properties, along with utility functions
 """
 
 from collections import defaultdict
 
-AWS_SERVERLESSREPO_APPLICATION = "AWS::ServerlessRepo::Application"
+# Lambda
 AWS_SERVERLESS_FUNCTION = "AWS::Serverless::Function"
+AWS_SERVERLESS_LAYERVERSION = "AWS::Serverless::LayerVersion"
+
+AWS_LAMBDA_FUNCTION = "AWS::Lambda::Function"
+AWS_LAMBDA_LAYERVERSION = "AWS::Lambda::LayerVersion"
+
+# APIGW
 AWS_SERVERLESS_API = "AWS::Serverless::Api"
 AWS_SERVERLESS_HTTPAPI = "AWS::Serverless::HttpApi"
+
+AWS_APIGATEWAY_RESTAPI = "AWS::ApiGateway::RestApi"
+AWS_APIGATEWAY_STAGE = "AWS::ApiGateway::Stage"
+AWS_APIGATEWAY_RESOURCE = "AWS::ApiGateway::Resource"
+AWS_APIGATEWAY_METHOD = "AWS::ApiGateway::Method"
+
+AWS_APIGATEWAY_V2_API = "AWS::ApiGatewayV2::Api"
+AWS_APIGATEWAY_V2_INTEGRATION = "AWS::ApiGatewayV2::Integration"
+AWS_APIGATEWAY_V2_ROUTE = "AWS::ApiGatewayV2::Route"
+AWS_APIGATEWAY_V2_STAGE = "AWS::ApiGatewayV2::Stage"
+
+# SFN
+AWS_SERVERLESS_STATEMACHINE = "AWS::Serverless::StateMachine"
+
+AWS_STEPFUNCTIONS_STATEMACHINE = "AWS::StepFunctions::StateMachine"
+
+# Others
+AWS_SERVERLESS_APPLICATION = "AWS::Serverless::Application"
+
+AWS_SERVERLESSREPO_APPLICATION = "AWS::ServerlessRepo::Application"
 AWS_APPSYNC_GRAPHQLSCHEMA = "AWS::AppSync::GraphQLSchema"
 AWS_APPSYNC_RESOLVER = "AWS::AppSync::Resolver"
 AWS_APPSYNC_FUNCTIONCONFIGURATION = "AWS::AppSync::FunctionConfiguration"
-AWS_LAMBDA_FUNCTION = "AWS::Lambda::Function"
-AWS_APIGATEWAY_RESTAPI = "AWS::ApiGateway::RestApi"
 AWS_ELASTICBEANSTALK_APPLICATIONVERSION = "AWS::ElasticBeanstalk::ApplicationVersion"
 AWS_CLOUDFORMATION_MODULEVERSION = "AWS::CloudFormation::ModuleVersion"
 AWS_CLOUDFORMATION_RESOURCEVERSION = "AWS::CloudFormation::ResourceVersion"
 AWS_CLOUDFORMATION_STACK = "AWS::CloudFormation::Stack"
-AWS_SERVERLESS_APPLICATION = "AWS::Serverless::Application"
-AWS_LAMBDA_LAYERVERSION = "AWS::Lambda::LayerVersion"
-AWS_SERVERLESS_LAYERVERSION = "AWS::Serverless::LayerVersion"
 AWS_GLUE_JOB = "AWS::Glue::Job"
+AWS_SQS_QUEUE = "AWS::SQS::Queue"
+AWS_KINESIS_STREAM = "AWS::Kinesis::Stream"
 AWS_SERVERLESS_STATEMACHINE = "AWS::Serverless::StateMachine"
 AWS_STEPFUNCTIONS_STATEMACHINE = "AWS::StepFunctions::StateMachine"
 AWS_ECR_REPOSITORY = "AWS::ECR::Repository"

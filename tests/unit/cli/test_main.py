@@ -12,7 +12,7 @@ class TestCliBase(TestCase):
         :return:
         """
         mock_cfg = Mock()
-        with patch("samcli.cli.main.global_cfg", mock_cfg):
+        with patch("samcli.cli.main.GlobalConfig", mock_cfg):
             runner = CliRunner()
             result = runner.invoke(cli, [])
             self.assertEqual(result.exit_code, 0)
@@ -21,14 +21,14 @@ class TestCliBase(TestCase):
 
     def test_cli_some_command(self):
         mock_cfg = Mock()
-        with patch("samcli.cli.main.global_cfg", mock_cfg):
+        with patch("samcli.cli.main.GlobalConfig", mock_cfg):
             runner = CliRunner()
             result = runner.invoke(cli, ["local", "generate-event", "s3"])
             self.assertEqual(result.exit_code, 0)
 
     def test_cli_with_debug(self):
         mock_cfg = Mock()
-        with patch("samcli.cli.main.global_cfg", mock_cfg):
+        with patch("samcli.cli.main.GlobalConfig", mock_cfg):
             runner = CliRunner()
             result = runner.invoke(cli, ["local", "generate-event", "s3", "put", "--debug"])
             self.assertEqual(result.exit_code, 0)
