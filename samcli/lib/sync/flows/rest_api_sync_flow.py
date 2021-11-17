@@ -127,29 +127,36 @@ class RestApiSyncFlow(GenericApiSyncFlow):
 
         return stages
 
-    def _update_stages(self, stages: Set[str], dep_id: Optional[str]) -> Set[str]:
+    def _update_stages(self, stages: Set[str], deployment_id: Optional[str]) -> Set[str]:
         """Update all the relevant stages"""
         prev_dep_ids = set()
         for stage in stages:
+            # Collects previous deployment IDs to clean up
             response_get = cast(Dict, self._api_client.get_stage(restApiId=self._api_physical_id, stageName=stage))
-            prev_dep_ids.add(cast(str, response_get.get("deploymentId")))
+            prev_dep_id = response_get.get("deploymentId")
+            if prev_dep_id:
+                prev_dep_ids.add(cast(str, prev_dep_id))
+
+            # Updates the stage with newest deployment
             LOG.debug("%sTrying to update the stage %s through client", self.log_prefix, stage)
             response_upd = cast(
                 Dict,
                 self._api_client.update_stage(
                     restApiId=self._api_physical_id,
                     stageName=stage,
-                    patchOperations=[{"op": "replace", "path": "/deploymentId", "value": dep_id}],
+                    patchOperations=[{"op": "replace", "path": "/deploymentId", "value": deployment_id}],
                 ),
             )
             LOG.debug("%sUpdate Stage Result: %s", self.log_prefix, response_upd)
+
+            # Flushes the cache so that the changes are calleable
             self._api_client.flush_stage_cache(restApiId=self._api_physical_id, stageName=stage)
             self._api_client.flush_stage_authorizers_cache(restApiId=self._api_physical_id, stageName=stage)
         return prev_dep_ids
 
-    def _delete_deployments(self, prev_dep_ids: Set[str]) -> None:
+    def _delete_deployments(self, prev_deployment_ids: Set[str]) -> None:
         """Delete the previous deployment"""
-        for prev_dep_id in prev_dep_ids:
+        for prev_dep_id in prev_deployment_ids:
             LOG.debug("%sTrying to delete the previous deployment %s through client", self.log_prefix, prev_dep_id)
             try:
                 response_del = cast(
@@ -160,7 +167,7 @@ class RestApiSyncFlow(GenericApiSyncFlow):
                 LOG.warning(
                     Colored().yellow(
                         "Delete deployment for %s failed, it may be due to the it being used by another stage. \
-    please check the console if you want to delete it"
+please check the console if you want to delete it"
                     ),
                     prev_dep_id,
                 )
