@@ -84,6 +84,8 @@ class LambdaContainer(Container):
             Optional. Host of locally emulated Lambda container
         container_host_interface
             Optional. Interface that Docker host binds ports to
+        function_name str
+            Optional. Logical ID of the function
         """
         if not Runtime.has_value(runtime) and not packagetype == IMAGE:
             raise ValueError("Unsupported Lambda runtime {}".format(runtime))

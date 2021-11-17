@@ -1,5 +1,5 @@
 from unittest import TestCase
-from samcli.commands._utils.value_parser import process_env_var, process_image_options
+from samcli.commands._utils.option_value_processor import process_env_var, process_image_options
 
 
 class TestEnvVarParsing(TestCase):
