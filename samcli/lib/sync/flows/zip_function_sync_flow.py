@@ -9,8 +9,6 @@ import uuid
 from contextlib import ExitStack
 from typing import Any, Dict, List, Optional, TYPE_CHECKING, cast
 
-from boto3.session import Session
-
 from samcli.lib.build.build_graph import BuildGraph
 from samcli.lib.providers.provider import Stack
 
@@ -71,7 +69,7 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
 
     def set_up(self) -> None:
         super().set_up()
-        self._s3_client = cast(Session, self._session).client("s3")
+        self._s3_client = self._boto_client("s3")
 
     def gather_resources(self) -> None:
         """Build function and ZIP it into a temp file in self._zip_file"""

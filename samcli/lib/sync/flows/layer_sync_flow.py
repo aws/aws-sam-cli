@@ -9,7 +9,6 @@ import uuid
 from abc import ABC, abstractmethod
 from typing import Any, TYPE_CHECKING, cast, Dict, List, Optional
 
-from boto3.session import Session
 from samcli.lib.build.app_builder import ApplicationBuilder
 from samcli.lib.package.utils import make_zip
 from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_by_id, Function
@@ -58,7 +57,7 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
 
     def set_up(self) -> None:
         super().set_up()
-        self._lambda_client = cast(Session, self._session).client("lambda")
+        self._lambda_client = self._boto_client("lambda")
 
     def compare_remote(self) -> bool:
         """
@@ -277,7 +276,7 @@ class FunctionLayerReferenceSync(SyncFlow):
 
     def set_up(self) -> None:
         super().set_up()
-        self._lambda_client = cast(Session, self._session).client("lambda")
+        self._lambda_client = self._boto_client("lambda")
 
     def sync(self) -> None:
         """

@@ -24,20 +24,18 @@ class TestLayerSyncFlow(TestCase):
             [],
         )
 
-    def test_setup(self):
+    @patch("samcli.lib.sync.sync_flow.get_boto_client_provider_from_session_with_config")
+    def test_setup(self, client_provider_mock):
         with patch.object(self.layer_sync_flow, "_session") as patched_session:
             with patch.object(SyncFlow, "set_up") as patched_super_setup:
                 self.layer_sync_flow.set_up()
 
                 patched_super_setup.assert_called_once()
-                patched_session.assert_has_calls(
-                    [
-                        call.client("lambda"),
-                    ]
-                )
+                client_provider_mock.return_value.assert_called_with("lambda")
 
+    @patch("samcli.lib.sync.sync_flow.get_boto_client_provider_from_session_with_config")
     @patch("samcli.lib.sync.flows.layer_sync_flow.get_resource_by_id")
-    def test_setup_with_serverless_layer(self, get_resource_by_id_mock):
+    def test_setup_with_serverless_layer(self, get_resource_by_id_mock, client_provider_mock):
         given_layer_name_with_hashes = f"{self.layer_identifier}abcdefghij"
         self.layer_sync_flow._physical_id_mapping = {given_layer_name_with_hashes: "layer_version_arn"}
         get_resource_by_id_mock.return_value = False
@@ -46,11 +44,7 @@ class TestLayerSyncFlow(TestCase):
                 self.layer_sync_flow.set_up()
 
                 patched_super_setup.assert_called_once()
-                patched_session.assert_has_calls(
-                    [
-                        call.client("lambda"),
-                    ]
-                )
+                client_provider_mock.return_value.assert_called_with("lambda")
 
         self.assertEqual(self.layer_sync_flow._layer_arn, "layer_version_arn")
 
@@ -350,17 +344,14 @@ class TestFunctionLayerReferenceSync(TestCase):
             self.function_identifier, self.layer_name, self.new_layer_version, Mock(), Mock(), {}, []
         )
 
-    def test_setup(self):
+    @patch("samcli.lib.sync.sync_flow.get_boto_client_provider_from_session_with_config")
+    def test_setup(self, client_provider_mock):
         with patch.object(self.function_layer_sync, "_session") as patched_session:
             with patch.object(SyncFlow, "set_up") as patched_super_setup:
                 self.function_layer_sync.set_up()
 
                 patched_super_setup.assert_called_once()
-                patched_session.assert_has_calls(
-                    [
-                        call.client("lambda"),
-                    ]
-                )
+                client_provider_mock.return_value.assert_called_with("lambda")
 
     def test_sync(self):
         given_lambda_client = Mock()
