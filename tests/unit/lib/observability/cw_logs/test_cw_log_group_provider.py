@@ -70,3 +70,15 @@ class TestLogGroupProvider_for_lambda_function(TestCase):
         )
 
         self.assertIsNone(result)
+
+    def test_invalid_step_functions_configuration(self, patched_update_experimental_context):
+        given_client_provider = Mock()
+        given_client_provider(ANY).describe_state_machine.return_value = {
+            "loggingConfiguration": {"destinations": [{"cloudWatchLogsLogGroup": {"logGroupArn": "non-ARN-log-group"}}]}
+        }
+
+        result = LogGroupProvider.for_resource(
+            given_client_provider, "AWS::StepFunctions::StateMachine", "my_state_machine"
+        )
+
+        self.assertIsNone(result)
