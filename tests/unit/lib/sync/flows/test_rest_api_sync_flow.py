@@ -1,6 +1,5 @@
-from abc import abstractmethod, ABC
 from unittest import TestCase
-from unittest.mock import ANY, MagicMock, mock_open, patch
+from unittest.mock import MagicMock, mock_open, patch
 
 from samcli.lib.sync.flows.rest_api_sync_flow import RestApiSyncFlow
 from samcli.lib.providers.exceptions import MissingLocalDefinition
@@ -18,14 +17,43 @@ class TestRestApiSyncFlow(TestCase):
         return sync_flow
 
     @patch("samcli.lib.sync.sync_flow.get_boto_client_provider_from_session_with_config")
+    @patch("samcli.lib.sync.sync_flow.SyncFlow.get_physical_id")
     @patch("samcli.lib.sync.sync_flow.Session")
-    def test_set_up(self, session_mock, client_provider_mock):
+    def test_set_up(self, session_mock, physical_id_mock, client_provider_mock):
+        physical_id_mock.return_value = "PhysicalId"
         sync_flow = self.create_sync_flow()
         sync_flow.set_up()
         client_provider_mock.return_value.assert_any_call("apigateway")
+        self.assertEqual(sync_flow._api_physical_id, "PhysicalId")
 
     @patch("samcli.lib.sync.sync_flow.Session")
-    def test_sync_direct(self, session_mock):
+    @patch("samcli.lib.sync.flows.rest_api_sync_flow.RestApiSyncFlow._update_api")
+    @patch("samcli.lib.sync.flows.rest_api_sync_flow.RestApiSyncFlow._create_deployment")
+    @patch("samcli.lib.sync.flows.rest_api_sync_flow.RestApiSyncFlow._collect_stages")
+    @patch("samcli.lib.sync.flows.rest_api_sync_flow.RestApiSyncFlow._update_stages")
+    @patch("samcli.lib.sync.flows.rest_api_sync_flow.RestApiSyncFlow._delete_deployments")
+    def test_sync_direct(
+        self, delete_mock, update_stage_mock, collect_mock, create_mock, update_api_mock, session_mock
+    ):
+        sync_flow = self.create_sync_flow()
+
+        sync_flow.get_physical_id = MagicMock()
+        sync_flow.get_physical_id.return_value = "PhysicalApi1"
+
+        sync_flow._get_definition_file = MagicMock()
+        sync_flow._get_definition_file.return_value = "file.yaml"
+
+        sync_flow.set_up()
+        with patch("builtins.open", mock_open(read_data='{"key": "value"}'.encode("utf-8"))) as mock_file:
+            sync_flow.gather_resources()
+
+        sync_flow.sync()
+        sync_flow._update_api.assert_called_once()
+        sync_flow._create_deployment.assert_called_once()
+        sync_flow._collect_stages.assert_called_once()
+
+    @patch("samcli.lib.sync.sync_flow.Session")
+    def tetst_update_api(self, session_mock):
         sync_flow = self.create_sync_flow()
 
         sync_flow.get_physical_id = MagicMock()
@@ -40,8 +68,7 @@ class TestRestApiSyncFlow(TestCase):
 
         sync_flow._api_client.put_rest_api.return_value = {"Response": "success"}
 
-        sync_flow.sync()
-
+        sync_flow._update_api()
         sync_flow._api_client.put_rest_api.assert_called_once_with(
             restApiId="PhysicalApi1", mode="overwrite", body='{"key": "value"}'.encode("utf-8")
         )

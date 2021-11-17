@@ -57,6 +57,9 @@ class HttpApiSyncFlow(GenericApiSyncFlow):
         api_physical_id = self.get_physical_id(self._api_identifier)
         if self._definition_uri is None:
             raise MissingLocalDefinition(ResourceIdentifier(self._api_identifier), "DefinitionUri")
-        LOG.debug("%sTrying to import HttpAPI through client", self.log_prefix)
-        response = self._api_client.reimport_api(ApiId=api_physical_id, Body=self._swagger_body.decode())
-        LOG.debug("%sImport HttpApi Result: %s", self.log_prefix, response)
+        if self._swagger_body:
+            LOG.debug("%sTrying to import HttpAPI through client", self.log_prefix)
+            response = self._api_client.reimport_api(ApiId=api_physical_id, Body=self._swagger_body.decode())
+            LOG.debug("%sImport HttpApi Result: %s", self.log_prefix, response)
+        else:
+            LOG.debug("%sEmpty OpenApi definition, skipping the skip for %s", self.log_prefix, self._api_identifier)
