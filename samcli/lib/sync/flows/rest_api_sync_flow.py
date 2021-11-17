@@ -52,11 +52,11 @@ class RestApiSyncFlow(GenericApiSyncFlow):
             log_name="RestApi " + api_identifier,
             stacks=stacks,
         )
+        self._api_physical_id = self.get_physical_id(self._api_identifier)
 
     def set_up(self) -> None:
         super().set_up()
-        self._api_client = cast(Session, self._session).client("apigateway")
-        self._api_physical_id = self.get_physical_id(self._api_identifier)
+        self._api_client = self._boto_client("apigateway")
 
     def sync(self) -> None:
         if self._definition_uri is None:
@@ -94,7 +94,7 @@ class RestApiSyncFlow(GenericApiSyncFlow):
                     restApiId=self._api_physical_id, deploymentId=prev_dep_id
                 )
                 LOG.debug("%sDelete Deployment Result: %s", self.log_prefix, response_del)
-            except ClientError as e:
+            except ClientError:
                 LOG.warning(
                     Colored().yellow(
                         "Delete deployment for %s failed, it may be due to the it being used by another stage. \
