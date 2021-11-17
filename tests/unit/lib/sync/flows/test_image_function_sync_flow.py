@@ -17,12 +17,13 @@ class TestImageFunctionSyncFlow(TestCase):
         )
         return sync_flow
 
+    @patch("samcli.lib.sync.sync_flow.get_boto_client_provider_from_session_with_config")
     @patch("samcli.lib.sync.sync_flow.Session")
-    def test_set_up(self, session_mock):
+    def test_set_up(self, session_mock, client_provider_mock):
         sync_flow = self.create_function_sync_flow()
         sync_flow.set_up()
-        session_mock.return_value.client.assert_any_call("lambda")
-        session_mock.return_value.client.assert_any_call("ecr")
+        client_provider_mock.return_value.assert_any_call("lambda")
+        client_provider_mock.return_value.assert_any_call("ecr")
 
     @patch("samcli.lib.sync.flows.image_function_sync_flow.ApplicationBuilder")
     @patch("samcli.lib.sync.sync_flow.Session")

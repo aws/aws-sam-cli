@@ -22,12 +22,13 @@ class TestFunctionSyncFlow(TestCase):
         sync_flow._get_resource_api_calls = MagicMock()
         return sync_flow
 
+    @patch("samcli.lib.sync.sync_flow.get_boto_client_provider_from_session_with_config")
     @patch("samcli.lib.sync.sync_flow.Session")
     @patch.multiple(FunctionSyncFlow, __abstractmethods__=set())
-    def test_sets_up_clients(self, session_mock):
+    def test_sets_up_clients(self, session_mock, client_provider_mock):
         sync_flow = self.create_function_sync_flow()
         sync_flow.set_up()
-        session_mock.return_value.client.assert_called_once_with("lambda")
+        client_provider_mock.return_value.assert_called_once_with("lambda")
         sync_flow._lambda_client.get_waiter.assert_called_once_with("function_updated")
 
     @patch("samcli.lib.sync.flows.function_sync_flow.AliasVersionSyncFlow")
