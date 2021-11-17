@@ -69,7 +69,9 @@ class RestApiSyncFlow(GenericApiSyncFlow):
         self._delete_deployments(prev_dep_ids)
 
     def _update_api(self) -> None:
-        """Update the API content"""
+        """
+        Update the API content
+        """
         LOG.debug("%sTrying to update RestAPI through client", self.log_prefix)
         response_put = cast(
             Dict,
@@ -78,7 +80,13 @@ class RestApiSyncFlow(GenericApiSyncFlow):
         LOG.debug("%sPut RestApi Result: %s", self.log_prefix, response_put)
 
     def _create_deployment(self) -> Optional[str]:
-        """Create a deployment using the updated API and record the created deployment ID"""
+        """
+        Create a deployment using the updated API and record the created deployment ID
+        
+        Returns
+        ----------
+        Optional[str]: The newly created deployment ID
+        """
         LOG.debug("%sTrying to create a deployment through client", self.log_prefix)
         response_dep = cast(
             Dict, self._api_client.create_deployment(restApiId=self._api_physical_id, description="Created by SAM Sync")
@@ -88,7 +96,13 @@ class RestApiSyncFlow(GenericApiSyncFlow):
         return new_dep_id
 
     def _collect_stages(self) -> Set[str]:
-        """Collect all stages needed to be updated"""
+        """
+        Collect all stages needed to be updated
+        
+        Returns
+        ----------
+        Set[str]: The set of stage names to be updated
+        """
         # Get the stage name associated with the previous deployment and update stage
         # Stage needs to be flushed so that new changes will be visible immediately
         api_resource = get_resource_by_id(self._stacks, ResourceIdentifier(self._api_identifier))
@@ -128,7 +142,19 @@ class RestApiSyncFlow(GenericApiSyncFlow):
         return stages
 
     def _update_stages(self, stages: Set[str], deployment_id: Optional[str]) -> Set[str]:
-        """Update all the relevant stages"""
+        """
+        Update all the relevant stages
+
+        Parameters
+        ----------
+        stages: Set[str]
+            The set of stage names to be updated
+        deployment_id: Optional[str]
+            The newly created deployment ID to be used in the stages
+        Returns
+        ----------
+        Set[str]: A set of previous deployment IDs to be cleaned up
+        """
         prev_dep_ids = set()
         for stage in stages:
             # Collects previous deployment IDs to clean up
@@ -155,7 +181,14 @@ class RestApiSyncFlow(GenericApiSyncFlow):
         return prev_dep_ids
 
     def _delete_deployments(self, prev_deployment_ids: Set[str]) -> None:
-        """Delete the previous deployment"""
+        """
+        Delete the previous deployment
+        
+        Parameters
+        ----------
+        prev_deployment_ids: Set[str]
+            A set of previous deployment IDs to be cleaned up
+        """
         for prev_dep_id in prev_deployment_ids:
             LOG.debug("%sTrying to delete the previous deployment %s through client", self.log_prefix, prev_dep_id)
             try:
