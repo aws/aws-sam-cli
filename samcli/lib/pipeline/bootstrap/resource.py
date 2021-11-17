@@ -112,7 +112,7 @@ class S3Bucket(Resource):
 
 
 class ECRImageRepository(Resource):
-    """ Represents an AWS ECR image repository resource """
+    """Represents an AWS ECR image repository resource"""
 
     def __init__(self, arn: Optional[str], comment: Optional[str]) -> None:
         super().__init__(arn=arn, comment=comment)
