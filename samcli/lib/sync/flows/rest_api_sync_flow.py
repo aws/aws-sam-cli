@@ -113,13 +113,13 @@ class RestApiSyncFlow(GenericApiSyncFlow):
         if api_resource:
             if api_resource.get("Type") == "AWS::Serverless::Api":
                 # The customer defined stage name
-                stage_name = api_resource.get("Properties").get("StageName")   # type: ignore
+                stage_name = api_resource.get("Properties").get("StageName")  # type: ignore
                 stages.add(cast(str, stage_name))
 
                 # The Stage stage
                 if stage_name != "Stage":
                     response_sta = cast(Dict, self._api_client.get_stages(restApiId=self._api_physical_id))
-                    for item in response_sta.get("item"):   # type: ignore
+                    for item in response_sta.get("item"):  # type: ignore
                         if item.get("stageName") == "Stage":
                             stages.add("Stage")
 
@@ -128,8 +128,8 @@ class RestApiSyncFlow(GenericApiSyncFlow):
             # RestApiId is a required field in stage
             stage_dict = get_resource_by_id(self._stacks, stage_resource)
             if stage_dict:
-                rest_api_id = stage_dict.get("Properties").get("RestApiId")   # type: ignore
-                dep_id = stage_dict.get("Properties").get("DeploymentId")   # type: ignore
+                rest_api_id = stage_dict.get("Properties").get("RestApiId")  # type: ignore
+                dep_id = stage_dict.get("Properties").get("DeploymentId")  # type: ignore
                 # If the stage doesn't have a deployment associated then no need to update
                 if dep_id is None:
                     continue
@@ -137,7 +137,7 @@ class RestApiSyncFlow(GenericApiSyncFlow):
                 for item in get_resource_ids_by_type(self._stacks, "AWS::ApiGateway::Deployment"):
                     if item.logical_id == dep_id:
                         if rest_api_id == self._api_identifier:
-                            stages.add(cast(str, stage_dict.get("Properties").get("StageName")))   # type: ignore
+                            stages.add(cast(str, stage_dict.get("Properties").get("StageName")))  # type: ignore
 
         return stages
 

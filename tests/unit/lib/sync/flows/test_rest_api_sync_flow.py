@@ -128,7 +128,7 @@ class TestRestApiSyncFlow(TestCase):
             "Properties": {
                 "StageName": "beta",
                 "RestApiId": "Api1",
-            }
+            },
         }
 
         sync_flow._api_client.get_stages.return_value = {"item": [{"stageName": "Stage"}]}
@@ -157,11 +157,7 @@ class TestRestApiSyncFlow(TestCase):
         # Integrating stage resource properties and api resource properties into one dict for simplicity
         get_resource_mock.return_value = {
             "Type": "AWS::ApiGateway::RestApi",
-            "Properties": {
-                "StageName": "beta",
-                "RestApiId": "Api1",
-                "DeploymentId": "Resource1"
-            }
+            "Properties": {"StageName": "beta", "RestApiId": "Api1", "DeploymentId": "Resource1"},
         }
 
         stages = sync_flow._collect_stages()
@@ -190,36 +186,27 @@ class TestRestApiSyncFlow(TestCase):
         prev_ids = sync_flow._update_stages(stages, deployment_id)
 
         sync_flow._api_client.get_stage.assert_has_calls(
-            [
-                call(restApiId="PhysicalApi1", stageName="Stage"),
-                call(restApiId="PhysicalApi1", stageName="beta")
-            ]
+            [call(restApiId="PhysicalApi1", stageName="Stage"), call(restApiId="PhysicalApi1", stageName="beta")]
         )
         sync_flow._api_client.update_stage.assert_has_calls(
             [
                 call(
                     restApiId="PhysicalApi1",
                     stageName="Stage",
-                    patchOperations=[{"op": "replace", "path": "/deploymentId", "value": deployment_id}]
+                    patchOperations=[{"op": "replace", "path": "/deploymentId", "value": deployment_id}],
                 ),
                 call(
                     restApiId="PhysicalApi1",
                     stageName="beta",
-                    patchOperations=[{"op": "replace", "path": "/deploymentId", "value": deployment_id}]
-                )
+                    patchOperations=[{"op": "replace", "path": "/deploymentId", "value": deployment_id}],
+                ),
             ]
         )
         sync_flow._api_client.flush_stage_cache.assert_has_calls(
-            [
-                call(restApiId="PhysicalApi1", stageName="Stage"),
-                call(restApiId="PhysicalApi1", stageName="beta")
-            ]
+            [call(restApiId="PhysicalApi1", stageName="Stage"), call(restApiId="PhysicalApi1", stageName="beta")]
         )
         sync_flow._api_client.flush_stage_authorizers_cache.assert_has_calls(
-            [
-                call(restApiId="PhysicalApi1", stageName="Stage"),
-                call(restApiId="PhysicalApi1", stageName="beta")
-            ]
+            [call(restApiId="PhysicalApi1", stageName="Stage"), call(restApiId="PhysicalApi1", stageName="beta")]
         )
 
         self.assertEqual(prev_ids, {"abc"})
@@ -243,10 +230,7 @@ class TestRestApiSyncFlow(TestCase):
         sync_flow._delete_deployments(prev_dep_ids)
 
         sync_flow._api_client.delete_deployment.assert_has_calls(
-            [
-                call(restApiId="PhysicalApi1", deploymentId="abc"),
-                call(restApiId="PhysicalApi1", deploymentId="def")
-            ]
+            [call(restApiId="PhysicalApi1", deploymentId="abc"), call(restApiId="PhysicalApi1", deploymentId="def")]
         )
 
     @patch("samcli.lib.sync.sync_flow.Session")
@@ -269,11 +253,12 @@ class TestRestApiSyncFlow(TestCase):
 
         with patch("samcli.lib.sync.flows.rest_api_sync_flow.LOG.warning") as warning_mock:
             sync_flow._delete_deployments(prev_dep_ids)
-            warning_mock.assert_called_once_with(   
+            warning_mock.assert_called_once_with(
                 Colored().yellow(
-                        "Delete deployment for %s failed, it may be due to the it being used by another stage. \
+                    "Delete deployment for %s failed, it may be due to the it being used by another stage. \
 please check the console if you want to delete it"
-                ), "abc"
+                ),
+                "abc",
             )
 
     @patch("samcli.lib.sync.flows.generic_api_sync_flow.get_resource_by_id")
