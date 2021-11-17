@@ -82,7 +82,7 @@ class RestApiSyncFlow(GenericApiSyncFlow):
     def _create_deployment(self) -> Optional[str]:
         """
         Create a deployment using the updated API and record the created deployment ID
-        
+
         Returns
         ----------
         Optional[str]: The newly created deployment ID
@@ -98,7 +98,7 @@ class RestApiSyncFlow(GenericApiSyncFlow):
     def _collect_stages(self) -> Set[str]:
         """
         Collect all stages needed to be updated
-        
+
         Returns
         ----------
         Set[str]: The set of stage names to be updated
@@ -183,7 +183,7 @@ class RestApiSyncFlow(GenericApiSyncFlow):
     def _delete_deployments(self, prev_deployment_ids: Set[str]) -> None:
         """
         Delete the previous deployment
-        
+
         Parameters
         ----------
         prev_deployment_ids: Set[str]
