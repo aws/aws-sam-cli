@@ -20,12 +20,13 @@ class TestZipFunctionSyncFlow(TestCase):
         sync_flow._get_resource_api_calls = MagicMock()
         return sync_flow
 
+    @patch("samcli.lib.sync.sync_flow.get_boto_client_provider_from_session_with_config")
     @patch("samcli.lib.sync.sync_flow.Session")
-    def test_set_up(self, session_mock):
+    def test_set_up(self, session_mock, client_provider_mock):
         sync_flow = self.create_function_sync_flow()
         sync_flow.set_up()
-        session_mock.return_value.client.assert_any_call("lambda")
-        session_mock.return_value.client.assert_any_call("s3")
+        client_provider_mock.return_value.assert_any_call("lambda")
+        client_provider_mock.return_value.assert_any_call("s3")
 
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.hashlib.sha256")
     @patch("samcli.lib.sync.flows.zip_function_sync_flow.uuid.uuid4")
