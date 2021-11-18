@@ -194,6 +194,13 @@ def do_cli(  # pylint: disable=R0914
     except ContainerNotStartableException as ex:
         raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
 
+    next_commands_msg = """
+    Commands you can use next
+    =========================
+    [*] Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
+    """
+    click.secho(next_commands_msg, fg="yellow")
+
 
 def _get_event(event_file_name):
     """
