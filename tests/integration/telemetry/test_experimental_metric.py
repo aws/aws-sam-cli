@@ -118,7 +118,7 @@ class TestExperimentalMetric(IntegBase):
 
         with TelemetryServer() as server:
             # Run without any envvar.Should not publish metrics
-            process = self.run_cmd(cmd_list=[self.cmd, "logs"], optout_envvar_value="1")
+            process = self.run_cmd(cmd_list=[self.cmd, "logs", "--name", "abc"], optout_envvar_value="1")
             process.communicate()
 
             self.assertEqual(process.returncode, 1, "Command should fail")

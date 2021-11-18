@@ -57,11 +57,13 @@ class TestDoCli(TestCase):
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
     @patch("samcli.commands.build.command.os")
     @patch("samcli.commands.sync.command.manage_stack")
+    @patch("samcli.commands.sync.command.update_experimental_mock")
     def test_infra_must_succeed_sync(
         self,
         code,
         watch,
         auto_dependency_layer,
+        update_experimental_context_mock,
         manage_stack_mock,
         os_mock,
         DeployContextMock,
