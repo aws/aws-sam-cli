@@ -1,6 +1,8 @@
 from unittest import TestCase
 from unittest.mock import Mock, ANY, patch
 
+from parameterized import parameterized
+
 from samcli.commands._utils.experimental import set_experimental, ExperimentalFlag
 from samcli.lib.observability.cw_logs.cw_log_group_provider import LogGroupProvider
 
@@ -71,10 +73,11 @@ class TestLogGroupProvider_for_lambda_function(TestCase):
 
         self.assertIsNone(result)
 
-    def test_invalid_step_functions_configuration(self, patched_update_experimental_context):
+    @parameterized.expand(["non-ARN-log-group", "invalid:log:arn"])
+    def test_invalid_step_functions_configuration(self, patched_update_experimental_context, log_group_arn):
         given_client_provider = Mock()
         given_client_provider(ANY).describe_state_machine.return_value = {
-            "loggingConfiguration": {"destinations": [{"cloudWatchLogsLogGroup": {"logGroupArn": "non-ARN-log-group"}}]}
+            "loggingConfiguration": {"destinations": [{"cloudWatchLogsLogGroup": {"logGroupArn": log_group_arn}}]}
         }
 
         result = LogGroupProvider.for_resource(

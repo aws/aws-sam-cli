@@ -144,7 +144,7 @@ class LogGroupProvider:
             log_group_arn = logging_destination.get("cloudWatchLogsLogGroup", {}).get("logGroupArn")
             LOG.debug("Log group ARN: %s", log_group_arn)
             if log_group_arn:
-                if ":" in log_group_arn:
+                if ":" in log_group_arn and len(log_group_arn.split(":")) > 6:
                     log_group_arn_parts = log_group_arn.split(":")
                     log_group_name = log_group_arn_parts[6]
                     return str(log_group_name)
