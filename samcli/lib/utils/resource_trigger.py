@@ -73,7 +73,7 @@ class ResourceTrigger(ABC):
         return PathHandler(path=folder_path, event_handler=file_handler, recursive=False)
 
     @staticmethod
-    def get_dir_path_handler(dir_path_str: str, ignore_patterns: List[str] = None) -> PathHandler:
+    def get_dir_path_handler(dir_path_str: str, ignore_patterns: Optional[List[str]] = None) -> PathHandler:
         """Get PathHandler for watching a single directory
 
         Parameters
