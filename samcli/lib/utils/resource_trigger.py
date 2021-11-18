@@ -1,5 +1,7 @@
 """ResourceTrigger Classes for Creating PathHandlers According to a Resource"""
 import re
+import platform
+
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
@@ -58,19 +60,25 @@ class ResourceTrigger(ABC):
         """
         file_path = Path(file_path_str).resolve()
         folder_path = file_path.parent
+        case_sensitive = platform.system().lower() == "windows"
         file_handler = RegexMatchingEventHandler(
-            regexes=[f"^{re.escape(str(file_path))}$"], ignore_regexes=[], ignore_directories=True, case_sensitive=True
+            regexes=[f"^{re.escape(str(file_path))}$"],
+            ignore_regexes=[],
+            ignore_directories=True,
+            case_sensitive=case_sensitive,
         )
         return PathHandler(path=folder_path, event_handler=file_handler, recursive=False)
 
     @staticmethod
-    def get_dir_path_handler(dir_path_str: str) -> PathHandler:
+    def get_dir_path_handler(dir_path_str: str, ignore_patterns: List[str] = None) -> PathHandler:
         """Get PathHandler for watching a single directory
 
         Parameters
         ----------
         dir_path_str : str
             Folder path in string
+        ignore_patterns : List[str]
+            List of patterns for sub folders/files that should be ignored
 
         Returns
         -------
@@ -78,8 +86,9 @@ class ResourceTrigger(ABC):
             The PathHandler for the folder specified
         """
         dir_path = Path(dir_path_str).resolve()
+        case_sensitive = platform.system().lower() == "windows"
         file_handler = PatternMatchingEventHandler(
-            patterns=["*"], ignore_patterns=[], ignore_directories=False, case_sensitive=True
+            patterns=["*"], ignore_patterns=ignore_patterns, ignore_directories=False, case_sensitive=case_sensitive
         )
         return PathHandler(path=dir_path, event_handler=file_handler, recursive=True, static_folder=True)
 
@@ -201,7 +210,9 @@ class LambdaFunctionCodeTrigger(CodeResourceTrigger):
         List[PathHandler]
             PathHandlers for the code folder associated with the function
         """
-        dir_path_handler = ResourceTrigger.get_dir_path_handler(self._code_uri)
+        dir_path_handler = ResourceTrigger.get_dir_path_handler(
+            self._code_uri, ignore_patterns=[".aws-sam", ".aws-sam/*"]
+        )
         dir_path_handler.self_create = self._on_code_change
         dir_path_handler.self_delete = self._on_code_change
         dir_path_handler.event_handler.on_any_event = self._on_code_change
