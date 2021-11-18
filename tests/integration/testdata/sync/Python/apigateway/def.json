@@ -1,0 +1,33 @@
+{
+    "swagger": "2.0",
+    "info": {
+      "title": "HelloWorldExample",
+      "version": "1.0.0"
+    },
+    "schemes": [
+      "https"
+    ],
+    "basePath": "/v1",
+    "produces": [
+      "application/json"
+    ],
+    "paths": {
+      "/hello": {
+        "get": {
+          "parameters": [],
+          "security" : [{
+            "api_key" : []
+          }],
+          "x-amazon-apigateway-auth": {
+            "type" : "none"
+          },
+          "x-amazon-apigateway-integration": {
+            "type" : "aws_proxy",
+            "credentials": "arn:aws:iam::777951602514:role/Test-ApiGatewayTest",
+            "uri" : "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:777951602514:function:Test-HelloWorldFunction-hRIoA4z3oUO4/invocations",
+            "httpMethod" : "POST"
+          }
+        }
+      }
+    }
+  }
