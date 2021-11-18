@@ -203,6 +203,6 @@ def do_cli(  # pylint: disable=R0914
     next_commands_msg = """
     Commands you can use next
     =========================
-    [*] Test Function In The Cloud: sam sync --stack-name {{stack-name}} --watch
+    [*] Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
     """
     click.secho(next_commands_msg, fg="yellow")
