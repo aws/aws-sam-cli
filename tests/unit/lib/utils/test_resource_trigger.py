@@ -39,7 +39,7 @@ class TestResourceTrigger(TestCase):
         path_mock.assert_called_once_with("/parent/file")
         escaped_path = re.escape("/parent/file")
         handler_mock.assert_called_once_with(
-            regexes=[f"^{escaped_path}$"], ignore_regexes=[], ignore_directories=True, case_sensitive=True
+            regexes=[f"^{escaped_path}$"], ignore_regexes=[], ignore_directories=True, case_sensitive=ANY
         )
         bundle_mock.assert_called_once_with(path=parent_path, event_handler=handler_mock.return_value, recursive=False)
 
@@ -53,11 +53,11 @@ class TestResourceTrigger(TestCase):
 
         path.resolve.return_value = folder_path
 
-        ResourceTrigger.get_dir_path_handler("/parent/folder/")
+        ResourceTrigger.get_dir_path_handler("/parent/folder/", ignore_patterns=["a", "a/b"])
 
         path_mock.assert_called_once_with("/parent/folder/")
         handler_mock.assert_called_once_with(
-            patterns=["*"], ignore_patterns=[], ignore_directories=False, case_sensitive=True
+            patterns=["*"], ignore_patterns=["a", "a/b"], ignore_directories=False, case_sensitive=ANY
         )
         bundle_mock.assert_called_once_with(
             path=folder_path, event_handler=handler_mock.return_value, recursive=True, static_folder=True
