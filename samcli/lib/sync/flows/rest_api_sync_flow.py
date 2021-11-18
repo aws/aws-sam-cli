@@ -8,6 +8,7 @@ from samcli.lib.sync.flows.generic_api_sync_flow import GenericApiSyncFlow
 from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_by_id, get_resource_ids_by_type
 from samcli.lib.providers.exceptions import MissingLocalDefinition
 from samcli.lib.utils.colors import Colored
+from samcli.lib.utils.resources import AWS_SERVERLESS_API, AWS_APIGATEWAY_STAGE, AWS_APIGATEWAY_DEPLOYMENT
 
 # BuildContext and DeployContext will only be imported for type checking to improve performance
 # since no instances of contexts will be instantiated in this class
@@ -106,15 +107,16 @@ class RestApiSyncFlow(GenericApiSyncFlow):
         # Get the stage name associated with the previous deployment and update stage
         # Stage needs to be flushed so that new changes will be visible immediately
         api_resource = get_resource_by_id(self._stacks, ResourceIdentifier(self._api_identifier))
-        stage_resources = get_resource_ids_by_type(self._stacks, "AWS::ApiGateway::Stage")
+        stage_resources = get_resource_ids_by_type(self._stacks, AWS_APIGATEWAY_STAGE)
 
         stages = set()
         # If it is a SAM resource, get the StageName property
         if api_resource:
-            if api_resource.get("Type") == "AWS::Serverless::Api":
+            if api_resource.get("Type") == AWS_SERVERLESS_API:
                 # The customer defined stage name
                 stage_name = api_resource.get("Properties").get("StageName")  # type: ignore
-                stages.add(cast(str, stage_name))
+                if stage_name:
+                    stages.add(cast(str, stage_name))
 
                 # The Stage stage
                 if stage_name != "Stage":
@@ -134,7 +136,7 @@ class RestApiSyncFlow(GenericApiSyncFlow):
                 if dep_id is None:
                     continue
                 # If the stage's deployment ID is not static and the rest API ID matchs, then update
-                for item in get_resource_ids_by_type(self._stacks, "AWS::ApiGateway::Deployment"):
+                for item in get_resource_ids_by_type(self._stacks, AWS_APIGATEWAY_DEPLOYMENT):
                     if item.logical_id == dep_id:
                         if rest_api_id == self._api_identifier:
                             stages.add(cast(str, stage_dict.get("Properties").get("StageName")))  # type: ignore
@@ -200,7 +202,7 @@ class RestApiSyncFlow(GenericApiSyncFlow):
                 LOG.warning(
                     Colored().yellow(
                         "Delete deployment for %s failed, it may be due to the it being used by another stage. \
-please check the console if you want to delete it"
+please check the console to see if you have other stages that needs to be updated."
                     ),
                     prev_dep_id,
                 )

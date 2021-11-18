@@ -256,7 +256,7 @@ class TestRestApiSyncFlow(TestCase):
             warning_mock.assert_called_once_with(
                 Colored().yellow(
                     "Delete deployment for %s failed, it may be due to the it being used by another stage. \
-please check the console if you want to delete it"
+please check the console to see if you have other stages that needs to be updated."
                 ),
                 "abc",
             )
