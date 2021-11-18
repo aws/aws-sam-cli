@@ -60,9 +60,6 @@ class ResourceTrigger(ABC):
         """
         file_path = Path(file_path_str).resolve()
         folder_path = file_path.parent
-        # watchdog uses PurePath.match() for patterns
-        # It chooses either PurePosixPath or PureWindowsPath depending on case_sensitive
-        # We have to use the correct Path object in order for path.match() to work properly
         case_sensitive = platform.system().lower() == "windows"
         file_handler = RegexMatchingEventHandler(
             regexes=[f"^{re.escape(str(file_path))}$"],
@@ -89,7 +86,12 @@ class ResourceTrigger(ABC):
             The PathHandler for the folder specified
         """
         dir_path = Path(dir_path_str).resolve()
+
+        # watchdog uses PurePath.match() for patterns
+        # It chooses either PurePosixPath or PureWindowsPath depending on case_sensitive
+        # We have to use the correct Path object in order for path.match() to work properly
         case_sensitive = platform.system().lower() == "windows"
+
         file_handler = PatternMatchingEventHandler(
             patterns=["*"], ignore_patterns=ignore_patterns, ignore_directories=False, case_sensitive=case_sensitive
         )
