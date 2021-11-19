@@ -144,9 +144,17 @@ class LogGroupProvider:
             log_group_arn = logging_destination.get("cloudWatchLogsLogGroup", {}).get("logGroupArn")
             LOG.debug("Log group ARN: %s", log_group_arn)
             if log_group_arn:
-                log_group_arn_parts = log_group_arn.split(":")
-                log_group_name = log_group_arn_parts[6]
-                return str(log_group_name)
+                if ":" in log_group_arn and len(log_group_arn.split(":")) > 6:
+                    log_group_arn_parts = log_group_arn.split(":")
+                    log_group_name = log_group_arn_parts[6]
+                    return str(log_group_name)
+
+                LOG.warning(
+                    "Invalid Logging configuration for StepFunction %s. Expected ARN but got %s, please check "
+                    "your template that you are using ARN of the Cloudwatch LogGroup",
+                    step_function_name,
+                    log_group_arn,
+                )
         LOG.warning("Logging is not configured for StepFunctions (%s)")
 
         return None
