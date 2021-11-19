@@ -60,7 +60,7 @@ class ResourceTrigger(ABC):
         """
         file_path = Path(file_path_str).resolve()
         folder_path = file_path.parent
-        case_sensitive = platform.system().lower() == "windows"
+        case_sensitive = platform.system().lower() != "windows"
         file_handler = RegexMatchingEventHandler(
             regexes=[f"^{re.escape(str(file_path))}$"],
             ignore_regexes=[],
