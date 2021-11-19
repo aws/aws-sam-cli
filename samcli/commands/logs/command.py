@@ -175,11 +175,3 @@ def do_cli(
         puller.tail(sanitized_start_time, filter_pattern)
     else:
         puller.load_time_period(sanitized_start_time, sanitized_end_time, filter_pattern)
-
-    next_commands_msg = f"""
-    Commands you can use next
-    =========================
-    [*] Tail Logs from All Support Resources and X-Ray: sam logs --stack-name {stack_name} --tail --include-traces
-    [*] Tail X-Ray Information: sam traces --tail
-    """
-    click.secho(next_commands_msg, fg="yellow")
