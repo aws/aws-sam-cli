@@ -149,7 +149,7 @@ class LogGroupProvider:
                     log_group_name = log_group_arn_parts[6]
                     return str(log_group_name)
 
-                LOG.debug(
+                LOG.warning(
                     "Invalid Logging configuration for StepFunction %s. Expected ARN but got %s, please check "
                     "your template that you are using ARN of the Cloudwatch LogGroup",
                     step_function_name,
