@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 
 from typing_extensions import Protocol
-from watchdog.events import FileSystemEvent, PatternMatchingEventHandler, RegexMatchingEventHandler
+from watchdog.events import FileSystemEvent, RegexMatchingEventHandler
 
 from samcli.lib.providers.exceptions import MissingCodeUri, MissingLocalDefinition
 from samcli.lib.providers.provider import Function, LayerVersion, ResourceIdentifier, Stack, get_resource_by_id
