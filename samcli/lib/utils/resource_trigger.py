@@ -95,7 +95,7 @@ class ResourceTrigger(ABC):
         file_handler = RegexMatchingEventHandler(
             regexes=["^.*$"],
             ignore_regexes=ignore_regexes,
-            ignore_directories=True,
+            ignore_directories=False,
             case_sensitive=case_sensitive,
         )
         return PathHandler(path=dir_path, event_handler=file_handler, recursive=True, static_folder=True)
