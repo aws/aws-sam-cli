@@ -90,7 +90,7 @@ class ResourceTrigger(ABC):
         # watchdog uses PurePath.match() for patterns
         # It chooses either PurePosixPath or PureWindowsPath depending on case_sensitive
         # We have to use the correct Path object in order for path.match() to work properly
-        case_sensitive = platform.system().lower() == "windows"
+        case_sensitive = platform.system().lower() != "windows"
 
         file_handler = PatternMatchingEventHandler(
             patterns=["*"], ignore_patterns=ignore_patterns, ignore_directories=False, case_sensitive=case_sensitive
