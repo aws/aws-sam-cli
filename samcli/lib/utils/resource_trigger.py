@@ -19,6 +19,9 @@ from samcli.local.lambdafn.exceptions import FunctionNotFound, ResourceNotFound
 from samcli.lib.utils.resources import RESOURCES_WITH_LOCAL_PATHS
 
 
+AWS_SAM_FOLDER_REGEX = "^.*\\.aws-sam.*$"
+
+
 class OnChangeCallback(Protocol):
     """Callback Type"""
 
@@ -70,15 +73,15 @@ class ResourceTrigger(ABC):
         return PathHandler(path=folder_path, event_handler=file_handler, recursive=False)
 
     @staticmethod
-    def get_dir_path_handler(dir_path_str: str, ignore_patterns: Optional[List[str]] = None) -> PathHandler:
+    def get_dir_path_handler(dir_path_str: str, ignore_regexes: Optional[List[str]] = None) -> PathHandler:
         """Get PathHandler for watching a single directory
 
         Parameters
         ----------
         dir_path_str : str
             Folder path in string
-        ignore_patterns : List[str]
-            List of patterns for sub folders/files that should be ignored
+        ignore_regexes : List[str], Optional
+            List of regexes that should be ignored
 
         Returns
         -------
@@ -87,13 +90,13 @@ class ResourceTrigger(ABC):
         """
         dir_path = Path(dir_path_str).resolve()
 
-        # watchdog uses PurePath.match() for patterns
-        # It chooses either PurePosixPath or PureWindowsPath depending on case_sensitive
-        # We have to use the correct Path object in order for path.match() to work properly
         case_sensitive = platform.system().lower() != "windows"
 
-        file_handler = PatternMatchingEventHandler(
-            patterns=["*"], ignore_patterns=ignore_patterns, ignore_directories=False, case_sensitive=case_sensitive
+        file_handler = RegexMatchingEventHandler(
+            regexes=["^.*$"],
+            ignore_regexes=ignore_regexes,
+            ignore_directories=True,
+            case_sensitive=case_sensitive,
         )
         return PathHandler(path=dir_path, event_handler=file_handler, recursive=True, static_folder=True)
 
@@ -215,9 +218,7 @@ class LambdaFunctionCodeTrigger(CodeResourceTrigger):
         List[PathHandler]
             PathHandlers for the code folder associated with the function
         """
-        dir_path_handler = ResourceTrigger.get_dir_path_handler(
-            self._code_uri, ignore_patterns=[".aws-sam", ".aws-sam/*"]
-        )
+        dir_path_handler = ResourceTrigger.get_dir_path_handler(self._code_uri, ignore_regexes=[AWS_SAM_FOLDER_REGEX])
         dir_path_handler.self_create = self._on_code_change
         dir_path_handler.self_delete = self._on_code_change
         dir_path_handler.event_handler.on_any_event = self._on_code_change
