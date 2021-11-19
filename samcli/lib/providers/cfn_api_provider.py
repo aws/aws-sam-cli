@@ -104,6 +104,7 @@ class CfnApiProvider(CfnBaseApiProvider):
         properties = api_resource.get("Properties", {})
         body = properties.get("Body")
         body_s3_location = properties.get("BodyS3Location")
+        print(body_s3_location)
         binary_media = properties.get("BinaryMediaTypes", [])
 
         if not body and not body_s3_location:

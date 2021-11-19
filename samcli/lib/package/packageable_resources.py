@@ -46,7 +46,7 @@ from samcli.lib.utils.resources import (
     METADATA_WITH_LOCAL_PATHS,
     RESOURCES_WITH_LOCAL_PATHS,
     RESOURCES_WITH_IMAGE_COMPONENT,
-    AWS_ECR_REPOSITORY,
+    AWS_ECR_REPOSITORY, AWS_APIGATEWAY_V2_API,
 )
 
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -468,6 +468,15 @@ class StepFunctionsStateMachineResource(ResourceWithS3UrlDict):
     VERSION_PROPERTY = "Version"
 
 
+class ApiGatewayV2Resource(ResourceWithS3UrlDict):
+    RESOURCE_TYPE = AWS_APIGATEWAY_V2_API
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
+    PACKAGE_NULL_PROPERTY = False
+    BUCKET_NAME_PROPERTY = "Bucket"
+    OBJECT_KEY_PROPERTY = "Key"
+    VERSION_PROPERTY = "Version"
+
+
 class ApiGatewayRestApiResource(ResourceWithS3UrlDict):
     RESOURCE_TYPE = AWS_APIGATEWAY_RESTAPI
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
@@ -572,6 +581,7 @@ RESOURCES_EXPORT_LIST = [
     AppSyncFunctionConfigurationRequestTemplateResource,
     AppSyncFunctionConfigurationResponseTemplateResource,
     ApiGatewayRestApiResource,
+    ApiGatewayV2Resource,
     StepFunctionsStateMachineResource,
     LambdaFunctionResource,
     LambdaFunctionImageResource,

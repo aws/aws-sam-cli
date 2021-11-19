@@ -60,6 +60,7 @@ RESOURCES_WITH_LOCAL_PATHS = {
     AWS_APPSYNC_FUNCTIONCONFIGURATION: ["RequestMappingTemplateS3Location", "ResponseMappingTemplateS3Location"],
     AWS_LAMBDA_FUNCTION: ["Code"],
     AWS_APIGATEWAY_RESTAPI: ["BodyS3Location"],
+    AWS_APIGATEWAY_V2_API: ["BodyS3Location"],
     AWS_ELASTICBEANSTALK_APPLICATIONVERSION: ["SourceBundle"],
     AWS_CLOUDFORMATION_MODULEVERSION: ["ModulePackage"],
     AWS_CLOUDFORMATION_RESOURCEVERSION: ["SchemaHandlerPackage"],
