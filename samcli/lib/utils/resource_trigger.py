@@ -281,7 +281,7 @@ class LambdaLayerCodeTrigger(CodeResourceTrigger):
         List[PathHandler]
             PathHandlers for the code folder associated with the layer
         """
-        dir_path_handler = ResourceTrigger.get_dir_path_handler(self._code_uri)
+        dir_path_handler = ResourceTrigger.get_dir_path_handler(self._code_uri, ignore_regexes=[AWS_SAM_FOLDER_REGEX])
         dir_path_handler.self_create = self._on_code_change
         dir_path_handler.self_delete = self._on_code_change
         dir_path_handler.event_handler.on_any_event = self._on_code_change
