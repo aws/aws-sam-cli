@@ -1,7 +1,7 @@
 import shutil
 import signal
 import uuid
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 from unittest import TestCase, skipIf
 import threading
 from subprocess import Popen
@@ -20,6 +20,7 @@ class StartLambdaIntegBaseClass(TestCase):
     parameter_overrides: Optional[Dict[str, str]] = None
     binary_data_file: Optional[str] = None
     integration_dir = str(Path(__file__).resolve().parents[2])
+    invoke_image: Optional[List] = None
 
     build_before_invoke = False
     build_overrides: Optional[Dict[str, str]] = None
@@ -75,6 +76,10 @@ class StartLambdaIntegBaseClass(TestCase):
 
         if cls.parameter_overrides:
             command_list += ["--parameter-overrides", cls._make_parameter_override_arg(cls.parameter_overrides)]
+
+        if cls.invoke_image:
+            for image in cls.invoke_image:
+                command_list += ["--invoke-image", image]
 
         cls.start_lambda_process = Popen(command_list)
         # we need to wait some time for start-lambda to start, hence the sleep

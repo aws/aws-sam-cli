@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import ANY, MagicMock, mock_open, patch
+from unittest.mock import MagicMock, mock_open, patch
 
 from samcli.lib.sync.flows.http_api_sync_flow import HttpApiSyncFlow
 from samcli.lib.providers.exceptions import MissingLocalDefinition
@@ -41,9 +41,7 @@ class TestHttpApiSyncFlow(TestCase):
 
         sync_flow.sync()
 
-        sync_flow._api_client.reimport_api.assert_called_once_with(
-            ApiId="PhysicalApi1", Body='{"key": "value"}'.encode("utf-8")
-        )
+        sync_flow._api_client.reimport_api.assert_called_once_with(ApiId="PhysicalApi1", Body='{"key": "value"}')
 
     @patch("samcli.lib.sync.flows.generic_api_sync_flow.get_resource_by_id")
     def test_get_definition_file(self, get_resource_mock):

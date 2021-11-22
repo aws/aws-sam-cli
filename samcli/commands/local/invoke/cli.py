@@ -12,6 +12,7 @@ from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.local.docker.exceptions import ContainerNotStartableException
+from samcli.commands._utils.option_value_processor import process_image_options
 
 LOG = logging.getLogger(__name__)
 
@@ -74,6 +75,7 @@ def cli(
     config_env,
     container_host,
     container_host_interface,
+    invoke_image,
 ):
     """
     `sam local invoke` command entry point
@@ -101,6 +103,7 @@ def cli(
         parameter_overrides,
         container_host,
         container_host_interface,
+        invoke_image,
     )  # pragma: no cover
 
 
@@ -125,6 +128,7 @@ def do_cli(  # pylint: disable=R0914
     parameter_overrides,
     container_host,
     container_host_interface,
+    invoke_image,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -145,6 +149,8 @@ def do_cli(  # pylint: disable=R0914
         event_data = _get_event(event)
     else:
         event_data = "{}"
+
+    processed_invoke_images = process_image_options(invoke_image)
 
     # Pass all inputs to setup necessary context to invoke function locally.
     # Handler exception raised by the processor for invalid args and print errors
@@ -169,6 +175,7 @@ def do_cli(  # pylint: disable=R0914
             shutdown=shutdown,
             container_host=container_host,
             container_host_interface=container_host_interface,
+            invoke_images=processed_invoke_images,
         ) as context:
 
             # Invoke the function
