@@ -7,7 +7,7 @@ import click
 
 
 class QuestionKind(Enum):
-    """ An Enum of possible question types. """
+    """An Enum of possible question types."""
 
     info = "info"
     confirm = "confirm"
