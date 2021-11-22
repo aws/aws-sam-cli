@@ -108,6 +108,7 @@ class RestApiSyncFlow(GenericApiSyncFlow):
         # Stage needs to be flushed so that new changes will be visible immediately
         api_resource = get_resource_by_id(self._stacks, ResourceIdentifier(self._api_identifier))
         stage_resources = get_resource_ids_by_type(self._stacks, AWS_APIGATEWAY_STAGE)
+        deployment_resources = get_resource_ids_by_type(self._stacks, AWS_APIGATEWAY_DEPLOYMENT)
 
         stages = set()
         # If it is a SAM resource, get the StageName property
@@ -118,7 +119,7 @@ class RestApiSyncFlow(GenericApiSyncFlow):
                 if stage_name:
                     stages.add(cast(str, stage_name))
 
-                # The Stage stage
+                # The stage called "Stage"
                 if stage_name != "Stage":
                     response_sta = cast(Dict, self._api_client.get_stages(restApiId=self._api_physical_id))
                     for item in response_sta.get("item"):  # type: ignore
@@ -129,17 +130,18 @@ class RestApiSyncFlow(GenericApiSyncFlow):
         for stage_resource in stage_resources:
             # RestApiId is a required field in stage
             stage_dict = get_resource_by_id(self._stacks, stage_resource)
-            if stage_dict:
-                rest_api_id = stage_dict.get("Properties", {}).get("RestApiId")
-                dep_id = stage_dict.get("Properties", {}).get("DeploymentId")
-                # If the stage doesn't have a deployment associated then no need to update
-                if dep_id is None:
-                    continue
-                # If the stage's deployment ID is not static and the rest API ID matchs, then update
-                for item in get_resource_ids_by_type(self._stacks, AWS_APIGATEWAY_DEPLOYMENT):
-                    if item.logical_id == dep_id:
-                        if rest_api_id == self._api_identifier:
-                            stages.add(cast(str, stage_dict.get("Properties", {}).get("StageName")))
+            if not stage_dict:
+                continue
+            rest_api_id = stage_dict.get("Properties", {}).get("RestApiId")
+            dep_id = stage_dict.get("Properties", {}).get("DeploymentId")
+            # If the stage doesn't have a deployment associated then no need to update
+            if dep_id is None:
+                continue
+            # If the stage's deployment ID is not static and the rest API ID matchs, then update
+            for deployment_resource in deployment_resources:
+                if deployment_resource.logical_id == dep_id and rest_api_id == self._api_identifier:
+                    stages.add(cast(str, stage_dict.get("Properties", {}).get("StageName")))
+                    break
 
         return stages
 
@@ -192,8 +194,8 @@ class RestApiSyncFlow(GenericApiSyncFlow):
             A set of previous deployment IDs to be cleaned up
         """
         for prev_dep_id in prev_deployment_ids:
-            LOG.debug("%sTrying to delete the previous deployment %s through client", self.log_prefix, prev_dep_id)
             try:
+                LOG.debug("%sTrying to delete the previous deployment %s through client", self.log_prefix, prev_dep_id)
                 response_del = cast(
                     Dict, self._api_client.delete_deployment(restApiId=self._api_physical_id, deploymentId=prev_dep_id)
                 )
