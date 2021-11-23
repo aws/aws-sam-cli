@@ -17,6 +17,7 @@ from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.local.docker.exceptions import ContainerNotStartableException
+from samcli.commands._utils.option_value_processor import process_image_options
 
 LOG = logging.getLogger(__name__)
 
@@ -94,6 +95,7 @@ def cli(
     debug_function,
     container_host,
     container_host_interface,
+    invoke_image,
 ):
     """
     `sam local start-lambda` command entry point
@@ -122,6 +124,7 @@ def cli(
         debug_function,
         container_host,
         container_host_interface,
+        invoke_image,
     )  # pragma: no cover
 
 
@@ -147,6 +150,7 @@ def do_cli(  # pylint: disable=R0914
     debug_function,
     container_host,
     container_host_interface,
+    invoke_image,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -161,6 +165,8 @@ def do_cli(  # pylint: disable=R0914
     from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
 
     LOG.debug("local start_lambda command is called")
+
+    processed_invoke_images = process_image_options(invoke_image)
 
     # Pass all inputs to setup necessary context to invoke function locally.
     # Handler exception raised by the processor for invalid args and print errors
@@ -188,6 +194,7 @@ def do_cli(  # pylint: disable=R0914
             shutdown=shutdown,
             container_host=container_host,
             container_host_interface=container_host_interface,
+            invoke_images=processed_invoke_images,
         ) as invoke_context:
 
             service = LocalLambdaService(lambda_invoke_context=invoke_context, port=port, host=host)
@@ -203,10 +210,3 @@ def do_cli(  # pylint: disable=R0914
         raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
     except ContainerNotStartableException as ex:
         raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
-
-    next_commands_msg = """
-    Commands you can use next
-    =========================
-    [*] Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
-    """
-    click.secho(next_commands_msg, fg="yellow")

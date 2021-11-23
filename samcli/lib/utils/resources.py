@@ -19,6 +19,7 @@ AWS_APIGATEWAY_RESTAPI = "AWS::ApiGateway::RestApi"
 AWS_APIGATEWAY_STAGE = "AWS::ApiGateway::Stage"
 AWS_APIGATEWAY_RESOURCE = "AWS::ApiGateway::Resource"
 AWS_APIGATEWAY_METHOD = "AWS::ApiGateway::Method"
+AWS_APIGATEWAY_DEPLOYMENT = "AWS::ApiGateway::Deployment"
 
 AWS_APIGATEWAY_V2_API = "AWS::ApiGatewayV2::Api"
 AWS_APIGATEWAY_V2_INTEGRATION = "AWS::ApiGatewayV2::Integration"
