@@ -1,6 +1,6 @@
 import shutil
 import uuid
-from typing import Optional, Dict
+from typing import List, Optional, Dict
 from unittest import TestCase, skipIf
 import threading
 from subprocess import Popen
@@ -19,6 +19,7 @@ class StartApiIntegBaseClass(TestCase):
     parameter_overrides: Optional[Dict[str, str]] = None
     binary_data_file: Optional[str] = None
     integration_dir = str(Path(__file__).resolve().parents[2])
+    invoke_image: Optional[List] = None
 
     build_before_invoke = False
     build_overrides: Optional[Dict[str, str]] = None
@@ -68,6 +69,10 @@ class StartApiIntegBaseClass(TestCase):
 
         if cls.parameter_overrides:
             command_list += ["--parameter-overrides", cls._make_parameter_override_arg(cls.parameter_overrides)]
+
+        if cls.invoke_image:
+            for image in cls.invoke_image:
+                command_list += ["--invoke-image", image]
 
         cls.start_api_process = Popen(command_list)
         # we need to wait some time for start-api to start, hence the sleep
