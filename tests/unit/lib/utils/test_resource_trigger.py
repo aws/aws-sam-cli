@@ -39,12 +39,12 @@ class TestResourceTrigger(TestCase):
         path_mock.assert_called_once_with("/parent/file")
         escaped_path = re.escape("/parent/file")
         handler_mock.assert_called_once_with(
-            regexes=[f"^{escaped_path}$"], ignore_regexes=[], ignore_directories=True, case_sensitive=True
+            regexes=[f"^{escaped_path}$"], ignore_regexes=[], ignore_directories=True, case_sensitive=ANY
         )
         bundle_mock.assert_called_once_with(path=parent_path, event_handler=handler_mock.return_value, recursive=False)
 
     @patch("samcli.lib.utils.resource_trigger.PathHandler")
-    @patch("samcli.lib.utils.resource_trigger.PatternMatchingEventHandler")
+    @patch("samcli.lib.utils.resource_trigger.RegexMatchingEventHandler")
     @patch("samcli.lib.utils.resource_trigger.Path")
     def test_dir_path_handler(self, path_mock, handler_mock, bundle_mock):
         path = MagicMock()
@@ -53,11 +53,11 @@ class TestResourceTrigger(TestCase):
 
         path.resolve.return_value = folder_path
 
-        ResourceTrigger.get_dir_path_handler("/parent/folder/")
+        ResourceTrigger.get_dir_path_handler("/parent/folder/", ignore_regexes=["a", "a/b"])
 
         path_mock.assert_called_once_with("/parent/folder/")
         handler_mock.assert_called_once_with(
-            patterns=["*"], ignore_patterns=[], ignore_directories=False, case_sensitive=True
+            regexes=["^.*$"], ignore_regexes=["a", "a/b"], ignore_directories=False, case_sensitive=ANY
         )
         bundle_mock.assert_called_once_with(
             path=folder_path, event_handler=handler_mock.return_value, recursive=True, static_folder=True
