@@ -46,7 +46,8 @@ from samcli.lib.utils.resources import (
     METADATA_WITH_LOCAL_PATHS,
     RESOURCES_WITH_LOCAL_PATHS,
     RESOURCES_WITH_IMAGE_COMPONENT,
-    AWS_ECR_REPOSITORY, AWS_APIGATEWAY_V2_API,
+    AWS_ECR_REPOSITORY,
+    AWS_APIGATEWAY_V2_API,
 )
 
 from samcli.lib.utils.packagetype import IMAGE, ZIP
