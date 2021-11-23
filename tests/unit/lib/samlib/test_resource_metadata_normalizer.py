@@ -37,6 +37,29 @@ class TestResourceMeatadataNormalizer(TestCase):
         self.assertEqual("new path", template_data["Resources"]["Function1"]["Properties"]["Code"])
         self.assertEqual("super cool path", template_data["Resources"]["Resource2"]["Properties"]["SomeRandomProperty"])
 
+    def test_replace_all_resources_that_contain_image_metadata(self):
+        docker_build_args = {"arg1": "val1", "arg2": "val2"}
+        template_data = {
+            "Resources": {
+                "Function1": {
+                    "Properties": {"Code": "some value"},
+                    "Metadata": {
+                        "aws:asset:path": "/path/to/asset",
+                        "aws:asset:property": "Code.ImageUri",
+                        "aws:asset:dockerfile-path": "/path/to/Dockerfile",
+                        "aws:asset:docker-build-args": docker_build_args,
+                    },
+                },
+            }
+        }
+
+        ResourceMetadataNormalizer.normalize(template_data)
+
+        self.assertEqual("function1", template_data["Resources"]["Function1"]["Properties"]["Code"]["ImageUri"])
+        self.assertEqual("/path/to/asset/path/to", template_data["Resources"]["Function1"]["Metadata"]["DockerContext"])
+        self.assertEqual("Dockerfile", template_data["Resources"]["Function1"]["Metadata"]["Dockerfile"])
+        self.assertEqual(docker_build_args, template_data["Resources"]["Function1"]["Metadata"]["DockerBuildArgs"])
+
     def test_tempate_without_metadata(self):
         template_data = {"Resources": {"Function1": {"Properties": {"Code": "some value"}}}}
 
