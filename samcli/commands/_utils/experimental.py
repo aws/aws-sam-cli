@@ -108,7 +108,7 @@ def disable_all_experimental():
         set_experimental(entry, False)
 
 
-def _update_experimental_context(show_warning=True):
+def update_experimental_context(show_warning=True):
     """Set experimental for the current click context.
 
     Parameters
@@ -135,6 +135,7 @@ def _experimental_option_callback(ctx, param, enabled: Optional[bool]):
 
     if enabled:
         set_experimental(ExperimentalFlag.All, True)
+        update_experimental_context()
     else:
         disable_all_experimental()
 
@@ -172,7 +173,6 @@ def force_experimental(
         def wrapped_func(*args, **kwargs):
             if not prompt_experimental(config_entry=config_entry, prompt=prompt):
                 sys.exit(1)
-            _update_experimental_context()
             return func(*args, **kwargs)
 
         return wrapped_func
@@ -194,7 +194,6 @@ def force_experimental_option(
             if kwargs[option]:
                 if not prompt_experimental(config_entry=config_entry, prompt=prompt):
                     sys.exit(1)
-                _update_experimental_context()
             return func(*args, **kwargs)
 
         return wrapped_func
@@ -222,8 +221,10 @@ def prompt_experimental(
         Whether user have accepted the experimental feature.
     """
     if is_experimental_enabled(config_entry):
+        update_experimental_context()
         return True
     confirmed = click.confirm(prompt, default=False)
     if confirmed:
         set_experimental(config_entry=config_entry, enabled=True)
+        update_experimental_context()
     return confirmed

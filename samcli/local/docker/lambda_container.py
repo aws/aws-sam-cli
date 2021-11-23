@@ -48,6 +48,7 @@ class LambdaContainer(Container):
         debug_options=None,
         container_host=None,
         container_host_interface=None,
+        function_name=None,
     ):
         """
         Initializes the class
@@ -83,11 +84,15 @@ class LambdaContainer(Container):
             Optional. Host of locally emulated Lambda container
         container_host_interface
             Optional. Interface that Docker host binds ports to
+        function_name str
+            Optional. Logical ID of the function
         """
         if not Runtime.has_value(runtime) and not packagetype == IMAGE:
             raise ValueError("Unsupported Lambda runtime {}".format(runtime))
 
-        image = LambdaContainer._get_image(lambda_image, runtime, packagetype, imageuri, layers, architecture)
+        image = LambdaContainer._get_image(
+            lambda_image, runtime, packagetype, imageuri, layers, architecture, function_name
+        )
         ports = LambdaContainer._get_exposed_ports(debug_options)
         config = LambdaContainer._get_config(lambda_image, image)
         entry, container_env_vars = LambdaContainer._get_debug_settings(runtime, debug_options)
@@ -196,7 +201,13 @@ class LambdaContainer(Container):
 
     @staticmethod
     def _get_image(
-        lambda_image: LambdaImage, runtime: str, packagetype: str, image: str, layers: List[str], architecture: str
+        lambda_image: LambdaImage,
+        runtime: str,
+        packagetype: str,
+        image: str,
+        layers: List[str],
+        architecture: str,
+        function_name: str,
     ):
         """
 
@@ -214,13 +225,15 @@ class LambdaContainer(Container):
             List of layers
         architecture : str
             Architecture type either x86_64 or arm64 on AWS lambda
+        function_name: str
+            The name of the lambda function that the container is to invoke
 
         Returns
         -------
         str
             Name of Docker Image for the given runtime
         """
-        return lambda_image.build(runtime, packagetype, image, layers, architecture)
+        return lambda_image.build(runtime, packagetype, image, layers, architecture, function_name=function_name)
 
     @staticmethod
     def _get_config(lambda_image, image):

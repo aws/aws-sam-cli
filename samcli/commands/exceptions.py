@@ -78,3 +78,9 @@ class AppPipelineTemplateMetadataException(UserException):
     """
     Exception class when SAM is not able to parse the "metadata.json" file located in the SAM pipeline templates
     """
+
+
+class InvalidImageException(UserException):
+    """
+    Value provided to --build-image or --invoke-image is invalid URI
+    """
