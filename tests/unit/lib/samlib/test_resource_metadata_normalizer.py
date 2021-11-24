@@ -40,7 +40,7 @@ class TestResourceMeatadataNormalizer(TestCase):
 
     def test_replace_all_resources_that_contain_image_metadata(self):
         docker_build_args = {"arg1": "val1", "arg2": "val2"}
-        asset_path = os.path.join("path", "to", "asset")
+        asset_path = os.path.join("/path", "to", "asset")
         dockerfile_path = os.path.join("path", "to", "Dockerfile")
         template_data = {
             "Resources": {
@@ -58,7 +58,7 @@ class TestResourceMeatadataNormalizer(TestCase):
 
         ResourceMetadataNormalizer.normalize(template_data)
 
-        expected_docker_context_path = os.path.join("path", "to", "asset", "path", "to")
+        expected_docker_context_path = os.path.join("/path", "to", "asset", "path", "to")
         self.assertEqual("function1", template_data["Resources"]["Function1"]["Properties"]["Code"]["ImageUri"])
         self.assertEqual(
             expected_docker_context_path, template_data["Resources"]["Function1"]["Metadata"]["DockerContext"]

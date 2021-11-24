@@ -103,9 +103,8 @@ class ResourceMetadataNormalizer:
 
         """
         path_from_asset, dockerfile = os.path.split(metadata.get(ASSET_DOCKERFILE_PATH_KEY))
-        stripped_path = path_from_asset.lstrip(os.sep)
         asset_path = metadata.get(ASSET_PATH_METADATA_KEY)
-        dockerfile_context = os.path.join(asset_path, stripped_path)
+        dockerfile_context = os.path.join(asset_path, path_from_asset)
         return {
             SAM_METADATA_DOCKERFILE_KEY: dockerfile,
             SAM_METADATA_DOCKER_CONTEXT_KEY: dockerfile_context,
