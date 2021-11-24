@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import ANY, MagicMock, mock_open, patch
+from unittest.mock import MagicMock, mock_open, patch
 
 from samcli.lib.sync.flows.http_api_sync_flow import HttpApiSyncFlow
 from samcli.lib.providers.exceptions import MissingLocalDefinition
@@ -16,11 +16,12 @@ class TestHttpApiSyncFlow(TestCase):
         )
         return sync_flow
 
+    @patch("samcli.lib.sync.sync_flow.get_boto_client_provider_from_session_with_config")
     @patch("samcli.lib.sync.sync_flow.Session")
-    def test_set_up(self, session_mock):
+    def test_set_up(self, session_mock, client_provider_mock):
         sync_flow = self.create_sync_flow()
         sync_flow.set_up()
-        session_mock.return_value.client.assert_any_call("apigatewayv2")
+        client_provider_mock.return_value.assert_any_call("apigatewayv2")
 
     @patch("samcli.lib.sync.sync_flow.Session")
     def test_sync_direct(self, session_mock):
@@ -40,9 +41,7 @@ class TestHttpApiSyncFlow(TestCase):
 
         sync_flow.sync()
 
-        sync_flow._api_client.reimport_api.assert_called_once_with(
-            ApiId="PhysicalApi1", Body='{"key": "value"}'.encode("utf-8")
-        )
+        sync_flow._api_client.reimport_api.assert_called_once_with(ApiId="PhysicalApi1", Body='{"key": "value"}')
 
     @patch("samcli.lib.sync.flows.generic_api_sync_flow.get_resource_by_id")
     def test_get_definition_file(self, get_resource_mock):

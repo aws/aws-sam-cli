@@ -7,6 +7,8 @@ from samcli.lib.utils.boto_utils import (
     get_boto_config_with_user_agent,
     get_boto_client_provider_with_config,
     get_boto_resource_provider_with_config,
+    get_boto_resource_provider_from_session_with_config,
+    get_boto_client_provider_from_session_with_config,
 )
 
 TEST_VERSION = "1.0.0"
@@ -39,47 +41,83 @@ class TestBotoUtils(TestCase):
             self.assertEqual(config.user_agent_extra, f"aws-sam-cli/{TEST_VERSION}")
 
     @patch("samcli.lib.utils.boto_utils.get_boto_config_with_user_agent")
-    @patch("samcli.lib.utils.boto_utils.boto3")
-    def test_get_boto_client_provider_with_config(self, patched_boto3, patched_get_config):
+    def test_get_boto_client_provider_from_session_with_config(self, patched_get_config):
+        given_client_name = "lambda"
+        given_session = Mock()
+        given_config_param = Mock()
+        given_client = Mock()
         given_config = Mock()
+
+        given_session.client.return_value = given_client
         patched_get_config.return_value = given_config
+
+        client_generator = get_boto_client_provider_from_session_with_config(given_session, param=given_config_param)
+
+        client = client_generator(given_client_name)
+
+        self.assertEqual(client, given_client)
+        patched_get_config.assert_called_with(param=given_config_param)
+        given_session.client.assert_called_with(given_client_name, config=given_config)
+
+    @patch("samcli.lib.utils.boto_utils.get_boto_client_provider_from_session_with_config")
+    @patch("samcli.lib.utils.boto_utils.Session")
+    def test_get_boto_client_provider_with_config(self, patched_session, patched_get_client):
+        given_session = Mock()
+        patched_session.return_value = given_session
+
+        given_client_generator = Mock()
+        patched_get_client.return_value = given_client_generator
 
         given_config_param = Mock()
         given_profile = Mock()
         given_region = Mock()
+
         client_generator = get_boto_client_provider_with_config(
             region=given_region, profile=given_profile, param=given_config_param
         )
 
-        given_service_client = Mock()
-        patched_boto3.session.Session().client.return_value = given_service_client
+        patched_session.assert_called_with(region_name=given_region, profile_name=given_profile)
+        patched_get_client.assert_called_with(given_session, param=given_config_param)
+        self.assertEqual(given_client_generator, client_generator)
 
-        client = client_generator("service")
+    @patch("samcli.lib.utils.boto_utils.get_boto_resource_provider_from_session_with_config")
+    @patch("samcli.lib.utils.boto_utils.Session")
+    def test_get_boto_resource_provider_with_config(self, patched_session, patched_get_resource):
+        given_session = Mock()
+        patched_session.return_value = given_session
 
-        self.assertEqual(client, given_service_client)
-        patched_get_config.assert_called_with(param=given_config_param)
-        patched_boto3.session.Session.assert_called_with(region_name=given_region, profile_name=given_profile)
-        patched_boto3.session.Session().client.assert_called_with("service", config=given_config)
-
-    @patch("samcli.lib.utils.boto_utils.get_boto_config_with_user_agent")
-    @patch("samcli.lib.utils.boto_utils.boto3")
-    def test_get_boto_resource_provider_with_config(self, patched_boto3, patched_get_config):
-        given_config = Mock()
-        patched_get_config.return_value = given_config
+        given_resource_generator = Mock()
+        patched_get_resource.return_value = given_resource_generator
 
         given_config_param = Mock()
         given_profile = Mock()
         given_region = Mock()
+
         client_generator = get_boto_resource_provider_with_config(
             region=given_region, profile=given_profile, param=given_config_param
         )
 
-        given_service_client = Mock()
-        patched_boto3.session.Session().resource.return_value = given_service_client
+        patched_session.assert_called_with(region_name=given_region, profile_name=given_profile)
+        patched_get_resource.assert_called_with(given_session, param=given_config_param)
+        self.assertEqual(given_resource_generator, client_generator)
 
-        client = client_generator("service")
+    @patch("samcli.lib.utils.boto_utils.get_boto_config_with_user_agent")
+    def test_get_boto_resource_provider_from_session_with_config(self, patched_get_config):
+        given_resource_name = "cloudformation"
+        given_session = Mock()
+        given_config_param = Mock()
+        given_resource = Mock()
+        given_config = Mock()
 
-        self.assertEqual(client, given_service_client)
+        given_session.resource.return_value = given_resource
+        patched_get_config.return_value = given_config
+
+        resource_generator = get_boto_resource_provider_from_session_with_config(
+            given_session, param=given_config_param
+        )
+
+        resource = resource_generator(given_resource_name)
+
+        self.assertEqual(resource, given_resource)
         patched_get_config.assert_called_with(param=given_config_param)
-        patched_boto3.session.Session.assert_called_with(region_name=given_region, profile_name=given_profile)
-        patched_boto3.session.Session().resource.assert_called_with("service", config=given_config)
+        given_session.resource.assert_called_with(given_resource_name, config=given_config)

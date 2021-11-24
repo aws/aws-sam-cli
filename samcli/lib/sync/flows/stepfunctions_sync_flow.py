@@ -3,8 +3,6 @@ import logging
 from typing import Any, Dict, List, TYPE_CHECKING, cast, Optional
 
 
-from boto3.session import Session
-
 from samcli.lib.providers.provider import Stack, get_resource_by_id, ResourceIdentifier
 from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall
 from samcli.lib.sync.exceptions import InfraSyncRequiredError
@@ -62,7 +60,7 @@ class StepFunctionsSyncFlow(SyncFlow):
 
     def set_up(self) -> None:
         super().set_up()
-        self._stepfunctions_client = cast(Session, self._session).client("stepfunctions")
+        self._stepfunctions_client = self._boto_client("stepfunctions")
 
     def gather_resources(self) -> None:
         if not self._resource:

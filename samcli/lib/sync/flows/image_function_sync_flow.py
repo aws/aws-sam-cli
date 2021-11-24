@@ -1,9 +1,8 @@
 """SyncFlow for Image based Lambda Functions"""
 import logging
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, cast
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 import docker
-from boto3.session import Session
 from docker.client import DockerClient
 
 from samcli.lib.providers.provider import Stack
@@ -58,7 +57,7 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
 
     def set_up(self) -> None:
         super().set_up()
-        self._ecr_client = cast(Session, self._session).client("ecr")
+        self._ecr_client = self._boto_client("ecr")
         if not self._docker_client:
             self._docker_client = docker.from_env()
 

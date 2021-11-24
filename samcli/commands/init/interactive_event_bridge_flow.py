@@ -43,7 +43,7 @@ def get_schema_template_details(schemas_api_caller):
 
 
 def _get_registry_cli_choice(schemas_api_caller):
-    """ Returns registry choice if one registry is present otherwise prompt for selection """
+    """Returns registry choice if one registry is present otherwise prompt for selection"""
     registries = _fetch_available_registries(schemas_api_caller, dict(), None)
     registry_pages = registries["registry_pages"]
     # If only one registry don't prompt for choice
@@ -87,7 +87,7 @@ def _prompt_for_registry_choice(
 
 
 def _get_schema_cli_choice(schemas_api_caller, registry_name):
-    """ Returns registry registry choice if one registry is present otherwise prompt for  selection """
+    """Returns registry registry choice if one registry is present otherwise prompt for  selection"""
     schemas = _fetch_available_schemas(schemas_api_caller, registry_name, dict(), None)
     schema_pages = schemas["schema_pages"]
     # If only one schema don't prompt for choice
@@ -131,7 +131,7 @@ def _prompt_for_schemas_choice(
 
 
 def _fetch_available_schemas(schemas_api_caller, registry_name, schema_pages, next_token):
-    """ calls schemas api fetch schemas for given registry. Two CLI pages are fetched at a time."""
+    """calls schemas api fetch schemas for given registry. Two CLI pages are fetched at a time."""
     list_schemas_response = schemas_api_caller.list_schemas(registry_name, next_token, PAGE_LIMIT)
     schemas = list_schemas_response["schemas"]
 
@@ -144,7 +144,7 @@ def _fetch_available_schemas(schemas_api_caller, registry_name, schema_pages, ne
 
 
 def _fetch_available_registries(schemas_api_caller, registry_pages, next_token):
-    """ calls schemas api to fetch registries. Two CLI pages are fetched at a time. """
+    """calls schemas api to fetch registries. Two CLI pages are fetched at a time."""
     list_registries_response = schemas_api_caller.list_registries(next_token, PAGE_LIMIT)
     registries = list_registries_response["registries"]
 
@@ -177,7 +177,7 @@ def _construct_cli_page(items, item_per_page):
 
 
 def get_schemas_template_parameter(schema_template_details):
-    """ Schemas cookiecutter template parameter mapping """
+    """Schemas cookiecutter template parameter mapping"""
     return {
         SCHEMAS_REGISTRY: schema_template_details["registry_name"],
         SCHEMA_NAME: schema_template_details["schema_root_name"],

@@ -1,11 +1,13 @@
 """ResourceTrigger Classes for Creating PathHandlers According to a Resource"""
 import re
+import platform
+
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 
 from typing_extensions import Protocol
-from watchdog.events import FileSystemEvent, PatternMatchingEventHandler, RegexMatchingEventHandler
+from watchdog.events import FileSystemEvent, RegexMatchingEventHandler
 
 from samcli.lib.providers.exceptions import MissingCodeUri, MissingLocalDefinition
 from samcli.lib.providers.provider import Function, LayerVersion, ResourceIdentifier, Stack, get_resource_by_id
@@ -15,6 +17,9 @@ from samcli.lib.utils.definition_validator import DefinitionValidator
 from samcli.lib.utils.path_observer import PathHandler
 from samcli.local.lambdafn.exceptions import FunctionNotFound, ResourceNotFound
 from samcli.lib.utils.resources import RESOURCES_WITH_LOCAL_PATHS
+
+
+AWS_SAM_FOLDER_REGEX = "^.*\\.aws-sam.*$"
 
 
 class OnChangeCallback(Protocol):
@@ -58,19 +63,25 @@ class ResourceTrigger(ABC):
         """
         file_path = Path(file_path_str).resolve()
         folder_path = file_path.parent
+        case_sensitive = platform.system().lower() != "windows"
         file_handler = RegexMatchingEventHandler(
-            regexes=[f"^{re.escape(str(file_path))}$"], ignore_regexes=[], ignore_directories=True, case_sensitive=True
+            regexes=[f"^{re.escape(str(file_path))}$"],
+            ignore_regexes=[],
+            ignore_directories=True,
+            case_sensitive=case_sensitive,
         )
         return PathHandler(path=folder_path, event_handler=file_handler, recursive=False)
 
     @staticmethod
-    def get_dir_path_handler(dir_path_str: str) -> PathHandler:
+    def get_dir_path_handler(dir_path_str: str, ignore_regexes: Optional[List[str]] = None) -> PathHandler:
         """Get PathHandler for watching a single directory
 
         Parameters
         ----------
         dir_path_str : str
             Folder path in string
+        ignore_regexes : List[str], Optional
+            List of regexes that should be ignored
 
         Returns
         -------
@@ -78,8 +89,14 @@ class ResourceTrigger(ABC):
             The PathHandler for the folder specified
         """
         dir_path = Path(dir_path_str).resolve()
-        file_handler = PatternMatchingEventHandler(
-            patterns=["*"], ignore_patterns=[], ignore_directories=False, case_sensitive=True
+
+        case_sensitive = platform.system().lower() != "windows"
+
+        file_handler = RegexMatchingEventHandler(
+            regexes=["^.*$"],
+            ignore_regexes=ignore_regexes,
+            ignore_directories=False,
+            case_sensitive=case_sensitive,
         )
         return PathHandler(path=dir_path, event_handler=file_handler, recursive=True, static_folder=True)
 
@@ -201,7 +218,7 @@ class LambdaFunctionCodeTrigger(CodeResourceTrigger):
         List[PathHandler]
             PathHandlers for the code folder associated with the function
         """
-        dir_path_handler = ResourceTrigger.get_dir_path_handler(self._code_uri)
+        dir_path_handler = ResourceTrigger.get_dir_path_handler(self._code_uri, ignore_regexes=[AWS_SAM_FOLDER_REGEX])
         dir_path_handler.self_create = self._on_code_change
         dir_path_handler.self_delete = self._on_code_change
         dir_path_handler.event_handler.on_any_event = self._on_code_change
@@ -264,7 +281,7 @@ class LambdaLayerCodeTrigger(CodeResourceTrigger):
         List[PathHandler]
             PathHandlers for the code folder associated with the layer
         """
-        dir_path_handler = ResourceTrigger.get_dir_path_handler(self._code_uri)
+        dir_path_handler = ResourceTrigger.get_dir_path_handler(self._code_uri, ignore_regexes=[AWS_SAM_FOLDER_REGEX])
         dir_path_handler.self_create = self._on_code_change
         dir_path_handler.self_delete = self._on_code_change
         dir_path_handler.event_handler.on_any_event = self._on_code_change
