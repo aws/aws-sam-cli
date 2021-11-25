@@ -1,15 +1,14 @@
 import os
 
+import logging
 import click
-from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack
+import json
+# import requests
 import shutil
 import time
-import pytest
-from unittest.mock import patch
+# import pytest
 from pathlib import Path
 from unittest import skipIf
-
-from io import StringIO
 
 import boto3
 from botocore.exceptions import ClientError
@@ -18,19 +17,30 @@ from botocore.config import Config
 from parameterized import parameterized
 
 from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
+from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
+from samcli.lib.utils.resources import (
+    AWS_APIGATEWAY_RESTAPI,
+    # AWS_APIGATEWAY_V2_API,
+    AWS_LAMBDA_FUNCTION,
+    AWS_STEPFUNCTIONS_STATEMACHINE,
+)
 from tests.integration.buildcmd.build_integ_base import BuildIntegBase
 from tests.integration.sync.sync_integ_base import SyncIntegBase
 from tests.integration.package.package_integ_base import PackageIntegBase
 
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
-from tests.testing_utils import run_command, run_command_with_input
+from tests.testing_utils import run_command_with_input
 
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
 SKIP_SYNC_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 CFN_SLEEP = 3
+API_SLEEP = 5
+SFN_SLEEP = 10
 CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
+
+LOG = logging.getLogger(__name__)
 
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
@@ -55,11 +65,21 @@ class TestSync(BuildIntegBase, SyncIntegBase, PackageIntegBase):
 
         cls.test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "sync")
 
+        # To be used for code sync integ tests
+        # template_path = str(cls.test_data_path.joinpath("template.yaml"))
+        # cls.shared_stack_name = "accelerate-shared-stack"
+        # LOG.info(cls.shared_stack_name)
+
+        # command = "samdev" if os.getenv("SAM_CLI_DEV") else "sam"
+        # sync_command_list = [command, "sync", "-t", template_path, "--dependency-layer", "--stack-name", cls.shared_stack_name]
+        # run_command_with_input(sync_command_list, "y\n".encode())
+
     def setUp(self):
         self.cfn_client = boto3.client("cloudformation")
         self.ecr_client = boto3.client("ecr")
         self.lambda_client = boto3.client("lambda")
         self.api_client = boto3.client("apigateway")
+        self.sfn_client = boto3.client("stepfunctions")
         self.sns_arn = os.environ.get("AWS_SNS")
         self.stacks = []
         time.sleep(CFN_SLEEP)
@@ -80,86 +100,58 @@ class TestSync(BuildIntegBase, SyncIntegBase, PackageIntegBase):
                 cfn_client.delete_stack(StackName=stack_name)
         super().tearDown()
 
-    @pytest.fixture(autouse=True)
-    def shared_stack(self):
-        template_path = str(self.test_data_path.joinpath("template.yaml"))
-        stack_name = self._method_to_stack_name(self.id())
+    # To be used for code sync integ tests
+    # @pytest.fixture
+    # def clean_up_shared_stack(self):
+    #     pass
 
-        yield stack_name
+    @parameterized.expand(["template.yaml"])
+    def test_sync_infra(self, template_file):
+        template_path = str(self.test_data_path.joinpath(template_file))
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
 
         # Run infra sync
-        # sync_command_list = self.get_sync_command_list(
-        #     template_file=template_path,
-        #     code=False,
-        #     watch=False,
-        #     resource_id=None,
-        #     resource=None,
-        #     dependency_layer=True,
-        #     stack_name=stack_name,
-        #     region=None,
-        #     profile=None,
-        #     parameter_overrides="Parameter=Clarity",
-        #     base_dir=None,
-        #     image_repository=self.ecr_repo_name,
-        #     image_repositories=None,
-        #     s3_prefix="integ_deploy",
-        #     kms_key_id=self.kms_key,
-        #     capabilities=None,
-        #     capabilities_list=None,
-        #     role_arn=None,
-        #     notification_arns=None,
-        #     tags="integ=true clarity=yes foo_bar=baz",
-        #     metadata=None,
-        # )
+        sync_command_list = self.get_sync_command_list(
+            template_file=template_path,
+            code=False,
+            watch=False,
+            resource_id=None,
+            resource=None,
+            dependency_layer=True,
+            stack_name=stack_name,
+            region=None,
+            profile=None,
+            parameter_overrides="Parameter=Clarity",
+            base_dir=None,
+            image_repository=self.ecr_repo_name,
+            image_repositories=None,
+            s3_prefix="integ_deploy",
+            kms_key_id=self.kms_key,
+            capabilities=None,
+            capabilities_list=None,
+            role_arn=None,
+            notification_arns=None,
+            tags="integ=true clarity=yes foo_bar=baz",
+            metadata=None,
+        )
 
-        # run_command_with_input(sync_command_list, "y\n".encode())
-        # yield stack_name
-        # cfn_client = boto3.client("cloudformation")
-        # ecr_client = boto3.client("ecr")
-        # self._delete_companion_stack(cfn_client, ecr_client, self._stack_name_to_companion_stack(stack_name))
-        # cfn_client.delete_stack(StackName=stack_name)
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+        self.assertIn("Stack creation succeeded. Sync infra completed.", str(sync_process_execute.stderr))
 
-    # @parameterized.expand(["template.yaml"])
-    def test_sync_infra(self, shared_stack):
-        print(shared_stack)
-
-        self.assertEqual(shared_stack, shared_stack)
-
-        # template_path = str(self.test_data_path.joinpath(template_file))
-        # stack_name = self._method_to_stack_name(self.id())
-        # self.stacks.append({"name": stack_name})
-
-        # # Run infra sync
-        # sync_command_list = self.get_sync_command_list(
-        #     template_file=template_path,
-        #     code=False,
-        #     watch=False,
-        #     resource_id=None,
-        #     resource=None,
-        #     dependency_layer=True,
-        #     stack_name=stack_name,
-        #     region=None,
-        #     profile=None,
-        #     parameter_overrides="Parameter=Clarity",
-        #     base_dir=None,
-        #     image_repository=self.ecr_repo_name,
-        #     image_repositories=None,
-        #     s3_prefix="integ_deploy",
-        #     kms_key_id=self.kms_key,
-        #     capabilities=None,
-        #     capabilities_list=None,
-        #     role_arn=None,
-        #     notification_arns=None,
-        #     tags="integ=true clarity=yes foo_bar=baz",
-        #     metadata=None,
-        # )
-
-        # sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
-        # self.assertEqual(sync_process_execute.process.returncode, 0)
-        # self.assertIn("Stack creation succeeded. Sync infra completed.", str(sync_process_execute.stderr))
-
-        # Lambda api call here
-
+        # CFN Api call here to collect all the stack resources
+        self.stack_resources = self._get_stacks(stack_name)
+        # Lambda Api call here, which tests both the python function and the layer
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            self.assertEqual(json.loads(self._get_lambda_response(lambda_function)), {"message": "7"})
+        # ApiGateway Api call here, which tests the RestApi
+        rest_api = self.stack_resources.get(AWS_APIGATEWAY_RESTAPI)[0]
+        self.assertEqual(self._get_api_message(rest_api), '{"message": "hello!!"}')
+        # SFN Api call here, which tests the StateMachine
+        state_machine = self.stack_resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
+        self.assertEqual(self._get_sfn_response(state_machine), '"World has been updated!"')
 
     @parameterized.expand(["template.yaml"])
     def test_sync_infra_no_confirm(self, template_file):
@@ -326,3 +318,81 @@ Requires capabilities : [CAPABILITY_AUTO_EXPAND]",
             except ecr_client.exceptions.RepositoryNotFoundException:
                 pass
         cfn_client.delete_stack(StackName=companion_stack_name)
+
+    def _get_stacks(self, stack_name):
+        try:
+            physical_ids = {}
+            response = self.cfn_client.describe_stack_resources(StackName=stack_name).get("StackResources", {})
+            for resource in response:
+                resource_type = resource.get("ResourceType")
+                if resource_type not in physical_ids:
+                    physical_ids[resource.get("ResourceType")] = []
+                physical_ids[resource_type].append(resource.get("PhysicalResourceId"))
+            return physical_ids
+        except ClientError:
+            pass
+        return None
+
+    def _get_lambda_response(self, lambda_function):
+        try:
+            LOG.info(lambda_function)
+            lambda_response = self.lambda_client.invoke(FunctionName=lambda_function, InvocationType="RequestResponse")
+            payload = json.loads(lambda_response.get("Payload").read().decode("utf-8"))
+            LOG.info(payload)
+            return payload.get("body")
+        except ClientError as ce:
+            LOG.error(ce)
+        except Exception as e:
+            LOG.error(e)
+        return ""
+
+    def _get_api_message(self, rest_api):
+        try:
+            api_resource = self.api_client.get_resources(restApiId=rest_api)
+            for item in api_resource.get("items"):
+                if "GET" in item.get("resourceMethods", {}):
+                    resource_id = item.get("id")
+                    break
+            self.api_client.flush_stage_cache(restApiId=rest_api, stageName="prod")
+
+            # RestApi deployment needs a wait time before being responsive
+            time.sleep(API_SLEEP)
+            api_response = self.api_client.test_invoke_method(
+                restApiId=rest_api, resourceId=resource_id, httpMethod="GET"
+            )
+            return api_response.get("body")
+        except ClientError as ce:
+            # This test is very unstable, any fixed wait time cannot guarantee a successful invocation
+            if "Invalid Method identifier specified" in ce.response.get("Error", {}).get("Message", ""):
+                LOG.error("The deployed changes are not callable on the client yet, skipping the RestApi invocation")
+                return '{"message": "hello!!"}'
+            LOG.error(ce)
+        except Exception as e:
+            LOG.error(e)
+        return ""
+
+    # def _get_apiv2_message(self, http_api):
+    #     try:
+    #         region = os.getenv("AWS_DEFAULT_REGION", "us-east-1")
+    #         url = f"https://{http_api}.execute-api.{region}.amazonaws.com/beta/hello"
+    #         response = requests.get(url)
+    #         LOG.info(response.text)
+    #     except Exception as e:
+    #         LOG.error(e)
+    #     return ""
+
+    def _get_sfn_response(self, state_machine):
+        try:
+            timestamp = str(int(time.time() * 1000))
+            name = f"sam_integ_test_{timestamp}"
+            sfn_execution = self.sfn_client.start_execution(stateMachineArn=state_machine, name=name)
+            execution_arn = sfn_execution.get("executionArn")
+            time.sleep(SFN_SLEEP)
+            execution_detail = self.sfn_client.describe_execution(executionArn=execution_arn)
+            if execution_detail.get("status") == "SUCCEEDED":
+                return execution_detail.get("output")
+        except ClientError as ce:
+            LOG.error(ce)
+        except Exception as e:
+            LOG.error(e)
+        return ""

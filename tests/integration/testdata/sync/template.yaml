@@ -46,3 +46,25 @@ Resources:
       Policies:
         - LambdaInvokePolicy:
             FunctionName: !Ref HelloWorldFunction
+
+  HelloWorldRubyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      AutoPublishAlias: Hello1Alias
+      CodeUri: Ruby/function/
+      Handler: app.lambda_handler
+      Runtime: ruby2.7
+      Tracing: Active
+      Layers:
+        - !Ref HelloWorldRubyLayer
+
+  HelloWorldRubyLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: HelloWorldRubyLayer
+      Description: Hello World Ruby Layer
+      ContentUri: Ruby/layer/
+      CompatibleRuntimes:
+        - ruby2.7
+    Metadata:
+      BuildMethod: ruby2.7

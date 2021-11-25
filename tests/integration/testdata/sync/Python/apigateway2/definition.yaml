@@ -17,7 +17,7 @@ paths:
         type: none
       x-amazon-apigateway-integration:
         type: aws_proxy
-        credentials: arn:aws:iam::777951602514:role/Test-ApiGatewayTest
-        uri: arn:aws:lambda:us-east-1:777951602514:function:Test-HelloWorldFunction-hRIoA4z3oUO4
+        uri: 
+          Fn::Sub: ${HelloWorldFunction.Arn}
         httpMethod : POST
         payloadFormatVersion: 2.0
