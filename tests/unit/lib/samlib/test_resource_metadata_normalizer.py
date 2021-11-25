@@ -94,7 +94,7 @@ class TestResourceMeatadataNormalizer(TestCase):
 
         ResourceMetadataNormalizer.normalize(template_data)
 
-        expected_docker_context_path = "C:\\path\\to\\asset/rel/path/to"
+        expected_docker_context_path = str(pathlib.Path("C:\\path\\to\\asset").joinpath(pathlib.Path("rel/path/to")))
         self.assertEqual("function1", template_data["Resources"]["Function1"]["Properties"]["Code"]["ImageUri"])
         self.assertEqual(
             expected_docker_context_path, template_data["Resources"]["Function1"]["Metadata"]["DockerContext"]
