@@ -293,11 +293,13 @@ class CloudAssemblyStack:
         return None
 
     def _extract_assets(self) -> None:
-        for item in self.metadata.get(f"/{self.stack_name}", {}):
-            assert "type" in item
-            if item["type"] == ASSET_TYPE:
-                self._assets_by_id[item["data"]["id"]] = item["data"]
-                self._assets_by_path[item["data"]["path"]] = item["data"]
+        for key in self.metadata.keys():
+            items = self.metadata.get(key)
+            for item in items:
+                assert "type" in item
+                if item["type"] == ASSET_TYPE:
+                    self._assets_by_id[item["data"]["id"]] = item["data"]
+                    self._assets_by_path[item["data"]["path"]] = item["data"]
 
     def _update_resources_paths(self) -> None:
         update_relative_paths(self.template, self.source_directory, self.directory, skip_assets=True)
