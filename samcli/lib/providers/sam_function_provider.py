@@ -20,6 +20,9 @@ from .sam_stack_provider import SamLocalStackProvider
 
 LOG = logging.getLogger(__name__)
 
+METADATA_KEY = "Metadata"
+CDK_PATH_KEY = "aws:cdk:path"
+
 
 class SamFunctionProvider(SamBaseProvider):
     """
@@ -78,23 +81,42 @@ class SamFunctionProvider(SamBaseProvider):
         if not name:
             raise ValueError("Function name is required")
 
-        # support lookup by full_path
+        get_f = None
+
         if name in self.functions:
-            return self.functions.get(name)
+            # support lookup by full_path
+            get_f = self.functions.get(name)
 
-        for f in self.get_all():
-            if name in (f.name, f.functionname):
-                self._deprecate_notification(f.runtime)
-                return f
+        if not get_f:
+            # If function is not found by full path, search through all functions
+            found_fs = []
+            for f in self.get_all():
+                if name in (f.function_id, f.name, f.functionname):
+                    found_fs.append(f)
+            if len(found_fs) > 1:
+                LOG.warning(
+                    "Multiple functions found with keyword %s! Function %s will be invoked! "
+                    "If it's not the function you are going to invoke,"
+                    "please choose one of them from below:",
+                    name,
+                    found_fs[0].full_path,
+                )
+                for found_f in found_fs:
+                    LOG.warning(found_f.full_path)
+                get_f = found_fs[0]
+            elif len(found_fs) == 1:
+                get_f = found_fs[0]
+        if get_f:
+            self._deprecate_notification(get_f.runtime)
 
-        return None
+        return get_f
 
     def _deprecate_notification(self, runtime: Optional[str]) -> None:
         if runtime in self._deprecated_runtimes:
             message = (
                 f"WARNING: {runtime} is no longer supported by AWS Lambda, "
                 "please update to a newer supported runtime. SAM CLI "
-                f"will drop support for all deprecated runtimes {self._deprecated_runtimes} on May 1st. "
+                f"will drop support for all deprecated runtimes {self._deprecated_runtimes} on May 1st, 2020. "
                 "See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
             )
             LOG.warning(self._colored.yellow(message))
@@ -222,6 +244,7 @@ class SamFunctionProvider(SamBaseProvider):
         codeuri: Optional[str] = SamFunctionProvider.DEFAULT_CODEURI
         inlinecode = resource_properties.get("InlineCode")
         imageuri = None
+        function_id = SamFunctionProvider._get_function_id(resource_properties, name)
         packagetype = resource_properties.get("PackageType", ZIP)
         if packagetype == ZIP:
             if inlinecode:
@@ -235,12 +258,48 @@ class SamFunctionProvider(SamBaseProvider):
             LOG.debug("Found Serverless function with name='%s' and ImageUri='%s'", name, imageuri)
 
         return SamFunctionProvider._build_function_configuration(
-            stack, name, codeuri, resource_properties, layers, inlinecode, imageuri, use_raw_codeuri
+            stack, function_id, name, codeuri, resource_properties, layers, inlinecode, imageuri, use_raw_codeuri
         )
 
     @staticmethod
+    def _get_function_id(resource_properties: Dict, logical_id: str) -> str:
+        """
+        Get unique id for Function resource.
+        For CFN/SAM project, this function id is the logical id.
+        For CDK project, this function id is the user-defined resource id, or the logical id if the resource id is not
+        found.
+
+        Parameters
+        ----------
+        resource_properties str
+            Properties of this resource
+        logical_id str
+            LogicalID of the resource
+
+        Returns
+        -------
+        str
+            The unique function id
+        """
+        resource_cdk_path = resource_properties.get(METADATA_KEY, {}).get(CDK_PATH_KEY)
+        if not isinstance(resource_cdk_path, str) or not resource_cdk_path:
+            return logical_id
+        # aws:cdk:path metadata format: {stack_id}/{function_id}/Resource
+        cdk_path_partitions = resource_cdk_path.split("/")
+        if len(cdk_path_partitions) < 2:
+            LOG.warning(
+                "Cannot detect function id from aws:cdk:path metadata '%s', using default logical id", resource_cdk_path
+            )
+            return logical_id
+        return cdk_path_partitions[-2]
+
+    @staticmethod
     def _convert_lambda_function_resource(
-        stack: Stack, name: str, resource_properties: Dict, layers: List[LayerVersion], use_raw_codeuri: bool = False
+        stack: Stack,
+        name: str,
+        resource_properties: Dict,
+        layers: List[LayerVersion],
+        use_raw_codeuri: bool = False,
     ) -> Function:
         """
         Converts a AWS::Lambda::Function resource to a Function configuration usable by the provider.
@@ -267,6 +326,7 @@ class SamFunctionProvider(SamBaseProvider):
         codeuri: Optional[str] = SamFunctionProvider.DEFAULT_CODEURI
         inlinecode = None
         imageuri = None
+        function_id = SamFunctionProvider._get_function_id(resource_properties, name)
         packagetype = resource_properties.get("PackageType", ZIP)
         if packagetype == ZIP:
             if (
@@ -285,12 +345,13 @@ class SamFunctionProvider(SamBaseProvider):
             LOG.debug("Found Lambda function with name='%s' and Imageuri='%s'", name, imageuri)
 
         return SamFunctionProvider._build_function_configuration(
-            stack, name, codeuri, resource_properties, layers, inlinecode, imageuri, use_raw_codeuri
+            stack, function_id, name, codeuri, resource_properties, layers, inlinecode, imageuri, use_raw_codeuri
         )
 
     @staticmethod
     def _build_function_configuration(
         stack: Stack,
+        function_id: str,
         name: str,
         codeuri: Optional[str],
         resource_properties: Dict,
@@ -306,6 +367,8 @@ class SamFunctionProvider(SamBaseProvider):
         ----------
         name str
             LogicalID of the resource NOTE: This is *not* the function name because not all functions declare a name
+        function_id str
+            Unique function id
         codeuri str
             Representing the local code path
         resource_properties dict
@@ -337,6 +400,7 @@ class SamFunctionProvider(SamBaseProvider):
 
         return Function(
             stack_path=stack.stack_path,
+            function_id=function_id,
             name=name,
             functionname=resource_properties.get("FunctionName", name),
             packagetype=resource_properties.get("PackageType", ZIP),

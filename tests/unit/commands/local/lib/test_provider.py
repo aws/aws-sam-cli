@@ -60,6 +60,7 @@ class TestFunction(TestCase):
         super().setUp()
         self.function = Function(
             "name",
+            "name",
             "functionname",
             "runtime",
             10,

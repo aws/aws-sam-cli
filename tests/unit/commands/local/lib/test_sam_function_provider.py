@@ -234,6 +234,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "SamFunc1",
                 Function(
+                    function_id="SamFunctions",
                     name="SamFunctions",
                     functionname="SamFunc1",
                     runtime="nodejs4.3",
@@ -258,6 +259,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "SamFuncWithInlineCode",
                 Function(
+                    function_id="SamFuncWithInlineCode",
                     name="SamFuncWithInlineCode",
                     functionname="SamFuncWithInlineCode",
                     runtime="nodejs4.3",
@@ -282,6 +284,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "SamFunctions",
                 Function(
+                    function_id="SamFunctions",
                     name="SamFunctions",
                     functionname="SamFunc1",
                     runtime="nodejs4.3",
@@ -308,6 +311,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "SamFuncWithImage1",
                 Function(
+                    function_id="SamFuncWithImage1",
                     name="SamFuncWithImage1",
                     functionname="SamFuncWithImage1",
                     runtime=None,
@@ -336,6 +340,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "SamFuncWithImage2",
                 Function(
+                    function_id="SamFuncWithImage2",
                     name="SamFuncWithImage2",
                     functionname="SamFuncWithImage2",
                     runtime=None,
@@ -365,6 +370,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "SamFuncWithImage4",  # despite imageuri is ecr location, the necessary metadata is still provided, build
                 Function(
+                    function_id="SamFuncWithImage4",
                     name="SamFuncWithImage4",
                     functionname="SamFuncWithImage4",
                     runtime=None,
@@ -393,6 +399,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "SamFuncWithFunctionNameOverride-x",
                 Function(
+                    function_id="SamFuncWithFunctionNameOverride",
                     name="SamFuncWithFunctionNameOverride",
                     functionname="SamFuncWithFunctionNameOverride-x",
                     runtime="nodejs4.3",
@@ -418,6 +425,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "LambdaFuncWithImage1",
                 Function(
+                    function_id="LambdaFuncWithImage1",
                     name="LambdaFuncWithImage1",
                     functionname="LambdaFuncWithImage1",
                     runtime=None,
@@ -446,6 +454,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "LambdaFuncWithImage2",
                 Function(
+                    function_id="LambdaFuncWithImage2",
                     name="LambdaFuncWithImage2",
                     functionname="LambdaFuncWithImage2",
                     runtime=None,
@@ -475,6 +484,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "LambdaFuncWithImage4",  # despite imageuri is ecr location, the necessary metadata is still provided, build
                 Function(
+                    function_id="LambdaFuncWithImage4",
                     name="LambdaFuncWithImage4",
                     functionname="LambdaFuncWithImage4",
                     runtime=None,
@@ -503,6 +513,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "LambdaFuncWithInlineCode",
                 Function(
+                    function_id="LambdaFuncWithInlineCode",
                     name="LambdaFuncWithInlineCode",
                     functionname="LambdaFuncWithInlineCode",
                     runtime="nodejs4.3",
@@ -527,6 +538,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "LambdaFuncWithLocalPath",
                 Function(
+                    function_id="LambdaFuncWithLocalPath",
                     name="LambdaFuncWithLocalPath",
                     functionname="LambdaFuncWithLocalPath",
                     runtime="nodejs4.3",
@@ -551,6 +563,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "LambdaFuncWithFunctionNameOverride-x",
                 Function(
+                    function_id="LambdaFuncWithFunctionNameOverride",
                     name="LambdaFuncWithFunctionNameOverride",
                     functionname="LambdaFuncWithFunctionNameOverride-x",
                     runtime="nodejs4.3",
@@ -575,6 +588,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "LambdaFuncWithCodeSignConfig",
                 Function(
+                    function_id="LambdaFuncWithCodeSignConfig",
                     name="LambdaFuncWithCodeSignConfig",
                     functionname="LambdaFuncWithCodeSignConfig",
                     runtime="nodejs4.3",
@@ -599,6 +613,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 posixpath.join("ChildStack", "SamFunctionsInChild"),
                 Function(
+                    function_id="SamFunctionsInChild",
                     name="SamFunctionsInChild",
                     functionname="SamFunctionsInChildName",
                     runtime="nodejs4.3",
@@ -623,6 +638,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 posixpath.join("ChildStack", "SamFunctionsInChildAbsPath"),
                 Function(
+                    function_id="SamFunctionsInChildAbsPath",
                     name="SamFunctionsInChildAbsPath",
                     functionname="SamFunctionsInChildAbsPathName",
                     runtime="nodejs4.3",
@@ -647,6 +663,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 posixpath.join("ChildStack", "SamImageFunctionsInChild"),
                 Function(
+                    function_id="SamImageFunctionsInChild",
                     name="SamImageFunctionsInChild",
                     functionname="SamImageFunctionsInChild",
                     runtime=None,
@@ -859,6 +876,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         }
 
         expected = Function(
+            function_id="myname",
             name="myname",
             functionname="myname",
             runtime="myruntime",
@@ -900,6 +918,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         }
 
         expected = Function(
+            function_id="myname",
             name="myname",
             functionname="myname",
             runtime="myruntime",
@@ -931,6 +950,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         properties = {"CodeUri": "/usr/local"}
 
         expected = Function(
+            function_id="myname",
             name="myname",
             functionname="myname",
             runtime=None,
@@ -977,6 +997,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         }
 
         expected = Function(
+            function_id="myname",
             name="myname",
             functionname="myname",
             runtime="myruntime",
@@ -1016,6 +1037,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         }
 
         expected = Function(
+            function_id="myname",
             name="myname",
             functionname="myname",
             runtime="myruntime",
@@ -1071,6 +1093,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
         }
 
         expected = Function(
+            function_id="myname",
             name="myname",
             functionname="myname",
             runtime="myruntime",
@@ -1110,6 +1133,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
         }
 
         expected = Function(
+            function_id="myname",
             name="myname",
             functionname="myname",
             runtime="myruntime",
@@ -1141,6 +1165,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
         properties = {"Code": {"Bucket": "bucket"}}
 
         expected = Function(
+            function_id="myname",
             name="myname",
             functionname="myname",
             runtime=None,
@@ -1253,6 +1278,7 @@ class TestSamFunctionProvider_get(TestCase):
         provider = SamFunctionProvider([])
         # Cheat a bit here by setting the value of this property directly
         function = Function(
+            function_id="not-value",
             name="not-value",
             functionname="value",
             runtime=None,

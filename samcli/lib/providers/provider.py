@@ -29,6 +29,8 @@ class Function(NamedTuple):
     Named Tuple to representing the properties of a Lambda Function
     """
 
+    # Function id, can be Logical ID or any function identifier to define a function in specific IaC
+    function_id: str
     # Function name or logical ID
     name: str
     # Function name (used in place of logical ID)
@@ -79,7 +81,7 @@ class Function(NamedTuple):
             "HelloWorldFunction"
             "ChildStackA/GrandChildStackB/AFunctionInNestedStack"
         """
-        return get_full_path(self.stack_path, self.name)
+        return get_full_path(self.stack_path, self.function_id)
 
     def get_build_dir(self, build_root_dir: str) -> str:
         """

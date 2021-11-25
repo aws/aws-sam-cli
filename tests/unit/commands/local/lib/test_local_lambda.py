@@ -223,6 +223,7 @@ class TestLocalLambda_make_env_vars(TestCase):
 
         function = Function(
             stack_path="",
+            function_id="function_name",
             name="function_name",
             functionname="function_name",
             runtime="runtime",
@@ -273,6 +274,7 @@ class TestLocalLambda_make_env_vars(TestCase):
 
         function = Function(
             stack_path="",
+            function_id="function_name",
             name="function_name",
             functionname="function_name",
             runtime="runtime",
@@ -313,6 +315,7 @@ class TestLocalLambda_make_env_vars(TestCase):
 
         function = Function(
             stack_path="",
+            function_id="function_name",
             name="function_name",
             functionname="function_name",
             runtime="runtime",
@@ -389,6 +392,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
 
         function = Function(
             stack_path="",
+            function_id="function_name",
             name="function_name",
             functionname="function_name",
             runtime="runtime",
@@ -452,6 +456,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
 
         function = Function(
             stack_path=Mock(),
+            function_id="function_name",
             name="function_name",
             functionname="function_name",
             runtime="runtime",
