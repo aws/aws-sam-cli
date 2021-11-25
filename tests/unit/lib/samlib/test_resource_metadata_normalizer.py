@@ -1,5 +1,5 @@
+import pathlib
 from unittest import TestCase
-import os
 
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 
@@ -40,12 +40,16 @@ class TestResourceMeatadataNormalizer(TestCase):
 
     def test_replace_all_resources_that_contain_image_metadata(self):
         docker_build_args = {"arg1": "val1", "arg2": "val2"}
-        asset_path = os.path.join("/path", "to", "asset")
-        dockerfile_path = os.path.join("path", "to", "Dockerfile")
+        asset_path = pathlib.Path("/path", "to", "asset")
+        dockerfile_path = pathlib.Path("path", "to", "Dockerfile")
         template_data = {
             "Resources": {
                 "Function1": {
-                    "Properties": {"Code": "some value"},
+                    "Properties": {
+                        "Code": {
+                            "ImageUri": "Some Value",
+                        }
+                    },
                     "Metadata": {
                         "aws:asset:path": asset_path,
                         "aws:asset:property": "Code.ImageUri",
@@ -58,7 +62,39 @@ class TestResourceMeatadataNormalizer(TestCase):
 
         ResourceMetadataNormalizer.normalize(template_data)
 
-        expected_docker_context_path = os.path.join("/path", "to", "asset", "path", "to")
+        expected_docker_context_path = str(pathlib.Path("/path", "to", "asset", "path", "to"))
+        self.assertEqual("function1", template_data["Resources"]["Function1"]["Properties"]["Code"]["ImageUri"])
+        self.assertEqual(
+            expected_docker_context_path, template_data["Resources"]["Function1"]["Metadata"]["DockerContext"]
+        )
+        self.assertEqual("Dockerfile", template_data["Resources"]["Function1"]["Metadata"]["Dockerfile"])
+        self.assertEqual(docker_build_args, template_data["Resources"]["Function1"]["Metadata"]["DockerBuildArgs"])
+
+    def test_replace_all_resources_that_contain_image_metadata_windows_paths(self):
+        docker_build_args = {"arg1": "val1", "arg2": "val2"}
+        asset_path = "C:\\path\\to\\asset"
+        dockerfile_path = "rel/path/to/Dockerfile"
+        template_data = {
+            "Resources": {
+                "Function1": {
+                    "Properties": {
+                        "Code": {
+                            "ImageUri": "Some Value",
+                        }
+                    },
+                    "Metadata": {
+                        "aws:asset:path": asset_path,
+                        "aws:asset:property": "Code.ImageUri",
+                        "aws:asset:dockerfile-path": dockerfile_path,
+                        "aws:asset:docker-build-args": docker_build_args,
+                    },
+                },
+            }
+        }
+
+        ResourceMetadataNormalizer.normalize(template_data)
+
+        expected_docker_context_path = "C:\\path\\to\\asset/rel/path/to"
         self.assertEqual("function1", template_data["Resources"]["Function1"]["Properties"]["Code"]["ImageUri"])
         self.assertEqual(
             expected_docker_context_path, template_data["Resources"]["Function1"]["Metadata"]["DockerContext"]

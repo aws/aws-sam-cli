@@ -3,7 +3,7 @@ Class that Normalizes a Template based on Resource Metadata
 """
 
 import logging
-import os
+import pathlib
 
 RESOURCES_KEY = "Resources"
 PROPERTIES_KEY = "Properties"
@@ -102,9 +102,10 @@ class ResourceMetadataNormalizer:
             metadata properties for image-type lambda function
 
         """
-        path_from_asset, dockerfile = os.path.split(metadata.get(ASSET_DOCKERFILE_PATH_KEY))
-        asset_path = metadata.get(ASSET_PATH_METADATA_KEY)
-        dockerfile_context = os.path.join(asset_path, path_from_asset)
+        asset_path = pathlib.Path(metadata.get(ASSET_PATH_METADATA_KEY, ""))
+        dockerfile_path = pathlib.Path(metadata.get(ASSET_DOCKERFILE_PATH_KEY), "")
+        dockerfile, path_from_asset = dockerfile_path.stem, dockerfile_path.parent
+        dockerfile_context = str(pathlib.Path(asset_path.joinpath(path_from_asset)))
         return {
             SAM_METADATA_DOCKERFILE_KEY: dockerfile,
             SAM_METADATA_DOCKER_CONTEXT_KEY: dockerfile_context,
