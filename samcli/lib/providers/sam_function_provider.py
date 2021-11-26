@@ -20,9 +20,6 @@ from .sam_stack_provider import SamLocalStackProvider
 
 LOG = logging.getLogger(__name__)
 
-METADATA_KEY = "Metadata"
-CDK_PATH_KEY = "aws:cdk:path"
-
 
 class SamFunctionProvider(SamBaseProvider):
     """
@@ -89,11 +86,17 @@ class SamFunctionProvider(SamBaseProvider):
 
         if not get_f:
             # If function is not found by full path, search through all functions
+
             found_fs = []
+
             for f in self.get_all():
                 if name in (f.function_id, f.name, f.functionname):
                     found_fs.append(f)
+
+            # If multiple functions are found, only return one of them
             if len(found_fs) > 1:
+                found_fs.sort(key=lambda f0: f0.full_path.lower())
+
                 LOG.warning(
                     "Multiple functions found with keyword %s! Function %s will be invoked! "
                     "If it's not the function you are going to invoke,"
@@ -101,11 +104,15 @@ class SamFunctionProvider(SamBaseProvider):
                     name,
                     found_fs[0].full_path,
                 )
+
                 for found_f in found_fs:
                     LOG.warning(found_f.full_path)
+
                 get_f = found_fs[0]
+
             elif len(found_fs) == 1:
                 get_f = found_fs[0]
+
         if get_f:
             self._deprecate_notification(get_f.runtime)
 
@@ -281,16 +288,20 @@ class SamFunctionProvider(SamBaseProvider):
         str
             The unique function id
         """
-        resource_cdk_path = resource_properties.get(METADATA_KEY, {}).get(CDK_PATH_KEY)
+        resource_cdk_path = resource_properties.get("Metadata", {}).get("aws:cdk:path")
+
         if not isinstance(resource_cdk_path, str) or not resource_cdk_path:
             return logical_id
+
         # aws:cdk:path metadata format: {stack_id}/{function_id}/Resource
         cdk_path_partitions = resource_cdk_path.split("/")
+
         if len(cdk_path_partitions) < 2:
             LOG.warning(
                 "Cannot detect function id from aws:cdk:path metadata '%s', using default logical id", resource_cdk_path
             )
             return logical_id
+
         return cdk_path_partitions[-2]
 
     @staticmethod

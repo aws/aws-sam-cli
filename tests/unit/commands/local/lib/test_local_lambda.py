@@ -2,6 +2,7 @@
 Testing local lambda runner
 """
 import os
+import posixpath
 from platform import architecture
 from unittest import TestCase
 from unittest.mock import Mock, patch
@@ -205,8 +206,12 @@ class TestLocalLambda_make_env_vars(TestCase):
 
     @parameterized.expand(
         [
-            # Override for the function exists
-            ({"function_name": {"a": "b"}}, {"a": "b"}),
+            # Override for the function_id exists
+            ({"function_id": {"a": "b"}}, {"a": "b"}),
+            # Override for the logical_id exists
+            ({"logical_id": {"a": "c"}}, {"a": "c"}),
+            # Override for the full_path exists
+            ({posixpath.join("somepath", "function_id"): {"a": "d"}}, {"a": "d"}),
             # Override for the function does *not* exist
             ({"otherfunction": {"c": "d"}}, None),
             # Using a CloudFormation parameter file format
@@ -222,9 +227,9 @@ class TestLocalLambda_make_env_vars(TestCase):
         os_mock.environ = os_environ
 
         function = Function(
-            stack_path="",
-            function_id="function_name",
-            name="function_name",
+            stack_path="somepath",
+            function_id="function_id",
+            name="logical_id",
             functionname="function_name",
             runtime="runtime",
             memory=1234,
@@ -435,6 +440,8 @@ class TestLocalLambda_get_invoke_config(TestCase):
 
         resolve_code_path_patch.assert_called_with(self.cwd, function.codeuri)
         self.local_lambda._make_env_vars.assert_called_with(function)
+
+
 
     @patch("samcli.commands.local.lib.local_lambda.resolve_code_path")
     @patch("samcli.commands.local.lib.local_lambda.LocalLambdaRunner.is_debugging")
