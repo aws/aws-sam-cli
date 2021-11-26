@@ -7,6 +7,7 @@ import click
 
 from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
+from samcli.commands._utils.experimental import unsupported_command_cdk
 from samcli.commands._utils.options import (
     capabilities_option,
     guided_deploy_stack_name,
@@ -127,6 +128,7 @@ LOG = logging.getLogger(__name__)
 @track_command
 @check_newer_version
 @print_cmdline_args
+@unsupported_command_cdk
 def cli(
     ctx,
     template_file,

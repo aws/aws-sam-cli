@@ -451,6 +451,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ("image",),
             )
 
+    @patch("samcli.commands._utils.template.get_template_data")
     @patch("samcli.lib.cli_validation.image_repository_validation.get_template_function_resource_ids")
     @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
     @patch("samcli.commands._utils.options.get_template_artifacts_format")
@@ -461,10 +462,12 @@ class TestSamConfigForAllCommands(TestCase):
         get_template_artifacts_format_mock,
         cli_validation_artifacts_format_mock,
         mock_get_template_function_resource_ids,
+        mock_get_template_function,
     ):
         mock_get_template_function_resource_ids.return_value = ["HelloWorldFunction"]
         cli_validation_artifacts_format_mock.return_value = [ZIP]
         get_template_artifacts_format_mock.return_value = [ZIP]
+        # mock_get_template_function.return_value = {}
         config_values = {
             "template_file": "mytemplate.yaml",
             "s3_bucket": "mybucket",

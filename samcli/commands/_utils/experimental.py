@@ -12,6 +12,8 @@ from samcli.cli.context import Context
 
 from samcli.cli.global_config import ConfigEntry, GlobalConfig
 from samcli.commands._utils.options import parameterized_option
+from samcli.commands._utils.template import get_template_data
+from samcli.lib.iac.cdk.utils import is_cdk_project
 from samcli.lib.utils.colors import Colored
 
 LOG = logging.getLogger(__name__)
@@ -228,3 +230,28 @@ def prompt_experimental(
         set_experimental(config_entry=config_entry, enabled=True)
         update_experimental_context()
     return confirmed
+
+
+def unsupported_command_cdk(func):
+    """
+    Log a warning message to the user if they attempt
+    to use a CDK template with an unsupported sam command
+
+    Parameters
+    ----------
+    func:
+        Click command function
+
+    """
+
+    @wraps(func)
+    def wrapped(*args, **kwargs):
+        template_dict = click.get_current_context().template_dict
+
+        if is_cdk_project(template_dict):
+            click.secho("Warning: CDK apps are not officially supported with this command.", fg="yellow")
+
+        actual_result = func(*args, **kwargs)
+        return actual_result
+
+    return wrapped
