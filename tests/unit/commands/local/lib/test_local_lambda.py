@@ -441,8 +441,6 @@ class TestLocalLambda_get_invoke_config(TestCase):
         resolve_code_path_patch.assert_called_with(self.cwd, function.codeuri)
         self.local_lambda._make_env_vars.assert_called_with(function)
 
-
-
     @patch("samcli.commands.local.lib.local_lambda.resolve_code_path")
     @patch("samcli.commands.local.lib.local_lambda.LocalLambdaRunner.is_debugging")
     @patch("samcli.commands.local.lib.local_lambda.FunctionConfig")
