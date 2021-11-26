@@ -21,10 +21,6 @@ def unsupported_command_cdk(alternative_command):
     """
 
     def decorator(func):
-        """
-        Actual decorator method with warning names
-        """
-
         def wrapped(*args, **kwargs):
             ctx = Context.get_current_context()
 
