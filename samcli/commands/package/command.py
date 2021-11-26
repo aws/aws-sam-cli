@@ -5,7 +5,7 @@ import click
 
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, aws_creds_options, print_cmdline_args
-from samcli.commands._utils.experimental import unsupported_command_cdk
+from samcli.commands._utils.cdk_support_decorators import unsupported_command_cdk
 from samcli.lib.cli_validation.image_repository_validation import image_repository_validation
 from samcli.commands._utils.options import (
     signing_profiles_option,
@@ -82,7 +82,7 @@ The following resources and their property locations are supported.
 @check_newer_version
 @track_template_warnings([CodeDeployWarning.__name__, CodeDeployConditionWarning.__name__])
 @print_cmdline_args
-@unsupported_command_cdk
+@unsupported_command_cdk(alternative_command=None)
 def cli(
     ctx,
     template_file,

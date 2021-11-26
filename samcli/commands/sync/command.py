@@ -6,6 +6,7 @@ from typing import List, Set, TYPE_CHECKING, Optional, Tuple
 import click
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
+from samcli.commands._utils.cdk_support_decorators import unsupported_command_cdk
 from samcli.commands._utils.options import (
     template_option_without_build,
     parameter_override_option,
@@ -48,7 +49,6 @@ from samcli.commands._utils.experimental import (
     is_experimental_enabled,
     set_experimental,
     update_experimental_context,
-    unsupported_command_cdk,
 )
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -140,10 +140,10 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @pass_context
 @track_command
 @image_repository_validation
-@unsupported_command_cdk
 @track_template_warnings([CodeDeployWarning.__name__, CodeDeployConditionWarning.__name__])
 @check_newer_version
 @print_cmdline_args
+@unsupported_command_cdk(alternative_command=None)
 def cli(
     ctx: Context,
     template_file: str,
