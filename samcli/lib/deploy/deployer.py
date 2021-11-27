@@ -15,6 +15,7 @@ Cloudformation deploy class which also streams events and changeset information
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+import os
 import sys
 import math
 from collections import OrderedDict
@@ -72,13 +73,18 @@ OUTPUTS_DEFAULTS_ARGS = OrderedDict({"Outputs": "Outputs"})
 
 OUTPUTS_TABLE_HEADER_NAME = "CloudFormation outputs from deployed stack"
 
+# 500ms of sleep time between stack checks and describe stack events.
+DEFAULT_CLIENT_SLEEP = 0.5
+
 
 class Deployer:
     def __init__(self, cloudformation_client, changeset_prefix="samcli-deploy"):
         self._client = cloudformation_client
         self.changeset_prefix = changeset_prefix
-        # 500ms of sleep time between stack checks and describe stack events.
-        self.client_sleep = 0.5
+        try:
+            self.client_sleep = int(os.getenv("SAM_CLI_DEPLOY_DESCRIBE_STACK_INTERVAL", str(DEFAULT_CLIENT_SLEEP)))
+        except ValueError:
+            self.client_sleep = DEFAULT_CLIENT_SLEEP
         # 2000ms of backoff time which is exponentially used, when there are exceptions during describe stack events
         self.backoff = 2
         # Maximum number of attempts before raising exception back up the chain.
