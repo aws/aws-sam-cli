@@ -9,7 +9,8 @@ from samtranslator.parser import parser
 from samtranslator.translator.translator import Translator
 from boto3.session import Session
 
-from samcli.lib.utils.packagetype import ZIP
+from samcli.lib.utils.packagetype import ZIP, IMAGE
+from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION
 from samcli.yamlhelper import yaml_dump
 from .exceptions import InvalidSamDocumentException
 
@@ -63,6 +64,7 @@ class SamTemplateValidator:
         )
 
         self._replace_local_codeuri()
+        self._replace_local_image()
 
         try:
             template = sam_translator.translate(sam_template=self.sam_template, parameter_values={})
@@ -119,6 +121,23 @@ class SamTemplateValidator:
             if resource_type == "AWS::Serverless::StateMachine":
                 if "DefinitionUri" in resource_dict:
                     SamTemplateValidator._update_to_s3_uri("DefinitionUri", resource_dict)
+
+    def _replace_local_image(self):
+        """
+        Adds fake ImageUri to AWS::Serverless::Functions that reference a local image using Metadata.
+        This ensures sam validate works without having to package the app or use ImageUri.
+        """
+        resources = self.sam_template.get("Resources", {})
+        for _, resource in resources.items():
+            resource_type = resource.get("Type")
+            properties = resource.get("Properties", {})
+
+            is_image_function = resource_type == AWS_SERVERLESS_FUNCTION and properties.get("PackageType") == IMAGE
+            is_local_image = resource.get("Metadata", {}).get("Dockerfile")
+
+            if is_image_function and is_local_image:
+                if "ImageUri" not in properties:
+                    properties["ImageUri"] = "111111111111.dkr.ecr.region.amazonaws.com/repository"
 
     @staticmethod
     def is_s3_uri(uri):

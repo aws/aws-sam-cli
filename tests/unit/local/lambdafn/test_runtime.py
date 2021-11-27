@@ -28,6 +28,7 @@ class LambdaRuntime_create(TestCase):
         self.imageuri = None
         self.packagetype = ZIP
         self.imageconfig = None
+        self.architecture = "x86_64"
         self.func_config = FunctionConfig(
             self.name,
             self.lang,
@@ -37,6 +38,7 @@ class LambdaRuntime_create(TestCase):
             self.packagetype,
             self.code_path,
             self.layers,
+            self.architecture,
         )
 
         self.env_vars = Mock()
@@ -78,11 +80,13 @@ class LambdaRuntime_create(TestCase):
             code_dir,
             self.layers,
             lambda_image_mock,
+            self.architecture,
             debug_options=debug_options,
             env_vars=self.env_var_value,
             memory_mb=self.DEFAULT_MEMORY,
             container_host=None,
             container_host_interface=None,
+            function_name=self.name,
         )
         # Run the container and get results
         self.manager_mock.create.assert_called_with(container)
@@ -124,6 +128,7 @@ class LambdaRuntime_run(TestCase):
         self.imageuri = None
         self.packagetype = ZIP
         self.imageconfig = None
+        self.architecture = "arm64"
         self.func_config = FunctionConfig(
             self.name,
             self.lang,
@@ -133,6 +138,7 @@ class LambdaRuntime_run(TestCase):
             self.packagetype,
             self.code_path,
             self.layers,
+            self.architecture,
         )
 
         self.env_vars = Mock()
@@ -208,6 +214,7 @@ class LambdaRuntime_invoke(TestCase):
         self.packagetype = ZIP
         self.imageconfig = None
         self.layers = []
+        self.architecture = "arm64"
         self.func_config = FunctionConfig(
             self.name,
             self.lang,
@@ -217,6 +224,7 @@ class LambdaRuntime_invoke(TestCase):
             self.packagetype,
             self.code_path,
             self.layers,
+            self.architecture,
         )
 
         self.env_vars = Mock()
@@ -268,11 +276,13 @@ class LambdaRuntime_invoke(TestCase):
             code_dir,
             self.layers,
             lambda_image_mock,
+            self.architecture,
             debug_options=debug_options,
             env_vars=self.env_var_value,
             memory_mb=self.DEFAULT_MEMORY,
             container_host=None,
             container_host_interface=None,
+            function_name=self.name,
         )
 
         # Run the container and get results
@@ -553,6 +563,7 @@ class TestWarmLambdaRuntime_invoke(TestCase):
         self.imageuri = None
         self.packagetype = ZIP
         self.imageconfig = None
+        self.architecture = "arm64"
         self.func_config = FunctionConfig(
             self.name,
             self.lang,
@@ -562,6 +573,7 @@ class TestWarmLambdaRuntime_invoke(TestCase):
             self.packagetype,
             self.code_path,
             self.layers,
+            self.architecture,
         )
 
         self.env_vars = Mock()
@@ -618,11 +630,13 @@ class TestWarmLambdaRuntime_invoke(TestCase):
             code_dir,
             self.layers,
             lambda_image_mock,
+            self.architecture,
             debug_options=debug_options,
             env_vars=self.env_var_value,
             memory_mb=self.DEFAULT_MEMORY,
             container_host=None,
             container_host_interface=None,
+            function_name=self.name,
         )
 
         # Run the container and get results
@@ -649,6 +663,7 @@ class TestWarmLambdaRuntime_create(TestCase):
         self.imageuri = None
         self.packagetype = ZIP
         self.imageconfig = None
+        self.architecture = "arm64"
         self.func_config = FunctionConfig(
             self.name,
             self.lang,
@@ -658,6 +673,7 @@ class TestWarmLambdaRuntime_create(TestCase):
             self.packagetype,
             self.code_path,
             self.layers,
+            self.architecture,
         )
 
         self.env_vars = Mock()
@@ -697,11 +713,13 @@ class TestWarmLambdaRuntime_create(TestCase):
             code_dir,
             self.layers,
             lambda_image_mock,
+            self.architecture,
             debug_options=debug_options,
             env_vars=self.env_var_value,
             memory_mb=self.DEFAULT_MEMORY,
             container_host=None,
             container_host_interface=None,
+            function_name=self.name,
         )
 
         self.manager_mock.create.assert_called_with(container)
@@ -764,11 +782,13 @@ class TestWarmLambdaRuntime_create(TestCase):
             code_dir,
             self.layers,
             lambda_image_mock,
+            self.architecture,
             debug_options=None,
             env_vars=self.env_var_value,
             memory_mb=self.DEFAULT_MEMORY,
             container_host=None,
             container_host_interface=None,
+            function_name=self.name,
         )
         self.manager_mock.create.assert_called_with(container)
         # validate that the created container got cached
@@ -855,6 +875,7 @@ class TestWarmLambdaRuntime_on_code_change(TestCase):
         self.handler = "handler"
         self.imageuri = None
         self.imageconfig = None
+        self.architecture = "arm64"
 
         self.func1_name = "func1_name"
         self.func1_code_path = "func1_code_path"
@@ -877,6 +898,7 @@ class TestWarmLambdaRuntime_on_code_change(TestCase):
             ZIP,
             self.func1_code_path,
             self.common_layers,
+            self.architecture,
         )
         self.func_config2 = FunctionConfig(
             self.func2_name,
@@ -887,6 +909,7 @@ class TestWarmLambdaRuntime_on_code_change(TestCase):
             IMAGE,
             self.func2_code_path,
             self.common_layers,
+            self.architecture,
         )
 
         self.func1_container_mock = Mock()

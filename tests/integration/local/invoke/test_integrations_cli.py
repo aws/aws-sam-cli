@@ -202,6 +202,25 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         self.assertEqual(process_stdout.decode("utf-8"), '"MyVar"')
 
     @pytest.mark.flaky(reruns=3)
+    def test_invoke_with_invoke_image_provided(self):
+        command_list = self.get_command_list(
+            "HelloWorldServerlessFunction",
+            template_path=self.template_path,
+            event_path=self.event_path,
+            invoke_image="amazon/aws-sam-cli-emulation-image-python3.6",
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip()
+        self.assertEqual(process_stdout.decode("utf-8"), '"Hello world"')
+
+    @pytest.mark.flaky(reruns=3)
     def test_invoke_when_function_writes_stdout(self):
         command_list = self.get_command_list(
             "WriteToStdoutFunction", template_path=self.template_path, event_path=self.event_path

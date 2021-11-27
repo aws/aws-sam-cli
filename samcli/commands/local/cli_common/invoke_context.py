@@ -9,7 +9,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional, IO, cast, Tuple, Any
 
-import samcli.lib.utils.osutils as osutils
+from samcli.lib.utils import osutils
 from samcli.lib.providers.provider import Stack, Function
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.async_utils import AsyncContext
@@ -77,6 +77,7 @@ class InvokeContext:
         shutdown: bool = False,
         container_host: Optional[str] = None,
         container_host_interface: Optional[str] = None,
+        invoke_images: Optional[str] = None,
     ) -> None:
         """
         Initialize the context
@@ -127,6 +128,8 @@ class InvokeContext:
             Optional. Host of locally emulated Lambda container
         container_host_interface string
             Optional. Interface that Docker host binds ports to
+        invoke_images dict
+            Optional. A dictionary that defines the custom invoke image URI of each function
         """
         self._template_file = template_file
         self._function_identifier = function_identifier
@@ -154,6 +157,7 @@ class InvokeContext:
 
         self._container_host = container_host
         self._container_host_interface = container_host_interface
+        self._invoke_images = invoke_images
 
         self._containers_mode = ContainersMode.COLD
         self._containers_initializing_mode = ContainersInitializationMode.LAZY
@@ -311,7 +315,9 @@ class InvokeContext:
     def lambda_runtime(self) -> LambdaRuntime:
         if not self._lambda_runtimes:
             layer_downloader = LayerDownloader(self._layer_cache_basedir, self.get_cwd(), self._stacks)
-            image_builder = LambdaImage(layer_downloader, self._skip_pull_image, self._force_image_build)
+            image_builder = LambdaImage(
+                layer_downloader, self._skip_pull_image, self._force_image_build, invoke_images=self._invoke_images
+            )
             self._lambda_runtimes = {
                 ContainersMode.WARM: WarmLambdaRuntime(self._container_manager, image_builder),
                 ContainersMode.COLD: LambdaRuntime(self._container_manager, image_builder),
@@ -354,7 +360,7 @@ class InvokeContext:
             Stream writer for stdout
         """
         stream = self._log_file_handle if self._log_file_handle else osutils.stdout()
-        return StreamWriter(stream, self._is_debugging)
+        return StreamWriter(stream, auto_flush=True)
 
     @property
     def stderr(self) -> StreamWriter:
@@ -367,7 +373,7 @@ class InvokeContext:
             Stream writer for stderr
         """
         stream = self._log_file_handle if self._log_file_handle else osutils.stderr()
-        return StreamWriter(stream, self._is_debugging)
+        return StreamWriter(stream, auto_flush=True)
 
     @property
     def stacks(self) -> List[Stack]:

@@ -12,7 +12,7 @@ from botocore.utils import set_value_from_jmespath
 from samcli.commands.exceptions import UserException
 from samcli.lib.utils.packagetype import ZIP
 from samcli.yamlhelper import yaml_parse, yaml_dump
-from samcli.commands._utils.resources import (
+from samcli.lib.utils.resources import (
     METADATA_WITH_LOCAL_PATHS,
     RESOURCES_WITH_LOCAL_PATHS,
     AWS_SERVERLESS_FUNCTION,

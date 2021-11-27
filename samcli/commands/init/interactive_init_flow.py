@@ -19,6 +19,7 @@ from samcli.commands.init.init_generator import do_generate
 from samcli.commands.init.init_templates import InitTemplates
 from samcli.lib.utils.osutils import remove
 from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.lib.utils.architecture import X86_64
 
 LOG = logging.getLogger(__name__)
 
@@ -28,6 +29,7 @@ def do_interactive(
     pt_explicit,
     package_type,
     runtime,
+    architecture,
     base_image,
     dependency_manager,
     output_dir,
@@ -46,9 +48,7 @@ def do_interactive(
         click.echo("\t1 - AWS Quick Start Templates\n\t2 - Custom Template Location")
         location_opt_choice = click.prompt("Choice", type=click.Choice(["1", "2"]), show_choices=False)
     if location_opt_choice == "2":
-        _generate_from_location(
-            location, package_type, runtime, dependency_manager, output_dir, name, app_template, no_input
-        )
+        _generate_from_location(location, package_type, runtime, dependency_manager, output_dir, name, no_input)
     else:
         if not pt_explicit:
             click.echo("What package type would you like to use?")
@@ -61,13 +61,19 @@ def do_interactive(
                 package_type = IMAGE
 
         _generate_from_app_template(
-            location, package_type, runtime, base_image, dependency_manager, output_dir, name, app_template
+            location,
+            package_type,
+            runtime,
+            base_image,
+            dependency_manager,
+            output_dir,
+            name,
+            app_template,
+            architecture,
         )
 
 
-def _generate_from_location(
-    location, package_type, runtime, dependency_manager, output_dir, name, app_template, no_input
-):
+def _generate_from_location(location, package_type, runtime, dependency_manager, output_dir, name, no_input):
     location = click.prompt("\nTemplate location (git, mercurial, http(s), zip, path)", type=str)
     summary_msg = """
 -----------------------
@@ -84,7 +90,7 @@ Output Directory: {output_dir}
 
 # pylint: disable=too-many-statements
 def _generate_from_app_template(
-    location, package_type, runtime, base_image, dependency_manager, output_dir, name, app_template
+    location, package_type, runtime, base_image, dependency_manager, output_dir, name, app_template, architecture
 ):
     extra_context = None
     if package_type == IMAGE:
@@ -95,14 +101,23 @@ def _generate_from_app_template(
     if not name:
         name = click.prompt("\nProject name", type=str, default="sam-app")
     templates = InitTemplates()
+    final_architecture = get_architectures(architecture)
     if app_template is not None:
         location = templates.location_from_app_template(
             package_type, runtime, base_image, dependency_manager, app_template
         )
-        extra_context = {"project_name": name, "runtime": runtime}
+        extra_context = {
+            "project_name": name,
+            "runtime": runtime,
+            "architectures": {"value": final_architecture},
+        }
     else:
         location, app_template = templates.prompt_for_location(package_type, runtime, base_image, dependency_manager)
-        extra_context = {"project_name": name, "runtime": runtime}
+        extra_context = {
+            "project_name": name,
+            "runtime": runtime,
+            "architectures": {"value": final_architecture},
+        }
 
     # executing event_bridge logic if call is for Schema dynamic template
     is_dynamic_schemas_template = templates.is_dynamic_schemas_template(
@@ -123,12 +138,13 @@ def _generate_from_app_template(
     -----------------------
     Name: {name}
     Runtime: {runtime}
+    Architectures: {final_architecture[0]}
     Dependency Manager: {dependency_manager}
     Application Template: {app_template}
     Output Directory: {output_dir}
-    
-    Next steps can be found in the README file at {output_dir}/{name}/README.md
-        """
+
+    Next application steps can be found in the README file at {output_dir}/{name}/README.md
+    """
     elif package_type == IMAGE:
         summary_msg = f"""
     -----------------------
@@ -136,13 +152,21 @@ def _generate_from_app_template(
     -----------------------
     Name: {name}
     Base Image: {base_image}
+    Architectures: {final_architecture[0]}
     Dependency Manager: {dependency_manager}
     Output Directory: {output_dir}
 
-    Next steps can be found in the README file at {output_dir}/{name}/README.md
-        """
+    Next application steps can be found in the README file at {output_dir}/{name}/README.md
+    """
 
     click.echo(summary_msg)
+    next_commands_msg = f"""
+    Commands you can use next
+    =========================
+    [*] Create pipeline: cd {name} && sam pipeline init --bootstrap
+    [*] Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
+    """
+    click.secho(next_commands_msg, fg="yellow")
     do_generate(location, package_type, runtime, dependency_manager, output_dir, name, no_input, extra_context)
     # executing event_bridge logic if call is for Schema dynamic template
     if is_dynamic_schemas_template:
@@ -224,3 +248,10 @@ def _package_schemas_code(runtime, schemas_api_caller, schema_template_details, 
         ) from e
     finally:
         remove(download_location.name)
+
+
+def get_architectures(architecture):
+    """
+    Returns list of architecture value based on the init input value
+    """
+    return [X86_64] if architecture is None else [architecture]

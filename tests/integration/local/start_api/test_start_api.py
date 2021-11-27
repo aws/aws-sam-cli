@@ -1,3 +1,4 @@
+import base64
 import uuid
 import random
 
@@ -382,14 +383,14 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
-    def test_invalid_v2_lambda_response(self):
+    def test_v2_lambda_response_skip_unexpected_fields(self):
         """
         Patch Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
         """
         response = requests.get(self.url + "/invalidv2response", timeout=300)
 
-        self.assertEqual(response.status_code, 502)
-        self.assertEqual(response.json(), {"message": "Internal server error"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -538,6 +539,48 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
         self.assertEqual(response.headers.get("Content-Type"), "image/gif")
         self.assertEqual(response.content, expected)
 
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_non_decoded_binary_response(self):
+        """
+        Binary data is returned correctly
+        """
+        expected = base64.b64encode(self.get_binary_data(self.binary_data_file))
+
+        response = requests.get(self.url + "/nondecodedbase64response", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("Content-Type"), "image/gif")
+        self.assertEqual(response.content, expected)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_decoded_binary_response_base64encoded_field(self):
+        """
+        Binary data is returned correctly
+        """
+        expected = self.get_binary_data(self.binary_data_file)
+
+        response = requests.get(self.url + "/decodedbase64responsebas64encoded", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("Content-Type"), "image/gif")
+        self.assertEqual(response.content, expected)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_decoded_binary_response_base64encoded_field_is_priority(self):
+        """
+        Binary data is returned correctly
+        """
+        expected = base64.b64encode(self.get_binary_data(self.binary_data_file))
+
+        response = requests.get(self.url + "/decodedbase64responsebas64encodedpriority", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("Content-Type"), "image/gif")
+        self.assertEqual(response.content, expected)
+
 
 class TestStartApiWithSwaggerHttpApis(StartApiIntegBaseClass):
     template_path = "/testdata/start_api/swagger-template-http-api.yaml"
@@ -620,6 +663,32 @@ class TestStartApiWithSwaggerHttpApis(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_http_api_payload_v1_should_not_have_operation_id(self):
+        response = requests.get(self.url + "/httpapi-operation-id-v1", timeout=300)
+        self.assertEqual(response.status_code, 200)
+
+        response_data = response.json()
+        self.assertEqual(response_data.get("version", {}), "1.0")
+        # operationName or operationId shouldn't be processed by Httpapi swaggers
+        request_context_keys = [key.lower() for key in response_data.get("requestContext", {}).keys()]
+        self.assertTrue("operationid" not in request_context_keys)
+        self.assertTrue("operationname" not in request_context_keys)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_http_api_payload_v2_should_not_have_operation_id(self):
+        response = requests.get(self.url + "/httpapi-operation-id-v2", timeout=300)
+        self.assertEqual(response.status_code, 200)
+
+        response_data = response.json()
+        self.assertEqual(response_data.get("version", {}), "2.0")
+        # operationName or operationId shouldn't be processed by Httpapi swaggers
+        request_context_keys = [key.lower() for key in response_data.get("requestContext", {}).keys()]
+        self.assertTrue("operationid" not in request_context_keys)
+        self.assertTrue("operationname" not in request_context_keys)
 
 
 class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
@@ -748,6 +817,16 @@ class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("Content-Type"), "image/gif")
         self.assertEqual(response.content, expected)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_rest_api_operation_id(self):
+        """
+        Binary data is returned correctly
+        """
+        response = requests.get(self.url + "/printeventwithoperationidfunction", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json().get("requestContext", {}).get("operationName"), "MyOperationName")
 
 
 class TestServiceResponses(StartApiIntegBaseClass):
@@ -1650,11 +1729,30 @@ class TestCFNTemplateWithRestApiAndHttpApiGateways(StartApiIntegBaseClass):
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
+    def test_http_api_with_operation_name_is_reachable(self):
+        response = requests.get(self.url + "/http-api-with-operation-name", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+        # operationName or operationId shouldn't be processed by Httpapi
+        request_context_keys = [key.lower() for key in response_data.get("requestContext", {}).keys()]
+        self.assertTrue("operationid" not in request_context_keys)
+        self.assertTrue("operationname" not in request_context_keys)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
     def test_rest_api_is_reachable(self):
         response = requests.get(self.url + "/rest-api", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_rest_api_with_operation_name_is_reachable(self):
+        response = requests.get(self.url + "/rest-api-with-operation-name", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"operation_name": "MyOperationName"})
 
 
 class TestCFNTemplateHttpApiWithSwaggerBody(StartApiIntegBaseClass):
@@ -1673,6 +1771,10 @@ class TestCFNTemplateHttpApiWithSwaggerBody(StartApiIntegBaseClass):
         self.assertEqual(response_data.get("version", {}), "2.0")
         self.assertIsNone(response_data.get("multiValueHeaders"))
         self.assertIsNotNone(response_data.get("cookies"))
+        # operationName or operationId shouldn't be processed by Httpapi swaggers
+        request_context_keys = [key.lower() for key in response_data.get("requestContext", {}).keys()]
+        self.assertTrue("operationid" not in request_context_keys)
+        self.assertTrue("operationname" not in request_context_keys)
 
 
 class TestWarmContainersBaseClass(StartApiIntegBaseClass):
@@ -2115,3 +2217,68 @@ class TestApiPrecedenceInNestedStacks(StartApiIntegBaseClass):
         response = requests.put(self.url + "/path2", data=data, timeout=300)
 
         self.assertEqual(response.status_code, 403)
+
+
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template.yaml",),
+        ("/testdata/start_api/nested-templates/template-parent.yaml",),
+    ],
+)
+class TestServiceWithCustomInvokeImages(StartApiIntegBaseClass):
+    """
+    Testing general requirements around the Service that powers `sam local start-api` using invoke images
+    """
+
+    invoke_image = [
+        "amazon/aws-sam-cli-emulation-image-python3.6",
+        "HelloWorldFunction=public.ecr.aws/sam/emulation-python3.6",
+    ]
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    def test_static_directory(self):
+        pass
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_calling_proxy_endpoint_custom_invoke_image(self):
+        response = requests.get(self.url + "/proxypath/this/is/some/path", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_get_call_with_path_setup_with_any_implicit_api_custom_invoke_image(self):
+        """
+        Get Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.get(self.url + "/anyandall", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_post_call_with_path_setup_with_any_implicit_api_custom_invoke_image(self):
+        """
+        Post Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.post(self.url + "/anyandall", json={}, timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_put_call_with_path_setup_with_any_implicit_api_custom_invoke_image(self):
+        """
+        Put Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.put(self.url + "/anyandall", json={}, timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
