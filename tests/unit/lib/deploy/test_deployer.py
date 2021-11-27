@@ -1,6 +1,7 @@
 from logging import captureWarnings
 import uuid
 import time
+import os
 from datetime import datetime, timedelta
 from unittest import TestCase
 from unittest.mock import patch, MagicMock, ANY, call
@@ -56,6 +57,20 @@ class TestDeployer(TestCase):
     def test_deployer_init(self):
         self.assertEqual(self.deployer._client, self.cloudformation_client)
         self.assertEqual(self.deployer.changeset_prefix, "samcli-deploy")
+
+    @patch("os.environ", {**os.environ, "SAM_CLI_DEPLOY_DESCRIBE_STACK_INTERVAL": 10})
+    def test_deployer_init_custom_sleep(self):
+        deployer = Deployer(MagicMock().client("cloudformation"))
+        self.assertEqual(deployer.client_sleep, 10)
+
+    @patch("os.environ", {**os.environ, "SAM_CLI_DEPLOY_DESCRIBE_STACK_INTERVAL": "INVALID"})
+    def test_deployer_init_custom_sleep_invalid(self):
+        deployer = Deployer(MagicMock().client("cloudformation"))
+        self.assertEqual(deployer.client_sleep, 0.5)  # 0.5 is the default value
+
+    def test_deployer_init_default_sleep(self):
+        deployer = Deployer(MagicMock().client("cloudformation"))
+        self.assertEqual(deployer.client_sleep, 0.5)
 
     def test_deployer_has_no_stack(self):
         self.deployer._client.describe_stacks = MagicMock(return_value={"Stacks": []})
