@@ -3,7 +3,7 @@ Library for Validating Sam Templates
 """
 import logging
 import functools
-import os.path
+from pathlib import Path
 
 from samtranslator.public.exceptions import InvalidDocumentException
 from samtranslator.parser import parser
@@ -162,7 +162,7 @@ class SamTemplateValidator:
                 continue
 
             location_prop = transform_dict.get("Parameters", {}).get("Location", "")
-            if not os.path.isfile(location_prop):
+            if not Path(location_prop).is_file():
                 continue
 
             SamTemplateValidator._replace_with_file_contents(resource.get("Properties", {}), location_prop)
@@ -212,7 +212,7 @@ class SamTemplateValidator:
     @staticmethod
     def _replace_with_file_contents(resource_property_dict, location_prop):
         definition_body = parse_yaml_file(location_prop)
+        LOG.debug("Imported definition body from %s", location_prop)
 
         # replace the definition body from the file
         resource_property_dict["DefinitionBody"] = definition_body
-        LOG.debug("Imported definition body from %s", location_prop)
