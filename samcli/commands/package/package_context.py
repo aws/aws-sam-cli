@@ -111,7 +111,9 @@ class PackageContext:
         )
         # attach the given metadata to the artifacts to be uploaded
         s3_uploader.artifact_metadata = self.metadata
-        ecr_uploader = ECRUploader(docker_client, ecr_client, self.image_repository, self.image_repositories)
+        ecr_uploader = ECRUploader(
+            docker_client, ecr_client, self.image_repository, self.image_repositories, self.no_progressbar
+        )
 
         self.uploaders = Uploaders(s3_uploader, ecr_uploader)
 
