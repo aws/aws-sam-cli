@@ -86,6 +86,7 @@ class LambdaRuntime_create(TestCase):
             memory_mb=self.DEFAULT_MEMORY,
             container_host=None,
             container_host_interface=None,
+            function_name=self.name,
         )
         # Run the container and get results
         self.manager_mock.create.assert_called_with(container)
@@ -281,6 +282,7 @@ class LambdaRuntime_invoke(TestCase):
             memory_mb=self.DEFAULT_MEMORY,
             container_host=None,
             container_host_interface=None,
+            function_name=self.name,
         )
 
         # Run the container and get results
@@ -634,6 +636,7 @@ class TestWarmLambdaRuntime_invoke(TestCase):
             memory_mb=self.DEFAULT_MEMORY,
             container_host=None,
             container_host_interface=None,
+            function_name=self.name,
         )
 
         # Run the container and get results
@@ -716,6 +719,7 @@ class TestWarmLambdaRuntime_create(TestCase):
             memory_mb=self.DEFAULT_MEMORY,
             container_host=None,
             container_host_interface=None,
+            function_name=self.name,
         )
 
         self.manager_mock.create.assert_called_with(container)
@@ -784,6 +788,7 @@ class TestWarmLambdaRuntime_create(TestCase):
             memory_mb=self.DEFAULT_MEMORY,
             container_host=None,
             container_host_interface=None,
+            function_name=self.name,
         )
         self.manager_mock.create.assert_called_with(container)
         # validate that the created container got cached

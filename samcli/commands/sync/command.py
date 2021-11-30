@@ -47,6 +47,7 @@ from samcli.commands._utils.experimental import (
     experimental,
     is_experimental_enabled,
     set_experimental,
+    update_experimental_context,
 )
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -232,11 +233,9 @@ def do_cli(
 
     s3_bucket = manage_stack(profile=profile, region=region)
     click.echo(f"\n\t\tManaged S3 bucket: {s3_bucket}")
-    click.echo("\t\tA different default S3 bucket can be set in samconfig.toml")
-    click.echo("\t\tOr by specifying --s3-bucket explicitly.")
 
     click.echo(f"\n\t\tDefault capabilities applied: {DEFAULT_CAPABILITIES}")
-    click.echo("To override with customized capabilities, use --capabitilies flag or set it in samconfig.toml")
+    click.echo("To override with customized capabilities, use --capabilities flag or set it in samconfig.toml")
 
     build_dir = DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER if dependency_layer else DEFAULT_BUILD_DIR
     LOG.debug("Using build directory as %s", build_dir)
@@ -253,6 +252,7 @@ def do_cli(
         return
 
     set_experimental(ExperimentalFlag.Accelerate)
+    update_experimental_context()
 
     with BuildContext(
         resource_identifier=None,
