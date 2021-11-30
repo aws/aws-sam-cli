@@ -2143,13 +2143,9 @@ test-project
             {"project_name": "test-project", "runtime": "java11", "architectures": {"value": ["x86_64"]}},
         )
 
-    @pytest.fixture(autouse=True)
+    @patch("samcli.commands.init.init_templates.LOG")
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
-    def get_caplog(self, caplog):
-        self._caplog = caplog
-
-    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
-    def test_init_cli_init_must_raise_for_unknown_property(self):
+    def test_init_cli_init_must_raise_for_unknown_property(self, log_mock):
         template = {
             "directory": "java11/cookiecutter-aws-sam-hello1-java-maven",
             "displayName": "Hello World Example 1: Maven",
@@ -2159,11 +2155,10 @@ test-project
             "useCaseName": "Serverless API",
         }
 
-        expected_msg = f"Template is missing the value for unknown_parameter in manifest file. Please raise a github issue. Template details: {template}"
-        self._caplog.set_level(logging.DEBUG)
+        debug_msg = f"Template is missing the value for unknown_parameter in manifest file. Please raise a github issue. Template details: {template}"
         result = get_template_value("unknown_parameter", template)
+        log_mock.debug.assert_called_once_with(debug_msg)
         self.assertEqual(result, None)
-        self.assertIn(expected_msg, self._caplog.text)
 
     @patch("samcli.commands.init.init_templates.InitTemplates.get_preprocessed_manifest")
     @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
@@ -2270,3 +2265,91 @@ test-project
         runner = CliRunner()
         result = runner.invoke(init_cmd, ["--dependency-manager", "pip"], input=user_input)
         self.assertTrue(result.exception)
+
+    @patch("samcli.commands.init.init_templates.InitTemplates.get_preprocessed_manifest")
+    @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    def test_init_cli_generate_hello_world_app_without_default_prompt(
+        self, generate_project_patch, init_options_from_manifest_mock, get_preprocessed_manifest_mock
+    ):
+        init_options_from_manifest_mock.return_value = [
+            {
+                "directory": "nodejs14.x/cookiecutter-aws-sam-hello-nodejs",
+                "displayName": "Hello World Example",
+                "dependencyManager": "npm",
+                "appTemplate": "hello-world",
+                "packageType": "Zip",
+                "useCaseName": "Hello World Example",
+            },
+            {
+                "directory": "java11/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
+                "displayName": "EventBridge App from scratch (100+ Event Schemas): Maven",
+                "dependencyManager": "maven",
+                "appTemplate": "eventBridge-schema-app",
+                "isDynamicTemplate": "True",
+                "packageType": "Zip",
+                "useCaseName": "Hello World Example",
+            },
+        ]
+
+        get_preprocessed_manifest_mock.return_value = {
+            "Hello World Example": {
+                "nodejs14.x": {
+                    "Zip": [
+                        {
+                            "directory": "nodejs14.x/cookiecutter-aws-sam-hello-nodejs",
+                            "displayName": "Hello World Example",
+                            "dependencyManager": "npm",
+                            "appTemplate": "hello-world",
+                            "packageType": "Zip",
+                            "useCaseName": "Hello World Example",
+                        },
+                    ]
+                },
+                "java11": {
+                    "Zip": [
+                        {
+                            "directory": "java11/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
+                            "displayName": "Hello World Example: Maven",
+                            "dependencyManager": "maven",
+                            "appTemplate": "hello-world",
+                            "isDynamicTemplate": "True",
+                            "packageType": "Zip",
+                            "useCaseName": "Hello World Example",
+                        },
+                    ]
+                },
+            },
+        }
+
+        # WHEN the user follows interactive init prompts
+        # 1: AWS Quick Start Templates
+        # 1: Hello World Template
+        # y: use default
+        # test-project: response to name
+        user_input = """
+1
+test-project
+        """
+
+        runner = CliRunner()
+        result = runner.invoke(init_cmd, ["--runtime", "java11"], input=user_input)
+        self.assertFalse(result.exception)
+        generate_project_patch.assert_called_once_with(
+            ANY,
+            ZIP,
+            "java11",
+            "maven",
+            ".",
+            "test-project",
+            True,
+            {"project_name": "test-project", "runtime": "java11", "architectures": {"value": ["x86_64"]}},
+        )
+
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    def test_must_get_manifest_path(self):
+        template = InitTemplates()
+        manifest_path = template.get_manifest_path()
+        expected_path = Path("tests/unit/commands/init/test_manifest.json")
+        self.assertEqual(expected_path, manifest_path)

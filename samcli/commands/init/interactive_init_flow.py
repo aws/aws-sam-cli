@@ -194,6 +194,7 @@ def _generate_default_hello_world_application(
 ):
     """
     Generate the default Hello World template if Hello World Example is selected
+
     Parameters
     ----------
     use_case : string
@@ -202,6 +203,8 @@ def _generate_default_hello_world_application(
         The package type, 'Zip' or 'Image', see samcli/lib/utils/packagetype.py
     runtime : str
         AWS Lambda function runtime
+    base_image : str
+        AWS Lambda function base-image
     dependency_manager : str
         dependency manager
     pt_explicit : bool
