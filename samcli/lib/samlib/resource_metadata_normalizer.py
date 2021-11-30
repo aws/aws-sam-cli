@@ -3,7 +3,7 @@ Class that Normalizes a Template based on Resource Metadata
 """
 
 import logging
-import pathlib
+from pathlib import Path
 
 RESOURCES_KEY = "Resources"
 PROPERTIES_KEY = "Properties"
@@ -46,6 +46,8 @@ class ResourceMetadataNormalizer:
             if asset_property == IMAGE_ASSET_PROPERTY:
                 asset_metadata = ResourceMetadataNormalizer._extract_image_asset_metadata(resource_metadata)
                 ResourceMetadataNormalizer._update_resource_image_asset_metadata(resource_metadata, asset_metadata)
+                # For image-type functions, the asset path is expected to be the name of the Docker image.
+                # When building, we set the name of the image to be the logical id of the function.
                 asset_path = logical_id.lower()
             else:
                 asset_path = resource_metadata.get(ASSET_PATH_METADATA_KEY)
@@ -102,10 +104,10 @@ class ResourceMetadataNormalizer:
             metadata properties for image-type lambda function
 
         """
-        asset_path = pathlib.Path(metadata.get(ASSET_PATH_METADATA_KEY, ""))
-        dockerfile_path = pathlib.Path(metadata.get(ASSET_DOCKERFILE_PATH_KEY), "")
+        asset_path = Path(metadata.get(ASSET_PATH_METADATA_KEY, ""))
+        dockerfile_path = Path(metadata.get(ASSET_DOCKERFILE_PATH_KEY), "")
         dockerfile, path_from_asset = dockerfile_path.stem, dockerfile_path.parent
-        dockerfile_context = str(pathlib.Path(asset_path.joinpath(path_from_asset)))
+        dockerfile_context = str(Path(asset_path.joinpath(path_from_asset)))
         return {
             SAM_METADATA_DOCKERFILE_KEY: dockerfile,
             SAM_METADATA_DOCKER_CONTEXT_KEY: dockerfile_context,
