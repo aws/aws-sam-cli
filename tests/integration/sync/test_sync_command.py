@@ -328,6 +328,8 @@ Requires capabilities : [CAPABILITY_AUTO_EXPAND]",
                 )
                 return api_response.get("body")
             except ClientError as ce:
+                if count == 20:
+                    LOG.error(ce)
                 # This test is very unstable, any fixed wait time cannot guarantee a successful invocation
                 if "Invalid Method identifier specified" in ce.response.get("Error", {}).get("Message", ""):
                     if count == 20:
@@ -335,9 +337,6 @@ Requires capabilities : [CAPABILITY_AUTO_EXPAND]",
                             "The deployed changes are not callable on the client yet, skipping the RestApi invocation"
                         )
                         return '{"message": "hello!!"}'
-                else:
-                    if count == 20:
-                        LOG.error(ce)
             except Exception as e:
                 if count == 20:
                     LOG.error(e)
