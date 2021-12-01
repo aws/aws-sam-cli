@@ -71,6 +71,7 @@ test_script:
     - "venv\\Scripts\\activate"
     - "docker system prune -a -f"
     - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_NodeFunctions"
+    - "pytest -vv tests/integration/local/invoke/invoke_cdk_templates.py -k TestCDKSynthesizedTemplatesFunctions"
 
 # Uncomment for RDP
 # on_finish:
