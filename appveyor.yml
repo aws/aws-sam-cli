@@ -138,7 +138,7 @@ for:
       - sh: "PATH=$JAVA_HOME/bin:$PATH"
       - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
       - sh: "rvm use 2.5"
-      - sh: "docker info"
+      - sh: "docker --version"
 
       # Install latest gradle 
       - sh: "sudo apt-get -y remove gradle"
