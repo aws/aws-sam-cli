@@ -1,4 +1,4 @@
-# require 'httparty'
+
 require 'json'
 require 'layer_test'
 
@@ -33,6 +33,7 @@ def lambda_handler(event:, context:)
     statusCode: 200,
     body: {
       message: "#{layer_test()+1}",
+      location: "location"
       # location: response.body
     }.to_json
   }

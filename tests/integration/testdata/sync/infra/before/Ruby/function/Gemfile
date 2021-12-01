@@ -1,0 +1,5 @@
+source "https://rubygems.org"
+
+gem "httparty"
+
+ruby '~> 2.7.0'

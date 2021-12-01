@@ -9,7 +9,7 @@ Resources:
   HelloWorldFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: Python/function/
+      CodeUri: after/Python/function/
       Handler: app.lambda_handler
       Runtime: python3.7
       Layers:
@@ -20,20 +20,20 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       StageName: prod
-      DefinitionUri: Python/apigateway/definition.json
+      DefinitionUri: after/Python/apigateway/definition.json
 
   HelloWorldApiV2:
     Type: AWS::Serverless::HttpApi
     Properties:
       StageName: beta
-      DefinitionUri: Python/apigateway2/definition.yaml
+      DefinitionUri: after/Python/apigateway2/definition.yaml
 
   HelloWorldLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
       LayerName: HelloWorldLayer
       Description: Hello World Layer
-      ContentUri: Python/layer/
+      ContentUri: after/Python/layer/
       CompatibleRuntimes:
         - python3.7
     Metadata:
@@ -42,29 +42,7 @@ Resources:
   HelloStepFunction:
     Type: AWS::Serverless::StateMachine
     Properties:
-      DefinitionUri: Python/statemachine/function.asl.json
+      DefinitionUri: after/Python/statemachine/function.asl.json
       Policies:
         - LambdaInvokePolicy:
             FunctionName: !Ref HelloWorldFunction
-
-  HelloWorldRubyFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      AutoPublishAlias: Hello1Alias
-      CodeUri: Ruby/function/
-      Handler: app.lambda_handler
-      Runtime: ruby2.7
-      Tracing: Active
-      Layers:
-        - !Ref HelloWorldRubyLayer
-
-  HelloWorldRubyLayer:
-    Type: AWS::Serverless::LayerVersion
-    Properties:
-      LayerName: HelloWorldRubyLayer
-      Description: Hello World Ruby Layer
-      ContentUri: Ruby/layer/
-      CompatibleRuntimes:
-        - ruby2.7
-    Metadata:
-      BuildMethod: ruby2.7
