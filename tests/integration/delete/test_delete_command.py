@@ -70,6 +70,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             "aws-appsync-resolver.yaml",
             "aws-appsync-functionconfiguration.yaml",
             "aws-apigateway-restapi.yaml",
+            "aws-apigatewayv2-httpapi.yaml",
             "aws-elasticbeanstalk-applicationversion.yaml",
             "aws-cloudformation-moduleversion.yaml",
             "aws-cloudformation-resourceversion.yaml",
