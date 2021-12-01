@@ -1,4 +1,3 @@
-
 require 'json'
 require 'layer_test'
 

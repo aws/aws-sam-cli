@@ -89,7 +89,7 @@ class TestSync(BuildIntegBase, SyncIntegBase, PackageIntegBase):
                 cfn_client.delete_stack(StackName=stack_name)
         super().tearDown()
 
-    @parameterized.expand(["python", "ruby"])
+    @parameterized.expand(["ruby", "python"])
     def test_sync_infra(self, runtime):
         template_before = f"infra/template-{runtime}-before.yaml"
         template_path = str(self.test_data_path.joinpath(template_before))
@@ -348,7 +348,9 @@ Requires capabilities : [CAPABILITY_AUTO_EXPAND]",
                 # This test is very unstable, any fixed wait time cannot guarantee a successful invocation
                 if "Invalid Method identifier specified" in ce.response.get("Error", {}).get("Message", ""):
                     if count == 20:
-                        LOG.error("The deployed changes are not callable on the client yet, skipping the RestApi invocation")
+                        LOG.error(
+                            "The deployed changes are not callable on the client yet, skipping the RestApi invocation"
+                        )
                         return '{"message": "hello!!"}'
                 else:
                     if count == 20:
