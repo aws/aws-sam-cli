@@ -172,18 +172,7 @@ def s3_bucket_arn(ctx, param, provided_value):
     if provided_value is not None and provided_value.lower().startswith("arn:"):
         try:
             (_, aws, s3, _, _, s3_bucket) = provided_value.split(":", 5)
-            partitions = [
-                "aws",
-                "aws-cn",
-                "aws-iso",
-                "aws-iso-b",
-                "aws-iso-c",
-                "aws-iso-d",
-                "aws-iso-e",
-                "aws-iso-f",
-                "aws-us-gov",
-            ]
-            if not (aws.lower() in partitions):
+            if not (aws.lower() == "aws" or aws.lower().startswith("aws-")):
                 raise ValueError
             if not s3.lower() == "s3":
                 raise ValueError
