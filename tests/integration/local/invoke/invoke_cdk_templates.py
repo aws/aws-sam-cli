@@ -1,5 +1,9 @@
 import json
+from pathlib import Path
+from unittest import skipIf
+
 import docker
+import pytest
 from docker.errors import APIError
 from parameterized import parameterized
 
@@ -7,11 +11,16 @@ from samcli import __version__ as version
 from samcli.local.docker.lambda_image import RAPID_IMAGE_TAG_PREFIX
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
 from samcli.lib.utils.architecture import X86_64
+from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE
 
 
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
 class TestCDKSynthesizedTemplatesFunctions(InvokeIntegBase):
 
-    template = "cdk/cdk_template.yaml"
+    template = Path("cdk/cdk_template.yaml")
     functions = [
         "StandardFunctionConstructZipFunction",
         "StandardFunctionConstructImageFunction",
@@ -21,6 +30,8 @@ class TestCDKSynthesizedTemplatesFunctions(InvokeIntegBase):
     @classmethod
     def setUpClass(cls):
         # Run sam build first to build the image functions
+        # We only need to create these images once, and we can reuse the for
+        # all tests since they don't change. Then we remove them after all tests are run.
         super(TestCDKSynthesizedTemplatesFunctions, cls).setUpClass()
         build_command_list = super().get_build_command_list(cls, template_path=cls.template_path)
         super().run_command(cls, command_list=build_command_list)
@@ -37,6 +48,7 @@ class TestCDKSynthesizedTemplatesFunctions(InvokeIntegBase):
                 pass
 
     @parameterized.expand(functions)
+    @pytest.mark.flaky(reruns=3)
     def test_build_and_invoke_image_function(self, function_name):
         local_invoke_command_list = self.get_command_list(
             function_to_invoke=function_name, template_path=self.template_path
@@ -51,6 +63,7 @@ class TestCDKSynthesizedTemplatesFunctions(InvokeIntegBase):
         self.assertEqual(response, expected_response)
 
     @parameterized.expand(functions)
+    @pytest.mark.flaky(reruns=3)
     def test_invoke_with_utf8_event(self, function_name):
         command_list = self.get_command_list(
             function_name, template_path=self.template_path, event_path=self.event_utf8_path
