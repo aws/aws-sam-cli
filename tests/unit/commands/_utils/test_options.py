@@ -152,6 +152,70 @@ class TestArtifactBasedOptionRequired(TestCase):
         self.assertEqual(result, s3_bucket)
 
     @patch("samcli.commands._utils.options.get_template_artifacts_format")
+    def test_zip_based_artifact_s3_arn(self, template_artifacts_mock):
+        # implicitly artifacts are zips
+        template_artifacts_mock.return_value = [ZIP]
+        mock_params = MagicMock()
+        mock_params.get = MagicMock()
+        s3_bucket = "mock-bucket"
+        s3_arn = f"arn:aws:s3:::{s3_bucket}"
+        result = artifact_callback(
+            ctx=MockContext(info_name="test", parent=None, params=mock_params),
+            param=MagicMock(),
+            provided_value=s3_arn,
+            artifact=ZIP,
+        )
+        self.assertEqual(result, s3_bucket)
+
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
+    def test_zip_based_artifact_wrong_s3_arn1(self, template_artifacts_mock):
+        # implicitly artifacts are zips
+        template_artifacts_mock.return_value = [ZIP]
+        mock_params = MagicMock()
+        mock_params.get = MagicMock()
+        s3_bucket = "mock-bucket"
+        s3_arn = f"arn:{s3_bucket}"
+        with self.assertRaises(click.BadOptionUsage):
+            artifact_callback(
+                ctx=MockContext(info_name="test", parent=None, params=mock_params),
+                param=MagicMock(),
+                provided_value=s3_arn,
+                artifact=ZIP,
+            )
+
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
+    def test_zip_based_artifact_wrong_s3_arn2(self, template_artifacts_mock):
+        # implicitly artifacts are zips
+        template_artifacts_mock.return_value = [ZIP]
+        mock_params = MagicMock()
+        mock_params.get = MagicMock()
+        s3_bucket = "mock-bucket"
+        s3_arn = f"arn:aws:s4:::{s3_bucket}"
+        with self.assertRaises(click.BadOptionUsage):
+            artifact_callback(
+                ctx=MockContext(info_name="test", parent=None, params=mock_params),
+                param=MagicMock(),
+                provided_value=s3_arn,
+                artifact=ZIP,
+            )
+
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
+    def test_zip_based_artifact_wrong_s3_arn3(self, template_artifacts_mock):
+        # implicitly artifacts are zips
+        template_artifacts_mock.return_value = [ZIP]
+        mock_params = MagicMock()
+        mock_params.get = MagicMock()
+        s3_bucket = "mock-bucket"
+        s3_arn = f"arn:aaa:s3:::{s3_bucket}"
+        with self.assertRaises(click.BadOptionUsage):
+            artifact_callback(
+                ctx=MockContext(info_name="test", parent=None, params=mock_params),
+                param=MagicMock(),
+                provided_value=s3_arn,
+                artifact=ZIP,
+            )
+
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
     def test_zip_based_artifact_s3_not_required_resolve_s3_option_present(self, template_artifacts_mock):
         # implicitly artifacts are zips
         template_artifacts_mock.return_value = [ZIP]
