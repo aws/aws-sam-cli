@@ -185,8 +185,13 @@ class Container:
 
         if self.network_id and self.network_id != "host":
             try:
+                # Disconnect the container from the bridge so name resolution works
+                bridge_network = self.docker_client.networks.get("bridge")
+                bridge_network.disconnect(self.id)
                 network = self.docker_client.networks.get(self.network_id)
                 network.connect(self.id)
+                self._container_host = real_container.id[:12]
+                self.rapid_port_host = self.RAPID_PORT_CONTAINER
             except DockerNetworkNotFound:
                 # stop and delete the created container before raising the exception
                 real_container.remove(force=True)
