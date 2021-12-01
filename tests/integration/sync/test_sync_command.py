@@ -6,20 +6,15 @@ import shutil
 import time
 from pathlib import Path
 from unittest import skipIf
-from unittest.mock import ANY
 
 import boto3
 from botocore.exceptions import ClientError
-import docker
 from botocore.config import Config
 from parameterized import parameterized
 
 from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
-from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack
-from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_RESTAPI,
-    # AWS_APIGATEWAY_V2_API,
     AWS_LAMBDA_FUNCTION,
     AWS_STEPFUNCTIONS_STATEMACHINE,
 )
@@ -45,16 +40,6 @@ LOG = logging.getLogger(__name__)
 class TestSync(BuildIntegBase, SyncIntegBase, PackageIntegBase):
     @classmethod
     def setUpClass(cls):
-        cls.docker_client = docker.from_env()
-        cls.local_images = [
-            ("public.ecr.aws/sam/emulation-python3.7", "latest"),
-        ]
-        # setup some images locally by pulling them.
-        for repo, tag in cls.local_images:
-            cls.docker_client.api.pull(repository=repo, tag=tag)
-            cls.docker_client.api.tag(f"{repo}:{tag}", "emulation-python3.7", tag="latest")
-            cls.docker_client.api.tag(f"{repo}:{tag}", "emulation-python3.7-2", tag="latest")
-
         # setup signing profile arn & name
         cls.signing_profile_name = os.environ.get("AWS_SIGNING_PROFILE_NAME")
         cls.signing_profile_version_arn = os.environ.get("AWS_SIGNING_PROFILE_VERSION_ARN")
@@ -311,9 +296,7 @@ Requires capabilities : [CAPABILITY_AUTO_EXPAND]",
 
     def _get_lambda_response(self, lambda_function):
         try:
-            LOG.info(lambda_function)
             lambda_response = self.lambda_client.invoke(FunctionName=lambda_function, InvocationType="RequestResponse")
-            LOG.info(lambda_response)
             payload = json.loads(lambda_response.get("Payload").read().decode("utf-8"))
             return payload.get("body")
         except ClientError as ce:
