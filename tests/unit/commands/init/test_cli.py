@@ -1,5 +1,9 @@
 import os
+import shutil
+import subprocess
+import tempfile
 from pathlib import Path
+from typing import Dict, Any
 from unittest import TestCase
 from unittest.mock import patch, ANY
 
@@ -10,10 +14,13 @@ from click.testing import CliRunner
 from samcli.commands.exceptions import UserException
 from samcli.commands.init import cli as init_cmd
 from samcli.commands.init import do_cli as init_cli
+from samcli.commands.init import PackageType
 from samcli.commands.init.init_templates import InitTemplates, APP_TEMPLATES_REPO_URL
 from samcli.lib.init import GenerateProjectFailedError
+from samcli.lib.utils import osutils
 from samcli.lib.utils.git_repo import GitRepo
 from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.lib.utils.architecture import X86_64, ARM64
 
 
 class MockInitTemplates:
@@ -43,6 +50,38 @@ class TestCli(TestCase):
         self.extra_context = '{"project_name": "testing project", "runtime": "python3.6"}'
         self.extra_context_as_json = {"project_name": "testing project", "runtime": "python3.6"}
 
+    # setup cache for clone, so that if `git clone` is called multiple times on the same URL,
+    # only one clone will happen.
+    clone_cache: Dict[str, Path]
+    patcher: Any
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        # Make (url -> directory) cache to avoid cloning the same thing twice
+        cls.clone_cache = {}
+        cls.patcher = patch("samcli.lib.utils.git_repo.check_output", side_effect=cls.check_output_mock)
+        cls.patcher.start()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.patcher.stop()
+        for _, directory in cls.clone_cache.items():
+            shutil.rmtree(directory.parent)
+
+    @classmethod
+    def check_output_mock(cls, commands, cwd, stderr):
+        git_executable, _, url, clone_name = commands
+        if url not in cls.clone_cache:
+            tempdir = tempfile.NamedTemporaryFile(delete=False).name
+            subprocess.check_output(
+                [git_executable, "clone", url, clone_name],
+                cwd=tempdir,
+                stderr=stderr,
+            )
+            cls.clone_cache[url] = Path(tempdir, clone_name)
+
+        osutils.copytree(str(cls.clone_cache[url]), str(Path(cwd, clone_name)))
+
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
     @patch("samcli.commands.init.init_generator.generate_project")
     def test_init_cli(self, generate_project_patch, git_repo_clone_mock):
@@ -55,6 +94,7 @@ class TestCli(TestCase):
             pt_explicit=self.pt_explicit,
             package_type=self.package_type,
             runtime=self.runtime,
+            architecture=X86_64,
             base_image=self.base_image,
             dependency_manager=self.dependency_manager,
             output_dir=None,
@@ -65,6 +105,7 @@ class TestCli(TestCase):
         )
 
         # THEN we should receive no errors
+        self.extra_context_as_json["architectures"] = {"value": [X86_64]}
         generate_project_patch.assert_called_once_with(
             # need to change the location validation check
             ANY,
@@ -89,6 +130,7 @@ class TestCli(TestCase):
             pt_explicit=self.pt_explicit,
             package_type=IMAGE,
             runtime=None,
+            architecture=ARM64,
             base_image="amazon/nodejs12.x-base",
             dependency_manager="npm",
             output_dir=None,
@@ -108,7 +150,7 @@ class TestCli(TestCase):
             self.output_dir,
             self.name,
             True,
-            {"runtime": "nodejs12.x", "project_name": "testing project"},
+            {"runtime": "nodejs12.x", "project_name": "testing project", "architectures": {"value": [ARM64]}},
         )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -123,6 +165,7 @@ class TestCli(TestCase):
             pt_explicit=self.pt_explicit,
             package_type=IMAGE,
             runtime=None,
+            architecture=X86_64,
             base_image="amazon/java11-base",
             dependency_manager="maven",
             output_dir=None,
@@ -142,7 +185,7 @@ class TestCli(TestCase):
             self.output_dir,
             self.name,
             True,
-            {"runtime": "java11", "project_name": "testing project"},
+            {"runtime": "java11", "project_name": "testing project", "architectures": {"value": [X86_64]}},
         )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -157,6 +200,7 @@ class TestCli(TestCase):
                 pt_explicit=self.pt_explicit,
                 package_type=self.package_type,
                 runtime=self.runtime,
+                architecture=ARM64,
                 base_image=self.base_image,
                 dependency_manager=self.dependency_manager,
                 output_dir=None,
@@ -178,6 +222,7 @@ class TestCli(TestCase):
                 pt_explicit=self.pt_explicit,
                 package_type=self.package_type,
                 runtime=self.runtime,
+                architecture=X86_64,
                 base_image=self.base_image,
                 dependency_manager="bad-wrong",
                 output_dir=None,
@@ -205,6 +250,7 @@ class TestCli(TestCase):
                 pt_explicit=self.pt_explicit,
                 package_type=self.package_type,
                 runtime=self.runtime,
+                architecture=X86_64,
                 base_image=self.base_image,
                 dependency_manager=self.dependency_manager,
                 output_dir=self.output_dir,
@@ -236,6 +282,7 @@ class TestCli(TestCase):
                 pt_explicit=self.pt_explicit,
                 package_type=IMAGE,
                 runtime=None,
+                architecture=X86_64,
                 base_image="python3.6-base",
                 dependency_manager="wrong-dependency-manager",
                 output_dir=self.output_dir,
@@ -260,6 +307,7 @@ class TestCli(TestCase):
             pt_explicit=self.pt_explicit,
             package_type=self.package_type,
             runtime=self.runtime,
+            architecture=ARM64,
             base_image=self.base_image,
             dependency_manager=self.dependency_manager,
             output_dir=self.output_dir,
@@ -270,6 +318,7 @@ class TestCli(TestCase):
         )
 
         # THEN we should receive no errors
+        self.extra_context_as_json["architectures"] = {"value": [ARM64]}
         generate_project_patch.assert_called_once_with(
             ANY, ZIP, self.runtime, self.dependency_manager, ".", self.name, True, self.extra_context_as_json
         )
@@ -285,6 +334,7 @@ class TestCli(TestCase):
             pt_explicit=self.pt_explicit,
             package_type=self.package_type,
             runtime=self.runtime,
+            architecture=X86_64,
             base_image=self.base_image,
             dependency_manager=self.dependency_manager,
             output_dir=self.output_dir,
@@ -303,7 +353,13 @@ class TestCli(TestCase):
             ".",
             self.name,
             True,
-            {"project_name": "testing project", "runtime": "python3.6", "schema_name": "events", "schema_type": "aws"},
+            {
+                "project_name": "testing project",
+                "runtime": "python3.6",
+                "schema_name": "events",
+                "schema_type": "aws",
+                "architectures": {"value": [X86_64]},
+            },
         )
 
     @patch("samcli.commands.init.init_generator.generate_project")
@@ -317,6 +373,7 @@ class TestCli(TestCase):
             pt_explicit=self.pt_explicit,
             package_type=self.package_type,
             runtime=self.runtime,
+            architecture=ARM64,
             base_image=self.base_image,
             dependency_manager=self.dependency_manager,
             output_dir=self.output_dir,
@@ -335,7 +392,13 @@ class TestCli(TestCase):
             ".",
             self.name,
             True,
-            {"project_name": "testing project", "runtime": "python3.6", "schema_name": "events", "schema_type": "aws"},
+            {
+                "project_name": "testing project",
+                "runtime": "python3.6",
+                "schema_name": "events",
+                "schema_type": "aws",
+                "architectures": {"value": [ARM64]},
+            },
         )
 
     def test_init_cli_with_extra_context_input_as_wrong_json_raises_exception(self):
@@ -349,6 +412,7 @@ class TestCli(TestCase):
                 pt_explicit=self.pt_explicit,
                 package_type=self.package_type,
                 runtime=self.runtime,
+                architecture=X86_64,
                 base_image=self.base_image,
                 dependency_manager=self.dependency_manager,
                 output_dir=self.output_dir,
@@ -369,6 +433,7 @@ class TestCli(TestCase):
             pt_explicit=self.pt_explicit,
             package_type=self.package_type,
             runtime="java8",
+            architecture=X86_64,
             base_image=self.base_image,
             dependency_manager=None,
             output_dir=self.output_dir,
@@ -387,7 +452,13 @@ class TestCli(TestCase):
             ".",
             "test-project",
             None,
-            {"schema_name": "events", "schema_type": "aws", "runtime": "java8", "project_name": "test-project"},
+            {
+                "schema_name": "events",
+                "schema_type": "aws",
+                "runtime": "java8",
+                "project_name": "test-project",
+                "architectures": {"value": [X86_64]},
+            },
         )
 
     @patch("samcli.commands.init.init_generator.generate_project")
@@ -401,6 +472,7 @@ class TestCli(TestCase):
             pt_explicit=self.pt_explicit,
             package_type=self.package_type,
             runtime=None,
+            architecture=ARM64,
             base_image=self.base_image,
             dependency_manager=None,
             output_dir=self.output_dir,
@@ -419,7 +491,12 @@ class TestCli(TestCase):
             ".",
             "test-project",
             None,
-            {"schema_name": "events", "schema_type": "aws", "project_name": "test-project"},
+            {
+                "schema_name": "events",
+                "schema_type": "aws",
+                "project_name": "test-project",
+                "architectures": {"value": [ARM64]},
+            },
         )
 
     @patch("samcli.commands.init.init_generator.generate_project")
@@ -433,6 +510,7 @@ class TestCli(TestCase):
             pt_explicit=self.pt_explicit,
             package_type=self.package_type,
             runtime="java8",
+            architecture=ARM64,
             base_image=self.base_image,
             dependency_manager=None,
             output_dir=self.output_dir,
@@ -451,7 +529,12 @@ class TestCli(TestCase):
             ".",
             None,
             None,
-            {"schema_name": "events", "schema_type": "aws", "runtime": "java8"},
+            {
+                "schema_name": "events",
+                "schema_type": "aws",
+                "runtime": "java8",
+                "architectures": {"value": [ARM64]},
+            },
         )
 
     @patch("samcli.commands.init.init_generator.generate_project")
@@ -465,6 +548,7 @@ class TestCli(TestCase):
             pt_explicit=self.pt_explicit,
             package_type=self.package_type,
             runtime=self.runtime,
+            architecture=X86_64,
             base_image=self.base_image,
             dependency_manager=self.dependency_manager,
             output_dir=self.output_dir,
@@ -485,7 +569,13 @@ class TestCli(TestCase):
             ".",
             self.name,
             True,
-            {"project_name": "testing project", "runtime": "python3.6", "schema_name": "events", "schema_type": "aws"},
+            {
+                "project_name": "testing project",
+                "runtime": "python3.6",
+                "schema_name": "events",
+                "schema_type": "aws",
+                "architectures": {"value": [X86_64]},
+            },
         )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
@@ -587,6 +677,7 @@ Y
                 "AWS_Schema_source": "aws.autoscaling",
                 "AWS_Schema_detail_type": "aws.autoscaling response",
                 "AWS_Schema_root": "schemas.aws.AWSAPICallViaCloudTrail",
+                "architectures": {"value": [X86_64]},
             },
         )
         get_schemas_client_mock.assert_called_once_with(None, "ap-northeast-1")
@@ -615,14 +706,14 @@ Y
 
         # 1: AWS Quick Start Templates
         # 2: Package type - Image
-        # 13: Java8 base image
+        # 14: Java8 base image
         # 1: dependency manager maven
         # test-project: response to name
 
         user_input = """
 1
 2
-13
+14
 1
 test-project
             """
@@ -637,7 +728,7 @@ test-project
             ".",
             "test-project",
             True,
-            {"project_name": "test-project", "runtime": "java8"},
+            {"project_name": "test-project", "runtime": "java8", "architectures": {"value": [X86_64]}},
         )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
@@ -746,6 +837,7 @@ us-east-1
                 "AWS_Schema_source": "aws.autoscaling",
                 "AWS_Schema_detail_type": "aws.autoscaling response",
                 "AWS_Schema_root": "schemas.aws.AWSAPICallViaCloudTrail",
+                "architectures": {"value": [X86_64]},
             },
         )
         get_schemas_client_mock.assert_called_once_with("default", "us-east-1")
@@ -916,6 +1008,7 @@ Y
                 "AWS_Schema_source": "aws.autoscaling",
                 "AWS_Schema_detail_type": "aws.autoscaling response",
                 "AWS_Schema_root": "schemas.aws.AWSAPICallViaCloudTrail",
+                "architectures": {"value": [X86_64]},
             },
         )
         get_schemas_client_mock.assert_called_once_with(None, "ap-northeast-1")
@@ -1023,8 +1116,10 @@ Y
             app_template="eventBridge-schema-app",
             no_input=self.no_input,
             extra_context=None,
+            architecture=ARM64,
         )
 
+        self.extra_context_as_json["architectures"] = {"value": [ARM64]}
         generate_project_patch.assert_called_once_with(
             # need to change the location validation check
             ANY,
@@ -1131,6 +1226,7 @@ foo
                 no_interactive=self.no_interactive,
                 pt_explicit=self.pt_explicit,
                 package_type="Image",
+                architecture=None,
                 base_image="amazon/python3.8-base",
                 dependency_manager="pip",
                 app_template=None,
@@ -1170,6 +1266,7 @@ foo
                 no_interactive=self.no_interactive,
                 pt_explicit=self.pt_explicit,
                 package_type="Image",
+                architecture=X86_64,
                 base_image="amazon/python3.8-base",
                 dependency_manager="pip",
                 app_template="Not-ml-apigw-pytorch",  # different value than appTemplates shown in the manifest above
@@ -1210,6 +1307,7 @@ foo
             no_interactive=True,
             pt_explicit=True,
             package_type="Image",
+            architecture=None,
             base_image="amazon/python3.8-base",
             dependency_manager="pip",
             app_template="ml-apigw-pytorch",  # same value as one appTemplate in the manifest above
@@ -1262,6 +1360,7 @@ foo
             runtime=None,
             no_input=None,
             extra_context=None,
+            architecture=None,
         )
         generate_project_patch.assert_called_once_with(
             os.path.normpath("repository/python3.8-image/cookiecutter-ml-apigw-pytorch"),  # location
@@ -1305,6 +1404,7 @@ foo
             runtime=None,
             no_input=None,
             extra_context=None,
+            architecture=None,
         )
         generate_project_patch.assert_called_once_with(
             os.path.normpath("repository/python3.8-image/cookiecutter-ml-apigw-pytorch"),  # location
@@ -1349,4 +1449,45 @@ foo
                 runtime=None,
                 no_input=None,
                 extra_context=None,
+                architecture=None,
             )
+
+    @patch("samcli.lib.utils.git_repo.GitRepo.clone")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_must_pass_with_architecture_and_base_image(self, generate_project_patch, git_clone_mock):
+        # WHEN the user follows interactive init prompts
+
+        args = [
+            "--name",
+            "untitled6",
+            "--no-interactive",
+            "--dependency-manager",
+            "gradle",
+            "--architecture",
+            "arm64",
+            "--package-type",
+            "Image",
+            "--base-image",
+            "amazon/java11-base",
+            "--app-template",
+            "hello-world-lambda-image",
+        ]
+
+        runner = CliRunner()
+        result = runner.invoke(init_cmd, args=args)
+
+        # THEN we should receive no errors
+        self.assertFalse(result.exception)
+        generate_project_patch.assert_called_once_with(
+            ANY,
+            IMAGE,
+            "java11",
+            "gradle",
+            ".",
+            "untitled6",
+            True,
+            ANY,
+        )
+        PackageType.explicit = (
+            False  # Other tests fail after we pass --packge-type in this test, so let's reset this variable
+        )

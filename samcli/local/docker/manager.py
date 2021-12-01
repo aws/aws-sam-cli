@@ -5,7 +5,6 @@ Provides classes that interface with Docker to create, execute and manage contai
 import logging
 
 import sys
-import re
 import threading
 
 import docker
@@ -13,6 +12,7 @@ import docker
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker import utils
 from samcli.local.docker.container import Container
+from samcli.local.docker.lambda_image import LambdaImage
 
 LOG = logging.getLogger(__name__)
 
@@ -78,7 +78,7 @@ class ContainerManager:
         # OR c) Image is available AND image name ends with "rapid-${SAM_CLI_VERSION}"
         if is_image_local and self.skip_pull_image:
             LOG.info("Requested to skip pulling images ...\n")
-        elif image_name.startswith("samcli/lambda") or (is_image_local and self._is_rapid_image(image_name)):
+        elif image_name.startswith("samcli/lambda") or (is_image_local and LambdaImage.is_rapid_image(image_name)):
             LOG.info("Skip pulling image and use local one: %s.\n", image_name)
         else:
             try:
@@ -187,19 +187,6 @@ class ContainerManager:
             return True
         except docker.errors.ImageNotFound:
             return False
-
-    @staticmethod
-    def _is_rapid_image(image_name: str) -> bool:
-        """
-        Is the image tagged as a RAPID clone?
-
-        : param string image_name: Name of the image
-        : return bool: True, if the image name ends with rapid-$SAM_CLI_VERSION. False, otherwise
-        """
-
-        if not re.search(r":rapid-\d+\.\d+.\d+$", image_name):
-            return False
-        return True
 
 
 class DockerImagePullFailedException(Exception):

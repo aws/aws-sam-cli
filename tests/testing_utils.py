@@ -5,6 +5,7 @@ import tempfile
 import shutil
 from collections import namedtuple
 from subprocess import Popen, PIPE, TimeoutExpired
+from typing import List
 
 IS_WINDOWS = platform.system().lower() == "windows"
 RUNNING_ON_CI = os.environ.get("APPVEYOR", False)
@@ -14,12 +15,18 @@ RUN_BY_CANARY = os.environ.get("BY_CANARY", False)
 
 # Tests require docker suffers from Docker Hub request limit
 SKIP_DOCKER_TESTS = RUNNING_ON_CI and not RUN_BY_CANARY
-SKIP_DOCKER_MESSAGE = "The test which sends requests to docker hub is likely to fail due to request limit"
+
+# Set to True temporarily if the integration tests require updated build images
+# Build images aren't published until after the CLI is released
+# The CLI integration tests thus cannot succeed if they require new build images (chicken-egg problem)
+SKIP_DOCKER_BUILD = False
+
+SKIP_DOCKER_MESSAGE = "Skipped Docker test: running on CI not in canary or new build images are required"
 
 LOG = logging.getLogger(__name__)
 
 CommandResult = namedtuple("CommandResult", "process stdout stderr")
-TIMEOUT = 300
+TIMEOUT = 600
 
 
 def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandResult:
@@ -48,6 +55,10 @@ def run_command_with_input(command_list, stdin_input, timeout=TIMEOUT) -> Comman
         LOG.error(f"Return Code: {process_execute.returncode}")
         process_execute.kill()
         raise
+
+
+def run_command_with_inputs(command_list: List[str], inputs: List[str], timeout=TIMEOUT) -> CommandResult:
+    return run_command_with_input(command_list, ("\n".join(inputs) + "\n").encode(), timeout)
 
 
 class FileCreator(object):

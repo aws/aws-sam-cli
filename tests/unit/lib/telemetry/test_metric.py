@@ -143,6 +143,7 @@ class TestTrackCommand(TestCase):
         self.context_mock.debug = False
         self.context_mock.region = "myregion"
         self.context_mock.command_path = "fakesam local invoke"
+        self.context_mock.experimental = False
 
         # Enable telemetry so we can actually run the tests
         self.gc_instance_mock.telemetry_enabled = True
@@ -207,7 +208,7 @@ class TestTrackCommand(TestCase):
     @patch("samcli.lib.telemetry.metric.Context")
     def test_must_record_function_duration(self, ContextMock):
         ContextMock.get_current_context.return_value = self.context_mock
-        sleep_duration = 0.01  # 10 millisecond
+        sleep_duration = 1  # 1 second
 
         def real_fn():
             time.sleep(sleep_duration)
@@ -222,7 +223,7 @@ class TestTrackCommand(TestCase):
         self.assertGreaterEqual(
             metric.get_data()["duration"],
             sleep_duration,
-            "Measured duration must be in milliseconds and " "greater than equal to  the sleep duration",
+            "Measured duration must be in milliseconds and greater than equal to the sleep duration",
         )
 
     @patch("samcli.lib.telemetry.metric.Context")
@@ -297,6 +298,7 @@ class TestTrackCommand(TestCase):
 
     @patch("samcli.lib.telemetry.metric.Context")
     def test_must_return_value_from_decorated_function(self, ContextMock):
+        ContextMock.get_current_context.return_value = self.context_mock
         expected_value = "some return value"
 
         def real_fn():
@@ -317,6 +319,8 @@ class TestTrackCommand(TestCase):
 
     @patch("samcli.lib.telemetry.metric.Context")
     def test_must_decorate_functions(self, ContextMock):
+        ContextMock.get_current_context.return_value = self.context_mock
+
         @track_command
         def real_fn(a, b=None):
             return "{} {}".format(a, b)

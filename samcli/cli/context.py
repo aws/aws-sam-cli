@@ -4,7 +4,7 @@ Context information passed to each CLI command
 
 import logging
 import uuid
-from typing import Optional, cast
+from typing import Optional, cast, List
 
 import boto3
 import botocore
@@ -44,6 +44,7 @@ class Context:
         self._aws_region = None
         self._aws_profile = None
         self._session_id = str(uuid.uuid4())
+        self._experimental = False
 
     @property
     def debug(self):
@@ -96,6 +97,14 @@ class Context:
         command terminates.
         """
         return self._session_id
+
+    @property
+    def experimental(self):
+        return self._experimental
+
+    @experimental.setter
+    def experimental(self, value):
+        self._experimental = value
 
     @property
     def command_path(self):
@@ -186,7 +195,7 @@ class Context:
             raise CredentialsError(str(ex)) from ex
 
 
-def get_cmd_names(cmd_name, ctx):
+def get_cmd_names(cmd_name, ctx) -> List[str]:
     """
     Given the click core context, return a list representing all the subcommands passed to the CLI
 

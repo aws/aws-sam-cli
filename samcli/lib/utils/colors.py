@@ -2,7 +2,17 @@
 Wrapper to generated colored messages for printing in Terminal
 """
 
+import platform
+import os
+
 import click
+
+# Enables ANSI escape codes on Windows
+if platform.system().lower() == "windows":
+    try:
+        os.system("color")
+    except Exception:
+        pass
 
 
 class Colored:
@@ -57,6 +67,10 @@ class Colored:
     def underline(self, msg):
         """Underline the input"""
         return click.style(msg, underline=True) if self.colorize else msg
+
+    def bold(self, msg):
+        """Bold the input"""
+        return click.style(msg, bold=True) if self.colorize else msg
 
     def _color(self, msg, color):
         """Internal helper method to add colors to input"""

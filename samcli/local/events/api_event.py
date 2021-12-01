@@ -82,6 +82,7 @@ class RequestContext:
         domain_name=None,
         request_time_epoch=int(time()),
         request_time=datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000"),
+        operation_name=None,
     ):
         """
         Constructs a RequestContext
@@ -96,6 +97,7 @@ class RequestContext:
         :param ContextIdentity identity: Identity for the Request
         :param str extended_request_id:
         :param str path:
+        :param str operation_name: Swagger operationId for the route
         :param str protocol: Optional, the protocal to make the request
         :param str domain_name: Optional, the name of the domain
         :param int request_time_epoch: Optional, an epoch timestamp to override the request time
@@ -116,6 +118,7 @@ class RequestContext:
         self.domain_name = domain_name
         self.request_time_epoch = request_time_epoch
         self.request_time = request_time
+        self.operation_name = operation_name
 
     def to_dict(self):
         """
@@ -143,6 +146,9 @@ class RequestContext:
             "requestTimeEpoch": self.request_time_epoch,
             "requestTime": self.request_time,
         }
+
+        if self.operation_name is not None:
+            json_dict["operationName"] = self.operation_name
 
         return json_dict
 
@@ -289,6 +295,10 @@ class RequestContextV2:
         request_id=str(uuid.uuid4()),
         route_key=None,
         stage=None,
+        request_time_epoch=None,
+        request_time=None,
+        domain_name="localhost",
+        domain_prefix="localhost",
     ):
         """
         Constructs a RequestContext Version 2.
@@ -299,6 +309,10 @@ class RequestContextV2:
         :param str request_id: Request Id for the request (Default: generated uuid id)
         :param str route_key: The route key for the route.
         :param str stage: Api Gateway V2 Stage
+        :param int request_time_epoch: Optional, an epoch timestamp to override the request time
+        :param datetime request_time: Optional, a datetime object to override the request time
+        :param str domain_name: Optional, the name of the domain (Default: localhost)
+        :param str domain_prefix: Optional, the prefix of the domain (Default: localhost)
         """
 
         self.account_id = account_id
@@ -307,6 +321,10 @@ class RequestContextV2:
         self.request_id = request_id
         self.route_key = route_key
         self.stage = stage
+        self.request_time_epoch = request_time_epoch
+        self.request_time = request_time
+        self.domain_name = domain_name
+        self.domain_prefix = domain_prefix
 
     def to_dict(self):
         """
@@ -319,6 +337,11 @@ class RequestContextV2:
         if self.http:
             http_dict = self.http.to_dict()
 
+        # this could get explicitly passed in as None further up the
+        # chain so coalescing to $default here to ensure it's never empty
+        if self.stage is None:
+            self.stage = "$default"
+
         json_dict = {
             "accountId": self.account_id,
             "apiId": self.api_id,
@@ -326,6 +349,10 @@ class RequestContextV2:
             "requestId": self.request_id,
             "routeKey": self.route_key,
             "stage": self.stage,
+            "time": self.request_time,
+            "timeEpoch": self.request_time_epoch,
+            "domainName": "localhost",
+            "domainPrefix": "localhost",
         }
 
         return json_dict

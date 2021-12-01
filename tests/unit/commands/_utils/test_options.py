@@ -17,6 +17,7 @@ from samcli.commands._utils.options import (
     _TEMPLATE_OPTION_DEFAULT_VALUE,
     guided_deploy_stack_name,
     artifact_callback,
+    parameterized_option,
     resolve_s3_callback,
     image_repositories_callback,
     _space_separated_list_func_type,
@@ -149,6 +150,70 @@ class TestArtifactBasedOptionRequired(TestCase):
             artifact=ZIP,
         )
         self.assertEqual(result, s3_bucket)
+
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
+    def test_zip_based_artifact_s3_arn(self, template_artifacts_mock):
+        # implicitly artifacts are zips
+        template_artifacts_mock.return_value = [ZIP]
+        mock_params = MagicMock()
+        mock_params.get = MagicMock()
+        s3_bucket = "mock-bucket"
+        s3_arn = f"arn:aws:s3:::{s3_bucket}"
+        result = artifact_callback(
+            ctx=MockContext(info_name="test", parent=None, params=mock_params),
+            param=MagicMock(),
+            provided_value=s3_arn,
+            artifact=ZIP,
+        )
+        self.assertEqual(result, s3_bucket)
+
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
+    def test_zip_based_artifact_wrong_s3_arn1(self, template_artifacts_mock):
+        # implicitly artifacts are zips
+        template_artifacts_mock.return_value = [ZIP]
+        mock_params = MagicMock()
+        mock_params.get = MagicMock()
+        s3_bucket = "mock-bucket"
+        s3_arn = f"arn:{s3_bucket}"
+        with self.assertRaises(click.BadOptionUsage):
+            artifact_callback(
+                ctx=MockContext(info_name="test", parent=None, params=mock_params),
+                param=MagicMock(),
+                provided_value=s3_arn,
+                artifact=ZIP,
+            )
+
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
+    def test_zip_based_artifact_wrong_s3_arn2(self, template_artifacts_mock):
+        # implicitly artifacts are zips
+        template_artifacts_mock.return_value = [ZIP]
+        mock_params = MagicMock()
+        mock_params.get = MagicMock()
+        s3_bucket = "mock-bucket"
+        s3_arn = f"arn:aws:s4:::{s3_bucket}"
+        with self.assertRaises(click.BadOptionUsage):
+            artifact_callback(
+                ctx=MockContext(info_name="test", parent=None, params=mock_params),
+                param=MagicMock(),
+                provided_value=s3_arn,
+                artifact=ZIP,
+            )
+
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
+    def test_zip_based_artifact_wrong_s3_arn3(self, template_artifacts_mock):
+        # implicitly artifacts are zips
+        template_artifacts_mock.return_value = [ZIP]
+        mock_params = MagicMock()
+        mock_params.get = MagicMock()
+        s3_bucket = "mock-bucket"
+        s3_arn = f"arn:aaa:s3:::{s3_bucket}"
+        with self.assertRaises(click.BadOptionUsage):
+            artifact_callback(
+                ctx=MockContext(info_name="test", parent=None, params=mock_params),
+                param=MagicMock(),
+                provided_value=s3_arn,
+                artifact=ZIP,
+            )
 
     @patch("samcli.commands._utils.options.get_template_artifacts_format")
     def test_zip_based_artifact_s3_not_required_resolve_s3_option_present(self, template_artifacts_mock):
@@ -463,3 +528,33 @@ class TestSpaceSeparatedListInvalidDataTypes:
     def test_raise_value_error(self, test_input):
         with pytest.raises(ValueError):
             _space_separated_list_func_type(test_input)
+
+
+class TestParameterizedOption(TestCase):
+    @parameterized_option
+    def option_dec_with_value(f, value=2):
+        def wrapper():
+            return f(value)
+
+        return wrapper
+
+    @parameterized_option
+    def option_dec_without_value(f, value=2):
+        def wrapper():
+            return f(value)
+
+        return wrapper
+
+    @option_dec_with_value(5)
+    def some_function_with_value(value):
+        return value + 2
+
+    @option_dec_without_value
+    def some_function_without_value(value):
+        return value + 2
+
+    def test_option_dec_with_value(self):
+        self.assertEqual(TestParameterizedOption.some_function_with_value(), 7)
+
+    def test_option_dec_without_value(self):
+        self.assertEqual(TestParameterizedOption.some_function_without_value(), 4)

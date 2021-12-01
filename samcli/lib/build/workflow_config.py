@@ -151,6 +151,7 @@ def get_layer_subfolder(build_workflow: str) -> str:
         "python3.6": "python",
         "python3.7": "python",
         "python3.8": "python",
+        "python3.9": "python",
         "nodejs4.3": "nodejs",
         "nodejs6.10": "nodejs",
         "nodejs8.10": "nodejs",
@@ -210,6 +211,7 @@ def get_workflow_config(
         "python3.6": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.7": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.8": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
+        "python3.9": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "nodejs10.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs12.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs14.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
@@ -299,9 +301,6 @@ def supports_build_in_container(config: CONFIG) -> Tuple[bool, Optional[str]]:
     unsupported = {
         _key(DOTNET_CLIPACKAGE_CONFIG): "We do not support building .NET Core Lambda functions within a container. "
         "Try building without the container. Most .NET Core functions will build "
-        "successfully.",
-        _key(GO_MOD_CONFIG): "We do not support building Go Lambda functions within a container. "
-        "Try building without the container. Most Go functions will build "
         "successfully.",
     }
 
