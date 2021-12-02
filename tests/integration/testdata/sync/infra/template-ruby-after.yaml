@@ -10,7 +10,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       AutoPublishAlias: Hello1Alias
-      CodeUri: after/Ruby/function-after/
+      CodeUri: after/Ruby/function/
       Handler: app.lambda_handler
       Runtime: ruby2.7
       Architectures:
@@ -23,7 +23,7 @@ Resources:
     Properties:
       LayerName: HelloWorldRubyLayer
       Description: Hello World Ruby Layer
-      ContentUri: after/Ruby/layer-after/
+      ContentUri: after/Ruby/layer/
       CompatibleRuntimes:
         - ruby2.7
     Metadata:

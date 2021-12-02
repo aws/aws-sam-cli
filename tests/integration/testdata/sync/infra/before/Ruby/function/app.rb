@@ -1,6 +1,6 @@
 require 'httparty'
 require 'json'
-require 'layer_test'
+require 'layer'
 
 def lambda_handler(event:, context:)
   # Sample pure Lambda function that returns a message and a location
@@ -15,7 +15,7 @@ def lambda_handler(event:, context:)
   {
     statusCode: 200,
     body: {
-      message: "#{layer_test()+2}",
+      message: "#{layer()+1}",
       location: response.body
     }.to_json
   }
