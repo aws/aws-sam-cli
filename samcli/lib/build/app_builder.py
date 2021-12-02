@@ -577,7 +577,6 @@ class ApplicationBuilder:
                 message = (
                     f"WARNING: {runtime} is no longer supported by AWS Lambda, "
                     "please update to a newer supported runtime. SAM CLI "
-                    f"will drop support for all deprecated runtimes {self._deprecated_runtimes} on May 1st. "
                     "See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
                 )
                 LOG.warning(self._colored.yellow(message))

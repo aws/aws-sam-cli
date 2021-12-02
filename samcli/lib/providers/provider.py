@@ -31,7 +31,7 @@ class Function(NamedTuple):
 
     # Function id, can be Logical ID or any function identifier to define a function in specific IaC
     function_id: str
-    # Function name or logical ID
+    # Function's logical ID (used as Function name below if Property `FunctionName` is not defined)
     name: str
     # Function name (used in place of logical ID)
     functionname: str

@@ -78,13 +78,13 @@ class SamFunctionProvider(SamBaseProvider):
         if not name:
             raise ValueError("Function name is required")
 
-        get_f = None
+        resolved_function = None
 
         if name in self.functions:
             # support lookup by full_path
-            get_f = self.functions.get(name)
+            resolved_function = self.functions.get(name)
 
-        if not get_f:
+        if not resolved_function:
             # If function is not found by full path, search through all functions
 
             found_fs = []
@@ -108,22 +108,21 @@ class SamFunctionProvider(SamBaseProvider):
                 for found_f in found_fs:
                     LOG.warning(found_f.full_path)
 
-                get_f = found_fs[0]
+                resolved_function = found_fs[0]
 
             elif len(found_fs) == 1:
-                get_f = found_fs[0]
+                resolved_function = found_fs[0]
 
-        if get_f:
-            self._deprecate_notification(get_f.runtime)
+        if resolved_function:
+            self._deprecate_notification(resolved_function.runtime)
 
-        return get_f
+        return resolved_function
 
     def _deprecate_notification(self, runtime: Optional[str]) -> None:
         if runtime in self._deprecated_runtimes:
             message = (
                 f"WARNING: {runtime} is no longer supported by AWS Lambda, "
                 "please update to a newer supported runtime. SAM CLI "
-                f"will drop support for all deprecated runtimes {self._deprecated_runtimes} on May 1st, 2020. "
                 "See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
             )
             LOG.warning(self._colored.yellow(message))
@@ -293,7 +292,8 @@ class SamFunctionProvider(SamBaseProvider):
         if not isinstance(resource_cdk_path, str) or not resource_cdk_path:
             return logical_id
 
-        # aws:cdk:path metadata format: {stack_id}/{function_id}/Resource
+        # aws:cdk:path metadata format of functions: {stack_id}/{function_id}/Resource
+        # Design doc of CDK path: https://github.com/aws/aws-cdk/blob/master/design/construct-tree.md
         cdk_path_partitions = resource_cdk_path.split("/")
 
         if len(cdk_path_partitions) < 2:

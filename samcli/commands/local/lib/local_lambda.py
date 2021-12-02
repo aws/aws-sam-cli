@@ -258,10 +258,10 @@ class LocalLambdaRunner:
         else:
             # Standard format
             LOG.debug("Environment variables overrides data is standard format")
-            # Precedence: function_id -> logical_id -> full_path, customer can use any of them
+            # Precedence: logical_id -> function_id -> full_path, customer can use any of them
             overrides = (
-                self.env_vars_values.get(function_id, None)
-                or self.env_vars_values.get(name, None)
+                self.env_vars_values.get(name, None)
+                or self.env_vars_values.get(function_id, None)
                 or self.env_vars_values.get(full_path, None)
             )
 
