@@ -42,9 +42,11 @@ class TestCDKSynthesizedTemplatesFunctionIdentifies(InvokeIntegBase):
         except FileNotFoundError:
             pass
 
-    @parameterized.expand([
-        ("StandardZipFunctionWithFunctionName", "ThisIsHelloWorldFunction", "LambdaWithFunctionName"),
-    ])
+    @parameterized.expand(
+        [
+            ("StandardZipFunctionWithFunctionName", "ThisIsHelloWorldFunction", "LambdaWithFunctionName"),
+        ]
+    )
     @pytest.mark.flaky(reruns=3)
     def test_invoke_function_with_function_id(self, logical_id, function_name, function_id):
         self.teardown_function_name = logical_id
