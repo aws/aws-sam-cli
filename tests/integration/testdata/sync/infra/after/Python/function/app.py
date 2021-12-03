@@ -1,5 +1,5 @@
 import json
-from layer_test import layer_test
+from layer_method import layer_method
 
 import requests
 
@@ -18,7 +18,7 @@ def lambda_handler(event, context):
     return {
         "statusCode": 200,
         "body": json.dumps({
-            "message": f"{layer_test()+2}",
+            "message": f"{layer_method()+2}",
             "location": ip.text.replace("\n", "")
         }),
     }
