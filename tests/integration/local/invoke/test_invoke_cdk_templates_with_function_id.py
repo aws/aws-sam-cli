@@ -15,7 +15,7 @@ from samcli.lib.utils.architecture import X86_64
 
 class TestCDKSynthesizedTemplatesFunctionIdentifies(InvokeIntegBase):
 
-    template = "cdk/cdk_function_id_template.yaml"
+    template = Path("cdk/cdk_function_id_template.yaml")
 
     @classmethod
     def setUpClass(cls):
@@ -26,8 +26,7 @@ class TestCDKSynthesizedTemplatesFunctionIdentifies(InvokeIntegBase):
         build_command_list = super().get_build_command_list(cls, template_path=cls.template_path)
         super().run_command(cls, command_list=build_command_list)
 
-    @classmethod
-    def tearDownClass(self) -> None:
+    def tearDown(self) -> None:
         # Tear down a unique image resource after it is finished being used
         docker_client = docker.from_env()
         try:
@@ -48,6 +47,7 @@ class TestCDKSynthesizedTemplatesFunctionIdentifies(InvokeIntegBase):
     ])
     @pytest.mark.flaky(reruns=3)
     def test_invoke_function_with_function_id(self, logical_id, function_name, function_id):
+        self.teardown_function_name = logical_id
         function_identifiers = [function_name, logical_id, function_id]
         for identifier in function_identifiers:
             local_invoke_command_list = self.get_command_list(
