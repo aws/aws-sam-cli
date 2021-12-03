@@ -82,7 +82,7 @@ The following resources and their property locations are supported.
 @check_newer_version
 @track_template_warnings([CodeDeployWarning.__name__, CodeDeployConditionWarning.__name__])
 @print_cmdline_args
-@unsupported_command_cdk(alternative_command=None)
+@unsupported_command_cdk(alternative_command="cdk deploy")
 def cli(
     ctx,
     template_file,

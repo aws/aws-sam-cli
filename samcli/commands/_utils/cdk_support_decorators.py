@@ -8,7 +8,7 @@ from samcli.lib.iac.cdk.utils import is_cdk_project
 LOG = logging.getLogger(__name__)
 
 
-def unsupported_command_cdk(alternative_command):
+def unsupported_command_cdk(alternative_command=None):
     """
     Log a warning message to the user if they attempt
     to use a CDK template with an unsupported sam command

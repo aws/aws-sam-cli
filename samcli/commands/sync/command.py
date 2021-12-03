@@ -143,7 +143,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @track_template_warnings([CodeDeployWarning.__name__, CodeDeployConditionWarning.__name__])
 @check_newer_version
 @print_cmdline_args
-@unsupported_command_cdk(alternative_command=None)
+@unsupported_command_cdk()
 def cli(
     ctx: Context,
     template_file: str,
