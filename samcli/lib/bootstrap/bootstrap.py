@@ -65,6 +65,17 @@ def _get_stack_template():
             "SamCliSourceBucket": {
                 "Type": "AWS::S3::Bucket",
                 "Properties": {
+                    "PublicAccessBlockConfiguration": {
+                        "BlockPublicPolicy": "true",
+                        "BlockPublicAcls": "true",
+                        "IgnorePublicAcls": "true",
+                        "RestrictPublicBuckets": "true",
+                    },
+                    "BucketEncryption": {
+                        "ServerSideEncryptionConfiguration": [
+                            {"ServerSideEncryptionByDefault": {"SSEAlgorithm": "aws:kms"}}
+                        ]
+                    },
                     "VersioningConfiguration": {"Status": "Enabled"},
                     "Tags": [{"Key": "ManagedStackSource", "Value": "AwsSamCli"}],
                 },
@@ -92,7 +103,38 @@ def _get_stack_template():
                                 },
                                 "Principal": {"Service": "serverlessrepo.amazonaws.com"},
                                 "Condition": {"StringEquals": {"aws:SourceAccount": {"Ref": "AWS::AccountId"}}},
-                            }
+                            },
+                            {
+                                "Action": ["s3:*"],
+                                "Effect": "Deny",
+                                "Resource": [
+                                    {
+                                        "Fn::Join": [
+                                            "",
+                                            [
+                                                "arn:",
+                                                {"Ref": "AWS::Partition"},
+                                                ":s3:::",
+                                                {"Ref": "SamCliSourceBucket"},
+                                            ],
+                                        ]
+                                    },
+                                    {
+                                        "Fn::Join": [
+                                            "",
+                                            [
+                                                "arn:",
+                                                {"Ref": "AWS::Partition"},
+                                                ":s3:::",
+                                                {"Ref": "SamCliSourceBucket"},
+                                                "/*",
+                                            ],
+                                        ]
+                                    },
+                                ],
+                                "Principal": "*",
+                                "Condition": {"Bool": {"aws:SecureTransport": "false"}},
+                            },
                         ]
                     },
                 },

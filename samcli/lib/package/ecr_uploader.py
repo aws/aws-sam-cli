@@ -32,13 +32,16 @@ class ECRUploader:
     Class to upload Images to ECR.
     """
 
-    def __init__(self, docker_client, ecr_client, ecr_repo, ecr_repo_multi, tag="latest", stream=stderr()):
+    def __init__(
+        self, docker_client, ecr_client, ecr_repo, ecr_repo_multi, no_progressbar=False, tag="latest", stream=stderr()
+    ):
         self.docker_client = docker_client if docker_client else docker.from_env()
         self.ecr_client = ecr_client
         self.ecr_repo = ecr_repo
         self.ecr_repo_multi = ecr_repo_multi
         self.tag = tag
         self.auth_config = {}
+        self.no_progressbar = no_progressbar
         self.stream = StreamWriter(stream=stream, auto_flush=True)
         self.log_streamer = LogStreamer(stream=self.stream)
         self.login_session_active = False
@@ -83,7 +86,8 @@ class ECRUploader:
             push_logs = self.docker_client.api.push(
                 repository=repository, tag=_tag, auth_config=self.auth_config, stream=True, decode=True
             )
-            self.log_streamer.stream_progress(push_logs)
+            if not self.no_progressbar:
+                self.log_streamer.stream_progress(push_logs)
 
         except (BuildError, APIError, LogStreamError) as ex:
             raise DockerPushFailedError(msg=str(ex)) from ex

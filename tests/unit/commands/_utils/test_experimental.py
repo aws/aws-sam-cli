@@ -70,10 +70,14 @@ class TestExperimental(TestCase):
 
     @patch("samcli.commands._utils.experimental.set_experimental")
     @patch("samcli.commands._utils.experimental.disable_all_experimental")
-    def test_experimental_option_callback_true(self, disable_all_experimental_mock, set_experimental_mock):
+    @patch("samcli.commands._utils.experimental.update_experimental_context")
+    def test_experimental_option_callback_true(
+        self, update_experimental_context, disable_all_experimental_mock, set_experimental_mock
+    ):
         _experimental_option_callback(MagicMock(), MagicMock(), True)
         set_experimental_mock.assert_called_once()
         disable_all_experimental_mock.assert_not_called()
+        update_experimental_context.assert_called_once()
 
     @patch("samcli.commands._utils.experimental.set_experimental")
     @patch("samcli.commands._utils.experimental.disable_all_experimental")
@@ -99,7 +103,8 @@ class TestExperimental(TestCase):
     @patch("samcli.commands._utils.experimental.set_experimental")
     @patch("samcli.commands._utils.experimental.click.confirm")
     @patch("samcli.commands._utils.experimental.is_experimental_enabled")
-    def test_prompt_experimental(self, enabled_mock, confirm_mock, set_experimental_mock):
+    @patch("samcli.commands._utils.experimental.update_experimental_context")
+    def test_prompt_experimental(self, update_experimental_context, enabled_mock, confirm_mock, set_experimental_mock):
         config_entry = MagicMock()
         prompt = "abc"
         enabled_mock.return_value = False
@@ -108,3 +113,4 @@ class TestExperimental(TestCase):
         set_experimental_mock.assert_called_once_with(config_entry=config_entry, enabled=True)
         enabled_mock.assert_called_once_with(config_entry)
         confirm_mock.assert_called_once_with(prompt, default=False)
+        update_experimental_context.assert_called_once()
