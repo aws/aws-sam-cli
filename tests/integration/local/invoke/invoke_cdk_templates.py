@@ -76,3 +76,23 @@ class TestCDKSynthesizedTemplatesFunctions(InvokeIntegBase):
         )
         stdout, _, return_code = self.run_command(command_list)
         self.assertEqual(return_code, 0)
+
+
+class TestRuntimeFunctionConstructs(InvokeIntegBase):
+    template = Path("cdk/runtime_function_constructs.yaml")
+
+    @parameterized.expand(["NodeJsFunction", "PythonFunction", "GoFunction"])
+    def test_runtime_function_construct(self, function_name):
+        local_invoke_command_list = self.get_command_list(
+            function_to_invoke=function_name, template_path=self.template_path
+        )
+        stdout, _, return_code = self.run_command(local_invoke_command_list)
+
+        # Get the response without the sam-cli prompts that proceed it
+        response = stdout.decode("utf-8").split("\n")[0]
+        expected_response = f'"Hello from {function_name}!"'
+
+        self.assertEqual(return_code, 0)
+        self.assertEqual(response, expected_response)
+
+
