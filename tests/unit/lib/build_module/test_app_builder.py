@@ -480,6 +480,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             None,
             None,
             True,
+            True,
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -975,7 +976,17 @@ class TestApplicationBuilder_build_function(TestCase):
         self.builder._build_function(function_name, codeuri, ZIP, runtime, architecture, handler, artifacts_dir)
 
         self.builder._build_function_in_process.assert_called_with(
-            config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, architecture, None, None, True
+            config_mock,
+            code_dir,
+            artifacts_dir,
+            scratch_dir,
+            manifest_path,
+            runtime,
+            architecture,
+            None,
+            None,
+            True,
+            True,
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -1016,7 +1027,17 @@ class TestApplicationBuilder_build_function(TestCase):
         )
 
         self.builder._build_function_in_process.assert_called_with(
-            config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, architecture, None, None, True
+            config_mock,
+            code_dir,
+            artifacts_dir,
+            scratch_dir,
+            manifest_path,
+            runtime,
+            architecture,
+            None,
+            None,
+            True,
+            True,
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -1180,6 +1201,7 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
             None,
             None,
             True,
+            True,
         )
         self.assertEqual(result, "artifacts_dir")
 
@@ -1222,6 +1244,7 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
                 X86_64,
                 None,
                 None,
+                True,
                 True,
             )
 
