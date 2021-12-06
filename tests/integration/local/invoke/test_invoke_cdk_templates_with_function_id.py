@@ -64,6 +64,7 @@ class TestCDKSynthesizedTemplatesFunctionIdentifies(InvokeIntegBase):
             self.assertEqual(return_code, 0)
             self.assertEqual(response, expected_response)
 
+
 class TestCDKSynthesizedTemplatesNestedFunctionIdentifies(InvokeIntegBase):
 
     template = Path("cdk/nested_templates/cdk_function_id_parent_template.yaml")
