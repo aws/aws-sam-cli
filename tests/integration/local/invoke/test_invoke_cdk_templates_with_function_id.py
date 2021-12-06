@@ -63,3 +63,70 @@ class TestCDKSynthesizedTemplatesFunctionIdentifies(InvokeIntegBase):
 
             self.assertEqual(return_code, 0)
             self.assertEqual(response, expected_response)
+
+
+class TestCDKSynthesizedTemplatesNestedFunctionIdentifies(InvokeIntegBase):
+
+    template = Path("cdk/nested_templates/cdk_function_id_parent_template.yaml")
+
+    @classmethod
+    def setUpClass(cls):
+        # Run sam build first to build the image functions
+        # We only need to create these images once
+        # We remove them after they are no longer used
+        super(TestCDKSynthesizedTemplatesNestedFunctionIdentifies, cls).setUpClass()
+        build_command_list = super().get_build_command_list(cls, template_path=cls.template_path)
+        super().run_command(cls, command_list=build_command_list)
+
+    def tearDown(self) -> None:
+        # Tear down a unique image resource after it is finished being used
+        docker_client = docker.from_env()
+        try:
+            to_remove = self.teardown_function_name
+            for remove in to_remove:
+                docker_client.api.remove_image(f"{remove.lower()}")
+                docker_client.api.remove_image(f"{remove.lower()}:{RAPID_IMAGE_TAG_PREFIX}-{version}-{X86_64}")
+        except (APIError, AttributeError):
+            pass
+
+        try:
+            # We don't actually use the build dir so we don't care if it's removed before another process finishes
+            shutil.rmtree(str(Path().joinpath(".aws-sam")))
+        except FileNotFoundError:
+            pass
+
+    @parameterized.expand([("LambdaWithUniqueFunctionName", "StandardZipFunctionWithFunctionUniqueName")])
+    @pytest.mark.flaky(reruns=0)
+    def test_invoke_function_with_unique_function_id(self, function_id_part, logical_id):
+        self.teardown_function_name = [logical_id]
+        local_invoke_command_list = self.get_command_list(
+            function_to_invoke=function_id_part, template_path=self.template_path
+        )
+        stdout, _, return_code = self.run_command(local_invoke_command_list)
+
+        # Get the response without the sam-cli prompts that proceed it
+        response = json.loads(stdout.decode("utf-8").split("\n")[0])
+        expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\":\\"%s\\"}"}' % logical_id)
+
+        self.assertEqual(return_code, 0)
+        self.assertEqual(response, expected_response)
+
+    @parameterized.expand(
+        [("LambdaWithFunctionName", "StandardZipFunctionWithFunctionNameA", "StandardZipFunctionWithFunctionNameB")]
+    )
+    @pytest.mark.flaky(reruns=0)
+    def test_invoke_function_with_duplicated_function_id(
+        self, duplicated_function_id, expected_logical_id, not_invoked_logical_id
+    ):
+        self.teardown_function_name = [expected_logical_id, not_invoked_logical_id]
+        local_invoke_command_list = self.get_command_list(
+            function_to_invoke=duplicated_function_id, template_path=self.template_path
+        )
+        stdout, _, return_code = self.run_command(local_invoke_command_list)
+
+        # Get the response without the sam-cli prompts that proceed it
+        response = json.loads(stdout.decode("utf-8").split("\n")[0])
+        expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\":\\"%s\\"}"}' % expected_logical_id)
+
+        self.assertEqual(return_code, 0)
+        self.assertEqual(response, expected_response)
