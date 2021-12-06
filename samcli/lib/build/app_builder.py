@@ -511,6 +511,7 @@ class ApplicationBuilder:
                     options,
                     dependencies_dir,
                     download_dependencies,
+                    True,  # dependencies for layer should always be combined
                 )
 
             # Not including subfolder in return so that we copy subfolder, instead of copying artifacts inside it.
@@ -577,7 +578,6 @@ class ApplicationBuilder:
                 message = (
                     f"WARNING: {runtime} is no longer supported by AWS Lambda, "
                     "please update to a newer supported runtime. SAM CLI "
-                    f"will drop support for all deprecated runtimes {self._deprecated_runtimes} on May 1st. "
                     "See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
                 )
                 LOG.warning(self._colored.yellow(message))
@@ -624,6 +624,7 @@ class ApplicationBuilder:
                     options,
                     dependencies_dir,
                     download_dependencies,
+                    self._combine_dependencies,
                 )
 
         # pylint: disable=fixme
@@ -665,6 +666,7 @@ class ApplicationBuilder:
         options: Optional[Dict],
         dependencies_dir: Optional[str],
         download_dependencies: bool,
+        combine_dependencies: bool,
     ) -> str:
 
         builder = LambdaBuilder(
@@ -688,7 +690,7 @@ class ApplicationBuilder:
                 architecture=architecture,
                 dependencies_dir=dependencies_dir,
                 download_dependencies=download_dependencies,
-                combine_dependencies=self._combine_dependencies,
+                combine_dependencies=combine_dependencies,
             )
         except LambdaBuilderError as ex:
             raise BuildError(wrapped_from=ex.__class__.__name__, msg=str(ex)) from ex
