@@ -17,31 +17,6 @@ class TestCDKSynthesizedTemplatesFunctionIdentifies(InvokeIntegBase):
 
     template = Path("cdk/cdk_function_id_template.yaml")
 
-    @classmethod
-    def setUpClass(cls):
-        # Run sam build first to build the image functions
-        # We only need to create these images once
-        # We remove them after they are no longer used
-        super(TestCDKSynthesizedTemplatesFunctionIdentifies, cls).setUpClass()
-        build_command_list = super().get_build_command_list(cls, template_path=cls.template_path)
-        super().run_command(cls, command_list=build_command_list)
-
-    def tearDown(self) -> None:
-        # Tear down a unique image resource after it is finished being used
-        docker_client = docker.from_env()
-        try:
-            to_remove = self.teardown_function_name
-            docker_client.api.remove_image(f"{to_remove.lower()}")
-            docker_client.api.remove_image(f"{to_remove.lower()}:{RAPID_IMAGE_TAG_PREFIX}-{version}-{X86_64}")
-        except (APIError, AttributeError):
-            pass
-
-        try:
-            # We don't actually use the build dir so we don't care if it's removed before another process finishes
-            shutil.rmtree(str(Path().joinpath(".aws-sam")))
-        except FileNotFoundError:
-            pass
-
     @parameterized.expand(
         [
             ("StandardZipFunctionWithFunctionName", "ThisIsHelloWorldFunction", "LambdaWithFunctionName"),
@@ -68,32 +43,6 @@ class TestCDKSynthesizedTemplatesFunctionIdentifies(InvokeIntegBase):
 class TestCDKSynthesizedTemplatesNestedFunctionIdentifies(InvokeIntegBase):
 
     template = Path("cdk/nested_templates/cdk_function_id_parent_template.yaml")
-
-    @classmethod
-    def setUpClass(cls):
-        # Run sam build first to build the image functions
-        # We only need to create these images once
-        # We remove them after they are no longer used
-        super(TestCDKSynthesizedTemplatesNestedFunctionIdentifies, cls).setUpClass()
-        build_command_list = super().get_build_command_list(cls, template_path=cls.template_path)
-        super().run_command(cls, command_list=build_command_list)
-
-    def tearDown(self) -> None:
-        # Tear down a unique image resource after it is finished being used
-        docker_client = docker.from_env()
-        try:
-            to_remove = self.teardown_function_name
-            for remove in to_remove:
-                docker_client.api.remove_image(f"{remove.lower()}")
-                docker_client.api.remove_image(f"{remove.lower()}:{RAPID_IMAGE_TAG_PREFIX}-{version}-{X86_64}")
-        except (APIError, AttributeError):
-            pass
-
-        try:
-            # We don't actually use the build dir so we don't care if it's removed before another process finishes
-            shutil.rmtree(str(Path().joinpath(".aws-sam")))
-        except FileNotFoundError:
-            pass
 
     @parameterized.expand([("LambdaWithUniqueFunctionName", "StandardZipFunctionWithFunctionUniqueName")])
     @pytest.mark.flaky(reruns=0)
