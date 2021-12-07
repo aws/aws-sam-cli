@@ -53,7 +53,6 @@ class TestExperimentalMetric(IntegBase):
                             "region": ANY,
                             "commandName": ANY,
                             "metricSpecificAttributes": {
-                                "projectType": "CFN",
                                 "experimentalAccelerate": True,
                                 "experimentalAll": False,
                             },
@@ -103,7 +102,6 @@ class TestExperimentalMetric(IntegBase):
                             "region": ANY,
                             "commandName": ANY,
                             "metricSpecificAttributes": {
-                                "projectType": "CFN",
                                 "experimentalAccelerate": True,
                                 "experimentalAll": True,
                             },
@@ -133,11 +131,10 @@ class TestExperimentalMetric(IntegBase):
             .joinpath("cdk")
             .joinpath("cdk_template.yaml")
         )
-        print(template_path)
         with TelemetryServer() as server:
             # Run without any envvar.Should not publish metrics
             process = self.run_cmd(
-                cmd_list=[self.cmd, "build", "--build-dir", self.config_dir, "--template", template_path],
+                cmd_list=[self.cmd, "build", "--build-dir", self.config_dir, "--template", str(template_path)],
                 optout_envvar_value="1",
             )
             process.communicate()
@@ -209,7 +206,6 @@ class TestExperimentalMetric(IntegBase):
                             "debugFlagProvided": ANY,
                             "region": ANY,
                             "commandName": ANY,
-                            "metricSpecificAttributes": {"projectType": "CFN"},
                             "duration": ANY,
                             "exitReason": ANY,
                             "exitCode": ANY,

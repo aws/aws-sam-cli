@@ -140,21 +140,21 @@ def track_command(func):
 
         try:
             ctx = Context.get_current_context()
+            metric_specific_attributes = get_all_experimental_statues() if ctx.experimental else {}
             try:
                 template_dict = ctx.template_dict
+                project_type = ProjectTypes.CDK.value if is_cdk_project(template_dict) else ProjectTypes.CFN.value
+                metric_specific_attributes["projectType"] = project_type
             except AttributeError:
-                LOG.debug("Ignoring CDK project check as template is not provided in context.")
-                template_dict = {}
-            project_type = ProjectTypes.CDK.value if is_cdk_project(template_dict) else ProjectTypes.CFN.value
-            metric_specific_attributes = get_all_experimental_statues() if ctx.experimental else {}
-            metric_specific_attributes["projectType"] = project_type
+                LOG.debug("Template is not provided in context, skip adding project type metric")
             metric_name = "commandRunExperimental" if ctx.experimental else "commandRun"
             metric = Metric(metric_name)
             metric.add_data("awsProfileProvided", bool(ctx.profile))
             metric.add_data("debugFlagProvided", bool(ctx.debug))
             metric.add_data("region", ctx.region or "")
             metric.add_data("commandName", ctx.command_path)  # Full command path. ex: sam local start-api
-            metric.add_data("metricSpecificAttributes", metric_specific_attributes)
+            if metric_specific_attributes:
+                metric.add_data("metricSpecificAttributes", metric_specific_attributes)
             # Metric about command's execution characteristics
             metric.add_data("duration", duration_fn())
             metric.add_data("exitReason", exit_reason)
