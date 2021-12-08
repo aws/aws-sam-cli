@@ -152,6 +152,32 @@ Resources:
       aws:asset:path: ./assets/asset.e43e258265f3f2cd03ad36a7f34aca028d78fa1ed9bfe184210872b42c8f2d9e
       aws:asset:is-bundled: true
       aws:asset:property: Code
+  FunctionBundledAssetsC923867E:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: AssetParametersecc03cd9bbdad1c6d9750d997706058e2e6890371efe8dfe21b7b4e9faf5a2dfS3Bucket797B8E3C
+        S3Key:
+          Fn::Join:
+            - ""
+            - - Fn::Select:
+                  - 0
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersecc03cd9bbdad1c6d9750d997706058e2e6890371efe8dfe21b7b4e9faf5a2dfS3VersionKey75976755
+              - Fn::Select:
+                  - 1
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersecc03cd9bbdad1c6d9750d997706058e2e6890371efe8dfe21b7b4e9faf5a2dfS3VersionKey75976755
+      Handler: app.lambda_handler
+      Runtime: python3.9
+    Metadata:
+      aws:cdk:path: Stack/FunctionBundledAssets/Resource
+      aws:asset:path: ./assets/asset.ecc03cd9bbdad1c6d9750d997706058e2e6890371efe8dfe21b7b4e9faf5a2df
+      aws:asset:is-bundled: true
+      aws:asset:property: Code
   CDKMetadata:
     Type: AWS::CDK::Metadata
     Properties:

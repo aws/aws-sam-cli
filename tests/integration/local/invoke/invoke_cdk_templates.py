@@ -191,10 +191,33 @@ class TestCDKSynthesizedTemplatesImageFunctions(InvokeIntegBase):
 
 
 class TestRuntimeFunctionConstructs(InvokeIntegBase):
+    """
+    Runtime specific functions are bundled and the synthesized
+    templated points to the bundled asset, not the source code.
+
+    FunctionBundledAssets is not a runtime specific function, but
+    uses a CDK property that bundles the function.
+
+    It looks like this:
+
+    new lambda.Function(this, 'FunctionBundledAssets', {
+      code: lambda.Code.fromAsset('./my_function', {
+        bundling: {
+          image: lambda.Runtime.PYTHON_3_9.bundlingImage,
+          command: [
+            'bash', '-c',
+            'pip install -r requirements.txt -t /asset-output && cp -au . /asset-output'
+          ],
+        },
+      }),
+      runtime: lambda.Runtime.PYTHON_3_9,
+      handler: 'app.lambda_handler',
+    });
+    """
 
     template = Path("cdk/runtime_function_constructs.yaml")
 
-    @parameterized.expand(["NodeJsFunction", "PythonFunction", "GoFunction"])
+    @parameterized.expand(["NodeJsFunction", "PythonFunction", "GoFunction", "FunctionBundledAssets"])
     def test_runtime_function_construct(self, function_name):
         local_invoke_command_list = self.get_command_list(
             function_to_invoke=function_name, template_path=self.template_path
