@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import pytest
 import requests
 from parameterized import parameterized_class
@@ -16,7 +14,6 @@ from tests.integration.local.start_api.start_api_integ_base import StartApiInteg
     ],
 )
 class TestStartAPICDKTemplateRestAPI(StartApiIntegBaseClass):
-
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
