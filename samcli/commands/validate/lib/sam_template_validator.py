@@ -163,6 +163,7 @@ class SamTemplateValidator:
 
             location_prop = transform_dict.get("Parameters", {}).get("Location", "")
             if not Path(location_prop).is_file():
+                LOG.debug("Couldn't find file %s to import definition body", location_prop)
                 continue
 
             SamTemplateValidator._replace_with_file_contents(resource.get("Properties", {}), location_prop)

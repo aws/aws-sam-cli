@@ -429,7 +429,6 @@ class TestSamTemplateValidator(TestCase):
             "AWSTemplateFormatVersion": "2010-09-09",
             "Transform": "AWS::Serverless-2016-10-31",
             "Resources": {
-                "ServerlessFunction": {"Type": "AWS::Serverless::Function"},
                 "ServerlessApi": {
                     "Type": "AWS::Serverless::Api",
                     "Properties": {
