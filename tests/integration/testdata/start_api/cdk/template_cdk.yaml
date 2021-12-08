@@ -49,7 +49,6 @@ Resources:
     Metadata:
       aws:cdk:path: RootStack/helloworld-function/Resource
       aws:asset:path: ../
-      aws:asset:original-path: ../
       aws:asset:is-bundled: false
       aws:asset:property: Code
   RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F902B618A:
@@ -430,7 +429,6 @@ Resources:
     Metadata:
       aws:cdk:path: RootStack/echo_event_function/Resource
       aws:asset:path: ../
-      aws:asset:original-path: ../
       aws:asset:is-bundled: false
       aws:asset:property: Code
   RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FDD217C40:
@@ -820,7 +818,6 @@ Resources:
     Metadata:
       aws:cdk:path: RootStack/echo_event_function_2/Resource
       aws:asset:path: ../
-      aws:asset:original-path: ../
       aws:asset:is-bundled: false
       aws:asset:property: Code
   RootStackechoeventfunction221C50EC6ApiEventSourceA7A86A4FE7C0192F:
@@ -1014,7 +1011,6 @@ Resources:
     Metadata:
       aws:cdk:path: RootStack/echo_integer_body_function/Resource
       aws:asset:path: ../
-      aws:asset:original-path: ../
       aws:asset:is-bundled: false
       aws:asset:property: Code
   RootStackechointegerbodyfunctionF5FA92FFApiEventSourceA7A86A4FF2663C09:
@@ -1208,7 +1204,6 @@ Resources:
     Metadata:
       aws:cdk:path: RootStack/content_type_setter_function/Resource
       aws:asset:path: ../
-      aws:asset:original-path: ../
       aws:asset:is-bundled: false
       aws:asset:property: Code
   RootStackcontenttypesetterfunction146D8E2EApiEventSourceA7A86A4FEE738653:
@@ -1402,7 +1397,6 @@ Resources:
     Metadata:
       aws:cdk:path: RootStack/only_set_status_code_function/Resource
       aws:asset:path: ../
-      aws:asset:original-path: ../
       aws:asset:is-bundled: false
       aws:asset:property: Code
   RootStackonlysetstatuscodefunction31996403ApiEventSourceA7A86A4F0F480EBE:
@@ -1596,7 +1590,6 @@ Resources:
     Metadata:
       aws:cdk:path: RootStack/only_set_body_function/Resource
       aws:asset:path: ../
-      aws:asset:original-path: ../
       aws:asset:is-bundled: false
       aws:asset:property: Code
   RootStackonlysetbodyfunctionD98A3B0DApiEventSourceA7A86A4F92C50EF8:
@@ -1790,7 +1783,6 @@ Resources:
     Metadata:
       aws:cdk:path: RootStack/string_status_code_function/Resource
       aws:asset:path: ../
-      aws:asset:original-path: ../
       aws:asset:is-bundled: false
       aws:asset:property: Code
   RootStackstringstatuscodefunction8C96EF15ApiEventSourceA7A86A4F2C5F4A85:
@@ -1985,7 +1977,6 @@ Resources:
     Metadata:
       aws:cdk:path: RootStack/sleep_10_sec_function/Resource
       aws:asset:path: ../
-      aws:asset:original-path: ../
       aws:asset:is-bundled: false
       aws:asset:property: Code
   RootStacksleep10secfunctionE4949652ApiEventSourceA7A86A4FEE64ADC1:
@@ -2191,7 +2182,6 @@ Resources:
     Metadata:
       aws:cdk:path: RootStack/sleep_function_1/Resource
       aws:asset:path: ../
-      aws:asset:original-path: ../
       aws:asset:is-bundled: false
       aws:asset:property: Code
   RootStacksleepfunction17AC9AC7FApiEventSourceA7A86A4F4675FD9C:
@@ -2396,7 +2386,6 @@ Resources:
     Metadata:
       aws:cdk:path: RootStack/write_to_stderr/Resource
       aws:asset:path: ../
-      aws:asset:original-path: ../
       aws:asset:is-bundled: false
       aws:asset:property: Code
   RootStackwritetostderr6E3C96E3ApiEventSourceA7A86A4F39FF633B:
@@ -2590,7 +2579,6 @@ Resources:
     Metadata:
       aws:cdk:path: RootStack/write_to_stdout_function/Resource
       aws:asset:path: ../
-      aws:asset:original-path: ../
       aws:asset:is-bundled: false
       aws:asset:property: Code
   RootStackwritetostdoutfunction44B2CF00ApiEventSourceA7A86A4FCE5EA6DD:
@@ -2784,7 +2772,6 @@ Resources:
     Metadata:
       aws:cdk:path: RootStack/invalid_response_returned_function/Resource
       aws:asset:path: ../
-      aws:asset:original-path: ../
       aws:asset:is-bundled: false
       aws:asset:property: Code
   RootStackinvalidresponsereturnedfunctionAFF74549ApiEventSourceA7A86A4F7A2DDCDE:
@@ -2978,7 +2965,6 @@ Resources:
     Metadata:
       aws:cdk:path: RootStack/invalid_hash_response_function/Resource
       aws:asset:path: ../
-      aws:asset:original-path: ../
       aws:asset:is-bundled: false
       aws:asset:property: Code
   RootStackinvalidhashresponsefunctionC4DFC2E4ApiEventSourceA7A86A4FA8E4C976:
@@ -3172,7 +3158,6 @@ Resources:
     Metadata:
       aws:cdk:path: RootStack/base64_response_function/Resource
       aws:asset:path: ../
-      aws:asset:original-path: ../
       aws:asset:is-bundled: false
       aws:asset:property: Code
   RootStackbase64responsefunction99E710A3ApiEventSourceA7A86A4F01064C55:
@@ -3366,7 +3351,6 @@ Resources:
     Metadata:
       aws:cdk:path: RootStack/echo_base64_event_body_function/Resource
       aws:asset:path: ../
-      aws:asset:original-path: ../
       aws:asset:is-bundled: false
       aws:asset:property: Code
   RootStackechobase64eventbodyfunctionEA581D88ApiEventSourceA7A86A4FB87522E7:
@@ -3560,7 +3544,6 @@ Resources:
     Metadata:
       aws:cdk:path: RootStack/multiple_headers_function/Resource
       aws:asset:path: ../
-      aws:asset:original-path: ../
       aws:asset:is-bundled: false
       aws:asset:property: Code
   RootStackmultipleheadersfunctionA230E701ApiEventSourceA7A86A4FCDFC6F70:
@@ -3754,7 +3737,6 @@ Resources:
     Metadata:
       aws:cdk:path: RootStack/multiple_headers_overrides_headers_function/Resource
       aws:asset:path: ../
-      aws:asset:original-path: ../
       aws:asset:is-bundled: false
       aws:asset:property: Code
   RootStackmultipleheadersoverridesheadersfunction150FEAD8ApiEventSourceA7A86A4FD0247E76:

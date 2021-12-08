@@ -47,7 +47,6 @@ Resources:
     Metadata:
       aws:cdk:path: Stack/PythonFunction/Resource
       aws:asset:path: ./assets/asset.93b9d2c968973fe6eba35b65fd456a7bdc12e483512088a38fa8e43b5b62c452
-      aws:asset:original-path: /my_function
       aws:asset:is-bundled: true
       aws:asset:property: Code
   GoFunctionServiceRole9256C2F0:
@@ -98,7 +97,6 @@ Resources:
     Metadata:
       aws:cdk:path: Stack/GoFunction/Resource
       aws:asset:path: ./assets/asset.f71644fa5d48f594015c0cde07526cb49379ee32778dc1400f9f38b29d8a2896
-      aws:asset:original-path: ./go_handler
       aws:asset:is-bundled: true
       aws:asset:property: Code
   NodejsFunctionServiceRole92FAD13F:
@@ -152,7 +150,6 @@ Resources:
     Metadata:
       aws:cdk:path: Stack/NodejsFunction/Resource
       aws:asset:path: ./assets/asset.e43e258265f3f2cd03ad36a7f34aca028d78fa1ed9bfe184210872b42c8f2d9e
-      aws:asset:original-path: ./nodejshandler
       aws:asset:is-bundled: true
       aws:asset:property: Code
   CDKMetadata:

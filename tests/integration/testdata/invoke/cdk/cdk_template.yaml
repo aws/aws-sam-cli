@@ -52,7 +52,6 @@ Resources:
     Metadata:
       aws:cdk:path: RootStack/helloworld-function/Resource
       aws:asset:path: ./lambda_code
-      aws:asset:original-path: ./
       aws:asset:is-bundled: false
       aws:asset:property: Code
   helloworldserverlessfunctionServiceRole98ADBB39:
@@ -107,7 +106,6 @@ Resources:
     Metadata:
       aws:cdk:path: RootStack/helloworld-serverless-function/Resource
       aws:asset:path: ./lambda_code
-      aws:asset:original-path: ./
       aws:asset:is-bundled: false
       aws:asset:property: Code
   timeoutfunctionServiceRoleA84BD66C:
@@ -153,13 +151,12 @@ Resources:
           - Arn
       Handler: app.timeout_handler
       Runtime: python3.8
-      Timeout: 5000
+      Timeout: 5
     DependsOn:
       - timeoutfunctionServiceRoleA84BD66C
     Metadata:
       aws:cdk:path: RootStack/timeout-function/Resource
       aws:asset:path: ./lambda_code
-      aws:asset:original-path: ./
       aws:asset:is-bundled: false
       aws:asset:property: Code
   customenvvarsfunctionServiceRoleAD9C51EC:
@@ -213,7 +210,6 @@ Resources:
     Metadata:
       aws:cdk:path: RootStack/custom-env-vars-function/Resource
       aws:asset:path: ./lambda_code
-      aws:asset:original-path: ./
       aws:asset:is-bundled: false
       aws:asset:property: Code
   writetostdoutfunctionServiceRole5A54371E:
@@ -264,7 +260,6 @@ Resources:
     Metadata:
       aws:cdk:path: RootStack/write-to-stdout-function/Resource
       aws:asset:path: ./lambda_code
-      aws:asset:original-path: ./
       aws:asset:is-bundled: false
       aws:asset:property: Code
   writetostderrfunctionServiceRole8B1BE086:
@@ -315,7 +310,6 @@ Resources:
     Metadata:
       aws:cdk:path: RootStack/write-to-stderr-function/Resource
       aws:asset:path: ./lambda_code
-      aws:asset:original-path: ./
       aws:asset:is-bundled: false
       aws:asset:property: Code
   echoeventfunctionServiceRole8CA711AF:
@@ -367,7 +361,6 @@ Resources:
     Metadata:
       aws:cdk:path: RootStack/echo-event-function/Resource
       aws:asset:path: ./lambda_code
-      aws:asset:original-path: ./
       aws:asset:is-bundled: false
       aws:asset:property: Code
   echoenvwithparametersServiceRoleB848F593:
@@ -422,7 +415,6 @@ Resources:
     Metadata:
       aws:cdk:path: RootStack/echo-env-with-parameters/Resource
       aws:asset:path: ./lambda_code
-      aws:asset:original-path: ./
       aws:asset:is-bundled: false
       aws:asset:property: Code
   CDKMetadata:

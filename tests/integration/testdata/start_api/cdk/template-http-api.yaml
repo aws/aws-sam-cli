@@ -188,7 +188,6 @@ Resources:
     Metadata:
       aws:cdk:path: Stack/lambdaFunc/Resource
       aws:asset:path: ../
-      aws:asset:original-path: ../
       aws:asset:is-bundled: false
       aws:asset:property: Code
   CDKMetadata:

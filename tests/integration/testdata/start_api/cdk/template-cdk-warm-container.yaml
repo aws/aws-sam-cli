@@ -53,7 +53,6 @@ Resources:
     Metadata:
       aws:cdk:path: RootStack/helloworld-function/Resource
       aws:asset:path: ../
-      aws:asset:original-path: ../
       aws:asset:is-bundled: false
       aws:asset:property: Code
   RootStackhelloworldfunctionA6293FDBApiEventSourceA7A86A4F902B618A:
@@ -438,7 +437,6 @@ Resources:
     Metadata:
       aws:cdk:path: RootStack/echo_event_function/Resource
       aws:asset:path: ../
-      aws:asset:original-path: ../
       aws:asset:is-bundled: false
       aws:asset:property: Code
   RootStackechoeventfunction131B0B6BApiEventSourceA7A86A4FDD217C40:

@@ -11,8 +11,9 @@ from timeit import default_timer as timer
 
 from samcli import __version__ as version
 from samcli.local.docker.lambda_image import RAPID_IMAGE_TAG_PREFIX
-from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
 from samcli.lib.utils.architecture import X86_64
+from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
+from tests.integration.local.invoke.test_integrations_cli import TestLayerVersionBase, SKIP_LAYERS_TESTS
 from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE
 
 
@@ -71,7 +72,8 @@ class TestCDKSynthesizedTemplate(InvokeIntegBase):
         self.assertEqual(return_code, 0)
         self.assertEqual(
             process_stdout.decode("utf-8"),
-            '"Slept for 10s"',
+            "",
+            msg="The return statement in the LambdaFunction " "should never return leading to an empty string",
         )
 
     @pytest.mark.flaky(reruns=3)
@@ -188,28 +190,6 @@ class TestCDKSynthesizedTemplatesImageFunctions(InvokeIntegBase):
         self.assertEqual(return_code, 0)
 
 
-class TestCDKSynthesizedTemplatesFunctionIdentifiers(InvokeIntegBase):
-
-    template = Path("cdk/cdk_function_id_template.yaml")
-
-    @pytest.mark.flaky(reruns=3)
-    def test_invoke_function_with_function_id(self):
-        logical_id = "StandardZipFunctionWithFunctionName"
-        function_identifiers = [logical_id, "ThisIsHelloWorldFunction", "LambdaWithFunctionName"]
-        for identifier in function_identifiers:
-            local_invoke_command_list = self.get_command_list(
-                function_to_invoke=identifier, template_path=self.template_path
-            )
-            stdout, _, return_code = self.run_command(local_invoke_command_list)
-
-            # Get the response without the sam-cli prompts that proceed it
-            response = json.loads(stdout.decode("utf-8").split("\n")[0])
-            expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\":\\"%s\\"}"}' % logical_id)
-
-            self.assertEqual(return_code, 0)
-            self.assertEqual(response, expected_response)
-
-
 class TestRuntimeFunctionConstructs(InvokeIntegBase):
 
     template = Path("cdk/runtime_function_constructs.yaml")
@@ -227,3 +207,29 @@ class TestRuntimeFunctionConstructs(InvokeIntegBase):
 
         self.assertEqual(return_code, 0)
         self.assertEqual(response, expected_response)
+
+
+@skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
+class TestCDKLayerVersion(TestLayerVersionBase):
+    # region = "us-west-2"
+    # layer_utils = LayerUtils(region=region)
+    template = Path("cdk/cdk_layers_template.yaml")
+
+    def test_reference_of_layer_version(self):
+        function_identifier = "sample-function"
+        command_list = self.get_command_list(
+            function_identifier,
+            template_path=self.template_path,
+            no_event=True,
+            region=self.region,
+            layer_cache=str(self.layer_cache),
+            parameter_overrides=self.layer_utils.parameters_overrides,
+        )
+
+        stdout, _, return_code = self.run_command(command_list)
+
+        process_stdout = stdout.strip()
+
+        expected_output = '"This is a Layer Ping from simple_python"'
+
+        self.assertEqual(process_stdout.decode("utf-8"), expected_output)

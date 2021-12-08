@@ -387,7 +387,6 @@ Resources:
     Metadata:
       aws:cdk:path: Stack/MyFunction/Resource
       aws:asset:path: ../
-      aws:asset:original-path: ../
       aws:asset:is-bundled: false
       aws:asset:property: Code
   CDKMetadata:
