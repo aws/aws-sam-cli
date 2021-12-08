@@ -7,6 +7,14 @@ from samtranslator.public.exceptions import InvalidDocumentException
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.validate.lib.sam_template_validator import SamTemplateValidator
 
+from samcli.yamlhelper import parse_yaml_file, yaml_parse
+from pprint import pformat
+from pathlib import Path
+
+import logging
+
+LOG = logging.getLogger(__name__)
+
 
 class TestSamTemplateValidator(TestCase):
     @patch("samcli.commands.validate.lib.sam_template_validator.Session")
@@ -414,7 +422,9 @@ class TestSamTemplateValidator(TestCase):
         # check template
         self.assertEqual(validator.sam_template.get("Resources"), {})
 
-    def test_DefinitionBody_gets_replaced_in_api(self):
+    @patch("pathlib.Path.is_file")
+    @patch("samcli.commands.validate.lib.sam_template_validator.parse_yaml_file")
+    def test_DefinitionBody_gets_replaced_in_api(self, yaml_mock, path_mock):
         template = {
             "AWSTemplateFormatVersion": "2010-09-09",
             "Transform": "AWS::Serverless-2016-10-31",
@@ -434,6 +444,20 @@ class TestSamTemplateValidator(TestCase):
                 },
             },
         }
+        openapi_yaml = """openapi: 3.0.0
+info:
+    version: "1.0.0"
+    title: title
+paths:
+    '/test':
+        get:
+            responses:
+                200:
+                    description: description"""
+
+        # mock file access
+        path_mock.return_value = True
+        yaml_mock.return_value = yaml_parse(openapi_yaml)
 
         managed_policy_mock = Mock()
 
@@ -447,8 +471,11 @@ class TestSamTemplateValidator(TestCase):
             "Fn::Transform", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody")
         )
         self.assertIn("openapi", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
+        self.assertIn("info", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
+        self.assertIn("paths", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
 
-    def test_DefinitionBody_not_replaced_if_file_not_found(self):
+    @patch("pathlib.Path.is_file")
+    def test_DefinitionBody_not_replaced_if_file_not_found(self, path_mock):
         template = {
             "AWSTemplateFormatVersion": "2010-09-09",
             "Transform": "AWS::Serverless-2016-10-31",
@@ -468,6 +495,9 @@ class TestSamTemplateValidator(TestCase):
             },
         }
 
+        # mock file access
+        path_mock.return_value = False
+
         managed_policy_mock = Mock()
 
         validator = SamTemplateValidator(template, managed_policy_mock)
@@ -476,10 +506,14 @@ class TestSamTemplateValidator(TestCase):
 
         template_resources = validator.sam_template.get("Resources")
         self.assertIn("DefinitionBody", template_resources.get("ServerlessApi").get("Properties"))
-        self.assertNotIn("openapi", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
         self.assertIn("Fn::Transform", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
+        self.assertNotIn("openapi", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
+        self.assertNotIn("info", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
+        self.assertNotIn("paths", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
 
-    def test_DefinitionBody_gets_replaced_if_json(self):
+    @patch("pathlib.Path.is_file")
+    @patch("samcli.commands.validate.lib.sam_template_validator.parse_yaml_file")
+    def test_DefinitionBody_gets_replaced_if_json(self, yaml_mock, path_mock):
         template = {
             "AWSTemplateFormatVersion": "2010-09-09",
             "Transform": "AWS::Serverless-2016-10-31",
@@ -498,6 +532,15 @@ class TestSamTemplateValidator(TestCase):
                 }
             },
         }
+        openapi_json = {
+            "openapi": "3.0.0",
+            "info": {"version": "1.0.0", "title": "title"},
+            "paths": {"/test": {"get": {"responses": {"200": {"description": "description"}}}}},
+        }
+
+        # mock file access
+        path_mock.return_value = True
+        yaml_mock.return_value = openapi_json
 
         managed_policy_mock = Mock()
 
@@ -511,8 +554,12 @@ class TestSamTemplateValidator(TestCase):
             "Fn::Transform", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody")
         )
         self.assertIn("openapi", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
+        self.assertIn("info", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
+        self.assertIn("paths", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
 
-    def test_DefinitionBody_not_replaced_if_not_include(self):
+    @patch("pathlib.Path.is_file")
+    @patch("samcli.commands.validate.lib.sam_template_validator.parse_yaml_file")
+    def test_DefinitionBody_not_replaced_if_not_include(self, yaml_mock, path_mock):
         template = {
             "AWSTemplateFormatVersion": "2010-09-09",
             "Transform": "AWS::Serverless-2016-10-31",
@@ -530,6 +577,15 @@ class TestSamTemplateValidator(TestCase):
                 }
             },
         }
+        openapi_json = {
+            "openapi": "3.0.0",
+            "info": {"version": "1.0.0", "title": "title"},
+            "paths": {"/test": {"get": {"responses": {"200": {"description": "description"}}}}},
+        }
+
+        # mock file access
+        path_mock.return_value = True
+        yaml_mock.side_effect = openapi_json
 
         managed_policy_mock = Mock()
 
