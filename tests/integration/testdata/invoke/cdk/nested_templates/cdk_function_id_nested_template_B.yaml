@@ -1,5 +1,5 @@
 Resources:
-  StandardZipFunctionWithFunctionNameA:
+  StandardZipFunctionWithFunctionNameB:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: ThisIsHelloWorldFunction
