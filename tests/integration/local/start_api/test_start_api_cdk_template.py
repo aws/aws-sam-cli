@@ -8,15 +8,14 @@ from tests.integration.local.start_api.start_api_integ_base import StartApiInteg
 
 
 @parameterized_class(
-    ("template",),
+    ("template_path",),
     [
-        (Path("/testdata/start_api/cdk/template-rest-api.yaml"),),
-        (Path("/testdata/start_api/cdk/template-open-api.yaml"),),
-        (Path("/testdata/start_api/cdk/template-http-api.yaml"),),
+        ("/testdata/start_api/cdk/template-rest-api.yaml",),
+        ("/testdata/start_api/cdk/template-open-api.yaml",),
+        ("/testdata/start_api/cdk/template-http-api.yaml",),
     ],
 )
 class TestStartAPICDKTemplateRestAPI(StartApiIntegBaseClass):
-    template_path = "/testdata/start_api/cdk/template-rest-api.yaml"
 
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
