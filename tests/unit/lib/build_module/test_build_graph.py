@@ -38,6 +38,7 @@ from samcli.lib.utils.packagetype import ZIP
 
 
 def generate_function(
+    function_id="name",
     name="name",
     function_name="function_name",
     runtime="runtime",
@@ -62,6 +63,7 @@ def generate_function(
         metadata = {}
 
     return Function(
+        function_id,
         name,
         function_name,
         runtime,

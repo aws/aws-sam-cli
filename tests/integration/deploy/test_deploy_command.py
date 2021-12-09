@@ -317,65 +317,6 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
-    def test_deploy_with_s3_arn(self, template_file):
-        template_path = self.test_data_path.joinpath(template_file)
-
-        stack_name = self._method_to_stack_name(self.id())
-        self.stacks.append({"name": stack_name})
-        s3_arn = f"arn:aws:s3:::{self.s3_bucket.name}"
-
-        deploy_command_list = self.get_deploy_command_list(
-            template_file=template_path,
-            stack_name=stack_name,
-            capabilities="CAPABILITY_IAM",
-            s3_prefix="integ_deploy",
-            s3_bucket=s3_arn,
-            force_upload=True,
-            notification_arns=self.sns_arn,
-            parameter_overrides="Parameter=Clarity",
-            kms_key_id=self.kms_key,
-            no_execute_changeset=False,
-            tags="integ=true clarity=yes foo_bar=baz",
-            confirm_changeset=False,
-        )
-
-        deploy_process_execute = run_command(deploy_command_list)
-        self.assertEqual(deploy_process_execute.process.returncode, 0)
-
-    @parameterized.expand(["aws-serverless-function.yaml"])
-    def test_deploy_with_wrong_s3_arn(self, template_file):
-        template_path = self.test_data_path.joinpath(template_file)
-
-        stack_name = self._method_to_stack_name(self.id())
-        self.stacks.append({"name": stack_name})
-        s3_arn = f"arn:s3:{self.s3_bucket.name}"
-
-        deploy_command_list = self.get_deploy_command_list(
-            template_file=template_path,
-            stack_name=stack_name,
-            capabilities="CAPABILITY_IAM",
-            s3_prefix="integ_deploy",
-            s3_bucket=s3_arn,
-            force_upload=True,
-            notification_arns=self.sns_arn,
-            parameter_overrides="Parameter=Clarity",
-            kms_key_id=self.kms_key,
-            no_execute_changeset=False,
-            tags="integ=true clarity=yes foo_bar=baz",
-            confirm_changeset=False,
-        )
-
-        deploy_process_execute = run_command(deploy_command_list)
-        self.assertEqual(deploy_process_execute.process.returncode, 2)
-        self.assertIn(
-            bytes(
-                f"Error: Unexpected ARN format. ARN should have at least 5 partitions separated by ':'. Received '{s3_arn}' instead.",
-                encoding="utf-8",
-            ),
-            deploy_process_execute.stderr,
-        )
-
-    @parameterized.expand(["aws-serverless-function.yaml"])
     def test_deploy_without_s3_bucket(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
@@ -1223,3 +1164,62 @@ to create a managed default bucket, or run sam deploy --guided",
 
         deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+    def test_deploy_logs_warning_with_cdk_project(self):
+        template_file = "aws-serverless-function-cdk.yaml"
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        # Package and Deploy in one go without confirming change set.
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+        )
+
+        warning_message = bytes(
+            "Warning: CDK apps are not officially supported with this command.\n"
+            "We recommend you use this alternative command: cdk deploy",
+            encoding="utf-8",
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertIn(warning_message, deploy_process_execute.stdout)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+    def _method_to_stack_name(self, method_name):
+        """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
+        method_name = method_name.split(".")[-1]
+        return f"{method_name.replace('_', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"
+
+    def _stack_name_to_companion_stack(self, stack_name):
+        return CompanionStack(stack_name).stack_name
+
+    def _delete_companion_stack(self, cfn_client, ecr_client, companion_stack_name):
+        repos = list()
+        try:
+            cfn_client.describe_stacks(StackName=companion_stack_name)
+        except ClientError:
+            return
+        stack = boto3.resource("cloudformation").Stack(companion_stack_name)
+        resources = stack.resource_summaries.all()
+        for resource in resources:
+            if resource.resource_type == "AWS::ECR::Repository":
+                repos.append(resource.physical_resource_id)
+        for repo in repos:
+            try:
+                ecr_client.delete_repository(repositoryName=repo, force=True)
+            except ecr_client.exceptions.RepositoryNotFoundException:
+                pass
+        cfn_client.delete_stack(StackName=companion_stack_name)
