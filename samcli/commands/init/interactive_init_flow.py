@@ -126,10 +126,10 @@ def _generate_from_use_case(
     app_template,
     architecture,
 ):
+    # breakpoint()
     templates = InitTemplates()
     runtime_or_base_image = runtime if runtime else base_image
-    preprocessed_options = templates.get_preprocessed_manifest(runtime_or_base_image)
-
+    preprocessed_options = templates.get_preprocessed_manifest(runtime_or_base_image, app_template)
     question = "Choose an AWS Quick Start application template"
     use_case = _get_choice_from_options(
         None,
@@ -148,6 +148,7 @@ def _generate_from_use_case(
     runtime, base_image, package_type, dependency_manager, template_chosen = chosen_app_template_properties
 
     app_template = template_chosen["appTemplate"]
+    base_image = LAMBDA_IMAGES_RUNTIMES_MAP.get(runtime) if not base_image and package_type == IMAGE else base_image
     location = templates.location_from_app_template(package_type, runtime, base_image, dependency_manager, app_template)
 
     if not name:
@@ -215,7 +216,6 @@ def _generate_default_hello_world_application(
     tuple
         configuration for a default Hello World Example
     """
-
     if use_case == "Hello World Example" and not (runtime or base_image):
         if click.confirm("\n Use the most popular runtime and package type? (Nodejs and zip)"):
             runtime, package_type, dependency_manager, pt_explicit = "nodejs14.x", ZIP, "npm", True

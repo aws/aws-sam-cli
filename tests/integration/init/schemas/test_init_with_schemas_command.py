@@ -235,8 +235,8 @@ Y
         # 1: select aws schema
 
         user_input = """
-2
-3
+1
+7
 6
 2
 eb-app-python37
@@ -272,8 +272,8 @@ us-east-1
         # 1: select aws schema
 
         user_input = """
-2
-3
+1
+7
 6
 2
 eb-app-python37

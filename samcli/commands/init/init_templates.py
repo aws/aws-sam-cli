@@ -126,7 +126,7 @@ class InitTemplates:
     def get_manifest_path(self):
         return Path(self._git_repo.local_path, self.manifest_file_name)
 
-    def get_preprocessed_manifest(self, filter_value=None):
+    def get_preprocessed_manifest(self, filter_value=None, app_template=None):
         """
         This method get the manifest cloned from the git repo and preprocessed it.
         Below is the link to manifest:
@@ -148,6 +148,8 @@ class InitTemplates:
         ----------
         filter_value : string, optional
             This could be a runtime or a base-image, by default None
+        app_template : string, optional
+            Application template generated
         Returns
         -------
         [dict]
@@ -170,7 +172,7 @@ class InitTemplates:
             for template in template_list:
                 package_type = get_template_value("packageType", template)
                 use_case_name = get_template_value("useCaseName", template)
-                if not package_type or not use_case_name:
+                if not (package_type or use_case_name) or (app_template and app_template != template["appTemplate"]):
                     continue
                 runtime = get_runtime(package_type, template_runtime)
                 use_case = preprocessed_manifest.get(use_case_name, {})
