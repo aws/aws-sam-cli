@@ -1,5 +1,4 @@
 import os
-from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack
 import shutil
 import tempfile
 import time
