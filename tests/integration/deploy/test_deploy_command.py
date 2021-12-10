@@ -3,6 +3,8 @@ import shutil
 import tempfile
 import time
 import uuid
+import json
+
 from pathlib import Path
 from unittest import skipIf
 
@@ -18,6 +20,7 @@ from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.integration.package.package_integ_base import PackageIntegBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 from tests.testing_utils import run_command, run_command_with_input
+from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack
 
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
@@ -224,6 +227,9 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
 
         deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
+        companion_stack_name = self._stack_name_to_companion_stack(stack_name)
+        self._assert_companion_stack(self.cfn_client, companion_stack_name)
+        self._assert_companion_stack_content(self.ecr_client, companion_stack_name)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
     def test_no_package_and_deploy_with_s3_bucket_and_no_confirm_changeset(self, template_file):
@@ -610,6 +616,11 @@ to create a managed default bucket, or run sam deploy --guided",
         # Deploy should succeed with a managed stack
         self.assertEqual(deploy_process_execute.process.returncode, 0)
         self.stacks.append({"name": SAM_CLI_STACK_NAME})
+
+        companion_stack_name = self._stack_name_to_companion_stack(stack_name)
+        self._assert_companion_stack(self.cfn_client, companion_stack_name)
+        self._assert_companion_stack_content(self.ecr_client, companion_stack_name)
+
         # Remove samconfig.toml
         os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
 
@@ -1197,6 +1208,33 @@ to create a managed default bucket, or run sam deploy --guided",
         deploy_process_execute = run_command(deploy_command_list)
         self.assertIn(warning_message, deploy_process_execute.stdout)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+    def _assert_companion_stack(self, cfn_client, companion_stack_name):
+        try:
+            cfn_client.describe_stacks(StackName=companion_stack_name)
+        except ClientError:
+            self.fail("No companion stack found.")
+
+    def _assert_companion_stack_content(self, ecr_client, companion_stack_name):
+        stack = boto3.resource("cloudformation").Stack(companion_stack_name)
+        resources = stack.resource_summaries.all()
+        for resource in resources:
+            if resource.resource_type == "AWS::ECR::Repository":
+                policy = ecr_client.get_repository_policy(repositoryName=resource.physical_resource_id)
+                self._assert_ecr_lambda_policy(policy)
+            else:
+                self.fail("Non ECR Repo resource found in companion stack")
+
+    def _assert_ecr_lambda_policy(self, policy):
+        policy = json.loads(policy.get("policyText"))
+        statements = policy.get("Statement")
+        self.assertEqual(len(statements), 1)
+        lambda_policy = statements[0]
+        self.assertEqual(lambda_policy.get("Principal"), {"Service": "lambda.amazonaws.com"})
+        actions = lambda_policy.get("Action")
+        self.assertEqual(
+            sorted(actions), sorted(["ecr:GetDownloadUrlForLayer", "ecr:GetRepositoryPolicy", "ecr:BatchGetImage"])
+        )
 
     def _method_to_stack_name(self, method_name):
         """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
