@@ -1,22 +1,17 @@
-require 'httparty'
+require 'statistics'
 require 'json'
 require 'layer'
 
 def lambda_handler(event:, context:)
   # Sample pure Lambda function that returns a message and a location
 
-  begin
-    response = HTTParty.get('http://checkip.amazonaws.com/')
-  rescue HTTParty::Error => error
-    puts error.inspect
-    raise error
-  end
+  normal = Statistics::Distribution::Normal.new(2,3)
 
   {
     statusCode: 200,
     body: {
       message: "#{layer()+2}",
-      location: response.body
+      extra_message: normal.random
     }.to_json
   }
 end

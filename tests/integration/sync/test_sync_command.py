@@ -40,10 +40,6 @@ LOG = logging.getLogger(__name__)
 class TestSync(BuildIntegBase, SyncIntegBase, PackageIntegBase):
     @classmethod
     def setUpClass(cls):
-        # setup signing profile arn & name
-        cls.signing_profile_name = os.environ.get("AWS_SIGNING_PROFILE_NAME")
-        cls.signing_profile_version_arn = os.environ.get("AWS_SIGNING_PROFILE_VERSION_ARN")
-
         PackageIntegBase.setUpClass()
 
         cls.test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "sync")
@@ -86,24 +82,13 @@ class TestSync(BuildIntegBase, SyncIntegBase, PackageIntegBase):
             template_file=template_path,
             code=False,
             watch=False,
-            resource_id=None,
-            resource=None,
             dependency_layer=True,
             stack_name=stack_name,
-            region=None,
-            profile=None,
             parameter_overrides="Parameter=Clarity",
-            base_dir=None,
             image_repository=self.ecr_repo_name,
-            image_repositories=None,
             s3_prefix="integ_deploy",
             kms_key_id=self.kms_key,
-            capabilities=None,
-            capabilities_list=None,
-            role_arn=None,
-            notification_arns=None,
             tags="integ=true clarity=yes foo_bar=baz",
-            metadata=None,
         )
 
         sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
@@ -116,7 +101,7 @@ class TestSync(BuildIntegBase, SyncIntegBase, PackageIntegBase):
         lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
         for lambda_function in lambda_functions:
             lambda_response = json.loads(self._get_lambda_response(lambda_function))
-            self.assertIn("location", lambda_response)
+            self.assertIn("extra_message", lambda_response)
             self.assertEqual(lambda_response.get("message"), "7")
         if runtime == "python":
             # ApiGateway Api call here, which tests the RestApi
@@ -134,24 +119,13 @@ class TestSync(BuildIntegBase, SyncIntegBase, PackageIntegBase):
             template_file=template_path,
             code=False,
             watch=False,
-            resource_id=None,
-            resource=None,
             dependency_layer=True,
             stack_name=stack_name,
-            region=None,
-            profile=None,
             parameter_overrides="Parameter=Clarity",
-            base_dir=None,
             image_repository=self.ecr_repo_name,
-            image_repositories=None,
             s3_prefix="integ_deploy",
             kms_key_id=self.kms_key,
-            capabilities=None,
-            capabilities_list=None,
-            role_arn=None,
-            notification_arns=None,
             tags="integ=true clarity=yes foo_bar=baz",
-            metadata=None,
         )
 
         sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
@@ -164,7 +138,7 @@ class TestSync(BuildIntegBase, SyncIntegBase, PackageIntegBase):
         lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
         for lambda_function in lambda_functions:
             lambda_response = json.loads(self._get_lambda_response(lambda_function))
-            self.assertIn("location", lambda_response)
+            self.assertIn("extra_message", lambda_response)
             self.assertEqual(lambda_response.get("message"), "9")
         if runtime == "python":
             # ApiGateway Api call here, which tests the RestApi
@@ -184,24 +158,13 @@ class TestSync(BuildIntegBase, SyncIntegBase, PackageIntegBase):
             template_file=template_path,
             code=False,
             watch=False,
-            resource_id=None,
-            resource=None,
             dependency_layer=True,
             stack_name=stack_name,
-            region=None,
-            profile=None,
             parameter_overrides="Parameter=Clarity",
-            base_dir=None,
             image_repository=self.ecr_repo_name,
-            image_repositories=None,
             s3_prefix="integ_deploy",
             kms_key_id=self.kms_key,
-            capabilities=None,
-            capabilities_list=None,
-            role_arn=None,
-            notification_arns=None,
             tags="integ=true clarity=yes foo_bar=baz",
-            metadata=None,
         )
         sync_process_execute = run_command_with_input(sync_command_list, "n\n".encode())
 
@@ -217,24 +180,12 @@ class TestSync(BuildIntegBase, SyncIntegBase, PackageIntegBase):
             template_file=template_path,
             code=False,
             watch=False,
-            resource_id=None,
-            resource=None,
             dependency_layer=True,
-            stack_name=None,
-            region=None,
-            profile=None,
             parameter_overrides="Parameter=Clarity",
-            base_dir=None,
             image_repository=self.ecr_repo_name,
-            image_repositories=None,
             s3_prefix="integ_deploy",
             kms_key_id=self.kms_key,
-            capabilities=None,
-            capabilities_list=None,
-            role_arn=None,
-            notification_arns=None,
             tags="integ=true clarity=yes foo_bar=baz",
-            metadata=None,
         )
 
         sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
@@ -252,24 +203,14 @@ class TestSync(BuildIntegBase, SyncIntegBase, PackageIntegBase):
             template_file=template_path,
             code=False,
             watch=False,
-            resource_id=None,
-            resource=None,
             dependency_layer=True,
             stack_name=stack_name,
-            region=None,
-            profile=None,
             parameter_overrides="Parameter=Clarity",
-            base_dir=None,
             image_repository=self.ecr_repo_name,
-            image_repositories=None,
             s3_prefix="integ_deploy",
             kms_key_id=self.kms_key,
             capabilities="CAPABILITY_IAM",
-            capabilities_list=None,
-            role_arn=None,
-            notification_arns=None,
             tags="integ=true clarity=yes foo_bar=baz",
-            metadata=None,
         )
 
         sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
