@@ -1226,8 +1226,8 @@ to create a managed default bucket, or run sam deploy --guided",
                 self.fail("Non ECR Repo resource found in companion stack")
 
     def _assert_ecr_lambda_policy(self, policy):
-        policy = json.loads(policy.get("policyText"))
-        statements = policy.get("Statement")
+        policyText = json.loads(policy.get("policyText", "{}"))
+        statements = policyText.get("Statement")
         self.assertEqual(len(statements), 1)
         lambda_policy = statements[0]
         self.assertEqual(lambda_policy.get("Principal"), {"Service": "lambda.amazonaws.com"})
