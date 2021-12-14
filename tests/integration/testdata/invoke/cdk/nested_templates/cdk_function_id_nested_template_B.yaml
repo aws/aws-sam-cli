@@ -1,0 +1,35 @@
+Resources:
+  StandardZipFunctionWithFunctionNameB:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: ThisIsHelloWorldFunction
+      Code:
+        S3Bucket:
+          Ref: AssetParametersd993ee10bdd2d5f2054086eb58ff286f13672de94811036fc40c647e0e1b17c7S3BucketEA8808C3
+        S3Key:
+          Fn::Join:
+            - ""
+            - - Fn::Select:
+                  - 0
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersd993ee10bdd2d5f2054086eb58ff286f13672de94811036fc40c647e0e1b17c7S3VersionKeyF3B3F55C
+              - Fn::Select:
+                  - 1
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersd993ee10bdd2d5f2054086eb58ff286f13672de94811036fc40c647e0e1b17c7S3VersionKeyF3B3F55C
+      Handler: app.lambdaFunctionNameHandler
+      Runtime: nodejs12.x
+    Metadata:
+      aws:cdk:path: ApiCorsIssueStack/LambdaWithFunctionName/Resource
+      aws:asset:path: ../lambda_code
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/02OzQrCMBCEn8V7um2oeFYrgtf4BDFdS/qTlWyqSMi721QETzPsN7OMhCjrGqrNXr+4MO1QGvII8Rq0GURDjoOfTRDN3Slkmr3B7BfQ2mDJJSHr7X89ZhNHPd1aDfE8O5NjufPzSVg9QVQ0rq+yJoHGF5oZA8OJzID+MukOD/mSGSh8ENtA/n3UvOTXlStelnbWdSkJRy1Cz+VT7kBWy6ierS387IKdENRXPzi+2EPxAAAA
+    Metadata:
+      aws:cdk:path: ApiCorsIssueStack/CDKMetadata/Default
+    Condition: CDKMetadataAvailable

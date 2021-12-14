@@ -1,5 +1,4 @@
 import os
-from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack
 import shutil
 import tempfile
 import time
@@ -1164,6 +1163,39 @@ to create a managed default bucket, or run sam deploy --guided",
         )
 
         deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+    def test_deploy_logs_warning_with_cdk_project(self):
+        template_file = "aws-serverless-function-cdk.yaml"
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        # Package and Deploy in one go without confirming change set.
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+        )
+
+        warning_message = bytes(
+            "Warning: CDK apps are not officially supported with this command.\n"
+            "We recommend you use this alternative command: cdk deploy",
+            encoding="utf-8",
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertIn(warning_message, deploy_process_execute.stdout)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
     def _method_to_stack_name(self, method_name):
