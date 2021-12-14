@@ -126,7 +126,6 @@ def _generate_from_use_case(
     app_template,
     architecture,
 ):
-    # breakpoint()
     templates = InitTemplates()
     runtime_or_base_image = runtime if runtime else base_image
     preprocessed_options = templates.get_preprocessed_manifest(runtime_or_base_image, app_template)
@@ -216,7 +215,8 @@ def _generate_default_hello_world_application(
     tuple
         configuration for a default Hello World Example
     """
-    if use_case == "Hello World Example" and not (runtime or base_image):
+    is_package_type_image = bool(package_type == IMAGE)
+    if use_case == "Hello World Example" and not (runtime or base_image or is_package_type_image):
         if click.confirm("\n Use the most popular runtime and package type? (Nodejs and zip)"):
             runtime, package_type, dependency_manager, pt_explicit = "nodejs14.x", ZIP, "npm", True
     return (runtime, package_type, dependency_manager, pt_explicit)
