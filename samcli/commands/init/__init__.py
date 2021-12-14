@@ -342,7 +342,6 @@ def _deprecate_notification(runtime):
     if runtime in deprecated_runtimes:
         message = (
             f"WARNING: {runtime} is no longer supported by AWS Lambda, please update to a newer supported runtime. "
-            f"SAM CLI will drop support for all deprecated runtimes {deprecated_runtimes} on May 1st. "
             f"See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
         )
         LOG.warning(Colored().yellow(message))
