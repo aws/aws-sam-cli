@@ -30,7 +30,7 @@ from samcli.lib.package.ecr_uploader import ECRUploader
 from samcli.lib.package.code_signer import CodeSigner
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Uploaders
-from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
+from samcli.lib.utils.boto_utils import get_boto_config_with_user_agent
 from samcli.yamlhelper import yaml_dump
 
 LOG = logging.getLogger(__name__)
@@ -111,7 +111,9 @@ class PackageContext:
         )
         # attach the given metadata to the artifacts to be uploaded
         s3_uploader.artifact_metadata = self.metadata
-        ecr_uploader = ECRUploader(docker_client, ecr_client, self.image_repository, self.image_repositories)
+        ecr_uploader = ECRUploader(
+            docker_client, ecr_client, self.image_repository, self.image_repositories, self.no_progressbar
+        )
 
         self.uploaders = Uploaders(s3_uploader, ecr_uploader)
 

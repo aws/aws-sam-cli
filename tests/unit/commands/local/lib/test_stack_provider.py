@@ -6,7 +6,7 @@ from unittest.mock import patch, Mock
 
 from parameterized import parameterized
 
-from samcli.commands._utils.resources import AWS_SERVERLESS_APPLICATION, AWS_CLOUDFORMATION_STACK
+from samcli.lib.utils.resources import AWS_SERVERLESS_APPLICATION, AWS_CLOUDFORMATION_STACK
 from samcli.lib.providers.provider import Stack
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 

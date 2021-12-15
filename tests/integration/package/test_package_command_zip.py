@@ -51,6 +51,7 @@ class TestPackageZip(PackageIntegBase):
             "aws-appsync-functionconfiguration.yaml",
             "aws-lambda-function.yaml",
             "aws-apigateway-restapi.yaml",
+            "aws-apigatewayv2-httpapi.yaml",
             "aws-elasticbeanstalk-applicationversion.yaml",
             "aws-cloudformation-moduleversion.yaml",
             "aws-cloudformation-resourceversion.yaml",
@@ -100,6 +101,7 @@ class TestPackageZip(PackageIntegBase):
             "aws-appsync-functionconfiguration.yaml",
             "aws-lambda-function.yaml",
             "aws-apigateway-restapi.yaml",
+            "aws-apigatewayv2-httpapi.yaml",
             "aws-elasticbeanstalk-applicationversion.yaml",
             "aws-cloudformation-moduleversion.yaml",
             "aws-cloudformation-resourceversion.yaml",
@@ -142,6 +144,7 @@ class TestPackageZip(PackageIntegBase):
             "aws-appsync-functionconfiguration.yaml",
             "aws-lambda-function.yaml",
             "aws-apigateway-restapi.yaml",
+            "aws-apigatewayv2-httpapi.yaml",
             "aws-elasticbeanstalk-applicationversion.yaml",
             "aws-cloudformation-moduleversion.yaml",
             "aws-cloudformation-resourceversion.yaml",
@@ -196,6 +199,7 @@ class TestPackageZip(PackageIntegBase):
             "aws-appsync-functionconfiguration.yaml",
             "aws-lambda-function.yaml",
             "aws-apigateway-restapi.yaml",
+            "aws-apigatewayv2-httpapi.yaml",
             "aws-elasticbeanstalk-applicationversion.yaml",
             "aws-cloudformation-moduleversion.yaml",
             "aws-cloudformation-resourceversion.yaml",
@@ -251,6 +255,7 @@ class TestPackageZip(PackageIntegBase):
             "aws-appsync-functionconfiguration.yaml",
             "aws-lambda-function.yaml",
             "aws-apigateway-restapi.yaml",
+            "aws-apigatewayv2-httpapi.yaml",
             "aws-elasticbeanstalk-applicationversion.yaml",
             "aws-cloudformation-moduleversion.yaml",
             "aws-cloudformation-resourceversion.yaml",
@@ -308,6 +313,7 @@ class TestPackageZip(PackageIntegBase):
             "aws-appsync-functionconfiguration.yaml",
             "aws-lambda-function.yaml",
             "aws-apigateway-restapi.yaml",
+            "aws-apigatewayv2-httpapi.yaml",
             "aws-elasticbeanstalk-applicationversion.yaml",
             "aws-cloudformation-moduleversion.yaml",
             "aws-cloudformation-resourceversion.yaml",
@@ -363,6 +369,7 @@ class TestPackageZip(PackageIntegBase):
             "aws-appsync-functionconfiguration.yaml",
             "aws-lambda-function.yaml",
             "aws-apigateway-restapi.yaml",
+            "aws-apigatewayv2-httpapi.yaml",
             "aws-elasticbeanstalk-applicationversion.yaml",
             "aws-cloudformation-moduleversion.yaml",
             "aws-cloudformation-resourceversion.yaml",
@@ -417,6 +424,7 @@ class TestPackageZip(PackageIntegBase):
             "aws-appsync-functionconfiguration.yaml",
             "aws-lambda-function.yaml",
             "aws-apigateway-restapi.yaml",
+            "aws-apigatewayv2-httpapi.yaml",
             "aws-elasticbeanstalk-applicationversion.yaml",
             "aws-cloudformation-moduleversion.yaml",
             "aws-cloudformation-resourceversion.yaml",
@@ -563,3 +571,25 @@ class TestPackageZip(PackageIntegBase):
         # verify both child templates are uploaded
         uploads = re.findall(r"\.template", process_stderr)
         self.assertEqual(len(uploads), 2)
+
+    def test_package_logs_warning_for_cdk_project(self):
+        template_file = "aws-serverless-function-cdk.yaml"
+        template_path = self.test_data_path.joinpath(template_file)
+        command_list = self.get_command_list(s3_bucket=self.s3_bucket.name, template_file=template_path)
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+        process_stdout = stdout.strip()
+
+        warning_message = bytes(
+            "Warning: CDK apps are not officially supported with this command.\n"
+            "We recommend you use this alternative command: cdk deploy",
+            encoding="utf-8",
+        )
+
+        self.assertIn(warning_message, stdout)
+        self.assertIn("{bucket_name}".format(bucket_name=self.s3_bucket.name), process_stdout.decode("utf-8"))

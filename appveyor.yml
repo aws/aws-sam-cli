@@ -138,7 +138,7 @@ for:
       - sh: "PATH=$JAVA_HOME/bin:$PATH"
       - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
       - sh: "rvm use 2.5"
-      - sh: "docker info"
+      - sh: "docker --version"
 
       # Install latest gradle 
       - sh: "sudo apt-get -y remove gradle"
@@ -173,6 +173,12 @@ for:
       - ps: "If ($env:INSTALL_PY_37_PIP) {python3.7 get-pip.py --user}"
       - ps: "If ($env:INSTALL_PY_36_PIP) {python3.6 get-pip.py --user}"
 
+      # required for RIE with arm64 in linux
+      - sh: "docker run --rm --privileged multiarch/qemu-user-static --reset -p yes"
+
+      # update ca-certificates which causes failures with newest golang library
+      - sh: "sudo apt-get install --reinstall ca-certificates"
+
     build_script:
       - "python -c \"import sys; print(sys.executable)\""
 
@@ -193,7 +199,6 @@ for:
         if [[ -n $BY_CANARY ]];
           then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws; 
         fi"
-
 
       - sh: "pytest -vv tests/integration"
       - sh: "pytest -vv tests/regression"

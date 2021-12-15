@@ -3,4 +3,4 @@
 """
 
 # Expose the cli object here
-from .command import cli  # noqa
+from .command import cli  # pragma: no cover

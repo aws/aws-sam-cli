@@ -228,13 +228,16 @@ Resources:
               - "cloudformation:CreateChangeSet"
               - "cloudformation:DescribeChangeSet"
               - "cloudformation:ExecuteChangeSet"
+              - "cloudformation:DeleteStack"
               - "cloudformation:DescribeStackEvents"
               - "cloudformation:DescribeStacks"
+              - "cloudformation:GetTemplate"
               - "cloudformation:GetTemplateSummary"
               - "cloudformation:DescribeStackResource"
             Resource: '*'
           - Effect: Allow
             Action:
+              - 's3:DeleteObject'
               - 's3:GetObject*'
               - 's3:PutObject*'
               - 's3:GetBucket*'
@@ -257,6 +260,7 @@ Resources:
             - Effect: "Allow"
               Action:
                 - "ecr:GetDownloadUrlForLayer"
+                - "ecr:BatchDeleteImage"
                 - "ecr:BatchGetImage"
                 - "ecr:BatchCheckLayerAvailability"
                 - "ecr:PutImage"

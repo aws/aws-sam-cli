@@ -4,6 +4,12 @@ Class that provides functions from a given SAM template
 import logging
 from typing import Dict, List, Optional, cast, Iterator, Any
 
+from samcli.lib.utils.resources import (
+    AWS_LAMBDA_FUNCTION,
+    AWS_LAMBDA_LAYERVERSION,
+    AWS_SERVERLESS_FUNCTION,
+    AWS_SERVERLESS_LAYERVERSION,
+)
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
 from samcli.lib.providers.exceptions import InvalidLayerReference
 from samcli.lib.utils.colors import Colored
@@ -72,23 +78,51 @@ class SamFunctionProvider(SamBaseProvider):
         if not name:
             raise ValueError("Function name is required")
 
-        # support lookup by full_path
+        resolved_function = None
+
         if name in self.functions:
-            return self.functions.get(name)
+            # support lookup by full_path
+            resolved_function = self.functions.get(name)
 
-        for f in self.get_all():
-            if name in (f.name, f.functionname):
-                self._deprecate_notification(f.runtime)
-                return f
+        if not resolved_function:
+            # If function is not found by full path, search through all functions
 
-        return None
+            found_fs = []
+
+            for f in self.get_all():
+                if name in (f.function_id, f.name, f.functionname):
+                    found_fs.append(f)
+
+            # If multiple functions are found, only return one of them
+            if len(found_fs) > 1:
+                found_fs.sort(key=lambda f0: f0.full_path.lower())
+
+                LOG.warning(
+                    "Multiple functions found with keyword %s! Function %s will be invoked! "
+                    "If it's not the function you are going to invoke,"
+                    "please choose one of them from below:",
+                    name,
+                    found_fs[0].full_path,
+                )
+
+                for found_f in found_fs:
+                    LOG.warning(found_f.full_path)
+
+                resolved_function = found_fs[0]
+
+            elif len(found_fs) == 1:
+                resolved_function = found_fs[0]
+
+        if resolved_function:
+            self._deprecate_notification(resolved_function.runtime)
+
+        return resolved_function
 
     def _deprecate_notification(self, runtime: Optional[str]) -> None:
         if runtime in self._deprecated_runtimes:
             message = (
                 f"WARNING: {runtime} is no longer supported by AWS Lambda, "
                 "please update to a newer supported runtime. SAM CLI "
-                f"will drop support for all deprecated runtimes {self._deprecated_runtimes} on May 1st. "
                 "See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
             )
             LOG.warning(self._colored.yellow(message))
@@ -129,7 +163,7 @@ class SamFunctionProvider(SamBaseProvider):
                 if resource_metadata:
                     resource_properties["Metadata"] = resource_metadata
 
-                if resource_type in [SamFunctionProvider.SERVERLESS_FUNCTION, SamFunctionProvider.LAMBDA_FUNCTION]:
+                if resource_type in [AWS_SERVERLESS_FUNCTION, AWS_LAMBDA_FUNCTION]:
                     resource_package_type = resource_properties.get("PackageType", ZIP)
 
                     code_property_key = SamBaseProvider.CODE_PROPERTY_KEYS[resource_type]
@@ -144,15 +178,19 @@ class SamFunctionProvider(SamBaseProvider):
                             SamFunctionProvider._warn_code_extraction(resource_type, name, code_property_key)
                         continue
 
-                    if resource_package_type == IMAGE and SamBaseProvider._is_ecr_uri(
-                        resource_properties.get(image_property_key)
+                    if (
+                        resource_package_type == IMAGE
+                        and SamBaseProvider._is_ecr_uri(resource_properties.get(image_property_key))
+                        and not SamFunctionProvider._metadata_has_necessary_entries_for_image_function_to_be_built(
+                            resource_metadata
+                        )
                     ):
                         # ImageUri can be an ECR uri, which is not supported
                         if not ignore_code_extraction_warnings:
                             SamFunctionProvider._warn_imageuri_extraction(resource_type, name, image_property_key)
                         continue
 
-                if resource_type == SamFunctionProvider.SERVERLESS_FUNCTION:
+                if resource_type == AWS_SERVERLESS_FUNCTION:
                     layers = SamFunctionProvider._parse_layer_info(
                         stack,
                         resource_properties.get("Layers", []),
@@ -168,7 +206,7 @@ class SamFunctionProvider(SamBaseProvider):
                     )
                     result[function.full_path] = function
 
-                elif resource_type == SamFunctionProvider.LAMBDA_FUNCTION:
+                elif resource_type == AWS_LAMBDA_FUNCTION:
                     layers = SamFunctionProvider._parse_layer_info(
                         stack,
                         resource_properties.get("Layers", []),
@@ -212,6 +250,7 @@ class SamFunctionProvider(SamBaseProvider):
         codeuri: Optional[str] = SamFunctionProvider.DEFAULT_CODEURI
         inlinecode = resource_properties.get("InlineCode")
         imageuri = None
+        function_id = SamFunctionProvider._get_function_id(resource_properties, name)
         packagetype = resource_properties.get("PackageType", ZIP)
         if packagetype == ZIP:
             if inlinecode:
@@ -225,12 +264,53 @@ class SamFunctionProvider(SamBaseProvider):
             LOG.debug("Found Serverless function with name='%s' and ImageUri='%s'", name, imageuri)
 
         return SamFunctionProvider._build_function_configuration(
-            stack, name, codeuri, resource_properties, layers, inlinecode, imageuri, use_raw_codeuri
+            stack, function_id, name, codeuri, resource_properties, layers, inlinecode, imageuri, use_raw_codeuri
         )
 
     @staticmethod
+    def _get_function_id(resource_properties: Dict, logical_id: str) -> str:
+        """
+        Get unique id for Function resource.
+        For CFN/SAM project, this function id is the logical id.
+        For CDK project, this function id is the user-defined resource id, or the logical id if the resource id is not
+        found.
+
+        Parameters
+        ----------
+        resource_properties str
+            Properties of this resource
+        logical_id str
+            LogicalID of the resource
+
+        Returns
+        -------
+        str
+            The unique function id
+        """
+        resource_cdk_path = resource_properties.get("Metadata", {}).get("aws:cdk:path")
+
+        if not isinstance(resource_cdk_path, str) or not resource_cdk_path:
+            return logical_id
+
+        # aws:cdk:path metadata format of functions: {stack_id}/{function_id}/Resource
+        # Design doc of CDK path: https://github.com/aws/aws-cdk/blob/master/design/construct-tree.md
+        cdk_path_partitions = resource_cdk_path.split("/")
+
+        if len(cdk_path_partitions) < 2:
+            LOG.warning(
+                "Cannot detect function id from aws:cdk:path metadata '%s', using default logical id", resource_cdk_path
+            )
+            return logical_id
+
+        return cdk_path_partitions[-2]
+
+    @staticmethod
     def _convert_lambda_function_resource(
-        stack: Stack, name: str, resource_properties: Dict, layers: List[LayerVersion], use_raw_codeuri: bool = False
+        stack: Stack,
+        name: str,
+        resource_properties: Dict,
+        layers: List[LayerVersion],
+        use_raw_codeuri: bool = False,
     ) -> Function:
         """
         Converts a AWS::Lambda::Function resource to a Function configuration usable by the provider.
@@ -257,6 +337,7 @@ class SamFunctionProvider(SamBaseProvider):
         codeuri: Optional[str] = SamFunctionProvider.DEFAULT_CODEURI
         inlinecode = None
         imageuri = None
+        function_id = SamFunctionProvider._get_function_id(resource_properties, name)
         packagetype = resource_properties.get("PackageType", ZIP)
         if packagetype == ZIP:
             if (
@@ -275,12 +356,13 @@ class SamFunctionProvider(SamBaseProvider):
             LOG.debug("Found Lambda function with name='%s' and Imageuri='%s'", name, imageuri)
 
         return SamFunctionProvider._build_function_configuration(
-            stack, name, codeuri, resource_properties, layers, inlinecode, imageuri, use_raw_codeuri
+            stack, function_id, name, codeuri, resource_properties, layers, inlinecode, imageuri, use_raw_codeuri
         )
 
     @staticmethod
     def _build_function_configuration(
         stack: Stack,
+        function_id: str,
         name: str,
         codeuri: Optional[str],
         resource_properties: Dict,
@@ -296,6 +378,8 @@ class SamFunctionProvider(SamBaseProvider):
         ----------
         name str
             LogicalID of the resource NOTE: This is *not* the function name because not all functions declare a name
+        function_id str
+            Unique function id
         codeuri str
             Representing the local code path
         resource_properties dict
@@ -327,6 +411,7 @@ class SamFunctionProvider(SamBaseProvider):
 
         return Function(
             stack_path=stack.stack_path,
+            function_id=function_id,
             name=name,
             functionname=resource_properties.get("FunctionName", name),
             packagetype=resource_properties.get("PackageType", ZIP),
@@ -344,6 +429,7 @@ class SamFunctionProvider(SamBaseProvider):
             metadata=metadata,
             inlinecode=inlinecode,
             codesign_config_arn=resource_properties.get("CodeSigningConfigArn", None),
+            architectures=resource_properties.get("Architectures", None),
         )
 
     @staticmethod
@@ -424,8 +510,8 @@ class SamFunctionProvider(SamBaseProvider):
         layer_logical_id = cast(str, layer.get("Ref"))
         layer_resource = stack.resources.get(layer_logical_id)
         if not layer_resource or layer_resource.get("Type", "") not in (
-            SamFunctionProvider.SERVERLESS_LAYER,
-            SamFunctionProvider.LAMBDA_LAYER,
+            AWS_SERVERLESS_LAYERVERSION,
+            AWS_LAMBDA_LAYERVERSION,
         ):
             raise InvalidLayerReference()
 
@@ -434,7 +520,7 @@ class SamFunctionProvider(SamBaseProvider):
         compatible_runtimes = layer_properties.get("CompatibleRuntimes")
         codeuri: Optional[str] = None
 
-        if resource_type in [SamFunctionProvider.LAMBDA_LAYER, SamFunctionProvider.SERVERLESS_LAYER]:
+        if resource_type in [AWS_LAMBDA_LAYERVERSION, AWS_SERVERLESS_LAYERVERSION]:
             code_property_key = SamBaseProvider.CODE_PROPERTY_KEYS[resource_type]
             if SamBaseProvider._is_s3_location(layer_properties.get(code_property_key)):
                 # Content can be a dictionary of S3 Bucket/Key or a S3 URI, neither of which are supported
@@ -460,3 +546,19 @@ class SamFunctionProvider(SamBaseProvider):
         if not candidates:
             raise RuntimeError(f"Cannot find resources with stack_path = {stack_path}")
         return candidates[0]
+
+    @staticmethod
+    def _metadata_has_necessary_entries_for_image_function_to_be_built(metadata: Optional[Dict[str, Any]]) -> bool:
+        """
+        > Note: If the PackageType property is set to Image, then either ImageUri is required,
+          or you must build your application with necessary Metadata entries in the AWS SAM template file.
+          https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html#sam-function-imageuri
+
+        When ImageUri and Metadata are both provided, we will try to determine whether to treat the function
+        as to be built or to be skipped. When we skip it whenever "ImageUri" is provided,
+        we introduced a breaking change https://github.com/aws/aws-sam-cli/issues/3239
+
+        This function is used to check whether there are the customers have "intention" to
+        let AWS SAM CLI to build this image function.
+        """
+        return isinstance(metadata, dict) and bool(metadata.get("DockerContext"))

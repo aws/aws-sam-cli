@@ -248,8 +248,14 @@ class TestWarmContainersBaseClass(StartLambdaIntegBaseClass):
         return running_containers
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template-warm-containers.yaml",),
+        ("/testdata/start_api/cdk/template-cdk-warm-container.yaml",),
+    ],
+)
 class TestWarmContainers(TestWarmContainersBaseClass):
-    template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
@@ -265,8 +271,14 @@ class TestWarmContainers(TestWarmContainersBaseClass):
         self.assertEqual(json.loads(response.get("body")), {"hello": "world"})
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template-warm-containers.yaml",),
+        ("/testdata/start_api/cdk/template-cdk-warm-container.yaml",),
+    ],
+)
 class TestWarmContainersInitialization(TestWarmContainersBaseClass):
-    template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
@@ -279,8 +291,14 @@ class TestWarmContainersInitialization(TestWarmContainersBaseClass):
         self.assertEqual(initiated_containers, 2)
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template-warm-containers.yaml",),
+        ("/testdata/start_api/cdk/template-cdk-warm-container.yaml",),
+    ],
+)
 class TestWarmContainersMultipleInvoke(TestWarmContainersBaseClass):
-    template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
@@ -297,8 +315,14 @@ class TestWarmContainersMultipleInvoke(TestWarmContainersBaseClass):
         self.assertEqual(initiated_containers, initiated_containers_before_invoking_any_function)
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template-warm-containers.yaml",),
+        ("/testdata/start_api/cdk/template-cdk-warm-container.yaml",),
+    ],
+)
 class TestLazyContainers(TestWarmContainersBaseClass):
-    template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.LAZY.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
@@ -314,8 +338,14 @@ class TestLazyContainers(TestWarmContainersBaseClass):
         self.assertEqual(json.loads(response.get("body")), {"hello": "world"})
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template-warm-containers.yaml",),
+        ("/testdata/start_api/cdk/template-cdk-warm-container.yaml",),
+    ],
+)
 class TestLazyContainersInitialization(TestWarmContainersBaseClass):
-    template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.LAZY.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
@@ -329,8 +359,14 @@ class TestLazyContainersInitialization(TestWarmContainersBaseClass):
         self.assertEqual(initiated_containers, 0)
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template-warm-containers.yaml",),
+        ("/testdata/start_api/cdk/template-cdk-warm-container.yaml",),
+    ],
+)
 class TestLazyContainersMultipleInvoke(TestWarmContainersBaseClass):
-    template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.LAZY.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
@@ -715,3 +751,38 @@ COPY main.py ./"""
         response = json.loads(result.get("Payload").read().decode("utf-8"))
         self.assertEqual(response.get("statusCode"), 200)
         self.assertEqual(json.loads(response.get("body")), {"hello": "world2"})
+
+
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/invoke/template.yml",),
+        ("/testdata/invoke/nested-templates/template-parent.yaml",),
+    ],
+)
+class TestLambdaServiceWithCustomInvokeImages(StartLambdaIntegBaseClass):
+
+    invoke_image = [
+        "amazon/aws-sam-cli-emulation-image-python3.6",
+        "HelloWorldServerlessFunction=public.ecr.aws/sam/emulation-python3.6",
+    ]
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+        self.lambda_client = boto3.client(
+            "lambda",
+            endpoint_url=self.url,
+            region_name="us-east-1",
+            use_ssl=False,
+            verify=False,
+            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
+        )
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
+    def test_invoke_with_data_custom_invoke_images(self):
+        response = self.lambda_client.invoke(FunctionName="EchoEventFunction", Payload='"This is json data"')
+
+        self.assertEqual(response.get("Payload").read().decode("utf-8"), '"This is json data"')
+        self.assertIsNone(response.get("FunctionError"))
+        self.assertEqual(response.get("StatusCode"), 200)

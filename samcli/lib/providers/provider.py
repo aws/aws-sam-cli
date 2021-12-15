@@ -7,12 +7,17 @@ import logging
 import os
 import posixpath
 from collections import namedtuple
-from typing import Set, NamedTuple, Optional, List, Dict, Union, cast, Iterator, TYPE_CHECKING
+from typing import Any, Set, NamedTuple, Optional, List, Dict, Tuple, Union, cast, Iterator, TYPE_CHECKING
 
-from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, UnsupportedIntrinsic
+from samcli.commands.local.cli_common.user_exceptions import (
+    InvalidLayerVersionArn,
+    UnsupportedIntrinsic,
+    InvalidFunctionPropertyType,
+)
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
+from samcli.lib.utils.architecture import X86_64
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     # avoid circular import, https://docs.python.org/3/library/typing.html#typing.TYPE_CHECKING
     from samcli.local.apigw.local_apigw_service import Route
 
@@ -24,7 +29,9 @@ class Function(NamedTuple):
     Named Tuple to representing the properties of a Lambda Function
     """
 
-    # Function name or logical ID
+    # Function id, can be Logical ID or any function identifier to define a function in specific IaC
+    function_id: str
+    # Function's logical ID (used as Function name below if Property `FunctionName` is not defined)
     name: str
     # Function name (used in place of logical ID)
     functionname: str
@@ -51,7 +58,7 @@ class Function(NamedTuple):
     # to get credentials to run the container with. This gives a much higher fidelity simulation of cloud Lambda.
     rolearn: Optional[str]
     # List of Layers
-    layers: List
+    layers: List["LayerVersion"]
     # Event
     events: Optional[List]
     # Metadata
@@ -60,6 +67,8 @@ class Function(NamedTuple):
     inlinecode: Optional[str]
     # Code Signing config ARN
     codesign_config_arn: Optional[str]
+    # Architecture Type
+    architectures: Optional[List[str]]
     # The path of the stack relative to the root stack, it is empty for functions in root stack
     stack_path: str = ""
 
@@ -72,13 +81,38 @@ class Function(NamedTuple):
             "HelloWorldFunction"
             "ChildStackA/GrandChildStackB/AFunctionInNestedStack"
         """
-        return get_full_path(self.stack_path, self.name)
+        return get_full_path(self.stack_path, self.function_id)
 
     def get_build_dir(self, build_root_dir: str) -> str:
         """
         Return the artifact directory based on the build root dir
         """
         return _get_build_dir(self, build_root_dir)
+
+    @property
+    def architecture(self) -> str:
+        """
+        Returns the architecture to use to build and invoke the function
+
+        Returns
+        -------
+        str
+            Architecture
+
+        Raises
+        ------
+        InvalidFunctionPropertyType
+            If the architectures value is invalid
+        """
+        if not self.architectures:
+            return X86_64
+
+        arch_list = cast(list, self.architectures)
+        if len(arch_list) != 1:
+            raise InvalidFunctionPropertyType(
+                f"Function {self.name} property Architectures should be a list of length 1"
+            )
+        return str(arch_list[0])
 
 
 class ResourcesToBuildCollector:
@@ -129,6 +163,7 @@ class LayerVersion:
         codeuri: Optional[str],
         compatible_runtimes: Optional[List[str]] = None,
         metadata: Optional[Dict] = None,
+        compatible_architectures: Optional[List[str]] = None,
         stack_path: str = "",
     ) -> None:
         """
@@ -154,6 +189,9 @@ class LayerVersion:
         self.is_defined_within_template = bool(codeuri)
         self._build_method = cast(Optional[str], metadata.get("BuildMethod", None))
         self._compatible_runtimes = compatible_runtimes
+
+        self._build_architecture = cast(str, metadata.get("BuildArchitecture", X86_64))
+        self._compatible_architectures = compatible_architectures
 
     @staticmethod
     def _compute_layer_version(is_defined_within_template: bool, arn: str) -> Optional[int]:
@@ -286,6 +324,26 @@ class LayerVersion:
             "ChildStackA/GrandChildStackB/ALayerInNestedStack"
         """
         return get_full_path(self.stack_path, self.name)
+
+    @property
+    def build_architecture(self) -> str:
+        """
+        Returns
+        -------
+        str
+            Return buildArchitecture declared in MetaData
+        """
+        return self._build_architecture
+
+    @property
+    def compatible_architectures(self) -> Optional[List[str]]:
+        """
+        Returns
+        -------
+        Optional[List[str]]
+            Return list of compatible architecture
+        """
+        return self._compatible_architectures
 
     def get_build_dir(self, build_root_dir: str) -> str:
         """
@@ -437,12 +495,174 @@ class Stack(NamedTuple):
         return os.path.join(build_root, self.stack_path.replace(posixpath.sep, os.path.sep), "template.yaml")
 
 
+class ResourceIdentifier:
+    """Resource identifier for representing a resource with nested stack support"""
+
+    _stack_path: str
+    _logical_id: str
+
+    def __init__(self, resource_identifier_str: str):
+        """
+        Parameters
+        ----------
+        resource_identifier_str : str
+            Resource identifier in the format of:
+            Stack1/Stack2/ResourceID
+        """
+        parts = resource_identifier_str.rsplit(posixpath.sep, 1)
+        if len(parts) == 1:
+            self._stack_path = ""
+            self._logical_id = parts[0]
+        else:
+            self._stack_path = parts[0]
+            self._logical_id = parts[1]
+
+    @property
+    def stack_path(self) -> str:
+        """
+        Returns
+        -------
+        str
+            Stack path of the resource.
+            This can be empty string if resource is in the root stack.
+        """
+        return self._stack_path
+
+    @property
+    def logical_id(self) -> str:
+        """
+        Returns
+        -------
+        str
+            Logical ID of the resource.
+        """
+        return self._logical_id
+
+    def __str__(self) -> str:
+        return self.stack_path + posixpath.sep + self.logical_id if self.stack_path else self.logical_id
+
+    def __eq__(self, other: object) -> bool:
+        return str(self) == str(other) if isinstance(other, ResourceIdentifier) else False
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+
 def get_full_path(stack_path: str, logical_id: str) -> str:
     """
     Return the unique posix path-like identifier
     while will used for identify a resource from resources in a multi-stack situation
     """
+    if not stack_path:
+        return logical_id
     return posixpath.join(stack_path, logical_id)
+
+
+def get_resource_by_id(
+    stacks: List[Stack], identifier: ResourceIdentifier, explicit_nested: bool = False
+) -> Optional[Dict[str, Any]]:
+    """Seach resource in stacks based on identifier
+
+    Parameters
+    ----------
+    stacks : List[Stack]
+        List of stacks to be searched
+    identifier : ResourceIdentifier
+        Resource identifier for the resource to be returned
+    explicit_nested : bool, optional
+        Set to True to only search in root stack if stack_path does not exist.
+        Otherwise, all stacks will be searched in order to find matching logical ID.
+        If stack_path does exist in identifier, this option will be ignored and behave as if it is True
+
+    Returns
+    -------
+    Dict
+        Resource dict
+    """
+    search_all_stacks = not identifier.stack_path and not explicit_nested
+    for stack in stacks:
+        if stack.stack_path == identifier.stack_path or search_all_stacks:
+            resource = stack.resources.get(identifier.logical_id)
+            if resource:
+                return cast(Dict[str, Any], resource)
+    return None
+
+
+def get_resource_ids_by_type(stacks: List[Stack], resource_type: str) -> List[ResourceIdentifier]:
+    """Return list of resource IDs
+
+    Parameters
+    ----------
+    stacks : List[Stack]
+        List of stacks
+    resource_type : str
+        Resource type to be used for searching related resources.
+
+    Returns
+    -------
+    List[ResourceIdentifier]
+        List of ResourceIdentifiers with the type provided
+    """
+    resource_ids: List[ResourceIdentifier] = list()
+    for stack in stacks:
+        for resource_id, resource in stack.resources.items():
+            if resource.get("Type", "") == resource_type:
+                resource_ids.append(ResourceIdentifier(get_full_path(stack.stack_path, resource_id)))
+    return resource_ids
+
+
+def get_all_resource_ids(stacks: List[Stack]) -> List[ResourceIdentifier]:
+    """Return all resource IDs in stacks
+
+    Parameters
+    ----------
+    stacks : List[Stack]
+        List of stacks
+
+    Returns
+    -------
+    List[ResourceIdentifier]
+        List of ResourceIdentifiers
+    """
+    resource_ids: List[ResourceIdentifier] = list()
+    for stack in stacks:
+        for resource_id, _ in stack.resources.items():
+            resource_ids.append(ResourceIdentifier(get_full_path(stack.stack_path, resource_id)))
+    return resource_ids
+
+
+def get_unique_resource_ids(
+    stacks: List[Stack],
+    resource_ids: Optional[Union[List[str], Tuple[str]]],
+    resource_types: Optional[Union[List[str], Tuple[str]]],
+) -> Set[ResourceIdentifier]:
+    """Get unique resource IDs for resource_ids and resource_types
+
+    Parameters
+    ----------
+    stacks : List[Stack]
+        Stacks
+    resource_ids : Optional[Union[List[str], Tuple[str]]]
+        Resource ID strings
+    resource_types : Optional[Union[List[str], Tuple[str]]]
+        Resource types
+
+    Returns
+    -------
+    Set[ResourceIdentifier]
+        Set of ResourceIdentifier either in resource_ids or has the type in resource_types
+    """
+    output_resource_ids: Set[ResourceIdentifier] = set()
+    if resource_ids:
+        for resources_id in resource_ids:
+            output_resource_ids.add(ResourceIdentifier(resources_id))
+
+    if resource_types:
+        for resource_type in resource_types:
+            resource_type_ids = get_resource_ids_by_type(stacks, resource_type)
+            for resource_id in resource_type_ids:
+                output_resource_ids.add(resource_id)
+    return output_resource_ids
 
 
 def _get_build_dir(resource: Union[Function, LayerVersion], build_root: str) -> str:

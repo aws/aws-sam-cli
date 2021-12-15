@@ -1,6 +1,7 @@
 import base64
 import copy
 import json
+from time import time
 from datetime import datetime
 from unittest import TestCase
 
@@ -22,7 +23,12 @@ from samcli.local.lambdafn.exceptions import FunctionNotFound
 class TestApiGatewayService(TestCase):
     def setUp(self):
         self.function_name = Mock()
-        self.api_gateway_route = Route(methods=["GET"], function_name=self.function_name, path="/")
+        self.api_gateway_route = Route(
+            methods=["GET"],
+            function_name=self.function_name,
+            path="/",
+            operation_name="getRestApi",
+        )
         self.http_gateway_route = Route(
             methods=["GET"], function_name=self.function_name, path="/", event_type=Route.HTTP
         )
@@ -32,6 +38,7 @@ class TestApiGatewayService(TestCase):
             path="/v1",
             event_type=Route.HTTP,
             payload_format_version="1.0",
+            operation_name="getV1",
         )
         self.http_v2_payload_route = Route(
             methods=["GET"],
@@ -39,6 +46,7 @@ class TestApiGatewayService(TestCase):
             path="/v2",
             event_type=Route.HTTP,
             payload_format_version="2.0",
+            operation_name="getV2",
         )
         self.http_v2_default_payload_route = Route(
             methods=["x-amazon-apigateway-any-method"],
@@ -46,6 +54,7 @@ class TestApiGatewayService(TestCase):
             path="$default",
             event_type=Route.HTTP,
             payload_format_version="2.0",
+            # no operation_name for default route
         )
         self.api_list_of_routes = [self.api_gateway_route]
         self.http_list_of_routes = [
@@ -74,6 +83,7 @@ class TestApiGatewayService(TestCase):
 
         self.api_service.service_response = make_response_mock
         self.api_service._get_current_route = MagicMock()
+        self.api_service._get_current_route.return_value = self.api_gateway_route
         self.api_service._get_current_route.methods = []
         self.api_service._get_current_route.return_value.payload_format_version = "2.0"
         self.api_service._construct_v_1_0_event = Mock()
@@ -92,7 +102,7 @@ class TestApiGatewayService(TestCase):
 
         self.assertEqual(result, make_response_mock)
         self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
-        self.api_service._construct_v_1_0_event.assert_called_with(ANY, ANY, ANY, ANY, ANY)
+        self.api_service._construct_v_1_0_event.assert_called_with(ANY, ANY, ANY, ANY, ANY, "getRestApi")
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     def test_http_request_must_invoke_lambda(self, request_mock):
@@ -148,7 +158,7 @@ class TestApiGatewayService(TestCase):
 
         self.assertEqual(result, make_response_mock)
         self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
-        self.http_service._construct_v_1_0_event.assert_called_with(ANY, ANY, ANY, ANY, ANY)
+        self.http_service._construct_v_1_0_event.assert_called_with(ANY, ANY, ANY, ANY, ANY, None)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     def test_http_v2_payload_request_must_invoke_lambda(self, request_mock):
@@ -1112,6 +1122,42 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
         self.assertIn("Content-Type", headers)
         self.assertEqual(headers["Content-Type"], "text/xml")
 
+    def test_custom_cookies_in_payload_format_version_2(self):
+        lambda_output = (
+            '{"statusCode": 200, "cookies": ["cookie1=test1", "cookie2=test2"], "body": "{\\"message\\":\\"Hello from Lambda\\"}", '
+            '"isBase64Encoded": false}'
+        )
+
+        (_, headers, _) = LocalApigwService._parse_v2_payload_format_lambda_output(
+            lambda_output, binary_types=[], flask_request=Mock()
+        )
+
+        self.assertEqual(headers.getlist("Set-Cookie"), ["cookie1=test1", "cookie2=test2"])
+
+    def test_invalid_cookies_in_payload_format_version_2(self):
+        lambda_output = (
+            '{"statusCode": 200, "cookies": "cookies1=test1", "body": "{\\"message\\":\\"Hello from Lambda\\"}", '
+            '"isBase64Encoded": false}'
+        )
+
+        (_, headers, _) = LocalApigwService._parse_v2_payload_format_lambda_output(
+            lambda_output, binary_types=[], flask_request=Mock()
+        )
+
+        self.assertNotIn("Set-Cookie", headers)
+
+    def test_existed_cookies_in_payload_format_version_2(self):
+        lambda_output = (
+            '{"statusCode": 200, "headers":{"Set-Cookie": "cookie1=test1"}, "cookies": ["cookie2=test2", "cookie3=test3"], "body": "{\\"message\\":\\"Hello from Lambda\\"}", '
+            '"isBase64Encoded": false}'
+        )
+
+        (_, headers, _) = LocalApigwService._parse_v2_payload_format_lambda_output(
+            lambda_output, binary_types=[], flask_request=Mock()
+        )
+
+        self.assertEqual(headers.getlist("Set-Cookie"), ["cookie1=test1", "cookie2=test2", "cookie3=test3"])
+
     def test_extra_values_skipped(self):
         lambda_output = (
             '{"statusCode": 200, "headers": {}, "body": "{\\"message\\":\\"Hello from Lambda\\"}", '
@@ -1451,47 +1497,58 @@ class TestService_construct_event_http(TestCase):
         cookies_mock.keys.return_value = ["cookie1", "cookie2"]
         cookies_mock.get.side_effect = ["test", "test"]
         self.request_mock.cookies = cookies_mock
+        self.request_time_epoch = int(time())
+        self.request_time = datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000")
 
-        expected = """
-        {
+        expected = f"""
+        {{
             "version": "2.0",
             "routeKey": "GET /endpoint",
             "rawPath": "/endpoint",
             "rawQueryString": "query=params",
             "cookies": ["cookie1=test", "cookie2=test"],
-            "headers": {
+            "headers": {{
                 "Content-Type": "application/json",
                 "X-Test": "Value",
                 "X-Forwarded-Proto": "http",
                 "X-Forwarded-Port": "3000"
-            },
-            "queryStringParameters": {"query": "params"},
-            "requestContext": {
+            }},
+            "queryStringParameters": {{"query": "params"}},
+            "requestContext": {{
                 "accountId": "123456789012",
                 "apiId": "1234567890",
-                "http": {
+                "domainName": "localhost",
+                "domainPrefix": "localhost",
+                "http": {{
                     "method": "GET",
                     "path": "/endpoint",
                     "protocol": "HTTP/1.1",
                     "sourceIp": "190.0.0.0",
                     "userAgent": "Custom User Agent String"
-                },
+                }},
                 "requestId": "",
                 "routeKey": "GET /endpoint",
-                "stage": null
-            },
+                "stage": "$default",
+                "time": \"{self.request_time}\",
+                "timeEpoch": {self.request_time_epoch}
+            }},
             "body": "DATA!!!!",
-            "pathParameters": {"path": "params"},
+            "pathParameters": {{"path": "params"}},
             "stageVariables": null,
             "isBase64Encoded": false
-        }
+        }}
         """
 
         self.expected_dict = json.loads(expected)
 
     def test_construct_event_with_data(self):
         actual_event_str = LocalApigwService._construct_v_2_0_event_http(
-            self.request_mock, 3000, binary_types=[], route_key="GET /endpoint"
+            self.request_mock,
+            3000,
+            binary_types=[],
+            route_key="GET /endpoint",
+            request_time_epoch=self.request_time_epoch,
+            request_time=self.request_time,
         )
         print("DEBUG: json.loads(actual_event_str)", json.loads(actual_event_str))
         print("DEBUG: self.expected_dict", self.expected_dict)
@@ -1505,7 +1562,12 @@ class TestService_construct_event_http(TestCase):
         self.expected_dict["body"] = None
 
         actual_event_str = LocalApigwService._construct_v_2_0_event_http(
-            self.request_mock, 3000, binary_types=[], route_key="GET /endpoint"
+            self.request_mock,
+            3000,
+            binary_types=[],
+            route_key="GET /endpoint",
+            request_time_epoch=self.request_time_epoch,
+            request_time=self.request_time,
         )
         actual_event_dict = json.loads(actual_event_str)
         self.assertEqual(len(actual_event_dict["requestContext"]["requestId"]), 36)
@@ -1533,7 +1595,12 @@ class TestService_construct_event_http(TestCase):
         self.maxDiff = None
 
         actual_event_str = LocalApigwService._construct_v_2_0_event_http(
-            self.request_mock, 3000, binary_types=[], route_key="GET /endpoint"
+            self.request_mock,
+            3000,
+            binary_types=[],
+            route_key="GET /endpoint",
+            request_time_epoch=self.request_time_epoch,
+            request_time=self.request_time,
         )
         actual_event_dict = json.loads(actual_event_str)
         self.assertEqual(len(actual_event_dict["requestContext"]["requestId"]), 36)

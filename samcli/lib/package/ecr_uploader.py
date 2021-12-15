@@ -3,7 +3,6 @@ Client for uploading packaged artifacts to ecr
 """
 import logging
 import base64
-import os
 
 from typing import Dict
 import click
@@ -18,8 +17,8 @@ from samcli.commands.package.exceptions import (
     ECRAuthorizationError,
     DeleteArtifactFailedError,
 )
+from samcli.lib.docker.log_streamer import LogStreamer, LogStreamError
 from samcli.lib.package.image_utils import tag_translation
-from samcli.lib.package.stream_cursor_utils import cursor_up, cursor_left, cursor_down, clear_line
 from samcli.lib.utils.osutils import stderr
 from samcli.lib.utils.stream_writer import StreamWriter
 
@@ -33,14 +32,18 @@ class ECRUploader:
     Class to upload Images to ECR.
     """
 
-    def __init__(self, docker_client, ecr_client, ecr_repo, ecr_repo_multi, tag="latest", stream=stderr()):
+    def __init__(
+        self, docker_client, ecr_client, ecr_repo, ecr_repo_multi, no_progressbar=False, tag="latest", stream=stderr()
+    ):
         self.docker_client = docker_client if docker_client else docker.from_env()
         self.ecr_client = ecr_client
         self.ecr_repo = ecr_repo
         self.ecr_repo_multi = ecr_repo_multi
         self.tag = tag
         self.auth_config = {}
+        self.no_progressbar = no_progressbar
         self.stream = StreamWriter(stream=stream, auto_flush=True)
+        self.log_streamer = LogStreamer(stream=self.stream)
         self.login_session_active = False
 
     def login(self):
@@ -83,9 +86,10 @@ class ECRUploader:
             push_logs = self.docker_client.api.push(
                 repository=repository, tag=_tag, auth_config=self.auth_config, stream=True, decode=True
             )
-            self._stream_progress(push_logs)
+            if not self.no_progressbar:
+                self.log_streamer.stream_progress(push_logs)
 
-        except (BuildError, APIError) as ex:
+        except (BuildError, APIError, LogStreamError) as ex:
             raise DockerPushFailedError(msg=str(ex)) from ex
 
         return f"{repository}:{_tag}"
@@ -170,56 +174,3 @@ class ECRUploader:
         result["image_tag"] = repo_image_tag_split[1] if len(repo_image_tag_split) > 1 else "latest"
 
         return result
-
-    # TODO: move this to a generic class to allow for streaming logs back from docker.
-    def _stream_progress(self, logs):
-        """
-        Stream progress from docker push logs and move the cursor based on the log id.
-        :param logs: generator from docker_clent.api.push
-        """
-        ids = dict()
-        for log in logs:
-            _id = log.get("id", None)
-            status = log.get("status", None)
-            progress = log.get("progress", "")
-            error = log.get("error", "")
-            change_cursor_count = 0
-            if _id:
-                try:
-                    curr_log_line_id = ids[_id]
-                    change_cursor_count = len(ids) - curr_log_line_id
-                    self.stream.write((cursor_up(change_cursor_count) + cursor_left).encode())
-                except KeyError:
-                    ids[_id] = len(ids)
-            else:
-                ids = dict()
-
-            self._stream_write(_id, status, progress, error)
-
-            if _id:
-                self.stream.write((cursor_down(change_cursor_count) + cursor_left).encode())
-        self.stream.write(os.linesep.encode())
-
-    def _stream_write(self, _id, status, progress, error):
-        """
-        Write stream information to stderr, if the stream information contains a log id,
-        use the carraige return character to rewrite that particular line.
-        :param _id: docker log id
-        :param status: docker log status
-        :param progress: docker log progress
-        :param error: docker log error
-        """
-        if error:
-            raise DockerPushFailedError(msg=error)
-        if not status:
-            return
-
-        # NOTE(sriram-mv): Required for the purposes of when the cursor overflows existing terminal buffer.
-        self.stream.write(os.linesep.encode())
-        self.stream.write((cursor_up() + cursor_left).encode())
-        self.stream.write(clear_line().encode())
-
-        if not _id:
-            self.stream.write(f"{status}{os.linesep}".encode())
-        else:
-            self.stream.write(f"\r{_id}: {status} {progress}".encode())

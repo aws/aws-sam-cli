@@ -65,6 +65,17 @@ def _get_stack_template():
             "SamCliSourceBucket": {
                 "Type": "AWS::S3::Bucket",
                 "Properties": {
+                    "PublicAccessBlockConfiguration": {
+                        "BlockPublicPolicy": "true",
+                        "BlockPublicAcls": "true",
+                        "IgnorePublicAcls": "true",
+                        "RestrictPublicBuckets": "true",
+                    },
+                    "BucketEncryption": {
+                        "ServerSideEncryptionConfiguration": [
+                            {"ServerSideEncryptionByDefault": {"SSEAlgorithm": "aws:kms"}}
+                        ]
+                    },
                     "VersioningConfiguration": {"Status": "Enabled"},
                     "Tags": [{"Key": "ManagedStackSource", "Value": "AwsSamCli"}],
                 },
@@ -72,7 +83,7 @@ def _get_stack_template():
             "SamCliSourceBucketBucketPolicy": {
                 "Type": "AWS::S3::BucketPolicy",
                 "Properties": {
-                    "Bucket": "!Ref SamCliSourceBucket",
+                    "Bucket": {"Ref": "SamCliSourceBucket"},
                     "PolicyDocument": {
                         "Statement": [
                             {
@@ -81,17 +92,54 @@ def _get_stack_template():
                                 "Resource": {
                                     "Fn::Join": [
                                         "",
-                                        ["arn:", "!Ref AWS::Partition", ":s3:::", "!Ref SamCliSourceBucket", "/*"],
+                                        [
+                                            "arn:",
+                                            {"Ref": "AWS::Partition"},
+                                            ":s3:::",
+                                            {"Ref": "SamCliSourceBucket"},
+                                            "/*",
+                                        ],
                                     ]
                                 },
                                 "Principal": {"Service": "serverlessrepo.amazonaws.com"},
-                                "Condition": {"StringEquals": {"aws:SourceAccount": "!Ref AWS::AccountId"}},
-                            }
+                                "Condition": {"StringEquals": {"aws:SourceAccount": {"Ref": "AWS::AccountId"}}},
+                            },
+                            {
+                                "Action": ["s3:*"],
+                                "Effect": "Deny",
+                                "Resource": [
+                                    {
+                                        "Fn::Join": [
+                                            "",
+                                            [
+                                                "arn:",
+                                                {"Ref": "AWS::Partition"},
+                                                ":s3:::",
+                                                {"Ref": "SamCliSourceBucket"},
+                                            ],
+                                        ]
+                                    },
+                                    {
+                                        "Fn::Join": [
+                                            "",
+                                            [
+                                                "arn:",
+                                                {"Ref": "AWS::Partition"},
+                                                ":s3:::",
+                                                {"Ref": "SamCliSourceBucket"},
+                                                "/*",
+                                            ],
+                                        ]
+                                    },
+                                ],
+                                "Principal": "*",
+                                "Condition": {"Bool": {"aws:SecureTransport": "false"}},
+                            },
                         ]
                     },
                 },
             },
         },
-        "Outputs": {"SourceBucket": {"Value": "!Ref SamCliSourceBucket"}},
+        "Outputs": {"SourceBucket": {"Value": {"Ref": "SamCliSourceBucket"}}},
     }
     return json.dumps(template)

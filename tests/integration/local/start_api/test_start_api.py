@@ -15,13 +15,17 @@ from samcli.local.apigw.local_apigw_service import Route
 from .start_api_integ_base import StartApiIntegBaseClass, WatchWarmContainersIntegBaseClass
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template.yaml",),
+        ("/testdata/start_api/cdk/template_cdk.yaml",),
+    ],
+)
 class TestParallelRequests(StartApiIntegBaseClass):
     """
     Test Class centered around sending parallel requests to the service `sam local start-api`
     """
-
-    # This is here so the setUpClass doesn't fail. Set to this something else once the class is implemented
-    template_path = "/testdata/start_api/template.yaml"
 
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
@@ -81,13 +85,17 @@ class TestParallelRequests(StartApiIntegBaseClass):
                 self.assertEqual(result.json(), {"message": "HelloWorld! I just slept and waking up."})
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template.yaml",),
+        ("/testdata/start_api/cdk/template_cdk.yaml",),
+    ],
+)
 class TestServiceErrorResponses(StartApiIntegBaseClass):
     """
     Test Class centered around the Error Responses the Service can return for a given api
     """
-
-    # This is here so the setUpClass doesn't fail. Set to this something else once the class is implemented.
-    template_path = "/testdata/start_api/template.yaml"
 
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
@@ -127,6 +135,7 @@ class TestServiceErrorResponses(StartApiIntegBaseClass):
     [
         ("/testdata/start_api/template.yaml",),
         ("/testdata/start_api/nested-templates/template-parent.yaml",),
+        ("/testdata/start_api/cdk/template_cdk.yaml",),
     ],
 )
 class TestService(StartApiIntegBaseClass):
@@ -664,6 +673,32 @@ class TestStartApiWithSwaggerHttpApis(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_http_api_payload_v1_should_not_have_operation_id(self):
+        response = requests.get(self.url + "/httpapi-operation-id-v1", timeout=300)
+        self.assertEqual(response.status_code, 200)
+
+        response_data = response.json()
+        self.assertEqual(response_data.get("version", {}), "1.0")
+        # operationName or operationId shouldn't be processed by Httpapi swaggers
+        request_context_keys = [key.lower() for key in response_data.get("requestContext", {}).keys()]
+        self.assertTrue("operationid" not in request_context_keys)
+        self.assertTrue("operationname" not in request_context_keys)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_http_api_payload_v2_should_not_have_operation_id(self):
+        response = requests.get(self.url + "/httpapi-operation-id-v2", timeout=300)
+        self.assertEqual(response.status_code, 200)
+
+        response_data = response.json()
+        self.assertEqual(response_data.get("version", {}), "2.0")
+        # operationName or operationId shouldn't be processed by Httpapi swaggers
+        request_context_keys = [key.lower() for key in response_data.get("requestContext", {}).keys()]
+        self.assertTrue("operationid" not in request_context_keys)
+        self.assertTrue("operationname" not in request_context_keys)
+
 
 class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
     template_path = "/testdata/start_api/swagger-rest-api-template.yaml"
@@ -791,6 +826,16 @@ class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("Content-Type"), "image/gif")
         self.assertEqual(response.content, expected)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_rest_api_operation_id(self):
+        """
+        Binary data is returned correctly
+        """
+        response = requests.get(self.url + "/printeventwithoperationidfunction", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json().get("requestContext", {}).get("operationName"), "MyOperationName")
 
 
 class TestServiceResponses(StartApiIntegBaseClass):
@@ -1693,11 +1738,30 @@ class TestCFNTemplateWithRestApiAndHttpApiGateways(StartApiIntegBaseClass):
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
+    def test_http_api_with_operation_name_is_reachable(self):
+        response = requests.get(self.url + "/http-api-with-operation-name", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+        # operationName or operationId shouldn't be processed by Httpapi
+        request_context_keys = [key.lower() for key in response_data.get("requestContext", {}).keys()]
+        self.assertTrue("operationid" not in request_context_keys)
+        self.assertTrue("operationname" not in request_context_keys)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
     def test_rest_api_is_reachable(self):
         response = requests.get(self.url + "/rest-api", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_rest_api_with_operation_name_is_reachable(self):
+        response = requests.get(self.url + "/rest-api-with-operation-name", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"operation_name": "MyOperationName"})
 
 
 class TestCFNTemplateHttpApiWithSwaggerBody(StartApiIntegBaseClass):
@@ -1716,6 +1780,10 @@ class TestCFNTemplateHttpApiWithSwaggerBody(StartApiIntegBaseClass):
         self.assertEqual(response_data.get("version", {}), "2.0")
         self.assertIsNone(response_data.get("multiValueHeaders"))
         self.assertIsNotNone(response_data.get("cookies"))
+        # operationName or operationId shouldn't be processed by Httpapi swaggers
+        request_context_keys = [key.lower() for key in response_data.get("requestContext", {}).keys()]
+        self.assertTrue("operationid" not in request_context_keys)
+        self.assertTrue("operationname" not in request_context_keys)
 
 
 class TestWarmContainersBaseClass(StartApiIntegBaseClass):
@@ -1732,8 +1800,14 @@ class TestWarmContainersBaseClass(StartApiIntegBaseClass):
         return running_containers
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template-warm-containers.yaml",),
+        ("/testdata/start_api/cdk/template-cdk-warm-container.yaml",),
+    ],
+)
 class TestWarmContainers(TestWarmContainersBaseClass):
-    template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
@@ -1746,8 +1820,14 @@ class TestWarmContainers(TestWarmContainersBaseClass):
         self.assertEqual(response.json(), {"hello": "world"})
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template-warm-containers.yaml",),
+        ("/testdata/start_api/cdk/template-cdk-warm-container.yaml",),
+    ],
+)
 class TestWarmContainersInitialization(TestWarmContainersBaseClass):
-    template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
@@ -1760,8 +1840,14 @@ class TestWarmContainersInitialization(TestWarmContainersBaseClass):
         self.assertEqual(initiated_containers, 2)
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template-warm-containers.yaml",),
+        ("/testdata/start_api/cdk/template-cdk-warm-container.yaml",),
+    ],
+)
 class TestWarmContainersMultipleInvoke(TestWarmContainersBaseClass):
-    template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
@@ -1777,8 +1863,14 @@ class TestWarmContainersMultipleInvoke(TestWarmContainersBaseClass):
         self.assertEqual(initiated_containers, initiated_containers_before_invoking_any_function)
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template-warm-containers.yaml",),
+        ("/testdata/start_api/cdk/template-cdk-warm-container.yaml",),
+    ],
+)
 class TestLazyContainers(TestWarmContainersBaseClass):
-    template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.LAZY.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
@@ -1791,8 +1883,14 @@ class TestLazyContainers(TestWarmContainersBaseClass):
         self.assertEqual(response.json(), {"hello": "world"})
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template-warm-containers.yaml",),
+        ("/testdata/start_api/cdk/template-cdk-warm-container.yaml",),
+    ],
+)
 class TestLazyContainersInitialization(TestWarmContainersBaseClass):
-    template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.LAZY.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
@@ -1806,8 +1904,14 @@ class TestLazyContainersInitialization(TestWarmContainersBaseClass):
         self.assertEqual(initiated_containers, 0)
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template-warm-containers.yaml",),
+        ("/testdata/start_api/cdk/template-cdk-warm-container.yaml",),
+    ],
+)
 class TestLazyContainersMultipleInvoke(TestWarmContainersBaseClass):
-    template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.LAZY.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
@@ -2158,3 +2262,68 @@ class TestApiPrecedenceInNestedStacks(StartApiIntegBaseClass):
         response = requests.put(self.url + "/path2", data=data, timeout=300)
 
         self.assertEqual(response.status_code, 403)
+
+
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template.yaml",),
+        ("/testdata/start_api/nested-templates/template-parent.yaml",),
+    ],
+)
+class TestServiceWithCustomInvokeImages(StartApiIntegBaseClass):
+    """
+    Testing general requirements around the Service that powers `sam local start-api` using invoke images
+    """
+
+    invoke_image = [
+        "amazon/aws-sam-cli-emulation-image-python3.6",
+        "HelloWorldFunction=public.ecr.aws/sam/emulation-python3.6",
+    ]
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    def test_static_directory(self):
+        pass
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_calling_proxy_endpoint_custom_invoke_image(self):
+        response = requests.get(self.url + "/proxypath/this/is/some/path", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_get_call_with_path_setup_with_any_implicit_api_custom_invoke_image(self):
+        """
+        Get Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.get(self.url + "/anyandall", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_post_call_with_path_setup_with_any_implicit_api_custom_invoke_image(self):
+        """
+        Post Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.post(self.url + "/anyandall", json={}, timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_put_call_with_path_setup_with_any_implicit_api_custom_invoke_image(self):
+        """
+        Put Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.put(self.url + "/anyandall", json={}, timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})

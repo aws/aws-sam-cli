@@ -10,7 +10,7 @@ from samtranslator.translator.translator import Translator
 from boto3.session import Session
 
 from samcli.lib.utils.packagetype import ZIP, IMAGE
-from samcli.commands._utils.resources import AWS_SERVERLESS_FUNCTION
+from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION
 from samcli.yamlhelper import yaml_dump
 from .exceptions import InvalidSamDocumentException
 
