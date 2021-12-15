@@ -1,4 +1,5 @@
 import os
+from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack
 import shutil
 import tempfile
 import time
@@ -144,7 +145,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
-    @parameterized.expand(["aws-serverless-function-image.yaml"])
+    @parameterized.expand(["aws-serverless-function-image.yaml", "aws-lambda-function-image.yaml"])
     def test_no_package_and_deploy_with_s3_bucket_all_args_image_repository(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
@@ -171,7 +172,9 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
-    @parameterized.expand([("Hello", "aws-serverless-function-image.yaml")])
+    @parameterized.expand([
+        ("Hello", "aws-serverless-function-image.yaml"), ("MyLambdaFunction", "aws-lambda-function-image.yaml")
+    ])
     def test_no_package_and_deploy_with_s3_bucket_all_args_image_repositories(self, resource_id, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
@@ -198,7 +201,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
-    @parameterized.expand(["aws-serverless-function-image.yaml"])
+    @parameterized.expand(["aws-serverless-function-image.yaml", "aws-lambda-function-image.yaml"])
     def test_no_package_and_deploy_with_s3_bucket_all_args_resolve_image_repos(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
@@ -593,7 +596,7 @@ to create a managed default bucket, or run sam deploy --guided",
         # Remove samconfig.toml
         os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
 
-    @parameterized.expand(["aws-serverless-function-image.yaml"])
+    @parameterized.expand(["aws-serverless-function-image.yaml", "aws-lambda-function-image.yaml"])
     def test_deploy_guided_image_auto(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
@@ -613,8 +616,8 @@ to create a managed default bucket, or run sam deploy --guided",
         # Remove samconfig.toml
         os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
 
-    @parameterized.expand(["aws-serverless-function-image.yaml"])
-    def test_deploy_guided_image_specify(self, template_file):
+    @parameterized.expand([("aws-serverless-function-image.yaml", True), ("aws-lambda-function-image.yaml", False)])
+    def test_deploy_guided_image_specify(self, template_file, does_ask_for_authorization):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
@@ -623,8 +626,10 @@ to create a managed default bucket, or run sam deploy --guided",
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
 
+        autorization_question_answer = "\n" if does_ask_for_authorization else ""
+
         deploy_process_execute = run_command_with_input(
-            deploy_command_list, f"{stack_name}\n\n\n\n\ny\n\n\n\nn\n{self.ecr_repo_name}\n\n\n\n".encode()
+            deploy_command_list, f"{stack_name}\n\n\n\n\ny\n\n\n{autorization_question_answer}n\n{self.ecr_repo_name}\n\n\n\n".encode()
         )
 
         # Deploy should succeed with a managed stack

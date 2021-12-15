@@ -316,8 +316,7 @@ class ApplicationBuilder:
                     properties["ContentUri"] = store_path
 
                 if resource_type == AWS_LAMBDA_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
-                    properties["Code"] = built_artifacts[full_path]
-
+                    properties["Code"] = {"ImageUri": built_artifacts[full_path]}
                 if resource_type == AWS_SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
                     properties["ImageUri"] = built_artifacts[full_path]
 
