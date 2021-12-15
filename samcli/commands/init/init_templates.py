@@ -126,7 +126,9 @@ class InitTemplates:
     def get_manifest_path(self):
         return Path(self._git_repo.local_path, self.manifest_file_name)
 
-    def get_preprocessed_manifest(self, filter_value=None, app_template=None):
+    def get_preprocessed_manifest(
+        self, filter_value=None, app_template=None, package_type=None, dependency_manager=None
+    ):
         """
         This method get the manifest cloned from the git repo and preprocessed it.
         Below is the link to manifest:
@@ -170,19 +172,30 @@ class InitTemplates:
 
             template_list = manifest_body[template_runtime]
             for template in template_list:
-                package_type = get_template_value("packageType", template)
+                template_package_type = get_template_value("packageType", template)
                 use_case_name = get_template_value("useCaseName", template)
-                if not (package_type or use_case_name) or (app_template and app_template != template["appTemplate"]):
+                if (
+                    not (template_package_type or use_case_name)
+                    or (app_template and app_template != template["appTemplate"])
+                    or self.does_template_meet_filtering_criterial(package_type, dependency_manager, template)
+                ):
                     continue
-                runtime = get_runtime(package_type, template_runtime)
+                runtime = get_runtime(template_package_type, template_runtime)
                 use_case = preprocessed_manifest.get(use_case_name, {})
                 use_case[runtime] = use_case.get(runtime, {})
-                use_case[runtime][package_type] = use_case[runtime].get(package_type, [])
-                use_case[runtime][package_type].append(template)
+                use_case[runtime][template_package_type] = use_case[runtime].get(template_package_type, [])
+                use_case[runtime][template_package_type].append(template)
 
                 preprocessed_manifest[use_case_name] = use_case
 
         return preprocessed_manifest
+
+    def does_template_meet_filtering_criterial(self, package_type, dependency_manager, template):
+        pt_filter_criteria_status = bool(package_type and package_type == template["packageType"])
+        dp_filter_criteria_status = bool(dependency_manager and dependency_manager == template["dependencyManager"])
+        if pt_filter_criteria_status == True and dp_filter_criteria_status == True:
+            return False
+        return True
 
     def get_bundle_option(self, package_type, runtime, dependency_manager):
         return self._init_options_from_bundle(package_type, runtime, dependency_manager)
