@@ -105,8 +105,12 @@ class TestSkipBuildingFunctionsWithLocalImageUri(BuildIntegBase):
         _tag = f"{random.randint(1,100)}"
         image_uri = f"func:{_tag}"
         docker_client = docker.from_env()
-        docker_client.images.build(path=str(Path(self.test_data_path, "PythonImage")), dockerfile="Dockerfile",
-                                   buildargs={"BASE_RUNTIME": runtime}, tag= image_uri)
+        docker_client.images.build(
+            path=str(Path(self.test_data_path, "PythonImage")),
+            dockerfile="Dockerfile",
+            buildargs={"BASE_RUNTIME": runtime},
+            tag=image_uri,
+        )
         overrides = {
             "ImageUri": image_uri,
             "Handler": "main.handler",
@@ -121,7 +125,7 @@ class TestSkipBuildingFunctionsWithLocalImageUri(BuildIntegBase):
             self.built_template,
             self.FUNCTION_LOGICAL_ID_IMAGE,
             self.prop,
-            {'Ref': 'ImageUri'},
+            {"Ref": "ImageUri"},
         )
 
         expected = {"pi": "3.14"}
