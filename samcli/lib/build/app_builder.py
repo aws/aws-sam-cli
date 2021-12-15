@@ -279,7 +279,7 @@ class ApplicationBuilder:
         for logical_id, resource in template_dict.get("Resources", {}).items():
 
             full_path = get_full_path(stack.stack_path, logical_id)
-            has_build_artifact = full_path in built_artifacts
+            has_build_artifact = full_path in built_artifacts and built_artifacts[full_path]
             is_stack = full_path in stack_output_template_path_by_stack_path
 
             if not has_build_artifact and not is_stack:
@@ -357,6 +357,14 @@ class ApplicationBuilder:
         docker_tag = f"{function_name.lower()}:{tag}"
         docker_build_target = metadata.get("DockerBuildTarget", None)
         docker_build_args = metadata.get("DockerBuildArgs", {})
+
+        if not dockerfile or not docker_context:
+            LOG.info(
+                "Skip Building %s function, as it does not contain either Dockerfile or DockerContext "
+                "metadata properties.",
+                function_name,
+            )
+            return ""
 
         if not isinstance(docker_build_args, dict):
             raise DockerBuildFailed("DockerBuildArgs needs to be a dictionary!")

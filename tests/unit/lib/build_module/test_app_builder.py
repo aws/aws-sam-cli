@@ -615,6 +615,7 @@ class TestApplicationBuilder_update_template(TestCase):
             "MyFunction1": "/path/to/build/MyFunction1",
             "MyFunction2": "/path/to/build/MyFunction2",
             "MyImageFunction1": "myimagefunction1:Tag",
+            "PreBuiltImageFunction1": "",
         }
 
         expected_result = {
@@ -882,6 +883,38 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
         result = self.builder._build_lambda_image("Name", metadata, X86_64)
 
         self.assertEqual(result, "name:Tag")
+
+    def test_skip_build_image_function_without_docker_file(self):
+        metadata = {
+            "DockerContext": "context",
+            "DockerTag": "Tag",
+            "DockerBuildArgs": {"a": "b"},
+        }
+
+        result = self.builder._build_lambda_image("Name", metadata, X86_64)
+
+        self.assertFalse(bool(result))
+        self.docker_client_mock.api.build.assert_not_called()
+
+    def test_skip_build_image_function_without_docker_context(self):
+        metadata = {
+            "DockerFIle": "Dockerfile",
+            "DockerTag": "Tag",
+            "DockerBuildArgs": {"a": "b"},
+        }
+
+        result = self.builder._build_lambda_image("Name", metadata, X86_64)
+
+        self.assertFalse(bool(result))
+        self.docker_client_mock.api.build.assert_not_called()
+
+    def test_skip_build_image_function_with_empty_metadata(self):
+        metadata = {}
+
+        result = self.builder._build_lambda_image("Name", metadata, X86_64)
+
+        self.assertFalse(bool(result))
+        self.docker_client_mock.api.build.assert_not_called()
 
     def test_can_build_image_function_without_tag(self):
         metadata = {"Dockerfile": "Dockerfile", "DockerContext": "context", "DockerBuildArgs": {"a": "b"}}
