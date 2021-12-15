@@ -1,0 +1,16 @@
+Parameteres:
+  ImageUri:
+    Type: String
+  Handler:
+    Type: String
+    
+Resources:
+  ImageFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - !Ref Handler
+      Code:
+        ImageUri: !Ref ImageUri

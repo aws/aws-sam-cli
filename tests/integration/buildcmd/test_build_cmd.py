@@ -4,8 +4,10 @@ import random
 import shutil
 import sys
 from pathlib import Path
+from typing import Set
 from unittest import skipIf
 
+import docker
 import pytest
 from parameterized import parameterized, parameterized_class
 
@@ -73,6 +75,54 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
         LOG.info("Running Command: ")
         LOG.info(cmdlist)
         run_command(cmdlist, cwd=self.working_dir)
+
+        expected = {"pi": "3.14"}
+        self._verify_invoke_built_function(
+            self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
+        )
+
+
+@skipIf(
+    # Hits public ECR pull limitation, move it to canary tests
+    ((not RUN_BY_CANARY) or (IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+@parameterized_class(
+    ("template", "prop"),
+    [
+        ("template_local_prebuilt_image.yaml", "ImageUri"),
+        ("template_cfn_local_prebuilt_image.yaml", "Code.ImageUri"),
+    ],
+)
+class TestSkipBuildingFunctionsWithLocalImageUri(BuildIntegBase):
+    EXPECTED_FILES_PROJECT_MANIFEST: Set[str] = set()
+
+    FUNCTION_LOGICAL_ID_IMAGE = "ImageFunction"
+
+    @parameterized.expand(["3.6", "3.7", "3.8", "3.9"])
+    @pytest.mark.flaky(reruns=3)
+    def test_with_default_requirements(self, runtime):
+        _tag = f"{random.randint(1,100)}"
+        image_uri = f"func:{_tag}"
+        docker_client = docker.from_env()
+        docker_client.images.build(path=str(Path(self.test_data_path, "PythonImage")), dockerfile="Dockerfile",
+                                   buildargs={"BASE_RUNTIME": runtime}, tag= image_uri)
+        overrides = {
+            "ImageUri": image_uri,
+            "Handler": "main.handler",
+        }
+        cmdlist = self.get_command_list(parameter_overrides=overrides)
+
+        LOG.info("Running Command: ")
+        LOG.info(cmdlist)
+        run_command(cmdlist, cwd=self.working_dir)
+
+        self._verify_image_build_artifact(
+            self.built_template,
+            self.FUNCTION_LOGICAL_ID_IMAGE,
+            self.prop,
+            {'Ref': 'ImageUri'},
+        )
 
         expected = {"pi": "3.14"}
         self._verify_invoke_built_function(
