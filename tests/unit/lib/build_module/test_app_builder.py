@@ -631,7 +631,7 @@ class TestApplicationBuilder_update_template(TestCase):
                 "OtherResource": {"Type": "AWS::Lambda::Version", "Properties": {"CodeUri": "something"}},
                 "MyImageFunction1": {
                     "Type": "AWS::Lambda::Function",
-                    "Properties": {"Code": "myimagefunction1:Tag", "PackageType": IMAGE},
+                    "Properties": {"Code": {"ImageUri": "myimagefunction1:Tag"}, "PackageType": IMAGE},
                     "Metadata": {"Dockerfile": "Dockerfile", "DockerContext": "DockerContext", "DockerTag": "Tag"},
                 },
             }
@@ -673,7 +673,7 @@ class TestApplicationBuilder_update_template(TestCase):
                 "OtherResource": {"Type": "AWS::Lambda::Version", "Properties": {"CodeUri": "something"}},
                 "MyImageFunction1": {
                     "Type": "AWS::Lambda::Function",
-                    "Properties": {"Code": "myimagefunction1:Tag", "PackageType": IMAGE},
+                    "Properties": {"Code": {"ImageUri": "myimagefunction1:Tag"}, "PackageType": IMAGE},
                     "Metadata": {"Dockerfile": "Dockerfile", "DockerContext": "DockerContext", "DockerTag": "Tag"},
                 },
             }

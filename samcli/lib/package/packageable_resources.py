@@ -454,7 +454,7 @@ class LambdaFunctionResource(ResourceWithS3UrlDict):
     FORCE_ZIP = True
 
 
-class LambdaFunctionImageResource(ResourceImageDict):
+class LambdaFunctionImageResource(ResourceImage):
     RESOURCE_TYPE = AWS_LAMBDA_FUNCTION
     PROPERTY_NAME = RESOURCES_WITH_IMAGE_COMPONENT[RESOURCE_TYPE][0]
     FORCE_ZIP = True
