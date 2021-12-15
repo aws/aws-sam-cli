@@ -172,9 +172,9 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
-    @parameterized.expand([
-        ("Hello", "aws-serverless-function-image.yaml"), ("MyLambdaFunction", "aws-lambda-function-image.yaml")
-    ])
+    @parameterized.expand(
+        [("Hello", "aws-serverless-function-image.yaml"), ("MyLambdaFunction", "aws-lambda-function-image.yaml")]
+    )
     def test_no_package_and_deploy_with_s3_bucket_all_args_image_repositories(self, resource_id, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
@@ -629,7 +629,8 @@ to create a managed default bucket, or run sam deploy --guided",
         autorization_question_answer = "\n" if does_ask_for_authorization else ""
 
         deploy_process_execute = run_command_with_input(
-            deploy_command_list, f"{stack_name}\n\n\n\n\ny\n\n\n{autorization_question_answer}n\n{self.ecr_repo_name}\n\n\n\n".encode()
+            deploy_command_list,
+            f"{stack_name}\n\n\n\n\ny\n\n\n{autorization_question_answer}n\n{self.ecr_repo_name}\n\n\n\n".encode(),
         )
 
         # Deploy should succeed with a managed stack
