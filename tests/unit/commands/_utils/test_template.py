@@ -205,7 +205,7 @@ class Test_update_relative_paths(TestCase):
         for propname in properties:
             template_dict = {
                 "Resources": {
-                    "ImageResource": {"Type": resource_type, "Properties": {}},
+                    "ImageResource": {"Type": resource_type, "Properties": {"PackageType": "Image"}},
                 }
             }
 
@@ -251,7 +251,7 @@ class Test_update_relative_paths(TestCase):
                         "MyResourceWithoutProperties": {"Type": non_image_resource_type},
                         "UnsupportedResourceType": {"Type": "AWS::Ec2::Instance", "Properties": {"Code": "bar"}},
                         "ResourceWithoutType": {"foo": "bar"},
-                        "ImageResource": {"Type": image_resource_type, "Properties": {}},
+                        "ImageResource": {"Type": image_resource_type, "Properties": {"PackageType": "Image"}},
                     },
                     "Parameters": {"a": "b"},
                 }
