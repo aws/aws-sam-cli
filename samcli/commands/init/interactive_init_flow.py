@@ -3,6 +3,7 @@ Isolates interactive init prompt flow. Expected to call generator logic at end o
 """
 import tempfile
 import logging
+from typing import Optional, Tuple
 import click
 
 from botocore.exceptions import ClientError, WaiterError
@@ -115,21 +116,22 @@ Output Directory: {output_dir}
 
 # pylint: disable=too-many-statements
 def _generate_from_use_case(
-    location,
-    pt_explicit,
-    package_type,
-    runtime,
-    base_image,
-    dependency_manager,
-    output_dir,
-    name,
-    app_template,
-    architecture,
-):
+    location: Optional[str],
+    pt_explicit: bool,
+    package_type: Optional[str],
+    runtime: Optional[str],
+    base_image: Optional[str],
+    dependency_manager: Optional[str],
+    output_dir: Optional[str],
+    name: Optional[str],
+    app_template: Optional[str],
+    architecture: Optional[str],
+) -> None:
     templates = InitTemplates()
     runtime_or_base_image = runtime if runtime else base_image
+    package_type_filter_value = package_type if pt_explicit else None
     preprocessed_options = templates.get_preprocessed_manifest(
-        runtime_or_base_image, app_template, package_type, dependency_manager
+        runtime_or_base_image, app_template, package_type_filter_value, dependency_manager
     )
     question = "Choose an AWS Quick Start application template"
     use_case = _get_choice_from_options(
@@ -149,7 +151,9 @@ def _generate_from_use_case(
     runtime, base_image, package_type, dependency_manager, template_chosen = chosen_app_template_properties
 
     app_template = template_chosen["appTemplate"]
-    base_image = LAMBDA_IMAGES_RUNTIMES_MAP.get(runtime) if not base_image and package_type == IMAGE else base_image
+    base_image = (
+        LAMBDA_IMAGES_RUNTIMES_MAP.get(str(runtime)) if not base_image and package_type == IMAGE else base_image
+    )
     location = templates.location_from_app_template(package_type, runtime, base_image, dependency_manager, app_template)
 
     if not name:
@@ -192,29 +196,34 @@ def _generate_from_use_case(
 
 
 def _generate_default_hello_world_application(
-    use_case, package_type, runtime, base_image, dependency_manager, pt_explicit
-):
+    use_case: str,
+    package_type: Optional[str],
+    runtime: Optional[str],
+    base_image: Optional[str],
+    dependency_manager: Optional[str],
+    pt_explicit: bool,
+) -> Tuple:
     """
     Generate the default Hello World template if Hello World Example is selected
 
     Parameters
     ----------
-    use_case : string
+    use_case : str
         Type of template example selected
-    package_type : str
+    package_type : Optional[str]
         The package type, 'Zip' or 'Image', see samcli/lib/utils/packagetype.py
-    runtime : str
+    runtime : Optional[str]
         AWS Lambda function runtime
-    base_image : str
+    base_image : Optional[str]
         AWS Lambda function base-image
-    dependency_manager : str
+    dependency_manager : Optional[str]
         dependency manager
     pt_explicit : bool
         True --package-type was passed or Vice versa
 
     Returns
     -------
-    tuple
+    Tuple
         configuration for a default Hello World Example
     """
     is_package_type_image = bool(package_type == IMAGE)
@@ -224,7 +233,33 @@ def _generate_default_hello_world_application(
     return (runtime, package_type, dependency_manager, pt_explicit)
 
 
-def _get_app_template_properties(preprocessed_options, use_case, base_image, template_properties):
+def _get_app_template_properties(
+    preprocessed_options: dict, use_case: str, base_image: Optional[str], template_properties: Tuple
+) -> Tuple:
+    """
+    This is the heart of the interactive flow, this method fetchs the templates options needed to generate a template
+
+    Parameters
+    ----------
+    preprocessed_options : dict
+        Preprocessed manifest from https://github.com/aws/aws-sam-cli-app-templates
+    use_case : Optional[str]
+        Type of template example selected
+    base_image : str
+        AWS Lambda function base-image
+    template_properties : Tuple
+        Tuple of template properties like runtime, packages type and dependency manager
+
+    Returns
+    -------
+    Tuple
+        Tuple of template configuration and the chosen template
+
+    Raises
+    ------
+    InvalidInitOptionException
+        exception raised when invalid option is provided
+    """
     runtime, package_type, dependency_manager, pt_explicit = template_properties
     runtime_options = preprocessed_options[use_case]
     if not runtime and not base_image:

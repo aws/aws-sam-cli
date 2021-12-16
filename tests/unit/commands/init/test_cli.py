@@ -24,9 +24,11 @@ from samcli.commands.init.init_templates import (
     get_runtime,
     InvalidInitTemplateError,
     get_template_value,
+    template_does_not_meet_filter_criteria,
 )
 from samcli.lib.init import GenerateProjectFailedError
 from samcli.lib.utils import osutils
+from samcli.lib.utils import packagetype
 from samcli.lib.utils.git_repo import GitRepo
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.architecture import X86_64, ARM64
@@ -2058,9 +2060,7 @@ n
         result = runner.invoke(init_cmd, args=args, input=user_input)
 
         self.assertTrue(result.exception)
-        expected_error_message = (
-            "Lambda Runtime go1.x and dependency manager pip do not have an available initialization template."
-        )
+        expected_error_message = "There are no Template options available to be selected."
         self.assertIn(expected_error_message, result.output)
 
     @patch("samcli.commands.init.init_templates.InitTemplates.get_preprocessed_manifest")
@@ -2433,3 +2433,37 @@ test-project
             True,
             {"project_name": "test-project", "runtime": "java11", "architectures": {"value": ["x86_64"]}},
         )
+
+    def does_template_meet_filter_criteria(self):
+        template1 = {
+            "directory": "nodejs14.x/cookiecutter-aws-sam-hello-nodejs",
+            "displayName": "Hello World Example",
+            "dependencyManager": "npm",
+            "appTemplate": "hello-world",
+            "packageType": "Zip",
+            "useCaseName": "Hello World Example",
+        }
+        app_template = "hello-world"
+        self.assertFalse(template_does_not_meet_filter_criteria(app_template, None, None, template1))
+
+        template2 = {
+            "directory": "java8/cookiecutter-aws-sam-hello-nodejs",
+            "displayName": "Hello World Example",
+            "dependencyManager": "Gradle",
+            "appTemplate": "hello-world",
+            "packageType": "Zip",
+            "useCaseName": "Hello World Example",
+        }
+        package_type = "Image"
+        self.assertTrue(template_does_not_meet_filter_criteria(app_template, package_type, None, template2))
+
+        template3 = {
+            "directory": "java8/cookiecutter-aws-sam-hello-nodejs",
+            "displayName": "Hello World Example",
+            "dependencyManager": "Gradle",
+            "appTemplate": "hello-world",
+            "packageType": "Zip",
+            "useCaseName": "Hello World Example",
+        }
+        dependency_manager = "Gradle"
+        self.assertTrue(template_does_not_meet_filter_criteria(app_template, None, dependency_manager, template3))

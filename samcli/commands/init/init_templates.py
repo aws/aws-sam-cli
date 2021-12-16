@@ -7,7 +7,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
 
 from samcli.cli.global_config import GlobalConfig
 from samcli.commands.exceptions import UserException, AppTemplateUpdateException
@@ -127,8 +127,12 @@ class InitTemplates:
         return Path(self._git_repo.local_path, self.manifest_file_name)
 
     def get_preprocessed_manifest(
-        self, filter_value=None, app_template=None, package_type=None, dependency_manager=None
-    ):
+        self,
+        filter_value: Optional[str] = None,
+        app_template: Optional[str] = None,
+        package_type: Optional[str] = None,
+        dependency_manager: Optional[str] = None,
+    ) -> dict:
         """
         This method get the manifest cloned from the git repo and preprocessed it.
         Below is the link to manifest:
@@ -152,6 +156,10 @@ class InitTemplates:
             This could be a runtime or a base-image, by default None
         app_template : string, optional
             Application template generated
+        package_type : string, optional
+            The package type, 'Zip' or 'Image', see samcli/lib/utils/packagetype.py
+        dependency_manager : string, optional
+            dependency manager
         Returns
         -------
         [dict]
@@ -165,19 +173,16 @@ class InitTemplates:
 
         # This would ensure the Use-Case Hello World Example appears
         # at the top of list template example displayed to the Customer.
-        preprocessed_manifest = {"Hello World Example": {}}
+        preprocessed_manifest = {"Hello World Example": {}}  # type: dict
         for template_runtime in manifest_body:
             if filter_value and filter_value != template_runtime:
                 continue
-
             template_list = manifest_body[template_runtime]
             for template in template_list:
                 template_package_type = get_template_value("packageType", template)
                 use_case_name = get_template_value("useCaseName", template)
-                if (
-                    not (template_package_type or use_case_name)
-                    or (app_template and app_template != template["appTemplate"])
-                    or self.does_template_meet_filtering_criterial(package_type, dependency_manager, template)
+                if not (template_package_type or use_case_name) or template_does_not_meet_filter_criteria(
+                    app_template, package_type, dependency_manager, template
                 ):
                     continue
                 runtime = get_runtime(template_package_type, template_runtime)
@@ -188,20 +193,16 @@ class InitTemplates:
 
                 preprocessed_manifest[use_case_name] = use_case
 
-        return preprocessed_manifest
+        if not bool(preprocessed_manifest["Hello World Example"]):
+            del preprocessed_manifest["Hello World Example"]
 
-    def does_template_meet_filtering_criterial(self, package_type, dependency_manager, template):
-        pt_filter_criteria_status = bool(package_type and package_type == template["packageType"])
-        dp_filter_criteria_status = bool(dependency_manager and dependency_manager == template["dependencyManager"])
-        if pt_filter_criteria_status == True and dp_filter_criteria_status == True:
-            return False
-        return True
+        return preprocessed_manifest
 
     def get_bundle_option(self, package_type, runtime, dependency_manager):
         return self._init_options_from_bundle(package_type, runtime, dependency_manager)
 
 
-def get_template_value(value, template):
+def get_template_value(value: str, template: dict) -> Optional[str]:
     if value not in template:
         LOG.debug(
             f"Template is missing the value for {value} in manifest file. Please raise a github issue."
@@ -210,7 +211,34 @@ def get_template_value(value, template):
     return template.get(value)
 
 
-def get_runtime(package_type, template_runtime):
+def get_runtime(package_type: Optional[str], template_runtime: str) -> str:
     if package_type == IMAGE:
         template_runtime = re.split("/|-", template_runtime)[1]
     return template_runtime
+
+
+def template_does_not_meet_filter_criteria(
+    app_template: Optional[str], package_type: Optional[str], dependency_manager: Optional[str], template: dict
+) -> bool:
+    """
+    Parameters
+    ----------
+    app_template : Optional[str]
+        Application template generated
+    package_type : Optional[str]
+        The package type, 'Zip' or 'Image', see samcli/lib/utils/packagetype.py
+    dependency_manager : Optional[str]
+        Dependency manager
+    template : dict
+        key-value pair app template configuration
+
+    Returns
+    -------
+    bool
+        True if template does not meet filter criteria else False
+    """
+    return bool(
+        (app_template and app_template != template["appTemplate"])
+        or (package_type and package_type != template["packageType"])
+        or (dependency_manager and dependency_manager != template["dependencyManager"])
+    )
