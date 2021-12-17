@@ -161,6 +161,16 @@ class BuildIntegBase(TestCase):
     def _make_parameter_override_arg(self, overrides):
         return " ".join(["ParameterKey={},ParameterValue={}".format(key, value) for key, value in overrides.items()])
 
+    def _verify_image_build_artifact(self, template_path, image_function_logical_id, property, image_uri):
+        self.assertTrue(template_path.exists(), "Build directory should be created")
+
+        build_dir = template_path.parent
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertNotIn(image_function_logical_id, build_dir_files)
+
+        # Make sure the template has correct CodeUri for resource
+        self._verify_resource_property(str(template_path), image_function_logical_id, property, image_uri)
+
     def _verify_resource_property(self, template_path, logical_id, property, expected_value):
         with open(template_path, "r") as fp:
             template_dict = yaml_parse(fp.read())
