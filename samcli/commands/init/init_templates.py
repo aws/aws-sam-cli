@@ -238,7 +238,7 @@ def template_does_not_meet_filter_criteria(
         True if template does not meet filter criteria else False
     """
     return bool(
-        (app_template and app_template != template["appTemplate"])
-        or (package_type and package_type != template["packageType"])
-        or (dependency_manager and dependency_manager != template["dependencyManager"])
+        (app_template and app_template != template.get("appTemplate"))
+        or (package_type and package_type != template.get("packageType"))
+        or (dependency_manager and dependency_manager != template.get("dependencyManager"))
     )
