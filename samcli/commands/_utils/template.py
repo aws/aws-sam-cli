@@ -10,7 +10,7 @@ import yaml
 from botocore.utils import set_value_from_jmespath
 
 from samcli.commands.exceptions import UserException
-from samcli.lib.utils.packagetype import ZIP
+from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.yamlhelper import yaml_parse, yaml_dump
 from samcli.lib.utils.resources import (
     METADATA_WITH_LOCAL_PATHS,
@@ -154,6 +154,12 @@ def _update_relative_paths(template_dict, original_root, new_root):
 
         for path_prop_name in RESOURCES_WITH_LOCAL_PATHS[resource_type]:
             properties = resource.get("Properties", {})
+
+            if (
+                resource_type in [AWS_SERVERLESS_FUNCTION, AWS_LAMBDA_FUNCTION]
+                and properties.get("PackageType", ZIP) == IMAGE
+            ):
+                continue
 
             path = jmespath.search(path_prop_name, properties)
             updated_path = _resolve_relative_to(path, original_root, new_root)
