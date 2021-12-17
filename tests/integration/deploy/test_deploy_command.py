@@ -1203,29 +1203,3 @@ to create a managed default bucket, or run sam deploy --guided",
         deploy_process_execute = run_command(deploy_command_list)
         self.assertIn(warning_message, deploy_process_execute.stdout)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
-
-    def _method_to_stack_name(self, method_name):
-        """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
-        method_name = method_name.split(".")[-1]
-        return f"{method_name.replace('_', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"
-
-    def _stack_name_to_companion_stack(self, stack_name):
-        return CompanionStack(stack_name).stack_name
-
-    def _delete_companion_stack(self, cfn_client, ecr_client, companion_stack_name):
-        repos = list()
-        try:
-            cfn_client.describe_stacks(StackName=companion_stack_name)
-        except ClientError:
-            return
-        stack = boto3.resource("cloudformation").Stack(companion_stack_name)
-        resources = stack.resource_summaries.all()
-        for resource in resources:
-            if resource.resource_type == "AWS::ECR::Repository":
-                repos.append(resource.physical_resource_id)
-        for repo in repos:
-            try:
-                ecr_client.delete_repository(repositoryName=repo, force=True)
-            except ecr_client.exceptions.RepositoryNotFoundException:
-                pass
-        cfn_client.delete_stack(StackName=companion_stack_name)
