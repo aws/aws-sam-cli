@@ -35,9 +35,10 @@ class SchemaTestDataSetup(TestCase):
         setup_non_partner_schema_data("other-schema", schemas_client)
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 1: Zip Packagetype
-        # 13: Java runtime
-        # 1: dependency manager maven
+        # 1: Hello World Example
+        # N: do not use DEFAULT hello world template
+        # 11: Java runtime
+        # 2: dependency manager maven
         # eb-app-maven: response to name
         # Y: clone/update the source repo
         # 1: hello world
@@ -45,12 +46,12 @@ class SchemaTestDataSetup(TestCase):
         user_input = """
 1
 1
-13
+N
+5
 1
+2
 eb-app-maven
-1
-1
-                """
+    """
         with tempfile.TemporaryDirectory() as temp:
             runner = CliRunner()
             runner.invoke(init_cmd, ["--output-dir", temp], input=user_input)

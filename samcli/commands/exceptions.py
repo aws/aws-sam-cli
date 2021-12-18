@@ -80,6 +80,12 @@ class AppPipelineTemplateMetadataException(UserException):
     """
 
 
+class InvalidInitOptionException(UserException):
+    """
+    Exception class when user provides wrong options
+    """
+
+
 class InvalidImageException(UserException):
     """
     Value provided to --build-image or --invoke-image is invalid URI

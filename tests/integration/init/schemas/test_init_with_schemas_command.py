@@ -21,25 +21,27 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
     def test_init_interactive_with_event_bridge_app_aws_registry(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 1: Zip Packagetype
-        # 15: Java runtime
-        # 1: dependency manager maven
-        # eb-app-maven: response to name
-        # 3: select event-bridge app from scratch
-        # Y: Use default profile
-        # 1: select aws.events as registries
-        # 1: select aws schema
+        # 7: Infrastructure event management - Use case
+        # 1: Java Runtime
+        # 2: Maven
+        # 2: select event-bridge app from scratch
+        # test-project: response to name
+        # Y: Use default aws configuration
+        # 1: select schema from cli_paginator
+        # 4: select aws.events as registries
+        # 9: select schema AWSAPICallViaCloudTrail
 
         user_input = """
 1
+7
 1
-15
-1
+2
+2
 eb-app-maven
-3
 Y
 1
-1
+4
+9
         """
         with tempfile.TemporaryDirectory() as temp:
             runner = CliRunner()
@@ -57,22 +59,22 @@ Y
         # setup schema data
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 1: Zip Packagetype
-        # 15: Java runtime
-        # 1: dependency manager maven
-        # eb-app-maven: response to name
-        # 3: select event-bridge app from scratch
-        # Y: Use default profile
+        # 7: Infrastructure event management - Use case
+        # 1: Java Runtime
+        # 2: Maven
+        # 2: select event-bridge app from scratch
+        # test-project: response to name
+        # Y: Use default aws configuration
         # 3: partner registry
         # 1: select aws schema
 
         user_input = """
 1
+7
 1
-15
-1
+2
+2
 eb-app-maven
-3
 Y
 3
 1
@@ -104,12 +106,12 @@ Y
     def test_init_interactive_with_event_bridge_app_pagination(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 1: Zip Packagetype
-        # 15: Java Runtime
-        # 1: dependency manager maven
+        # 7: Infrastructure event management - Use case
+        # 1: Java Runtime
+        # 2: Maven
+        # 2: select event-bridge app from scratch
         # eb-app-maven: response to name
-        # 3: select event-bridge app from scratch
-        # Y: Use default profile
+        # Y: Use default aws configuration
         # 4: select pagination-registry as registries
         # N: Go to next page
         # P Go to previous page
@@ -117,11 +119,11 @@ Y
 
         user_input = """
 1
+7
 1
-14
-1
+2
+2
 eb-app-maven
-3
 Y
 4
 N
@@ -144,22 +146,22 @@ P
     def test_init_interactive_with_event_bridge_app_customer_registry(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 1: Zip Packagetype
-        # 15: Java Runtime
-        # 1: dependency manager maven
+        # 7: Infrastructure event management - Use case
+        # 1: Java Runtime
+        # 2: Maven
+        # 2: select event-bridge app from scratch
         # eb-app-maven: response to name
-        # 3: select event-bridge app from scratch
-        # Y: Use default profile
+        # Y: Use default aws configuration
         # 2: select 2p-schema other-schema
         # 1: select 1 schema
 
         user_input = """
 1
+7
 1
-15
-1
+2
+2
 eb-app-maven
-3
 Y
 2
 1
@@ -191,22 +193,23 @@ Y
     def test_init_interactive_with_event_bridge_app_aws_schemas_python(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 1: Zip Packagetype
-        # 10: Python 3.7
+        # 7: Infrastructure event management - Use case
+        # 6: Python 3.7
+        # 2: select event-bridge app from scratch
         # eb-app-python37: response to name
-        # 3: select event-bridge app from scratch
-        # Y: Use default profile
-        # 1: select aws.events as registries
+        # Y: Use default aws configuration
+        # 4: select aws.events as registries
         # 1: select aws schema
 
         user_input = """
 1
-1
-10
+7
+6
+2
 eb-app-python37
-3
 Y
 1
+4
 1
         """
         with tempfile.TemporaryDirectory() as temp:
@@ -223,10 +226,10 @@ Y
         self._init_custom_config("mynewprofile", "us-west-2")
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 1: Zip Packagetype
-        # 10: Python 3.7
+        # 3: Infrastructure event management - Use case
+        # 6: Python 3.7
+        # 2: select event-bridge app from scratch
         # eb-app-python37: response to name
-        # 3: select event-bridge app from scratch
         # N: Use default profile
         # 2: uses second profile from displayed one (myprofile)
         # schemas aws region us-east-1
@@ -235,8 +238,9 @@ Y
 
         user_input = f"""
 1
-1
-10
+7
+6
+2
 eb-app-python37
 3
 N
@@ -261,20 +265,20 @@ N
         self._init_custom_config("default", "cn-north-1")
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 1: Zip Pacakgetype
-        # 10: Python 3.7
+        # 7: Infrastructure event management - Use case
+        # 6: Python 3.7
+        # 2: select event-bridge app from scratch
         # eb-app-python37: response to name
-        # 3: select event-bridge app from scratch
         # Y: Use default profile
         # 1: select aws.events as registries
         # 1: select aws schema
 
         user_input = """
 1
-1
-10
+7
+6
+2
 eb-app-python37
-3
 Y
 1
 1
