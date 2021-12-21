@@ -6,9 +6,10 @@ import logging
 import os
 import pathlib
 import shutil
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, cast
 
 import click
+from samcli.lib.utils.packagetype import IMAGE
 
 from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
 from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NestedStackManager
@@ -469,6 +470,18 @@ Commands you can use next
         if function.skip_build:
             LOG.debug("Skip building pre-built function: %s", function.full_path)
             return False
+
+        if function.packagetype == IMAGE:
+            metadata = function.metadata if function.metadata else {}
+            dockerfile = cast(str, metadata.get("Dockerfile", ""))
+            docker_context = cast(str, metadata.get("DockerContext", ""))
+            if not dockerfile or not docker_context:
+                LOG.debug(
+                    "Skip Building %s function, as it does not contain either Dockerfile or DockerContext "
+                    "metadata properties.",
+                    function.full_path,
+                )
+                return False
         return True
 
     @staticmethod
