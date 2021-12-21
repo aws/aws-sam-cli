@@ -6,7 +6,11 @@ from pathlib import Path
 from unittest import TestCase
 
 import boto3
+from botocore.exceptions import ClientError
 
+from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack
+
+CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
 SLEEP = 3
 
 
@@ -132,3 +136,29 @@ class PackageIntegBase(TestCase):
         if resolve_s3:
             command_list = command_list + ["--resolve-s3"]
         return command_list
+
+    def _method_to_stack_name(self, method_name):
+        """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
+        method_name = method_name.split(".")[-1]
+        return f"{method_name.replace('_', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"
+
+    def _stack_name_to_companion_stack(self, stack_name):
+        return CompanionStack(stack_name).stack_name
+
+    def _delete_companion_stack(self, cfn_client, ecr_client, companion_stack_name):
+        repos = list()
+        try:
+            cfn_client.describe_stacks(StackName=companion_stack_name)
+        except ClientError:
+            return
+        stack = boto3.resource("cloudformation").Stack(companion_stack_name)
+        resources = stack.resource_summaries.all()
+        for resource in resources:
+            if resource.resource_type == "AWS::ECR::Repository":
+                repos.append(resource.physical_resource_id)
+        for repo in repos:
+            try:
+                ecr_client.delete_repository(repositoryName=repo, force=True)
+            except ecr_client.exceptions.RepositoryNotFoundException:
+                pass
+        cfn_client.delete_stack(StackName=companion_stack_name)

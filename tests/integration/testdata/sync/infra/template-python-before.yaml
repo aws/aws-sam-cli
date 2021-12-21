@@ -1,0 +1,48 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Timeout: 10
+
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: before/Python/function/
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      Layers:
+        - Ref: HelloWorldLayer
+      Tracing: Active
+
+  HelloWorldApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      DefinitionUri: before/Python/apigateway/definition.json
+
+  HelloWorldApiV2:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: beta
+      DefinitionUri: before/Python/apigateway2/definition.yaml
+
+  HelloWorldLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: HelloWorldLayer
+      Description: Hello World Layer
+      ContentUri: before/Python/layer/
+      CompatibleRuntimes:
+        - python3.8
+    Metadata:
+      BuildMethod: python3.8
+
+  HelloStepFunction:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionUri: before/Python/statemachine/function.asl.json
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref HelloWorldFunction

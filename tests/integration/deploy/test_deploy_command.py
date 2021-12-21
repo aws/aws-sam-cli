@@ -1,5 +1,4 @@
 import os
-from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack
 import shutil
 import tempfile
 import time
@@ -1166,28 +1165,35 @@ to create a managed default bucket, or run sam deploy --guided",
         deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
-    def _method_to_stack_name(self, method_name):
-        """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
-        method_name = method_name.split(".")[-1]
-        return f"{method_name.replace('_', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"
+    def test_deploy_logs_warning_with_cdk_project(self):
+        template_file = "aws-serverless-function-cdk.yaml"
+        template_path = self.test_data_path.joinpath(template_file)
 
-    def _stack_name_to_companion_stack(self, stack_name):
-        return CompanionStack(stack_name).stack_name
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
 
-    def _delete_companion_stack(self, cfn_client, ecr_client, companion_stack_name):
-        repos = list()
-        try:
-            cfn_client.describe_stacks(StackName=companion_stack_name)
-        except ClientError:
-            return
-        stack = boto3.resource("cloudformation").Stack(companion_stack_name)
-        resources = stack.resource_summaries.all()
-        for resource in resources:
-            if resource.resource_type == "AWS::ECR::Repository":
-                repos.append(resource.physical_resource_id)
-        for repo in repos:
-            try:
-                ecr_client.delete_repository(repositoryName=repo, force=True)
-            except ecr_client.exceptions.RepositoryNotFoundException:
-                pass
-        cfn_client.delete_stack(StackName=companion_stack_name)
+        # Package and Deploy in one go without confirming change set.
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+        )
+
+        warning_message = bytes(
+            "Warning: CDK apps are not officially supported with this command.\n"
+            "We recommend you use this alternative command: cdk deploy",
+            encoding="utf-8",
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertIn(warning_message, deploy_process_execute.stdout)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)

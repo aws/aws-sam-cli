@@ -1,0 +1,12 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  SubAppA:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./cdk_function_id_nested_template_A.yaml
+  SubAppB:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./cdk_function_id_nested_template_B.yaml

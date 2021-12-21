@@ -13,7 +13,7 @@ from samcli.cli.main import pass_context, common_options, print_cmdline_args
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.local.common.runtime_template import RUNTIMES, SUPPORTED_DEP_MANAGERS, LAMBDA_IMAGES_RUNTIMES
 from samcli.lib.telemetry.metric import track_command
-from samcli.commands.init.interactive_init_flow import _get_runtime_from_image, get_architectures
+from samcli.commands.init.interactive_init_flow import _get_runtime_from_image, get_architectures, get_sorted_runtimes
 from samcli.commands.local.cli_common.click_mutex import Mutex
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.architecture import X86_64, ARM64
@@ -152,7 +152,7 @@ def non_interactive_validation(func):
 @click.option(
     "-r",
     "--runtime",
-    type=click.Choice(RUNTIMES),
+    type=click.Choice(get_sorted_runtimes(RUNTIMES)),
     help="Lambda Runtime of your app",
     cls=Mutex,
     not_required=["location", "base_image"],
@@ -286,9 +286,9 @@ def do_cli(
     image_bool = name and pt_explicit and base_image
     if location or zip_bool or image_bool:
         # need to turn app_template into a location before we generate
-        templates = InitTemplates(no_interactive)
+        templates = InitTemplates()
         if package_type == IMAGE and image_bool:
-            base_image, runtime = _get_runtime_from_image(base_image)
+            runtime = _get_runtime_from_image(base_image)
             options = templates.init_options(package_type, runtime, base_image, dependency_manager)
             if not app_template:
                 if len(options) == 1:
@@ -342,7 +342,6 @@ def _deprecate_notification(runtime):
     if runtime in deprecated_runtimes:
         message = (
             f"WARNING: {runtime} is no longer supported by AWS Lambda, please update to a newer supported runtime. "
-            f"SAM CLI will drop support for all deprecated runtimes {deprecated_runtimes} on May 1st. "
             f"See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
         )
         LOG.warning(Colored().yellow(message))

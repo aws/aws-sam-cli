@@ -251,9 +251,9 @@ class TestApplicationBuilder_build(TestCase):
         build_function_mock = Mock()
 
         # create 3 function resources where 2 of them would have same codeuri, runtime and metadata
-        function1_1 = generate_function("function1_1")
-        function1_2 = generate_function("function1_2")
-        function2 = generate_function("function2", runtime="different_runtime")
+        function1_1 = generate_function(name="function1_1")
+        function1_2 = generate_function(name="function1_2")
+        function2 = generate_function(name="function2", runtime="different_runtime")
         resources_to_build_collector = ResourcesToBuildCollector()
         resources_to_build_collector.add_functions([function1_1, function1_2, function2])
 
@@ -396,6 +396,7 @@ class TestApplicationBuilder_build(TestCase):
         build_function_mock = Mock()
 
         function = Function(
+            function_id="name",
             name="name",
             functionname="function_name",
             runtime="runtime",
@@ -478,6 +479,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             ARM64,
             None,
             None,
+            True,
             True,
         )
 
@@ -974,7 +976,17 @@ class TestApplicationBuilder_build_function(TestCase):
         self.builder._build_function(function_name, codeuri, ZIP, runtime, architecture, handler, artifacts_dir)
 
         self.builder._build_function_in_process.assert_called_with(
-            config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, architecture, None, None, True
+            config_mock,
+            code_dir,
+            artifacts_dir,
+            scratch_dir,
+            manifest_path,
+            runtime,
+            architecture,
+            None,
+            None,
+            True,
+            True,
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -1015,7 +1027,17 @@ class TestApplicationBuilder_build_function(TestCase):
         )
 
         self.builder._build_function_in_process.assert_called_with(
-            config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, architecture, None, None, True
+            config_mock,
+            code_dir,
+            artifacts_dir,
+            scratch_dir,
+            manifest_path,
+            runtime,
+            architecture,
+            None,
+            None,
+            True,
+            True,
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -1179,6 +1201,7 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
             None,
             None,
             True,
+            True,
         )
         self.assertEqual(result, "artifacts_dir")
 
@@ -1221,6 +1244,7 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
                 X86_64,
                 None,
                 None,
+                True,
                 True,
             )
 
@@ -1392,7 +1416,7 @@ class TestApplicationBuilder_parse_builder_response(TestCase):
 
 class TestApplicationBuilder_make_env_vars(TestCase):
     def test_make_env_vars_with_env_file(self):
-        function1 = generate_function("Function1")
+        function1 = generate_function(name="Function1")
         file_env_vars = {
             "Parameters": {"ENV_VAR1": "1"},
             "Function1": {"ENV_VAR2": "2"},
@@ -1402,7 +1426,7 @@ class TestApplicationBuilder_make_env_vars(TestCase):
         self.assertEqual(result, {"ENV_VAR1": "1", "ENV_VAR2": "2"})
 
     def test_make_env_vars_with_function_precedence(self):
-        function1 = generate_function("Function1")
+        function1 = generate_function(name="Function1")
         file_env_vars = {
             "Parameters": {"ENV_VAR1": "1"},
             "Function1": {"ENV_VAR1": "2"},
@@ -1412,7 +1436,7 @@ class TestApplicationBuilder_make_env_vars(TestCase):
         self.assertEqual(result, {"ENV_VAR1": "2"})
 
     def test_make_env_vars_with_inline_env(self):
-        function1 = generate_function("Function1")
+        function1 = generate_function(name="Function1")
         inline_env_vars = {
             "Parameters": {"ENV_VAR1": "1"},
             "Function1": {"ENV_VAR2": "2"},
@@ -1422,7 +1446,7 @@ class TestApplicationBuilder_make_env_vars(TestCase):
         self.assertEqual(result, {"ENV_VAR1": "1", "ENV_VAR2": "2"})
 
     def test_make_env_vars_with_both(self):
-        function1 = generate_function("Function1")
+        function1 = generate_function(name="Function1")
         file_env_vars = {
             "Parameters": {"ENV_VAR1": "1"},
             "Function1": {"ENV_VAR2": "2"},

@@ -248,8 +248,14 @@ class TestWarmContainersBaseClass(StartLambdaIntegBaseClass):
         return running_containers
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template-warm-containers.yaml",),
+        ("/testdata/start_api/cdk/template-cdk-warm-container.yaml",),
+    ],
+)
 class TestWarmContainers(TestWarmContainersBaseClass):
-    template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
@@ -265,8 +271,14 @@ class TestWarmContainers(TestWarmContainersBaseClass):
         self.assertEqual(json.loads(response.get("body")), {"hello": "world"})
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template-warm-containers.yaml",),
+        ("/testdata/start_api/cdk/template-cdk-warm-container.yaml",),
+    ],
+)
 class TestWarmContainersInitialization(TestWarmContainersBaseClass):
-    template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
@@ -279,8 +291,14 @@ class TestWarmContainersInitialization(TestWarmContainersBaseClass):
         self.assertEqual(initiated_containers, 2)
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template-warm-containers.yaml",),
+        ("/testdata/start_api/cdk/template-cdk-warm-container.yaml",),
+    ],
+)
 class TestWarmContainersMultipleInvoke(TestWarmContainersBaseClass):
-    template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
@@ -297,8 +315,14 @@ class TestWarmContainersMultipleInvoke(TestWarmContainersBaseClass):
         self.assertEqual(initiated_containers, initiated_containers_before_invoking_any_function)
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template-warm-containers.yaml",),
+        ("/testdata/start_api/cdk/template-cdk-warm-container.yaml",),
+    ],
+)
 class TestLazyContainers(TestWarmContainersBaseClass):
-    template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.LAZY.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
@@ -314,8 +338,14 @@ class TestLazyContainers(TestWarmContainersBaseClass):
         self.assertEqual(json.loads(response.get("body")), {"hello": "world"})
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template-warm-containers.yaml",),
+        ("/testdata/start_api/cdk/template-cdk-warm-container.yaml",),
+    ],
+)
 class TestLazyContainersInitialization(TestWarmContainersBaseClass):
-    template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.LAZY.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
@@ -329,8 +359,14 @@ class TestLazyContainersInitialization(TestWarmContainersBaseClass):
         self.assertEqual(initiated_containers, 0)
 
 
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template-warm-containers.yaml",),
+        ("/testdata/start_api/cdk/template-cdk-warm-container.yaml",),
+    ],
+)
 class TestLazyContainersMultipleInvoke(TestWarmContainersBaseClass):
-    template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.LAZY.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}

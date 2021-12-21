@@ -7,7 +7,7 @@ import yaml
 from botocore.utils import set_value_from_jmespath
 from parameterized import parameterized, param
 
-from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION, AWS_SERVERLESS_API
+from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION, AWS_SERVERLESS_API, RESOURCES_WITH_IMAGE_COMPONENT
 from samcli.commands._utils.template import (
     get_template_data,
     METADATA_WITH_LOCAL_PATHS,
@@ -140,6 +140,7 @@ class Test_update_relative_paths(TestCase):
         self.dest = os.path.abspath(os.path.join("src", "destination"))  # /path/from/root/src/destination
 
         self.expected_result = os.path.join("..", "foo", "bar")
+        self.image_uri = "func12343:latest"
 
     @parameterized.expand([(resource_type, props) for resource_type, props in METADATA_WITH_LOCAL_PATHS.items()])
     def test_must_update_relative_metadata_paths(self, resource_type, properties):
@@ -198,6 +199,83 @@ class Test_update_relative_paths(TestCase):
 
             self.maxDiff = None
             self.assertEqual(result, expected_template_dict)
+
+    @parameterized.expand([(resource_type, props) for resource_type, props in RESOURCES_WITH_IMAGE_COMPONENT.items()])
+    def test_must_skip_image_components(self, resource_type, properties):
+        for propname in properties:
+            template_dict = {
+                "Resources": {
+                    "ImageResource": {"Type": resource_type, "Properties": {"PackageType": "Image"}},
+                }
+            }
+
+            set_value_from_jmespath(template_dict, f"Resources.ImageResource.Properties.{propname}", self.image_uri)
+
+            expected_template_dict = copy.deepcopy(template_dict)
+
+            result = _update_relative_paths(template_dict, self.src, self.dest)
+
+            self.maxDiff = None
+            self.assertEqual(result, expected_template_dict)
+
+    @parameterized.expand(
+        [
+            (image_resource_type, image_props, non_image_resource_type, non_image_props)
+            for image_resource_type, image_props in RESOURCES_WITH_IMAGE_COMPONENT.items()
+            for non_image_resource_type, non_image_props in RESOURCES_WITH_LOCAL_PATHS.items()
+        ]
+    )
+    def test_must_skip_only_image_components_and_update_relative_resource_paths(
+        self, image_resource_type, image_properties, non_image_resource_type, non_image_properties
+    ):
+        for non_image_propname in non_image_properties:
+            for image_propname in image_properties:
+                template_dict = {
+                    "Resources": {
+                        "MyResourceWithRelativePath": {"Type": non_image_resource_type, "Properties": {}},
+                        "MyResourceWithS3Path": {
+                            "Type": non_image_resource_type,
+                            "Properties": {non_image_propname: self.s3path},
+                        },
+                        "MyResourceWithAbsolutePath": {
+                            "Type": non_image_resource_type,
+                            "Properties": {non_image_propname: self.abspath},
+                        },
+                        "MyResourceWithInvalidPath": {
+                            "Type": non_image_resource_type,
+                            "Properties": {
+                                # Path is not a string
+                                non_image_propname: {"foo": "bar"}
+                            },
+                        },
+                        "MyResourceWithoutProperties": {"Type": non_image_resource_type},
+                        "UnsupportedResourceType": {"Type": "AWS::Ec2::Instance", "Properties": {"Code": "bar"}},
+                        "ResourceWithoutType": {"foo": "bar"},
+                        "ImageResource": {"Type": image_resource_type, "Properties": {"PackageType": "Image"}},
+                    },
+                    "Parameters": {"a": "b"},
+                }
+
+                set_value_from_jmespath(
+                    template_dict, f"Resources.MyResourceWithRelativePath.Properties.{non_image_propname}", self.curpath
+                )
+
+                set_value_from_jmespath(
+                    template_dict, f"Resources.ImageResource.Properties.{image_propname}", self.image_uri
+                )
+
+                expected_template_dict = copy.deepcopy(template_dict)
+
+                set_value_from_jmespath(
+                    expected_template_dict,
+                    f"Resources.MyResourceWithRelativePath.Properties.{non_image_propname}",
+                    self.expected_result,
+                )
+
+                result = _update_relative_paths(template_dict, self.src, self.dest)
+
+                self.maxDiff = None
+                self.assertEqual(result, expected_template_dict)
 
     def test_must_update_aws_include_also(self):
         template_dict = {
