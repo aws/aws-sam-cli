@@ -1,4 +1,4 @@
-Parameteres:
+Parameters:
   ImageUri:
     Type: String
   Handler:

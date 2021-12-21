@@ -5,13 +5,12 @@ import sys
 import docker
 import json
 
-from unittest import TestCase, skipUnless
+from unittest import TestCase
 from unittest.mock import Mock, MagicMock, call, patch, ANY
 from pathlib import Path, WindowsPath
 
 from parameterized import parameterized
 
-from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition
 from samcli.lib.providers.provider import ResourcesToBuildCollector, Function
 from samcli.lib.build.app_builder import (
     ApplicationBuilder,
@@ -27,7 +26,6 @@ from samcli.lib.build.app_builder import (
 from samcli.commands.local.cli_common.user_exceptions import InvalidFunctionPropertyType
 from samcli.lib.utils.architecture import X86_64, ARM64
 from samcli.lib.utils.packagetype import IMAGE, ZIP
-from samcli.lib.utils import osutils
 from tests.unit.lib.build_module.test_build_graph import generate_function
 
 
@@ -884,36 +882,36 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
 
         self.assertEqual(result, "name:Tag")
 
-    def test_skip_build_image_function_without_docker_file(self):
+    def test_build_image_function_without_docker_file_raises_Docker_Build_Failed_Exception(self):
         metadata = {
             "DockerContext": "context",
             "DockerTag": "Tag",
             "DockerBuildArgs": {"a": "b"},
         }
 
-        result = self.builder._build_lambda_image("Name", metadata, X86_64)
+        with self.assertRaises(DockerBuildFailed):
+            self.builder._build_lambda_image("Name", metadata, X86_64)
 
-        self.assertFalse(bool(result))
         self.docker_client_mock.api.build.assert_not_called()
 
-    def test_skip_build_image_function_without_docker_context(self):
+    def test_build_image_function_without_docker_context_raises_Docker_Build_Failed_Exception(self):
         metadata = {
             "DockerFIle": "Dockerfile",
             "DockerTag": "Tag",
             "DockerBuildArgs": {"a": "b"},
         }
 
-        result = self.builder._build_lambda_image("Name", metadata, X86_64)
+        with self.assertRaises(DockerBuildFailed):
+            self.builder._build_lambda_image("Name", metadata, X86_64)
 
-        self.assertFalse(bool(result))
         self.docker_client_mock.api.build.assert_not_called()
 
-    def test_skip_build_image_function_with_empty_metadata(self):
+    def test_build_image_function_with_empty_metadata_raises_Docker_Build_Failed_Exception(self):
         metadata = {}
 
-        result = self.builder._build_lambda_image("Name", metadata, X86_64)
+        with self.assertRaises(DockerBuildFailed):
+            self.builder._build_lambda_image("Name", metadata, X86_64)
 
-        self.assertFalse(bool(result))
         self.docker_client_mock.api.build.assert_not_called()
 
     def test_can_build_image_function_without_tag(self):
