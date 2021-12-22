@@ -316,8 +316,7 @@ class ApplicationBuilder:
                     properties["ContentUri"] = store_path
 
                 if resource_type == AWS_LAMBDA_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
-                    properties["Code"] = built_artifacts[full_path]
-
+                    properties["Code"] = {"ImageUri": built_artifacts[full_path]}
                 if resource_type == AWS_SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
                     properties["ImageUri"] = built_artifacts[full_path]
 
@@ -358,6 +357,9 @@ class ApplicationBuilder:
         docker_tag = f"{function_name.lower()}:{tag}"
         docker_build_target = metadata.get("DockerBuildTarget", None)
         docker_build_args = metadata.get("DockerBuildArgs", {})
+
+        if not dockerfile or not docker_context:
+            raise DockerBuildFailed("Docker file or Docker context metadata are missed.")
 
         if not isinstance(docker_build_args, dict):
             raise DockerBuildFailed("DockerBuildArgs needs to be a dictionary!")

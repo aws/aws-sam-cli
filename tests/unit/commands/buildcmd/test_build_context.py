@@ -1,5 +1,5 @@
 import os
-from samcli.lib.build.app_builder import ApplicationBuilder, ApplicationBuildResult
+from samcli.lib.build.app_builder import ApplicationBuildResult
 from unittest import TestCase
 from unittest.mock import patch, Mock, ANY, call
 
@@ -7,6 +7,7 @@ from parameterized import parameterized
 
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
+from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.local.lambdafn.exceptions import ResourceNotFound
 from samcli.commands.build.build_context import BuildContext
 from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
@@ -92,7 +93,7 @@ class TestBuildContext__enter__(TestCase):
         self.assertEqual(context.stacks, [stack])
         self.assertEqual(context.manifest_path_override, os.path.abspath("manifest_path"))
         self.assertEqual(context.mode, "buildmode")
-        resources_to_build = context.resources_to_build
+        resources_to_build = context.get_resources_to_build()
         self.assertTrue(function1 in resources_to_build.functions)
         self.assertTrue(layer1 in resources_to_build.layers)
 
@@ -356,9 +357,13 @@ class TestBuildContext__enter__(TestCase):
         func2 = DummyFunction("func2")
         func3_skipped = DummyFunction("func3", inlinecode="def handler(): pass", codeuri=None)
         func4_skipped = DummyFunction("func4", codeuri="packaged_function.zip")
+        func5_skipped = DummyFunction("func5", codeuri=None, packagetype=IMAGE)
+        func6 = DummyFunction(
+            "func6", packagetype=IMAGE, metadata={"DockerContext": "/path", "Dockerfile": "DockerFile"}
+        )
 
         func_provider_mock = Mock()
-        func_provider_mock.get_all.return_value = [func1, func2, func3_skipped, func4_skipped]
+        func_provider_mock.get_all.return_value = [func1, func2, func3_skipped, func4_skipped, func5_skipped, func6]
         funcprovider = SamFunctionProviderMock.return_value = func_provider_mock
 
         layer1 = DummyLayer("layer1", "buildMethod")
@@ -407,7 +412,7 @@ class TestBuildContext__enter__(TestCase):
         self.assertEqual(context.mode, "buildmode")
         self.assertFalse(context.is_building_specific_resource)
         resources_to_build = context.resources_to_build
-        self.assertEqual(resources_to_build.functions, [func1, func2])
+        self.assertEqual(resources_to_build.functions, [func1, func2, func6])
         self.assertEqual(resources_to_build.layers, [layer1])
         get_buildable_stacks_mock.assert_called_once_with(
             "template_file", parameter_overrides={"overrides": "value"}, global_parameter_overrides=None
@@ -927,9 +932,14 @@ class DummyLayer:
 
 
 class DummyFunction:
-    def __init__(self, name, layers=[], inlinecode=None, codeuri="src"):
+    def __init__(
+        self, name, layers=[], inlinecode=None, codeuri="src", imageuri="image:latest", packagetype=ZIP, metadata=None
+    ):
         self.name = name
         self.layers = layers
         self.inlinecode = inlinecode
         self.codeuri = codeuri
+        self.imageuri = imageuri
         self.full_path = Mock()
+        self.packagetype = packagetype
+        self.metadata = metadata if metadata else {}
