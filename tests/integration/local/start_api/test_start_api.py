@@ -433,6 +433,17 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
+    def test_parse_swagger_body_with_non_case_sensitive_integration_type(self):
+        """
+        Get Request to a path that was defined as ANY in SAM through Swagger
+        """
+        response = requests.get(self.url + "/nonsensitiveanyandall", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
     def test_post_call_with_path_setup_with_any_swagger(self):
         """
         Post Request to a path that was defined as ANY in SAM through Swagger
