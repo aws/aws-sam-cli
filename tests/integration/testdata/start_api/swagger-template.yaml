@@ -44,6 +44,14 @@ Resources:
                 uri:
                   Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyLambdaFunction.Arn}/invocations
                 responses: {}
+          "/nonsensitiveanyandall":
+            x-amazon-apigateway-any-method:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: AWS_PROXY
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyLambdaFunction.Arn}/invocations
+                responses: { }
           "/nonserverlessfunction":
             get:
               x-amazon-apigateway-integration:
