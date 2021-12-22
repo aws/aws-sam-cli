@@ -20,6 +20,9 @@ SAM_METADATA_DOCKERFILE_KEY = "Dockerfile"
 SAM_METADATA_DOCKER_CONTEXT_KEY = "DockerContext"
 SAM_METADATA_DOCKER_BUILD_ARGS_KEY = "DockerBuildArgs"
 
+ASSET_BUNDLED_METADATA_KEY = "aws:asset:is-bundled"
+SAM_METADATA_SKIP_BUILD_KEY = "SkipBuild"
+
 LOG = logging.getLogger(__name__)
 
 
@@ -45,7 +48,7 @@ class ResourceMetadataNormalizer:
 
             if asset_property == IMAGE_ASSET_PROPERTY:
                 asset_metadata = ResourceMetadataNormalizer._extract_image_asset_metadata(resource_metadata)
-                ResourceMetadataNormalizer._update_resource_image_asset_metadata(resource_metadata, asset_metadata)
+                ResourceMetadataNormalizer._update_resource_metadata(resource_metadata, asset_metadata)
                 # For image-type functions, the asset path is expected to be the name of the Docker image.
                 # When building, we set the name of the image to be the logical id of the function.
                 asset_path = logical_id.lower()
@@ -53,6 +56,16 @@ class ResourceMetadataNormalizer:
                 asset_path = resource_metadata.get(ASSET_PATH_METADATA_KEY)
 
             ResourceMetadataNormalizer._replace_property(asset_property, asset_path, resource, logical_id)
+
+            # Set SkipBuild metadata iff is-bundled metadata exists, and value is True
+            skip_build = resource_metadata.get(ASSET_BUNDLED_METADATA_KEY, False)
+            if skip_build:
+                ResourceMetadataNormalizer._update_resource_metadata(
+                    resource_metadata,
+                    {
+                        SAM_METADATA_SKIP_BUILD_KEY: True,
+                    },
+                )
 
     @staticmethod
     def _replace_property(property_key, property_value, resource, logical_id):
@@ -115,7 +128,7 @@ class ResourceMetadataNormalizer:
         }
 
     @staticmethod
-    def _update_resource_image_asset_metadata(metadata, updated_values):
+    def _update_resource_metadata(metadata, updated_values):
         """
         Update the metadata values for image-type lambda functions
 
