@@ -471,6 +471,7 @@ Commands you can use next
             LOG.debug("Skip building pre-built function: %s", function.full_path)
             return False
 
+        # Image Build metadata properties are missed
         if function.packagetype == IMAGE:
             metadata = function.metadata if function.metadata else {}
             dockerfile = cast(str, metadata.get("Dockerfile", ""))
