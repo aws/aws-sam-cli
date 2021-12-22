@@ -74,7 +74,7 @@ class TestValidate(TestCase):
         self.assertEqual(command_result.process.returncode, 0)
         self.assertRegex(output, pattern)
 
-    def test_package_logs_warning_for_cdk_project(self):
+    def test_validate_logs_warning_for_cdk_project(self):
         test_data_path = Path(__file__).resolve().parents[2] / "integration" / "testdata" / "package"
         template_file = "aws-serverless-function-cdk.yaml"
         template_path = test_data_path.joinpath(template_file)
