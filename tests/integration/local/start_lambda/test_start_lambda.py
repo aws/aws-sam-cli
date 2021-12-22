@@ -115,13 +115,15 @@ class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
 
 
 @parameterized_class(
-    ("template_path",),
+    ("template_path", "parent_path"),
     [
-        ("/testdata/invoke/template.yml",),
-        ("/testdata/invoke/nested-templates/template-parent.yaml",),
+        ("/testdata/invoke/template.yml", ""),
+        ("/testdata/invoke/nested-templates/template-parent.yaml", "SubApp/"),
     ],
 )
 class TestLambdaService(StartLambdaIntegBaseClass):
+    parent_path = ""
+
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
         self.lambda_client = boto3.client(
@@ -133,37 +135,51 @@ class TestLambdaService(StartLambdaIntegBaseClass):
             config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
         )
 
+    @parameterized.expand([("False"), ("True")])
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
-    def test_invoke_with_data(self):
-        response = self.lambda_client.invoke(FunctionName="EchoEventFunction", Payload='"This is json data"')
+    def test_invoke_with_data(self, use_full_path):
+        response = self.lambda_client.invoke(
+            FunctionName=f"{self.parent_path if use_full_path == 'True' else ''}EchoEventFunction",
+            Payload='"This is json data"',
+        )
 
         self.assertEqual(response.get("Payload").read().decode("utf-8"), '"This is json data"')
         self.assertIsNone(response.get("FunctionError"))
         self.assertEqual(response.get("StatusCode"), 200)
 
+    @parameterized.expand([("False"), ("True")])
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
-    def test_invoke_with_no_data(self):
-        response = self.lambda_client.invoke(FunctionName="EchoEventFunction")
+    def test_invoke_with_no_data(self, use_full_path):
+        response = self.lambda_client.invoke(
+            FunctionName=f"{self.parent_path if use_full_path == 'True' else ''}EchoEventFunction"
+        )
 
         self.assertEqual(response.get("Payload").read().decode("utf-8"), "{}")
         self.assertIsNone(response.get("FunctionError"))
         self.assertEqual(response.get("StatusCode"), 200)
 
+    @parameterized.expand([("False"), ("True")])
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
-    def test_invoke_with_log_type_None(self):
-        response = self.lambda_client.invoke(FunctionName="EchoEventFunction", LogType="None")
+    def test_invoke_with_log_type_None(self, use_full_path):
+        response = self.lambda_client.invoke(
+            FunctionName=f"{self.parent_path if use_full_path == 'True' else ''}EchoEventFunction", LogType="None"
+        )
 
         self.assertEqual(response.get("Payload").read().decode("utf-8"), "{}")
         self.assertIsNone(response.get("FunctionError"))
         self.assertEqual(response.get("StatusCode"), 200)
 
+    @parameterized.expand([("False"), ("True")])
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
-    def test_invoke_with_invocation_type_RequestResponse(self):
-        response = self.lambda_client.invoke(FunctionName="EchoEventFunction", InvocationType="RequestResponse")
+    def test_invoke_with_invocation_type_RequestResponse(self, use_full_path):
+        response = self.lambda_client.invoke(
+            FunctionName=f"{self.parent_path if use_full_path == 'True' else ''}EchoEventFunction",
+            InvocationType="RequestResponse",
+        )
 
         self.assertEqual(response.get("Payload").read().decode("utf-8"), "{}")
         self.assertIsNone(response.get("FunctionError"))
@@ -178,20 +194,32 @@ class TestLambdaService(StartLambdaIntegBaseClass):
         self.assertIsNone(response.get("FunctionError"))
         self.assertEqual(response.get("StatusCode"), 200)
 
-    @parameterized.expand([("EchoCustomEnvVarWithFunctionNameDefinedFunction"), ("customname")])
+    @parameterized.expand(
+        [
+            ("EchoCustomEnvVarWithFunctionNameDefinedFunction", "False"),
+            ("EchoCustomEnvVarWithFunctionNameDefinedFunction", "True"),
+            ("customname", "False"),
+        ]
+    )
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
-    def test_invoke_function_with_overrode_env_var_and_functionname_defined(self, function_name):
-        response = self.lambda_client.invoke(FunctionName=function_name)
+    def test_invoke_function_with_overrode_env_var_and_functionname_defined(self, function_name, use_full_path):
+        response = self.lambda_client.invoke(
+            FunctionName=f"{self.parent_path if use_full_path == 'True' else ''}{function_name}"
+        )
 
         self.assertEqual(response.get("Payload").read().decode("utf-8"), '"MyVar"')
         self.assertIsNone(response.get("FunctionError"))
         self.assertEqual(response.get("StatusCode"), 200)
 
+    @parameterized.expand([("False"), ("True")])
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
-    def test_lambda_function_raised_error(self):
-        response = self.lambda_client.invoke(FunctionName="RaiseExceptionFunction", InvocationType="RequestResponse")
+    def test_lambda_function_raised_error(self, use_full_path):
+        response = self.lambda_client.invoke(
+            FunctionName=f"{self.parent_path if use_full_path == 'True' else ''}RaiseExceptionFunction",
+            InvocationType="RequestResponse",
+        )
         response_data = json.loads(response.get("Payload").read().decode("utf-8"))
 
         print(response_data)
@@ -209,9 +237,10 @@ class TestLambdaService(StartLambdaIntegBaseClass):
         self.assertEqual(response.get("FunctionError"), "Unhandled")
         self.assertEqual(response.get("StatusCode"), 200)
 
+    @parameterized.expand([("False"), ("True")])
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
-    def test_invoke_with_function_timeout(self):
+    def test_invoke_with_function_timeout(self, use_full_path):
         """
         This behavior does not match the actually Lambda Service. For functions that timeout, data returned like the
         following:
@@ -222,7 +251,9 @@ class TestLambdaService(StartLambdaIntegBaseClass):
         when a timeout happens locally, we do not add the FunctionError: Unhandled to the response and have an empty
         string as the data returned (because no data was found in stdout from the container).
         """
-        response = self.lambda_client.invoke(FunctionName="TimeoutFunction")
+        response = self.lambda_client.invoke(
+            FunctionName=f"{self.parent_path if use_full_path == 'True' else ''}TimeoutFunction"
+        )
 
         self.assertEqual(response.get("Payload").read().decode("utf-8"), "")
         self.assertIsNone(response.get("FunctionError"))

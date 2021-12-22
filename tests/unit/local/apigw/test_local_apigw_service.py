@@ -16,6 +16,7 @@ from samcli.local.apigw.local_apigw_service import (
     Route,
     LambdaResponseParseException,
     PayloadFormatVersionValidateException,
+    CatchAllPathConverter,
 )
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 
@@ -1740,3 +1741,28 @@ class TestRouteEqualsHash(TestCase):
         route1 = Route(function_name="test", path="/test1", methods=["GET", "POST"], stack_path="2")
         route2 = Route(function_name="test", path="/test1", methods=["GET", "POST"], stack_path="1")
         self.assertNotEqual(route1.__hash__(), route2.__hash__())
+
+
+class TestPathConverter(TestCase):
+    def test_path_converter_to_url_accepts_any_path(self):
+        map = Mock()
+        map.charset = "utf-8"
+        path_converter = CatchAllPathConverter(map)
+        path = "/path/test/sub_path"
+        output = path_converter.to_url(path)
+        self.assertEquals(path, output)
+
+    def test_path_converter_to_python_accepts_any_path(self):
+        map = Mock()
+        map.charset = "utf-8"
+        path_converter = CatchAllPathConverter(map)
+        path = "/path/test/sub_path"
+        output = path_converter.to_python(path)
+        self.assertEquals(path, output)
+
+    def test_path_converter_matches_any_path(self):
+        map = Mock()
+        map.charset = "utf-8"
+        path_converter = CatchAllPathConverter(map)
+        path = "/path/test/sub_path"
+        self.assertRegexpMatches(path, path_converter.regex)
