@@ -98,6 +98,21 @@ class TestFunction(TestCase):
             self.function.architecture
         self.assertEqual(str(e.exception), "Function name property Architectures should be a list of length 1")
 
+    def test_skip_build_is_false_if_metadata_is_None(self):
+        self.assertFalse(self.function.skip_build)
+
+    def test_skip_build_is_false_if_metadata_is_empty(self):
+        self.function = self.function._replace(metadata={})
+        self.assertFalse(self.function.skip_build)
+
+    def test_skip_build_is_false_if_skip_build_metadata_flag_is_false(self):
+        self.function = self.function._replace(metadata={"SkipBuild": False})
+        self.assertFalse(self.function.skip_build)
+
+    def test_skip_build_is_false_if_skip_build_metadata_flag_is_true(self):
+        self.function = self.function._replace(metadata={"SkipBuild": True})
+        self.assertTrue(self.function.skip_build)
+
 
 class TestLayerVersion(TestCase):
     @parameterized.expand(

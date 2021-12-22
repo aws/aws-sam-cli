@@ -151,3 +151,39 @@ class TestResourceMeatadataNormalizer(TestCase):
         ResourceMetadataNormalizer.normalize(template_data)
 
         self.assertEqual("new path", template_data["Resources"]["Function1"]["Properties"]["Code"])
+
+    def test_set_skip_build_metadata_for_bundled_assets_metadata_equals_true(self):
+        template_data = {
+            "Resources": {
+                "Function1": {
+                    "Properties": {"Code": "some value"},
+                    "Metadata": {
+                        "aws:asset:path": "new path",
+                        "aws:asset:property": "Code",
+                        "aws:asset:is-bundled": True,
+                    },
+                }
+            }
+        }
+
+        ResourceMetadataNormalizer.normalize(template_data)
+
+        self.assertTrue(template_data["Resources"]["Function1"]["Metadata"]["SkipBuild"])
+
+    def test_no_skip_build_metadata_for_bundled_assets_metadata_equals_false(self):
+        template_data = {
+            "Resources": {
+                "Function1": {
+                    "Properties": {"Code": "some value"},
+                    "Metadata": {
+                        "aws:asset:path": "new path",
+                        "aws:asset:property": "Code",
+                        "aws:asset:is-bundled": False,
+                    },
+                }
+            }
+        }
+
+        ResourceMetadataNormalizer.normalize(template_data)
+
+        self.assertIsNone(template_data["Resources"]["Function1"]["Metadata"].get("SkipBuild"))

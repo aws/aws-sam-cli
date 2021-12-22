@@ -429,7 +429,7 @@ Commands you can use next
             return
 
         resource_collector.add_function(function)
-        resource_collector.add_layers([l for l in function.layers if l.build_method is not None])
+        resource_collector.add_layers([l for l in function.layers if l.build_method is not None and not l.skip_build])
 
     def _collect_single_buildable_layer(
         self, resource_identifier: str, resource_collector: ResourcesToBuildCollector
@@ -465,6 +465,10 @@ Commands you can use next
         if isinstance(function.codeuri, str) and function.codeuri.endswith(".zip"):
             LOG.debug("Skip building zip function: %s", function.full_path)
             return False
+        # skip build the functions that marked as skip-build
+        if function.skip_build:
+            LOG.debug("Skip building pre-built function: %s", function.full_path)
+            return False
         return True
 
     @staticmethod
@@ -476,5 +480,9 @@ Commands you can use next
         # no need to build layers that are already packaged as a zip file
         if isinstance(layer.codeuri, str) and layer.codeuri.endswith(".zip"):
             LOG.debug("Skip building zip layer: %s", layer.full_path)
+            return False
+        # skip build the functions that marked as skip-build
+        if layer.skip_build:
+            LOG.debug("Skip building pre-built layer: %s", layer.full_path)
             return False
         return True
