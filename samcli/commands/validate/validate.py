@@ -10,6 +10,7 @@ import click
 from samtranslator.translator.arn_generator import NoRegionFound
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
+from samcli.commands._utils.cdk_support_decorators import unsupported_command_cdk
 from samcli.commands._utils.options import template_option_without_build
 from samcli.lib.telemetry.metric import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
@@ -25,6 +26,7 @@ from samcli.lib.utils.version_checker import check_newer_version
 @track_command
 @check_newer_version
 @print_cmdline_args
+@unsupported_command_cdk(alternative_command="cdk doctor")
 def cli(
     ctx,
     template_file,
