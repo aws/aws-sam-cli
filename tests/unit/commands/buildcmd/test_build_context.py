@@ -16,6 +16,7 @@ from samcli.lib.build.app_builder import (
     UnsupportedBuilderLibraryVersionError,
     BuildInsideContainerError,
     ContainerBuildNotSupported,
+    ApplicationBuildResult,
 )
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
