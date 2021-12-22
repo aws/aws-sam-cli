@@ -7,11 +7,14 @@ from pathlib import Path
 from typing import Set
 from unittest import skipIf
 
+import jmespath
 import docker
+import jmespath
 import pytest
 from parameterized import parameterized, parameterized_class
 
 from samcli.lib.utils import osutils
+from samcli.yamlhelper import yaml_parse
 from tests.testing_utils import (
     IS_WINDOWS,
     RUNNING_ON_CI,
@@ -134,6 +137,103 @@ class TestSkipBuildingFunctionsWithLocalImageUri(BuildIntegBase):
         self._verify_invoke_built_function(
             self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
         )
+
+
+@skipIf(
+    # Hits public ECR pull limitation, move it to canary tests
+    ((not RUN_BY_CANARY) or (IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+@parameterized_class(
+    ("template", "SKIPPED_FUNCTION_LOGICAL_ID", "src_code_path", "src_code_prop", "metadata_key"),
+    [
+        ("template_function_flagged_to_skip_build.yaml", "SkippedFunction", "PreBuiltPython", "CodeUri", None),
+        ("template_cfn_function_flagged_to_skip_build.yaml", "SkippedFunction", "PreBuiltPython", "Code", None),
+        (
+            "cdk_v1_synthesized_template_python_function_construct.json",
+            "SkippedFunctionDA0220D7",
+            "asset.7023fd47c81480184154c6e0e870d6920c50e35d8fae977873016832e127ded9",
+            None,
+            "aws:asset:path",
+        ),
+        (
+            "cdk_v1_synthesized_template_function_construct_with_skip_build_metadata.json",
+            "SkippedFunctionDA0220D7",
+            "asset.7023fd47c81480184154c6e0e870d6920c50e35d8fae977873016832e127ded9",
+            None,
+            "aws:asset:path",
+        ),
+        (
+            "cdk_v2_synthesized_template_python_function_construct.json",
+            "SkippedFunctionDA0220D7",
+            "asset.7023fd47c81480184154c6e0e870d6920c50e35d8fae977873016832e127ded9",
+            None,
+            "aws:asset:path",
+        ),
+        (
+            "cdk_v2_synthesized_template_function_construct_with_skip_build_metadata.json",
+            "RandomSpaceFunction4F8564D0",
+            "asset.7023fd47c81480184154c6e0e870d6920c50e35d8fae977873016832e127ded9",
+            None,
+            "aws:asset:path",
+        ),
+    ],
+)
+class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
+    template = "template_cfn_function_flagged_to_skip_build.yaml"
+    SKIPPED_FUNCTION_LOGICAL_ID = "SkippedFunction"
+    src_code_path = "PreBuiltPython"
+    src_code_prop = "Code"
+    metadata_key = None
+
+    @pytest.mark.flaky(reruns=3)
+    def test_with_default_requirements(self):
+        self._validate_skipped_built_function(
+            self.default_build_dir,
+            self.SKIPPED_FUNCTION_LOGICAL_ID,
+            self.test_data_path,
+            self.src_code_path,
+            self.src_code_prop,
+            self.metadata_key,
+        )
+
+    def _validate_skipped_built_function(
+        self, build_dir, skipped_function_logical_id, relative_path, src_code_path, src_code_prop, metadata_key
+    ):
+
+        cmdlist = self.get_command_list()
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        run_command(cmdlist, cwd=self.working_dir)
+
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertNotIn(skipped_function_logical_id, build_dir_files)
+
+        expected_value = os.path.relpath(
+            os.path.normpath(os.path.join(str(relative_path), src_code_path)),
+            str(self.default_build_dir),
+        )
+
+        with open(self.built_template, "r") as fp:
+            template_dict = yaml_parse(fp.read())
+            if src_code_prop:
+                self.assertEqual(
+                    expected_value,
+                    jmespath.search(
+                        f"Resources.{skipped_function_logical_id}.Properties.{src_code_prop}", template_dict
+                    ),
+                )
+            if metadata_key:
+                metadata = jmespath.search(f"Resources.{skipped_function_logical_id}.Metadata", template_dict)
+                metadata = metadata if metadata else {}
+                self.assertEqual(expected_value, metadata.get(metadata_key, ""))
+        expected = "Hello World"
+        if not SKIP_DOCKER_TESTS:
+            self._verify_invoke_built_function(
+                self.built_template, skipped_function_logical_id, self._make_parameter_override_arg({}), expected
+            )
 
 
 @skipIf(

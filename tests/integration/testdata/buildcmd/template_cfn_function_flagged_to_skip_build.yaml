@@ -1,0 +1,21 @@
+AWSTemplateFormatVersion : '2010-09-09'
+
+Resources:
+
+  Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.7
+      Code: Python
+      Timeout: 600
+
+  SkippedFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.7
+      Code: PreBuiltPython
+      Timeout: 600
+    Metadata:
+      SkipBuild: true
