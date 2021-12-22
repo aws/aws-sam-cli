@@ -356,17 +356,25 @@ class TestBuildContext__enter__(TestCase):
         func2 = DummyFunction("func2")
         func3_skipped = DummyFunction("func3", inlinecode="def handler(): pass", codeuri=None)
         func4_skipped = DummyFunction("func4", codeuri="packaged_function.zip")
+        func7_skipped = DummyFunction("func7", skip_build=True)
 
         func_provider_mock = Mock()
-        func_provider_mock.get_all.return_value = [func1, func2, func3_skipped, func4_skipped]
+        func_provider_mock.get_all.return_value = [
+            func1,
+            func2,
+            func3_skipped,
+            func4_skipped,
+            func7_skipped,
+        ]
         funcprovider = SamFunctionProviderMock.return_value = func_provider_mock
 
         layer1 = DummyLayer("layer1", "buildMethod")
         layer2_skipped = DummyLayer("layer1", None)
         layer3_skipped = DummyLayer("layer1", "buildMethod", codeuri="packaged_function.zip")
+        layer4_skipped = DummyLayer("layer4", "buildMethod", skip_build=True)
 
         layer_provider_mock = Mock()
-        layer_provider_mock.get_all.return_value = [layer1, layer2_skipped, layer3_skipped]
+        layer_provider_mock.get_all.return_value = [layer1, layer2_skipped, layer3_skipped, layer4_skipped]
         layerprovider = SamLayerProviderMock.return_value = layer_provider_mock
 
         base_dir = pathlib_mock.Path.return_value.resolve.return_value.parent = "basedir"
@@ -919,17 +927,26 @@ class TestBuildContext_run(TestCase):
 
 
 class DummyLayer:
-    def __init__(self, name, build_method, codeuri="layer_src"):
+    def __init__(self, name, build_method, codeuri="layer_src", skip_build=False):
         self.name = name
         self.build_method = build_method
         self.codeuri = codeuri
         self.full_path = Mock()
+        self.skip_build = skip_build
 
 
 class DummyFunction:
-    def __init__(self, name, layers=[], inlinecode=None, codeuri="src"):
+    def __init__(
+        self,
+        name,
+        layers=[],
+        inlinecode=None,
+        codeuri="src",
+        skip_build=False,
+    ):
         self.name = name
         self.layers = layers
         self.inlinecode = inlinecode
         self.codeuri = codeuri
         self.full_path = Mock()
+        self.skip_build = skip_build

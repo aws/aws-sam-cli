@@ -200,6 +200,61 @@ class Test_update_relative_paths(TestCase):
             self.maxDiff = None
             self.assertEqual(result, expected_template_dict)
 
+    @parameterized.expand([(resource_type, props) for resource_type, props in RESOURCES_WITH_LOCAL_PATHS.items()])
+    def test_must_update_relative_resource_metadata_paths(self, resource_type, properties):
+        for propname in properties:
+            template_dict = {
+                "Resources": {
+                    "MyResourceWithRelativePath": {
+                        "Type": resource_type,
+                        "Properties": {},
+                        "Metadata": {"aws:asset:path": self.curpath},
+                    },
+                    "MyResourceWithS3Path": {
+                        "Type": resource_type,
+                        "Properties": {propname: self.s3path},
+                        "Metadata": {},
+                    },
+                    "MyResourceWithAbsolutePath": {
+                        "Type": resource_type,
+                        "Properties": {propname: self.abspath},
+                        "Metadata": {"aws:asset:path": self.abspath},
+                    },
+                    "MyResourceWithInvalidPath": {
+                        "Type": resource_type,
+                        "Properties": {
+                            # Path is not a string
+                            propname: {"foo": "bar"}
+                        },
+                    },
+                    "MyResourceWithoutProperties": {"Type": resource_type},
+                    "UnsupportedResourceType": {"Type": "AWS::Ec2::Instance", "Properties": {"Code": "bar"}},
+                    "ResourceWithoutType": {"foo": "bar"},
+                },
+                "Parameters": {"a": "b"},
+            }
+
+            set_value_from_jmespath(
+                template_dict, f"Resources.MyResourceWithRelativePath.Properties.{propname}", self.curpath
+            )
+
+            expected_template_dict = copy.deepcopy(template_dict)
+
+            set_value_from_jmespath(
+                expected_template_dict,
+                f"Resources.MyResourceWithRelativePath.Properties.{propname}",
+                self.expected_result,
+            )
+
+            expected_template_dict["Resources"]["MyResourceWithRelativePath"]["Metadata"][
+                "aws:asset:path"
+            ] = self.expected_result
+
+            result = _update_relative_paths(template_dict, self.src, self.dest)
+
+            self.maxDiff = None
+            self.assertEqual(result, expected_template_dict)
+
     @parameterized.expand([(resource_type, props) for resource_type, props in RESOURCES_WITH_IMAGE_COMPONENT.items()])
     def test_must_skip_image_components(self, resource_type, properties):
         for propname in properties:

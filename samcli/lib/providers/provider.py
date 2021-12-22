@@ -15,6 +15,7 @@ from samcli.commands.local.cli_common.user_exceptions import (
     InvalidFunctionPropertyType,
 )
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
+from samcli.lib.samlib.resource_metadata_normalizer import SAM_METADATA_SKIP_BUILD_KEY
 from samcli.lib.utils.architecture import X86_64
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -82,6 +83,15 @@ class Function(NamedTuple):
             "ChildStackA/GrandChildStackB/AFunctionInNestedStack"
         """
         return get_full_path(self.stack_path, self.function_id)
+
+    @property
+    def skip_build(self) -> bool:
+        """
+        Check if the function metadata contains SkipBuild property to determines if SAM should skip building this
+        resource. It means that the customer is building the Lambda function code outside SAM, and the provided code
+        path is already built.
+        """
+        return self.metadata.get(SAM_METADATA_SKIP_BUILD_KEY, False) if self.metadata else False
 
     def get_build_dir(self, build_root_dir: str) -> str:
         """
@@ -192,6 +202,7 @@ class LayerVersion:
 
         self._build_architecture = cast(str, metadata.get("BuildArchitecture", X86_64))
         self._compatible_architectures = compatible_architectures
+        self._skip_build = bool(metadata.get(SAM_METADATA_SKIP_BUILD_KEY, False))
 
     @staticmethod
     def _compute_layer_version(is_defined_within_template: bool, arn: str) -> Optional[int]:
@@ -259,6 +270,15 @@ class LayerVersion:
     @property
     def stack_path(self) -> str:
         return self._stack_path
+
+    @property
+    def skip_build(self) -> bool:
+        """
+        Check if the function metadata contains SkipBuild property to determines if SAM should skip building this
+        resource. It means that the customer is building the Lambda function code outside SAM, and the provided code
+        path is already built.
+        """
+        return self._skip_build
 
     @property
     def arn(self) -> str:

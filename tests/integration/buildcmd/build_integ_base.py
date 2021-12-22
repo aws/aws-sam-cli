@@ -193,6 +193,8 @@ class BuildIntegBase(TestCase):
             overrides,
         ]
 
+        LOG.info("Running invoke Command: {}".format(cmdlist))
+
         process_execute = run_command(cmdlist)
         process_execute.process.wait()
 
