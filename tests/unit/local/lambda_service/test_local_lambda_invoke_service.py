@@ -2,7 +2,7 @@ from unittest import TestCase
 from unittest.mock import Mock, patch, ANY, call
 
 from samcli.local.lambda_service import local_lambda_invoke_service
-from samcli.local.lambda_service.local_lambda_invoke_service import LocalLambdaInvokeService
+from samcli.local.lambda_service.local_lambda_invoke_service import LocalLambdaInvokeService, FunctionNamePathConverter
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 
 
@@ -29,6 +29,7 @@ class TestLocalLambdaService(TestCase):
     def test_create_service_endpoints(self, flask_mock, error_handling_mock):
         app_mock = Mock()
         flask_mock.return_value = app_mock
+        app_mock.url_map.converters = {}
 
         error_handling_mock.return_value = Mock()
 
@@ -38,12 +39,13 @@ class TestLocalLambdaService(TestCase):
         service.create()
 
         app_mock.add_url_rule.assert_called_once_with(
-            "/2015-03-31/functions/<function_name>/invocations",
-            endpoint="/2015-03-31/functions/<function_name>/invocations",
+            "/2015-03-31/functions/<function_path:function_name>/invocations",
+            endpoint="/2015-03-31/functions/<function_path:function_name>/invocations",
             view_func=service._invoke_request_handler,
             methods=["POST"],
             provide_automatic_options=False,
         )
+        self.assertEquals({"function_path": FunctionNamePathConverter}, app_mock.url_map.converters)
 
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.LocalLambdaInvokeService.service_response")
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.LambdaOutputParser")
