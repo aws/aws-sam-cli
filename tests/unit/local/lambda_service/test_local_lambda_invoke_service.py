@@ -265,3 +265,28 @@ class TestValidateRequestHandling(TestCase):
         response = LocalLambdaInvokeService.validate_request()
 
         self.assertIsNone(response)
+
+
+class TestPathConverter(TestCase):
+    def test_path_converter_to_url_accepts_function_full_path(self):
+        map = Mock()
+        map.charset = "utf-8"
+        path_converter = FunctionNamePathConverter(map)
+        full_path = "parent_stack/function_id"
+        output = path_converter.to_url(full_path)
+        self.assertEquals(full_path, output)
+
+    def test_path_converter_to_python_accepts_function_full_path(self):
+        map = Mock()
+        map.charset = "utf-8"
+        path_converter = FunctionNamePathConverter(map)
+        full_path = "parent_stack/function_id"
+        output = path_converter.to_python(full_path)
+        self.assertEquals(full_path, output)
+
+    def test_path_converter_matches_function_full_path(self):
+        map = Mock()
+        map.charset = "utf-8"
+        path_converter = FunctionNamePathConverter(map)
+        full_path = "parent_stack/function_id"
+        self.assertRegexpMatches(full_path, path_converter.regex)
