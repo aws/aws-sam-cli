@@ -240,27 +240,34 @@ class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+@parameterized_class(
+    ("template", "FUNCTION_LOGICAL_ID", "overrides", "runtime", "codeuri", "use_container", "check_function_only", "prop"),
+    [
+        ("template.yaml", "Function", True, "python2.7", "Python", False, False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.6", "Python", False, False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.7", "Python", False, False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.8", "Python", False, False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.9", "Python", False, False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.7", "PythonPEP600", False, False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.8", "PythonPEP600", False, False, "CodeUri"),
+        ("template.yaml", "Function", True, "python2.7", "Python", "use_container", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.6", "Python", "use_container", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.7", "Python", "use_container", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.8", "Python", "use_container", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.9", "Python", "use_container", False, "CodeUri"),
+        ("cdk_v1_synthesized_template_zip_image_functions.json", "RandomCitiesFunction5C47A2B8", False, None, None, False, True, "Code"),
+    ],
+)
 class TestBuildCommand_PythonFunctions(BuildIntegPythonBase):
-    @parameterized.expand(
-        [
-            ("python2.7", "Python", False),
-            ("python3.6", "Python", False),
-            ("python3.7", "Python", False),
-            ("python3.8", "Python", False),
-            ("python3.9", "Python", False),
-            # numpy 1.20.3 (in PythonPEP600/requirements.txt) only support python 3.7+
-            ("python3.7", "PythonPEP600", False),
-            ("python3.8", "PythonPEP600", False),
-            ("python2.7", "Python", "use_container"),
-            ("python3.6", "Python", "use_container"),
-            ("python3.7", "Python", "use_container"),
-            ("python3.8", "Python", "use_container"),
-            ("python3.9", "Python", "use_container"),
-        ]
-    )
+    overrides = True
+    runtime = "python2.7"
+    codeuri = "Python"
+    use_container = False
+    check_function_only = False
+
     @pytest.mark.flaky(reruns=3)
-    def test_with_default_requirements(self, runtime, codeuri, use_container):
-        self._test_with_default_requirements(runtime, codeuri, use_container, self.test_data_path)
+    def test_with_default_requirements(self):
+        self._test_with_default_requirements(self.runtime, self.codeuri, self.use_container, self.test_data_path, do_override=self.overrides, check_function_only=self.check_function_only)
 
 
 @skipIf(
