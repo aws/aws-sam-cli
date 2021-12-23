@@ -4,11 +4,13 @@ Class that Normalizes a Template based on Resource Metadata
 
 import logging
 from pathlib import Path
+import jmespath
 
 RESOURCES_KEY = "Resources"
 PROPERTIES_KEY = "Properties"
 METADATA_KEY = "Metadata"
 
+RESOURCE_CDK_PATH_METADATA_KEY = "aws:cdk:path"
 ASSET_PATH_METADATA_KEY = "aws:asset:path"
 ASSET_PROPERTY_METADATA_KEY = "aws:asset:property"
 
@@ -16,6 +18,7 @@ IMAGE_ASSET_PROPERTY = "Code.ImageUri"
 ASSET_DOCKERFILE_PATH_KEY = "aws:asset:dockerfile-path"
 ASSET_DOCKERFILE_BUILD_ARGS_KEY = "aws:asset:docker-build-args"
 
+SAM_RESOURCE_ID_KEY = "SamResourceId"
 SAM_METADATA_DOCKERFILE_KEY = "Dockerfile"
 SAM_METADATA_DOCKER_CONTEXT_KEY = "DockerContext"
 SAM_METADATA_DOCKER_BUILD_ARGS_KEY = "DockerBuildArgs"
@@ -55,7 +58,11 @@ class ResourceMetadataNormalizer:
             else:
                 asset_path = resource_metadata.get(ASSET_PATH_METADATA_KEY)
 
-            ResourceMetadataNormalizer._replace_property(asset_property, asset_path, resource, logical_id)
+            current_asset_property_value = (
+                jmespath.search(asset_property, resource.get(PROPERTIES_KEY, {})) if asset_property else None
+            )
+            if not current_asset_property_value or isinstance(current_asset_property_value, dict):
+                ResourceMetadataNormalizer._replace_property(asset_property, asset_path, resource, logical_id)
 
             # Set SkipBuild metadata iff is-bundled metadata exists, and value is True
             skip_build = resource_metadata.get(ASSET_BUNDLED_METADATA_KEY, False)
@@ -144,3 +151,53 @@ class ResourceMetadataNormalizer:
         """
         for key, val in updated_values.items():
             metadata[key] = val
+
+    @staticmethod
+    def get_resource_id(resource_properties, logical_id):
+        """
+        Get unique id for a resource.
+        for any resource, the resource id can be the customer defined id if exist, if not exist it can be the
+        cdk-defined resource id, or the logical id if the resource id is not found.
+
+        Parameters
+        ----------
+        resource_properties dict
+            Properties of this resource
+        logical_id str
+            LogicalID of the resource
+
+        Returns
+        -------
+        str
+            The unique function id
+        """
+        resource_metadata = resource_properties.get("Metadata", {})
+        customer_defined_id = resource_metadata.get(SAM_RESOURCE_ID_KEY)
+
+        if isinstance(customer_defined_id, str) and customer_defined_id:
+            return customer_defined_id
+
+        resource_cdk_path = resource_metadata.get(RESOURCE_CDK_PATH_METADATA_KEY)
+
+        if not isinstance(resource_cdk_path, str) or not resource_cdk_path:
+            return logical_id
+
+        # aws:cdk:path metadata format of functions: {stack_id}/{function_id}/Resource
+        # Design doc of CDK path: https://github.com/aws/aws-cdk/blob/master/design/construct-tree.md
+        cdk_path_partitions = resource_cdk_path.split("/")
+
+        if len(cdk_path_partitions) < 2:
+            LOG.warning(
+                "Cannot detect function id from aws:cdk:path metadata '%s', using default logical id", resource_cdk_path
+            )
+            return logical_id
+
+        cdk_resource_id = cdk_path_partitions[-2]
+
+        # Check if the Resource is nested Stack
+        if resource_properties.get("Type", "") == "AWS::CloudFormation::Stack" and cdk_resource_id.endswith(
+            ".NestedStack"
+        ):
+            cdk_resource_id = cdk_resource_id[: -len(".NestedStack")]
+
+        return cdk_resource_id
