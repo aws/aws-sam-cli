@@ -321,7 +321,9 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
     )
     @pytest.mark.flaky(reruns=3)
     def test_with_default_requirements(self, runtime, codeuri, use_container, architecture):
-        self._test_with_default_requirements(runtime, codeuri, use_container, self.test_data_path, architecture)
+        self._test_with_default_requirements(
+            runtime, codeuri, use_container, self.test_data_path, architecture=architecture
+        )
 
 
 @skipIf(
