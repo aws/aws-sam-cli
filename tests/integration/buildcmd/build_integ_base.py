@@ -524,7 +524,16 @@ class BuildIntegPythonBase(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
     prop = "CodeUri"
 
-    def _test_with_default_requirements(self, runtime, codeuri, use_container, relative_path, do_override=True, check_function_only= False, architecture=None):
+    def _test_with_default_requirements(
+        self,
+        runtime,
+        codeuri,
+        use_container,
+        relative_path,
+        do_override=True,
+        check_function_only=False,
+        architecture=None,
+    ):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
         overrides = self.get_override(runtime, codeuri, architecture, "main.handler") if do_override else None
@@ -568,7 +577,10 @@ class BuildIntegPythonBase(BuildIntegBase):
         expected = {"pi": "3.14"}
         if not SKIP_DOCKER_TESTS:
             self._verify_invoke_built_function(
-                self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides) if do_override else None, expected
+                self.built_template,
+                self.FUNCTION_LOGICAL_ID,
+                self._make_parameter_override_arg(overrides) if do_override else None,
+                expected,
             )
         if use_container:
             self.verify_docker_container_cleanedup(runtime)
