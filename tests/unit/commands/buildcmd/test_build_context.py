@@ -1,5 +1,4 @@
 import os
-from samcli.lib.build.app_builder import ApplicationBuildResult
 from unittest import TestCase
 from unittest.mock import patch, Mock, ANY, call
 
@@ -17,6 +16,7 @@ from samcli.lib.build.app_builder import (
     UnsupportedBuilderLibraryVersionError,
     BuildInsideContainerError,
     ContainerBuildNotSupported,
+    ApplicationBuildResult,
 )
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
