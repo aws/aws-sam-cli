@@ -43,6 +43,7 @@ class TestCli(TestCase):
         self.profile = "profile"
         self.container_host = "localhost"
         self.container_host_interface = "127.0.0.1"
+        self.container_add_host = "host.docker.internal"
         self.invoke_image = ("amazon/aws-sam-cli-emulation-image-python3.6",)
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
@@ -80,6 +81,7 @@ class TestCli(TestCase):
             shutdown=self.shutdown,
             container_host=self.container_host,
             container_host_interface=self.container_host_interface,
+            container_add_host=self.container_add_host,
             invoke_image=self.invoke_image,
         )
 
@@ -103,6 +105,7 @@ class TestCli(TestCase):
             aws_profile=self.profile,
             container_host=self.container_host,
             container_host_interface=self.container_host_interface,
+            container_add_host=self.container_add_host,
             invoke_images={None: "amazon/aws-sam-cli-emulation-image-python3.6"},
         )
 
@@ -144,6 +147,7 @@ class TestCli(TestCase):
             shutdown=self.shutdown,
             container_host=self.container_host,
             container_host_interface=self.container_host_interface,
+            container_add_host=self.container_add_host,
             invoke_image=self.invoke_image,
         )
 
@@ -167,6 +171,7 @@ class TestCli(TestCase):
             aws_profile=self.profile,
             container_host=self.container_host,
             container_host_interface=self.container_host_interface,
+            container_add_host=self.container_add_host,
             invoke_images={None: "amazon/aws-sam-cli-emulation-image-python3.6"},
         )
 
@@ -222,6 +227,7 @@ class TestCli(TestCase):
                 shutdown=self.shutdown,
                 container_host=self.container_host,
                 container_host_interface=self.container_host_interface,
+                container_add_host=self.container_add_host,
                 invoke_image=self.invoke_image,
             )
 
@@ -277,6 +283,7 @@ class TestCli(TestCase):
                 shutdown=self.shutdown,
                 container_host=self.container_host,
                 container_host_interface=self.container_host_interface,
+                container_add_host=self.container_add_host,
                 invoke_image=self.invoke_image,
             )
 
@@ -330,6 +337,7 @@ class TestCli(TestCase):
                 shutdown=self.shutdown,
                 container_host=self.container_host,
                 container_host_interface=self.container_host_interface,
+                container_add_host=self.container_add_host,
                 invoke_image=self.invoke_image,
             )
 
@@ -371,6 +379,7 @@ class TestCli(TestCase):
                 shutdown=self.shutdown,
                 container_host=self.container_host,
                 container_host_interface=self.container_host_interface,
+                container_add_host=self.container_add_host,
                 invoke_image=self.invoke_image,
             )
 
@@ -426,6 +435,7 @@ class TestCli(TestCase):
                 shutdown=self.shutdown,
                 container_host=self.container_host,
                 container_host_interface=self.container_host_interface,
+                container_add_host=self.container_add_host,
                 invoke_image=self.invoke_image,
             )
 

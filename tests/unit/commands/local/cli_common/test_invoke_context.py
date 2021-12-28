@@ -554,6 +554,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                 aws_region="region",
                 container_host=None,
                 container_host_interface=None,
+                container_add_host=None,
             )
 
             result = self.context.local_lambda_runner
@@ -627,6 +628,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                 aws_region="region",
                 container_host=None,
                 container_host_interface=None,
+                container_add_host=None,
             )
 
             result = self.context.local_lambda_runner
@@ -671,6 +673,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             aws_region="region",
             container_host="abcdef",
             container_host_interface="192.168.100.101",
+            container_add_host="my.internal.host",
         )
         self.context.get_cwd = Mock()
         self.context.get_cwd.return_value = cwd
@@ -701,6 +704,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                 aws_region="region",
                 container_host="abcdef",
                 container_host_interface="192.168.100.101",
+                container_add_host="my.internal.host",
             )
 
             result = self.context.local_lambda_runner

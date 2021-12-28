@@ -45,7 +45,7 @@ class LambdaRuntime:
         self._image_builder = image_builder
         self._temp_uncompressed_paths_to_be_cleaned = []
 
-    def create(self, function_config, debug_context=None, container_host=None, container_host_interface=None):
+    def create(self, function_config, debug_context=None, container_host=None, container_host_interface=None, container_add_host=None):
         """
         Create a new Container for the passed function, then store it in a dictionary using the function name,
         so it can be retrieved later and used in the other functions. Make sure to use the debug_context only
@@ -85,6 +85,7 @@ class LambdaRuntime:
             debug_options=debug_context,
             container_host=container_host,
             container_host_interface=container_host_interface,
+            container_add_host=container_add_host,
             function_name=function_config.name,
         )
         try:
@@ -96,7 +97,7 @@ class LambdaRuntime:
             LOG.debug("Ctrl+C was pressed. Aborting container creation")
             raise
 
-    def run(self, container, function_config, debug_context, container_host=None, container_host_interface=None):
+    def run(self, container, function_config, debug_context, container_host=None, container_host_interface=None, container_add_host=None):
         """
         Find the created container for the passed Lambda function, then using the
         ContainerManager run this container.
@@ -114,6 +115,8 @@ class LambdaRuntime:
             Host of locally emulated Lambda container
         container_host_interface string
             Optional. Interface that Docker host binds ports to
+        container_add_host string
+            Optional. Add additional host to the container
 
         Returns
         -------
@@ -122,7 +125,7 @@ class LambdaRuntime:
         """
 
         if not container:
-            container = self.create(function_config, debug_context, container_host, container_host_interface)
+            container = self.create(function_config, debug_context, container_host, container_host_interface, container_add_host)
 
         if container.is_running():
             LOG.info("Lambda function '%s' is already running", function_config.name)
@@ -147,6 +150,7 @@ class LambdaRuntime:
         stderr: Optional[StreamWriter] = None,
         container_host=None,
         container_host_interface=None,
+        container_add_host=None,
     ):
         """
         Invoke the given Lambda function locally.
@@ -169,13 +173,15 @@ class LambdaRuntime:
             Host of locally emulated Lambda container
         :param string container_host_interface: Optional.
             Interface that Docker host binds ports to
+        :param string container_add_host: Optional.
+            Add additional host to the container
         :raises Keyboard
         """
         timer = None
         container = None
         try:
             # Start the container. This call returns immediately after the container starts
-            container = self.create(function_config, debug_context, container_host, container_host_interface)
+            container = self.create(function_config, debug_context, container_host, container_host_interface, container_add_host)
             container = self.run(container, function_config, debug_context)
             # Setup appropriate interrupt - timeout or Ctrl+C - before function starts executing.
             #
@@ -341,7 +347,7 @@ class WarmLambdaRuntime(LambdaRuntime):
 
         super().__init__(container_manager, image_builder)
 
-    def create(self, function_config, debug_context=None, container_host=None, container_host_interface=None):
+    def create(self, function_config, debug_context=None, container_host=None, container_host_interface=None, container_add_host=None):
         """
         Create a new Container for the passed function, then store it in a dictionary using the function name,
         so it can be retrieved later and used in the other functions. Make sure to use the debug_context only
@@ -357,6 +363,8 @@ class WarmLambdaRuntime(LambdaRuntime):
             Host of locally emulated Lambda container
         container_host_interface string
             Interface that Docker host binds ports to
+        container_add_host string
+            Add additional host to the container
 
         Returns
         -------
@@ -380,7 +388,7 @@ class WarmLambdaRuntime(LambdaRuntime):
             )
             debug_context = None
 
-        container = super().create(function_config, debug_context, container_host, container_host_interface)
+        container = super().create(function_config, debug_context, container_host, container_host_interface, container_add_host)
         self._containers[function_config.name] = container
 
         self._observer.watch(function_config)

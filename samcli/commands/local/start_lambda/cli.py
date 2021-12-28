@@ -95,6 +95,7 @@ def cli(
     debug_function,
     container_host,
     container_host_interface,
+    container_add_host,
     invoke_image,
 ):
     """
@@ -124,6 +125,7 @@ def cli(
         debug_function,
         container_host,
         container_host_interface,
+        container_add_host,
         invoke_image,
     )  # pragma: no cover
 
@@ -150,6 +152,7 @@ def do_cli(  # pylint: disable=R0914
     debug_function,
     container_host,
     container_host_interface,
+    container_add_host,
     invoke_image,
 ):
     """
@@ -194,6 +197,7 @@ def do_cli(  # pylint: disable=R0914
             shutdown=shutdown,
             container_host=container_host,
             container_host_interface=container_host_interface,
+            container_add_host=container_add_host,
             invoke_images=processed_invoke_images,
         ) as invoke_context:
 

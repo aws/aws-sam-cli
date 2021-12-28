@@ -320,6 +320,7 @@ class TestSamConfigForAllCommands(TestCase):
                 {"Key": "Value", "Key2": "Value2"},
                 "localhost",
                 "127.0.0.1",
+                "host.docker.internal"
                 ("image",),
             )
 
@@ -385,6 +386,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 "localhost",
                 "127.0.0.1",
+                "host.docker.internal"
                 ("image",),
             )
 
@@ -448,6 +450,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 "localhost",
                 "127.0.0.1",
+                "host.docker.internal"
                 ("image",),
             )
 
@@ -1026,6 +1029,7 @@ class TestSamConfigWithOverrides(TestCase):
                     "localhost",
                     "--container-host-interface",
                     "127.0.0.1",
+                    "host.docker.internal"
                 ],
             )
 
@@ -1057,6 +1061,7 @@ class TestSamConfigWithOverrides(TestCase):
                 None,
                 "localhost",
                 "127.0.0.1",
+                "host.docker.internal"
                 ("image",),
             )
 
@@ -1152,6 +1157,7 @@ class TestSamConfigWithOverrides(TestCase):
                 None,
                 "localhost",
                 "127.0.0.1",
+                "host.docker.internal"
                 ("image",),
             )
 

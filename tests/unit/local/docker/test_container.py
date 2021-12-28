@@ -67,6 +67,7 @@ class TestContainer_create(TestCase):
         self.additional_volumes = {"/somepath": {"blah": "blah value"}}
         self.container_host = "localhost"
         self.container_host_interface = "127.0.0.1"
+        self.container_add_host = "host.docker.internal"
 
         self.mock_docker_client = Mock()
         self.mock_docker_client.containers = Mock()
@@ -108,6 +109,9 @@ class TestContainer_create(TestCase):
                 container_port: ("127.0.0.1", host_port)
                 for container_port, host_port in {**self.exposed_ports, **self.always_exposed_ports}.items()
             },
+            extra_hosts={
+                self.container+":host-gateway"
+            },
             use_config_proxy=True,
         )
         self.mock_docker_client.networks.get.assert_not_called()
@@ -142,6 +146,7 @@ class TestContainer_create(TestCase):
             additional_volumes=self.additional_volumes,
             container_host=self.container_host,
             container_host_interface=self.container_host_interface,
+            container_add_host=self.container_add_host,
         )
 
         container_id = container.create()
@@ -159,6 +164,9 @@ class TestContainer_create(TestCase):
             ports={
                 container_port: (self.container_host_interface, host_port)
                 for container_port, host_port in {**self.exposed_ports, **self.always_exposed_ports}.items()
+            },
+            extra_hosts={
+                self.container+":host-gateway"
             },
             entrypoint=self.entrypoint,
             mem_limit=expected_memory,
@@ -219,6 +227,9 @@ class TestContainer_create(TestCase):
             ports={
                 container_port: ("127.0.0.1", host_port)
                 for container_port, host_port in {**self.exposed_ports, **self.always_exposed_ports}.items()
+            },
+            extra_hosts={
+                self.container+":host-gateway"
             },
             entrypoint=self.entrypoint,
             mem_limit=expected_memory,

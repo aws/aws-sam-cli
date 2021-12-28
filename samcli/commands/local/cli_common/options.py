@@ -66,6 +66,13 @@ def local_common_options(f):
             "Use 0.0.0.0 to bind to all interfaces.",
         ),
         click.option(
+            "--container-add-host",
+            default="host.docker.internal",
+            show_default=True,
+            help="Additional host to add to the container. "
+            "Use host.docker.internal or any hostname to connect to localhost services",
+        ),
+        click.option(
             "--invoke-image",
             "-ii",
             default=None,

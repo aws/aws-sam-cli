@@ -57,6 +57,7 @@ class Container:
         additional_volumes=None,
         container_host="localhost",
         container_host_interface="127.0.0.1",
+        container_add_host="host.docker.internal"
     ):
         """
         Initializes the class with given configuration. This does not automatically create or run the container.
@@ -75,6 +76,7 @@ class Container:
         :param additional_volumes: Optional list of additional volumes
         :param string container_host: Optional. Host of locally emulated Lambda container
         :param string container_host_interface: Optional. Interface that Docker host binds ports to
+        :param string container_add_host: Optional. Add additional host to the container
         """
 
         self._image = image
@@ -103,6 +105,7 @@ class Container:
 
         self._container_host = container_host
         self._container_host_interface = container_host_interface
+        self._container_add_host = container_add_host
 
         try:
             self.rapid_port_host = find_free_port(start=self._start_port_range, end=self._end_port_range)
@@ -159,6 +162,8 @@ class Container:
             kwargs["environment"] = self._env_vars
 
         kwargs["ports"] = {self.RAPID_PORT_CONTAINER: (self._container_host_interface, self.rapid_port_host)}
+
+        kwargs["extra_hosts"] = {self._container_add_host + ":host-gateway"}
 
         if self._exposed_ports:
             kwargs["ports"].update(

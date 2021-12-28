@@ -48,6 +48,7 @@ class LambdaContainer(Container):
         debug_options=None,
         container_host=None,
         container_host_interface=None,
+        container_add_host=None,
         function_name=None,
     ):
         """
@@ -84,6 +85,8 @@ class LambdaContainer(Container):
             Optional. Host of locally emulated Lambda container
         container_host_interface
             Optional. Interface that Docker host binds ports to
+        container_add_host
+            Optional. Add additional host to the container
         function_name str
             Optional. Logical ID of the function
         """
@@ -135,6 +138,7 @@ class LambdaContainer(Container):
             additional_volumes=additional_volumes,
             container_host=container_host,
             container_host_interface=container_host_interface,
+            container_add_host=container_add_host,
         )
 
     @staticmethod

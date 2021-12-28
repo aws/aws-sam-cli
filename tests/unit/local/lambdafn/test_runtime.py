@@ -86,6 +86,7 @@ class LambdaRuntime_create(TestCase):
             memory_mb=self.DEFAULT_MEMORY,
             container_host=None,
             container_host_interface=None,
+            container_add_host=None,
             function_name=self.name,
         )
         # Run the container and get results
@@ -169,7 +170,7 @@ class LambdaRuntime_run(TestCase):
         create_mock.return_value = container
 
         self.runtime.run(None, self.func_config, debug_context=debug_options)
-        create_mock.assert_called_with(self.func_config, debug_options, None, None)
+        create_mock.assert_called_with(self.func_config, debug_options, None, None, None)
         self.manager_mock.run.assert_called_with(container)
 
     def test_must_skip_run_running_container(self):
@@ -282,6 +283,7 @@ class LambdaRuntime_invoke(TestCase):
             memory_mb=self.DEFAULT_MEMORY,
             container_host=None,
             container_host_interface=None,
+            container_add_host=None,
             function_name=self.name,
         )
 
@@ -636,6 +638,7 @@ class TestWarmLambdaRuntime_invoke(TestCase):
             memory_mb=self.DEFAULT_MEMORY,
             container_host=None,
             container_host_interface=None,
+            container_add_host=None,
             function_name=self.name,
         )
 
@@ -719,6 +722,7 @@ class TestWarmLambdaRuntime_create(TestCase):
             memory_mb=self.DEFAULT_MEMORY,
             container_host=None,
             container_host_interface=None,
+            container_add_host=None,
             function_name=self.name,
         )
 
@@ -788,6 +792,7 @@ class TestWarmLambdaRuntime_create(TestCase):
             memory_mb=self.DEFAULT_MEMORY,
             container_host=None,
             container_host_interface=None,
+            container_add_host=None,
             function_name=self.name,
         )
         self.manager_mock.create.assert_called_with(container)

@@ -49,6 +49,7 @@ class TestCli(TestCase):
 
         self.container_host = "localhost"
         self.container_host_interface = "127.0.0.1"
+        self.container_add_host = "host.docker.internal"
         self.invoke_image = ()
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
@@ -88,6 +89,7 @@ class TestCli(TestCase):
             shutdown=self.shutdown,
             container_host=self.container_host,
             container_host_interface=self.container_host_interface,
+            container_add_host=self.container_add_host,
             invoke_images={},
         )
 
@@ -197,5 +199,6 @@ class TestCli(TestCase):
             shutdown=self.shutdown,
             container_host=self.container_host,
             container_host_interface=self.container_host_interface,
+            container_add_host=self.container_add_host,
             invoke_image=self.invoke_image,
         )
