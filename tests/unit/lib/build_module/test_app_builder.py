@@ -619,6 +619,16 @@ class TestApplicationBuilder_update_template(TestCase):
             "Resources": {
                 "MyFunction1": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "oldvalue"}},
                 "MyFunction2": {"Type": "AWS::Lambda::Function", "Properties": {"Code": "oldvalue"}},
+                "MyCDKFunction": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {"Code": "oldvalue"},
+                    "Metadata": {"aws:cdk:path": "Stack/CDKFunc/Resource",},
+                },
+                "MyCustomIdFunction": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {"Code": "oldvalue"},
+                    "Metadata": {"SamResourceId": "CustomIdFunc", },
+                },
                 "GlueResource": {"Type": "AWS::Glue::Job", "Properties": {"Command": {"ScriptLocation": "something"}}},
                 "OtherResource": {"Type": "AWS::Lambda::Version", "Properties": {"CodeUri": "something"}},
                 "MyImageFunction1": {
@@ -645,6 +655,8 @@ class TestApplicationBuilder_update_template(TestCase):
         built_artifacts = {
             "MyFunction1": "/path/to/build/MyFunction1",
             "MyFunction2": "/path/to/build/MyFunction2",
+            "CDKFunc": "/path/to/build/MyCDKFunction",
+            "CustomIdFunc": "/path/to/build/MyCustomIdFunction",
             "MyServerlessLayer": "/path/to/build/ServerlessLayer",
             "MyLambdaLayer": "/path/to/build/LambdaLayer",
             "MyImageFunction1": "myimagefunction1:Tag",
@@ -660,6 +672,16 @@ class TestApplicationBuilder_update_template(TestCase):
                 "MyFunction2": {
                     "Type": "AWS::Lambda::Function",
                     "Properties": {"Code": os.path.join("build", "MyFunction2")},
+                },
+                "MyCDKFunction": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {"Code": os.path.join("build", "MyCDKFunction")},
+                    "Metadata": {"aws:cdk:path": "Stack/CDKFunc/Resource", },
+                },
+                "MyCustomIdFunction": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {"Code": os.path.join("build", "MyCustomIdFunction")},
+                    "Metadata": {"SamResourceId": "CustomIdFunc", },
                 },
                 "GlueResource": {"Type": "AWS::Glue::Job", "Properties": {"Command": {"ScriptLocation": "something"}}},
                 "OtherResource": {"Type": "AWS::Lambda::Version", "Properties": {"CodeUri": "something"}},
@@ -698,6 +720,8 @@ class TestApplicationBuilder_update_template(TestCase):
             "ChildStackXXX/MyLambdaLayer": "/path/to/build/ChildStackXXX/LambdaLayer",
             "ChildStackXXX/MyFunction1": "/path/to/build/ChildStackXXX/MyFunction1",
             "ChildStackXXX/MyFunction2": "/path/to/build/ChildStackXXX/MyFunction2",
+            "ChildStackXXX/CDKFunc": "/path/to/build/ChildStackXXX/MyCDKFunction",
+            "ChildStackXXX/CustomIdFunc": "/path/to/build/ChildStackXXX/MyCustomIdFunction",
             "ChildStackXXX/MyImageFunction1": "myimagefunction1:Tag",
         }
         stack_output_paths = {
@@ -714,6 +738,16 @@ class TestApplicationBuilder_update_template(TestCase):
                 "MyFunction2": {
                     "Type": "AWS::Lambda::Function",
                     "Properties": {"Code": os.path.join("build", "ChildStackXXX", "MyFunction2")},
+                },
+                "MyCDKFunction": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {"Code": os.path.join("build", "ChildStackXXX", "MyCDKFunction")},
+                    "Metadata": {"aws:cdk:path": "Stack/CDKFunc/Resource", },
+                },
+                "MyCustomIdFunction": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {"Code": os.path.join("build", "ChildStackXXX", "MyCustomIdFunction")},
+                    "Metadata": {"SamResourceId": "CustomIdFunc", },
                 },
                 "GlueResource": {"Type": "AWS::Glue::Job", "Properties": {"Command": {"ScriptLocation": "something"}}},
                 "OtherResource": {"Type": "AWS::Lambda::Version", "Properties": {"CodeUri": "something"}},
