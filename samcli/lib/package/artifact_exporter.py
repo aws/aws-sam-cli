@@ -20,6 +20,7 @@ from typing import Dict, Optional, List
 
 from botocore.utils import set_value_from_jmespath
 
+from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 from samcli.lib.utils.resources import (
     AWS_SERVERLESS_FUNCTION,
     AWS_CLOUDFORMATION_STACK,
@@ -78,7 +79,9 @@ class CloudFormationStackResource(ResourceZip):
                 property_name=self.PROPERTY_NAME, resource_id=resource_id, template_path=abs_template_path
             )
 
-        exported_template_dict = Template(template_path, parent_dir, self.uploaders, self.code_signer).export()
+        exported_template_dict = Template(
+            template_path, parent_dir, self.uploaders, self.code_signer, normalize_template=True
+        ).export()
 
         exported_template_str = yaml_dump(exported_template_dict)
 
@@ -127,6 +130,7 @@ class Template:
         ),
         metadata_to_export=frozenset(METADATA_EXPORT_LIST),
         template_str: Optional[str] = None,
+        normalize_template: bool = False,
     ):
         """
         Reads the template and makes it ready for export
@@ -144,6 +148,8 @@ class Template:
             self.template_dir = template_dir
             self.code_signer = code_signer
         self.template_dict = yaml_parse(template_str)
+        if normalize_template:
+            ResourceMetadataNormalizer.normalize(self.template_dict)
         self.resources_to_export = resources_to_export
         self.metadata_to_export = metadata_to_export
         self.uploaders = uploaders
