@@ -135,7 +135,7 @@ class PackageContext:
             raise PackageFailedError(template_file=self.template_file, ex=str(ex)) from ex
 
     def _export(self, template_path, use_json):
-        template = Template(template_path, os.getcwd(), self.uploaders, self.code_signer)
+        template = Template(template_path, os.getcwd(), self.uploaders, self.code_signer, normalize_template=True)
         exported_template = template.export()
 
         if use_json:
