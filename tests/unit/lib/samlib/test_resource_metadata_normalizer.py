@@ -23,6 +23,7 @@ class TestResourceMetadataNormalizer(TestCase):
         ResourceMetadataNormalizer.normalize(template_data)
 
         self.assertEqual("new path", template_data["Resources"]["Function1"]["Properties"]["Code"])
+        self.assertEqual(True, template_data["Resources"]["Function1"]["Metadata"]["SamNormalized"])
 
     def test_replace_all_resources_that_contain_metadata(self):
         template_data = {
@@ -201,6 +202,31 @@ class TestResourceMetadataNormalizer(TestCase):
         ResourceMetadataNormalizer.normalize(template_data)
 
         self.assertIsNone(template_data["Resources"]["Function1"]["Metadata"].get("SkipBuild"))
+
+    def test_skip_normalizing_already_normalized_resource(self):
+        template_data = {
+            "Resources": {
+                "Function1": {
+                    "Properties": {
+                        "Code": {
+                            "S3Bucket": {"Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"},
+                            "S3Key": "00c88ea957f8f667f083d6073f00c49dd2ed7ddd87bb7a3b6f01d014243a3b22.zip",
+                        }
+                    },
+                    "Metadata": {"aws:asset:path": "new path", "aws:asset:property": "Code"},
+                }
+            }
+        }
+
+        ResourceMetadataNormalizer.normalize(template_data)
+
+        self.assertEqual("new path", template_data["Resources"]["Function1"]["Properties"]["Code"])
+        self.assertEqual(True, template_data["Resources"]["Function1"]["Metadata"]["SamNormalized"])
+
+        # Normalized resource will not be normalized again
+        template_data["Resources"]["Function1"]["Metadata"]["aws:asset:path"] = "updated path"
+        ResourceMetadataNormalizer.normalize(template_data)
+        self.assertEqual("new path", template_data["Resources"]["Function1"]["Properties"]["Code"])
 
 
 class TestResourceMetadataNormalizerGetResourceId(TestCase):
