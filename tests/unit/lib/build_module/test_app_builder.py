@@ -71,7 +71,9 @@ class TestApplicationBuilder_build(TestCase):
         resources_to_build_collector = ResourcesToBuildCollector()
         resources_to_build_collector.add_functions([self.func1, self.func2, self.imageFunc1])
         resources_to_build_collector.add_layers([self.layer1, self.layer2])
-        self.builder = ApplicationBuilder(resources_to_build_collector, "builddir", "basedir", "cachedir", stream_writer=StreamWriter(sys.stderr))
+        self.builder = ApplicationBuilder(
+            resources_to_build_collector, "builddir", "basedir", "cachedir", stream_writer=StreamWriter(sys.stderr)
+        )
 
     @patch("samcli.lib.build.build_graph.BuildGraph._write")
     def test_must_iterate_on_functions_and_layers(self, persist_mock):
@@ -259,7 +261,9 @@ class TestApplicationBuilder_build(TestCase):
         build_dir = "builddir"
 
         # instantiate the builder and run build method
-        builder = ApplicationBuilder(resources_to_build_collector, "builddir", "basedir", "cachedir", stream_writer=StreamWriter(sys.stderr))
+        builder = ApplicationBuilder(
+            resources_to_build_collector, "builddir", "basedir", "cachedir", stream_writer=StreamWriter(sys.stderr)
+        )
         builder._build_function = build_function_mock
         build_function_mock.side_effect = [
             function1_1.get_build_dir(build_dir),
@@ -339,7 +343,9 @@ class TestApplicationBuilder_build(TestCase):
         build_graph_mock = Mock()
         get_build_graph_mock = Mock(return_value=build_graph_mock)
 
-        builder = ApplicationBuilder(Mock(), "builddir", "basedir", "cachedir", cached=True, stream_writer=StreamWriter(sys.stderr))
+        builder = ApplicationBuilder(
+            Mock(), "builddir", "basedir", "cachedir", cached=True, stream_writer=StreamWriter(sys.stderr)
+        )
         builder._get_build_graph = get_build_graph_mock
 
         result = builder.build().artifacts
@@ -355,7 +361,9 @@ class TestApplicationBuilder_build(TestCase):
         build_graph_mock = Mock()
         get_build_graph_mock = Mock(return_value=build_graph_mock)
 
-        builder = ApplicationBuilder(Mock(), "builddir", "basedir", "cachedir", parallel=True, stream_writer=StreamWriter(sys.stderr))
+        builder = ApplicationBuilder(
+            Mock(), "builddir", "basedir", "cachedir", parallel=True, stream_writer=StreamWriter(sys.stderr)
+        )
         builder._get_build_graph = get_build_graph_mock
 
         result = builder.build().artifacts
@@ -378,7 +386,15 @@ class TestApplicationBuilder_build(TestCase):
         build_graph_mock = Mock()
         get_build_graph_mock = Mock(return_value=build_graph_mock)
 
-        builder = ApplicationBuilder(Mock(), "builddir", "basedir", "cachedir", parallel=True, cached=True, stream_writer=StreamWriter(sys.stderr))
+        builder = ApplicationBuilder(
+            Mock(),
+            "builddir",
+            "basedir",
+            "cachedir",
+            parallel=True,
+            cached=True,
+            stream_writer=StreamWriter(sys.stderr),
+        )
         builder._get_build_graph = get_build_graph_mock
 
         result = builder.build().artifacts
@@ -423,7 +439,9 @@ class TestApplicationBuilder_build(TestCase):
         build_dir = "builddir"
 
         # instantiate the builder and run build method
-        builder = ApplicationBuilder(resources_to_build_collector, "builddir", "basedir", "cachedir", stream_writer=StreamWriter(sys.stderr))
+        builder = ApplicationBuilder(
+            resources_to_build_collector, "builddir", "basedir", "cachedir", stream_writer=StreamWriter(sys.stderr)
+        )
         builder._build_function = build_function_mock
         build_function_mock.side_effect = [function.get_build_dir(build_dir)]
 
@@ -448,7 +466,9 @@ class TestApplicationBuilderForLayerBuild(TestCase):
         self.container_manager = Mock()
         resources_to_build_collector = ResourcesToBuildCollector()
         resources_to_build_collector.add_layers([self.layer1, self.layer2])
-        self.builder = ApplicationBuilder(resources_to_build_collector, "builddir", "basedir", "cachedir", stream_writer=StreamWriter(sys.stderr))
+        self.builder = ApplicationBuilder(
+            resources_to_build_collector, "builddir", "basedir", "cachedir", stream_writer=StreamWriter(sys.stderr)
+        )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
     @patch("samcli.lib.build.app_builder.osutils")
@@ -591,7 +611,9 @@ class TestApplicationBuilder_update_template(TestCase):
         }
 
     def setUp(self):
-        self.builder = ApplicationBuilder(Mock(), "builddir", "basedir", "cachedir", stream_writer=StreamWriter(sys.stderr))
+        self.builder = ApplicationBuilder(
+            Mock(), "builddir", "basedir", "cachedir", stream_writer=StreamWriter(sys.stderr)
+        )
 
         self.template_dict = {
             "Resources": {
@@ -600,12 +622,16 @@ class TestApplicationBuilder_update_template(TestCase):
                 "MyCDKFunction": {
                     "Type": "AWS::Lambda::Function",
                     "Properties": {"Code": "oldvalue"},
-                    "Metadata": {"aws:cdk:path": "Stack/CDKFunc/Resource",},
+                    "Metadata": {
+                        "aws:cdk:path": "Stack/CDKFunc/Resource",
+                    },
                 },
                 "MyCustomIdFunction": {
                     "Type": "AWS::Lambda::Function",
                     "Properties": {"Code": "oldvalue"},
-                    "Metadata": {"SamResourceId": "CustomIdFunc", },
+                    "Metadata": {
+                        "SamResourceId": "CustomIdFunc",
+                    },
                 },
                 "GlueResource": {"Type": "AWS::Glue::Job", "Properties": {"Command": {"ScriptLocation": "something"}}},
                 "OtherResource": {"Type": "AWS::Lambda::Version", "Properties": {"CodeUri": "something"}},
@@ -642,12 +668,16 @@ class TestApplicationBuilder_update_template(TestCase):
                 "MyCDKFunction": {
                     "Type": "AWS::Lambda::Function",
                     "Properties": {"Code": os.path.join("build", "MyCDKFunction")},
-                    "Metadata": {"aws:cdk:path": "Stack/CDKFunc/Resource", },
+                    "Metadata": {
+                        "aws:cdk:path": "Stack/CDKFunc/Resource",
+                    },
                 },
                 "MyCustomIdFunction": {
                     "Type": "AWS::Lambda::Function",
                     "Properties": {"Code": os.path.join("build", "MyCustomIdFunction")},
-                    "Metadata": {"SamResourceId": "CustomIdFunc", },
+                    "Metadata": {
+                        "SamResourceId": "CustomIdFunc",
+                    },
                 },
                 "GlueResource": {"Type": "AWS::Glue::Job", "Properties": {"Command": {"ScriptLocation": "something"}}},
                 "OtherResource": {"Type": "AWS::Lambda::Version", "Properties": {"CodeUri": "something"}},
@@ -696,12 +726,16 @@ class TestApplicationBuilder_update_template(TestCase):
                 "MyCDKFunction": {
                     "Type": "AWS::Lambda::Function",
                     "Properties": {"Code": os.path.join("build", "ChildStackXXX", "MyCDKFunction")},
-                    "Metadata": {"aws:cdk:path": "Stack/CDKFunc/Resource", },
+                    "Metadata": {
+                        "aws:cdk:path": "Stack/CDKFunc/Resource",
+                    },
                 },
                 "MyCustomIdFunction": {
                     "Type": "AWS::Lambda::Function",
                     "Properties": {"Code": os.path.join("build", "ChildStackXXX", "MyCustomIdFunction")},
-                    "Metadata": {"SamResourceId": "CustomIdFunc", },
+                    "Metadata": {
+                        "SamResourceId": "CustomIdFunc",
+                    },
                 },
                 "GlueResource": {"Type": "AWS::Glue::Job", "Properties": {"Command": {"ScriptLocation": "something"}}},
                 "OtherResource": {"Type": "AWS::Lambda::Version", "Properties": {"CodeUri": "something"}},
@@ -752,7 +786,9 @@ class TestApplicationBuilder_update_template(TestCase):
 
 class TestApplicationBuilder_update_template_windows(TestCase):
     def setUp(self):
-        self.builder = ApplicationBuilder(Mock(), "builddir", "basedir", "cachedir", stream_writer=StreamWriter(sys.stderr))
+        self.builder = ApplicationBuilder(
+            Mock(), "builddir", "basedir", "cachedir", stream_writer=StreamWriter(sys.stderr)
+        )
 
         self.template_dict = {
             "Resources": {
@@ -1015,7 +1051,9 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
 
 class TestApplicationBuilder_build_function(TestCase):
     def setUp(self):
-        self.builder = ApplicationBuilder(Mock(), "/build/dir", "/base/dir", "cachedir", stream_writer=StreamWriter(sys.stderr))
+        self.builder = ApplicationBuilder(
+            Mock(), "/build/dir", "/base/dir", "cachedir", stream_writer=StreamWriter(sys.stderr)
+        )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
     @patch("samcli.lib.build.app_builder.osutils")
@@ -1249,7 +1287,9 @@ class TestApplicationBuilder_build_function(TestCase):
 
 class TestApplicationBuilder_build_function_in_process(TestCase):
     def setUp(self):
-        self.builder = ApplicationBuilder(Mock(), "/build/dir", "/base/dir", "/cache/dir", mode="mode", stream_writer=StreamWriter(sys.stderr))
+        self.builder = ApplicationBuilder(
+            Mock(), "/build/dir", "/base/dir", "/cache/dir", mode="mode", stream_writer=StreamWriter(sys.stderr)
+        )
 
     @patch("samcli.lib.build.app_builder.LambdaBuilder")
     def test_must_use_lambda_builder(self, lambda_builder_mock):
@@ -1319,7 +1359,13 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
     def setUp(self):
         self.container_manager = Mock()
         self.builder = ApplicationBuilder(
-            Mock(), "/build/dir", "/base/dir", "/cache/dir", container_manager=self.container_manager, mode="mode", stream_writer=StreamWriter(sys.stderr)
+            Mock(),
+            "/build/dir",
+            "/base/dir",
+            "/cache/dir",
+            container_manager=self.container_manager,
+            mode="mode",
+            stream_writer=StreamWriter(sys.stderr),
         )
         self.builder._parse_builder_response = Mock()
 
@@ -1427,7 +1473,9 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
 class TestApplicationBuilder_parse_builder_response(TestCase):
     def setUp(self):
         self.image_name = "name"
-        self.builder = ApplicationBuilder(Mock(), "/build/dir", "/base/dir", "/cache/dir", stream_writer=StreamWriter(sys.stderr))
+        self.builder = ApplicationBuilder(
+            Mock(), "/build/dir", "/base/dir", "/cache/dir", stream_writer=StreamWriter(sys.stderr)
+        )
 
     def test_must_parse_json(self):
         data = {"valid": "json"}
