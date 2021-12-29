@@ -307,19 +307,9 @@ class ApplicationBuilder:
                 store_path = os.path.relpath(absolute_output_path, original_dir)
 
             if has_build_artifact:
-                if resource_type == AWS_SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == ZIP:
-                    properties["CodeUri"] = store_path
-
-                if resource_type == AWS_LAMBDA_FUNCTION and properties.get("PackageType", ZIP) == ZIP:
-                    properties["Code"] = store_path
-
-                if resource_type in [AWS_SERVERLESS_LAYERVERSION, AWS_LAMBDA_LAYERVERSION]:
-                    properties["ContentUri"] = store_path
-
-                if resource_type == AWS_LAMBDA_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
-                    properties["Code"] = {"ImageUri": built_artifacts[full_path]}
-                if resource_type == AWS_SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
-                    properties["ImageUri"] = built_artifacts[full_path]
+                ApplicationBuilder._update_built_resource(
+                    built_artifacts[full_path], properties, resource_type, store_path
+                )
 
             if is_stack:
                 if resource_type == AWS_SERVERLESS_APPLICATION:
@@ -329,6 +319,21 @@ class ApplicationBuilder:
                     properties["TemplateURL"] = store_path
 
         return template_dict
+
+    @staticmethod
+    def _update_built_resource(path: str, resource_properties: Dict, resource_type: str, absolute_path: str) -> None:
+        if resource_type == AWS_SERVERLESS_FUNCTION and resource_properties.get("PackageType", ZIP) == ZIP:
+            resource_properties["CodeUri"] = absolute_path
+        if resource_type == AWS_LAMBDA_FUNCTION and resource_properties.get("PackageType", ZIP) == ZIP:
+            resource_properties["Code"] = absolute_path
+        if resource_type == AWS_LAMBDA_LAYERVERSION:
+            resource_properties["Content"] = absolute_path
+        if resource_type == AWS_SERVERLESS_LAYERVERSION:
+            resource_properties["ContentUri"] = absolute_path
+        if resource_type == AWS_LAMBDA_FUNCTION and resource_properties.get("PackageType", ZIP) == IMAGE:
+            resource_properties["Code"] = {"ImageUri": path}
+        if resource_type == AWS_SERVERLESS_FUNCTION and resource_properties.get("PackageType", ZIP) == IMAGE:
+            resource_properties["ImageUri"] = path
 
     def _build_lambda_image(self, function_name: str, metadata: Dict, architecture: str) -> str:
         """
