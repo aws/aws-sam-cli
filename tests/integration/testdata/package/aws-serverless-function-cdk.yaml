@@ -14,4 +14,4 @@ Resources:
       aws:cdk:path: ApiCorsIssueStack/Lambda/Resource
       aws:asset:path: ./lambda_code
       aws:asset:is-bundled: false
-      aws:asset:property: Code
+      aws:asset:property: CodeUri

@@ -14,7 +14,7 @@ Logic for uploading to s3 based on supplied template file and s3 bucket
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
-
+import copy
 import json
 import logging
 import os
@@ -30,6 +30,7 @@ from samcli.lib.package.ecr_uploader import ECRUploader
 from samcli.lib.package.code_signer import CodeSigner
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Uploaders
+from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 from samcli.lib.utils.boto_utils import get_boto_config_with_user_agent
 from samcli.yamlhelper import yaml_dump
 
@@ -137,6 +138,10 @@ class PackageContext:
     def _export(self, template_path, use_json):
         template = Template(template_path, os.getcwd(), self.uploaders, self.code_signer, normalize_template=True)
         exported_template = template.export()
+        updated_template = copy.deepcopy(exported_template)
+        ResourceMetadataNormalizer.normalize(updated_template, True)
+        if updated_template.get("Parameters", None) and isinstance(updated_template.get("Parameters", None), dict):
+            exported_template["Parameters"] = updated_template.get("Parameters", None)
 
         if use_json:
             exported_str = json.dumps(exported_template, indent=4, ensure_ascii=False)
