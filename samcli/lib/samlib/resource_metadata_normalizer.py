@@ -6,8 +6,6 @@ import logging
 from pathlib import Path
 import json
 
-import jmespath
-
 from samcli.lib.iac.cdk.utils import is_cdk_project
 
 RESOURCES_KEY = "Resources"
