@@ -4,7 +4,11 @@ Class that Normalizes a Template based on Resource Metadata
 
 import logging
 from pathlib import Path
+import json
+
 import jmespath
+
+from samcli.lib.iac.cdk.utils import is_cdk_project
 
 RESOURCES_KEY = "Resources"
 PROPERTIES_KEY = "Properties"
@@ -31,7 +35,7 @@ LOG = logging.getLogger(__name__)
 
 class ResourceMetadataNormalizer:
     @staticmethod
-    def normalize(template_dict):
+    def normalize(template_dict, normalize_parameters=False):
         """
         Normalize all Resources in the template with the Metadata Key on the resource.
 
@@ -73,6 +77,19 @@ class ResourceMetadataNormalizer:
                         SAM_METADATA_SKIP_BUILD_KEY: True,
                     },
                 )
+
+        if normalize_parameters and is_cdk_project(template_dict):
+            resources_as_string = json.dumps(resources)
+            parameters = template_dict.get("Parameters", {})
+
+            for parameter_name, parameter_value in parameters.items():
+                if (
+                    parameter_name.startswith("AssetParameters")
+                    and "Default" not in parameter_value
+                    and parameter_value.get("Type", "") == "String"
+                    and f'"Ref": "{parameter_name}"' not in resources_as_string
+                ):
+                    parameter_value["Default"] = " "
 
     @staticmethod
     def _replace_property(property_key, property_value, resource, logical_id):

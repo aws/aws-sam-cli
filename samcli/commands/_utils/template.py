@@ -10,7 +10,7 @@ import yaml
 from botocore.utils import set_value_from_jmespath
 
 from samcli.commands.exceptions import UserException
-from samcli.lib.samlib.resource_metadata_normalizer import ASSET_PATH_METADATA_KEY
+from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer, ASSET_PATH_METADATA_KEY
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.yamlhelper import yaml_parse, yaml_dump
 from samcli.lib.utils.resources import (
@@ -265,6 +265,7 @@ def get_template_parameters(template_file):
     Template Parameters as a dictionary
     """
     template_dict = get_template_data(template_file=template_file)
+    ResourceMetadataNormalizer.normalize(template_dict, True)
     return template_dict.get("Parameters", dict())
 
 

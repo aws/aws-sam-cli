@@ -73,6 +73,54 @@ class Test_get_template_data(TestCase):
         m.assert_called_with(filename, "r", encoding="utf-8")
         yaml_parse_mock.assert_called_with(file_data)
 
+    @patch("samcli.commands._utils.template.yaml_parse")
+    @patch("samcli.commands._utils.template.pathlib")
+    def test_must_read_file_get_and_normalize_parameters(self, pathlib_mock, yaml_parse_mock):
+        filename = "filename"
+        file_data = "contents of the file"
+        parse_result = {
+            "Parameters": {
+                "AssetParameters123": {"Type": "String", "Description": 'S3 bucket for asset "12345432"'},
+            },
+            "Resources": {
+                "CDKMetadata": {
+                    "Type": "AWS::CDK::Metadata",
+                    "Properties": {"Analytics": "v2:deflate64:H4s"},
+                    "Metadata": {"aws:cdk:path": "Stack/CDKMetadata/Default"},
+                },
+                "Function1": {
+                    "Properties": {"Code": "some value"},
+                    "Metadata": {
+                        "aws:asset:path": "new path",
+                        "aws:asset:property": "Code",
+                        "aws:asset:is-bundled": False,
+                    },
+                },
+            },
+        }
+
+        pathlib_mock.Path.return_value.exists.return_value = True  # Fake that the file exists
+
+        m = mock_open(read_data=file_data)
+        yaml_parse_mock.return_value = parse_result
+
+        with patch("samcli.commands._utils.template.open", m):
+            result = get_template_parameters(filename)
+
+            self.assertEqual(
+                result,
+                {
+                    "AssetParameters123": {
+                        "Type": "String",
+                        "Description": 'S3 bucket for asset "12345432"',
+                        "Default": " ",
+                    }
+                },
+            )
+
+        m.assert_called_with(filename, "r", encoding="utf-8")
+        yaml_parse_mock.assert_called_with(file_data)
+
     @parameterized.expand([param(ValueError()), param(yaml.YAMLError())])
     @patch("samcli.commands._utils.template.yaml_parse")
     @patch("samcli.commands._utils.template.pathlib")

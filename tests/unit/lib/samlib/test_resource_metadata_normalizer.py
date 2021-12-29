@@ -202,6 +202,70 @@ class TestResourceMetadataNormalizer(TestCase):
 
         self.assertIsNone(template_data["Resources"]["Function1"]["Metadata"].get("SkipBuild"))
 
+    def test_no_cdk_template_parameters_should_not_be_normalized(self):
+        template_data = {
+            "Parameters": {
+                "AssetParameters123456543": {"Type": "String", "Description": 'S3 bucket for asset "12345432"'},
+            },
+            "Resources": {
+                "Function1": {
+                    "Properties": {"Code": "some value"},
+                    "Metadata": {
+                        "aws:asset:path": "new path",
+                        "aws:asset:property": "Code",
+                        "aws:asset:is-bundled": False,
+                    },
+                }
+            },
+        }
+
+        ResourceMetadataNormalizer.normalize(template_data, True)
+
+        self.assertIsNone(template_data["Parameters"]["AssetParameters123456543"].get("Default"))
+
+    def test_cdk_template_parameters_should_be_normalized(self):
+        template_data = {
+            "Parameters": {
+                "AssetParameters123": {"Type": "String", "Description": 'S3 bucket for asset "12345432"'},
+                "AssetParameters124": {
+                    "Type": "String",
+                    "Description": 'S3 bucket for asset "12345432"',
+                    "Default": "/path",
+                },
+                "AssetParameters125": {
+                    "Type": "notString",
+                    "Description": 'S3 bucket for asset "12345432"',
+                },
+                "AssetParameters126": {"Type": "String", "Description": 'S3 bucket for asset "12345432"'},
+                "NotAssetParameters": {"Type": "String", "Description": 'S3 bucket for asset "12345432"'},
+            },
+            "Resources": {
+                "CDKMetadata": {
+                    "Type": "AWS::CDK::Metadata",
+                    "Properties": {"Analytics": "v2:deflate64:H4s"},
+                    "Metadata": {"aws:cdk:path": "Stack/CDKMetadata/Default"},
+                },
+                "Function1": {
+                    "Properties": {"Code": "some value"},
+                    "Metadata": {
+                        "aws:asset:path": "new path",
+                        "aws:asset:property": "Code",
+                        "aws:asset:is-bundled": False,
+                    },
+                },
+                "Function2": {
+                    "Properties": {"Code": {"Ref": "AssetParameters126"}},
+                },
+            },
+        }
+
+        ResourceMetadataNormalizer.normalize(template_data, True)
+        self.assertEquals(template_data["Parameters"]["AssetParameters123"]["Default"], " ")
+        self.assertEquals(template_data["Parameters"]["AssetParameters124"]["Default"], "/path")
+        self.assertIsNone(template_data["Parameters"]["AssetParameters125"].get("Default"))
+        self.assertIsNone(template_data["Parameters"]["AssetParameters126"].get("Default"))
+        self.assertIsNone(template_data["Parameters"]["NotAssetParameters"].get("Default"))
+
 
 class TestResourceMetadataNormalizerGetResourceId(TestCase):
     def test_use_cdk_id_as_resource_id(self):
