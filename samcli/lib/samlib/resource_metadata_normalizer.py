@@ -6,8 +6,6 @@ import logging
 from pathlib import Path
 import json
 
-import jmespath
-
 from samcli.lib.iac.cdk.utils import is_cdk_project
 
 RESOURCES_KEY = "Resources"
@@ -23,6 +21,7 @@ ASSET_DOCKERFILE_PATH_KEY = "aws:asset:dockerfile-path"
 ASSET_DOCKERFILE_BUILD_ARGS_KEY = "aws:asset:docker-build-args"
 
 SAM_RESOURCE_ID_KEY = "SamResourceId"
+SAM_IS_NORMALIZED = "SamNormalized"
 SAM_METADATA_DOCKERFILE_KEY = "Dockerfile"
 SAM_METADATA_DOCKER_CONTEXT_KEY = "DockerContext"
 SAM_METADATA_DOCKER_BUILD_ARGS_KEY = "DockerBuildArgs"
@@ -51,22 +50,21 @@ class ResourceMetadataNormalizer:
 
         for logical_id, resource in resources.items():
             resource_metadata = resource.get(METADATA_KEY, {})
-            asset_property = resource_metadata.get(ASSET_PROPERTY_METADATA_KEY)
+            is_normalized = resource_metadata.get(SAM_IS_NORMALIZED, False)
+            if not is_normalized:
+                asset_property = resource_metadata.get(ASSET_PROPERTY_METADATA_KEY)
+                if asset_property == IMAGE_ASSET_PROPERTY:
+                    asset_metadata = ResourceMetadataNormalizer._extract_image_asset_metadata(resource_metadata)
+                    ResourceMetadataNormalizer._update_resource_metadata(resource_metadata, asset_metadata)
+                    # For image-type functions, the asset path is expected to be the name of the Docker image.
+                    # When building, we set the name of the image to be the logical id of the function.
+                    asset_path = logical_id.lower()
+                else:
+                    asset_path = resource_metadata.get(ASSET_PATH_METADATA_KEY)
 
-            if asset_property == IMAGE_ASSET_PROPERTY:
-                asset_metadata = ResourceMetadataNormalizer._extract_image_asset_metadata(resource_metadata)
-                ResourceMetadataNormalizer._update_resource_metadata(resource_metadata, asset_metadata)
-                # For image-type functions, the asset path is expected to be the name of the Docker image.
-                # When building, we set the name of the image to be the logical id of the function.
-                asset_path = logical_id.lower()
-            else:
-                asset_path = resource_metadata.get(ASSET_PATH_METADATA_KEY)
-
-            current_asset_property_value = (
-                jmespath.search(asset_property, resource.get(PROPERTIES_KEY, {})) if asset_property else None
-            )
-            if not current_asset_property_value or isinstance(current_asset_property_value, dict):
                 ResourceMetadataNormalizer._replace_property(asset_property, asset_path, resource, logical_id)
+                if asset_path and asset_property:
+                    resource_metadata[SAM_IS_NORMALIZED] = True
 
             # Set SkipBuild metadata iff is-bundled metadata exists, and value is True
             skip_build = resource_metadata.get(ASSET_BUNDLED_METADATA_KEY, False)
