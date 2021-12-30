@@ -9,10 +9,15 @@ import re
 
 from samcli.lib.iac.cdk.utils import is_cdk_project
 
+from samcli.lib.utils.resources import AWS_CLOUDFORMATION_STACK
+
+CDK_NESTED_STACK_RESOURCE_ID_SUFFIX = ".NestedStack"
+
 RESOURCES_KEY = "Resources"
 PROPERTIES_KEY = "Properties"
 METADATA_KEY = "Metadata"
 
+RESOURCE_CDK_PATH_METADATA_KEY = "aws:cdk:path"
 ASSET_PATH_METADATA_KEY = "aws:asset:path"
 ASSET_PROPERTY_METADATA_KEY = "aws:asset:property"
 
@@ -20,6 +25,8 @@ IMAGE_ASSET_PROPERTY = "Code.ImageUri"
 ASSET_DOCKERFILE_PATH_KEY = "aws:asset:dockerfile-path"
 ASSET_DOCKERFILE_BUILD_ARGS_KEY = "aws:asset:docker-build-args"
 
+SAM_RESOURCE_ID_KEY = "SamResourceId"
+SAM_IS_NORMALIZED = "SamNormalized"
 SAM_METADATA_DOCKERFILE_KEY = "Dockerfile"
 SAM_METADATA_DOCKER_CONTEXT_KEY = "DockerContext"
 SAM_METADATA_DOCKER_BUILD_ARGS_KEY = "DockerBuildArgs"
@@ -53,18 +60,21 @@ class ResourceMetadataNormalizer:
 
         for logical_id, resource in resources.items():
             resource_metadata = resource.get(METADATA_KEY, {})
-            asset_property = resource_metadata.get(ASSET_PROPERTY_METADATA_KEY)
+            is_normalized = resource_metadata.get(SAM_IS_NORMALIZED, False)
+            if not is_normalized:
+                asset_property = resource_metadata.get(ASSET_PROPERTY_METADATA_KEY)
+                if asset_property == IMAGE_ASSET_PROPERTY:
+                    asset_metadata = ResourceMetadataNormalizer._extract_image_asset_metadata(resource_metadata)
+                    ResourceMetadataNormalizer._update_resource_metadata(resource_metadata, asset_metadata)
+                    # For image-type functions, the asset path is expected to be the name of the Docker image.
+                    # When building, we set the name of the image to be the logical id of the function.
+                    asset_path = logical_id.lower()
+                else:
+                    asset_path = resource_metadata.get(ASSET_PATH_METADATA_KEY)
 
-            if asset_property == IMAGE_ASSET_PROPERTY:
-                asset_metadata = ResourceMetadataNormalizer._extract_image_asset_metadata(resource_metadata)
-                ResourceMetadataNormalizer._update_resource_metadata(resource_metadata, asset_metadata)
-                # For image-type functions, the asset path is expected to be the name of the Docker image.
-                # When building, we set the name of the image to be the logical id of the function.
-                asset_path = logical_id.lower()
-            else:
-                asset_path = resource_metadata.get(ASSET_PATH_METADATA_KEY)
-
-            ResourceMetadataNormalizer._replace_property(asset_property, asset_path, resource, logical_id)
+                ResourceMetadataNormalizer._replace_property(asset_property, asset_path, resource, logical_id)
+                if asset_path and asset_property:
+                    resource_metadata[SAM_IS_NORMALIZED] = True
 
             # Set SkipBuild metadata iff is-bundled metadata exists, and value is True
             skip_build = resource_metadata.get(ASSET_BUNDLED_METADATA_KEY, False)
@@ -182,3 +192,65 @@ class ResourceMetadataNormalizer:
         """
         for key, val in updated_values.items():
             metadata[key] = val
+
+    @staticmethod
+    def get_resource_id(resource_properties, logical_id):
+        """
+        Get unique id for a resource.
+        for any resource, the resource id can be the customer defined id if exist, if not exist it can be the
+        cdk-defined resource id, or the logical id if the resource id is not found.
+
+        Parameters
+        ----------
+        resource_properties dict
+            Properties of this resource
+        logical_id str
+            LogicalID of the resource
+
+        Returns
+        -------
+        str
+            The unique function id
+        """
+        resource_metadata = resource_properties.get("Metadata", {})
+        customer_defined_id = resource_metadata.get(SAM_RESOURCE_ID_KEY)
+
+        if isinstance(customer_defined_id, str) and customer_defined_id:
+            LOG.debug(
+                "Sam customer defined id is more priority than other IDs. Customer defined id for resource %s is %s",
+                logical_id,
+                customer_defined_id,
+            )
+            return customer_defined_id
+
+        resource_cdk_path = resource_metadata.get(RESOURCE_CDK_PATH_METADATA_KEY)
+
+        if not isinstance(resource_cdk_path, str) or not resource_cdk_path:
+            LOG.debug(
+                "There is no customer defined id or cdk path defined for resource %s, so we will use the resource "
+                "logical id as the resource id",
+                logical_id,
+            )
+            return logical_id
+
+        # aws:cdk:path metadata format of functions: {stack_id}/{function_id}/Resource
+        # Design doc of CDK path: https://github.com/aws/aws-cdk/blob/master/design/construct-tree.md
+        cdk_path_partitions = resource_cdk_path.split("/")
+
+        LOG.debug("CDK Path for resource %s is %s", logical_id, cdk_path_partitions)
+
+        if len(cdk_path_partitions) < 2:
+            LOG.warning(
+                "Cannot detect function id from aws:cdk:path metadata '%s', using default logical id", resource_cdk_path
+            )
+            return logical_id
+
+        cdk_resource_id = cdk_path_partitions[-2]
+
+        # Check if the Resource is nested Stack
+        if resource_properties.get("Type", "") == AWS_CLOUDFORMATION_STACK and cdk_resource_id.endswith(
+            CDK_NESTED_STACK_RESOURCE_ID_SUFFIX
+        ):
+            cdk_resource_id = cdk_resource_id[: -len(CDK_NESTED_STACK_RESOURCE_ID_SUFFIX)]
+
+        return cdk_resource_id

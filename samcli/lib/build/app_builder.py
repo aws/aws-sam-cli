@@ -33,6 +33,7 @@ from samcli.lib.utils.resources import (
     AWS_SERVERLESS_FUNCTION,
     AWS_SERVERLESS_LAYERVERSION,
 )
+from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 from samcli.lib.docker.log_streamer import LogStreamer, LogStreamError
 from samcli.lib.providers.provider import ResourcesToBuildCollector, Function, get_full_path, Stack, LayerVersion
 from samcli.lib.utils.colors import Colored
@@ -277,8 +278,8 @@ class ApplicationBuilder:
         template_dict = stack.template_dict
 
         for logical_id, resource in template_dict.get("Resources", {}).items():
-
-            full_path = get_full_path(stack.stack_path, logical_id)
+            resource_iac_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)
+            full_path = get_full_path(stack.stack_path, resource_iac_id)
             has_build_artifact = full_path in built_artifacts
             is_stack = full_path in stack_output_template_path_by_stack_path
 
