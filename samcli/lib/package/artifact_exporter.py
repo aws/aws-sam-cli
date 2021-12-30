@@ -131,6 +131,7 @@ class Template:
         metadata_to_export=frozenset(METADATA_EXPORT_LIST),
         template_str: Optional[str] = None,
         normalize_template: bool = False,
+        normalize_parameters: bool = False,
     ):
         """
         Reads the template and makes it ready for export
@@ -149,7 +150,7 @@ class Template:
             self.code_signer = code_signer
         self.template_dict = yaml_parse(template_str)
         if normalize_template:
-            ResourceMetadataNormalizer.normalize(self.template_dict)
+            ResourceMetadataNormalizer.normalize(self.template_dict, normalize_parameters)
         self.resources_to_export = resources_to_export
         self.metadata_to_export = metadata_to_export
         self.uploaders = uploaders
