@@ -38,7 +38,25 @@
       "Type": "AWS::Lambda::Function",
       "Properties": {
         "Code": {
-          "ImageUri": "emulation-python3.8:latest"
+          "ImageUri": {
+            "Fn::Join": [
+              "",
+              [
+                {
+                  "Ref": "AWS::AccountId"
+                },
+                ".dkr.ecr.",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ".",
+                {
+                  "Ref": "AWS::URLSuffix"
+                },
+                "/aws-cdk/assets:6598609927b272b36fdf01072092f9851ddcd1b41ba294f736ce77091f5cc456"
+              ]
+            ]
+          }
         },
         "Role": {
           "Fn::GetAtt": [

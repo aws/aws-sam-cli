@@ -33,6 +33,7 @@ class TestPackageImage(PackageIntegBase):
             cls.docker_client.api.pull(repository=repo, tag=tag)
             cls.docker_client.api.tag(f"{repo}:{tag}", "emulation-python3.8", tag="latest")
             cls.docker_client.api.tag(f"{repo}:{tag}", "emulation-python3.8-2", tag="latest")
+            cls.docker_client.api.tag(f"{repo}:{tag}", "colorsrandomfunctionf61b9209", tag="latest")
 
         super(TestPackageImage, cls).setUpClass()
 
