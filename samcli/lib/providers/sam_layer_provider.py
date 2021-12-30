@@ -2,7 +2,6 @@
 Class that provides layers from a given SAM template
 """
 import logging
-import posixpath
 from typing import List, Dict, Optional
 
 from samcli.lib.utils.resources import AWS_LAMBDA_LAYERVERSION, AWS_SERVERLESS_LAYERVERSION
@@ -61,7 +60,7 @@ class SamLayerProvider(SamBaseProvider):
             raise ValueError("Layer name is required")
 
         for layer in self._layers:
-            if posixpath.join(layer.stack_path, layer.name) == name or layer.name == name:
+            if name in (layer.full_path, layer.layer_id, layer.name):
                 return layer
         return None
 

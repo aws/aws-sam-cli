@@ -132,6 +132,21 @@ class TestLayerVersion(TestCase):
 
         self.assertEqual(layer_version.version, 1)
 
+    def test_layer_version_id_is_layer_name_if_no_custom_resource_id(self):
+        layer_version = LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None)
+
+        self.assertEqual(layer_version.layer_id, layer_version.name)
+
+    def test_layer_version_id_is_custom_id_if_custom_resource_id_exist(self):
+        layer_version = LayerVersion(
+            "arn:aws:lambda:region:account-id:layer:layer-name:1",
+            None,
+            [],
+            {"BuildMethod": "dummy_build_method", "SamResourceId": "CustomLayerId"},
+        )
+        self.assertNotEqual(layer_version.layer_id, layer_version.name)
+        self.assertEqual(layer_version.layer_id, "CustomLayerId")
+
     def test_layer_arn_returned(self):
         layer_version = LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None)
 

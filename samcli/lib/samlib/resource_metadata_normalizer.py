@@ -59,7 +59,11 @@ class ResourceMetadataNormalizer:
         resources = template_dict.get(RESOURCES_KEY, {})
 
         for logical_id, resource in resources.items():
-            resource_metadata = resource.get(METADATA_KEY, {})
+            resource_metadata = resource.get(METADATA_KEY)
+            if resource_metadata is None:
+                resource_metadata = {}
+                resource[METADATA_KEY] = resource_metadata
+
             is_normalized = resource_metadata.get(SAM_IS_NORMALIZED, False)
             if not is_normalized:
                 asset_property = resource_metadata.get(ASSET_PROPERTY_METADATA_KEY)
@@ -85,6 +89,12 @@ class ResourceMetadataNormalizer:
                         SAM_METADATA_SKIP_BUILD_KEY: True,
                     },
                 )
+
+            # Set Resource Id
+            ResourceMetadataNormalizer._update_resource_metadata(
+                resource_metadata,
+                {SAM_RESOURCE_ID_KEY: ResourceMetadataNormalizer.get_resource_id(resource, logical_id)},
+            )
 
         # This is a work around to allow the customer to use sam deploy or package commands without the need to provide
         # values for the CDK auto generated asset parameters. The suggested solution is to let CDK add some metadata to

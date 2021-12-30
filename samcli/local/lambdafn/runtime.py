@@ -85,7 +85,7 @@ class LambdaRuntime:
             debug_options=debug_context,
             container_host=container_host,
             container_host_interface=container_host_interface,
-            function_name=function_config.name,
+            function_full_path=function_config.full_path,
         )
         try:
             # create the container.
@@ -125,7 +125,7 @@ class LambdaRuntime:
             container = self.create(function_config, debug_context, container_host, container_host_interface)
 
         if container.is_running():
-            LOG.info("Lambda function '%s' is already running", function_config.name)
+            LOG.info("Lambda function '%s' is already running", function_config.full_path)
             return container
 
         try:
@@ -183,14 +183,14 @@ class LambdaRuntime:
             # our Lambda function code will run. Starting the timer is a reasonable approximation that function has
             # started running.
             timer = self._configure_interrupt(
-                function_config.name, function_config.timeout, container, bool(debug_context)
+                function_config.full_path, function_config.timeout, container, bool(debug_context)
             )
 
             # NOTE: BLOCKING METHOD
             # Block on waiting for result from the init process on the container, below method also
             # starts another thread to stream logs. This method will terminate
             # either successfully or be killed by one of the interrupt handlers above.
-            container.wait_for_result(name=function_config.name, event=event, stdout=stdout, stderr=stderr)
+            container.wait_for_result(full_path=function_config.full_path, event=event, stdout=stdout, stderr=stderr)
 
         except KeyboardInterrupt:
             # When user presses Ctrl+C, we receive a Keyboard Interrupt. This is especially very common when
@@ -220,13 +220,13 @@ class LambdaRuntime:
             self._container_manager.stop(container)
         self._clean_decompressed_paths()
 
-    def _configure_interrupt(self, function_name, timeout, container, is_debugging):
+    def _configure_interrupt(self, function_full_path, timeout, container, is_debugging):
         """
         When a Lambda function is executing, we setup certain interrupt handlers to stop the execution.
         Usually, we setup a function timeout interrupt to kill the container after timeout expires. If debugging though,
         we don't enforce a timeout. But we setup a SIGINT interrupt to catch Ctrl+C and terminate the container.
 
-        :param string function_name: Name of the function we are running
+        :param string function_full_path: The function full pth we are running
         :param integer timeout: Timeout in seconds
         :param samcli.local.docker.container.Container container: Instance of a container to terminate
         :param bool is_debugging: Are we debugging?
@@ -235,12 +235,12 @@ class LambdaRuntime:
 
         def timer_handler():
             # NOTE: This handler runs in a separate thread. So don't try to mutate any non-thread-safe data structures
-            LOG.info("Function '%s' timed out after %d seconds", function_name, timeout)
+            LOG.info("Function '%s' timed out after %d seconds", function_full_path, timeout)
             self._container_manager.stop(container)
 
         def signal_handler(sig, frame):
             # NOTE: This handler runs in a separate thread. So don't try to mutate any non-thread-safe data structures
-            LOG.info("Execution of function %s was interrupted", function_name)
+            LOG.info("Execution of function %s was interrupted", function_full_path)
             self._container_manager.stop(container)
 
         if is_debugging:
@@ -249,7 +249,7 @@ class LambdaRuntime:
             return None
 
         # Start a timer, we'll use this to abort the function if it runs beyond the specified timeout
-        LOG.debug("Starting a timer for %s seconds for function '%s'", timeout, function_name)
+        LOG.debug("Starting a timer for %s seconds for function '%s'", timeout, function_full_path)
         timer = threading.Timer(timeout, timer_handler, ())
         timer.start()
         return timer
@@ -365,9 +365,9 @@ class WarmLambdaRuntime(LambdaRuntime):
         """
 
         # reuse the cached container if it is created
-        container = self._containers.get(function_config.name, None)
+        container = self._containers.get(function_config.full_path, None)
         if container and container.is_created():
-            LOG.info("Reuse the created warm container for Lambda function '%s'", function_config.name)
+            LOG.info("Reuse the created warm container for Lambda function '%s'", function_config.full_path)
             return container
 
         # debug_context should be used only if the function name is the one defined
@@ -381,7 +381,7 @@ class WarmLambdaRuntime(LambdaRuntime):
             debug_context = None
 
         container = super().create(function_config, debug_context, container_host, container_host_interface)
-        self._containers[function_config.name] = container
+        self._containers[function_config.full_path] = container
 
         self._observer.watch(function_config)
         self._observer.start()
@@ -400,7 +400,7 @@ class WarmLambdaRuntime(LambdaRuntime):
            The current running container
         """
 
-    def _configure_interrupt(self, function_name, timeout, container, is_debugging):
+    def _configure_interrupt(self, function_full_path, timeout, container, is_debugging):
         """
         When a Lambda function is executing, we setup certain interrupt handlers to stop the execution.
         Usually, we setup a function timeout interrupt to kill the container after timeout expires. If debugging though,
@@ -408,8 +408,8 @@ class WarmLambdaRuntime(LambdaRuntime):
 
         Parameters
         ----------
-        function_name: str
-            Name of the function we are running
+        function_full_path: str
+            The function full path we are running
         timeout: int
             Timeout in seconds
         container: samcli.local.docker.container.Container
@@ -425,11 +425,11 @@ class WarmLambdaRuntime(LambdaRuntime):
 
         def timer_handler():
             # NOTE: This handler runs in a separate thread. So don't try to mutate any non-thread-safe data structures
-            LOG.info("Function '%s' timed out after %d seconds", function_name, timeout)
+            LOG.info("Function '%s' timed out after %d seconds", function_full_path, timeout)
 
         def signal_handler(sig, frame):
             # NOTE: This handler runs in a separate thread. So don't try to mutate any non-thread-safe data structures
-            LOG.info("Execution of function %s was interrupted", function_name)
+            LOG.info("Execution of function %s was interrupted", function_full_path)
 
         if is_debugging:
             LOG.debug("Setting up SIGTERM interrupt handler")
@@ -437,7 +437,7 @@ class WarmLambdaRuntime(LambdaRuntime):
             return None
 
         # Start a timer, we'll use this to abort the function if it runs beyond the specified timeout
-        LOG.debug("Starting a timer for %s seconds for function '%s'", timeout, function_name)
+        LOG.debug("Starting a timer for %s seconds for function '%s'", timeout, function_full_path)
         timer = threading.Timer(timeout, timer_handler, ())
         timer.start()
         return timer
@@ -464,18 +464,18 @@ class WarmLambdaRuntime(LambdaRuntime):
             the lambda functions that their source code or images got changed
         """
         for function_config in functions:
-            function_name = function_config.name
+            function_full_path = function_config.full_path
             resource = "source code" if function_config.packagetype == ZIP else f"{function_config.imageuri} image"
             LOG.info(
                 "Lambda Function '%s' %s has been changed, terminate its warm container. "
                 "The new container will be created in lazy mode",
-                function_name,
+                function_full_path,
                 resource,
             )
-            container = self._containers.get(function_name, None)
+            container = self._containers.get(function_full_path, None)
             if container:
                 self._container_manager.stop(container)
-                self._containers.pop(function_name, None)
+                self._containers.pop(function_full_path, None)
             self._observer.unwatch(function_config)
 
 

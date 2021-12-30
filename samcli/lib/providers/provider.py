@@ -15,7 +15,7 @@ from samcli.commands.local.cli_common.user_exceptions import (
     InvalidFunctionPropertyType,
 )
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
-from samcli.lib.samlib.resource_metadata_normalizer import SAM_METADATA_SKIP_BUILD_KEY
+from samcli.lib.samlib.resource_metadata_normalizer import SAM_METADATA_SKIP_BUILD_KEY, SAM_RESOURCE_ID_KEY
 from samcli.lib.utils.architecture import X86_64
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -165,6 +165,7 @@ class LayerVersion:
     LAYER_NAME_DELIMETER = "-"
 
     _name: Optional[str] = None
+    _layer_id: Optional[str] = None
     _version: Optional[int] = None
 
     def __init__(
@@ -203,6 +204,7 @@ class LayerVersion:
         self._build_architecture = cast(str, metadata.get("BuildArchitecture", X86_64))
         self._compatible_architectures = compatible_architectures
         self._skip_build = bool(metadata.get(SAM_METADATA_SKIP_BUILD_KEY, False))
+        self._custom_layer_id = metadata.get(SAM_RESOURCE_ID_KEY)
 
     @staticmethod
     def _compute_layer_version(is_defined_within_template: bool, arn: str) -> Optional[int]:
@@ -285,6 +287,15 @@ class LayerVersion:
         return self._arn
 
     @property
+    def layer_id(self) -> str:
+        # because self.layer_id is only used in local invoke.
+        # here we delay the validation process (in _compute_layer_name) rather than in __init__() to ensure
+        # customers still have a smooth build experience.
+        if not self._layer_id:
+            self._layer_id = cast(str, self._custom_layer_id if self._custom_layer_id else self.name)
+        return self._layer_id
+
+    @property
     def name(self) -> str:
         """
         A unique name from the arn or logical id of the Layer
@@ -343,7 +354,7 @@ class LayerVersion:
             "HelloWorldLayer"
             "ChildStackA/GrandChildStackB/ALayerInNestedStack"
         """
-        return get_full_path(self.stack_path, self.name)
+        return get_full_path(self.stack_path, self.layer_id)
 
     @property
     def build_architecture(self) -> str:
@@ -373,9 +384,9 @@ class LayerVersion:
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, type(self)):
-            # self._name and self._version are generated from self._arn, and they are initialized as None
-            # and their values are assigned at runtime. Here we exclude them from comparison
-            overrides = {"_name": None, "_version": None}
+            # self._name, self._version, and self._layer_id are generated from self._arn, and they are initialized as
+            # None and their values are assigned at runtime. Here we exclude them from comparison
+            overrides = {"_name": None, "_version": None, "_layer_id": None}
             return {**self.__dict__, **overrides} == {**other.__dict__, **overrides}
         return False
 

@@ -24,6 +24,32 @@ class TestResourceMetadataNormalizer(TestCase):
 
         self.assertEqual("new path", template_data["Resources"]["Function1"]["Properties"]["Code"])
         self.assertEqual(True, template_data["Resources"]["Function1"]["Metadata"]["SamNormalized"])
+        self.assertEqual("Function1", template_data["Resources"]["Function1"]["Metadata"]["SamResourceId"])
+
+    def test_cdk_resource_id_is_used(self):
+        template_data = {
+            "Resources": {
+                "Function1": {
+                    "Properties": {
+                        "Code": {
+                            "S3Bucket": {"Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"},
+                            "S3Key": "00c88ea957f8f667f083d6073f00c49dd2ed7ddd87bb7a3b6f01d014243a3b22.zip",
+                        }
+                    },
+                    "Metadata": {
+                        "aws:cdk:path": "Stack/CDKFunction1/Resource",
+                        "aws:asset:path": "new path",
+                        "aws:asset:property": "Code",
+                    },
+                }
+            }
+        }
+
+        ResourceMetadataNormalizer.normalize(template_data)
+
+        self.assertEqual("new path", template_data["Resources"]["Function1"]["Properties"]["Code"])
+        self.assertEqual(True, template_data["Resources"]["Function1"]["Metadata"]["SamNormalized"])
+        self.assertEqual("CDKFunction1", template_data["Resources"]["Function1"]["Metadata"]["SamResourceId"])
 
     def test_replace_all_resources_that_contain_metadata(self):
         template_data = {
@@ -48,6 +74,7 @@ class TestResourceMetadataNormalizer(TestCase):
 
         self.assertEqual("new path", template_data["Resources"]["Function1"]["Properties"]["Code"])
         self.assertEqual("super cool path", template_data["Resources"]["Resource2"]["Properties"]["SomeRandomProperty"])
+        self.assertEqual("Function1", template_data["Resources"]["Function1"]["Metadata"]["SamResourceId"])
 
     def test_replace_all_resources_that_contain_image_metadata(self):
         docker_build_args = {"arg1": "val1", "arg2": "val2"}
@@ -82,6 +109,7 @@ class TestResourceMetadataNormalizer(TestCase):
         )
         self.assertEqual("Dockerfile", template_data["Resources"]["Function1"]["Metadata"]["Dockerfile"])
         self.assertEqual(docker_build_args, template_data["Resources"]["Function1"]["Metadata"]["DockerBuildArgs"])
+        self.assertEqual("Function1", template_data["Resources"]["Function1"]["Metadata"]["SamResourceId"])
 
     def test_replace_all_resources_that_contain_image_metadata_windows_paths(self):
         docker_build_args = {"arg1": "val1", "arg2": "val2"}
@@ -116,6 +144,7 @@ class TestResourceMetadataNormalizer(TestCase):
         )
         self.assertEqual("Dockerfile", template_data["Resources"]["Function1"]["Metadata"]["Dockerfile"])
         self.assertEqual(docker_build_args, template_data["Resources"]["Function1"]["Metadata"]["DockerBuildArgs"])
+        self.assertEqual("Function1", template_data["Resources"]["Function1"]["Metadata"]["SamResourceId"])
 
     def test_tempate_without_metadata(self):
         template_data = {"Resources": {"Function1": {"Properties": {"Code": "some value"}}}}
@@ -123,6 +152,7 @@ class TestResourceMetadataNormalizer(TestCase):
         ResourceMetadataNormalizer.normalize(template_data)
 
         self.assertEqual("some value", template_data["Resources"]["Function1"]["Properties"]["Code"])
+        self.assertEqual("Function1", template_data["Resources"]["Function1"]["Metadata"]["SamResourceId"])
 
     def test_template_without_asset_property(self):
         template_data = {
@@ -134,8 +164,9 @@ class TestResourceMetadataNormalizer(TestCase):
         ResourceMetadataNormalizer.normalize(template_data)
 
         self.assertEqual("some value", template_data["Resources"]["Function1"]["Properties"]["Code"])
+        self.assertEqual("Function1", template_data["Resources"]["Function1"]["Metadata"]["SamResourceId"])
 
-    def test_tempalte_without_asset_path(self):
+    def test_template_without_asset_path(self):
         template_data = {
             "Resources": {
                 "Function1": {"Properties": {"Code": "some value"}, "Metadata": {"aws:asset:property": "Code"}}
@@ -145,6 +176,7 @@ class TestResourceMetadataNormalizer(TestCase):
         ResourceMetadataNormalizer.normalize(template_data)
 
         self.assertEqual("some value", template_data["Resources"]["Function1"]["Properties"]["Code"])
+        self.assertEqual("Function1", template_data["Resources"]["Function1"]["Metadata"]["SamResourceId"])
 
     def test_template_with_empty_metadata(self):
         template_data = {"Resources": {"Function1": {"Properties": {"Code": "some value"}, "Metadata": {}}}}
@@ -152,6 +184,7 @@ class TestResourceMetadataNormalizer(TestCase):
         ResourceMetadataNormalizer.normalize(template_data)
 
         self.assertEqual("some value", template_data["Resources"]["Function1"]["Properties"]["Code"])
+        self.assertEqual("Function1", template_data["Resources"]["Function1"]["Metadata"]["SamResourceId"])
 
     def test_replace_of_property_that_does_not_exist(self):
         template_data = {
@@ -166,6 +199,7 @@ class TestResourceMetadataNormalizer(TestCase):
         ResourceMetadataNormalizer.normalize(template_data)
 
         self.assertEqual("new path", template_data["Resources"]["Function1"]["Properties"]["Code"])
+        self.assertEqual("Function1", template_data["Resources"]["Function1"]["Metadata"]["SamResourceId"])
 
     def test_set_skip_build_metadata_for_bundled_assets_metadata_equals_true(self):
         template_data = {
@@ -184,6 +218,7 @@ class TestResourceMetadataNormalizer(TestCase):
         ResourceMetadataNormalizer.normalize(template_data)
 
         self.assertTrue(template_data["Resources"]["Function1"]["Metadata"]["SkipBuild"])
+        self.assertEqual("Function1", template_data["Resources"]["Function1"]["Metadata"]["SamResourceId"])
 
     def test_no_skip_build_metadata_for_bundled_assets_metadata_equals_false(self):
         template_data = {
@@ -202,6 +237,7 @@ class TestResourceMetadataNormalizer(TestCase):
         ResourceMetadataNormalizer.normalize(template_data)
 
         self.assertIsNone(template_data["Resources"]["Function1"]["Metadata"].get("SkipBuild"))
+        self.assertEqual("Function1", template_data["Resources"]["Function1"]["Metadata"]["SamResourceId"])
 
     def test_skip_normalizing_already_normalized_resource(self):
         template_data = {
@@ -227,6 +263,7 @@ class TestResourceMetadataNormalizer(TestCase):
         template_data["Resources"]["Function1"]["Metadata"]["aws:asset:path"] = "updated path"
         ResourceMetadataNormalizer.normalize(template_data)
         self.assertEqual("new path", template_data["Resources"]["Function1"]["Properties"]["Code"])
+        self.assertEqual("Function1", template_data["Resources"]["Function1"]["Metadata"]["SamResourceId"])
 
     def test_no_cdk_template_parameters_should_not_be_normalized(self):
         template_data = {
@@ -248,6 +285,7 @@ class TestResourceMetadataNormalizer(TestCase):
         ResourceMetadataNormalizer.normalize(template_data, True)
 
         self.assertIsNone(template_data["Parameters"]["AssetParameters123456543"].get("Default"))
+        self.assertEqual("Function1", template_data["Resources"]["Function1"]["Metadata"]["SamResourceId"])
 
     def test_cdk_template_parameters_should_be_normalized(self):
         template_data = {
