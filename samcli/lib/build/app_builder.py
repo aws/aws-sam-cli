@@ -278,8 +278,8 @@ class ApplicationBuilder:
         template_dict = stack.template_dict
 
         for logical_id, resource in template_dict.get("Resources", {}).items():
-            resource_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)
-            full_path = get_full_path(stack.stack_path, resource_id)
+            resource_iac_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)
+            full_path = get_full_path(stack.stack_path, resource_iac_id)
             has_build_artifact = full_path in built_artifacts
             is_stack = full_path in stack_output_template_path_by_stack_path
 
