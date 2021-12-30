@@ -436,6 +436,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             timeout=function.timeout,
             env_vars=env_vars,
             architecture=ARM64,
+            full_path=function.full_path,
         )
 
         resolve_code_path_patch.assert_called_with(self.cwd, function.codeuri)
@@ -460,7 +461,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
         resolve_code_path_patch.return_value = codepath
 
         function = Function(
-            stack_path=Mock(),
+            stack_path="stackA/stackB",
             function_id="function_name",
             name="function_name",
             functionname="function_name",
@@ -500,6 +501,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             timeout=function.timeout,
             env_vars=env_vars,
             architecture=X86_64,
+            full_path=function.full_path,
         )
 
         resolve_code_path_patch.assert_called_with(self.cwd, "codeuri")
