@@ -4,12 +4,17 @@ from unittest import TestCase
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 
 
-class TestResourceMeatadataNormalizer(TestCase):
+class TestResourceMetadataNormalizer(TestCase):
     def test_replace_property_with_path(self):
         template_data = {
             "Resources": {
                 "Function1": {
-                    "Properties": {"Code": "some value"},
+                    "Properties": {
+                        "Code": {
+                            "S3Bucket": {"Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"},
+                            "S3Key": "00c88ea957f8f667f083d6073f00c49dd2ed7ddd87bb7a3b6f01d014243a3b22.zip",
+                        }
+                    },
                     "Metadata": {"aws:asset:path": "new path", "aws:asset:property": "Code"},
                 }
             }
@@ -18,16 +23,22 @@ class TestResourceMeatadataNormalizer(TestCase):
         ResourceMetadataNormalizer.normalize(template_data)
 
         self.assertEqual("new path", template_data["Resources"]["Function1"]["Properties"]["Code"])
+        self.assertEqual(True, template_data["Resources"]["Function1"]["Metadata"]["SamNormalized"])
 
     def test_replace_all_resources_that_contain_metadata(self):
         template_data = {
             "Resources": {
                 "Function1": {
-                    "Properties": {"Code": "some value"},
+                    "Properties": {
+                        "Code": {
+                            "S3Bucket": {"Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"},
+                            "S3Key": "00c88ea957f8f667f083d6073f00c49dd2ed7ddd87bb7a3b6f01d014243a3b22.zip",
+                        }
+                    },
                     "Metadata": {"aws:asset:path": "new path", "aws:asset:property": "Code"},
                 },
                 "Resource2": {
-                    "Properties": {"SomeRandomProperty": "some value"},
+                    "Properties": {"SomeRandomProperty": {"Fn::Sub": "${AWS::AccountId}/some_value"}},
                     "Metadata": {"aws:asset:path": "super cool path", "aws:asset:property": "SomeRandomProperty"},
                 },
             }
@@ -47,7 +58,9 @@ class TestResourceMeatadataNormalizer(TestCase):
                 "Function1": {
                     "Properties": {
                         "Code": {
-                            "ImageUri": "Some Value",
+                            "ImageUri": {
+                                "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.${AWS::URLSuffix}/cdk-hnb659fds-container-assets-${AWS::AccountId}-${AWS::Region}:b5d75370ccc2882b90f701c8f98952aae957e85e1928adac8860222960209056"
+                            }
                         }
                     },
                     "Metadata": {
@@ -79,7 +92,9 @@ class TestResourceMeatadataNormalizer(TestCase):
                 "Function1": {
                     "Properties": {
                         "Code": {
-                            "ImageUri": "Some Value",
+                            "ImageUri": {
+                                "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.${AWS::URLSuffix}/cdk-hnb659fds-container-assets-${AWS::AccountId}-${AWS::Region}:b5d75370ccc2882b90f701c8f98952aae957e85e1928adac8860222960209056"
+                            }
                         }
                     },
                     "Metadata": {
@@ -316,3 +331,119 @@ class TestResourceMeatadataNormalizer(TestCase):
                 "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481ArtifactHash0A652345123"
             ].get("Default")
         )
+
+    def test_skip_normalizing_already_normalized_resource(self):
+        template_data = {
+            "Resources": {
+                "Function1": {
+                    "Properties": {
+                        "Code": {
+                            "S3Bucket": {"Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"},
+                            "S3Key": "00c88ea957f8f667f083d6073f00c49dd2ed7ddd87bb7a3b6f01d014243a3b22.zip",
+                        }
+                    },
+                    "Metadata": {"aws:asset:path": "new path", "aws:asset:property": "Code"},
+                }
+            }
+        }
+
+        ResourceMetadataNormalizer.normalize(template_data)
+
+        self.assertEqual("new path", template_data["Resources"]["Function1"]["Properties"]["Code"])
+        self.assertEqual(True, template_data["Resources"]["Function1"]["Metadata"]["SamNormalized"])
+
+        # Normalized resource will not be normalized again
+        template_data["Resources"]["Function1"]["Metadata"]["aws:asset:path"] = "updated path"
+        ResourceMetadataNormalizer.normalize(template_data)
+        self.assertEqual("new path", template_data["Resources"]["Function1"]["Properties"]["Code"])
+
+
+class TestResourceMetadataNormalizerGetResourceId(TestCase):
+    def test_use_cdk_id_as_resource_id(self):
+        resource_id = ResourceMetadataNormalizer.get_resource_id(
+            {
+                "Type": "any:value",
+                "Properties": {"key": "value"},
+                "Metadata": {"aws:cdk:path": "stack_id/func_cdk_id/Resource"},
+            },
+            "logical_id",
+        )
+
+        self.assertEquals("func_cdk_id", resource_id)
+
+    def test_use_logical_id_as_resource_id_incase_of_invalid_cdk_path(self):
+        resource_id = ResourceMetadataNormalizer.get_resource_id(
+            {"Type": "any:value", "Properties": {"key": "value"}, "Metadata": {"aws:cdk:path": "func_cdk_id"}},
+            "logical_id",
+        )
+
+        self.assertEquals("logical_id", resource_id)
+
+    def test_use_cdk_id_as_resource_id_for_nested_stack(self):
+        resource_id = ResourceMetadataNormalizer.get_resource_id(
+            {
+                "Type": "AWS::CloudFormation::Stack",
+                "Properties": {"key": "value"},
+                "Metadata": {
+                    "aws:cdk:path": "parent_stack_id/nested_stack_id.NestedStack/nested_stack_id.NestedStackResource"
+                },
+            },
+            "logical_id",
+        )
+
+        self.assertEquals("nested_stack_id", resource_id)
+
+    def test_use_logical_id_as_resource_id_for_invalid_nested_stack_path(self):
+        resource_id = ResourceMetadataNormalizer.get_resource_id(
+            {
+                "Type": "AWS::CloudFormation::Stack",
+                "Properties": {"key": "value"},
+                "Metadata": {
+                    "aws:cdk:path": "parent_stack_id/nested_stack_idNestedStack/nested_stack_id.NestedStackResource"
+                },
+            },
+            "logical_id",
+        )
+
+        self.assertEquals("nested_stack_idNestedStack", resource_id)
+
+    def test_use_provided_customer_defined_id(self):
+        resource_id = ResourceMetadataNormalizer.get_resource_id(
+            {
+                "Type": "any:value",
+                "Properties": {"key": "value"},
+                "Metadata": {"SamResourceId": "custom_id", "aws:cdk:path": "stack_id/func_cdk_id/Resource"},
+            },
+            "logical_id",
+        )
+
+        self.assertEquals("custom_id", resource_id)
+
+    def test_use_provided_customer_defined_id_for_nested_stack(self):
+        resource_id = ResourceMetadataNormalizer.get_resource_id(
+            {
+                "Type": "AWS::CloudFormation::Stack",
+                "Properties": {"key": "value"},
+                "Metadata": {
+                    "SamResourceId": "custom_nested_stack_id",
+                    "aws:cdk:path": "parent_stack_id/nested_stack_id.NestedStack/nested_stack_id.NestedStackResource",
+                },
+            },
+            "logical_id",
+        )
+
+        self.assertEquals("custom_nested_stack_id", resource_id)
+
+    def test_use_logical_id_if_metadata_is_not_therer(self):
+        resource_id = ResourceMetadataNormalizer.get_resource_id(
+            {"Type": "any:value", "Properties": {"key": "value"}}, "logical_id"
+        )
+
+        self.assertEquals("logical_id", resource_id)
+
+    def test_use_logical_id_if_cdk_path_not_exist(self):
+        resource_id = ResourceMetadataNormalizer.get_resource_id(
+            {"Type": "any:value", "Properties": {"key": "value"}, "Metadata": {}}, "logical_id"
+        )
+
+        self.assertEquals("logical_id", resource_id)
