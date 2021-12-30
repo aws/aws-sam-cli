@@ -7,6 +7,7 @@ import tempfile
 from samcli.commands.package.package_context import PackageContext
 from samcli.commands.package.exceptions import PackageFailedError
 from samcli.lib.package.artifact_exporter import Template
+from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 
 
 class TestPackageCommand(TestCase):
@@ -33,6 +34,7 @@ class TestPackageCommand(TestCase):
         with self.assertRaises(PackageFailedError):
             self.package_command_context.run()
 
+    @patch.object(ResourceMetadataNormalizer, "normalize", MagicMock())
     @patch.object(Template, "export", MagicMock(return_value={}))
     @patch("boto3.Session")
     def test_template_path_valid_with_output_template(self, patched_boto):
@@ -55,6 +57,7 @@ class TestPackageCommand(TestCase):
                 )
                 package_command_context.run()
 
+    @patch.object(ResourceMetadataNormalizer, "normalize", MagicMock())
     @patch.object(Template, "export", MagicMock(return_value={}))
     @patch("boto3.Session")
     def test_template_path_valid(self, patched_boto):
@@ -76,6 +79,7 @@ class TestPackageCommand(TestCase):
             )
             package_command_context.run()
 
+    @patch.object(ResourceMetadataNormalizer, "normalize", MagicMock())
     @patch.object(Template, "export", MagicMock(return_value={}))
     @patch("boto3.Session")
     def test_template_path_valid_no_json(self, patched_boto):
