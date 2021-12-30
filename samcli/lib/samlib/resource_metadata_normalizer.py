@@ -34,6 +34,11 @@ SAM_METADATA_DOCKER_BUILD_ARGS_KEY = "DockerBuildArgs"
 ASSET_BUNDLED_METADATA_KEY = "aws:asset:is-bundled"
 SAM_METADATA_SKIP_BUILD_KEY = "SkipBuild"
 
+# https://github.com/aws/aws-cdk/blob/b1ecd3d49d7ebf97a54a80d06779ef0f0b113c16/packages/%40aws-cdk/assert-internal/lib/canonicalize-assets.ts#L19
+CDK_ASSET_PARAMETER_PATTERN = re.compile(
+    "^AssetParameters[0-9a-fA-F]{64}(?:S3Bucket|S3VersionKey|ArtifactHash)[0-9a-fA-F]{8}$"
+)
+
 LOG = logging.getLogger(__name__)
 
 
@@ -99,14 +104,10 @@ class ResourceMetadataNormalizer:
             parameters = template_dict.get("Parameters", {})
 
             default_value = " "
-            cdk_asset_parameter_pattern = re.compile(
-                "AssetParameters[0-9a-f]{64}(?:S3Bucket|S3VersionKey|ArtifactHash)[0-9A-F]{8}"
-            )
             for parameter_name, parameter_value in parameters.items():
-                parameter_name_match = cdk_asset_parameter_pattern.match(parameter_name)
+                parameter_name_match = CDK_ASSET_PARAMETER_PATTERN.match(parameter_name)
                 if (
                     parameter_name_match
-                    and parameter_name_match.group() == parameter_name
                     and "Default" not in parameter_value
                     and parameter_value.get("Type", "") == "String"
                     and f'"Ref": "{parameter_name}"' not in resources_as_string

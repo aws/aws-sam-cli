@@ -256,6 +256,10 @@ class TestResourceMetadataNormalizer(TestCase):
                     "Type": "String",
                     "Description": 'S3 bucket for asset "12345432"',
                 },
+                "AssetParametersb9866fd422d32492C62394e8c406ab4004f0c80364BAB4957e67e31cf1130481ArtifactHash0A65c998": {
+                    "Type": "String",
+                    "Description": 'S3 bucket for asset "12345432"',
+                },
                 "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481S3Bucket0A652998": {
                     "Type": "String",
                     "Description": 'S3 bucket for asset "12345432"',
@@ -277,7 +281,7 @@ class TestResourceMetadataNormalizer(TestCase):
                     "Type": "String",
                     "Description": 'S3 bucket for asset "12345432"',
                 },
-                "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481ArtifactHash": {
+                "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481ArtifactHash0A652345123": {
                     "Type": "String",
                     "Description": 'S3 bucket for asset "12345432"',
                 },
@@ -307,25 +311,31 @@ class TestResourceMetadataNormalizer(TestCase):
         }
 
         ResourceMetadataNormalizer.normalize(template_data, True)
-        self.assertEquals(
+        self.assertEqual(
             template_data["Parameters"][
                 "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481ArtifactHash0A652998"
             ]["Default"],
             " ",
         )
-        self.assertEquals(
+        self.assertEqual(
+            template_data["Parameters"][
+                "AssetParametersb9866fd422d32492C62394e8c406ab4004f0c80364BAB4957e67e31cf1130481ArtifactHash0A65c998"
+            ]["Default"],
+            " ",
+        )
+        self.assertEqual(
             template_data["Parameters"][
                 "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481S3Bucket0A652998"
             ]["Default"],
             " ",
         )
-        self.assertEquals(
+        self.assertEqual(
             template_data["Parameters"][
                 "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481S3VersionKey0A652998"
             ]["Default"],
             " ",
         )
-        self.assertEquals(
+        self.assertEqual(
             template_data["Parameters"][
                 "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481ArtifactHash0A652999"
             ]["Default"],
@@ -343,7 +353,7 @@ class TestResourceMetadataNormalizer(TestCase):
         )
         self.assertIsNone(
             template_data["Parameters"][
-                "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481ArtifactHash"
+                "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481ArtifactHash0A652345123"
             ].get("Default")
         )
 
