@@ -80,7 +80,10 @@ class Test_get_template_data(TestCase):
         file_data = "contents of the file"
         parse_result = {
             "Parameters": {
-                "AssetParameters123": {"Type": "String", "Description": 'S3 bucket for asset "12345432"'},
+                "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481S3VersionKeyA3EB644B": {
+                    "Type": "String",
+                    "Description": 'S3 bucket for asset "12345432"',
+                },
             },
             "Resources": {
                 "CDKMetadata": {
@@ -110,7 +113,7 @@ class Test_get_template_data(TestCase):
             self.assertEqual(
                 result,
                 {
-                    "AssetParameters123": {
+                    "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481S3VersionKeyA3EB644B": {
                         "Type": "String",
                         "Description": 'S3 bucket for asset "12345432"',
                         "Default": " ",

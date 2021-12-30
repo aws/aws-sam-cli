@@ -79,7 +79,9 @@ class ECRUploader:
 
             _tag = tag_translation(image, docker_image_id=docker_img.id, gen_tag=self.tag)
             repository = (
-                self.ecr_repo if not self.ecr_repo_multi or not isinstance(self.ecr_repo_multi, dict) else self.ecr_repo_multi.get(resource_name)
+                self.ecr_repo
+                if not self.ecr_repo_multi or not isinstance(self.ecr_repo_multi, dict)
+                else self.ecr_repo_multi.get(resource_name)
             )
 
             docker_img.tag(repository=repository, tag=_tag)
