@@ -14,7 +14,6 @@ Logic for uploading to s3 based on supplied template file and s3 bucket
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
-
 import json
 import logging
 import os
@@ -135,7 +134,14 @@ class PackageContext:
             raise PackageFailedError(template_file=self.template_file, ex=str(ex)) from ex
 
     def _export(self, template_path, use_json):
-        template = Template(template_path, os.getcwd(), self.uploaders, self.code_signer)
+        template = Template(
+            template_path,
+            os.getcwd(),
+            self.uploaders,
+            self.code_signer,
+            normalize_template=True,
+            normalize_parameters=True,
+        )
         exported_template = template.export()
 
         if use_json:

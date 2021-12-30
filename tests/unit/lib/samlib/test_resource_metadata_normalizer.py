@@ -187,3 +187,132 @@ class TestResourceMeatadataNormalizer(TestCase):
         ResourceMetadataNormalizer.normalize(template_data)
 
         self.assertIsNone(template_data["Resources"]["Function1"]["Metadata"].get("SkipBuild"))
+
+    def test_no_cdk_template_parameters_should_not_be_normalized(self):
+        template_data = {
+            "Parameters": {
+                "AssetParameters123456543": {"Type": "String", "Description": 'S3 bucket for asset "12345432"'},
+            },
+            "Resources": {
+                "Function1": {
+                    "Properties": {"Code": "some value"},
+                    "Metadata": {
+                        "aws:asset:path": "new path",
+                        "aws:asset:property": "Code",
+                        "aws:asset:is-bundled": False,
+                    },
+                }
+            },
+        }
+
+        ResourceMetadataNormalizer.normalize(template_data, True)
+
+        self.assertIsNone(template_data["Parameters"]["AssetParameters123456543"].get("Default"))
+
+    def test_cdk_template_parameters_should_be_normalized(self):
+        template_data = {
+            "Parameters": {
+                "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481ArtifactHash0A652998": {
+                    "Type": "String",
+                    "Description": 'S3 bucket for asset "12345432"',
+                },
+                "AssetParametersb9866fd422d32492C62394e8c406ab4004f0c80364BAB4957e67e31cf1130481ArtifactHash0A65c998": {
+                    "Type": "String",
+                    "Description": 'S3 bucket for asset "12345432"',
+                },
+                "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481S3Bucket0A652998": {
+                    "Type": "String",
+                    "Description": 'S3 bucket for asset "12345432"',
+                },
+                "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481S3VersionKey0A652998": {
+                    "Type": "String",
+                    "Description": 'S3 bucket for asset "12345432"',
+                },
+                "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481ArtifactHash0A652999": {
+                    "Type": "String",
+                    "Description": 'S3 bucket for asset "12345432"',
+                    "Default": "/path",
+                },
+                "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481ArtifactHash0A652900": {
+                    "Type": "notString",
+                    "Description": 'S3 bucket for asset "12345432"',
+                },
+                "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481ArtifactHash0A652345": {
+                    "Type": "String",
+                    "Description": 'S3 bucket for asset "12345432"',
+                },
+                "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481ArtifactHash0A652345123": {
+                    "Type": "String",
+                    "Description": 'S3 bucket for asset "12345432"',
+                },
+            },
+            "Resources": {
+                "CDKMetadata": {
+                    "Type": "AWS::CDK::Metadata",
+                    "Properties": {"Analytics": "v2:deflate64:H4s"},
+                    "Metadata": {"aws:cdk:path": "Stack/CDKMetadata/Default"},
+                },
+                "Function1": {
+                    "Properties": {"Code": "some value"},
+                    "Metadata": {
+                        "aws:asset:path": "new path",
+                        "aws:asset:property": "Code",
+                        "aws:asset:is-bundled": False,
+                    },
+                },
+                "Function2": {
+                    "Properties": {
+                        "Code": {
+                            "Ref": "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481ArtifactHash0A652345"
+                        }
+                    },
+                },
+            },
+        }
+
+        ResourceMetadataNormalizer.normalize(template_data, True)
+        self.assertEqual(
+            template_data["Parameters"][
+                "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481ArtifactHash0A652998"
+            ]["Default"],
+            " ",
+        )
+        self.assertEqual(
+            template_data["Parameters"][
+                "AssetParametersb9866fd422d32492C62394e8c406ab4004f0c80364BAB4957e67e31cf1130481ArtifactHash0A65c998"
+            ]["Default"],
+            " ",
+        )
+        self.assertEqual(
+            template_data["Parameters"][
+                "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481S3Bucket0A652998"
+            ]["Default"],
+            " ",
+        )
+        self.assertEqual(
+            template_data["Parameters"][
+                "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481S3VersionKey0A652998"
+            ]["Default"],
+            " ",
+        )
+        self.assertEqual(
+            template_data["Parameters"][
+                "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481ArtifactHash0A652999"
+            ]["Default"],
+            "/path",
+        )
+        self.assertIsNone(
+            template_data["Parameters"][
+                "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481ArtifactHash0A652900"
+            ].get("Default")
+        )
+        self.assertIsNone(
+            template_data["Parameters"][
+                "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481ArtifactHash0A652345"
+            ].get("Default")
+        )
+        self.assertIsNone(
+            template_data["Parameters"][
+                "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481ArtifactHash0A652345123"
+            ].get("Default")
+        )
