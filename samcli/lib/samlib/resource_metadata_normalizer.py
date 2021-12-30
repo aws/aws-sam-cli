@@ -9,6 +9,10 @@ import re
 
 from samcli.lib.iac.cdk.utils import is_cdk_project
 
+from samcli.lib.utils.resources import AWS_CLOUDFORMATION_STACK
+
+CDK_NESTED_STACK_RESOURCE_ID_SUFFIX = ".NestedStack"
+
 RESOURCES_KEY = "Resources"
 PROPERTIES_KEY = "Properties"
 METADATA_KEY = "Metadata"
@@ -211,16 +215,28 @@ class ResourceMetadataNormalizer:
         customer_defined_id = resource_metadata.get(SAM_RESOURCE_ID_KEY)
 
         if isinstance(customer_defined_id, str) and customer_defined_id:
+            LOG.debug(
+                "Sam customer defined id is more priority than other IDs. Customer defined id for resource %s is %s",
+                logical_id,
+                customer_defined_id,
+            )
             return customer_defined_id
 
         resource_cdk_path = resource_metadata.get(RESOURCE_CDK_PATH_METADATA_KEY)
 
         if not isinstance(resource_cdk_path, str) or not resource_cdk_path:
+            LOG.debug(
+                "There is no customer defined id or cdk path defined for resource %s, so we will use the resource "
+                "logical id as the resource id",
+                logical_id,
+            )
             return logical_id
 
         # aws:cdk:path metadata format of functions: {stack_id}/{function_id}/Resource
         # Design doc of CDK path: https://github.com/aws/aws-cdk/blob/master/design/construct-tree.md
         cdk_path_partitions = resource_cdk_path.split("/")
+
+        LOG.debug("CDK Path for resource %s is %s", logical_id, cdk_path_partitions)
 
         if len(cdk_path_partitions) < 2:
             LOG.warning(
@@ -231,9 +247,9 @@ class ResourceMetadataNormalizer:
         cdk_resource_id = cdk_path_partitions[-2]
 
         # Check if the Resource is nested Stack
-        if resource_properties.get("Type", "") == "AWS::CloudFormation::Stack" and cdk_resource_id.endswith(
-            ".NestedStack"
+        if resource_properties.get("Type", "") == AWS_CLOUDFORMATION_STACK and cdk_resource_id.endswith(
+            CDK_NESTED_STACK_RESOURCE_ID_SUFFIX
         ):
-            cdk_resource_id = cdk_resource_id[: -len(".NestedStack")]
+            cdk_resource_id = cdk_resource_id[: -len(CDK_NESTED_STACK_RESOURCE_ID_SUFFIX)]
 
         return cdk_resource_id
