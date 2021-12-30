@@ -640,6 +640,16 @@ class TestApplicationBuilder_update_template(TestCase):
                     "Properties": {"PackageType": "Image"},
                     "Metadata": {"Dockerfile": "Dockerfile", "DockerContext": "DockerContext", "DockerTag": "Tag"},
                 },
+                "MyServerlessLayer": {
+                    "Type": "AWS::Serverless::LayerVersion",
+                    "Properties": {"ContentUri": "oldvalue"},
+                    "Metadata": {"BuildMethod": "python3.8"},
+                },
+                "MyLambdaLayer": {
+                    "Type": "AWS::Lambda::LayerVersion",
+                    "Properties": {"Content": "oldvalue"},
+                    "Metadata": {"BuildMethod": "python3.8"},
+                },
             }
         }
 
@@ -651,6 +661,8 @@ class TestApplicationBuilder_update_template(TestCase):
             "MyFunction2": "/path/to/build/MyFunction2",
             "CDKFunc": "/path/to/build/MyCDKFunction",
             "CustomIdFunc": "/path/to/build/MyCustomIdFunction",
+            "MyServerlessLayer": "/path/to/build/ServerlessLayer",
+            "MyLambdaLayer": "/path/to/build/LambdaLayer",
             "MyImageFunction1": "myimagefunction1:Tag",
             "PreBuiltImageFunction1": "",
         }
@@ -686,6 +698,16 @@ class TestApplicationBuilder_update_template(TestCase):
                     "Properties": {"Code": {"ImageUri": "myimagefunction1:Tag"}, "PackageType": IMAGE},
                     "Metadata": {"Dockerfile": "Dockerfile", "DockerContext": "DockerContext", "DockerTag": "Tag"},
                 },
+                "MyServerlessLayer": {
+                    "Type": "AWS::Serverless::LayerVersion",
+                    "Properties": {"ContentUri": os.path.join("build", "ServerlessLayer")},
+                    "Metadata": {"BuildMethod": "python3.8"},
+                },
+                "MyLambdaLayer": {
+                    "Type": "AWS::Lambda::LayerVersion",
+                    "Properties": {"Content": os.path.join("build", "LambdaLayer")},
+                    "Metadata": {"BuildMethod": "python3.8"},
+                },
             }
         }
 
@@ -702,6 +724,8 @@ class TestApplicationBuilder_update_template(TestCase):
         original_root_template_path = "/path/to/template.yaml"
         built_artifacts = {
             "MyFunction1": "/path/to/build/MyFunction1",
+            "ChildStackXXX/MyServerlessLayer": "/path/to/build/ChildStackXXX/ServerlessLayer",
+            "ChildStackXXX/MyLambdaLayer": "/path/to/build/ChildStackXXX/LambdaLayer",
             "ChildStackXXX/MyFunction1": "/path/to/build/ChildStackXXX/MyFunction1",
             "ChildStackXXX/MyFunction2": "/path/to/build/ChildStackXXX/MyFunction2",
             "ChildStackXXX/CDKFunc": "/path/to/build/ChildStackXXX/MyCDKFunction",
@@ -743,6 +767,16 @@ class TestApplicationBuilder_update_template(TestCase):
                     "Type": "AWS::Lambda::Function",
                     "Properties": {"Code": {"ImageUri": "myimagefunction1:Tag"}, "PackageType": IMAGE},
                     "Metadata": {"Dockerfile": "Dockerfile", "DockerContext": "DockerContext", "DockerTag": "Tag"},
+                },
+                "MyServerlessLayer": {
+                    "Type": "AWS::Serverless::LayerVersion",
+                    "Properties": {"ContentUri": os.path.join("build", "ChildStackXXX", "ServerlessLayer")},
+                    "Metadata": {"BuildMethod": "python3.8"},
+                },
+                "MyLambdaLayer": {
+                    "Type": "AWS::Lambda::LayerVersion",
+                    "Properties": {"Content": os.path.join("build", "ChildStackXXX", "LambdaLayer")},
+                    "Metadata": {"BuildMethod": "python3.8"},
                 },
             }
         }

@@ -981,8 +981,15 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
     EXPECTED_FILES_PROJECT_MANIFEST = {"__init__.py", "main.py", "requirements.txt"}
     EXPECTED_LAYERS_FILES_PROJECT_MANIFEST = {"__init__.py", "layer.py", "numpy", "requirements.txt"}
 
-    @parameterized.expand([("python3.7", False, "LayerOne"), ("python3.7", "use_container", "LayerOne")])
-    def test_build_single_layer(self, runtime, use_container, layer_identifier):
+    @parameterized.expand(
+        [
+            ("python3.7", False, "LayerOne", "ContentUri"),
+            ("python3.7", "use_container", "LayerOne", "ContentUri"),
+            ("python3.7", False, "LambdaLayerOne", "Content"),
+            ("python3.7", "use_container", "LambdaLayerOne", "Content"),
+        ]
+    )
+    def test_build_single_layer(self, runtime, use_container, layer_identifier, content_property):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
@@ -1000,7 +1007,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             self.default_build_dir,
             layer_identifier,
             self.EXPECTED_LAYERS_FILES_PROJECT_MANIFEST,
-            "ContentUri",
+            content_property,
             "python",
         )
 
