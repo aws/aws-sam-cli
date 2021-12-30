@@ -140,7 +140,7 @@ class PackageContext:
             self.uploaders,
             self.code_signer,
             normalize_template=True,
-            normalize_parameters=False,
+            normalize_parameters=True,
         )
         exported_template = template.export()
 
