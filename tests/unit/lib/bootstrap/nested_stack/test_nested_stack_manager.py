@@ -10,7 +10,6 @@ from samcli.lib.bootstrap.nested_stack.nested_stack_manager import (
 )
 from samcli.lib.build.app_builder import ApplicationBuildResult
 from samcli.lib.sync.exceptions import InvalidRuntimeDefinitionForFunction
-from samcli.lib.utils import osutils
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.lib.utils.resources import AWS_SQS_QUEUE, AWS_SERVERLESS_FUNCTION
 

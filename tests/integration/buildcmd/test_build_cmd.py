@@ -8,7 +8,6 @@ from typing import Set
 from unittest import skipIf
 
 import docker
-import jmespath
 import pytest
 from parameterized import parameterized, parameterized_class
 

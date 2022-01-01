@@ -1,8 +1,9 @@
 import os
+import posixpath
 from unittest import TestCase
 from unittest.mock import MagicMock, Mock, patch
 
-from parameterized import parameterized
+from parameterized import parameterized, parameterized_class
 
 from samcli.lib.utils.architecture import X86_64, ARM64
 
@@ -51,8 +52,73 @@ class TestProvider(TestCase):
         ]
     )
     def test_stack_get_output_template_path(self, parent_stack_path, name, output_template_path):
-        root_stack = Stack(parent_stack_path, name, None, None, None)
+        root_stack = Stack(parent_stack_path, name, None, None, None, None)
         self.assertEqual(root_stack.get_output_template_path("builddir"), output_template_path)
+
+
+@parameterized_class(
+    ("stack", "expected_id", "expected_stack_path"),
+    [
+        (
+            # empty metadata
+            Stack("", "stackLogicalId", "/stack", None, {}, {}),
+            "stackLogicalId",
+            "stackLogicalId",
+        ),
+        (
+            # None metadata
+            Stack("", "stackLogicalId", "/stack", None, {}, None),
+            "stackLogicalId",
+            "stackLogicalId",
+        ),
+        (
+            # metadata without sam resource id
+            Stack("", "stackLogicalId", "/stack", None, {}, {"id": "id"}),
+            "stackLogicalId",
+            "stackLogicalId",
+        ),
+        (
+            # metadata with sam resource id
+            Stack("", "stackLogicalId", "/stack", None, {}, {"SamResourceId": "stackCustomId"}),
+            "stackCustomId",
+            "stackCustomId",
+        ),
+        (
+            # empty metadata
+            Stack("stack", "stackLogicalId", "/stack", None, {}, {}),
+            "stackLogicalId",
+            posixpath.join("stack", "stackLogicalId"),
+        ),
+        (
+            # None metadata
+            Stack("stack", "stackLogicalId", "/stack", None, {}, None),
+            "stackLogicalId",
+            posixpath.join("stack", "stackLogicalId"),
+        ),
+        (
+            # metadata without sam resource id
+            Stack("stack", "stackLogicalId", "/stack", None, {}, {"id": "id"}),
+            "stackLogicalId",
+            posixpath.join("stack", "stackLogicalId"),
+        ),
+        (
+            # metadata with sam resource id
+            Stack("stack", "stackLogicalId", "/stack", None, {}, {"SamResourceId": "stackCustomId"}),
+            "stackCustomId",
+            posixpath.join("stack", "stackCustomId"),
+        ),
+    ],
+)
+class TestStack(TestCase):
+    stack = None
+    expected_id = None
+    expected_stack_path = None
+
+    def test_stack_id(self):
+        self.assertEqual(self.expected_id, self.stack.stack_id)
+
+    def test_stack_path(self):
+        self.assertEqual(self.expected_stack_path, self.stack.stack_path)
 
 
 class TestFunction(TestCase):
