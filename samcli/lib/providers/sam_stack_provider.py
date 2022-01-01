@@ -153,6 +153,7 @@ class SamLocalStackProvider(SamBaseProvider):
                 resource_properties.get("Parameters", {}), global_parameter_overrides
             ),
             template_dict=get_template_data(location),
+            metadata=resource_properties.get("Metadata", {}),
         )
 
     @staticmethod
@@ -186,6 +187,7 @@ class SamLocalStackProvider(SamBaseProvider):
                 resource_properties.get("Parameters", {}), global_parameter_overrides
             ),
             template_dict=get_template_data(template_url),
+            metadata=resource_properties.get("Metadata", {}),
         )
 
     @staticmethod
@@ -195,6 +197,7 @@ class SamLocalStackProvider(SamBaseProvider):
         name: str = "",
         parameter_overrides: Optional[Dict] = None,
         global_parameter_overrides: Optional[Dict] = None,
+        metadata: Optional[Dict] = None,
     ) -> Tuple[List[Stack], List[str]]:
         """
         Recursively extract stacks from a template file.
@@ -213,6 +216,8 @@ class SamLocalStackProvider(SamBaseProvider):
         global_parameter_overrides: Optional[Dict]
             Optional dictionary of values for SAM template global parameters
             that might want to get substituted within the template and its child templates
+        metadata: Optional[Dict]
+            Optional dictionary of nested stack resource metadata values.
 
         Returns
         -------
@@ -229,6 +234,7 @@ class SamLocalStackProvider(SamBaseProvider):
                 template_file,
                 SamLocalStackProvider.merge_parameter_overrides(parameter_overrides, global_parameter_overrides),
                 template_dict,
+                metadata,
             )
         ]
         remote_stack_full_paths: List[str] = []
@@ -241,10 +247,11 @@ class SamLocalStackProvider(SamBaseProvider):
         for child_stack in current.get_all():
             stacks_in_child, remote_stack_full_paths_in_child = SamLocalStackProvider.get_stacks(
                 child_stack.location,
-                os.path.join(stack_path, name),
+                os.path.join(stack_path, stacks[0].stack_id),
                 child_stack.name,
                 child_stack.parameters,
                 global_parameter_overrides,
+                child_stack.metadata,
             )
             stacks.extend(stacks_in_child)
             remote_stack_full_paths.extend(remote_stack_full_paths_in_child)

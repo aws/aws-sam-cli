@@ -48,6 +48,7 @@ class NestedStackManager:
         stack_location: str,
         current_template: Dict,
         app_build_result: ApplicationBuildResult,
+        stack_metadata: Optional[Dict] = None,
     ):
         """
         Parameters
@@ -62,6 +63,8 @@ class NestedStackManager:
             Current template of the project
         app_build_result: ApplicationBuildResult
             Application build result, which contains build graph, and built artifacts information
+        stack_metadata: Optional[Dict]
+            The nested stack resource metadata values.
         """
         self._stack_name = stack_name
         self._build_dir = build_dir
@@ -69,6 +72,7 @@ class NestedStackManager:
         self._current_template = current_template
         self._app_build_result = app_build_result
         self._nested_stack_builder = NestedStackBuilder()
+        self._stack_metadata = stack_metadata if stack_metadata else {}
 
     def generate_auto_dependency_layer_stack(self) -> Dict:
         """
@@ -79,7 +83,9 @@ class NestedStackManager:
         template = deepcopy(self._current_template)
         resources = template.get("Resources", {})
 
-        stack = Stack("", self._stack_name, self._stack_location, {}, template_dict=template)
+        stack = Stack(
+            "", self._stack_name, self._stack_location, {}, template_dict=template, metadata=self._stack_metadata
+        )
         function_provider = SamFunctionProvider([stack], ignore_code_extraction_warnings=True)
         zip_functions = [function for function in function_provider.get_all() if function.packagetype == ZIP]
 

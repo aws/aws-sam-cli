@@ -489,6 +489,13 @@ class Stack(NamedTuple):
     parameters: Optional[Dict]
     # the raw template dict
     template_dict: Dict
+    # metadata
+    metadata: Optional[Dict] = None
+
+    @property
+    def stack_id(self) -> str:
+        _metadata = self.metadata if self.metadata else {}
+        return _metadata.get(SAM_RESOURCE_ID_KEY, self.name) if self.metadata else self.name
 
     @property
     def stack_path(self) -> str:
@@ -499,7 +506,7 @@ class Stack(NamedTuple):
             root stack's child stack StackX: "StackX"
             StackX's child stack StackY: "StackX/StackY"
         """
-        return posixpath.join(self.parent_stack_path, self.name)
+        return posixpath.join(self.parent_stack_path, self.stack_id)
 
     @property
     def is_root_stack(self) -> bool:
@@ -579,14 +586,14 @@ class ResourceIdentifier:
         return hash(str(self))
 
 
-def get_full_path(stack_path: str, logical_id: str) -> str:
+def get_full_path(stack_path: str, resource_id: str) -> str:
     """
     Return the unique posix path-like identifier
     while will used for identify a resource from resources in a multi-stack situation
     """
     if not stack_path:
-        return logical_id
-    return posixpath.join(stack_path, logical_id)
+        return resource_id
+    return posixpath.join(stack_path, resource_id)
 
 
 def get_resource_by_id(
