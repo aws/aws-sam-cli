@@ -50,6 +50,7 @@ class TestGuidedContext(TestCase):
         self.companion_stack_manager_patch.stop()
         self.verify_image_patch.stop()
 
+    @patch("samcli.commands.deploy.guided_context.get_resource_full_path_by_id")
     @patch("samcli.commands.deploy.guided_context.prompt")
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
@@ -66,6 +67,7 @@ class TestGuidedContext(TestCase):
         patched_manage_stack,
         patched_confirm,
         patched_prompt,
+        get_resource_full_path_by_id_mock,
     ):
         patched_sam_function_provider.return_value.functions = {}
         patched_get_buildable_stacks.return_value = (Mock(), [])
@@ -101,6 +103,7 @@ class TestGuidedContext(TestCase):
             "template", parameter_overrides={}, global_parameter_overrides={"AWS::Region": ANY}
         )
 
+    @patch("samcli.commands.deploy.guided_context.get_resource_full_path_by_id")
     @patch("samcli.commands.deploy.guided_context.prompt")
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
@@ -117,6 +120,7 @@ class TestGuidedContext(TestCase):
         patched_manage_stack,
         patched_confirm,
         patched_prompt,
+        get_resource_full_path_by_id_mock,
     ):
         patched_signer_config_per_function.return_value = (None, None)
         patched_sam_function_provider.return_value.functions = {}
@@ -151,6 +155,7 @@ class TestGuidedContext(TestCase):
         ]
         self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
 
+    @patch("samcli.commands.deploy.guided_context.get_resource_full_path_by_id")
     @patch("samcli.commands.deploy.guided_context.prompt")
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
@@ -171,6 +176,7 @@ class TestGuidedContext(TestCase):
         patched_manage_stack,
         patched_confirm,
         patched_prompt,
+        get_resource_full_path_by_id_mock,
     ):
 
         patched_signer_config_per_function.return_value = (None, None)
@@ -188,6 +194,7 @@ class TestGuidedContext(TestCase):
         ]
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
+        get_resource_full_path_by_id_mock.return_value = None
         patched_confirm.side_effect = [True, False, False, True, False, True, True]
         patched_manage_stack.return_value = "managed_s3_stack"
         self.gc.guided_prompts(parameter_override_keys=None)
@@ -229,6 +236,7 @@ class TestGuidedContext(TestCase):
         ]
         self.assertEqual(expected_click_secho_calls, patched_click_secho.call_args_list)
 
+    @patch("samcli.commands.deploy.guided_context.get_resource_full_path_by_id")
     @patch("samcli.commands.deploy.guided_context.prompt")
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
@@ -247,6 +255,7 @@ class TestGuidedContext(TestCase):
         patched_manage_stack,
         patched_confirm,
         patched_prompt,
+        get_resource_full_path_by_id_mock,
     ):
         function_mock = MagicMock()
         function_mock.packagetype = IMAGE
@@ -262,6 +271,7 @@ class TestGuidedContext(TestCase):
         ]
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
+        get_resource_full_path_by_id_mock.return_value = "RandomFunction"
         patched_confirm.side_effect = [True, False, False, True, False, True, True]
         patched_manage_stack.return_value = "managed_s3_stack"
         patched_signer_config_per_function.return_value = ({}, {})
@@ -302,6 +312,7 @@ class TestGuidedContext(TestCase):
         ]
         self.assertEqual(expected_click_secho_calls, patched_click_secho.call_args_list)
 
+    @patch("samcli.commands.deploy.guided_context.get_resource_full_path_by_id")
     @patch("samcli.commands.deploy.guided_context.prompt")
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
@@ -320,6 +331,7 @@ class TestGuidedContext(TestCase):
         patched_manage_stack,
         patched_confirm,
         patched_prompt,
+        get_resource_full_path_by_id_mock,
     ):
         function_mock = MagicMock()
         function_mock.packagetype = IMAGE
@@ -335,12 +347,14 @@ class TestGuidedContext(TestCase):
         ]
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
+        get_resource_full_path_by_id_mock.return_value = "RandomFunction"
         patched_confirm.side_effect = [True, False, False, True, False, False, True]
         patched_manage_stack.return_value = "managed_s3_stack"
         patched_signer_config_per_function.return_value = ({}, {})
         with self.assertRaises(GuidedDeployFailedError):
             self.gc.guided_prompts(parameter_override_keys=None)
 
+    @patch("samcli.commands.deploy.guided_context.get_resource_full_path_by_id")
     @patch("samcli.commands.deploy.guided_context.prompt")
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
@@ -359,6 +373,7 @@ class TestGuidedContext(TestCase):
         patched_manage_stack,
         patched_confirm,
         patched_prompt,
+        patched_get_resource_full_path_by_id,
     ):
         # Set ImageUri to be None, the sam app was never built.
         function_mock_1 = MagicMock()
@@ -369,6 +384,7 @@ class TestGuidedContext(TestCase):
         function_mock_2.packagetype = IMAGE
         function_mock_2.imageuri = None
         function_mock_2.full_path = "RandomFunction"
+        patched_get_resource_full_path_by_id.return_value = "RandomFunction"
         patched_sam_function_provider.return_value.get_all.return_value = [function_mock_1, function_mock_2]
         patched_get_buildable_stacks.return_value = (Mock(), [])
         patched_prompt.side_effect = [
@@ -419,6 +435,7 @@ class TestGuidedContext(TestCase):
         ]
         self.assertEqual(expected_click_secho_calls, patched_click_secho.call_args_list)
 
+    @patch("samcli.commands.deploy.guided_context.get_resource_full_path_by_id")
     @patch("samcli.commands.deploy.guided_context.prompt")
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
@@ -437,6 +454,7 @@ class TestGuidedContext(TestCase):
         patched_manage_stack,
         patched_confirm,
         patched_prompt,
+        patched_get_resource_full_path_by_id,
     ):
         # Set ImageUri to be None, the sam app was never built.
         function_mock = MagicMock()
@@ -453,6 +471,7 @@ class TestGuidedContext(TestCase):
         ]
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
+        patched_get_resource_full_path_by_id.return_value = "RandomFunction"
         patched_confirm.side_effect = [True, False, False, True, False, False, True]
         patched_manage_stack.return_value = "managed_s3_stack"
         patched_signer_config_per_function.return_value = ({}, {})
@@ -498,6 +517,7 @@ class TestGuidedContext(TestCase):
         ]
         self.assertEqual(expected_click_secho_calls, patched_click_secho.call_args_list)
 
+    @patch("samcli.commands.deploy.guided_context.get_resource_full_path_by_id")
     @patch("samcli.commands.deploy.guided_context.prompt")
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
@@ -516,12 +536,14 @@ class TestGuidedContext(TestCase):
         patched_manage_stack,
         patched_confirm,
         patched_prompt,
+        patched_get_resource_full_path_by_id,
     ):
         # Set ImageUri to be None, the sam app was never built.
         function_mock = MagicMock()
         function_mock.packagetype = IMAGE
         function_mock.imageuri = None
         function_mock.full_path = "HelloWorldFunction"
+        patched_get_resource_full_path_by_id.return_value = "RandomFunction"
         patched_sam_function_provider.return_value.get_all.return_value = [function_mock]
         patched_get_buildable_stacks.return_value = (Mock(), [])
         patched_prompt.side_effect = [
@@ -537,6 +559,7 @@ class TestGuidedContext(TestCase):
         with self.assertRaises(GuidedDeployFailedError):
             self.gc.guided_prompts(parameter_override_keys=None)
 
+    @patch("samcli.commands.deploy.guided_context.get_resource_full_path_by_id")
     @patch("samcli.commands.deploy.guided_context.prompt")
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
@@ -555,11 +578,13 @@ class TestGuidedContext(TestCase):
         patched_manage_stack,
         patched_confirm,
         patched_prompt,
+        patched_get_resource_full_path_by_id,
     ):
         function_mock = MagicMock()
         function_mock.packagetype = IMAGE
         function_mock.imageuri = None
         function_mock.full_path = "HelloWorldFunction"
+        patched_get_resource_full_path_by_id.return_value = "RandomFunction"
         patched_sam_function_provider.return_value.get_all.return_value = [function_mock]
         patched_get_buildable_stacks.return_value = (Mock(), [])
         # set Image repository to be blank.
@@ -591,6 +616,7 @@ class TestGuidedContext(TestCase):
             ),
         ]
     )
+    @patch("samcli.commands.deploy.guided_context.get_resource_full_path_by_id")
     @patch("samcli.commands.deploy.guided_context.prompt")
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
@@ -608,8 +634,10 @@ class TestGuidedContext(TestCase):
         patched_manage_stack,
         patched_confirm,
         patched_prompt,
+        patched_get_resource_full_path_by_id,
     ):
         patched_signer_config_per_function.return_value = ({}, {})
+        patched_get_resource_full_path_by_id.return_value = "RandomFunction"
         patched_get_buildable_stacks.return_value = (Mock(), [])
         self.gc.capabilities = given_capabilities
         # Series of inputs to confirmations so that full range of questions are asked.
@@ -637,6 +665,7 @@ class TestGuidedContext(TestCase):
         ]
         self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
 
+    @patch("samcli.commands.deploy.guided_context.get_resource_full_path_by_id")
     @patch("samcli.commands.deploy.guided_context.prompt")
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
@@ -653,6 +682,7 @@ class TestGuidedContext(TestCase):
         patched_manage_stack,
         patched_confirm,
         patched_prompt,
+        patched_get_resource_full_path_by_id,
     ):
         patched_sam_function_provider.return_value.functions = {}
         patched_get_buildable_stacks.return_value = (Mock(), [])
@@ -661,6 +691,7 @@ class TestGuidedContext(TestCase):
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
         patched_confirm.side_effect = [True, False, False, True, True, True, True]
         patched_manage_stack.return_value = "managed_s3_stack"
+        patched_get_resource_full_path_by_id.return_value = "RandomFunction"
         self.gc.guided_prompts(parameter_override_keys=None)
         # Now to check for all the defaults on confirmations.
         expected_confirmation_calls = [
@@ -696,6 +727,7 @@ class TestGuidedContext(TestCase):
         ]
         self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
 
+    @patch("samcli.commands.deploy.guided_context.get_resource_full_path_by_id")
     @patch("samcli.commands.deploy.guided_context.prompt")
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
@@ -712,11 +744,13 @@ class TestGuidedContext(TestCase):
         patched_manage_stack,
         patched_confirm,
         patched_prompt,
+        patched_get_resource_full_path_by_id,
     ):
         patched_sam_function_provider.return_value.functions = {}
         patched_get_buildable_stacks.return_value = (Mock(), [])
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
+        patched_get_resource_full_path_by_id.return_value = "RandomFunction"
         patched_confirm.side_effect = [True, False, False, True, False, True, True]
         patched_manage_stack.return_value = "managed_s3_stack"
         patched_signer_config_per_function.return_value = ({}, {})
@@ -752,6 +786,7 @@ class TestGuidedContext(TestCase):
         ]
         self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
 
+    @patch("samcli.commands.deploy.guided_context.get_resource_full_path_by_id")
     @patch("samcli.commands.deploy.guided_context.prompt")
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
@@ -768,11 +803,13 @@ class TestGuidedContext(TestCase):
         patched_manage_stack,
         patched_confirm,
         patched_prompt,
+        patched_get_resource_full_path_by_id,
     ):
         patched_sam_function_provider.return_value.functions = {}
         patched_get_buildable_stacks.return_value = (Mock(), [])
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
+        patched_get_resource_full_path_by_id.return_value = "RandomFunction"
         patched_confirm.side_effect = [True, False, False, True, False, True, True]
         patched_signer_config_per_function.return_value = ({}, {})
         patched_manage_stack.return_value = "managed_s3_stack"
@@ -817,6 +854,7 @@ class TestGuidedContext(TestCase):
             (True, ({"MyFunction1"}, {"MyLayer1": {"MyFunction1"}, "MyLayer2": {"MyFunction1"}})),
         ]
     )
+    @patch("samcli.commands.deploy.guided_context.get_resource_full_path_by_id")
     @patch("samcli.commands.deploy.guided_context.prompt")
     @patch("samcli.commands.deploy.guided_context.confirm")
     @patch("samcli.commands.deploy.code_signer_utils.prompt")
@@ -837,6 +875,7 @@ class TestGuidedContext(TestCase):
         patched_code_signer_prompt,
         patched_confirm,
         patched_prompt,
+        patched_get_resource_full_path_by_id,
     ):
         # given_sign_packages_flag = True
         # given_code_signing_configs = ({"MyFunction1"}, {"MyLayer1": {"MyFunction1"}, "MyLayer2": {"MyFunction1"}})
@@ -845,6 +884,7 @@ class TestGuidedContext(TestCase):
         patched_get_buildable_stacks.return_value = (Mock(), [])
         # Series of inputs to confirmations so that full range of questions are asked.
         patched_confirm.side_effect = [True, False, False, given_sign_packages_flag, "", True, True, True]
+        patched_get_resource_full_path_by_id.return_value = "RandomFunction"
         self.gc.guided_prompts(parameter_override_keys=None)
         # Now to check for all the defaults on confirmations.
         expected_confirmation_calls = [
@@ -888,6 +928,7 @@ class TestGuidedContext(TestCase):
             expected_code_sign_calls = expected_code_sign_calls * (number_of_functions + number_of_layers)
             self.assertEqual(expected_code_sign_calls, patched_code_signer_prompt.call_args_list)
 
+    @patch("samcli.commands.deploy.guided_context.get_resource_full_path_by_id")
     @patch("samcli.commands.deploy.guided_context.get_default_aws_region")
     @patch("samcli.commands.deploy.guided_context.prompt")
     @patch("samcli.commands.deploy.guided_context.confirm")
@@ -906,11 +947,13 @@ class TestGuidedContext(TestCase):
         patched_confirm,
         patched_prompt,
         patched_get_default_aws_region,
+        patched_get_resource_full_path_by_id,
     ):
         patched_sam_function_provider.return_value.functions = {}
         patched_get_buildable_stacks.return_value = (Mock(), [])
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
+        patched_get_resource_full_path_by_id.return_value = "RandomFunction"
         patched_confirm.side_effect = [True, False, False, True, True, True, True]
         patched_signer_config_per_function.return_value = ({}, {})
         patched_manage_stack.return_value = "managed_s3_stack"
