@@ -139,7 +139,7 @@ class RestApiSyncFlow(GenericApiSyncFlow):
                 continue
             # If the stage's deployment ID is not static and the rest API ID matchs, then update
             for deployment_resource in deployment_resources:
-                if deployment_resource.logical_id == dep_id and rest_api_id == self._api_identifier:
+                if deployment_resource.resource_iac_id == dep_id and rest_api_id == self._api_identifier:
                     stages.add(cast(str, stage_dict.get("Properties", {}).get("StageName")))
                     break
 

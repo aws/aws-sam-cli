@@ -15,7 +15,11 @@ from samcli.commands.local.cli_common.user_exceptions import (
     InvalidFunctionPropertyType,
 )
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
-from samcli.lib.samlib.resource_metadata_normalizer import SAM_METADATA_SKIP_BUILD_KEY, SAM_RESOURCE_ID_KEY
+from samcli.lib.samlib.resource_metadata_normalizer import (
+    ResourceMetadataNormalizer,
+    SAM_METADATA_SKIP_BUILD_KEY,
+    SAM_RESOURCE_ID_KEY,
+)
 from samcli.lib.utils.architecture import X86_64
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -537,7 +541,8 @@ class ResourceIdentifier:
     """Resource identifier for representing a resource with nested stack support"""
 
     _stack_path: str
-    _logical_id: str
+    # resource_iac_id is the resource logical id in case of CFN, or customer defined construct Id in case of CDK.
+    _resource_iac_id: str
 
     def __init__(self, resource_identifier_str: str):
         """
@@ -550,10 +555,12 @@ class ResourceIdentifier:
         parts = resource_identifier_str.rsplit(posixpath.sep, 1)
         if len(parts) == 1:
             self._stack_path = ""
-            self._logical_id = parts[0]
+            # resource_iac_id in this case can be the resource iac id or logical id
+            self._resource_iac_id = parts[0]
         else:
             self._stack_path = parts[0]
-            self._logical_id = parts[1]
+            # resource_iac_id in this case will be always the resource iac id
+            self._resource_iac_id = parts[1]
 
     @property
     def stack_path(self) -> str:
@@ -567,17 +574,17 @@ class ResourceIdentifier:
         return self._stack_path
 
     @property
-    def logical_id(self) -> str:
+    def resource_iac_id(self) -> str:
         """
         Returns
         -------
         str
             Logical ID of the resource.
         """
-        return self._logical_id
+        return self._resource_iac_id
 
     def __str__(self) -> str:
-        return self.stack_path + posixpath.sep + self.logical_id if self.stack_path else self.logical_id
+        return self.stack_path + posixpath.sep + self.resource_iac_id if self.stack_path else self.resource_iac_id
 
     def __eq__(self, other: object) -> bool:
         return str(self) == str(other) if isinstance(other, ResourceIdentifier) else False
@@ -620,9 +627,44 @@ def get_resource_by_id(
     search_all_stacks = not identifier.stack_path and not explicit_nested
     for stack in stacks:
         if stack.stack_path == identifier.stack_path or search_all_stacks:
-            resource = stack.resources.get(identifier.logical_id)
-            if resource:
-                return cast(Dict[str, Any], resource)
+            found_resource = None
+            for logical_id, resource in stack.resources.items():
+                resource_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)
+                if resource_id == identifier.resource_iac_id or (
+                    not identifier.stack_path and logical_id == identifier.resource_iac_id
+                ):
+                    found_resource = resource
+                    break
+
+            if found_resource:
+                return cast(Dict[str, Any], found_resource)
+    return None
+
+
+def get_resource_full_path_by_id(stacks: List[Stack], identifier: ResourceIdentifier) -> Optional[str]:
+    """Seach resource in stacks based on identifier
+
+    Parameters
+    ----------
+    stacks : List[Stack]
+        List of stacks to be searched
+    identifier : ResourceIdentifier
+        Resource identifier for the resource to be returned
+
+    Returns
+    -------
+    Tuple[str, Dict]
+        return Resource Logical id and Resource dict
+    """
+    for stack in stacks:
+        if identifier.stack_path and identifier.stack_path != stack.stack_path:
+            continue
+        for logical_id, resource in stack.resources.items():
+            resource_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)
+            if resource_id == identifier.resource_iac_id or (
+                not identifier.stack_path and logical_id == identifier.resource_iac_id
+            ):
+                return get_full_path(stack.stack_path, resource_id)
     return None
 
 
@@ -643,7 +685,8 @@ def get_resource_ids_by_type(stacks: List[Stack], resource_type: str) -> List[Re
     """
     resource_ids: List[ResourceIdentifier] = list()
     for stack in stacks:
-        for resource_id, resource in stack.resources.items():
+        for logical_id, resource in stack.resources.items():
+            resource_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)
             if resource.get("Type", "") == resource_type:
                 resource_ids.append(ResourceIdentifier(get_full_path(stack.stack_path, resource_id)))
     return resource_ids
@@ -664,7 +707,8 @@ def get_all_resource_ids(stacks: List[Stack]) -> List[ResourceIdentifier]:
     """
     resource_ids: List[ResourceIdentifier] = list()
     for stack in stacks:
-        for resource_id, _ in stack.resources.items():
+        for logical_id, resource in stack.resources.items():
+            resource_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)
             resource_ids.append(ResourceIdentifier(get_full_path(stack.stack_path, resource_id)))
     return resource_ids
 
