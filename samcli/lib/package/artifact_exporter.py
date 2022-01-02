@@ -229,10 +229,10 @@ class Template:
         self._apply_global_values()
         self.template_dict = self._export_global_artifacts(self.template_dict)
 
-        for resource_id, resource in self.template_dict["Resources"].items():
-
+        for resource_logical_id, resource in self.template_dict["Resources"].items():
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
+            resource_id = ResourceMetadataNormalizer.get_resource_id(resource, resource_logical_id)
 
             for exporter_class in self.resources_to_export:
                 if exporter_class.RESOURCE_TYPE != resource_type:

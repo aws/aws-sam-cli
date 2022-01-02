@@ -653,8 +653,8 @@ def get_resource_full_path_by_id(stacks: List[Stack], identifier: ResourceIdenti
 
     Returns
     -------
-    Tuple[str, Dict]
-        return Resource Logical id and Resource dict
+    str
+        return resource full path
     """
     for stack in stacks:
         if identifier.stack_path and identifier.stack_path != stack.stack_path:
