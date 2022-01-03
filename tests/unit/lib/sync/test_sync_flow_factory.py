@@ -6,10 +6,24 @@ from samcli.lib.sync.sync_flow_factory import SyncFlowFactory
 
 class TestSyncFlowFactory(TestCase):
     def create_factory(self, auto_dependency_layer: bool = False):
+        stack_resource = MagicMock()
+        stack_resource.resources = {
+            "Resource1": {
+                "Type": "TypeA",
+                "Properties": {"Body1"},
+            },
+            "Resource2": {
+                "Type": "TypeB",
+                "Properties": {"Body2"},
+                "Metadata": {
+                    "SamResourceId": "CDKResource2",
+                },
+            },
+        }
         factory = SyncFlowFactory(
             build_context=MagicMock(),
             deploy_context=MagicMock(),
-            stacks=[MagicMock(), MagicMock()],
+            stacks=[stack_resource, MagicMock()],
             auto_dependency_layer=auto_dependency_layer,
         )
         return factory
@@ -22,9 +36,10 @@ class TestSyncFlowFactory(TestCase):
         factory = self.create_factory()
         factory.load_physical_id_mapping()
 
-        self.assertEqual(len(factory._physical_id_mapping), 2)
+        self.assertEqual(len(factory._physical_id_mapping), 3)
         self.assertEqual(
-            factory._physical_id_mapping, {"Resource1": "PhysicalResource1", "Resource2": "PhysicalResource2"}
+            factory._physical_id_mapping,
+            {"Resource1": "PhysicalResource1", "Resource2": "PhysicalResource2", "CDKResource2": "PhysicalResource2"},
         )
 
     @patch("samcli.lib.sync.sync_flow_factory.ImageFunctionSyncFlow")

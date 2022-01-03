@@ -70,7 +70,13 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
                 cfn_client.delete_stack(StackName=stack_name)
         super().tearDown()
 
-    @parameterized.expand(["aws-serverless-function.yaml", "cdk_v1_synthesized_template_zip_functions.json"])
+    @parameterized.expand(
+        [
+            "aws-serverless-function.yaml",
+            "cdk_v1_synthesized_template_zip_functions.json",
+            "cdk_v1_synthesized_template_Level1_nested_zip_functions.json",
+        ]
+    )
     def test_package_and_deploy_no_s3_bucket_all_args(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
         with tempfile.NamedTemporaryFile(delete=False) as output_template_file:
@@ -119,7 +125,13 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             deploy_process = run_command(deploy_command_list_execute)
             self.assertEqual(deploy_process.process.returncode, 0)
 
-    @parameterized.expand(["aws-serverless-function.yaml", "cdk_v1_synthesized_template_zip_functions.json"])
+    @parameterized.expand(
+        [
+            "aws-serverless-function.yaml",
+            "cdk_v1_synthesized_template_zip_functions.json",
+            "cdk_v1_synthesized_template_Level1_nested_zip_functions.json",
+        ]
+    )
     def test_no_package_and_deploy_with_s3_bucket_all_args(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
@@ -150,9 +162,10 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             "aws-serverless-function-image.yaml",
             "aws-lambda-function-image.yaml",
             "cdk_v1_synthesized_template_image_functions.json",
+            "cdk_v1_synthesized_template_Level1_nested_image_functions.json",
         ]
     )
-    def test_no_package_and_deploy_with_s3_bucket_all_args_image_repository(self, template_file):
+    def test_no_package_and_deploy_image_repository(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
@@ -183,6 +196,13 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             ("Hello", "aws-serverless-function-image.yaml"),
             ("MyLambdaFunction", "aws-lambda-function-image.yaml"),
             ("ColorsRandomFunctionF61B9209", "cdk_v1_synthesized_template_image_functions.json"),
+            ("ColorsRandomFunction", "cdk_v1_synthesized_template_image_functions.json"),
+            ("ColorsRandomFunction", "cdk_v1_synthesized_template_Level1_nested_image_functions.json"),
+            ("ColorsRandomFunctionF61B9209", "cdk_v1_synthesized_template_Level1_nested_image_functions.json"),
+            (
+                "Level1Stack/Level2Stack/ColorsRandomFunction",
+                "cdk_v1_synthesized_template_Level1_nested_image_functions.json",
+            ),
         ]
     )
     def test_no_package_and_deploy_with_s3_bucket_all_args_image_repositories(self, resource_id, template_file):
@@ -216,9 +236,10 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             "aws-serverless-function-image.yaml",
             "aws-lambda-function-image.yaml",
             "cdk_v1_synthesized_template_image_functions.json",
+            "cdk_v1_synthesized_template_Level1_nested_image_functions.json",
         ]
     )
-    def test_no_package_and_deploy_with_s3_bucket_all_args_resolve_image_repos(self, template_file):
+    def test_no_package_and_deploy_resolve_image_repos(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
