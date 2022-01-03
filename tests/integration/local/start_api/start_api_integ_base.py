@@ -9,6 +9,8 @@ import os
 import random
 from pathlib import Path
 
+import docker
+
 from tests.testing_utils import SKIP_DOCKER_MESSAGE, SKIP_DOCKER_TESTS, run_command
 
 
@@ -37,6 +39,10 @@ class StartApiIntegBaseClass(TestCase):
             cls.build()
 
         cls.port = str(StartApiIntegBaseClass.random_port())
+
+        cls.docker_client = docker.from_env()
+        for container in cls.docker_client.api.containers():
+            cls.docker_client.api.remove_container(container, force=True)
 
         cls.thread = threading.Thread(target=cls.start_api())
         cls.thread.setDaemon(True)

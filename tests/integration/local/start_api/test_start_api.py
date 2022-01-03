@@ -1,9 +1,7 @@
 import base64
-import os
 import uuid
 import random
 
-import docker
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time, sleep
@@ -1801,7 +1799,6 @@ class TestCFNTemplateHttpApiWithSwaggerBody(StartApiIntegBaseClass):
 class TestWarmContainersBaseClass(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
-        self.docker_client = docker.from_env()
 
     def count_running_containers(self):
         running_containers = 0

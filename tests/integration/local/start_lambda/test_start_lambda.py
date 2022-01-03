@@ -1,9 +1,7 @@
-import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time, sleep
 import json
-import docker
 from parameterized import parameterized, parameterized_class
 
 import pytest
@@ -260,7 +258,6 @@ class TestLambdaService(StartLambdaIntegBaseClass):
 class TestWarmContainersBaseClass(StartLambdaIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
-        self.docker_client = docker.from_env()
         self.lambda_client = boto3.client(
             "lambda",
             endpoint_url=self.url,

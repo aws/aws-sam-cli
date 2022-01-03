@@ -10,6 +10,8 @@ import os
 import random
 from pathlib import Path
 
+import docker
+
 from tests.testing_utils import SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE, run_command
 
 
@@ -35,6 +37,11 @@ class StartLambdaIntegBaseClass(TestCase):
 
         if cls.build_before_invoke:
             cls.build()
+
+        # remove all containers if there
+        cls.docker_client = docker.from_env()
+        for container in cls.docker_client.api.containers():
+            cls.docker_client.api.remove_container(container, force=True)
 
         cls.thread = threading.Thread(target=cls.start_lambda())
         cls.thread.setDaemon(True)

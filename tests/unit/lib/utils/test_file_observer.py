@@ -87,13 +87,13 @@ class FileObserver_watch(TestCase):
         )
         self.assertEqual(
             self.observer._single_file_observer._watch_dog_observed_paths,
-            {parent_path: [path_str], path_str: [path_str]},
+            {f"{parent_path}_False": [path_str], f"{path_str}_True": [path_str]},
         )
         self.assertEqual(
             self.observer._single_file_observer._observed_watches,
             {
-                parent_path: self.watcher_mock,
-                path_str: self.watcher_mock,
+                f"{parent_path}_False": self.watcher_mock,
+                f"{path_str}_True": self.watcher_mock,
             },
         )
         self.assertEqual(
@@ -136,14 +136,18 @@ class FileObserver_watch(TestCase):
 
         self.assertEqual(
             self.observer._single_file_observer._watch_dog_observed_paths,
-            {parent_path: [path1_str, path2_str], path1_str: [path1_str], path2_str: [path2_str]},
+            {
+                f"{parent_path}_False": [path1_str, path2_str],
+                f"{path1_str}_True": [path1_str],
+                f"{path2_str}_True": [path2_str],
+            },
         )
         self.assertEqual(
             self.observer._single_file_observer._observed_watches,
             {
-                parent_path: self.watcher_mock,
-                path1_str: self.watcher_mock,
-                path2_str: self.watcher_mock,
+                f"{parent_path}_False": self.watcher_mock,
+                f"{path1_str}_True": self.watcher_mock,
+                f"{path2_str}_True": self.watcher_mock,
             },
         )
         self.assertEqual(
@@ -185,8 +189,8 @@ class FileObserver_unwatch(TestCase):
         self.observer = FileObserver(self.on_change)
 
         self.observer._single_file_observer._watch_dog_observed_paths = {
-            "parent_path1": ["path1", "path2"],
-            "parent_path2": ["path3"],
+            "parent_path1_False": ["path1", "path2"],
+            "parent_path2_False": ["path3"],
         }
 
         self.observer._single_file_observer._observed_paths_per_group = {
@@ -201,8 +205,8 @@ class FileObserver_unwatch(TestCase):
         self._parent2_watcher_mock = Mock()
 
         self.observer._single_file_observer._observed_watches = {
-            "parent_path1": self._parent1_watcher_mock,
-            "parent_path2": self._parent2_watcher_mock,
+            "parent_path1_False": self._parent1_watcher_mock,
+            "parent_path2_False": self._parent2_watcher_mock,
         }
 
     @patch("samcli.lib.utils.file_observer.Path")
@@ -230,15 +234,15 @@ class FileObserver_unwatch(TestCase):
         self.assertEqual(
             self.observer._single_file_observer._watch_dog_observed_paths,
             {
-                "parent_path1": ["path2"],
-                "parent_path2": ["path3"],
+                "parent_path1_False": ["path2"],
+                "parent_path2_False": ["path3"],
             },
         )
         self.assertEqual(
             self.observer._single_file_observer._observed_watches,
             {
-                "parent_path1": self._parent1_watcher_mock,
-                "parent_path2": self._parent2_watcher_mock,
+                "parent_path1_False": self._parent1_watcher_mock,
+                "parent_path2_False": self._parent2_watcher_mock,
             },
         )
         self.watchdog_observer_mock.unschedule.assert_not_called()
@@ -268,13 +272,13 @@ class FileObserver_unwatch(TestCase):
         self.assertEqual(
             self.observer._single_file_observer._watch_dog_observed_paths,
             {
-                "parent_path1": ["path1", "path2"],
+                "parent_path1_False": ["path1", "path2"],
             },
         )
         self.assertEqual(
             self.observer._single_file_observer._observed_watches,
             {
-                "parent_path1": self._parent1_watcher_mock,
+                "parent_path1_False": self._parent1_watcher_mock,
             },
         )
         self.watchdog_observer_mock.unschedule.assert_called_with(self._parent2_watcher_mock)

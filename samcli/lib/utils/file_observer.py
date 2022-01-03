@@ -394,11 +394,14 @@ class SingletonFileObserver(metaclass=Singleton):
         event: watchdog.events.FileSystemEvent
             Determines that there is a change happened to some file/dir in the observed paths
         """
-
+        LOG.debug("a %s change got detected in path %s", event.event_type, event.src_path)
         for group, _observed_paths in self._observed_paths_per_group.items():
             if event.event_type == "deleted":
                 observed_paths = [
-                    path for path in _observed_paths if path in self._watch_dog_observed_paths.get(event.src_path, [])
+                    path
+                    for path in _observed_paths
+                    if path == event.src_path
+                    or path in self._watch_dog_observed_paths.get(f"{event.src_path}_False", [])
                 ]
             else:
                 observed_paths = [path for path in _observed_paths if event.src_path.startswith(path)]
@@ -406,6 +409,7 @@ class SingletonFileObserver(metaclass=Singleton):
             if not observed_paths:
                 continue
 
+            LOG.debug("affected paths of this change %s", observed_paths)
             changed_paths = []
             for path in observed_paths:
                 path_obj = Path(path)
@@ -467,9 +471,11 @@ class SingletonFileObserver(metaclass=Singleton):
         _observed_paths = self._observed_paths_per_group[group]
         _observed_paths[resource] = calculate_checksum(resource)
 
+        LOG.debug("watch resource %s", resource)
         # recursively watch the input path, and all child path for any modification
         self._watch_path(resource, resource, self._code_modification_handler, True)
 
+        LOG.debug("watch resource %s's parent %s", resource, str(path_obj.parent))
         # watch only the direct parent path child directories for any deletion
         # Parent directory watching is needed, as if the input path got deleted,
         # watchdog will not send an event for it
@@ -494,6 +500,11 @@ class SingletonFileObserver(metaclass=Singleton):
             determines if we need to watch the path, and all children paths recursively, or just the direct children
             paths
         """
+
+        # Allow watching the same path in 2 Modes recursivly, and non-recusrsivly.
+        # here, we need to only watch the input path in a specific recursive mode
+        original_watch_dog_path = watch_dog_path
+        watch_dog_path = f"{watch_dog_path}_{recursive}"
         child_paths = self._watch_dog_observed_paths.get(watch_dog_path, [])
         first_time = not bool(child_paths)
         if original_path not in child_paths:
@@ -501,7 +512,7 @@ class SingletonFileObserver(metaclass=Singleton):
         self._watch_dog_observed_paths[watch_dog_path] = child_paths
         if first_time:
             self._observed_watches[watch_dog_path] = self._observer.schedule(
-                watcher_handler, watch_dog_path, recursive=recursive
+                watcher_handler, original_watch_dog_path, recursive=recursive
             )
 
     def unwatch(self, resource: str, group: str) -> None:
@@ -517,13 +528,15 @@ class SingletonFileObserver(metaclass=Singleton):
         """
         path_obj = Path(resource)
 
+        LOG.debug("unwatch resource %s", resource)
         # unwatch input path
-        self._unwatch_path(resource, resource, group)
+        self._unwatch_path(resource, resource, group, True)
 
+        LOG.debug("unwatch resource %s's parent %s", resource, str(path_obj.parent))
         # unwatch parent path
-        self._unwatch_path(str(path_obj.parent), resource, group)
+        self._unwatch_path(str(path_obj.parent), resource, group, False)
 
-    def _unwatch_path(self, watch_dog_path: str, original_path: str, group: str) -> None:
+    def _unwatch_path(self, watch_dog_path: str, original_path: str, group: str, recursive: bool) -> None:
         """
         update the observed paths data structure, and call watch dog observer to unobserve the input watch dog path
         if it is not observed before
@@ -536,7 +549,14 @@ class SingletonFileObserver(metaclass=Singleton):
             The original input file/dir path to be unobserved
         group: str
             unique string define a new group of paths to be watched.
+        recursive: bool
+            determines if we need to watch the path, and all children paths recursively, or just the direct children
+            paths
         """
+
+        # Allow watching the same path in 2 Modes recursivly, and non-recusrsivly.
+        # here, we need to only stop watching the input path in a specific recursive mode
+        watch_dog_path = f"{watch_dog_path}_{recursive}"
         _observed_paths = self._observed_paths_per_group[group]
         child_paths = self._watch_dog_observed_paths.get(watch_dog_path, [])
         if original_path in child_paths:
