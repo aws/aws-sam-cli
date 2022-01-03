@@ -17,6 +17,7 @@ class FunctionConfig:
     def __init__(
         self,
         name,
+        full_path,
         runtime,
         handler,
         imageuri,
@@ -34,6 +35,8 @@ class FunctionConfig:
         ----------
         name : str
             Name of the function
+        full_path : str
+            The function full path
         runtime : str
             Runtime of function
         handler : str
@@ -65,6 +68,7 @@ class FunctionConfig:
         """
 
         self.name = name
+        self.full_path = full_path
         self.runtime = runtime
         self.imageuri = imageuri
         self.imageconfig = imageconfig
@@ -94,4 +98,4 @@ class FunctionConfig:
         self.env_vars.timeout = self.timeout
 
     def __eq__(self, other):
-        return self.name == other.name
+        return self.full_path == other.full_path
