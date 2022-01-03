@@ -9,7 +9,6 @@ from unittest import skipIf
 
 import jmespath
 import docker
-import jmespath
 import pytest
 from parameterized import parameterized, parameterized_class
 

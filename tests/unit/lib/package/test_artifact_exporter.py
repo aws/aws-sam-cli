@@ -863,7 +863,13 @@ class TestArtifactExporter(unittest.TestCase):
             self.assertEqual(resource_dict[property_name], result_path_style_s3_url)
 
             TemplateMock.assert_called_once_with(
-                template_path, parent_dir, self.uploaders_mock, self.code_signer_mock, normalize_template=True
+                template_path,
+                parent_dir,
+                self.uploaders_mock,
+                self.code_signer_mock,
+                normalize_parameters=True,
+                normalize_template=True,
+                parent_stack_id="id",
             )
             template_instance_mock.export.assert_called_once_with()
             self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)
@@ -958,7 +964,13 @@ class TestArtifactExporter(unittest.TestCase):
             self.assertEqual(resource_dict[property_name], result_path_style_s3_url)
 
             TemplateMock.assert_called_once_with(
-                template_path, parent_dir, self.uploaders_mock, self.code_signer_mock, normalize_template=True
+                template_path,
+                parent_dir,
+                self.uploaders_mock,
+                self.code_signer_mock,
+                normalize_parameters=True,
+                normalize_template=True,
+                parent_stack_id="id",
             )
             template_instance_mock.export.assert_called_once_with()
             self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)

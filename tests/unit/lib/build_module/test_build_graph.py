@@ -646,25 +646,25 @@ class TestBuildGraph(TestCase):
 
     def test_empty_get_function_build_definition_with_logical_id(self):
         build_graph = BuildGraph("build_dir")
-        self.assertIsNone(build_graph.get_function_build_definition_with_logical_id("function_logical_id"))
+        self.assertIsNone(build_graph.get_function_build_definition_with_full_path("function_logical_id"))
 
     def test_get_function_build_definition_with_logical_id(self):
         build_graph = BuildGraph("build_dir")
         logical_id = "function_logical_id"
         function = Mock()
-        function.name = logical_id
+        function.full_path = logical_id
         function_build_definition = Mock(functions=[function])
         build_graph._function_build_definitions = [function_build_definition]
 
         self.assertEqual(
-            build_graph.get_function_build_definition_with_logical_id(logical_id), function_build_definition
+            build_graph.get_function_build_definition_with_full_path(logical_id), function_build_definition
         )
 
 
 class TestBuildDefinition(TestCase):
     def test_single_function_should_return_function_and_handler_name(self):
         build_definition = FunctionBuildDefinition(
-            "runtime", "codeuri", ZIP, X86_64, "metadata", "source_hash", "manifest_hash", {"env_vars": "value"}
+            "runtime", "codeuri", ZIP, X86_64, {}, "source_hash", "manifest_hash", {"env_vars": "value"}
         )
         build_definition.add_function(generate_function())
         self.assertEqual(build_definition.get_handler_name(), "handler")
@@ -672,7 +672,7 @@ class TestBuildDefinition(TestCase):
 
     def test_no_function_should_raise_exception(self):
         build_definition = FunctionBuildDefinition(
-            "runtime", "codeuri", ZIP, X86_64, "metadata", "source_hash", "manifest_hash", {"env_vars": "value"}
+            "runtime", "codeuri", ZIP, X86_64, {}, "source_hash", "manifest_hash", {"env_vars": "value"}
         )
 
         self.assertRaises(InvalidBuildGraphException, build_definition.get_handler_name)
@@ -684,6 +684,28 @@ class TestBuildDefinition(TestCase):
         )
         build_definition2 = FunctionBuildDefinition(
             "runtime", "codeuri", ZIP, ARM64, {"key": "value"}, "source_hash", "manifest_hash"
+        )
+
+        self.assertEqual(build_definition1, build_definition2)
+
+    def test_skip_sam_related_metadata_should_reflect_as_same_object(self):
+        build_definition1 = FunctionBuildDefinition(
+            "runtime",
+            "codeuri",
+            ZIP,
+            ARM64,
+            {"key": "value", "SamResourceId": "resourceId1", "SamNormalized": True},
+            "source_hash",
+            "manifest_hash",
+        )
+        build_definition2 = FunctionBuildDefinition(
+            "runtime",
+            "codeuri",
+            ZIP,
+            ARM64,
+            {"key": "value", "SamResourceId": "resourceId2", "SamNormalized": True},
+            "source_hash",
+            "manifest_hash",
         )
 
         self.assertEqual(build_definition1, build_definition2)
