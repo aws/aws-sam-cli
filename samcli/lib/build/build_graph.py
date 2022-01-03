@@ -15,6 +15,10 @@ import tomlkit
 
 from samcli.lib.build.exceptions import InvalidBuildGraphException
 from samcli.lib.providers.provider import Function, LayerVersion
+from samcli.lib.samlib.resource_metadata_normalizer import (
+    SAM_RESOURCE_ID_KEY,
+    SAM_IS_NORMALIZED,
+)
 from samcli.lib.utils.packagetype import ZIP
 from samcli.lib.utils.architecture import X86_64
 
@@ -200,16 +204,16 @@ class BuildGraph:
     def get_layer_build_definitions(self) -> Tuple["LayerBuildDefinition", ...]:
         return tuple(self._layer_build_definitions)
 
-    def get_function_build_definition_with_logical_id(
-        self, function_logial_id: str
+    def get_function_build_definition_with_full_path(
+        self, function_full_path: str
     ) -> Optional["FunctionBuildDefinition"]:
         """
         Returns FunctionBuildDefinition instance of given function logical id.
 
         Parameters
         ----------
-        function_logial_id : str
-            Function logical id that will be searched in the function build definitions
+        function_full_path : str
+            Function full path that will be searched in the function build definitions
 
         Returns
         -------
@@ -219,7 +223,7 @@ class BuildGraph:
         """
         for function_build_definition in self._function_build_definitions:
             for build_definition_function in function_build_definition.functions:
-                if build_definition_function.name == function_logial_id:
+                if build_definition_function.full_path == function_full_path:
                     return function_build_definition
         return None
 
@@ -568,7 +572,13 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         self.runtime = runtime
         self.codeuri = codeuri
         self.packagetype = packagetype
-        self.metadata = metadata if metadata else {}
+
+        # Skip SAM Added metadata properties
+        metadata_copied = deepcopy(metadata) if metadata else {}
+        metadata_copied.pop(SAM_RESOURCE_ID_KEY, "")
+        metadata_copied.pop(SAM_IS_NORMALIZED, "")
+        self.metadata = metadata_copied
+
         self.functions: List[Function] = []
 
     def add_function(self, function: Function) -> None:

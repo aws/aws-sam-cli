@@ -3,6 +3,7 @@ import os
 import logging
 import json
 import shutil
+import tempfile
 import time
 from pathlib import Path
 from unittest import skipIf
@@ -221,12 +222,139 @@ Requires capabilities : [CAPABILITY_AUTO_EXPAND]",
             str(sync_process_execute.stderr),
         )
 
+    @parameterized.expand(
+        [
+            (
+                "cdk_v1_synthesized_template_zip_functions.json",
+                "cdk_v1_synthesized_template_zip_functions_after.json",
+                None,
+                False,
+            ),
+            (
+                "cdk_v1_synthesized_template_zip_functions.json",
+                "cdk_v1_synthesized_template_zip_functions_after.json",
+                None,
+                True,
+            ),
+            (
+                "cdk_v1_synthesized_template_Level1_nested_zip_functions.json",
+                "cdk_v1_synthesized_template_Level1_nested_zip_functions_after.json",
+                None,
+                False,
+            ),
+            (
+                "cdk_v1_synthesized_template_image_functions.json",
+                "cdk_v1_synthesized_template_image_functions_after.json",
+                "ColorsRandomFunctionF61B9209",
+                False,
+            ),
+            (
+                "cdk_v1_synthesized_template_image_functions.json",
+                "cdk_v1_synthesized_template_image_functions_after.json",
+                "ColorsRandomFunction",
+                False,
+            ),
+            (
+                "cdk_v1_synthesized_template_Level1_nested_image_functions.json",
+                "cdk_v1_synthesized_template_Level1_nested_image_functions_after.json",
+                "ColorsRandomFunctionF61B9209",
+                False,
+            ),
+            (
+                "cdk_v1_synthesized_template_Level1_nested_image_functions.json",
+                "cdk_v1_synthesized_template_Level1_nested_image_functions_after.json",
+                "ColorsRandomFunction",
+                False,
+            ),
+            (
+                "cdk_v1_synthesized_template_Level1_nested_image_functions.json",
+                "cdk_v1_synthesized_template_Level1_nested_image_functions_after.json",
+                "Level1Stack/Level2Stack/ColorsRandomFunction",
+                False,
+            ),
+        ]
+    )
+    def test_cdk_templates(self, template_file, template_after, function_id, dependency_layer):
+        repository = ""
+        if function_id:
+            repository = f"{function_id}={self.ecr_repo_name}"
+        with tempfile.TemporaryDirectory() as temp:
+            temp_path = Path(temp)
+            shutil.copytree(str(self.test_data_path.joinpath("infra/cdk")), str(temp_path.joinpath("cdk")))
+            template_path = str(temp_path.joinpath("cdk").joinpath(template_file))
+            stack_name = self._method_to_stack_name(self.id())
+            self.stacks.append({"name": stack_name})
+
+            # Run infra sync
+            sync_command_list = self.get_sync_command_list(
+                template_file=template_path,
+                code=False,
+                watch=False,
+                dependency_layer=dependency_layer,
+                stack_name=stack_name,
+                parameter_overrides="Parameter=Clarity",
+                image_repositories=repository,
+                s3_prefix="integ_deploy",
+                kms_key_id=self.kms_key,
+                tags="integ=true clarity=yes foo_bar=baz",
+            )
+            sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+            self.assertEqual(sync_process_execute.process.returncode, 0)
+            self.assertIn("Stack creation succeeded. Sync infra completed.", str(sync_process_execute.stderr))
+
+            # CFN Api call here to collect all the stack resources
+            self.stack_resources = self._get_stacks(stack_name)
+            # Lambda Api call here, which tests both the python function and the layer
+            lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+            for lambda_function in lambda_functions:
+                lambda_response = json.loads(self._get_lambda_response(lambda_function))
+                self.assertIn("extra_message", lambda_response)
+                self.assertEqual(lambda_response.get("message"), "7")
+
+            template_path = str(temp_path.joinpath("cdk").joinpath(template_after))
+
+            # Run infra sync
+            sync_command_list = self.get_sync_command_list(
+                template_file=template_path,
+                code=False,
+                watch=False,
+                dependency_layer=dependency_layer,
+                stack_name=stack_name,
+                parameter_overrides="Parameter=Clarity",
+                image_repositories=repository,
+                s3_prefix="integ_deploy",
+                kms_key_id=self.kms_key,
+                tags="integ=true clarity=yes foo_bar=baz",
+            )
+
+            sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+            self.assertEqual(sync_process_execute.process.returncode, 0)
+            self.assertIn("Stack update succeeded. Sync infra completed.", str(sync_process_execute.stderr))
+
+            # CFN Api call here to collect all the stack resources
+            self.stack_resources = self._get_stacks(stack_name)
+            # Lambda Api call here, which tests both the python function and the layer
+            lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+            for lambda_function in lambda_functions:
+                lambda_response = json.loads(self._get_lambda_response(lambda_function))
+                self.assertIn("extra_message", lambda_response)
+                self.assertEqual(lambda_response.get("message"), "9")
+
     def _get_stacks(self, stack_name):
         try:
             physical_ids = {}
             response = self.cfn_client.describe_stack_resources(StackName=stack_name).get("StackResources", {})
             for resource in response:
                 resource_type = resource.get("ResourceType")
+                if resource_type == "AWS::CloudFormation::Stack":
+                    nested_stack_physical_id = resource.get("PhysicalResourceId")
+                    nested_stack_name = nested_stack_physical_id.split("/")[1]
+                    nested_stack_physical_ids = self._get_stacks(nested_stack_name)
+                    for nested_resource_type, nested_physical_ids in nested_stack_physical_ids.items():
+                        if nested_resource_type not in physical_ids:
+                            physical_ids[nested_resource_type] = []
+                        physical_ids[nested_resource_type] += nested_physical_ids
+                    continue
                 if resource_type not in physical_ids:
                     physical_ids[resource.get("ResourceType")] = []
                 physical_ids[resource_type].append(resource.get("PhysicalResourceId"))

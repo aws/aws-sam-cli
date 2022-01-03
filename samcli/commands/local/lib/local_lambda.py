@@ -194,6 +194,7 @@ class LocalLambdaRunner:
 
         return FunctionConfig(
             name=function.name,
+            full_path=function.full_path,
             runtime=function.runtime,
             handler=function.handler,
             imageuri=function.imageuri,

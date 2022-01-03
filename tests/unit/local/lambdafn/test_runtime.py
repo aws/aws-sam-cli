@@ -21,6 +21,7 @@ class LambdaRuntime_create(TestCase):
     def setUp(self):
         self.manager_mock = Mock()
         self.name = "name"
+        self.full_path = "stack/name"
         self.lang = "runtime"
         self.handler = "handler"
         self.code_path = "code-path"
@@ -32,6 +33,7 @@ class LambdaRuntime_create(TestCase):
         self.architecture = "x86_64"
         self.func_config = FunctionConfig(
             self.name,
+            self.full_path,
             self.lang,
             self.handler,
             self.imageuri,
@@ -87,7 +89,7 @@ class LambdaRuntime_create(TestCase):
             memory_mb=self.DEFAULT_MEMORY,
             container_host=None,
             container_host_interface=None,
-            function_name=self.name,
+            function_full_path=self.full_path,
         )
         # Run the container and get results
         self.manager_mock.create.assert_called_with(container)
@@ -122,6 +124,7 @@ class LambdaRuntime_run(TestCase):
     def setUp(self):
         self.manager_mock = Mock()
         self.name = "name"
+        self.full_path = "stack/name"
         self.lang = "runtime"
         self.handler = "handler"
         self.code_path = "code-path"
@@ -132,6 +135,7 @@ class LambdaRuntime_run(TestCase):
         self.architecture = "arm64"
         self.func_config = FunctionConfig(
             self.name,
+            self.full_path,
             self.lang,
             self.handler,
             self.imageuri,
@@ -208,6 +212,7 @@ class LambdaRuntime_invoke(TestCase):
         self.manager_mock = Mock()
 
         self.name = "name"
+        self.full_path = "stack/name"
         self.lang = "runtime"
         self.handler = "handler"
         self.code_path = "code-path"
@@ -218,6 +223,7 @@ class LambdaRuntime_invoke(TestCase):
         self.architecture = "arm64"
         self.func_config = FunctionConfig(
             self.name,
+            self.full_path,
             self.lang,
             self.handler,
             self.imageuri,
@@ -283,13 +289,15 @@ class LambdaRuntime_invoke(TestCase):
             memory_mb=self.DEFAULT_MEMORY,
             container_host=None,
             container_host_interface=None,
-            function_name=self.name,
+            function_full_path=self.full_path,
         )
 
         # Run the container and get results
         self.manager_mock.run.assert_called_with(container)
-        self.runtime._configure_interrupt.assert_called_with(self.name, self.DEFAULT_TIMEOUT, container, True)
-        container.wait_for_result.assert_called_with(event=event, name=self.name, stdout=stdout, stderr=stderr)
+        self.runtime._configure_interrupt.assert_called_with(self.full_path, self.DEFAULT_TIMEOUT, container, True)
+        container.wait_for_result.assert_called_with(
+            event=event, full_path=self.full_path, stdout=stdout, stderr=stderr
+        )
 
         # Finally block
         timer.cancel.assert_called_with()
@@ -363,7 +371,7 @@ class LambdaRuntime_invoke(TestCase):
         # Run the container and get results
         self.manager_mock.run.assert_called_with(container)
 
-        self.runtime._configure_interrupt.assert_called_with(self.name, self.DEFAULT_TIMEOUT, container, True)
+        self.runtime._configure_interrupt.assert_called_with(self.full_path, self.DEFAULT_TIMEOUT, container, True)
 
         # Finally block must be called
         # Timer was created. So it must be cancelled
@@ -557,6 +565,7 @@ class TestWarmLambdaRuntime_invoke(TestCase):
         self.manager_mock = Mock()
 
         self.name = "name"
+        self.full_path = "stack/name"
         self.lang = "runtime"
         self.handler = "handler"
         self.code_path = "code-path"
@@ -567,6 +576,7 @@ class TestWarmLambdaRuntime_invoke(TestCase):
         self.architecture = "arm64"
         self.func_config = FunctionConfig(
             self.name,
+            self.full_path,
             self.lang,
             self.handler,
             self.imageuri,
@@ -637,13 +647,15 @@ class TestWarmLambdaRuntime_invoke(TestCase):
             memory_mb=self.DEFAULT_MEMORY,
             container_host=None,
             container_host_interface=None,
-            function_name=self.name,
+            function_full_path=self.full_path,
         )
 
         # Run the container and get results
         self.manager_mock.run.assert_called_with(container)
-        self.runtime._configure_interrupt.assert_called_with(self.name, self.DEFAULT_TIMEOUT, container, True)
-        container.wait_for_result.assert_called_with(event=event, name=self.name, stdout=stdout, stderr=stderr)
+        self.runtime._configure_interrupt.assert_called_with(self.full_path, self.DEFAULT_TIMEOUT, container, True)
+        container.wait_for_result.assert_called_with(
+            event=event, full_path=self.full_path, stdout=stdout, stderr=stderr
+        )
 
         # Finally block
         timer.cancel.assert_called_with()
@@ -657,6 +669,7 @@ class TestWarmLambdaRuntime_create(TestCase):
     def setUp(self):
         self.manager_mock = Mock()
         self.name = "name"
+        self.full_path = "stack/name"
         self.lang = "runtime"
         self.handler = "handler"
         self.handler2 = "handler2"
@@ -668,6 +681,7 @@ class TestWarmLambdaRuntime_create(TestCase):
         self.architecture = "arm64"
         self.func_config = FunctionConfig(
             self.name,
+            self.full_path,
             self.lang,
             self.handler,
             self.imageuri,
@@ -735,12 +749,12 @@ class TestWarmLambdaRuntime_create(TestCase):
             memory_mb=self.DEFAULT_MEMORY,
             container_host=None,
             container_host_interface=None,
-            function_name=self.name,
+            function_full_path=self.full_path,
         )
 
         self.manager_mock.create.assert_called_with(container)
         # validate that the created container got cached
-        self.assertEqual(self.runtime._containers[self.name], container)
+        self.assertEqual(self.runtime._containers[self.full_path], container)
         lambda_function_observer_mock.watch.assert_called_with(self.func_config)
         lambda_function_observer_mock.start.assert_called_with()
 
@@ -869,11 +883,11 @@ class TestWarmLambdaRuntime_create(TestCase):
             memory_mb=self.DEFAULT_MEMORY,
             container_host=None,
             container_host_interface=None,
-            function_name=self.name,
+            function_full_path=self.full_path,
         )
         self.manager_mock.create.assert_called_with(container)
         # validate that the created container got cached
-        self.assertEqual(self.runtime._containers[self.name], container)
+        self.assertEqual(self.runtime._containers[self.full_path], container)
 
 
 class TestWarmLambdaRuntime_get_code_dir(TestCase):
@@ -959,9 +973,11 @@ class TestWarmLambdaRuntime_on_code_change(TestCase):
         self.architecture = "arm64"
 
         self.func1_name = "func1_name"
+        self.func1_full_path = "stack/func1_name"
         self.func1_code_path = "func1_code_path"
 
         self.func2_name = "func2_name"
+        self.func2_full_path = "stack/func2_name"
         self.func2_code_path = "func2_code_path"
 
         self.common_layer_code_path = "layer1-code-path"
@@ -972,6 +988,7 @@ class TestWarmLambdaRuntime_on_code_change(TestCase):
 
         self.func_config1 = FunctionConfig(
             self.func1_name,
+            self.func1_full_path,
             self.lang,
             self.handler,
             self.imageuri,
@@ -983,6 +1000,7 @@ class TestWarmLambdaRuntime_on_code_change(TestCase):
         )
         self.func_config2 = FunctionConfig(
             self.func2_name,
+            self.func2_full_path,
             self.lang,
             self.handler,
             self.imageuri,
@@ -996,8 +1014,8 @@ class TestWarmLambdaRuntime_on_code_change(TestCase):
         self.func1_container_mock = Mock()
         self.func2_container_mock = Mock()
         self.runtime._containers = {
-            self.func1_name: self.func1_container_mock,
-            self.func2_name: self.func2_container_mock,
+            self.func1_full_path: self.func1_container_mock,
+            self.func2_full_path: self.func2_container_mock,
         }
 
     def test_only_one_container_get_stopped_when_its_code_dir_got_changed(self):
@@ -1007,7 +1025,7 @@ class TestWarmLambdaRuntime_on_code_change(TestCase):
         self.assertEqual(
             self.runtime._containers,
             {
-                self.func2_name: self.func2_container_mock,
+                self.func2_full_path: self.func2_container_mock,
             },
         )
 

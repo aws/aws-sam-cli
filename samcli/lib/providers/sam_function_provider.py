@@ -299,22 +299,11 @@ class SamFunctionProvider(SamBaseProvider):
         str
             The unique function id
         """
-        resource_cdk_path = resource_properties.get("Metadata", {}).get("aws:cdk:path")
+        function_id = resource_properties.get("Metadata", {}).get("SamResourceId")
+        if isinstance(function_id, str) and function_id:
+            return function_id
 
-        if not isinstance(resource_cdk_path, str) or not resource_cdk_path:
-            return logical_id
-
-        # aws:cdk:path metadata format of functions: {stack_id}/{function_id}/Resource
-        # Design doc of CDK path: https://github.com/aws/aws-cdk/blob/master/design/construct-tree.md
-        cdk_path_partitions = resource_cdk_path.split("/")
-
-        if len(cdk_path_partitions) < 2:
-            LOG.warning(
-                "Cannot detect function id from aws:cdk:path metadata '%s', using default logical id", resource_cdk_path
-            )
-            return logical_id
-
-        return cdk_path_partitions[-2]
+        return logical_id
 
     @staticmethod
     def _convert_lambda_function_resource(
