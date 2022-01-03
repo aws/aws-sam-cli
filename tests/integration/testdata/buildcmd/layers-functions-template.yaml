@@ -37,6 +37,16 @@ Resources:
     Metadata:
       BuildMethod: !Ref LayerBuildMethod
 
+  LambdaLayerOne:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      Description: Lambda Layer one
+      Content: !Ref LayerContentUri
+      CompatibleRuntimes:
+        - python3.7
+    Metadata:
+      BuildMethod: !Ref LayerBuildMethod
+
   LayerTwo:
     Type: AWS::Serverless::LayerVersion
     Properties:

@@ -10,6 +10,7 @@ import yaml
 from botocore.utils import set_value_from_jmespath
 
 from samcli.commands.exceptions import UserException
+from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer, ASSET_PATH_METADATA_KEY
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.yamlhelper import yaml_parse, yaml_dump
 from samcli.lib.utils.resources import (
@@ -170,6 +171,15 @@ def _update_relative_paths(template_dict, original_root, new_root):
 
             set_value_from_jmespath(properties, path_prop_name, updated_path)
 
+        metadata = resource.get("Metadata", {})
+        if ASSET_PATH_METADATA_KEY in metadata:
+            path = metadata.get(ASSET_PATH_METADATA_KEY, "")
+            updated_path = _resolve_relative_to(path, original_root, new_root)
+            if not updated_path:
+                # This path does not need to get updated
+                continue
+            metadata[ASSET_PATH_METADATA_KEY] = updated_path
+
     # AWS::Includes can be anywhere within the template dictionary. Hence we need to recurse through the
     # dictionary in a separate method to find and update relative paths in there
     template_dict = _update_aws_include_relative_path(template_dict, original_root, new_root)
@@ -255,6 +265,7 @@ def get_template_parameters(template_file):
     Template Parameters as a dictionary
     """
     template_dict = get_template_data(template_file=template_file)
+    ResourceMetadataNormalizer.normalize(template_dict, True)
     return template_dict.get("Parameters", dict())
 
 

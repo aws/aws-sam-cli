@@ -189,9 +189,15 @@ class BuildIntegBase(TestCase):
             "-t",
             str(template_path),
             "--no-event",
-            "--parameter-overrides",
-            overrides,
         ]
+
+        if overrides:
+            cmdlist += [
+                "--parameter-overrides",
+                overrides,
+            ]
+
+        LOG.info("Running invoke Command: {}".format(cmdlist))
 
         process_execute = run_command(cmdlist)
         process_execute.process.wait()
@@ -516,12 +522,21 @@ class BuildIntegPythonBase(BuildIntegBase):
     }
 
     FUNCTION_LOGICAL_ID = "Function"
+    prop = "CodeUri"
 
-    def _test_with_default_requirements(self, runtime, codeuri, use_container, relative_path, architecture=None):
+    def _test_with_default_requirements(
+        self,
+        runtime,
+        codeuri,
+        use_container,
+        relative_path,
+        do_override=True,
+        check_function_only=False,
+        architecture=None,
+    ):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
-
-        overrides = self.get_override(runtime, codeuri, architecture, "main.handler")
+        overrides = self.get_override(runtime, codeuri, architecture, "main.handler") if do_override else None
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
@@ -531,37 +546,41 @@ class BuildIntegPythonBase(BuildIntegBase):
             self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
         )
 
-        self._verify_resource_property(
-            str(self.built_template),
-            "OtherRelativePathResource",
-            "BodyS3Location",
-            os.path.relpath(
-                os.path.normpath(os.path.join(str(relative_path), "SomeRelativePath")),
-                str(self.default_build_dir),
-            ),
-        )
+        if not check_function_only:
+            self._verify_resource_property(
+                str(self.built_template),
+                "OtherRelativePathResource",
+                "BodyS3Location",
+                os.path.relpath(
+                    os.path.normpath(os.path.join(str(relative_path), "SomeRelativePath")),
+                    str(self.default_build_dir),
+                ),
+            )
 
-        self._verify_resource_property(
-            str(self.built_template),
-            "GlueResource",
-            "Command.ScriptLocation",
-            os.path.relpath(
-                os.path.normpath(os.path.join(str(relative_path), "SomeRelativePath")),
-                str(self.default_build_dir),
-            ),
-        )
+            self._verify_resource_property(
+                str(self.built_template),
+                "GlueResource",
+                "Command.ScriptLocation",
+                os.path.relpath(
+                    os.path.normpath(os.path.join(str(relative_path), "SomeRelativePath")),
+                    str(self.default_build_dir),
+                ),
+            )
 
-        self._verify_resource_property(
-            str(self.built_template),
-            "ExampleNestedStack",
-            "TemplateURL",
-            "https://s3.amazonaws.com/examplebucket/exampletemplate.yml",
-        )
+            self._verify_resource_property(
+                str(self.built_template),
+                "ExampleNestedStack",
+                "TemplateURL",
+                "https://s3.amazonaws.com/examplebucket/exampletemplate.yml",
+            )
 
         expected = {"pi": "3.14"}
         if not SKIP_DOCKER_TESTS:
             self._verify_invoke_built_function(
-                self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
+                self.built_template,
+                self.FUNCTION_LOGICAL_ID,
+                self._make_parameter_override_arg(overrides) if do_override else None,
+                expected,
             )
         if use_container:
             self.verify_docker_container_cleanedup(runtime)
@@ -578,7 +597,7 @@ class BuildIntegPythonBase(BuildIntegBase):
         resource_artifact_dir = build_dir.joinpath(function_logical_id)
 
         # Make sure the template has correct CodeUri for resource
-        self._verify_resource_property(str(template_path), function_logical_id, "CodeUri", function_logical_id)
+        self._verify_resource_property(str(template_path), function_logical_id, self.prop, function_logical_id)
 
         all_artifacts = set(os.listdir(str(resource_artifact_dir)))
         actual_files = all_artifacts.intersection(expected_files)
