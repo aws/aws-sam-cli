@@ -104,13 +104,19 @@ class ResourceMetadataNormalizer:
         # 1- parameter name matches pattern
         #    `AssetParameters[0-9a-f]{64}(?:S3Bucket|S3VersionKey|ArtifactHash)[0-9A-F]{8}`
         # 2- parameter type is string
-        # 3- there is no reference to this parameter any where in the template resources
+        # 3- there is no reference to this parameter any where in the template resources, except in Nested Stack
+        #    Parameters property.
         # 4- there is no default value for this parameter
         # We set an empty string as default value for the matching parameters, so the customer can use sam deploy or
         # package commands without providing values for the auto generated parameters, as these parameters are not used
         # in SAM (sam set the resources paths directly, and does not depend on template parameters)
         if normalize_parameters and is_cdk_project(template_dict):
-            resources_as_string = json.dumps(resources)
+            resources_copy = {
+                logical_id: resource
+                for logical_id, resource in resources.items()
+                if resource.get("Type", "") != AWS_CLOUDFORMATION_STACK
+            }
+            resources_as_string = json.dumps(resources_copy)
             parameters = template_dict.get("Parameters", {})
 
             default_value = " "

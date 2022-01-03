@@ -42,6 +42,26 @@ class TestPackageZip(PackageIntegBase):
 
     @parameterized.expand(
         [
+            ("cdk_v1_synthesized_template_Level1_nested_zip_functions.json", 3),
+            ("cdk_v1_synthesized_template_Level2_nested_zip_functions.json", 2),
+        ]
+    )
+    def test_package_nested_template(self, template_file, uploading_count):
+        template_path = self.test_data_path.joinpath(template_file)
+        command_list = self.get_command_list(s3_bucket=self.s3_bucket.name, template=template_path, force_upload=True)
+
+        process = Popen(command_list, stderr=PIPE)
+        try:
+            _, stderr = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+        process_stderr = stderr.strip().decode(("utf-8"))
+        uploads = re.findall(r"Uploading to.+", process_stderr)
+        self.assertEqual(len(uploads), uploading_count)
+
+    @parameterized.expand(
+        [
             "cdk_v1_synthesized_template_zip_functions.json",
             "aws-serverless-function.yaml",
             "aws-serverless-api.yaml",
