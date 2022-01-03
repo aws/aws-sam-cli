@@ -319,10 +319,30 @@ class TestResourceMetadataNormalizer(TestCase):
                         }
                     },
                 },
+                "NestedStack": {
+                    "Type": "AWS::CloudFormation::Stack",
+                    "Properties": {
+                        "TemplateURL": "Some Value",
+                        "Parameters": {
+                            "referencetoCDKV1SupportDemoStackAssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481ArtifactHash0A652998": {
+                                "Ref": "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481ArtifactHash0A652998"
+                            }
+                        },
+                    },
+                    "Metadata": {
+                        "aws:cdk:path": "Stack/Level1Stack.NestedStack/Level1Stack.NestedStackResource",
+                        "aws:asset:path": "Level1HStackBC5D5417.nested.template.json",
+                        "aws:asset:property": "TemplateURL",
+                    },
+                },
             },
         }
 
         ResourceMetadataNormalizer.normalize(template_data, True)
+        self.assertEqual(
+            template_data["Resources"]["NestedStack"]["Properties"]["TemplateURL"],
+            "Level1HStackBC5D5417.nested.template.json",
+        )
         self.assertEqual(
             template_data["Parameters"][
                 "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481ArtifactHash0A652998"

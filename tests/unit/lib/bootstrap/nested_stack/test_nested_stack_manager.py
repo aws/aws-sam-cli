@@ -77,7 +77,7 @@ class TestNestedStackManager(TestCase):
             "Resources": {"MyFunction": {"Type": AWS_SERVERLESS_FUNCTION, "Properties": {"Runtime": "python3.8"}}}
         }
         build_graph = Mock()
-        build_graph.get_function_build_definition_with_logical_id.return_value = None
+        build_graph.get_function_build_definition_with_full_path.return_value = None
         app_build_result = ApplicationBuildResult(build_graph, {"MyFunction": "path/to/build/dir"})
         nested_stack_manager = NestedStackManager(
             self.stack_name, self.build_dir, self.stack_location, template, app_build_result
