@@ -8,7 +8,8 @@ from parameterized import parameterized
 
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.providers.provider import LayerVersion
-from samcli.local.lambdafn.runtime import LambdaRuntime, _unzip_file, WarmLambdaRuntime
+from samcli.local.lambdafn.env_vars import EnvironmentVariables
+from samcli.local.lambdafn.runtime import LambdaRuntime, _unzip_file, WarmLambdaRuntime, _require_container_reloading
 from samcli.local.lambdafn.config import FunctionConfig
 
 
@@ -658,6 +659,7 @@ class TestWarmLambdaRuntime_create(TestCase):
         self.name = "name"
         self.lang = "runtime"
         self.handler = "handler"
+        self.handler2 = "handler2"
         self.code_path = "code-path"
         self.layers = []
         self.imageuri = None
@@ -676,8 +678,22 @@ class TestWarmLambdaRuntime_create(TestCase):
             self.architecture,
         )
 
+        self.func_config2 = FunctionConfig(
+            self.name,
+            self.full_path,
+            self.lang,
+            self.handler2,
+            self.imageuri,
+            self.imageconfig,
+            self.packagetype,
+            self.code_path,
+            self.layers,
+            self.architecture,
+        )
+
         self.env_vars = Mock()
         self.func_config.env_vars = self.env_vars
+        self.func_config2.env_vars = self.env_vars
         self.env_var_value = {"a": "b"}
         self.env_vars.resolve.return_value = self.env_var_value
 
@@ -727,6 +743,71 @@ class TestWarmLambdaRuntime_create(TestCase):
         self.assertEqual(self.runtime._containers[self.name], container)
         lambda_function_observer_mock.watch.assert_called_with(self.func_config)
         lambda_function_observer_mock.start.assert_called_with()
+
+    @patch("samcli.local.lambdafn.runtime.LambdaFunctionObserver")
+    @patch("samcli.local.lambdafn.runtime.LambdaContainer")
+    def test_must_create_incase_function_config_changed(self, LambdaContainerMock, LambdaFunctionObserverMock):
+        code_dir = "some code dir"
+        container = Mock()
+        container2 = Mock()
+        debug_options = Mock()
+        debug_options.debug_function = self.name
+        lambda_image_mock = Mock()
+
+        self.runtime = WarmLambdaRuntime(self.manager_mock, lambda_image_mock)
+
+        # Using MagicMock to mock the context manager
+        self.runtime._get_code_dir = MagicMock()
+        self.runtime._get_code_dir.return_value = code_dir
+
+        LambdaContainerMock.side_effect = [container, container2]
+        self.runtime.create(self.func_config, debug_context=debug_options)
+        result = self.runtime.create(self.func_config2, debug_context=debug_options)
+
+        LambdaContainerMock.assert_has_calls(
+            [
+                call(
+                    self.lang,
+                    self.imageuri,
+                    self.handler,
+                    self.packagetype,
+                    self.imageconfig,
+                    code_dir,
+                    self.layers,
+                    lambda_image_mock,
+                    self.architecture,
+                    debug_options=debug_options,
+                    env_vars=self.env_var_value,
+                    memory_mb=self.DEFAULT_MEMORY,
+                    container_host=None,
+                    container_host_interface=None,
+                    function_full_path=self.full_path,
+                ),
+                call(
+                    self.lang,
+                    self.imageuri,
+                    self.handler2,
+                    self.packagetype,
+                    self.imageconfig,
+                    code_dir,
+                    self.layers,
+                    lambda_image_mock,
+                    self.architecture,
+                    debug_options=debug_options,
+                    env_vars=self.env_var_value,
+                    memory_mb=self.DEFAULT_MEMORY,
+                    container_host=None,
+                    container_host_interface=None,
+                    function_full_path=self.full_path,
+                ),
+            ]
+        )
+
+        self.manager_mock.create.assert_has_calls([call(container), call(container2)])
+        self.manager_mock.stop.assert_called_with(container)
+        # validate that the created container got cached
+        self.assertEqual(self.runtime._containers[self.full_path], container2)
+        self.assertEqual(result, container2)
 
     @patch("samcli.local.lambdafn.runtime.LambdaFunctionObserver")
     @patch("samcli.local.lambdafn.runtime.LambdaContainer")
@@ -993,3 +1074,351 @@ class TestUnzipFile(TestCase):
         unzip_mock.assert_called_with(inputpath, tmpdir)  # unzip files to temporary directory
         os_mock.path.realpath(tmpdir)  # Return the real path of temporary directory
         os_mock.chmod.assert_called_with(tmpdir, 0o755)  # Assert we do chmod the temporary directory
+
+
+class TestRequireContainerReloading(TestCase):
+    def test_function_should_reloaded_if_runtime_changed(self):
+        func = FunctionConfig(
+            "name",
+            "stack/name",
+            "python3.7",
+            "app.handler",
+            None,
+            None,
+            ZIP,
+            "/code",
+            [],
+            "x86_64",
+        )
+
+        updated_func = FunctionConfig(
+            "name",
+            "stack/name",
+            "python3.8",
+            "app.handler",
+            None,
+            None,
+            ZIP,
+            "/code",
+            [],
+            "x86_64",
+        )
+        self.assertTrue(_require_container_reloading(func, updated_func))
+
+    def test_function_should_reloaded_if_handler_changed(self):
+        func = FunctionConfig(
+            "name",
+            "stack/name",
+            "python3.7",
+            "app.handler",
+            None,
+            None,
+            ZIP,
+            "/code",
+            [],
+            "x86_64",
+        )
+
+        updated_func = FunctionConfig(
+            "name",
+            "stack/name",
+            "python3.7",
+            "app.handler1",
+            None,
+            None,
+            ZIP,
+            "/code",
+            [],
+            "x86_64",
+        )
+        self.assertTrue(_require_container_reloading(func, updated_func))
+
+    def test_function_should_reloaded_if_package_type_changed(self):
+        func = FunctionConfig(
+            "name",
+            "stack/name",
+            "python3.7",
+            "app.handler",
+            "imageUri",
+            None,
+            IMAGE,
+            None,
+            [],
+            "x86_64",
+        )
+
+        updated_func = FunctionConfig(
+            "name",
+            "stack/name",
+            "python3.7",
+            "app.handler",
+            None,
+            None,
+            ZIP,
+            "/code",
+            [],
+            "x86_64",
+        )
+        self.assertTrue(_require_container_reloading(func, updated_func))
+
+    def test_function_should_reloaded_if_image_uri_changed(self):
+        func = FunctionConfig(
+            "name",
+            "stack/name",
+            "python3.7",
+            "app.handler",
+            "imageUri",
+            None,
+            IMAGE,
+            None,
+            [],
+            "x86_64",
+        )
+
+        updated_func = FunctionConfig(
+            "name",
+            "stack/name",
+            "python3.7",
+            "app.handler",
+            "imageUri1",
+            None,
+            IMAGE,
+            None,
+            [],
+            "x86_64",
+        )
+        self.assertTrue(_require_container_reloading(func, updated_func))
+
+    def test_function_should_reloaded_if_image_config_changed(self):
+        func = FunctionConfig(
+            "name",
+            "stack/name",
+            "python3.7",
+            "app.handler",
+            "imageUri",
+            {"WorkingDirectory": "/opt"},
+            IMAGE,
+            None,
+            [],
+            "x86_64",
+        )
+
+        updated_func = FunctionConfig(
+            "name",
+            "stack/name",
+            "python3.7",
+            "app.handler",
+            "imageUri",
+            {"WorkingDirectory": "/var"},
+            IMAGE,
+            None,
+            [],
+            "x86_64",
+        )
+        self.assertTrue(_require_container_reloading(func, updated_func))
+
+    def test_function_should_reloaded_if_code_path_changed(self):
+        func = FunctionConfig(
+            "name",
+            "stack/name",
+            "python3.7",
+            "app.handler",
+            None,
+            None,
+            ZIP,
+            "/code2",
+            [],
+            "x86_64",
+        )
+
+        updated_func = FunctionConfig(
+            "name",
+            "stack/name",
+            "python3.7",
+            "app.handler",
+            None,
+            None,
+            ZIP,
+            "/code",
+            [],
+            "x86_64",
+        )
+        self.assertTrue(_require_container_reloading(func, updated_func))
+
+    def test_function_should_reloaded_if_env_vars_changed(self):
+        func = FunctionConfig(
+            "name",
+            "stack/name",
+            "python3.7",
+            "app.handler",
+            None,
+            None,
+            ZIP,
+            "/code",
+            [],
+            "x86_64",
+            env_vars=EnvironmentVariables(
+                variables={
+                    "key1": "value1",
+                    "key2": "value2",
+                }
+            ),
+        )
+
+        updated_func = FunctionConfig(
+            "name",
+            "stack/name",
+            "python3.7",
+            "app.handler",
+            None,
+            None,
+            ZIP,
+            "/code",
+            [],
+            "x86_64",
+            env_vars=EnvironmentVariables(
+                variables={
+                    "key1": "value1",
+                }
+            ),
+        )
+        self.assertTrue(_require_container_reloading(func, updated_func))
+
+    def test_function_should_reloaded_if_one_layer_removed(self):
+        func = FunctionConfig(
+            "name",
+            "stack/name",
+            "python3.7",
+            "app.handler",
+            None,
+            None,
+            ZIP,
+            "/code",
+            [
+                LayerVersion("Layer", "/somepath", stack_path=""),
+                LayerVersion("ServerlessLayer", "/somepath2", stack_path=""),
+                LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None, stack_path=""),
+            ],
+            "x86_64",
+        )
+
+        updated_func = FunctionConfig(
+            "name",
+            "stack/name",
+            "python3.7",
+            "app.handler",
+            None,
+            None,
+            ZIP,
+            "/code",
+            [
+                LayerVersion("Layer", "/somepath", stack_path=""),
+                LayerVersion("ServerlessLayer", "/somepath2", stack_path=""),
+            ],
+            "x86_64",
+        )
+        self.assertTrue(_require_container_reloading(func, updated_func))
+
+    def test_function_should_reloaded_if_one_layer_added(self):
+        func = FunctionConfig(
+            "name",
+            "stack/name",
+            "python3.7",
+            "app.handler",
+            None,
+            None,
+            ZIP,
+            "/code",
+            [
+                LayerVersion("Layer", "/somepath", stack_path=""),
+                LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None, stack_path=""),
+            ],
+            "x86_64",
+        )
+
+        updated_func = FunctionConfig(
+            "name",
+            "stack/name",
+            "python3.7",
+            "app.handler",
+            None,
+            None,
+            ZIP,
+            "/code",
+            [
+                LayerVersion("Layer", "/somepath", stack_path=""),
+                LayerVersion("ServerlessLayer", "/somepath2", stack_path=""),
+            ],
+            "x86_64",
+        )
+        self.assertTrue(_require_container_reloading(func, updated_func))
+
+    def test_function_should_reloaded_if_layers_changed(self):
+        func = FunctionConfig(
+            "name",
+            "stack/name",
+            "python3.7",
+            "app.handler",
+            None,
+            None,
+            ZIP,
+            "/code",
+            [
+                LayerVersion("Layer", "/somepath", stack_path=""),
+                LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None, stack_path=""),
+            ],
+            "x86_64",
+        )
+
+        updated_func = FunctionConfig(
+            "name",
+            "stack/name",
+            "python3.7",
+            "app.handler",
+            None,
+            None,
+            ZIP,
+            "/code",
+            [
+                LayerVersion("Layer", "/somepath2", stack_path=""),
+                LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None, stack_path=""),
+            ],
+            "x86_64",
+        )
+        self.assertTrue(_require_container_reloading(func, updated_func))
+
+    def test_function_should_not_reloaded_if_nothing_changed(self):
+        func = FunctionConfig(
+            "name",
+            "stack/name",
+            "python3.7",
+            "app.handler",
+            None,
+            None,
+            ZIP,
+            "/code",
+            [
+                LayerVersion("ServerlessLayer", "/somepath2", stack_path=""),
+                LayerVersion("Layer", "/somepath", stack_path=""),
+                LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None, stack_path=""),
+            ],
+            "x86_64",
+        )
+
+        updated_func = FunctionConfig(
+            "name",
+            "stack/name",
+            "python3.7",
+            "app.handler",
+            None,
+            None,
+            ZIP,
+            "/code",
+            [
+                LayerVersion("Layer", "/somepath", stack_path=""),
+                LayerVersion("ServerlessLayer", "/somepath2", stack_path=""),
+                LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None, stack_path=""),
+            ],
+            "x86_64",
+        )
+        self.assertFalse(_require_container_reloading(func, updated_func))

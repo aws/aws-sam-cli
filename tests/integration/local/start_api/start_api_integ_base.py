@@ -113,9 +113,12 @@ class WatchWarmContainersIntegBaseClass(StartApiIntegBaseClass):
         if Path(working_dir).resolve().exists():
             shutil.rmtree(working_dir)
         os.mkdir(working_dir)
+        os.mkdir(Path(cls.integration_dir).resolve().joinpath(cls.temp_path).joinpath("dir"))
         cls.template_path = f"/{cls.temp_path}/template.yaml"
         cls.code_path = f"/{cls.temp_path}/main.py"
+        cls.code_path2 = f"/{cls.temp_path}/dir/main2.py"
         cls.docker_file_path = f"/{cls.temp_path}/Dockerfile"
+        cls.docker_file_path2 = f"/{cls.temp_path}/Dockerfile2"
 
         if cls.template_content:
             cls._write_file_content(cls.template_path, cls.template_content)

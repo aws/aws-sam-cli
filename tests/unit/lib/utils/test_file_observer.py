@@ -1,6 +1,7 @@
 """
 Unit tests for file observer
 """
+
 from unittest import TestCase
 from unittest.mock import Mock, patch, call
 
@@ -13,14 +14,18 @@ from samcli.lib.utils.file_observer import (
     ImageObserver,
     ImageObserverException,
     LambdaFunctionObserver,
+    SingletonFileObserver,
 )
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 
 
 class FileObserver_watch(TestCase):
+    @patch("samcli.lib.utils.file_observer.uuid.uuid4")
     @patch("samcli.lib.utils.file_observer.Observer")
     @patch("samcli.lib.utils.file_observer.PatternMatchingEventHandler")
-    def setUp(self, PatternMatchingEventHandlerMock, ObserverMock):
+    def setUp(self, PatternMatchingEventHandlerMock, ObserverMock, uuidMock):
+        self.group1 = "1234"
+        uuidMock.side_effect = [self.group1]
         self.on_change = Mock()
         self.watchdog_observer_mock = Mock()
         self.watcher_mock = Mock()
@@ -31,18 +36,34 @@ class FileObserver_watch(TestCase):
         self.handler_mock = Mock()
         self._PatternMatchingEventHandlerMock.return_value = self.handler_mock
 
+        SingletonFileObserver._Singleton__instance = None
         self.observer = FileObserver(self.on_change)
 
     def test_init_successfully(self):
-        self.assertEqual(self.observer._observed_paths, {})
-        self.assertEqual(self.observer._observed_watches, {})
-        self.assertEqual(self.observer._watch_dog_observed_paths, {})
-        self.assertEqual(self.observer._observer, self.watchdog_observer_mock)
+        self.assertEqual(self.observer._single_file_observer._observed_paths_per_group, {self.group1: {}})
+        self.assertEqual(self.observer._single_file_observer._observed_watches, {})
+        self.assertEqual(self.observer._single_file_observer._watch_dog_observed_paths, {})
+        self.assertEqual(self.observer._single_file_observer._observer, self.watchdog_observer_mock)
         self._PatternMatchingEventHandlerMock.assert_called_with(
             patterns=["*"], ignore_patterns=[], ignore_directories=False
         )
-        self.assertEqual(self.observer._code_modification_handler, self.handler_mock)
-        self.assertEqual(self.observer._input_on_change, self.on_change)
+        self.assertEqual(self.observer._single_file_observer._code_modification_handler, self.handler_mock)
+        self.assertEqual(self.observer._single_file_observer._code_deletion_handler, self.handler_mock)
+        self.assertEqual(
+            self.observer._single_file_observer._code_modification_handler.on_modified,
+            self.observer._single_file_observer.on_change,
+        )
+        self.assertEqual(
+            self.observer._single_file_observer._code_deletion_handler.on_deleted,
+            self.observer._single_file_observer.on_change,
+        )
+        self.assertEqual(self.observer._single_file_observer._observed_groups_handlers, {self.group1: self.on_change})
+
+    @patch("samcli.lib.utils.file_observer.uuid.uuid4")
+    def test_Exception_raised_if_observed_same_type_more_than_one_time(self, uuidMock):
+        uuidMock.side_effect = [self.group1]
+        with self.assertRaises(Exception):
+            FileObserver(self.on_change)
 
     @patch("samcli.lib.utils.file_observer.Path")
     @patch("samcli.lib.utils.file_observer.calculate_checksum")
@@ -61,13 +82,15 @@ class FileObserver_watch(TestCase):
 
         self.observer.watch(path_str)
 
-        self.assertEqual(self.observer._observed_paths, {path_str: check_sum})
         self.assertEqual(
-            self.observer._watch_dog_observed_paths,
+            self.observer._single_file_observer._observed_paths_per_group, {self.group1: {path_str: check_sum}}
+        )
+        self.assertEqual(
+            self.observer._single_file_observer._watch_dog_observed_paths,
             {parent_path: [path_str], path_str: [path_str]},
         )
         self.assertEqual(
-            self.observer._observed_watches,
+            self.observer._single_file_observer._observed_watches,
             {
                 parent_path: self.watcher_mock,
                 path_str: self.watcher_mock,
@@ -99,21 +122,24 @@ class FileObserver_watch(TestCase):
 
         self.observer.watch(path1_str)
         self.observer.watch(path2_str)
+        self.observer.watch(path1_str)
 
         self.assertEqual(
-            self.observer._observed_paths,
+            self.observer._single_file_observer._observed_paths_per_group,
             {
-                path1_str: check_sum,
-                path2_str: check_sum,
+                self.group1: {
+                    path1_str: check_sum,
+                    path2_str: check_sum,
+                }
             },
         )
 
         self.assertEqual(
-            self.observer._watch_dog_observed_paths,
+            self.observer._single_file_observer._watch_dog_observed_paths,
             {parent_path: [path1_str, path2_str], path1_str: [path1_str], path2_str: [path2_str]},
         )
         self.assertEqual(
-            self.observer._observed_watches,
+            self.observer._single_file_observer._observed_watches,
             {
                 parent_path: self.watcher_mock,
                 path1_str: self.watcher_mock,
@@ -142,9 +168,12 @@ class FileObserver_watch(TestCase):
 
 
 class FileObserver_unwatch(TestCase):
+    @patch("samcli.lib.utils.file_observer.uuid.uuid4")
     @patch("samcli.lib.utils.file_observer.Observer")
     @patch("samcli.lib.utils.file_observer.PatternMatchingEventHandler")
-    def setUp(self, PatternMatchingEventHandlerMock, ObserverMock):
+    def setUp(self, PatternMatchingEventHandlerMock, ObserverMock, uuidMock):
+        self.group1 = "1234"
+        uuidMock.side_effect = [self.group1]
         self.on_change = Mock()
         self.watchdog_observer_mock = Mock()
         ObserverMock.return_value = self.watchdog_observer_mock
@@ -152,23 +181,26 @@ class FileObserver_unwatch(TestCase):
         self.handler_mock = Mock()
         PatternMatchingEventHandlerMock.return_value = self.handler_mock
 
+        SingletonFileObserver._Singleton__instance = None
         self.observer = FileObserver(self.on_change)
 
-        self.observer._watch_dog_observed_paths = {
+        self.observer._single_file_observer._watch_dog_observed_paths = {
             "parent_path1": ["path1", "path2"],
             "parent_path2": ["path3"],
         }
 
-        self.observer._observed_paths = {
-            "path1": "1234",
-            "path2": "4567",
-            "path3": "7890",
+        self.observer._single_file_observer._observed_paths_per_group = {
+            self.group1: {
+                "path1": "1234",
+                "path2": "4567",
+                "path3": "7890",
+            }
         }
 
         self._parent1_watcher_mock = Mock()
         self._parent2_watcher_mock = Mock()
 
-        self.observer._observed_watches = {
+        self.observer._single_file_observer._observed_watches = {
             "parent_path1": self._parent1_watcher_mock,
             "parent_path2": self._parent2_watcher_mock,
         }
@@ -187,21 +219,23 @@ class FileObserver_unwatch(TestCase):
         self.observer.unwatch(path_str)
 
         self.assertEqual(
-            self.observer._observed_paths,
+            self.observer._single_file_observer._observed_paths_per_group,
             {
-                "path2": "4567",
-                "path3": "7890",
+                self.group1: {
+                    "path2": "4567",
+                    "path3": "7890",
+                }
             },
         )
         self.assertEqual(
-            self.observer._watch_dog_observed_paths,
+            self.observer._single_file_observer._watch_dog_observed_paths,
             {
                 "parent_path1": ["path2"],
                 "parent_path2": ["path3"],
             },
         )
         self.assertEqual(
-            self.observer._observed_watches,
+            self.observer._single_file_observer._observed_watches,
             {
                 "parent_path1": self._parent1_watcher_mock,
                 "parent_path2": self._parent2_watcher_mock,
@@ -223,20 +257,22 @@ class FileObserver_unwatch(TestCase):
         self.observer.unwatch(path_str)
 
         self.assertEqual(
-            self.observer._observed_paths,
+            self.observer._single_file_observer._observed_paths_per_group,
             {
-                "path1": "1234",
-                "path2": "4567",
+                self.group1: {
+                    "path1": "1234",
+                    "path2": "4567",
+                }
             },
         )
         self.assertEqual(
-            self.observer._watch_dog_observed_paths,
+            self.observer._single_file_observer._watch_dog_observed_paths,
             {
                 "parent_path1": ["path1", "path2"],
             },
         )
         self.assertEqual(
-            self.observer._observed_watches,
+            self.observer._single_file_observer._observed_watches,
             {
                 "parent_path1": self._parent1_watcher_mock,
             },
@@ -245,9 +281,12 @@ class FileObserver_unwatch(TestCase):
 
 
 class FileObserver_on_change(TestCase):
+    @patch("samcli.lib.utils.file_observer.uuid.uuid4")
     @patch("samcli.lib.utils.file_observer.Observer")
     @patch("samcli.lib.utils.file_observer.PatternMatchingEventHandler")
-    def setUp(self, PatternMatchingEventHandlerMock, ObserverMock):
+    def setUp(self, PatternMatchingEventHandlerMock, ObserverMock, uuidMock):
+        self.group1 = "1234"
+        uuidMock.side_effect = [self.group1]
         self.on_change = Mock()
         self.watchdog_observer_mock = Mock()
         ObserverMock.return_value = self.watchdog_observer_mock
@@ -255,23 +294,26 @@ class FileObserver_on_change(TestCase):
         self.handler_mock = Mock()
         PatternMatchingEventHandlerMock.return_value = self.handler_mock
 
+        SingletonFileObserver._Singleton__instance = None
         self.observer = FileObserver(self.on_change)
 
-        self.observer._watch_dog_observed_paths = {
+        self.observer._single_file_observer._watch_dog_observed_paths = {
             "parent_path1": ["parent_path1/path1", "parent_path1/path2"],
             "parent_path2": ["parent_path2/path3"],
         }
 
-        self.observer._observed_paths = {
-            "parent_path1/path1": "1234",
-            "parent_path1/path2": "4567",
-            "parent_path2/path3": "7890",
+        self.observer._single_file_observer._observed_paths_per_group = {
+            self.group1: {
+                "parent_path1/path1": "1234",
+                "parent_path1/path2": "4567",
+                "parent_path2/path3": "7890",
+            }
         }
 
         self._parent1_watcher_mock = Mock()
         self._parent2_watcher_mock = Mock()
 
-        self.observer._observed_watches = {
+        self.observer._single_file_observer._observed_watches = {
             "parent_path1": self._parent1_watcher_mock,
             "parent_path2": self._parent2_watcher_mock,
         }
@@ -289,14 +331,16 @@ class FileObserver_on_change(TestCase):
 
         path_mock.exists.return_value = True
 
-        self.observer.on_change(event)
+        self.observer._single_file_observer.on_change(event)
 
         self.assertEqual(
-            self.observer._observed_paths,
+            self.observer._single_file_observer._observed_paths_per_group,
             {
-                "parent_path1/path1": "123456543",
-                "parent_path1/path2": "4567",
-                "parent_path2/path3": "7890",
+                self.group1: {
+                    "parent_path1/path1": "123456543",
+                    "parent_path1/path2": "4567",
+                    "parent_path2/path3": "7890",
+                }
             },
         )
         self.on_change.assert_called_once_with(["parent_path1/path1"])
@@ -316,14 +360,16 @@ class FileObserver_on_change(TestCase):
 
         path_mock.exists.return_value = True
 
-        self.observer.on_change(event)
+        self.observer._single_file_observer.on_change(event)
 
         self.assertEqual(
-            self.observer._observed_paths,
+            self.observer._single_file_observer._observed_paths_per_group,
             {
-                "parent_path1/path1": "1234",
-                "parent_path1/path2": "4567",
-                "parent_path2/path3": "7890",
+                self.group1: {
+                    "parent_path1/path1": "1234",
+                    "parent_path1/path2": "4567",
+                    "parent_path2/path3": "7890",
+                }
             },
         )
         self.on_change.assert_not_called()
@@ -332,6 +378,7 @@ class FileObserver_on_change(TestCase):
     @patch("samcli.lib.utils.file_observer.calculate_checksum")
     def test_modification_event_got_fired_for_path_got_deleted(self, calculate_checksum_mock, PathMock):
         event = Mock()
+        event.event_type == "deleted"
         event.src_path = "parent_path1/path1/sub_path"
 
         path_mock = Mock()
@@ -341,22 +388,27 @@ class FileObserver_on_change(TestCase):
 
         path_mock.exists.side_effect = [False, True]
 
-        self.observer.on_change(event)
+        self.observer._single_file_observer.on_change(event)
 
         self.assertEqual(
-            self.observer._observed_paths,
+            self.observer._single_file_observer._observed_paths_per_group,
             {
-                "parent_path1/path2": "4567",
-                "parent_path2/path3": "7890",
+                self.group1: {
+                    "parent_path1/path2": "4567",
+                    "parent_path2/path3": "7890",
+                }
             },
         )
         self.on_change.assert_called_once_with(["parent_path1/path1"])
 
 
 class FileObserver_start(TestCase):
+    @patch("samcli.lib.utils.file_observer.uuid.uuid4")
     @patch("samcli.lib.utils.file_observer.Observer")
     @patch("samcli.lib.utils.file_observer.PatternMatchingEventHandler")
-    def setUp(self, PatternMatchingEventHandlerMock, ObserverMock):
+    def setUp(self, PatternMatchingEventHandlerMock, ObserverMock, uuidMock):
+        self.group1 = "1234"
+        uuidMock.side_effect = [self.group1]
         self.on_change = Mock()
         self.watchdog_observer_mock = Mock()
         ObserverMock.return_value = self.watchdog_observer_mock
@@ -364,23 +416,26 @@ class FileObserver_start(TestCase):
         self.handler_mock = Mock()
         PatternMatchingEventHandlerMock.return_value = self.handler_mock
 
+        SingletonFileObserver._Singleton__instance = None
         self.observer = FileObserver(self.on_change)
 
-        self.observer._watch_dog_observed_paths = {
+        self.observer._single_file_observer._watch_dog_observed_paths = {
             "parent_path1": ["parent_path1/path1", "parent_path1/path2"],
             "parent_path2": ["parent_path2/path3"],
         }
 
-        self.observer._observed_paths = {
-            "parent_path1/path1": "1234",
-            "parent_path1/path2": "4567",
-            "parent_path2/path3": "7890",
+        self.observer._single_file_observer._observed_paths_per_group = {
+            self.group1: {
+                "parent_path1/path1": "1234",
+                "parent_path1/path2": "4567",
+                "parent_path2/path3": "7890",
+            }
         }
 
         self._parent1_watcher_mock = Mock()
         self._parent2_watcher_mock = Mock()
 
-        self.observer._observed_watches = {
+        self.observer._single_file_observer._observed_watches = {
             "parent_path1": self._parent1_watcher_mock,
             "parent_path2": self._parent2_watcher_mock,
         }
@@ -397,9 +452,12 @@ class FileObserver_start(TestCase):
 
 
 class FileObserver_stop(TestCase):
+    @patch("samcli.lib.utils.file_observer.uuid.uuid4")
     @patch("samcli.lib.utils.file_observer.Observer")
     @patch("samcli.lib.utils.file_observer.PatternMatchingEventHandler")
-    def setUp(self, PatternMatchingEventHandlerMock, ObserverMock):
+    def setUp(self, PatternMatchingEventHandlerMock, ObserverMock, uuidMock):
+        self.group1 = "1234"
+        uuidMock.side_effect = [self.group1]
         self.on_change = Mock()
         self.watchdog_observer_mock = Mock()
         ObserverMock.return_value = self.watchdog_observer_mock
@@ -407,23 +465,26 @@ class FileObserver_stop(TestCase):
         self.handler_mock = Mock()
         PatternMatchingEventHandlerMock.return_value = self.handler_mock
 
+        SingletonFileObserver._Singleton__instance = None
         self.observer = FileObserver(self.on_change)
 
-        self.observer._watch_dog_observed_paths = {
+        self.observer._single_file_observer._watch_dog_observed_paths = {
             "parent_path1": ["parent_path1/path1", "parent_path1/path2"],
             "parent_path2": ["parent_path2/path3"],
         }
 
-        self.observer._observed_paths = {
-            "parent_path1/path1": "1234",
-            "parent_path1/path2": "4567",
-            "parent_path2/path3": "7890",
+        self.observer._single_file_observer._observed_paths_per_group = {
+            self.group1: {
+                "parent_path1/path1": "1234",
+                "parent_path1/path2": "4567",
+                "parent_path2/path3": "7890",
+            }
         }
 
         self._parent1_watcher_mock = Mock()
         self._parent2_watcher_mock = Mock()
 
-        self.observer._observed_watches = {
+        self.observer._single_file_observer._observed_watches = {
             "parent_path1": self._parent1_watcher_mock,
             "parent_path2": self._parent2_watcher_mock,
         }

@@ -9,7 +9,7 @@ from samcli.lib.utils.architecture import X86_64, ARM64
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
 from samcli.lib.providers.provider import Function, LayerVersion, Stack
-from samcli.lib.providers.sam_function_provider import SamFunctionProvider
+from samcli.lib.providers.sam_function_provider import SamFunctionProvider, RefreshableSamFunctionProvider
 from samcli.lib.providers.exceptions import InvalidLayerReference
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 
@@ -1501,3 +1501,386 @@ class TestSamFunctionProvider_get_all(TestCase):
 
         result = [f for f in provider.get_all()]
         self.assertEqual(result, [])
+
+
+class TestRefreshableSamFunctionProvider(TestCase):
+    def setUp(self):
+        self.parameter_overrides = {}
+        self.global_parameter_overrides = {}
+        self.file_observer = Mock()
+        self.file_observer.start = Mock()
+        self.file_observer.watch = Mock()
+        self.file_observer.unwatch = Mock()
+        self.file_observer.stop = Mock()
+
+    @patch("samcli.lib.providers.sam_function_provider.FileObserver")
+    @patch.object(SamFunctionProvider, "_extract_functions")
+    @patch("samcli.lib.providers.provider.SamBaseProvider.get_template")
+    def test_init_must_extract_functions_and_stacks_got_observed(
+        self, get_template_mock, extract_mock, FileObserverMock
+    ):
+        FileObserverMock.return_value = self.file_observer
+
+        extract_result = {"foo": "bar"}
+        extract_mock.return_value = extract_result
+
+        template = {"Resources": {"a": "b"}}
+        template2 = {"Resources": {"a": "b"}}
+        get_template_mock.return_value = template
+        stack = make_root_stack(template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template2)
+        provider = RefreshableSamFunctionProvider(
+            [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
+        )
+
+        extract_mock.assert_called_with([stack, stack2], False, False)
+        get_template_mock.assert_called_with(template, self.parameter_overrides)
+        self.assertEqual(provider.functions, extract_result)
+
+        FileObserverMock.assert_called_with(provider._set_templates_changed)
+        self.file_observer.start.assert_called_with()
+        self.file_observer.watch.assert_has_calls([call("template.yaml"), call("child/template.yaml")])
+
+        self.assertEqual(provider.parent_templates_paths, ["template.yaml"])
+        self.assertEqual(provider.is_changed, False)
+
+    @patch("samcli.lib.providers.sam_function_provider.FileObserver")
+    @patch.object(SamFunctionProvider, "_extract_functions")
+    @patch("samcli.lib.providers.provider.SamBaseProvider.get_template")
+    def test_reload_flag_set_to_true_incase_any_template_got_changed(
+        self, get_template_mock, extract_mock, FileObserverMock
+    ):
+        FileObserverMock.return_value = self.file_observer
+
+        extract_result = {"foo": "bar"}
+        extract_mock.return_value = extract_result
+
+        template = {"Resources": {"a": "b"}}
+        template2 = {"Resources": {"a": "b"}}
+        get_template_mock.return_value = template
+        stack = make_root_stack(template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template2)
+        provider = RefreshableSamFunctionProvider(
+            [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
+        )
+        provider._set_templates_changed(["child/template.yaml"])
+
+        self.assertTrue(provider.is_changed)
+        self.file_observer.unwatch.assert_has_calls([call("template.yaml"), call("child/template.yaml")])
+
+    @patch("samcli.lib.providers.sam_function_provider.SamLocalStackProvider.get_stacks")
+    @patch("samcli.lib.providers.sam_function_provider.FileObserver")
+    @patch.object(SamFunctionProvider, "_extract_functions")
+    @patch("samcli.lib.providers.provider.SamBaseProvider.get_template")
+    def test_reload_incase_if_change_flag_is_true_and_stacks_mathod_called(
+        self, get_template_mock, extract_mock, FileObserverMock, get_stacks_mock
+    ):
+        FileObserverMock.return_value = self.file_observer
+
+        extract_result = {"foo": "bar"}
+        extract_mock.return_value = extract_result
+
+        template = {"Resources": {"a": "b"}}
+        template2 = {"Resources": {"a": "b"}}
+        get_template_mock.return_value = template
+        stack = make_root_stack(template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template2)
+        provider = RefreshableSamFunctionProvider(
+            [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
+        )
+        provider._set_templates_changed(["child/template.yaml"])
+        updated_template = {"Resources": {"a": "b", "c": "d"}}
+        updated_template2 = {"Resources": {"a": "b"}}
+        updated_template3 = {"Resources": {"a": "b"}}
+        stack = make_root_stack(updated_template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, updated_template2)
+        stack3 = Stack("", "childStack2", "child/child/template.yaml", self.parameter_overrides, updated_template3)
+        get_stacks_mock.return_value = [stack, stack2, stack3], None
+
+        updated_extract_result = {"foo": "bar", "foo2": "bar2"}
+        extract_mock.return_value = updated_extract_result
+
+        self.file_observer.watch.reset_mock()
+        stacks = provider.stacks
+        self.assertEqual(stacks, [stack, stack2, stack3])
+        self.assertFalse(provider.is_changed)
+
+        self.file_observer.watch.assert_has_calls(
+            [call("template.yaml"), call("child/template.yaml"), call("child/child/template.yaml")]
+        )
+
+        functions = []
+        for func in provider.get_all():
+            functions.append(func)
+        self.assertEqual(functions, ["bar", "bar2"])
+
+    @patch("samcli.lib.providers.sam_function_provider.SamLocalStackProvider.get_stacks")
+    @patch("samcli.lib.providers.sam_function_provider.FileObserver")
+    @patch.object(SamFunctionProvider, "_extract_functions")
+    @patch("samcli.lib.providers.provider.SamBaseProvider.get_template")
+    def test_reload_incase_if_change_flag_is_true_and_get_all_mathod_called(
+        self, get_template_mock, extract_mock, FileObserverMock, get_stacks_mock
+    ):
+        FileObserverMock.return_value = self.file_observer
+
+        extract_result = {"foo": "bar"}
+        extract_mock.return_value = extract_result
+
+        template = {"Resources": {"a": "b"}}
+        template2 = {"Resources": {"a": "b"}}
+        get_template_mock.return_value = template
+        stack = make_root_stack(template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template2)
+        provider = RefreshableSamFunctionProvider(
+            [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
+        )
+        provider._set_templates_changed(["child/template.yaml"])
+        updated_template = {"Resources": {"a": "b", "c": "d"}}
+        updated_template2 = {"Resources": {"a": "b"}}
+        updated_template3 = {"Resources": {"a": "b"}}
+        stack = make_root_stack(updated_template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, updated_template2)
+        stack3 = Stack("", "childStack2", "child/child/template.yaml", self.parameter_overrides, updated_template3)
+        get_stacks_mock.return_value = [stack, stack2, stack3], None
+
+        updated_extract_result = {"foo": "bar", "foo2": "bar2"}
+        extract_mock.return_value = updated_extract_result
+
+        self.file_observer.watch.reset_mock()
+
+        functions = []
+        for func in provider.get_all():
+            functions.append(func)
+        self.assertEqual(functions, ["bar", "bar2"])
+        self.assertFalse(provider.is_changed)
+
+        self.file_observer.watch.assert_has_calls(
+            [call("template.yaml"), call("child/template.yaml"), call("child/child/template.yaml")]
+        )
+
+    @patch("samcli.lib.providers.sam_function_provider.SamLocalStackProvider.get_stacks")
+    @patch("samcli.lib.providers.sam_function_provider.FileObserver")
+    @patch.object(SamFunctionProvider, "_extract_functions")
+    @patch("samcli.lib.providers.provider.SamBaseProvider.get_template")
+    def test_reload_incase_if_change_flag_is_true_and_get_mathod_called(
+        self, get_template_mock, extract_mock, FileObserverMock, get_stacks_mock
+    ):
+        FileObserverMock.return_value = self.file_observer
+
+        extract_result = {"foo": "bar"}
+        extract_mock.return_value = extract_result
+
+        template = {"Resources": {"a": "b"}}
+        template2 = {"Resources": {"a": "b"}}
+        get_template_mock.return_value = template
+        stack = make_root_stack(template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template2)
+        provider = RefreshableSamFunctionProvider(
+            [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
+        )
+        provider._set_templates_changed(["child/template.yaml"])
+        updated_template = {"Resources": {"a": "b", "c": "d"}}
+        updated_template2 = {"Resources": {"a": "b"}}
+        updated_template3 = {"Resources": {"a": "b"}}
+        stack = make_root_stack(updated_template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, updated_template2)
+        stack3 = Stack("", "childStack2", "child/child/template.yaml", self.parameter_overrides, updated_template3)
+        get_stacks_mock.return_value = [stack, stack2, stack3], None
+
+        func1 = Mock()
+        func2 = Mock()
+        updated_extract_result = {"foo": func1, "foo2": func2}
+        extract_mock.return_value = updated_extract_result
+
+        self.file_observer.watch.reset_mock()
+        self.assertEqual(provider.get("foo2"), func2)
+        self.assertFalse(provider.is_changed)
+
+        self.file_observer.watch.assert_has_calls(
+            [call("template.yaml"), call("child/template.yaml"), call("child/child/template.yaml")]
+        )
+
+    @patch("samcli.lib.providers.sam_function_provider.SamLocalStackProvider.get_stacks")
+    @patch("samcli.lib.providers.sam_function_provider.FileObserver")
+    @patch.object(SamFunctionProvider, "_extract_functions")
+    @patch("samcli.lib.providers.provider.SamBaseProvider.get_template")
+    def test_reload_incase_if_change_flag_is_true_and_get_resources_by_stack_path_mathod_called(
+        self, get_template_mock, extract_mock, FileObserverMock, get_stacks_mock
+    ):
+        FileObserverMock.return_value = self.file_observer
+
+        extract_result = {"foo": "bar"}
+        extract_mock.return_value = extract_result
+
+        template = {"Resources": {"a": "b"}}
+        template2 = {"Resources": {"a": "b"}}
+        get_template_mock.return_value = template
+        stack = make_root_stack(template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template2)
+        provider = RefreshableSamFunctionProvider(
+            [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
+        )
+        provider._set_templates_changed(["child/template.yaml"])
+        updated_template = {"Resources": {"a": "b", "c": "d"}}
+        updated_template2 = {"Resources": {"a": "b"}}
+        updated_template3 = {"Resources": {"c": "d"}}
+        get_template_mock.return_value = updated_template
+        stack = make_root_stack(updated_template, self.parameter_overrides)
+        get_template_mock.return_value = updated_template2
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, updated_template2)
+        get_template_mock.return_value = updated_template3
+        stack3 = Stack(
+            "childStack", "childStack2", "child/child/template.yaml", self.parameter_overrides, updated_template3
+        )
+        get_stacks_mock.return_value = [stack, stack2, stack3], None
+
+        func1 = Mock()
+        func2 = Mock()
+        updated_extract_result = {"foo": func1, "foo2": func2}
+        extract_mock.return_value = updated_extract_result
+
+        self.file_observer.watch.reset_mock()
+
+        self.assertEqual(provider.get_resources_by_stack_path("childStack/childStack2"), {"c": "d"})
+        self.assertFalse(provider.is_changed)
+
+        self.file_observer.watch.assert_has_calls(
+            [call("template.yaml"), call("child/template.yaml"), call("child/child/template.yaml")]
+        )
+
+    @patch("samcli.lib.providers.sam_function_provider.FileObserver")
+    @patch.object(SamFunctionProvider, "_extract_functions")
+    @patch("samcli.lib.providers.provider.SamBaseProvider.get_template")
+    def test_does_not_reload_incase_if_change_flag_is_false_and_stacks_mathod_called(
+        self, get_template_mock, extract_mock, FileObserverMock
+    ):
+        FileObserverMock.return_value = self.file_observer
+
+        extract_result = {"foo": "bar"}
+        extract_mock.return_value = extract_result
+
+        template = {"Resources": {"a": "b"}}
+        template2 = {"Resources": {"a": "b"}}
+        get_template_mock.return_value = template
+        stack = make_root_stack(template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template2)
+        provider = RefreshableSamFunctionProvider(
+            [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
+        )
+
+        self.file_observer.watch.reset_mock()
+        stacks = provider.stacks
+        self.assertEqual(stacks, [stack, stack2])
+        self.assertFalse(provider.is_changed)
+
+        self.file_observer.watch.assert_not_called()
+
+        functions = []
+        for func in provider.get_all():
+            functions.append(func)
+        self.assertEqual(functions, ["bar"])
+
+    @patch("samcli.lib.providers.sam_function_provider.FileObserver")
+    @patch.object(SamFunctionProvider, "_extract_functions")
+    @patch("samcli.lib.providers.provider.SamBaseProvider.get_template")
+    def test_does_not_reload_incase_if_change_flag_is_false_and_get_all_mathod_called(
+        self, get_template_mock, extract_mock, FileObserverMock
+    ):
+        FileObserverMock.return_value = self.file_observer
+
+        extract_result = {"foo": "bar"}
+        extract_mock.return_value = extract_result
+
+        template = {"Resources": {"a": "b"}}
+        template2 = {"Resources": {"a": "b"}}
+        get_template_mock.return_value = template
+        stack = make_root_stack(template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template2)
+        provider = RefreshableSamFunctionProvider(
+            [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
+        )
+
+        self.file_observer.watch.reset_mock()
+        functions = []
+        for func in provider.get_all():
+            functions.append(func)
+        self.assertEqual(functions, ["bar"])
+        self.assertFalse(provider.is_changed)
+        self.file_observer.watch.assert_not_called()
+
+    @patch("samcli.lib.providers.sam_function_provider.FileObserver")
+    @patch.object(SamFunctionProvider, "_extract_functions")
+    @patch("samcli.lib.providers.provider.SamBaseProvider.get_template")
+    def test_does_not_reload_incase_if_change_flag_is_false_and_get_mathod_called(
+        self, get_template_mock, extract_mock, FileObserverMock
+    ):
+        FileObserverMock.return_value = self.file_observer
+
+        func = Mock()
+        extract_result = {"foo": func}
+        extract_mock.return_value = extract_result
+
+        template = {"Resources": {"a": "b"}}
+        template2 = {"Resources": {"a": "b"}}
+        get_template_mock.return_value = template
+        stack = make_root_stack(template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template2)
+        provider = RefreshableSamFunctionProvider(
+            [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
+        )
+
+        self.file_observer.watch.reset_mock()
+        self.assertEqual(provider.get("foo"), func)
+        self.assertIsNone(provider.get("foo2"))
+        self.assertFalse(provider.is_changed)
+        self.file_observer.watch.assert_not_called()
+
+    @patch("samcli.lib.providers.sam_function_provider.SamLocalStackProvider.get_stacks")
+    @patch("samcli.lib.providers.sam_function_provider.FileObserver")
+    @patch.object(SamFunctionProvider, "_extract_functions")
+    @patch("samcli.lib.providers.provider.SamBaseProvider.get_template")
+    def test_does_not_reload_incase_if_change_flag_is_false_and_get_resources_by_stack_path_mathod_called(
+        self, get_template_mock, extract_mock, FileObserverMock, get_stacks_mock
+    ):
+        FileObserverMock.return_value = self.file_observer
+
+        func = Mock()
+        extract_result = {"foo": func}
+        extract_mock.return_value = extract_result
+
+        template = {"Resources": {"a": "b"}}
+        template2 = {"Resources": {"a": "b"}}
+        get_template_mock.return_value = template
+        stack = make_root_stack(template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template2)
+        provider = RefreshableSamFunctionProvider(
+            [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
+        )
+
+        self.file_observer.watch.reset_mock()
+        self.assertEqual(provider.get_resources_by_stack_path("childStack"), {"a": "b"})
+        with self.assertRaises(RuntimeError):
+            provider.get_resources_by_stack_path("childStack/childStack2")
+        self.assertFalse(provider.is_changed)
+        self.file_observer.watch.assert_not_called()
+
+    @patch("samcli.lib.providers.sam_function_provider.FileObserver")
+    @patch.object(SamFunctionProvider, "_extract_functions")
+    @patch("samcli.lib.providers.provider.SamBaseProvider.get_template")
+    def test_provider_stop_will_stop_all_observers(self, get_template_mock, extract_mock, FileObserverMock):
+        FileObserverMock.return_value = self.file_observer
+
+        extract_result = {"foo": "bar"}
+        extract_mock.return_value = extract_result
+
+        template = {"Resources": {"a": "b"}}
+        template2 = {"Resources": {"a": "b"}}
+        get_template_mock.return_value = template
+        stack = make_root_stack(template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template2)
+        provider = RefreshableSamFunctionProvider(
+            [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
+        )
+        provider.stop_observer()
+
+        self.file_observer.stop.assert_called_once()
