@@ -213,7 +213,7 @@ class BuildGraph:
         Parameters
         ----------
         function_full_path : str
-            Function logical id that will be searched in the function build definitions
+            Function full path that will be searched in the function build definitions
 
         Returns
         -------
