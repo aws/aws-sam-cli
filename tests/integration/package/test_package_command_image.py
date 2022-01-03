@@ -93,6 +93,7 @@ class TestPackageImage(PackageIntegBase):
             ("Hello", "aws-serverless-function-image.yaml"),
             ("MyLambdaFunction", "aws-lambda-function-image.yaml"),
             ("ColorsRandomFunctionF61B9209", "cdk_v1_synthesized_template_image_functions.json"),
+            ("ColorsRandomFunction", "cdk_v1_synthesized_template_image_functions.json"),
         ]
     )
     def test_package_template_with_image_repositories(self, resource_id, template_file):
@@ -110,6 +111,36 @@ class TestPackageImage(PackageIntegBase):
         process_stdout = stdout.strip()
 
         self.assertIn(f"{self.ecr_repo_name}", process_stdout.decode("utf-8"))
+        self.assertEqual(0, process.returncode)
+
+    @parameterized.expand(
+        [
+            ("ColorsRandomFunctionF61B9209", "cdk_v1_synthesized_template_Level2_nested_image_functions.json"),
+            ("ColorsRandomFunction", "cdk_v1_synthesized_template_Level2_nested_image_functions.json"),
+            ("Level2Stack/ColorsRandomFunction", "cdk_v1_synthesized_template_Level2_nested_image_functions.json"),
+            ("ColorsRandomFunctionF61B9209", "cdk_v1_synthesized_template_Level1_nested_image_functions.json"),
+            ("ColorsRandomFunction", "cdk_v1_synthesized_template_Level1_nested_image_functions.json"),
+            (
+                "Level1Stack/Level2Stack/ColorsRandomFunction",
+                "cdk_v1_synthesized_template_Level1_nested_image_functions.json",
+            ),
+        ]
+    )
+    def test_package_template_with_image_repositories_nested_stack(self, resource_id, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+        command_list = self.get_command_list(
+            image_repositories=f"{resource_id}={self.ecr_repo_name}", template=template_path, resolve_s3=True
+        )
+
+        process = Popen(command_list, stderr=PIPE)
+        try:
+            _, stderr = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stderr = stderr.strip()
+        self.assertIn(f"{self.ecr_repo_name}", process_stderr.decode("utf-8"))
         self.assertEqual(0, process.returncode)
 
     @parameterized.expand(

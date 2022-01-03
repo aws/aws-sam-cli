@@ -97,7 +97,7 @@ class TestLambdaContainer_init(TestCase):
             env_vars=self.env_var,
             memory_mb=self.memory_mb,
             debug_options=self.debug_options,
-            function_name=self.function_name,
+            function_full_path=self.function_name,
         )
 
         self.assertEqual(image, container._image)
@@ -169,7 +169,7 @@ class TestLambdaContainer_init(TestCase):
             env_vars=self.env_var,
             memory_mb=self.memory_mb,
             debug_options=self.debug_options,
-            function_name=self.function_name,
+            function_full_path=self.function_name,
         )
 
         self.assertEqual(image, container._image)
@@ -242,7 +242,7 @@ class TestLambdaContainer_init(TestCase):
             env_vars=self.env_var,
             memory_mb=self.memory_mb,
             debug_options=self.debug_options,
-            function_name=self.function_name,
+            function_full_path=self.function_name,
         )
 
         self.assertEqual(image, container._image)
@@ -318,7 +318,7 @@ class TestLambdaContainer_init(TestCase):
             env_vars=self.env_var,
             memory_mb=self.memory_mb,
             debug_options=self.debug_options,
-            function_name=self.function_name,
+            function_full_path=self.function_name,
         )
 
         self.assertEqual(image, container._image)
@@ -398,7 +398,7 @@ class TestLambdaContainer_init(TestCase):
             memory_mb=self.memory_mb,
             debug_options=self.debug_options,
             architecture="x86_64",
-            function_name=self.function_name,
+            function_full_path=self.function_name,
         )
 
         self.assertEqual(image, container._image)
