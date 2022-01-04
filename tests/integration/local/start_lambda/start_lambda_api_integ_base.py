@@ -10,6 +10,8 @@ import os
 import random
 from pathlib import Path
 
+import docker
+
 from tests.testing_utils import SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE, run_command
 
 
@@ -35,6 +37,11 @@ class StartLambdaIntegBaseClass(TestCase):
 
         if cls.build_before_invoke:
             cls.build()
+
+        # remove all containers if there
+        cls.docker_client = docker.from_env()
+        for container in cls.docker_client.api.containers():
+            cls.docker_client.api.remove_container(container, force=True)
 
         cls.thread = threading.Thread(target=cls.start_lambda())
         cls.thread.setDaemon(True)
@@ -112,9 +119,12 @@ class WatchWarmContainersIntegBaseClass(StartLambdaIntegBaseClass):
         if Path(working_dir).resolve().exists():
             shutil.rmtree(working_dir)
         os.mkdir(working_dir)
+        os.mkdir(Path(cls.integration_dir).resolve().joinpath(cls.temp_path).joinpath("dir"))
         cls.template_path = f"/{cls.temp_path}/template.yaml"
         cls.code_path = f"/{cls.temp_path}/main.py"
+        cls.code_path2 = f"/{cls.temp_path}/dir/main2.py"
         cls.docker_file_path = f"/{cls.temp_path}/Dockerfile"
+        cls.docker_file_path2 = f"/{cls.temp_path}/Dockerfile2"
 
         if cls.template_content:
             cls._write_file_content(cls.template_path, cls.template_content)
