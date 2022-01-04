@@ -393,12 +393,12 @@ class WarmLambdaRuntime(LambdaRuntime):
             )
             debug_context = None
 
+        self._observer.watch(function_config)
+        self._observer.start()
+
         container = super().create(function_config, debug_context, container_host, container_host_interface)
         self._function_configs[function_config.full_path] = function_config
         self._containers[function_config.full_path] = container
-
-        self._observer.watch(function_config)
-        self._observer.start()
 
         return container
 
@@ -486,12 +486,12 @@ class WarmLambdaRuntime(LambdaRuntime):
                 function_full_path,
                 resource,
             )
+            self._observer.unwatch(function_config)
             self._function_configs.pop(function_full_path, None)
             container = self._containers.get(function_full_path, None)
             if container:
                 self._container_manager.stop(container)
                 self._containers.pop(function_full_path, None)
-            self._observer.unwatch(function_config)
 
 
 def _unzip_file(filepath):

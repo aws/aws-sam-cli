@@ -137,6 +137,7 @@ class LambdaFunctionObserver:
         }
 
         self._input_on_change: Callable = on_change
+        self._watch_lock: Lock = threading.Lock()
 
     def _on_zip_change(self, paths: List[str]) -> None:
         """
@@ -171,11 +172,12 @@ class LambdaFunctionObserver:
         package_type: str
             determine if the changed resource is a source code path or an image name
         """
-        changed_functions: List[FunctionConfig] = []
-        for resource in resources:
-            if self._observed_functions[package_type].get(resource, None):
-                changed_functions += self._observed_functions[package_type][resource]
-        self._input_on_change(changed_functions)
+        with self._watch_lock:
+            changed_functions: List[FunctionConfig] = []
+            for resource in resources:
+                if self._observed_functions[package_type].get(resource, None):
+                    changed_functions += self._observed_functions[package_type][resource]
+            self._input_on_change(changed_functions)
 
     def watch(self, function_config: FunctionConfig) -> None:
         """
@@ -191,13 +193,14 @@ class LambdaFunctionObserver:
         ObserverException:
             if not able to observe the input function source path/image
         """
-        if self.get_resources.get(function_config.packagetype, None):
-            resources = self.get_resources[function_config.packagetype](function_config)
-            for resource in resources:
-                functions = self._observed_functions[function_config.packagetype].get(resource, [])
-                functions += [function_config]
-                self._observed_functions[function_config.packagetype][resource] = functions
-                self._observers[function_config.packagetype].watch(resource)
+        with self._watch_lock:
+            if self.get_resources.get(function_config.packagetype, None):
+                resources = self.get_resources[function_config.packagetype](function_config)
+                for resource in resources:
+                    functions = self._observed_functions[function_config.packagetype].get(resource, [])
+                    functions += [function_config]
+                    self._observed_functions[function_config.packagetype][resource] = functions
+                    self._observers[function_config.packagetype].watch(resource)
 
     def unwatch(self, function_config: FunctionConfig) -> None:
         """
@@ -381,6 +384,7 @@ class SingletonFileObserver(metaclass=Singleton):
 
         self._code_modification_handler.on_modified = self.on_change
         self._code_deletion_handler.on_deleted = self.on_change
+        self._watch_lock = threading.Lock()
         self._lock: Lock = threading.Lock()
 
     def on_change(self, event: FileSystemEvent) -> None:
@@ -394,37 +398,40 @@ class SingletonFileObserver(metaclass=Singleton):
         event: watchdog.events.FileSystemEvent
             Determines that there is a change happened to some file/dir in the observed paths
         """
-        LOG.debug("a %s change got detected in path %s", event.event_type, event.src_path)
-        for group, _observed_paths in self._observed_paths_per_group.items():
-            if event.event_type == "deleted":
-                observed_paths = [
-                    path
-                    for path in _observed_paths
-                    if path == event.src_path
-                    or path in self._watch_dog_observed_paths.get(f"{event.src_path}_False", [])
-                ]
-            else:
-                observed_paths = [path for path in _observed_paths if event.src_path.startswith(path)]
-
-            if not observed_paths:
-                continue
-
-            LOG.debug("affected paths of this change %s", observed_paths)
-            changed_paths = []
-            for path in observed_paths:
-                path_obj = Path(path)
-                # The path got deleted
-                if not path_obj.exists():
-                    _observed_paths.pop(path, None)
-                    changed_paths += [path]
+        with self._watch_lock:
+            LOG.debug("a %s change got detected in path %s", event.event_type, event.src_path)
+            for group, _observed_paths in self._observed_paths_per_group.items():
+                if event.event_type == "deleted":
+                    observed_paths = [
+                        path
+                        for path in _observed_paths
+                        if path == event.src_path
+                        or path in self._watch_dog_observed_paths.get(f"{event.src_path}_False", [])
+                    ]
                 else:
-                    new_checksum = calculate_checksum(path)
-                    if new_checksum != _observed_paths.get(path, None):
-                        changed_paths += [path]
-                        _observed_paths[path] = new_checksum
+                    observed_paths = [path for path in _observed_paths if event.src_path.startswith(path)]
 
-            if changed_paths:
-                self._observed_groups_handlers[group](changed_paths)
+                if not observed_paths:
+                    continue
+
+                LOG.debug("affected paths of this change %s", observed_paths)
+                changed_paths = []
+                for path in observed_paths:
+                    path_obj = Path(path)
+                    # The path got deleted
+                    if not path_obj.exists():
+                        _observed_paths.pop(path, None)
+                        changed_paths += [path]
+                    else:
+                        new_checksum = calculate_checksum(path)
+                        if new_checksum and new_checksum != _observed_paths.get(path, None):
+                            changed_paths += [path]
+                            _observed_paths[path] = new_checksum
+                        else:
+                            LOG.debug("the path %s content does not change", path)
+
+                if changed_paths:
+                    self._observed_groups_handlers[group](changed_paths)
 
     def add_group(self, group: str, on_change: Callable) -> None:
         """
@@ -464,22 +471,26 @@ class SingletonFileObserver(metaclass=Singleton):
         FileObserverException:
             if the input path is not exist
         """
-        path_obj = Path(resource)
-        if not path_obj.exists():
-            raise FileObserverException("Can not observe non exist path")
+        with self._watch_lock:
+            path_obj = Path(resource)
+            if not path_obj.exists():
+                raise FileObserverException("Can not observe non exist path")
 
-        _observed_paths = self._observed_paths_per_group[group]
-        _observed_paths[resource] = calculate_checksum(resource)
+            _observed_paths = self._observed_paths_per_group[group]
+            _check_sum = calculate_checksum(resource)
+            if not _check_sum:
+                raise Exception(f"Failed to calculate the hash of resource {resource}")
+            _observed_paths[resource] = _check_sum
 
-        LOG.debug("watch resource %s", resource)
-        # recursively watch the input path, and all child path for any modification
-        self._watch_path(resource, resource, self._code_modification_handler, True)
+            LOG.debug("watch resource %s", resource)
+            # recursively watch the input path, and all child path for any modification
+            self._watch_path(resource, resource, self._code_modification_handler, True)
 
-        LOG.debug("watch resource %s's parent %s", resource, str(path_obj.parent))
-        # watch only the direct parent path child directories for any deletion
-        # Parent directory watching is needed, as if the input path got deleted,
-        # watchdog will not send an event for it
-        self._watch_path(str(path_obj.parent), resource, self._code_deletion_handler, False)
+            LOG.debug("watch resource %s's parent %s", resource, str(path_obj.parent))
+            # watch only the direct parent path child directories for any deletion
+            # Parent directory watching is needed, as if the input path got deleted,
+            # watchdog will not send an event for it
+            self._watch_path(str(path_obj.parent), resource, self._code_deletion_handler, False)
 
     def _watch_path(
         self, watch_dog_path: str, original_path: str, watcher_handler: FileSystemEventHandler, recursive: bool
@@ -511,6 +522,7 @@ class SingletonFileObserver(metaclass=Singleton):
             child_paths += [original_path]
         self._watch_dog_observed_paths[watch_dog_path] = child_paths
         if first_time:
+            LOG.debug("Create Observer for resource %s with recursive %s", original_watch_dog_path, recursive)
             self._observed_watches[watch_dog_path] = self._observer.schedule(
                 watcher_handler, original_watch_dog_path, recursive=recursive
             )
@@ -556,6 +568,7 @@ class SingletonFileObserver(metaclass=Singleton):
 
         # Allow watching the same path in 2 Modes recursivly, and non-recusrsivly.
         # here, we need to only stop watching the input path in a specific recursive mode
+        original_watch_dog_path = watch_dog_path
         watch_dog_path = f"{watch_dog_path}_{recursive}"
         _observed_paths = self._observed_paths_per_group[group]
         child_paths = self._watch_dog_observed_paths.get(watch_dog_path, [])
@@ -565,6 +578,7 @@ class SingletonFileObserver(metaclass=Singleton):
         if not child_paths:
             self._watch_dog_observed_paths.pop(watch_dog_path, None)
             if self._observed_watches.get(watch_dog_path, None):
+                LOG.debug("Unschedule Observer for resource %s with recursive %s", original_watch_dog_path, recursive)
                 self._observer.unschedule(self._observed_watches[watch_dog_path])
                 self._observed_watches.pop(watch_dog_path, None)
 
@@ -585,10 +599,13 @@ class SingletonFileObserver(metaclass=Singleton):
                 self._observer.stop()
 
 
-def calculate_checksum(path: str) -> str:
-    path_obj = Path(path)
-    if path_obj.is_file():
-        checksum = file_checksum(path)
-    else:
-        checksum = dir_checksum(path)
-    return checksum
+def calculate_checksum(path: str) -> Optional[str]:
+    try:
+        path_obj = Path(path)
+        if path_obj.is_file():
+            checksum = file_checksum(path)
+        else:
+            checksum = dir_checksum(path)
+        return checksum
+    except Exception:
+        return None
