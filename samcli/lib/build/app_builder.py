@@ -278,11 +278,6 @@ class ApplicationBuilder:
         template_dict = stack.template_dict
         normalized_resources = stack.resources
         for logical_id, resource in template_dict.get("Resources", {}).items():
-
-            # clone normalized metadata from stack.resources
-            normalized_metadata = normalized_resources.get(logical_id, {}).get("Metadata")
-            if normalized_metadata:
-                resource["Metadata"] = normalized_metadata
             resource_iac_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)
             full_path = get_full_path(stack.stack_path, resource_iac_id)
             has_build_artifact = full_path in built_artifacts
@@ -292,6 +287,11 @@ class ApplicationBuilder:
                 # this resource was not built or a nested stack.
                 # So skip it because there is no path/uri to update
                 continue
+
+            # clone normalized metadata from stack.resources only to built resources
+            normalized_metadata = normalized_resources.get(logical_id, {}).get("Metadata")
+            if normalized_metadata:
+                resource["Metadata"] = normalized_metadata
 
             resource_type = resource.get("Type")
             properties = resource.setdefault("Properties", {})

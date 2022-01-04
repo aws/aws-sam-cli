@@ -633,6 +633,22 @@ class TestApplicationBuilder_update_template(TestCase):
                         "SamResourceId": "CustomIdFunc",
                     },
                 },
+                "SkipMyCDKFunction": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {"Code": "oldvalue"},
+                    "Metadata": {
+                        "aws:cdk:path": "Stack/SkipCDKFunc/Resource",
+                        "aws:asset:is-bundled": True,
+                    },
+                },
+                "SkipMyCustomIdFunction": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {"Code": "oldvalue"},
+                    "Metadata": {
+                        "SamResourceId": "SkipCustomIdFunc",
+                        "SkipBuild": True,
+                    },
+                },
                 "GlueResource": {"Type": "AWS::Glue::Job", "Properties": {"Command": {"ScriptLocation": "something"}}},
                 "OtherResource": {"Type": "AWS::Lambda::Version", "Properties": {"CodeUri": "something"}},
                 "MyImageFunction1": {
@@ -691,6 +707,22 @@ class TestApplicationBuilder_update_template(TestCase):
                     "Metadata": {
                         "Normalized": True,
                         "SamResourceId": "CustomIdFunc",
+                    },
+                },
+                "SkipMyCDKFunction": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {"Code": "oldvalue"},
+                    "Metadata": {
+                        "aws:cdk:path": "Stack/SkipCDKFunc/Resource",
+                        "aws:asset:is-bundled": True,
+                    },
+                },
+                "SkipMyCustomIdFunction": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {"Code": "oldvalue"},
+                    "Metadata": {
+                        "SamResourceId": "SkipCustomIdFunc",
+                        "SkipBuild": True,
                     },
                 },
                 "GlueResource": {"Type": "AWS::Glue::Job", "Properties": {"Command": {"ScriptLocation": "something"}}},
@@ -779,6 +811,22 @@ class TestApplicationBuilder_update_template(TestCase):
                     "Properties": {"Code": os.path.join("build", "ChildStackXXX", "MyCustomIdFunction")},
                     "Metadata": {
                         "SamResourceId": "CustomIdFunc",
+                    },
+                },
+                "SkipMyCDKFunction": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {"Code": "oldvalue"},
+                    "Metadata": {
+                        "aws:cdk:path": "Stack/SkipCDKFunc/Resource",
+                        "aws:asset:is-bundled": True,
+                    },
+                },
+                "SkipMyCustomIdFunction": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {"Code": "oldvalue"},
+                    "Metadata": {
+                        "SamResourceId": "SkipCustomIdFunc",
+                        "SkipBuild": True,
                     },
                 },
                 "GlueResource": {"Type": "AWS::Glue::Job", "Properties": {"Command": {"ScriptLocation": "something"}}},
