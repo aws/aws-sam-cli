@@ -236,7 +236,7 @@ class ApplicationBuilder:
             container_env_vars = self._make_env_vars(layer, file_env_vars, inline_env_vars)
 
             layer_build_details = LayerBuildDefinition(
-                layer.name,
+                layer.full_path,
                 layer.codeuri,
                 layer.build_method,
                 layer.compatible_runtimes,

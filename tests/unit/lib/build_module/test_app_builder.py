@@ -60,10 +60,12 @@ class TestApplicationBuilder_build(TestCase):
 
         self.imageFunc1.packagetype = IMAGE
         self.layer1.build_method = "build_method"
+        self.layer1.name = "layer_name1"
         self.layer1.full_path = os.path.join("StackJ", "layer_name1")
         self.layer1.get_build_dir = Mock()
         self.layer1.compatible_architectures = [X86_64]
         self.layer2.build_method = "build_method"
+        self.layer2.name = "layer_name2"
         self.layer2.full_path = os.path.join("StackJ", "layer_name2")
         self.layer2.compatible_architectures = [X86_64]
         self.layer2.get_build_dir = Mock()
