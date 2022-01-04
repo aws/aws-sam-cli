@@ -335,6 +335,7 @@ class WarmLambdaRuntime(LambdaRuntime):
         warm_containers bool
             Determines if the warm containers is enabled or not.
         """
+        self._function_configs = {}
         self._containers = {}
 
         self._observer = LambdaFunctionObserver(self._on_code_change)
@@ -364,9 +365,21 @@ class WarmLambdaRuntime(LambdaRuntime):
             the created container
         """
 
-        # reuse the cached container if it is created
+        # reuse the cached container if it is created, and if the function configuration is not changed
+        exist_function_config = self._function_configs.get(function_config.full_path, None)
         container = self._containers.get(function_config.full_path, None)
-        if container and container.is_created():
+        if exist_function_config and _require_container_reloading(exist_function_config, function_config):
+            LOG.info(
+                "Lambda Function '%s' definition has been changed in the stack template, "
+                "terminate the created warm container.",
+                function_config.full_path,
+            )
+            self._function_configs.pop(exist_function_config.full_path, None)
+            if container:
+                self._container_manager.stop(container)
+                self._containers.pop(exist_function_config.full_path, None)
+            self._observer.unwatch(exist_function_config)
+        elif container and container.is_created():
             LOG.info("Reuse the created warm container for Lambda function '%s'", function_config.full_path)
             return container
 
@@ -381,6 +394,7 @@ class WarmLambdaRuntime(LambdaRuntime):
             debug_context = None
 
         container = super().create(function_config, debug_context, container_host, container_host_interface)
+        self._function_configs[function_config.full_path] = function_config
         self._containers[function_config.full_path] = container
 
         self._observer.watch(function_config)
@@ -472,6 +486,7 @@ class WarmLambdaRuntime(LambdaRuntime):
                 function_full_path,
                 resource,
             )
+            self._function_configs.pop(function_full_path, None)
             container = self._containers.get(function_full_path, None)
             if container:
                 self._container_manager.stop(container)
@@ -501,3 +516,17 @@ def _unzip_file(filepath):
     # Especially useful in Mac OSX which returns /var/folders which is a symlink to /private/var/folders that is a
     # part of Docker's Shared Files directories
     return os.path.realpath(temp_dir)
+
+
+def _require_container_reloading(exist_function_config, function_config):
+    return (
+        exist_function_config.runtime != function_config.runtime
+        or exist_function_config.handler != function_config.handler
+        or exist_function_config.packagetype != function_config.packagetype
+        or exist_function_config.imageuri != function_config.imageuri
+        or exist_function_config.imageconfig != function_config.imageconfig
+        or exist_function_config.code_abs_path != function_config.code_abs_path
+        or exist_function_config.env_vars != function_config.env_vars
+        or sorted(exist_function_config.layers, key=lambda x: x.full_path)
+        != sorted(function_config.layers, key=lambda x: x.full_path)
+    )
