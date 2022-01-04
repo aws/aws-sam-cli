@@ -151,6 +151,9 @@ for:
         - "git --version"
         - "venv\\Scripts\\activate"
         - "docker system prune -a -f"
+        - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
+        - "mypy setup.py samcli tests"
+        - "pytest -n 4 tests/functional"
         - "pytest -vv tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local"
         - "pytest -vv tests/regression"
 
