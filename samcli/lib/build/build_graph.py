@@ -125,7 +125,7 @@ def _layer_build_definition_to_toml_table(layer_build_definition: "LayerBuildDef
         toml table of LayerBuildDefinition
     """
     toml_table = tomlkit.table()
-    toml_table[LAYER_NAME_FIELD] = layer_build_definition.name
+    toml_table[LAYER_NAME_FIELD] = layer_build_definition.full_path
     toml_table[CODE_URI_FIELD] = layer_build_definition.codeuri
     toml_table[BUILD_METHOD_FIELD] = layer_build_definition.build_method
     toml_table[COMPATIBLE_RUNTIMES_FIELD] = layer_build_definition.compatible_runtimes
@@ -501,7 +501,7 @@ class LayerBuildDefinition(AbstractBuildDefinition):
 
     def __init__(
         self,
-        name: str,
+        full_path: str,
         codeuri: Optional[str],
         build_method: Optional[str],
         compatible_runtimes: Optional[List[str]],
@@ -511,7 +511,7 @@ class LayerBuildDefinition(AbstractBuildDefinition):
         env_vars: Optional[Dict] = None,
     ):
         super().__init__(source_hash, manifest_hash, env_vars, architecture)
-        self.name = name
+        self.full_path = full_path
         self.codeuri = codeuri
         self.build_method = build_method
         self.compatible_runtimes = compatible_runtimes
@@ -521,7 +521,7 @@ class LayerBuildDefinition(AbstractBuildDefinition):
 
     def __str__(self) -> str:
         return (
-            f"LayerBuildDefinition({self.name}, {self.codeuri}, {self.source_hash}, {self.uuid}, "
+            f"LayerBuildDefinition({self.full_path}, {self.codeuri}, {self.source_hash}, {self.uuid}, "
             f"{self.build_method}, {self.compatible_runtimes}, {self.architecture}, {self.env_vars})"
         )
 
@@ -543,7 +543,7 @@ class LayerBuildDefinition(AbstractBuildDefinition):
             return False
 
         return (
-            self.name == other.name
+            self.full_path == other.full_path
             and self.codeuri == other.codeuri
             and self.build_method == other.build_method
             and self.compatible_runtimes == other.compatible_runtimes
