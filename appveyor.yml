@@ -3,6 +3,13 @@ image:
   - Ubuntu
   - Visual Studio 2019
 
+configuration:
+  - BuildIntegTesting
+  - DeployIntegTesting
+  - LocalIntegTesting
+  # other Integration testing, Dev, regression and smoke testing
+  - OtherTesting
+
 environment:
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
@@ -123,11 +130,12 @@ for:
       - "deactivate"
 
   # Ubuntu
-  # Dev testing + integ testing build + regression + black check + smoke
+  # Integ testing build
   - 
     matrix:
       only:
         - image: Ubuntu
+          configuration: BuildIntegTesting
 
     install:
       # apt repo for python3.9 installation
@@ -189,14 +197,6 @@ for:
     test_script:
       # Pre-dev Tests
       - "pip install -e \".[pre-dev]\""
-      - "pylint --rcfile .pylintrc samcli"
-
-      # Dev Tests
-      - "pip install -e \".[dev]\""
-      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
-      - "pylint --rcfile .pylintrc samcli"
-      - "mypy setup.py samcli tests"
-      - "pytest -n 4 tests/functional"
 
       # Runs only in Linux, logging Public ECR when running canary and cred is available
       - sh: "
@@ -205,22 +205,17 @@ for:
         fi"
 
       - sh: "pytest -vv tests/integration/buildcmd"
-      - sh: "pytest -vv tests/regression"
-      - sh: "black --check setup.py tests samcli"
 
       # Set JAVA_HOME to java11
       - sh: "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"
       - sh: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process"
-
-      # Smoke tests run in parallel - it runs on both Linux & Windows
-      # Presence of the RUN_SMOKE envvar will run the smoke tests
-      - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke}"
 
   # Integ testing deploy, package, delete, and sync
   -
     matrix:
       only:
         - image: Ubuntu
+          configuration: DeployIntegTesting
 
     install:
       # apt repo for python3.9 installation
@@ -282,7 +277,6 @@ for:
     test_script:
       # Pre-dev Tests
       - "pip install -e \".[pre-dev]\""
-      - "pylint --rcfile .pylintrc samcli"
 
       # Runs only in Linux, logging Public ECR when running canary and cred is available
       - sh: "
@@ -297,6 +291,7 @@ for:
     matrix:
       only:
         - image: Ubuntu
+          configuration: LocalIntegTesting
 
     install:
       # apt repo for python3.9 installation
@@ -368,11 +363,12 @@ for:
 
       - sh: "pytest -vv tests/integration/local"
 
-  # Integ testing other
+  # Other testing
   -
     matrix:
       only:
         - image: Ubuntu
+          configuration: OtherTesting
 
     install:
       # apt repo for python3.9 installation
@@ -436,6 +432,13 @@ for:
       - "pip install -e \".[pre-dev]\""
       - "pylint --rcfile .pylintrc samcli"
 
+      # Dev Tests
+      - "pip install -e \".[dev]\""
+      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
+      - "pylint --rcfile .pylintrc samcli"
+      - "mypy setup.py samcli tests"
+      - "pytest -n 4 tests/functional"
+
       # Runs only in Linux, logging Public ECR when running canary and cred is available
       - sh: "
         if [[ -n $BY_CANARY ]];
@@ -443,3 +446,9 @@ for:
         fi"
 
       - sh: "pytest tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local"
+      - sh: "pytest -vv tests/regression"
+      - sh: "black --check setup.py tests samcli"
+
+      # Smoke tests run in parallel - it runs on both Linux & Windows
+      # Presence of the RUN_SMOKE envvar will run the smoke tests
+      - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke}"
