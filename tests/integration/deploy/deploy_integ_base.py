@@ -47,6 +47,7 @@ class DeployIntegBase(TestCase):
         config_file=None,
         signing_profiles=None,
         resolve_image_repos=False,
+        disable_rollback=False,
     ):
         command_list = [self.base_command(), "deploy"]
 
@@ -106,6 +107,8 @@ class DeployIntegBase(TestCase):
             command_list = command_list + ["--signing-profiles", str(signing_profiles)]
         if resolve_image_repos:
             command_list = command_list + ["--resolve-image-repos"]
+        if disable_rollback:
+            command_list = command_list + ["--disable-rollback"]
 
         return command_list
 

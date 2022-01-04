@@ -6,7 +6,8 @@ import os
 from unittest import TestCase
 from unittest.mock import patch, Mock
 
-from samcli.local.docker.utils import to_posix_path, find_free_port
+from samcli.lib.utils.architecture import ARM64, InvalidArchitecture, X86_64
+from samcli.local.docker.utils import to_posix_path, find_free_port, get_rapid_name, get_docker_platform, get_image_arch
 from samcli.local.docker.exceptions import NoFreePortsError
 
 
@@ -54,3 +55,41 @@ class TestFreePorts(TestCase):
         mock_random.randrange = Mock(side_effect=[1, 2, 3] * 3)
         with self.assertRaises(NoFreePortsError):
             find_free_port(start=1, end=4)
+
+
+class TestGetRapidName(TestCase):
+    def test_get_rapid_name_must_return_right_name(self):
+        self.assertEqual(get_rapid_name(ARM64), "aws-lambda-rie-arm64")
+        self.assertEqual(get_rapid_name(X86_64), "aws-lambda-rie-x86_64")
+
+    def test_must_raise_exception_for_unknown_architecture(self):
+        unknown_architectures = ["unknown", None, "x86", "arm"]
+        for arch in unknown_architectures:
+            with self.assertRaises(InvalidArchitecture):
+                get_rapid_name(arch)
+
+
+class TestImageArch(TestCase):
+    def test_get_image_arch_must_return_right_name(self):
+        self.assertEqual(get_image_arch(ARM64), "arm64")
+        self.assertEqual(get_image_arch(X86_64), "amd64")
+
+    def test_get_image_arch_must_raise_exception_for_unknown_architecture(self):
+        unknown_architectures = ["unknown", None, "x86", "arm"]
+
+        for arch in unknown_architectures:
+            with self.assertRaises(InvalidArchitecture):
+                get_image_arch(arch)
+
+
+class TestGetDockerPlatform(TestCase):
+    def test_get_docker_platform_must_return_right_name(self):
+        self.assertEqual(get_docker_platform(ARM64), "linux/arm64")
+        self.assertEqual(get_docker_platform(X86_64), "linux/amd64")
+
+    def test_get_docker_platform_must_raise_exception_for_unknown_architecture(self):
+        unknown_architectures = ["unknown", None, "x86", "arm"]
+
+        for arch in unknown_architectures:
+            with self.assertRaises(InvalidArchitecture):
+                get_docker_platform(arch)

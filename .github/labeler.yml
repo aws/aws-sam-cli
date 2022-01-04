@@ -1,0 +1,71 @@
+area/package:
+- samcli/commands/package/*
+- samcli/commands/package/**/*
+
+area/local/invoke:
+- samcli/commands/local/invoke/*
+- samcli/commands/local/invoke/**/*
+- samcli/local/*
+- samcli/local/**/*
+
+area/pipeline:
+- samcli/commands/pipeline/*
+- samcli/commands/pipeline/**/*
+
+area/deploy:
+- samcli/commands/deploy/*
+- samcli/commands/deploy/**/*
+
+area/local/start-api:
+- samcli/commands/local/start-api/*
+- samcli/commands/local/start-api/**/*
+- samcli/local/*
+- samcli/local/**/*
+
+area/local/start-invoke:
+- samcli/commands/local/start-invoke/*
+- samcli/commands/local/start-invoke/**/*
+- samcli/local/*
+- samcli/local/**/*
+
+area/local/generate-event:
+- samcli/commands/local/generate-event/*
+- samcli/commands/local/generate-event/**/*
+
+area/init:
+- samcli/commands/init/*
+- samcli/commands/init/**/*
+
+area/delete:
+- samcli/commands/delete/*
+- samcli/commands/delete/**/*
+
+area/integration-tests:
+- test/integration/*
+- test/integration/**/*
+
+area/publish:
+- samcli/commands/publish/*
+- samcli/commands/publish/**/*
+
+area/sync:
+- samcli/commands/sync/*
+- samcli/commands/sync/**/*
+
+area/validate:
+- samcli/commands/validate/*
+- samcli/commands/validate/**/*
+
+area/build:
+- samcli/commands/build/*
+- samcli/commands/build/**/*
+- samcli/lib/build/*
+- samcli/lib/build/**/*
+
+area/logs:
+- samcli/commands/logs/*
+- samcli/commands/logs/**/*
+
+area/traces:
+- samcli/commands/traces/*
+- samcli/commands/traces/**/*

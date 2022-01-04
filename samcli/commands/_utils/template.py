@@ -5,21 +5,20 @@ import itertools
 import os
 import pathlib
 
-from typing import Optional
 import jmespath
 import yaml
 from botocore.utils import set_value_from_jmespath
 
-from samcli.commands._utils.resources import (
+from samcli.commands.exceptions import UserException
+from samcli.lib.utils.packagetype import ZIP
+from samcli.yamlhelper import yaml_parse, yaml_dump
+from samcli.lib.utils.resources import (
     METADATA_WITH_LOCAL_PATHS,
     RESOURCES_WITH_LOCAL_PATHS,
     AWS_SERVERLESS_FUNCTION,
     AWS_LAMBDA_FUNCTION,
     get_packageable_resource_paths,
 )
-from samcli.commands.exceptions import UserException
-from samcli.lib.utils.packagetype import ZIP
-from samcli.yamlhelper import yaml_parse, yaml_dump
 
 
 class TemplateNotFoundException(UserException):
@@ -30,7 +29,7 @@ class TemplateFailedParsingException(UserException):
     pass
 
 
-def get_template_data(template_file, root_template_dir: Optional[str] = None):
+def get_template_data(template_file):
     """
     Read the template file, parse it as JSON/YAML and return the template as a dictionary.
 
@@ -38,19 +37,11 @@ def get_template_data(template_file, root_template_dir: Optional[str] = None):
     ----------
     template_file : string
         Path to the template to read
-    root_template_dir: string
-        Optional directory of the root SAM Template
 
     Returns
     -------
     Template data as a dictionary
     """
-
-    # converting code path to absolute in normalize_resource_path will produce a bug
-    # it won't be resolved to correct value in resolve_code_path in codeuri.py later
-    # so we decided to convert it to absolute path here instead of in normalize_resource_path
-    if not os.path.isabs(template_file) and root_template_dir:
-        template_file = os.path.join(root_template_dir, template_file)
 
     if not pathlib.Path(template_file).exists():
         raise TemplateNotFoundException("Template file not found at {}".format(template_file))

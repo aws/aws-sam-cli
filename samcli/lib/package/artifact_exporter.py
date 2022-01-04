@@ -20,7 +20,7 @@ from typing import Dict, Optional, List
 
 from botocore.utils import set_value_from_jmespath
 
-from samcli.commands._utils.resources import (
+from samcli.lib.utils.resources import (
     AWS_SERVERLESS_FUNCTION,
     AWS_CLOUDFORMATION_STACK,
     RESOURCES_WITH_LOCAL_PATHS,
