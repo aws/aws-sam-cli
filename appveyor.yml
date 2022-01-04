@@ -70,6 +70,11 @@ for:
     matrix:
       only:
         - image: Visual Studio 2019
+          configuration:
+            - BuildIntegTesting
+            - DeployIntegTesting
+            - LocalIntegTesting
+            - OtherTesting
 
     install:
       - "SET PATH=%PYTHON_HOME%;%PATH%"
@@ -204,6 +209,7 @@ for:
           then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws; 
         fi"
 
+      - "pip install -e \".[dev]\""
       - sh: "pytest -vv tests/integration/buildcmd"
 
       # Set JAVA_HOME to java11
@@ -284,6 +290,7 @@ for:
           then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
         fi"
 
+      - "pip install -e \".[dev]\""
       - sh: "pytest -vv tests/integration/delete tests/integration/deploy tests/integration/package tests/integration/sync"
 
   # Integ testing local
@@ -361,6 +368,7 @@ for:
           then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
         fi"
 
+      - "pip install -e \".[dev]\""
       - sh: "pytest -vv tests/integration/local"
 
   # Other testing
