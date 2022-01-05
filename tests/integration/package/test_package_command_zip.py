@@ -613,7 +613,7 @@ class TestPackageZip(PackageIntegBase):
         process_stdout = stdout.strip()
 
         warning_message = bytes(
-            "Warning: CDK apps are not officially supported with this command.\n"
+            f"Warning: CDK apps are not officially supported with this command.{os.linesep}"
             "We recommend you use this alternative command: cdk deploy",
             encoding="utf-8",
         )
