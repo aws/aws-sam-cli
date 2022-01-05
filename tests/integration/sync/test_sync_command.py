@@ -40,7 +40,7 @@ LOG = logging.getLogger(__name__)
 
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
-class TestSync(BuildIntegBase, SyncIntegBase, PackageIntegBase):
+class TestSync(PackageIntegBase, BuildIntegBase, SyncIntegBase):
     @classmethod
     def setUpClass(cls):
         PackageIntegBase.setUpClass()
