@@ -97,16 +97,15 @@ class SamFunctionProvider(SamBaseProvider):
             if len(found_fs) > 1:
                 found_fs.sort(key=lambda f0: f0.full_path.lower())
 
-                LOG.warning(
-                    "Multiple functions found with keyword %s! Function %s will be invoked! "
-                    "If it's not the function you are going to invoke,"
-                    "please choose one of them from below:",
-                    name,
-                    found_fs[0].full_path,
+                message = (
+                    f"Multiple functions found with keyword {name}! Function {found_fs[0].full_path} will be "
+                    f"invoked! If it's not the function you are going to invoke, please choose one of them from"
+                    f" below:"
                 )
+                LOG.warning(Colored().yellow(message))
 
                 for found_f in found_fs:
-                    LOG.warning(found_f.full_path)
+                    LOG.warning(Colored().yellow(found_f.full_path))
 
                 resolved_function = found_fs[0]
 
@@ -287,22 +286,11 @@ class SamFunctionProvider(SamBaseProvider):
         str
             The unique function id
         """
-        resource_cdk_path = resource_properties.get("Metadata", {}).get("aws:cdk:path")
+        function_id = resource_properties.get("Metadata", {}).get("SamResourceId")
+        if isinstance(function_id, str) and function_id:
+            return function_id
 
-        if not isinstance(resource_cdk_path, str) or not resource_cdk_path:
-            return logical_id
-
-        # aws:cdk:path metadata format of functions: {stack_id}/{function_id}/Resource
-        # Design doc of CDK path: https://github.com/aws/aws-cdk/blob/master/design/construct-tree.md
-        cdk_path_partitions = resource_cdk_path.split("/")
-
-        if len(cdk_path_partitions) < 2:
-            LOG.warning(
-                "Cannot detect function id from aws:cdk:path metadata '%s', using default logical id", resource_cdk_path
-            )
-            return logical_id
-
-        return cdk_path_partitions[-2]
+        return logical_id
 
     @staticmethod
     def _convert_lambda_function_resource(

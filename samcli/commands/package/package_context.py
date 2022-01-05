@@ -14,7 +14,6 @@ Logic for uploading to s3 based on supplied template file and s3 bucket
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
-
 import json
 import logging
 import os
@@ -24,12 +23,15 @@ import boto3
 import click
 import docker
 
+from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.commands.package.exceptions import PackageFailedError
 from samcli.lib.package.artifact_exporter import Template
 from samcli.lib.package.ecr_uploader import ECRUploader
 from samcli.lib.package.code_signer import CodeSigner
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Uploaders
+from samcli.lib.providers.provider import get_resource_full_path_by_id, ResourceIdentifier
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.boto_utils import get_boto_config_with_user_agent
 from samcli.yamlhelper import yaml_dump
 
@@ -85,6 +87,7 @@ class PackageContext:
         self.on_deploy = on_deploy
         self.code_signer = None
         self.signing_profiles = signing_profiles
+        self._global_parameter_overrides = {IntrinsicsSymbolTable.AWS_REGION: region} if region else {}
 
     def __enter__(self):
         return self
@@ -96,6 +99,17 @@ class PackageContext:
         """
         Execute packaging based on the argument provided by customers and samconfig.toml.
         """
+        stacks, _ = SamLocalStackProvider.get_stacks(
+            self.template_file,
+            global_parameter_overrides=self._global_parameter_overrides,
+        )
+        self.image_repositories = self.image_repositories if self.image_repositories is not None else {}
+        updated_repo = {}
+        for image_repo_func_id, image_repo_uri in self.image_repositories.items():
+            repo_full_path = get_resource_full_path_by_id(stacks, ResourceIdentifier(image_repo_func_id))
+            if repo_full_path:
+                updated_repo[repo_full_path] = image_repo_uri
+        self.image_repositories = updated_repo
         region_name = self.region if self.region else None
 
         s3_client = boto3.client(
@@ -135,7 +149,14 @@ class PackageContext:
             raise PackageFailedError(template_file=self.template_file, ex=str(ex)) from ex
 
     def _export(self, template_path, use_json):
-        template = Template(template_path, os.getcwd(), self.uploaders, self.code_signer)
+        template = Template(
+            template_path,
+            os.getcwd(),
+            self.uploaders,
+            self.code_signer,
+            normalize_template=True,
+            normalize_parameters=True,
+        )
         exported_template = template.export()
 
         if use_json:

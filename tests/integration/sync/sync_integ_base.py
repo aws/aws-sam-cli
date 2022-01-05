@@ -58,6 +58,8 @@ class SyncIntegBase(TestCase):
             command_list += ["--resource", str(resource)]
         if dependency_layer:
             command_list += ["--dependency-layer"]
+        if not dependency_layer:
+            command_list += ["--no-dependency-layer"]
         if stack_name:
             command_list += ["--stack-name", str(stack_name)]
         if region:

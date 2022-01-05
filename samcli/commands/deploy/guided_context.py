@@ -29,7 +29,7 @@ from samcli.lib.config.samconfig import DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.package.ecr_utils import is_ecr_url
 from samcli.lib.package.image_utils import tag_translation, NonLocalImageException, NoImageFoundException
-from samcli.lib.providers.provider import Function, Stack
+from samcli.lib.providers.provider import Function, Stack, get_resource_full_path_by_id, ResourceIdentifier
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.defaults import get_default_aws_region
@@ -337,7 +337,12 @@ class GuidedContext:
         Dict[str, str]
             A dictionary contains image function logical ID as key, image repository as value.
         """
-        updated_repositories = image_repositories.copy() if image_repositories is not None else {}
+        image_repositories = image_repositories if image_repositories is not None else {}
+        updated_repositories = {}
+        for image_repo_func_id, image_repo_uri in image_repositories.items():
+            repo_full_path = get_resource_full_path_by_id(stacks, ResourceIdentifier(image_repo_func_id))
+            if repo_full_path:
+                updated_repositories[repo_full_path] = image_repo_uri
         self.function_provider = SamFunctionProvider(stacks, ignore_code_extraction_warnings=True)
         manager = CompanionStackManager(stack_name, region, s3_bucket, s3_prefix)
 

@@ -3,6 +3,7 @@ Client for uploading packaged artifacts to ecr
 """
 import logging
 import base64
+import io
 
 from typing import Dict
 import click
@@ -79,7 +80,9 @@ class ECRUploader:
 
             _tag = tag_translation(image, docker_image_id=docker_img.id, gen_tag=self.tag)
             repository = (
-                self.ecr_repo if not isinstance(self.ecr_repo_multi, dict) else self.ecr_repo_multi.get(resource_name)
+                self.ecr_repo
+                if not self.ecr_repo_multi or not isinstance(self.ecr_repo_multi, dict)
+                else self.ecr_repo_multi.get(resource_name)
             )
 
             docker_img.tag(repository=repository, tag=_tag)
@@ -88,6 +91,11 @@ class ECRUploader:
             )
             if not self.no_progressbar:
                 self.log_streamer.stream_progress(push_logs)
+            else:
+                # we need to wait till the image got pushed to ecr, without this workaround sam sync for template
+                # contains image always fail, because the provided ecr uri is not exist.
+                _log_streamer = LogStreamer(stream=StreamWriter(stream=io.BytesIO(), auto_flush=True))
+                _log_streamer.stream_progress(push_logs)
 
         except (BuildError, APIError, LogStreamError) as ex:
             raise DockerPushFailedError(msg=str(ex)) from ex
