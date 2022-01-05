@@ -114,9 +114,9 @@ class NestedStackManager:
         return template
 
     def _add_layer(self, dependencies_dir: str, function: Function, resources: Dict):
-        layer_logical_id = NestedStackBuilder.get_layer_logical_id(function.name)
+        layer_logical_id = NestedStackBuilder.get_layer_logical_id(function.full_path)
         layer_location = self.update_layer_folder(
-            self._build_dir, dependencies_dir, layer_logical_id, function.name, function.runtime
+            self._build_dir, dependencies_dir, layer_logical_id, function.full_path, function.runtime
         )
 
         layer_output_key = self._nested_stack_builder.add_function(self._stack_name, layer_location, function)
