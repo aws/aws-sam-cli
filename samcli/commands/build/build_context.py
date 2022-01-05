@@ -158,7 +158,8 @@ class BuildContext:
     def run(self):
         """Runs the building process by creating an ApplicationBuilder."""
         template_dict = get_template_data(self._template_file)
-        is_sam_template = template_dict.get("Transform", "").startswith("AWS::Serverless")
+        template_transform = template_dict.get("Transform", "")
+        is_sam_template = isinstance(template_transform, str) and template_transform.startswith("AWS::Serverless")
         if is_sam_template:
             SamApiProvider.check_implicit_api_resource_ids(self.stacks)
 
