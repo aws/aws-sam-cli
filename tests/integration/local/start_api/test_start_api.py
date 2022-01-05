@@ -2,7 +2,6 @@ import base64
 import uuid
 import random
 
-import docker
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time, sleep
@@ -427,6 +426,17 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
         Get Request to a path that was defined as ANY in SAM through Swagger
         """
         response = requests.get(self.url + "/anyandall", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_parse_swagger_body_with_non_case_sensitive_integration_type(self):
+        """
+        Get Request to a path that was defined as ANY in SAM through Swagger
+        """
+        response = requests.get(self.url + "/nonsensitiveanyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
@@ -1789,7 +1799,6 @@ class TestCFNTemplateHttpApiWithSwaggerBody(StartApiIntegBaseClass):
 class TestWarmContainersBaseClass(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
-        self.docker_client = docker.from_env()
 
     def count_running_containers(self):
         running_containers = 0
@@ -2032,6 +2041,141 @@ def handler(event, context):
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
+class TestWatchingTemplateChangesLambdaFunctionHandlerChanged(WatchWarmContainersIntegBaseClass):
+    template_content = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    """
+
+    template_content_2 = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler2
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    """
+    code_content = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world"})}
+    
+def handler2(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}
+    """
+
+    docker_file_content = ""
+    container_mode = ContainersInitializationMode.EAGER.value
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_changed_code_got_observed_and_loaded(self):
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+        self._write_file_content(self.template_path, self.template_content_2)
+        # wait till SAM got notified that the source code got changed
+        sleep(2)
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world2"})
+
+
+class TestWatchingTemplateChangesLambdaFunctionCodeUriChanged(WatchWarmContainersIntegBaseClass):
+    template_content = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.7
+      CodeUri: .
+      Timeout: 600
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    """
+
+    template_content_2 = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main2.handler
+      Runtime: python3.7
+      CodeUri: dir
+      Timeout: 600
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    """
+    code_content = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world"})}
+    """
+    code_content_2 = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}
+        """
+
+    docker_file_content = ""
+    container_mode = ContainersInitializationMode.EAGER.value
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_changed_code_got_observed_and_loaded(self):
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+        self._write_file_content(self.template_path, self.template_content_2)
+        self._write_file_content(self.code_path2, self.code_content_2)
+        # wait till SAM got notified that the source code got changed
+        sleep(2)
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world2"})
+
+
 class TestWatchingImageWarmContainers(WatchWarmContainersIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
@@ -2088,6 +2232,100 @@ COPY main.py ./"""
         self.assertEqual(response.json(), {"hello": "world"})
 
         self._write_file_content(self.code_path, self.code_content_2)
+        self.build()
+        # wait till SAM got notified that the image got changed
+        sleep(2)
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world2"})
+
+
+class TestWatchingTemplateChangesImageDockerFileChangedLocation(WatchWarmContainersIntegBaseClass):
+    template_content = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Parameteres:
+  Tag:
+    Type: String
+  ImageUri:
+    Type: String
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - main.handler
+        Timeout: 600
+      ImageUri: !Ref ImageUri
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    Metadata:
+      DockerTag: !Ref Tag
+      DockerContext: .
+      Dockerfile: Dockerfile
+        """
+    template_content_2 = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Parameteres:
+  Tag:
+    Type: String
+  ImageUri:
+    Type: String
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - main.handler
+        Timeout: 600
+      ImageUri: !Ref ImageUri
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    Metadata:
+      DockerTag: !Ref Tag
+      DockerContext: .
+      Dockerfile: Dockerfile2
+        """
+    code_content = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world"})}"""
+    code_content_2 = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}"""
+    docker_file_content = """FROM public.ecr.aws/lambda/python:3.7
+COPY main.py ./"""
+    container_mode = ContainersInitializationMode.EAGER.value
+    build_before_invoke = True
+    tag = f"python-{random.randint(1000, 2000)}"
+    build_overrides = {"Tag": tag}
+    parameter_overrides = {"ImageUri": f"helloworldfunction:{tag}"}
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=6000, method="thread")
+    def test_changed_code_got_observed_and_loaded(self):
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+        self._write_file_content(self.template_path, self.template_content_2)
+        self._write_file_content(self.code_path, self.code_content_2)
+        self._write_file_content(self.docker_file_path2, self.docker_file_content)
         self.build()
         # wait till SAM got notified that the image got changed
         sleep(2)
@@ -2201,6 +2439,235 @@ COPY main.py ./"""
         self.assertEqual(response.json(), {"hello": "world"})
 
         self._write_file_content(self.code_path, self.code_content_2)
+        self.build()
+        # wait till SAM got notified that the image got changed
+        sleep(2)
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world2"})
+
+
+class TestWatchingTemplateChangesLambdaFunctionHandlerChangedLazyContainer(WatchWarmContainersIntegBaseClass):
+    template_content = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    """
+
+    template_content_2 = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler2
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    """
+    code_content = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world"})}
+
+def handler2(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}
+    """
+
+    docker_file_content = ""
+    container_mode = ContainersInitializationMode.LAZY.value
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_changed_code_got_observed_and_loaded(self):
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+        self._write_file_content(self.template_path, self.template_content_2)
+        # wait till SAM got notified that the source code got changed
+        sleep(2)
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world2"})
+
+
+class TestWatchingTemplateChangesLambdaFunctionCodeUriChangedLazyContainers(WatchWarmContainersIntegBaseClass):
+    template_content = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.7
+      CodeUri: .
+      Timeout: 600
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    """
+
+    template_content_2 = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main2.handler
+      Runtime: python3.7
+      CodeUri: dir
+      Timeout: 600
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    """
+    code_content = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world"})}
+    """
+    code_content_2 = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}
+        """
+
+    docker_file_content = ""
+    container_mode = ContainersInitializationMode.LAZY.value
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_changed_code_got_observed_and_loaded(self):
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+        self._write_file_content(self.template_path, self.template_content_2)
+        self._write_file_content(self.code_path2, self.code_content_2)
+        # wait till SAM got notified that the source code got changed
+        sleep(2)
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world2"})
+
+
+class TestWatchingTemplateChangesImageDockerFileChangedLocationLazyContainers(WatchWarmContainersIntegBaseClass):
+    template_content = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Parameteres:
+  Tag:
+    Type: String
+  ImageUri:
+    Type: String
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - main.handler
+        Timeout: 600
+      ImageUri: !Ref ImageUri
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    Metadata:
+      DockerTag: !Ref Tag
+      DockerContext: .
+      Dockerfile: Dockerfile
+        """
+    template_content_2 = """AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31    
+Parameteres:
+  Tag:
+    Type: String
+  ImageUri:
+    Type: String
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - main.handler
+        Timeout: 600
+      ImageUri: !Ref ImageUri
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /hello
+    Metadata:
+      DockerTag: !Ref Tag
+      DockerContext: .
+      Dockerfile: Dockerfile2
+        """
+    code_content = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world"})}"""
+    code_content_2 = """import json
+
+def handler(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}"""
+    docker_file_content = """FROM public.ecr.aws/lambda/python:3.7
+COPY main.py ./"""
+    container_mode = ContainersInitializationMode.LAZY.value
+    build_before_invoke = True
+    tag = f"python-{random.randint(1000, 2000)}"
+    build_overrides = {"Tag": tag}
+    parameter_overrides = {"ImageUri": f"helloworldfunction:{tag}"}
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=6000, method="thread")
+    def test_changed_code_got_observed_and_loaded(self):
+        response = requests.get(self.url + "/hello", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+        self._write_file_content(self.template_path, self.template_content_2)
+        self._write_file_content(self.code_path, self.code_content_2)
+        self._write_file_content(self.docker_file_path2, self.docker_file_content)
         self.build()
         # wait till SAM got notified that the image got changed
         sleep(2)

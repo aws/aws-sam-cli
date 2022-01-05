@@ -15,6 +15,11 @@ from samcli.commands.local.cli_common.user_exceptions import (
     InvalidFunctionPropertyType,
 )
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
+from samcli.lib.samlib.resource_metadata_normalizer import (
+    ResourceMetadataNormalizer,
+    SAM_METADATA_SKIP_BUILD_KEY,
+    SAM_RESOURCE_ID_KEY,
+)
 from samcli.lib.utils.architecture import X86_64
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -82,6 +87,15 @@ class Function(NamedTuple):
             "ChildStackA/GrandChildStackB/AFunctionInNestedStack"
         """
         return get_full_path(self.stack_path, self.function_id)
+
+    @property
+    def skip_build(self) -> bool:
+        """
+        Check if the function metadata contains SkipBuild property to determines if SAM should skip building this
+        resource. It means that the customer is building the Lambda function code outside SAM, and the provided code
+        path is already built.
+        """
+        return self.metadata.get(SAM_METADATA_SKIP_BUILD_KEY, False) if self.metadata else False
 
     def get_build_dir(self, build_root_dir: str) -> str:
         """
@@ -155,6 +169,7 @@ class LayerVersion:
     LAYER_NAME_DELIMETER = "-"
 
     _name: Optional[str] = None
+    _layer_id: Optional[str] = None
     _version: Optional[int] = None
 
     def __init__(
@@ -192,6 +207,8 @@ class LayerVersion:
 
         self._build_architecture = cast(str, metadata.get("BuildArchitecture", X86_64))
         self._compatible_architectures = compatible_architectures
+        self._skip_build = bool(metadata.get(SAM_METADATA_SKIP_BUILD_KEY, False))
+        self._custom_layer_id = metadata.get(SAM_RESOURCE_ID_KEY)
 
     @staticmethod
     def _compute_layer_version(is_defined_within_template: bool, arn: str) -> Optional[int]:
@@ -261,8 +278,26 @@ class LayerVersion:
         return self._stack_path
 
     @property
+    def skip_build(self) -> bool:
+        """
+        Check if the function metadata contains SkipBuild property to determines if SAM should skip building this
+        resource. It means that the customer is building the Lambda function code outside SAM, and the provided code
+        path is already built.
+        """
+        return self._skip_build
+
+    @property
     def arn(self) -> str:
         return self._arn
+
+    @property
+    def layer_id(self) -> str:
+        # because self.layer_id is only used in local invoke.
+        # here we delay the validation process (in _compute_layer_name) rather than in __init__() to ensure
+        # customers still have a smooth build experience.
+        if not self._layer_id:
+            self._layer_id = cast(str, self._custom_layer_id if self._custom_layer_id else self.name)
+        return self._layer_id
 
     @property
     def name(self) -> str:
@@ -323,7 +358,7 @@ class LayerVersion:
             "HelloWorldLayer"
             "ChildStackA/GrandChildStackB/ALayerInNestedStack"
         """
-        return get_full_path(self.stack_path, self.name)
+        return get_full_path(self.stack_path, self.layer_id)
 
     @property
     def build_architecture(self) -> str:
@@ -353,9 +388,9 @@ class LayerVersion:
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, type(self)):
-            # self._name and self._version are generated from self._arn, and they are initialized as None
-            # and their values are assigned at runtime. Here we exclude them from comparison
-            overrides = {"_name": None, "_version": None}
+            # self._name, self._version, and self._layer_id are generated from self._arn, and they are initialized as
+            # None and their values are assigned at runtime. Here we exclude them from comparison
+            overrides = {"_name": None, "_version": None, "_layer_id": None}
             return {**self.__dict__, **overrides} == {**other.__dict__, **overrides}
         return False
 
@@ -458,6 +493,13 @@ class Stack(NamedTuple):
     parameters: Optional[Dict]
     # the raw template dict
     template_dict: Dict
+    # metadata
+    metadata: Optional[Dict] = None
+
+    @property
+    def stack_id(self) -> str:
+        _metadata = self.metadata if self.metadata else {}
+        return _metadata.get(SAM_RESOURCE_ID_KEY, self.name) if self.metadata else self.name
 
     @property
     def stack_path(self) -> str:
@@ -468,7 +510,7 @@ class Stack(NamedTuple):
             root stack's child stack StackX: "StackX"
             StackX's child stack StackY: "StackX/StackY"
         """
-        return posixpath.join(self.parent_stack_path, self.name)
+        return posixpath.join(self.parent_stack_path, self.stack_id)
 
     @property
     def is_root_stack(self) -> bool:
@@ -499,7 +541,8 @@ class ResourceIdentifier:
     """Resource identifier for representing a resource with nested stack support"""
 
     _stack_path: str
-    _logical_id: str
+    # resource_iac_id is the resource logical id in case of CFN, or customer defined construct Id in case of CDK.
+    _resource_iac_id: str
 
     def __init__(self, resource_identifier_str: str):
         """
@@ -512,10 +555,12 @@ class ResourceIdentifier:
         parts = resource_identifier_str.rsplit(posixpath.sep, 1)
         if len(parts) == 1:
             self._stack_path = ""
-            self._logical_id = parts[0]
+            # resource_iac_id in this case can be the resource iac id or logical id
+            self._resource_iac_id = parts[0]
         else:
             self._stack_path = parts[0]
-            self._logical_id = parts[1]
+            # resource_iac_id in this case will be always the resource iac id
+            self._resource_iac_id = parts[1]
 
     @property
     def stack_path(self) -> str:
@@ -529,17 +574,17 @@ class ResourceIdentifier:
         return self._stack_path
 
     @property
-    def logical_id(self) -> str:
+    def resource_iac_id(self) -> str:
         """
         Returns
         -------
         str
             Logical ID of the resource.
         """
-        return self._logical_id
+        return self._resource_iac_id
 
     def __str__(self) -> str:
-        return self.stack_path + posixpath.sep + self.logical_id if self.stack_path else self.logical_id
+        return self.stack_path + posixpath.sep + self.resource_iac_id if self.stack_path else self.resource_iac_id
 
     def __eq__(self, other: object) -> bool:
         return str(self) == str(other) if isinstance(other, ResourceIdentifier) else False
@@ -548,14 +593,14 @@ class ResourceIdentifier:
         return hash(str(self))
 
 
-def get_full_path(stack_path: str, logical_id: str) -> str:
+def get_full_path(stack_path: str, resource_id: str) -> str:
     """
     Return the unique posix path-like identifier
     while will used for identify a resource from resources in a multi-stack situation
     """
     if not stack_path:
-        return logical_id
-    return posixpath.join(stack_path, logical_id)
+        return resource_id
+    return posixpath.join(stack_path, resource_id)
 
 
 def get_resource_by_id(
@@ -582,9 +627,44 @@ def get_resource_by_id(
     search_all_stacks = not identifier.stack_path and not explicit_nested
     for stack in stacks:
         if stack.stack_path == identifier.stack_path or search_all_stacks:
-            resource = stack.resources.get(identifier.logical_id)
-            if resource:
-                return cast(Dict[str, Any], resource)
+            found_resource = None
+            for logical_id, resource in stack.resources.items():
+                resource_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)
+                if resource_id == identifier.resource_iac_id or (
+                    not identifier.stack_path and logical_id == identifier.resource_iac_id
+                ):
+                    found_resource = resource
+                    break
+
+            if found_resource:
+                return cast(Dict[str, Any], found_resource)
+    return None
+
+
+def get_resource_full_path_by_id(stacks: List[Stack], identifier: ResourceIdentifier) -> Optional[str]:
+    """Seach resource in stacks based on identifier
+
+    Parameters
+    ----------
+    stacks : List[Stack]
+        List of stacks to be searched
+    identifier : ResourceIdentifier
+        Resource identifier for the resource to be returned
+
+    Returns
+    -------
+    str
+        return resource full path
+    """
+    for stack in stacks:
+        if identifier.stack_path and identifier.stack_path != stack.stack_path:
+            continue
+        for logical_id, resource in stack.resources.items():
+            resource_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)
+            if resource_id == identifier.resource_iac_id or (
+                not identifier.stack_path and logical_id == identifier.resource_iac_id
+            ):
+                return get_full_path(stack.stack_path, resource_id)
     return None
 
 
@@ -605,7 +685,8 @@ def get_resource_ids_by_type(stacks: List[Stack], resource_type: str) -> List[Re
     """
     resource_ids: List[ResourceIdentifier] = list()
     for stack in stacks:
-        for resource_id, resource in stack.resources.items():
+        for logical_id, resource in stack.resources.items():
+            resource_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)
             if resource.get("Type", "") == resource_type:
                 resource_ids.append(ResourceIdentifier(get_full_path(stack.stack_path, resource_id)))
     return resource_ids
@@ -626,7 +707,8 @@ def get_all_resource_ids(stacks: List[Stack]) -> List[ResourceIdentifier]:
     """
     resource_ids: List[ResourceIdentifier] = list()
     for stack in stacks:
-        for resource_id, _ in stack.resources.items():
+        for logical_id, resource in stack.resources.items():
+            resource_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)
             resource_ids.append(ResourceIdentifier(get_full_path(stack.stack_path, resource_id)))
     return resource_ids
 

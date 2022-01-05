@@ -451,7 +451,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ("image",),
             )
 
-    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_function_resource_ids")
+    @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
     @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
     @patch("samcli.commands._utils.options.get_template_artifacts_format")
     @patch("samcli.commands.package.command.do_cli")
@@ -460,9 +460,9 @@ class TestSamConfigForAllCommands(TestCase):
         do_cli_mock,
         get_template_artifacts_format_mock,
         cli_validation_artifacts_format_mock,
-        mock_get_template_function_resource_ids,
+        is_all_image_funcs_provided_mock,
     ):
-        mock_get_template_function_resource_ids.return_value = ["HelloWorldFunction"]
+        is_all_image_funcs_provided_mock.return_value = True
         cli_validation_artifacts_format_mock.return_value = [ZIP]
         get_template_artifacts_format_mock.return_value = [ZIP]
         config_values = {
@@ -860,7 +860,7 @@ class TestSamConfigForAllCommands(TestCase):
             self.assertTrue("version" in info_result)
 
     @patch("samcli.commands._utils.experimental.is_experimental_enabled")
-    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_function_resource_ids")
+    @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
     @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
     @patch("samcli.commands._utils.template.get_template_artifacts_format")
     @patch("samcli.commands._utils.options.get_template_artifacts_format")
@@ -871,14 +871,14 @@ class TestSamConfigForAllCommands(TestCase):
         template_artifacts_mock1,
         template_artifacts_mock2,
         template_artifacts_mock3,
-        template_artifacts_mock4,
+        is_all_image_funcs_provided_mock,
         experimental_mock,
     ):
 
         template_artifacts_mock1.return_value = [ZIP]
         template_artifacts_mock2.return_value = [ZIP]
         template_artifacts_mock3.return_value = [ZIP]
-        template_artifacts_mock4.return_value = ["HelloWorldFunction"]
+        is_all_image_funcs_provided_mock.return_value = True
         experimental_mock.return_value = True
 
         config_values = {

@@ -10,7 +10,6 @@ from samcli.lib.bootstrap.nested_stack.nested_stack_manager import (
 )
 from samcli.lib.build.app_builder import ApplicationBuildResult
 from samcli.lib.sync.exceptions import InvalidRuntimeDefinitionForFunction
-from samcli.lib.utils import osutils
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.lib.utils.resources import AWS_SQS_QUEUE, AWS_SERVERLESS_FUNCTION
 
@@ -78,7 +77,7 @@ class TestNestedStackManager(TestCase):
             "Resources": {"MyFunction": {"Type": AWS_SERVERLESS_FUNCTION, "Properties": {"Runtime": "python3.8"}}}
         }
         build_graph = Mock()
-        build_graph.get_function_build_definition_with_logical_id.return_value = None
+        build_graph.get_function_build_definition_with_full_path.return_value = None
         app_build_result = ApplicationBuildResult(build_graph, {"MyFunction": "path/to/build/dir"})
         nested_stack_manager = NestedStackManager(
             self.stack_name, self.build_dir, self.stack_location, template, app_build_result

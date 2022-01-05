@@ -5,6 +5,13 @@ build: off
 # Change the clone folder to somewhere in "D:\" because this is shared by default with Docker. We need this to mount folders.
 clone_folder: D:\source
 
+configuration:
+  - BuildIntegTesting
+  - DeployIntegTesting
+  - LocalIntegTesting
+  # other Integration testing, Dev, regression and smoke testing
+  - OtherTesting
+
 environment:
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
@@ -40,55 +47,115 @@ cache:
   - C:\ProgramData\chocolatey\lib -> appveyor.yml
 
 install:
+  # setup make
+  - "choco install make"
 
-    # setup make
-    - "choco install make"
+  # Make sure the temp directory exists for Python to use.
+  - ps: "mkdir -Force D:\\tmp"
+  - "SET PATH=%PYTHON_HOME%;%PATH%"
+  - "echo %PYTHON_HOME%"
+  - "echo %PATH%"
+  - "python --version"
+  - "docker info"
 
-    # Make sure the temp directory exists for Python to use.
-    - ps: "mkdir -Force D:\\tmp"
-    - "SET PATH=%PYTHON_HOME%;%PATH%"
-    - "echo %PYTHON_HOME%"
-    - "echo %PATH%"
-    - "python --version"
-    - "docker info"
+  # Upgrade setuptools, wheel and virtualenv
+  - "python -m pip install --upgrade setuptools wheel virtualenv"
 
-    # Upgrade setuptools, wheel and virtualenv
-    - "python -m pip install --upgrade setuptools wheel virtualenv"
+  # Install AWS CLI Globally via pip3
+  - "pip install awscli"
 
-    # Install AWS CLI Globally via pip3
-    - "pip install awscli"
+  # Create new virtual environment with chosen python version and activate it
+  - "python -m virtualenv venv"
+  - "venv\\Scripts\\activate"
+  - "python --version"
 
-    # Create new virtual environment with chosen python version and activate it
-    - "python -m virtualenv venv"
-    - "venv\\Scripts\\activate"
-    - "python --version"
+  # Actually install SAM CLI's dependencies
+  - "pip install -e \".[dev]\""
 
-    # Actually install SAM CLI's dependencies
-    - "pip install -e \".[dev]\""
+  # Install aws cli
+  - "pip install awscli"
 
-    # Install aws cli
-    - "pip install awscli"
+  # Switch to Docker Linux containers
+  - ps: Switch-DockerLinux
 
-    # Switch to Docker Linux containers
-    - ps: Switch-DockerLinux
+  # Check for git executable
+  - "git --version"
 
-    # Check for git executable
-    - "git --version"
+  # Echo final Path
+  - "echo %PATH%"
 
-    # Echo final Path
-    - "echo %PATH%"
+for:
+  #Integ testing build, regression
+  -
+    matrix:
+      only:
+        - configuration: BuildIntegTesting
 
-test_script:
-    # Reactivate virtualenv before running tests
-    - ps: "
-        If (Test-Path env:BY_CANARY){
-          echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws; 
-        }"
-    - "git --version"
-    - "venv\\Scripts\\activate"
-    - "docker system prune -a -f"
-    - "pytest -vv tests/integration"
-    - "pytest -vv tests/regression"
+    test_script:
+        # Reactivate virtualenv before running tests
+        - ps: "
+            If (Test-Path env:BY_CANARY){
+              echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
+            }"
+        - "git --version"
+        - "venv\\Scripts\\activate"
+        - "docker system prune -a -f"
+        - "pytest -vv tests/integration/buildcmd"
+
+  #Integ testing deploy
+  -
+    matrix:
+      only:
+        - configuration: DeployIntegTesting
+
+    test_script:
+        # Reactivate virtualenv before running tests
+        - ps: "
+            If (Test-Path env:BY_CANARY){
+              echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
+            }"
+        - "git --version"
+        - "venv\\Scripts\\activate"
+        - "docker system prune -a -f"
+        - "pytest -vv tests/integration/delete tests/integration/deploy tests/integration/package tests/integration/sync"
+
+  #Integ testing local
+  -
+    matrix:
+      only:
+        - configuration: LocalIntegTesting
+
+    test_script:
+        # Reactivate virtualenv before running tests
+        - ps: "
+            If (Test-Path env:BY_CANARY){
+              echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
+            }"
+        - "git --version"
+        - "venv\\Scripts\\activate"
+        - "docker system prune -a -f"
+        - "pytest -vv tests/integration/local"
+
+  #Other testing
+  -
+    matrix:
+      only:
+        - configuration: OtherTesting
+
+    test_script:
+        # Reactivate virtualenv before running tests
+        - ps: "
+            If (Test-Path env:BY_CANARY){
+              echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
+            }"
+        - "git --version"
+        - "venv\\Scripts\\activate"
+        - "docker system prune -a -f"
+        - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
+        - "mypy setup.py samcli tests"
+        - "pytest -n 4 tests/functional"
+        - "pytest -vv tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local"
+        - "pytest -vv tests/regression"
 
 # Uncomment for RDP
 # on_finish:

@@ -73,6 +73,57 @@ class Test_get_template_data(TestCase):
         m.assert_called_with(filename, "r", encoding="utf-8")
         yaml_parse_mock.assert_called_with(file_data)
 
+    @patch("samcli.commands._utils.template.yaml_parse")
+    @patch("samcli.commands._utils.template.pathlib")
+    def test_must_read_file_get_and_normalize_parameters(self, pathlib_mock, yaml_parse_mock):
+        filename = "filename"
+        file_data = "contents of the file"
+        parse_result = {
+            "Parameters": {
+                "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481S3VersionKeyA3EB644B": {
+                    "Type": "String",
+                    "Description": 'S3 bucket for asset "12345432"',
+                },
+            },
+            "Resources": {
+                "CDKMetadata": {
+                    "Type": "AWS::CDK::Metadata",
+                    "Properties": {"Analytics": "v2:deflate64:H4s"},
+                    "Metadata": {"aws:cdk:path": "Stack/CDKMetadata/Default"},
+                },
+                "Function1": {
+                    "Properties": {"Code": "some value"},
+                    "Metadata": {
+                        "aws:asset:path": "new path",
+                        "aws:asset:property": "Code",
+                        "aws:asset:is-bundled": False,
+                    },
+                },
+            },
+        }
+
+        pathlib_mock.Path.return_value.exists.return_value = True  # Fake that the file exists
+
+        m = mock_open(read_data=file_data)
+        yaml_parse_mock.return_value = parse_result
+
+        with patch("samcli.commands._utils.template.open", m):
+            result = get_template_parameters(filename)
+
+            self.assertEqual(
+                result,
+                {
+                    "AssetParametersb9866fd422d32492c62394e8c406ab4004f0c80364bab4957e67e31cf1130481S3VersionKeyA3EB644B": {
+                        "Type": "String",
+                        "Description": 'S3 bucket for asset "12345432"',
+                        "Default": " ",
+                    }
+                },
+            )
+
+        m.assert_called_with(filename, "r", encoding="utf-8")
+        yaml_parse_mock.assert_called_with(file_data)
+
     @parameterized.expand([param(ValueError()), param(yaml.YAMLError())])
     @patch("samcli.commands._utils.template.yaml_parse")
     @patch("samcli.commands._utils.template.pathlib")
@@ -194,6 +245,61 @@ class Test_update_relative_paths(TestCase):
                 f"Resources.MyResourceWithRelativePath.Properties.{propname}",
                 self.expected_result,
             )
+
+            result = _update_relative_paths(template_dict, self.src, self.dest)
+
+            self.maxDiff = None
+            self.assertEqual(result, expected_template_dict)
+
+    @parameterized.expand([(resource_type, props) for resource_type, props in RESOURCES_WITH_LOCAL_PATHS.items()])
+    def test_must_update_relative_resource_metadata_paths(self, resource_type, properties):
+        for propname in properties:
+            template_dict = {
+                "Resources": {
+                    "MyResourceWithRelativePath": {
+                        "Type": resource_type,
+                        "Properties": {},
+                        "Metadata": {"aws:asset:path": self.curpath},
+                    },
+                    "MyResourceWithS3Path": {
+                        "Type": resource_type,
+                        "Properties": {propname: self.s3path},
+                        "Metadata": {},
+                    },
+                    "MyResourceWithAbsolutePath": {
+                        "Type": resource_type,
+                        "Properties": {propname: self.abspath},
+                        "Metadata": {"aws:asset:path": self.abspath},
+                    },
+                    "MyResourceWithInvalidPath": {
+                        "Type": resource_type,
+                        "Properties": {
+                            # Path is not a string
+                            propname: {"foo": "bar"}
+                        },
+                    },
+                    "MyResourceWithoutProperties": {"Type": resource_type},
+                    "UnsupportedResourceType": {"Type": "AWS::Ec2::Instance", "Properties": {"Code": "bar"}},
+                    "ResourceWithoutType": {"foo": "bar"},
+                },
+                "Parameters": {"a": "b"},
+            }
+
+            set_value_from_jmespath(
+                template_dict, f"Resources.MyResourceWithRelativePath.Properties.{propname}", self.curpath
+            )
+
+            expected_template_dict = copy.deepcopy(template_dict)
+
+            set_value_from_jmespath(
+                expected_template_dict,
+                f"Resources.MyResourceWithRelativePath.Properties.{propname}",
+                self.expected_result,
+            )
+
+            expected_template_dict["Resources"]["MyResourceWithRelativePath"]["Metadata"][
+                "aws:asset:path"
+            ] = self.expected_result
 
             result = _update_relative_paths(template_dict, self.src, self.dest)
 

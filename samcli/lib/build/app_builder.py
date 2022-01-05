@@ -33,6 +33,7 @@ from samcli.lib.utils.resources import (
     AWS_SERVERLESS_FUNCTION,
     AWS_SERVERLESS_LAYERVERSION,
 )
+from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 from samcli.lib.docker.log_streamer import LogStreamer, LogStreamError
 from samcli.lib.providers.provider import ResourcesToBuildCollector, Function, get_full_path, Stack, LayerVersion
 from samcli.lib.utils.colors import Colored
@@ -235,7 +236,7 @@ class ApplicationBuilder:
             container_env_vars = self._make_env_vars(layer, file_env_vars, inline_env_vars)
 
             layer_build_details = LayerBuildDefinition(
-                layer.name,
+                layer.full_path,
                 layer.codeuri,
                 layer.build_method,
                 layer.compatible_runtimes,
@@ -275,10 +276,10 @@ class ApplicationBuilder:
         original_dir = pathlib.Path(stack.location).parent.resolve()
 
         template_dict = stack.template_dict
-
+        normalized_resources = stack.resources
         for logical_id, resource in template_dict.get("Resources", {}).items():
-
-            full_path = get_full_path(stack.stack_path, logical_id)
+            resource_iac_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)
+            full_path = get_full_path(stack.stack_path, resource_iac_id)
             has_build_artifact = full_path in built_artifacts
             is_stack = full_path in stack_output_template_path_by_stack_path
 
@@ -286,6 +287,11 @@ class ApplicationBuilder:
                 # this resource was not built or a nested stack.
                 # So skip it because there is no path/uri to update
                 continue
+
+            # clone normalized metadata from stack.resources only to built resources
+            normalized_metadata = normalized_resources.get(logical_id, {}).get("Metadata")
+            if normalized_metadata:
+                resource["Metadata"] = normalized_metadata
 
             resource_type = resource.get("Type")
             properties = resource.setdefault("Properties", {})
@@ -306,20 +312,9 @@ class ApplicationBuilder:
                 store_path = os.path.relpath(absolute_output_path, original_dir)
 
             if has_build_artifact:
-                if resource_type == AWS_SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == ZIP:
-                    properties["CodeUri"] = store_path
-
-                if resource_type == AWS_LAMBDA_FUNCTION and properties.get("PackageType", ZIP) == ZIP:
-                    properties["Code"] = store_path
-
-                if resource_type in [AWS_SERVERLESS_LAYERVERSION, AWS_LAMBDA_LAYERVERSION]:
-                    properties["ContentUri"] = store_path
-
-                if resource_type == AWS_LAMBDA_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
-                    properties["Code"] = built_artifacts[full_path]
-
-                if resource_type == AWS_SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
-                    properties["ImageUri"] = built_artifacts[full_path]
+                ApplicationBuilder._update_built_resource(
+                    built_artifacts[full_path], properties, resource_type, store_path
+                )
 
             if is_stack:
                 if resource_type == AWS_SERVERLESS_APPLICATION:
@@ -329,6 +324,21 @@ class ApplicationBuilder:
                     properties["TemplateURL"] = store_path
 
         return template_dict
+
+    @staticmethod
+    def _update_built_resource(path: str, resource_properties: Dict, resource_type: str, absolute_path: str) -> None:
+        if resource_type == AWS_SERVERLESS_FUNCTION and resource_properties.get("PackageType", ZIP) == ZIP:
+            resource_properties["CodeUri"] = absolute_path
+        if resource_type == AWS_LAMBDA_FUNCTION and resource_properties.get("PackageType", ZIP) == ZIP:
+            resource_properties["Code"] = absolute_path
+        if resource_type == AWS_LAMBDA_LAYERVERSION:
+            resource_properties["Content"] = absolute_path
+        if resource_type == AWS_SERVERLESS_LAYERVERSION:
+            resource_properties["ContentUri"] = absolute_path
+        if resource_type == AWS_LAMBDA_FUNCTION and resource_properties.get("PackageType", ZIP) == IMAGE:
+            resource_properties["Code"] = {"ImageUri": path}
+        if resource_type == AWS_SERVERLESS_FUNCTION and resource_properties.get("PackageType", ZIP) == IMAGE:
+            resource_properties["ImageUri"] = path
 
     def _build_lambda_image(self, function_name: str, metadata: Dict, architecture: str) -> str:
         """
@@ -358,6 +368,9 @@ class ApplicationBuilder:
         docker_tag = f"{function_name.lower()}:{tag}"
         docker_build_target = metadata.get("DockerBuildTarget", None)
         docker_build_args = metadata.get("DockerBuildArgs", {})
+
+        if not dockerfile or not docker_context:
+            raise DockerBuildFailed("Docker file or Docker context metadata are missed.")
 
         if not isinstance(docker_build_args, dict):
             raise DockerBuildFailed("DockerBuildArgs needs to be a dictionary!")
