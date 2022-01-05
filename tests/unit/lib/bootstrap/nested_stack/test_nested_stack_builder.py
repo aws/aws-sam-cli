@@ -19,7 +19,7 @@ class TestNestedStackBuilder(TestCase):
         function_logical_id = "FunctionLogicalId"
         layer_contents_folder = "layer/contents/folder"
 
-        function = generate_function(name=function_logical_id, runtime=function_runtime)
+        function = generate_function(function_id=function_logical_id, runtime=function_runtime)
         self.nested_stack_builder.add_function(stack_name, layer_contents_folder, function)
 
         self.assertTrue(self.nested_stack_builder.is_any_function_added())
