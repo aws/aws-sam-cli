@@ -1,4 +1,3 @@
-import selectors
 import shutil
 import uuid
 from typing import List, Optional, Dict
@@ -81,26 +80,12 @@ class StartApiIntegBaseClass(TestCase):
             for image in cls.invoke_image:
                 command_list += ["--invoke-image", image]
 
-        cls.start_api_process = Popen(command_list, stdout=PIPE, stderr=PIPE)
-
-        sel = selectors.DefaultSelector()
-        sel.register(cls.start_api_process.stdout, selectors.EVENT_READ)
-        sel.register(cls.start_api_process.stderr, selectors.EVENT_READ)
+        cls.start_api_process = Popen(command_list, stderr=PIPE)
 
         while True:
-            should_start = False
-            for key, _ in sel.select():
-                data = key.fileobj.readline().decode()
-                if not data:
-                    break
-                if "(Press CTRL+C to quit)" in data:
-                    should_start = True
-                    break
-            if should_start:
+            line = cls.start_api_process.stderr.readline()
+            if "(Press CTRL+C to quit)" in str(line):
                 break
-
-        # we need to wait some time for start-api to start, hence the sleep
-        time.sleep(5)
 
     @classmethod
     def _make_parameter_override_arg(self, overrides):
