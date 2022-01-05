@@ -48,7 +48,7 @@ class LambdaContainer(Container):
         debug_options=None,
         container_host=None,
         container_host_interface=None,
-        function_name=None,
+        function_full_path=None,
     ):
         """
         Initializes the class
@@ -84,14 +84,14 @@ class LambdaContainer(Container):
             Optional. Host of locally emulated Lambda container
         container_host_interface
             Optional. Interface that Docker host binds ports to
-        function_name str
-            Optional. Logical ID of the function
+        function_full_path str
+            Optional. The function full path, unique in all stacks
         """
         if not Runtime.has_value(runtime) and not packagetype == IMAGE:
             raise ValueError("Unsupported Lambda runtime {}".format(runtime))
 
         image = LambdaContainer._get_image(
-            lambda_image, runtime, packagetype, imageuri, layers, architecture, function_name
+            lambda_image, runtime, packagetype, imageuri, layers, architecture, function_full_path
         )
         ports = LambdaContainer._get_exposed_ports(debug_options)
         config = LambdaContainer._get_config(lambda_image, image)

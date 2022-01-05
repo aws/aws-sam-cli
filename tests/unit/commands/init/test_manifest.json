@@ -1,0 +1,42 @@
+{
+    "dotnetcore2.1": [
+        {
+            "directory": "dotnetcore2.1/cookiecutter-aws-sam-hello-dotnet",
+            "displayName": "Hello World Example",
+            "dependencyManager": "cli-package",
+            "appTemplate": "hello-world",
+            "packageType": "Zip",
+            "useCaseName": "Hello World Example"
+        }
+    ],
+    "go1.x": [
+        {
+            "directory": "go1.x/cookiecutter-aws-sam-hello-golang",
+            "displayName": "Hello World Example",
+            "dependencyManager": "mod",
+            "appTemplate": "hello-world",
+            "packageType": "Zip",
+            "useCaseName": "Hello World Example"
+        }
+    ],
+    "amazon/nodejs14.x-base": [
+        {
+            "directory": "nodejs14.x-image/cookiecutter-aws-sam-hello-nodejs-lambda-image",
+            "displayName": "Hello World Image Example",
+            "dependencyManager": "npm",
+            "appTemplate": "hello-world-lambda-image",
+            "packageType": "Image",
+            "useCaseName": "Hello World Example"
+        }
+    ],
+    "amazon/python3.8-base": [
+        {
+            "directory": "python3.8-image/cookiecutter-aws-sam-hello-python-lambda-image",
+            "displayName": "Hello World Lambda Image Example",
+            "dependencyManager": "pip",
+            "appTemplate": "hello-world-lambda-image",
+            "packageType": "Image",
+            "useCaseName": "Hello World Example"
+        }
+    ]
+}

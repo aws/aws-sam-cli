@@ -1,0 +1,130 @@
+Resources:
+  API62EA1CFF:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      BodyS3Location:
+        Bucket:
+          Ref: AssetParameters98bcc82cff12400c7b37c9ddb9aee52159d075d94e4ffd91da3dc9993b59ca88S3Bucket7749C6A4
+        Key:
+          Fn::Join:
+            - ""
+            - - Fn::Select:
+                  - 0
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParameters98bcc82cff12400c7b37c9ddb9aee52159d075d94e4ffd91da3dc9993b59ca88S3VersionKey0C48FCA1
+              - Fn::Select:
+                  - 1
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParameters98bcc82cff12400c7b37c9ddb9aee52159d075d94e4ffd91da3dc9993b59ca88S3VersionKey0C48FCA1
+      Name: API
+    Metadata:
+      aws:cdk:path: Stack/API/Resource
+      aws:asset:path: ./sample-definition.yaml
+      aws:asset:property: BodyS3Location
+  APIDeployment0E06874Ef5a47c629cc0574bf9e4666e722b6130:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId:
+        Ref: API62EA1CFF
+      Description: Automatically created by the RestApi construct
+    Metadata:
+      aws:cdk:path: Stack/API/Deployment/Resource
+  APIDeploymentStageprod278E75BA:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId:
+        Ref: API62EA1CFF
+      DeploymentId:
+        Ref: APIDeployment0E06874Ef5a47c629cc0574bf9e4666e722b6130
+      StageName: prod
+    Metadata:
+      aws:cdk:path: Stack/API/DeploymentStage.prod/Resource
+  APICloudWatchRole927CEB3B:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+    Metadata:
+      aws:cdk:path: Stack/API/CloudWatchRole/Resource
+  APIAccountD065B313:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+          - APICloudWatchRole927CEB3B
+          - Arn
+    DependsOn:
+      - API62EA1CFF
+    Metadata:
+      aws:cdk:path: Stack/API/Account
+  MyFunctionServiceRole3C357FF2:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: Stack/MyFunction/ServiceRole/Resource
+  MyFunction3BAA72D1:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: AssetParameters2f49761fb98268e4ec02561a3bc432021f9fc3c15f76e5bfe3a87eff354cfa93S3BucketF31341C6
+        S3Key:
+          Fn::Join:
+            - ""
+            - - Fn::Select:
+                  - 0
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParameters2f49761fb98268e4ec02561a3bc432021f9fc3c15f76e5bfe3a87eff354cfa93S3VersionKey289D106C
+              - Fn::Select:
+                  - 1
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParameters2f49761fb98268e4ec02561a3bc432021f9fc3c15f76e5bfe3a87eff354cfa93S3VersionKey289D106C
+      Role:
+        Fn::GetAtt:
+          - MyFunctionServiceRole3C357FF2
+          - Arn
+      FunctionName: ExampleFunction
+      Handler: main.handler
+      Runtime: python3.9
+    DependsOn:
+      - MyFunctionServiceRole3C357FF2
+    Metadata:
+      aws:cdk:path: Stack/MyFunction/Resource
+      aws:asset:path: ../
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/02Q207DMAyGn4X71Fs1xDXd0G5B5QlMaqqszUGxwzRVeXeSwBBX/qz4Pyg99IdH2D8845U7PS27TftIsL0L6kUNzCQFZ+NmdfKOJSYt6vTpXpOE1OgNI1oSinUZiX2KmiqX+8mI8S6rar5hMDMKXfFW7APpcitDML+yhnf5EZnUC4XV3yy5FvNvq4Vawh8MWvvkJCs+dFg7M7TqZYdj0gtJczRoYRv92jR1ZrWi/ZgQtnNyunatL3fOOSvnJ4IL7776J+j35aMubEwXS5ixBOPP/AYowxqCRQEAAA==
+    Metadata:
+      aws:cdk:path: Stack/CDKMetadata/Default
+    Condition: CDKMetadataAvailable

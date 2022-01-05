@@ -1,0 +1,46 @@
+Resources:
+  FnServiceRoleB9001A96:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: ApiCorsIssueStack/Fn/ServiceRole/Resource
+  Fn9270CBC0:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ImageUri:
+          Fn::Join:
+            - ""
+            - - Ref: AWS::AccountId
+              - .dkr.ecr.
+              - Ref: AWS::Region
+              - "."
+              - Ref: AWS::URLSuffix
+              - /aws-cdk/assets:ec366e0c559122e6b653100637b3745e7dd2c7bc882572b66fd53f498cc06007
+      Role:
+        Fn::GetAtt:
+          - FnServiceRoleB9001A96
+          - Arn
+      PackageType: Image
+    Metadata:
+      aws:cdk:path: ApiCorsIssueStack/Fn/Resource
+      aws:asset:path: /path/to/dockerfile
+      aws:asset:dockerfile-path: Dockerfile
+      aws:asset:docker-build-args:
+        arg1: val1
+        arg2: val2
+      aws:asset:docker-build-target: stage
+      aws:asset:property: Code.ImageUri

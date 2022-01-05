@@ -15,6 +15,7 @@ class TestFunctionConfig(TestCase):
 
     def setUp(self):
         self.name = "name"
+        self.full_path = "stack/name"
         self.runtime = "runtime"
         self.handler = "handler"
         self.imageuri = None
@@ -30,6 +31,7 @@ class TestFunctionConfig(TestCase):
     def test_init_with_env_vars(self):
         config = FunctionConfig(
             self.name,
+            self.full_path,
             self.runtime,
             self.handler,
             self.imageuri,
@@ -44,6 +46,7 @@ class TestFunctionConfig(TestCase):
         )
 
         self.assertEqual(config.name, self.name)
+        self.assertEqual(config.full_path, self.full_path)
         self.assertEqual(config.runtime, self.runtime)
         self.assertEqual(config.handler, self.handler)
         self.assertEqual(config.imageuri, self.imageuri)
@@ -62,6 +65,7 @@ class TestFunctionConfig(TestCase):
     def test_init_without_optional_values(self):
         config = FunctionConfig(
             self.name,
+            self.full_path,
             self.runtime,
             self.handler,
             self.imageuri,
@@ -73,6 +77,7 @@ class TestFunctionConfig(TestCase):
         )
 
         self.assertEqual(config.name, self.name)
+        self.assertEqual(config.full_path, self.full_path)
         self.assertEqual(config.runtime, self.runtime)
         self.assertEqual(config.handler, self.handler)
         self.assertEqual(config.packagetype, self.packagetype)
@@ -91,6 +96,7 @@ class TestFunctionConfig(TestCase):
     def test_init_with_timeout_of_int_string(self):
         config = FunctionConfig(
             self.name,
+            self.full_path,
             self.runtime,
             self.handler,
             self.imageuri,
@@ -105,6 +111,7 @@ class TestFunctionConfig(TestCase):
         )
 
         self.assertEqual(config.name, self.name)
+        self.assertEqual(config.full_path, self.full_path)
         self.assertEqual(config.runtime, self.runtime)
         self.assertEqual(config.handler, self.handler)
         self.assertEqual(config.packagetype, self.packagetype)
@@ -124,6 +131,7 @@ class TestFunctionConfig(TestCase):
 class TestFunctionConfigInvalidTimeouts(TestCase):
     def setUp(self):
         self.name = "name"
+        self.full_path = "stack/name"
         self.runtime = "runtime"
         self.handler = "handler"
         self.imageuri = None
@@ -149,6 +157,7 @@ class TestFunctionConfigInvalidTimeouts(TestCase):
         with self.assertRaises(InvalidSamTemplateException):
             FunctionConfig(
                 self.name,
+                self.full_path,
                 self.runtime,
                 self.imageuri,
                 self.handler,
@@ -170,7 +179,9 @@ class TestFunctionConfig_equals(TestCase):
 
     def setUp(self):
         self.name = "name"
+        self.full_path = "stack/name"
         self.name2 = "name2"
+        self.full_path2 = "stack/name2"
         self.runtime = "runtime"
         self.handler = "handler"
         self.imageuri = None
@@ -186,6 +197,7 @@ class TestFunctionConfig_equals(TestCase):
     def test_equals_function_config(self):
         config1 = FunctionConfig(
             self.name,
+            self.full_path,
             self.runtime,
             self.handler,
             self.imageuri,
@@ -201,6 +213,7 @@ class TestFunctionConfig_equals(TestCase):
 
         config2 = FunctionConfig(
             self.name,
+            self.full_path,
             self.runtime,
             self.handler,
             self.imageuri,
@@ -219,6 +232,7 @@ class TestFunctionConfig_equals(TestCase):
     def test_not_equals_function_config(self):
         config1 = FunctionConfig(
             self.name,
+            self.full_path,
             self.runtime,
             self.handler,
             self.imageuri,
@@ -234,6 +248,7 @@ class TestFunctionConfig_equals(TestCase):
 
         config2 = FunctionConfig(
             self.name2,
+            self.full_path2,
             self.runtime,
             self.handler,
             self.imageuri,

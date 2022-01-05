@@ -1,0 +1,27 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Sample ServerlessRepo Application
+
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.7
+      CodeUri: .
+      Timeout: 600
+    Metadata:
+      SamResourceId: MyRestApi
+
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Name: my-app
+    Description: hello world
+    Author: user1
+    SpdxLicenseId: Apache-2.0
+    LicenseUrl: ./LICENSE.txt
+    ReadmeUrl: ./README.md
+    Labels: ['tests']
+    HomePageUrl: https://github.com/user1/my-app-project
+    SemanticVersion: 1.0.1
+    SourceCodeUrl: https://github.com/user1/my-app-project
