@@ -74,7 +74,7 @@ install:
   - sh: "JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64"
   - sh: "PATH=$JAVA_HOME/bin:$PATH"
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
-  - sh: "rvm use 2.5"
+  - sh: "rvm use 2.7"
   - sh: "docker --version"
 
   # Install latest gradle

@@ -1,4 +1,5 @@
 import os
+import platform
 
 import logging
 import json
@@ -29,6 +30,7 @@ from tests.testing_utils import run_command_with_input
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
 SKIP_SYNC_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
+IS_WINDOWS = platform.system().lower() == "windows"
 CFN_SLEEP = 3
 API_SLEEP = 5
 SFN_SLEEP = 10
@@ -71,8 +73,19 @@ class TestSync(BuildIntegBase, SyncIntegBase, PackageIntegBase):
                 cfn_client.delete_stack(StackName=stack_name)
         super().tearDown()
 
-    @parameterized.expand(["ruby", "python"])
+    @skipIf(
+        IS_WINDOWS,
+        "Skip sync ruby tests in windows",
+    )
+    @parameterized.expand(["ruby"])
+    def test_sync_infra_ruby(self, runtime):
+        self._test_sync_infra(runtime)
+
+    @parameterized.expand(["python"])
     def test_sync_infra(self, runtime):
+        self._test_sync_infra(runtime)
+
+    def _test_sync_infra(self, runtime):
         template_before = f"infra/template-{runtime}-before.yaml"
         template_path = str(self.test_data_path.joinpath(template_before))
         stack_name = self._method_to_stack_name(self.id())
