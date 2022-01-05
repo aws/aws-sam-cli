@@ -65,7 +65,6 @@ class PackageIntegBase(TestCase):
         cls.kms_key = os.environ.get("AWS_KMS_KEY")
         # Use a pre-created S3 Bucket if present else create a new one
         cls.s3_bucket = s3.Bucket(cls.bucket_name)
-        cls.s3_prefix = uuid.uuid4().hex
         if not cls.pre_created_bucket:
             cls.s3_bucket.create()
             time.sleep(SLEEP)
@@ -78,6 +77,7 @@ class PackageIntegBase(TestCase):
             time.sleep(SLEEP)
 
     def setUp(self):
+        self.s3_prefix = uuid.uuid4().hex
         super().setUp()
 
     def tearDown(self):
