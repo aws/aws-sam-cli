@@ -339,7 +339,7 @@ class SamApiProvider(CfnBaseApiProvider):
                 ):
                     LOG.warning(
                         Colored().yellow(
-                            'Your template contains a resource with logical ID "%s," '
+                            'Your template contains a resource with logical ID "%s", '
                             "which is a reserved logical ID in AWS SAM. "
                             "It could result in unexpected behaviors and is not recommended."
                         ),
