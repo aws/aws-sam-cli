@@ -1231,7 +1231,7 @@ to create a managed default bucket, or run sam deploy --guided",
         )
 
         warning_message = bytes(
-            "Warning: CDK apps are not officially supported with this command.\n"
+            f"Warning: CDK apps are not officially supported with this command.{os.linesep}"
             "We recommend you use this alternative command: cdk deploy",
             encoding="utf-8",
         )
