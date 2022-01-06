@@ -13,7 +13,7 @@ Resources:
       CompatibleRuntimes:
       - nodejs10.x
       - python3.6
-      - ruby2.5
+      - ruby2.7
       - java8
       - go1.x
       ContentUri:

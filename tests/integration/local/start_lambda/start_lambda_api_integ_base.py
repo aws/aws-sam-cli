@@ -1,14 +1,17 @@
+import selectors
 import shutil
 import signal
 import uuid
 from typing import Optional, Dict, List
 from unittest import TestCase, skipIf
 import threading
-from subprocess import Popen
+from subprocess import Popen, PIPE
 import time
 import os
 import random
 from pathlib import Path
+
+import docker
 
 from tests.testing_utils import SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE, run_command
 
@@ -35,6 +38,11 @@ class StartLambdaIntegBaseClass(TestCase):
 
         if cls.build_before_invoke:
             cls.build()
+
+        # remove all containers if there
+        cls.docker_client = docker.from_env()
+        for container in cls.docker_client.api.containers():
+            cls.docker_client.api.remove_container(container, force=True)
 
         cls.thread = threading.Thread(target=cls.start_lambda())
         cls.thread.setDaemon(True)
@@ -81,9 +89,21 @@ class StartLambdaIntegBaseClass(TestCase):
             for image in cls.invoke_image:
                 command_list += ["--invoke-image", image]
 
-        cls.start_lambda_process = Popen(command_list)
-        # we need to wait some time for start-lambda to start, hence the sleep
-        time.sleep(wait_time)
+        cls.start_lambda_process = Popen(command_list, stderr=PIPE)
+
+        while True:
+            line = cls.start_lambda_process.stderr.readline()
+            if "(Press CTRL+C to quit)" in str(line):
+                break
+
+        cls.stop_reading_thread = False
+
+        def read_sub_process_stderr():
+            while not cls.stop_reading_thread:
+                cls.start_lambda_process.stderr.readline()
+
+        cls.read_threading = threading.Thread(target=read_sub_process_stderr)
+        cls.read_threading.start()
 
     @classmethod
     def _make_parameter_override_arg(self, overrides):
@@ -93,6 +113,7 @@ class StartLambdaIntegBaseClass(TestCase):
     def tearDownClass(cls):
         # After all the tests run, we need to kill the start_lambda process.
         cls.start_lambda_process.kill()
+        cls.stop_reading_thread = True
 
     @staticmethod
     def random_port():
@@ -112,9 +133,12 @@ class WatchWarmContainersIntegBaseClass(StartLambdaIntegBaseClass):
         if Path(working_dir).resolve().exists():
             shutil.rmtree(working_dir)
         os.mkdir(working_dir)
+        os.mkdir(Path(cls.integration_dir).resolve().joinpath(cls.temp_path).joinpath("dir"))
         cls.template_path = f"/{cls.temp_path}/template.yaml"
         cls.code_path = f"/{cls.temp_path}/main.py"
+        cls.code_path2 = f"/{cls.temp_path}/dir/main2.py"
         cls.docker_file_path = f"/{cls.temp_path}/Dockerfile"
+        cls.docker_file_path2 = f"/{cls.temp_path}/Dockerfile2"
 
         if cls.template_content:
             cls._write_file_content(cls.template_path, cls.template_content)

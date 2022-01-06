@@ -77,6 +77,7 @@ class PackageIntegBase(TestCase):
             time.sleep(SLEEP)
 
     def setUp(self):
+        self.s3_prefix = uuid.uuid4().hex
         super().setUp()
 
     def tearDown(self):
