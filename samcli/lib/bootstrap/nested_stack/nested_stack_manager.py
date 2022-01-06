@@ -48,6 +48,7 @@ class NestedStackManager:
         stack_location: str,
         current_template: Dict,
         app_build_result: ApplicationBuildResult,
+        stack_metadata: Optional[Dict] = None,
     ):
         """
         Parameters
@@ -62,6 +63,8 @@ class NestedStackManager:
             Current template of the project
         app_build_result: ApplicationBuildResult
             Application build result, which contains build graph, and built artifacts information
+        stack_metadata: Optional[Dict]
+            The nested stack resource metadata values.
         """
         self._stack_name = stack_name
         self._build_dir = build_dir
@@ -69,6 +72,7 @@ class NestedStackManager:
         self._current_template = current_template
         self._app_build_result = app_build_result
         self._nested_stack_builder = NestedStackBuilder()
+        self._stack_metadata = stack_metadata if stack_metadata else {}
 
     def generate_auto_dependency_layer_stack(self) -> Dict:
         """
@@ -79,7 +83,7 @@ class NestedStackManager:
         template = deepcopy(self._current_template)
         resources = template.get("Resources", {})
 
-        stack = Stack("", self._stack_name, self._stack_location, {}, template_dict=template)
+        stack = Stack("", "", self._stack_location, {}, template_dict=template, metadata=self._stack_metadata)
         function_provider = SamFunctionProvider([stack], ignore_code_extraction_warnings=True)
         zip_functions = [function for function in function_provider.get_all() if function.packagetype == ZIP]
 
@@ -87,11 +91,11 @@ class NestedStackManager:
             if not self._is_function_supported(zip_function):
                 continue
 
-            dependencies_dir = self._get_dependencies_dir(zip_function.name)
+            dependencies_dir = self._get_dependencies_dir(zip_function.full_path)
             if not dependencies_dir:
                 LOG.debug(
                     "Dependency folder can't be found for %s, skipping auto dependency layer creation",
-                    zip_function.name,
+                    zip_function.full_path,
                 )
                 continue
 
@@ -110,9 +114,9 @@ class NestedStackManager:
         return template
 
     def _add_layer(self, dependencies_dir: str, function: Function, resources: Dict):
-        layer_logical_id = NestedStackBuilder.get_layer_logical_id(function.name)
+        layer_logical_id = NestedStackBuilder.get_layer_logical_id(function.full_path)
         layer_location = self.update_layer_folder(
-            self._build_dir, dependencies_dir, layer_logical_id, function.name, function.runtime
+            self._build_dir, dependencies_dir, layer_logical_id, function.full_path, function.runtime
         )
 
         layer_output_key = self._nested_stack_builder.add_function(self._stack_name, layer_location, function)
@@ -162,10 +166,10 @@ class NestedStackManager:
         Checks if function is built with current session and its runtime is supported
         """
         # check if function is built
-        if function.name not in self._app_build_result.artifacts.keys():
+        if function.full_path not in self._app_build_result.artifacts.keys():
             LOG.debug(
                 "Function %s is not built within SAM CLI, skipping for auto dependency layer creation",
-                function.name,
+                function.full_path,
             )
             return False
 
@@ -183,12 +187,12 @@ class NestedStackManager:
 
         return True
 
-    def _get_dependencies_dir(self, function_logical_id: str) -> Optional[str]:
+    def _get_dependencies_dir(self, function_full_path: str) -> Optional[str]:
         """
         Returns dependency directory information for function
         """
-        function_build_definition = self._app_build_result.build_graph.get_function_build_definition_with_logical_id(
-            function_logical_id
+        function_build_definition = self._app_build_result.build_graph.get_function_build_definition_with_full_path(
+            function_full_path
         )
 
         return function_build_definition.dependencies_dir if function_build_definition else None

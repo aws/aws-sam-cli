@@ -92,19 +92,21 @@ class TestInvokeContext__enter__(TestCase):
         )
 
     @patch("samcli.commands.local.cli_common.invoke_context.ContainerManager")
-    @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.RefreshableSamFunctionProvider")
     def test_must_initialize_all_containers_if_warm_containers_is_enabled(
-        self, SamFunctionProviderMock, ContainerManagerMock
+        self, RefreshableSamFunctionProviderMock, ContainerManagerMock
     ):
         function_provider = Mock()
         function = Mock()
         function_provider.get_all.return_value = [function]
         function_provider.functions = {}
-        SamFunctionProviderMock.return_value = function_provider
+        RefreshableSamFunctionProviderMock.return_value = function_provider
 
         template_file = "template_file"
         env_vars_file = "env_vars_file"
         log_file = "log_file"
+        parameter_overrides = {}
+        global_parameter_overrides = {"AWS::Region": "region"}
 
         invoke_context = InvokeContext(
             template_file=template_file,
@@ -117,7 +119,7 @@ class TestInvokeContext__enter__(TestCase):
             debug_ports=[1111],
             debugger_path="path-to-debugger",
             debug_args="args",
-            parameter_overrides={},
+            parameter_overrides=parameter_overrides,
             aws_region="region",
             aws_profile="profile",
             warm_container_initialization_mode=ContainersInitializationMode.EAGER.value,
@@ -163,8 +165,8 @@ class TestInvokeContext__enter__(TestCase):
         self.assertEqual(invoke_context._invoke_images, {None: "image"})
 
         invoke_context._get_stacks.assert_called_once()
-        SamFunctionProviderMock.assert_called_with(stacks)
-        self.assertEqual(invoke_context._global_parameter_overrides, {"AWS::Region": "region"})
+        RefreshableSamFunctionProviderMock.assert_called_with(stacks, parameter_overrides, global_parameter_overrides)
+        self.assertEqual(invoke_context._global_parameter_overrides, global_parameter_overrides)
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
         self.assertEqual(invoke_context._get_env_vars_value.call_args_list, [call(env_vars_file), call(None)])
         invoke_context._setup_log_file.assert_called_with(log_file)
@@ -177,18 +179,20 @@ class TestInvokeContext__enter__(TestCase):
         _initialize_all_functions_containers_mock.assert_called_once_with()
 
     @patch("samcli.commands.local.cli_common.invoke_context.ContainerManager")
-    @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.RefreshableSamFunctionProvider")
     def test_must_set_debug_function_if_warm_containers_enabled_no_debug_function_provided_and_template_contains_one_function(
-        self, SamFunctionProviderMock, ContainerManagerMock
+        self, RefreshableSamFunctionProviderMock, ContainerManagerMock
     ):
         function_provider = Mock()
         function_provider.functions = {"function_name": ANY}
-        SamFunctionProviderMock.return_value = function_provider
+        RefreshableSamFunctionProviderMock.return_value = function_provider
 
         template_file = "template_file"
         env_vars_file = "env_vars_file"
         container_env_vars_file = "container_env_vars_file"
         log_file = "log_file"
+        parameter_overrides = {}
+        global_parameter_overrides = {"AWS::Region": "region"}
 
         invoke_context = InvokeContext(
             template_file=template_file,
@@ -202,7 +206,7 @@ class TestInvokeContext__enter__(TestCase):
             debugger_path="path-to-debugger",
             container_env_vars_file=container_env_vars_file,
             debug_args="args",
-            parameter_overrides={},
+            parameter_overrides=parameter_overrides,
             aws_region="region",
             aws_profile="profile",
             warm_container_initialization_mode=ContainersInitializationMode.EAGER.value,
@@ -248,8 +252,8 @@ class TestInvokeContext__enter__(TestCase):
         self.assertEqual(invoke_context._invoke_images, {None: "image"})
 
         invoke_context._get_stacks.assert_called_once()
-        SamFunctionProviderMock.assert_called_with(stacks)
-        self.assertEqual(invoke_context._global_parameter_overrides, {"AWS::Region": "region"})
+        RefreshableSamFunctionProviderMock.assert_called_with(stacks, parameter_overrides, global_parameter_overrides)
+        self.assertEqual(invoke_context._global_parameter_overrides, global_parameter_overrides)
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
         self.assertEqual(
             invoke_context._get_env_vars_value.call_args_list, [call("env_vars_file"), call("container_env_vars_file")]
@@ -264,17 +268,19 @@ class TestInvokeContext__enter__(TestCase):
         _initialize_all_functions_containers_mock.assert_called_once_with()
 
     @patch("samcli.commands.local.cli_common.invoke_context.ContainerManager")
-    @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.RefreshableSamFunctionProvider")
     def test_no_container_will_be_initialized_if_lazy_containers_is_enabled(
-        self, SamFunctionProviderMock, ContainerManagerMock
+        self, RefreshableSamFunctionProviderMock, ContainerManagerMock
     ):
         function_provider = Mock()
 
-        SamFunctionProviderMock.return_value = function_provider
+        RefreshableSamFunctionProviderMock.return_value = function_provider
 
         template_file = "template_file"
         env_vars_file = "env_vars_file"
         log_file = "log_file"
+        parameter_overrides = {}
+        global_parameter_overrides = {"AWS::Region": "region"}
 
         invoke_context = InvokeContext(
             template_file=template_file,
@@ -287,7 +293,7 @@ class TestInvokeContext__enter__(TestCase):
             debug_ports=[1111],
             debugger_path="path-to-debugger",
             debug_args="args",
-            parameter_overrides={},
+            parameter_overrides=parameter_overrides,
             aws_region="region",
             aws_profile="profile",
             warm_container_initialization_mode=ContainersInitializationMode.LAZY.value,
@@ -331,8 +337,8 @@ class TestInvokeContext__enter__(TestCase):
         self.assertEqual(invoke_context._invoke_images, {None: "image"})
 
         invoke_context._get_stacks.assert_called_once()
-        SamFunctionProviderMock.assert_called_with(stacks)
-        self.assertEqual(invoke_context._global_parameter_overrides, {"AWS::Region": "region"})
+        RefreshableSamFunctionProviderMock.assert_called_with(stacks, parameter_overrides, global_parameter_overrides)
+        self.assertEqual(invoke_context._global_parameter_overrides, global_parameter_overrides)
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
         self.assertEqual(invoke_context._get_env_vars_value.call_args_list, [call(env_vars_file), call(None)])
         invoke_context._setup_log_file.assert_called_with(log_file)
@@ -565,9 +571,14 @@ class TestInvokeContext_local_lambda_runner(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.LayerDownloader")
     @patch("samcli.commands.local.cli_common.invoke_context.WarmLambdaRuntime")
     @patch("samcli.commands.local.cli_common.invoke_context.LocalLambdaRunner")
-    @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.RefreshableSamFunctionProvider")
     def test_must_create_runner_using_warm_containers(
-        self, SamFunctionProviderMock, LocalLambdaMock, WarmLambdaRuntimeMock, download_layers_mock, lambda_image_patch
+        self,
+        RefreshableSamFunctionProviderMock,
+        LocalLambdaMock,
+        WarmLambdaRuntimeMock,
+        download_layers_mock,
+        lambda_image_patch,
     ):
         runtime_mock = Mock()
         WarmLambdaRuntimeMock.return_value = runtime_mock

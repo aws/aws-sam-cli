@@ -73,3 +73,17 @@ class TestValidate(TestCase):
         output = command_result.stdout.decode("utf-8")
         self.assertEqual(command_result.process.returncode, 0)
         self.assertRegex(output, pattern)
+
+    def test_validate_logs_warning_for_cdk_project(self):
+        test_data_path = Path(__file__).resolve().parents[2] / "integration" / "testdata" / "package"
+        template_file = "aws-serverless-function-cdk.yaml"
+        template_path = test_data_path.joinpath(template_file)
+        command_result = run_command(self.command_list(template_file=template_path))
+        output = command_result.stdout.decode("utf-8")
+
+        warning_message = (
+            f"Warning: CDK apps are not officially supported with this command.{os.linesep}"
+            "We recommend you use this alternative command: cdk doctor"
+        )
+
+        self.assertIn(warning_message, output)

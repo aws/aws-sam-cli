@@ -138,9 +138,9 @@ for:
       - sh: "PATH=$JAVA_HOME/bin:$PATH"
       - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
       - sh: "rvm use 2.5"
-      - sh: "docker info"
+      - sh: "docker --version"
 
-      # Install latest gradle 
+      # Install latest gradle
       - sh: "sudo apt-get -y remove gradle"
       - sh: "wget https://services.gradle.org/distributions/gradle-5.5-bin.zip -P /tmp"
       - sh: "sudo unzip -d /opt/gradle /tmp/gradle-*.zip"
@@ -197,7 +197,7 @@ for:
       # Runs only in Linux, logging Public ECR when running canary and cred is available
       - sh: "
         if [[ -n $BY_CANARY ]];
-          then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws; 
+          then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
         fi"
 
       - sh: "pytest -vv tests/integration"
