@@ -3,7 +3,7 @@ import uuid
 from typing import List, Optional, Dict
 from unittest import TestCase, skipIf
 import threading
-from subprocess import Popen
+from subprocess import Popen, PIPE
 import time
 import os
 import random
@@ -80,9 +80,21 @@ class StartApiIntegBaseClass(TestCase):
             for image in cls.invoke_image:
                 command_list += ["--invoke-image", image]
 
-        cls.start_api_process = Popen(command_list)
-        # we need to wait some time for start-api to start, hence the sleep
-        time.sleep(5)
+        cls.start_api_process = Popen(command_list, stderr=PIPE)
+
+        while True:
+            line = cls.start_api_process.stderr.readline()
+            if "(Press CTRL+C to quit)" in str(line):
+                break
+
+        cls.stop_reading_thread = False
+
+        def read_sub_process_stderr():
+            while not cls.stop_reading_thread:
+                cls.start_api_process.stderr.readline()
+
+        cls.read_threading = threading.Thread(target=read_sub_process_stderr)
+        cls.read_threading.start()
 
     @classmethod
     def _make_parameter_override_arg(self, overrides):
@@ -92,6 +104,7 @@ class StartApiIntegBaseClass(TestCase):
     def tearDownClass(cls):
         # After all the tests run, we need to kill the start-api process.
         cls.start_api_process.kill()
+        cls.stop_reading_thread = True
 
     @staticmethod
     def random_port():

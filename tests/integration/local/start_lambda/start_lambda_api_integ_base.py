@@ -1,10 +1,11 @@
+import selectors
 import shutil
 import signal
 import uuid
 from typing import Optional, Dict, List
 from unittest import TestCase, skipIf
 import threading
-from subprocess import Popen
+from subprocess import Popen, PIPE
 import time
 import os
 import random
@@ -88,9 +89,21 @@ class StartLambdaIntegBaseClass(TestCase):
             for image in cls.invoke_image:
                 command_list += ["--invoke-image", image]
 
-        cls.start_lambda_process = Popen(command_list)
-        # we need to wait some time for start-lambda to start, hence the sleep
-        time.sleep(wait_time)
+        cls.start_lambda_process = Popen(command_list, stderr=PIPE)
+
+        while True:
+            line = cls.start_lambda_process.stderr.readline()
+            if "(Press CTRL+C to quit)" in str(line):
+                break
+
+        cls.stop_reading_thread = False
+
+        def read_sub_process_stderr():
+            while not cls.stop_reading_thread:
+                cls.start_lambda_process.stderr.readline()
+
+        cls.read_threading = threading.Thread(target=read_sub_process_stderr)
+        cls.read_threading.start()
 
     @classmethod
     def _make_parameter_override_arg(self, overrides):
@@ -100,6 +113,7 @@ class StartLambdaIntegBaseClass(TestCase):
     def tearDownClass(cls):
         # After all the tests run, we need to kill the start_lambda process.
         cls.start_lambda_process.kill()
+        cls.stop_reading_thread = True
 
     @staticmethod
     def random_port():
