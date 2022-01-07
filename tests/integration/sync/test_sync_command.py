@@ -6,6 +6,7 @@ import json
 import shutil
 import tempfile
 import time
+import uuid
 from pathlib import Path
 from unittest import skipIf
 
@@ -40,7 +41,7 @@ LOG = logging.getLogger(__name__)
 
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
-class TestSync(PackageIntegBase, BuildIntegBase, SyncIntegBase):
+class TestSync(BuildIntegBase, PackageIntegBase, SyncIntegBase):
     @classmethod
     def setUpClass(cls):
         PackageIntegBase.setUpClass()
@@ -56,6 +57,7 @@ class TestSync(PackageIntegBase, BuildIntegBase, SyncIntegBase):
         self.sns_arn = os.environ.get("AWS_SNS")
         self.stacks = []
         time.sleep(CFN_SLEEP)
+        self.s3_prefix = uuid.uuid4().hex
         super().setUp()
 
     def tearDown(self):
