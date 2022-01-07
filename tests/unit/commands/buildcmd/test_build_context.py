@@ -27,6 +27,7 @@ class DeepWrap(Exception):
 
 
 class TestBuildContext__enter__(TestCase):
+    @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
@@ -39,6 +40,7 @@ class TestBuildContext__enter__(TestCase):
         SamLayerProviderMock,
         SamFunctionProviderMock,
         get_buildable_stacks_mock,
+        get_template_data_mock,
     ):
         template_dict = "template dict"
         stack = Mock()
@@ -108,6 +110,7 @@ class TestBuildContext__enter__(TestCase):
         ContainerManagerMock.assert_called_once_with(docker_network_id="network", skip_pull_image=True)
         func_provider_mock.get.assert_called_once_with("function_identifier")
 
+    @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
@@ -120,6 +123,7 @@ class TestBuildContext__enter__(TestCase):
         SamLayerProviderMock,
         SamFunctionProviderMock,
         get_buildable_stacks_mock,
+        get_template_data_mock,
     ):
         template_dict = "template dict"
         stack = Mock()
@@ -163,6 +167,7 @@ class TestBuildContext__enter__(TestCase):
         with self.assertRaises(ResourceNotFound):
             context.resources_to_build
 
+    @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
@@ -175,6 +180,7 @@ class TestBuildContext__enter__(TestCase):
         SamLayerProviderMock,
         SamFunctionProviderMock,
         get_buildable_stacks_mock,
+        get_template_data_mock,
     ):
         template_dict = "template dict"
         stack = Mock()
@@ -216,6 +222,7 @@ class TestBuildContext__enter__(TestCase):
         context.__enter__()
         self.assertTrue(layer1 in context.resources_to_build.layers)
 
+    @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
@@ -228,6 +235,7 @@ class TestBuildContext__enter__(TestCase):
         SamLayerProviderMock,
         SamFunctionProviderMock,
         get_buildable_stacks_mock,
+        get_template_data_mock,
     ):
         template_dict = "template dict"
         stack = Mock()
@@ -275,6 +283,7 @@ class TestBuildContext__enter__(TestCase):
         self.assertTrue(layer2 not in context.resources_to_build.layers)
         self.assertTrue(context.is_building_specific_resource)
 
+    @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
@@ -287,6 +296,7 @@ class TestBuildContext__enter__(TestCase):
         SamLayerProviderMock,
         SamFunctionProviderMock,
         get_buildable_stacks_mock,
+        get_template_data_mock,
     ):
         template_dict = "template dict"
         stack = Mock()
@@ -329,6 +339,7 @@ class TestBuildContext__enter__(TestCase):
         with self.assertRaises(MissingBuildMethodException):
             context.resources_to_build
 
+    @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
@@ -341,6 +352,7 @@ class TestBuildContext__enter__(TestCase):
         SamLayerProviderMock,
         SamFunctionProviderMock,
         get_buildable_stacks_mock,
+        get_template_data_mock,
     ):
         """
         In this unit test, we also verify
@@ -435,6 +447,7 @@ class TestBuildContext__enter__(TestCase):
 
     @parameterized.expand([(["remote_stack_1", "stack.remote_stack_2"], "print_warning"), ([], False)])
     @patch("samcli.commands.build.build_context.LOG")
+    @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
@@ -449,6 +462,7 @@ class TestBuildContext__enter__(TestCase):
         SamLayerProviderMock,
         SamFunctionProviderMock,
         get_buildable_stacks_mock,
+        get_template_data_mock,
         log_mock,
     ):
         get_buildable_stacks_mock.return_value = ([], remote_stack_full_paths)
@@ -649,6 +663,7 @@ class TestBuildContext_setup_cached_and_deps_dir(TestCase):
 
 class TestBuildContext_run(TestCase):
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
+    @patch("samcli.commands.build.build_context.SamApiProvider")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")
@@ -657,10 +672,12 @@ class TestBuildContext_run(TestCase):
     @patch("samcli.commands.build.build_context.ApplicationBuilder")
     @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
     @patch("samcli.commands.build.build_context.move_template")
+    @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.os")
     def test_run_build_context(
         self,
         os_mock,
+        get_template_data_mock,
         move_template_mock,
         resources_mock,
         ApplicationBuilderMock,
@@ -669,6 +686,7 @@ class TestBuildContext_run(TestCase):
         pathlib_mock,
         SamLayerProviderMock,
         SamFunctionProviderMock,
+        SamApiProviderMock,
         get_buildable_stacks_mock,
     ):
 
@@ -787,6 +805,7 @@ class TestBuildContext_run(TestCase):
         ]
     )
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
+    @patch("samcli.commands.build.build_context.SamApiProvider")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")
@@ -795,12 +814,14 @@ class TestBuildContext_run(TestCase):
     @patch("samcli.commands.build.build_context.ApplicationBuilder")
     @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
     @patch("samcli.commands.build.build_context.move_template")
+    @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.os")
     def test_must_catch_known_exceptions(
         self,
         exception,
         wrapped_exception,
         os_mock,
+        get_template_data_mock,
         move_template_mock,
         resources_mock,
         ApplicationBuilderMock,
@@ -809,6 +830,7 @@ class TestBuildContext_run(TestCase):
         pathlib_mock,
         SamLayerProviderMock,
         SamFunctionProviderMock,
+        SamApiProviderMock,
         get_buildable_stacks_mock,
     ):
 
@@ -862,6 +884,7 @@ class TestBuildContext_run(TestCase):
         self.assertEqual(wrapped_exception, ctx.exception.wrapped_from)
 
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
+    @patch("samcli.commands.build.build_context.SamApiProvider")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")
@@ -870,10 +893,12 @@ class TestBuildContext_run(TestCase):
     @patch("samcli.commands.build.build_context.ApplicationBuilder")
     @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
     @patch("samcli.commands.build.build_context.move_template")
+    @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.os")
     def test_must_catch_function_not_found_exception(
         self,
         os_mock,
+        get_template_data_mock,
         move_template_mock,
         resources_mock,
         ApplicationBuilderMock,
@@ -882,6 +907,7 @@ class TestBuildContext_run(TestCase):
         pathlib_mock,
         SamLayerProviderMock,
         SamFunctionProviderMock,
+        SamApiProviderMock,
         get_buildable_stacks_mock,
     ):
         stack = Mock()
