@@ -176,7 +176,7 @@ class TestPackageImage(PackageIntegBase):
     )
     def test_package_template_and_s3_bucket(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
-        command_list = self.get_command_list(s3_bucket=self.s3_bucket, template=template_path)
+        command_list = self.get_command_list(s3_bucket=self.s3_bucket, s3_prefix=self.s3_prefix, template=template_path)
 
         process = Popen(command_list, stdout=PIPE, stderr=PIPE)
         try:
