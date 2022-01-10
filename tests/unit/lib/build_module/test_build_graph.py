@@ -141,7 +141,7 @@ class TestConversionFunctions(TestCase):
 
         toml_table = _layer_build_definition_to_toml_table(build_definition)
 
-        self.assertEqual(toml_table[LAYER_NAME_FIELD], build_definition.name)
+        self.assertEqual(toml_table[LAYER_NAME_FIELD], build_definition.full_path)
         self.assertEqual(toml_table[CODE_URI_FIELD], build_definition.codeuri)
         self.assertEqual(toml_table[BUILD_METHOD_FIELD], build_definition.build_method)
         self.assertEqual(toml_table[COMPATIBLE_RUNTIMES_FIELD], build_definition.compatible_runtimes)
@@ -192,7 +192,7 @@ class TestConversionFunctions(TestCase):
 
         build_definition = _toml_table_to_layer_build_definition(uuid, toml_table)
 
-        self.assertEqual(build_definition.name, toml_table[LAYER_NAME_FIELD])
+        self.assertEqual(build_definition.full_path, toml_table[LAYER_NAME_FIELD])
         self.assertEqual(build_definition.codeuri, toml_table[CODE_URI_FIELD])
         self.assertEqual(build_definition.build_method, toml_table[BUILD_METHOD_FIELD])
         self.assertEqual(build_definition.uuid, uuid)
@@ -224,7 +224,7 @@ class TestConversionFunctions(TestCase):
 
         toml_table = _layer_build_definition_to_toml_table(build_definition)
 
-        self.assertEqual(toml_table[LAYER_NAME_FIELD], build_definition.name)
+        self.assertEqual(toml_table[LAYER_NAME_FIELD], build_definition.full_path)
         self.assertEqual(toml_table[CODE_URI_FIELD], build_definition.codeuri)
         self.assertEqual(toml_table[BUILD_METHOD_FIELD], build_definition.build_method)
         self.assertEqual(toml_table[COMPATIBLE_RUNTIMES_FIELD], build_definition.compatible_runtimes)
@@ -264,7 +264,7 @@ class TestConversionFunctions(TestCase):
 
         build_definition = _toml_table_to_layer_build_definition(uuid, toml_table)
 
-        self.assertEqual(build_definition.name, toml_table[LAYER_NAME_FIELD])
+        self.assertEqual(build_definition.full_path, toml_table[LAYER_NAME_FIELD])
         self.assertEqual(build_definition.codeuri, toml_table[CODE_URI_FIELD])
         self.assertEqual(build_definition.build_method, toml_table[BUILD_METHOD_FIELD])
         self.assertEqual(build_definition.uuid, uuid)
@@ -412,7 +412,7 @@ class TestBuildGraph(TestCase):
                 self.assertEqual(function_build_definition.env_vars, TestBuildGraph.ENV_VARS)
 
             for layer_build_definition in build_graph.get_layer_build_definitions():
-                self.assertEqual(layer_build_definition.name, TestBuildGraph.LAYER_NAME)
+                self.assertEqual(layer_build_definition.full_path, TestBuildGraph.LAYER_NAME)
                 self.assertEqual(layer_build_definition.codeuri, TestBuildGraph.LAYER_CODEURI)
                 self.assertEqual(layer_build_definition.build_method, TestBuildGraph.LAYER_RUNTIME)
                 self.assertEqual(layer_build_definition.source_hash, TestBuildGraph.SOURCE_HASH)
