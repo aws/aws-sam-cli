@@ -359,13 +359,13 @@ class LocalApigwService(BaseLocalService):
             return ServiceErrorResponses.lambda_not_found_response()
 
         stdout_stream_writer.flush()
-        lambda_response, lambda_logs, is_lambda_user_error_response = LambdaOutputParser.get_lambda_output(stdout_stream)
+        lambda_response, lambda_logs, is_lambda_response_error = LambdaOutputParser.get_lambda_output(stdout_stream)
 
         if self.stderr and lambda_logs:
             # Write the logs to stderr if available.
             self.stderr.write(lambda_logs)
 
-        if is_lambda_user_error_response:
+        if is_lambda_response_error:
             # This has already been verified to be valid JSON above in the get_lambda_output
             error_object = json.loads(lambda_response)
             stack_trace = None
