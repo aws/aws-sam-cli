@@ -96,7 +96,7 @@ class LambdaOutputParser:
         str
             String data containing response from Lambda function
         str
-            String data containng logs statements, if any.
+            String data containing logs statements, if any.
         bool
             If the response is an error/exception from the container
         """
@@ -161,6 +161,10 @@ class LambdaOutputParser:
                 and (
                     (
                         len(lambda_response_dict.keys() & {"errorMessage", "errorType", "stackTrace", "cause"})
+                        == len(lambda_response_dict)
+                    )
+                    or (
+                        len(lambda_response_dict.keys() & {"errorMessage", "errorType", "stackTrace", "requestId"})
                         == len(lambda_response_dict)
                     )
                     or (len(lambda_response_dict) == 3)
