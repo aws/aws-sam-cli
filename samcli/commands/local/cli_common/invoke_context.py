@@ -387,7 +387,7 @@ class InvokeContext:
             Stream writer for stderr
         """
         stream = self._log_file_handle if self._log_file_handle else osutils.stderr()
-        return StreamWriter(stream, auto_flush=True)
+        return StreamWriter(stream, auto_flush=True, pretty_json=True)
 
     @property
     def stacks(self) -> List[Stack]:
