@@ -368,12 +368,9 @@ class LocalApigwService(BaseLocalService):
         if is_lambda_response_error:
             # This has already been verified to be valid JSON above in the get_lambda_output
             error_object = json.loads(lambda_response)
-            stack_trace = None
-            if 'stackTrace' in error_object:
-                stack_trace = ''.join(error_object['stackTrace'])
-                del error_object['stackTrace']
+            stack_trace = error_object.pop('stackTrace', '')
             LOG.error(json.dumps(error_object))
-            LOG.error(stack_trace)
+            LOG.error(''.join(stack_trace))
             return ServiceErrorResponses.lambda_failure_response()
 
         try:
