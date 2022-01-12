@@ -54,9 +54,12 @@ class TestStepFunctionsSyncFlow(TestCase):
         )
 
     @patch("samcli.lib.sync.flows.stepfunctions_sync_flow.get_resource_by_id")
-    def test_get_definition_file(self, get_resource_mock):
+    @patch("samcli.lib.sync.flows.generic_api_sync_flow.Path.joinpath")
+    def test_get_definition_file(self, join_path_mock, get_resource_mock):
         sync_flow = self.create_sync_flow()
 
+        sync_flow._build_context.base_dir = None
+        join_path_mock.return_value = "test_uri"
         sync_flow._resource = {"Properties": {"DefinitionUri": "test_uri"}}
         result_uri = sync_flow._get_definition_file("test")
 
