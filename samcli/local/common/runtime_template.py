@@ -70,6 +70,10 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
 }
 
 
+def get_local_manifest_path():
+    return os.path.join(_init_path, "lib", "init", "local_manifest.json")
+
+
 def get_local_lambda_images_location(mapping, runtime):
     dir_name = os.path.basename(mapping["init_location"])
     if dir_name.endswith("-lambda-image"):
