@@ -2473,13 +2473,11 @@ test-project
     def test_must_get_local_manifest_path(self, git_repo):
         template = InitTemplates()
         template._git_repo.local_path = None
-        manifest_path = template.get_manifest_path()
+        manifest_path = str(template.get_manifest_path())
         file_name_path = "local_manifest.json"
         self.assertIn(file_name_path, manifest_path)
 
-    # @patch("samcli.commands.init.init_templates.InitTemplates.get_preprocessed_manifest")
-    # @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
-    @patch("os.path.exists")
+    @patch.object(Path, "exists")
     @patch("samcli.commands.init.init_generator.generate_project")
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
     def test_init_cli_generate_app_template_from_local_cli_templates(self, generate_project_patch, path_exist_mock):
@@ -2492,7 +2490,7 @@ test-project
         user_input = """
 1
 N
-4
+3
 2
 test-project
         """

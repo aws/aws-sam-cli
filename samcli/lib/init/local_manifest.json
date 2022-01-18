@@ -9,16 +9,6 @@
             "useCaseName": "Hello World Example"
         }
     ],
-    "dotnetcore2.1": [
-        {
-            "directory": "template/cookiecutter-aws-sam-hello-dotnet",
-            "displayName": "Hello World Example",
-            "dependencyManager": "cli-package",
-            "appTemplate": "hello-world",
-            "packageType": "Zip",
-            "useCaseName": "Hello World Example"
-        }
-    ],
     "go1.x": [
         {
             "directory": "template/cookiecutter-aws-sam-hello-golang",
@@ -103,16 +93,6 @@
             "useCaseName": "Hello World Example"
         }
     ],
-    "nodejs10.x": [
-        {
-            "directory": "template/cookiecutter-aws-sam-hello-nodejs",
-            "displayName": "Hello World Example",
-            "dependencyManager": "npm",
-            "appTemplate": "hello-world",
-            "packageType": "Zip",
-            "useCaseName": "Hello World Example"
-        }
-    ],
     "python3.9": [
         {
             "directory": "template/cookiecutter-aws-sam-hello-python",
@@ -154,16 +134,6 @@
         }
     ],
     "ruby2.7": [
-        {
-            "directory": "template/cookiecutter-aws-sam-hello-ruby",
-            "displayName": "Hello World Example",
-            "dependencyManager": "bundler",
-            "appTemplate": "hello-world",
-            "packageType": "Zip",
-            "useCaseName": "Hello World Example"
-        }
-    ],
-    "ruby2.5": [
         {
             "directory": "template/cookiecutter-aws-sam-hello-ruby",
             "displayName": "Hello World Example",

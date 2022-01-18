@@ -128,7 +128,7 @@ class InitTemplates:
         return os.path.normpath(os.path.join(self._git_repo.local_path, template_directory))
 
     def get_manifest_path(self):
-        if self._git_repo.local_path and os.path.exists(Path(self._git_repo.local_path, self.manifest_file_name)):
+        if self._git_repo.local_path and Path(self._git_repo.local_path, self.manifest_file_name).exists():
             return Path(self._git_repo.local_path, self.manifest_file_name)
         return get_local_manifest_path()
 
