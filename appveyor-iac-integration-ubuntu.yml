@@ -111,4 +111,4 @@ test_script:
     fi"
 
   - "pip install -e \".[dev]\""
-  - sh: "pytest -vv tests/iac_integration"
+  - sh: "sudo pytest -vv tests/iac_integration"
