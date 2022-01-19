@@ -13,7 +13,11 @@ from samcli.cli.global_config import GlobalConfig
 from samcli.commands.exceptions import UserException, AppTemplateUpdateException
 from samcli.lib.utils.git_repo import GitRepo, CloneRepoException, CloneRepoUnstableStateException
 from samcli.lib.utils.packagetype import IMAGE
-from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING, get_local_lambda_images_location
+from samcli.local.common.runtime_template import (
+    RUNTIME_DEP_TEMPLATE_MAPPING,
+    get_local_lambda_images_location,
+    get_local_manifest_path,
+)
 
 LOG = logging.getLogger(__name__)
 APP_TEMPLATES_REPO_URL = "https://github.com/aws/aws-sam-cli-app-templates"
@@ -124,7 +128,9 @@ class InitTemplates:
         return os.path.normpath(os.path.join(self._git_repo.local_path, template_directory))
 
     def get_manifest_path(self):
-        return Path(self._git_repo.local_path, self.manifest_file_name)
+        if self._git_repo.local_path and Path(self._git_repo.local_path, self.manifest_file_name).exists():
+            return Path(self._git_repo.local_path, self.manifest_file_name)
+        return get_local_manifest_path()
 
     def get_preprocessed_manifest(
         self,
