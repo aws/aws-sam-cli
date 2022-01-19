@@ -152,7 +152,7 @@ export class CDKSupportDemoRootStack extends cdk.Stack {
           image: lambda.Runtime.JAVA_11.bundlingImage,
           volumes: [
             {
-              hostPath: require('os').homedir() + '/.m2',
+              hostPath: '~/.m2',
               containerPath: '/root/.m2/',
             }
           ],
