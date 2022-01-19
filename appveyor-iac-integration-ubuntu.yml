@@ -69,7 +69,7 @@ install:
   - sh: "sudo apt install maven"
   - sh: "mvn --version"
   - sh: "sudo ls /home/appveyor/.m2/repository"
-  - sh: "sudo mkdir -p /home/appveyor/.m2/repository"
+  - sh: "sudo mkdir -p /home/appveyor/.m2"
   - sh: "sudo chmod 777 /home/appveyor/.m2/repository"
   - sh: "sudo ls /home/appveyor/.m2/repository"
 
