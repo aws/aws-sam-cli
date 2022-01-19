@@ -59,7 +59,7 @@ install:
   # Install latest maven
   - sh: "sudo apt update"
   - sh: "sudo apt install maven"
-  - sh: "mvn --version
+  - sh: "mvn --version"
 
   # Install AWS CLI
   - sh: "virtualenv aws_cli"
