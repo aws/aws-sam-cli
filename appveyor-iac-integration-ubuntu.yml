@@ -59,15 +59,18 @@ install:
   - sh: "node --version"
   - sh: "npx --version"
 
-  # Install latest maven
-  - sh: "sudo apt update"
-  - sh: "sudo apt install maven"
-  - sh: "mvn --version"
-
   # Install AWS CLI
   - sh: "virtualenv aws_cli"
   - sh: "./aws_cli/bin/python -m pip install awscli"
   - sh: "PATH=$(echo $PWD'/aws_cli/bin'):$PATH"
+
+  # Install latest maven
+  - sh: "sudo apt update"
+  - sh: "sudo apt install maven"
+  - sh: "mvn --version"
+  - sh: "ls /home/appveyor/.m2/repository"
+  - sh: "mkdir -p /home/appveyor/.m2/repository"
+  - sh: "ls /home/appveyor/.m2/repository"
 
   - sh: "sudo apt-get -y install python3.6"
   - sh: "sudo apt-get -y install python2.7"
@@ -111,4 +114,4 @@ test_script:
     fi"
 
   - "pip install -e \".[dev]\""
-  - sh: "sudo pytest -vv tests/iac_integration"
+  - sh: "pytest -vv tests/iac_integration"
