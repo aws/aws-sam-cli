@@ -1,5 +1,6 @@
 from unittest import TestCase
 from unittest.mock import MagicMock, mock_open, patch, call
+from pathlib import Path
 
 from botocore.exceptions import ClientError
 
@@ -286,7 +287,7 @@ please check the console to see if you have other stages that needs to be update
         get_resource_mock.return_value = {"Properties": {"DefinitionUri": "test_uri"}}
         result_uri = sync_flow._get_definition_file("test")
 
-        self.assertEqual(result_uri, "base_dir/test_uri")
+        self.assertEqual(result_uri, str(Path("base_dir").joinpath("test_uri")))
 
     def test_process_definition_file(self):
         sync_flow = self.create_sync_flow()
