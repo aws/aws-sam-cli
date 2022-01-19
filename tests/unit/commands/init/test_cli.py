@@ -2467,3 +2467,44 @@ test-project
         }
         dependency_manager = "Gradle"
         self.assertTrue(template_does_not_meet_filter_criteria(app_template, None, dependency_manager, template3))
+
+    @patch("samcli.lib.utils.git_repo.GitRepo")
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    def test_must_get_local_manifest_path(self, git_repo):
+        template = InitTemplates()
+        template._git_repo.local_path = None
+        manifest_path = str(template.get_manifest_path())
+        file_name_path = "local_manifest.json"
+        self.assertIn(file_name_path, manifest_path)
+
+    @patch.object(Path, "exists")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    def test_init_cli_generate_app_template_from_local_cli_templates(self, generate_project_patch, path_exist_mock):
+        path_exist_mock.return_value = False
+
+        # WHEN the user follows interactive init prompts
+        # 1: AWS Quick Start Templates
+        # 2: Java 11
+        # test-project: response to name
+        user_input = """
+1
+N
+3
+2
+test-project
+        """
+
+        runner = CliRunner()
+        result = runner.invoke(init_cmd, input=user_input)
+        self.assertFalse(result.exception)
+        generate_project_patch.assert_called_once_with(
+            ANY,
+            ZIP,
+            "java11",
+            "maven",
+            ".",
+            "test-project",
+            True,
+            {"project_name": "test-project", "runtime": "java11", "architectures": {"value": ["x86_64"]}},
+        )
