@@ -68,9 +68,10 @@ install:
   - sh: "sudo apt update"
   - sh: "sudo apt install maven"
   - sh: "mvn --version"
-  - sh: "ls /home/appveyor/.m2/repository"
-  - sh: "mkdir -p /home/appveyor/.m2/repository"
-  - sh: "ls /home/appveyor/.m2/repository"
+  - sh: "sudo ls /home/appveyor/.m2/repository"
+  - sh: "sudo mkdir -p /home/appveyor/.m2/repository"
+  - sh: "sudo chmod 777 /home/appveyor/.m2/repository"
+  - sh: "sudo ls /home/appveyor/.m2/repository"
 
   - sh: "sudo apt-get -y install python3.6"
   - sh: "sudo apt-get -y install python2.7"
