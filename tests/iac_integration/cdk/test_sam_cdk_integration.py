@@ -40,7 +40,9 @@ class TestSamCdkIntegration(TestCase):
     def build_cdk_project(cls):
         command_list = ["npx", f"aws-cdk@{cls.cdk_version}", "synth", "--no-staging"]
         working_dir = cls.cdk_project
-        run_command(command_list, cwd=working_dir)
+        result = run_command(command_list, cwd=working_dir)
+        if result.process.returncode != 0:
+            raise Exception("cdk synth command failed")
 
     @classmethod
     def build(cls):
@@ -49,7 +51,9 @@ class TestSamCdkIntegration(TestCase):
             command = "samdev"
         command_list = [command, "build", "-t", cls.cdk_stack_template]
         working_dir = cls.cdk_project+"/cdk.out"
-        run_command(command_list, cwd=working_dir)
+        result = run_command(command_list, cwd=working_dir)
+        if result.process.returncode != 0:
+            raise Exception("sam build command failed")
 
     @classmethod
     def start_api(cls):

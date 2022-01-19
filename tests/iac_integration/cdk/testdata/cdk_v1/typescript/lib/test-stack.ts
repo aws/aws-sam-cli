@@ -138,6 +138,7 @@ export class CDKSupportDemoRootStack extends cdk.Stack {
     //Layers
     // Lambda LayerVersion with bundled Asset that will be built by CDK
     // https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-lambda.LayerVersion.html
+    console.log(`OS home ${require('os').homedir()}`)
     const bundledLayerVersionJavaRuntime = new lambda.LayerVersion(this, 'BundledLayerVersionJavaRuntime', {
       compatibleRuntimes: [
         lambda.Runtime.JAVA_8,
@@ -152,7 +153,7 @@ export class CDKSupportDemoRootStack extends cdk.Stack {
           image: lambda.Runtime.JAVA_11.bundlingImage,
           volumes: [
             {
-              hostPath: '~/.m2',
+              hostPath: require('os').homedir() + '/.m2',
               containerPath: '/root/.m2/',
             }
           ],
