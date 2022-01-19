@@ -3,6 +3,7 @@ image:
   - Ubuntu
 
 environment:
+  nodejs_version: '14'
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
  
