@@ -71,7 +71,6 @@ class TestSamCdkIntegration(TestCase):
 
         while True:
             line = cls.start_api_process.stderr.readline()
-            print(line)
             if "(Press CTRL+C to quit)" in str(line):
                 break
 

@@ -1,5 +1,5 @@
 {
-  "app": "python -m venv .env && source .env/bin/activate && pip install -r requirements.txt && python app.py",
+  "app": "virtualenv .env && ./.env/bin/python -m pip install -r requirements.txt && ./.env/bin/python app.py",
   "context": {
 
   }
