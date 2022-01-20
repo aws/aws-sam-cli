@@ -19,6 +19,8 @@ from tests.testing_utils import run_command
         ("/testdata/cdk_v2/typescript", "2.x", "TestStack.template.json"),
         ("/testdata/cdk_v1/python", "1.x", "TestStack.template.json"),
         ("/testdata/cdk_v2/python", "2.x", "TestStack.template.json"),
+        ("/testdata/cdk_v1/java", "1.x", "TestStack.template.json"),
+        ("/testdata/cdk_v2/java", "2.x", "TestStack.template.json"),
     ],
 )
 class TestSamCdkIntegration(TestCase):
