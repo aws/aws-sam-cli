@@ -1,5 +1,5 @@
 {
-  "app": "which python3 && python3 -m venv .env && ./.env/bin/python -m pip install -r requirements.txt && ./.env/bin/python app.py",
+  "app": "python3 -m venv .env && ./.env/bin/python -m pip install -r requirements.txt && ./.env/bin/python app.py",
   "context": {
 
   }
