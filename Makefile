@@ -17,27 +17,7 @@ test-cov-report:
 integ-test:
 	# Integration tests don't need code coverage
 	@echo Telemetry Status: $(SAM_CLI_TELEMETRY)
-	SAM_CLI_DEV=1 AWS_S3=test-cdk-package-melasmar pytest tests/integration/sync
-
-integ-test-build:
-	# Integration tests don't need code coverage
-	@echo Telemetry Status: $(SAM_CLI_TELEMETRY)
-	SAM_CLI_DEV=1 AWS_S3=test-cdk-package-melasmar pytest tests/integration/buildcmd
-
-integ-test-deploy:
-	# Integration tests don't need code coverage
-	@echo Telemetry Status: $(SAM_CLI_TELEMETRY)
-	SAM_CLI_DEV=1 AWS_S3=test-cdk-package-melasmar pytest tests/integration/delete tests/integration/deploy tests/integration/package tests/integration/sync
-
-integ-test-local:
-	# Integration tests don't need code coverage
-	@echo Telemetry Status: $(SAM_CLI_TELEMETRY)
-	SAM_CLI_DEV=1 AWS_S3=test-cdk-package-melasmar pytest tests/integration/local/start_api tests/integration/local/start_lambda
-
-integ-test-others:
-	# Integration tests don't need code coverage
-	@echo Telemetry Status: $(SAM_CLI_TELEMETRY)
-	SAM_CLI_DEV=1 AWS_S3=test-cdk-package-melasmar pytest tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local
+	SAM_CLI_DEV=1 pytest tests/integration
 
 func-test:
 	# Verify function test coverage only for `samcli.local` package
