@@ -317,7 +317,8 @@ class LocalApigwService(BaseLocalService):
             # or none, as the default value to be used is 2.0
             # https://docs.aws.amazon.com/apigatewayv2/latest/api-reference/apis-apiid-integrations.html#apis-apiid-integrations-prop-createintegrationinput-payloadformatversion
             if route.event_type == Route.HTTP and route.payload_format_version in [None, "2.0"]:
-                route_key = self._v2_route_key(method, endpoint, route.is_default_route)
+                apigw_endpoint = PathConverter.convert_path_to_api_gateway(endpoint)
+                route_key = self._v2_route_key(method, apigw_endpoint, route.is_default_route)
                 event = self._construct_v_2_0_event_http(
                     request,
                     self.port,
