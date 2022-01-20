@@ -1,9 +1,10 @@
-from samcli.lib.providers.exceptions import MissingLocalDefinition
 from unittest import TestCase
 from unittest.mock import ANY, MagicMock, mock_open, patch
+from pathlib import Path
 
 from samcli.lib.sync.flows.stepfunctions_sync_flow import StepFunctionsSyncFlow
 from samcli.lib.sync.exceptions import InfraSyncRequiredError
+from samcli.lib.providers.exceptions import MissingLocalDefinition
 
 
 class TestStepFunctionsSyncFlow(TestCase):
@@ -54,7 +55,7 @@ class TestStepFunctionsSyncFlow(TestCase):
         )
 
     @patch("samcli.lib.sync.flows.stepfunctions_sync_flow.get_resource_by_id")
-    @patch("samcli.lib.sync.flows.generic_api_sync_flow.Path.joinpath")
+    @patch("samcli.lib.sync.flows.stepfunctions_sync_flow.Path.joinpath")
     def test_get_definition_file(self, join_path_mock, get_resource_mock):
         sync_flow = self.create_sync_flow()
 
@@ -69,6 +70,16 @@ class TestStepFunctionsSyncFlow(TestCase):
         result_uri = sync_flow._get_definition_file("test")
 
         self.assertEqual(result_uri, None)
+
+    @patch("samcli.lib.sync.flows.stepfunctions_sync_flow.get_resource_by_id")
+    def test_get_definition_file_with_base_dir(self, get_resource_mock):
+        sync_flow = self.create_sync_flow()
+
+        sync_flow._build_context.base_dir = "base_dir"
+        sync_flow._resource = {"Properties": {"DefinitionUri": "test_uri"}}
+        result_uri = sync_flow._get_definition_file("test")
+
+        self.assertEqual(result_uri, str(Path("base_dir").joinpath("test_uri")))
 
     def test_process_definition_file(self):
         sync_flow = self.create_sync_flow()
