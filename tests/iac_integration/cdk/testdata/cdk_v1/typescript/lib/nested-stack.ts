@@ -3,21 +3,12 @@ import * as lambda from '@aws-cdk/aws-lambda';
 import { HttpApi, HttpMethod } from '@aws-cdk/aws-apigatewayv2';
 import { HttpLambdaIntegration } from '@aws-cdk/aws-apigatewayv2-integrations';
 import { PythonFunction, PythonLayerVersion } from '@aws-cdk/aws-lambda-python';
-import * as logs from '@aws-cdk/aws-logs';
-import {AwsCliLayer} from "@aws-cdk/lambda-layer-awscli";
-import {KubectlLayer} from "@aws-cdk/lambda-layer-kubectl";
-import {NodeProxyAgentLayer} from "@aws-cdk/lambda-layer-node-proxy-agent";
 import {CfnLayerVersion} from "@aws-cdk/aws-lambda";
 
 export class NestedStack1 extends cdk.NestedStack {
 
     constructor(scope: cdk.Construct, id: string, props?: cdk.NestedStackProps) {
         super(scope, id, props);
-
-        // Shared Layers
-        const awsCliLayer = new AwsCliLayer(this, 'AwsCliLayer');
-        const kubectlLayer = new KubectlLayer(this, 'KubectlLayer');
-        const nodeProxyAgentLayer = new NodeProxyAgentLayer(this, 'NodeProxyAgentLayer');
 
         // Python Runtime
         // Layers
@@ -48,7 +39,7 @@ export class NestedStack1 extends cdk.NestedStack {
           index: 'app.py',
           handler: 'lambda_handler',
           runtime: lambda.Runtime.PYTHON_3_9,
-          layers: [pythonLayerVersion, layerVersion, awsCliLayer, kubectlLayer, nodeProxyAgentLayer],
+          layers: [pythonLayerVersion, layerVersion],
           tracing: lambda.Tracing.ACTIVE,
         });
 

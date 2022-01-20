@@ -10,18 +10,10 @@ import {Role, ServicePrincipal, PolicyStatement} from '@aws-cdk/aws-iam';
 import { CfnFunction, CfnLayerVersion } from '@aws-cdk/aws-lambda';
 import {NestedStack1} from './nested-stack';
 import * as logs from '@aws-cdk/aws-logs';
-import { AwsCliLayer } from '@aws-cdk/lambda-layer-awscli';
-import { KubectlLayer } from '@aws-cdk/lambda-layer-kubectl';
-import { NodeProxyAgentLayer }  from '@aws-cdk/lambda-layer-node-proxy-agent';
 
 export class CDKSupportDemoRootStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
-
-    // Shared Layers
-    const awsCliLayer = new AwsCliLayer(this, 'AwsCliLayer');
-    const kubectlLayer = new KubectlLayer(this, 'KubectlLayer');
-    const nodeProxyAgentLayer = new NodeProxyAgentLayer(this, 'NodeProxyAgentLayer');
 
     // Python Runtime
     // Layers
@@ -74,7 +66,7 @@ export class CDKSupportDemoRootStack extends cdk.Stack {
       runtime: lambda.Runtime.PYTHON_3_9,
       functionName: 'pythonFunc', // we need the name to use it in the API definition file
       logRetention: logs.RetentionDays.THREE_MONTHS,
-      layers: [pythonLayerVersion, layerVersion, awsCliLayer, kubectlLayer, nodeProxyAgentLayer],
+      layers: [pythonLayerVersion, layerVersion],
       tracing: lambda.Tracing.ACTIVE,
     });
 
@@ -83,7 +75,7 @@ export class CDKSupportDemoRootStack extends cdk.Stack {
       runtime: lambda.Runtime.PYTHON_3_7,
       code: lambda.Code.fromAsset('../../src/python/FunctionConstruct'),
       handler: 'app.lambda_handler',
-      layers: [pythonLayerVersion, layerVersion, awsCliLayer, kubectlLayer, nodeProxyAgentLayer],
+      layers: [pythonLayerVersion, layerVersion],
       tracing: lambda.Tracing.ACTIVE,
     });
 
@@ -92,7 +84,7 @@ export class CDKSupportDemoRootStack extends cdk.Stack {
       runtime: lambda.Runtime.PYTHON_3_7,
       code: lambda.Code.fromAsset('../../src/python/BuiltFunctionConstruct'),
       handler: 'app.lambda_handler',
-      layers: [pythonLayerVersion, layerVersion, awsCliLayer, kubectlLayer, nodeProxyAgentLayer],
+      layers: [pythonLayerVersion, layerVersion],
       tracing: lambda.Tracing.ACTIVE,
     });
     // add SkipBuild Metadata, so SAM will skip building this function
@@ -114,7 +106,7 @@ export class CDKSupportDemoRootStack extends cdk.Stack {
         }
       }),
       handler: "app.lambda_handler",
-      layers: [bundledLayerVersionPythonRuntime, pythonLayerVersion, awsCliLayer, kubectlLayer, nodeProxyAgentLayer],
+      layers: [bundledLayerVersionPythonRuntime, pythonLayerVersion],
       timeout: cdk.Duration.seconds(120),
       tracing: lambda.Tracing.ACTIVE,
     });
@@ -138,7 +130,7 @@ export class CDKSupportDemoRootStack extends cdk.Stack {
         externalModules: ['/opt/nodejs/layer_version_dependency'],
       },
       handler: 'lambdaHandler',
-      layers: [layerVersionNodeJsRuntime, awsCliLayer, kubectlLayer, nodeProxyAgentLayer],
+      layers: [layerVersionNodeJsRuntime],
       tracing: lambda.Tracing.ACTIVE,
     });
 
@@ -147,7 +139,7 @@ export class CDKSupportDemoRootStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_14_X,
       code: lambda.Code.fromAsset('../../src/nodejs/FunctionConstruct'),
       handler: 'app.lambdaHandler',
-      layers: [layerVersionNodeJsRuntime, awsCliLayer, kubectlLayer, nodeProxyAgentLayer],
+      layers: [layerVersionNodeJsRuntime],
       tracing: lambda.Tracing.ACTIVE,
     });
 
@@ -156,7 +148,7 @@ export class CDKSupportDemoRootStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_14_X,
       code: lambda.Code.fromAsset('../../src/nodejs/BuiltFunctionConstruct'),
       handler: 'app.lambdaHandler',
-      layers: [layerVersionNodeJsRuntime, awsCliLayer, kubectlLayer, nodeProxyAgentLayer],
+      layers: [layerVersionNodeJsRuntime],
       tracing: lambda.Tracing.ACTIVE,
     });
     // add SkipBuild Metadata, so SAM will skip building this function

@@ -114,9 +114,10 @@ class TestSamCdkIntegration(TestCase):
             ("/restapis/normal/functionImageAsset", "Hello World from function construct with image asset"),
         ]
     )
-    @pytest.mark.timeout(timeout=600, method="thread")
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=1000, method="thread")
     def test_invoke_api(self, url_suffix, expected_message):
-        response = requests.get(self.url + url_suffix, timeout=300)
+        response = requests.get(self.url + url_suffix, timeout=800)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json().get("message"), expected_message)
