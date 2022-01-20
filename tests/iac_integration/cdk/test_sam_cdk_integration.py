@@ -15,8 +15,8 @@ from tests.testing_utils import run_command
 @parameterized_class(
     ("cdk_project_path", "cdk_version", "cdk_stack_template"),
     [
-        ("/testdata/cdk_v1/typescript", "1.x", "TestStack.template.json"),
-        ("/testdata/cdk_v2/typescript", "2.x", "TestStack.template.json"),
+        #("/testdata/cdk_v1/typescript", "1.x", "TestStack.template.json"),
+        #("/testdata/cdk_v2/typescript", "2.x", "TestStack.template.json"),
         ("/testdata/cdk_v1/python", "1.x", "TestStack.template.json"),
         ("/testdata/cdk_v2/python", "2.x", "TestStack.template.json"),
     ],
@@ -113,7 +113,7 @@ class TestSamCdkIntegration(TestCase):
             ("/restapis/normal/functionImageAsset", "Hello World from function construct with image asset"),
         ]
     )
-    @pytest.mark.flaky(reruns=3)
+    #@pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=1000, method="thread")
     def test_invoke_api(self, url_suffix, expected_message):
         response = requests.get(self.url + url_suffix, timeout=800)
