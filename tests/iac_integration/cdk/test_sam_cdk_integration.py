@@ -11,11 +11,14 @@ from parameterized import parameterized_class, parameterized
 
 from tests.testing_utils import run_command
 
+
 @parameterized_class(
     ("cdk_project_path", "cdk_version", "cdk_stack_template"),
     [
         ("/testdata/cdk_v1/typescript", "1.x", "TestStack.template.json"),
         ("/testdata/cdk_v2/typescript", "2.x", "TestStack.template.json"),
+        ("/testdata/cdk_v1/python", "1.x", "TestStack.template.json"),
+        ("/testdata/cdk_v2/python", "2.x", "TestStack.template.json"),
     ],
 )
 class TestSamCdkIntegration(TestCase):
@@ -50,7 +53,7 @@ class TestSamCdkIntegration(TestCase):
         if os.getenv("SAM_CLI_DEV"):
             command = "samdev"
         command_list = [command, "build", "-t", cls.cdk_stack_template]
-        working_dir = cls.cdk_project+"/cdk.out"
+        working_dir = cls.cdk_project + "/cdk.out"
         result = run_command(command_list, cwd=working_dir)
         if result.process.returncode != 0:
             raise Exception("sam build command failed")
@@ -61,13 +64,14 @@ class TestSamCdkIntegration(TestCase):
         if os.getenv("SAM_CLI_DEV"):
             command = "samdev"
 
-        command_list = [command, "local", "start-api", "-p", cls.api_port, "--warm-containers", "eager"]
+        command_list = [command, "local", "start-api", "-p", cls.api_port]
 
         working_dir = cls.cdk_project + "/cdk.out"
         cls.start_api_process = Popen(command_list, cwd=working_dir, stderr=PIPE)
 
         while True:
             line = cls.start_api_process.stderr.readline()
+            print(line)
             if "(Press CTRL+C to quit)" in str(line):
                 break
 
@@ -97,7 +101,10 @@ class TestSamCdkIntegration(TestCase):
             ("/restapis/normal/pythonFunction", "Hello World from python function construct 7"),
             ("/restapis/normal/functionPythonRuntime", "Hello World from function construct with python runtime 7"),
             ("/restapis/normal/preBuiltFunctionPythonRuntime", "Hello World from python pre built function 7"),
-            ("/restapis/normal/bundledFunctionPythonRuntime", "Hello World from bundled function construct with python runtime 7"),
+            (
+                "/restapis/normal/bundledFunctionPythonRuntime",
+                "Hello World from bundled function construct with python runtime 7",
+            ),
             ("/restapis/normal/nodejsFunction", "Hello World from nodejs function construct 7"),
             ("/restapis/normal/functionNodeJsRuntime", "Hello World from function construct with nodejs runtime 7"),
             ("/restapis/normal/preBuiltFunctionNodeJsRuntime", "Hello World from nodejs pre built function 7"),

@@ -1,6 +1,7 @@
 from art import *
 
-ART = art('random')
+ART = art("random")
+
 
 def get_dependency():
-   return 2
+    return 2
