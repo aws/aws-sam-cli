@@ -15,15 +15,12 @@ export class NestedStack1 extends cdk.NestedStack {
         super(scope, id, props);
 
         // Shared Layers
-        // https://docs.aws.amazon.com/cdk/api/v1/docs/@aws-cdk_lambda-layer-awscli.AwsCliLayer.html
         const awsCliLayer = new AwsCliLayer(this, 'AwsCliLayer');
-        // https://docs.aws.amazon.com/cdk/api/v1/docs/@aws-cdk_lambda-layer-kubectl.KubectlLayer.html
         const kubectlLayer = new KubectlLayer(this, 'KubectlLayer');
         const nodeProxyAgentLayer = new NodeProxyAgentLayer(this, 'NodeProxyAgentLayer');
 
         // Python Runtime
         // Layers
-        // https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-lambda-python.PythonLayerVersion.html
         const pythonLayerVersion = new PythonLayerVersion(this, 'PythonLayerVersion', {
           compatibleRuntimes: [
             lambda.Runtime.PYTHON_3_7,
@@ -32,7 +29,6 @@ export class NestedStack1 extends cdk.NestedStack {
           ],
           entry: '../../src/python/layers/PythonLayerVersion',
         });
-        // https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-lambda.LayerVersion.html
         const layerVersion = new lambda.LayerVersion(this, 'LayerVersion', {
           compatibleRuntimes: [
             lambda.Runtime.PYTHON_3_7,
@@ -47,7 +43,6 @@ export class NestedStack1 extends cdk.NestedStack {
 
         // ZIP package type Functions
         // Functions Built by CDK - Runtime Functions Constructs
-        // https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-lambda-python.PythonFunction.html
         const nestedPythonFunction = new PythonFunction(this, 'NestedPythonFunction', {
           entry: '../../src/python/NestedPythonFunctionConstruct',
           index: 'app.py',

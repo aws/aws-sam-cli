@@ -64,14 +64,6 @@ install:
   - sh: "./aws_cli/bin/python -m pip install awscli"
   - sh: "PATH=$(echo $PWD'/aws_cli/bin'):$PATH"
 
-  # Install latest maven
-  - sh: "sudo apt update"
-  - sh: "sudo apt install maven"
-  - sh: "mvn --version"
-  - sh: "sudo ls -lrt /home/appveyor"
-  - sh: "mkdir -p /home/appveyor/.m2/repository"
-  - sh: "sudo ls -lrt /home/appveyor/.m2"
-
   - sh: "sudo apt-get -y install python3.6"
   - sh: "sudo apt-get -y install python2.7"
   - sh: "sudo apt-get -y install python3.7"
