@@ -1,0 +1,53 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::Serverless-2016-10-31",
+  "Resources": {
+    "ServerlessApi": {
+      "Type": "AWS::Serverless::Api",
+      "Properties": {
+        "StageName": "Prod",
+        "Auth": {
+          "DefaultAuthorizer": "Authorizer",
+          "Authorizers": {
+            "Authorizer": {
+              "AuthorizerPayloadFormatVersion": "2.0",
+              "FunctionArn": {
+                "Fn::ImportValue": "AuthorizerFunction"
+              }
+            }
+          }
+        },
+        "DefinitionBody": {
+          "Fn::Transform": {
+            "Name": "AWS::Include",
+            "Parameters": {"Location": "./openapi.json"}
+          }
+        }
+      }
+    },
+    "ServerlessHttpApi": {
+      "Type": "AWS::Serverless::HttpApi",
+      "Properties": {
+        "StageName": "Prod",
+        "Auth": {
+          "DefaultAuthorizer": "Authorizer",
+          "Authorizers": {
+            "Authorizer": {
+              "AuthorizerPayloadFormatVersion": "2.0",
+              "FunctionArn": {
+                "Fn::ImportValue": "AuthorizerFunction"
+              }
+            }
+          }
+        },
+        "CorsConfiguration": true,
+        "DefinitionBody": {
+          "Fn::Transform": {
+            "Name": "AWS::Include",
+            "Parameters": {"Location": "./openapi.json"}
+          }
+        }
+      }
+    }
+  }
+}

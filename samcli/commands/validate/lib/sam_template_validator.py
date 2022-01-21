@@ -3,6 +3,7 @@ Library for Validating Sam Templates
 """
 import logging
 import functools
+from pathlib import Path
 
 from samtranslator.public.exceptions import InvalidDocumentException
 from samtranslator.parser import parser
@@ -10,8 +11,8 @@ from samtranslator.translator.translator import Translator
 from boto3.session import Session
 
 from samcli.lib.utils.packagetype import ZIP, IMAGE
-from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION
-from samcli.yamlhelper import yaml_dump
+from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION, AWS_SERVERLESS_API, AWS_SERVERLESS_HTTPAPI
+from samcli.yamlhelper import yaml_dump, parse_yaml_file
 from .exceptions import InvalidSamDocumentException
 
 LOG = logging.getLogger(__name__)
@@ -65,6 +66,7 @@ class SamTemplateValidator:
 
         self._replace_local_codeuri()
         self._replace_local_image()
+        self._replace_local_openapi()
 
         try:
             template = sam_translator.translate(sam_template=self.sam_template, parameter_values={})
@@ -139,6 +141,33 @@ class SamTemplateValidator:
                 if "ImageUri" not in properties:
                     properties["ImageUri"] = "111111111111.dkr.ecr.region.amazonaws.com/repository"
 
+    def _replace_local_openapi(self):
+        """
+        Applies Transform Include of DefinitionBody.
+        Without this validation fails.
+        """
+        # look for transform that includes a yaml definition like this:
+        # DefinitionBody:
+        #   'Fn::Transform':
+        #     Name: AWS::Include
+        #     Parameters:
+        #       Location: openapi.yaml
+        resources = self.sam_template.get("Resources", {})
+        for _, resource in resources.items():
+            if not resource.get("Type", "") in [AWS_SERVERLESS_API, AWS_SERVERLESS_HTTPAPI]:
+                continue
+
+            transform_dict = resource.get("Properties", {}).get("DefinitionBody", {}).get("Fn::Transform", {})
+            if transform_dict.get("Name", "") != "AWS::Include":
+                continue
+
+            location_prop = transform_dict.get("Parameters", {}).get("Location", "")
+            if not Path(location_prop).is_file():
+                LOG.debug("Couldn't find file %s to import definition body", location_prop)
+                continue
+
+            SamTemplateValidator._replace_with_file_contents(resource.get("Properties", {}), location_prop)
+
     @staticmethod
     def is_s3_uri(uri):
         """
@@ -180,3 +209,11 @@ class SamTemplateValidator:
             return
 
         resource_property_dict[property_key] = s3_uri_value
+
+    @staticmethod
+    def _replace_with_file_contents(resource_property_dict, location_prop):
+        definition_body = parse_yaml_file(location_prop)
+        LOG.debug("Imported definition body from %s", location_prop)
+
+        # replace the definition body from the file
+        resource_property_dict["DefinitionBody"] = definition_body
