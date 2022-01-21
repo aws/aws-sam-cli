@@ -141,7 +141,7 @@ class TestConversionFunctions(TestCase):
 
         toml_table = _layer_build_definition_to_toml_table(build_definition)
 
-        self.assertEqual(toml_table[LAYER_NAME_FIELD], build_definition.name)
+        self.assertEqual(toml_table[LAYER_NAME_FIELD], build_definition.full_path)
         self.assertEqual(toml_table[CODE_URI_FIELD], build_definition.codeuri)
         self.assertEqual(toml_table[BUILD_METHOD_FIELD], build_definition.build_method)
         self.assertEqual(toml_table[COMPATIBLE_RUNTIMES_FIELD], build_definition.compatible_runtimes)
@@ -192,7 +192,7 @@ class TestConversionFunctions(TestCase):
 
         build_definition = _toml_table_to_layer_build_definition(uuid, toml_table)
 
-        self.assertEqual(build_definition.name, toml_table[LAYER_NAME_FIELD])
+        self.assertEqual(build_definition.full_path, toml_table[LAYER_NAME_FIELD])
         self.assertEqual(build_definition.codeuri, toml_table[CODE_URI_FIELD])
         self.assertEqual(build_definition.build_method, toml_table[BUILD_METHOD_FIELD])
         self.assertEqual(build_definition.uuid, uuid)
@@ -224,7 +224,7 @@ class TestConversionFunctions(TestCase):
 
         toml_table = _layer_build_definition_to_toml_table(build_definition)
 
-        self.assertEqual(toml_table[LAYER_NAME_FIELD], build_definition.name)
+        self.assertEqual(toml_table[LAYER_NAME_FIELD], build_definition.full_path)
         self.assertEqual(toml_table[CODE_URI_FIELD], build_definition.codeuri)
         self.assertEqual(toml_table[BUILD_METHOD_FIELD], build_definition.build_method)
         self.assertEqual(toml_table[COMPATIBLE_RUNTIMES_FIELD], build_definition.compatible_runtimes)
@@ -264,7 +264,7 @@ class TestConversionFunctions(TestCase):
 
         build_definition = _toml_table_to_layer_build_definition(uuid, toml_table)
 
-        self.assertEqual(build_definition.name, toml_table[LAYER_NAME_FIELD])
+        self.assertEqual(build_definition.full_path, toml_table[LAYER_NAME_FIELD])
         self.assertEqual(build_definition.codeuri, toml_table[CODE_URI_FIELD])
         self.assertEqual(build_definition.build_method, toml_table[BUILD_METHOD_FIELD])
         self.assertEqual(build_definition.uuid, uuid)
@@ -412,7 +412,7 @@ class TestBuildGraph(TestCase):
                 self.assertEqual(function_build_definition.env_vars, TestBuildGraph.ENV_VARS)
 
             for layer_build_definition in build_graph.get_layer_build_definitions():
-                self.assertEqual(layer_build_definition.name, TestBuildGraph.LAYER_NAME)
+                self.assertEqual(layer_build_definition.full_path, TestBuildGraph.LAYER_NAME)
                 self.assertEqual(layer_build_definition.codeuri, TestBuildGraph.LAYER_CODEURI)
                 self.assertEqual(layer_build_definition.build_method, TestBuildGraph.LAYER_RUNTIME)
                 self.assertEqual(layer_build_definition.source_hash, TestBuildGraph.SOURCE_HASH)
@@ -646,25 +646,25 @@ class TestBuildGraph(TestCase):
 
     def test_empty_get_function_build_definition_with_logical_id(self):
         build_graph = BuildGraph("build_dir")
-        self.assertIsNone(build_graph.get_function_build_definition_with_logical_id("function_logical_id"))
+        self.assertIsNone(build_graph.get_function_build_definition_with_full_path("function_logical_id"))
 
     def test_get_function_build_definition_with_logical_id(self):
         build_graph = BuildGraph("build_dir")
         logical_id = "function_logical_id"
         function = Mock()
-        function.name = logical_id
+        function.full_path = logical_id
         function_build_definition = Mock(functions=[function])
         build_graph._function_build_definitions = [function_build_definition]
 
         self.assertEqual(
-            build_graph.get_function_build_definition_with_logical_id(logical_id), function_build_definition
+            build_graph.get_function_build_definition_with_full_path(logical_id), function_build_definition
         )
 
 
 class TestBuildDefinition(TestCase):
     def test_single_function_should_return_function_and_handler_name(self):
         build_definition = FunctionBuildDefinition(
-            "runtime", "codeuri", ZIP, X86_64, "metadata", "source_hash", "manifest_hash", {"env_vars": "value"}
+            "runtime", "codeuri", ZIP, X86_64, {}, "source_hash", "manifest_hash", {"env_vars": "value"}
         )
         build_definition.add_function(generate_function())
         self.assertEqual(build_definition.get_handler_name(), "handler")
@@ -672,7 +672,7 @@ class TestBuildDefinition(TestCase):
 
     def test_no_function_should_raise_exception(self):
         build_definition = FunctionBuildDefinition(
-            "runtime", "codeuri", ZIP, X86_64, "metadata", "source_hash", "manifest_hash", {"env_vars": "value"}
+            "runtime", "codeuri", ZIP, X86_64, {}, "source_hash", "manifest_hash", {"env_vars": "value"}
         )
 
         self.assertRaises(InvalidBuildGraphException, build_definition.get_handler_name)
@@ -684,6 +684,28 @@ class TestBuildDefinition(TestCase):
         )
         build_definition2 = FunctionBuildDefinition(
             "runtime", "codeuri", ZIP, ARM64, {"key": "value"}, "source_hash", "manifest_hash"
+        )
+
+        self.assertEqual(build_definition1, build_definition2)
+
+    def test_skip_sam_related_metadata_should_reflect_as_same_object(self):
+        build_definition1 = FunctionBuildDefinition(
+            "runtime",
+            "codeuri",
+            ZIP,
+            ARM64,
+            {"key": "value", "SamResourceId": "resourceId1", "SamNormalized": True},
+            "source_hash",
+            "manifest_hash",
+        )
+        build_definition2 = FunctionBuildDefinition(
+            "runtime",
+            "codeuri",
+            ZIP,
+            ARM64,
+            {"key": "value", "SamResourceId": "resourceId2", "SamNormalized": True},
+            "source_hash",
+            "manifest_hash",
         )
 
         self.assertEqual(build_definition1, build_definition2)

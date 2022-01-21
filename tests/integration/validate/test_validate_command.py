@@ -84,7 +84,7 @@ class TestValidate(TestCase):
         output = command_result.stdout.decode("utf-8")
 
         warning_message = (
-            "Warning: CDK apps are not officially supported with this command.\n"
+            f"Warning: CDK apps are not officially supported with this command.{os.linesep}"
             "We recommend you use this alternative command: cdk doctor"
         )
 

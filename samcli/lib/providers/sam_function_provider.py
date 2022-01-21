@@ -4,6 +4,8 @@ Class that provides functions from a given SAM template
 import logging
 from typing import Dict, List, Optional, cast, Iterator, Any
 
+from samtranslator.policy_template_processor.exceptions import TemplateNotFoundException
+
 from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION,
     AWS_LAMBDA_LAYERVERSION,
@@ -11,9 +13,11 @@ from samcli.lib.utils.resources import (
     AWS_SERVERLESS_LAYERVERSION,
 )
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
+from samcli.commands._utils.template import TemplateFailedParsingException
 from samcli.lib.providers.exceptions import InvalidLayerReference
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.packagetype import ZIP, IMAGE
+from samcli.lib.utils.file_observer import FileObserver
 from .provider import Function, LayerVersion, Stack
 from .sam_base_provider import SamBaseProvider
 from .sam_stack_provider import SamLocalStackProvider
@@ -48,18 +52,27 @@ class SamFunctionProvider(SamBaseProvider):
         :param bool ignore_code_extraction_warnings: Ignores Log warnings
         """
 
-        self.stacks = stacks
+        self._stacks = stacks
 
         for stack in stacks:
             LOG.debug("%d resources found in the stack %s", len(stack.resources), stack.stack_path)
 
         # Store a map of function full_path to function information for quick reference
         self.functions = SamFunctionProvider._extract_functions(
-            self.stacks, use_raw_codeuri, ignore_code_extraction_warnings
+            self._stacks, use_raw_codeuri, ignore_code_extraction_warnings
         )
 
         self._deprecated_runtimes = {"nodejs4.3", "nodejs6.10", "nodejs8.10", "dotnetcore2.0"}
         self._colored = Colored()
+
+    @property
+    def stacks(self) -> List[Stack]:
+        """
+        Returns the list of stacks (including the root stack and all children stacks)
+
+        :return list: list of stacks
+        """
+        return self._stacks
 
     def get(self, name: str) -> Optional[Function]:
         """
@@ -286,22 +299,11 @@ class SamFunctionProvider(SamBaseProvider):
         str
             The unique function id
         """
-        resource_cdk_path = resource_properties.get("Metadata", {}).get("aws:cdk:path")
+        function_id = resource_properties.get("Metadata", {}).get("SamResourceId")
+        if isinstance(function_id, str) and function_id:
+            return function_id
 
-        if not isinstance(resource_cdk_path, str) or not resource_cdk_path:
-            return logical_id
-
-        # aws:cdk:path metadata format of functions: {stack_id}/{function_id}/Resource
-        # Design doc of CDK path: https://github.com/aws/aws-cdk/blob/master/design/construct-tree.md
-        cdk_path_partitions = resource_cdk_path.split("/")
-
-        if len(cdk_path_partitions) < 2:
-            LOG.warning(
-                "Cannot detect function id from aws:cdk:path metadata '%s', using default logical id", resource_cdk_path
-            )
-            return logical_id
-
-        return cdk_path_partitions[-2]
+        return logical_id
 
     @staticmethod
     def _convert_lambda_function_resource(
@@ -541,7 +543,7 @@ class SamFunctionProvider(SamBaseProvider):
         )
 
     def get_resources_by_stack_path(self, stack_path: str) -> Dict:
-        candidates = [stack.resources for stack in self.stacks if stack.stack_path == stack_path]
+        candidates = [stack.resources for stack in self._stacks if stack.stack_path == stack_path]
         if not candidates:
             raise RuntimeError(f"Cannot find resources with stack_path = {stack_path}")
         return candidates[0]
@@ -561,3 +563,156 @@ class SamFunctionProvider(SamBaseProvider):
         let AWS SAM CLI to build this image function.
         """
         return isinstance(metadata, dict) and bool(metadata.get("DockerContext"))
+
+
+class RefreshableSamFunctionProvider(SamFunctionProvider):
+    """
+    Fetches and returns Lambda Functions from a SAM Template. The SAM template passed to this provider is assumed
+    to be valid, normalized and a dictionary. It also detects any stack template change, and refreshes the loaded
+    functions.
+
+    It may or may not contain a function.
+    """
+
+    def __init__(
+        self,
+        stacks: List[Stack],
+        parameter_overrides: Optional[Dict] = None,
+        global_parameter_overrides: Optional[Dict] = None,
+        use_raw_codeuri: bool = False,
+        ignore_code_extraction_warnings: bool = False,
+    ) -> None:
+        """
+        Initialize the class with SAM template data. The SAM template passed to this provider is assumed
+        to be valid, normalized and a dictionary. It should be normalized by running all pre-processing
+        before passing to this class. The process of normalization will remove structures like ``Globals``, resolve
+        intrinsic functions etc.
+        This class does not perform any syntactic validation of the template.
+
+        This Class will also initialize watchers, to check the stack templates for any update, and refresh the loaded
+        functions.
+
+        :param dict stacks: List of stacks functions are extracted from
+        :param bool use_raw_codeuri: Do not resolve adjust core_uri based on the template path, use the raw uri.
+            Note(xinhol): use_raw_codeuri is temporary to fix a bug, and will be removed for a permanent solution.
+        :param bool ignore_code_extraction_warnings: Ignores Log warnings
+        """
+
+        super().__init__(stacks, use_raw_codeuri, ignore_code_extraction_warnings)
+
+        # initialize root templates. Usually it will be one template, as sam commands only support processing
+        # one template. These templates will be fixed.
+        self._use_raw_codeuri = use_raw_codeuri
+        self._ignore_code_extraction_warnings = ignore_code_extraction_warnings
+        self._parameter_overrides = parameter_overrides
+        self._global_parameter_overrides = global_parameter_overrides
+        self.parent_templates_paths = []
+        for stack in self._stacks:
+            if stack.is_root_stack:
+                self.parent_templates_paths.append(stack.location)
+
+        self.is_changed = False
+        self._observer = FileObserver(self._set_templates_changed)
+        self._observer.start()
+        self._watch_stack_templates(stacks)
+
+    @property
+    def stacks(self) -> List[Stack]:
+        """
+        It Checks if any template got changed, then refresh the loaded stacks, and functions.
+
+        Returns the list of stacks (including the root stack and all children stacks)
+
+        :return list: list of stacks
+        """
+        if self.is_changed:
+            self._refresh_loaded_functions()
+
+        return super().stacks
+
+    def get(self, name: str) -> Optional[Function]:
+        """
+        It Checks if any template got changed, then refresh the loaded functions before finding the required function.
+
+        Returns the function given name or LogicalId of the function. Every SAM resource has a logicalId, but it may
+        also have a function name. This method searches only for LogicalID and returns the function that matches.
+        If it is in a nested stack, "name" can be prefixed with stack path to avoid ambiguity.
+        For example, if a function with name "FunctionA" is located in StackN, which is a nested stack in root stack,
+          either "StackN/FunctionA" or "FunctionA" can be used.
+
+        :param string name: Name of the function
+        :return Function: namedtuple containing the Function information if function is found.
+                          None, if function is not found
+        :raises ValueError If name is not given
+        """
+
+        if self.is_changed:
+            self._refresh_loaded_functions()
+
+        return super().get(name)
+
+    def get_all(self) -> Iterator[Function]:
+        """
+        It Checks if any template got changed, then refresh the loaded functions before returning all available
+        functions.
+
+        Yields all the Lambda functions available in the SAM Template.
+
+        :yields Function: namedtuple containing the function information
+        """
+
+        if self.is_changed:
+            self._refresh_loaded_functions()
+
+        return super().get_all()
+
+    def get_resources_by_stack_path(self, stack_path: str) -> Dict:
+        if self.is_changed:
+            self._refresh_loaded_functions()
+        return super().get_resources_by_stack_path(stack_path)
+
+    def _set_templates_changed(self, paths: List[str]) -> None:
+        LOG.info(
+            "A change got detected in the templates %s. Mark templates as changed to be reloaded in the next invoke",
+            ", ".join(paths),
+        )
+        self.is_changed = True
+        for stack in self._stacks:
+            self._observer.unwatch(stack.location)
+
+    def _watch_stack_templates(self, stacks: List[Stack]) -> None:
+        """
+        initialize the list of stack template watchers
+        """
+        for stack in stacks:
+            self._observer.watch(stack.location)
+
+    def _refresh_loaded_functions(self) -> None:
+        """
+        Reload the stacks, and lambda functions from template files.
+        """
+        LOG.debug("A change got detected in one of the stack templates. Reload the lambda function resources")
+        self._stacks = []
+
+        for template_file in self.parent_templates_paths:
+            try:
+                template_stacks, _ = SamLocalStackProvider.get_stacks(
+                    template_file,
+                    parameter_overrides=self._parameter_overrides,
+                    global_parameter_overrides=self._global_parameter_overrides,
+                )
+                self._stacks += template_stacks
+            except (TemplateNotFoundException, TemplateFailedParsingException) as ex:
+                raise ex
+
+        self.is_changed = False
+        self.functions = self._extract_functions(
+            self._stacks, self._use_raw_codeuri, self._ignore_code_extraction_warnings
+        )
+        self._watch_stack_templates(self._stacks)
+
+    def stop_observer(self) -> None:
+        """
+        Stop Observing.
+        """
+        self._observer.stop()

@@ -30,12 +30,12 @@ class NestedStackBuilder(AbstractStackBuilder):
         layer_contents_folder: str,
         function: Function,
     ) -> str:
-        layer_logical_id = self.get_layer_logical_id(function.name)
-        layer_name = self.get_layer_name(stack_name, function.name)
+        layer_logical_id = self.get_layer_logical_id(function.full_path)
+        layer_name = self.get_layer_name(stack_name, function.full_path)
 
         self.add_resource(
             layer_logical_id,
-            self._get_layer_dict(function.name, layer_name, layer_contents_folder, cast(str, function.runtime)),
+            self._get_layer_dict(function.full_path, layer_name, layer_contents_folder, cast(str, function.runtime)),
         )
         self.add_output(layer_logical_id, {"Ref": layer_logical_id})
         return layer_logical_id

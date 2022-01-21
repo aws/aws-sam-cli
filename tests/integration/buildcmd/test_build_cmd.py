@@ -9,7 +9,6 @@ from unittest import skipIf
 
 import jmespath
 import docker
-import jmespath
 import pytest
 from parameterized import parameterized, parameterized_class
 
@@ -240,27 +239,59 @@ class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+@parameterized_class(
+    (
+        "template",
+        "FUNCTION_LOGICAL_ID",
+        "overrides",
+        "runtime",
+        "codeuri",
+        "use_container",
+        "check_function_only",
+        "prop",
+    ),
+    [
+        ("template.yaml", "Function", True, "python2.7", "Python", False, False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.6", "Python", False, False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.7", "Python", False, False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.8", "Python", False, False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.9", "Python", False, False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.7", "PythonPEP600", False, False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.8", "PythonPEP600", False, False, "CodeUri"),
+        ("template.yaml", "Function", True, "python2.7", "Python", "use_container", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.6", "Python", "use_container", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.7", "Python", "use_container", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.8", "Python", "use_container", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.9", "Python", "use_container", False, "CodeUri"),
+        (
+            "cdk_v1_synthesized_template_zip_image_functions.json",
+            "RandomCitiesFunction5C47A2B8",
+            False,
+            None,
+            None,
+            False,
+            True,
+            "Code",
+        ),
+    ],
+)
 class TestBuildCommand_PythonFunctions(BuildIntegPythonBase):
-    @parameterized.expand(
-        [
-            ("python2.7", "Python", False),
-            ("python3.6", "Python", False),
-            ("python3.7", "Python", False),
-            ("python3.8", "Python", False),
-            ("python3.9", "Python", False),
-            # numpy 1.20.3 (in PythonPEP600/requirements.txt) only support python 3.7+
-            ("python3.7", "PythonPEP600", False),
-            ("python3.8", "PythonPEP600", False),
-            ("python2.7", "Python", "use_container"),
-            ("python3.6", "Python", "use_container"),
-            ("python3.7", "Python", "use_container"),
-            ("python3.8", "Python", "use_container"),
-            ("python3.9", "Python", "use_container"),
-        ]
-    )
+    overrides = True
+    runtime = "python2.7"
+    codeuri = "Python"
+    use_container = False
+    check_function_only = False
+
     @pytest.mark.flaky(reruns=3)
-    def test_with_default_requirements(self, runtime, codeuri, use_container):
-        self._test_with_default_requirements(runtime, codeuri, use_container, self.test_data_path)
+    def test_with_default_requirements(self):
+        self._test_with_default_requirements(
+            self.runtime,
+            self.codeuri,
+            self.use_container,
+            self.test_data_path,
+            do_override=self.overrides,
+            check_function_only=self.check_function_only,
+        )
 
 
 @skipIf(
@@ -290,7 +321,9 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
     )
     @pytest.mark.flaky(reruns=3)
     def test_with_default_requirements(self, runtime, codeuri, use_container, architecture):
-        self._test_with_default_requirements(runtime, codeuri, use_container, self.test_data_path, architecture)
+        self._test_with_default_requirements(
+            runtime, codeuri, use_container, self.test_data_path, architecture=architecture
+        )
 
 
 @skipIf(
@@ -362,13 +395,13 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
-    @parameterized.expand(["ruby2.5", "ruby2.7"])
+    @parameterized.expand(["ruby2.7"])
     @pytest.mark.flaky(reruns=3)
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_building_ruby_in_container(self, runtime):
         self._test_with_default_gemfile(runtime, "use_container", "Ruby", self.test_data_path)
 
-    @parameterized.expand(["ruby2.5", "ruby2.7"])
+    @parameterized.expand(["ruby2.7"])
     @pytest.mark.flaky(reruns=3)
     def test_building_ruby_in_process(self, runtime):
         self._test_with_default_gemfile(runtime, False, "Ruby", self.test_data_path)
@@ -381,13 +414,13 @@ class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
 class TestBuildCommand_RubyFunctions_With_Architecture(BuildIntegRubyBase):
     template = "template_with_architecture.yaml"
 
-    @parameterized.expand(["ruby2.5", "ruby2.7", ("ruby2.7", "arm64")])
+    @parameterized.expand(["ruby2.7", ("ruby2.7", "arm64")])
     @pytest.mark.flaky(reruns=3)
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_building_ruby_in_container_with_specified_architecture(self, runtime, architecture="x86_64"):
         self._test_with_default_gemfile(runtime, "use_container", "Ruby", self.test_data_path, architecture)
 
-    @parameterized.expand(["ruby2.5", "ruby2.7", ("ruby2.7", "arm64")])
+    @parameterized.expand(["ruby2.7", ("ruby2.7", "arm64")])
     @pytest.mark.flaky(reruns=3)
     def test_building_ruby_in_process_with_specified_architecture(self, runtime, architecture="x86_64"):
         self._test_with_default_gemfile(runtime, False, "Ruby", self.test_data_path, architecture)
@@ -403,7 +436,7 @@ class TestBuildCommand_RubyFunctionsWithGemfileInTheRoot(BuildIntegRubyBase):
     This doesn't apply to containerized build, since it copies only the function folder to the container
     """
 
-    @parameterized.expand([("ruby2.5"), ("ruby2.7")])
+    @parameterized.expand([("ruby2.7")])
     @pytest.mark.flaky(reruns=3)
     def test_building_ruby_in_process_with_root_gemfile(self, runtime):
         self._prepare_application_environment()
@@ -947,8 +980,15 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
     EXPECTED_FILES_PROJECT_MANIFEST = {"__init__.py", "main.py", "requirements.txt"}
     EXPECTED_LAYERS_FILES_PROJECT_MANIFEST = {"__init__.py", "layer.py", "numpy", "requirements.txt"}
 
-    @parameterized.expand([("python3.7", False, "LayerOne"), ("python3.7", "use_container", "LayerOne")])
-    def test_build_single_layer(self, runtime, use_container, layer_identifier):
+    @parameterized.expand(
+        [
+            ("python3.7", False, "LayerOne", "ContentUri"),
+            ("python3.7", "use_container", "LayerOne", "ContentUri"),
+            ("python3.7", False, "LambdaLayerOne", "Content"),
+            ("python3.7", "use_container", "LambdaLayerOne", "Content"),
+        ]
+    )
+    def test_build_single_layer(self, runtime, use_container, layer_identifier, content_property):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
@@ -966,7 +1006,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             self.default_build_dir,
             layer_identifier,
             self.EXPECTED_LAYERS_FILES_PROJECT_MANIFEST,
-            "ContentUri",
+            content_property,
             "python",
         )
 
@@ -1307,12 +1347,12 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
             (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
-            (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
+            (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.7"),
             # container
             (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
-            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
+            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.7"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -1430,12 +1470,12 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
             (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
-            (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
+            (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.7"),
             # container
             (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
-            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
+            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.7"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -1561,12 +1601,12 @@ class TestParallelBuilds(DedupBuildIntegBase):
             (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
-            (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
+            (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.7"),
             # container
             (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
-            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
+            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.7"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
