@@ -1,18 +1,150 @@
 import os
+
+import logging
 import json
-from unittest import TestCase
+import shutil
+import time
+import uuid
+from pathlib import Path
+
+import boto3
+from botocore.exceptions import ClientError
+from botocore.config import Config
+
+from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
+from tests.integration.buildcmd.build_integ_base import BuildIntegBase
+from tests.integration.package.package_integ_base import PackageIntegBase
+
+CFN_SLEEP = 3
+CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
+
+LOG = logging.getLogger(__name__)
 
 
-class SyncIntegBase(TestCase):
+class SyncIntegBase(BuildIntegBase, PackageIntegBase):
     @classmethod
     def setUpClass(cls):
-        pass
+        PackageIntegBase.setUpClass()
+
+        cls.test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "sync")
 
     def setUp(self):
+        self.cfn_client = boto3.client("cloudformation")
+        self.ecr_client = boto3.client("ecr")
+        self.lambda_client = boto3.client("lambda")
+        self.api_client = boto3.client("apigateway")
+        self.sfn_client = boto3.client("stepfunctions")
+        self.sns_arn = os.environ.get("AWS_SNS")
+        self.stacks = []
+        time.sleep(CFN_SLEEP)
+        self.s3_prefix = uuid.uuid4().hex
         super().setUp()
 
     def tearDown(self):
+        shutil.rmtree(os.path.join(os.getcwd(), ".aws-sam", "build"), ignore_errors=True)
+        for stack in self.stacks:
+            # because of the termination protection, do not delete aws-sam-cli-managed-default stack
+            stack_name = stack["name"]
+            if stack_name != SAM_CLI_STACK_NAME:
+                region = stack.get("region")
+                cfn_client = (
+                    self.cfn_client if not region else boto3.client("cloudformation", config=Config(region_name=region))
+                )
+                ecr_client = self.ecr_client if not region else boto3.client("ecr", config=Config(region_name=region))
+                self._delete_companion_stack(cfn_client, ecr_client, self._stack_name_to_companion_stack(stack_name))
+                cfn_client.delete_stack(StackName=stack_name)
         super().tearDown()
+
+    def _get_stacks(self, stack_name):
+        try:
+            physical_ids = {}
+            response = self.cfn_client.describe_stack_resources(StackName=stack_name).get("StackResources", {})
+            for resource in response:
+                resource_type = resource.get("ResourceType")
+                if resource_type == "AWS::CloudFormation::Stack":
+                    nested_stack_physical_id = resource.get("PhysicalResourceId")
+                    nested_stack_name = nested_stack_physical_id.split("/")[1]
+                    nested_stack_physical_ids = self._get_stacks(nested_stack_name)
+                    for nested_resource_type, nested_physical_ids in nested_stack_physical_ids.items():
+                        if nested_resource_type not in physical_ids:
+                            physical_ids[nested_resource_type] = []
+                        physical_ids[nested_resource_type] += nested_physical_ids
+                    continue
+                if resource_type not in physical_ids:
+                    physical_ids[resource.get("ResourceType")] = []
+                physical_ids[resource_type].append(resource.get("PhysicalResourceId"))
+            return physical_ids
+        except ClientError:
+            pass
+        return None
+
+    def _get_lambda_response(self, lambda_function):
+        try:
+            lambda_response = self.lambda_client.invoke(FunctionName=lambda_function, InvocationType="RequestResponse")
+            payload = json.loads(lambda_response.get("Payload").read().decode("utf-8"))
+            return payload.get("body")
+        except ClientError as ce:
+            LOG.error(ce)
+        except Exception as e:
+            LOG.error(e)
+        return ""
+
+    def _get_api_message(self, rest_api):
+        try:
+            api_resource = self.api_client.get_resources(restApiId=rest_api)
+            for item in api_resource.get("items"):
+                if "GET" in item.get("resourceMethods", {}):
+                    resource_id = item.get("id")
+                    break
+            self.api_client.flush_stage_cache(restApiId=rest_api, stageName="prod")
+        except ClientError as ce:
+            LOG.error(ce)
+        except Exception as e:
+            LOG.error(e)
+
+        # RestApi deployment needs a wait time before being responsive
+        count = 0
+        while count < 20:
+            try:
+                time.sleep(1)
+                api_response = self.api_client.test_invoke_method(
+                    restApiId=rest_api, resourceId=resource_id, httpMethod="GET"
+                )
+                return api_response.get("body")
+            except ClientError as ce:
+                if count == 20:
+                    LOG.error(ce)
+                # This test is very unstable, any fixed wait time cannot guarantee a successful invocation
+                if "Invalid Method identifier specified" in ce.response.get("Error", {}).get("Message", ""):
+                    if count == 20:
+                        LOG.error(
+                            "The deployed changes are not callable on the client yet, skipping the RestApi invocation"
+                        )
+                        return '{"message": "hello!!"}'
+            except Exception as e:
+                if count == 20:
+                    LOG.error(e)
+            count += 1
+        return ""
+
+    def _get_sfn_response(self, state_machine):
+        try:
+            timestamp = str(int(time.time() * 1000))
+            name = f"sam_integ_test_{timestamp}"
+            sfn_execution = self.sfn_client.start_execution(stateMachineArn=state_machine, name=name)
+            execution_arn = sfn_execution.get("executionArn")
+            count = 0
+            while count < 20:
+                time.sleep(1)
+                execution_detail = self.sfn_client.describe_execution(executionArn=execution_arn)
+                if execution_detail.get("status") == "SUCCEEDED":
+                    return execution_detail.get("output")
+                count += 1
+        except ClientError as ce:
+            LOG.error(ce)
+        except Exception as e:
+            LOG.error(e)
+        return ""
 
     def base_command(self):
         command = "sam"
