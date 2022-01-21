@@ -1,0 +1,6 @@
+---
+openapi: 3.0.0
+paths:
+  /test:
+    get:
+      summary: Get test
