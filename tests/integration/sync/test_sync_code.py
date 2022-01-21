@@ -39,6 +39,7 @@ TEMP_DIR = ""
 STACK_NAME = ""
 TEMPLATE_PATH = ""
 
+
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
 class TestSyncCode(SyncIntegBase):
     @pytest.fixture(autouse=True, scope="class")
