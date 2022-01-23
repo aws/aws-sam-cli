@@ -1,16 +1,23 @@
 <p align="center">
 </p>
 
-# AWS SAM
+# AWS SAM CLI
 
 ![Apache-2.0](https://img.shields.io/npm/l/aws-sam-local.svg)
 ![SAM CLI Version](https://img.shields.io/github/release/awslabs/aws-sam-cli.svg?label=CLI%20Version)
 
-The AWS Serverless Application Model (SAM) is an open-source framework for building serverless applications. 
-It provides shorthand syntax to express functions, APIs, databases, and event source mappings. 
-With just a few lines of configuration, you can define the application you want and model it.
+The AWS Serverless Application Model (SAM) CLI is an open-source CLI tool that helps you develop serverless applications. Some of the features it provides are -
+- Initialize serverless applications in minutes with AWS provided infrastructure templates with `sam init`
+- Compile, build, and package Lambda functions with provided runtimes and with custom makefile workflows, for zip and image types of Lambda functions with `sam build`
+- Locally test a Lambda function and Api Gateway easily in a Docker container with `sam local` commands
+- Quickly test your changes in the cloud with `sam sync` in your developer environments
+- Deploy your SAM Tranform templates using CLoudformation with `sam deploy`
+- Quickly create pipelines with prebuilt templates with popular CI/CD systems
+- Tail Cloudwatch and XRay logs with `sam log`
 
-[![Getting Started with AWS SAM](./media/get-started-youtube.png)](https://www.youtube.com/watch?v=1dzihtC5LJ0)
+# Latest blogs on SAM CLI
+<!-- BLOG-POST-LIST:START -->
+<!-- BLOG-POST-LIST:END -->
 
 ![AWS SAM CLI help menu](https://user-images.githubusercontent.com/3770774/87969094-59d05a80-ca76-11ea-9c23-76306fa8592b.png)
 
