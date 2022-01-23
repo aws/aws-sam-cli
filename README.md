@@ -6,6 +6,7 @@
 ![Apache-2.0](https://img.shields.io/npm/l/aws-sam-local.svg)
 ![SAM CLI Version](https://img.shields.io/github/release/awslabs/aws-sam-cli.svg?label=CLI%20Version)
 ![Install](https://img.shields.io/badge/brew-aws--sam--cli-orange)
+![pip](https://img.shields.io/badge/pip-aws--sam--cli-9cf)
 
 [Installation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) | [Blogs](https://serverlessland.com/blog?tag=AWS%20SAM) | [Videos](https://serverlessland.com/video?tag=AWS%20SAM) | [AWS Docs](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) | [Roadmap](https://github.com/aws/aws-sam-cli/wiki/SAM-CLI-Roadmap)
 
