@@ -5,30 +5,29 @@
 
 ![Apache-2.0](https://img.shields.io/npm/l/aws-sam-local.svg)
 ![SAM CLI Version](https://img.shields.io/github/release/awslabs/aws-sam-cli.svg?label=CLI%20Version)
+![Install](https://img.shields.io/badge/brew-aws--sam--cli-orange)
+
+[Installation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) | [Blogs](https://serverlessland.com/blog?tag=AWS%20SAM) | [Videos](https://serverlessland.com/video?tag=AWS%20SAM) | [AWS Docs](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html)
 
 The AWS Serverless Application Model (SAM) CLI is an open-source CLI tool that helps you develop serverless applications. Some of the features it provides are -
-- Initialize serverless applications in minutes with AWS provided infrastructure templates with `sam init`
-- Compile, build, and package Lambda functions with provided runtimes and with custom makefile workflows, for zip and image types of Lambda functions with `sam build`
-- Locally test a Lambda function and Api Gateway easily in a Docker container with `sam local` commands
-- Quickly test your changes in the cloud with `sam sync` in your developer environments
-- Deploy your SAM Tranform templates using CLoudformation with `sam deploy`
-- Quickly create pipelines with prebuilt templates with popular CI/CD systems
-- Tail Cloudwatch and XRay logs with `sam log`
+- **Initialize serverless applications** in minutes with AWS provided infrastructure templates with `sam init`
+- **Compile, build, and package** Lambda functions with provided runtimes and with custom makefile workflows, for zip and image types of Lambda functions with `sam build`
+- **Locally test** a Lambda function and Api Gateway easily in a Docker container with `sam local` commands
+- **Sync and test your changes in the cloud** with `sam sync` in your developer environments
+- **Deploy** your SAM Tranform and Cloudformation templates using `sam deploy`
+- Quickly **create pipelines** with prebuilt templates with popular CI/CD systems using `sam pipeline init`
+- **Tail Cloudwatch logs and XRay traces** with `sam log` and `sam trace`
 
-# Latest blogs on SAM CLI
-<!-- BLOG-POST-LIST:START -->
-<!-- BLOG-POST-LIST:END -->
-
-![AWS SAM CLI help menu](https://user-images.githubusercontent.com/3770774/87969094-59d05a80-ca76-11ea-9c23-76306fa8592b.png)
 
 ## Get Started
 
 To get started with building SAM-based applications, use the SAM CLI. SAM CLI provides a Lambda-like execution 
-environment that lets you locally build, test, debug, and deploy applications defined by SAM templates.
+environment that lets you locally build, test, debug, and deploy [AWS serverless](https://aws.amazon.com/serverless/) applications.
 
 * [Install SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
 * [Build & Deploy a "Hello World" Web App](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-quick-start.html)
 * [Install AWS Toolkit](https://aws.amazon.com/getting-started/tools-sdks/#IDE_and_IDE_Toolkits) to use SAM with your favorite IDEs.
+* [Tutorials and Workshops](https://serverlessland.com/learn)
 
 
 **Next Steps:** Learn to build a more complex serverless application.
@@ -36,34 +35,20 @@ environment that lets you locally build, test, debug, and deploy applications de
 * [Detect when records are added to a database](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-example-ddb.html) using Amazon DynamoDB database and asynchronous stream processing.
 
 
-**Detailed References:** Explains SAM commands and usage in depth.
-* [CLI Commands](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-command-reference.html)
-* [SAM Template Specification](https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md)
-* [Policy Templates](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-templates.html)
-
-## Why SAM
-
-+ **Single\-deployment configuration**\. SAM makes it easy to organize related components and resources, and operate on a single stack\. You can use SAM to share configuration \(such as memory and timeouts\) between resources, and deploy all related resources together as a single, versioned entity\.
-   
-+ **Local debugging and testing**\. Use SAM CLI to locally build, test, and debug SAM applications on a Lambda-like execution environment. It tightens the development loop by helping you find & troubleshoot issues locally that you might otherwise identify only after deploying to the cloud.
-
-+ **Deep integration with development tools**. You can use SAM with a suite of tools you love and use.
-    + IDEs: [PyCharm](https://aws.amazon.com/pycharm/), [IntelliJ](https://aws.amazon.com/intellij/), [Visual Studio Code](https://aws.amazon.com/visualstudiocode/), [Visual Studio](https://aws.amazon.com/visualstudio/), [AWS Cloud9](https://aws.amazon.com/cloud9/)
-    + Build: [CodeBuild](https://docs.aws.amazon.com/codebuild/latest/userguide/)
-    + Deploy: [CodeDeploy](https://docs.aws.amazon.com/codedeploy/latest/userguide/), [Jenkins](https://wiki.jenkins.io/display/JENKINS/AWS+SAM+Plugin)
-    + Continuous Delivery Pipelines: [CodePipeline](https://docs.aws.amazon.com/codepipeline/latest/userguide/) 
-    + Discover Serverless Apps & Patterns: [AWS Serverless Application Repository](https://docs.aws.amazon.com/serverlessrepo/latest/devguide/)
-
-+ **Built\-in best practices**\. You can use SAM to define and deploy your infrastructure as configuration. This makes it possible for you to use and enforce best practices through code reviews. Also, with a few lines of configuration, you can enable safe deployments through CodeDeploy, and can enable tracing using AWS X\-Ray\.
-
-+ **Extension of AWS CloudFormation**\. Because SAM is an extension of AWS CloudFormation, you get the reliable deployment capabilities of AWS CloudFormation\. You can define resources by using CloudFormation in your SAM template\. Also, you can use the full suite of resources, intrinsic functions, and other template features that are available in CloudFormation\.
-
 ## What is this Github repository? 💻
 This Github Repository contains source code for SAM CLI. Here is the development team talking about this code:
 
 > SAM CLI code is written in Python. Source code is well documented, very modular, with 95% unit test coverage. 
 It uses this awesome Python library called Click to manage the command line interaction and uses Docker to run Lambda functions locally.
 We think you'll like the code base. Clone it and run `make pr` or `./Make -pr` on Windows!
+
+
+## Related Repositories and Resources
++ **SAM Transform** [Open source template specification](https://github.com/awslabs/serverless-application-model/) that provides shorthand syntax for Cloudformation
++ **SAM CLI Application Init templates** Get started quickly with [predefined application templates](https://github.com/aws/aws-sam-cli-app-templates/blob/master/README.md) for all supported runtimes and languages, used by `sam init`
++ **Lambda Builders** [Lambda builder tools](https://github.com/aws/aws-lambda-builders) for supported runtimes and custom build workflows, used by `sam build`
++ **Build and Local Emulation images for CI/CD tools** [Build container images](https://gallery.ecr.aws/sam/) to use with CI/CD tasks 
+
 
 ## Contribute to SAM
 
@@ -95,6 +80,4 @@ started.
 
 ### Join the SAM Community on Slack
 [Join the SAM developers channel (#samdev)](https://join.slack.com/t/awsdevelopers/shared_invite/zt-idww18e8-Z1kXhI7GNuDewkweCF3YjA) on Slack to collaborate with fellow community members and the AWS SAM team.
-
-
 
