@@ -33,6 +33,7 @@ environment that lets you locally build, test, debug, and deploy [AWS serverless
 **Next Steps:** Learn to build a more complex serverless application.
 * [Extract text from images and store in a database](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-example-s3.html) using Amazon S3 and Amazon Rekognition services.
 * [Detect when records are added to a database](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-example-ddb.html) using Amazon DynamoDB database and asynchronous stream processing.
+* [Explore popular patterns](https://serverlessland.com/patterns)
 
 
 ## What is this Github repository? 💻
