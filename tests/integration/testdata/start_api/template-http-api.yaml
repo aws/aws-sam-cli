@@ -1,0 +1,347 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Api:
+    BinaryMediaTypes:
+      # These are equivalent to image/gif and image/png when deployed
+      - image~1gif
+      - image~1png
+    Variables:
+      VarName: varValue
+    Cors: "'*''"
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.6
+      FunctionName: customname
+      CodeUri: .
+      Timeout: 600
+      Events:
+        IdBasePath:
+          Type: HttpApi
+          Properties:
+            Method: POST
+            Path: /id
+
+        PathWithAnyMethod:
+          Type: HttpApi
+          Properties:
+            Method: ANY
+            Path: /anyandall
+
+        ProxyPath:
+          Type: HttpApi
+          Properties:
+            Method: GET
+            Path: /proxypath/{proxy+}
+
+  EchoEventFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.echo_event_handler
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        PathWithPathParams:
+          Type: HttpApi
+          Properties:
+            Method: GET
+            Path: /id/{id}/user/{user}
+
+        PathWithPathParam:
+          Type: HttpApi
+          Properties:
+            Method: GET
+            Path: /id/{id}
+
+        EchoEventBodyPath:
+          Type: HttpApi
+          Properties:
+            Method: POST
+            Path: /echoeventbody
+
+  EchoEventFunction2:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.echo_event_handler_2
+      Runtime: python3.6
+      Timeout: 600
+      CodeUri: .
+      Events:
+        EchoEventBodyPath:
+          Type: HttpApi
+          Properties:
+            Method: GET
+            Path: /echoeventbody
+
+  EchoIntegerBodyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.echo_integer_body
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        EchoEventBodyPath:
+          Type: HttpApi
+          Properties:
+            Method: GET
+            Path: /echo_integer_body
+
+  ContentTypeSetterFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.content_type_setter_handler
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        ContentTypeSetter:
+          Type: HttpApi
+          Properties:
+            Method: GET
+            Path: /getcontenttype
+
+  OnlySetStatusCodeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.only_set_status_code_handler
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        OnlySetStatusCodePath:
+          Type: HttpApi
+          Properties:
+            Method: Get
+            Path: /onlysetstatuscode
+
+  OnlySetBodyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.only_set_body_handler
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        OnlySetBodyPath:
+          Type: HttpApi
+          Properties:
+            Method: Get
+            Path: /onlysetbody
+
+  StringStatusCodeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.string_status_code_handler
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        StringStatusCodePath:
+          Type: HttpApi
+          Properties:
+            Method: Get
+            Path: /stringstatuscode
+
+  SleepFunction0:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.sleep_10_sec_handler
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 20
+      Events:
+        SleepPath:
+          Type: HttpApi
+          Properties:
+            Method: GET
+            Path: /sleepfortenseconds/function0
+
+  SleepFunction1:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.sleep_10_sec_handler
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 20
+      Events:
+        SleepPath:
+          Type: HttpApi
+          Properties:
+            Method: GET
+            Path: /sleepfortenseconds/function1
+
+  WriteToStderrFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.write_to_stderr
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        WriteToStderrPath:
+          Type: HttpApi
+          Properties:
+            Method: GET
+            Path: /writetostderr
+
+  WriteToStdoutFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.write_to_stdout
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        WriteToStdoutPath:
+          Type: HttpApi
+          Properties:
+            Method: GET
+            Path: /writetostdout
+
+  ValidV2ResponseHashFromLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.invalid_hash_response
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        InvalidResponseReturned:
+          Type: HttpApi
+          Properties:
+            Method: GET
+            Path: /validv2responsehash
+
+  InValidV1ResponseHashFromLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.invalid_hash_response
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        InvalidResponseReturned:
+          Type: HttpApi
+          Properties:
+            Method: GET
+            Path: /invalidv1responsehash
+            PayloadFormatVersion: "1.0"
+
+  ValidV2StringResponseFromLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.invalid_response_returned
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        InvalidResponseReturned:
+          Type: HttpApi
+          Properties:
+            Method: GET
+            Path: /validv2responsestring
+
+  ValidV2IntegerResponseFromLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.integer_response_returned
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        InvalidResponseReturned:
+          Type: HttpApi
+          Properties:
+            Method: GET
+            Path: /validv2responseinteger
+
+  InValidV2ResponseFromLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.invalid_v2_respose_returned
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        InvalidResponseReturned:
+          Type: HttpApi
+          Properties:
+            Method: GET
+            Path: /invalidv2response
+
+  InValidV1StringResponseFromLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.invalid_response_returned
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        InvalidResponseReturned:
+          Type: HttpApi
+          Properties:
+            Method: GET
+            Path: /invalidv1responsestring
+            PayloadFormatVersion: "1.0"
+
+  Base64ResponseFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.base64_response
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        Base64ResponsePath:
+          Type: HttpApi
+          Properties:
+            Method: GET
+            Path: /base64response
+
+  EchoBase64EventBodyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.echo_base64_event_body
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        EchoBase64EventBodyPath:
+          Type: HttpApi
+          Properties:
+            Method: POST
+            Path: /echobase64eventbody
+
+  MultipleHeadersResponseFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.multiple_headers
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        IdBasePath:
+          Type: HttpApi
+          Properties:
+            Method: GET
+            Path: /multipleheaders
+
+  MultipleHeadersOverridesHeadersResponseFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.multiple_headers_overrides_headers
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        IdBasePath:
+          Type: HttpApi
+          Properties:
+            Method: GET
+            Path: /multipleheadersoverridesheaders

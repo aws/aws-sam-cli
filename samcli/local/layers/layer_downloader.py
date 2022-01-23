@@ -3,26 +3,23 @@ Downloads Layers locally
 """
 
 import logging
+from pathlib import Path
+from typing import List
 
 import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
 
+from samcli.lib.providers.provider import Stack, LayerVersion
 from samcli.lib.utils.codeuri import resolve_code_path
 from samcli.local.lambdafn.zip import unzip_from_uri
 from samcli.commands.local.cli_common.user_exceptions import CredentialsRequired, ResourceNotFound
-
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
 
 
 LOG = logging.getLogger(__name__)
 
 
-class LayerDownloader(object):
-
-    def __init__(self, layer_cache, cwd, lambda_client=None):
+class LayerDownloader:
+    def __init__(self, layer_cache, cwd, stacks: List[Stack], lambda_client=None):
         """
 
         Parameters
@@ -31,12 +28,20 @@ class LayerDownloader(object):
             path where to cache layers
         cwd str
             Current working directory
+        stacks List[Stack]
+            List of all stacks
         lambda_client boto3.client('lambda')
             Boto3 Client for AWS Lambda
         """
         self._layer_cache = layer_cache
         self.cwd = cwd
-        self.lambda_client = lambda_client or boto3.client('lambda')
+        self._stacks = stacks
+        self._lambda_client = lambda_client
+
+    @property
+    def lambda_client(self):
+        self._lambda_client = self._lambda_client or boto3.client("lambda")
+        return self._lambda_client
 
     @property
     def layer_cache(self):
@@ -73,7 +78,7 @@ class LayerDownloader(object):
 
         return layer_dirs
 
-    def download(self, layer, force=False):
+    def download(self, layer: LayerVersion, force=False) -> LayerVersion:
         """
         Download a given layer to the local cache.
 
@@ -94,8 +99,7 @@ class LayerDownloader(object):
             layer.codeuri = resolve_code_path(self.cwd, layer.codeuri)
             return layer
 
-        # disabling no-member due to https://github.com/PyCQA/pylint/issues/1660
-        layer_path = Path(self.layer_cache).joinpath(layer.name).resolve()  # pylint: disable=no-member
+        layer_path = Path(self.layer_cache).resolve().joinpath(layer.name)
         is_layer_downloaded = self._is_layer_cached(layer_path)
         layer.codeuri = str(layer_path)
 
@@ -103,12 +107,14 @@ class LayerDownloader(object):
             LOG.info("%s is already cached. Skipping download", layer.arn)
             return layer
 
-        layer_zip_path = layer.codeuri + '.zip'
+        layer_zip_path = layer.codeuri + ".zip"
         layer_zip_uri = self._fetch_layer_uri(layer)
-        unzip_from_uri(layer_zip_uri,
-                       layer_zip_path,
-                       unzip_output_dir=layer.codeuri,
-                       progressbar_label='Downloading {}'.format(layer.layer_arn))
+        unzip_from_uri(
+            layer_zip_uri,
+            layer_zip_path,
+            unzip_output_dir=layer.codeuri,
+            progressbar_label="Downloading {}".format(layer.layer_arn),
+        )
 
         return layer
 
@@ -132,17 +138,19 @@ class LayerDownloader(object):
             When the Credentials given are not sufficient to call AWS Lambda
         """
         try:
-            layer_version_response = self.lambda_client.get_layer_version(LayerName=layer.layer_arn,
-                                                                          VersionNumber=layer.version)
-        except NoCredentialsError:
-            raise CredentialsRequired("Layers require credentials to download the layers locally.")
+            layer_version_response = self.lambda_client.get_layer_version(
+                LayerName=layer.layer_arn, VersionNumber=layer.version
+            )
+        except NoCredentialsError as ex:
+            raise CredentialsRequired("Layers require credentials to download the layers locally.") from ex
         except ClientError as e:
-            error_code = e.response.get('Error').get('Code')
+            error_code = e.response.get("Error").get("Code")
             error_exc = {
-                'AccessDeniedException': CredentialsRequired(
+                "AccessDeniedException": CredentialsRequired(
                     "Credentials provided are missing lambda:Getlayerversion policy that is needed to download the "
-                    "layer or you do not have permission to download the layer"),
-                'ResourceNotFoundException': ResourceNotFound("{} was not found.".format(layer.arn))
+                    "layer or you do not have permission to download the layer"
+                ),
+                "ResourceNotFoundException": ResourceNotFound("{} was not found.".format(layer.arn)),
             }
 
             if error_code in error_exc:
@@ -153,7 +161,8 @@ class LayerDownloader(object):
 
         return layer_version_response.get("Content").get("Location")
 
-    def _is_layer_cached(self, layer_path):
+    @staticmethod
+    def _is_layer_cached(layer_path: Path) -> bool:
         """
         Checks if the layer is already cached on the system
 
@@ -179,10 +188,5 @@ class LayerDownloader(object):
         ----------
         layer_cache
             Directory to where the layers should be cached
-
-        Returns
-        -------
-        None
-
         """
         Path(layer_cache).mkdir(mode=0o700, parents=True, exist_ok=True)

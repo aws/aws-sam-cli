@@ -3,20 +3,23 @@ Library for Validating Sam Templates
 """
 import logging
 import functools
+from pathlib import Path
+
 from samtranslator.public.exceptions import InvalidDocumentException
 from samtranslator.parser import parser
 from samtranslator.translator.translator import Translator
-from samcli.yamlhelper import yaml_dump
-import six
+from boto3.session import Session
 
+from samcli.lib.utils.packagetype import ZIP, IMAGE
+from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION, AWS_SERVERLESS_API, AWS_SERVERLESS_HTTPAPI
+from samcli.yamlhelper import yaml_dump, parse_yaml_file
 from .exceptions import InvalidSamDocumentException
 
 LOG = logging.getLogger(__name__)
 
 
-class SamTemplateValidator(object):
-
-    def __init__(self, sam_template, managed_policy_loader):
+class SamTemplateValidator:
+    def __init__(self, sam_template, managed_policy_loader, profile=None, region=None):
         """
         Construct a SamTemplateValidator
 
@@ -40,6 +43,7 @@ class SamTemplateValidator(object):
         self.sam_template = sam_template
         self.managed_policy_loader = managed_policy_loader
         self.sam_parser = parser.Parser()
+        self.boto3_session = Session(profile_name=profile, region_name=region)
 
     def is_valid(self):
         """
@@ -53,35 +57,54 @@ class SamTemplateValidator(object):
         """
         managed_policy_map = self.managed_policy_loader.load()
 
-        sam_translator = Translator(managed_policy_map=managed_policy_map,
-                                    sam_parser=self.sam_parser,
-                                    plugins=[])
+        sam_translator = Translator(
+            managed_policy_map=managed_policy_map,
+            sam_parser=self.sam_parser,
+            plugins=[],
+            boto_session=self.boto3_session,
+        )
 
         self._replace_local_codeuri()
+        self._replace_local_image()
+        self._replace_local_openapi()
 
         try:
-            template = sam_translator.translate(sam_template=self.sam_template,
-                                                parameter_values={})
+            template = sam_translator.translate(sam_template=self.sam_template, parameter_values={})
             LOG.debug("Translated template is:\n%s", yaml_dump(template))
         except InvalidDocumentException as e:
             raise InvalidSamDocumentException(
-                functools.reduce(lambda message, error: message + ' ' + str(error), e.causes, str(e)))
+                functools.reduce(lambda message, error: message + " " + str(error), e.causes, str(e))
+            ) from e
 
     def _replace_local_codeuri(self):
         """
-        Replaces the CodeUri in AWS::Serverless::Function and DefinitionUri in AWS::Serverless::Api to a fake
-        S3 Uri. This is to support running the SAM Translator with valid values for these fields. If this in not done,
-        the template is invalid in the eyes of SAM Translator (the translator does not support local paths)
+        Replaces the CodeUri in AWS::Serverless::Function and DefinitionUri in AWS::Serverless::Api and
+        AWS::Serverless::HttpApi to a fake S3 Uri. This is to support running the SAM Translator with
+        valid values for these fields. If this in not done, the template is invalid in the eyes of SAM
+        Translator (the translator does not support local paths)
         """
 
         all_resources = self.sam_template.get("Resources", {})
+        global_settings = self.sam_template.get("Globals", {})
+
+        for resource_type, properties in global_settings.items():
+
+            if resource_type == "Function":
+                if all(
+                    [
+                        _properties.get("Properties", {}).get("PackageType", ZIP) == ZIP
+                        for _, _properties in all_resources.items()
+                    ]
+                    + [_properties.get("PackageType", ZIP) == ZIP for _, _properties in global_settings.items()]
+                ):
+                    SamTemplateValidator._update_to_s3_uri("CodeUri", properties)
 
         for _, resource in all_resources.items():
 
             resource_type = resource.get("Type")
-            resource_dict = resource.get("Properties")
+            resource_dict = resource.get("Properties", {})
 
-            if resource_type == "AWS::Serverless::Function":
+            if resource_type == "AWS::Serverless::Function" and resource_dict.get("PackageType", ZIP) == ZIP:
 
                 SamTemplateValidator._update_to_s3_uri("CodeUri", resource_dict)
 
@@ -90,8 +113,60 @@ class SamTemplateValidator(object):
                 SamTemplateValidator._update_to_s3_uri("ContentUri", resource_dict)
 
             if resource_type == "AWS::Serverless::Api":
-                if "DefinitionBody" not in resource_dict:
+                if "DefinitionUri" in resource_dict:
                     SamTemplateValidator._update_to_s3_uri("DefinitionUri", resource_dict)
+
+            if resource_type == "AWS::Serverless::HttpApi":
+                if "DefinitionUri" in resource_dict:
+                    SamTemplateValidator._update_to_s3_uri("DefinitionUri", resource_dict)
+
+            if resource_type == "AWS::Serverless::StateMachine":
+                if "DefinitionUri" in resource_dict:
+                    SamTemplateValidator._update_to_s3_uri("DefinitionUri", resource_dict)
+
+    def _replace_local_image(self):
+        """
+        Adds fake ImageUri to AWS::Serverless::Functions that reference a local image using Metadata.
+        This ensures sam validate works without having to package the app or use ImageUri.
+        """
+        resources = self.sam_template.get("Resources", {})
+        for _, resource in resources.items():
+            resource_type = resource.get("Type")
+            properties = resource.get("Properties", {})
+
+            is_image_function = resource_type == AWS_SERVERLESS_FUNCTION and properties.get("PackageType") == IMAGE
+            is_local_image = resource.get("Metadata", {}).get("Dockerfile")
+
+            if is_image_function and is_local_image:
+                if "ImageUri" not in properties:
+                    properties["ImageUri"] = "111111111111.dkr.ecr.region.amazonaws.com/repository"
+
+    def _replace_local_openapi(self):
+        """
+        Applies Transform Include of DefinitionBody.
+        Without this validation fails.
+        """
+        # look for transform that includes a yaml definition like this:
+        # DefinitionBody:
+        #   'Fn::Transform':
+        #     Name: AWS::Include
+        #     Parameters:
+        #       Location: openapi.yaml
+        resources = self.sam_template.get("Resources", {})
+        for _, resource in resources.items():
+            if not resource.get("Type", "") in [AWS_SERVERLESS_API, AWS_SERVERLESS_HTTPAPI]:
+                continue
+
+            transform_dict = resource.get("Properties", {}).get("DefinitionBody", {}).get("Fn::Transform", {})
+            if transform_dict.get("Name", "") != "AWS::Include":
+                continue
+
+            location_prop = transform_dict.get("Parameters", {}).get("Location", "")
+            if not Path(location_prop).is_file():
+                LOG.debug("Couldn't find file %s to import definition body", location_prop)
+                continue
+
+            SamTemplateValidator._replace_with_file_contents(resource.get("Properties", {}), location_prop)
 
     @staticmethod
     def is_s3_uri(uri):
@@ -109,7 +184,7 @@ class SamTemplateValidator(object):
             Returns True if the uri given is an S3 uri, otherwise False
 
         """
-        return isinstance(uri, six.string_types) and uri.startswith("s3://")
+        return isinstance(uri, str) and uri.startswith("s3://")
 
     @staticmethod
     def _update_to_s3_uri(property_key, resource_property_dict, s3_uri_value="s3://bucket/value"):
@@ -134,3 +209,11 @@ class SamTemplateValidator(object):
             return
 
         resource_property_dict[property_key] = s3_uri_value
+
+    @staticmethod
+    def _replace_with_file_contents(resource_property_dict, location_prop):
+        definition_body = parse_yaml_file(location_prop)
+        LOG.debug("Imported definition body from %s", location_prop)
+
+        # replace the definition body from the file
+        resource_property_dict["DefinitionBody"] = definition_body

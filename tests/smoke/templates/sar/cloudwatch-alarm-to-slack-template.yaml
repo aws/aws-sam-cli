@@ -1,0 +1,43 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  KeyIdParameter:
+    Type: String
+  slackChannelParameter:
+    Type: String
+  kmsEncryptedHookUrlParameter:
+    Type: String
+Description: An Amazon SNS trigger that sends CloudWatch alarm notifications to Slack.
+Resources:
+  SNSTopic1:
+    Type: AWS::SNS::Topic
+  cloudwatchalarmtoslack:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: An Amazon SNS trigger that sends CloudWatch alarm notifications to Slack.
+      Policies:
+      - Statement:
+        - Action: kms:Decrypt
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/${keyId}
+            - keyId:
+                Ref: KeyIdParameter
+          Effect: Allow
+      MemorySize: 128
+      Environment:
+        Variables:
+          kmsEncryptedHookUrl: kmsEncryptedHookUrlParameter
+          slackChannel: slackChannelParameter
+      Handler: index.handler
+      Timeout: 3
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 5005d2f4-1627-41fd-9cef-bb27b804f7f7
+      Runtime: nodejs10.x
+      Events:
+        SNS1:
+          Type: SNS
+          Properties:
+            Topic:
+              Ref: SNSTopic1
+Transform: AWS::Serverless-2016-10-31

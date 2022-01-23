@@ -1,0 +1,150 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Resources:
+  Base64ResponseFunction:
+    Properties:
+      Code: "."
+      Handler: main.base64_response
+      Runtime: python3.6
+      Timeout: 600
+    Type: AWS::Lambda::Function
+  EchoBase64EventBodyFunction:
+    Properties:
+      Code: "."
+      Handler: main.echo_base64_event_body
+      Runtime: python3.6
+      Timeout: 600
+    Type: AWS::Lambda::Function
+
+  Dev:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      StageName: Dev
+      RestApiId: !Ref TestApi
+      Variables:
+        Stack: Dev
+
+  MyNonServerlessLambdaFunction:
+    Properties:
+      Code: "."
+      Handler: main.handler
+      Runtime: python3.6
+      Timeout: 600
+    Type: AWS::Lambda::Function
+
+  TestApi:
+    Type: "AWS::ApiGateway::RestApi"
+
+
+  RootApiResource:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      PathPart: "root"
+      ResourceId: "TestApi"
+
+  AnyAndAllResource:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      PathPart: "anyandall"
+      ParentId: "RootApiResource"
+      ResourceId: "TestApi"
+  AnyAndAllMethod:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      HttpMethod: "ANY"
+      Integration:
+        Uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyNonServerlessLambdaFunction.Arn}/invocations
+      ResourceId: "AnyAndAllResource"
+      RestApiId: "TestApi"
+
+  Base64ResponseResource:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      PathPart: "base64response"
+      ParentId: "RootApiResource"
+      ResourceId: "TestApi"
+  Base64ResponseMethod:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      HttpMethod: "GET"
+      Integration:
+        Uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Base64ResponseFunction.Arn}/invocations
+        ContentType: "image~1gif"
+        ContentHandling: "CONVERT_TO_BINARY"
+      ResourceId: "Base64ResponseResource"
+      RestApiId: "TestApi"
+
+
+  EchoBase64ResponseResource:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      PathPart: "echobase64eventbody"
+      ParentId: "RootApiResource"
+      ResourceId: "TestApi"
+  EchoBase64ResponseMethod:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      HttpMethod: "POST"
+      Integration:
+        Uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EchoBase64EventBodyFunction.Arn}/invocations
+        ContentType: "image~1gif"
+        ContentHandling: "CONVERT_TO_BINARY"
+      ResourceId: "EchoBase64ResponseResource"
+      RestApiId: "TestApi"
+  
+  ProxyResource:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      PathPart: "{proxy+}"
+      ParentId: "v1resource"
+      ResourceId: "TestApi"
+  v1resource:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      PathPart: "v1"
+      ParentId: "RootApiResource"
+      ResourceId: "TestApi"
+  ProxyMethod:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      HttpMethod: "GET"
+      Integration:
+        Uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyNonServerlessLambdaFunction.Arn}/invocations
+      ResourceId: "ProxyResource"
+      RestApiId: "TestApi"
+
+  NoFunctionFoundResource:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      PathPart: "nofunctionfound"
+      ParentId: "RootApiResource"
+      ResourceId: "TestApi"
+  NoFunctionFoundMethod:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      HttpMethod: "GET"
+      Integration:
+        Uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WhatFunction.Arn}/invocations
+      ResourceId: "NoFunctionFoundResource"
+      RestApiId: "TestApi"
+
+  NoServerlessFunctionResource:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      PathPart: "nonserverlessfunction"
+      ParentId: "RootApiResource"
+      ResourceId: "TestApi"
+  NoServerlessFunctionMethod:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      HttpMethod: "GET"
+      Integration:
+        Uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyNonServerlessLambdaFunction.Arn}/invocations
+      ResourceId: "NoServerlessFunctionResource"
+      RestApiId: "TestApi"

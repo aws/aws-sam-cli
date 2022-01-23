@@ -1,0 +1,23 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: An Amazon SNS trigger that logs the message pushed to the SNS topic.
+Resources:
+  snsmessage:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Description: An Amazon SNS trigger that logs the message pushed to the SNS topic.
+      Timeout: 3
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 7a0f16cd-f381-4f6f-ad5b-adca35470d11
+      Runtime: nodejs10.x
+      MemorySize: 128
+      Events:
+        SNS1:
+          Type: SNS
+          Properties:
+            Topic:
+              Ref: SNSTopic1
+  SNSTopic1:
+    Type: AWS::SNS::Topic
+Transform: AWS::Serverless-2016-10-31

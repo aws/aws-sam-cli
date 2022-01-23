@@ -1,0 +1,37 @@
+      
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  MyCustomResource:
+    Type: AWS::CloudFormation::CustomResource
+    Properties: 
+      ServiceToken: String
+
+  APIGetFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 7d354083-39c1-4a33-a435-fbf3dbab85b7
+      Handler: main
+      Environment:
+        Variables:
+          SAFE_ENVIRONMENT_VARIABLE_1:
+            !Ref TemplateParameterOne
+          OFFENDING_ENVIRONMENT_VARIABLE:
+            !GetAtt MyCustomResource.Parameter.Value
+          SAFE_ENVIRONMENT_VARIABLE_2:
+            !Ref MyCustomResource
+      Events:
+        PostEvent:
+          Type: Api
+          Properties:
+            Path: /
+            Method: post
+        GetEvent:
+          Type: Api
+          Properties:
+            Path: /
+            Method: get
+      Runtime: go1.x

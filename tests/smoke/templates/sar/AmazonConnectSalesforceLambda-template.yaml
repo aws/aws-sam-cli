@@ -1,0 +1,174 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Amazon Connect SalesForce Lambda integration
+Parameters:
+  SalesforceProduction:
+    Default: true
+    Description: True for Production Environment, False for Sandbox
+    Type: String
+    AllowedPattern: ^([Tt]rue|[Ff]alse)$
+    AllowedValues:
+    - true
+    - true
+    - false
+    - false
+    ConstraintDescription: True or False
+  SalesforceHost:
+    Default: ''
+    Description: Your Salesforce Host
+    Type: String
+  SalesforceConsumerKey:
+    Default: ''
+    Description: Your Salesforce consumer key
+    Type: String
+  SalesforceConsumerSecret:
+    Default: ''
+    Description: Your Salesforce consumer secret is available in Salesforce immediately to the right of your Salesforce Consumer Key
+    Type: String
+  SalesforceUsername:
+    Default: Salesforce API Username
+    Description: The username of a valid Salesforce API account for your environment. For example, user@domain.com
+    Type: String
+  SalesforcePassword:
+    Default: ''
+    Description: The password of a valid Salesforce API account for your environment. This account must be the same one as entered in the “Salesforce API Configuration Username” parameter above.
+    Type: String
+    NoEcho: true
+  SalesforceAccessToken:
+    Default: ''
+    Description: The security token of the Salesforce API user account used above.
+    Type: String
+  SalesforceVersion:
+    Default: v42.0
+    Description: To find the Salesforce Edition and API Version please visit https://help.salesforce.com/articleView?id=000199268&type=1
+    Type: String
+  ConnectReportingS3BucketName:
+    Default: '*'
+    Description: This is the S3 bucket where Amazon Connect stores scheduled reports. Please refer to http://docs.aws.amazon.com/connect/latest/adminguide/amazon-connect-instance.html#datastorage for details on how retrieve the S3 bucket associated with your Amazon Connect instance.
+    Type: String
+  SalesforceAdapterNamespace:
+    Default: amazonconnect
+    Description: This is the namespace for CTI Adapter managed package. The default value is [amazonconnect]. If a non-managed package is used, leave this field blank.
+    Type: String
+Resources:
+  LambdaBasicExecWithS3Read:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Policies:
+      - PolicyName: connect-bucket-read
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            Effect: Allow
+            Action:
+            - s3:GetObject
+            Resource:
+              Fn::Sub: arn:aws:s3:::${ConnectReportingS3BucketName}
+      Path: /
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+  sfInvokeAPI:
+    Type: AWS::Serverless::Function
+    Properties:
+      Timeout: 6
+      Runtime: python3.6
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 6503224b-2627-4c1c-90cd-e11062db858b
+      Environment:
+        Variables:
+          SF_HOST:
+            Ref: SalesforceHost
+          SF_PRODUCTION:
+            Ref: SalesforceProduction
+          SF_CONSUMER_KEY:
+            Ref: SalesforceConsumerKey
+          SF_CONSUMER_SECRET:
+            Ref: SalesforceConsumerSecret
+          SF_USERNAME:
+            Ref: SalesforceUsername
+          SF_PASSWORD:
+            Ref: SalesforcePassword
+          SF_ACCESS_TOKEN:
+            Ref: SalesforceAccessToken
+          SF_VERSION:
+            Ref: SalesforceVersion
+          SF_ADAPTER_NAMESPACE:
+            Ref: SalesforceAdapterNamespace
+      Handler: sfInvokeAPI.lambda_handler
+  sfIntervalAgent:
+    Type: AWS::Serverless::Function
+    Properties:
+      Timeout: 60
+      Runtime: python3.6
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 6503224b-2627-4c1c-90cd-e11062db858b
+      Environment:
+        Variables:
+          SF_HOST:
+            Ref: SalesforceHost
+          SF_PRODUCTION:
+            Ref: SalesforceProduction
+          SF_CONSUMER_KEY:
+            Ref: SalesforceConsumerKey
+          SF_CONSUMER_SECRET:
+            Ref: SalesforceConsumerSecret
+          SF_USERNAME:
+            Ref: SalesforceUsername
+          SF_PASSWORD:
+            Ref: SalesforcePassword
+          SF_ACCESS_TOKEN:
+            Ref: SalesforceAccessToken
+          SF_VERSION:
+            Ref: SalesforceVersion
+          SF_ADAPTER_NAMESPACE:
+            Ref: SalesforceAdapterNamespace
+      Handler: sfIntervalAgent.lambda_handler
+      Role:
+        Fn::GetAtt: LambdaBasicExecWithS3Read.Arn
+  sfIntervalQueue:
+    Type: AWS::Serverless::Function
+    Properties:
+      Timeout: 60
+      Runtime: python3.6
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 6503224b-2627-4c1c-90cd-e11062db858b
+      Environment:
+        Variables:
+          SF_HOST:
+            Ref: SalesforceHost
+          SF_PRODUCTION:
+            Ref: SalesforceProduction
+          SF_CONSUMER_KEY:
+            Ref: SalesforceConsumerKey
+          SF_CONSUMER_SECRET:
+            Ref: SalesforceConsumerSecret
+          SF_USERNAME:
+            Ref: SalesforceUsername
+          SF_PASSWORD:
+            Ref: SalesforcePassword
+          SF_ACCESS_TOKEN:
+            Ref: SalesforceAccessToken
+          SF_VERSION:
+            Ref: SalesforceVersion
+          SF_ADAPTER_NAMESPACE:
+            Ref: SalesforceAdapterNamespace
+      Handler: sfIntervalQueue.lambda_handler
+      Role:
+        Fn::GetAtt: LambdaBasicExecWithS3Read.Arn
+Outputs:
+  LambdaBasicExecWithS3Read:
+    Description: Lambda Function Execution and S3 Read Role ARN
+    Value:
+      Fn::GetAtt: LambdaBasicExecWithS3Read.Arn

@@ -1,0 +1,57 @@
+version: 1.0.{build}
+image: Visual Studio 2017
+build: off
+
+environment:
+  AWS_DEFAULT_REGION: us-east-1
+  SAM_CLI_DEV: 1
+  APPVEYOR_CI_OVERRIDE: 1
+  GRADLE_OPTS: -Dorg.gradle.daemon=false
+
+  # MSI Installers only use Py3.7.6. It is sufficient to test with this version here.
+  PYTHON_HOME: "C:\\Python37-x64"
+  PYTHON_SCRIPTS: "C:\\Python37-x64\\Scripts"
+  PYTHON_EXE: "C:\\Python37-x64\\python.exe"
+  PYTHON_ARCH: '64'
+  APPVEYOR_CONSOLE_DISABLE_PTY: true
+
+install:
+
+    # setup Java, Maven and Gradle
+    - "refreshenv"
+    - "choco install maven -y --force"
+    - "refreshenv"
+    - "choco install gradle -y --force"
+    - "refreshenv"
+    - "java -version"
+    - "gradle -v"
+    - "mvn --version"
+
+    # setup Ruby dependencies
+    - "set PATH=C:\\Ruby25-x64\\bin;%PATH%"
+    - "gem --version"
+    - "gem install bundler -v 1.17.3"
+    - "bundler --version"
+
+    # Echo final Path
+    - "echo %PATH%"
+
+    # validate ssl works with ruby
+    - "ruby -ropen-uri -e 'eval open(\"https://git.io/vQhWq\").read'"
+
+    - "set PATH=%PYTHON_HOME%;%PYTHON_HOME%\\Scripts;%PYTHON_HOME%\\bin;%PATH%"
+    - "echo %PYTHON_HOME%"
+    - "echo %PATH%"
+    - "python --version"
+
+    # Actually install SAM CLI's dependencies
+    - "pip install -e \".[dev]\""
+
+test_script:
+    # Reactivate virtualenv before running tests
+    - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java8_in_process"
+    - "SET JAVA_HOME=C:\\Program Files\\Java\\jdk11"
+    - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process"
+
+    # Run Ruby in-process builds
+    - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_ruby_in_process"

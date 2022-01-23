@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameteres:
+  Runtime:
+    Type: String
+  CodeUri:
+    Type: String
+  Handler:
+    Type: String
+  LayerContentUri:
+    Type: String
+  LayerMakeContentUri:
+    Type: String
+  LayerBuildMethod:
+    Type: String
+
+Resources:
+
+  FunctionOne:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: !Ref Handler
+      Runtime: !Ref Runtime
+      CodeUri: !Ref CodeUri
+      Timeout: 600
+      Layers:
+        - !Ref LayerOne
+
+  LayerOne:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      Description: Layer one
+      ContentUri: !Ref LayerContentUri
+      CompatibleRuntimes:
+        - python3.7
+    Metadata:
+      BuildMethod: !Ref LayerBuildMethod
+
+  LambdaLayerOne:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      Description: Lambda Layer one
+      Content: !Ref LayerContentUri
+      CompatibleRuntimes:
+        - python3.7
+    Metadata:
+      BuildMethod: !Ref LayerBuildMethod
+
+  LayerTwo:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      Description: Layer two
+      ContentUri: !Ref LayerContentUri
+      CompatibleRuntimes:
+        - python3.7
+
+  LayerWithMakefile:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      Description: Layer three
+      ContentUri: !Ref LayerMakeContentUri
+      CompatibleRuntimes:
+        - python3.7
+    Metadata:
+      BuildMethod: !Ref LayerBuildMethod

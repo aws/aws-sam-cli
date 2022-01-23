@@ -1,0 +1,127 @@
+Parameters:
+  CorsOrigin:
+    Default: ''
+    Type: String
+    Description: (Optional) Cross-origin resource sharing (CORS) Origin. You can specify a single origin, all "*" or leave empty and no CORS will be applied.
+    MaxLength: 250
+  TableName:
+    AllowedPattern: ^[A-Za-z_]+$
+    ConstraintDescription: Required. Can be characters and underscore only. No numbers or special characters allowed.
+    Description: (Required) The name of the new DynamoDB table you want to create and save to. Minimum 3 characters
+    MaxLength: 50
+    Default: yourTableName
+    MinLength: 3
+    Type: String
+AWSTemplateFormatVersion: '2010-09-09'
+Outputs:
+  DynamoDBTableArn:
+    Description: The ARN of your DynamoDB Table
+    Value:
+      Fn::GetAtt:
+      - DynamoDBTable
+      - Arn
+  ApiUrl:
+    Description: The URL of the API Gateway to which you send a PUT request with edited data to update an item in your DynamoDB Table. Don't forget to change the some-id to an id in your database.
+    Value:
+      Fn::Sub: https://${UpdateApi}.execute-api.${AWS::Region}.amazonaws.com/prod/${TableName}/some-id
+  DynamoDBTableStreamArn:
+    Description: The ARN of your DynamoDB Table Stream
+    Value:
+      Fn::GetAtt:
+      - DynamoDBTable
+      - StreamArn
+Conditions:
+  IsCorsDefined:
+    Fn::Not:
+    - Fn::Equals:
+      - Ref: CorsOrigin
+      - ''
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  UpdateApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      DefinitionBody:
+        info:
+          title:
+            Ref: AWS::StackName
+        paths:
+          /{items}/{id}:
+            put:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UpdateLambda.Arn}/invocations
+              responses: {}
+              parameters:
+              - required: true
+                type: string
+                name: items
+                in: path
+              - required: true
+                type: string
+                name: id
+                in: path
+        swagger: 2.0
+      StageName: prod
+  DynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      KeySchema:
+      - KeyType: HASH
+        AttributeName:
+          Fn::Sub: ${TableName}Id
+      StreamSpecification:
+        StreamViewType: NEW_IMAGE
+      TableName:
+        Ref: TableName
+      AttributeDefinitions:
+      - AttributeName:
+          Fn::Sub: ${TableName}Id
+        AttributeType: S
+      ProvisionedThroughput:
+        WriteCapacityUnits: 1
+        ReadCapacityUnits: 1
+  UpdateLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Environment:
+        Variables:
+          IS_CORS: IsCorsDefined
+          TABLE_NAME:
+            Ref: TableName
+          PRIMARY_KEY:
+            Fn::Sub: ${TableName}Id
+          CORS_ORIGIN:
+            Ref: CorsOrigin
+      Handler: index.handler
+      Policies:
+      - Statement:
+        - Action:
+          - dynamodb:GetItem
+          - dynamodb:DeleteItem
+          - dynamodb:PutItem
+          - dynamodb:Scan
+          - dynamodb:Query
+          - dynamodb:UpdateItem
+          - dynamodb:BatchWriteItem
+          - dynamodb:BatchGetItem
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tableName}
+            - tableName:
+                Ref: TableName
+          Effect: Allow
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 70d2c77a-a692-40b1-8c78-4eb25649afcf
+      Runtime: nodejs10.x
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /{items}/{id}
+            RestApiId:
+              Ref: UpdateApi
+            Method: PUT

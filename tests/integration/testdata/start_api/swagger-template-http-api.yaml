@@ -1,0 +1,148 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Api:
+    BinaryMediaTypes:
+      # These are equivalent to image/gif and image/png when deployed
+      - image~1png
+
+Resources:
+  MyHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: dev-http
+      StageVariables:
+        VarNameHttpApi: varValueV2
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowMethods:
+          - "GET"
+          - "POST"
+        AllowHeaders:
+          - "origin"
+        AllowCredentials: true
+        MaxAge: 42
+      DefinitionBody:
+        openapi: '3.0.1'
+        info:
+          title:
+            Ref: AWS::StackName
+          version: '1.0'
+        paths:
+          "/httpapi-anyandall":
+            x-amazon-apigateway-any-method:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyHttpApiLambdaFunction.Arn}/invocations
+                responses: {}
+          "/httpapi-echoeventbody":
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+          "/httpapi-payload-format-v1":
+            get:
+              responses: {}
+              x-amazon-apigateway-integration:
+                httpMethod: GET
+                type: aws_proxy
+                payloadFormatVersion: '1.0'
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EchoEventHandlerHttpApiFunction.Arn}/invocations
+          "/httpapi-payload-format-v2":
+            get:
+              responses: {}
+              x-amazon-apigateway-integration:
+                httpMethod: GET
+                type: aws_proxy
+                payloadFormatVersion: '2.0'
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EchoEventHandlerHttpApiFunction.Arn}/invocations
+          "/httpapi-echobase64eventbody":
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EchoBase64EventBodyFunction.Arn}/invocations
+          "/httpapi-operation-id-v1":
+            get:
+              responses: {}
+              operationId: 'OperationNameShouldNotAppear'
+              x-amazon-apigateway-integration:
+                httpMethod: GET
+                type: aws_proxy
+                payloadFormatVersion: '1.0'
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EchoEventHandlerHttpApiFunction.Arn}/invocations
+          "/httpapi-operation-id-v2":
+            get:
+              responses: {}
+              operationId: 'OperationNameShouldNotAppear'
+              x-amazon-apigateway-integration:
+                httpMethod: GET
+                type: aws_proxy
+                payloadFormatVersion: '2.0'
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EchoEventHandlerHttpApiFunction.Arn}/invocations
+
+  MyHttpApiLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        GetApi:
+          Type: HttpApi
+          Properties:
+            Path: /get
+            Method: GET
+            ApiId:
+              Ref: MyHttpApi
+
+  PayLoadFormatV1InPropertyHttpApiFunction:
+    Type:  AWS::Serverless::Function
+    Properties:
+      Handler: main.echo_event_handler
+      Runtime: python3.7
+      CodeUri: .
+      Timeout: 600
+      Events:
+        GetApi:
+          Type: HttpApi
+          Properties:
+            PayloadFormatVersion: "1.0"
+            Path: /httpapi-payload-format-v1-property
+            Method: GET
+            ApiId:
+              Ref: MyHttpApi
+
+  EchoEventHandlerHttpApiFunction:
+    Type:  AWS::Serverless::Function
+    Properties:
+      Handler: main.echo_event_handler
+      Runtime: python3.7
+      CodeUri: .
+      Timeout: 600
+      Events:
+        GetApi:
+          Type: HttpApi
+          Properties:
+            Path: /{proxy+}
+            Method: GET
+            ApiId:
+              Ref: MyHttpApi
+
+  EchoBase64EventBodyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.echo_base64_event_body
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600

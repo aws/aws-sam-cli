@@ -16,7 +16,6 @@ def cli():
     """
     Run your Serverless application locally for quick development & testing
     """
-    pass  # pragma: no cover
 
 
 # Add individual commands under this group

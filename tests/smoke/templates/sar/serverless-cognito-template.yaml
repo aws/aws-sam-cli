@@ -1,0 +1,93 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  cognitoauth:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda.handler
+      Runtime: python3.7
+      Policies:
+      - AmazonCognitoPowerUser
+      - AmazonDynamoDBFullAccess
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: c0f24938-a4e0-4385-896a-c4652ce3aa3e
+      Description: Lambda function to serve HTML traffic through API Gateway
+      MemorySize: 256
+      Timeout: 5
+      Tracing: Active
+      ReservedConcurrentExecutions: 3
+      Events:
+        GetHtml:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: get
+        PostHtml:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: post
+      Environment:
+        Variables:
+          userpoolid:
+            Ref: cognitopool
+          clientid:
+            Ref: cognitoclient
+          dynamotable:
+            Ref: cookietable
+  cookietable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: user
+        AttributeType: S
+      KeySchema:
+      - AttributeName: user
+        KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification:
+        Enabled: true
+        AttributeName: ttl
+  weblogtable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: userid
+        AttributeType: S
+      - AttributeName: unixts
+        AttributeType: S
+      KeySchema:
+      - AttributeName: userid
+        KeyType: HASH
+      - AttributeName: unixts
+        KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+  cognitopool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false
+        UnusedAccountValidityDays: 1
+      AliasAttributes:
+      - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 6
+          RequireLowercase: true
+          RequireNumbers: false
+          RequireSymbols: false
+          RequireUppercase: false
+  cognitoclient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId:
+        Ref: cognitopool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+      - ADMIN_NO_SRP_AUTH
+      - USER_PASSWORD_AUTH
+Outputs:
+  WebInterface:
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/home/

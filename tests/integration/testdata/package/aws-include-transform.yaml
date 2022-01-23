@@ -1,0 +1,9 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Transform only app
+
+Resources:
+  'Fn::Transform':
+    Name: 'AWS::Include'
+    Parameters:
+      Location : ./main.py

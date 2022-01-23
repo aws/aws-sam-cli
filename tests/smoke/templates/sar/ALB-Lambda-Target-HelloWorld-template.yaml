@@ -1,0 +1,21 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Outputs:
+  HelloWorldFunctionARN:
+    Description: ARN of the HelloWorld Lambda function
+    Value:
+      Fn::GetAtt:
+      - HelloWorldFunction
+      - Arn
+Description: HelloWorld Lambda function template for Application Load Balancer Lambda as target
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 157edf07-69a8-4e05-ae78-656398b775c2
+      Runtime: python2.7
+      Handler: helloworld_27.lambda_handler
+      Description: An Application Load Balancer Lambda Target that returns "HelloWorld"
+      Timeout: 300
+Transform: AWS::Serverless-2016-10-31

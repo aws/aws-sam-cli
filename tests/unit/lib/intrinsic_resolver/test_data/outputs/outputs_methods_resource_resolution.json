@@ -1,0 +1,223 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Resources": {
+    "HelloHandlerServiceRole11EF7C63": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          "arn:awsiam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "CdkWorkshopStack/HelloHandler/ServiceRole/Resource"
+      }
+    },
+    "HelloHandler2E4FBA4D": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": ".",
+        "Handler": "main.handler",
+        "Runtime": "python3.6"
+      }
+    },
+    "HelloHandlerApiPermissionANYAC4E141E": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": "HelloHandler2E4FBA4D",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": "arn:aws:execute-api:us-east-1:123456789012:EndpointEEF1FD8F/EndpointDeploymentStageprodB78BEEA0/*/"
+      },
+      "Metadata": {
+        "aws:cdk:path": "CdkWorkshopStack/HelloHandler/ApiPermission.ANY.."
+      }
+    },
+    "HelloHandlerApiPermissionTestANYDDD56D72": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": "HelloHandler2E4FBA4D",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": "arn:aws:execute-api:us-east-1:123456789012:EndpointEEF1FD8F/test-invoke-stage/*/"
+      },
+      "Metadata": {
+        "aws:cdk:path": "CdkWorkshopStack/HelloHandler/ApiPermission.Test.ANY.."
+      }
+    },
+    "HelloHandlerApiPermissionANYproxy90E90CD6": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": "HelloHandler2E4FBA4D",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": "arn:aws:execute-api:us-east-1:123456789012:EndpointEEF1FD8F/EndpointDeploymentStageprodB78BEEA0/*/{proxy+}"
+      },
+      "Metadata": {
+        "aws:cdk:path": "CdkWorkshopStack/HelloHandler/ApiPermission.ANY..{proxy+}"
+      }
+    },
+    "HelloHandlerApiPermissionTestANYproxy9803526C": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": "HelloHandler2E4FBA4D",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": "arn:aws:execute-api:us-east-1:123456789012:EndpointEEF1FD8F/test-invoke-stage/*/{proxy+}"
+      },
+      "Metadata": {
+        "aws:cdk:path": "CdkWorkshopStack/HelloHandler/ApiPermission.Test.ANY..{proxy+}"
+      }
+    },
+    "EndpointEEF1FD8F": {
+      "Type": "AWS::ApiGateway::RestApi",
+      "Properties": {
+        "Name": "Endpoint"
+      },
+      "Metadata": {
+        "aws:cdk:path": "CdkWorkshopStack/Endpoint/Resource"
+      }
+    },
+    "EndpointDeployment318525DA37c0e38727e25b4317827bf43e918fbf": {
+      "Type": "AWS::ApiGateway::Deployment",
+      "Properties": {
+        "RestApiId": "EndpointEEF1FD8F",
+        "Description": "Automatically created by the RestApi construct"
+      },
+      "DependsOn": [
+        "Endpointproxy39E2174E",
+        "EndpointANY485C938B",
+        "EndpointproxyANYC09721C5"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "CdkWorkshopStack/Endpoint/Deployment/Resource"
+      }
+    },
+    "EndpointDeploymentStageprodB78BEEA0": {
+      "Type": "AWS::ApiGateway::Stage",
+      "Properties": {
+        "RestApiId": "EndpointEEF1FD8F",
+        "DeploymentId": "EndpointDeployment318525DA37c0e38727e25b4317827bf43e918fbf",
+        "StageName": "prod"
+      },
+      "Metadata": {
+        "aws:cdk:path": "CdkWorkshopStack/Endpoint/DeploymentStage.prod/Resource"
+      }
+    },
+    "EndpointCloudWatchRoleC3C64E0F": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "apigateway.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          "arn:awsiam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "CdkWorkshopStack/Endpoint/CloudWatchRole/Resource"
+      }
+    },
+    "EndpointAccountB8304247": {
+      "Type": "AWS::ApiGateway::Account",
+      "Properties": {
+        "CloudWatchRoleArn": "arn:aws:lambda:us-east-1:123456789012:function:EndpointCloudWatchRoleC3C64E0F"
+      },
+      "DependsOn": [
+        "EndpointEEF1FD8F"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "CdkWorkshopStack/Endpoint/Account"
+      }
+    },
+    "Endpointproxy39E2174E": {
+      "Type": "AWS::ApiGateway::Resource",
+      "Properties": {
+        "ParentId": "/",
+        "PathPart": "{proxy+}",
+        "RestApiId": "EndpointEEF1FD8F"
+      },
+      "Metadata": {
+        "aws:cdk:path": "CdkWorkshopStack/Endpoint/{proxy+}/Resource"
+      }
+    },
+    "EndpointproxyANYC09721C5": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "HttpMethod": "ANY",
+        "ResourceId": "Endpointproxy39E2174E",
+        "RestApiId": "EndpointEEF1FD8F",
+        "AuthorizationType": "NONE",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": "arn:aws:apigateway:us-east-1lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:123456789012:function:HelloHandler2E4FBA4D/invocations"
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "CdkWorkshopStack/Endpoint/{proxy+}/ANY/Resource"
+      }
+    },
+    "EndpointANY485C938B": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "HttpMethod": "ANY",
+        "ResourceId": "/",
+        "RestApiId": "EndpointEEF1FD8F",
+        "AuthorizationType": "NONE",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": "arn:aws:apigateway:us-east-1lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:123456789012:function:HelloHandler2E4FBA4D/invocations"
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "CdkWorkshopStack/Endpoint/ANY/Resource"
+      }
+    },
+    "CDKMetadata": {
+      "Type": "AWS::CDK::Metadata",
+      "Properties": {
+        "Modules": "aws-cdk=0.22.0,jsii-runtime=node.js/v12.4.0"
+      }
+    }
+  },
+  "Parameters": {
+    "HelloHandlerCodeS3Bucket4359A483": {
+      "Type": "String",
+      "Description": "S3 bucket for asset \"CdkWorkshopStack/HelloHandler/Code\""
+    },
+    "HelloHandlerCodeS3VersionKey07D12610": {
+      "Type": "String",
+      "Description": "S3 key for asset version \"CdkWorkshopStack/HelloHandler/Code\""
+    }
+  },
+  "Outputs": {
+    "Endpoint8024A810": {
+      "Value": "https://EndpointEEF1FD8F.execute-api.us-east-1.amazonaws.com/EndpointDeploymentStageprodB78BEEA0/",
+      "Export": {
+        "Name": "CdkWorkshopStack:Endpoint8024A810"
+      }
+    }
+  }
+}

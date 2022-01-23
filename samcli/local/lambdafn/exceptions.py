@@ -7,4 +7,9 @@ class FunctionNotFound(Exception):
     """
     Raised when the requested Lambda function is not found
     """
-    pass
+
+
+class ResourceNotFound(Exception):
+    """
+    Raised when the requested resource is not found
+    """

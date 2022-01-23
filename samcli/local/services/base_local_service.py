@@ -9,25 +9,7 @@ from flask import Response
 LOG = logging.getLogger(__name__)
 
 
-class CaseInsensitiveDict(dict):
-    """
-    Implement a simple case insensitive dictionary for storing headers. To preserve the original
-    case of the given Header (e.g. X-FooBar-Fizz) this only touches the get and contains magic
-    methods rather than implementing a __setitem__ where we normalize the case of the headers.
-    """
-
-    def __getitem__(self, key):
-        matches = [v for k, v in self.items() if k.lower() == key.lower()]
-        if not matches:
-            raise KeyError(key)
-        return matches[0]
-
-    def __contains__(self, key):
-        return key.lower() in [k.lower() for k in self.keys()]
-
-
-class BaseLocalService(object):
-
+class BaseLocalService:
     def __init__(self, is_debugging, port, host):
         """
         Creates a BaseLocalService class
@@ -76,7 +58,7 @@ class BaseLocalService(object):
 
         # This environ signifies we are running a main function for Flask. This is true, since we are using it within
         # our cli and not on a production server.
-        os.environ['WERKZEUG_RUN_MAIN'] = 'true'
+        os.environ["WERKZEUG_RUN_MAIN"] = "true"
 
         self._app.run(threaded=multi_threaded, host=self.host, port=self.port)
 
@@ -86,7 +68,7 @@ class BaseLocalService(object):
         Constructs a Flask Response from the body, headers, and status_code.
 
         :param str body: Response body as a string
-        :param dict headers: headers for the response
+        :param werkzeug.datastructures.Headers headers: headers for the response
         :param int status_code: status_code for response
         :return: Flask Response
         """
@@ -96,8 +78,7 @@ class BaseLocalService(object):
         return response
 
 
-class LambdaOutputParser(object):
-
+class LambdaOutputParser:
     @staticmethod
     def get_lambda_output(stdout_stream):
         """
@@ -122,7 +103,7 @@ class LambdaOutputParser(object):
         # We only want the last line of stdout, because it's possible that
         # the function may have written directly to stdout using
         # System.out.println or similar, before docker-lambda output the result
-        stdout_data = stdout_stream.getvalue().rstrip(b'\n')
+        stdout_data = stdout_stream.getvalue().rstrip(b"\n")
 
         # Usually the output is just one line and contains response as JSON string, but if the Lambda function
         # wrote anything directly to stdout, there will be additional lines. So just extract the last line as
@@ -130,7 +111,7 @@ class LambdaOutputParser(object):
         lambda_response = stdout_data
         lambda_logs = None
 
-        last_line_position = stdout_data.rfind(b'\n')
+        last_line_position = stdout_data.rfind(b"\n")
         if last_line_position >= 0:
             # So there are multiple lines. Separate them out.
             # Everything but the last line are logs
@@ -138,7 +119,7 @@ class LambdaOutputParser(object):
             # Last line is Lambda response. Make sure to strip() so we get rid of extra whitespaces & newlines around
             lambda_response = stdout_data[last_line_position:].strip()
 
-        lambda_response = lambda_response.decode('utf-8')
+        lambda_response = lambda_response.decode("utf-8")
 
         # When the Lambda Function returns an Error/Exception, the output is added to the stdout of the container. From
         # our perspective, the container returned some value, which is not always true. Since the output is the only
@@ -169,14 +150,22 @@ class LambdaOutputParser(object):
 
             # This is a best effort attempt to determine if the output (lambda_response) from the container was an
             # Error/Exception that was raised/returned/thrown from the container. To ensure minimal false positives in
-            # this checking, we check for all three keys that can occur in Lambda raised/thrown/returned an
+            # this checking, we check for all the keys that can occur in Lambda raised/thrown/returned an
             # Error/Exception. This still risks false positives when the data returned matches exactly a dictionary with
-            # the keys 'errorMessage', 'errorType' and 'stackTrace'.
-            if isinstance(lambda_response_dict, dict) and \
-                    len(lambda_response_dict) == 3 and \
-                    'errorMessage' in lambda_response_dict and \
-                    'errorType' in lambda_response_dict and \
-                    'stackTrace' in lambda_response_dict:
+            # the keys 'errorMessage', 'errorType', 'stackTrace' and 'cause'.
+            # This also accounts for a situation where there are three keys returned, two of which are
+            # 'errorMessage' and 'errorType', for languages with different error signatures
+            if (
+                isinstance(lambda_response_dict, dict)
+                and len(lambda_response_dict.keys() & {"errorMessage", "errorType"}) == 2
+                and (
+                    (
+                        len(lambda_response_dict.keys() & {"errorMessage", "errorType", "stackTrace", "cause"})
+                        == len(lambda_response_dict)
+                    )
+                    or (len(lambda_response_dict) == 3)
+                )
+            ):
                 is_lambda_user_error_response = True
         except ValueError:
             # If you can't serialize the output into a dict, then do nothing

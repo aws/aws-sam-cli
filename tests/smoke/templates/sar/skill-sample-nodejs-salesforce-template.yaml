@@ -1,0 +1,76 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  VoiceCodeFieldName:
+    Default: code__c
+    Type: String
+    Description: The name used to create the Code field inside of the Voice Code object. Default is 'code__c'.
+  SalesforceInstanceUrl:
+    Type: String
+    Description: 'The service URL used to make Salesforce queries. If using My Domain,
+      looks like this: https://<your-domain>.my.salesforce.com. If not using My Domains,
+      looks like this: https://na50.salesforce.com/.'
+  VoiceCodeObjectName:
+    Default: voice_code__c
+    Type: String
+    Description: The name used to create the Voice Code object in Salesforce. Default is 'voice_code__c'.
+  SkillID:
+    Default: ''
+    Type: String
+    Description: 'The Alexa Skill ID to restrict access to this Lambda. Note: this
+      can be provided in the Lambda UI via function triggers too.'
+Description: An AWS Serverless Specification template to deploy a private Alexa for Business skill with Salesforce integration.
+Resources:
+  DynamoTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      KeySchema:
+      - KeyType: HASH
+        AttributeName: userId
+      TableName: Salesforce_Skill
+      AttributeDefinitions:
+      - AttributeName: userId
+        AttributeType: S
+      ProvisionedThroughput:
+        WriteCapacityUnits: 5
+        ReadCapacityUnits: 5
+  AlexaSalesforceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: A Lambda function that responds to Alexa requests and integrates with Salesforce. Created from https://github.com/alexa/alexa-for-business/tree/master/salesforce/skill-sample-nodejs-salesforce.
+      Policies:
+      - Statement:
+        - Action:
+          - dynamodb:GetItem
+          - dynamodb:DeleteItem
+          - dynamodb:PutItem
+          - dynamodb:Scan
+          - dynamodb:Query
+          - dynamodb:UpdateItem
+          - dynamodb:BatchWriteItem
+          - dynamodb:BatchGetItem
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tableName}
+            - tableName: Salesforce_Skill
+          Effect: Allow
+      MemorySize: 128
+      Environment:
+        Variables:
+          SKILL_ID:
+            Ref: SkillID
+          VOICE_CODE_FIELD_NAME:
+            Ref: VoiceCodeFieldName
+          INSTANCE_URL:
+            Ref: SalesforceInstanceUrl
+          VOICE_CODE_OBJECT_NAME:
+            Ref: VoiceCodeObjectName
+      Handler: index.handler
+      Timeout: 3
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 5d45f176-8801-4f34-a33e-1c57cc0bc896
+      Runtime: nodejs10.x
+      Events:
+        AlexaSkillEvent:
+          Type: AlexaSkill
+Transform: AWS::Serverless-2016-10-31

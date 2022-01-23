@@ -1,0 +1,54 @@
+Parameters:
+  Vpc1:
+    Type: String
+    Default: vpc-1234
+
+Globals:
+  Api:
+    Auth:
+      ResourcePolicy:
+        SourceVpcWhitelist: 
+          - !Ref Vpc1
+          - vpc-5678
+
+Resources:
+  MyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      InlineCode: |
+        exports.handler = async (event) => {
+          const response = {
+            statusCode: 200,
+            body: JSON.stringify('Hello from Lambda!'),
+          };
+          return response;
+        };
+      Handler: index.handler
+      Runtime: nodejs12.x
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Method: Put
+            Path: /get
+        ApiAnyMethod:
+          Type: Api
+          Properties:
+            Method: any
+            Path: /any/get
+        Fetch:
+          Type: Api
+          Properties:
+            Method: Post
+            Path: /fetch
+        FetchAnyMethod:
+          Type: Api
+          Properties:
+            Method: any
+            Path: /any/fetch
+
+  MyApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+

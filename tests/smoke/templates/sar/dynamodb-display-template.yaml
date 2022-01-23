@@ -1,0 +1,166 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Outputs:
+  ApiUrl:
+    Description: URL of your API endpoint
+    Value:
+      Fn::Join:
+      - ''
+      - - https://
+        - Ref: MySamApi
+        - .execute-api.
+        - Ref: AWS::Region
+        - .amazonaws.com/prod
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  MySamApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      DefinitionBody:
+        info:
+          title:
+            Ref: AWS::StackName
+        definitions:
+          Empty:
+            type: object
+            title: Empty Schema
+        swagger: 2.0
+        paths:
+          /:
+            options:
+              x-amazon-apigateway-integration:
+                requestTemplates:
+                  application/json: '{"statusCode": 200}'
+                passthroughBehavior: when_no_match
+                type: mock
+                responses:
+                  default:
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin: '''*'''
+                      method.response.header.Access-Control-Allow-Methods: '''GET,OPTIONS'''
+                      method.response.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
+                    statusCode: '200'
+              produces:
+              - application/json
+              responses:
+                '200':
+                  headers:
+                    Access-Control-Allow-Origin:
+                      type: string
+                    Access-Control-Allow-Methods:
+                      type: string
+                    Access-Control-Allow-Headers:
+                      type: string
+                  description: 200 response
+                  schema:
+                    $ref: '#/definitions/Empty'
+              consumes:
+              - application/json
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws
+                responses:
+                  default:
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin: '''*'''
+                    statusCode: '200'
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MySamScanFunction.Arn}/invocations
+              responses:
+                '200':
+                  headers:
+                    Access-Control-Allow-Origin:
+                      type: string
+                  description: 200 response
+                  schema:
+                    $ref: '#/definitions/Empty'
+              produces:
+              - application/json
+      StageName: prod
+  MySamTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      ProvisionedThroughput:
+        WriteCapacityUnits: 5
+        ReadCapacityUnits: 5
+      PrimaryKey:
+        Type: String
+        Name: PriKey
+  MySamScanFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Scan DynamoDB table
+      Policies:
+      - Statement:
+        - Action:
+          - cloudwatch:PutMetricData
+          Resource: '*'
+          Effect: Allow
+      - Statement:
+        - Action:
+          - dynamodb:GetItem
+          - dynamodb:Scan
+          - dynamodb:Query
+          - dynamodb:BatchGetItem
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tableName}
+            - tableName:
+                Ref: MySamTable
+          Effect: Allow
+      MemorySize: 128
+      Environment:
+        Variables:
+          TABLE_NAME:
+            Ref: MySamTable
+      Handler: function.scandb
+      Timeout: 10
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 664d7928-e50c-403a-9f59-d9bf93bc5c9b
+      Runtime: nodejs10.x
+      Events:
+        GetApi:
+          Type: Api
+          Properties:
+            Path: /
+            RestApiId:
+              Ref: MySamApi
+            Method: GET
+  MySamInsertFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Scan DynamoDB table
+      Policies:
+      - Statement:
+        - Action:
+          - cloudwatch:PutMetricData
+          Resource: '*'
+          Effect: Allow
+      - Statement:
+        - Action:
+          - dynamodb:GetItem
+          - dynamodb:DeleteItem
+          - dynamodb:PutItem
+          - dynamodb:Scan
+          - dynamodb:Query
+          - dynamodb:UpdateItem
+          - dynamodb:BatchWriteItem
+          - dynamodb:BatchGetItem
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tableName}
+            - tableName:
+                Ref: MySamTable
+          Effect: Allow
+      MemorySize: 128
+      Environment:
+        Variables:
+          TABLE_NAME:
+            Ref: MySamTable
+      Handler: function.insertitem
+      Timeout: 10
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 664d7928-e50c-403a-9f59-d9bf93bc5c9b
+      Runtime: nodejs10.x

@@ -1,0 +1,215 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: A hello world application.
+
+Parameters:
+  DefaultTimeout:
+    Default: 5
+    Type: Number
+
+  MyRuntimeVersion:
+    Type: String
+
+  StringValueTimeout:
+      Default: "5"
+      Type: Number
+
+  EmptyDefaultParameter:
+    Type: String
+    Default: ""
+
+  FunctionNameParam:
+    Type: String
+    Default: "MyReallyCoolFunction"
+
+Resources:
+  HelloWorldServerlessFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: sam-test-lambdaimage:v1
+      ImageConfig:
+        Command:
+          - main.handler
+      Timeout: 600
+
+  HelloWorldLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      PackageType: Image
+      ImageUri: sam-test-lambdaimage:v1
+      ImageConfig:
+        Command:
+          - main.handler
+      Timeout: 600
+
+  TimeoutFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: sam-test-lambdaimage:v1
+      ImageConfig:
+        Command:
+          - main.sleep_handler
+      Timeout: 5
+
+  HelloWorldSleepFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: sam-test-lambdaimage:v1
+      ImageConfig:
+        Command:
+          - main.sleep_handler
+      Timeout: 600
+
+  HelloWorldServerlessWithFunctionNameRefFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Ref FunctionNameParam
+      PackageType: Image
+      ImageUri: sam-test-lambdaimage:v1
+      ImageConfig:
+        Command:
+          - main.handler
+      Timeout: 600
+
+  EchoCustomEnvVarFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: sam-test-lambdaimage:v1
+      ImageConfig:
+        Command:
+          - main.custom_env_var_echo_hanler
+      Environment:
+        Variables:
+          CustomEnvVar: "MyOtherVar"
+      Timeout: 600
+
+  EchoCustomEnvVarWithFunctionNameDefinedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: customname
+      PackageType: Image
+      ImageUri: sam-test-lambdaimage:v1
+      ImageConfig:
+        Command:
+          - main.custom_env_var_echo_hanler
+      Environment:
+        Variables:
+          CustomEnvVar: "MyOtherVar"
+      Timeout: 600
+
+  WriteToStderrFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: sam-test-lambdaimage:v1
+      ImageConfig:
+        Command:
+          - main.write_to_stderr
+      Timeout: 600
+
+  WriteToStdoutFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: sam-test-lambdaimage:v1
+      ImageConfig:
+        Command:
+          - main.write_to_stdout
+      Timeout: 600
+
+  EchoEventFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: sam-test-lambdaimage:v1
+      ImageConfig:
+        Command:
+          - main.echo_event
+      Timeout: 600
+
+  RaiseExceptionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: sam-test-lambdaimage:v1
+      ImageConfig:
+        Command:
+          - main.raise_exception
+      Timeout: 600
+
+  TimeoutFunctionWithParameter:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: sam-test-lambdaimage:v1
+      ImageConfig:
+        Command:
+          - main.sleep_handler
+      Timeout:
+        Ref: DefaultTimeout
+
+  EchoEnvWithParameters:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: sam-test-lambdaimage:v1
+      ImageConfig:
+        Command:
+          - main.env_var_echo_hanler
+      Timeout: 600
+      Environment:
+        Variables:
+          Region: !Ref "AWS::Region"
+          AccountId: !Ref "AWS::AccountId"
+          Partition: !Ref "AWS::Partition"
+          StackName: !Ref "AWS::StackName"
+          StackId: !Ref "AWS::StackId"
+          URLSuffix: !Ref "AWS::URLSuffix"
+          Timeout: !Ref DefaultTimeout
+          EmptyDefaultParameter: !Ref EmptyDefaultParameter
+
+  TimeoutFunctionWithStringParameter:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: sam-test-lambdaimage:v1
+      ImageConfig:
+        Command:
+          - main.sleep_handler
+      Timeout:
+        Ref: StringValueTimeout
+
+  FunctionWithFunctionNameOverride:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: func-name-override
+      PackageType: Image
+      Code:
+        ImageUri: sam-test-lambdaimage:v1
+      ImageConfig:
+        Command:
+          - main.handler
+
+  EchoFunctionWithFunctionNameOverride:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: echo-func-name-override
+      PackageType: Image
+      ImageUri: sam-test-lambdaimage:v1
+      ImageConfig:
+        Command:
+          - main.echo_event
+
+  ImageDoesntExistFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: func-name
+      PackageType: Image
+      ImageUri: non-existing-image:v1
+      ImageConfig:
+        Command:
+          - main.echo_event

@@ -1,0 +1,31 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Timeout: 20
+    MemorySize: 512
+
+Parameteres:
+  FunctionCodeUri:
+    Type: String
+  Function1Handler:
+    Type: String
+  Function2Handler:
+    Type: String
+  FunctionRuntime:
+    Type: String
+
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: !Ref FunctionCodeUri
+      Handler: !Ref Function1Handler
+      Runtime: !Ref FunctionRuntime
+  HelloMarsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: !Ref FunctionCodeUri
+      Handler: !Ref Function2Handler
+      Runtime: !Ref FunctionRuntime

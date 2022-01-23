@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  TableNameParameter:
+    Type: String
+Description: A simple mobile backend (read/write to DynamoDB).
+Resources:
+  simplemobilebackend:
+    Type: AWS::Serverless::Function
+    Properties:
+      Policies:
+      - Statement:
+        - Action:
+          - dynamodb:GetItem
+          - dynamodb:DeleteItem
+          - dynamodb:PutItem
+          - dynamodb:Scan
+          - dynamodb:Query
+          - dynamodb:UpdateItem
+          - dynamodb:BatchWriteItem
+          - dynamodb:BatchGetItem
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tableName}
+            - tableName:
+                Ref: TableNameParameter
+          Effect: Allow
+      Handler: index.handler
+      Description: A simple mobile backend (read/write to DynamoDB).
+      Timeout: 3
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 7e8aa805-1054-4bfe-9f84-d48793b444f3
+      Runtime: nodejs10.x
+      MemorySize: 128
+Transform: AWS::Serverless-2016-10-31

@@ -1,0 +1,122 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  MemorySize:
+    Default: 3008
+    Type: Number
+    Description: Memory size to be used for your Lambda (Note that this setting will increase also the CPU power and price per second.)
+    AllowedValues:
+    - 128
+    - 192
+    - 256
+    - 320
+    - 384
+    - 448
+    - 512
+    - 576
+    - 640
+    - 704
+    - 768
+    - 832
+    - 896
+    - 960
+    - 1024
+    - 1088
+    - 1152
+    - 1216
+    - 1280
+    - 1344
+    - 1408
+    - 1472
+    - 1536
+    - 1600
+    - 1664
+    - 1728
+    - 1792
+    - 1856
+    - 1920
+    - 1984
+    - 2048
+    - 2112
+    - 2176
+    - 2240
+    - 2304
+    - 2368
+    - 2432
+    - 2496
+    - 2560
+    - 2624
+    - 2688
+    - 2752
+    - 2816
+    - 2880
+    - 2944
+    - 3008
+  ImageBucket:
+    Type: String
+    Description: S3 Bucket where original images are placed
+Description: Serverless REST API for image resizing
+Resources:
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      DefinitionBody:
+        paths:
+          /{proxy+}:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                passthroughBehavior: when_no_match
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ResizeFunction.Arn}/invocations
+              responses: {}
+        swagger: '2.0'
+        schemes:
+        - https
+        x-amazon-apigateway-binary-media-types:
+        - '*/*'
+      StageName: production
+      Name: ImageResizerAPI
+  ResizeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Image Resizing Lambda
+      Policies:
+      - Statement:
+        - Action:
+          - s3:GetObject
+          - s3:ListBucket
+          - s3:GetBucketLocation
+          - s3:GetObjectVersion
+          - s3:GetLifecycleConfiguration
+          Resource:
+          - Fn::Sub:
+            - arn:${AWS::Partition}:s3:::${bucketName}
+            - bucketName:
+                Ref: ImageBucket
+          - Fn::Sub:
+            - arn:${AWS::Partition}:s3:::${bucketName}/*
+            - bucketName:
+                Ref: ImageBucket
+          Effect: Allow
+      MemorySize:
+        Ref: MemorySize
+      Environment:
+        Variables:
+          IMAGE_BUCKET:
+            Ref: ImageBucket
+      Handler: index.handler
+      Timeout: 60
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 9c739c4e-7e28-4b71-bd0d-d0270e7bc9bc
+      Runtime: nodejs10.x
+      Events:
+        AuthorizerApiRoot:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            RestApiId:
+              Ref: Api
+            Method: GET
+Transform: AWS::Serverless-2016-10-31

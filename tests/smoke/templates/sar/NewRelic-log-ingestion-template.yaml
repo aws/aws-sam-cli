@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Sends log data from CloudWatch Logs and S3 to New Relic Infrastructure - Cloud Integrations.
+Parameters:
+  NRLicenseKey:
+    Type: String
+    Description: Your NewRelic license key. You may omit it when deploying the function.
+    Default: YOUR_LICENSE_KEY
+Resources:
+  NewRelicLogIngestionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.6
+      Handler: function.lambda_handler
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: e3d17d3c-5bb8-4d50-a7f5-f1421c66c1f4
+      FunctionName: newrelic-log-ingestion
+      Timeout: 30
+      Environment:
+        Variables:
+          LICENSE_KEY:
+            Ref: NRLicenseKey
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Ref: NewRelicLogIngestionFunction
+      Action: lambda:InvokeFunction
+      Principal:
+        Fn::Sub: logs.${AWS::Region}.amazonaws.com
+      SourceArn:
+        Fn::Sub: arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*

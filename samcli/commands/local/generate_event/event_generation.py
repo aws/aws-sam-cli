@@ -3,10 +3,14 @@ Generates the services and commands for selection in SAM CLI generate-event
 """
 
 import functools
+
 import click
 
+from samcli.lib.generated_sample_events import events
+from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.options import debug_option
-import samcli.commands.local.lib.generated_sample_events.events as events
+from samcli.lib.telemetry.metric import track_command
+from samcli.lib.utils.version_checker import check_newer_version
 
 
 class ServiceCommand(click.MultiCommand):
@@ -21,7 +25,7 @@ class ServiceCommand(click.MultiCommand):
         List all of the subcommands
     """
 
-    def __init__(self, events_lib, *args, **kwargs):
+    def __init__(self, events_lib: events.Events, *args, **kwargs):
         """
         Constructor for the ServiceCommand class
 
@@ -35,7 +39,7 @@ class ServiceCommand(click.MultiCommand):
             dictionary containing the keys/values used to construct the ServiceCommand
         """
 
-        super(ServiceCommand, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         if not events_lib:
             raise ValueError("Events library is necessary to run this command")
 
@@ -91,9 +95,9 @@ class EventTypeSubCommand(click.MultiCommand):
         List all of the subcommands
     """
 
-    TAGS = 'tags'
+    TAGS = "tags"
 
-    def __init__(self, events_lib, top_level_cmd_name, subcmd_definition, *args, **kwargs):
+    def __init__(self, events_lib: events.Events, top_level_cmd_name, subcmd_definition, *args, **kwargs):
         """
         constructor for the EventTypeSubCommand class
 
@@ -111,7 +115,7 @@ class EventTypeSubCommand(click.MultiCommand):
             key/value pairs passed into the constructor
         """
 
-        super(EventTypeSubCommand, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.top_level_cmd_name = top_level_cmd_name
         self.subcmd_definition = subcmd_definition
         self.events_lib = events_lib
@@ -138,22 +142,26 @@ class EventTypeSubCommand(click.MultiCommand):
         parameters = []
         for param_name in self.subcmd_definition[cmd_name][self.TAGS].keys():
             default = self.subcmd_definition[cmd_name][self.TAGS][param_name]["default"]
-            parameters.append(click.Option(
-                ["--{}".format(param_name)],
-                default=default,
-                help="Specify the {} name you'd like, otherwise the default = {}".format(param_name, default)
-            ))
+            parameters.append(
+                click.Option(
+                    ["--{}".format(param_name)],
+                    default=default,
+                    help="Specify the {} name you'd like, otherwise the default = {}".format(param_name, default),
+                )
+            )
 
-        command_callback = functools.partial(self.cmd_implementation,
-                                             self.events_lib,
-                                             self.top_level_cmd_name,
-                                             cmd_name)
-        cmd = click.Command(name=cmd_name,
-                            short_help=self.subcmd_definition[cmd_name]["help"],
-                            params=parameters,
-                            callback=command_callback)
+        command_callback = functools.partial(
+            self.cmd_implementation, self.events_lib, self.top_level_cmd_name, cmd_name
+        )
 
-        cmd = debug_option(cmd)
+        cmd = click.Command(
+            name=cmd_name,
+            short_help=self.subcmd_definition[cmd_name]["help"],
+            params=parameters,
+            callback=command_callback,
+        )
+
+        cmd = configuration_option(provider=TomlProvider(section="parameters"))(debug_option(cmd))
         return cmd
 
     def list_commands(self, ctx):
@@ -170,25 +178,31 @@ class EventTypeSubCommand(click.MultiCommand):
         """
         return sorted(self.subcmd_definition.keys())
 
-    def cmd_implementation(self, events_lib, top_level_cmd_name, subcmd_name, *args, **kwargs):
+    @staticmethod
+    @track_command
+    @check_newer_version
+    def cmd_implementation(
+        events_lib: events.Events, top_level_cmd_name: str, subcmd_name: str, *args, **kwargs
+    ) -> str:
         """
         calls for value substitution in the event json and returns the
         customized json as a string
 
         Parameters
         ----------
-        events_lib
-        top_level_cmd_name: string
+        events_lib : events.Events
+            the Events library for generating events
+        top_level_cmd_name : string
             the name of the service
-        subcmd_name: string
+        subcmd_name : string
             the name of the event under the service
-        args: tuple
+        args : tuple
             any arguments passed in before kwargs
-        kwargs: dict
+        kwargs : dict
             the keys and values for substitution in the json
         Returns
         -------
-        event: string
+        event : string
             returns the customized event json as a string
         """
         event = events_lib.generate_event(top_level_cmd_name, subcmd_name, kwargs)
@@ -213,4 +227,4 @@ class GenerateEventCommand(ServiceCommand):
         kwargs: dict
             commands, subcommands, and parameters for generate-event
         """
-        super(GenerateEventCommand, self).__init__(events.Events(), *args, **kwargs)
+        super().__init__(events.Events(), *args, **kwargs)

@@ -2,10 +2,20 @@
 Wrapper to generated colored messages for printing in Terminal
 """
 
+import platform
+import os
+
 import click
 
+# Enables ANSI escape codes on Windows
+if platform.system().lower() == "windows":
+    try:
+        os.system("color")
+    except Exception:
+        pass
 
-class Colored(object):
+
+class Colored:
     """
     Helper class to add ANSI colors and decorations to text. Given a string, ANSI colors are added with special prefix
     and suffix characters that are specially interpreted by Terminals to display colors.
@@ -36,29 +46,33 @@ class Colored(object):
 
     def red(self, msg):
         """Color the input red"""
-        return self._color(msg, 'red')
+        return self._color(msg, "red")
 
     def green(self, msg):
         """Color the input green"""
-        return self._color(msg, 'green')
+        return self._color(msg, "green")
 
     def cyan(self, msg):
         """Color the input cyan"""
-        return self._color(msg, 'cyan')
+        return self._color(msg, "cyan")
 
     def white(self, msg):
         """Color the input white"""
-        return self._color(msg, 'white')
+        return self._color(msg, "white")
 
     def yellow(self, msg):
         """Color the input yellow"""
-        return self._color(msg, 'yellow')
+        return self._color(msg, "yellow")
 
     def underline(self, msg):
         """Underline the input"""
         return click.style(msg, underline=True) if self.colorize else msg
 
+    def bold(self, msg):
+        """Bold the input"""
+        return click.style(msg, bold=True) if self.colorize else msg
+
     def _color(self, msg, color):
         """Internal helper method to add colors to input"""
-        kwargs = {'fg': color}
+        kwargs = {"fg": color}
         return click.style(msg, **kwargs) if self.colorize else msg

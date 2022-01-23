@@ -1,0 +1,49 @@
+Description: |
+  lambda-authorizer-basic-auth
+  SAM Template for lambda-authorizer-basic-auth
+AWSTemplateFormatVersion: '2010-09-09'
+Outputs:
+  LambdaAuthorizerBasicAuthFunction:
+    Description: Lambda Authorizer Basic Auth Function ARN
+    Value:
+      Fn::GetAtt:
+      - LambdaAuthorizerBasicAuthFunction
+      - Arn
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  LambdaAuthorizerBasicAuthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Timeout: 3
+      Tracing: Active
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+          TABLE_NAME: lambda-authorizer-basic-auth-users
+      Handler: app.lambda_handler
+      Policies:
+      - Statement:
+        - Action:
+          - dynamodb:GetItem
+          - dynamodb:Scan
+          - dynamodb:Query
+          - dynamodb:BatchGetItem
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tableName}
+            - tableName:
+                Ref: LambdaAuthorizerBasicAuthUserTable
+          Effect: Allow
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 7be11f3b-a2f6-408d-919b-93ac6dec9c98
+      Runtime: python2.7
+  LambdaAuthorizerBasicAuthUserTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      SSESpecification:
+        SSEEnabled: true
+      TableName: lambda-authorizer-basic-auth-users
+      PrimaryKey:
+        Type: String
+        Name: username

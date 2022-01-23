@@ -5,8 +5,6 @@ Date & Time related utilities
 import datetime
 import dateparser
 
-from dateutil.tz import tzutc
-
 
 def timestamp_to_iso(timestamp):
     """
@@ -65,6 +63,16 @@ def to_timestamp(some_time):
     return int((some_time - datetime.datetime(1970, 1, 1)).total_seconds() * 1000.0)
 
 
+def utc_to_timestamp(utc):
+    """
+    Converts utc timestamp with tz_info set to utc to Unix timestamp
+    :param utc: datetime.datetime
+    :return: UNIX timestamp
+    """
+
+    return to_timestamp(utc.replace(tzinfo=None))
+
+
 def to_utc(some_time):
     """
     Convert the given date to UTC, if the date contains a timezone.
@@ -82,7 +90,7 @@ def to_utc(some_time):
 
     # Convert timezone aware objects to UTC
     if some_time.tzinfo and some_time.utcoffset():
-        some_time = some_time.astimezone(tzutc())
+        some_time = some_time.astimezone(datetime.timezone.utc)
 
     # Now that time is UTC, simply remove the timezone component.
     return some_time.replace(tzinfo=None)

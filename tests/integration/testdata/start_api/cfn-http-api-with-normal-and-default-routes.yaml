@@ -1,0 +1,138 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'sam-app
+
+  Sample SAM Template for sam-app
+
+  '
+Resources:
+  HelloWorldFunction:
+    Properties:
+      Handler: main.echo_event_handler
+      Code: '.'
+      Role:
+        Fn::GetAtt:
+        - HelloWorldFunctionRole
+        - Arn
+      Runtime: python3.7
+      Tags:
+      - Key: lambda:createdBy
+        Value: SAM
+      Timeout: 3
+    Type: AWS::Lambda::Function
+  HelloWorldFunctionRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+        Version: '2012-10-17'
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Tags:
+      - Key: lambda:createdBy
+        Value: SAM
+    Type: AWS::IAM::Role
+  HelloWorldFunctionHelloWorldPermission:
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: HelloWorldFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Sub:
+        - arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${__ApiId__}/${__Stage__}/*
+        - __ApiId__:
+            Ref: HTTPAPIGateway
+          __Stage__: '*'
+    Type: AWS::Lambda::Permission
+  HelloWorldFunction2:
+    Properties:
+      Handler: main.handler
+      Code: '.'
+      Role:
+        Fn::GetAtt:
+        - HelloWorldFunctionRole2
+        - Arn
+      Runtime: python3.7
+      Tags:
+      - Key: lambda:createdBy
+        Value: SAM
+      Timeout: 3
+    Type: AWS::Lambda::Function
+  HelloWorldFunctionRole2:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+        Version: '2012-10-17'
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Tags:
+      - Key: lambda:createdBy
+        Value: SAM
+    Type: AWS::IAM::Role
+  HelloWorldFunctionHelloWorldPermission2:
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: HelloWorldFunction2
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Sub:
+        - arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${__ApiId__}/${__Stage__}/*
+        - __ApiId__:
+            Ref: HTTPAPIGateway
+          __Stage__: '*'
+    Type: AWS::Lambda::Permission
+  HTTPAPIGateway:
+    Properties:
+      Name: HelloWorldHTTPAPIGateway1
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowCredentials: true
+        AllowHeaders: 
+        - x-apigateway-header
+        AllowMethods: 
+        - GET
+        AllowOrigins: 
+        - https://example.com
+        MaxAge: 600
+      Target: 
+        Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${HelloWorldFunction2.Arn}/invocations
+    Type: AWS::ApiGatewayV2::Api
+  HTTPAPIGatewayApiGatewayDefaultStage:
+    Properties:
+      ApiId:
+        Ref: HTTPAPIGateway
+      AutoDeploy: true
+      StageName: $default
+      Tags:
+        httpapi:createdBy: SAM
+    Type: AWS::ApiGatewayV2::Stage
+  MyIntegration:
+    Type: 'AWS::ApiGatewayV2::Integration'
+    Properties:
+      ApiId: !Ref HTTPAPIGateway
+      PayloadFormatVersion: "1.0"
+      IntegrationType: AWS_PROXY
+      IntegrationMethod: POST
+      IntegrationUri:
+        Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${HelloWorldFunction.Arn}/invocations
+  MyRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HTTPAPIGateway
+      RouteKey: 'GET /echoeventbody'
+      Target: !Join 
+      - /
+      - - integrations
+        - !Ref MyIntegration

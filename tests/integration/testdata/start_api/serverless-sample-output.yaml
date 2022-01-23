@@ -1,0 +1,207 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: The AWS CloudFormation template for this Serverless application
+Resources:
+  ServerlessDeploymentBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+  HelloWorldLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: "/aws/lambda/serverless-hello-world-dev-helloWorld"
+  IamRoleLambdaExecution:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName:
+            Fn::Join:
+              - "-"
+              - - dev
+                - serverless-hello-world
+                - lambda
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                Resource:
+                  - Fn::Sub: arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/serverless-hello-world-dev*:*
+              - Effect: Allow
+                Action:
+                  - logs:PutLogEvents
+                Resource:
+                  - Fn::Sub: arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/serverless-hello-world-dev*:*:*
+      Path: "/"
+      RoleName:
+        Fn::Join:
+          - "-"
+          - - serverless-hello-world
+            - dev
+            - Ref: AWS::Region
+            - lambdaRole
+  HelloWorldLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code: "."
+      FunctionName: serverless-hello-world-dev-helloWorld
+      Handler: main.handler
+      MemorySize: 1024
+      Timeout: 600
+      Role:
+        Fn::GetAtt:
+          - IamRoleLambdaExecution
+          - Arn
+      Runtime: python3.6
+    DependsOn:
+      - HelloWorldLogGroup
+      - IamRoleLambdaExecution
+  HelloWorldLambdaVersionkbuu03utDK7jANXe4ADsn4Jcw0Gci6s02eSd52Kg:
+    Type: AWS::Lambda::Version
+    DeletionPolicy: Retain
+    Properties:
+      FunctionName:
+        Ref: HelloWorldLambdaFunction
+      CodeSha256: 2huiVVXNNgaCeFoyZScNWyGKnIMkvxfLD5+hjaVF6sM=
+  ApiGatewayRestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: dev-serverless-hello-world
+      EndpointConfiguration:
+        Types:
+          - EDGE
+  ApiGatewayResourceHelloDashworld:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - ApiGatewayRestApi
+          - RootResourceId
+      PathPart: hello-world
+      RestApiId:
+        Ref: ApiGatewayRestApi
+  ApiGatewayMethodHelloDashworldOptions:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: OPTIONS
+      MethodResponses:
+        - StatusCode: '200'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Credentials: true
+          ResponseModels: {}
+      RequestParameters: {}
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: "{statusCode:200}"
+        ContentHandling: CONVERT_TO_TEXT
+        IntegrationResponses:
+          - StatusCode: '200'
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'"
+              method.response.header.Access-Control-Allow-Methods: "'OPTIONS,GET'"
+              method.response.header.Access-Control-Allow-Credentials: "'false'"
+            ResponseTemplates:
+              application/json: |-
+                #set($origin = $input.params("Origin"))
+                #if($origin == "") #set($origin = $input.params("origin")) #end
+                #if($origin.matches(".*")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end
+      ResourceId:
+        Ref: ApiGatewayResourceHelloDashworld
+      RestApiId:
+        Ref: ApiGatewayRestApi
+  ApiGatewayMethodHelloDashworldGet:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      RequestParameters: {}
+      ResourceId:
+        Ref: ApiGatewayResourceHelloDashworld
+      RestApiId:
+        Ref: ApiGatewayRestApi
+      ApiKeyRequired: false
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ''
+            - - 'arn:'
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - ":lambda:path/2015-03-31/functions/"
+              - Fn::GetAtt:
+                  - HelloWorldLambdaFunction
+                  - Arn
+              - "/invocations"
+      MethodResponses: []
+  ApiGatewayDeployment1561844009303:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId:
+        Ref: ApiGatewayRestApi
+      StageName: dev
+    DependsOn:
+      - ApiGatewayMethodHelloDashworldOptions
+      - ApiGatewayMethodHelloDashworldGet
+  HelloWorldLambdaPermissionApiGateway:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Fn::GetAtt:
+          - HelloWorldLambdaFunction
+          - Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ''
+          - - 'arn:'
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: ApiGatewayRestApi
+            - "/*/*"
+Outputs:
+  ServerlessDeploymentBucketName:
+    Value:
+      Ref: ServerlessDeploymentBucket
+  HelloWorldLambdaFunctionQualifiedArn:
+    Description: Current Lambda function version
+    Value:
+      Ref: HelloWorldLambdaVersionkbuu03utDK7jANXe4ADsn4Jcw0Gci6s02eSd52Kg
+  ServiceEndpoint:
+    Description: URL of the service endpoint
+    Value:
+      Fn::Join:
+        - ''
+        - - https://
+          - Ref: ApiGatewayRestApi
+          - ".execute-api."
+          - Ref: AWS::Region
+          - "."
+          - Ref: AWS::URLSuffix
+          - "/dev"

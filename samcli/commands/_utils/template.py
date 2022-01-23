@@ -1,36 +1,33 @@
 """
 Utilities to manipulate template
 """
-
+import itertools
 import os
-import six
+import pathlib
+
+import jmespath
 import yaml
+from botocore.utils import set_value_from_jmespath
 
-try:
-    import pathlib
-except ImportError:
-    import pathlib2 as pathlib
-
+from samcli.commands.exceptions import UserException
+from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer, ASSET_PATH_METADATA_KEY
+from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.yamlhelper import yaml_parse, yaml_dump
+from samcli.lib.utils.resources import (
+    METADATA_WITH_LOCAL_PATHS,
+    RESOURCES_WITH_LOCAL_PATHS,
+    AWS_SERVERLESS_FUNCTION,
+    AWS_LAMBDA_FUNCTION,
+    get_packageable_resource_paths,
+)
 
 
-_METADATA_WITH_LOCAL_PATHS = {
-    "AWS::ServerlessRepo::Application": ["LicenseUrl", "ReadmeUrl"]
-}
+class TemplateNotFoundException(UserException):
+    pass
 
-_RESOURCES_WITH_LOCAL_PATHS = {
-    "AWS::Serverless::Function": ["CodeUri"],
-    "AWS::Serverless::Api": ["DefinitionUri"],
-    "AWS::AppSync::GraphQLSchema": ["DefinitionS3Location"],
-    "AWS::AppSync::Resolver": ["RequestMappingTemplateS3Location", "ResponseMappingTemplateS3Location"],
-    "AWS::Lambda::Function": ["Code"],
-    "AWS::ApiGateway::RestApi": ["BodyS3Location"],
-    "AWS::ElasticBeanstalk::ApplicationVersion": ["SourceBundle"],
-    "AWS::CloudFormation::Stack": ["TemplateURL"],
-    "AWS::Serverless::Application": ["Location"],
-    "AWS::Lambda::LayerVersion": ["Content"],
-    "AWS::Serverless::LayerVersion": ["ContentUri"]
-}
+
+class TemplateFailedParsingException(UserException):
+    pass
 
 
 def get_template_data(template_file):
@@ -48,18 +45,16 @@ def get_template_data(template_file):
     """
 
     if not pathlib.Path(template_file).exists():
-        raise ValueError("Template file not found at {}".format(template_file))
+        raise TemplateNotFoundException("Template file not found at {}".format(template_file))
 
-    with open(template_file, 'r') as fp:
+    with open(template_file, "r", encoding="utf-8") as fp:
         try:
             return yaml_parse(fp.read())
         except (ValueError, yaml.YAMLError) as ex:
-            raise ValueError("Failed to parse template: {}".format(str(ex)))
+            raise TemplateFailedParsingException("Failed to parse template: {}".format(str(ex))) from ex
 
 
-def move_template(src_template_path,
-                  dest_template_path,
-                  template_dict):
+def move_template(src_template_path, dest_template_path, template_dict):
     """
     Move the SAM/CloudFormation template from ``src_template_path`` to ``dest_template_path``. For convenience, this
     method accepts a dictionary of template data ``template_dict`` that will be written to the destination instead of
@@ -92,17 +87,16 @@ def move_template(src_template_path,
 
     # Next up, we will be writing the template to a different location. Before doing so, we should
     # update any relative paths in the template to be relative to the new location.
-    modified_template = _update_relative_paths(template_dict,
-                                               original_root,
-                                               new_root)
+    modified_template = _update_relative_paths(template_dict, original_root, new_root)
 
+    # if a stack only has image functions, the directory for that directory won't be created.
+    # here we make sure the directory the destination template file to write to exists.
+    os.makedirs(os.path.dirname(dest_template_path), exist_ok=True)
     with open(dest_template_path, "w") as fp:
         fp.write(yaml_dump(modified_template))
 
 
-def _update_relative_paths(template_dict,
-                           original_root,
-                           new_root):
+def _update_relative_paths(template_dict, original_root, new_root):
     """
     SAM/CloudFormation template can contain certain properties whose value is a relative path to a local file/folder.
     This path is usually relative to the template's location. If the template is being moved from original location
@@ -138,11 +132,11 @@ def _update_relative_paths(template_dict,
 
     for resource_type, properties in template_dict.get("Metadata", {}).items():
 
-        if resource_type not in _METADATA_WITH_LOCAL_PATHS:
+        if resource_type not in METADATA_WITH_LOCAL_PATHS:
             # Unknown resource. Skipping
             continue
 
-        for path_prop_name in _METADATA_WITH_LOCAL_PATHS[resource_type]:
+        for path_prop_name in METADATA_WITH_LOCAL_PATHS[resource_type]:
             path = properties.get(path_prop_name)
 
             updated_path = _resolve_relative_to(path, original_root, new_root)
@@ -155,20 +149,36 @@ def _update_relative_paths(template_dict,
     for _, resource in template_dict.get("Resources", {}).items():
         resource_type = resource.get("Type")
 
-        if resource_type not in _RESOURCES_WITH_LOCAL_PATHS:
+        if resource_type not in RESOURCES_WITH_LOCAL_PATHS:
             # Unknown resource. Skipping
             continue
 
-        for path_prop_name in _RESOURCES_WITH_LOCAL_PATHS[resource_type]:
+        for path_prop_name in RESOURCES_WITH_LOCAL_PATHS[resource_type]:
             properties = resource.get("Properties", {})
-            path = properties.get(path_prop_name)
 
+            if (
+                resource_type in [AWS_SERVERLESS_FUNCTION, AWS_LAMBDA_FUNCTION]
+                and properties.get("PackageType", ZIP) == IMAGE
+            ):
+                continue
+
+            path = jmespath.search(path_prop_name, properties)
             updated_path = _resolve_relative_to(path, original_root, new_root)
+
             if not updated_path:
                 # This path does not need to get updated
                 continue
 
-            properties[path_prop_name] = updated_path
+            set_value_from_jmespath(properties, path_prop_name, updated_path)
+
+        metadata = resource.get("Metadata", {})
+        if ASSET_PATH_METADATA_KEY in metadata:
+            path = metadata.get(ASSET_PATH_METADATA_KEY, "")
+            updated_path = _resolve_relative_to(path, original_root, new_root)
+            if not updated_path:
+                # This path does not need to get updated
+                continue
+            metadata[ASSET_PATH_METADATA_KEY] = updated_path
 
     # AWS::Includes can be anywhere within the template dictionary. Hence we need to recurse through the
     # dictionary in a separate method to find and update relative paths in there
@@ -225,13 +235,85 @@ def _resolve_relative_to(path, original_root, new_root):
     Updated path if the given path is a relative path. None, if the path is not a relative path.
     """
 
-    if not isinstance(path, six.string_types) \
-            or path.startswith("s3://") \
-            or os.path.isabs(path):
+    if (
+        not isinstance(path, str)
+        or path.startswith("s3://")
+        or path.startswith("http://")
+        or path.startswith("https://")
+        or os.path.isabs(path)
+    ):
         # Value is definitely NOT a relative path. It is either a S3 URi or Absolute path or not a string at all
         return None
 
     # Value is definitely a relative path. Change it relative to the destination directory
     return os.path.relpath(
-        os.path.normpath(os.path.join(original_root, path)),  # Absolute original path w.r.t ``original_root``
-        new_root)  # Resolve the original path with respect to ``new_root``
+        os.path.normpath(os.path.join(original_root, path)), new_root  # Absolute original path w.r.t ``original_root``
+    )  # Resolve the original path with respect to ``new_root``
+
+
+def get_template_parameters(template_file):
+    """
+    Get Parameters from a template file.
+
+    Parameters
+    ----------
+    template_file : string
+        Path to the template to read
+
+    Returns
+    -------
+    Template Parameters as a dictionary
+    """
+    template_dict = get_template_data(template_file=template_file)
+    ResourceMetadataNormalizer.normalize(template_dict, True)
+    return template_dict.get("Parameters", dict())
+
+
+def get_template_artifacts_format(template_file):
+    """
+    Get a list of template artifact formats based on PackageType wherever the underlying resource
+    have the actual need to be packaged.
+    :param template_file:
+    :return: list of artifact formats
+    """
+
+    template_dict = get_template_data(template_file=template_file)
+
+    # Get a list of Resources where the artifacts format matter for packaging.
+    packageable_resources = get_packageable_resource_paths()
+
+    artifacts = []
+    for _, resource in template_dict.get("Resources", {}).items():
+        # First check if the resources are part of package-able resource types.
+        if resource.get("Type") in packageable_resources.keys():
+            # Flatten list of locations per resource type.
+            locations = list(itertools.chain(*packageable_resources.get(resource.get("Type"))))
+            for location in locations:
+                properties = resource.get("Properties", {})
+                # Search for package-able location within resource properties.
+                if jmespath.search(location, properties):
+                    artifacts.append(properties.get("PackageType", ZIP))
+
+    return artifacts
+
+
+def get_template_function_resource_ids(template_file, artifact):
+    """
+    Get a list of function logical ids from template file.
+    Function resource types include
+        AWS::Lambda::Function
+        AWS::Serverless::Function
+    :param template_file: template file location.
+    :param artifact: artifact of type IMAGE or ZIP
+    :return: list of artifact formats
+    """
+
+    template_dict = get_template_data(template_file=template_file)
+    _function_resource_ids = []
+    for resource_id, resource in template_dict.get("Resources", {}).items():
+        if resource.get("Properties", {}).get("PackageType", ZIP) == artifact and resource.get("Type") in [
+            AWS_SERVERLESS_FUNCTION,
+            AWS_LAMBDA_FUNCTION,
+        ]:
+            _function_resource_ids.append(resource_id)
+    return _function_resource_ids

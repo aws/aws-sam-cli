@@ -1,0 +1,9 @@
+{
+    "version": "2018-10-16",
+    "labelingJobArn": "arn:{{{partition}}}:sagemaker:{{{region}}}:{{{account_id}}}:labeling-job/{{{labeling_job_name}}}",
+    "labelAttributeName": "{{{label_attribute_name}}}",
+    "roleArn" : "aws:{{{partition}}}:iam::{{account_id}}:role/{{{execution_role}}}",
+    "payload": {
+        "s3Uri": "{{{s3_output_path}}}/{{{labeling_job_name}}}/annotations/worker_response/{{{iteration_object_timestamp}}}.json"
+    }
+ }

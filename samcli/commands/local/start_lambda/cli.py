@@ -5,16 +5,19 @@ CLI command for "local start-lambda" command
 import logging
 import click
 
-from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
-from samcli.commands.local.cli_common.options import invoke_common_options, service_common_options
-from samcli.commands.local.cli_common.invoke_context import InvokeContext
-from samcli.commands.local.cli_common.user_exceptions import UserException
-from samcli.commands.local.lib.exceptions import InvalidLayerReference
-from samcli.commands.local.lib.local_lambda_service import LocalLambdaService
-from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
-from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
-from samcli.local.docker.lambda_debug_entrypoint import DebuggingNotSupported
-
+from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
+from samcli.commands.local.cli_common.options import (
+    invoke_common_options,
+    service_common_options,
+    warm_containers_common_options,
+    local_common_options,
+)
+from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
+from samcli.lib.telemetry.metric import track_command
+from samcli.cli.cli_config_file import configuration_option, TomlProvider
+from samcli.lib.utils.version_checker import check_newer_version
+from samcli.local.docker.exceptions import ContainerNotStartableException
+from samcli.commands._utils.option_value_processor import process_image_options
 
 LOG = logging.getLogger(__name__)
 
@@ -50,64 +53,160 @@ Here is a Python example:
 """
 
 
-@click.command("start-lambda",
-               help=HELP_TEXT,
-               short_help="Starts a local endpoint you can use to invoke your local Lambda functions.")
+@click.command(
+    "start-lambda",
+    help=HELP_TEXT,
+    short_help="Starts a local endpoint you can use to invoke your local Lambda functions.",
+)
+@configuration_option(provider=TomlProvider(section="parameters"))
 @service_common_options(3001)
 @invoke_common_options
+@warm_containers_common_options
+@local_common_options
 @cli_framework_options
 @aws_creds_options
 @pass_context
-def cli(ctx,  # pylint: disable=R0914
-        # start-lambda Specific Options
-        host, port,
-
-        # Common Options for Lambda Invoke
-        template, env_vars, debug_port, debug_args, debugger_path, docker_volume_basedir,
-        docker_network, log_file, layer_cache_basedir, skip_pull_image, force_image_build,
-        parameter_overrides):  # pylint: disable=R0914
+@track_command
+@check_newer_version
+@print_cmdline_args
+def cli(
+    ctx,  # pylint: disable=R0914
+    # start-lambda Specific Options
+    host,
+    port,
+    # Common Options for Lambda Invoke
+    template_file,
+    env_vars,
+    debug_port,
+    debug_args,
+    debugger_path,
+    container_env_vars,
+    docker_volume_basedir,
+    docker_network,
+    log_file,
+    layer_cache_basedir,
+    skip_pull_image,
+    force_image_build,
+    parameter_overrides,
+    config_file,
+    config_env,
+    warm_containers,
+    shutdown,
+    debug_function,
+    container_host,
+    container_host_interface,
+    invoke_image,
+):
+    """
+    `sam local start-lambda` command entry point
+    """
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(ctx, host, port, template, env_vars, debug_port, debug_args, debugger_path, docker_volume_basedir,
-           docker_network, log_file, layer_cache_basedir, skip_pull_image, force_image_build,
-           parameter_overrides)  # pragma: no cover
+    do_cli(
+        ctx,
+        host,
+        port,
+        template_file,
+        env_vars,
+        debug_port,
+        debug_args,
+        debugger_path,
+        container_env_vars,
+        docker_volume_basedir,
+        docker_network,
+        log_file,
+        layer_cache_basedir,
+        skip_pull_image,
+        force_image_build,
+        parameter_overrides,
+        warm_containers,
+        shutdown,
+        debug_function,
+        container_host,
+        container_host_interface,
+        invoke_image,
+    )  # pragma: no cover
 
 
-def do_cli(ctx, host, port, template, env_vars, debug_port, debug_args,  # pylint: disable=R0914
-           debugger_path, docker_volume_basedir, docker_network, log_file, layer_cache_basedir, skip_pull_image,
-           force_image_build, parameter_overrides):
+def do_cli(  # pylint: disable=R0914
+    ctx,
+    host,
+    port,
+    template,
+    env_vars,
+    debug_port,
+    debug_args,
+    debugger_path,
+    container_env_vars,
+    docker_volume_basedir,
+    docker_network,
+    log_file,
+    layer_cache_basedir,
+    skip_pull_image,
+    force_image_build,
+    parameter_overrides,
+    warm_containers,
+    shutdown,
+    debug_function,
+    container_host,
+    container_host_interface,
+    invoke_image,
+):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
 
+    from samcli.commands.local.cli_common.invoke_context import InvokeContext
+    from samcli.commands.local.cli_common.user_exceptions import UserException
+    from samcli.lib.providers.exceptions import InvalidLayerReference
+    from samcli.commands.local.lib.local_lambda_service import LocalLambdaService
+    from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
+    from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
+    from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
+
     LOG.debug("local start_lambda command is called")
+
+    processed_invoke_images = process_image_options(invoke_image)
 
     # Pass all inputs to setup necessary context to invoke function locally.
     # Handler exception raised by the processor for invalid args and print errors
 
     try:
-        with InvokeContext(template_file=template,
-                           function_identifier=None,  # Don't scope to one particular function
-                           env_vars_file=env_vars,
-                           docker_volume_basedir=docker_volume_basedir,
-                           docker_network=docker_network,
-                           log_file=log_file,
-                           skip_pull_image=skip_pull_image,
-                           debug_port=debug_port,
-                           debug_args=debug_args,
-                           debugger_path=debugger_path,
-                           parameter_overrides=parameter_overrides,
-                           layer_cache_basedir=layer_cache_basedir,
-                           force_image_build=force_image_build,
-                           aws_region=ctx.region) as invoke_context:
+        with InvokeContext(
+            template_file=template,
+            function_identifier=None,  # Don't scope to one particular function
+            env_vars_file=env_vars,
+            docker_volume_basedir=docker_volume_basedir,
+            docker_network=docker_network,
+            log_file=log_file,
+            skip_pull_image=skip_pull_image,
+            debug_ports=debug_port,
+            debug_args=debug_args,
+            debugger_path=debugger_path,
+            container_env_vars_file=container_env_vars,
+            parameter_overrides=parameter_overrides,
+            layer_cache_basedir=layer_cache_basedir,
+            force_image_build=force_image_build,
+            aws_region=ctx.region,
+            aws_profile=ctx.profile,
+            warm_container_initialization_mode=warm_containers,
+            debug_function=debug_function,
+            shutdown=shutdown,
+            container_host=container_host,
+            container_host_interface=container_host_interface,
+            invoke_images=processed_invoke_images,
+        ) as invoke_context:
 
-            service = LocalLambdaService(lambda_invoke_context=invoke_context,
-                                         port=port,
-                                         host=host)
+            service = LocalLambdaService(lambda_invoke_context=invoke_context, port=port, host=host)
             service.start()
 
-    except (InvalidSamDocumentException,
-            OverridesNotWellDefinedError,
-            InvalidLayerReference,
-            DebuggingNotSupported) as ex:
-        raise UserException(str(ex))
+    except (
+        InvalidSamDocumentException,
+        OverridesNotWellDefinedError,
+        InvalidLayerReference,
+        InvalidIntermediateImageError,
+        DebuggingNotSupported,
+    ) as ex:
+        raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
+    except ContainerNotStartableException as ex:
+        raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex

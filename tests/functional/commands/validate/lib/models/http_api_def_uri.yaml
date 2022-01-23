@@ -1,0 +1,37 @@
+Globals:
+  HttpApi:
+    DefaultRouteSettings:
+      ThrottlingRateLimit: 100.0
+
+Resources:
+  MyApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      DefinitionUri: s3://bucket/key
+      StageName: !Join ["", ["Stage", "Name"]]
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 50
+
+  MyApi2:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      DefinitionUri:
+        Bucket: bucket
+        Key: key
+        Version: version
+
+  Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.7
+      Handler: index.handler
+      CodeUri: s3://bucket/key
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: MyApi
+        Api2:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MyApi2

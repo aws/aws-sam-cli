@@ -1,18 +1,22 @@
 import time
 import os
 import sys
-print('Loading function')
+import subprocess
+
+print ("Loading function")
 
 
 def handler(event, context):
-    print("value1 = " + event['key1'])
-    print("value2 = " + event['key2'])
-    print("value3 = " + event['key3'])
+    print ("value1 = " + event["key1"])
+    print ("value2 = " + event["key2"])
+    print ("value3 = " + event["key3"])
 
     sys.stdout.write("Docker Lambda is writing to stderr")
 
     return "Hello world"
 
+def intrinsics_handler(event, context):
+    return os.environ.get("ApplicationId")
 
 def sleep_handler(event, context):
     time.sleep(10)
@@ -45,3 +49,10 @@ def echo_event(event, context):
 
 def raise_exception(event, context):
     raise Exception("Lambda is raising an exception")
+
+
+def execute_git(event, context):
+    return_code = subprocess.call(['git', 'init', '/tmp/samtesting'])
+    assert return_code == 0
+
+    return "git init passed"

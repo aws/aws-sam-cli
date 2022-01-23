@@ -1,0 +1,138 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Outputs:
+  WebsiteURL:
+    Description: Website URL
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/${ServerlessRestApi.Stage}/
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+  FunctionConvert:
+    Type: AWS::Serverless::Function
+    Properties:
+      Policies:
+      - Statement:
+        - Action:
+          - dynamodb:GetItem
+          - dynamodb:DeleteItem
+          - dynamodb:PutItem
+          - dynamodb:Scan
+          - dynamodb:Query
+          - dynamodb:UpdateItem
+          - dynamodb:BatchWriteItem
+          - dynamodb:BatchGetItem
+          - dynamodb:DescribeTable
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tableName}
+            - tableName:
+                Ref: Table
+          Effect: Allow
+      - Statement:
+        - Action:
+          - s3:GetObject
+          - s3:GetObjectAcl
+          - s3:GetObjectVersion
+          - s3:PutObject
+          - s3:PutObjectAcl
+          - s3:DeleteObject
+          Resource:
+          - Fn::Sub:
+            - arn:${AWS::Partition}:s3:::${bucketName}/*
+            - bucketName:
+                Ref: Bucket
+          Effect: Allow
+        - Action:
+          - s3:ListBucket
+          - s3:GetBucketLocation
+          - s3:GetLifecycleConfiguration
+          - s3:PutLifecycleConfiguration
+          Resource:
+          - Fn::Sub:
+            - arn:${AWS::Partition}:s3:::${bucketName}
+            - bucketName:
+                Ref: Bucket
+          Effect: Allow
+      ReservedConcurrentExecutions: 5
+      MemorySize: 3008
+      Environment:
+        Variables:
+          HOME: /var/task
+          BUCKET_NAME:
+            Ref: Bucket
+          TABLE_NAME:
+            Ref: Table
+          BUCKET_URL:
+            Fn::GetAtt:
+            - Bucket
+            - WebsiteURL
+      Handler: index.handler
+      Timeout: 10
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: ab45a1db-fcf2-4ded-b3c0-9097db4019c1
+      Runtime: nodejs10.x
+      Events:
+        ApiConvert:
+          Type: Api
+          Properties:
+            Path: /api/convert
+            RestApiId:
+              Ref: ServerlessRestApi
+            Method: get
+  FunctionFrontend:
+    Type: AWS::Serverless::Function
+    Properties:
+      ReservedConcurrentExecutions: 5
+      MemorySize: 3008
+      Handler: index.handler
+      Timeout: 10
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 2fd9ca0f-61a7-4c87-9324-8c85b1b4de93
+      Runtime: nodejs10.x
+      Events:
+        ApiConvert:
+          Type: Api
+          Properties:
+            Path: /
+            RestApiId:
+              Ref: ServerlessRestApi
+            Method: get
+  ServerlessRestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      __MANAGE_SWAGGER: true
+      DefinitionBody:
+        info:
+          version: '1.0'
+          title:
+            Ref: AWS::StackName
+        paths:
+          /api/convert:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FunctionConvert.Arn}/invocations
+              responses: {}
+          /:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FunctionFrontend.Arn}/invocations
+              responses: {}
+        swagger: '2.0'
+      StageName: Prod
+  Table:
+    Type: AWS::Serverless::SimpleTable
+    Properties: {}

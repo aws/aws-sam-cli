@@ -1,0 +1,20 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Metadata:
+  Name: alexa-skills-kit-nodejs-factskill
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  alexaskillskitnodejsfactskill:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Description: Demonstrate a basic fact skill built with the ASK NodeJS SDK
+      Timeout: 7
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 947732d3-cec1-4e80-9596-37206a195f9d
+      Runtime: nodejs10.x
+      MemorySize: 128
+      Events:
+        AlexaTrigger:
+          Type: AlexaSkill
+Description: Demonstrate a basic fact skill built with the ASK NodeJS SDK

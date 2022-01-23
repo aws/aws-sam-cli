@@ -1,0 +1,62 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: This utility app provides a custom resource that allows an SNS Topic Subscription's filter policy to be specified as a JSON string instead of a JSON object so it can be passed into apps as a template parameter.
+Outputs:
+  SetFilterPolicyFunctionArn:
+    Description: SetFilterPolicy Lambda Function ARN
+    Value:
+      Fn::GetAtt:
+      - SetFilterPolicy
+      - Arn
+  SetFilterPolicyFunctionName:
+    Description: SetFilterPolicy Lambda Function Name
+    Value:
+      Ref: SetFilterPolicy
+Parameters:
+  LogLevel:
+    Default: INFO
+    Description: Log level for Lambda function logging, e.g., ERROR, INFO, DEBUG, etc
+    Type: String
+  SubscriptionArn:
+    Description: ARN of the SNS Topic Subscription to apply the filter policy to.
+    Type: String
+  SubscriptionFilterPolicy:
+    Description: SNS Topic Subscription FilterPolicy as a JSON string. See https://docs.aws.amazon.com/sns/latest/dg/message-filtering.html for details.
+    MinLength: 2
+    Type: String
+  TopicArn:
+    Description: ARN of the SNS Topic being subscribed to.
+    Type: String
+Resources:
+  FilterPolicy:
+    Properties:
+      FilterPolicy:
+        Ref: SubscriptionFilterPolicy
+      ServiceToken:
+        Fn::GetAtt:
+        - SetFilterPolicy
+        - Arn
+      SubscriptionArn:
+        Ref: SubscriptionArn
+    Type: AWS::CloudFormation::CustomResource
+  SetFilterPolicy:
+    Properties:
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 6ce61d1f-05fa-483d-977a-b065c6408e01
+      Environment:
+        Variables:
+          LOG_LEVEL:
+            Ref: LogLevel
+      Handler: set_filter_policy.handler
+      Policies:
+      - Statement:
+          Action:
+          - sns:SetSubscriptionAttributes
+          Effect: Allow
+          Resource:
+          - Fn::Sub: ${TopicArn}
+      Runtime: python3.7
+      Timeout: 5
+      Tracing: Active
+    Type: AWS::Serverless::Function
+Transform: AWS::Serverless-2016-10-31

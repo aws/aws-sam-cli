@@ -3,7 +3,7 @@
 from flask import jsonify, make_response
 
 
-class ServiceErrorResponses(object):
+class ServiceErrorResponses:
 
     _NO_LAMBDA_INTEGRATION = {"message": "No function defined for resource method"}
     _MISSING_AUTHENTICATION = {"message": "Missing Authentication Token"}

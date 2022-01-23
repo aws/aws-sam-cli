@@ -1,14 +1,24 @@
 """
-Helper methods that aid with changing the mount path to unix style.
+Helper methods that aid interactions within docker containers.
 """
 
 import os
-import posixpath
+import platform
 import re
-try:
-    import pathlib
-except ImportError:
-    import pathlib2 as pathlib
+import random
+import logging
+import posixpath
+import pathlib
+import socket
+
+import docker
+import requests
+
+from samcli.lib.utils.architecture import ARM64, validate_architecture
+
+from samcli.local.docker.exceptions import NoFreePortsError
+
+LOG = logging.getLogger(__name__)
 
 
 def to_posix_path(code_path):
@@ -31,6 +41,116 @@ def to_posix_path(code_path):
     /c/Users/UserName/AppData/Local/Temp/mydir
     """
 
-    return re.sub("^([A-Za-z])+:",
-                  lambda match: posixpath.sep + match.group().replace(":", "").lower(),
-                  pathlib.PureWindowsPath(code_path).as_posix()) if os.name == "nt" else code_path
+    return (
+        re.sub(
+            "^([A-Za-z])+:",
+            lambda match: posixpath.sep + match.group().replace(":", "").lower(),
+            pathlib.PureWindowsPath(code_path).as_posix(),
+        )
+        if os.name == "nt"
+        else code_path
+    )
+
+
+def find_free_port(start=5000, end=9000):
+    """
+    Utility function which scans through a port range in a randomized manner
+    and finds the first free port a socket can bind to.
+    :raises NoFreePortException if no free ports found in range.
+    :return: int - free port
+    """
+    port_range = [random.randrange(start, end) for _ in range(start, end)]
+    for port in port_range:
+        try:
+            s = socket.socket()
+            s.bind(("", port))
+            s.close()
+            return port
+        except OSError:
+            continue
+    raise NoFreePortsError(f"No free ports on the host machine from {start} to {end}")
+
+
+def is_docker_reachable(docker_client):
+    """
+    Checks if Docker daemon is running.
+
+    :param docker_client : docker.from_env() - docker client object
+    :returns True, if Docker is available, False otherwise.
+    """
+    errors = (
+        docker.errors.APIError,
+        requests.exceptions.ConnectionError,
+    )
+    if platform.system() == "Windows":
+        import pywintypes  # pylint: disable=import-error
+
+        errors += (pywintypes.error,)  # pylint: disable=no-member
+
+    try:
+        docker_client.ping()
+        return True
+
+    # When Docker is not installed, a request.exceptions.ConnectionError is thrown.
+    # and also windows-specific errors
+    except errors:
+        LOG.debug("Docker is not reachable", exc_info=True)
+        return False
+
+
+def get_rapid_name(architecture: str) -> str:
+    """
+    Return the name of the rapid binary to use for an architecture
+
+    Parameters
+    ----------
+    architecture : str
+        Architecture
+
+    Returns
+    -------
+    str
+        "aws-lambda-rie-" + architecture
+    """
+    validate_architecture(architecture)
+
+    return "aws-lambda-rie-" + architecture
+
+
+def get_image_arch(architecture: str) -> str:
+    """
+    Returns the docker image architecture value corresponding to the
+    Lambda architecture value
+
+    Parameters
+    ----------
+    architecture : str
+        Lambda architecture
+
+    Returns
+    -------
+    str
+        Docker image architecture
+    """
+    validate_architecture(architecture)
+
+    return "arm64" if architecture == ARM64 else "amd64"
+
+
+def get_docker_platform(architecture: str) -> str:
+    """
+    Returns the platform to pass to the docker client for a given architecture
+
+    Parameters
+    ----------
+    architecture : str
+        Architecture
+
+    Returns
+    -------
+    str
+        linux/arm64 for arm64, linux/amd64 otherwise
+    """
+    validate_architecture(architecture)
+
+    return f"linux/{get_image_arch(architecture)}"

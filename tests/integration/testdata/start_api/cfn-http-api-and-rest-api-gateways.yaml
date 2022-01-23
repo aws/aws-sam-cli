@@ -1,0 +1,212 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'sam-app
+
+  Sample SAM Template for sam-app
+
+  '
+Resources:
+  HelloWorldFunction:
+    Properties:
+      Handler: main.handler
+      Code: '.'
+      Role:
+        Fn::GetAtt:
+        - HelloWorldFunctionRole
+        - Arn
+      Runtime: python3.6
+      Tags:
+      - Key: lambda:createdBy
+        Value: SAM
+      Timeout: 3
+    Type: AWS::Lambda::Function
+  HelloWorldFunctionWithOperationName:
+    Properties:
+      Handler: main.operation_name_handler
+      Code: '.'
+      Role:
+        Fn::GetAtt:
+          - HelloWorldFunctionRole
+          - Arn
+      Runtime: python3.6
+      Tags:
+        - Key: lambda:createdBy
+          Value: SAM
+      Timeout: 3
+    Type: AWS::Lambda::Function
+  HelloWorldFunctionRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+        Version: '2012-10-17'
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Tags:
+      - Key: lambda:createdBy
+        Value: SAM
+    Type: AWS::IAM::Role
+  HelloWorldFunctionHelloWorldPermission:
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: HelloWorldFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Sub:
+        - arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${__ApiId__}/${__Stage__}/*
+        - __ApiId__:
+            Ref: HTTPAPIGateway
+          __Stage__: '*'
+    Type: AWS::Lambda::Permission
+  HTTPAPIGateway:
+    Properties:
+      Name: HelloWorldHTTPAPIGateway1
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowCredentials: true
+        AllowHeaders:
+        - x-apigateway-header
+        AllowMethods:
+        - GET
+        AllowOrigins:
+        - https://example.com
+        MaxAge: 600
+    Type: AWS::ApiGatewayV2::Api
+  HTTPAPIGatewayApiGatewayDefaultStage:
+    Properties:
+      ApiId:
+        Ref: HTTPAPIGateway
+      AutoDeploy: true
+      StageName: $default
+      Tags:
+        httpapi:createdBy: SAM
+    Type: AWS::ApiGatewayV2::Stage
+  MyIntegration:
+    Type: 'AWS::ApiGatewayV2::Integration'
+    Properties:
+      ApiId: !Ref HTTPAPIGateway
+      PayloadFormatVersion: "1.0"
+      IntegrationType: AWS_PROXY
+      IntegrationMethod: POST
+      IntegrationUri:
+        Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${HelloWorldFunction.Arn}/invocations
+  MyIntegrationWithOperationName:
+    Type: 'AWS::ApiGatewayV2::Integration'
+    Properties:
+      ApiId: !Ref HTTPAPIGateway
+      PayloadFormatVersion: "1.0"
+      IntegrationType: AWS_PROXY
+      IntegrationMethod: POST
+      IntegrationUri:
+        Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${HelloWorldFunctionWithOperationName.Arn}/invocations
+  MyRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HTTPAPIGateway
+      RouteKey: 'GET /http-api'
+      Target: !Join
+      - /
+      - - integrations
+        - !Ref MyIntegration
+  MyRouteWithOperationName:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HTTPAPIGateway
+      OperationName: 'MyOperationName'
+      RouteKey: 'GET /http-api-with-operation-name'
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref MyIntegrationWithOperationName
+  RestApiGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: Endpoint
+    RestApiGatewayDeployment:
+      Type: AWS::ApiGateway::Deployment
+      Properties:
+        RestApiId:
+          Ref: RestApiGateway
+        Description: Automatically created by the RestApi construct
+  RestApiGatewayDeploymentStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId:
+        Ref: RestApiGateway
+      DeploymentId:
+        Ref: RestApiGatewayDeployment
+      StageName: prod
+  RestApiGatewayResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - RestApiGateway
+          - RootResourceId
+      PathPart: "rest-api"
+      RestApiId:
+        Ref: RestApiGateway
+  RestApiGatewayMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId:
+        Ref: RestApiGatewayResource
+      RestApiId:
+        Ref: RestApiGateway
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - HelloWorldFunction
+                  - Arn
+              - /invocations
+  RestApiGatewayWithOperationNameResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - RestApiGateway
+          - RootResourceId
+      PathPart: "rest-api-with-operation-name"
+      RestApiId:
+        Ref: RestApiGateway
+  RestApiGatewayWithOperationNameMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      OperationName: 'MyOperationName'
+      ResourceId:
+        Ref: RestApiGatewayWithOperationNameResource
+      RestApiId:
+        Ref: RestApiGateway
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - HelloWorldFunctionWithOperationName
+                  - Arn
+              - /invocations

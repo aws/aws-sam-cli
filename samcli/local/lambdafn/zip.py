@@ -4,20 +4,78 @@ this feature natively (https://bugs.python.org/issue15795).
 """
 
 import os
-import zipfile
 import logging
+import zipfile
+from pathlib import Path
 
 import requests
 
 from samcli.lib.utils.progressbar import progressbar
 
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
-
 
 LOG = logging.getLogger(__name__)
+
+S_IFLNK = 0xA
+
+
+def _is_symlink(file_info):
+    """
+    Check the upper 4 bits of the external attribute for a symlink.
+    See: https://unix.stackexchange.com/questions/14705/the-zip-formats-external-file-attribute
+
+    Parameters
+    ----------
+    file_info : zipfile.ZipInfo
+        The ZipInfo for a ZipFile
+
+    Returns
+    -------
+    bool
+        A response regarding whether the ZipInfo defines a symlink or not.
+    """
+
+    return (file_info.external_attr >> 28) == 0xA
+
+
+def _extract(file_info, output_dir, zip_ref):
+    """
+    Unzip the given file into the given directory while preserving file permissions in the process.
+
+    Parameters
+    ----------
+    file_info : zipfile.ZipInfo
+        The ZipInfo for a ZipFile
+    output_dir : str
+        Path to the directory where the it should be unzipped to
+    zip_ref : zipfile.ZipFile
+        The ZipFile we are working with.
+
+    Returns
+    -------
+    string
+        Returns the target path the Zip Entry was extracted to.
+    """
+
+    # Handle any regular file/directory entries
+    if not _is_symlink(file_info):
+        return zip_ref.extract(file_info, output_dir)
+
+    source = zip_ref.read(file_info.filename).decode("utf8")
+    link_name = os.path.normpath(os.path.join(output_dir, file_info.filename))
+
+    # make leading dirs if needed
+    leading_dirs = os.path.dirname(link_name)
+    if not os.path.exists(leading_dirs):
+        os.makedirs(leading_dirs)
+
+    # If the link already exists, delete it or symlink() fails
+    if os.path.lexists(link_name):
+        os.remove(link_name)
+
+    # Create a symbolic link pointing to source named link_name.
+    os.symlink(source, link_name)
+
+    return link_name
 
 
 def unzip(zip_file_path, output_dir, permission=None):
@@ -28,27 +86,26 @@ def unzip(zip_file_path, output_dir, permission=None):
     ----------
     zip_file_path : str
         Path to the zip file
-
     output_dir : str
         Path to the directory where the it should be unzipped to
-
-    permission : octal int
-        Permission to set
+    permission : int
+        Permission to set in an octal int form
     """
 
-    with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+    with zipfile.ZipFile(zip_file_path, "r") as zip_ref:
 
         # For each item in the zip file, extract the file and set permissions if available
         for file_info in zip_ref.infolist():
-            name = file_info.filename
-            extracted_path = os.path.join(output_dir, name)
+            extracted_path = _extract(file_info, output_dir, zip_ref)
 
-            zip_ref.extract(name, output_dir)
-            _set_permissions(file_info, extracted_path)
+            # If the extracted_path is a symlink, do not set the permissions. If the target of the symlink does not
+            # exist, then os.chmod will fail with FileNotFoundError
+            if not os.path.islink(extracted_path):
+                _set_permissions(file_info, extracted_path)
+                _override_permissions(extracted_path, permission)
 
-            _override_permissions(extracted_path, permission)
-
-    _override_permissions(output_dir, permission)
+    if not os.path.islink(extracted_path):
+        _override_permissions(output_dir, permission)
 
 
 def _override_permissions(path, permission):
@@ -107,10 +164,10 @@ def unzip_from_uri(uri, layer_zip_path, unzip_output_dir, progressbar_label):
         Label to use in the Progressbar
     """
     try:
-        get_request = requests.get(uri, stream=True, verify=os.environ.get('AWS_CA_BUNDLE', True))
+        get_request = requests.get(uri, stream=True, verify=os.environ.get("AWS_CA_BUNDLE", True))
 
-        with open(layer_zip_path, 'wb') as local_layer_file:
-            file_length = int(get_request.headers['Content-length'])
+        with open(layer_zip_path, "wb") as local_layer_file:
+            file_length = int(get_request.headers["Content-length"])
 
             with progressbar(file_length, progressbar_label) as p_bar:
                 # Set the chunk size to None. Since we are streaming the request, None will allow the data to be

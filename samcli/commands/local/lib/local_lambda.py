@@ -2,32 +2,54 @@
 Implementation of Local Lambda runner
 """
 
-import os
 import logging
-import boto3
+import os
+from typing import Any, Dict, Optional, cast
 
+import boto3
+from botocore.credentials import Credentials
+
+from samcli.commands.local.lib.debug_context import DebugContext
+from samcli.commands.local.lib.exceptions import (
+    OverridesNotWellDefinedError,
+    NoPrivilegeException,
+    InvalidIntermediateImageError,
+)
+from samcli.lib.providers.provider import Function
+from samcli.lib.providers.sam_function_provider import SamFunctionProvider
+from samcli.lib.utils.architecture import validate_architecture_runtime
 from samcli.lib.utils.codeuri import resolve_code_path
-from samcli.local.lambdafn.env_vars import EnvironmentVariables
+from samcli.lib.utils.packagetype import ZIP, IMAGE
+from samcli.lib.utils.stream_writer import StreamWriter
+from samcli.local.docker.container import ContainerResponseException
 from samcli.local.lambdafn.config import FunctionConfig
+from samcli.local.lambdafn.env_vars import EnvironmentVariables
 from samcli.local.lambdafn.exceptions import FunctionNotFound
-from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
+from samcli.local.lambdafn.runtime import LambdaRuntime
 
 LOG = logging.getLogger(__name__)
 
 
-class LocalLambdaRunner(object):
+class LocalLambdaRunner:
     """
     Runs Lambda functions locally. This class is a wrapper around the `samcli.local` library which takes care
     of actually running the function on a Docker container.
     """
+
     MAX_DEBUG_TIMEOUT = 36000  # 10 hours in seconds
 
-    def __init__(self,
-                 local_runtime,
-                 function_provider,
-                 cwd,
-                 env_vars_values=None,
-                 debug_context=None):
+    def __init__(
+        self,
+        local_runtime: LambdaRuntime,
+        function_provider: SamFunctionProvider,
+        cwd: str,
+        aws_profile: Optional[str] = None,
+        aws_region: Optional[str] = None,
+        env_vars_values: Optional[Dict[Any, Any]] = None,
+        debug_context: Optional[DebugContext] = None,
+        container_host: Optional[str] = None,
+        container_host_interface: Optional[str] = None,
+    ) -> None:
         """
         Initializes the class
 
@@ -35,18 +57,33 @@ class LocalLambdaRunner(object):
         :param samcli.commands.local.lib.provider.FunctionProvider function_provider: Provider that can return a
             Lambda function
         :param string cwd: Current working directory. We will resolve all function CodeURIs relative to this directory.
-        :param dict env_vars_values: Optional. Dictionary containing values of environment variables
-        :param integer debug_port: Optional. Port to bind the debugger to
-        :param string debug_args: Optional. Additional arguments passed to the debugger
+        :param string aws_profile: Optional. Name of the profile to fetch AWS credentials from.
+        :param string aws_region: Optional. AWS Region to use.
+        :param dict env_vars_values: Optional. Dictionary containing values of environment variables.
+        :param DebugContext debug_context: Optional. Debug context for the function (includes port, args, and path).
+        :param string container_host: Optional. Host of locally emulated Lambda container
+        :param string container_host_interface: Optional. Interface that Docker host binds ports to
         """
 
         self.local_runtime = local_runtime
         self.provider = function_provider
         self.cwd = cwd
+        self.aws_profile = aws_profile
+        self.aws_region = aws_region
         self.env_vars_values = env_vars_values or {}
         self.debug_context = debug_context
+        self._boto3_session_creds: Optional[Dict[str, str]] = None
+        self._boto3_region: Optional[str] = None
+        self.container_host = container_host
+        self.container_host_interface = container_host_interface
 
-    def invoke(self, function_name, event, stdout=None, stderr=None):
+    def invoke(
+        self,
+        function_identifier: str,
+        event: str,
+        stdout: Optional[StreamWriter] = None,
+        stderr: Optional[StreamWriter] = None,
+    ) -> None:
         """
         Find the Lambda function with given name and invoke it. Pass the given event to the function and return
         response through the given streams.
@@ -55,8 +92,8 @@ class LocalLambdaRunner(object):
 
         Parameters
         ----------
-        function_name str
-            Name of the Lambda function to invoke
+        function_identifier str
+            Identifier of the Lambda function to invoke, it can be logicalID, function name or full path
         event str
             Event data passed to the function. Must be a valid JSON String.
         stdout samcli.lib.utils.stream_writer.StreamWriter
@@ -71,24 +108,57 @@ class LocalLambdaRunner(object):
         """
 
         # Generate the correct configuration based on given inputs
-        function = self.provider.get(function_name)
+        function = self.provider.get(function_identifier)
 
         if not function:
-            all_functions = [f.name for f in self.provider.get_all()]
-            available_function_message = "{} not found. Possible options in your template: {}"\
-                .format(function_name, all_functions)
+            all_function_full_paths = [f.full_path for f in self.provider.get_all()]
+            available_function_message = "{} not found. Possible options in your template: {}".format(
+                function_identifier, all_function_full_paths
+            )
             LOG.info(available_function_message)
-            raise FunctionNotFound("Unable to find a Function with name '%s'", function_name)
+            raise FunctionNotFound("Unable to find a Function with name '{}'".format(function_identifier))
 
-        LOG.debug("Found one Lambda function with name '%s'", function_name)
+        LOG.debug("Found one Lambda function with name '%s'", function_identifier)
+        if function.packagetype == ZIP:
+            LOG.info("Invoking %s (%s)", function.handler, function.runtime)
+        elif function.packagetype == IMAGE:
+            if not function.imageuri:
+                raise InvalidIntermediateImageError(
+                    f"ImageUri not provided for Function: {function_identifier} of PackageType: {function.packagetype}"
+                )
+            LOG.info("Invoking Container created from %s", function.imageuri)
 
-        LOG.info("Invoking %s (%s)", function.handler, function.runtime)
-        config = self._get_invoke_config(function)
+        validate_architecture_runtime(function)
+
+        config = self.get_invoke_config(function)
 
         # Invoke the function
-        self.local_runtime.invoke(config, event, debug_context=self.debug_context, stdout=stdout, stderr=stderr)
+        try:
+            self.local_runtime.invoke(
+                config,
+                event,
+                debug_context=self.debug_context,
+                stdout=stdout,
+                stderr=stderr,
+                container_host=self.container_host,
+                container_host_interface=self.container_host_interface,
+            )
+        except ContainerResponseException:
+            # NOTE(sriram-mv): This should still result in a exit code zero to avoid regressions.
+            LOG.info("No response from invoke container for %s", function.name)
+        except OSError as os_error:
+            # pylint: disable=no-member
+            if hasattr(os_error, "winerror") and os_error.winerror == 1314:  # type: ignore
+                raise NoPrivilegeException(
+                    "Administrator, Windows Developer Mode, "
+                    "or SeCreateSymbolicLinkPrivilege is required to create symbolic link for files: {}, {}".format(
+                        os_error.filename, os_error.filename2
+                    )
+                ) from os_error
 
-    def is_debugging(self):
+            raise
+
+    def is_debugging(self) -> bool:
         """
         Are we debugging the invoke?
 
@@ -100,7 +170,7 @@ class LocalLambdaRunner(object):
         """
         return bool(self.debug_context)
 
-    def _get_invoke_config(self, function):
+    def get_invoke_config(self, function: Function) -> FunctionConfig:
         """
         Returns invoke configuration to pass to Lambda Runtime to invoke the given function
 
@@ -109,9 +179,10 @@ class LocalLambdaRunner(object):
         """
 
         env_vars = self._make_env_vars(function)
-        code_abs_path = resolve_code_path(self.cwd, function.codeuri)
-
-        LOG.debug("Resolved absolute path to code is %s", code_abs_path)
+        code_abs_path = None
+        if function.packagetype == ZIP:
+            code_abs_path = resolve_code_path(self.cwd, function.codeuri)
+            LOG.debug("Resolved absolute path to code is %s", code_abs_path)
 
         function_timeout = function.timeout
 
@@ -121,16 +192,23 @@ class LocalLambdaRunner(object):
         if self.is_debugging():
             function_timeout = self.MAX_DEBUG_TIMEOUT
 
-        return FunctionConfig(name=function.name,
-                              runtime=function.runtime,
-                              handler=function.handler,
-                              code_abs_path=code_abs_path,
-                              layers=function.layers,
-                              memory=function.memory,
-                              timeout=function_timeout,
-                              env_vars=env_vars)
+        return FunctionConfig(
+            name=function.name,
+            full_path=function.full_path,
+            runtime=function.runtime,
+            handler=function.handler,
+            imageuri=function.imageuri,
+            imageconfig=function.imageconfig,
+            packagetype=function.packagetype,
+            code_abs_path=code_abs_path,
+            layers=function.layers,
+            architecture=function.architecture,
+            memory=function.memory,
+            timeout=function_timeout,
+            env_vars=env_vars,
+        )
 
-    def _make_env_vars(self, function):
+    def _make_env_vars(self, function: Function) -> EnvironmentVariables:
         """Returns the environment variables configuration for this function
 
         Parameters
@@ -150,10 +228,12 @@ class LocalLambdaRunner(object):
 
         """
 
+        function_id = function.function_id
         name = function.name
+        full_path = function.full_path
 
         variables = None
-        if function.environment and isinstance(function.environment, dict) and "Variables" in function.environment:
+        if isinstance(function.environment, dict) and "Variables" in function.environment:
             variables = function.environment["Variables"]
         else:
             LOG.debug("No environment variables found for function '%s'", name)
@@ -179,20 +259,49 @@ class LocalLambdaRunner(object):
         else:
             # Standard format
             LOG.debug("Environment variables overrides data is standard format")
-            overrides = self.env_vars_values.get(name, None)
+            # Precedence: logical_id -> function_id -> full_path, customer can use any of them
+            overrides = (
+                self.env_vars_values.get(name, None)
+                or self.env_vars_values.get(function_id, None)
+                or self.env_vars_values.get(full_path, None)
+            )
 
         shell_env = os.environ
         aws_creds = self.get_aws_creds()
 
-        return EnvironmentVariables(function.memory,
-                                    function.timeout,
-                                    function.handler,
-                                    variables=variables,
-                                    shell_env_values=shell_env,
-                                    override_values=overrides,
-                                    aws_creds=aws_creds)
+        return EnvironmentVariables(
+            function.name,
+            function.memory,
+            function.timeout,
+            function.handler,
+            variables=variables,
+            shell_env_values=shell_env,
+            override_values=overrides,
+            aws_creds=aws_creds,
+        )  # EnvironmentVariables is not yet annotated with type hints, disable mypy check for now. type: ignore
 
-    def get_aws_creds(self):
+    def _get_session_creds(self) -> Credentials:
+        if self._boto3_session_creds is None:
+            # to pass command line arguments for region & profile to setup boto3 default session
+            LOG.debug("Loading AWS credentials from session with profile '%s'", self.aws_profile)
+            # The signature of boto3.session.Session defines the default values of profile_name and region_name
+            # so they should be Optional. But mypy follows its docstring which does not have "Optional."
+            # Here we trick mypy thinking they are both str rather than Optional[str].
+            session = boto3.session.Session(
+                profile_name=cast(str, self.aws_profile), region_name=cast(str, self.aws_region)
+            )
+
+            # check for region_name in session and cache
+            if hasattr(session, "region_name") and session.region_name:
+                self._boto3_region = session.region_name
+
+            # don't set cached session creds if there is not a session
+            if session:
+                self._boto3_session_creds = session.get_credentials()
+
+        return self._boto3_session_creds
+
+    def get_aws_creds(self) -> Dict[str, str]:
         """
         Returns AWS credentials obtained from the shell environment or given profile
 
@@ -200,39 +309,27 @@ class LocalLambdaRunner(object):
              {"region": "", "key": "", "secret": "", "sessiontoken": ""}. If credentials could not be resolved,
              this returns None
         """
-        result = {}
-
-        # to pass command line arguments for region & profile to setup boto3 default session
-        if boto3.DEFAULT_SESSION:
-            session = boto3.DEFAULT_SESSION
-        else:
-            session = boto3.session.Session()
-
-        profile_name = session.profile_name if session else None
-        LOG.debug("Loading AWS credentials from session with profile '%s'", profile_name)
-
-        if not session:
-            return result
+        result: Dict[str, str] = {}
 
         # Load the credentials from profile/environment
-        creds = session.get_credentials()
-
-        if not creds:
-            # If we were unable to load credentials, then just return empty. We will use the default
-            return result
+        creds = self._get_session_creds()
 
         # After loading credentials, region name might be available here.
-        if hasattr(session, 'region_name') and session.region_name:
-            result["region"] = session.region_name
+        if self._boto3_region:
+            result["region"] = self._boto3_region
+
+        if not creds:
+            # If we were unable to load credentials, then just return result. We will use the default
+            return result
 
         # Only add the key, if its value is present
-        if hasattr(creds, 'access_key') and creds.access_key:
+        if hasattr(creds, "access_key") and creds.access_key:
             result["key"] = creds.access_key
 
-        if hasattr(creds, 'secret_key') and creds.secret_key:
+        if hasattr(creds, "secret_key") and creds.secret_key:
             result["secret"] = creds.secret_key
 
-        if hasattr(creds, 'token') and creds.token:
+        if hasattr(creds, "token") and creds.token:
             result["sessiontoken"] = creds.token
 
         return result

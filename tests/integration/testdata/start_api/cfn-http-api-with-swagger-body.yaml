@@ -1,0 +1,92 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'sam-app
+
+  Sample SAM Template for sam-app
+
+  '
+Resources:
+  HelloWorldFunction:
+    Properties:
+      Handler: main.echo_event_handler
+      Code: '.'
+      Role:
+        Fn::GetAtt:
+        - HelloWorldFunctionRole
+        - Arn
+      Runtime: python3.7
+      Tags:
+      - Key: lambda:createdBy
+        Value: SAM
+      Timeout: 3
+    Type: AWS::Lambda::Function
+  HelloWorldFunctionRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+        Version: '2012-10-17'
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Tags:
+      - Key: lambda:createdBy
+        Value: SAM
+    Type: AWS::IAM::Role
+  HelloWorldFunctionHelloWorldPermission:
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: HelloWorldFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Sub:
+        - arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${__ApiId__}/${__Stage__}/*
+        - __ApiId__:
+            Ref: HTTPAPIGateway
+          __Stage__: '*'
+    Type: AWS::Lambda::Permission
+  HTTPAPIGateway:
+    Properties:
+      Body:
+        info:
+          title:
+            Ref: AWS::StackName
+          version: '1.0'
+        openapi: 3.0.1
+        paths:
+          /echoeventbody:
+            get:
+              responses: {}
+              operationId: 'postOperationIdShouldNotBeInHttpApi'
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                payloadFormatVersion: '2.0'
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${HelloWorldFunction.Arn}/invocations
+        tags:
+        - name: httpapi:createdBy
+          x-amazon-apigateway-tag-value: SAM
+        x-amazon-apigateway-cors:
+          allowCredentials: true
+          allowHeaders:
+          - x-apigateway-header
+          allowMethods:
+          - GET
+          allowOrigins:
+          - https://example.com
+          maxAge: 600
+    Type: AWS::ApiGatewayV2::Api
+  HTTPAPIGatewayApiGatewayDefaultStage:
+    Properties:
+      ApiId:
+        Ref: HTTPAPIGateway
+      AutoDeploy: true
+      StageName: $default
+      Tags:
+        httpapi:createdBy: SAM
+    Type: AWS::ApiGatewayV2::Stage

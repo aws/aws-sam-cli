@@ -1,0 +1,101 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Resources:
+  Base64ResponseFunction:
+    Properties:
+      Code: "."
+      Handler: main.base64_response
+      Runtime: python3.6
+      Timeout: 0
+    Type: AWS::Lambda::Function
+  EchoBase64EventBodyFunction:
+    Properties:
+      Code: "."
+      Handler: main.echo_base64_event_body
+      Runtime: python3.6
+      Timeout: 0
+    Type: AWS::Lambda::Function
+  EchoEventBodyFunction:
+    Properties:
+      Code: "."
+      Handler: main.echo_event_handler
+      Runtime: python3.6
+      Timeout: 0
+    Type: AWS::Lambda::Function
+  MyApi:
+    Properties:
+      Body:
+        info:
+          title:
+            Ref: AWS::StackName
+        paths:
+          "/anyandall":
+            x-amazon-apigateway-any-method:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                responses: {}
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyNonServerlessLambdaFunction.Arn}/invocations
+          "/base64response":
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Base64ResponseFunction.Arn}/invocations
+          "/echoeventbody":
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EchoEventBodyFunction.Arn}/invocations
+          "/echobase64eventbody":
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EchoBase64EventBodyFunction.Arn}/invocations
+          "/nofunctionfound":
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WhatFunction.Arn}/invocations
+          "/nonserverlessfunction":
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyNonServerlessLambdaFunction.Arn}/invocations
+          "/printeventwithoperationidfunction":
+            get:
+              operationId: 'MyOperationName'
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EchoEventBodyFunction.Arn}/invocations
+        swagger: '2.0'
+        x-amazon-apigateway-binary-media-types:
+          - image/gif
+      StageName: prod
+    Type: AWS::ApiGateway::RestApi
+  Dev:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      StageName: Dev
+      RestApiId: MyApi
+      Variables:
+        Stack: Dev
+  MyNonServerlessLambdaFunction:
+    Properties:
+      Code: "."
+      Handler: main.handler
+      Runtime: python3.6
+      Timeout: 600
+    Type: AWS::Lambda::Function

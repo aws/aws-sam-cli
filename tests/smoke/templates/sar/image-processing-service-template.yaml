@@ -1,0 +1,28 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  IdentityNameParameter:
+    Type: String
+Description: Uses ImageMagick to perform simple image processing operations, such as resizing.
+Resources:
+  imageprocessingservice:
+    Type: AWS::Serverless::Function
+    Properties:
+      Policies:
+      - Statement:
+        - Action:
+          - ses:SendBounce
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:ses:${AWS::Region}:${AWS::AccountId}:identity/${identityName}
+            - identityName:
+                Ref: IdentityNameParameter
+          Effect: Allow
+      Handler: index.handler
+      Description: Uses ImageMagick to perform simple image processing operations, such as resizing.
+      Timeout: 30
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: e1281f99-d6f1-4d54-8c31-947a673bf8d5
+      Runtime: nodejs10.x
+      MemorySize: 512
+Transform: AWS::Serverless-2016-10-31

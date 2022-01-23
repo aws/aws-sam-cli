@@ -1,0 +1,67 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Run intrinsics and fill in pseudo parameters first, ApplicationIds used are aws sample app arns.
+
+Mappings:
+  MappingExample:
+    eu-west-1:
+      ApplicationId: arn:aws:serverlessrepo:us-east-1:077246666028:applications/hello-world
+    eu-west-2:
+      ApplicationId: arn:aws:serverlessrepo:us-east-1:077246666028:applications/hello-world
+    eu-west-3:
+      ApplicationId: arn:aws:serverlessrepo:us-east-1:077246666028:applications/hello-world
+    eu-central-1:
+      ApplicationId: arn:aws:serverlessrepo:us-east-1:077246666028:applications/hello-world
+    eu-north-1:
+      ApplicationId: arn:aws:serverlessrepo:us-east-1:077246666028:applications/hello-world
+    us-east-1:
+      ApplicationId: arn:aws:serverlessrepo:us-east-1:077246666028:applications/hello-world
+    us-east-2:
+      ApplicationId: arn:aws:serverlessrepo:us-east-1:077246666028:applications/hello-world
+    us-west-1:
+      ApplicationId: arn:aws:serverlessrepo:us-east-1:077246666028:applications/hello-world
+    us-west-2:
+      ApplicationId: arn:aws:serverlessrepo:us-east-1:077246666028:applications/hello-world
+    ap-east-1:
+      ApplicationId: arn:aws:serverlessrepo:us-east-1:077246666028:applications/hello-world
+    ap-south-1:
+      ApplicationId: arn:aws:serverlessrepo:us-east-1:077246666028:applications/hello-world
+    ap-northeast-2:
+      ApplicationId: arn:aws:serverlessrepo:us-east-1:077246666028:applications/hello-world
+    ap-southeast-1:
+      ApplicationId: arn:aws:serverlessrepo:us-east-1:077246666028:applications/hello-world
+    ap-southeast-2:
+      ApplicationId: arn:aws:serverlessrepo:us-east-1:077246666028:applications/hello-world
+    ap-northeast-1:
+      ApplicationId: arn:aws:serverlessrepo:us-east-1:077246666028:applications/hello-world
+    ca-central-1:
+      ApplicationId: arn:aws:serverlessrepo:us-east-1:077246666028:applications/hello-world
+    me-south-1:
+      ApplicationId: arn:aws:serverlessrepo:us-east-1:077246666028:applications/hello-world
+    sa-east-1:
+      ApplicationId: arn:aws:serverlessrepo:us-east-1:077246666028:applications/hello-world
+
+Resources:
+
+  HelloworldApplication:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location:
+        ApplicationId: !FindInMap [MappingExample, !Ref AWS::Region, ApplicationId]
+        SemanticVersion: 1.0.4
+      Parameters:
+        IdentityNameParameter: TestName
+
+  HelloWorldServerlessFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.intrinsics_handler
+      Runtime: python3.7
+      CodeUri: .
+      Timeout: 600
+      Environment:
+        Variables:
+          ApplicationId: !FindInMap [MappingExample, !Ref AWS::Region, ApplicationId]
+
+
+

@@ -1,0 +1,34 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: A hello world application with code signing config
+
+Parameters:
+  SigningProfileVersionArn:
+    Type: String
+    Description: Give previously created signing profile version ARN which will be used to validate signature of the package
+  UntrustedArtifactOnDeployment:
+    Type: String
+    Description: Value for UntrustedArtifactOnDeployment for AWS::Lambda::CodeSigningConfig resource
+    AllowedValues:
+      - Enforce
+      - Warn
+
+Resources:
+  HelloWorldFunctionWithCsc:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.7
+      CodeUri: .
+      Timeout: 600
+      CodeSigningConfigArn: !Ref HelloWorldFunctionCodeSigningConfig
+
+  HelloWorldFunctionCodeSigningConfig:
+    Type: AWS::Lambda::CodeSigningConfig
+    Properties:
+      Description: "Code Signing for MySignedLambdaFunction"
+      AllowedPublishers:
+        SigningProfileVersionArns:
+          - !Ref SigningProfileVersionArn
+      CodeSigningPolicies:
+        UntrustedArtifactOnDeployment: !Ref UntrustedArtifactOnDeployment

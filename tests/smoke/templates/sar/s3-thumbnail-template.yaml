@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Generate thumbnails from images in S3
+Parameters:
+  BucketName:
+    Description: Name of S3 bucket
+    Type: String
+Resources:
+  ThumbnailFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: ab0f71fc-12c8-4928-ad3b-07cee40ad0b4
+      Handler: main
+      Runtime: go1.x
+      Timeout: 300
+      Events:
+        S3Event:
+          Type: S3
+          Properties:
+            Bucket:
+              Ref: ImageBucket
+            Events: s3:ObjectCreated:*
+  ImageBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Ref: BucketName

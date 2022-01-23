@@ -1,0 +1,80 @@
+Description: |
+  lex-dynamodb
+  Example of how a serverless app can handle Lex requests and log intent and/or session data to dynamodb.
+Parameters:
+  TableName:
+    AllowedPattern: ^[A-Za-z_]+$
+    Type: String
+    Description: (Required) The name of the new DynamoDB table you want to create and save to. Minimum 3 characters
+    MaxLength: 50
+    Default: LexLog
+    MinLength: 3
+    ConstraintDescription: Required. Can be characters and underscore only. No numbers or special characters allowed.
+AWSTemplateFormatVersion: '2010-09-09'
+Outputs:
+  LogIntentFunctionArn:
+    Description: Lambda function that takes Lex fulfillment requests and logs them to DynamoDB
+    Value:
+      Fn::GetAtt:
+      - LogIntentFunction
+      - Arn
+  DynamoDBTableArn:
+    Description: The ARN of your DynamoDB Table
+    Value:
+      Fn::GetAtt:
+      - DynamoDBTable
+      - Arn
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  DynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      KeySchema:
+      - KeyType: HASH
+        AttributeName:
+          Fn::Sub: ${TableName}Id
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      TableName:
+        Ref: TableName
+      AttributeDefinitions:
+      - AttributeName:
+          Fn::Sub: ${TableName}Id
+        AttributeType: S
+      ProvisionedThroughput:
+        WriteCapacityUnits: 1
+        ReadCapacityUnits: 1
+  LogIntentFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: logIntent
+      Environment:
+        Variables:
+          TABLE_NAME:
+            Ref: TableName
+          PRIMARY_KEY:
+            Fn::Sub: ${TableName}Id
+      Handler: index.handler
+      Timeout: 10
+      Policies:
+      - Statement:
+        - Action:
+          - dynamodb:GetItem
+          - dynamodb:DeleteItem
+          - dynamodb:PutItem
+          - dynamodb:Scan
+          - dynamodb:Query
+          - dynamodb:UpdateItem
+          - dynamodb:BatchWriteItem
+          - dynamodb:BatchGetItem
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tableName}
+            - tableName:
+                Ref: DynamoDBTable
+          Effect: Allow
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 2658129b-dbc7-49f1-97dd-f7a21ed3aa2f
+      Runtime: nodejs10.x
+      Description: Log Lex intent to a DynamoDB table

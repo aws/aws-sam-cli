@@ -1,0 +1,101 @@
+{
+  "Mappings": {
+    "TopLevel": {
+      "SecondLevelKey": {
+        "key": "https://s3location/"
+      }
+    }
+  },
+  "Conditions": {
+    "ComplexCondition": {
+      "Fn::And": [
+        {
+          "Fn::Equals": [
+            {
+              "Fn::Or": [
+                {
+                  "Condition": "NotTestCondition"
+                },
+                {
+                  "Condition": "TestCondition"
+                }
+              ]
+            },
+            false
+          ]
+        },
+        true,
+        {
+          "Fn::If": [
+            "TestCondition",
+            true,
+            false
+          ]
+        }
+      ]
+    },
+    "TestCondition": {
+      "Fn::Equals": [
+        {
+          "Ref": "EnvironmentType"
+        },
+        "prod"
+      ]
+    },
+    "NotTestCondition": {
+      "Fn::Not": [
+        {
+          "Condition": "TestCondition"
+        }
+      ]
+    },
+    "InvalidCondition": [
+      "random items"
+    ]
+  },
+  "Resources": {
+    "ReferenceLambdaLayerVersionLambdaFunction": {
+      "Properties": {
+        "Handler": "layer-main.custom_layer_handler",
+        "Runtime": "python3.6",
+        "CodeUri": ".",
+        "Layers": [
+          {"Ref": "MyCustomLambdaLayer"}
+        ]
+      },
+      "Type": "AWS::Serverless::Function"
+    },
+    "MyCustomLambdaLayer": {
+      "Type": "AWS::Lambda::LayerVersion",
+      "Properties": {
+        "Content": "custom_layer/"
+      }
+    },
+    "RestApi.Deployment": {
+      "Type": "AWS::ApiGateway::RestApi",
+      "Properties": {
+        "Body": "YTtlO2Y7ZA==",
+        "BodyS3Location": "https://s3location/"
+      }
+    },
+    "RestApiResource": {
+      "Properties": {
+        "parentId": "/",
+        "PathPart": "{proxy+}",
+        "RestApiId": "RestApi.Deployment"
+      }
+    },
+    "HelloHandler2E4FBA4D": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "handler": "main.handle"
+      }
+    },
+    "LambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Uri": "arn:aws:apigateway:us-east-1a:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:123456789012:function:HelloHandler2E4FBA4D/invocations"
+      }
+    }
+  }
+}

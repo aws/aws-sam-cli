@@ -1,0 +1,106 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  UncompressFunctionDLQ:
+    Type: AWS::SQS::Queue
+  UncompressorSourceBucket:
+    DependsOn:
+    - UncompressFunctionuploadPermission
+    Type: AWS::S3::Bucket
+    Properties:
+      NotificationConfiguration:
+        LambdaConfigurations:
+        - Function:
+            Fn::GetAtt:
+            - UncompressFunction
+            - Arn
+          Event: s3:ObjectCreated:*
+      BucketName:
+        Ref: SourceBucketName
+    Metadata:
+      Description: Uploading compressed file to this bucket will trigger the Lambda (and uncompress the contents)
+  UncompressFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Policies:
+      - Statement:
+        - Action:
+          - s3:GetObject
+          - s3:ListBucket
+          - s3:GetBucketLocation
+          - s3:GetObjectVersion
+          - s3:PutObject
+          - s3:GetLifecycleConfiguration
+          - s3:PutLifecycleConfiguration
+          Resource:
+          - Fn::Sub:
+            - arn:${AWS::Partition}:s3:::${bucketName}
+            - bucketName:
+                Ref: DestinationBucketName
+          - Fn::Sub:
+            - arn:${AWS::Partition}:s3:::${bucketName}/*
+            - bucketName:
+                Ref: DestinationBucketName
+          Effect: Allow
+      - Statement:
+        - Action:
+          - s3:GetObject
+          - s3:ListBucket
+          - s3:GetBucketLocation
+          - s3:GetObjectVersion
+          - s3:PutObject
+          - s3:GetLifecycleConfiguration
+          - s3:PutLifecycleConfiguration
+          Resource:
+          - Fn::Sub:
+            - arn:${AWS::Partition}:s3:::${bucketName}
+            - bucketName:
+                Ref: SourceBucketName
+          - Fn::Sub:
+            - arn:${AWS::Partition}:s3:::${bucketName}/*
+            - bucketName:
+                Ref: SourceBucketName
+          Effect: Allow
+      MemorySize:
+        Ref: LambdaFunctionMemorySize
+      Environment:
+        Variables:
+          DESTINATION_BUCKET:
+            Ref: DestinationBucketName
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: a92537c9-2f6a-42b3-aa4b-eb47d749a7fb
+      Handler: s3_uncompressor.lambda_handler.main
+      Timeout:
+        Ref: LambdaFunctionTimeout
+      DeadLetterQueue:
+        TargetArn:
+          Fn::GetAtt:
+          - UncompressFunctionDLQ
+          - Arn
+        Type: SQS
+      Runtime: python3.6
+      Events:
+        upload:
+          Type: S3
+          Properties:
+            Bucket:
+              Ref: UncompressorSourceBucket
+            Events: s3:ObjectCreated:*
+      Description: Uncompresses files uploaded to the S3 bucket
+Transform: AWS::Serverless-2016-10-31
+Parameters:
+  DestinationBucketName:
+    Type: String
+    Description: Bucket to which contents of uncompressed files will be written to. Use the same value as in SourceBucketName to uncompress to the same bucket where file was uploaded, however keep in mind that using the same bucket as a destination will recursively uncompress all of the files that were inside uploaded archive.
+  LambdaFunctionMemorySize:
+    Default: 128
+    Type: Number
+    Description: Amount of memory dedicated for Lambda function (the more, the bigger archive it will be able to uncompress)
+  SourceBucketName:
+    Type: String
+    Description: Bucket to which compressed files will be uploaded (will be created, so the bucket cannot exist already!)
+  LambdaFunctionTimeout:
+    Default: 60
+    Type: Number
+    Description: Maximum time for how long Lambda can be runing
+Description: Unzips uploaded zip files in the S3 bucket

@@ -1,0 +1,27 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  KeyIdParameter:
+    Type: String
+Description: Book details of a visit, using Amazon Lex to perform natural language understanding
+Resources:
+  lexbooktrip:
+    Type: AWS::Serverless::Function
+    Properties:
+      Policies:
+      - Statement:
+        - Action: kms:Decrypt
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/${keyId}
+            - keyId:
+                Ref: KeyIdParameter
+          Effect: Allow
+      Handler: index.handler
+      Description: Book details of a visit, using Amazon Lex to perform natural language understanding
+      Timeout: 10
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 261ca18d-3e71-49ed-9fb8-d50a124f78d3
+      Runtime: nodejs10.x
+      MemorySize: 128
+Transform: AWS::Serverless-2016-10-31

@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Simple Rest API
+
+Resources:
+  MyApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: dev
+      Variables:
+        VarName: varValue
+      Cors:
+        AllowOrigin: "'*''"
+        AllowMethods: "'GET'"
+        AllowHeaders: "'origin, x-requested-with'"
+        MaxAge: "'510'"
+      DefinitionUri: ./swagger.yaml

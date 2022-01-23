@@ -1,0 +1,11 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Simple Appsync Function Configuration
+
+Resources:
+  FunctionConfiguration:
+    Type: AWS::AppSync::FunctionConfiguration
+    Properties:
+      ApiId: "sam package integ test function configuration"
+      RequestMappingTemplateS3Location: ./input-mapping-template
+      ResponseMappingTemplateS3Location: ./output-mapping-template

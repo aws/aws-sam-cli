@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  BucketNameParameter:
+    Type: String
+Description: An Amazon S3 trigger that retrieves metadata for the object that has been updated.
+Resources:
+  Bucket1:
+    Type: AWS::S3::Bucket
+    Properties:
+      NotificationConfiguration:
+        LambdaConfigurations:
+        - Function:
+            Fn::GetAtt:
+            - s3getobjectpython
+            - Arn
+          Event: s3:ObjectCreated:*
+    DependsOn:
+    - s3getobjectpythonBucketEvent1Permission
+  s3getobjectpython:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: An Amazon S3 trigger that retrieves metadata for the object that has been updated.
+      MemorySize: 128
+      Policies:
+      - Statement:
+        - Action:
+          - s3:GetObject
+          - s3:ListBucket
+          - s3:GetBucketLocation
+          - s3:GetObjectVersion
+          - s3:PutObject
+          - s3:GetLifecycleConfiguration
+          - s3:PutLifecycleConfiguration
+          Resource:
+          - Fn::Sub:
+            - arn:${AWS::Partition}:s3:::${bucketName}
+            - bucketName:
+                Ref: BucketNameParameter
+          - Fn::Sub:
+            - arn:${AWS::Partition}:s3:::${bucketName}/*
+            - bucketName:
+                Ref: BucketNameParameter
+          Effect: Allow
+      Handler: lambda_function.lambda_handler
+      Timeout: 3
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: b4df9bc1-591a-4356-9dc2-9bbc4351b410
+      Runtime: python2.7
+      Events:
+        BucketEvent1:
+          Type: S3
+          Properties:
+            Bucket:
+              Ref: Bucket1
+            Events:
+            - s3:ObjectCreated:*
+Transform: AWS::Serverless-2016-10-31

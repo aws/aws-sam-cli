@@ -1,0 +1,23 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: HelloGoWebApp SAM project
+Resources:
+  APIGetFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 7d354083-39c1-4a33-a435-fbf3dbab85b7
+      Handler: main
+      Events:
+        PostEvent:
+          Type: Api
+          Properties:
+            Path: /
+            Method: post
+        GetEvent:
+          Type: Api
+          Properties:
+            Path: /
+            Method: get
+      Runtime: go1.x
+Transform: AWS::Serverless-2016-10-31

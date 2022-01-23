@@ -1,0 +1,12 @@
+{
+  "id": "cdc73f9d-aea9-11e3-9d5a-835b769c0d9c",
+  "detail-type": "Scheduled Event",
+  "source": "aws.events",
+  "account": "{{{account_id}}}",
+  "time": "1970-01-01T00:00:00Z",
+  "region": "{{{region}}}",
+  "resources": [
+    "arn:{{{partition}}}:events:{{{region}}}:{{{account_id}}}:rule/{{{rule}}}"
+  ],
+  "detail": {}
+}

@@ -4,21 +4,30 @@ Base classes that implement the CLI framework
 
 import logging
 import importlib
+from collections import OrderedDict
+
 import click
 
 logger = logging.getLogger(__name__)
 
-# Commands that are bundled with the CLI by default
-_SAM_CLI_COMMAND_PACKAGES = {
-    "samcli.commands.local.local",
-    "samcli.commands.validate.validate",
+# Commands that are bundled with the CLI by default in app life-cycle order.
+
+_SAM_CLI_COMMAND_PACKAGES = [
     "samcli.commands.init",
-    "samcli.commands.deploy",
-    "samcli.commands.package",
-    "samcli.commands.logs",
+    "samcli.commands.validate.validate",
     "samcli.commands.build",
-    "samcli.commands.publish"
-}
+    "samcli.commands.local.local",
+    "samcli.commands.package",
+    "samcli.commands.deploy",
+    "samcli.commands.delete",
+    "samcli.commands.logs",
+    "samcli.commands.publish",
+    "samcli.commands.traces",
+    "samcli.commands.sync",
+    "samcli.commands.pipeline.pipeline",
+    # We intentionally do not expose the `bootstrap` command for now. We might open it up later
+    # "samcli.commands.bootstrap",
+]
 
 
 class BaseCommand(click.MultiCommand):
@@ -42,7 +51,7 @@ class BaseCommand(click.MultiCommand):
     will produce a command name "baz".
     """
 
-    def __init__(self, cmd_packages=None, *args, **kwargs):
+    def __init__(self, *args, cmd_packages=None, **kwargs):
         """
         Initializes the class, optionally with a list of available commands
 
@@ -50,7 +59,9 @@ class BaseCommand(click.MultiCommand):
         :param args: Other Arguments passed to super class
         :param kwargs: Other Arguments passed to super class
         """
-        super(BaseCommand, self).__init__(*args, **kwargs)
+        # alias -h to --help for all commands
+        kwargs["context_settings"] = dict(help_option_names=["-h", "--help"])
+        super().__init__(*args, **kwargs)
 
         if not cmd_packages:
             cmd_packages = _SAM_CLI_COMMAND_PACKAGES
@@ -68,10 +79,10 @@ class BaseCommand(click.MultiCommand):
         :return: Dictionary with command name as key and the package name as value.
         """
 
-        commands = {}
+        commands = OrderedDict()
 
         for pkg_name in package_names:
-            cmd_name = pkg_name.split('.')[-1]
+            cmd_name = pkg_name.split(".")[-1]
             commands[cmd_name] = pkg_name
 
         return commands
@@ -95,7 +106,7 @@ class BaseCommand(click.MultiCommand):
         """
         if cmd_name not in self._commands:
             logger.error("Command %s not available", cmd_name)
-            return
+            return None
 
         pkg_name = self._commands[cmd_name]
 
@@ -103,10 +114,10 @@ class BaseCommand(click.MultiCommand):
             mod = importlib.import_module(pkg_name)
         except ImportError:
             logger.exception("Command '%s' is not configured correctly. Unable to import '%s'", cmd_name, pkg_name)
-            return
+            return None
 
         if not hasattr(mod, "cli"):
             logger.error("Command %s is not configured correctly. It must expose an function called 'cli'", cmd_name)
-            return
+            return None
 
         return mod.cli

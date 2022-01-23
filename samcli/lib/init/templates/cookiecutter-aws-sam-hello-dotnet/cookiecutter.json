@@ -1,0 +1,9 @@
+{
+    "project_name": "Name of the project",
+    "runtime": "dotnetcore2.1",
+    "architectures": {
+        "value": [
+            "x86_64"
+        ]
+    }
+}

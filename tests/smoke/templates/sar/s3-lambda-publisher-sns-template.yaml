@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Outputs:
+  S3Bucket:
+    Description: The S3 Bucket where the files are stored
+    Value:
+      Ref: S3FileStorage
+  SNSTopic:
+    Description: The SNS topic your Lambda is publishing to
+    Value:
+      Ref: SNSTopic
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  LambdaPublisher:
+    Type: AWS::Serverless::Function
+    Properties:
+      Environment:
+        Variables:
+          TOPIC_ARN:
+            Ref: SNSTopic
+      Handler: index.handler
+      Policies:
+      - Statement:
+        - Action:
+          - sns:ListSubscriptionsByTopic
+          - sns:CreateTopic
+          - sns:SetTopicAttributes
+          - sns:Subscribe
+          - sns:Publish
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${topicName}*
+            - topicName:
+                Fn::GetAtt:
+                - SNSTopic
+                - TopicName
+          Effect: Allow
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 28da0e39-14e9-40e1-9c63-936d252ce64f
+      Runtime: nodejs10.x
+      Events:
+        S3BucketEvent:
+          Type: S3
+          Properties:
+            Bucket:
+              Ref: S3FileStorage
+            Events: s3:ObjectCreated:*
+  S3FileStorage:
+    Type: AWS::S3::Bucket
+    Properties:
+      NotificationConfiguration:
+        LambdaConfigurations:
+        - Function:
+            Fn::GetAtt:
+            - LambdaPublisher
+            - Arn
+          Event: s3:ObjectCreated:*
+    DependsOn:
+    - LambdaPublisherS3BucketEventPermission
+  SNSTopic:
+    Type: AWS::SNS::Topic

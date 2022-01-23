@@ -1,0 +1,14 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: A function with inline code.
+
+Resources:
+  InlineCodeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      InlineCode: |
+        def handler(event, context):
+          print(event)
+          return {'body': 'Hello World 2!', 'statusCode': 200}
+      Handler: index.handler
+      Runtime: python3.7

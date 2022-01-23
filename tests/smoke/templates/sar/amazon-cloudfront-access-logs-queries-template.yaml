@@ -1,0 +1,506 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  ParquetKeyPrefix:
+    Default: partitioned-parquet/
+    ConstraintDescription: '[A-Za-z0-9\-]+/'
+    Type: String
+    Description: |
+      Prefix of parquet files that are created in Apache Hive like style by the CTAS query. Including the trailing slash.
+  GzKeyPrefix:
+    Default: partitioned-gz/
+    ConstraintDescription: '[A-Za-z0-9\-]+/'
+    Type: String
+    Description: |
+      Prefix of gzip'ed access log files that are moved to the Apache Hive like style. Including the trailing slash.
+  ResourcePrefix:
+    Type: String
+    Description: |
+      Prefix that is used for the created resources (20 chars, a-z and 0-9 only)
+    MaxLength: 20
+    Default: myapp
+    MinLength: 1
+    ConstraintDescription: '[a-z0-9]+/'
+  NewKeyPrefix:
+    Default: new/
+    ConstraintDescription: '[A-Za-z0-9\-]+/'
+    Type: String
+    Description: |
+      Prefix of new access log files that are written by Amazon CloudFront. Including the trailing slash.
+Description: |
+  Stack that deploys a bucket which you can use as a target for your Amazon CloudFront access logs (use the prefix 'new/'). An event notification is configured so that new objects created will fire an AWS Lambda function that moves the objects to prefixes (under 'partitioned-gz/') that adhere to the Apache Hive partitioning format. This way the data is easier to consume for big data tools (as Amazon Athena and AWS Glue).
+Resources:
+  MoveNewAccessLogsFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      Environment:
+        Variables:
+          TARGET_KEY_PREFIX:
+            Ref: GzKeyPrefix
+      Handler: moveAccessLogs.handler
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Action:
+          - s3:GetObject
+          - s3:DeleteObject
+          Resource:
+            Fn::Sub: arn:aws:s3:::${ResourcePrefix}-${AWS::AccountId}-cf-access-logs/${NewKeyPrefix}*
+          Effect: Allow
+        - Action:
+          - s3:PutObject
+          Resource:
+            Fn::Sub: arn:aws:s3:::${ResourcePrefix}-${AWS::AccountId}-cf-access-logs/${GzKeyPrefix}*
+          Effect: Allow
+      Timeout: 30
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 2a2aff54-276a-41c4-9b28-827b44403bfe
+      Runtime: nodejs8.10
+      Events:
+        AccessLogsUploadedEvent:
+          Type: S3
+          Properties:
+            Filter:
+              S3Key:
+                Rules:
+                - Name: prefix
+                  Value:
+                    Ref: NewKeyPrefix
+            Bucket:
+              Ref: CloudFrontAccessLogsBucket
+            Events: s3:ObjectCreated:*
+  CreatePartFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      Environment:
+        Variables:
+          TABLE:
+            Ref: PartitionedGzTable
+          ATHENA_QUERY_RESULTS_LOCATION:
+            Fn::Sub: s3://${ResourcePrefix}-${AWS::AccountId}-cf-access-logs/athena-query-results
+          DATABASE:
+            Ref: CfLogsDatabase
+      Handler: createPartitions.handler
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Action:
+          - athena:StartQueryExecution
+          - athena:GetQueryExecution
+          Resource: '*'
+          Effect: Allow
+        - Action:
+          - s3:ListBucket
+          - s3:GetBucketLocation
+          Resource:
+            Fn::Sub: arn:aws:s3:::${ResourcePrefix}-${AWS::AccountId}-cf-access-logs
+          Effect: Allow
+        - Action:
+          - s3:PutObject
+          Resource:
+            Fn::Sub: arn:aws:s3:::${ResourcePrefix}-${AWS::AccountId}-cf-access-logs/*
+          Effect: Allow
+        - Action:
+          - glue:CreatePartition
+          - glue:GetDatabase
+          - glue:GetTable
+          - glue:BatchCreatePartition
+          Resource: '*'
+          Effect: Allow
+      Timeout: 5
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 2a2aff54-276a-41c4-9b28-827b44403bfe
+      Runtime: nodejs8.10
+      Events:
+        HourlyEvt:
+          Type: Schedule
+          Properties:
+            Schedule: cron(55 * * * ? *)
+  CombinedView:
+    Type: AWS::Glue::Table
+    Properties:
+      TableInput:
+        PartitionKeys: []
+        StorageDescriptor:
+          Columns:
+          - Type: date
+            Name: date
+          - Type: string
+            Name: time
+          - Type: string
+            Name: location
+          - Type: bigint
+            Name: bytes
+          - Type: string
+            Name: requestip
+          - Type: string
+            Name: method
+          - Type: string
+            Name: host
+          - Type: string
+            Name: uri
+          - Type: int
+            Name: status
+          - Type: string
+            Name: referrer
+          - Type: string
+            Name: useragent
+          - Type: string
+            Name: querystring
+          - Type: string
+            Name: cookie
+          - Type: string
+            Name: resulttype
+          - Type: string
+            Name: requestid
+          - Type: string
+            Name: hostheader
+          - Type: string
+            Name: requestprotocol
+          - Type: bigint
+            Name: requestbytes
+          - Type: float
+            Name: timetaken
+          - Type: string
+            Name: xforwardedfor
+          - Type: string
+            Name: sslprotocol
+          - Type: string
+            Name: sslcipher
+          - Type: string
+            Name: responseresulttype
+          - Type: string
+            Name: httpversion
+          - Type: string
+            Name: filestatus
+          - Type: int
+            Name: encryptedfields
+          - Type: string
+            Name: year
+          - Type: string
+            Name: month
+          - Type: string
+            Name: day
+          - Type: string
+            Name: hour
+          - Type: string
+            Name: file
+          SerdeInfo: {}
+        Parameters:
+          presto_view: 'true'
+        Description: combined view over gzip and parquet tables
+        Name: combined
+        TableType: VIRTUAL_VIEW
+        ViewOriginalText:
+          Fn::Join:
+          - ''
+          - - '/* Presto View: '
+            - Fn::Base64:
+                Fn::Sub:
+                - |-
+                  {
+                    "originalSql": "SELECT *, \"$path\" as file FROM ${database}.${partitioned_gz_table} WHERE (concat(year, month, day, hour) >= date_format(date_trunc('hour', ((current_timestamp - INTERVAL  '15' MINUTE) - INTERVAL  '1' HOUR)), '%Y%m%d%H')) UNION ALL SELECT *, \"$path\" as file FROM ${database}.${partitioned_parquet_table} WHERE (concat(year, month, day, hour) < date_format(date_trunc('hour', ((current_timestamp - INTERVAL  '15' MINUTE) - INTERVAL  '1' HOUR)), '%Y%m%d%H'))",
+                    "catalog": "awsdatacatalog",
+                    "schema": "${database}",
+                    "columns": [
+                      {"name": "date", "type": "date"},
+                      {"name": "time", "type": "varchar"},
+                      {"name": "location", "type": "varchar"},
+                      {"name": "bytes", "type": "bigint"},
+                      {"name": "requestip", "type": "varchar"},
+                      {"name": "method", "type": "varchar"},
+                      {"name": "host", "type": "varchar"},
+                      {"name": "uri", "type": "varchar"},
+                      {"name": "status", "type": "integer"},
+                      {"name": "referrer", "type": "varchar"},
+                      {"name": "useragent", "type": "varchar"},
+                      {"name": "querystring", "type": "varchar"},
+                      {"name": "cookie", "type": "varchar"},
+                      {"name": "resulttype", "type": "varchar"},
+                      {"name": "requestid", "type": "varchar"},
+                      {"name": "hostheader", "type": "varchar"},
+                      {"name": "requestprotocol", "type": "varchar"},
+                      {"name": "requestbytes", "type": "bigint"},
+                      {"name": "timetaken", "type": "real"},
+                      {"name": "xforwardedfor", "type": "varchar"},
+                      {"name": "sslprotocol", "type": "varchar"},
+                      {"name": "sslcipher", "type": "varchar"},
+                      {"name": "responseresulttype", "type": "varchar"},
+                      {"name": "httpversion", "type": "varchar"},
+                      {"name": "filestatus", "type": "varchar"},
+                      {"name": "encryptedfields", "type": "integer"},
+                      {"name": "year", "type": "varchar"},
+                      {"name": "month", "type": "varchar"},
+                      {"name": "day", "type": "varchar"},
+                      {"name": "hour", "type": "varchar"},
+                      {"name": "file", "type": "varchar"}
+                    ]
+                  }
+                - partitioned_gz_table:
+                    Ref: PartitionedGzTable
+                  partitioned_parquet_table:
+                    Ref: PartitionedParquetTable
+                  database:
+                    Ref: CfLogsDatabase
+            - ' */'
+      DatabaseName:
+        Ref: CfLogsDatabase
+      CatalogId:
+        Ref: AWS::AccountId
+  CloudFrontAccessLogsBucket:
+    DependsOn:
+    - MoveNewAccessLogsFnAccessLogsUploadedEventPermission
+    Type: AWS::S3::Bucket
+    Description: Bucket for Amazon CloudFront access logs
+    Properties:
+      NotificationConfiguration:
+        LambdaConfigurations:
+        - Function:
+            Fn::GetAtt:
+            - MoveNewAccessLogsFn
+            - Arn
+          Filter:
+            S3Key:
+              Rules:
+              - Name: prefix
+                Value:
+                  Ref: NewKeyPrefix
+          Event: s3:ObjectCreated:*
+      BucketName:
+        Fn::Sub: ${ResourcePrefix}-${AWS::AccountId}-cf-access-logs
+  PartitionedGzTable:
+    Type: AWS::Glue::Table
+    Properties:
+      TableInput:
+        PartitionKeys:
+        - Type: string
+          Name: year
+        - Type: string
+          Name: month
+        - Type: string
+          Name: day
+        - Type: string
+          Name: hour
+        StorageDescriptor:
+          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+          Columns:
+          - Type: date
+            Name: date
+          - Type: string
+            Name: time
+          - Type: string
+            Name: location
+          - Type: bigint
+            Name: bytes
+          - Type: string
+            Name: requestip
+          - Type: string
+            Name: method
+          - Type: string
+            Name: host
+          - Type: string
+            Name: uri
+          - Type: int
+            Name: status
+          - Type: string
+            Name: referrer
+          - Type: string
+            Name: useragent
+          - Type: string
+            Name: querystring
+          - Type: string
+            Name: cookie
+          - Type: string
+            Name: resulttype
+          - Type: string
+            Name: requestid
+          - Type: string
+            Name: hostheader
+          - Type: string
+            Name: requestprotocol
+          - Type: bigint
+            Name: requestbytes
+          - Type: float
+            Name: timetaken
+          - Type: string
+            Name: xforwardedfor
+          - Type: string
+            Name: sslprotocol
+          - Type: string
+            Name: sslcipher
+          - Type: string
+            Name: responseresulttype
+          - Type: string
+            Name: httpversion
+          - Type: string
+            Name: filestatus
+          - Type: int
+            Name: encryptedfields
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+            Parameters:
+              field.delim": "\t"
+              serialization.format: "\t"
+          Location:
+            Fn::Sub: s3://${ResourcePrefix}-${AWS::AccountId}-cf-access-logs/${GzKeyPrefix}
+        Parameters:
+          skip.header.line.count: '2'
+        Description: Gzip logs delivered by Amazon CloudFront partitioned
+        TableType: EXTERNAL_TABLE
+        Name: partitioned_gz
+      DatabaseName:
+        Ref: CfLogsDatabase
+      CatalogId:
+        Ref: AWS::AccountId
+  TransformPartFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      Environment:
+        Variables:
+          ATHENA_CTAS_RESULTS_LOCATION:
+            Fn::Sub: s3://${ResourcePrefix}-${AWS::AccountId}-cf-access-logs/${ParquetKeyPrefix}
+          ATHENA_QUERY_RESULTS_LOCATION:
+            Fn::Sub: s3://${ResourcePrefix}-${AWS::AccountId}-cf-access-logs/athena-query-results
+          SOURCE_TABLE:
+            Ref: PartitionedGzTable
+          TARGET_TABLE:
+            Ref: PartitionedParquetTable
+          DATABASE:
+            Ref: CfLogsDatabase
+      Handler: transformPartition.handler
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Action:
+          - athena:StartQueryExecution
+          - athena:GetQueryExecution
+          Resource: '*'
+          Effect: Allow
+        - Action:
+          - s3:ListBucket
+          - s3:GetBucketLocation
+          Resource:
+            Fn::Sub: arn:aws:s3:::${ResourcePrefix}-${AWS::AccountId}-cf-access-logs
+          Effect: Allow
+        - Action:
+          - s3:PutObject
+          - s3:GetObject
+          Resource:
+            Fn::Sub: arn:aws:s3:::${ResourcePrefix}-${AWS::AccountId}-cf-access-logs/*
+          Effect: Allow
+        - Action:
+          - glue:CreatePartition
+          - glue:GetDatabase
+          - glue:GetTable
+          - glue:BatchCreatePartition
+          - glue:GetPartition
+          - glue:GetPartitions
+          - glue:CreateTable
+          - glue:DeleteTable
+          - glue:DeletePartition
+          Resource: '*'
+          Effect: Allow
+      Timeout: 900
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 2a2aff54-276a-41c4-9b28-827b44403bfe
+      Runtime: nodejs8.10
+      Events:
+        HourlyEvt:
+          Type: Schedule
+          Properties:
+            Schedule: cron(1 * * * ? *)
+  PartitionedParquetTable:
+    Type: AWS::Glue::Table
+    Properties:
+      TableInput:
+        PartitionKeys:
+        - Type: string
+          Name: year
+        - Type: string
+          Name: month
+        - Type: string
+          Name: day
+        - Type: string
+          Name: hour
+        StorageDescriptor:
+          OutputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat
+          Columns:
+          - Type: date
+            Name: date
+          - Type: string
+            Name: time
+          - Type: string
+            Name: location
+          - Type: bigint
+            Name: bytes
+          - Type: string
+            Name: requestip
+          - Type: string
+            Name: method
+          - Type: string
+            Name: host
+          - Type: string
+            Name: uri
+          - Type: int
+            Name: status
+          - Type: string
+            Name: referrer
+          - Type: string
+            Name: useragent
+          - Type: string
+            Name: querystring
+          - Type: string
+            Name: cookie
+          - Type: string
+            Name: resulttype
+          - Type: string
+            Name: requestid
+          - Type: string
+            Name: hostheader
+          - Type: string
+            Name: requestprotocol
+          - Type: bigint
+            Name: requestbytes
+          - Type: float
+            Name: timetaken
+          - Type: string
+            Name: xforwardedfor
+          - Type: string
+            Name: sslprotocol
+          - Type: string
+            Name: sslcipher
+          - Type: string
+            Name: responseresulttype
+          - Type: string
+            Name: httpversion
+          - Type: string
+            Name: filestatus
+          - Type: int
+            Name: encryptedfields
+          InputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe
+          Location:
+            Fn::Sub: s3://${ResourcePrefix}-${AWS::AccountId}-cf-access-logs/${ParquetKeyPrefix}
+        Parameters:
+          has_encrypted_data: 'false'
+          parquet.compression: SNAPPY
+        Description: Parquet format access logs as transformed from gzip version
+        TableType: EXTERNAL_TABLE
+        Name: partitioned_parquet
+      DatabaseName:
+        Ref: CfLogsDatabase
+      CatalogId:
+        Ref: AWS::AccountId
+  CfLogsDatabase:
+    Type: AWS::Glue::Database
+    Properties:
+      DatabaseInput:
+        Name:
+          Fn::Sub: ${ResourcePrefix}_cf_access_logs_db
+      CatalogId:
+        Ref: AWS::AccountId
+Transform: AWS::Serverless-2016-10-31

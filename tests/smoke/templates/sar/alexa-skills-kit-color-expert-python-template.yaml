@@ -1,0 +1,31 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  TopicNameParameter:
+    Type: String
+Description: Demonstrates a basic skill built with the Amazon Alexa Skills Kit.
+Resources:
+  alexaskillskitcolorexpertpython:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Demonstrates a basic skill built with the Amazon Alexa Skills Kit.
+      MemorySize: 128
+      Policies:
+      - Statement:
+        - Action:
+          - sns:Publish
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${topicName}
+            - topicName:
+                Ref: TopicNameParameter
+          Effect: Allow
+      Handler: lambda_function.lambda_handler
+      Timeout: 3
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 9f34fa8c-b19c-4152-8903-84d00a2d932d
+      Runtime: python2.7
+      Events:
+        AlexaSkillEvent:
+          Type: AlexaSkill
+Transform: AWS::Serverless-2016-10-31

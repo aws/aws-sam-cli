@@ -1,0 +1,9 @@
+{
+    "project_name": "Name of the project",
+    "runtime": "nodejs12.x",
+    "architectures": {
+        "value": [
+            "x86_64"
+        ]
+    }
+}

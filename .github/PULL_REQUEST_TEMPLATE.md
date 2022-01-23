@@ -1,14 +1,21 @@
-*Issue #, if available:*
+#### Which issue(s) does this change fix?
+<!-- Use the format #<issue-number>, e.g. #42 -->
 
-*Description of changes:*
+#### Why is this change necessary?
 
-*Checklist:*
+#### How does it address the issue?
 
-- [ ] Write Design Document ([Do I need to write a design document?](https://github.com/awslabs/aws-sam-cli/blob/develop/DEVELOPMENT_GUIDE.rst#design-document))
+#### What side effects does this change have?
+
+#### Checklist
+
+- [ ] Add input/output [type hints](https://docs.python.org/3/library/typing.html) to new functions/methods
+- [ ] Write design document ([Do I need to write a design document?](https://github.com/aws/aws-sam-cli/blob/develop/DEVELOPMENT_GUIDE.md#design-document))
 - [ ] Write unit tests
 - [ ] Write/update functional tests
 - [ ] Write/update integration tests
 - [ ] `make pr` passes
+- [ ] `make update-reproducible-reqs` if dependencies were changed
 - [ ] Write documentation
 
-By submitting this pull request, I confirm that my contribution is made under the terms of the Apache 2.0 license.
+By submitting this pull request, I confirm that my contribution is made under the terms of the [Apache 2.0 license](https://www.apache.org/licenses/LICENSE-2.0).

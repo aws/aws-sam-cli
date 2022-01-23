@@ -1,0 +1,51 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Create pipeline-dashboard application.
+Parameters:
+  PipelinePattern:
+    Description: 'The pattern of pipeline names to allow access to describe.  Recommended
+      value: *'
+    Type: String
+Resources:
+  PipelineDashboardEventHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Create CloudWatch metrics from AWS CodePipeline events
+      Handler: index.handlePipelineEvent
+      Runtime: nodejs10.x
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: aca8822e-f832-499e-8a12-21a72beb392f
+      Events:
+        PipelineEventRule:
+          Type: CloudWatchEvent
+          Properties:
+            Pattern:
+              source:
+              - aws.codepipeline
+              detail-type:
+              - CodePipeline Pipeline Execution State Change
+              - CodePipeline Stage Execution State Change
+              - CodePipeline Action Execution State Change
+      Policies:
+      - CloudWatchPutMetricPolicy: {}
+      - CodePipelineReadOnlyPolicy:
+          PipelineName:
+            Ref: PipelinePattern
+  PipelineDashboardGenerator:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Build CloudWatch dashboard from CloudWatch metrics
+      Handler: index.generateDashboard
+      Runtime: nodejs10.x
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: aca8822e-f832-499e-8a12-21a72beb392f
+      Timeout: 60
+      Events:
+        DashboardEventRule:
+          Type: Schedule
+          Properties:
+            Schedule: cron(*/5 * * * ? *)
+      Policies:
+      - CloudWatchDashboardPolicy: {}

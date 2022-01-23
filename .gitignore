@@ -10,6 +10,7 @@
 .idea/**/tasks.xml
 .idea/dictionaries
 .idea
+.vscode
 
 # Sensitive or high-churn files:
 .idea/**/dataSources/
@@ -244,6 +245,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+pip-wheel-metadata/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -303,6 +305,12 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+venv-update-reproducible-requirements/
+
+env.*/
+venv.*/
+.env.*/
+.venv.*/
 
 # Spyder project settings
 .spyderproject
@@ -357,6 +365,9 @@ GitHub.sublime-settings
 !.vscode/extensions.json
 .history
 
+### Theia editor (GitPod)
+.theia
+
 ### Windows ###
 # Windows thumbnail cache files
 Thumbs.db
@@ -378,11 +389,21 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# Code coverage
+cov.xml
+coverage.xml
+
 # Temporary scratch directory used by the tests
 tests/integration/buildcmd/scratch
 tests/integration/testdata/buildcmd/Dotnetcore2.0/bin
 tests/integration/testdata/buildcmd/Dotnetcore2.0/obj
 tests/integration/testdata/buildcmd/Dotnetcore2.1/bin
 tests/integration/testdata/buildcmd/Dotnetcore2.1/obj
+tests/integration/testdata/buildcmd/Dotnetcore3.1/bin
+tests/integration/testdata/buildcmd/Dotnetcore3.1/obj
+tests/integration/testdata/invoke/credential_tests/inprocess/dotnet/STS/obj
 
 # End of https://www.gitignore.io/api/osx,node,macos,linux,python,windows,pycharm,intellij,sublimetext,visualstudiocode
+
+# Installer build folder
+.build

@@ -1,0 +1,74 @@
+version: 1.0.{build}
+image: Windows Server 2019
+build: off
+
+# Change the clone folder to somewhere in "D:\" because this is shared by default with Docker. We need this to mount folders.
+clone_folder: D:\source
+
+environment:
+  AWS_DEFAULT_REGION: us-east-1
+  SAM_CLI_DEV: 1
+  APPVEYOR_CI_OVERRIDE: 1
+
+  # In Windows, tempdir is usually in C:\. But in AppVeyor only D:\ is shared in Docker. 
+  # Therefore change TEMPDIR it to D: for invoke tests to work. Python uses $TMPDIR envvar
+  # to find root of tempdir
+  TMPDIR: D:\tmp
+  TEMP: D:\tmp
+  TMP: D:\tmp
+
+  # MSI Installers only use Py3.7.6. It is sufficient to test with this version here.
+  PYTHON_HOME: "C:\\Python37-x64"
+  PYTHON_SCRIPTS: "C:\\Python37-x64\\Scripts"
+  PYTHON_EXE: "C:\\Python37-x64\\python.exe"
+  PYTHON_ARCH: '64'
+  HOME: 'C:\Users\appveyor'
+  HOMEDRIVE: 'C:'
+  HOMEPATH: 'C:\Users\appveyor'
+  APPVEYOR_CONSOLE_DISABLE_PTY: true
+
+init:
+  # Uncomment this for RDP
+  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+  - ps: gcim Win32_Processor | % { "$($_.NumberOfLogicalProcessors) logical CPUs" }
+  - ps: gcim Win32_OperatingSystem | % { "$([int]($_.TotalVisibleMemorySize/1mb)) Gb" }
+
+
+install:
+
+    # Install latest dotnetcore sdk
+    - "choco install dotnetcore-sdk"
+    - "refreshenv"
+    # Make sure the temp directory exists for Python to use.
+    - ps: "mkdir -Force D:\\tmp"
+    - "SET PATH=%PYTHON_HOME%;%PATH%"
+    - "echo %PYTHON_HOME%"
+    - "echo %PATH%"
+    - "python --version"
+
+    # Upgrade setuptools, wheel and virtualenv
+    - "python -m pip install --upgrade setuptools wheel virtualenv"
+
+    # Create new virtual environment with chosen python version and activate it
+    - "python -m virtualenv venv"
+    - "venv\\Scripts\\activate"
+    - "python --version"
+
+    # Actually install SAM CLI's dependencies
+    - "pip install -e \".[dev]\""
+
+    # Switch to Docker Linux containers
+    - ps: Switch-DockerLinux
+
+    # Echo final Path
+    - "echo %PATH%"
+
+test_script:
+    # Reactivate virtualenv before running tests
+    - "venv\\Scripts\\activate"
+    - "docker system prune -a -f"
+    - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_Dotnet_cli_package"
+
+# Uncomment for RDP
+# on_finish:
+#   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))

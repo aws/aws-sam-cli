@@ -1,0 +1,86 @@
+Description: |
+  Serverless application to stream events from AWS Kinesis to Splunk HTTP Event Collector (HEC).
+  This SAM template creates the Lambda function with its IAM execution role and the event source mapping to Kinesis stream. Kinesis Stream must be in same region as the region where this stack is created.
+  Last Modified: 29 Nov, 2017 Authors: Roy Arsan <roy@splunk.com>, Tarik Makota <tmak@amazon.com>
+Parameters:
+  KinesisStreamStartingPosition:
+    Default: LATEST
+    Type: String
+    Description: The position in the stream where AWS Lambda should start reading. Allowed values are 'AT_TIMESTAMP', 'TRIM_HORIZON', 'LATEST'. For more information, see ShardIteratorType in the Amazon Kinesis API Reference.
+  SplunkHttpEventCollectorURL:
+    Type: String
+    Description: URL address of your Splunk HTTP event collector endpoint
+  KinesisStreamName:
+    Type: String
+    Description: Name of a Kinesis stream (must be in the same region). The Lambda function will be invoked whenever this stream is updated.
+  SplunkHttpEventCollectorToken:
+    Type: String
+    Description: Token of your Splunk HTTP event collector endpoint
+  KinesisStreamBatchSize:
+    Default: '100'
+    Type: Number
+    Description: The largest number of records that AWS Lambda will retrieve from your stream at the time of invoking your function. Your function receives an event with all the retrieved records.
+AWSTemplateFormatVersion: '2010-09-09'
+Outputs:
+  SplunkKinesisStreamProcessor:
+    Description: Splunk Kinesis Stream Lambda Function ARN
+    Value:
+      Fn::GetAtt:
+      - SplunkKinesisStreamProcessor
+      - Arn
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  SplunkKinesisStreamProcessor:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Stream events from AWS Kinesis Stream to Splunk HTTP event collector
+      Policies:
+      - Statement:
+        - Action:
+          - kinesis:ListStreams
+          - kinesis:DescribeLimits
+          Resource:
+            Fn::Sub: arn:${AWS::Partition}:kinesis:${AWS::Region}:${AWS::AccountId}:stream/*
+          Effect: Allow
+        - Action:
+          - kinesis:DescribeStream
+          - kinesis:GetRecords
+          - kinesis:GetShardIterator
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${streamName}
+            - streamName:
+                Ref: KinesisStreamName
+          Effect: Allow
+      MemorySize: 512
+      Environment:
+        Variables:
+          SPLUNK_HEC_URL:
+            Ref: SplunkHttpEventCollectorURL
+          SPLUNK_HEC_TOKEN:
+            Ref: SplunkHttpEventCollectorToken
+      Handler: index.handler
+      Timeout: 10
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 3ce0c1ed-73b6-4f01-9916-c99b71e31688
+      Runtime: nodejs10.x
+      Events:
+        KinesisStream:
+          Type: Kinesis
+          Properties:
+            BatchSize:
+              Ref: KinesisStreamBatchSize
+            StartingPosition:
+              Ref: KinesisStreamStartingPosition
+            Stream:
+              Fn::Join:
+              - ''
+              - - 'arn:'
+                - Ref: AWS::Partition
+                - ':kinesis:'
+                - Ref: AWS::Region
+                - ':'
+                - Ref: AWS::AccountId
+                - :stream/
+                - Ref: KinesisStreamName

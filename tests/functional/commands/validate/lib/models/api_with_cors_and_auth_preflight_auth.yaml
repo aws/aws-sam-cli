@@ -1,0 +1,54 @@
+Globals:
+  Api:
+    Cors: "origins"
+
+Resources:
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://sam-demo-bucket/member_portal.zip
+      Handler: index.gethtml
+      Runtime: nodejs12.x
+      Events:
+        GetHtml:
+          Type: Api
+          Properties:
+            Path: /
+            Method: get
+            RestApiId: !Ref ServerlessApi
+
+        PostHtml:
+          Type: Api
+          Properties:
+            Path: /
+            Method: post
+            RestApiId: !Ref ServerlessApi
+
+        AnyHtml:
+          Type: Api
+          Properties:
+            Path: /any
+            Method: any
+            RestApiId: !Ref ServerlessApi
+
+
+  ServerlessApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Auth:
+        DefaultAuthorizer: MyLambdaRequestAuth
+        Authorizers:
+          MyLambdaRequestAuth:
+            FunctionPayloadType: REQUEST
+            FunctionArn: !GetAtt MyAuthFn.Arn
+            Identity:
+              Headers:
+                - Authorization1
+
+  MyAuthFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://bucket/key
+      Handler: index.handler
+      Runtime: nodejs12.x

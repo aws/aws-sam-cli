@@ -1,8 +1,9 @@
 include LICENSE
+include THIRD-PARTY-LICENSES
 include requirements/base.txt
+include requirements/pre-dev.txt
 include requirements/dev.txt
-recursive-include samcli/local/init/templates *
-recursive-include samcli/lib *.json
-recursive-include samcli/commands/local/lib/generated_sample_events *.json
+recursive-include samcli *
 prune tests
-
+global-exclude *.py[cod]
+global-exclude *.DS_Store

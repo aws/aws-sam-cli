@@ -1,0 +1,28 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  IdentityNameParameter:
+    Type: String
+Description: A starter AWS Lambda function.
+Resources:
+  helloworldpython3:
+    Type: AWS::Serverless::Function
+    Properties:
+      Policies:
+      - Statement:
+        - Action:
+          - ses:SendBounce
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:ses:${AWS::Region}:${AWS::AccountId}:identity/${identityName}
+            - identityName:
+                Ref: IdentityNameParameter
+          Effect: Allow
+      Handler: lambda_function.lambda_handler
+      Description: A starter AWS Lambda function.
+      Timeout: 3
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: a5e87229-90d7-477c-b7f5-8f04af8cdf1c
+      Runtime: python3.6
+      MemorySize: 128
+Transform: AWS::Serverless-2016-10-31
