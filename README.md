@@ -13,7 +13,7 @@
 The AWS Serverless Application Model (SAM) CLI is an open-source CLI tool that helps you develop serverless applications containing [Lambda functions](https://aws.amazon.com/lambda/), [Step Functions](https://aws.amazon.com/step-functions/), [API Gateway](https://aws.amazon.com/api-gateway/), [EventBridge](https://aws.amazon.com/eventbridge/), [SQS](https://aws.amazon.com/sqs/), [SNS](https://aws.amazon.com/sns/) and more. Some of the features it provides are:
 - **Initialize serverless applications** in minutes with AWS provided infrastructure templates with `sam init`
 - **Compile, build, and package** Lambda functions with provided runtimes and with custom Makefile workflows, for zip and image types of Lambda functions with `sam build`
-- **Locally test** a Lambda function and Api Gateway easily in a Docker container with `sam local` commands on SAM and CDK applications
+- **Locally test** a Lambda function and API Gateway easily in a Docker container with `sam local` commands on SAM and CDK applications
 - **Sync and test your changes in the cloud** with `sam sync` in your developer environments
 - **Deploy** your SAM and CloudFormation templates using `sam deploy`
 - Quickly **create pipelines** with prebuilt templates with popular CI/CD systems using `sam pipeline init`
