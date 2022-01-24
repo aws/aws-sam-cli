@@ -11,6 +11,8 @@ from requests import RequestException
 from samcli.lib.utils.packagetype import IMAGE
 from samcli.local.docker.container import Container, ContainerResponseException
 
+from samcli.local.docker.utils import is_selinux_enabled
+
 
 class TestContainer_init(TestCase):
     def setUp(self):
@@ -80,7 +82,12 @@ class TestContainer_create(TestCase):
         :return:
         """
 
-        expected_volumes = {self.host_dir: {"bind": self.working_dir, "mode": "ro,delegated"}}
+        if is_selinux_enabled():
+            mount_mode = "Z,ro,delegated"
+        else:
+            mount_mode = "ro,delegated"
+
+        expected_volumes = {self.host_dir: {"bind": self.working_dir, "mode": mount_mode}}
         generated_id = "fooobar"
         self.mock_docker_client.containers.create.return_value = Mock()
         self.mock_docker_client.containers.create.return_value.id = generated_id
@@ -118,8 +125,13 @@ class TestContainer_create(TestCase):
         :return:
         """
 
+        if is_selinux_enabled():
+            mount_mode = "Z,ro,delegated"
+        else:
+            mount_mode = "ro"
+
         expected_volumes = {
-            self.host_dir: {"bind": self.working_dir, "mode": "ro,delegated"},
+            self.host_dir: {"bind": self.working_dir, "mode": mount_mode},
             "/somepath": {"blah": "blah value"},
         }
         expected_memory = "{}m".format(self.memory_mb)
@@ -173,12 +185,17 @@ class TestContainer_create(TestCase):
         :return:
         """
 
+        if is_selinux_enabled():
+            mount_mode = "Z,ro,delegated"
+        else:
+            mount_mode = "ro,delegated"
+
         os_mock.name = "nt"
         host_dir = "C:\\Users\\Username\\AppData\\Local\\Temp\\tmp1337"
         additional_volumes = {"C:\\Users\\Username\\AppData\\Local\\Temp\\tmp1338": {"blah": "blah value"}}
 
         translated_volumes = {
-            "/c/Users/Username/AppData/Local/Temp/tmp1337": {"bind": self.working_dir, "mode": "ro,delegated"}
+            "/c/Users/Username/AppData/Local/Temp/tmp1337": {"bind": self.working_dir, "mode": mount_mode}
         }
 
         translated_additional_volumes = {"/c/Users/Username/AppData/Local/Temp/tmp1338": {"blah": "blah value"}}
@@ -231,7 +248,13 @@ class TestContainer_create(TestCase):
         Create a container with only required values. Optional values are not provided
         :return:
         """
-        expected_volumes = {self.host_dir: {"bind": self.working_dir, "mode": "ro,delegated"}}
+
+        if is_selinux_enabled():
+            mount_mode = "Z,ro,delegated"
+        else:
+            mount_mode = "ro,delegated"
+
+        expected_volumes = {self.host_dir: {"bind": self.working_dir, "mode": mount_mode}}
 
         network_id = "some id"
         generated_id = "fooobar"
@@ -269,7 +292,13 @@ class TestContainer_create(TestCase):
         Create a container with only required values. Optional values are not provided
         :return:
         """
-        expected_volumes = {self.host_dir: {"bind": self.working_dir, "mode": "ro,delegated"}}
+
+        if is_selinux_enabled():
+            mount_mode = "Z,ro,delegated"
+        else:
+            mount_mode = "ro,delegated"
+
+        expected_volumes = {self.host_dir: {"bind": self.working_dir, "mode": mount_mode}}
 
         network_id = "host"
         generated_id = "fooobar"

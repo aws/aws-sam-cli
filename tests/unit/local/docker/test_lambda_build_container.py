@@ -13,6 +13,8 @@ from parameterized import parameterized
 from samcli.lib.utils.architecture import X86_64, ARM64
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 
+from samcli.local.docker.utils import is_selinux_enabled
+
 
 class TestLambdaBuildContainer_init(TestCase):
     @patch.object(LambdaBuildContainer, "_make_request")
@@ -20,6 +22,11 @@ class TestLambdaBuildContainer_init(TestCase):
     @patch.object(LambdaBuildContainer, "_get_entrypoint")
     @patch.object(LambdaBuildContainer, "_get_container_dirs")
     def test_must_init_class(self, get_container_dirs_mock, get_entrypoint_mock, get_image_mock, make_request_mock):
+
+        if is_selinux_enabled():
+            mount_mode = "Z,ro"
+        else:
+            mount_mode = "ro"
 
         request = make_request_mock.return_value = "somerequest"
         entry = get_entrypoint_mock.return_value = "entrypoint"
@@ -55,7 +62,7 @@ class TestLambdaBuildContainer_init(TestCase):
         self.assertEqual(container._env_vars, {"LAMBDA_BUILDERS_LOG_LEVEL": "log-level"})
         self.assertEqual(
             container._additional_volumes,
-            {str(pathlib.Path("/bar").resolve()): {"bind": container_dirs["manifest_dir"], "mode": "ro"}},
+            {str(pathlib.Path("/bar").resolve()): {"bind": container_dirs["manifest_dir"], "mode": mount_mode}},
         )
 
         self.assertEqual(container._exposed_ports, None)

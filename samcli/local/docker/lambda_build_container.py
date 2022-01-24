@@ -8,6 +8,8 @@ import pathlib
 
 from samcli.local.docker.container import Container
 
+from .utils import is_selinux_enabled
+
 LOG = logging.getLogger(__name__)
 
 
@@ -82,10 +84,15 @@ class LambdaBuildContainer(Container):
         entry = LambdaBuildContainer._get_entrypoint(request_json)
         cmd = []
 
+        if is_selinux_enabled():
+            mount_mode = "Z,ro"
+        else:
+            mount_mode = "ro"
+
         additional_volumes = {
             # Manifest is mounted separately in order to support the case where manifest
             # is outside of source directory
-            manifest_dir: {"bind": container_dirs["manifest_dir"], "mode": "ro"}
+            manifest_dir: {"bind": container_dirs["manifest_dir"], "mode": mount_mode}
         }
 
         if log_level:
