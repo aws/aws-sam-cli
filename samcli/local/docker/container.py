@@ -2,9 +2,6 @@
 Representation of a generic Docker container
 """
 import logging
-import os
-import subprocess
-import sys
 import tarfile
 import tempfile
 import threading

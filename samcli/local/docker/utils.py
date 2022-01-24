@@ -161,9 +161,7 @@ def get_docker_platform(architecture: str) -> str:
 def is_selinux_enabled():
     """Return True if SELinux is enabled, False otherwise."""
     if sys.platform == "linux":
-        if os.path.isfile("/usr/sbin/sestatus") and "enabled" in subprocess.Popen(
+        return os.path.isfile("/usr/sbin/sestatus") and "enabled" in subprocess.Popen(
             "/usr/sbin/sestatus", stdout=subprocess.PIPE
-        ).stdout.readline().decode("UTF-8"):
-            return True
-        else:
-            return False
+        ).stdout.readline().decode("UTF-8")
+    return False
