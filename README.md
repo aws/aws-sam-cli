@@ -50,7 +50,7 @@ We think you'll like the code base. Clone it and run `make pr` or `./Make -pr` o
 + **SAM Transform** [Open source template specification](https://github.com/awslabs/serverless-application-model/) that provides shorthand syntax for CloudFormation
 + **SAM CLI application templates** Get started quickly with [predefined application templates](https://github.com/aws/aws-sam-cli-app-templates/blob/master/README.md) for all supported runtimes and languages, used by `sam init`
 + **Lambda Builders** [Lambda builder tools](https://github.com/aws/aws-lambda-builders) for supported runtimes and custom build workflows, used by `sam build`
-+ **Build and Local Emulation images for CI/CD tools** [Build container images](https://gallery.ecr.aws/sam/) to use with CI/CD tasks 
++ **Build and local emulation images for CI/CD tools** [Build container images](https://gallery.ecr.aws/sam/) to use with CI/CD tasks 
 
 
 ## Contribute to SAM
