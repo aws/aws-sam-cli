@@ -43,7 +43,8 @@ from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from samcli.local.docker.utils import is_docker_reachable, get_docker_platform
 from samcli.local.docker.manager import ContainerManager
-from .exceptions import (
+from samcli.commands._utils.experimental import get_enabled_experimental_flags
+from samcli.lib.build.exceptions import (
     DockerConnectionError,
     DockerfileOutSideOfContext,
     DockerBuildFailed,
@@ -53,7 +54,12 @@ from .exceptions import (
     UnsupportedBuilderLibraryVersionError,
 )
 
-from .workflow_config import get_workflow_config, get_layer_subfolder, supports_build_in_container, CONFIG
+from samcli.lib.build.workflow_config import (
+    get_workflow_config,
+    get_layer_subfolder,
+    supports_build_in_container,
+    CONFIG,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -525,6 +531,7 @@ class ApplicationBuilder:
                     dependencies_dir,
                     download_dependencies,
                     True,  # dependencies for layer should always be combined
+                    is_building_layer=True,
                 )
 
             # Not including subfolder in return so that we copy subfolder, instead of copying artifacts inside it.
@@ -680,6 +687,7 @@ class ApplicationBuilder:
         dependencies_dir: Optional[str],
         download_dependencies: bool,
         combine_dependencies: bool,
+        is_building_layer: bool = False,
     ) -> str:
 
         builder = LambdaBuilder(
@@ -691,20 +699,27 @@ class ApplicationBuilder:
         runtime = runtime.replace(".al2", "")
 
         try:
-            builder.build(
-                source_dir,
-                artifacts_dir,
-                scratch_dir,
-                manifest_path,
-                runtime=runtime,
-                executable_search_paths=config.executable_search_paths,
-                mode=self._mode,
-                options=options,
-                architecture=architecture,
-                dependencies_dir=dependencies_dir,
-                download_dependencies=download_dependencies,
-                combine_dependencies=combine_dependencies,
-            )
+            builder_kwargs = {
+                "source_dir": source_dir,
+                "artifacts_dir": artifacts_dir,
+                "scratch_dir": scratch_dir,
+                "manifest_path": manifest_path,
+                "runtime": runtime,
+                "executable_search_paths": config.executable_search_paths,
+                "mode": self._mode,
+                "options": options,
+                "architecture": architecture,
+                "dependencies_dir": dependencies_dir,
+                "download_dependencies": download_dependencies,
+                "combine_dependencies": combine_dependencies,
+            }
+
+            # This is only required until we release new version of LambdaBuilders
+            if lambda_builders_version == "1.11.0":
+                builder_kwargs["is_building_layer"] = is_building_layer
+                builder_kwargs["experimental_flags"] = get_enabled_experimental_flags()
+
+            builder.build(**builder_kwargs)
         except LambdaBuilderError as ex:
             raise BuildError(wrapped_from=ex.__class__.__name__, msg=str(ex)) from ex
 

@@ -502,6 +502,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             None,
             True,
             True,
+            is_building_layer=True,
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -1415,6 +1416,7 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
             None,
             True,
             True,
+            is_building_layer=False,
         )
         self.assertEqual(result, "artifacts_dir")
 
@@ -1425,10 +1427,10 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
         )
 
         builder_instance_mock.build.assert_called_with(
-            "source_dir",
-            "artifacts_dir",
-            "scratch_dir",
-            "manifest_path",
+            source_dir="source_dir",
+            artifacts_dir="artifacts_dir",
+            scratch_dir="scratch_dir",
+            manifest_path="manifest_path",
             runtime="runtime",
             executable_search_paths=config_mock.executable_search_paths,
             mode="mode",
@@ -1460,6 +1462,47 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
                 True,
                 True,
             )
+
+    @patch("samcli.lib.build.app_builder.lambda_builders_version", "1.11.0")
+    @patch("samcli.lib.build.app_builder.LambdaBuilder")
+    @patch("samcli.lib.build.app_builder.get_enabled_experimental_flags")
+    def test_building_with_experimental_flags(self, get_enabled_experimental_flags_mock, lambda_builder_mock):
+        get_enabled_experimental_flags_mock.return_value = ["A", "B", "C"]
+        config_mock = Mock()
+        self.builder._build_function_in_process(
+            config_mock,
+            "source_dir",
+            "artifacts_dir",
+            "scratch_dir",
+            "manifest_path",
+            "runtime",
+            X86_64,
+            None,
+            None,
+            True,
+            True,
+            True,
+        )
+        lambda_builder_mock.assert_has_calls(
+            [
+                call().build(
+                    source_dir="source_dir",
+                    artifacts_dir="artifacts_dir",
+                    scratch_dir="scratch_dir",
+                    manifest_path="manifest_path",
+                    runtime="runtime",
+                    executable_search_paths=ANY,
+                    mode="mode",
+                    options=None,
+                    architecture=X86_64,
+                    dependencies_dir=None,
+                    download_dependencies=True,
+                    combine_dependencies=True,
+                    is_building_layer=True,
+                    experimental_flags=["A", "B", "C"],
+                )
+            ]
+        )
 
 
 class TestApplicationBuilder_build_function_on_container(TestCase):

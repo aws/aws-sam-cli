@@ -1,7 +1,6 @@
 """
 Context object used by build command
 """
-
 import logging
 import os
 import pathlib
@@ -10,6 +9,7 @@ from typing import Dict, Optional, List, cast
 
 import click
 
+from samcli.commands._utils.experimental import is_experimental_enabled, ExperimentalFlag
 from samcli.lib.providers.sam_api_provider import SamApiProvider
 from samcli.lib.utils.packagetype import IMAGE
 
@@ -184,6 +184,7 @@ class BuildContext:
             raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
 
         try:
+            self._check_java_warning()
             build_result = builder.build()
             artifacts = build_result.artifacts
 
@@ -508,3 +509,24 @@ Commands you can use next
             LOG.debug("Skip building pre-built layer: %s", layer.full_path)
             return False
         return True
+
+    _JAVA_BUILD_WARNING_MESSAGE = (
+        "Test the latest build changes for Java runtime 'SAM_CLI_BETA_MAVEN_SCOPE_AND_LAYER=1 sam build'. "
+        "These changes will replace the existing flow on 1st of April 2022. "
+        "Check __issue_line__ for more information."
+    )
+
+    def _check_java_warning(self):
+        # display warning message for java runtimes for changing build method
+        resources_to_build = self.get_resources_to_build()
+        function_runtimes = {function.runtime for function in resources_to_build.functions if function.runtime}
+        layer_build_methods = {layer.build_method for layer in resources_to_build.layers if layer.build_method}
+
+        is_building_java = False
+        for runtime_or_build_method in set.union(function_runtimes, layer_build_methods):
+            if runtime_or_build_method.startswith("java"):
+                is_building_java = True
+                break
+
+        if is_building_java and not is_experimental_enabled(ExperimentalFlag.JavaMavenBuildScope):
+            click.secho(self._JAVA_BUILD_WARNING_MESSAGE, fg="yellow")
