@@ -1,5 +1,6 @@
 """Base SyncFlow for StepFunctions"""
 import logging
+from pathlib import Path
 from typing import Any, Dict, List, TYPE_CHECKING, cast, Optional
 
 
@@ -83,6 +84,8 @@ class StepFunctionsSyncFlow(SyncFlow):
             return None
         properties = self._resource.get("Properties", {})
         definition_file = properties.get("DefinitionUri")
+        if self._build_context.base_dir:
+            definition_file = str(Path(self._build_context.base_dir).joinpath(definition_file))
         return cast(Optional[str], definition_file)
 
     def compare_remote(self) -> bool:

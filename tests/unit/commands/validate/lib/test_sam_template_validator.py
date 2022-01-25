@@ -1,11 +1,19 @@
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
-from samcli.lib.utils.packagetype import IMAGE
+from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samtranslator.public.exceptions import InvalidDocumentException
 
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.validate.lib.sam_template_validator import SamTemplateValidator
+
+from samcli.yamlhelper import parse_yaml_file, yaml_parse
+from pprint import pformat
+from pathlib import Path
+
+import logging
+
+LOG = logging.getLogger(__name__)
 
 
 class TestSamTemplateValidator(TestCase):
@@ -120,6 +128,10 @@ class TestSamTemplateValidator(TestCase):
                     "Type": "AWS::Serverless::Api",
                     "Properties": {"StageName": "Prod", "DefinitionUri": "./"},
                 },
+                "ServerlessHttpApi": {
+                    "Type": "AWS::Serverless::HttpApi",
+                    "Properties": {"StageName": "Prod", "DefinitionUri": "./"},
+                },
                 "ServerlessFunction": {
                     "Type": "AWS::Serverless::Function",
                     "Properties": {"Handler": "index.handler", "CodeUri": "./", "Runtime": "nodejs6.10", "Timeout": 60},
@@ -144,6 +156,9 @@ class TestSamTemplateValidator(TestCase):
             template_resources.get("ServerlessApi").get("Properties").get("DefinitionUri"), "s3://bucket/value"
         )
         self.assertEqual(
+            template_resources.get("ServerlessHttpApi").get("Properties").get("DefinitionUri"), "s3://bucket/value"
+        )
+        self.assertEqual(
             template_resources.get("ServerlessFunction").get("Properties").get("CodeUri"), "s3://bucket/value"
         )
         self.assertEqual(
@@ -159,9 +174,14 @@ class TestSamTemplateValidator(TestCase):
             "Transform": "AWS::Serverless-2016-10-31",
             "Resources": {
                 "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"StageName": "Prod"}},
+                "ServerlessHttpApi": {"Type": "AWS::Serverless::HttpApi", "Properties": {"StageName": "Prod"}},
                 "ServerlessFunction": {
                     "Type": "AWS::Serverless::Function",
                     "Properties": {"Handler": "index.handler", "Runtime": "nodejs6.10", "Timeout": 60},
+                },
+                "ServerlessStateMachine": {
+                    "Type": "AWS::Serverless::StateMachine",
+                    "Properties": {"Role": "test-role-arn"},
                 },
             },
         }
@@ -173,9 +193,14 @@ class TestSamTemplateValidator(TestCase):
         validator._replace_local_codeuri()
 
         # check template
-        tempalte_resources = validator.sam_template.get("Resources")
+        template_resources = validator.sam_template.get("Resources")
         self.assertEqual(
-            tempalte_resources.get("ServerlessFunction").get("Properties").get("CodeUri"), "s3://bucket/value"
+            template_resources.get("ServerlessFunction").get("Properties").get("CodeUri"), "s3://bucket/value"
+        )
+        self.assertEqual(template_resources.get("ServerlessApi").get("Properties").get("DefinitionUri", ""), "")
+        self.assertEqual(template_resources.get("ServerlessHttpApi").get("Properties").get("DefinitionUri", ""), "")
+        self.assertEqual(
+            template_resources.get("ServerlessStateMachine").get("Properties").get("DefinitionUri", ""), ""
         )
 
     def test_dont_replace_local_codeuri_when_no_codeuri_given_packagetype_image(self):
@@ -236,7 +261,10 @@ class TestSamTemplateValidator(TestCase):
             "Globals": {
                 "Function": {
                     "CodeUri": "s3://globalcodeuri",
-                }
+                },
+                "Api": {
+                    "Cors": "true",
+                },
             },
             "Resources": {
                 "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"StageName": "Prod"}},
@@ -268,6 +296,93 @@ class TestSamTemplateValidator(TestCase):
             template_resources.get("ServerlessFunctionZip").get("Properties").get("CodeUri"), "s3://bucket/value"
         )
 
+    def test_replace_local_codeuri_in_global_section(self):
+        template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Globals": {
+                "Function": {
+                    "CodeUri": "./my.zip",
+                },
+            },
+            "Resources": {
+                "ServerlessFunction": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {"PackageType": ZIP, "Timeout": 60},
+                },
+            },
+        }
+
+        managed_policy_mock = Mock()
+
+        validator = SamTemplateValidator(template, managed_policy_mock)
+
+        validator._replace_local_codeuri()
+
+        # check template
+        global_resources = validator.sam_template.get("Resources")
+        self.assertEqual(
+            global_resources.get("ServerlessFunction").get("Properties").get("CodeUri"), "s3://bucket/value"
+        )
+
+    def test_replace_local_image_gets_replaced(self):
+        template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Resources": {
+                "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"StageName": "Prod"}},
+                "ServerlessFunction": {
+                    "Type": "AWS::Serverless::Function",
+                    "Metadata": {"Dockerfile": "./Dockerfile"},
+                    "Properties": {"PackageType": IMAGE, "Timeout": 60},
+                },
+            },
+        }
+
+        managed_policy_mock = Mock()
+
+        validator = SamTemplateValidator(template, managed_policy_mock)
+
+        validator._replace_local_image()
+
+        # check template
+        template_resources = validator.sam_template.get("Resources")
+        self.assertEqual(
+            template_resources.get("ServerlessFunction").get("Properties").get("ImageUri"),
+            "111111111111.dkr.ecr.region.amazonaws.com/repository",
+        )
+
+    def test_replace_local_image_doesnt_get_replaced_if_exists(self):
+        template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Resources": {
+                "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"StageName": "Prod"}},
+                "ServerlessFunction": {
+                    "Type": "AWS::Serverless::Function",
+                    "Metadata": {"Dockerfile": "./Dockerfile"},
+                    "Properties": {
+                        "PackageType": IMAGE,
+                        "ImageUri": "222222222222.dkr.ecr.region.amazonaws.com/repository",
+                        "Timeout": 60,
+                    },
+                },
+            },
+        }
+
+        managed_policy_mock = Mock()
+
+        validator = SamTemplateValidator(template, managed_policy_mock)
+
+        validator._replace_local_image()
+
+        # check template
+        template_resources = validator.sam_template.get("Resources")
+        self.assertEqual(
+            template_resources.get("ServerlessFunction").get("Properties").get("ImageUri"),
+            "222222222222.dkr.ecr.region.amazonaws.com/repository",
+        )
+
     def test_DefinitionUri_does_not_get_added_to_template_when_DefinitionBody_given(self):
         template = {
             "AWSTemplateFormatVersion": "2010-09-09",
@@ -286,9 +401,9 @@ class TestSamTemplateValidator(TestCase):
 
         validator._replace_local_codeuri()
 
-        tempalte_resources = validator.sam_template.get("Resources")
-        self.assertNotIn("DefinitionUri", tempalte_resources.get("ServerlessApi").get("Properties"))
-        self.assertIn("DefinitionBody", tempalte_resources.get("ServerlessApi").get("Properties"))
+        template_resources = validator.sam_template.get("Resources")
+        self.assertNotIn("DefinitionUri", template_resources.get("ServerlessApi").get("Properties"))
+        self.assertIn("DefinitionBody", template_resources.get("ServerlessApi").get("Properties"))
 
     def test_replace_local_codeuri_with_no_resources(self):
 
@@ -306,3 +421,178 @@ class TestSamTemplateValidator(TestCase):
 
         # check template
         self.assertEqual(validator.sam_template.get("Resources"), {})
+
+    @patch("pathlib.Path.is_file")
+    @patch("samcli.commands.validate.lib.sam_template_validator.parse_yaml_file")
+    def test_DefinitionBody_gets_replaced_in_api(self, yaml_mock, path_mock):
+        template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Resources": {
+                "ServerlessApi": {
+                    "Type": "AWS::Serverless::Api",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "DefinitionBody": {
+                            "Fn::Transform": {
+                                "Name": "AWS::Include",
+                                "Parameters": {"Location": "./tests/unit/commands/validate/lib/openapi/openapi.yaml"},
+                            }
+                        },
+                    },
+                },
+            },
+        }
+        openapi_yaml = """openapi: 3.0.0
+info:
+    version: "1.0.0"
+    title: title
+paths:
+    '/test':
+        get:
+            responses:
+                200:
+                    description: description"""
+
+        # mock file access
+        path_mock.return_value = True
+        yaml_mock.return_value = yaml_parse(openapi_yaml)
+
+        managed_policy_mock = Mock()
+
+        validator = SamTemplateValidator(template, managed_policy_mock)
+
+        validator._replace_local_openapi()
+
+        template_resources = validator.sam_template.get("Resources")
+        self.assertIn("DefinitionBody", template_resources.get("ServerlessApi").get("Properties"))
+        self.assertNotIn(
+            "Fn::Transform", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody")
+        )
+        self.assertIn("openapi", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
+        self.assertIn("info", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
+        self.assertIn("paths", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
+
+    @patch("pathlib.Path.is_file")
+    def test_DefinitionBody_not_replaced_if_file_not_found(self, path_mock):
+        template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Resources": {
+                "ServerlessApi": {
+                    "Type": "AWS::Serverless::HttpApi",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "DefinitionBody": {
+                            "Fn::Transform": {
+                                "Name": "AWS::Include",
+                                "Parameters": {"Location": "./tests/unit/commands/validate/lib/openapi/notafile.yaml"},
+                            }
+                        },
+                    },
+                }
+            },
+        }
+
+        # mock file access
+        path_mock.return_value = False
+
+        managed_policy_mock = Mock()
+
+        validator = SamTemplateValidator(template, managed_policy_mock)
+
+        validator._replace_local_openapi()
+
+        template_resources = validator.sam_template.get("Resources")
+        self.assertIn("DefinitionBody", template_resources.get("ServerlessApi").get("Properties"))
+        self.assertIn("Fn::Transform", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
+        self.assertNotIn("openapi", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
+        self.assertNotIn("info", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
+        self.assertNotIn("paths", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
+
+    @patch("pathlib.Path.is_file")
+    @patch("samcli.commands.validate.lib.sam_template_validator.parse_yaml_file")
+    def test_DefinitionBody_gets_replaced_if_json(self, yaml_mock, path_mock):
+        template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Resources": {
+                "ServerlessApi": {
+                    "Type": "AWS::Serverless::HttpApi",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "DefinitionBody": {
+                            "Fn::Transform": {
+                                "Name": "AWS::Include",
+                                "Parameters": {"Location": "./tests/unit/commands/validate/lib/openapi/openapi.json"},
+                            }
+                        },
+                    },
+                }
+            },
+        }
+        openapi_json = {
+            "openapi": "3.0.0",
+            "info": {"version": "1.0.0", "title": "title"},
+            "paths": {"/test": {"get": {"responses": {"200": {"description": "description"}}}}},
+        }
+
+        # mock file access
+        path_mock.return_value = True
+        yaml_mock.return_value = openapi_json
+
+        managed_policy_mock = Mock()
+
+        validator = SamTemplateValidator(template, managed_policy_mock)
+
+        validator._replace_local_openapi()
+
+        template_resources = validator.sam_template.get("Resources")
+        self.assertIn("DefinitionBody", template_resources.get("ServerlessApi").get("Properties"))
+        self.assertNotIn(
+            "Fn::Transform", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody")
+        )
+        self.assertIn("openapi", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
+        self.assertIn("info", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
+        self.assertIn("paths", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
+
+    @patch("pathlib.Path.is_file")
+    @patch("samcli.commands.validate.lib.sam_template_validator.parse_yaml_file")
+    def test_DefinitionBody_not_replaced_if_not_include(self, yaml_mock, path_mock):
+        template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Resources": {
+                "ServerlessApi": {
+                    "Type": "AWS::Serverless::HttpApi",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "DefinitionBody": {
+                            "Fn::Transform": {
+                                "Name": "AWS::NotInclude",
+                            }
+                        },
+                    },
+                }
+            },
+        }
+        openapi_json = {
+            "openapi": "3.0.0",
+            "info": {"version": "1.0.0", "title": "title"},
+            "paths": {"/test": {"get": {"responses": {"200": {"description": "description"}}}}},
+        }
+
+        # mock file access
+        path_mock.return_value = True
+        yaml_mock.side_effect = openapi_json
+
+        managed_policy_mock = Mock()
+
+        validator = SamTemplateValidator(template, managed_policy_mock)
+
+        validator._replace_local_openapi()
+
+        template_resources = validator.sam_template.get("Resources")
+        self.assertIn("DefinitionBody", template_resources.get("ServerlessApi").get("Properties"))
+        self.assertNotIn("openapi", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
+        self.assertIn("Fn::Transform", template_resources.get("ServerlessApi").get("Properties").get("DefinitionBody"))
