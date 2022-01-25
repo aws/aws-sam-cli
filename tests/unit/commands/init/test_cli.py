@@ -1,14 +1,13 @@
-import os
+import json
 import shutil
 import subprocess
 import tempfile
-import logging
 from unittest.case import expectedFailure
-import pytest
+import requests
 from pathlib import Path
 from typing import Dict, Any
 from unittest import TestCase
-from unittest.mock import patch, ANY
+from unittest.mock import Mock, patch, ANY
 
 import botocore.exceptions
 import click
@@ -43,6 +42,7 @@ class MockInitTemplates:
         self._git_repo.clone_attempted = True
         self._git_repo.local_path = Path("tests/unit/commands/init")
         self.manifest_file_name = "test_manifest.json"
+        self.manifest_url = Mock()
 
 
 class TestCli(TestCase):
@@ -61,6 +61,9 @@ class TestCli(TestCase):
         self.no_input = False
         self.extra_context = '{"project_name": "testing project", "runtime": "python3.6"}'
         self.extra_context_as_json = {"project_name": "testing project", "runtime": "python3.6"}
+
+        with open("tests/unit/commands/init/test_manifest.json") as f:
+            self.data = json.load(f)
 
     # setup cache for clone, so that if `git clone` is called multiple times on the same URL,
     # only one clone will happen.
@@ -1381,10 +1384,14 @@ foo
             None,
         )
 
+    @patch("samcli.commands.init.init_templates.InitTemplates._get_manifest")
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
     @patch("samcli.commands.init.init_generator.generate_project")
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
-    def test_init_cli_no_package_type(self, generate_project_patch, git_repo_clone_mock):
+    def test_init_cli_no_package_type(self, generate_project_patch, git_repo_clone_mock, _get_manifest_mock):
+
+        _get_manifest_mock.return_value = self.data
+
         # WHEN the user follows interactive init prompts
 
         # 1: selecting template source
@@ -1713,16 +1720,18 @@ n
             False  # Other tests fail after we pass --packge-type in this test, so let's reset this variable
         )
 
+    @patch("requests.get")
     @patch("samcli.commands.init.init_templates.InitTemplates.get_preprocessed_manifest")
     @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
     @patch("samcli.commands.init.init_generator.generate_project")
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
     def test_init_cli_generate_default_hello_world_app(
-        self, generate_project_patch, init_options_from_manifest_mock, get_preprocessed_manifest_mock
+        self, generate_project_patch, init_options_from_manifest_mock, get_preprocessed_manifest_mock, request_mock
     ):
+        request_mock.side_effect = requests.Timeout()
         init_options_from_manifest_mock.return_value = [
             {
-                "directory": "nodejs14.x/cookiecutter-aws-sam-hello-nodejs",
+                "directory": "python3.9/cookiecutter-aws-sam-hello-python",
                 "displayName": "Hello World Example",
                 "dependencyManager": "npm",
                 "appTemplate": "hello-world",
@@ -1742,12 +1751,12 @@ n
 
         get_preprocessed_manifest_mock.return_value = {
             "Hello World Example": {
-                "nodejs14.x": {
+                "python3.9": {
                     "Zip": [
                         {
-                            "directory": "nodejs14.x/cookiecutter-aws-sam-hello-nodejs",
+                            "directory": "python3.9/cookiecutter-aws-sam-hello-python3.9",
                             "displayName": "Hello World Example",
-                            "dependencyManager": "npm",
+                            "dependencyManager": "pip",
                             "appTemplate": "hello-world",
                             "packageType": "Zip",
                             "useCaseName": "Hello World Example",
@@ -1777,7 +1786,6 @@ n
         # test-project: response to name
         user_input = """
 1
-1
 y
 test-project
         """
@@ -1788,12 +1796,12 @@ test-project
         generate_project_patch.assert_called_once_with(
             ANY,
             ZIP,
-            "nodejs14.x",
-            "npm",
+            "python3.9",
+            "pip",
             ".",
             "test-project",
             True,
-            {"project_name": "test-project", "runtime": "nodejs14.x", "architectures": {"value": ["x86_64"]}},
+            {"project_name": "test-project", "runtime": "python3.9", "architectures": {"value": ["x86_64"]}},
         )
 
     @patch("samcli.commands.init.init_templates.InitTemplates.get_preprocessed_manifest")
@@ -1906,9 +1914,11 @@ test-project
             runtime = get_runtime(IMAGE, base_image)
             self.assertEqual(runtime, expected_runtime[index])
 
+    @patch("samcli.commands.init.init_templates.InitTemplates._get_manifest")
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
-    def test_must_process_manifest(self):
+    def test_must_process_manifest(self, _get_manifest_mock):
         template = InitTemplates()
+        _get_manifest_mock.return_value = self.data
         preprocess_manifest = template.get_preprocessed_manifest()
         expected_result = {
             "Hello World Example": {
@@ -1964,10 +1974,12 @@ test-project
         }
         self.assertEqual(preprocess_manifest, expected_result)
 
+    @patch("samcli.commands.init.init_templates.InitTemplates._get_manifest")
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
-    def test_must_process_manifest_with_runtime_as_filter_value(self):
+    def test_must_process_manifest_with_runtime_as_filter_value(self, _get_manifest_mock):
         template = InitTemplates()
         filter_value = "go1.x"
+        _get_manifest_mock.return_value = self.data
         preprocess_manifest = template.get_preprocessed_manifest(filter_value)
         expected_result = {
             "Hello World Example": {
@@ -1987,10 +1999,12 @@ test-project
         }
         self.assertEqual(preprocess_manifest, expected_result)
 
+    @patch("samcli.commands.init.init_templates.InitTemplates._get_manifest")
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
-    def test_must_process_manifest_with_image_as_filter_value(self):
+    def test_must_process_manifest_with_image_as_filter_value(self, _get_manifest_mock):
         template = InitTemplates()
         filter_value = "amazon/nodejs14.x-base"
+        _get_manifest_mock.return_value = self.data
         preprocess_manifest = template.get_preprocessed_manifest(filter_value)
         expected_result = {
             "Hello World Example": {
@@ -2036,9 +2050,11 @@ test-project
         )
         self.assertEqual(str(ex.exception), expected_error_message)
 
+    @patch("samcli.commands.init.init_templates.InitTemplates._get_manifest")
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
-    def test_init_cli_with_mismatch_dep_runtime(self, git_repo_clone_mock):
+    def test_init_cli_with_mismatch_dep_runtime(self, git_repo_clone_mock, _get_manifest_mock):
+        _get_manifest_mock = self.data
         # WHEN the user follows interactive init prompts
 
         # 1: selecting template source
@@ -2478,9 +2494,13 @@ test-project
         self.assertIn(file_name_path, manifest_path)
 
     @patch.object(Path, "exists")
+    @patch("requests.get")
     @patch("samcli.commands.init.init_generator.generate_project")
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
-    def test_init_cli_generate_app_template_from_local_cli_templates(self, generate_project_patch, path_exist_mock):
+    def test_init_cli_generate_app_template_from_local_cli_templates(
+        self, generate_project_patch, request_mock, path_exist_mock
+    ):
+        request_mock.side_effect = requests.Timeout()
         path_exist_mock.return_value = False
 
         # WHEN the user follows interactive init prompts

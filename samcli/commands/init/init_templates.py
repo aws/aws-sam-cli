@@ -8,6 +8,7 @@ import logging
 import os
 from pathlib import Path
 from typing import Dict, Optional
+import requests
 
 from samcli.cli.global_config import GlobalConfig
 from samcli.commands.exceptions import UserException, AppTemplateUpdateException
@@ -32,6 +33,7 @@ class InitTemplates:
     def __init__(self):
         self._git_repo: GitRepo = GitRepo(url=APP_TEMPLATES_REPO_URL)
         self.manifest_file_name = "manifest.json"
+        self.manifest_url = "https://raw.githubusercontent.com/aws/aws-sam-cli-app-templates/master/manifest.json"
 
     def location_from_app_template(self, package_type, runtime, base_image, dependency_manager, app_template):
         options = self.init_options(package_type, runtime, base_image, dependency_manager)
@@ -171,11 +173,7 @@ class InitTemplates:
         [dict]
             This is preprocessed manifest with the use_case as key
         """
-        self.clone_templates_repo()
-        manifest_path = self.get_manifest_path()
-        with open(str(manifest_path)) as fp:
-            body = fp.read()
-            manifest_body = json.loads(body)
+        manifest_body = self._get_manifest()
 
         # This would ensure the Use-Case Hello World Example appears
         # at the top of list template example displayed to the Customer.
@@ -204,8 +202,23 @@ class InitTemplates:
 
         return preprocessed_manifest
 
-    def get_bundle_option(self, package_type, runtime, dependency_manager):
-        return self._init_options_from_bundle(package_type, runtime, dependency_manager)
+    def _get_manifest(self):
+        """
+        In an attempt to reduce initial wait time to achieve an interactive
+        flow <= 10sec, This method first attempts to spools just the manifest file and
+        if the manifest can't be spooled, it attempts to clone the cli template git repo or
+        use local cli template
+        """
+        try:
+            response = requests.get(self.manifest_url, timeout=10)
+            body = response.text
+        except (requests.Timeout, requests.ConnectionError):
+            self.clone_templates_repo()
+            manifest_path = self.get_manifest_path()
+            with open(str(manifest_path)) as fp:
+                body = fp.read()
+        manifest_body = json.loads(body)
+        return manifest_body
 
 
 def get_template_value(value: str, template: dict) -> Optional[str]:
