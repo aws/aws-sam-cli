@@ -21,6 +21,7 @@ from samcli.local.common.runtime_template import (
 )
 
 LOG = logging.getLogger(__name__)
+MANIFEST_URL = "https://raw.githubusercontent.com/aws/aws-sam-cli-app-templates/master/manifest.json"
 APP_TEMPLATES_REPO_URL = "https://github.com/aws/aws-sam-cli-app-templates"
 APP_TEMPLATES_REPO_NAME = "aws-sam-cli-app-templates"
 
@@ -33,7 +34,6 @@ class InitTemplates:
     def __init__(self):
         self._git_repo: GitRepo = GitRepo(url=APP_TEMPLATES_REPO_URL)
         self.manifest_file_name = "manifest.json"
-        self.manifest_url = "https://raw.githubusercontent.com/aws/aws-sam-cli-app-templates/master/manifest.json"
 
     def location_from_app_template(self, package_type, runtime, base_image, dependency_manager, app_template):
         options = self.init_options(package_type, runtime, base_image, dependency_manager)
@@ -210,9 +210,11 @@ class InitTemplates:
         use local cli template
         """
         try:
-            response = requests.get(self.manifest_url, timeout=10)
+            response = requests.get(MANIFEST_URL, timeout=10)
             body = response.text
         except (requests.Timeout, requests.ConnectionError):
+            LOG.debug("Request to get Manifest failed, attempting to clone the repository")
+            LOG.debug("Clone error, attempting to use an old clone from a previous run")
             self.clone_templates_repo()
             manifest_path = self.get_manifest_path()
             with open(str(manifest_path)) as fp:

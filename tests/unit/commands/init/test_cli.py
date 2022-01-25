@@ -7,7 +7,7 @@ import requests
 from pathlib import Path
 from typing import Dict, Any
 from unittest import TestCase
-from unittest.mock import Mock, patch, ANY
+from unittest.mock import patch, ANY
 
 import botocore.exceptions
 import click
@@ -42,7 +42,6 @@ class MockInitTemplates:
         self._git_repo.clone_attempted = True
         self._git_repo.local_path = Path("tests/unit/commands/init")
         self.manifest_file_name = "test_manifest.json"
-        self.manifest_url = Mock()
 
 
 class TestCli(TestCase):
