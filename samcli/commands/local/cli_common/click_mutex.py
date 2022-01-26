@@ -8,54 +8,60 @@ import click
 
 class Mutex(click.Option):
     """
-    Preprocessing checks for mutually explicit or required parameters as supported by click api.
+    Preprocessing checks for mutually exclusive or required parameters as supported by click api.
     """
 
     def __init__(self, *args, **kwargs):
-        self.required_params: List = kwargs.pop("required_params", None)
-        self.not_required: List = kwargs.pop("not_required", None)
+        self.required_param_lists: List = kwargs.pop("required_param_lists", None)
+        self.required_params_hint: str = kwargs.pop("required_params_hint", None)
+        self.incompatible_params: List = kwargs.pop("incompatible_params", None)
+        self.incompatible_params_hint: str = kwargs.pop("incompatible_params_hint", None)
 
         super().__init__(*args, **kwargs)
 
     def handle_parse_result(self, ctx, opts, args):
-        current_opt: bool = self.name in opts
+        if self.name not in opts:
+            return super().handle_parse_result(ctx, opts, args)
+
         # Check for parameters not compatible with each other
-        for mutex_opt in self.not_required or []:
-            if mutex_opt in opts:
-                if current_opt:
-                    msg = f"""
-You must not provide both the --{self.name.replace("_", "-")} and --{str(mutex_opt).replace("_", "-")} parameters.
+        for incompatible_param in self.incompatible_params or []:
+            if incompatible_param in opts:
+                msg = (
+                    f"You must not provide both the {Mutex._to_param_name(self.name)} and ",
+                    f"{Mutex._to_param_name(incompatible_param)} parameters.\n",
+                )
+                if self.incompatible_params_hint:
+                    msg += self.incompatible_params_hint
+                raise click.UsageError(msg)
 
-You can run 'sam init' without any options for an interactive initialization flow, or you can provide one of the following required parameter combinations:
-    --name and --runtime and --app-template and --dependency-manager
-    --name and --package-type and --base-image
-    --location
-                            """
-                    raise click.UsageError(msg)
-                self.prompt = None
-        # check for required parameters
-        if self.required_params:
-            req_flag = True
-            for mutex_opt_list in self.required_params:
-                req_cnt = len(mutex_opt_list)
-                for mutex_opt in mutex_opt_list:
-                    if mutex_opt in opts:
-                        req_cnt -= 1
+        # Check for required parameters
+        if self.required_param_lists:
+            missing_param_lists = list()
+            for required_params in self.required_param_lists:
+                missing_params = list()
+                for required_param in required_params:
+                    if required_param not in opts:
+                        missing_params.append(required_param)
+                if missing_params:
+                    missing_param_lists.append(missing_params)
 
-                if not req_cnt:
-                    req_flag = False
+            if missing_param_lists:
+                msg = (
+                    f"Missing required parameters, with --{self.name.replace('_', '-')} set.\n",
+                    "Must provide one of the following required parameter combinations:\n",
+                )
+                for missing_params in missing_param_lists:
+                    msg += "\t"
+                    msg += ", ".join(Mutex._to_param_name(param) for param in missing_params)
+                    msg += "\n"
 
-            if current_opt and req_flag:
-                msg = f"""
-Missing required parameters, with --{self.name.replace("_", "-")} set.
-
-Must provide one of the following required parameter combinations:
-    --name and --runtime and --dependency-manager and --app-template
-    --name and --package-type and --base-image and --dependency-manager
-    --location
-
-You can also re-run without the --no-interactive flag to be prompted for required values.
-                """
+                if self.required_params_hint:
+                    msg += self.required_params_hint
                 raise click.UsageError(msg)
             self.prompt = None
+
         return super().handle_parse_result(ctx, opts, args)
+
+    @staticmethod
+    def _to_param_name(param: str):
+        return f"--{param.replace('_', '-')}"

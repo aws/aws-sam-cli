@@ -63,6 +63,15 @@ Common usage:
     $ sam init --location /path/to/template/folder
 """
 
+INCOMPATIBLE_PARAMS_HINT = """
+You can run 'sam init' without any options for an interactive initialization flow, or you can provide one of the following required parameter combinations:
+    --name, --runtime, --app-template, --dependency-manager, or
+    --name, --package-type, --base-image, or
+    --location
+"""
+
+REQUIRED_PARAMS_HINT = "You can also re-run without the --no-interactive flag to be prompted for required values."
+
 
 class PackageType:
     """
@@ -128,12 +137,13 @@ def non_interactive_validation(func):
     default=False,
     help="Disable interactive prompting for init parameters, and fail if any required values are missing.",
     cls=Mutex,
-    required_params=[
+    required_param_lists=[
         ["name", "location"],
-        ["name", "runtime", "dependency_manager", "app_template"],
         ["name", "package_type", "base_image"],
+        ["name", "runtime", "dependency_manager", "app_template"],
         # check non_interactive_validation for additional validations
     ],
+    required_params_hint=REQUIRED_PARAMS_HINT,
 )
 @click.option(
     "-a",
@@ -147,7 +157,8 @@ def non_interactive_validation(func):
     "--location",
     help="Template location (git, mercurial, http(s), zip, path)",
     cls=Mutex,
-    not_required=["package_type", "runtime", "base_image", "dependency_manager", "app_template"],
+    incompatible_params=["package_type", "runtime", "base_image", "dependency_manager", "app_template"],
+    incompatible_params_hint=INCOMPATIBLE_PARAMS_HINT,
 )
 @click.option(
     "-r",
@@ -155,7 +166,8 @@ def non_interactive_validation(func):
     type=click.Choice(get_sorted_runtimes(RUNTIMES)),
     help="Lambda Runtime of your app",
     cls=Mutex,
-    not_required=["location", "base_image"],
+    incompatible_params=["location", "base_image"],
+    incompatible_params_hint=INCOMPATIBLE_PARAMS_HINT,
 )
 @click.option(
     "-p",
@@ -164,7 +176,8 @@ def non_interactive_validation(func):
     help="Package type for your app",
     cls=Mutex,
     callback=PackageType.pt_callback,
-    not_required=["location"],
+    incompatible_params=["location"],
+    incompatible_params_hint=INCOMPATIBLE_PARAMS_HINT,
 )
 @click.option(
     "-i",
@@ -173,7 +186,8 @@ def non_interactive_validation(func):
     default=None,
     help="Lambda Image of your app",
     cls=Mutex,
-    not_required=["location", "runtime"],
+    incompatible_params=["location", "runtime"],
+    incompatible_params_hint=INCOMPATIBLE_PARAMS_HINT,
 )
 @click.option(
     "-d",
@@ -183,7 +197,8 @@ def non_interactive_validation(func):
     help="Dependency manager of your Lambda runtime",
     required=False,
     cls=Mutex,
-    not_required=["location"],
+    incompatible_params=["location"],
+    incompatible_params_hint=INCOMPATIBLE_PARAMS_HINT,
 )
 @click.option("-o", "--output-dir", type=click.Path(), help="Where to output the initialized app into", default=".")
 @click.option("-n", "--name", help="Name of your project to be generated as a folder")
@@ -192,7 +207,8 @@ def non_interactive_validation(func):
     help="Identifier of the managed application template you want to use. "
     "If not sure, call 'sam init' without options for an interactive workflow.",
     cls=Mutex,
-    not_required=["location"],
+    incompatible_params=["location"],
+    incompatible_params_hint=INCOMPATIBLE_PARAMS_HINT,
 )
 @click.option(
     "--no-input",
