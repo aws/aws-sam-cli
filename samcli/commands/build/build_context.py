@@ -516,7 +516,12 @@ Commands you can use next
         "Check __issue_line__ for more information."
     )
 
-    def _check_java_warning(self):
+    def _check_java_warning(self) -> None:
+        """
+        Prints warning message about upcoming changes to building java functions and layers.
+        This warning message will only be printed if template contains any buildable functions or layers with one of
+        the java runtimes.
+        """
         # display warning message for java runtimes for changing build method
         resources_to_build = self.get_resources_to_build()
         function_runtimes = {function.runtime for function in resources_to_build.functions if function.runtime}
