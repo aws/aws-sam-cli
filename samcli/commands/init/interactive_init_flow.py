@@ -229,7 +229,7 @@ def _generate_default_hello_world_application(
     """
     is_package_type_image = bool(package_type == IMAGE)
     if use_case == "Hello World Example" and not (runtime or base_image or is_package_type_image or dependency_manager):
-        if click.confirm("\n Use the most popular runtime and package type? (Nodejs and zip)"):
+        if click.confirm("\n Use the most popular runtime and package type? (Python and zip)"):
             runtime, package_type, dependency_manager, pt_explicit = "python3.9", ZIP, "pip", True
     return (runtime, package_type, dependency_manager, pt_explicit)
 

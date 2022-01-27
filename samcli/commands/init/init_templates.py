@@ -214,7 +214,6 @@ class InitTemplates:
             body = response.text
         except (requests.Timeout, requests.ConnectionError):
             LOG.debug("Request to get Manifest failed, attempting to clone the repository")
-            LOG.debug("Clone error, attempting to use an old clone from a previous run")
             self.clone_templates_repo()
             manifest_path = self.get_manifest_path()
             with open(str(manifest_path)) as fp:
