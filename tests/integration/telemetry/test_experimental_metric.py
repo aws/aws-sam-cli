@@ -55,6 +55,7 @@ class TestExperimentalMetric(IntegBase):
                             "metricSpecificAttributes": {
                                 "experimentalAccelerate": True,
                                 "experimentalAll": False,
+                                "experimentalMavenScopeAndLayer": False,
                             },
                             "duration": ANY,
                             "exitReason": ANY,
@@ -104,6 +105,7 @@ class TestExperimentalMetric(IntegBase):
                             "metricSpecificAttributes": {
                                 "experimentalAccelerate": True,
                                 "experimentalAll": True,
+                                "experimentalMavenScopeAndLayer": False,
                             },
                             "duration": ANY,
                             "exitReason": ANY,
