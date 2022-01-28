@@ -105,7 +105,7 @@ class TestExperimentalMetric(IntegBase):
                             "metricSpecificAttributes": {
                                 "experimentalAccelerate": True,
                                 "experimentalAll": True,
-                                "experimentalMavenScopeAndLayer": False,
+                                "experimentalMavenScopeAndLayer": True,
                             },
                             "duration": ANY,
                             "exitReason": ANY,
