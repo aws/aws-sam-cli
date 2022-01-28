@@ -10,8 +10,6 @@ import logging
 import posixpath
 import pathlib
 import socket
-import subprocess
-import sys
 
 import docker
 import requests
@@ -156,12 +154,3 @@ def get_docker_platform(architecture: str) -> str:
     validate_architecture(architecture)
 
     return f"linux/{get_image_arch(architecture)}"
-
-
-def is_selinux_enabled():
-    """Return True if SELinux is enabled, False otherwise."""
-    if sys.platform == "linux":
-        return os.path.isfile("/usr/sbin/sestatus") and "enabled" in subprocess.Popen(
-            "/usr/sbin/sestatus", stdout=subprocess.PIPE
-        ).stdout.readline().decode("UTF-8")
-    return False

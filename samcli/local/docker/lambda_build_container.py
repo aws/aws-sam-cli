@@ -8,8 +8,6 @@ import pathlib
 
 from samcli.local.docker.container import Container
 
-from .utils import is_selinux_enabled
-
 LOG = logging.getLogger(__name__)
 
 
@@ -84,10 +82,7 @@ class LambdaBuildContainer(Container):
         entry = LambdaBuildContainer._get_entrypoint(request_json)
         cmd = []
 
-        if is_selinux_enabled():
-            mount_mode = "Z,ro"
-        else:
-            mount_mode = "ro"
+        mount_mode = "Z,ro"
 
         additional_volumes = {
             # Manifest is mounted separately in order to support the case where manifest

@@ -11,8 +11,6 @@ from requests import RequestException
 from samcli.lib.utils.packagetype import IMAGE
 from samcli.local.docker.container import Container, ContainerResponseException
 
-from samcli.local.docker.utils import is_selinux_enabled
-
 
 class TestContainer_init(TestCase):
     def setUp(self):
@@ -82,10 +80,7 @@ class TestContainer_create(TestCase):
         :return:
         """
 
-        if is_selinux_enabled():
-            mount_mode = "Z,ro,delegated"
-        else:
-            mount_mode = "ro,delegated"
+        mount_mode = "Z,ro,delegated"
 
         expected_volumes = {self.host_dir: {"bind": self.working_dir, "mode": mount_mode}}
         generated_id = "fooobar"
@@ -125,10 +120,7 @@ class TestContainer_create(TestCase):
         :return:
         """
 
-        if is_selinux_enabled():
-            mount_mode = "Z,ro,delegated"
-        else:
-            mount_mode = "ro"
+        mount_mode = "Z,ro,delegated"
 
         expected_volumes = {
             self.host_dir: {"bind": self.working_dir, "mode": mount_mode},
@@ -185,10 +177,7 @@ class TestContainer_create(TestCase):
         :return:
         """
 
-        if is_selinux_enabled():
-            mount_mode = "Z,ro,delegated"
-        else:
-            mount_mode = "ro,delegated"
+        mount_mode = "Z,ro,delegated"
 
         os_mock.name = "nt"
         host_dir = "C:\\Users\\Username\\AppData\\Local\\Temp\\tmp1337"
@@ -249,10 +238,7 @@ class TestContainer_create(TestCase):
         :return:
         """
 
-        if is_selinux_enabled():
-            mount_mode = "Z,ro,delegated"
-        else:
-            mount_mode = "ro,delegated"
+        mount_mode = "Z,ro,delegated"
 
         expected_volumes = {self.host_dir: {"bind": self.working_dir, "mode": mount_mode}}
 
@@ -293,10 +279,7 @@ class TestContainer_create(TestCase):
         :return:
         """
 
-        if is_selinux_enabled():
-            mount_mode = "Z,ro,delegated"
-        else:
-            mount_mode = "ro,delegated"
+        mount_mode = "Z,ro,delegated"
 
         expected_volumes = {self.host_dir: {"bind": self.working_dir, "mode": mount_mode}}
 

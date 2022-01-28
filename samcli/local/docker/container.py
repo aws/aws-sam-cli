@@ -13,7 +13,7 @@ from docker.errors import NotFound as DockerNetworkNotFound
 from samcli.lib.utils.retry import retry
 from .exceptions import ContainerNotStartableException
 
-from .utils import to_posix_path, find_free_port, NoFreePortsError, is_selinux_enabled
+from .utils import to_posix_path, find_free_port, NoFreePortsError
 
 LOG = logging.getLogger(__name__)
 
@@ -129,12 +129,10 @@ class Container:
 
         if self._host_dir:
 
-            # When SELinux is enabled add the Z label to mount the host volume
-            # inside the container.
-            if is_selinux_enabled():
-
-                mount_mode = "Z," + mount_mode
-                mount_options_msg = "Mounting %s as %s:Z,ro,delegated inside runtime container"
+            # Add the SELinux Z label to mount the host volume inside the
+            # container, if SELinux is not present Docker will ignore the label.
+            mount_mode = "Z," + mount_mode
+            mount_options_msg = "Mounting %s as %s:Z,ro,delegated inside runtime container"
 
             LOG.info(mount_options_msg, self._host_dir, self._working_dir)
 
