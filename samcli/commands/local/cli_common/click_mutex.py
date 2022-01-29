@@ -27,8 +27,8 @@ class Mutex(click.Option):
         for incompatible_param in self.incompatible_params or []:
             if incompatible_param in opts:
                 msg = (
-                    f"You must not provide both the {Mutex._to_param_name(self.name)} and ",
-                    f"{Mutex._to_param_name(incompatible_param)} parameters.\n",
+                    f"You must not provide both the {Mutex._to_param_name(self.name)} and "
+                    f"{Mutex._to_param_name(incompatible_param)} parameters.\n"
                 )
                 if self.incompatible_params_hint:
                     msg += self.incompatible_params_hint
@@ -36,23 +36,18 @@ class Mutex(click.Option):
 
         # Check for required parameters
         if self.required_param_lists:
-            missing_param_lists = list()
             for required_params in self.required_param_lists:
-                missing_params = list()
-                for required_param in required_params:
-                    if required_param not in opts:
-                        missing_params.append(required_param)
-                if missing_params:
-                    missing_param_lists.append(missing_params)
-
-            if missing_param_lists:
+                has_all_required_params = False not in [required_param in opts for required_param in required_params]
+                if has_all_required_params:
+                    break
+            else:
                 msg = (
-                    f"Missing required parameters, with --{self.name.replace('_', '-')} set.\n",
-                    "Must provide one of the following required parameter combinations:\n",
+                    f"Missing required parameters, with --{self.name.replace('_', '-')} set.\n"
+                    "Must provide one of the following required parameter combinations:\n"
                 )
-                for missing_params in missing_param_lists:
+                for required_params in self.required_param_lists:
                     msg += "\t"
-                    msg += ", ".join(Mutex._to_param_name(param) for param in missing_params)
+                    msg += ", ".join(Mutex._to_param_name(param) for param in required_params)
                     msg += "\n"
 
                 if self.required_params_hint:
