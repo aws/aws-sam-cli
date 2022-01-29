@@ -8,6 +8,7 @@ import click
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands._utils.options import common_observability_options
+from samcli.lib.observability.util import OutputOption
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.commands._utils.experimental import ExperimentalFlag, force_experimental
@@ -41,17 +42,17 @@ def cli(
     start_time,
     end_time,
     tail,
-    unformatted,
+    output,
     config_file,
     config_env,
 ):
     """
     `sam traces` command entry point
     """
-    do_cli(trace_id, start_time, end_time, tail, unformatted, ctx.region)
+    do_cli(trace_id, start_time, end_time, tail, output, ctx.region)
 
 
-def do_cli(trace_ids, start_time, end_time, tailing, unformatted, region):
+def do_cli(trace_ids, start_time, end_time, tailing, output, region):
     """
     Implementation of the ``cli`` method
     """
@@ -68,7 +69,7 @@ def do_cli(trace_ids, start_time, end_time, tailing, unformatted, region):
     xray_client = boto3.client("xray", config=boto_config)
 
     # generate puller depending on the parameters
-    puller = generate_trace_puller(xray_client, unformatted)
+    puller = generate_trace_puller(xray_client, OutputOption(output))
 
     if trace_ids:
         puller.load_events(trace_ids)
