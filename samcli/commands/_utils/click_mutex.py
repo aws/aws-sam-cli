@@ -1,7 +1,7 @@
 """
 Module to check mutually exclusive cli parameters
 """
-from typing import List, Dict
+from typing import Any, List, Dict, Tuple
 
 import click
 
@@ -19,7 +19,7 @@ class Mutex(click.Option):
 
         super().__init__(*args, **kwargs)
 
-    def handle_parse_result(self, ctx, opts: Dict, args):
+    def handle_parse_result(self, ctx: click.Context, opts: Dict[str, Any], args: List[str]) -> Tuple[Any, List[str]]:
         if self.name not in opts:
             return super().handle_parse_result(ctx, opts, args)
 
