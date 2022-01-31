@@ -122,45 +122,35 @@ build_script:
 
 for:
   -
-    matrix:
-      before_test:
+    before_test:
         - sh: "export WORKER_ID=\"0\""
   -
-    matrix:
-      before_test:
+    before_test:
         - sh: "export WORKER_ID=\"1\""
   -
-    matrix:
-      before_test:
-        - sh: "export WORKER_ID=\"2\""
+    before_test:
+      - sh: "export WORKER_ID=\"2\""
   -
-    matrix:
-      before_test:
-        - sh: "export WORKER_ID=\"3\""
+    before_test:
+      - sh: "export WORKER_ID=\"3\""
   -
-    matrix:
-      before_test:
-        - sh: "export WORKER_ID=\"4\""
+    before_test:
+      - sh: "export WORKER_ID=\"4\""
   -
-    matrix:
-      before_test:
-        - sh: "export WORKER_ID=\"5\""
+    before_test:
+      - sh: "export WORKER_ID=\"5\""
   -
-    matrix:
-      before_test:
-        - sh: "export WORKER_ID=\"6\""
+    before_test:
+      - sh: "export WORKER_ID=\"6\""
   -
-    matrix:
-      before_test:
-        - sh: "export WORKER_ID=\"7\""
+    before_test:
+      - sh: "export WORKER_ID=\"7\""
   -
-    matrix:
-      before_test:
-        - sh: "export WORKER_ID=\"8\""
+    before_test:
+      - sh: "export WORKER_ID=\"8\""
   -
-    matrix:
-      before_test:
-        - sh: "export WORKER_ID=\"9\""
+    before_test:
+      - sh: "export WORKER_ID=\"9\""
 
 test_script:
   # Pre-dev Tests
