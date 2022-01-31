@@ -59,9 +59,9 @@ if TYPE_CHECKING:  # pragma: no cover
 LOG = logging.getLogger(__name__)
 
 HELP_TEXT = """
-[Beta Feature] Update/sync local artifacts to AWS
+[Beta Feature] Update/Sync local artifacts to AWS
 
-By default, the sync command runs a full stack update, you can specify --code or --watch to which modes
+By default, the sync command runs a full stack update. You can specify --code or --watch to switch modes
 """
 
 SYNC_CONFIRMATION_TEXT = """
