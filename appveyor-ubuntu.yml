@@ -3,11 +3,16 @@ image:
   - Ubuntu
 
 configuration:
-  - BuildIntegTesting
-  - DeployIntegTesting
-  - LocalIntegTesting
-  # other Integration testing, Dev, regression and smoke testing
-  - OtherTesting
+  - Worker0
+  - Worker1
+  - Worker2
+  - Worker3
+  - Worker4
+  - Worker5
+  - Worker6
+  - Worker7
+  - Worker8
+  - Worker9
 
 environment:
   AWS_DEFAULT_REGION: us-east-1
@@ -103,25 +108,55 @@ build_script:
   - 'python -c "import sys; print(sys.executable)"'
 
 for:
-  - before_test:
+  - matrix:
+      only:
+        - configuration: Worker0
+    before_test:
       - sh: 'export WORKER_ID="0"'
-  - before_test:
+  - matrix:
+      only:
+        - configuration: Worker1
+    before_test:
       - sh: 'export WORKER_ID="1"'
-  - before_test:
+  - matrix:
+      only:
+        - configuration: Worker2
+    before_test:
       - sh: 'export WORKER_ID="2"'
-  - before_test:
+  - matrix:
+      only:
+        - configuration: Worker3
+    before_test:
       - sh: 'export WORKER_ID="3"'
-  - before_test:
+  - matrix:
+      only:
+        - configuration: Worker4
+    before_test:
       - sh: 'export WORKER_ID="4"'
-  - before_test:
+  - matrix:
+      only:
+        - configuration: Worker5
+    before_test:
       - sh: 'export WORKER_ID="5"'
-  - before_test:
+  - matrix:
+      only:
+        - configuration: Worker6
+    before_test:
       - sh: 'export WORKER_ID="6"'
-  - before_test:
+  - matrix:
+      only:
+        - configuration: Worker7
+    before_test:
       - sh: 'export WORKER_ID="7"'
-  - before_test:
+  - matrix:
+      only:
+        - configuration: Worker8
+    before_test:
       - sh: 'export WORKER_ID="8"'
-  - before_test:
+  - matrix:
+      only:
+        - configuration: Worker9
+    before_test:
       - sh: 'export WORKER_ID="9"'
 
 test_script:
