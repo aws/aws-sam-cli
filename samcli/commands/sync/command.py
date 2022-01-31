@@ -26,7 +26,7 @@ from samcli.commands._utils.options import (
     DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER,
 )
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
-from samcli.commands.local.cli_common.click_mutex import Mutex
+from samcli.commands._utils.click_mutex import Mutex
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.lib.bootstrap.bootstrap import manage_stack
