@@ -102,13 +102,14 @@ install:
 
   - sh: "PATH=$PATH:/usr/bin/python3.9:/usr/bin/python3.8:/usr/bin/python3.7"
   - sh: "curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py"
+  - sh: "curl https://bootstrap.pypa.io/pip/3.6/get-pip.py -o get-pip-36.py"
 
   - sh: "sudo apt-get -y install python3-distutils"
   - sh: "sudo apt-get -y install python3.9-distutils"
   - ps: "If ($env:INSTALL_PY_39_PIP) {python3.9 get-pip.py --user}"
   - ps: "If ($env:INSTALL_PY_38_PIP) {python3.8 get-pip.py --user}"
   - ps: "If ($env:INSTALL_PY_37_PIP) {python3.7 get-pip.py --user}"
-  - ps: "If ($env:INSTALL_PY_36_PIP) {python3.6 get-pip.py --user}"
+  - ps: "If ($env:INSTALL_PY_36_PIP) {python3.6 get-pip-36.py --user}"
 
   # required for RIE with arm64 in linux
   - sh: "docker run --rm --privileged multiarch/qemu-user-static --reset -p yes"
