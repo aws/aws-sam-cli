@@ -69,7 +69,7 @@ def do_cli(trace_ids, start_time, end_time, tailing, output, region):
     xray_client = boto3.client("xray", config=boto_config)
 
     # generate puller depending on the parameters
-    puller = generate_trace_puller(xray_client, OutputOption(output))
+    puller = generate_trace_puller(xray_client, OutputOption(output) if output else OutputOption.text)
 
     if trace_ids:
         puller.load_events(trace_ids)

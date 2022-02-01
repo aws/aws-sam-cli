@@ -371,7 +371,6 @@ def common_observability_click_options():
         ),
         click.option(
             "--output",
-            default=OutputOption.text.name,
             help=
             """
             [Beta Feature]

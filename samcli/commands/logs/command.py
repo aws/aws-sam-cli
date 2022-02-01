@@ -168,7 +168,7 @@ def do_cli(
         resource_logical_id_resolver.get_resource_information(fetch_all_when_no_resource_name_given),
         filter_pattern,
         cw_log_groups,
-        OutputOption(output),
+        OutputOption(output) if output else OutputOption.text,
         include_tracing,
     )
 
