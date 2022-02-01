@@ -36,6 +36,15 @@ class ClickMutex(click.Option):
         super().__init__(*args, **kwargs)
 
     def handle_parse_result(self, ctx: click.Context, opts: Dict[str, Any], args: List[str]) -> Tuple[Any, List[str]]:
+        """
+        Checks whether any option is in self.incompatible_params
+        If one is found, prompt and throw an UsageError
+
+        Then checks any combination in self.required_param_lists is satisfied.
+        With option = "a" and required_param_lists = [["b", "c"], ["c", "d"]]
+        It is valid to specify --a --b --c, --a --c --d, or --a --b --c --d
+        but not --a --b --d
+        """
         if self.name not in opts:
             return super().handle_parse_result(ctx, opts, args)
 
