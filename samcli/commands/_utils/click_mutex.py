@@ -6,16 +6,32 @@ from typing import Any, List, Dict, Tuple
 import click
 
 
-class Mutex(click.Option):
+class ClickMutex(click.Option):
     """
     Preprocessing checks for mutually exclusive or required parameters as supported by click api.
+
+    required_param_lists: List[List[str]]
+        List of lists with each supported combination of params
+        Ex:
+        With option = "a" and required_param_lists = [["b", "c"], ["c", "d"]]
+        It is valid to specify --a --b --c or --a --c --d
+        but not --a --b --d
+
+    required_params_hint: str
+        String to be appended after default missing required params prompt
+
+    incompatible_params: List[str]
+        List of incompatible parameters
+
+    incompatible_params_hint: str
+        String to be appended after default incompatible params prompt
     """
 
     def __init__(self, *args, **kwargs):
-        self.required_param_lists: List = kwargs.pop("required_param_lists", None)
-        self.required_params_hint: str = kwargs.pop("required_params_hint", None)
-        self.incompatible_params: List = kwargs.pop("incompatible_params", None)
-        self.incompatible_params_hint: str = kwargs.pop("incompatible_params_hint", None)
+        self.required_param_lists: List = kwargs.pop("required_param_lists", [])
+        self.required_params_hint: str = kwargs.pop("required_params_hint", "")
+        self.incompatible_params: List = kwargs.pop("incompatible_params", [])
+        self.incompatible_params_hint: str = kwargs.pop("incompatible_params_hint", "")
 
         super().__init__(*args, **kwargs)
 
@@ -24,20 +40,23 @@ class Mutex(click.Option):
             return super().handle_parse_result(ctx, opts, args)
 
         # Check for parameters not compatible with each other
-        for incompatible_param in self.incompatible_params or []:
+        for incompatible_param in self.incompatible_params:
             if incompatible_param in opts:
                 msg = (
-                    f"You must not provide both the {Mutex._to_param_name(self.name)} and "
-                    f"{Mutex._to_param_name(incompatible_param)} parameters.\n"
+                    f"You must not provide both the {ClickMutex._to_param_name(self.name)} and "
+                    f"{ClickMutex._to_param_name(incompatible_param)} parameters.\n"
                 )
-                if self.incompatible_params_hint:
-                    msg += self.incompatible_params_hint
+                msg += self.incompatible_params_hint
                 raise click.UsageError(msg)
 
         # Check for required parameters
         if self.required_param_lists:
+            # Loop through all combinations of required params
             for required_params in self.required_param_lists:
+                # Test whether all required params exist in one combination/required_params
                 has_all_required_params = False not in [required_param in opts for required_param in required_params]
+
+                # Break to skip over "else" block if any one combination is satisfied
                 if has_all_required_params:
                     break
             else:
@@ -47,11 +66,10 @@ class Mutex(click.Option):
                 )
                 for required_params in self.required_param_lists:
                     msg += "\t"
-                    msg += ", ".join(Mutex._to_param_name(param) for param in required_params)
+                    msg += ", ".join(ClickMutex._to_param_name(param) for param in required_params)
                     msg += "\n"
 
-                if self.required_params_hint:
-                    msg += self.required_params_hint
+                msg += self.required_params_hint
                 raise click.UsageError(msg)
             self.prompt = None
 

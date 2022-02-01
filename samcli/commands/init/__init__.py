@@ -14,7 +14,7 @@ from samcli.lib.utils.version_checker import check_newer_version
 from samcli.local.common.runtime_template import RUNTIMES, SUPPORTED_DEP_MANAGERS, LAMBDA_IMAGES_RUNTIMES
 from samcli.lib.telemetry.metric import track_command
 from samcli.commands.init.interactive_init_flow import _get_runtime_from_image, get_architectures, get_sorted_runtimes
-from samcli.commands._utils.click_mutex import Mutex
+from samcli.commands._utils.click_mutex import ClickMutex
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.architecture import X86_64, ARM64
 
@@ -136,7 +136,7 @@ def non_interactive_validation(func):
     is_flag=True,
     default=False,
     help="Disable interactive prompting for init parameters, and fail if any required values are missing.",
-    cls=Mutex,
+    cls=ClickMutex,
     required_param_lists=[
         ["name", "location"],
         ["name", "package_type", "base_image"],
@@ -150,13 +150,13 @@ def non_interactive_validation(func):
     "--architecture",
     type=click.Choice([ARM64, X86_64]),
     help="Architectures your Lambda function will run on",
-    cls=Mutex,
+    cls=ClickMutex,
 )
 @click.option(
     "-l",
     "--location",
     help="Template location (git, mercurial, http(s), zip, path)",
-    cls=Mutex,
+    cls=ClickMutex,
     incompatible_params=["package_type", "runtime", "base_image", "dependency_manager", "app_template"],
     incompatible_params_hint=INCOMPATIBLE_PARAMS_HINT,
 )
@@ -165,7 +165,7 @@ def non_interactive_validation(func):
     "--runtime",
     type=click.Choice(get_sorted_runtimes(RUNTIMES)),
     help="Lambda Runtime of your app",
-    cls=Mutex,
+    cls=ClickMutex,
     incompatible_params=["location", "base_image"],
     incompatible_params_hint=INCOMPATIBLE_PARAMS_HINT,
 )
@@ -174,7 +174,7 @@ def non_interactive_validation(func):
     "--package-type",
     type=click.Choice([ZIP, IMAGE]),
     help="Package type for your app",
-    cls=Mutex,
+    cls=ClickMutex,
     callback=PackageType.pt_callback,
     incompatible_params=["location"],
     incompatible_params_hint=INCOMPATIBLE_PARAMS_HINT,
@@ -185,7 +185,7 @@ def non_interactive_validation(func):
     type=click.Choice(LAMBDA_IMAGES_RUNTIMES),
     default=None,
     help="Lambda Image of your app",
-    cls=Mutex,
+    cls=ClickMutex,
     incompatible_params=["location", "runtime"],
     incompatible_params_hint=INCOMPATIBLE_PARAMS_HINT,
 )
@@ -196,7 +196,7 @@ def non_interactive_validation(func):
     default=None,
     help="Dependency manager of your Lambda runtime",
     required=False,
-    cls=Mutex,
+    cls=ClickMutex,
     incompatible_params=["location"],
     incompatible_params_hint=INCOMPATIBLE_PARAMS_HINT,
 )
@@ -206,7 +206,7 @@ def non_interactive_validation(func):
     "--app-template",
     help="Identifier of the managed application template you want to use. "
     "If not sure, call 'sam init' without options for an interactive workflow.",
-    cls=Mutex,
+    cls=ClickMutex,
     incompatible_params=["location"],
     incompatible_params_hint=INCOMPATIBLE_PARAMS_HINT,
 )

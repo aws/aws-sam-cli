@@ -26,7 +26,7 @@ from samcli.commands._utils.options import (
     DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER,
 )
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
-from samcli.commands._utils.click_mutex import Mutex
+from samcli.commands._utils.click_mutex import ClickMutex
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.lib.bootstrap.bootstrap import manage_stack
@@ -100,14 +100,14 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
     "--code",
     is_flag=True,
     help="Sync code resources. This includes Lambda Functions, API Gateway, and Step Functions.",
-    cls=Mutex,
+    cls=ClickMutex,
     incompatible_params=["watch"],
 )
 @click.option(
     "--watch",
     is_flag=True,
     help="Watch local files and automatically sync with remote.",
-    cls=Mutex,
+    cls=ClickMutex,
     incompatible_params=["code"],
 )
 @click.option(

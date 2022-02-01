@@ -1,9 +1,9 @@
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
-from samcli.commands._utils.click_mutex import Mutex
+from samcli.commands._utils.click_mutex import ClickMutex
 
 
-class TestMutex(TestCase):
+class TestClickMutex(TestCase):
     class TestException(Exception):
         def __init__(self, message):
             self.message = message
@@ -20,7 +20,7 @@ class TestMutex(TestCase):
         self.click_mock = self.click_patch.start()
         self.addCleanup(self.click_patch.stop)
 
-        self.click_mock.UsageError = TestMutex.TestException
+        self.click_mock.UsageError = TestClickMutex.TestException
 
         self.super_patch = patch("samcli.commands._utils.click_mutex.super")
         self.super_mock = self.super_patch.start()
@@ -28,7 +28,7 @@ class TestMutex(TestCase):
 
         self.context = MagicMock()
 
-        self.mutex = Mutex(
+        self.mutex = ClickMutex(
             required_param_lists=[["r11", "r12"], ["r21", "r22", "r23"]],
             required_params_hint="required hint",
             incompatible_params=["i1", "i2"],
