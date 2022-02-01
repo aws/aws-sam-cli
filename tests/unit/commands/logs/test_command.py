@@ -23,10 +23,7 @@ class TestLogsCliCommand(TestCase):
 
     @parameterized.expand(
         itertools.product(
-            [True, False],
-            [True, False],
-            [[], ["cw_log_group"], ["cw_log_group", "cw_log_group2"]],
-            ["text", "json"]
+            [True, False], [True, False], [[], ["cw_log_group"], ["cw_log_group", "cw_log_group2"]], ["text", "json"]
         )
     )
     @patch("samcli.commands.logs.puller_factory.generate_puller")

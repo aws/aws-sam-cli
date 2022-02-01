@@ -371,8 +371,7 @@ def common_observability_click_options():
         ),
         click.option(
             "--output",
-            help=
-            """
+            help="""
             [Beta Feature]
             The formatting style of the command output. Following options are available:\n
             TEXT: Prints information as regular text with some formatting (default option)\n

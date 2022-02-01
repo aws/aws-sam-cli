@@ -775,7 +775,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "starttime",
                 "endtime",
                 (),
-                "text",
+                None,
                 "myregion",
                 None,
             )
@@ -817,7 +817,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "starttime",
                 "endtime",
                 ("cw_log_group",),
-                "text",
+                None,
                 "myregion",
                 None,
             )
