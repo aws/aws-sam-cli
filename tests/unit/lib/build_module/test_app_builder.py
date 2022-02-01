@@ -11,6 +11,7 @@ from pathlib import Path, WindowsPath
 
 from parameterized import parameterized
 
+from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.lib.providers.provider import ResourcesToBuildCollector, Function
 from samcli.lib.build.app_builder import (
     ApplicationBuilder,
@@ -451,6 +452,19 @@ class TestApplicationBuilder_build(TestCase):
             builder.build()
         msg = "Function name property Architectures should be a list of length 1"
         self.assertEqual(str(ex.exception), msg)
+
+    @parameterized.expand([("python2.7",), ("ruby2.5",), ("nodejs10.x",), ("dotnetcore2.1",)])
+    def test_deprecated_runtimes(self, runtime):
+        with self.assertRaises(UnsupportedRuntimeException):
+            self.builder._build_function(
+                function_name="function_name",
+                codeuri="code_uri",
+                packagetype=ZIP,
+                runtime=runtime,
+                architecture="architecture",
+                handler="handler",
+                artifact_dir="artifact_dir",
+            )
 
 
 class PathValidator:

@@ -43,7 +43,7 @@ class TestSamConfigForAllCommands(TestCase):
         config_values = {
             "no_interactive": True,
             "location": "github.com",
-            "runtime": "nodejs10.x",
+            "runtime": "nodejs14.x",
             "dependency_manager": "maven",
             "output_dir": "myoutput",
             "name": "myname",
@@ -71,7 +71,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "github.com",
                 False,
                 ZIP,
-                "nodejs10.x",
+                "nodejs14.x",
                 None,
                 None,
                 "maven",

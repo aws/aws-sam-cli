@@ -301,7 +301,7 @@ class TestBuildGraph(TestCase):
     manifest_hash = "{MANIFEST_HASH}"
     packagetype = "{ZIP}"
     architecture = "{ARCHITECTURE_FIELD}"
-    functions = ["HelloWorldPython", "HelloWorldPython2"]
+    functions = ["HelloWorldPython", "HelloWorld2Python"]
     [function_build_definitions.{UUID}.metadata]
     Test = "{METADATA['Test']}"
     Test2 = "{METADATA['Test2']}"

@@ -251,14 +251,12 @@ class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
         "prop",
     ),
     [
-        ("template.yaml", "Function", True, "python2.7", "Python", False, False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.6", "Python", False, False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.7", "Python", False, False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.8", "Python", False, False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.9", "Python", False, False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.7", "PythonPEP600", False, False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.8", "PythonPEP600", False, False, "CodeUri"),
-        ("template.yaml", "Function", True, "python2.7", "Python", "use_container", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.6", "Python", "use_container", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.7", "Python", "use_container", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.8", "Python", "use_container", False, "CodeUri"),
@@ -277,7 +275,7 @@ class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
 )
 class TestBuildCommand_PythonFunctions(BuildIntegPythonBase):
     overrides = True
-    runtime = "python2.7"
+    runtime = "python3.9"
     codeuri = "Python"
     use_container = False
     check_function_only = False
@@ -303,14 +301,12 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
 
     @parameterized.expand(
         [
-            ("python2.7", "Python", False, "x86_64"),
             ("python3.6", "Python", False, "x86_64"),
             ("python3.7", "Python", False, "x86_64"),
             ("python3.8", "Python", False, "x86_64"),
             # numpy 1.20.3 (in PythonPEP600/requirements.txt) only support python 3.7+
             ("python3.7", "PythonPEP600", False, "x86_64"),
             ("python3.8", "PythonPEP600", False, "x86_64"),
-            ("python2.7", "Python", "use_container", "x86_64"),
             ("python3.6", "Python", "use_container", "x86_64"),
             ("python3.7", "Python", "use_container", "x86_64"),
             ("python3.8", "Python", "use_container", "x86_64"),
@@ -351,10 +347,8 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
 class TestBuildCommand_NodeFunctions(BuildIntegNodeBase):
     @parameterized.expand(
         [
-            ("nodejs10.x", False),
             ("nodejs12.x", False),
             ("nodejs14.x", False),
-            ("nodejs10.x", "use_container"),
             ("nodejs12.x", "use_container"),
             ("nodejs14.x", "use_container"),
         ]
@@ -371,10 +365,8 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
 
     @parameterized.expand(
         [
-            ("nodejs10.x", False, "x86_64"),
             ("nodejs12.x", False, "x86_64"),
             ("nodejs14.x", False, "x86_64"),
-            ("nodejs10.x", "use_container", "x86_64"),
             ("nodejs12.x", "use_container", "x86_64"),
             ("nodejs14.x", "use_container", "x86_64"),
             ("nodejs12.x", False, "arm64"),
