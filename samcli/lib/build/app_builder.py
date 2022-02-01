@@ -57,6 +57,8 @@ from .workflow_config import get_workflow_config, get_layer_subfolder, supports_
 
 LOG = logging.getLogger(__name__)
 
+BUILD_PROPERTIES = "BuildProperties"
+
 
 class ApplicationBuildResult(NamedTuple):
     """
@@ -607,7 +609,9 @@ class ApplicationBuilder:
             with osutils.mkdir_temp() as scratch_dir:
                 manifest_path = self._manifest_path_override or os.path.join(code_dir, config.manifest_name)
 
-                options = ApplicationBuilder._get_build_options(function_name, config.language, handler)
+                options = ApplicationBuilder._get_build_options(
+                    function_name, config.language, handler, config.dependency_manager, metadata
+                )
                 # By default prefer to build in-process for speed
                 if self._container_manager:
                     # None represents the global build image for all functions/layers
@@ -645,7 +649,13 @@ class ApplicationBuilder:
         return  # type: ignore
 
     @staticmethod
-    def _get_build_options(function_name: str, language: str, handler: Optional[str]) -> Optional[Dict]:
+    def _get_build_options(
+        function_name: str,
+        language: str,
+        handler: Optional[str],
+        dependency_manager: Optional[str] = None,
+        metadata: Optional[dict] = None,
+    ) -> Optional[Dict]:
         """
         Parameters
         ----------
@@ -655,11 +665,19 @@ class ApplicationBuilder:
             language of the runtime
         handler str
             Handler value of the Lambda Function Resource
+        dependency_manager str
+            Dependency manager to check in addition to language
+        metadata
+            Metadata object to search for build properties
         Returns
         -------
         dict
             Dictionary that represents the options to pass to the builder workflow or None if options are not needed
         """
+
+        if dependency_manager and dependency_manager == "npm-esbuild":
+            if metadata and metadata.get(BUILD_PROPERTIES, {}):
+                return metadata.get(BUILD_PROPERTIES)
 
         _build_options: Dict = {
             "go": {"artifact_executable_name": handler},
