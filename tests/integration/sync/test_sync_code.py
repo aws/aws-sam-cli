@@ -35,34 +35,30 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
 
 LOG = logging.getLogger(__name__)
 
-TEMP_DIR = ""
-STACK_NAME = ""
-TEMPLATE_PATH = ""
-
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
 class TestSyncCode(SyncIntegBase):
+    temp_dir = ""
+    stack_name = ""
+    template_path = ""
     @pytest.fixture(autouse=True, scope="class")
     def sync_code_base(self):
-        global TEMP_DIR
-        global STACK_NAME
-        global TEMPLATE_PATH
         with tempfile.TemporaryDirectory() as temp:
-            TEMP_DIR = Path(temp).joinpath("code")
-            shutil.copytree(self.test_data_path.joinpath("code").joinpath("before"), TEMP_DIR)
+            TestSyncCode.temp_dir = Path(temp).joinpath("code")
+            shutil.copytree(self.test_data_path.joinpath("code").joinpath("before"), TestSyncCode.temp_dir)
 
             template = "template-python.yaml"
-            TEMPLATE_PATH = TEMP_DIR.joinpath(template)
-            STACK_NAME = self._method_to_stack_name(self.id())
+            TestSyncCode.template_path = TestSyncCode.temp_dir.joinpath(template)
+            TestSyncCode.stack_name = self._method_to_stack_name(self.id())
 
             # Run infra sync
             sync_command_list = self.get_sync_command_list(
-                template_file=TEMPLATE_PATH,
+                template_file=TestSyncCode.template_path,
                 code=False,
                 watch=False,
-                base_dir=TEMP_DIR,
+                base_dir=TestSyncCode.temp_dir,
                 dependency_layer=True,
-                stack_name=STACK_NAME,
+                stack_name=TestSyncCode.stack_name,
                 parameter_overrides="Parameter=Clarity",
                 image_repository=self.ecr_repo_name,
                 s3_prefix=uuid.uuid4().hex,
@@ -79,23 +75,23 @@ class TestSyncCode(SyncIntegBase):
             shutil.rmtree(os.path.join(os.getcwd(), ".aws-sam", "build"), ignore_errors=True)
             cfn_client = boto3.client("cloudformation")
             ecr_client = boto3.client("ecr")
-            self._delete_companion_stack(cfn_client, ecr_client, self._stack_name_to_companion_stack(STACK_NAME))
-            cfn_client.delete_stack(StackName=STACK_NAME)
+            self._delete_companion_stack(cfn_client, ecr_client, self._stack_name_to_companion_stack(TestSyncCode.stack_name))
+            cfn_client.delete_stack(StackName=TestSyncCode.stack_name)
 
     def test_sync_code_function(self):
-        shutil.rmtree(TEMP_DIR.joinpath("function"), ignore_errors=True)
+        shutil.rmtree(TestSyncCode.temp_dir.joinpath("function"), ignore_errors=True)
         shutil.copytree(
             self.test_data_path.joinpath("code").joinpath("after").joinpath("function"),
-            TEMP_DIR.joinpath("function"),
+            TestSyncCode.temp_dir.joinpath("function"),
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(
-            template_file=TEMPLATE_PATH,
+            template_file=TestSyncCode.template_path,
             code=True,
             watch=False,
             resource="AWS::Serverless::Function",
             dependency_layer=True,
-            stack_name=STACK_NAME,
+            stack_name=TestSyncCode.stack_name,
             parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
@@ -106,7 +102,7 @@ class TestSyncCode(SyncIntegBase):
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
         # CFN Api call here to collect all the stack resources
-        self.stack_resources = self._get_stacks(STACK_NAME)
+        self.stack_resources = self._get_stacks(TestSyncCode.stack_name)
         # Lambda Api call here, which tests both the python function and the layer
         lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
         for lambda_function in lambda_functions:
@@ -115,18 +111,18 @@ class TestSyncCode(SyncIntegBase):
             self.assertEqual(lambda_response.get("message"), "8")
 
     def test_sync_code_layer(self):
-        shutil.rmtree(TEMP_DIR.joinpath("layer"), ignore_errors=True)
+        shutil.rmtree(TestSyncCode.temp_dir.joinpath("layer"), ignore_errors=True)
         shutil.copytree(
-            self.test_data_path.joinpath("code").joinpath("after").joinpath("layer"), TEMP_DIR.joinpath("layer")
+            self.test_data_path.joinpath("code").joinpath("after").joinpath("layer"), TestSyncCode.temp_dir.joinpath("layer")
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(
-            template_file=TEMPLATE_PATH,
+            template_file=TestSyncCode.template_path,
             code=True,
             watch=False,
             resource="AWS::Serverless::LayerVersion",
             dependency_layer=True,
-            stack_name=STACK_NAME,
+            stack_name=TestSyncCode.stack_name,
             parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
@@ -137,7 +133,7 @@ class TestSyncCode(SyncIntegBase):
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
         # CFN Api call here to collect all the stack resources
-        self.stack_resources = self._get_stacks(STACK_NAME)
+        self.stack_resources = self._get_stacks(TestSyncCode.stack_name)
         # Lambda Api call here, which tests both the python function and the layer
         lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
         time.sleep(LAMBDA_SLEEP)
@@ -147,19 +143,19 @@ class TestSyncCode(SyncIntegBase):
             self.assertEqual(lambda_response.get("message"), "9")
 
     def test_sync_code_rest_api(self):
-        shutil.rmtree(TEMP_DIR.joinpath("apigateway"), ignore_errors=True)
+        shutil.rmtree(TestSyncCode.temp_dir.joinpath("apigateway"), ignore_errors=True)
         shutil.copytree(
             self.test_data_path.joinpath("code").joinpath("after").joinpath("apigateway"),
-            TEMP_DIR.joinpath("apigateway"),
+            TestSyncCode.temp_dir.joinpath("apigateway"),
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(
-            template_file=TEMPLATE_PATH,
+            template_file=TestSyncCode.template_path,
             code=True,
             watch=False,
-            base_dir=TEMP_DIR,
+            base_dir=TestSyncCode.temp_dir,
             resource="AWS::Serverless::Api",
-            stack_name=STACK_NAME,
+            stack_name=TestSyncCode.stack_name,
             parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
@@ -171,25 +167,25 @@ class TestSyncCode(SyncIntegBase):
 
         time.sleep(API_SLEEP)
         # CFN Api call here to collect all the stack resources
-        self.stack_resources = self._get_stacks(STACK_NAME)
+        self.stack_resources = self._get_stacks(TestSyncCode.stack_name)
         # ApiGateway Api call here, which tests the RestApi
         rest_api = self.stack_resources.get(AWS_APIGATEWAY_RESTAPI)[0]
         self.assertEqual(self._get_api_message(rest_api), '{"message": "hello!!!"}')
 
     def test_sync_code_state_machine(self):
-        shutil.rmtree(TEMP_DIR.joinpath("statemachine"), ignore_errors=True)
+        shutil.rmtree(TestSyncCode.temp_dir.joinpath("statemachine"), ignore_errors=True)
         shutil.copytree(
             self.test_data_path.joinpath("code").joinpath("after").joinpath("statemachine"),
-            TEMP_DIR.joinpath("statemachine"),
+            TestSyncCode.temp_dir.joinpath("statemachine"),
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(
-            template_file=TEMPLATE_PATH,
+            template_file=TestSyncCode.template_path,
             code=True,
             watch=False,
-            base_dir=TEMP_DIR,
+            base_dir=TestSyncCode.temp_dir,
             resource="AWS::Serverless::StateMachine",
-            stack_name=STACK_NAME,
+            stack_name=TestSyncCode.stack_name,
             parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
@@ -200,7 +196,7 @@ class TestSyncCode(SyncIntegBase):
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
         # CFN Api call here to collect all the stack resources
-        self.stack_resources = self._get_stacks(STACK_NAME)
+        self.stack_resources = self._get_stacks(TestSyncCode.stack_name)
         # SFN Api call here, which tests the StateMachine
         time.sleep(SFN_SLEEP)
         state_machine = self.stack_resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]

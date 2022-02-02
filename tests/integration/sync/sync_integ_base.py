@@ -17,6 +17,8 @@ from tests.integration.package.package_integ_base import PackageIntegBase
 
 CFN_SLEEP = 3
 CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
+RETRY_ATTEMPTS =20
+RETRY_WAIT = 1
 
 LOG = logging.getLogger(__name__)
 
@@ -74,20 +76,16 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
                     physical_ids[resource.get("ResourceType")] = []
                 physical_ids[resource_type].append(resource.get("PhysicalResourceId"))
             return physical_ids
-        except ClientError:
-            pass
-        return None
+        except Exception:
+            raise
 
     def _get_lambda_response(self, lambda_function):
         try:
             lambda_response = self.lambda_client.invoke(FunctionName=lambda_function, InvocationType="RequestResponse")
             payload = json.loads(lambda_response.get("Payload").read().decode("utf-8"))
             return payload.get("body")
-        except ClientError as ce:
-            LOG.error(ce)
-        except Exception as e:
-            LOG.error(e)
-        return ""
+        except Exception:
+            raise
 
     def _get_api_message(self, rest_api):
         try:
@@ -97,33 +95,29 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
                     resource_id = item.get("id")
                     break
             self.api_client.flush_stage_cache(restApiId=rest_api, stageName="prod")
-        except ClientError as ce:
-            LOG.error(ce)
-        except Exception as e:
-            LOG.error(e)
+        except Exception:
+            raise
 
         # RestApi deployment needs a wait time before being responsive
         count = 0
-        while count < 20:
+        while count < RETRY_ATTEMPTS:
             try:
-                time.sleep(1)
+                time.sleep(RETRY_WAIT)
                 api_response = self.api_client.test_invoke_method(
                     restApiId=rest_api, resourceId=resource_id, httpMethod="GET"
                 )
                 return api_response.get("body")
             except ClientError as ce:
-                if count == 20:
-                    LOG.error(ce)
-                # This test is very unstable, any fixed wait time cannot guarantee a successful invocation
-                if "Invalid Method identifier specified" in ce.response.get("Error", {}).get("Message", ""):
-                    if count == 20:
+                if count == RETRY_ATTEMPTS:
+                    # This test is unstable, a fixed wait time cannot guarantee a successful invocation
+                    if "Invalid Method identifier specified" in ce.response.get("Error", {}).get("Message", ""):
                         LOG.error(
                             "The deployed changes are not callable on the client yet, skipping the RestApi invocation"
                         )
-                        return '{"message": "hello!!"}'
-            except Exception as e:
-                if count == 20:
-                    LOG.error(e)
+                    raise
+            except Exception:
+                if count == RETRY_ATTEMPTS:
+                    raise
             count += 1
         return ""
 
@@ -134,16 +128,14 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
             sfn_execution = self.sfn_client.start_execution(stateMachineArn=state_machine, name=name)
             execution_arn = sfn_execution.get("executionArn")
             count = 0
-            while count < 20:
-                time.sleep(1)
+            while count < RETRY_ATTEMPTS:
+                time.sleep(RETRY_WAIT)
                 execution_detail = self.sfn_client.describe_execution(executionArn=execution_arn)
                 if execution_detail.get("status") == "SUCCEEDED":
                     return execution_detail.get("output")
                 count += 1
-        except ClientError as ce:
-            LOG.error(ce)
-        except Exception as e:
-            LOG.error(e)
+        except Exception:
+            raise
         return ""
 
     def base_command(self):
