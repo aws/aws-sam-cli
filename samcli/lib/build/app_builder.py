@@ -676,8 +676,8 @@ class ApplicationBuilder:
         """
 
         if dependency_manager and dependency_manager == "npm-esbuild":
-            if metadata and metadata.get(BUILD_PROPERTIES, {}):
-                return metadata.get(BUILD_PROPERTIES)
+            if metadata and metadata.get(BUILD_PROPERTIES):
+                return ResourceMetadataNormalizer.normalize_build_properties(metadata.get(BUILD_PROPERTIES))
 
         _build_options: Dict = {
             "go": {"artifact_executable_name": handler},
