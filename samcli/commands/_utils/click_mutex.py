@@ -80,7 +80,7 @@ class ClickMutex(click.Option):
 
                 msg += self.required_params_hint
                 raise click.UsageError(msg)
-            self.prompt = None
+            self.prompt = ""
 
         return super().handle_parse_result(ctx, opts, args)
 
