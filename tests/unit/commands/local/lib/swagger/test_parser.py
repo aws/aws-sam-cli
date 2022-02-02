@@ -141,6 +141,39 @@ class TestSwaggerParser_get_apis(TestCase):
 
         self.assertEqual(expected, result)
 
+    def test_payload_format_version_for_none(self):
+        function_name = "myfunction"
+        swagger = {
+            "paths": {
+                "/path1": {"get": {}},
+                "/path2": {"get": {}},
+            }
+        }
+
+        parser = SwaggerParser(self.stack_path, swagger)
+        parser._get_integration_function_name = Mock()
+        parser._get_integration_function_name.return_value = function_name
+
+        expected = [
+            Route(
+                path="/path1",
+                methods=["get"],
+                function_name=function_name,
+                payload_format_version="None",
+                stack_path=self.stack_path,
+            ),
+            Route(
+                path="/path2",
+                methods=["get"],
+                function_name=function_name,
+                payload_format_version="None",
+                stack_path=self.stack_path,
+            ),
+        ]
+        result = parser.get_routes()
+
+        self.assertEqual(expected, result)
+
     @parameterized.expand(
         [
             param("empty swagger", {}),
