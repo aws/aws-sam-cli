@@ -28,9 +28,9 @@ class ClickMutex(click.Option):
     """
 
     def __init__(self, *args, **kwargs):
-        self.required_param_lists: List = kwargs.pop("required_param_lists", [])
+        self.required_param_lists: List[List[str]] = kwargs.pop("required_param_lists", [])
         self.required_params_hint: str = kwargs.pop("required_params_hint", "")
-        self.incompatible_params: List = kwargs.pop("incompatible_params", [])
+        self.incompatible_params: List[str] = kwargs.pop("incompatible_params", [])
         self.incompatible_params_hint: str = kwargs.pop("incompatible_params_hint", "")
 
         super().__init__(*args, **kwargs)
