@@ -63,7 +63,8 @@ Common usage:
     $ sam init --location /path/to/template/folder
 """
 
-INCOMPATIBLE_PARAMS_HINT = """You can run 'sam init' without any options for an interactive initialization flow, or you can provide one of the following required parameter combinations:
+INCOMPATIBLE_PARAMS_HINT = """You can run 'sam init' without any options for an interactive initialization flow, \
+or you can provide one of the following required parameter combinations:
 \t--name, --location, or
 \t--name, --package-type, --base-image, or
 \t--name, --runtime, --app-template, --dependency-manager
