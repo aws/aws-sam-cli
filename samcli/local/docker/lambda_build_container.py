@@ -85,7 +85,11 @@ class LambdaBuildContainer(Container):
         additional_volumes = {
             # Manifest is mounted separately in order to support the case where manifest
             # is outside of source directory
-            manifest_dir: {"bind": container_dirs["manifest_dir"], "mode": "ro"}
+            manifest_dir: {"bind": container_dirs["manifest_dir"], "mode": "ro"},
+            # "/Users/mladan/ws/aws-lambda-builders/aws_lambda_builders": {
+            #     "bind": "/usr/local/opt/sam-cli/lib/python3.7/site-packages/aws_lambda_builders",
+            #     "mode": "ro",
+            # },
         }
 
         if log_level:

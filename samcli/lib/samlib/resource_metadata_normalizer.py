@@ -40,7 +40,6 @@ CDK_ASSET_PARAMETER_PATTERN = re.compile(
     "^AssetParameters[0-9a-fA-F]{64}(?:S3Bucket|S3VersionKey|ArtifactHash)[0-9a-fA-F]{8}$"
 )
 
-# Regex from https://stackoverflow.com/a/1176023
 BUILD_PROPERTIES_PASCAL_TO_SNAKE_CASE_PATTERN = re.compile(r"(?<!^)(?=[A-Z])")
 
 LOG = logging.getLogger(__name__)
