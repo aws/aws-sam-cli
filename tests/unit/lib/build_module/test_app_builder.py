@@ -1747,6 +1747,27 @@ class TestApplicationBuilder_get_build_options(TestCase):
         options = ApplicationBuilder._get_build_options("Function", "Node.js", "handler", "npm-esbuild", metadata)
         self.assertEqual(options, expected_properties)
 
+    def test_get_options_from_metadata_no_entry_points_defined(self):
+        build_properties = {"Minify": False, "Target": "es2017", "Sourcemap": False}
+        metadata = {"BuildMethod": "esbuild", "BuildProperties": build_properties}
+        expected_properties = {"minify": False, "target": "es2017", "sourcemap": False, "entry_points": ["handler"]}
+        options = ApplicationBuilder._get_build_options("Function", "Node.js", "handler", "npm-esbuild", metadata)
+        self.assertEqual(options, expected_properties)
+
+    def test_get_options_from_metadata_correctly_separates_source_and_handler(self):
+        build_properties = {"Minify": False, "Target": "es2017", "Sourcemap": False}
+        metadata = {"BuildMethod": "esbuild", "BuildProperties": build_properties}
+        expected_properties = {
+            "minify": False,
+            "target": "es2017",
+            "sourcemap": False,
+            "entry_points": ["src/handlers/post"],
+        }
+        options = ApplicationBuilder._get_build_options(
+            "Function", "Node.js", "src/handlers/post.handler", "npm-esbuild", metadata
+        )
+        self.assertEqual(options, expected_properties)
+
     @parameterized.expand([(None, None), ({}, None)])
     def test_invalid_metadata_cases(self, metadata, expected_output):
         options = ApplicationBuilder._get_build_options("Function", "Node.js", "handler", "npm-esbuild", metadata)

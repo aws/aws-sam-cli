@@ -675,9 +675,14 @@ class ApplicationBuilder:
             Dictionary that represents the options to pass to the builder workflow or None if options are not needed
         """
 
-        if dependency_manager and dependency_manager == "npm-esbuild":
-            if metadata and metadata.get(BUILD_PROPERTIES):
-                return ResourceMetadataNormalizer.normalize_build_properties(metadata.get(BUILD_PROPERTIES))
+        if metadata and dependency_manager and dependency_manager == "npm-esbuild":
+            build_props = metadata.get(BUILD_PROPERTIES, {})
+            # Esbuild takes an array of entry points from which to start bundling
+            # as a required argument. This corresponds to the lambda function handler.
+            if handler and not build_props.get("EntryPoints"):
+                entry_points = [handler.split(".")[0]]
+                build_props["entry_points"] = entry_points
+            return ResourceMetadataNormalizer.normalize_build_properties(build_props)
 
         _build_options: Dict = {
             "go": {"artifact_executable_name": handler},
