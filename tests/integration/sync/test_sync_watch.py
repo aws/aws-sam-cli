@@ -1,9 +1,11 @@
 from asyncio import subprocess
 import os
 import platform
+from queue import Queue
 import shutil
 from signal import CTRL_C_EVENT
 from subprocess import CREATE_NEW_CONSOLE, CREATE_NEW_PROCESS_GROUP, PIPE, Popen
+from threading import Thread
 import uuid
 
 import logging
@@ -37,13 +39,21 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
 
 LOG = logging.getLogger(__name__)
 
+LOG.handlers = []  # This is the key thing for the question!
+
+# Start defining and assigning your handlers here
+handler = logging.StreamHandler()
+handler.setLevel(logging.INFO)
+formatter = logging.Formatter("%(message)s")
+handler.setFormatter(formatter)
+LOG.addHandler(handler)
+
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
 class TestSyncWatch(BuildIntegBase, PackageIntegBase, SyncIntegBase):
     @classmethod
     def setUpClass(cls):
         PackageIntegBase.setUpClass()
-
         cls.test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "sync")
 
     def setUp(self):
@@ -52,13 +62,21 @@ class TestSyncWatch(BuildIntegBase, PackageIntegBase, SyncIntegBase):
         self.lambda_client = boto3.client("lambda")
         self.api_client = boto3.client("apigateway")
         self.sfn_client = boto3.client("stepfunctions")
-        self.sns_arn = os.environ.get("AWS_SNS")
         self.stacks = []
         self.s3_prefix = uuid.uuid4().hex
+        self.test_dir = Path(tempfile.mkdtemp())
+        # Remove temp dir so that shutil.copytree will not throw an error
+        # Needed for python 3.6 and 3.7 as these versions don't have dirs_exist_ok
+        shutil.rmtree(self.test_dir)
+        shutil.copytree(self.test_data_path, self.test_dir)
         super().setUp()
 
     def tearDown(self):
-        shutil.rmtree(os.path.join(os.getcwd(), ".aws-sam", "build"), ignore_errors=True)
+        self.watch_process.terminate()
+        # Close pipes
+        self.watch_process.communicate()
+        self.watch_process.wait()
+        shutil.rmtree(self.test_dir)
         for stack in self.stacks:
             # because of the termination protection, do not delete aws-sam-cli-managed-default stack
             stack_name = stack["name"]
@@ -75,13 +93,13 @@ class TestSyncWatch(BuildIntegBase, PackageIntegBase, SyncIntegBase):
     def test_sync_watch(self):
         runtime = "python"
         template_before = f"infra/template-{runtime}-before.yaml"
-        template_path = str(self.test_data_path.joinpath(template_before))
+        template_path = self.test_dir.joinpath(template_before)
         stack_name = self._method_to_stack_name(self.id())
         self.stacks.append({"name": stack_name})
 
         # Run infra sync
         sync_command_list = self.get_sync_command_list(
-            template_file=template_path,
+            template_file=str(template_path),
             code=False,
             watch=True,
             dependency_layer=True,
@@ -92,27 +110,65 @@ class TestSyncWatch(BuildIntegBase, PackageIntegBase, SyncIntegBase):
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        watch_process = Popen(
-            sync_command_list,
+        self.watch_process = self.get_watch_process(sync_command_list)
+        self.read_until(self.watch_process, "Enter Y to proceed with the command, or enter N to cancel:\n")
+
+        self.watch_process.stdin.write("y\n")
+
+        self.read_until(self.watch_process, "\x1b[32mInfra sync completed.\x1b[0m\n", timeout=300)
+
+        self.update_file(
+            self.test_dir.joinpath("infra/template-python-after.yaml"),
+            self.test_dir.joinpath("infra/template-python-before.yaml"),
+        )
+
+        self.read_until(self.watch_process, "\x1b[32mInfra sync completed.\x1b[0m\n", timeout=300)
+        time.sleep(2)
+
+        self.watch_process.terminate()
+        # self.read_until(watch_process, "abc\n")
+        self.watch_process.wait(timeout=5)
+
+    def get_watch_process(self, command_list):
+        return Popen(
+            command_list,
             stdout=PIPE,
             stderr=subprocess.STDOUT,
             stdin=PIPE,
             encoding="utf-8",
             bufsize=1,
+            cwd=self.test_dir,
         )
-        self.read_until(watch_process, "Enter Y to proceed with the command, or enter N to cancel:\n")
 
-        watch_process.stdin.write("y\n")
+    def update_file(self, source, destination):
+        with open(source, "rb") as source_file:
+            with open(destination, "wb") as destination_file:
+                destination_file.write(source_file.read())
 
-        self.read_until(watch_process, "\x1b[32mInfra sync completed.\x1b[0m\n")
-        time.sleep(2)
+    def read_until(self, process, expected_output, timeout=5):
+        result_queue = Queue()
 
-        watch_process.terminate()
-        # self.read_until(watch_process, "abc\n")
-        watch_process.wait(timeout=5)
+        def _read_output():
+            try:
+                for output in process.stdout:
+                    LOG.info(output.encode("utf-8"))
+                    if output == expected_output:
+                        result_queue.put(True)
+                        return
+            except Exception as ex:
+                result_queue.put(ex)
 
-    def read_until(self, process, expected_output):
-        for output in process.stdout:
-            LOG.info(output.encode("utf-8"))
-            if output == expected_output:
-                return
+        reading_thread = Thread(target=_read_output, daemon=True)
+        reading_thread.start()
+        reading_thread.join(timeout=timeout)
+        if reading_thread.isAlive():
+            expected_output_bytes = expected_output.encode("utf-8")
+            raise TimeoutError(
+                f"Did not get expected output after {timeout} seconds. Expected output: {expected_output_bytes}"
+            )
+        if result_queue.qsize() > 0:
+            result = result_queue.get()
+            if isinstance(result, Exception):
+                raise result
+        else:
+            raise ValueError()
