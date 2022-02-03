@@ -41,6 +41,7 @@ class TestSyncCode(SyncIntegBase):
     temp_dir = ""
     stack_name = ""
     template_path = ""
+
     @pytest.fixture(autouse=True, scope="class")
     def sync_code_base(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -75,7 +76,9 @@ class TestSyncCode(SyncIntegBase):
             shutil.rmtree(os.path.join(os.getcwd(), ".aws-sam", "build"), ignore_errors=True)
             cfn_client = boto3.client("cloudformation")
             ecr_client = boto3.client("ecr")
-            self._delete_companion_stack(cfn_client, ecr_client, self._stack_name_to_companion_stack(TestSyncCode.stack_name))
+            self._delete_companion_stack(
+                cfn_client, ecr_client, self._stack_name_to_companion_stack(TestSyncCode.stack_name)
+            )
             cfn_client.delete_stack(StackName=TestSyncCode.stack_name)
 
     def test_sync_code_function(self):
@@ -113,7 +116,8 @@ class TestSyncCode(SyncIntegBase):
     def test_sync_code_layer(self):
         shutil.rmtree(TestSyncCode.temp_dir.joinpath("layer"), ignore_errors=True)
         shutil.copytree(
-            self.test_data_path.joinpath("code").joinpath("after").joinpath("layer"), TestSyncCode.temp_dir.joinpath("layer")
+            self.test_data_path.joinpath("code").joinpath("after").joinpath("layer"),
+            TestSyncCode.temp_dir.joinpath("layer"),
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(

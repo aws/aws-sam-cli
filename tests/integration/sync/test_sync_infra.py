@@ -107,6 +107,7 @@ class TestSyncInfra(SyncIntegBase):
         sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
         self.assertEqual(sync_process_execute.process.returncode, 0)
         self.assertIn("Stack update succeeded. Sync infra completed.", str(sync_process_execute.stderr))
+        self.assertNotIn("Commands you can use next", str(sync_process_execute.stderr))
 
         # CFN Api call here to collect all the stack resources
         self.stack_resources = self._get_stacks(stack_name)

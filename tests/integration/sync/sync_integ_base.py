@@ -17,7 +17,7 @@ from tests.integration.package.package_integ_base import PackageIntegBase
 
 CFN_SLEEP = 3
 CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
-RETRY_ATTEMPTS =20
+RETRY_ATTEMPTS = 20
 RETRY_WAIT = 1
 
 LOG = logging.getLogger(__name__)

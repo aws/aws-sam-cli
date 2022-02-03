@@ -166,6 +166,7 @@ class TestDoCli(TestCase):
             signing_profiles=None,
             disable_rollback=False,
         )
+        build_context_mock.run.assert_called_once_with(sync=True)
         package_context_mock.run.assert_called_once_with()
         deploy_context_mock.run.assert_called_once_with()
         execute_code_sync_mock.assert_not_called()
