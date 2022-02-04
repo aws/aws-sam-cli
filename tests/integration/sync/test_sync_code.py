@@ -140,7 +140,6 @@ class TestSyncCode(SyncIntegBase):
         self.stack_resources = self._get_stacks(TestSyncCode.stack_name)
         # Lambda Api call here, which tests both the python function and the layer
         lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
-        time.sleep(LAMBDA_SLEEP)
         for lambda_function in lambda_functions:
             lambda_response = json.loads(self._get_lambda_response(lambda_function))
             self.assertIn("extra_message", lambda_response)

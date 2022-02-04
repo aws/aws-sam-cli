@@ -38,12 +38,11 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
         self.sfn_client = boto3.client("stepfunctions")
         self.sns_arn = os.environ.get("AWS_SNS")
         self.stacks = []
-        time.sleep(CFN_SLEEP)
         self.s3_prefix = uuid.uuid4().hex
         super().setUp()
 
     def tearDown(self):
-        shutil.rmtree(os.path.join(os.getcwd(), ".aws-sam", "build"), ignore_errors=True)
+        shutil.rmtree(os.path.join(os.getcwd(), ".aws-sam"), ignore_errors=True)
         for stack in self.stacks:
             # because of the termination protection, do not delete aws-sam-cli-managed-default stack
             stack_name = stack["name"]
@@ -77,9 +76,20 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
         return physical_ids
 
     def _get_lambda_response(self, lambda_function):
-        lambda_response = self.lambda_client.invoke(FunctionName=lambda_function, InvocationType="RequestResponse")
-        payload = json.loads(lambda_response.get("Payload").read().decode("utf-8"))
-        return payload.get("body")
+        count = 0
+        while count < RETRY_ATTEMPTS:
+            try:
+                time.sleep(RETRY_WAIT)
+                lambda_response = self.lambda_client.invoke(
+                    FunctionName=lambda_function, InvocationType="RequestResponse"
+                )
+                payload = json.loads(lambda_response.get("Payload").read().decode("utf-8"))
+                return payload.get("body")
+            except Exception:
+                if count == RETRY_ATTEMPTS:
+                    raise
+            count += 1
+        return ""
 
     def _get_api_message(self, rest_api):
         api_resource = self.api_client.get_resources(restApiId=rest_api)
