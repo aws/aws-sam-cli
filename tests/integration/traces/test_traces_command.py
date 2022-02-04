@@ -3,8 +3,6 @@ from pathlib import Path
 from unittest import skipIf
 
 import boto3
-from tests.integration.deploy.deploy_integ_base import DeployIntegBase
-from tests.integration.package.package_integ_base import PackageIntegBase
 from tests.integration.traces.traces_integ_base import TracesIntegBase, RETRY_COUNT
 from tests.testing_utils import run_command, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 from datetime import datetime
@@ -18,7 +16,6 @@ SKIP_TRACES_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_
 
 @skipIf(SKIP_TRACES_TESTS, "Skip traces tests in CI/CD only")
 class TestTracesCommand(TracesIntegBase):
-
     @classmethod
     def setUpClass(cls):
         cls.lambda_client = boto3.client("lambda")
@@ -27,12 +24,11 @@ class TestTracesCommand(TracesIntegBase):
 
         cls.test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "traces")
 
-        package = PackageIntegBase()
-        cls.stack_name = package._method_to_stack_name("test.integration.test_traces_command")
+        cls.stack_name = cls._method_to_stack_name("test.integration.test_traces_command")
 
         LOG.info("Deploying stack %s", cls.stack_name)
-        deploy = DeployIntegBase()
-        deploy_cmd = deploy.get_deploy_command_list(
+
+        deploy_cmd = cls.get_basic_deploy_command_list(
             stack_name=cls.stack_name,
             template_file=cls.test_data_path.joinpath("python-apigw-sfn", "template.yaml"),
             resolve_s3=True,
@@ -40,9 +36,10 @@ class TestTracesCommand(TracesIntegBase):
         )
         deploy_result = run_command(deploy_cmd)
 
-        cls.stack_resources = cls.cfn_client.describe_stack_resources(
-            StackName=cls.stack_name
-        ).get(
+        if deploy_result.process.returncode != 0:
+            LOG.error(f"Deployment of the test stack is failed with {deploy_result.stderr}")
+
+        cls.stack_resources = cls.cfn_client.describe_stack_resources(StackName=cls.stack_name).get(
             "StackResources", []
         )
 
@@ -187,7 +184,7 @@ class TestTracesCommand(TracesIntegBase):
     def _check_xray_event_with_output_json(self, trace_strings, console_output):
         # It's hard to verify the entire json output, just verify if some keywords exist and verify if expected
         # trace strings exist in the console output as well
-        if "content-type\": \"application/json" not in console_output:
+        if 'content-type": "application/json' not in console_output:
             return False
         return self._check_trace_string_exist(trace_strings, console_output)
 

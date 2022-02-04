@@ -6,10 +6,12 @@ from typing import Optional, List
 from unittest import TestCase
 
 RETRY_COUNT = 20
+CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
+
 
 class TracesIntegBase(TestCase):
-
-    def base_command(self):
+    @staticmethod
+    def base_command():
         command = "sam"
         if os.getenv("SAM_CLI_DEV"):
             command = "samdev"
@@ -37,13 +39,13 @@ class TracesIntegBase(TestCase):
         return self.read_threading
 
     def get_traces_command_list(
-            self,
-            trace_id: Optional[str] = None,
-            start_time: Optional[str] = None,
-            end_time: Optional[str] = None,
-            tail: bool = False,
-            unformatted: bool = False, #TODO: we have task to update this parameter, need to update here
-            beta_features: bool = False,
+        self,
+        trace_id: Optional[str] = None,
+        start_time: Optional[str] = None,
+        end_time: Optional[str] = None,
+        tail: bool = False,
+        unformatted: bool = False,  # TODO: we have task to update this parameter, need to update here
+        beta_features: bool = False,
     ):
         command_list = [self.base_command(), "traces"]
 
@@ -61,3 +63,30 @@ class TracesIntegBase(TestCase):
             command_list += ["--beta-features"]
 
         return command_list
+
+    @staticmethod
+    def get_basic_deploy_command_list(
+        stack_name=None,
+        template_file=None,
+        capabilities=None,
+        resolve_s3=False,
+    ):
+
+        command_list = [TracesIntegBase.base_command(), "deploy"]
+
+        if stack_name:
+            command_list = command_list + ["--stack-name", str(stack_name)]
+        if template_file:
+            command_list = command_list + ["--template-file", str(template_file)]
+        if capabilities:
+            command_list = command_list + ["--capabilities", str(capabilities)]
+        if resolve_s3:
+            command_list = command_list + ["--resolve-s3"]
+
+        return command_list
+
+    @staticmethod
+    def _method_to_stack_name(method_name):
+        """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
+        method_name = method_name.split(".")[-1]
+        return f"{method_name.replace('_', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"
