@@ -4,6 +4,7 @@ from unittest.mock import patch, call, Mock
 from parameterized import parameterized
 
 from samcli.commands.traces.command import do_cli
+from samcli.lib.observability.util import OutputOption
 
 
 class TestTracesCommand(TestCase):
@@ -12,12 +13,12 @@ class TestTracesCommand(TestCase):
 
     @parameterized.expand(
         [
-            (None, None, None, False, None),
-            (["trace_id1", "trace_id2"], None, None, False, None),
-            (None, "start_time", None, False, None),
-            (None, "start_time", "end_time", False, None),
-            (None, None, None, True, None),
-            (None, None, None, True, "output_dir"),
+            (None, None, None, False, "text"),
+            (["trace_id1", "trace_id2"], None, None, False, "text"),
+            (None, "start_time", None, False, "text"),
+            (None, "start_time", "end_time", False, "text"),
+            (None, None, None, True, "text"),
+            (None, None, None, True, "json"),
         ]
     )
     @patch("samcli.commands.logs.logs_context.parse_time")
@@ -30,7 +31,7 @@ class TestTracesCommand(TestCase):
         start_time,
         end_time,
         tail,
-        output_dir,
+        output,
         patched_generate_puller,
         patched_boto3,
         patched_get_boto_config_with_user_agent,
@@ -49,7 +50,7 @@ class TestTracesCommand(TestCase):
         given_puller = Mock()
         patched_generate_puller.return_value = given_puller
 
-        do_cli(trace_ids, start_time, end_time, tail, output_dir, self.region)
+        do_cli(trace_ids, start_time, end_time, tail, output, self.region)
 
         patched_parse_time.assert_has_calls(
             [
@@ -59,7 +60,7 @@ class TestTracesCommand(TestCase):
         )
         patched_get_boto_config_with_user_agent.assert_called_with(region_name=self.region)
         patched_boto3.assert_called_with("xray", config=given_boto_config)
-        patched_generate_puller.assert_called_with(given_xray_client, output_dir)
+        patched_generate_puller.assert_called_with(given_xray_client, OutputOption(output))
 
         if trace_ids:
             given_puller.load_events.assert_called_with(trace_ids)
