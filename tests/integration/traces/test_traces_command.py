@@ -1,8 +1,16 @@
+import itertools
 import time
 from pathlib import Path
 from unittest import skipIf
 
 import boto3
+<<<<<<< HEAD
+=======
+
+from samcli.lib.observability.util import OutputOption
+from tests.integration.deploy.deploy_integ_base import DeployIntegBase
+from tests.integration.package.package_integ_base import PackageIntegBase
+>>>>>>> 10e5d6c6b0c8122f79f2535cf3c3bb70e5e2b758
 from tests.integration.traces.traces_integ_base import TracesIntegBase, RETRY_COUNT
 from tests.testing_utils import run_command, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 from datetime import datetime
@@ -133,8 +141,10 @@ class TestTracesCommand(TracesIntegBase):
         while tail_read_thread.is_alive():
             time.sleep(1)
 
-    @parameterized.expand([("ApiGwFunction",), ("SfnFunction",)])
-    def test_traces_with_unformatted(self, function_name):
+    @parameterized.expand(
+        itertools.product(["ApiGwFunction", "SfnFunction"], [None, OutputOption.text.name, OutputOption.json.name])
+    )
+    def test_traces_with_output_option(self, function_name, output):
         function_id = self._get_physical_id(function_name)
         expected_trace_output = [function_id]
 
@@ -142,10 +152,11 @@ class TestTracesCommand(TracesIntegBase):
         lambda_invoke_result = self.lambda_client.invoke(FunctionName=function_id)
         LOG.info("Lambda invoke result %s", lambda_invoke_result)
 
-        cmd_list = self.get_traces_command_list(unformatted=True, beta_features=True)
-        self._check_traces(cmd_list, expected_trace_output, output="JSON")
+        cmd_list = self.get_traces_command_list(output=output, beta_features=True)
+        output_check = OutputOption.json if output == OutputOption.json.name else OutputOption.text
+        self._check_traces(cmd_list, expected_trace_output, output=output_check)
 
-    def _check_traces(self, cmd_list, trace_strings, output="TEXT", has_service_graph=True):
+    def _check_traces(self, cmd_list, trace_strings, output=OutputOption.text, has_service_graph=True):
         for _ in range(RETRY_COUNT):
             cmd_result = run_command(cmd_list)
             self.assertEqual(cmd_result.process.returncode, 0)
@@ -162,16 +173,16 @@ class TestTracesCommand(TracesIntegBase):
 
         self.fail(f"No match found for one of the expected trace outputs '{trace_strings}'")
 
-    def _check_traces_with_service_graph(self, trace_strings, console_output, output="TEXT"):
-        if output == "TEXT":
+    def _check_traces_with_service_graph(self, trace_strings, console_output, output=OutputOption.text):
+        if output == OutputOption.text:
             return self._check_service_graph_with_output_text(trace_strings, console_output)
-        if output == "JSON":
+        if output == OutputOption.json:
             return self._check_service_graph_with_output_json(trace_strings, console_output)
 
-    def _check_traces_with_xray_event(self, trace_strings, console_output, output="TEXT"):
-        if output == "TEXT":
+    def _check_traces_with_xray_event(self, trace_strings, console_output, output=OutputOption.text):
+        if output == OutputOption.text:
             return self._check_xray_event_with_output_text(trace_strings, console_output)
-        if output == "JSON":
+        if output == OutputOption.json:
             return self._check_xray_event_with_output_json(trace_strings, console_output)
 
     def _check_xray_event_with_output_text(self, trace_strings, console_output):

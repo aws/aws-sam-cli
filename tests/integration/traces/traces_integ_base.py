@@ -39,13 +39,13 @@ class TracesIntegBase(TestCase):
         return self.read_threading
 
     def get_traces_command_list(
-        self,
-        trace_id: Optional[str] = None,
-        start_time: Optional[str] = None,
-        end_time: Optional[str] = None,
-        tail: bool = False,
-        unformatted: bool = False,  # TODO: we have task to update this parameter, need to update here
-        beta_features: bool = False,
+            self,
+            trace_id: Optional[str] = None,
+            start_time: Optional[str] = None,
+            end_time: Optional[str] = None,
+            tail: bool = False,
+            output: Optional[str] = None,
+            beta_features: bool = False,
     ):
         command_list = [self.base_command(), "traces"]
 
@@ -55,8 +55,8 @@ class TracesIntegBase(TestCase):
             command_list += ["--start-time", start_time]
         if end_time:
             command_list += ["--end-time", end_time]
-        if unformatted:
-            command_list += ["--unformatted"]
+        if output:
+            command_list += ["--output", output]
         if tail:
             command_list += ["--tail"]
         if beta_features:

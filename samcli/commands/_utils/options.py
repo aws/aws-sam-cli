@@ -21,6 +21,7 @@ from samcli.cli.types import (
 )
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 from samcli.commands._utils.template import get_template_artifacts_format
+from samcli.lib.observability.util import OutputOption
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml|json]"
@@ -369,12 +370,14 @@ def common_observability_click_options():
             "become available. [Beta Feature] If in beta --tail without a --name will pull from all possible resources",
         ),
         click.option(
-            "--unformatted",
-            "-u",
-            is_flag=True,
-            help="[Beta Feature] "
-            "Print events without any text formatting in JSON. This option might be useful if you are reading "
-            "output into another tool.",
+            "--output",
+            help="""
+            [Beta Feature]
+            The formatting style of the command output. Following options are available:\n
+            TEXT: Prints information as regular text with some formatting (default option)\n
+            JSON: Prints each line as JSON without formatting
+            """,
+            type=click.Choice(OutputOption.__members__, case_sensitive=False),
         ),
     ]
 
