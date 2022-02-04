@@ -1,10 +1,12 @@
 from asyncio import subprocess
 import os
+import psutil
 import platform
 from queue import Queue
 import shutil
 from signal import CTRL_C_EVENT
-from subprocess import CREATE_NEW_CONSOLE, CREATE_NEW_PROCESS_GROUP, PIPE, Popen
+from socket import timeout
+from subprocess import CREATE_NEW_CONSOLE, CREATE_NEW_PROCESS_GROUP, PIPE, Popen, TimeoutExpired
 from threading import Thread
 import uuid
 
@@ -17,6 +19,7 @@ from unittest import skipIf
 
 import boto3
 from botocore.config import Config
+from botocore.exceptions import ClientError
 from parameterized import parameterized
 
 from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
@@ -29,7 +32,14 @@ from tests.integration.buildcmd.build_integ_base import BuildIntegBase
 from tests.integration.sync.sync_integ_base import SyncIntegBase
 from tests.integration.package.package_integ_base import PackageIntegBase
 
-from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
+from tests.testing_utils import (
+    RUNNING_ON_CI,
+    RUNNING_TEST_FOR_MASTER_ON_CI,
+    RUN_BY_CANARY,
+    kill_process,
+    read_until_string,
+    start_persistent_process,
+)
 from tests.testing_utils import run_command_with_input
 
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
@@ -72,10 +82,7 @@ class TestSyncWatch(BuildIntegBase, PackageIntegBase, SyncIntegBase):
         super().setUp()
 
     def tearDown(self):
-        self.watch_process.terminate()
-        # Close pipes
-        self.watch_process.communicate()
-        self.watch_process.wait()
+        kill_process(self.watch_process)
         shutil.rmtree(self.test_dir)
         for stack in self.stacks:
             # because of the termination protection, do not delete aws-sam-cli-managed-default stack
@@ -110,65 +117,117 @@ class TestSyncWatch(BuildIntegBase, PackageIntegBase, SyncIntegBase):
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        self.watch_process = self.get_watch_process(sync_command_list)
-        self.read_until(self.watch_process, "Enter Y to proceed with the command, or enter N to cancel:\n")
+        self.watch_process = start_persistent_process(sync_command_list, cwd=self.test_dir)
+        read_until_string(self.watch_process, "Enter Y to proceed with the command, or enter N to cancel:\n")
 
         self.watch_process.stdin.write("y\n")
 
-        self.read_until(self.watch_process, "\x1b[32mInfra sync completed.\x1b[0m\n", timeout=300)
+        read_until_string(self.watch_process, "\x1b[32mInfra sync completed.\x1b[0m\n", timeout=600)
+
+        # CFN Api call here to collect all the stack resources
+        self.stack_resources = self._get_stacks(stack_name)
+        # Lambda Api call here, which tests both the python function and the layer
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "7")
+        # ApiGateway Api call here, which tests the RestApi
+        rest_api = self.stack_resources.get(AWS_APIGATEWAY_RESTAPI)[0]
+        self.assertEqual(self._get_api_message(rest_api), '{"message": "hello!!"}')
+        # SFN Api call here, which tests the StateMachine
+        state_machine = self.stack_resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
+        self.assertEqual(self._get_sfn_response(state_machine), '"World has been updated!"')
 
         self.update_file(
             self.test_dir.joinpath("infra/template-python-after.yaml"),
             self.test_dir.joinpath("infra/template-python-before.yaml"),
         )
 
-        self.read_until(self.watch_process, "\x1b[32mInfra sync completed.\x1b[0m\n", timeout=300)
-        time.sleep(2)
+        read_until_string(self.watch_process, "\x1b[32mInfra sync completed.\x1b[0m\n", timeout=600)
 
-        self.watch_process.terminate()
-        # self.read_until(watch_process, "abc\n")
-        self.watch_process.wait(timeout=5)
-
-    def get_watch_process(self, command_list):
-        return Popen(
-            command_list,
-            stdout=PIPE,
-            stderr=subprocess.STDOUT,
-            stdin=PIPE,
-            encoding="utf-8",
-            bufsize=1,
-            cwd=self.test_dir,
-        )
+        # CFN Api call here to collect all the stack resources
+        self.stack_resources = self._get_stacks(stack_name)
+        # Lambda Api call here, which tests both the python function and the layer
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "9")
+        # ApiGateway Api call here, which tests the RestApi
+        rest_api = self.stack_resources.get(AWS_APIGATEWAY_RESTAPI)[0]
+        self.assertEqual(self._get_api_message(rest_api), '{"message": "hello!!!"}')
+        # SFN Api call here, which tests the StateMachine
+        state_machine = self.stack_resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
+        self.assertEqual(self._get_sfn_response(state_machine), '"World has been updated!!"')
 
     def update_file(self, source, destination):
         with open(source, "rb") as source_file:
             with open(destination, "wb") as destination_file:
                 destination_file.write(source_file.read())
 
-    def read_until(self, process, expected_output, timeout=5):
-        result_queue = Queue()
+    # TODO Refactor blocked.
+    # Remove these functions once code sync PR is merged.
+    def _get_stacks(self, stack_name):
+        physical_ids = {}
+        response = self.cfn_client.describe_stack_resources(StackName=stack_name).get("StackResources", {})
+        for resource in response:
+            resource_type = resource.get("ResourceType")
+            if resource_type == "AWS::CloudFormation::Stack":
+                nested_stack_physical_id = resource.get("PhysicalResourceId")
+                nested_stack_name = nested_stack_physical_id.split("/")[1]
+                nested_stack_physical_ids = self._get_stacks(nested_stack_name)
+                for nested_resource_type, nested_physical_ids in nested_stack_physical_ids.items():
+                    if nested_resource_type not in physical_ids:
+                        physical_ids[nested_resource_type] = []
+                    physical_ids[nested_resource_type] += nested_physical_ids
+                continue
+            if resource_type not in physical_ids:
+                physical_ids[resource.get("ResourceType")] = []
+            physical_ids[resource_type].append(resource.get("PhysicalResourceId"))
+        return physical_ids
 
-        def _read_output():
+    def _get_lambda_response(self, lambda_function):
+        lambda_response = self.lambda_client.invoke(FunctionName=lambda_function, InvocationType="RequestResponse")
+        payload = json.loads(lambda_response.get("Payload").read().decode("utf-8"))
+        return payload.get("body")
+
+    def _get_api_message(self, rest_api):
+        api_resource = self.api_client.get_resources(restApiId=rest_api)
+        for item in api_resource.get("items"):
+            if "GET" in item.get("resourceMethods", {}):
+                resource_id = item.get("id")
+                break
+        self.api_client.flush_stage_cache(restApiId=rest_api, stageName="prod")
+
+        # RestApi deployment needs a wait time before being responsive
+        count = 0
+        while count < 20:
             try:
-                for output in process.stdout:
-                    LOG.info(output.encode("utf-8"))
-                    if output == expected_output:
-                        result_queue.put(True)
-                        return
-            except Exception as ex:
-                result_queue.put(ex)
+                time.sleep(1)
+                api_response = self.api_client.test_invoke_method(
+                    restApiId=rest_api, resourceId=resource_id, httpMethod="GET"
+                )
+                return api_response.get("body")
+            except ClientError as ce:
+                if count == 20:
+                    LOG.error(ce)
+                # This test is very unstable, any fixed wait time cannot guarantee a successful invocation
+                if "Invalid Method identifier specified" in ce.response.get("Error", {}).get("Message", ""):
+                    if count == 20:
+                        raise ce
+            count += 1
+        return ""
 
-        reading_thread = Thread(target=_read_output, daemon=True)
-        reading_thread.start()
-        reading_thread.join(timeout=timeout)
-        if reading_thread.isAlive():
-            expected_output_bytes = expected_output.encode("utf-8")
-            raise TimeoutError(
-                f"Did not get expected output after {timeout} seconds. Expected output: {expected_output_bytes}"
-            )
-        if result_queue.qsize() > 0:
-            result = result_queue.get()
-            if isinstance(result, Exception):
-                raise result
-        else:
-            raise ValueError()
+    def _get_sfn_response(self, state_machine):
+        timestamp = str(int(time.time() * 1000))
+        name = f"sam_integ_test_{timestamp}"
+        sfn_execution = self.sfn_client.start_execution(stateMachineArn=state_machine, name=name)
+        execution_arn = sfn_execution.get("executionArn")
+        count = 0
+        while count < 20:
+            time.sleep(1)
+            execution_detail = self.sfn_client.describe_execution(executionArn=execution_arn)
+            if execution_detail.get("status") == "SUCCEEDED":
+                return execution_detail.get("output")
+            count += 1
