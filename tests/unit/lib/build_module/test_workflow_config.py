@@ -86,6 +86,15 @@ class Test_get_workflow_config(TestCase):
         else:
             self.assertIsNone(result.executable_search_paths)
 
+    def test_must_get_workflow_for_esbuild(self):
+        runtime = "nodejs12.x"
+        result = get_workflow_config(runtime, self.code_dir, self.project_dir, specified_workflow="esbuild")
+        self.assertEqual(result.language, "nodejs")
+        self.assertEqual(result.dependency_manager, "npm-esbuild")
+        self.assertEqual(result.application_framework, None)
+        self.assertEqual(result.manifest_name, "package.json")
+        self.assertIsNone(result.executable_search_paths)
+
     @parameterized.expand([("java8", "unknown.manifest")])
     @patch("samcli.lib.build.workflow_config.os")
     def test_must_fail_when_manifest_not_found(self, runtime, build_file, os_mock):
