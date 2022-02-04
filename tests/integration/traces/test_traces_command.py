@@ -4,13 +4,8 @@ from pathlib import Path
 from unittest import skipIf
 
 import boto3
-<<<<<<< HEAD
-=======
 
 from samcli.lib.observability.util import OutputOption
-from tests.integration.deploy.deploy_integ_base import DeployIntegBase
-from tests.integration.package.package_integ_base import PackageIntegBase
->>>>>>> 10e5d6c6b0c8122f79f2535cf3c3bb70e5e2b758
 from tests.integration.traces.traces_integ_base import TracesIntegBase, RETRY_COUNT
 from tests.testing_utils import run_command, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 from datetime import datetime
