@@ -70,6 +70,7 @@ class BuildContext:
         aws_region: Optional[str] = None,
         create_auto_dependency_layer: bool = False,
         stack_name: Optional[str] = None,
+        print_message: bool = True,
     ) -> None:
 
         self._resource_identifier = resource_identifier
@@ -99,6 +100,7 @@ class BuildContext:
         self._build_images = build_images
         self._create_auto_dependency_layer = create_auto_dependency_layer
         self._stack_name = stack_name
+        self._print_message = print_message
 
         self._function_provider: Optional[SamFunctionProvider] = None
         self._layer_provider: Optional[SamLayerProvider] = None
@@ -221,13 +223,14 @@ class BuildContext:
                 build_dir_in_success_message = self.build_dir
                 output_template_path_in_success_message = out_template_path
 
-            msg = self.gen_success_msg(
-                build_dir_in_success_message,
-                output_template_path_in_success_message,
-                os.path.abspath(self.build_dir) == os.path.abspath(DEFAULT_BUILD_DIR),
-            )
+            if self._print_message:
+                msg = self.gen_success_msg(
+                    build_dir_in_success_message,
+                    output_template_path_in_success_message,
+                    os.path.abspath(self.build_dir) == os.path.abspath(DEFAULT_BUILD_DIR),
+                )
 
-            click.secho(msg, fg="yellow")
+                click.secho(msg, fg="yellow")
 
         except (
             UnsupportedRuntimeException,

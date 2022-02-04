@@ -124,6 +124,7 @@ class TestDoCli(TestCase):
             cached=True,
             create_auto_dependency_layer=auto_dependency_layer,
             stack_name=self.stack_name,
+            print_message=False,
         )
 
         PackageContextMock.assert_called_with(
@@ -166,6 +167,7 @@ class TestDoCli(TestCase):
             signing_profiles=None,
             disable_rollback=False,
         )
+        build_context_mock.run.assert_called_once_with()
         package_context_mock.run.assert_called_once_with()
         deploy_context_mock.run.assert_called_once_with()
         execute_code_sync_mock.assert_not_called()
@@ -247,6 +249,7 @@ class TestDoCli(TestCase):
             cached=True,
             create_auto_dependency_layer=auto_dependency_layer,
             stack_name=self.stack_name,
+            print_message=False,
         )
 
         PackageContextMock.assert_called_with(
