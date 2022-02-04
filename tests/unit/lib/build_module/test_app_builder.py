@@ -1251,6 +1251,63 @@ class TestApplicationBuilder_build_function(TestCase):
             True,
         )
 
+    @patch("samcli.lib.build.app_builder.ApplicationBuilder._get_build_options")
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_must_build_in_process_with_metadata_and_metadata_as_options(
+        self, osutils_mock, get_workflow_config_mock, mock_build_options
+    ):
+        function_name = "function_name"
+        codeuri = "path/to/source"
+        runtime = "runtime"
+        packagetype = ZIP
+        architecture = ARM64
+        scratch_dir = "scratch"
+        handler = "handler.handle"
+        config_mock = get_workflow_config_mock.return_value = Mock()
+        config_mock.manifest_name = "manifest_name"
+        build_properties = {"Minify": False, "Target": "es2017", "SourceMap": False}
+        metadata = {"BuildMethod": "esbuild", "BuildProperties": build_properties}
+
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=scratch_dir)
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+
+        self.builder._build_function_in_process = Mock()
+        mock_build_options.return_value = build_properties
+
+        code_dir = str(Path("/base/dir/path/to/source").resolve())
+        artifacts_dir = str(Path("/build/dir/function_full_path"))
+        manifest_path = str(Path(os.path.join(code_dir, config_mock.manifest_name)).resolve())
+
+        self.builder._build_function(
+            function_name,
+            codeuri,
+            packagetype,
+            runtime,
+            architecture,
+            handler,
+            artifacts_dir,
+            metadata=metadata,
+        )
+
+        get_workflow_config_mock.assert_called_with(
+            runtime, code_dir, self.builder._base_dir, specified_workflow="esbuild"
+        )
+
+        self.builder._build_function_in_process.assert_called_with(
+            config_mock,
+            code_dir,
+            artifacts_dir,
+            scratch_dir,
+            manifest_path,
+            runtime,
+            architecture,
+            build_properties,
+            None,
+            True,
+            True,
+        )
+
     @patch("samcli.lib.build.app_builder.get_workflow_config")
     @patch("samcli.lib.build.app_builder.osutils")
     def test_must_build_in_container(self, osutils_mock, get_workflow_config_mock):
@@ -1680,3 +1737,38 @@ class TestApplicationBuilder_make_env_vars(TestCase):
         }
         result = ApplicationBuilder._make_env_vars(function1, file_env_vars, inline_env_vars)
         self.assertEqual(result, {"ENV_VAR1": "2", "ENV_VAR2": "3"})
+
+
+class TestApplicationBuilder_get_build_options(TestCase):
+    def test_get_options_from_metadata(self):
+        build_properties = {"Minify": False, "Target": "es2017", "Sourcemap": False, "EntryPoints": ["app.ts"]}
+        metadata = {"BuildMethod": "esbuild", "BuildProperties": build_properties}
+        expected_properties = {"minify": False, "target": "es2017", "sourcemap": False, "entry_points": ["app.ts"]}
+        options = ApplicationBuilder._get_build_options("Function", "Node.js", "handler", "npm-esbuild", metadata)
+        self.assertEqual(options, expected_properties)
+
+    def test_get_options_from_metadata_no_entry_points_defined(self):
+        build_properties = {"Minify": False, "Target": "es2017", "Sourcemap": False}
+        metadata = {"BuildMethod": "esbuild", "BuildProperties": build_properties}
+        expected_properties = {"minify": False, "target": "es2017", "sourcemap": False, "entry_points": ["handler"]}
+        options = ApplicationBuilder._get_build_options("Function", "Node.js", "handler", "npm-esbuild", metadata)
+        self.assertEqual(options, expected_properties)
+
+    def test_get_options_from_metadata_correctly_separates_source_and_handler(self):
+        build_properties = {"Minify": False, "Target": "es2017", "Sourcemap": False}
+        metadata = {"BuildMethod": "esbuild", "BuildProperties": build_properties}
+        expected_properties = {
+            "minify": False,
+            "target": "es2017",
+            "sourcemap": False,
+            "entry_points": ["src/handlers/post"],
+        }
+        options = ApplicationBuilder._get_build_options(
+            "Function", "Node.js", "src/handlers/post.handler", "npm-esbuild", metadata
+        )
+        self.assertEqual(options, expected_properties)
+
+    @parameterized.expand([(None, None), ({}, None)])
+    def test_invalid_metadata_cases(self, metadata, expected_output):
+        options = ApplicationBuilder._get_build_options("Function", "Node.js", "handler", "npm-esbuild", metadata)
+        self.assertEqual(options, expected_output)

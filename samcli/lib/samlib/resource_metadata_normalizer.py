@@ -6,6 +6,7 @@ import logging
 from pathlib import Path
 import json
 import re
+from typing import Dict
 
 from samcli.lib.iac.cdk.utils import is_cdk_project
 
@@ -38,6 +39,8 @@ SAM_METADATA_SKIP_BUILD_KEY = "SkipBuild"
 CDK_ASSET_PARAMETER_PATTERN = re.compile(
     "^AssetParameters[0-9a-fA-F]{64}(?:S3Bucket|S3VersionKey|ArtifactHash)[0-9a-fA-F]{8}$"
 )
+
+BUILD_PROPERTIES_PASCAL_TO_SNAKE_CASE_PATTERN = re.compile(r"(?<!^)(?=[A-Z])")
 
 LOG = logging.getLogger(__name__)
 
@@ -270,3 +273,18 @@ class ResourceMetadataNormalizer:
             cdk_resource_id = cdk_resource_id[: -len(CDK_NESTED_STACK_RESOURCE_ID_SUFFIX)]
 
         return cdk_resource_id
+
+    @staticmethod
+    def normalize_build_properties(build_props) -> Dict:
+        """
+        Convert PascalCase properties in the template to snake case to be consistent with
+        what Lambda Builders expects from its properties
+
+        :param build_props: Properties to be passed to Lambda Builders
+        :return: dict of normalized properties
+        """
+        normalized_props = {}
+        for key, val in build_props.items():
+            normalized_key = BUILD_PROPERTIES_PASCAL_TO_SNAKE_CASE_PATTERN.sub("_", key).lower()
+            normalized_props[normalized_key] = val
+        return normalized_props
