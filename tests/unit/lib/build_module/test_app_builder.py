@@ -137,6 +137,7 @@ class TestApplicationBuilder_build(TestCase):
                     ANY,
                     ANY,
                     True,
+                    ANY,
                 ),
                 call(
                     self.func2.name,
@@ -150,6 +151,7 @@ class TestApplicationBuilder_build(TestCase):
                     ANY,
                     ANY,
                     True,
+                    ANY,
                 ),
                 call(
                     self.imageFunc1.name,
@@ -163,6 +165,7 @@ class TestApplicationBuilder_build(TestCase):
                     ANY,
                     ANY,
                     True,
+                    ANY,
                 ),
             ],
             any_order=False,
@@ -198,7 +201,7 @@ class TestApplicationBuilder_build(TestCase):
     @patch("samcli.lib.build.build_graph.BuildGraph._write")
     def test_should_use_function_or_layer_get_build_dir_to_determine_artifact_dir(self, persist_mock):
         def get_func_call_with_artifact_dir(artifact_dir):
-            return call(ANY, ANY, ANY, ANY, ANY, ANY, artifact_dir, ANY, ANY, ANY, True)
+            return call(ANY, ANY, ANY, ANY, ANY, ANY, artifact_dir, ANY, ANY, ANY, True, ANY)
 
         def get_layer_call_with_artifact_dir(artifact_dir):
             return call(ANY, ANY, ANY, ANY, ANY, artifact_dir, ANY, ANY, True)
@@ -300,6 +303,7 @@ class TestApplicationBuilder_build(TestCase):
                     ANY,
                     ANY,
                     True,
+                    ANY,
                 ),
                 call(
                     function2.name,
@@ -313,6 +317,7 @@ class TestApplicationBuilder_build(TestCase):
                     ANY,
                     ANY,
                     True,
+                    ANY,
                 ),
             ],
             any_order=True,
@@ -1748,13 +1753,88 @@ class TestApplicationBuilder_get_build_options(TestCase):
         self.assertEqual(options, expected_properties)
 
     def test_get_options_from_metadata_no_entry_points_defined(self):
+        function_a = Function(
+            function_id="name",
+            name="name",
+            functionname="function_name",
+            runtime="runtime",
+            memory="memory",
+            timeout="timeout",
+            handler="app.handler",
+            imageuri="imageuri",
+            packagetype=ZIP,
+            imageconfig="imageconfig",
+            codeuri="codeuri",
+            environment="environment",
+            rolearn="rolearn",
+            layers="layers",
+            events="events",
+            codesign_config_arn="codesign_config_arn",
+            metadata=None,
+            inlinecode=None,
+            architectures=[X86_64, ARM64],
+            stack_path="",
+        )
+        function_b = Function(
+            function_id="name",
+            name="name",
+            functionname="function_name",
+            runtime="runtime",
+            memory="memory",
+            timeout="timeout",
+            handler="post_function.handler",
+            imageuri="imageuri",
+            packagetype=ZIP,
+            imageconfig="imageconfig",
+            codeuri="codeuri",
+            environment="environment",
+            rolearn="rolearn",
+            layers="layers",
+            events="events",
+            codesign_config_arn="codesign_config_arn",
+            metadata=None,
+            inlinecode=None,
+            architectures=[X86_64, ARM64],
+            stack_path="",
+        )
+        functions = [function_a, function_b]
         build_properties = {"Minify": False, "Target": "es2017", "Sourcemap": False}
         metadata = {"BuildMethod": "esbuild", "BuildProperties": build_properties}
-        expected_properties = {"minify": False, "target": "es2017", "sourcemap": False, "entry_points": ["handler"]}
-        options = ApplicationBuilder._get_build_options("Function", "Node.js", "handler", "npm-esbuild", metadata)
+        expected_properties = {
+            "minify": False,
+            "target": "es2017",
+            "sourcemap": False,
+            "entry_points": ["app", "post_function"],
+        }
+        options = ApplicationBuilder._get_build_options(
+            "Function", "Node.js", "handler", "npm-esbuild", metadata, functions
+        )
         self.assertEqual(options, expected_properties)
 
     def test_get_options_from_metadata_correctly_separates_source_and_handler(self):
+        function = Function(
+            function_id="name",
+            name="name",
+            functionname="function_name",
+            runtime="runtime",
+            memory="memory",
+            timeout="timeout",
+            handler="src/handlers/post.handler",
+            imageuri="imageuri",
+            packagetype=ZIP,
+            imageconfig="imageconfig",
+            codeuri="codeuri",
+            environment="environment",
+            rolearn="rolearn",
+            layers="layers",
+            events="events",
+            codesign_config_arn="codesign_config_arn",
+            metadata=None,
+            inlinecode=None,
+            architectures=[X86_64, ARM64],
+            stack_path="",
+        )
+        functions = [function]
         build_properties = {"Minify": False, "Target": "es2017", "Sourcemap": False}
         metadata = {"BuildMethod": "esbuild", "BuildProperties": build_properties}
         expected_properties = {
@@ -1764,7 +1844,7 @@ class TestApplicationBuilder_get_build_options(TestCase):
             "entry_points": ["src/handlers/post"],
         }
         options = ApplicationBuilder._get_build_options(
-            "Function", "Node.js", "src/handlers/post.handler", "npm-esbuild", metadata
+            "Function", "Node.js", "src/handlers/post.handler", "npm-esbuild", metadata, functions
         )
         self.assertEqual(options, expected_properties)
 

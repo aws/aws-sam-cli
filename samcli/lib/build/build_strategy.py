@@ -11,6 +11,7 @@ from copy import deepcopy
 from typing import Callable, Dict, List, Any, Optional, cast, Set
 
 from samcli.commands._utils.experimental import is_experimental_enabled, ExperimentalFlag
+from samcli.lib.providers.provider import Function
 from samcli.lib.utils import osutils
 from samcli.lib.utils.async_utils import AsyncContext
 from samcli.lib.utils.hash import dir_checksum
@@ -120,7 +121,10 @@ class DefaultBuildStrategy(BuildStrategy):
         self,
         build_graph: BuildGraph,
         build_dir: str,
-        build_function: Callable[[str, str, str, str, str, Optional[str], str, dict, dict, Optional[str], bool], str],
+        build_function: Callable[
+            [str, str, str, str, str, Optional[str], str, dict, dict, Optional[str], bool, Optional[List[Function]]],
+            str,
+        ],
         build_layer: Callable[[str, str, str, List[str], str, str, dict, Optional[str], bool], str],
     ) -> None:
         super().__init__(build_graph)
@@ -165,6 +169,7 @@ class DefaultBuildStrategy(BuildStrategy):
             container_env_vars,
             build_definition.dependencies_dir if is_experimental_enabled(ExperimentalFlag.Accelerate) else None,
             build_definition.download_dependencies,
+            build_definition.functions,
         )
         function_build_results[single_full_path] = result
 

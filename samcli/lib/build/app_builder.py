@@ -545,6 +545,7 @@ class ApplicationBuilder:
         container_env_vars: Optional[Dict] = None,
         dependencies_dir: Optional[str] = None,
         download_dependencies: bool = True,
+        functions: Optional[List[Function]] = None,
     ) -> str:
         """
         Given the function information, this method will build the Lambda function. Depending on the configuration
@@ -576,6 +577,8 @@ class ApplicationBuilder:
         download_dependencies: bool
             An optional boolean parameter to inform lambda builders whether download dependencies or use previously
             downloaded ones. Default value is True.
+        functions: list
+            Lambda functions within the same CodeUri used for bundling all the handlers as entry points separately
 
         Returns
         -------
@@ -610,7 +613,7 @@ class ApplicationBuilder:
                 manifest_path = self._manifest_path_override or os.path.join(code_dir, config.manifest_name)
 
                 options = ApplicationBuilder._get_build_options(
-                    function_name, config.language, handler, config.dependency_manager, metadata
+                    function_name, config.language, handler, config.dependency_manager, metadata, functions
                 )
                 # By default prefer to build in-process for speed
                 if self._container_manager:
@@ -655,6 +658,7 @@ class ApplicationBuilder:
         handler: Optional[str],
         dependency_manager: Optional[str] = None,
         metadata: Optional[dict] = None,
+        functions: Optional[List[Function]] = None,
     ) -> Optional[Dict]:
         """
         Parameters
@@ -669,6 +673,8 @@ class ApplicationBuilder:
             Dependency manager to check in addition to language
         metadata
             Metadata object to search for build properties
+        functions
+            Lambda functions within the same CodeUri
         Returns
         -------
         dict
@@ -679,8 +685,11 @@ class ApplicationBuilder:
             build_props = metadata.get(BUILD_PROPERTIES, {})
             # Esbuild takes an array of entry points from which to start bundling
             # as a required argument. This corresponds to the lambda function handler.
-            if handler and not build_props.get("EntryPoints"):
-                entry_points = [handler.split(".")[0]]
+            if functions and not build_props.get("EntryPoints"):
+                entry_points = []
+                for function in functions:
+                    if function.handler:
+                        entry_points.append(function.handler.split(".")[0])
                 build_props["entry_points"] = entry_points
             return ResourceMetadataNormalizer.normalize_build_properties(build_props)
 

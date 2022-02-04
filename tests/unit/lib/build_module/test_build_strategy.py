@@ -165,6 +165,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                     self.function_build_definition1.env_vars,
                     self.function_build_definition1.dependencies_dir,
                     True,
+                    self.function_build_definition1.functions,
                 ),
                 call(
                     self.function_build_definition2.get_function_name(),
@@ -178,6 +179,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
                     self.function_build_definition2.env_vars,
                     self.function_build_definition2.dependencies_dir,
                     True,
+                    self.function_build_definition2.functions,
                 ),
             ]
         )
@@ -498,7 +500,7 @@ class TestIncrementalBuildStrategy(TestCase):
 
         self.build_strategy.build()
         self.build_function.assert_called_with(
-            ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY, dependency_dir, download_dependencies
+            ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY, dependency_dir, download_dependencies, ANY
         )
 
     @parameterized.expand(
