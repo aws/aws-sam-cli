@@ -341,7 +341,7 @@ def execute_infra_contexts(
         DeployContext
     """
     LOG.debug("Executing the build using build context.")
-    build_context.run(sync=True)
+    build_context.run()
     LOG.debug("Executing the packaging using package context.")
     package_context.run()
     LOG.debug("Executing the deployment using deploy context.")

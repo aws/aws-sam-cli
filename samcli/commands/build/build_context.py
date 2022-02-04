@@ -155,7 +155,7 @@ class BuildContext:
     def get_resources_to_build(self):
         return self.resources_to_build
 
-    def run(self, sync=False):
+    def run(self):
         """Runs the building process by creating an ApplicationBuilder."""
         template_dict = get_template_data(self._template_file)
         template_transform = template_dict.get("Transform", "")
@@ -221,14 +221,13 @@ class BuildContext:
                 build_dir_in_success_message = self.build_dir
                 output_template_path_in_success_message = out_template_path
 
-            if not sync:
-                msg = self.gen_success_msg(
-                    build_dir_in_success_message,
-                    output_template_path_in_success_message,
-                    os.path.abspath(self.build_dir) == os.path.abspath(DEFAULT_BUILD_DIR),
-                )
+            msg = self.gen_success_msg(
+                build_dir_in_success_message,
+                output_template_path_in_success_message,
+                os.path.abspath(self.build_dir) == os.path.abspath(DEFAULT_BUILD_DIR),
+            )
 
-                click.secho(msg, fg="yellow")
+            click.secho(msg, fg="yellow")
 
         except (
             UnsupportedRuntimeException,
