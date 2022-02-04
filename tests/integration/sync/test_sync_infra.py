@@ -25,7 +25,6 @@ from tests.testing_utils import run_command_with_input
 SKIP_SYNC_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 IS_WINDOWS = platform.system().lower() == "windows"
 # Some wait time for code updates to be reflected on each service
-LAMBDA_SLEEP = 3
 API_SLEEP = 5
 SFN_SLEEP = 5
 CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
