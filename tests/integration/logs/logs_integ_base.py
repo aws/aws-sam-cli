@@ -7,6 +7,7 @@ from unittest import TestCase
 
 
 RETRY_COUNT = 20  # retry required because of log buffering configuration for each service
+RETRY_SLEEP = 2
 
 
 class LogsIntegBase(TestCase):
@@ -18,26 +19,6 @@ class LogsIntegBase(TestCase):
 
         return command
 
-    def start_tail(self, command_list: List, expected_log_output):
-        self.tail_process = Popen(command_list, stdout=PIPE)
-
-        self.stop_reading_thread = False
-
-        def read_sub_process_stdout():
-            count = 0
-            while not self.stop_reading_thread:
-                line = self.tail_process.stdout.readline()
-                if expected_log_output in line.decode("utf-8"):
-                    self.stop_reading_thread = True
-                if count > RETRY_COUNT:
-                    self.fail(f"Tail can't find log line {expected_log_output}")
-                time.sleep(1)
-                count += 1
-
-        self.read_threading = threading.Thread(target=read_sub_process_stdout)
-        self.read_threading.start()
-        return self.read_threading
-
     def get_logs_command_list(
             self,
             stack_name: str,
@@ -48,6 +29,7 @@ class LogsIntegBase(TestCase):
             tail: bool = False,
             start_time: Optional[str] = None,
             end_time: Optional[str] = None,
+            output: Optional[str] = None,
             beta_features: bool = False,
     ):
         command_list = [self.base_command(), "logs", "--stack-name", stack_name]
@@ -67,6 +49,8 @@ class LogsIntegBase(TestCase):
             command_list += ["--start-time", start_time]
         if end_time:
             command_list += ["--end-time", end_time]
+        if output:
+            command_list += ["--output", output]
         if beta_features:
             command_list += ["--beta-features"]
 
