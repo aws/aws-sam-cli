@@ -17,10 +17,11 @@ LOG = logging.getLogger(__name__)
 
 
 class TestSamTemplateValidator(TestCase):
+    @patch("samcli.commands.validate.lib.sam_template_validator.Validator")
     @patch("samcli.commands.validate.lib.sam_template_validator.Session")
     @patch("samcli.commands.validate.lib.sam_template_validator.Translator")
     @patch("samcli.commands.validate.lib.sam_template_validator.parser")
-    def test_is_valid_returns_true(self, sam_parser, sam_translator, boto_session_patch):
+    def test_is_valid_returns_true(self, sam_parser, sam_translator, boto_session_patch, validator_mock):
         managed_policy_mock = Mock()
         managed_policy_mock.load.return_value = {"policy": "SomePolicy"}
         template = {"a": "b"}
@@ -35,6 +36,8 @@ class TestSamTemplateValidator(TestCase):
         translate_mock.translate.return_value = {"c": "d"}
         sam_translator.return_value = translate_mock
 
+        validator_mock.return_value.get_errors.return_value = []
+
         validator = SamTemplateValidator(template, managed_policy_mock, profile="profile", region="region")
 
         # Should not throw an Exception
@@ -46,11 +49,15 @@ class TestSamTemplateValidator(TestCase):
         )
         translate_mock.translate.assert_called_once_with(sam_template=template, parameter_values={})
         sam_parser.Parser.assert_called_once()
+        validator_mock.return_value.get_errors.assert_called_once_with(template)
 
+    @patch("samcli.commands.validate.lib.sam_template_validator.Validator")
     @patch("samcli.commands.validate.lib.sam_template_validator.Session")
     @patch("samcli.commands.validate.lib.sam_template_validator.Translator")
     @patch("samcli.commands.validate.lib.sam_template_validator.parser")
-    def test_is_valid_raises_exception(self, sam_parser, sam_translator, boto_session_patch):
+    def test_is_valid_raises_exception_on_validation(
+        self, sam_parser, sam_translator, boto_session_patch, validator_mock
+    ):
         managed_policy_mock = Mock()
         managed_policy_mock.load.return_value = {"policy": "SomePolicy"}
         template = {"a": "b"}
@@ -65,6 +72,8 @@ class TestSamTemplateValidator(TestCase):
         translate_mock.translate.side_effect = InvalidDocumentException([Exception("message")])
         sam_translator.return_value = translate_mock
 
+        validator_mock.return_value.get_errors.return_value = ["Error message M4RK3R"]
+
         validator = SamTemplateValidator(template, managed_policy_mock)
 
         with self.assertRaises(InvalidSamDocumentException):
@@ -73,7 +82,43 @@ class TestSamTemplateValidator(TestCase):
         sam_translator.assert_called_once_with(
             managed_policy_map={"policy": "SomePolicy"}, sam_parser=parser, plugins=[], boto_session=boto_session_mock
         )
+        validator_mock.return_value.get_errors.assert_called_once_with(template)
+        boto_session_patch.assert_called_once_with(profile_name=None, region_name=None)
+        translate_mock.translate.assert_not_called()
+        sam_parser.Parser.assert_called_once()
 
+    @patch("samcli.commands.validate.lib.sam_template_validator.Validator")
+    @patch("samcli.commands.validate.lib.sam_template_validator.Session")
+    @patch("samcli.commands.validate.lib.sam_template_validator.Translator")
+    @patch("samcli.commands.validate.lib.sam_template_validator.parser")
+    def test_is_valid_raises_exception_on_translation(
+        self, sam_parser, sam_translator, boto_session_patch, validator_mock
+    ):
+        managed_policy_mock = Mock()
+        managed_policy_mock.load.return_value = {"policy": "SomePolicy"}
+        template = {"a": "b"}
+
+        parser = Mock()
+        sam_parser.Parser.return_value = parser
+
+        boto_session_mock = Mock()
+        boto_session_patch.return_value = boto_session_mock
+
+        translate_mock = Mock()
+        translate_mock.translate.side_effect = InvalidDocumentException([Exception("message")])
+        sam_translator.return_value = translate_mock
+
+        validator_mock.return_value.get_errors.return_value = []
+
+        validator = SamTemplateValidator(template, managed_policy_mock)
+
+        with self.assertRaises(InvalidSamDocumentException):
+            validator.is_valid()
+
+        sam_translator.assert_called_once_with(
+            managed_policy_map={"policy": "SomePolicy"}, sam_parser=parser, plugins=[], boto_session=boto_session_mock
+        )
+        validator_mock.return_value.get_errors.assert_called_once_with(template)
         boto_session_patch.assert_called_once_with(profile_name=None, region_name=None)
         translate_mock.translate.assert_called_once_with(sam_template=template, parameter_values={})
         sam_parser.Parser.assert_called_once()

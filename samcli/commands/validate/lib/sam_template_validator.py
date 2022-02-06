@@ -8,6 +8,7 @@ from pathlib import Path
 from samtranslator.public.exceptions import InvalidDocumentException
 from samtranslator.parser import parser
 from samtranslator.translator.translator import Translator
+from samtranslator.validator.validator import SamTemplateValidator as Validator
 from boto3.session import Session
 
 from samcli.lib.utils.packagetype import ZIP, IMAGE
@@ -67,6 +68,13 @@ class SamTemplateValidator:
         self._replace_local_codeuri()
         self._replace_local_image()
         self._replace_local_openapi()
+
+        # Translator does print warning about the issues found by the validator, but it
+        # does not abort the translation when the validation fail. This is why we are
+        # checking for any validation errors before handing the template to translator.
+        error_messages = Validator().get_errors(self.sam_template)
+        if error_messages:
+            raise InvalidSamDocumentException(" ".join(error_messages))
 
         try:
             template = sam_translator.translate(sam_template=self.sam_template, parameter_values={})
