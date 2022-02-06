@@ -86,7 +86,7 @@ $ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
 @print_cmdline_args
 @force_experimental_option("include_traces", config_entry=ExperimentalFlag.Accelerate)  # pylint: disable=E1120
 @force_experimental_option("cw_log_group", config_entry=ExperimentalFlag.Accelerate)  # pylint: disable=E1120
-@force_experimental_option("unformatted", config_entry=ExperimentalFlag.Accelerate)  # pylint: disable=E1120
+@force_experimental_option("output", config_entry=ExperimentalFlag.Accelerate)  # pylint: disable=E1120
 def cli(
     ctx,
     name,
@@ -96,7 +96,7 @@ def cli(
     include_traces,
     start_time,
     end_time,
-    unformatted,
+    output,
     cw_log_group,
     config_file,
     config_env,
@@ -115,7 +115,7 @@ def cli(
         start_time,
         end_time,
         cw_log_group,
-        unformatted,
+        output,
         ctx.region,
         ctx.profile,
     )  # pragma: no cover
@@ -130,7 +130,7 @@ def do_cli(
     start_time,
     end_time,
     cw_log_groups,
-    unformatted,
+    output,
     region,
     profile,
 ):
@@ -142,6 +142,7 @@ def do_cli(
 
     from samcli.commands.logs.logs_context import parse_time, ResourcePhysicalIdResolver
     from samcli.commands.logs.puller_factory import generate_puller
+    from samcli.lib.observability.util import OutputOption
     from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config, get_boto_resource_provider_with_config
 
     if not names or len(names) > 1:
@@ -167,7 +168,7 @@ def do_cli(
         resource_logical_id_resolver.get_resource_information(fetch_all_when_no_resource_name_given),
         filter_pattern,
         cw_log_groups,
-        unformatted,
+        OutputOption(output) if output else OutputOption.text,
         include_tracing,
     )
 
