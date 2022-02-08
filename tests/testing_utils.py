@@ -5,13 +5,13 @@ import subprocess
 import tempfile
 
 from threading import Thread
-from typing import Callable, List
+from typing import Callable, List, Optional
 from collections import namedtuple
 from subprocess import Popen, PIPE, TimeoutExpired
 from queue import Queue
 
 import shutil
-import psutil
+import psutil  # type: ignore
 
 IS_WINDOWS = platform.system().lower() == "windows"
 RUNNING_ON_CI = os.environ.get("APPVEYOR", False)
@@ -69,7 +69,7 @@ def run_command_with_inputs(command_list: List[str], inputs: List[str], timeout=
 
 def start_persistent_process(
     command_list: List[str],
-    cwd: str = None,
+    cwd: Optional[str] = None,
 ) -> Popen:
     """Start a process with parameters that are suitable for persistent execution."""
     return Popen(
@@ -114,7 +114,7 @@ def read_until_string(process: Popen, expected_output: str, timeout: int = 5) ->
     except TimeoutError as ex:
         expected_output_bytes = expected_output.encode("utf-8")
         raise TimeoutError(
-            f"Did not get expected output after {timeout} seconds. Expected output: {expected_output_bytes}"
+            f"Did not get expected output after {timeout} seconds. Expected output: {expected_output_bytes!r}"
         ) from ex
 
 
@@ -134,7 +134,7 @@ def read_until(process: Popen, callback: Callable[[str, List[str]], None], timeo
     TimeoutError
         Raises when timeout is reached
     """
-    result_queue = Queue()
+    result_queue: Queue = Queue()
 
     def _read_output():
         try:
