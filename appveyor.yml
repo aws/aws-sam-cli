@@ -63,7 +63,6 @@ for:
         - image: Previous Visual Studio 2019
 
     install:
-      - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
       - "SET PATH=%PYTHON_HOME%;%PATH%"
       - "echo %PYTHON_HOME%"
       - "echo %PATH%"
@@ -120,6 +119,9 @@ for:
       - "mypy setup.py samcli tests"
       - "pytest -n 4 tests/functional"
       - "deactivate"
+    on_finish:
+      - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+
 
   - 
     matrix:
