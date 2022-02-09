@@ -67,7 +67,7 @@ test_script:
     # Reactivate virtualenv before running tests
     - "venv\\Scripts\\activate"
     - "docker system prune -a -f"
-    - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_Dotnet_cli_package"
+    - ps: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_Dotnet_cli_package"
 
 # Uncomment for RDP
 # on_finish:
