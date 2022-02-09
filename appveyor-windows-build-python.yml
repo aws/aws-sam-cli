@@ -81,9 +81,9 @@ test_script:
     # Reactivate virtualenv before running tests
     - "venv\\Scripts\\activate"
     - "docker system prune -a -f"
-    - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_PythonFunctions"
-    - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_SingleFunctionBuilds"
-    - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_ErrorCases"
+    - ps: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_PythonFunctions"
+    - ps: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_SingleFunctionBuilds"
+    - ps: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_ErrorCases"
 
 # Uncomment for RDP
 # on_finish:
