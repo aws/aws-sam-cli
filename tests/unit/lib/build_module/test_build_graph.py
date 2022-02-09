@@ -807,3 +807,53 @@ class TestBuildDefinition(TestCase):
             str(build_definition),
             f"BuildDefinition(runtime, codeuri, Zip, source_hash, {build_definition.uuid}, {{}}, {{}}, arm64, [])",
         )
+
+    def test_independent_build_definitions_equal_objects_independent_build_method(self):
+        build_graph = BuildGraph("build/path")
+        metadata = {"BuildMethod": "esbuild"}
+        build_definition1 = FunctionBuildDefinition(
+            "runtime", "codeuri", ZIP, ARM64, metadata, "source_hash", "manifest_hash"
+        )
+        function1 = generate_function(
+            runtime=TestBuildGraph.RUNTIME, codeuri=TestBuildGraph.CODEURI, metadata=metadata, handler="handler-1"
+        )
+        build_definition2 = FunctionBuildDefinition(
+            "runtime", "codeuri", ZIP, ARM64, metadata, "source_hash", "manifest_hash"
+        )
+        function2 = generate_function(
+            runtime=TestBuildGraph.RUNTIME, codeuri=TestBuildGraph.CODEURI, metadata=metadata, handler="handler-2"
+        )
+        build_graph.put_function_build_definition(build_definition1, function1)
+        build_graph.put_function_build_definition(build_definition2, function2)
+
+        build_definitions = build_graph.get_function_build_definitions()
+
+        self.assertEqual(build_definition1, build_definition2)
+        self.assertEqual(len(build_definitions), 2)
+        self.assertEqual(len(build_definition1.functions), 1)
+        self.assertEqual(len(build_definition2.functions), 1)
+
+    def test_independent_build_definitions_equal_objects_one_independent_build_method(self):
+        build_graph = BuildGraph("build/path")
+        metadata = {"BuildMethod": "esbuild"}
+        build_definition1 = FunctionBuildDefinition(
+            "runtime", "codeuri", ZIP, ARM64, metadata, "source_hash", "manifest_hash"
+        )
+        function1 = generate_function(
+            runtime=TestBuildGraph.RUNTIME, codeuri=TestBuildGraph.CODEURI, metadata=metadata, handler="handler-1"
+        )
+        build_definition2 = FunctionBuildDefinition(
+            "runtime", "codeuri", ZIP, ARM64, {}, "source_hash", "manifest_hash"
+        )
+        function2 = generate_function(
+            runtime=TestBuildGraph.RUNTIME, codeuri=TestBuildGraph.CODEURI, metadata={}, handler="handler-2"
+        )
+        build_graph.put_function_build_definition(build_definition1, function1)
+        build_graph.put_function_build_definition(build_definition2, function2)
+
+        build_definitions = build_graph.get_function_build_definitions()
+
+        self.assertNotEqual(build_definition1, build_definition2)
+        self.assertEqual(len(build_definitions), 2)
+        self.assertEqual(len(build_definition1.functions), 1)
+        self.assertEqual(len(build_definition2.functions), 1)
