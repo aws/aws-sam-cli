@@ -151,7 +151,7 @@ def read_until(process: Popen, callback: Callable[[str, List[str]], None], timeo
     reading_thread = Thread(target=_read_output, daemon=True)
     reading_thread.start()
     reading_thread.join(timeout=timeout)
-    if reading_thread.isAlive():
+    if reading_thread.is_alive():
         raise TimeoutError(f"Did not get expected output after {timeout} seconds.")
     if result_queue.qsize() > 0:
         result = result_queue.get()
