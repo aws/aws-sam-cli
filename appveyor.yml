@@ -1,7 +1,7 @@
 version: 1.0.{build}
 image: 
   - Ubuntu
-  - Previous Visual Studio 2019
+  - Visual Studio 2019
 
 environment:
   AWS_DEFAULT_REGION: us-east-1
@@ -60,7 +60,7 @@ for:
   - 
     matrix:
       only:
-        - image: Previous Visual Studio 2019
+        - image: Visual Studio 2019
 
     install:
       - "SET PATH=%PYTHON_HOME%;%PATH%"
@@ -114,13 +114,11 @@ for:
 
       # Run tests with dev env
       - "venv\\Scripts\\activate"
-      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
-      - "pylint --rcfile .pylintrc samcli"
-      - "mypy setup.py samcli tests"
-      - "pytest -n 4 tests/functional"
+      - ps: "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
+      - ps: "pylint --rcfile .pylintrc samcli"
+      - ps: "mypy setup.py samcli tests"
+      - ps: "pytest -n 4 tests/functional"
       - "deactivate"
-    on_finish:
-      - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 
   - 
