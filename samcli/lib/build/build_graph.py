@@ -43,6 +43,7 @@ BUILD_METHOD_FIELD = "build_method"
 COMPATIBLE_RUNTIMES_FIELD = "compatible_runtimes"
 LAYER_FIELD = "layer"
 ARCHITECTURE_FIELD = "architecture"
+INDEPENDENT_BUILD_DEFINITIONS = ["esbuild"]
 
 
 def _function_build_definition_to_toml_table(
@@ -244,7 +245,14 @@ class BuildGraph:
         function: Function
             function details for this function build definition
         """
-        if function_build_definition in self._function_build_definitions:
+
+        # Check for builders that require all lambda functions to be built separately
+        function_build_method = ""
+        if function.metadata:
+            function_build_method = function.metadata.get("BuildMethod", "")
+        is_independent_build_def = function_build_method in INDEPENDENT_BUILD_DEFINITIONS
+
+        if function_build_definition in self._function_build_definitions and not is_independent_build_def:
             previous_build_definition = self._function_build_definitions[
                 self._function_build_definitions.index(function_build_definition)
             ]
