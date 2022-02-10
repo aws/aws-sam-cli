@@ -505,3 +505,11 @@ class TestResourceMetadataNormalizerGetResourceId(TestCase):
         )
 
         self.assertEquals("logical_id", resource_id)
+
+
+class TestResourceMetadataNormalizerBuildPropertiesNormalizer(TestCase):
+    def test_converts_pascal_case_to_snake_case(self):
+        input_metadata = {"Minify": False, "Target": "es2017", "Sourcemap": False, "EntryPoints": ["app.ts"]}
+        expected_output = {"minify": False, "target": "es2017", "sourcemap": False, "entry_points": ["app.ts"]}
+        output = ResourceMetadataNormalizer.normalize_build_properties(input_metadata)
+        self.assertEqual(expected_output, output)
