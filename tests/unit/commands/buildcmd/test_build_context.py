@@ -4,6 +4,7 @@ from unittest.mock import patch, Mock, ANY, call
 
 from parameterized import parameterized
 
+from samcli.commands._utils.experimental import ExperimentalFlag
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.lib.utils.packagetype import ZIP, IMAGE
@@ -1030,3 +1031,40 @@ class TestBuildContext_java_warning(TestCase):
                 mocked_click.assert_called_with(BuildContext._JAVA_BUILD_WARNING_MESSAGE, fg="yellow")
             else:
                 mocked_click.assert_not_called()
+
+
+class TestBuildContext_esbuild_warning(TestCase):
+    @parameterized.expand(
+        [
+            ([], False, False),
+            ([DummyFunction("Esbuild", metadata={"BuildMethod": "esbuild"})], False, True),
+            ([DummyFunction("Esbuild", metadata={"BuildMethod": "esbuild"})], True, False),
+            ([DummyFunction("NotEsbuild", metadata={"BuildMethod": "Makefile"})], False, False),
+            ([DummyFunction("NotEsbuild", metadata={"BuildMethod": "Makefile"})], True, False),
+        ]
+    )
+    @patch("samcli.commands.build.build_context.prompt_experimental")
+    @patch("samcli.commands.build.build_context.is_experimental_enabled")
+    def test_check_esbuild_warning(
+        self, functions, is_experimental_enabled, should_print, experimental_flag_mock, mocked_click
+    ):
+        build_context = BuildContext(
+            resource_identifier="function_identifier",
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            cached=False,
+            clean=False,
+            parallel=False,
+            mode="mode",
+        )
+        experimental_flag_mock.return_value = is_experimental_enabled
+        with patch.object(build_context, "get_resources_to_build") as mocked_resources_to_build:
+            mocked_resources_to_build.return_value = Mock(functions=functions)
+            build_context._check_esbuild_warning()
+
+        if should_print:
+            mocked_click.assert_called_with(ExperimentalFlag.Esbuild, BuildContext._ESBUILD_WARNING_MESSAGE)
+        else:
+            mocked_click.assert_not_called()
