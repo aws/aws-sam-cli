@@ -6,6 +6,7 @@ import io
 import json
 import logging
 import pathlib
+from copy import deepcopy
 from typing import List, Optional, Dict, cast, Union, NamedTuple
 
 import docker
@@ -230,6 +231,7 @@ class ApplicationBuilder:
                 function.packagetype,
                 function.architecture,
                 function.metadata,
+                function.handler,
                 env_vars=container_env_vars,
             )
             build_graph.put_function_build_definition(function_build_details, function)
@@ -676,7 +678,7 @@ class ApplicationBuilder:
         """
 
         if metadata and dependency_manager and dependency_manager == "npm-esbuild":
-            build_props = metadata.get(BUILD_PROPERTIES, {})
+            build_props = deepcopy(metadata.get(BUILD_PROPERTIES, {}))
             # Esbuild takes an array of entry points from which to start bundling
             # as a required argument. This corresponds to the lambda function handler.
             if handler and not build_props.get("EntryPoints"):
