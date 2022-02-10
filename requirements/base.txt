@@ -12,7 +12,7 @@ docker~=4.2.0
 dateparser~=1.0
 requests==2.25.1
 serverlessrepo==0.1.10
-aws_lambda_builders==1.10.0
+aws_lambda_builders==1.11.0
 tomlkit==0.7.2
 watchdog==2.1.2
 
