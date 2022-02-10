@@ -543,7 +543,7 @@ Commands you can use next
         if is_building_java and not is_experimental_enabled(ExperimentalFlag.JavaMavenBuildScope):
             click.secho(self._JAVA_BUILD_WARNING_MESSAGE, fg="yellow")
 
-    def _check_esbuild_warning(self):
+    def _check_esbuild_warning(self) -> None:
         """
         Prints warning message and confirms that the user wants to enable beta features
         """
