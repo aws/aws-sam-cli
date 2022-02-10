@@ -678,6 +678,8 @@ class ApplicationBuilder:
         """
 
         if metadata and dependency_manager and dependency_manager == "npm-esbuild":
+            # Make a copy of the metadata so that we don't force an updated build definition
+            # when we add the entry points
             build_props = deepcopy(metadata.get(BUILD_PROPERTIES, {}))
             # Esbuild takes an array of entry points from which to start bundling
             # as a required argument. This corresponds to the lambda function handler.
