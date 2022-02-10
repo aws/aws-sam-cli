@@ -63,6 +63,8 @@ from samcli.lib.build.workflow_config import (
 
 LOG = logging.getLogger(__name__)
 
+BUILD_PROPERTIES = "BuildProperties"
+
 
 class ApplicationBuildResult(NamedTuple):
     """
@@ -614,7 +616,9 @@ class ApplicationBuilder:
             with osutils.mkdir_temp() as scratch_dir:
                 manifest_path = self._manifest_path_override or os.path.join(code_dir, config.manifest_name)
 
-                options = ApplicationBuilder._get_build_options(function_name, config.language, handler)
+                options = ApplicationBuilder._get_build_options(
+                    function_name, config.language, handler, config.dependency_manager, metadata
+                )
                 # By default prefer to build in-process for speed
                 if self._container_manager:
                     # None represents the global build image for all functions/layers
@@ -652,7 +656,13 @@ class ApplicationBuilder:
         return  # type: ignore
 
     @staticmethod
-    def _get_build_options(function_name: str, language: str, handler: Optional[str]) -> Optional[Dict]:
+    def _get_build_options(
+        function_name: str,
+        language: str,
+        handler: Optional[str],
+        dependency_manager: Optional[str] = None,
+        metadata: Optional[dict] = None,
+    ) -> Optional[Dict]:
         """
         Parameters
         ----------
@@ -662,11 +672,24 @@ class ApplicationBuilder:
             language of the runtime
         handler str
             Handler value of the Lambda Function Resource
+        dependency_manager str
+            Dependency manager to check in addition to language
+        metadata
+            Metadata object to search for build properties
         Returns
         -------
         dict
             Dictionary that represents the options to pass to the builder workflow or None if options are not needed
         """
+
+        if metadata and dependency_manager and dependency_manager == "npm-esbuild":
+            build_props = metadata.get(BUILD_PROPERTIES, {})
+            # Esbuild takes an array of entry points from which to start bundling
+            # as a required argument. This corresponds to the lambda function handler.
+            if handler and not build_props.get("EntryPoints"):
+                entry_points = [handler.split(".")[0]]
+                build_props["entry_points"] = entry_points
+            return ResourceMetadataNormalizer.normalize_build_properties(build_props)
 
         _build_options: Dict = {
             "go": {"artifact_executable_name": handler},

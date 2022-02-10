@@ -24,6 +24,7 @@ from samcli.lib.observability.observability_info_puller import (
     ObservabilityEventConsumer,
     ObservabilityCombinedPuller,
 )
+from samcli.lib.observability.util import OutputOption
 from samcli.lib.utils.boto_utils import BotoProviderType
 from samcli.lib.utils.cloudformation import CloudFormationResourceSummary
 from samcli.lib.utils.colors import Colored
@@ -43,7 +44,7 @@ def generate_puller(
     resource_information_list: List[CloudFormationResourceSummary],
     filter_pattern: Optional[str] = None,
     additional_cw_log_groups: Optional[List[str]] = None,
-    unformatted: bool = False,
+    output: OutputOption = OutputOption.text,
     include_tracing: bool = False,
 ) -> ObservabilityPuller:
     """
@@ -62,9 +63,9 @@ def generate_puller(
     additional_cw_log_groups : Optional[str]
         Optional list of additional CloudWatch log groups which will be used to fetch
         log events from.
-    unformatted : bool
-        By default, logs and traces are printed with a format for terminal. If this option is provided, the events
-        will be printed unformatted in JSON.
+    output : OutputOption
+        Decides how the output will be presented in the console. It is been used to select correct consumer type
+        between (default) text consumer or json consumer
     include_tracing: bool
         A flag to include the xray traces log or not
 
@@ -87,7 +88,7 @@ def generate_puller(
             LOG.debug("Can't find CloudWatch LogGroup name for resource (%s)", resource_information.logical_resource_id)
             continue
 
-        consumer = generate_consumer(filter_pattern, unformatted, resource_information.logical_resource_id)
+        consumer = generate_consumer(filter_pattern, output, resource_information.logical_resource_id)
         pullers.append(
             CWLogPuller(
                 boto_client_provider("logs"),
@@ -99,7 +100,7 @@ def generate_puller(
 
     # populate puller instances for the additional CloudWatch log groups
     for cw_log_group in additional_cw_log_groups:
-        consumer = generate_consumer(filter_pattern, unformatted)
+        consumer = generate_consumer(filter_pattern, output)
         pullers.append(
             CWLogPuller(
                 boto_client_provider("logs"),
@@ -110,7 +111,7 @@ def generate_puller(
 
     # if tracing flag is set, add the xray traces puller to fetch debug traces
     if include_tracing:
-        trace_puller = generate_trace_puller(boto_client_provider("xray"), unformatted)
+        trace_puller = generate_trace_puller(boto_client_provider("xray"), output)
         pullers.append(trace_puller)
 
     # if no puller have been collected, raise an exception since there is nothing to pull
@@ -122,22 +123,22 @@ def generate_puller(
 
 
 def generate_consumer(
-    filter_pattern: Optional[str] = None, unformatted: bool = False, resource_name: Optional[str] = None
+    filter_pattern: Optional[str] = None, output: OutputOption = OutputOption.text, resource_name: Optional[str] = None
 ):
     """
     Generates consumer instance with the given variables.
-    If unformatted is True, then it will return consumer with formatters for just JSON.
-    If not, it will return console consumer
+    If output is JSON, then it will return consumer with formatters for just JSON.
+    Otherwise, it will return regular text console consumer
     """
-    if unformatted:
-        return generate_unformatted_consumer()
+    if output == OutputOption.json:
+        return generate_json_consumer()
 
-    return generate_console_consumer(filter_pattern)
+    return generate_text_consumer(filter_pattern)
 
 
-def generate_unformatted_consumer() -> ObservabilityEventConsumer:
+def generate_json_consumer() -> ObservabilityEventConsumer:
     """
-    Creates event consumer, which prints CW Log Events unformatted as JSON into terminal
+    Creates event consumer, which prints CW Log Events as JSON into terminal
 
     Returns
     -------
@@ -151,7 +152,7 @@ def generate_unformatted_consumer() -> ObservabilityEventConsumer:
     )
 
 
-def generate_console_consumer(filter_pattern: Optional[str]) -> ObservabilityEventConsumer:
+def generate_text_consumer(filter_pattern: Optional[str]) -> ObservabilityEventConsumer:
     """
     Creates a console event consumer, which is used to display events in the user's console
 
