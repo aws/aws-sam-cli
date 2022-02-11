@@ -513,7 +513,7 @@ Commands you can use next
     _JAVA_BUILD_WARNING_MESSAGE = (
         "Test the latest build changes for Java runtime 'SAM_CLI_BETA_MAVEN_SCOPE_AND_LAYER=1 sam build'. "
         "These changes will replace the existing flow on 1st of April 2022. "
-        "Check __issue_line__ for more information."
+        "Check https://github.com/aws/aws-sam-cli/issues/3639 for more information."
     )
 
     def _check_java_warning(self) -> None:

@@ -1456,8 +1456,11 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
             Mock(), "/build/dir", "/base/dir", "/cache/dir", mode="mode", stream_writer=StreamWriter(sys.stderr)
         )
 
+    @parameterized.expand([([],), (["ExpFlag1", "ExpFlag2"],)])
     @patch("samcli.lib.build.app_builder.LambdaBuilder")
-    def test_must_use_lambda_builder(self, lambda_builder_mock):
+    @patch("samcli.lib.build.app_builder.get_enabled_experimental_flags")
+    def test_must_use_lambda_builder(self, experimental_flags, experimental_flags_mock, lambda_builder_mock):
+        experimental_flags_mock.return_value = experimental_flags
         config_mock = Mock()
         builder_instance_mock = lambda_builder_mock.return_value = Mock()
 
@@ -1484,10 +1487,10 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
         )
 
         builder_instance_mock.build.assert_called_with(
-            source_dir="source_dir",
-            artifacts_dir="artifacts_dir",
-            scratch_dir="scratch_dir",
-            manifest_path="manifest_path",
+            "source_dir",
+            "artifacts_dir",
+            "scratch_dir",
+            "manifest_path",
             runtime="runtime",
             executable_search_paths=config_mock.executable_search_paths,
             mode="mode",
@@ -1496,6 +1499,8 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
             dependencies_dir=None,
             download_dependencies=True,
             combine_dependencies=True,
+            is_building_layer=False,
+            experimental_flags=experimental_flags,
         )
 
     @patch("samcli.lib.build.app_builder.LambdaBuilder")
@@ -1520,7 +1525,6 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
                 True,
             )
 
-    @patch("samcli.lib.build.app_builder.lambda_builders_version", "1.11.0")
     @patch("samcli.lib.build.app_builder.LambdaBuilder")
     @patch("samcli.lib.build.app_builder.get_enabled_experimental_flags")
     def test_building_with_experimental_flags(self, get_enabled_experimental_flags_mock, lambda_builder_mock):
@@ -1543,10 +1547,10 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
         lambda_builder_mock.assert_has_calls(
             [
                 call().build(
-                    source_dir="source_dir",
-                    artifacts_dir="artifacts_dir",
-                    scratch_dir="scratch_dir",
-                    manifest_path="manifest_path",
+                    "source_dir",
+                    "artifacts_dir",
+                    "scratch_dir",
+                    "manifest_path",
                     runtime="runtime",
                     executable_search_paths=ANY,
                     mode="mode",
