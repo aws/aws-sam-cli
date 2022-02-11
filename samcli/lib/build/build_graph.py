@@ -43,7 +43,7 @@ BUILD_METHOD_FIELD = "build_method"
 COMPATIBLE_RUNTIMES_FIELD = "compatible_runtimes"
 LAYER_FIELD = "layer"
 ARCHITECTURE_FIELD = "architecture"
-INDEPENDENT_BUILD_DEFINITIONS = ["esbuild"]
+HANDLER_FIELD = "handler"
 
 
 def _function_build_definition_to_toml_table(
@@ -67,6 +67,7 @@ def _function_build_definition_to_toml_table(
         toml_table[CODE_URI_FIELD] = function_build_definition.codeuri
         toml_table[RUNTIME_FIELD] = function_build_definition.runtime
         toml_table[ARCHITECTURE_FIELD] = function_build_definition.architecture
+        toml_table[HANDLER_FIELD] = function_build_definition.handler
         if function_build_definition.source_hash:
             toml_table[SOURCE_HASH_FIELD] = function_build_definition.source_hash
         toml_table[MANIFEST_HASH_FIELD] = function_build_definition.manifest_hash
@@ -103,6 +104,7 @@ def _toml_table_to_function_build_definition(uuid: str, toml_table: tomlkit.api.
         toml_table.get(PACKAGETYPE_FIELD, ZIP),
         toml_table.get(ARCHITECTURE_FIELD, X86_64),
         dict(toml_table.get(METADATA_FIELD, {})),
+        toml_table.get(HANDLER_FIELD, ""),
         toml_table.get(SOURCE_HASH_FIELD, ""),
         toml_table.get(MANIFEST_HASH_FIELD, ""),
         dict(toml_table.get(ENV_VARS_FIELD, {})),
@@ -245,14 +247,7 @@ class BuildGraph:
         function: Function
             function details for this function build definition
         """
-
-        # Check for builders that require all lambda functions to be built separately
-        function_build_method = ""
-        if function.metadata:
-            function_build_method = function.metadata.get("BuildMethod", "")
-        is_independent_build_def = function_build_method in INDEPENDENT_BUILD_DEFINITIONS
-
-        if function_build_definition in self._function_build_definitions and not is_independent_build_def:
+        if function_build_definition in self._function_build_definitions:
             previous_build_definition = self._function_build_definitions[
                 self._function_build_definitions.index(function_build_definition)
             ]
@@ -572,6 +567,7 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         packagetype: str,
         architecture: str,
         metadata: Optional[Dict],
+        handler: Optional[str],
         source_hash: str = "",
         manifest_hash: str = "",
         env_vars: Optional[Dict] = None,
@@ -580,6 +576,7 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         self.runtime = runtime
         self.codeuri = codeuri
         self.packagetype = packagetype
+        self.handler = handler
 
         # Skip SAM Added metadata properties
         metadata_copied = deepcopy(metadata) if metadata else {}
@@ -646,6 +643,12 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         # each build with custom Makefile definition should be handled separately
         if self.metadata and self.metadata.get("BuildMethod", None) == "makefile":
             return False
+
+        if self.metadata and self.metadata.get("BuildMethod", None) == "esbuild":
+            # For esbuild, we need to check if handlers within the same CodeUri are the same
+            # if they are different, it should create a separate build definition
+            if self.handler != other.handler:
+                return False
 
         return (
             self.runtime == other.runtime
