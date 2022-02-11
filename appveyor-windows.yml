@@ -100,7 +100,7 @@ for:
         - "git --version"
         - "venv\\Scripts\\activate"
         - "docker system prune -a -f"
-        - "pytest -vv tests/integration/buildcmd"
+        - ps: "pytest -vv tests/integration/buildcmd"
 
   #Integ testing deploy
   -
@@ -117,7 +117,7 @@ for:
         - "git --version"
         - "venv\\Scripts\\activate"
         - "docker system prune -a -f"
-        - "pytest -vv tests/integration/delete tests/integration/deploy tests/integration/package tests/integration/sync"
+        - ps: "pytest -vv tests/integration/delete tests/integration/deploy tests/integration/package tests/integration/sync"
 
   #Integ testing local
   -
@@ -134,7 +134,7 @@ for:
         - "git --version"
         - "venv\\Scripts\\activate"
         - "docker system prune -a -f"
-        - "pytest -vv tests/integration/local"
+        - ps: "pytest -vv tests/integration/local"
 
   #Other testing
   -
@@ -151,11 +151,11 @@ for:
         - "git --version"
         - "venv\\Scripts\\activate"
         - "docker system prune -a -f"
-        - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
+        - ps: "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
         - "mypy setup.py samcli tests"
-        - "pytest -n 4 tests/functional"
-        - "pytest -vv tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local"
-        - "pytest -vv tests/regression"
+        - ps: "pytest -n 4 tests/functional"
+        - ps: "pytest -vv tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local"
+        - ps: "pytest -vv tests/regression"
 
 # Uncomment for RDP
 # on_finish:
