@@ -236,6 +236,7 @@ class ApplicationBuilder:
                 function.packagetype,
                 function.architecture,
                 function.metadata,
+                function.handler,
                 env_vars=container_env_vars,
             )
             build_graph.put_function_build_definition(function_build_details, function)
@@ -686,10 +687,11 @@ class ApplicationBuilder:
             build_props = metadata.get(BUILD_PROPERTIES, {})
             # Esbuild takes an array of entry points from which to start bundling
             # as a required argument. This corresponds to the lambda function handler.
+            normalized_build_props = ResourceMetadataNormalizer.normalize_build_properties(build_props)
             if handler and not build_props.get("EntryPoints"):
                 entry_points = [handler.split(".")[0]]
-                build_props["entry_points"] = entry_points
-            return ResourceMetadataNormalizer.normalize_build_properties(build_props)
+                normalized_build_props["entry_points"] = entry_points
+            return normalized_build_props
 
         _build_options: Dict = {
             "go": {"artifact_executable_name": handler},

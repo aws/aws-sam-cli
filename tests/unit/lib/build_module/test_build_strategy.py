@@ -42,8 +42,8 @@ class BuildStrategyBaseTest(TestCase):
         self.function2.get_build_dir = Mock()
         self.function2.full_path = Mock()
 
-        self.function_build_definition1 = FunctionBuildDefinition("runtime", "codeuri", ZIP, X86_64, {})
-        self.function_build_definition2 = FunctionBuildDefinition("runtime2", "codeuri", ZIP, X86_64, {})
+        self.function_build_definition1 = FunctionBuildDefinition("runtime", "codeuri", ZIP, X86_64, {}, "handler")
+        self.function_build_definition2 = FunctionBuildDefinition("runtime2", "codeuri", ZIP, X86_64, {}, "handler")
         self.build_graph.put_function_build_definition(self.function_build_definition1, self.function1_1)
         self.build_graph.put_function_build_definition(self.function_build_definition1, self.function1_2)
         self.build_graph.put_function_build_definition(self.function_build_definition2, self.function2)
@@ -237,7 +237,9 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
         function2.name = "Function2"
         function2.full_path = "Function2"
         function2.packagetype = IMAGE
-        build_definition = FunctionBuildDefinition("3.7", "codeuri", IMAGE, X86_64, {}, env_vars={"FOO": "BAR"})
+        build_definition = FunctionBuildDefinition(
+            "3.7", "codeuri", IMAGE, X86_64, {}, "handler", env_vars={"FOO": "BAR"}
+        )
         # since they have the same metadata, they are put into the same build_definition.
         build_definition.functions = [function1, function2]
 
@@ -560,7 +562,7 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
         self, mocked_read, mocked_write, runtime, experimental_enabled, patched_experimental
     ):
         patched_experimental.return_value = experimental_enabled
-        build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", X86_64, {})
+        build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", X86_64, {}, "handler")
         self.build_graph.put_function_build_definition(build_definition, Mock())
         with patch.object(
             self.build_strategy, "_incremental_build_strategy"
@@ -584,7 +586,7 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
         ]
     )
     def test_will_call_cached_build_strategy(self, mocked_read, mocked_write, runtime):
-        build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", X86_64, {})
+        build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", X86_64, {}, "handler")
         self.build_graph.put_function_build_definition(build_definition, Mock())
         with patch.object(
             self.build_strategy, "_incremental_build_strategy"
