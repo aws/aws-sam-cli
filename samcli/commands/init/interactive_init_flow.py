@@ -323,7 +323,10 @@ def _get_choice_from_options(chosen, options, question, msg):
 def get_sorted_runtimes(options_list):
     runtimes = []
     for runtime in options_list:
-        position = INIT_RUNTIMES.index(runtime)
+        try:
+            position = INIT_RUNTIMES.index(runtime)
+        except:
+            continue
         runtimes.append(position)
     sorted_runtimes = sorted(runtimes)
     for index, position in enumerate(sorted_runtimes):
