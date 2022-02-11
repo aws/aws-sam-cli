@@ -573,7 +573,7 @@ class TestBuildContext__enter__(TestCase):
             container_env_var_file=None,
             build_images={},
             create_auto_dependency_layer=auto_dependency_layer,
-            print_message=False,
+            print_success_message=False,
         ) as build_context:
             with patch("samcli.commands.build.build_context.BuildContext.gen_success_msg") as mock_message:
                 build_context.run()

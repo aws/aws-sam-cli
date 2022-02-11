@@ -124,7 +124,7 @@ class TestDoCli(TestCase):
             cached=True,
             create_auto_dependency_layer=auto_dependency_layer,
             stack_name=self.stack_name,
-            print_message=False,
+            print_success_message=False,
         )
 
         PackageContextMock.assert_called_with(
@@ -249,7 +249,7 @@ class TestDoCli(TestCase):
             cached=True,
             create_auto_dependency_layer=auto_dependency_layer,
             stack_name=self.stack_name,
-            print_message=False,
+            print_success_message=False,
         )
 
         PackageContextMock.assert_called_with(
