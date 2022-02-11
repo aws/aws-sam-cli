@@ -63,8 +63,9 @@ def generate_project(
         If the process of baking a project fails
     """
     template = None
+    CUSTOM_RUNTIME = "provided.al2"
 
-    if runtime and package_type == ZIP:
+    if runtime and CUSTOM_RUNTIME not in runtime and package_type == ZIP:
         for mapping in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values()))):
             if runtime in mapping["runtimes"] or any([r.startswith(runtime) for r in mapping["runtimes"]]):
                 if not dependency_manager or dependency_manager == mapping["dependency_manager"]:

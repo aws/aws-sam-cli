@@ -95,6 +95,7 @@ RUNTIME_TO_DEPENDENCY_MANAGERS = {
     "java8": ["maven", "gradle"],
     "java11": ["maven", "gradle"],
     "java8.al2": ["maven", "gradle"],
+    "rust(provided.al2)": ["cargo"],
 }
 
 SUPPORTED_DEP_MANAGERS: Set[str] = {
