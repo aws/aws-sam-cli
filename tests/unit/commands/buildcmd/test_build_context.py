@@ -610,8 +610,9 @@ class TestBuildContext__enter__(TestCase):
             print_success_message=False,
         ) as build_context:
             with patch("samcli.commands.build.build_context.BuildContext.gen_success_msg") as mock_message:
-                build_context.run()
-                mock_message.assert_not_called()
+                with patch("samcli.commands.build.build_context.BuildContext._check_java_warning") as mock_java_warning:
+                    build_context.run()
+                    mock_message.assert_not_called()
 
 
 class TestBuildContext_setup_build_dir(TestCase):
