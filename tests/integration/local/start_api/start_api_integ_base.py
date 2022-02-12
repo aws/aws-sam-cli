@@ -3,15 +3,14 @@ import uuid
 from typing import List, Optional, Dict
 from unittest import TestCase, skipIf
 import threading
-from subprocess import Popen, PIPE
-import time
 import os
 import random
 from pathlib import Path
 
 import docker
 
-from tests.testing_utils import SKIP_DOCKER_MESSAGE, SKIP_DOCKER_TESTS, run_command
+from tests.testing_utils import kill_process, read_until_string
+from tests.testing_utils import SKIP_DOCKER_MESSAGE, SKIP_DOCKER_TESTS, run_command, start_persistent_process
 
 
 @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
@@ -80,18 +79,14 @@ class StartApiIntegBaseClass(TestCase):
             for image in cls.invoke_image:
                 command_list += ["--invoke-image", image]
 
-        cls.start_api_process = Popen(command_list, stderr=PIPE)
-
-        while True:
-            line = cls.start_api_process.stderr.readline()
-            if "(Press CTRL+C to quit)" in str(line):
-                break
+        cls.start_api_process = start_persistent_process(command_list)
+        read_until_string(cls.start_api_process, "(Press CTRL+C to quit)")
 
         cls.stop_reading_thread = False
 
         def read_sub_process_stderr():
             while not cls.stop_reading_thread:
-                cls.start_api_process.stderr.readline()
+                cls.start_api_process.stdout.readline()
 
         cls.read_threading = threading.Thread(target=read_sub_process_stderr)
         cls.read_threading.start()
@@ -103,8 +98,8 @@ class StartApiIntegBaseClass(TestCase):
     @classmethod
     def tearDownClass(cls):
         # After all the tests run, we need to kill the start-api process.
-        cls.start_api_process.kill()
         cls.stop_reading_thread = True
+        kill_process(cls.start_api_process)
 
     @staticmethod
     def random_port():

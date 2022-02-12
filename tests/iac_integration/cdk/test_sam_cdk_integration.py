@@ -1,5 +1,4 @@
 from unittest import TestCase
-from subprocess import Popen, PIPE
 import os
 import random
 from pathlib import Path
@@ -9,7 +8,7 @@ import pytest
 import requests
 from parameterized import parameterized_class, parameterized
 
-from tests.testing_utils import run_command
+from tests.testing_utils import run_command, start_persistent_process, read_until_string, kill_process
 
 
 @parameterized_class(
@@ -69,18 +68,13 @@ class TestSamCdkIntegration(TestCase):
         command_list = [command, "local", "start-api", "-p", cls.api_port]
 
         working_dir = cls.cdk_project + "/cdk.out"
-        cls.start_api_process = Popen(command_list, cwd=working_dir, stderr=PIPE)
-
-        while True:
-            line = cls.start_api_process.stderr.readline()
-            if "(Press CTRL+C to quit)" in str(line):
-                break
+        cls.start_api_process = start_persistent_process(command_list, cwd=working_dir)
+        read_until_string(cls.start_api_process, "(Press CTRL+C to quit)")
 
         cls.stop_api_reading_thread = False
-
         def read_sub_process_stderr():
             while not cls.stop_api_reading_thread:
-                cls.start_api_process.stderr.readline()
+                cls.start_api_process.stdout.readline()
 
         cls.api_read_threading = threading.Thread(target=read_sub_process_stderr)
         cls.api_read_threading.start()
@@ -88,8 +82,8 @@ class TestSamCdkIntegration(TestCase):
     @classmethod
     def tearDownClass(cls):
         # After all the tests run, we need to kill the start_lambda process.
-        cls.start_api_process.kill()
         cls.stop_api_reading_thread = True
+        kill_process(cls.start_api_process)
 
     @staticmethod
     def random_port():
