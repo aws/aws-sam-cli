@@ -69,9 +69,10 @@ class TestSamCdkIntegration(TestCase):
 
         working_dir = cls.cdk_project + "/cdk.out"
         cls.start_api_process = start_persistent_process(command_list, cwd=working_dir)
-        read_until_string(cls.start_api_process, "(Press CTRL+C to quit)")
+        read_until_string(cls.start_api_process, "(Press CTRL+C to quit)", timeout=60)
 
         cls.stop_api_reading_thread = False
+
         def read_sub_process_stderr():
             while not cls.stop_api_reading_thread:
                 cls.start_api_process.stdout.readline()

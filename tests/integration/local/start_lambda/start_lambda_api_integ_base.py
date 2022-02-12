@@ -9,8 +9,14 @@ from pathlib import Path
 
 import docker
 
-from tests.testing_utils import SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE, run_command, kill_process, \
-    start_persistent_process, read_until_string
+from tests.testing_utils import (
+    SKIP_DOCKER_TESTS,
+    SKIP_DOCKER_MESSAGE,
+    run_command,
+    kill_process,
+    start_persistent_process,
+    read_until_string,
+)
 
 
 @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
@@ -87,9 +93,10 @@ class StartLambdaIntegBaseClass(TestCase):
                 command_list += ["--invoke-image", image]
 
         cls.start_lambda_process = start_persistent_process(command_list)
-        read_until_string(cls.start_lambda_process, "(Press CTRL+C to quit)")
+        read_until_string(cls.start_lambda_process, "(Press CTRL+C to quit)", timeout=60)
 
         cls.stop_reading_thread = False
+
         def read_sub_process_stderr():
             while not cls.stop_reading_thread:
                 cls.start_lambda_process.stdout.readline()

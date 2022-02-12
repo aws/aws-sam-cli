@@ -80,7 +80,7 @@ class StartApiIntegBaseClass(TestCase):
                 command_list += ["--invoke-image", image]
 
         cls.start_api_process = start_persistent_process(command_list)
-        read_until_string(cls.start_api_process, "(Press CTRL+C to quit)")
+        read_until_string(cls.start_api_process, "(Press CTRL+C to quit)", timeout=60)
 
         cls.stop_reading_thread = False
 
