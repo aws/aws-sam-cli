@@ -520,6 +520,7 @@ class ApplicationBuilder:
                     options,
                     container_env_vars,
                     image,
+                    is_building_layer=True,
                 )
             else:
                 self._build_function_in_process(
@@ -756,6 +757,7 @@ class ApplicationBuilder:
         options: Optional[Dict],
         container_env_vars: Optional[Dict] = None,
         build_image: Optional[str] = None,
+        is_building_layer: bool = False,
     ) -> str:
         # _build_function_on_container() is only called when self._container_manager if not None
         if not self._container_manager:
@@ -791,6 +793,7 @@ class ApplicationBuilder:
             mode=self._mode,
             env_vars=container_env_vars,
             image=build_image,
+            is_building_layer=is_building_layer,
         )
 
         try:

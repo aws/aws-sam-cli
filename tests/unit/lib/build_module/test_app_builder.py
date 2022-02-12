@@ -533,6 +533,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             None,
             None,
             None,
+            is_building_layer=True,
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -567,6 +568,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             None,
             None,
             "test_image",
+            is_building_layer=True,
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -601,6 +603,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             None,
             None,
             "test_image",
+            is_building_layer=True,
         )
 
 
@@ -1619,6 +1622,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
             executable_search_paths=config.executable_search_paths,
             mode="mode",
             env_vars={},
+            is_building_layer=False,
         )
 
         self.container_manager.run.assert_called_with(container_mock)
