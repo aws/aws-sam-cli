@@ -15,6 +15,7 @@ serverlessrepo==0.1.10
 aws_lambda_builders==1.11.0
 tomlkit==0.7.2
 watchdog==2.1.2
+pyhocon==0.3.59
 
 # Needed for supporting Protocol in Python 3.6
 typing_extensions==3.10.0.0

@@ -152,6 +152,7 @@ def do_cli(  # pylint: disable=R0914
     from samcli.lib.providers.exceptions import InvalidLayerReference
     from samcli.commands.exceptions import UserException
     from samcli.commands.local.lib.local_api_service import LocalApiService
+    from samcli.local.sqs.local_sqs_service import LocalSqsService
     from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
     from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
     from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
@@ -188,7 +189,7 @@ def do_cli(  # pylint: disable=R0914
             container_host_interface=container_host_interface,
             invoke_images=processed_invoke_images,
         ) as invoke_context:
-
+            LocalSqsService(invoke_context=invoke_context)
             service = LocalApiService(lambda_invoke_context=invoke_context, port=port, host=host, static_dir=static_dir)
             service.start()
 

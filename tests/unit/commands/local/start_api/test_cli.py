@@ -51,15 +51,21 @@ class TestCli(TestCase):
         self.container_host_interface = "127.0.0.1"
         self.invoke_image = ()
 
+    @patch("samcli.local.sqs.local_sqs_service.LocalSqsService")
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.lib.local_api_service.LocalApiService")
-    def test_cli_must_setup_context_and_start_service(self, local_api_service_mock, invoke_context_mock):
+    def test_cli_must_setup_context_and_start_service(
+        self, local_api_service_mock, invoke_context_mock, local_sqs_service
+    ):
         # Mock the __enter__ method to return a object inside a context manager
         context_mock = Mock()
         invoke_context_mock.return_value.__enter__.return_value = context_mock
 
         service_mock = Mock()
         local_api_service_mock.return_value = service_mock
+
+        sqs_service_mock = Mock()
+        local_sqs_service = sqs_service_mock
 
         self.warm_containers = None
         self.debug_function = None
@@ -97,9 +103,10 @@ class TestCli(TestCase):
 
         service_mock.start.assert_called_with()
 
+    @patch("samcli.local.sqs.local_sqs_service.LocalSqsService")
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.lib.local_api_service.LocalApiService")
-    def test_must_raise_if_no_api_defined(self, local_api_service_mock, invoke_context_mock):
+    def test_must_raise_if_no_api_defined(self, local_api_service_mock, invoke_context_mock, local_sqs_service_mock):
 
         # Mock the __enter__ method to return a object inside a context manager
         context_mock = Mock()
@@ -108,6 +115,9 @@ class TestCli(TestCase):
         service_mock = Mock()
         local_api_service_mock.return_value = service_mock
         service_mock.start.side_effect = NoApisDefined("no apis")
+
+        sqs_service_mock = Mock()
+        local_api_service_mock = sqs_service_mock
 
         with self.assertRaises(UserException) as context:
             self.call_cli()
