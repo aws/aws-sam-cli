@@ -5,9 +5,11 @@ from unittest import TestCase, skipIf
 import threading
 import os
 import random
+import logging
 from pathlib import Path
 
 import docker
+from docker.errors import APIError
 
 from tests.testing_utils import (
     SKIP_DOCKER_TESTS,
@@ -17,6 +19,8 @@ from tests.testing_utils import (
     start_persistent_process,
     read_until_string,
 )
+
+LOG = logging.getLogger(__name__)
 
 
 @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
@@ -45,11 +49,12 @@ class StartLambdaIntegBaseClass(TestCase):
         # remove all containers if there
         cls.docker_client = docker.from_env()
         for container in cls.docker_client.api.containers():
-            cls.docker_client.api.remove_container(container, force=True)
+            try:
+                cls.docker_client.api.remove_container(container, force=True)
+            except APIError as ex:
+                LOG.error("Failed to remove container %s", container, exc_info=ex)
 
-        cls.thread = threading.Thread(target=cls.start_lambda())
-        cls.thread.setDaemon(True)
-        cls.thread.start()
+        cls.start_lambda()
 
     @classmethod
     def build(cls):
@@ -95,15 +100,6 @@ class StartLambdaIntegBaseClass(TestCase):
         cls.start_lambda_process = start_persistent_process(command_list)
         read_until_string(cls.start_lambda_process, "(Press CTRL+C to quit)", timeout=60)
 
-        cls.stop_reading_thread = False
-
-        def read_sub_process_stderr():
-            while not cls.stop_reading_thread:
-                cls.start_lambda_process.stdout.readline()
-
-        cls.read_threading = threading.Thread(target=read_sub_process_stderr)
-        cls.read_threading.start()
-
     @classmethod
     def _make_parameter_override_arg(self, overrides):
         return " ".join(["ParameterKey={},ParameterValue={}".format(key, value) for key, value in overrides.items()])
@@ -111,7 +107,6 @@ class StartLambdaIntegBaseClass(TestCase):
     @classmethod
     def tearDownClass(cls):
         # After all the tests run, we need to kill the start_lambda process.
-        cls.stop_reading_thread = True
         kill_process(cls.start_lambda_process)
 
     @staticmethod
