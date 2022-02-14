@@ -334,13 +334,14 @@ class LocalSqsService:
 
 
 def run_async(call_list: List[Callable], concurrency: int = 4):
+    loop = asyncio.get_event_loop()
+
     async def call(func: Callable, semaphore):
         async with semaphore:
-            loop = asyncio.get_running_loop()
             return await loop.run_in_executor(None, func)
 
     async def begin():
         semaphore = asyncio.Semaphore(concurrency)
         return await asyncio.gather(*[call(func, semaphore) for func in call_list])
 
-    return asyncio.run(begin())
+    return loop.run_until_complete(begin())
