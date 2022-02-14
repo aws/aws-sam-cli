@@ -520,6 +520,7 @@ class ApplicationBuilder:
                     options,
                     container_env_vars,
                     image,
+                    is_building_layer=True,
                 )
             else:
                 self._build_function_in_process(
@@ -724,27 +725,22 @@ class ApplicationBuilder:
         runtime = runtime.replace(".al2", "")
 
         try:
-            builder_kwargs = {
-                "source_dir": source_dir,
-                "artifacts_dir": artifacts_dir,
-                "scratch_dir": scratch_dir,
-                "manifest_path": manifest_path,
-                "runtime": runtime,
-                "executable_search_paths": config.executable_search_paths,
-                "mode": self._mode,
-                "options": options,
-                "architecture": architecture,
-                "dependencies_dir": dependencies_dir,
-                "download_dependencies": download_dependencies,
-                "combine_dependencies": combine_dependencies,
-            }
-
-            # This is only required until we release new version of LambdaBuilders
-            if lambda_builders_version == "1.11.0":
-                builder_kwargs["is_building_layer"] = is_building_layer
-                builder_kwargs["experimental_flags"] = get_enabled_experimental_flags()
-
-            builder.build(**builder_kwargs)
+            builder.build(
+                source_dir,
+                artifacts_dir,
+                scratch_dir,
+                manifest_path,
+                runtime=runtime,
+                executable_search_paths=config.executable_search_paths,
+                mode=self._mode,
+                options=options,
+                architecture=architecture,
+                dependencies_dir=dependencies_dir,
+                download_dependencies=download_dependencies,
+                combine_dependencies=combine_dependencies,
+                is_building_layer=is_building_layer,
+                experimental_flags=get_enabled_experimental_flags(),
+            )
         except LambdaBuilderError as ex:
             raise BuildError(wrapped_from=ex.__class__.__name__, msg=str(ex)) from ex
 
@@ -761,6 +757,7 @@ class ApplicationBuilder:
         options: Optional[Dict],
         container_env_vars: Optional[Dict] = None,
         build_image: Optional[str] = None,
+        is_building_layer: bool = False,
     ) -> str:
         # _build_function_on_container() is only called when self._container_manager if not None
         if not self._container_manager:
@@ -796,6 +793,7 @@ class ApplicationBuilder:
             mode=self._mode,
             env_vars=container_env_vars,
             image=build_image,
+            is_building_layer=is_building_layer,
         )
 
         try:
