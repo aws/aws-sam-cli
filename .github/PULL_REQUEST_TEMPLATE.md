@@ -17,8 +17,8 @@
 - [ ] Add input/output [type hints](https://docs.python.org/3/library/typing.html) to new functions/methods
 - [ ] Write design document if needed ([Do I need to write a design document?](https://github.com/aws/aws-sam-cli/blob/develop/DEVELOPMENT_GUIDE.md#design-document))
 - [ ] Write/update unit tests
-- [ ] Write/update functional tests
 - [ ] Write/update integration tests
+- [ ] Write/update functional tests if needed
 - [ ] `make pr` passes
 - [ ] `make update-reproducible-reqs` if dependencies were changed
 - [ ] Write documentation
