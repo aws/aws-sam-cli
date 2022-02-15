@@ -8,21 +8,20 @@ from unittest import skipIf
 import boto3
 import pytest
 import requests
-from integration.logs.logs_integ_base import RETRY_SLEEP
+from tests.integration.logs.logs_integ_base import RETRY_SLEEP
 from parameterized import parameterized
 
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.integration.logs.logs_integ_base import LogsIntegBase, RETRY_COUNT
-from tests.integration.package.package_integ_base import PackageIntegBase
 from tests.testing_utils import run_command, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, \
-    start_persistent_process, read_until
+    start_persistent_process, read_until, kill_process, method_to_stack_name
 
 LOG = logging.getLogger(__name__)
 SKIP_LOGS_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
 
 @skipIf(SKIP_LOGS_TESTS, "Skip logs tests in CI/CD only")
-class TestLogsCommand(LogsIntegBase, DeployIntegBase, PackageIntegBase):
+class TestLogsCommand(LogsIntegBase):
     stack_name = ""
     stack_resources = []
     stack_info = None
@@ -34,10 +33,9 @@ class TestLogsCommand(LogsIntegBase, DeployIntegBase, PackageIntegBase):
     @pytest.fixture(autouse=True, scope="class")
     def sync_code_base(self):
         test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "logs")
-        TestLogsCommand.stack_name = self._method_to_stack_name("sam_logs")
-        # TestLogsCommand.stack_name = "sam-logs-0-0-0"
+        TestLogsCommand.stack_name = method_to_stack_name("sam_logs")
         LOG.info("Deploying stack %s", self.stack_name)
-        deploy_cmd = self.get_deploy_command_list(
+        deploy_cmd = DeployIntegBase.get_deploy_command_list(
             stack_name=self.stack_name,
             template_file=test_data_path.joinpath("python-apigw-sfn", "template.yaml"),
             resolve_s3=True,
@@ -93,10 +91,13 @@ class TestLogsCommand(LogsIntegBase, DeployIntegBase, PackageIntegBase):
         lambda_invoke_result = self.lambda_client.invoke(FunctionName=self._get_physical_id(function_name))
         LOG.info("Lambda invoke result %s", lambda_invoke_result)
 
-        def _check_logs(output, outputs):
+        def _check_logs(output: str, _: List[str]) -> bool:
             return expected_log_output in output
 
-        read_until(tail_process, _check_logs, timeout=RETRY_COUNT * RETRY_SLEEP)
+        try:
+            read_until(tail_process, _check_logs, timeout=RETRY_COUNT * RETRY_SLEEP)
+        finally:
+            kill_process(tail_process)
 
     @parameterized.expand([("ApiGwFunction",), ("SfnFunction",)])
     def test_filter(self, function_name: str):

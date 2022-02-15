@@ -1,10 +1,7 @@
-import os
-import threading
-import time
-from subprocess import Popen, PIPE
 from typing import Optional, List
 from unittest import TestCase
 
+from tests.testing_utils import get_sam_command
 
 RETRY_COUNT = 20  # retry required because of log buffering configuration for each service
 RETRY_SLEEP = 2
@@ -12,15 +9,8 @@ RETRY_SLEEP = 2
 
 class LogsIntegBase(TestCase):
 
-    def base_command(self):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
-
-        return command
-
+    @staticmethod
     def get_logs_command_list(
-            self,
             stack_name: str,
             name: Optional[str] = None,
             filter: Optional[str] = None,
@@ -32,7 +22,7 @@ class LogsIntegBase(TestCase):
             output: Optional[str] = None,
             beta_features: bool = False,
     ):
-        command_list = [self.base_command(), "logs", "--stack-name", stack_name]
+        command_list = [get_sam_command(), "logs", "--stack-name", stack_name]
 
         if name:
             command_list += ["--name", name]

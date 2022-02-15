@@ -1,27 +1,12 @@
-import os
 from unittest import TestCase
+
+from tests.testing_utils import get_sam_command
 
 
 class DeployIntegBase(TestCase):
-    @classmethod
-    def setUpClass(cls):
-        pass
 
-    def setUp(self):
-        super().setUp()
-
-    def tearDown(self):
-        super().tearDown()
-
-    def base_command(self):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
-
-        return command
-
+    @staticmethod
     def get_deploy_command_list(
-        self,
         s3_bucket=None,
         image_repository=None,
         image_repositories=None,
@@ -49,7 +34,7 @@ class DeployIntegBase(TestCase):
         resolve_image_repos=False,
         disable_rollback=False,
     ):
-        command_list = [self.base_command(), "deploy"]
+        command_list = [get_sam_command(), "deploy"]
 
         if guided:
             command_list = command_list + ["--guided"]
@@ -112,8 +97,9 @@ class DeployIntegBase(TestCase):
 
         return command_list
 
+    @staticmethod
     def get_minimal_build_command_list(self, template_file=None, build_dir=None):
-        command_list = [self.base_command(), "build"]
+        command_list = [get_sam_command(), "build"]
 
         if template_file:
             command_list = command_list + ["--template-file", str(template_file)]
