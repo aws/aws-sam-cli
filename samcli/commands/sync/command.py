@@ -275,6 +275,7 @@ def do_cli(
         mode=mode,
         create_auto_dependency_layer=dependency_layer,
         stack_name=stack_name,
+        print_success_message=False,
     ) as build_context:
         built_template = os.path.join(build_dir, DEFAULT_TEMPLATE_NAME)
 
