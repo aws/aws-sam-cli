@@ -557,5 +557,5 @@ Commands you can use next
                 is_building_esbuild = True
                 break
 
-        if is_building_esbuild and not is_experimental_enabled(ExperimentalFlag.Esbuild):
+        if is_building_esbuild:
             prompt_experimental(ExperimentalFlag.Esbuild, self._ESBUILD_WARNING_MESSAGE)

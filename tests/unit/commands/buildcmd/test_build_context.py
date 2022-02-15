@@ -1123,18 +1123,13 @@ class TestBuildContext_java_warning(TestCase):
 class TestBuildContext_esbuild_warning(TestCase):
     @parameterized.expand(
         [
-            ([], False, False),
-            ([DummyFunction("Esbuild", metadata={"BuildMethod": "esbuild"})], False, True),
-            ([DummyFunction("Esbuild", metadata={"BuildMethod": "esbuild"})], True, False),
-            ([DummyFunction("NotEsbuild", metadata={"BuildMethod": "Makefile"})], False, False),
-            ([DummyFunction("NotEsbuild", metadata={"BuildMethod": "Makefile"})], True, False),
+            ([], False),
+            ([DummyFunction("Esbuild", metadata={"BuildMethod": "esbuild"})], True),
+            ([DummyFunction("NotEsbuild", metadata={"BuildMethod": "Makefile"})], False),
         ]
     )
     @patch("samcli.commands.build.build_context.prompt_experimental")
-    @patch("samcli.commands.build.build_context.is_experimental_enabled")
-    def test_check_esbuild_warning(
-        self, functions, is_experimental_enabled, should_print, experimental_flag_mock, mocked_click
-    ):
+    def test_check_esbuild_warning(self, functions, should_print, mocked_click):
         build_context = BuildContext(
             resource_identifier="function_identifier",
             template_file="template_file",
@@ -1146,7 +1141,6 @@ class TestBuildContext_esbuild_warning(TestCase):
             parallel=False,
             mode="mode",
         )
-        experimental_flag_mock.return_value = is_experimental_enabled
         with patch.object(build_context, "get_resources_to_build") as mocked_resources_to_build:
             mocked_resources_to_build.return_value = Mock(functions=functions)
             build_context._check_esbuild_warning()
