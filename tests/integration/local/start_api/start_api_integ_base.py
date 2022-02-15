@@ -98,7 +98,7 @@ class StartApiIntegBaseClass(TestCase):
             while not cls.stop_reading_thread:
                 cls.start_api_process.stdout.readline()
 
-        cls.read_threading = threading.Thread(target=read_sub_process_stderr, deamon=True)
+        cls.read_threading = threading.Thread(target=read_sub_process_stderr, daemon=True)
         cls.read_threading.start()
 
     @classmethod
