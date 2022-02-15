@@ -163,7 +163,7 @@ class WatchWarmContainersIntegBaseClass(StartApiIntegBaseClass):
 
     @classmethod
     def tearDownClass(cls):
+        super().tearDownClass()
         working_dir = str(Path(cls.integration_dir).resolve().joinpath(cls.temp_path))
         if Path(working_dir).resolve().exists():
             shutil.rmtree(working_dir, ignore_errors=True)
-        super().tearDownClass()

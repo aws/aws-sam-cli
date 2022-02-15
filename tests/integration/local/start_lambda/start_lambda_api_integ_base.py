@@ -142,7 +142,7 @@ class WatchWarmContainersIntegBaseClass(StartLambdaIntegBaseClass):
         cls.temp_path = str(uuid.uuid4()).replace("-", "")[:10]
         working_dir = str(Path(cls.integration_dir).resolve().joinpath(cls.temp_path))
         if Path(working_dir).resolve().exists():
-            shutil.rmtree(working_dir)
+            shutil.rmtree(working_dir, ignore_errors=True)
         os.mkdir(working_dir)
         os.mkdir(Path(cls.integration_dir).resolve().joinpath(cls.temp_path).joinpath("dir"))
         cls.template_path = f"/{cls.temp_path}/template.yaml"
@@ -169,7 +169,7 @@ class WatchWarmContainersIntegBaseClass(StartLambdaIntegBaseClass):
 
     @classmethod
     def tearDownClass(cls):
+        super().tearDownClass()
         working_dir = str(Path(cls.integration_dir).resolve().joinpath(cls.temp_path))
         if Path(working_dir).resolve().exists():
-            shutil.rmtree(working_dir)
-        super().tearDownClass()
+            shutil.rmtree(working_dir, ignore_errors=True)
