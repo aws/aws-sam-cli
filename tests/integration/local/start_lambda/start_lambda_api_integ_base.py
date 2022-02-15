@@ -96,6 +96,15 @@ class StartLambdaIntegBaseClass(TestCase):
             if "(Press CTRL+C to quit)" in str(line):
                 break
 
+        cls.stop_reading_thread = False
+
+        def read_sub_process_stderr():
+            while not cls.stop_reading_thread:
+                cls.start_lambda_process.stderr.readline()
+
+        cls.read_threading = threading.Thread(target=read_sub_process_stderr)
+        cls.read_threading.start()
+
     @classmethod
     def _make_parameter_override_arg(self, overrides):
         return " ".join(["ParameterKey={},ParameterValue={}".format(key, value) for key, value in overrides.items()])
@@ -104,6 +113,7 @@ class StartLambdaIntegBaseClass(TestCase):
     def tearDownClass(cls):
         # After all the tests run, we need to kill the start_lambda process.
         cls.start_lambda_process.kill()
+        cls.stop_reading_thread = True
 
     @staticmethod
     def random_port():
