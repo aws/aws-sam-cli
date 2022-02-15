@@ -50,8 +50,7 @@ class StartApiIntegBaseClass(TestCase):
                 cls.docker_client.api.remove_container(container, force=True)
             except APIError as ex:
                 LOG.error("Failed to remove container %s", container, exc_info=ex)
-        cls.thread = threading.Thread(target=cls.start_api())
-        cls.thread.setDaemon(True)
+        cls.thread = threading.Thread(target=cls.start_api(), daemon=True)
         cls.thread.start()
 
     @classmethod
@@ -99,7 +98,7 @@ class StartApiIntegBaseClass(TestCase):
             while not cls.stop_reading_thread:
                 cls.start_api_process.stderr.readline()
 
-        cls.read_threading = threading.Thread(target=read_sub_process_stderr)
+        cls.read_threading = threading.Thread(target=read_sub_process_stderr, daemon=True)
         cls.read_threading.start()
 
     @classmethod

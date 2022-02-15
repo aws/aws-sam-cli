@@ -106,8 +106,8 @@ def read_until_string(process: Popen, expected_output: str, timeout: int = 5) ->
     Throws TimeoutError if times out
     """
 
-    def _compare_output(output, _):
-        return expected_output in output
+    def _compare_output(output, outputs):
+        return output == expected_output
 
     try:
         read_until(process, _compare_output, timeout)
@@ -140,10 +140,8 @@ def read_until(process: Popen, callback: Callable[[str, List[str]], None], timeo
         try:
             outputs = list()
             for output in process.stdout:
-                if not output:
-                    continue
                 outputs.append(output)
-                LOG.info(output.strip())
+                LOG.info(output.encode("utf-8"))
                 if callback(output, outputs):
                     result_queue.put(True)
                     return
