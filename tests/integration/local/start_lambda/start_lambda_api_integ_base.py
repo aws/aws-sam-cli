@@ -3,6 +3,7 @@ import uuid
 from typing import Optional, Dict, List
 from unittest import TestCase, skipIf
 import threading
+from subprocess import Popen, PIPE
 import os
 import random
 import logging
@@ -54,7 +55,9 @@ class StartLambdaIntegBaseClass(TestCase):
             except APIError as ex:
                 LOG.error("Failed to remove container %s", container, exc_info=ex)
 
-        cls.start_lambda()
+        cls.thread = threading.Thread(target=cls.start_lambda())
+        cls.thread.setDaemon(True)
+        cls.thread.start()
 
     @classmethod
     def build(cls):
@@ -97,8 +100,21 @@ class StartLambdaIntegBaseClass(TestCase):
             for image in cls.invoke_image:
                 command_list += ["--invoke-image", image]
 
-        cls.start_lambda_process = start_persistent_process(command_list)
-        read_until_string(cls.start_lambda_process, "(Press CTRL+C to quit)", timeout=60)
+        cls.start_lambda_process = Popen(command_list, stderr=PIPE)
+
+        while True:
+            line = cls.start_lambda_process.stderr.readline()
+            if "(Press CTRL+C to quit)" in str(line):
+                break
+
+        cls.stop_reading_thread = False
+
+        def read_sub_process_stderr():
+            while not cls.stop_reading_thread:
+                cls.start_lambda_process.stderr.readline()
+
+        cls.read_threading = threading.Thread(target=read_sub_process_stderr)
+        cls.read_threading.start()
 
     @classmethod
     def _make_parameter_override_arg(self, overrides):
@@ -107,6 +123,7 @@ class StartLambdaIntegBaseClass(TestCase):
     @classmethod
     def tearDownClass(cls):
         # After all the tests run, we need to kill the start_lambda process.
+        cls.stop_reading_thread = True
         kill_process(cls.start_lambda_process)
 
     @staticmethod

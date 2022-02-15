@@ -2,6 +2,8 @@ import shutil
 import uuid
 from typing import List, Optional, Dict
 from unittest import TestCase, skipIf
+import threading
+from subprocess import Popen, PIPE
 import os
 import logging
 import random
@@ -48,7 +50,9 @@ class StartApiIntegBaseClass(TestCase):
                 cls.docker_client.api.remove_container(container, force=True)
             except APIError as ex:
                 LOG.error("Failed to remove container %s", container, exc_info=ex)
-        cls.start_api()
+        cls.thread = threading.Thread(target=cls.start_api())
+        cls.thread.setDaemon(True)
+        cls.thread.start()
 
     @classmethod
     def build(cls):
@@ -82,8 +86,21 @@ class StartApiIntegBaseClass(TestCase):
             for image in cls.invoke_image:
                 command_list += ["--invoke-image", image]
 
-        cls.start_api_process = start_persistent_process(command_list)
-        read_until_string(cls.start_api_process, "(Press CTRL+C to quit)", timeout=60)
+        cls.start_api_process = Popen(command_list, stderr=PIPE)
+
+        while True:
+            line = cls.start_api_process.stderr.readline()
+            if "(Press CTRL+C to quit)" in str(line):
+                break
+
+        cls.stop_reading_thread = False
+
+        def read_sub_process_stderr():
+            while not cls.stop_reading_thread:
+                cls.start_api_process.stderr.readline()
+
+        cls.read_threading = threading.Thread(target=read_sub_process_stderr)
+        cls.read_threading.start()
 
     @classmethod
     def _make_parameter_override_arg(self, overrides):
@@ -92,6 +109,7 @@ class StartApiIntegBaseClass(TestCase):
     @classmethod
     def tearDownClass(cls):
         # After all the tests run, we need to kill the start-api process.
+        cls.stop_reading_thread = True
         kill_process(cls.start_api_process)
 
     @staticmethod
