@@ -36,7 +36,7 @@ class TestSamCdkIntegration(TestCase):
         cls.build_cdk_project()
         cls.build()
 
-        cls.api_thread = threading.Thread(target=cls.start_api(), daemon=True)
+        cls.api_thread = threading.Thread(target=cls.start_api, daemon=True)
         cls.api_thread.start()
         cls.url = "http://127.0.0.1:{}".format(cls.api_port)
 
