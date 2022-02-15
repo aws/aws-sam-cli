@@ -8,6 +8,7 @@ import tempfile
 from pathlib import Path
 from unittest import skipIf
 
+import pytest
 from parameterized import parameterized
 
 from samcli.lib.utils.resources import (
@@ -38,12 +39,9 @@ class TestSyncInfra(SyncIntegBase):
         IS_WINDOWS,
         "Skip sync ruby tests in windows",
     )
-    @parameterized.expand(["ruby"])
+    @pytest.mark.flaky(reruns=3)
+    @parameterized.expand(["ruby", "python"])
     def test_sync_infra_ruby(self, runtime):
-        self._test_sync_infra(runtime)
-
-    @parameterized.expand(["python"])
-    def test_sync_infra(self, runtime):
         self._test_sync_infra(runtime)
 
     def _test_sync_infra(self, runtime):
