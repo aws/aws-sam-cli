@@ -37,8 +37,13 @@ class TestWatchManager(TestCase):
     @patch("samcli.lib.sync.watch_manager.SamLocalStackProvider.get_stacks")
     @patch("samcli.lib.sync.watch_manager.SyncFlowFactory")
     @patch("samcli.lib.sync.watch_manager.CodeTriggerFactory")
+    @patch("samcli.lib.sync.watch_manager.Path")
     def test_update_stacks(
-        self, trigger_factory_mock: MagicMock, sync_flow_factory_mock: MagicMock, get_stacks_mock: MagicMock
+        self,
+        path_mock: MagicMock,
+        trigger_factory_mock: MagicMock,
+        sync_flow_factory_mock: MagicMock,
+        get_stacks_mock: MagicMock,
     ):
         stacks = [MagicMock()]
         get_stacks_mock.return_value = [
@@ -48,7 +53,7 @@ class TestWatchManager(TestCase):
         get_stacks_mock.assert_called_once_with(self.template)
         sync_flow_factory_mock.assert_called_once_with(self.build_context, self.deploy_context, stacks, False)
         sync_flow_factory_mock.return_value.load_physical_id_mapping.assert_called_once_with()
-        trigger_factory_mock.assert_called_once_with(stacks)
+        trigger_factory_mock.assert_called_once_with(stacks, path_mock.return_value)
 
     @patch("samcli.lib.sync.watch_manager.get_all_resource_ids")
     def test_add_code_triggers(self, get_all_resource_ids_mock):
