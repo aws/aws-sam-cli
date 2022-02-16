@@ -9,7 +9,7 @@ import pytest
 import requests
 from parameterized import parameterized_class, parameterized
 
-from tests.testing_utils import run_command
+from tests.testing_utils import run_command, start_persistent_process, read_until_string, kill_process
 
 
 @parameterized_class(
@@ -36,8 +36,7 @@ class TestSamCdkIntegration(TestCase):
         cls.build_cdk_project()
         cls.build()
 
-        cls.api_thread = threading.Thread(target=cls.start_api())
-        cls.api_thread.setDaemon(True)
+        cls.api_thread = threading.Thread(target=cls.start_api, daemon=True)
         cls.api_thread.start()
         cls.url = "http://127.0.0.1:{}".format(cls.api_port)
 
@@ -82,14 +81,14 @@ class TestSamCdkIntegration(TestCase):
             while not cls.stop_api_reading_thread:
                 cls.start_api_process.stderr.readline()
 
-        cls.api_read_threading = threading.Thread(target=read_sub_process_stderr)
+        cls.api_read_threading = threading.Thread(target=read_sub_process_stderr, daemon=True)
         cls.api_read_threading.start()
 
     @classmethod
     def tearDownClass(cls):
         # After all the tests run, we need to kill the start_lambda process.
-        cls.start_api_process.kill()
         cls.stop_api_reading_thread = True
+        kill_process(cls.start_api_process)
 
     @staticmethod
     def random_port():
