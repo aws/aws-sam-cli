@@ -334,7 +334,14 @@ class LocalSqsService:
 
 
 def run_async(call_list: List[Callable], concurrency: int = 4):
-    loop = asyncio.get_event_loop()
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError as exception:
+        if "There is no current event loop in thread" in str(exception):
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop=loop)
+        else:
+            raise exception
 
     async def call(func: Callable, semaphore):
         async with semaphore:
@@ -344,4 +351,8 @@ def run_async(call_list: List[Callable], concurrency: int = 4):
         semaphore = asyncio.Semaphore(concurrency)
         return await asyncio.gather(*[call(func, semaphore) for func in call_list])
 
-    return loop.run_until_complete(begin())
+    result = loop.run_until_complete(begin())
+    asyncio.set_event_loop(loop=None)
+    loop.close()
+
+    return result
