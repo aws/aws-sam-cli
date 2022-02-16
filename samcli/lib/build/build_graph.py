@@ -334,6 +334,9 @@ class BuildGraph:
             if function_content or layer_content:
                 self._write_source_hash(function_content, layer_content)
 
+            self._function_build_definitions = stored_definitions
+            self._layer_build_definitions = stored_layers
+
     @staticmethod
     def _compare_hash_changes(
         input_list: Sequence["AbstractBuildDefinition"], compared_list: Sequence["AbstractBuildDefinition"]
