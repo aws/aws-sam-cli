@@ -1,13 +1,15 @@
+import itertools
 from unittest import TestCase
 from unittest.mock import Mock, patch, call, ANY
 
 from parameterized import parameterized
 
+from samcli.lib.observability.util import OutputOption
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION
 from samcli.commands.logs.puller_factory import (
     generate_puller,
-    generate_unformatted_consumer,
-    generate_console_consumer,
+    generate_json_consumer,
+    generate_text_consumer,
     NoPullerGeneratedException,
     generate_consumer,
 )
@@ -15,17 +17,14 @@ from samcli.commands.logs.puller_factory import (
 
 class TestPullerFactory(TestCase):
     @parameterized.expand(
-        [
-            (None, None, False),
-            ("filter_pattern", None, False),
-            ("filter_pattern", ["cw_log_groups"], False),
-            ("filter_pattern", ["cw_log_groups"], True),
-            (None, ["cw_log_groups"], True),
-            (None, None, True),
-        ]
+        itertools.product(
+            [None, "filter_pattern"],
+            [None, ["cw_log_groups"]],
+            ["text", "json"],
+        )
     )
-    @patch("samcli.commands.logs.puller_factory.generate_console_consumer")
-    @patch("samcli.commands.logs.puller_factory.generate_unformatted_consumer")
+    @patch("samcli.commands.logs.puller_factory.generate_text_consumer")
+    @patch("samcli.commands.logs.puller_factory.generate_json_consumer")
     @patch("samcli.commands.logs.puller_factory.CWLogPuller")
     @patch("samcli.commands.logs.puller_factory.generate_trace_puller")
     @patch("samcli.commands.logs.puller_factory.ObservabilityCombinedPuller")
@@ -33,12 +32,12 @@ class TestPullerFactory(TestCase):
         self,
         param_filter_pattern,
         param_cw_log_groups,
-        param_unformatted,
+        param_output,
         patched_combined_puller,
         patched_xray_puller,
         patched_cw_log_puller,
-        patched_unformatted_consumer,
-        patched_console_consumer,
+        patched_json_consumer,
+        patched_text_consumer,
     ):
         mock_logs_client = Mock()
         mock_xray_client = Mock()
@@ -56,10 +55,10 @@ class TestPullerFactory(TestCase):
         mocked_consumers = mocked_resource_consumers + mocked_cw_specific_consumers
 
         # depending on the output_dir param patch file consumer or console consumer
-        if param_unformatted:
-            patched_unformatted_consumer.side_effect = mocked_consumers
+        if param_output == "json":
+            patched_json_consumer.side_effect = mocked_consumers
         else:
-            patched_console_consumer.side_effect = mocked_consumers
+            patched_text_consumer.side_effect = mocked_consumers
 
         mocked_xray_puller = Mock()
         patched_xray_puller.return_value = mocked_xray_puller
@@ -76,13 +75,13 @@ class TestPullerFactory(TestCase):
             mock_resource_info_list,
             param_filter_pattern,
             param_cw_log_groups,
-            param_unformatted,
+            OutputOption(param_output),
             True,
         )
 
         self.assertEqual(puller, mocked_combined_puller)
 
-        patched_xray_puller.assert_called_once_with(mock_xray_client, param_unformatted)
+        patched_xray_puller.assert_called_once_with(mock_xray_client, OutputOption(param_output))
 
         patched_cw_log_puller.assert_has_calls(
             [call(mock_logs_client, consumer, ANY, ANY) for consumer in mocked_resource_consumers]
@@ -95,10 +94,10 @@ class TestPullerFactory(TestCase):
         patched_combined_puller.assert_called_with(mocked_pullers)
 
         # depending on the output_dir param assert calls for file consumer or console consumer
-        if param_unformatted:
-            patched_unformatted_consumer.assert_has_calls([call() for _ in mocked_consumers])
+        if param_output == "json":
+            patched_json_consumer.assert_has_calls([call() for _ in mocked_consumers])
         else:
-            patched_console_consumer.assert_has_calls([call(param_filter_pattern) for _ in mocked_consumers])
+            patched_text_consumer.assert_has_calls([call(param_filter_pattern) for _ in mocked_consumers])
 
     def test_puller_with_invalid_resource_type(self):
         mock_logs_client = Mock()
@@ -108,18 +107,18 @@ class TestPullerFactory(TestCase):
         with self.assertRaises(NoPullerGeneratedException):
             generate_puller(mock_logs_client, [mock_resource_information])
 
-    @patch("samcli.commands.logs.puller_factory.generate_console_consumer")
+    @patch("samcli.commands.logs.puller_factory.generate_text_consumer")
     @patch("samcli.commands.logs.puller_factory.CWLogPuller")
     @patch("samcli.commands.logs.puller_factory.ObservabilityCombinedPuller")
     def test_generate_puller_with_console_with_additional_cw_logs_groups(
-        self, patched_combined_puller, patched_cw_log_puller, patched_console_consumer
+        self, patched_combined_puller, patched_cw_log_puller, patched_text_consumer
     ):
         mock_logs_client = Mock()
         mock_logs_client_generator = lambda client: mock_logs_client
         mock_cw_log_groups = [Mock(), Mock(), Mock()]
 
         mocked_consumers = [Mock() for _ in mock_cw_log_groups]
-        patched_console_consumer.side_effect = mocked_consumers
+        patched_text_consumer.side_effect = mocked_consumers
 
         mocked_pullers = [Mock() for _ in mock_cw_log_groups]
         patched_cw_log_puller.side_effect = mocked_pullers
@@ -135,32 +134,32 @@ class TestPullerFactory(TestCase):
 
         patched_combined_puller.assert_called_with(mocked_pullers)
 
-        patched_console_consumer.assert_has_calls([call(None) for _ in mock_cw_log_groups])
+        patched_text_consumer.assert_has_calls([call(None) for _ in mock_cw_log_groups])
 
     @parameterized.expand(
         [
-            (False,),
-            (True,),
+            (OutputOption.json,),
+            (OutputOption.text,),
         ]
     )
-    @patch("samcli.commands.logs.puller_factory.generate_unformatted_consumer")
-    @patch("samcli.commands.logs.puller_factory.generate_console_consumer")
-    def test_generate_consumer(self, param_unformatted, patched_console_consumer, patched_unformatted_consumer):
+    @patch("samcli.commands.logs.puller_factory.generate_json_consumer")
+    @patch("samcli.commands.logs.puller_factory.generate_text_consumer")
+    def test_generate_consumer(self, param_output, patched_text_consumer, patched_json_consumer):
         given_filter_pattern = Mock()
         given_resource_name = Mock()
 
         given_console_consumer = Mock()
-        patched_console_consumer.return_value = given_console_consumer
+        patched_text_consumer.return_value = given_console_consumer
         given_file_consumer = Mock()
-        patched_unformatted_consumer.return_value = given_file_consumer
+        patched_json_consumer.return_value = given_file_consumer
 
-        actual_consumer = generate_consumer(given_filter_pattern, param_unformatted, given_resource_name)
+        actual_consumer = generate_consumer(given_filter_pattern, param_output, given_resource_name)
 
-        if param_unformatted:
-            patched_unformatted_consumer.assert_called_with()
+        if param_output == OutputOption.json:
+            patched_json_consumer.assert_called_with()
             self.assertEqual(actual_consumer, given_file_consumer)
         else:
-            patched_console_consumer.assert_called_with(given_filter_pattern)
+            patched_text_consumer.assert_called_with(given_filter_pattern)
             self.assertEqual(actual_consumer, given_console_consumer)
 
     @patch("samcli.commands.logs.puller_factory.ObservabilityEventConsumerDecorator")
@@ -181,7 +180,7 @@ class TestPullerFactory(TestCase):
         expected_json_formatter = Mock()
         patched_json_formatter.return_value = expected_json_formatter
 
-        consumer = generate_unformatted_consumer()
+        consumer = generate_json_consumer()
 
         self.assertEqual(expected_consumer, consumer)
 
@@ -234,7 +233,7 @@ class TestPullerFactory(TestCase):
         expected_consumer = Mock()
         patched_decorated_consumer.return_value = expected_consumer
 
-        consumer = generate_console_consumer(mock_filter_pattern)
+        consumer = generate_text_consumer(mock_filter_pattern)
 
         self.assertEqual(expected_consumer, consumer)
 
