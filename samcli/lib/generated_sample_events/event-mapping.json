@@ -790,6 +790,11 @@
     }
   },
   "lex-v2": {
+    "banking-bot": {
+      "filename": "BankingBot",
+      "help": "Generates an Amazon Lex V2 Banking Bot Event",
+      "tags": {}
+    },
     "book-car": {
       "filename": "LexBookCar",
       "help": "Generates an Amazon Lex V2 Book Car Event",
