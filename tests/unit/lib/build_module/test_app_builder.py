@@ -502,6 +502,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             None,
             True,
             True,
+            is_building_layer=True,
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -532,6 +533,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             None,
             None,
             None,
+            is_building_layer=True,
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -566,6 +568,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             None,
             None,
             "test_image",
+            is_building_layer=True,
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -600,6 +603,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             None,
             None,
             "test_image",
+            is_building_layer=True,
         )
 
 
@@ -1455,8 +1459,11 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
             Mock(), "/build/dir", "/base/dir", "/cache/dir", mode="mode", stream_writer=StreamWriter(sys.stderr)
         )
 
+    @parameterized.expand([([],), (["ExpFlag1", "ExpFlag2"],)])
     @patch("samcli.lib.build.app_builder.LambdaBuilder")
-    def test_must_use_lambda_builder(self, lambda_builder_mock):
+    @patch("samcli.lib.build.app_builder.get_enabled_experimental_flags")
+    def test_must_use_lambda_builder(self, experimental_flags, experimental_flags_mock, lambda_builder_mock):
+        experimental_flags_mock.return_value = experimental_flags
         config_mock = Mock()
         builder_instance_mock = lambda_builder_mock.return_value = Mock()
 
@@ -1472,6 +1479,7 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
             None,
             True,
             True,
+            is_building_layer=False,
         )
         self.assertEqual(result, "artifacts_dir")
 
@@ -1494,6 +1502,8 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
             dependencies_dir=None,
             download_dependencies=True,
             combine_dependencies=True,
+            is_building_layer=False,
+            experimental_flags=experimental_flags,
         )
 
     @patch("samcli.lib.build.app_builder.LambdaBuilder")
@@ -1517,6 +1527,46 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
                 True,
                 True,
             )
+
+    @patch("samcli.lib.build.app_builder.LambdaBuilder")
+    @patch("samcli.lib.build.app_builder.get_enabled_experimental_flags")
+    def test_building_with_experimental_flags(self, get_enabled_experimental_flags_mock, lambda_builder_mock):
+        get_enabled_experimental_flags_mock.return_value = ["A", "B", "C"]
+        config_mock = Mock()
+        self.builder._build_function_in_process(
+            config_mock,
+            "source_dir",
+            "artifacts_dir",
+            "scratch_dir",
+            "manifest_path",
+            "runtime",
+            X86_64,
+            None,
+            None,
+            True,
+            True,
+            True,
+        )
+        lambda_builder_mock.assert_has_calls(
+            [
+                call().build(
+                    "source_dir",
+                    "artifacts_dir",
+                    "scratch_dir",
+                    "manifest_path",
+                    runtime="runtime",
+                    executable_search_paths=ANY,
+                    mode="mode",
+                    options=None,
+                    architecture=X86_64,
+                    dependencies_dir=None,
+                    download_dependencies=True,
+                    combine_dependencies=True,
+                    is_building_layer=True,
+                    experimental_flags=["A", "B", "C"],
+                )
+            ]
+        )
 
 
 class TestApplicationBuilder_build_function_on_container(TestCase):
@@ -1572,6 +1622,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
             executable_search_paths=config.executable_search_paths,
             mode="mode",
             env_vars={},
+            is_building_layer=False,
         )
 
         self.container_manager.run.assert_called_with(container_mock)

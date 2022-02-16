@@ -26,6 +26,40 @@ class DeepWrap(Exception):
     pass
 
 
+class DummyLayer:
+    def __init__(self, name, build_method, codeuri="layer_src", skip_build=False):
+        self.name = name
+        self.build_method = build_method
+        self.codeuri = codeuri
+        self.full_path = Mock()
+        self.skip_build = skip_build
+
+
+class DummyFunction:
+    def __init__(
+        self,
+        name,
+        layers=[],
+        inlinecode=None,
+        codeuri="src",
+        imageuri="image:latest",
+        packagetype=ZIP,
+        metadata=None,
+        skip_build=False,
+        runtime=None,
+    ):
+        self.name = name
+        self.layers = layers
+        self.inlinecode = inlinecode
+        self.codeuri = codeuri
+        self.imageuri = imageuri
+        self.full_path = Mock()
+        self.packagetype = packagetype
+        self.metadata = metadata if metadata else {}
+        self.skip_build = skip_build
+        self.runtime = runtime
+
+
 class TestBuildContext__enter__(TestCase):
     @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
@@ -576,8 +610,9 @@ class TestBuildContext__enter__(TestCase):
             print_success_message=False,
         ) as build_context:
             with patch("samcli.commands.build.build_context.BuildContext.gen_success_msg") as mock_message:
-                build_context.run()
-                mock_message.assert_not_called()
+                with patch("samcli.commands.build.build_context.BuildContext._check_java_warning") as mock_java_warning:
+                    build_context.run()
+                    mock_message.assert_not_called()
 
 
 class TestBuildContext_setup_build_dir(TestCase):
@@ -785,7 +820,7 @@ class TestBuildContext_run(TestCase):
             root_stack.stack_path: "./build_dir/template.yaml",
             child_stack.stack_path: "./build_dir/abcd/template.yaml",
         }
-        resources_mock.return_value = Mock()
+        resources_mock.return_value = Mock(functions=[], layers=[])
 
         builder_mock = ApplicationBuilderMock.return_value = Mock()
         artifacts = "artifacts"
@@ -920,7 +955,7 @@ class TestBuildContext_run(TestCase):
     ):
 
         stack = Mock()
-        resources_mock.return_value = Mock()
+        resources_mock.return_value = Mock(functions=[], layers=[])
 
         builder_mock = ApplicationBuilderMock.return_value = Mock()
         artifacts = builder_mock.build.return_value = "artifacts"
@@ -1044,33 +1079,40 @@ class TestBuildContext_run(TestCase):
         self.assertEqual(str(ctx.exception), "Function Not Found")
 
 
-class DummyLayer:
-    def __init__(self, name, build_method, codeuri="layer_src", skip_build=False):
-        self.name = name
-        self.build_method = build_method
-        self.codeuri = codeuri
-        self.full_path = Mock()
-        self.skip_build = skip_build
+class TestBuildContext_java_warning(TestCase):
+    @parameterized.expand(
+        [
+            ([], [], False),
+            ([DummyFunction("NonJavaFunction", runtime="nodejs14.x")], [], False),
+            ([], [DummyLayer("NonJavaLayer", build_method="nodejs14.x")], False),
+            (
+                [DummyFunction("NonJavaFunction", runtime="nodejs14.x")],
+                [DummyLayer("NonJavaLayer", build_method="nodejs14.x")],
+                False,
+            ),
+            ([DummyFunction("JavaFunction", runtime="java8")], [], True),
+            ([], [DummyLayer("JavaLayer", build_method="java11")], True),
+            ([DummyFunction("JavaFunction", runtime="java11")], [DummyLayer("JavaLayer", build_method="java8")], True),
+        ]
+    )
+    @patch("samcli.commands.build.build_context.click.secho")
+    def test_check_java_warning(self, functions, layers, should_print, mocked_click):
+        build_context = BuildContext(
+            resource_identifier="function_identifier",
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            cached=False,
+            clean=False,
+            parallel=False,
+            mode="mode",
+        )
+        with patch.object(build_context, "get_resources_to_build") as mocked_resources_to_build:
+            mocked_resources_to_build.return_value = Mock(functions=functions, layers=layers)
+            build_context._check_java_warning()
 
-
-class DummyFunction:
-    def __init__(
-        self,
-        name,
-        layers=[],
-        inlinecode=None,
-        codeuri="src",
-        imageuri="image:latest",
-        packagetype=ZIP,
-        metadata=None,
-        skip_build=False,
-    ):
-        self.name = name
-        self.layers = layers
-        self.inlinecode = inlinecode
-        self.codeuri = codeuri
-        self.imageuri = imageuri
-        self.full_path = Mock()
-        self.packagetype = packagetype
-        self.metadata = metadata if metadata else {}
-        self.skip_build = skip_build
+            if should_print:
+                mocked_click.assert_called_with(BuildContext._JAVA_BUILD_WARNING_MESSAGE, fg="yellow")
+            else:
+                mocked_click.assert_not_called()
