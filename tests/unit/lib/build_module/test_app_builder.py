@@ -502,6 +502,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             None,
             True,
             True,
+            is_building_layer=True,
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -532,6 +533,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             None,
             None,
             None,
+            is_building_layer=True,
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -566,6 +568,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             None,
             None,
             "test_image",
+            is_building_layer=True,
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -600,6 +603,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             None,
             None,
             "test_image",
+            is_building_layer=True,
         )
 
 
@@ -1251,6 +1255,63 @@ class TestApplicationBuilder_build_function(TestCase):
             True,
         )
 
+    @patch("samcli.lib.build.app_builder.ApplicationBuilder._get_build_options")
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_must_build_in_process_with_metadata_and_metadata_as_options(
+        self, osutils_mock, get_workflow_config_mock, mock_build_options
+    ):
+        function_name = "function_name"
+        codeuri = "path/to/source"
+        runtime = "runtime"
+        packagetype = ZIP
+        architecture = ARM64
+        scratch_dir = "scratch"
+        handler = "handler.handle"
+        config_mock = get_workflow_config_mock.return_value = Mock()
+        config_mock.manifest_name = "manifest_name"
+        build_properties = {"Minify": False, "Target": "es2017", "SourceMap": False}
+        metadata = {"BuildMethod": "esbuild", "BuildProperties": build_properties}
+
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=scratch_dir)
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+
+        self.builder._build_function_in_process = Mock()
+        mock_build_options.return_value = build_properties
+
+        code_dir = str(Path("/base/dir/path/to/source").resolve())
+        artifacts_dir = str(Path("/build/dir/function_full_path"))
+        manifest_path = str(Path(os.path.join(code_dir, config_mock.manifest_name)).resolve())
+
+        self.builder._build_function(
+            function_name,
+            codeuri,
+            packagetype,
+            runtime,
+            architecture,
+            handler,
+            artifacts_dir,
+            metadata=metadata,
+        )
+
+        get_workflow_config_mock.assert_called_with(
+            runtime, code_dir, self.builder._base_dir, specified_workflow="esbuild"
+        )
+
+        self.builder._build_function_in_process.assert_called_with(
+            config_mock,
+            code_dir,
+            artifacts_dir,
+            scratch_dir,
+            manifest_path,
+            runtime,
+            architecture,
+            build_properties,
+            None,
+            True,
+            True,
+        )
+
     @patch("samcli.lib.build.app_builder.get_workflow_config")
     @patch("samcli.lib.build.app_builder.osutils")
     def test_must_build_in_container(self, osutils_mock, get_workflow_config_mock):
@@ -1398,8 +1459,11 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
             Mock(), "/build/dir", "/base/dir", "/cache/dir", mode="mode", stream_writer=StreamWriter(sys.stderr)
         )
 
+    @parameterized.expand([([],), (["ExpFlag1", "ExpFlag2"],)])
     @patch("samcli.lib.build.app_builder.LambdaBuilder")
-    def test_must_use_lambda_builder(self, lambda_builder_mock):
+    @patch("samcli.lib.build.app_builder.get_enabled_experimental_flags")
+    def test_must_use_lambda_builder(self, experimental_flags, experimental_flags_mock, lambda_builder_mock):
+        experimental_flags_mock.return_value = experimental_flags
         config_mock = Mock()
         builder_instance_mock = lambda_builder_mock.return_value = Mock()
 
@@ -1415,6 +1479,7 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
             None,
             True,
             True,
+            is_building_layer=False,
         )
         self.assertEqual(result, "artifacts_dir")
 
@@ -1437,6 +1502,8 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
             dependencies_dir=None,
             download_dependencies=True,
             combine_dependencies=True,
+            is_building_layer=False,
+            experimental_flags=experimental_flags,
         )
 
     @patch("samcli.lib.build.app_builder.LambdaBuilder")
@@ -1460,6 +1527,46 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
                 True,
                 True,
             )
+
+    @patch("samcli.lib.build.app_builder.LambdaBuilder")
+    @patch("samcli.lib.build.app_builder.get_enabled_experimental_flags")
+    def test_building_with_experimental_flags(self, get_enabled_experimental_flags_mock, lambda_builder_mock):
+        get_enabled_experimental_flags_mock.return_value = ["A", "B", "C"]
+        config_mock = Mock()
+        self.builder._build_function_in_process(
+            config_mock,
+            "source_dir",
+            "artifacts_dir",
+            "scratch_dir",
+            "manifest_path",
+            "runtime",
+            X86_64,
+            None,
+            None,
+            True,
+            True,
+            True,
+        )
+        lambda_builder_mock.assert_has_calls(
+            [
+                call().build(
+                    "source_dir",
+                    "artifacts_dir",
+                    "scratch_dir",
+                    "manifest_path",
+                    runtime="runtime",
+                    executable_search_paths=ANY,
+                    mode="mode",
+                    options=None,
+                    architecture=X86_64,
+                    dependencies_dir=None,
+                    download_dependencies=True,
+                    combine_dependencies=True,
+                    is_building_layer=True,
+                    experimental_flags=["A", "B", "C"],
+                )
+            ]
+        )
 
 
 class TestApplicationBuilder_build_function_on_container(TestCase):
@@ -1515,6 +1622,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
             executable_search_paths=config.executable_search_paths,
             mode="mode",
             env_vars={},
+            is_building_layer=False,
         )
 
         self.container_manager.run.assert_called_with(container_mock)
@@ -1680,3 +1788,38 @@ class TestApplicationBuilder_make_env_vars(TestCase):
         }
         result = ApplicationBuilder._make_env_vars(function1, file_env_vars, inline_env_vars)
         self.assertEqual(result, {"ENV_VAR1": "2", "ENV_VAR2": "3"})
+
+
+class TestApplicationBuilder_get_build_options(TestCase):
+    def test_get_options_from_metadata(self):
+        build_properties = {"Minify": False, "Target": "es2017", "Sourcemap": False, "EntryPoints": ["app.ts"]}
+        metadata = {"BuildMethod": "esbuild", "BuildProperties": build_properties}
+        expected_properties = {"minify": False, "target": "es2017", "sourcemap": False, "entry_points": ["app.ts"]}
+        options = ApplicationBuilder._get_build_options("Function", "Node.js", "handler", "npm-esbuild", metadata)
+        self.assertEqual(options, expected_properties)
+
+    def test_get_options_from_metadata_no_entry_points_defined(self):
+        build_properties = {"Minify": False, "Target": "es2017", "Sourcemap": False}
+        metadata = {"BuildMethod": "esbuild", "BuildProperties": build_properties}
+        expected_properties = {"minify": False, "target": "es2017", "sourcemap": False, "entry_points": ["handler"]}
+        options = ApplicationBuilder._get_build_options("Function", "Node.js", "handler", "npm-esbuild", metadata)
+        self.assertEqual(options, expected_properties)
+
+    def test_get_options_from_metadata_correctly_separates_source_and_handler(self):
+        build_properties = {"Minify": False, "Target": "es2017", "Sourcemap": False}
+        metadata = {"BuildMethod": "esbuild", "BuildProperties": build_properties}
+        expected_properties = {
+            "minify": False,
+            "target": "es2017",
+            "sourcemap": False,
+            "entry_points": ["src/handlers/post"],
+        }
+        options = ApplicationBuilder._get_build_options(
+            "Function", "Node.js", "src/handlers/post.handler", "npm-esbuild", metadata
+        )
+        self.assertEqual(options, expected_properties)
+
+    @parameterized.expand([(None, None), ({}, None)])
+    def test_invalid_metadata_cases(self, metadata, expected_output):
+        options = ApplicationBuilder._get_build_options("Function", "Node.js", "handler", "npm-esbuild", metadata)
+        self.assertEqual(options, expected_output)

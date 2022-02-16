@@ -1,0 +1,6 @@
+{
+  "app": "npm install && npx ts-node --prefer-ts-exts bin/test-app.ts",
+  "context": {
+    
+  }
+}

@@ -1,3 +1,4 @@
+import itertools
 from copy import deepcopy
 from unittest import TestCase
 from unittest.mock import Mock, patch, MagicMock, call, ANY
@@ -41,8 +42,8 @@ class BuildStrategyBaseTest(TestCase):
         self.function2.get_build_dir = Mock()
         self.function2.full_path = Mock()
 
-        self.function_build_definition1 = FunctionBuildDefinition("runtime", "codeuri", ZIP, X86_64, {})
-        self.function_build_definition2 = FunctionBuildDefinition("runtime2", "codeuri", ZIP, X86_64, {})
+        self.function_build_definition1 = FunctionBuildDefinition("runtime", "codeuri", ZIP, X86_64, {}, "handler")
+        self.function_build_definition2 = FunctionBuildDefinition("runtime2", "codeuri", ZIP, X86_64, {}, "handler")
         self.build_graph.put_function_build_definition(self.function_build_definition1, self.function1_1)
         self.build_graph.put_function_build_definition(self.function_build_definition1, self.function1_2)
         self.build_graph.put_function_build_definition(self.function_build_definition2, self.function2)
@@ -236,7 +237,9 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
         function2.name = "Function2"
         function2.full_path = "Function2"
         function2.packagetype = IMAGE
-        build_definition = FunctionBuildDefinition("3.7", "codeuri", IMAGE, X86_64, {}, env_vars={"FOO": "BAR"})
+        build_definition = FunctionBuildDefinition(
+            "3.7", "codeuri", IMAGE, X86_64, {}, "handler", env_vars={"FOO": "BAR"}
+        )
         # since they have the same metadata, they are put into the same build_definition.
         build_definition.functions = [function1, function2]
 
@@ -401,10 +404,10 @@ class ParallelBuildStrategyTest(BuildStrategyBaseTest):
         # assert that delegated function calls have been registered in async context
         mock_async_context.add_async_task.assert_has_calls(
             [
-                call(delegate_build_strategy.build_single_function_definition, self.function_build_definition1),
-                call(delegate_build_strategy.build_single_function_definition, self.function_build_definition2),
                 call(delegate_build_strategy.build_single_layer_definition, self.layer_build_definition1),
                 call(delegate_build_strategy.build_single_layer_definition, self.layer_build_definition2),
+                call(delegate_build_strategy.build_single_function_definition, self.function_build_definition1),
+                call(delegate_build_strategy.build_single_function_definition, self.function_build_definition2),
             ]
         )
 
@@ -452,6 +455,7 @@ class ParallelBuildStrategyTest(BuildStrategyBaseTest):
         )
 
 
+@patch("samcli.lib.build.build_strategy.os")
 @patch("samcli.lib.build.build_strategy.DependencyHashGenerator")
 class TestIncrementalBuildStrategy(TestCase):
     def setUp(self):
@@ -468,29 +472,65 @@ class TestIncrementalBuildStrategy(TestCase):
             Mock(),
         )
 
-    def test_assert_incremental_build_function(self, patched_manifest_hash):
-        same_hash = "same_hash"
-        patched_manifest_hash_instance = Mock(hash=same_hash)
+    @parameterized.expand(
+        list(
+            itertools.product(
+                [("hash1", "hash2"), ("hash1", "hash1")], [("existing_dir", True), ("missing_dir", False)]
+            )
+        )
+    )
+    def test_assert_incremental_build_function(self, patched_manifest_hash, patched_os, hashing_info, dependency_info):
+        manifest_hash = hashing_info[0]
+        build_toml_manifest_hash = hashing_info[1]
+        dependency_dir = dependency_info[0]
+        dependency_dir_exist = dependency_info[1]
+
+        patched_os.path.exists.return_value = dependency_dir_exist
+
+        patched_manifest_hash_instance = Mock(hash=manifest_hash)
         patched_manifest_hash.return_value = patched_manifest_hash_instance
 
-        given_function_build_def = Mock(manifest_hash=same_hash, functions=[Mock()])
+        given_function_build_def = Mock(
+            manifest_hash=build_toml_manifest_hash, functions=[Mock()], dependencies_dir=dependency_dir
+        )
         self.build_graph.get_function_build_definitions.return_value = [given_function_build_def]
         self.build_graph.get_layer_build_definitions.return_value = []
 
-        self.build_strategy.build()
-        self.build_function.assert_called_with(ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY, False)
+        download_dependencies = manifest_hash != build_toml_manifest_hash or not dependency_dir_exist
 
-    def test_assert_incremental_build_layer(self, patched_manifest_hash):
-        same_hash = "same_hash"
-        patched_manifest_hash_instance = Mock(hash=same_hash)
+        self.build_strategy.build()
+        self.build_function.assert_called_with(
+            ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY, dependency_dir, download_dependencies
+        )
+
+    @parameterized.expand(
+        list(
+            itertools.product(
+                [("hash1", "hash2"), ("hash1", "hash1")], [("existing_dir", True), ("missing_dir", False)]
+            )
+        )
+    )
+    def test_assert_incremental_build_layer(self, patched_manifest_hash, patched_os, hashing_info, dependency_info):
+        manifest_hash = hashing_info[0]
+        build_toml_manifest_hash = hashing_info[1]
+        dependency_dir = dependency_info[0]
+        dependency_dir_exist = dependency_info[1]
+
+        patched_os.path.exists.return_value = dependency_dir_exist
+
+        patched_manifest_hash_instance = Mock(hash=manifest_hash)
         patched_manifest_hash.return_value = patched_manifest_hash_instance
 
-        given_layer_build_def = Mock(manifest_hash=same_hash, functions=[Mock()])
+        given_layer_build_def = Mock(
+            manifest_hash=build_toml_manifest_hash, functions=[Mock()], dependencies_dir=dependency_dir
+        )
         self.build_graph.get_function_build_definitions.return_value = []
         self.build_graph.get_layer_build_definitions.return_value = [given_layer_build_def]
 
+        download_dependencies = manifest_hash != build_toml_manifest_hash or not dependency_dir_exist
+
         self.build_strategy.build()
-        self.build_layer.assert_called_with(ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY, False)
+        self.build_layer.assert_called_with(ANY, ANY, ANY, ANY, ANY, ANY, ANY, dependency_dir, download_dependencies)
 
 
 @patch("samcli.lib.build.build_graph.BuildGraph._write")
@@ -522,7 +562,7 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
         self, mocked_read, mocked_write, runtime, experimental_enabled, patched_experimental
     ):
         patched_experimental.return_value = experimental_enabled
-        build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", X86_64, {})
+        build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", X86_64, {}, "handler")
         self.build_graph.put_function_build_definition(build_definition, Mock())
         with patch.object(
             self.build_strategy, "_incremental_build_strategy"
@@ -546,7 +586,7 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
         ]
     )
     def test_will_call_cached_build_strategy(self, mocked_read, mocked_write, runtime):
-        build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", X86_64, {})
+        build_definition = FunctionBuildDefinition(runtime, "codeuri", "packate_type", X86_64, {}, "handler")
         self.build_graph.put_function_build_definition(build_definition, Mock())
         with patch.object(
             self.build_strategy, "_incremental_build_strategy"

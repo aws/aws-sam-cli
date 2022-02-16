@@ -1,9 +1,11 @@
+import itertools
 from unittest import TestCase
 from unittest.mock import Mock, patch, call, ANY
 
 from parameterized import parameterized
 
 from samcli.commands.logs.command import do_cli
+from samcli.lib.observability.util import OutputOption
 
 
 @patch("samcli.commands._utils.experimental.is_experimental_enabled")
@@ -16,33 +18,13 @@ class TestLogsCliCommand(TestCase):
         self.filter_pattern = "filter"
         self.start_time = "start"
         self.end_time = "end"
-        self.output_dir = "output_dir"
         self.region = "region"
         self.profile = "profile"
 
     @parameterized.expand(
-        [
-            (
-                True,
-                False,
-                [],
-            ),
-            (
-                False,
-                False,
-                [],
-            ),
-            (
-                True,
-                False,
-                ["cw_log_group"],
-            ),
-            (
-                False,
-                False,
-                ["cw_log_group", "cw_log_group2"],
-            ),
-        ]
+        itertools.product(
+            [True, False], [True, False], [[], ["cw_log_group"], ["cw_log_group", "cw_log_group2"]], ["text", "json"]
+        )
     )
     @patch("samcli.commands.logs.puller_factory.generate_puller")
     @patch("samcli.commands.logs.logs_context.ResourcePhysicalIdResolver")
@@ -54,6 +36,7 @@ class TestLogsCliCommand(TestCase):
         tailing,
         include_tracing,
         cw_log_group,
+        output,
         patched_boto_resource_provider,
         patched_boto_client_provider,
         patched_parse_time,
@@ -89,7 +72,7 @@ class TestLogsCliCommand(TestCase):
             self.start_time,
             self.end_time,
             cw_log_group,
-            self.output_dir,
+            output,
             self.region,
             self.profile,
         )
@@ -116,8 +99,8 @@ class TestLogsCliCommand(TestCase):
             mocked_resource_information,
             self.filter_pattern,
             cw_log_group,
-            self.output_dir,
-            False,
+            OutputOption(output),
+            include_tracing,
         )
 
         if tailing:

@@ -77,6 +77,7 @@ class PackageIntegBase(TestCase):
             time.sleep(SLEEP)
 
     def setUp(self):
+        self.s3_prefix = uuid.uuid4().hex
         super().setUp()
 
     def tearDown(self):
@@ -162,3 +163,30 @@ class PackageIntegBase(TestCase):
             except ecr_client.exceptions.RepositoryNotFoundException:
                 pass
         cfn_client.delete_stack(StackName=companion_stack_name)
+
+    def _assert_companion_stack(self, cfn_client, companion_stack_name):
+        try:
+            cfn_client.describe_stacks(StackName=companion_stack_name)
+        except ClientError:
+            self.fail("No companion stack found.")
+
+    def _assert_companion_stack_content(self, ecr_client, companion_stack_name):
+        stack = boto3.resource("cloudformation").Stack(companion_stack_name)
+        resources = stack.resource_summaries.all()
+        for resource in resources:
+            if resource.resource_type == "AWS::ECR::Repository":
+                policy = ecr_client.get_repository_policy(repositoryName=resource.physical_resource_id)
+                self._assert_ecr_lambda_policy(policy)
+            else:
+                self.fail("Non ECR Repo resource found in companion stack")
+
+    def _assert_ecr_lambda_policy(self, policy):
+        policyText = json.loads(policy.get("policyText", "{}"))
+        statements = policyText.get("Statement")
+        self.assertEqual(len(statements), 1)
+        lambda_policy = statements[0]
+        self.assertEqual(lambda_policy.get("Principal"), {"Service": "lambda.amazonaws.com"})
+        actions = lambda_policy.get("Action")
+        self.assertEqual(
+            sorted(actions), sorted(["ecr:GetDownloadUrlForLayer", "ecr:GetRepositoryPolicy", "ecr:BatchGetImage"])
+        )
