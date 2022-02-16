@@ -53,7 +53,7 @@ install:
 
   # Make sure the temp directory exists for Python to use.
   - ps: "mkdir -Force D:\\tmp"
-  - "SET PATH=%PYTHON_HOME%;%PATH%"
+  - "SET PATH=%PYTHON_HOME%;C:\\Ruby27-x64\\bin;%PATH%"
   - "echo %PYTHON_HOME%"
   - "echo %PATH%"
   - "python --version"
