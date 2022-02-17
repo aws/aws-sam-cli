@@ -165,4 +165,5 @@ SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
     "python3.8": "Python36",
     "python3.9": "Python36",
     "dotnet6": "dotnetcore3.1",
+    "go1.x": "Go1",
 }
