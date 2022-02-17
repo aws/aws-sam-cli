@@ -218,7 +218,8 @@
         "dns-suffix": {
           "default": "us-east-1.amazonaws.com"
         }
-      }
+      }    
+    }
   },
   "appsync": {
     "resolver": {
