@@ -50,8 +50,7 @@ class StartApiIntegBaseClass(TestCase):
                 cls.docker_client.api.remove_container(container, force=True)
             except APIError as ex:
                 LOG.error("Failed to remove container %s", container, exc_info=ex)
-        cls.thread = threading.Thread(target=cls.start_api(), daemon=True)
-        cls.thread.start()
+        cls.start_api()
 
     @classmethod
     def build(cls):
