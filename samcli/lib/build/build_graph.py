@@ -328,7 +328,9 @@ class BuildGraph:
             stored_layer_definitions = copy.deepcopy(self._layer_build_definitions)
             self._read()
 
-            function_content = BuildGraph._compare_hash_changes(stored_function_definitions, self._function_build_definitions)
+            function_content = BuildGraph._compare_hash_changes(
+                stored_function_definitions, self._function_build_definitions
+            )
             layer_content = BuildGraph._compare_hash_changes(stored_layer_definitions, self._layer_build_definitions)
 
             if function_content or layer_content:
