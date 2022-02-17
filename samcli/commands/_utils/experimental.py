@@ -44,6 +44,10 @@ class ExperimentalFlag:
 
     All = ExperimentalEntry("experimentalAll", EXPERIMENTAL_ENV_VAR_PREFIX + "FEATURES")
     Accelerate = ExperimentalEntry("experimentalAccelerate", EXPERIMENTAL_ENV_VAR_PREFIX + "ACCELERATE")
+    JavaMavenBuildScope = ExperimentalEntry(
+        "experimentalMavenScopeAndLayer", EXPERIMENTAL_ENV_VAR_PREFIX + "MAVEN_SCOPE_AND_LAYER"
+    )
+    Esbuild = ExperimentalEntry("experimentalEsbuild", EXPERIMENTAL_ENV_VAR_PREFIX + "ESBUILD")
 
 
 def is_experimental_enabled(config_entry: ExperimentalEntry) -> bool:
@@ -100,6 +104,22 @@ def get_all_experimental_statues() -> Dict[str, bool]:
         Dictionary with key as configuration value and value as enabled or disabled.
     """
     return {entry.config_key: is_experimental_enabled(entry) for entry in get_all_experimental() if entry.config_key}
+
+
+def get_enabled_experimental_flags() -> List[str]:
+    """
+    Returns a list of string, which contains enabled experimental flags for current session
+
+    Returns
+    -------
+    List[str]
+        List of strings which contains all enabled experimental flag names
+    """
+    enabled_experimentals = []
+    for experimental_key, status in get_all_experimental_statues().items():
+        if status:
+            enabled_experimentals.append(experimental_key)
+    return enabled_experimentals
 
 
 def disable_all_experimental():

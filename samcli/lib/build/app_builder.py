@@ -43,7 +43,8 @@ from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from samcli.local.docker.utils import is_docker_reachable, get_docker_platform
 from samcli.local.docker.manager import ContainerManager
-from .exceptions import (
+from samcli.commands._utils.experimental import get_enabled_experimental_flags
+from samcli.lib.build.exceptions import (
     DockerConnectionError,
     DockerfileOutSideOfContext,
     DockerBuildFailed,
@@ -53,7 +54,12 @@ from .exceptions import (
     UnsupportedBuilderLibraryVersionError,
 )
 
-from .workflow_config import get_workflow_config, get_layer_subfolder, supports_build_in_container, CONFIG
+from samcli.lib.build.workflow_config import (
+    get_workflow_config,
+    get_layer_subfolder,
+    supports_build_in_container,
+    CONFIG,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -230,6 +236,7 @@ class ApplicationBuilder:
                 function.packagetype,
                 function.architecture,
                 function.metadata,
+                function.handler,
                 env_vars=container_env_vars,
             )
             build_graph.put_function_build_definition(function_build_details, function)
@@ -513,6 +520,7 @@ class ApplicationBuilder:
                     options,
                     container_env_vars,
                     image,
+                    is_building_layer=True,
                 )
             else:
                 self._build_function_in_process(
@@ -527,6 +535,7 @@ class ApplicationBuilder:
                     dependencies_dir,
                     download_dependencies,
                     True,  # dependencies for layer should always be combined
+                    is_building_layer=True,
                 )
 
             # Not including subfolder in return so that we copy subfolder, instead of copying artifacts inside it.
@@ -679,10 +688,11 @@ class ApplicationBuilder:
             build_props = metadata.get(BUILD_PROPERTIES, {})
             # Esbuild takes an array of entry points from which to start bundling
             # as a required argument. This corresponds to the lambda function handler.
+            normalized_build_props = ResourceMetadataNormalizer.normalize_build_properties(build_props)
             if handler and not build_props.get("EntryPoints"):
                 entry_points = [handler.split(".")[0]]
-                build_props["entry_points"] = entry_points
-            return ResourceMetadataNormalizer.normalize_build_properties(build_props)
+                normalized_build_props["entry_points"] = entry_points
+            return normalized_build_props
 
         _build_options: Dict = {
             "go": {"artifact_executable_name": handler},
@@ -703,6 +713,7 @@ class ApplicationBuilder:
         dependencies_dir: Optional[str],
         download_dependencies: bool,
         combine_dependencies: bool,
+        is_building_layer: bool = False,
     ) -> str:
 
         builder = LambdaBuilder(
@@ -727,6 +738,8 @@ class ApplicationBuilder:
                 dependencies_dir=dependencies_dir,
                 download_dependencies=download_dependencies,
                 combine_dependencies=combine_dependencies,
+                is_building_layer=is_building_layer,
+                experimental_flags=get_enabled_experimental_flags(),
             )
         except LambdaBuilderError as ex:
             raise BuildError(wrapped_from=ex.__class__.__name__, msg=str(ex)) from ex
@@ -744,6 +757,7 @@ class ApplicationBuilder:
         options: Optional[Dict],
         container_env_vars: Optional[Dict] = None,
         build_image: Optional[str] = None,
+        is_building_layer: bool = False,
     ) -> str:
         # _build_function_on_container() is only called when self._container_manager if not None
         if not self._container_manager:
@@ -779,6 +793,7 @@ class ApplicationBuilder:
             mode=self._mode,
             env_vars=container_env_vars,
             image=build_image,
+            is_building_layer=is_building_layer,
         )
 
         try:

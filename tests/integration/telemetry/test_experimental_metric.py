@@ -55,6 +55,8 @@ class TestExperimentalMetric(IntegBase):
                             "metricSpecificAttributes": {
                                 "experimentalAccelerate": True,
                                 "experimentalAll": False,
+                                "experimentalMavenScopeAndLayer": False,
+                                "experimentalEsbuild": False,
                             },
                             "duration": ANY,
                             "exitReason": ANY,
@@ -64,6 +66,7 @@ class TestExperimentalMetric(IntegBase):
                 ]
             }
             self.assertEqual(request["data"], expected_data)
+        os.environ["SAM_CLI_BETA_ACCELERATE"] = "0"
 
     def test_must_send_experimental_metrics_if_experimental_option(self):
         """
@@ -104,6 +107,8 @@ class TestExperimentalMetric(IntegBase):
                             "metricSpecificAttributes": {
                                 "experimentalAccelerate": True,
                                 "experimentalAll": True,
+                                "experimentalMavenScopeAndLayer": True,
+                                "experimentalEsbuild": True,
                             },
                             "duration": ANY,
                             "exitReason": ANY,
@@ -113,6 +118,7 @@ class TestExperimentalMetric(IntegBase):
                 ]
             }
             self.assertEqual(request["data"], expected_data)
+        os.environ["SAM_CLI_BETA_FEATURES"] = "0"
 
     def test_must_send_cdk_project_type_metrics(self):
         """
