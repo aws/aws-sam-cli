@@ -315,7 +315,7 @@ class BuildIntegEsbuildBase(BuildIntegBase):
             expected_files,
         )
 
-        expected = {'body': '{"message":"hello world!"}', 'statusCode': 200}
+        expected = {"body": '{"message":"hello world!"}', "statusCode": 200}
         if not SKIP_DOCKER_TESTS and architecture == X86_64:
             # ARM64 is not supported yet for invoking
             self._verify_invoke_built_function(
