@@ -64,7 +64,6 @@ for:
         - image: Visual Studio 2019
 
     install:
-      - ps: Install-Product node $env:NODE_VERSION
       - "SET PATH=%PYTHON_HOME%;%PATH%"
       - "echo %PYTHON_HOME%"
       - "echo %PATH%"
@@ -129,6 +128,7 @@ for:
         - image: Ubuntu
 
     install:
+      - ps: Install-Product node $env:NODE_VERSION
       # apt repo for python3.9 installation
       - sh: "sudo add-apt-repository ppa:deadsnakes/ppa"
       # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
