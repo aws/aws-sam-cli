@@ -12,9 +12,14 @@ docker~=4.2.0
 dateparser~=1.0
 requests==2.25.1
 serverlessrepo==0.1.10
-aws_lambda_builders==1.10.0
+aws_lambda_builders==1.11.0
 tomlkit==0.7.2
 watchdog==2.1.2
+
+# See https://github.com/pallets/markupsafe/issues/286 but breaking change in 
+# MarkupSafe causes jinja to break which caused flask to break (which we depend on)
+# This is a short term patch as we should be upgrading to new versions of Flask (and other dependencies)
+MarkupSafe==2.0.1
 
 # Needed for supporting Protocol in Python 3.6
 typing_extensions==3.10.0.0

@@ -280,6 +280,22 @@ class TestBasicInitCommand(TestCase):
             self.assertIn(capture_output, msg)
 
 
+MISSING_REQUIRED_PARAM_MESSAGE = """Error: Missing required parameters, with --no-interactive set.
+Must provide one of the following required parameter combinations:
+\t--name, --location
+\t--name, --package-type, --base-image
+\t--name, --runtime, --dependency-manager, --app-template
+You can also re-run without the --no-interactive flag to be prompted for required values.
+"""
+
+INCOMPATIBLE_PARAM_MESSAGE = """Error: You must not provide both the --{0} and --{1} parameters.
+You can run 'sam init' without any options for an interactive initialization flow, or you can provide one of the following required parameter combinations:
+\t--name, --location, or
+\t--name, --package-type, --base-image, or
+\t--name, --runtime, --app-template, --dependency-manager
+"""
+
+
 class TestInitForParametersCompatibility(TestCase):
     def test_init_command_no_interactive_missing_name(self):
         stderr = None
@@ -309,19 +325,8 @@ class TestInitForParametersCompatibility(TestCase):
                 raise
 
             self.assertEqual(process.returncode, 2)
-            errmsg = """
-            Error: 
-Missing required parameters, with --no-interactive set.
 
-Must provide one of the following required parameter combinations:
-    --name and --runtime and --dependency-manager and --app-template
-    --name and --package-type and --base-image and --dependency-manager
-    --location
-
-You can also re-run without the --no-interactive flag to be prompted for required values.
-            """
-
-            self.assertEqual(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertEqual(MISSING_REQUIRED_PARAM_MESSAGE.strip(), "\n".join(stderr.strip().splitlines()))
 
     def test_init_command_no_interactive_apptemplate_location(self):
         stderr = None
@@ -349,17 +354,11 @@ You can also re-run without the --no-interactive flag to be prompted for require
                 raise
 
             self.assertEqual(process.returncode, 2)
-            errmsg = """
-                        Error: 
-You must not provide both the --app-template and --location parameters.
 
-You can run 'sam init' without any options for an interactive initialization flow, or you can provide one of the following required parameter combinations:
-    --name and --runtime and --app-template and --dependency-manager
-    --name and --package-type and --base-image
-    --location
-                        """
-
-            self.assertEqual(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertEqual(
+                INCOMPATIBLE_PARAM_MESSAGE.strip().format("app-template", "location"),
+                "\n".join(stderr.strip().splitlines()),
+            )
 
     def test_init_command_no_interactive_runtime_location(self):
         stderr = None
@@ -387,17 +386,10 @@ You can run 'sam init' without any options for an interactive initialization flo
                 raise
 
             self.assertEqual(process.returncode, 2)
-            errmsg = """
-                        Error: 
-You must not provide both the --runtime and --location parameters.
 
-You can run 'sam init' without any options for an interactive initialization flow, or you can provide one of the following required parameter combinations:
-    --name and --runtime and --app-template and --dependency-manager
-    --name and --package-type and --base-image
-    --location
-                        """
-
-            self.assertEqual(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertEqual(
+                INCOMPATIBLE_PARAM_MESSAGE.strip().format("runtime", "location"), "\n".join(stderr.strip().splitlines())
+            )
 
     def test_init_command_no_interactive_base_image_location(self):
         stderr = None
@@ -425,17 +417,11 @@ You can run 'sam init' without any options for an interactive initialization flo
                 raise
 
             self.assertEqual(process.returncode, 2)
-            errmsg = """
-                        Error: 
-You must not provide both the --base-image and --location parameters.
 
-You can run 'sam init' without any options for an interactive initialization flow, or you can provide one of the following required parameter combinations:
-    --name and --runtime and --app-template and --dependency-manager
-    --name and --package-type and --base-image
-    --location
-                        """
-
-            self.assertEqual(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertEqual(
+                INCOMPATIBLE_PARAM_MESSAGE.strip().format("base-image", "location"),
+                "\n".join(stderr.strip().splitlines()),
+            )
 
     def test_init_command_no_interactive_base_image_no_dependency(self):
         stderr = None
@@ -463,19 +449,8 @@ You can run 'sam init' without any options for an interactive initialization flo
                 raise
 
             self.assertEqual(process.returncode, 2)
-            errmsg = """
-                        Error: 
-Missing required parameters, with --no-interactive set.
 
-Must provide one of the following required parameter combinations:
-    --name and --runtime and --dependency-manager and --app-template
-    --name and --package-type and --base-image and --dependency-manager
-    --location
-
-You can also re-run without the --no-interactive flag to be prompted for required values.
-                        """
-
-            self.assertEqual(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertEqual(MISSING_REQUIRED_PARAM_MESSAGE.strip(), "\n".join(stderr.strip().splitlines()))
 
     def test_init_command_no_interactive_packagetype_location(self):
         stderr = None
@@ -503,17 +478,11 @@ You can also re-run without the --no-interactive flag to be prompted for require
                 raise
 
             self.assertEqual(process.returncode, 2)
-            errmsg = """
-                        Error: 
-You must not provide both the --package-type and --location parameters.
 
-You can run 'sam init' without any options for an interactive initialization flow, or you can provide one of the following required parameter combinations:
-    --name and --runtime and --app-template and --dependency-manager
-    --name and --package-type and --base-image
-    --location
-                        """
-
-            self.assertEqual(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertEqual(
+                INCOMPATIBLE_PARAM_MESSAGE.strip().format("package-type", "location"),
+                "\n".join(stderr.strip().splitlines()),
+            )
 
     def test_init_command_no_interactive_base_image_no_packagetype(self):
         stderr = None
@@ -539,19 +508,8 @@ You can run 'sam init' without any options for an interactive initialization flo
                 raise
 
             self.assertEqual(process.returncode, 2)
-            errmsg = """
-                        Error: 
-Missing required parameters, with --no-interactive set.
 
-Must provide one of the following required parameter combinations:
-    --name and --runtime and --dependency-manager and --app-template
-    --name and --package-type and --base-image and --dependency-manager
-    --location
-
-You can also re-run without the --no-interactive flag to be prompted for required values.
-                        """
-
-            self.assertEqual(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
+            self.assertEqual(MISSING_REQUIRED_PARAM_MESSAGE.strip(), "\n".join(stderr.strip().splitlines()))
 
     def test_init_command_wrong_packagetype(self):
         stderr = None

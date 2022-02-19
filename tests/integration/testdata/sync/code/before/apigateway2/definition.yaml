@@ -1,0 +1,23 @@
+openapi: 3.0.1
+info:
+  title: HelloWorldExample2
+  version: 1.0.0
+servers:
+  - url: /v1
+paths:
+  /hello:
+    get:
+      responses:
+        '200':
+          description: OK
+          content: {}
+      security:
+        - api_key: []
+      x-amazon-apigateway-auth:
+        type: none
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        uri: 
+          Fn::Sub: ${HelloWorldFunction.Arn}
+        httpMethod : POST
+        payloadFormatVersion: 2.0

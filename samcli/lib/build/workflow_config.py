@@ -86,6 +86,14 @@ PROVIDED_MAKE_CONFIG = CONFIG(
     executable_search_paths=None,
 )
 
+NODEJS_NPM_ESBUILD_CONFIG = CONFIG(
+    language="nodejs",
+    dependency_manager="npm-esbuild",
+    application_framework=None,
+    manifest_name="package.json",
+    executable_search_paths=None,
+)
+
 
 class UnsupportedRuntimeException(Exception):
     pass
@@ -242,6 +250,11 @@ def get_workflow_config(
         "provided": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG),
         "provided.al2": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG),
     }
+
+    selectors_by_builder = {
+        "esbuild": BasicWorkflowSelector(NODEJS_NPM_ESBUILD_CONFIG),
+    }
+
     # First check if the runtime is present and is buildable, if not raise an UnsupportedRuntimeException Error.
     # If runtime is present it should be in selectors_by_runtime, however for layers there will be no runtime
     # so in that case we move ahead and resolve to any matching workflow from both types.
@@ -251,7 +264,7 @@ def get_workflow_config(
     try:
         # Identify appropriate workflow selector.
         selector = get_selector(
-            selector_list=[selectors_by_build_method, selectors_by_runtime],
+            selector_list=[selectors_by_build_method, selectors_by_runtime, selectors_by_builder],
             identifiers=[specified_workflow, runtime],
             specified_workflow=specified_workflow,
         )
