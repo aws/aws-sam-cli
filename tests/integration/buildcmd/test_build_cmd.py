@@ -37,6 +37,7 @@ from .build_integ_base import (
     BuildIntegProvidedBase,
     BuildIntegPythonBase,
     BuildIntegJavaBase,
+    BuildIntegEsbuildBase,
 )
 
 LOG = logging.getLogger(__name__)
@@ -364,6 +365,48 @@ class TestBuildCommand_NodeFunctions(BuildIntegNodeBase):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
         self._test_with_default_package_json(runtime, use_container, self.test_data_path)
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildCommand_EsbuildFunctions(BuildIntegEsbuildBase):
+    template = "template_with_metadata.yaml"
+
+    @parameterized.expand(
+        [
+            ("nodejs14.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", False, "x86_64"),
+            ("nodejs12.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", False, "arm64"),
+            ("nodejs14.x", "Esbuild/TypeScript", {"app.js", "app.js.map"}, "app.lambdaHandler", False, "x86_64"),
+            ("nodejs12.x", "Esbuild/TypeScript", {"app.js", "app.js.map"}, "app.lambdaHandler", False, "arm64"),
+            ("nodejs14.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", "use_container", "x86_64"),
+            ("nodejs12.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", "use_container", "arm64"),
+            (
+                "nodejs14.x",
+                "Esbuild/TypeScript",
+                {"app.js", "app.js.map"},
+                "app.lambdaHandler",
+                "use_container",
+                "x86_64",
+            ),
+            (
+                "nodejs12.x",
+                "Esbuild/TypeScript",
+                {"app.js", "app.js.map"},
+                "app.lambdaHandler",
+                "use_container",
+                "arm64",
+            ),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_building_default_package_json(
+        self, runtime, code_uri, expected_files, handler, use_container, architecture
+    ):
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+        self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, architecture)
 
 
 class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeBase):
