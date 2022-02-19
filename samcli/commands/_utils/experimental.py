@@ -47,7 +47,6 @@ class ExperimentalFlag:
     JavaMavenBuildScope = ExperimentalEntry(
         "experimentalMavenScopeAndLayer", EXPERIMENTAL_ENV_VAR_PREFIX + "MAVEN_SCOPE_AND_LAYER"
     )
-    Esbuild = ExperimentalEntry("experimentalEsbuild", EXPERIMENTAL_ENV_VAR_PREFIX + "ESBUILD")
 
 
 def is_experimental_enabled(config_entry: ExperimentalEntry) -> bool:
