@@ -51,6 +51,9 @@ black-check:
 pr: init dev black-check
 
 update-reproducible-reqs:
+# Remove requirements/reproducible-linux.txt first before pip-compile
+# pip-compile will use the output file to resolve versions
+	rm requirements/reproducible-linux.txt
 	python3.7 -m venv venv-update-reproducible-requirements
 	venv-update-reproducible-requirements/bin/pip install --upgrade pip-tools pip
 	venv-update-reproducible-requirements/bin/pip install -r requirements/base.txt
