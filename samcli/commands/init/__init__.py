@@ -72,11 +72,6 @@ or you can provide one of the following required parameter combinations:
 
 REQUIRED_PARAMS_HINT = "You can also re-run without the --no-interactive flag to be prompted for required values."
 
-INIT_INTERACTIVE_OPTION_GUIDE = """
-You can preselect a particular runtime or package type when using the `sam init` experience.
-Call `sam init --help` to learn more.
-"""
-
 
 class PackageType:
     """
@@ -340,9 +335,6 @@ def do_cli(
             extra_context,
         )
     else:
-        if not (pt_explicit or runtime or dependency_manager or base_image or architecture):
-            click.secho(INIT_INTERACTIVE_OPTION_GUIDE, fg="yellow", bold=True)
-
         # proceed to interactive state machine, which will call do_generate
         do_interactive(
             location,
