@@ -133,9 +133,9 @@ class SamFunctionProvider(SamBaseProvider):
     def _deprecate_notification(self, runtime: Optional[str]) -> None:
         if runtime in DEPRECATED_RUNTIMES:
             message = (
-                f"WARNING: {runtime} is no longer supported by AWS Lambda, "
-                "please update to a newer supported runtime. SAM CLI "
-                "See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
+                f"WARNING: {runtime} is no longer supported by AWS Lambda, please update to a newer supported "
+                "runtime. For more information please check AWS Lambda Runtime Support Policy: "
+                "https://docs.aws.amazon.com/lambda/latest/dg/runtime-support-policy.html"
             )
             LOG.warning(self._colored.yellow(message))
 

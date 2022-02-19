@@ -580,7 +580,7 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
 
     @parameterized.expand(
         [
-            "dotnetcore2.1",
+            "dotnetcore3.1",
             "go1.x",
             "java11",
         ]
