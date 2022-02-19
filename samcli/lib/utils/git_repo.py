@@ -121,7 +121,7 @@ class GitRepo:
             try:
                 temp_path = os.path.normpath(os.path.join(tempdir, clone_name))
                 git_executable: str = GitRepo._git_executable()
-                LOG.info("\nCloning from %s", self.url)
+                LOG.info("\nCloning from %s (process may take a moment)", self.url)
                 check_output(
                     [git_executable, "clone", self.url, clone_name],
                     cwd=tempdir,
