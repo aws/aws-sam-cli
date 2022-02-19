@@ -6,7 +6,7 @@ import io
 import json
 import logging
 import pathlib
-from typing import List, Optional, Dict, cast, Union, NamedTuple
+from typing import List, Optional, Dict, cast, Union, NamedTuple, Set
 
 import docker
 import docker.errors
@@ -59,10 +59,21 @@ from samcli.lib.build.workflow_config import (
     get_layer_subfolder,
     supports_build_in_container,
     CONFIG,
+    UnsupportedRuntimeException,
 )
 
 LOG = logging.getLogger(__name__)
 
+DEPRECATED_RUNTIMES: Set[str] = {
+    "nodejs4.3",
+    "nodejs6.10",
+    "nodejs8.10",
+    "nodejs10.x",
+    "dotnetcore2.0",
+    "dotnetcore2.1",
+    "python2.7",
+    "ruby2.5",
+}
 BUILD_PROPERTIES = "BuildProperties"
 
 
@@ -156,7 +167,7 @@ class ApplicationBuilder:
         self._stream_writer = stream_writer if stream_writer else StreamWriter(stream=osutils.stderr(), auto_flush=True)
         self._docker_client = docker_client if docker_client else docker.from_env()
 
-        self._deprecated_runtimes = {"nodejs4.3", "nodejs6.10", "nodejs8.10", "dotnetcore2.0"}
+        self._deprecated_runtimes = DEPRECATED_RUNTIMES
         self._colored = Colored()
         self._container_env_var = container_env_var
         self._container_env_var_file = container_env_var_file
@@ -600,11 +611,12 @@ class ApplicationBuilder:
         if packagetype == ZIP:
             if runtime in self._deprecated_runtimes:
                 message = (
-                    f"WARNING: {runtime} is no longer supported by AWS Lambda, "
-                    "please update to a newer supported runtime. SAM CLI "
-                    "See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
+                    f"Building functions with {runtime} is no longer supported by AWS SAM CLI, please "
+                    f"update to a newer supported runtime. For more information please check AWS Lambda Runtime "
+                    f"Support Policy: https://docs.aws.amazon.com/lambda/latest/dg/runtime-support-policy.html"
                 )
                 LOG.warning(self._colored.yellow(message))
+                raise UnsupportedRuntimeException(f"Building functions with {runtime} is no longer supported")
 
             # Create the arguments to pass to the builder
             # Code is always relative to the given base directory.
