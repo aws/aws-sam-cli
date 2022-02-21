@@ -55,8 +55,7 @@ class StartLambdaIntegBaseClass(TestCase):
             except APIError as ex:
                 LOG.error("Failed to remove container %s", container, exc_info=ex)
 
-        cls.thread = threading.Thread(target=cls.start_lambda(), daemon=True)
-        cls.thread.start()
+        cls.start_lambda()
 
     @classmethod
     def build(cls):
