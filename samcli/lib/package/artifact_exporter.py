@@ -114,6 +114,7 @@ class ServerlessApplicationResource(CloudFormationStackResource):
     RESOURCE_TYPE = AWS_SERVERLESS_APPLICATION
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[AWS_SERVERLESS_APPLICATION][0]
 
+
 class CloudFormationStackSetResource(ResourceZip):
     """
     Represents CloudFormation::StackSet resource that can refer to a
@@ -150,6 +151,7 @@ class CloudFormationStackSetResource(ResourceZip):
         s3_path_url = self.uploader.to_path_style_s3_url(parts["Key"], parts.get("Version", None))
         set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, s3_path_url)
 
+
 class Template:
     """
     Class to export a CloudFormation template
@@ -169,11 +171,8 @@ class Template:
         uploaders: Uploaders,
         code_signer: CodeSigner,
         resources_to_export=frozenset(
-            RESOURCES_EXPORT_LIST + [
-                CloudFormationStackResource,
-                CloudFormationStackSetResource,
-                ServerlessApplicationResource
-            ]
+            RESOURCES_EXPORT_LIST
+            + [CloudFormationStackResource, CloudFormationStackSetResource, ServerlessApplicationResource]
         ),
         metadata_to_export=frozenset(METADATA_EXPORT_LIST),
         template_str: Optional[str] = None,
