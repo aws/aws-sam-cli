@@ -169,7 +169,11 @@ class Template:
         uploaders: Uploaders,
         code_signer: CodeSigner,
         resources_to_export=frozenset(
-            RESOURCES_EXPORT_LIST + [CloudFormationStackResource, CloudFormationStackSetResource, ServerlessApplicationResource]
+            RESOURCES_EXPORT_LIST + [
+                CloudFormationStackResource,
+                CloudFormationStackSetResource,
+                ServerlessApplicationResource
+            ]
         ),
         metadata_to_export=frozenset(METADATA_EXPORT_LIST),
         template_str: Optional[str] = None,
