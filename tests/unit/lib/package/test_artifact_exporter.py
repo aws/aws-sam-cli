@@ -949,7 +949,7 @@ class TestArtifactExporter(unittest.TestCase):
         self.s3_uploader_mock.upload.return_value = result_s3_url
         self.s3_uploader_mock.to_path_style_s3_url.return_value = result_path_style_s3_url
 
-        with tempfile.NamedTemporaryFile() as handle:
+        with tempfile.NamedTemporaryFile(delete=False) as handle:
             template_path = handle.name
             resource_dict = {property_name: template_path}
             parent_dir = tempfile.gettempdir()
