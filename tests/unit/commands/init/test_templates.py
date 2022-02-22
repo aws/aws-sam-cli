@@ -21,7 +21,7 @@ class TestTemplates(TestCase):
             "ruby2.7": [
                 {
                     "directory": "mock-ruby-template",
-                    "displayName": "Hello World Example",
+                    "displayName": "Hello World example",
                     "dependencyManager": "bundler",
                     "appTemplate": "hello-world",
                     "packageType": ZIP,

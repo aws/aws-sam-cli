@@ -620,7 +620,7 @@ class TestCli(TestCase):
         init_options_from_manifest_mock.return_value = [
             {
                 "directory": "java11/cookiecutter-aws-sam-hello-java-maven",
-                "displayName": "Hello World Example: Maven",
+                "displayName": "Hello World example: Maven",
                 "dependencyManager": "maven",
                 "appTemplate": "hello-world",
                 "packageType": "Zip",
@@ -643,7 +643,7 @@ class TestCli(TestCase):
                     "Zip": [
                         {
                             "directory": "java11/cookiecutter-aws-sam-hello-java-maven",
-                            "displayName": "Hello World Example: Maven",
+                            "displayName": "Hello World example: Maven",
                             "dependencyManager": "maven",
                             "appTemplate": "hello-world",
                             "packageType": "Zip",
@@ -825,7 +825,7 @@ test-project
         init_options_from_manifest_mock.return_value = [
             {
                 "directory": "java11/cookiecutter-aws-sam-hello-java-maven",
-                "displayName": "Hello World Example: Maven",
+                "displayName": "Hello World example: Maven",
                 "dependencyManager": "maven",
                 "appTemplate": "hello-world",
                 "packageType": "Zip",
@@ -848,7 +848,7 @@ test-project
                     "Zip": [
                         {
                             "directory": "java11/cookiecutter-aws-sam-hello-java-maven",
-                            "displayName": "Hello World Example: Maven",
+                            "displayName": "Hello World example: Maven",
                             "dependencyManager": "maven",
                             "appTemplate": "hello-world",
                             "packageType": "Zip",
@@ -967,7 +967,7 @@ us-east-1
         init_options_from_manifest_mock.return_value = [
             {
                 "directory": "java11/cookiecutter-aws-sam-hello-java-maven",
-                "displayName": "Hello World Example: Maven",
+                "displayName": "Hello World example: Maven",
                 "dependencyManager": "maven",
                 "appTemplate": "hello-world",
                 "packageType": "Zip",
@@ -990,7 +990,7 @@ us-east-1
                     "Zip": [
                         {
                             "directory": "java11/cookiecutter-aws-sam-hello-java-maven",
-                            "displayName": "Hello World Example: Maven",
+                            "displayName": "Hello World example: Maven",
                             "dependencyManager": "maven",
                             "appTemplate": "hello-world",
                             "packageType": "Zip",
@@ -1076,7 +1076,7 @@ invalid-region
         init_options_from_manifest_mock.return_value = [
             {
                 "directory": "java11/cookiecutter-aws-sam-hello-java-maven",
-                "displayName": "Hello World Example: Maven",
+                "displayName": "Hello World example: Maven",
                 "dependencyManager": "maven",
                 "appTemplate": "hello-world",
                 "packageType": "Zip",
@@ -1099,7 +1099,7 @@ invalid-region
                     "Zip": [
                         {
                             "directory": "java11/cookiecutter-aws-sam-hello-java-maven",
-                            "displayName": "Hello World Example: Maven",
+                            "displayName": "Hello World example: Maven",
                             "dependencyManager": "maven",
                             "appTemplate": "hello-world",
                             "packageType": "Zip",
@@ -1221,7 +1221,7 @@ Y
         init_options_from_manifest_mock.return_value = [
             {
                 "directory": "java11/cookiecutter-aws-sam-hello-java-maven",
-                "displayName": "Hello World Example: Maven",
+                "displayName": "Hello World example: Maven",
                 "dependencyManager": "maven",
                 "appTemplate": "hello-world",
                 "packageType": "Zip",
@@ -1244,7 +1244,7 @@ Y
                     "Zip": [
                         {
                             "directory": "java11/cookiecutter-aws-sam-hello-java-maven",
-                            "displayName": "Hello World Example: Maven",
+                            "displayName": "Hello World example: Maven",
                             "dependencyManager": "maven",
                             "appTemplate": "hello-world",
                             "packageType": "Zip",
@@ -1731,11 +1731,11 @@ n
         init_options_from_manifest_mock.return_value = [
             {
                 "directory": "python3.9/cookiecutter-aws-sam-hello-python",
-                "displayName": "Hello World Example",
+                "displayName": "Hello World example",
                 "dependencyManager": "npm",
                 "appTemplate": "hello-world",
                 "packageType": "Zip",
-                "useCaseName": "Hello World Example",
+                "useCaseName": "Hello World example",
             },
             {
                 "directory": "java11/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
@@ -1744,21 +1744,21 @@ n
                 "appTemplate": "eventBridge-schema-app",
                 "isDynamicTemplate": "True",
                 "packageType": "Zip",
-                "useCaseName": "Hello World Example",
+                "useCaseName": "Hello World example",
             },
         ]
 
         get_preprocessed_manifest_mock.return_value = {
-            "Hello World Example": {
+            "Hello World example": {
                 "python3.9": {
                     "Zip": [
                         {
                             "directory": "python3.9/cookiecutter-aws-sam-hello-python3.9",
-                            "displayName": "Hello World Example",
+                            "displayName": "Hello World example",
                             "dependencyManager": "pip",
                             "appTemplate": "hello-world",
                             "packageType": "Zip",
-                            "useCaseName": "Hello World Example",
+                            "useCaseName": "Hello World example",
                         },
                     ]
                 },
@@ -1766,12 +1766,12 @@ n
                     "Zip": [
                         {
                             "directory": "java11/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
-                            "displayName": "Hello World Example: Maven",
+                            "displayName": "Hello World example: Maven",
                             "dependencyManager": "maven",
                             "appTemplate": "hello-world",
                             "isDynamicTemplate": "True",
                             "packageType": "Zip",
-                            "useCaseName": "Hello World Example",
+                            "useCaseName": "Hello World example",
                         },
                     ]
                 },
@@ -1813,11 +1813,11 @@ test-project
         init_options_from_manifest_mock.return_value = [
             {
                 "directory": "nodejs14.x/cookiecutter-aws-sam-hello-nodejs",
-                "displayName": "Hello World Example",
+                "displayName": "Hello World example",
                 "dependencyManager": "npm",
                 "appTemplate": "hello-world",
                 "packageType": "Zip",
-                "useCaseName": "Hello World Example",
+                "useCaseName": "Hello World example",
             },
             {
                 "directory": "java11/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
@@ -1826,21 +1826,21 @@ test-project
                 "appTemplate": "eventBridge-schema-app",
                 "isDynamicTemplate": "True",
                 "packageType": "Zip",
-                "useCaseName": "Hello World Example",
+                "useCaseName": "Hello World example",
             },
         ]
 
         get_preprocessed_manifest_mock.return_value = {
-            "Hello World Example": {
+            "Hello World example": {
                 "nodejs14.x": {
                     "Zip": [
                         {
                             "directory": "nodejs14.x/cookiecutter-aws-sam-hello-nodejs",
-                            "displayName": "Hello World Example",
+                            "displayName": "Hello World example",
                             "dependencyManager": "npm",
                             "appTemplate": "hello-world",
                             "packageType": "Zip",
-                            "useCaseName": "Hello World Example",
+                            "useCaseName": "Hello World example",
                         },
                     ]
                 },
@@ -1848,12 +1848,12 @@ test-project
                     "Zip": [
                         {
                             "directory": "java11/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
-                            "displayName": "Hello World Example: Maven",
+                            "displayName": "Hello World example: Maven",
                             "dependencyManager": "maven",
                             "appTemplate": "hello-world",
                             "isDynamicTemplate": "True",
                             "packageType": "Zip",
-                            "useCaseName": "Hello World Example",
+                            "useCaseName": "Hello World example",
                         },
                     ]
                 },
@@ -1920,16 +1920,16 @@ test-project
         _get_manifest_mock.return_value = self.data
         preprocess_manifest = template.get_preprocessed_manifest()
         expected_result = {
-            "Hello World Example": {
+            "Hello World example": {
                 "dotnetcore3.1": {
                     "Zip": [
                         {
                             "directory": "dotnetcore3.1/cookiecutter-aws-sam-hello-dotnet",
-                            "displayName": "Hello World Example",
+                            "displayName": "Hello World example",
                             "dependencyManager": "cli-package",
                             "appTemplate": "hello-world",
                             "packageType": "Zip",
-                            "useCaseName": "Hello World Example",
+                            "useCaseName": "Hello World example",
                         }
                     ]
                 },
@@ -1937,11 +1937,11 @@ test-project
                     "Zip": [
                         {
                             "directory": "go1.x/cookiecutter-aws-sam-hello-golang",
-                            "displayName": "Hello World Example",
+                            "displayName": "Hello World example",
                             "dependencyManager": "mod",
                             "appTemplate": "hello-world",
                             "packageType": "Zip",
-                            "useCaseName": "Hello World Example",
+                            "useCaseName": "Hello World example",
                         }
                     ]
                 },
@@ -1953,7 +1953,7 @@ test-project
                             "dependencyManager": "npm",
                             "appTemplate": "hello-world-lambda-image",
                             "packageType": "Image",
-                            "useCaseName": "Hello World Example",
+                            "useCaseName": "Hello World example",
                         }
                     ]
                 },
@@ -1965,7 +1965,7 @@ test-project
                             "dependencyManager": "pip",
                             "appTemplate": "hello-world-lambda-image",
                             "packageType": "Image",
-                            "useCaseName": "Hello World Example",
+                            "useCaseName": "Hello World example",
                         }
                     ]
                 },
@@ -1981,16 +1981,16 @@ test-project
         _get_manifest_mock.return_value = self.data
         preprocess_manifest = template.get_preprocessed_manifest(filter_value)
         expected_result = {
-            "Hello World Example": {
+            "Hello World example": {
                 "go1.x": {
                     "Zip": [
                         {
                             "directory": "go1.x/cookiecutter-aws-sam-hello-golang",
-                            "displayName": "Hello World Example",
+                            "displayName": "Hello World example",
                             "dependencyManager": "mod",
                             "appTemplate": "hello-world",
                             "packageType": "Zip",
-                            "useCaseName": "Hello World Example",
+                            "useCaseName": "Hello World example",
                         }
                     ]
                 },
@@ -2006,7 +2006,7 @@ test-project
         _get_manifest_mock.return_value = self.data
         preprocess_manifest = template.get_preprocessed_manifest(filter_value)
         expected_result = {
-            "Hello World Example": {
+            "Hello World example": {
                 "nodejs14.x": {
                     "Image": [
                         {
@@ -2015,7 +2015,7 @@ test-project
                             "dependencyManager": "npm",
                             "appTemplate": "hello-world-lambda-image",
                             "packageType": "Image",
-                            "useCaseName": "Hello World Example",
+                            "useCaseName": "Hello World example",
                         }
                     ]
                 }
@@ -2088,7 +2088,7 @@ n
         init_options_from_manifest_mock.return_value = [
             {
                 "directory": "java11/cookiecutter-aws-sam-hello1-java-maven",
-                "displayName": "Hello World Example 1: Maven",
+                "displayName": "Hello World example 1: Maven",
                 "dependencyManager": "maven",
                 "appTemplate": "hello-world",
                 "packageType": "Zip",
@@ -2096,7 +2096,7 @@ n
             },
             {
                 "directory": "java11/cookiecutter-aws-sam-hello2-java-maven",
-                "displayName": "Hello World Example 2: Maven",
+                "displayName": "Hello World example 2: Maven",
                 "dependencyManager": "maven",
                 "appTemplate": "hello-world_x",
                 "packageType": "Zip",
@@ -2110,7 +2110,7 @@ n
                     "Zip": [
                         {
                             "directory": "java11/cookiecutter-aws-sam-hello1-java-maven",
-                            "displayName": "Hello World Example 1: Maven",
+                            "displayName": "Hello World example 1: Maven",
                             "dependencyManager": "maven",
                             "appTemplate": "hello-world",
                             "packageType": "Zip",
@@ -2118,7 +2118,7 @@ n
                         },
                         {
                             "directory": "java11/cookiecutter-aws-sam-hello2-java-maven",
-                            "displayName": "Hello World Example 1: Maven",
+                            "displayName": "Hello World example 1: Maven",
                             "dependencyManager": "maven",
                             "appTemplate": "hello-world",
                             "packageType": "Zip",
@@ -2163,7 +2163,7 @@ test-project
     def test_init_cli_init_must_raise_for_unknown_property(self, log_mock):
         template = {
             "directory": "java11/cookiecutter-aws-sam-hello1-java-maven",
-            "displayName": "Hello World Example 1: Maven",
+            "displayName": "Hello World example 1: Maven",
             "dependencyManager": "maven",
             "appTemplate": "hello-world",
             "packageType": "Zip",
@@ -2184,7 +2184,7 @@ test-project
         init_options_from_manifest_mock.return_value = [
             {
                 "directory": "java11/cookiecutter-aws-sam-hello1-java-maven",
-                "displayName": "Hello World Example 1: Maven",
+                "displayName": "Hello World example 1: Maven",
                 "dependencyManager": "maven",
                 "appTemplate": "hello-world",
                 "packageType": "Zip",
@@ -2198,7 +2198,7 @@ test-project
                     "Zip": [
                         {
                             "directory": "java11/cookiecutter-aws-sam-hello1-java-maven",
-                            "displayName": "Hello World Example 1: Maven",
+                            "displayName": "Hello World example 1: Maven",
                             "dependencyManager": "maven",
                             "appTemplate": "hello-world",
                             "packageType": "Zip",
@@ -2237,7 +2237,7 @@ test-project
         init_options_from_manifest_mock.return_value = [
             {
                 "directory": "java11/cookiecutter-aws-sam-hello1-java-maven",
-                "displayName": "Hello World Example 1: Maven",
+                "displayName": "Hello World example 1: Maven",
                 "dependencyManager": "maven",
                 "appTemplate": "hello-world",
                 "packageType": "Zip",
@@ -2251,7 +2251,7 @@ test-project
                     "Zip": [
                         {
                             "directory": "java11/cookiecutter-aws-sam-hello1-java-maven",
-                            "displayName": "Hello World Example 1: Maven",
+                            "displayName": "Hello World example 1: Maven",
                             "dependencyManager": "maven",
                             "appTemplate": "hello-world",
                             "packageType": "Zip",
@@ -2291,11 +2291,11 @@ test-project
         init_options_from_manifest_mock.return_value = [
             {
                 "directory": "nodejs14.x/cookiecutter-aws-sam-hello-nodejs",
-                "displayName": "Hello World Example",
+                "displayName": "Hello World example",
                 "dependencyManager": "npm",
                 "appTemplate": "hello-world",
                 "packageType": "Zip",
-                "useCaseName": "Hello World Example",
+                "useCaseName": "Hello World example",
             },
             {
                 "directory": "java11/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
@@ -2304,21 +2304,21 @@ test-project
                 "appTemplate": "eventBridge-schema-app",
                 "isDynamicTemplate": "True",
                 "packageType": "Zip",
-                "useCaseName": "Hello World Example",
+                "useCaseName": "Hello World example",
             },
         ]
 
         get_preprocessed_manifest_mock.return_value = {
-            "Hello World Example": {
+            "Hello World example": {
                 "nodejs14.x": {
                     "Zip": [
                         {
                             "directory": "nodejs14.x/cookiecutter-aws-sam-hello-nodejs",
-                            "displayName": "Hello World Example",
+                            "displayName": "Hello World example",
                             "dependencyManager": "npm",
                             "appTemplate": "hello-world",
                             "packageType": "Zip",
-                            "useCaseName": "Hello World Example",
+                            "useCaseName": "Hello World example",
                         },
                     ]
                 },
@@ -2326,12 +2326,12 @@ test-project
                     "Zip": [
                         {
                             "directory": "java11/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
-                            "displayName": "Hello World Example: Maven",
+                            "displayName": "Hello World example: Maven",
                             "dependencyManager": "maven",
                             "appTemplate": "hello-world",
                             "isDynamicTemplate": "True",
                             "packageType": "Zip",
-                            "useCaseName": "Hello World Example",
+                            "useCaseName": "Hello World example",
                         },
                     ]
                 },
@@ -2379,11 +2379,11 @@ test-project
         init_options_from_manifest_mock.return_value = [
             {
                 "directory": "nodejs14.x/cookiecutter-aws-sam-hello-nodejs",
-                "displayName": "Hello World Example",
+                "displayName": "Hello World example",
                 "dependencyManager": "npm",
                 "appTemplate": "hello-world",
                 "packageType": "Zip",
-                "useCaseName": "Hello World Example",
+                "useCaseName": "Hello World example",
             },
             {
                 "directory": "java11/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
@@ -2392,21 +2392,21 @@ test-project
                 "appTemplate": "eventBridge-schema-app",
                 "isDynamicTemplate": "True",
                 "packageType": "Zip",
-                "useCaseName": "Hello World Example",
+                "useCaseName": "Hello World example",
             },
         ]
 
         get_preprocessed_manifest_mock.return_value = {
-            "Hello World Example": {
+            "Hello World example": {
                 "nodejs14.x": {
                     "Zip": [
                         {
                             "directory": "nodejs14.x/cookiecutter-aws-sam-hello-nodejs",
-                            "displayName": "Hello World Example",
+                            "displayName": "Hello World example",
                             "dependencyManager": "npm",
                             "appTemplate": "hello-world",
                             "packageType": "Zip",
-                            "useCaseName": "Hello World Example",
+                            "useCaseName": "Hello World example",
                         },
                     ]
                 },
@@ -2414,12 +2414,12 @@ test-project
                     "Zip": [
                         {
                             "directory": "java11/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
-                            "displayName": "Hello World Example: Maven",
+                            "displayName": "Hello World example: Maven",
                             "dependencyManager": "maven",
                             "appTemplate": "hello-world",
                             "isDynamicTemplate": "True",
                             "packageType": "Zip",
-                            "useCaseName": "Hello World Example",
+                            "useCaseName": "Hello World example",
                         },
                     ]
                 },
@@ -2452,33 +2452,33 @@ test-project
     def does_template_meet_filter_criteria(self):
         template1 = {
             "directory": "nodejs14.x/cookiecutter-aws-sam-hello-nodejs",
-            "displayName": "Hello World Example",
+            "displayName": "Hello World example",
             "dependencyManager": "npm",
             "appTemplate": "hello-world",
             "packageType": "Zip",
-            "useCaseName": "Hello World Example",
+            "useCaseName": "Hello World example",
         }
         app_template = "hello-world"
         self.assertFalse(template_does_not_meet_filter_criteria(app_template, None, None, template1))
 
         template2 = {
             "directory": "java8/cookiecutter-aws-sam-hello-nodejs",
-            "displayName": "Hello World Example",
+            "displayName": "Hello World example",
             "dependencyManager": "Gradle",
             "appTemplate": "hello-world",
             "packageType": "Zip",
-            "useCaseName": "Hello World Example",
+            "useCaseName": "Hello World example",
         }
         package_type = "Image"
         self.assertTrue(template_does_not_meet_filter_criteria(app_template, package_type, None, template2))
 
         template3 = {
             "directory": "java8/cookiecutter-aws-sam-hello-nodejs",
-            "displayName": "Hello World Example",
+            "displayName": "Hello World example",
             "dependencyManager": "Gradle",
             "appTemplate": "hello-world",
             "packageType": "Zip",
-            "useCaseName": "Hello World Example",
+            "useCaseName": "Hello World example",
         }
         dependency_manager = "Gradle"
         self.assertTrue(template_does_not_meet_filter_criteria(app_template, None, dependency_manager, template3))

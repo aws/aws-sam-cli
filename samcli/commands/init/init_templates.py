@@ -150,7 +150,7 @@ class InitTemplates:
             "dotnetcore3.1": [
                 {
                     "directory": "dotnetcore3.1/cookiecutter-aws-sam-hello-dotnet",
-                    "displayName": "Hello World Example",
+                    "displayName": "Hello World example",
                     "dependencyManager": "cli-package",
                     "appTemplate": "hello-world",
                     "packageType": "Zip",
@@ -175,9 +175,9 @@ class InitTemplates:
         """
         manifest_body = self._get_manifest()
 
-        # This would ensure the Use-Case Hello World Example appears
+        # This would ensure the Use-Case Hello World example appears
         # at the top of list template example displayed to the Customer.
-        preprocessed_manifest = {"Hello World Example": {}}  # type: dict
+        preprocessed_manifest = {"Hello World example": {}}  # type: dict
         for template_runtime in manifest_body:
             if filter_value and filter_value != template_runtime:
                 continue
@@ -197,8 +197,8 @@ class InitTemplates:
 
                 preprocessed_manifest[use_case_name] = use_case
 
-        if not bool(preprocessed_manifest["Hello World Example"]):
-            del preprocessed_manifest["Hello World Example"]
+        if not bool(preprocessed_manifest["Hello World example"]):
+            del preprocessed_manifest["Hello World example"]
 
         return preprocessed_manifest
 

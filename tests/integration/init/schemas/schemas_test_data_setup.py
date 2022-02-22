@@ -34,7 +34,7 @@ class SchemaTestDataSetup(TestCase):
         setup_non_partner_schema_data("other-schema", schemas_client)
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 1: Hello World Example
+        # 1: Hello World example
         # N: do not use DEFAULT hello world template
         # 11: Java runtime
         # 2: dependency manager maven
