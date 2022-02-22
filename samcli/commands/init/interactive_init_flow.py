@@ -15,7 +15,12 @@ from samcli.commands.init.interactive_event_bridge_flow import (
 )
 from samcli.commands.exceptions import SchemasApiException, InvalidInitOptionException
 from samcli.lib.schemas.schemas_code_manager import do_download_source_code_binding, do_extract_and_merge_schemas_code
-from samcli.local.common.runtime_template import LAMBDA_IMAGES_RUNTIMES_MAP, INIT_RUNTIMES
+from samcli.local.common.runtime_template import (
+    LAMBDA_IMAGES_RUNTIMES_MAP,
+    sort_runtimes,
+    get_custom_runtime_base_runtime,
+    is_custom_runtime,
+)
 from samcli.commands.init.init_generator import do_generate
 from samcli.commands.init.init_templates import InitTemplates, InvalidInitTemplateError
 from samcli.lib.utils.osutils import remove
@@ -163,7 +168,7 @@ def _generate_from_use_case(
     final_architecture = get_architectures(architecture)
     extra_context = {
         "project_name": name,
-        "runtime": runtime,
+        "runtime": get_custom_runtime_base_runtime(runtime) if is_custom_runtime(runtime) else runtime,
         "architectures": {"value": final_architecture},
     }
 
@@ -190,6 +195,7 @@ def _generate_from_use_case(
     [*] Test Function in the Cloud: sam sync --stack-name {{stack-name}} --watch
     """
     click.secho(next_commands_msg, fg="yellow")
+    runtime = get_custom_runtime_base_runtime(runtime) if is_custom_runtime(runtime) else runtime
     do_generate(location, package_type, runtime, dependency_manager, output_dir, name, no_input, extra_context)
     # executing event_bridge logic if call is for Schema dynamic template
     if is_dynamic_schemas_template:
@@ -263,6 +269,7 @@ def _get_app_template_properties(
     """
     runtime, package_type, dependency_manager, pt_explicit = template_properties
     runtime_options = preprocessed_options[use_case]
+    runtime = None if is_custom_runtime(runtime) else runtime
     if not runtime and not base_image:
         question = "Which runtime would you like to use?"
         runtime = _get_choice_from_options(runtime, runtime_options, question, "Runtime")
@@ -310,28 +317,12 @@ def _get_choice_from_options(chosen, options, question, msg):
         return options_list[0]
 
     click.echo(f"\n{question}")
-    options_list = (
-        get_sorted_runtimes(options_list) if msg == "Runtime" and not isinstance(options, list) else options_list
-    )
+    options_list = sort_runtimes(options_list) if msg == "Runtime" and not isinstance(options, list) else options_list
     for index, option in enumerate(options_list):
         click.echo(f"\t{index+1} - {option}")
         click_choices.append(str(index + 1))
     choice = click.prompt(msg, type=click.Choice(click_choices), show_choices=False)
     return options_list[int(choice) - 1]
-
-
-def get_sorted_runtimes(options_list):
-    runtimes = []
-    for runtime in options_list:
-        try:
-            position = INIT_RUNTIMES.index(runtime)
-        except:
-            continue
-        runtimes.append(position)
-    sorted_runtimes = sorted(runtimes)
-    for index, position in enumerate(sorted_runtimes):
-        sorted_runtimes[index] = INIT_RUNTIMES[position]
-    return sorted_runtimes
 
 
 def _get_app_template_choice(templates_options, dependency_manager):

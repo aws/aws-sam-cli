@@ -10,7 +10,7 @@ from pathlib import Path
 from cookiecutter.exceptions import CookiecutterException, RepositoryNotFound, UnknownRepoType
 from cookiecutter.main import cookiecutter
 
-from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING
+from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING, is_custom_runtime
 from samcli.lib.utils.packagetype import ZIP
 from samcli.lib.utils import osutils
 from .exceptions import GenerateProjectFailedError, InvalidLocationError
@@ -63,9 +63,8 @@ def generate_project(
         If the process of baking a project fails
     """
     template = None
-    CUSTOM_RUNTIME = "provided.al2"
 
-    if runtime and CUSTOM_RUNTIME not in runtime and package_type == ZIP:
+    if runtime and not is_custom_runtime(runtime) and package_type == ZIP:
         for mapping in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values()))):
             if runtime in mapping["runtimes"] or any([r.startswith(runtime) for r in mapping["runtimes"]]):
                 if not dependency_manager or dependency_manager == mapping["dependency_manager"]:

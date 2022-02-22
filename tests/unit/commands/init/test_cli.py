@@ -2587,7 +2587,8 @@ test-project
 
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 2: Java 11
+        # N: Don't use default
+        # 2: rust
         # test-project: response to name
         user_input = """
 1
@@ -2602,10 +2603,10 @@ test-project
         generate_project_patch.assert_called_once_with(
             ANY,
             ZIP,
-            "rust(provided.al2)",
+            "provided.al2",
             "cargo",
             ".",
             "test-project",
             True,
-            {"project_name": "test-project", "runtime": "rust(provided.al2)", "architectures": {"value": ["x86_64"]}},
+            {"project_name": "test-project", "runtime": "provided.al2", "architectures": {"value": ["x86_64"]}},
         )

@@ -16,8 +16,10 @@ from samcli.lib.utils.git_repo import GitRepo, CloneRepoException, CloneRepoUnst
 from samcli.lib.utils.packagetype import IMAGE
 from samcli.local.common.runtime_template import (
     RUNTIME_DEP_TEMPLATE_MAPPING,
+    get_custom_runtime_base_runtime,
     get_local_lambda_images_location,
     get_local_manifest_path,
+    is_custom_runtime,
 )
 
 LOG = logging.getLogger(__name__)
@@ -179,7 +181,11 @@ class InitTemplates:
         # at the top of list template example displayed to the Customer.
         preprocessed_manifest = {"Hello World Example": {}}  # type: dict
         for template_runtime in manifest_body:
-            if filter_value and filter_value != template_runtime:
+            if (
+                is_custom_runtime(filter_value)
+                and filter_value != get_custom_runtime_base_runtime(template_runtime)
+                or (filter_value and not is_custom_runtime(filter_value) and filter_value != template_runtime)
+            ):
                 continue
             template_list = manifest_body[template_runtime]
             for template in template_list:

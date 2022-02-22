@@ -2,6 +2,7 @@
 All-in-one metadata about runtimes
 """
 
+import re
 import itertools
 import os
 import pathlib
@@ -82,33 +83,11 @@ def get_local_lambda_images_location(mapping, runtime):
     return os.path.join(_lambda_images_templates, runtime, dir_name + "-lambda-image")
 
 
-RUNTIME_TO_DEPENDENCY_MANAGERS = {
-    "python3.9": ["pip"],
-    "python3.8": ["pip"],
-    "python3.7": ["pip"],
-    "python3.6": ["pip"],
-    "ruby2.7": ["bundler"],
-    "nodejs14.x": ["npm"],
-    "nodejs12.x": ["npm"],
-    "dotnetcore3.1": ["cli-package"],
-    "go1.x": ["mod"],
-    "java8": ["maven", "gradle"],
-    "java11": ["maven", "gradle"],
-    "java8.al2": ["maven", "gradle"],
-    "rust(provided.al2)": ["cargo"],
-}
-
 SUPPORTED_DEP_MANAGERS: Set[str] = {
     c["dependency_manager"]  # type: ignore
     for c in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values())))
     if c["dependency_manager"]
 }
-
-RUNTIMES: Set[str] = set(
-    itertools.chain(
-        *[c["runtimes"] for c in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values())))]  # type: ignore
-    )
-)
 
 # When adding new Lambda runtimes, please update SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING
 # Runtimes are ordered in alphabetical fashion with reverse version order (latest versions first)
@@ -124,6 +103,10 @@ INIT_RUNTIMES = [
     # nodejs runtimes in descending order
     "nodejs14.x",
     "nodejs12.x",
+    "nodejs10.x",
+    # custom runtime in descending order
+    "provided.al2",
+    "provided",
     # python runtimes in descending order
     "python3.9",
     "python3.8",
@@ -163,3 +146,147 @@ SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
     "python3.8": "Python36",
     "python3.9": "Python36",
 }
+
+CUSTOM_RUNTIME = ["provided.al2", "provided"]
+
+
+def is_custom_runtime(runtime):
+    """
+    validated if a runtime is custom or not
+
+    Parameters
+    ----------
+    runtime : str
+        runtime to be
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
+    if not runtime:
+        return False
+    validation_result = get_custom_runtime_base_runtime(runtime)
+    return runtime in CUSTOM_RUNTIME or bool(validation_result in CUSTOM_RUNTIME)
+
+
+def get_custom_runtime_base_runtime(runtime):
+    base_runtime_list = re.findall("(?<=\\().*(?=\\))", runtime)
+    return base_runtime_list[0] if base_runtime_list else None
+
+
+def sort_runtimes(runtime_list):
+    """
+    Sort runtime in a descending order of the runtime name and ascending order of the runtime version
+
+    Parameters
+    ----------
+    runtime_list : list
+        list of runtime
+
+    Returns
+    -------
+    list
+        list of sorted runtime
+    """
+    _sort_runtimes(runtime_list, 0, len(runtime_list) - 1)
+    return runtime_list
+
+
+def _sort_runtimes(runtime_list, start_index, end_index):
+    """
+    Sort runtime in descending order of the runtime name
+    and ascending order of the runtime version
+
+    Parameters
+    ----------
+    runtime_list : list
+        list of runtime
+    start_index : int
+        start of the partition to be sorted
+    end_index : int
+        end position of the partition to be sorted
+    """
+    if end_index <= start_index:
+        return
+    pivot_index = partition(runtime_list, start_index, end_index)
+    _sort_runtimes(runtime_list, start_index, pivot_index - 1)
+    _sort_runtimes(runtime_list, pivot_index + 1, end_index)
+
+
+def partition(runtime_list, start_index, end_index):
+    """
+    Creates a pivot point where everything to the left of this point is less and everything to right is greater.
+
+    Parameters
+    ----------
+    runtime_list : list
+        list of runtime
+    start_index : int
+        start of the partition to be sorted
+    end_index : int
+        end position of the partition to be sorted
+
+    Returns
+    -------
+    int
+        pivot point
+    """
+    lower_index = start_index + 1
+    upper_index = end_index
+    while True:
+        while less(runtime_list, lower_index, start_index):
+            lower_index += 1
+            if lower_index >= end_index:
+                break
+
+        while less(runtime_list, start_index, upper_index):
+            upper_index -= 1
+            if upper_index <= start_index:
+                break
+        if lower_index >= upper_index:
+            break
+        swap(runtime_list, lower_index, upper_index)
+    swap(runtime_list, start_index, upper_index)
+    return upper_index
+
+
+def less(runtime_list, index_1, index_2):
+    """
+    This method does a comparsion. Uses conventional comparison when a custom runtime is involved but
+    use runtime position in INIT_RUNTIMES.
+
+    Parameters
+    ----------
+    runtime_list : list
+        list of runtime
+    index_1 : in
+        index of runtime to be compared
+    index_2 : int
+        index of runtime to be compared
+
+    Returns
+    -------
+    bool
+        result of comparison
+    """
+    runtime_1 = runtime_list[index_1]
+    runtime_2 = runtime_list[index_2]
+    if is_custom_runtime(runtime_1) or is_custom_runtime(runtime_2):
+        return bool(runtime_1 < runtime_2)
+    return bool(INIT_RUNTIMES.index(runtime_1) < INIT_RUNTIMES.index(runtime_2))
+
+
+def swap(runtime_list, index_1, index_2):
+    """swap _summary_
+
+    Parameters
+    ----------
+    runtime_list : list
+        list of runtime
+    index_1 : in
+        index of runtime to be compared
+    index_2 : int
+        index of runtime to be compared
+    """
+    runtime_list[index_1], runtime_list[index_2] = runtime_list[index_2], runtime_list[index_1]
