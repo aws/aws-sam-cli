@@ -15,6 +15,7 @@ from samcli.local.common.runtime_template import RUNTIMES, SUPPORTED_DEP_MANAGER
 from samcli.lib.telemetry.metric import track_command
 from samcli.commands.init.interactive_init_flow import _get_runtime_from_image, get_architectures, get_sorted_runtimes
 from samcli.commands._utils.click_mutex import ClickMutex
+from samcli.lib.build.app_builder import DEPRECATED_RUNTIMES
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.architecture import X86_64, ARM64
 
@@ -71,6 +72,11 @@ or you can provide one of the following required parameter combinations:
 """
 
 REQUIRED_PARAMS_HINT = "You can also re-run without the --no-interactive flag to be prompted for required values."
+
+INIT_INTERACTIVE_OPTION_GUIDE = """
+You can preselect a particular runtime or package type when using the `sam init` experience.
+Call `sam init --help` to learn more.
+"""
 
 
 class PackageType:
@@ -335,6 +341,9 @@ def do_cli(
             extra_context,
         )
     else:
+        if not (pt_explicit or runtime or dependency_manager or base_image or architecture):
+            click.secho(INIT_INTERACTIVE_OPTION_GUIDE, fg="yellow", bold=True)
+
         # proceed to interactive state machine, which will call do_generate
         do_interactive(
             location,
@@ -354,11 +363,11 @@ def do_cli(
 def _deprecate_notification(runtime):
     from samcli.lib.utils.colors import Colored
 
-    deprecated_runtimes = {"dotnetcore1.0", "dotnetcore2.0"}
-    if runtime in deprecated_runtimes:
+    if runtime in DEPRECATED_RUNTIMES:
         message = (
             f"WARNING: {runtime} is no longer supported by AWS Lambda, please update to a newer supported runtime. "
-            f"See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
+            "For more information please check AWS Lambda Runtime Support Policy: "
+            "https://docs.aws.amazon.com/lambda/latest/dg/runtime-support-policy.html"
         )
         LOG.warning(Colored().yellow(message))
 

@@ -42,7 +42,7 @@ class TestArchitecture(TestCase):
 
     @parameterized.expand(
         [
-            ("nodejs10.x", X86_64, ZIP),
+            ("nodejs14.x", X86_64, ZIP),
             ("java8.al2", ARM64, ZIP),
             ("dotnetcore3.1", ARM64, ZIP),
             (None, X86_64, IMAGE),
@@ -59,10 +59,8 @@ class TestArchitecture(TestCase):
     @parameterized.expand(
         [
             ("nodejs10.x", ARM64),
-            ("python2.7", ARM64),
             ("python3.6", ARM64),
             ("python3.7", ARM64),
-            ("ruby2.5", ARM64),
             ("java8", ARM64),
             ("go1.x", ARM64),
             ("provided", ARM64),
