@@ -39,7 +39,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "dotnet": [
         {
-            "runtimes": ["dotnetcore3.1"],
+            "runtimes": ["dotnet6", "dotnetcore3.1"],
             "dependency_manager": "cli-package",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-dotnet"),
             "build": True,
@@ -91,6 +91,7 @@ RUNTIME_TO_DEPENDENCY_MANAGERS = {
     "nodejs14.x": ["npm"],
     "nodejs12.x": ["npm"],
     "dotnetcore3.1": ["cli-package"],
+    "dotnet6": ["cli-package"],
     "go1.x": ["mod"],
     "java8": ["maven", "gradle"],
     "java11": ["maven", "gradle"],
@@ -113,6 +114,7 @@ RUNTIMES: Set[str] = set(
 # Runtimes are ordered in alphabetical fashion with reverse version order (latest versions first)
 INIT_RUNTIMES = [
     # dotnetcore runtimes in descending order
+    "dotnet6",
     "dotnet5.0",
     "dotnetcore3.1",
     "go1.x",
@@ -134,6 +136,7 @@ INIT_RUNTIMES = [
 
 
 LAMBDA_IMAGES_RUNTIMES_MAP = {
+    "dotnet6": "amazon/dotnet6-base",
     "dotnet5.0": "amazon/dotnet5.0-base",
     "dotnetcore3.1": "amazon/dotnetcore3.1-base",
     "go1.x": "amazon/go1.x-base",
@@ -161,4 +164,5 @@ SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
     "python3.6": "Python36",
     "python3.8": "Python36",
     "python3.9": "Python36",
+    "dotnet6": "dotnetcore3.1",
 }
