@@ -39,6 +39,7 @@ class Runtime(Enum):
     java11 = "java11"
     go1x = "go1.x"
     dotnetcore31 = "dotnetcore3.1"
+    dotnet6 = "dotnet6"
     provided = "provided"
     providedal2 = "provided.al2"
 
