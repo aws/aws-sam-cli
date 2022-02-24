@@ -787,7 +787,9 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
     @parameterized.expand(
         [
             ("dotnetcore3.1", "Dotnetcore3.1", None),
+            ("dotnet6", "Dotnet6", None),
             ("dotnetcore3.1", "Dotnetcore3.1", "debug"),
+            ("dotnet6", "Dotnet6", "debug"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -840,7 +842,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
             )
         self.verify_docker_container_cleanedup(runtime)
 
-    @parameterized.expand([("dotnetcore3.1", "Dotnetcore3.1")])
+    @parameterized.expand([("dotnetcore3.1", "Dotnetcore3.1"), ("dotnet6", "Dotnet6")])
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
     def test_must_fail_with_container(self, runtime, code_uri):
@@ -1377,6 +1379,13 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
                 "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
                 "dotnetcore3.1",
             ),
+            (
+                False,
+                "Dotnet6",
+                "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
+                "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
+                "dotnet6",
+            ),
             (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
@@ -1499,6 +1508,13 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
                 "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
                 "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
                 "dotnetcore3.1",
+            ),
+            (
+                False,
+                "Dotnet6",
+                "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
+                "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
+                "dotnet6",
             ),
             (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
@@ -1630,6 +1646,13 @@ class TestParallelBuilds(DedupBuildIntegBase):
                 "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
                 "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
                 "dotnetcore3.1",
+            ),
+            (
+                False,
+                "Dotnet6",
+                "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
+                "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
+                "dotnet6",
             ),
             (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
