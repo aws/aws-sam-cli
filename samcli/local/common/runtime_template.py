@@ -2,11 +2,14 @@
 All-in-one metadata about runtimes
 """
 
+import logging
 import re
 import itertools
 import os
 import pathlib
 from typing import Set
+
+LOG = logging.getLogger(__name__)
 
 _init_path = str(pathlib.Path(os.path.dirname(__file__)).parent.parent)
 _templates = os.path.join(_init_path, "lib", "init", "templates")
@@ -189,8 +192,33 @@ def sort_runtimes(runtime_list):
     list
         list of sorted runtime
     """
+    runtime_list = verify_runtime_list_provided(runtime_list)
     _sort_runtimes(runtime_list, 0, len(runtime_list) - 1)
     return runtime_list
+
+
+def verify_runtime_list_provided(runtime_list):
+    """
+    Verifies the runtime list again INIT_RUNTIMES. This method shield SAM INIT from failing when a runtime not
+    in the INIT_RUNTIMES list.
+
+    Parameters
+    ----------
+    runtime_list : list
+        List of runtime
+
+    Returns
+    -------
+    list
+        List of verified runtimes
+    """
+    verified_runtime_list = []
+    for runtime in runtime_list:
+        if runtime not in INIT_RUNTIMES and not is_custom_runtime(runtime):
+            LOG.debug("{runtime} is currently not supported in samcli. Please raise a github issue")
+            continue
+        verified_runtime_list.append(runtime)
+    return verified_runtime_list
 
 
 def _sort_runtimes(runtime_list, start_index, end_index):
