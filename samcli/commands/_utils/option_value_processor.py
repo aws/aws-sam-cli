@@ -6,8 +6,7 @@ from typing import Optional, Dict, Tuple
 
 from pathvalidate import ValidationError, validate_filepath
 
-from samcli.commands.build.exceptions import InvalidMountedPathException
-from samcli.commands.exceptions import InvalidImageException
+from samcli.commands.exceptions import InvalidImageException, InvalidMountedPathException
 
 LOG = logging.getLogger(__name__)
 

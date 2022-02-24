@@ -13,9 +13,3 @@ class MissingBuildMethodException(UserException):
     """
     Exception to be thrown when a layer is tried to build without BuildMethod
     """
-
-
-class InvalidMountedPathException(UserException):
-    """
-    Value provided to --container-dir-mount is invalid
-    """

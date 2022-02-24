@@ -485,8 +485,12 @@ class AbstractBuildDefinition:
     """
 
     def __init__(
-        self, source_hash: str, manifest_hash: str, env_vars: Optional[Dict] = None, dir_mounts: Optional[Dict] = None,
-            architecture: str = X86_64
+        self,
+        source_hash: str,
+        manifest_hash: str,
+        env_vars: Optional[Dict] = None,
+        dir_mounts: Optional[Dict] = None,
+        architecture: str = X86_64,
     ) -> None:
         self.uuid = str(uuid4())
         self.source_hash = source_hash
@@ -635,7 +639,7 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         return (
             "BuildDefinition("
             f"{self.runtime}, {self.codeuri}, {self.packagetype}, {self.source_hash}, "
-            f"{self.uuid}, {self.metadata}, {self.env_vars}, {self.architecture}, {self.dir_mounts}, "
+            f"{self.uuid}, {self.metadata}, {self.env_vars}, {self.dir_mounts}, {self.architecture}, "
             f"{[f.functionname for f in self.functions]})"
         )
 

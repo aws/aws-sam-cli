@@ -861,6 +861,7 @@ class TestBuildContext_run(TestCase):
             mode="mode",
             container_env_var={},
             container_env_var_file=None,
+            container_dir_mount={},
             build_images={},
             create_auto_dependency_layer=auto_dependency_layer,
         ) as build_context:
@@ -879,6 +880,7 @@ class TestBuildContext_run(TestCase):
                 parallel=build_context._parallel,
                 container_env_var=build_context._container_env_var,
                 container_env_var_file=build_context._container_env_var_file,
+                container_dir_mount=build_context._container_dir_mount,
                 build_images=build_context._build_images,
                 combine_dependencies=not auto_dependency_layer,
             )

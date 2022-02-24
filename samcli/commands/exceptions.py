@@ -90,3 +90,9 @@ class InvalidImageException(UserException):
     """
     Value provided to --build-image or --invoke-image is invalid URI
     """
+
+
+class InvalidMountedPathException(UserException):
+    """
+    Value provided to --container-dir-mount is invalid
+    """

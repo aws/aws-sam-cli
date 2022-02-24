@@ -1405,7 +1405,16 @@ class TestApplicationBuilder_build_function(TestCase):
         )
 
         self.builder._build_function_on_container.assert_called_with(
-            config_mock, code_dir, artifacts_dir, manifest_path, runtime, architecture, None, {"TEST": "test"}, None, None
+            config_mock,
+            code_dir,
+            artifacts_dir,
+            manifest_path,
+            runtime,
+            architecture,
+            None,
+            {"TEST": "test"},
+            None,
+            None,
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -1436,7 +1445,15 @@ class TestApplicationBuilder_build_function(TestCase):
         self.builder._container_manager = Mock()
         self.builder._build_images = build_images
         self.builder._build_function(
-            function_name, codeuri, packagetype, runtime, architecture, handler, artifacts_dir, container_env_vars=None, container_dir_mounts=None,
+            function_name,
+            codeuri,
+            packagetype,
+            runtime,
+            architecture,
+            handler,
+            artifacts_dir,
+            container_env_vars=None,
+            container_dir_mounts=None,
         )
 
         self.builder._build_function_on_container.assert_called_with(
@@ -1471,7 +1488,15 @@ class TestApplicationBuilder_build_function(TestCase):
         self.builder._container_manager = Mock()
         self.builder._build_images = build_images
         self.builder._build_function(
-            function_name, codeuri, packagetype, runtime, architecture, handler, artifacts_dir, container_env_vars=None, container_dir_mounts=None,
+            function_name,
+            codeuri,
+            packagetype,
+            runtime,
+            architecture,
+            handler,
+            artifacts_dir,
+            container_env_vars=None,
+            container_dir_mounts=None,
         )
 
         self.builder._build_function_on_container.assert_called_with(

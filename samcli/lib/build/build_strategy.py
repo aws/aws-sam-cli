@@ -120,7 +120,9 @@ class DefaultBuildStrategy(BuildStrategy):
         self,
         build_graph: BuildGraph,
         build_dir: str,
-        build_function: Callable[[str, str, str, str, str, Optional[str], str, dict, dict, dict, Optional[str], bool], str],
+        build_function: Callable[
+            [str, str, str, str, str, Optional[str], str, dict, dict, dict, Optional[str], bool], str
+        ],
         build_layer: Callable[[str, str, str, List[str], str, str, dict, dict, Optional[str], bool], str],
     ) -> None:
         super().__init__(build_graph)

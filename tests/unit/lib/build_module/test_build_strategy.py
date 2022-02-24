@@ -242,7 +242,14 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
         function2.full_path = "Function2"
         function2.packagetype = IMAGE
         build_definition = FunctionBuildDefinition(
-            "3.7", "codeuri", IMAGE, X86_64, {}, "handler", env_vars={"FOO": "BAR"}, dir_mounts={"/local/dir": "/container/dir"}
+            "3.7",
+            "codeuri",
+            IMAGE,
+            X86_64,
+            {},
+            "handler",
+            env_vars={"FOO": "BAR"},
+            dir_mounts={"/local/dir": "/container/dir"},
         )
         # since they have the same metadata, they are put into the same build_definition.
         build_definition.functions = [function1, function2]
@@ -509,7 +516,7 @@ class TestIncrementalBuildStrategy(TestCase):
 
         self.build_strategy.build()
         self.build_function.assert_called_with(
-            ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY, dependency_dir, download_dependencies
+            ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY, dependency_dir, download_dependencies
         )
 
     @parameterized.expand(
@@ -539,7 +546,9 @@ class TestIncrementalBuildStrategy(TestCase):
         download_dependencies = manifest_hash != build_toml_manifest_hash or not dependency_dir_exist
 
         self.build_strategy.build()
-        self.build_layer.assert_called_with(ANY, ANY, ANY, ANY, ANY, ANY, ANY, dependency_dir, download_dependencies)
+        self.build_layer.assert_called_with(
+            ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY, dependency_dir, download_dependencies
+        )
 
 
 @patch("samcli.lib.build.build_graph.BuildGraph._write")

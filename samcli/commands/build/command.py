@@ -6,7 +6,6 @@ import os
 import logging
 from typing import List, Optional, Dict, Tuple
 import click
-from pathvalidate import ValidationError, validate_filepath
 
 from samcli.cli.context import Context
 from samcli.commands._utils.experimental import experimental
