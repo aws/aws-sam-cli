@@ -75,8 +75,8 @@ test_script:
     # Reactivate virtualenv before running tests
     - "venv\\Scripts\\activate"
     - "docker system prune -a -f"
-    - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_Go_Modules"
-    - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_Go_Modules_With_Specified_Architecture"
+    - ps: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_Go_Modules"
+    - ps: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_Go_Modules_With_Specified_Architecture"
 
 
 # Uncomment for RDP

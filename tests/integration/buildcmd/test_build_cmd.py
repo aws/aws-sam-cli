@@ -37,6 +37,7 @@ from .build_integ_base import (
     BuildIntegProvidedBase,
     BuildIntegPythonBase,
     BuildIntegJavaBase,
+    BuildIntegEsbuildBase,
 )
 
 LOG = logging.getLogger(__name__)
@@ -251,14 +252,12 @@ class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
         "prop",
     ),
     [
-        ("template.yaml", "Function", True, "python2.7", "Python", False, False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.6", "Python", False, False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.7", "Python", False, False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.8", "Python", False, False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.9", "Python", False, False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.7", "PythonPEP600", False, False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.8", "PythonPEP600", False, False, "CodeUri"),
-        ("template.yaml", "Function", True, "python2.7", "Python", "use_container", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.6", "Python", "use_container", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.7", "Python", "use_container", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.8", "Python", "use_container", False, "CodeUri"),
@@ -277,7 +276,7 @@ class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
 )
 class TestBuildCommand_PythonFunctions(BuildIntegPythonBase):
     overrides = True
-    runtime = "python2.7"
+    runtime = "python3.9"
     codeuri = "Python"
     use_container = False
     check_function_only = False
@@ -303,14 +302,12 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
 
     @parameterized.expand(
         [
-            ("python2.7", "Python", False, "x86_64"),
             ("python3.6", "Python", False, "x86_64"),
             ("python3.7", "Python", False, "x86_64"),
             ("python3.8", "Python", False, "x86_64"),
             # numpy 1.20.3 (in PythonPEP600/requirements.txt) only support python 3.7+
             ("python3.7", "PythonPEP600", False, "x86_64"),
             ("python3.8", "PythonPEP600", False, "x86_64"),
-            ("python2.7", "Python", "use_container", "x86_64"),
             ("python3.6", "Python", "use_container", "x86_64"),
             ("python3.7", "Python", "use_container", "x86_64"),
             ("python3.8", "Python", "use_container", "x86_64"),
@@ -351,10 +348,8 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
 class TestBuildCommand_NodeFunctions(BuildIntegNodeBase):
     @parameterized.expand(
         [
-            ("nodejs10.x", False),
             ("nodejs12.x", False),
             ("nodejs14.x", False),
-            ("nodejs10.x", "use_container"),
             ("nodejs12.x", "use_container"),
             ("nodejs14.x", "use_container"),
         ]
@@ -366,15 +361,55 @@ class TestBuildCommand_NodeFunctions(BuildIntegNodeBase):
         self._test_with_default_package_json(runtime, use_container, self.test_data_path)
 
 
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildCommand_EsbuildFunctions(BuildIntegEsbuildBase):
+    template = "template_with_metadata.yaml"
+
+    @parameterized.expand(
+        [
+            ("nodejs14.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", False, "x86_64"),
+            ("nodejs12.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", False, "arm64"),
+            ("nodejs14.x", "Esbuild/TypeScript", {"app.js", "app.js.map"}, "app.lambdaHandler", False, "x86_64"),
+            ("nodejs12.x", "Esbuild/TypeScript", {"app.js", "app.js.map"}, "app.lambdaHandler", False, "arm64"),
+            ("nodejs14.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", "use_container", "x86_64"),
+            ("nodejs12.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", "use_container", "arm64"),
+            (
+                "nodejs14.x",
+                "Esbuild/TypeScript",
+                {"app.js", "app.js.map"},
+                "app.lambdaHandler",
+                "use_container",
+                "x86_64",
+            ),
+            (
+                "nodejs12.x",
+                "Esbuild/TypeScript",
+                {"app.js", "app.js.map"},
+                "app.lambdaHandler",
+                "use_container",
+                "arm64",
+            ),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_building_default_package_json(
+        self, runtime, code_uri, expected_files, handler, use_container, architecture
+    ):
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+        self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, architecture)
+
+
 class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeBase):
     template = "template_with_architecture.yaml"
 
     @parameterized.expand(
         [
-            ("nodejs10.x", False, "x86_64"),
             ("nodejs12.x", False, "x86_64"),
             ("nodejs14.x", False, "x86_64"),
-            ("nodejs10.x", "use_container", "x86_64"),
             ("nodejs12.x", "use_container", "x86_64"),
             ("nodejs14.x", "use_container", "x86_64"),
             ("nodejs12.x", False, "arm64"),
@@ -751,10 +786,10 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
 
     @parameterized.expand(
         [
-            ("dotnetcore2.1", "Dotnetcore2.1", None),
             ("dotnetcore3.1", "Dotnetcore3.1", None),
-            ("dotnetcore2.1", "Dotnetcore2.1", "debug"),
+            ("dotnet6", "Dotnet6", None),
             ("dotnetcore3.1", "Dotnetcore3.1", "debug"),
+            ("dotnet6", "Dotnet6", "debug"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -807,7 +842,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
             )
         self.verify_docker_container_cleanedup(runtime)
 
-    @parameterized.expand([("dotnetcore2.1", "Dotnetcore2.1"), ("dotnetcore3.1", "Dotnetcore3.1")])
+    @parameterized.expand([("dotnetcore3.1", "Dotnetcore3.1"), ("dotnet6", "Dotnet6")])
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
     def test_must_fail_with_container(self, runtime, code_uri):
@@ -1344,6 +1379,13 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
                 "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
                 "dotnetcore3.1",
             ),
+            (
+                False,
+                "Dotnet6",
+                "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
+                "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
+                "dotnet6",
+            ),
             (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
@@ -1466,6 +1508,13 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
                 "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
                 "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
                 "dotnetcore3.1",
+            ),
+            (
+                False,
+                "Dotnet6",
+                "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
+                "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
+                "dotnet6",
             ),
             (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
@@ -1597,6 +1646,13 @@ class TestParallelBuilds(DedupBuildIntegBase):
                 "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
                 "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
                 "dotnetcore3.1",
+            ),
+            (
+                False,
+                "Dotnet6",
+                "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
+                "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
+                "dotnet6",
             ),
             (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),

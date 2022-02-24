@@ -6,6 +6,7 @@ import json
 import logging
 import pathlib
 
+from samcli.commands._utils.experimental import get_enabled_experimental_flags
 from samcli.local.docker.container import Container
 
 LOG = logging.getLogger(__name__)
@@ -40,6 +41,7 @@ class LambdaBuildContainer(Container):
         env_vars=None,
         dir_mounts=None,
         image=None,
+        is_building_layer=False,
     ):
         abs_manifest_path = pathlib.Path(manifest_path).resolve()
         manifest_file_name = abs_manifest_path.name
@@ -77,6 +79,7 @@ class LambdaBuildContainer(Container):
             executable_search_paths,
             mode,
             architecture,
+            is_building_layer,
         )
 
         if image is None:
@@ -124,6 +127,7 @@ class LambdaBuildContainer(Container):
         executable_search_paths,
         mode,
         architecture,
+        is_building_layer,
     ):
 
         runtime = runtime.replace(".al2", "")
@@ -151,6 +155,8 @@ class LambdaBuildContainer(Container):
                     "executable_search_paths": executable_search_paths,
                     "mode": mode,
                     "architecture": architecture,
+                    "is_building_layer": is_building_layer,
+                    "experimental_flags": get_enabled_experimental_flags(),
                 },
             }
         )

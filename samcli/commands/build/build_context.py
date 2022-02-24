@@ -1,7 +1,6 @@
 """
 Context object used by build command
 """
-
 import logging
 import os
 import pathlib
@@ -10,6 +9,7 @@ from typing import Dict, Optional, List, cast
 
 import click
 
+from samcli.commands._utils.experimental import is_experimental_enabled, ExperimentalFlag, prompt_experimental
 from samcli.lib.providers.sam_api_provider import SamApiProvider
 from samcli.lib.utils.packagetype import IMAGE
 
@@ -71,6 +71,7 @@ class BuildContext:
         aws_region: Optional[str] = None,
         create_auto_dependency_layer: bool = False,
         stack_name: Optional[str] = None,
+        print_success_message: bool = True,
     ) -> None:
 
         self._resource_identifier = resource_identifier
@@ -101,6 +102,7 @@ class BuildContext:
         self._build_images = build_images
         self._create_auto_dependency_layer = create_auto_dependency_layer
         self._stack_name = stack_name
+        self._print_success_message = print_success_message
 
         self._function_provider: Optional[SamFunctionProvider] = None
         self._layer_provider: Optional[SamLayerProvider] = None
@@ -187,6 +189,8 @@ class BuildContext:
             raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
 
         try:
+            self._check_java_warning()
+            self._check_esbuild_warning()
             build_result = builder.build()
             artifacts = build_result.artifacts
 
@@ -224,13 +228,14 @@ class BuildContext:
                 build_dir_in_success_message = self.build_dir
                 output_template_path_in_success_message = out_template_path
 
-            msg = self.gen_success_msg(
-                build_dir_in_success_message,
-                output_template_path_in_success_message,
-                os.path.abspath(self.build_dir) == os.path.abspath(DEFAULT_BUILD_DIR),
-            )
+            if self._print_success_message:
+                msg = self.gen_success_msg(
+                    build_dir_in_success_message,
+                    output_template_path_in_success_message,
+                    os.path.abspath(self.build_dir) == os.path.abspath(DEFAULT_BUILD_DIR),
+                )
 
-            click.secho(msg, fg="yellow")
+                click.secho(msg, fg="yellow")
 
         except (
             UnsupportedRuntimeException,
@@ -511,3 +516,49 @@ Commands you can use next
             LOG.debug("Skip building pre-built layer: %s", layer.full_path)
             return False
         return True
+
+    _JAVA_BUILD_WARNING_MESSAGE = (
+        "Test the latest build changes for Java runtime 'SAM_CLI_BETA_MAVEN_SCOPE_AND_LAYER=1 sam build'. "
+        "These changes will replace the existing flow on 1st of April 2022. "
+        "Check https://github.com/aws/aws-sam-cli/issues/3639 for more information."
+    )
+
+    _ESBUILD_WARNING_MESSAGE = (
+        "Using esbuild for bundling Node.js and TypeScript is a beta feature.\n"
+        "Please confirm if you would like to proceed with using esbuild to build your function.\n"
+        "You can also enable this beta feature with 'sam build --beta-features'."
+    )
+
+    def _check_java_warning(self) -> None:
+        """
+        Prints warning message about upcoming changes to building java functions and layers.
+        This warning message will only be printed if template contains any buildable functions or layers with one of
+        the java runtimes.
+        """
+        # display warning message for java runtimes for changing build method
+        resources_to_build = self.get_resources_to_build()
+        function_runtimes = {function.runtime for function in resources_to_build.functions if function.runtime}
+        layer_build_methods = {layer.build_method for layer in resources_to_build.layers if layer.build_method}
+
+        is_building_java = False
+        for runtime_or_build_method in set.union(function_runtimes, layer_build_methods):
+            if runtime_or_build_method.startswith("java"):
+                is_building_java = True
+                break
+
+        if is_building_java and not is_experimental_enabled(ExperimentalFlag.JavaMavenBuildScope):
+            click.secho(self._JAVA_BUILD_WARNING_MESSAGE, fg="yellow")
+
+    def _check_esbuild_warning(self) -> None:
+        """
+        Prints warning message and confirms that the user wants to enable beta features
+        """
+        resources_to_build = self.get_resources_to_build()
+        is_building_esbuild = False
+        for function in resources_to_build.functions:
+            if function.metadata and function.metadata.get("BuildMethod", "") == "esbuild":
+                is_building_esbuild = True
+                break
+
+        if is_building_esbuild:
+            prompt_experimental(ExperimentalFlag.Esbuild, self._ESBUILD_WARNING_MESSAGE)

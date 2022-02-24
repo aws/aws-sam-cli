@@ -18,7 +18,7 @@ class TestTemplates(TestCase):
         it = InitTemplates()
 
         manifest = {
-            "ruby2.5": [
+            "ruby2.7": [
                 {
                     "directory": "mock-ruby-template",
                     "displayName": "Hello World Example",
@@ -34,7 +34,7 @@ class TestTemplates(TestCase):
         with patch("samcli.cli.global_config.GlobalConfig.config_dir", new_callable=PropertyMock) as mock_cfg:
             mock_cfg.return_value = Path("/tmp/test-sam")
             with patch("samcli.commands.init.init_templates.open", m):
-                location = it.location_from_app_template(ZIP, "ruby2.5", None, "bundler", "hello-world")
+                location = it.location_from_app_template(ZIP, "ruby2.7", None, "bundler", "hello-world")
                 self.assertTrue(search("mock-ruby-template", location))
 
     @patch("samcli.lib.utils.git_repo.check_output")
@@ -45,7 +45,7 @@ class TestTemplates(TestCase):
         it = InitTemplates()
 
         manifest = {
-            "ruby2.5-image": [
+            "ruby2.7-image": [
                 {
                     "directory": "mock-ruby-image-template",
                     "displayName": "Hello World Lambda Image Example",
@@ -62,6 +62,6 @@ class TestTemplates(TestCase):
             mock_cfg.return_value = Path("/tmp/test-sam")
             with patch("samcli.commands.init.init_templates.open", m):
                 location = it.location_from_app_template(
-                    IMAGE, None, "ruby2.5-image", "bundler", "hello-world-lambda-image"
+                    IMAGE, None, "ruby2.7-image", "bundler", "hello-world-lambda-image"
                 )
                 self.assertTrue(search("mock-ruby-image-template", location))
