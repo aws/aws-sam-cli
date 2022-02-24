@@ -1,5 +1,4 @@
 import os
-import re
 import tempfile
 from subprocess import Popen, PIPE, TimeoutExpired
 
@@ -27,15 +26,15 @@ class TestPackageImage(PackageIntegBase):
     def setUpClass(cls):
         cls.docker_client = docker.from_env()
         cls.local_images = [
-            ("alpine", "latest"),
-            # below 3 images are for test_package_with_deep_nested_template_image()
-            ("python", "3.9-slim"),
-            ("python", "3.8-slim"),
-            ("python", "3.7-slim"),
+            ("public.ecr.aws/sam/emulation-python3.8", "latest"),
         ]
         # setup some images locally by pulling them.
         for repo, tag in cls.local_images:
             cls.docker_client.api.pull(repository=repo, tag=tag)
+            cls.docker_client.api.tag(f"{repo}:{tag}", "emulation-python3.8", tag="latest")
+            cls.docker_client.api.tag(f"{repo}:{tag}", "emulation-python3.8-2", tag="latest")
+            cls.docker_client.api.tag(f"{repo}:{tag}", "colorsrandomfunctionf61b9209", tag="latest")
+
         super(TestPackageImage, cls).setUpClass()
 
     def setUp(self):
@@ -44,7 +43,13 @@ class TestPackageImage(PackageIntegBase):
     def tearDown(self):
         super(TestPackageImage, self).tearDown()
 
-    @parameterized.expand(["aws-serverless-function-image.yaml", "aws-lambda-function-image.yaml"])
+    @parameterized.expand(
+        [
+            "aws-serverless-function-image.yaml",
+            "aws-lambda-function-image.yaml",
+            "cdk_v1_synthesized_template_image_functions.json",
+        ]
+    )
     def test_package_template_without_image_repository(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
         command_list = self.get_command_list(template=template_path)
@@ -65,6 +70,7 @@ class TestPackageImage(PackageIntegBase):
             "aws-serverless-function-image.yaml",
             "aws-lambda-function-image.yaml",
             "aws-lambda-function-image-and-api.yaml",
+            "cdk_v1_synthesized_template_image_functions.json",
         ]
     )
     def test_package_template_with_image_repository(self, template_file):
@@ -83,7 +89,12 @@ class TestPackageImage(PackageIntegBase):
         self.assertIn(f"{self.ecr_repo_name}", process_stdout.decode("utf-8"))
 
     @parameterized.expand(
-        [("Hello", "aws-serverless-function-image.yaml"), ("MyLambdaFunction", "aws-lambda-function-image.yaml")]
+        [
+            ("Hello", "aws-serverless-function-image.yaml"),
+            ("MyLambdaFunction", "aws-lambda-function-image.yaml"),
+            ("ColorsRandomFunctionF61B9209", "cdk_v1_synthesized_template_image_functions.json"),
+            ("ColorsRandomFunction", "cdk_v1_synthesized_template_image_functions.json"),
+        ]
     )
     def test_package_template_with_image_repositories(self, resource_id, template_file):
         template_path = self.test_data_path.joinpath(template_file)
@@ -102,7 +113,43 @@ class TestPackageImage(PackageIntegBase):
         self.assertIn(f"{self.ecr_repo_name}", process_stdout.decode("utf-8"))
         self.assertEqual(0, process.returncode)
 
-    @parameterized.expand(["aws-serverless-function-image.yaml", "aws-lambda-function-image.yaml"])
+    @parameterized.expand(
+        [
+            ("ColorsRandomFunctionF61B9209", "cdk_v1_synthesized_template_Level2_nested_image_functions.json"),
+            ("ColorsRandomFunction", "cdk_v1_synthesized_template_Level2_nested_image_functions.json"),
+            ("Level2Stack/ColorsRandomFunction", "cdk_v1_synthesized_template_Level2_nested_image_functions.json"),
+            ("ColorsRandomFunctionF61B9209", "cdk_v1_synthesized_template_Level1_nested_image_functions.json"),
+            ("ColorsRandomFunction", "cdk_v1_synthesized_template_Level1_nested_image_functions.json"),
+            (
+                "Level1Stack/Level2Stack/ColorsRandomFunction",
+                "cdk_v1_synthesized_template_Level1_nested_image_functions.json",
+            ),
+        ]
+    )
+    def test_package_template_with_image_repositories_nested_stack(self, resource_id, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+        command_list = self.get_command_list(
+            image_repositories=f"{resource_id}={self.ecr_repo_name}", template=template_path, resolve_s3=True
+        )
+
+        process = Popen(command_list, stderr=PIPE)
+        try:
+            _, stderr = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stderr = stderr.strip()
+        self.assertIn(f"{self.ecr_repo_name}", process_stderr.decode("utf-8"))
+        self.assertEqual(0, process.returncode)
+
+    @parameterized.expand(
+        [
+            "aws-serverless-function-image.yaml",
+            "aws-lambda-function-image.yaml",
+            "cdk_v1_synthesized_template_image_functions.json",
+        ]
+    )
     def test_package_template_with_non_ecr_repo_uri_image_repository(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
         command_list = self.get_command_list(
@@ -120,10 +167,16 @@ class TestPackageImage(PackageIntegBase):
         self.assertEqual(2, process.returncode)
         self.assertIn("Error: Invalid value for '--image-repository'", process_stderr.decode("utf-8"))
 
-    @parameterized.expand(["aws-serverless-function-image.yaml", "aws-lambda-function-image.yaml"])
+    @parameterized.expand(
+        [
+            "aws-serverless-function-image.yaml",
+            "aws-lambda-function-image.yaml",
+            "cdk_v1_synthesized_template_image_functions.json",
+        ]
+    )
     def test_package_template_and_s3_bucket(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
-        command_list = self.get_command_list(s3_bucket=self.s3_bucket, template=template_path)
+        command_list = self.get_command_list(s3_bucket=self.s3_bucket, s3_prefix=self.s3_prefix, template=template_path)
 
         process = Popen(command_list, stdout=PIPE, stderr=PIPE)
         try:
@@ -204,16 +257,10 @@ class TestPackageImage(PackageIntegBase):
             raise
         process_stderr = stderr.strip().decode("utf-8")
 
-        # there are in total 3 function images and 2 child template file to upload
-        # verify both child templates are uploaded
-        uploads = re.findall(r"\.template", process_stderr)
-        self.assertEqual(len(uploads), 2)
-
         # verify all function images are pushed
         images = [
-            ("python", "3.9-slim"),
-            ("python", "3.8-slim"),
-            ("python", "3.7-slim"),
+            ("emulation-python3.8", "latest"),
+            ("emulation-python3.8-2", "latest"),
         ]
         for image, tag in images:
             # check string like this:

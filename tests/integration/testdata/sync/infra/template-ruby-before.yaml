@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Timeout: 10
+
+Resources:
+  HelloWorldRubyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      AutoPublishAlias: Hello1Alias
+      CodeUri: before/Ruby/function/
+      Handler: app.lambda_handler
+      Runtime: ruby2.7
+      Architectures:
+        - x86_64
+      Layers:
+        - !Ref HelloWorldRubyLayer
+
+  HelloWorldRubyLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: HelloWorldRubyLayer
+      Description: Hello World Ruby Layer
+      ContentUri: before/Ruby/layer/
+      CompatibleRuntimes:
+        - ruby2.7
+    Metadata:
+      BuildMethod: ruby2.7

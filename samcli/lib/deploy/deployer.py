@@ -21,7 +21,7 @@ from collections import OrderedDict
 import logging
 import time
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import botocore
 
@@ -34,9 +34,10 @@ from samcli.commands.deploy.exceptions import (
 )
 from samcli.commands._utils.table_print import pprint_column_names, pprint_columns, newline_per_item, MIN_OFFSET
 from samcli.commands.deploy import exceptions as deploy_exceptions
-from samcli.lib.package.artifact_exporter import mktempfile
+from samcli.lib.package.local_files_utils import mktempfile, get_uploaded_s3_object_name
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.time import utc_to_timestamp
+from samcli.lib.utils.colors import Colored
 
 LOG = logging.getLogger(__name__)
 
@@ -52,7 +53,7 @@ DESCRIBE_STACK_EVENTS_DEFAULT_ARGS = OrderedDict(
     }
 )
 
-DESCRIBE_STACK_EVENTS_TABLE_HEADER_NAME = "CloudFormation events from changeset"
+DESCRIBE_STACK_EVENTS_TABLE_HEADER_NAME = "CloudFormation events from stack operations"
 
 DESCRIBE_CHANGESET_FORMAT_STRING = "{Operation:<{0}} {LogicalResourceId:<{1}} {ResourceType:<{2}} {Replacement:<{3}}"
 DESCRIBE_CHANGESET_DEFAULT_ARGS = OrderedDict(
@@ -83,7 +84,9 @@ class Deployer:
         # Maximum number of attempts before raising exception back up the chain.
         self.max_attempts = 3
         self.deploy_color = DeployColor()
+        self._colored = Colored()
 
+    # pylint: disable=inconsistent-return-statements
     def has_stack(self, stack_name):
         """
         Checks if a CloudFormation stack with given name exists
@@ -171,16 +174,27 @@ class Deployer:
             "Tags": tags,
         }
 
+        kwargs = self._process_kwargs(kwargs, s3_uploader, capabilities, role_arn, notification_arns)
+        return self._create_change_set(stack_name=stack_name, changeset_type=changeset_type, **kwargs)
+
+    @staticmethod
+    def _process_kwargs(
+        kwargs: dict,
+        s3_uploader: Optional[S3Uploader],
+        capabilities: Optional[List[str]],
+        role_arn: Optional[str],
+        notification_arns: Optional[List[str]],
+    ) -> dict:
         # If an S3 uploader is available, use TemplateURL to deploy rather than
         # TemplateBody. This is required for large templates.
         if s3_uploader:
             with mktempfile() as temporary_file:
                 temporary_file.write(kwargs.pop("TemplateBody"))
                 temporary_file.flush()
-
+                remote_path = get_uploaded_s3_object_name(file_path=temporary_file.name, extension="template")
                 # TemplateUrl property requires S3 URL to be in path-style format
                 parts = S3Uploader.parse_s3_url(
-                    s3_uploader.upload_with_dedup(temporary_file.name, "template"), version_property="Version"
+                    s3_uploader.upload(temporary_file.name, remote_path), version_property="Version"
                 )
                 kwargs["TemplateURL"] = s3_uploader.to_path_style_s3_url(parts["Key"], parts.get("Version", None))
 
@@ -191,7 +205,7 @@ class Deployer:
             kwargs["RoleARN"] = role_arn
         if notification_arns is not None:
             kwargs["NotificationARNs"] = notification_arns
-        return self._create_change_set(stack_name=stack_name, changeset_type=changeset_type, **kwargs)
+        return kwargs
 
     def _create_change_set(self, stack_name, changeset_type, **kwargs):
         try:
@@ -306,16 +320,19 @@ class Deployer:
                 stack_name=stack_name, msg="ex: {0} Status: {1}. Reason: {2}".format(ex, status, reason)
             ) from ex
 
-    def execute_changeset(self, changeset_id, stack_name):
+    def execute_changeset(self, changeset_id, stack_name, disable_rollback):
         """
         Calls CloudFormation to execute changeset
 
         :param changeset_id: ID of the changeset
         :param stack_name: Name or ID of the stack
+        :param disable_rollback: Preserve the state of previously provisioned resources when an operation fails.
         :return: Response from execute-change-set call
         """
         try:
-            return self._client.execute_change_set(ChangeSetName=changeset_id, StackName=stack_name)
+            return self._client.execute_change_set(
+                ChangeSetName=changeset_id, StackName=stack_name, DisableRollback=disable_rollback
+            )
         except botocore.exceptions.ClientError as ex:
             raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
 
@@ -389,7 +406,7 @@ class Deployer:
                         continue
                     break  # reached here only if break from inner loop!
 
-                if self._check_stack_complete(stack_status):
+                if self._check_stack_not_in_progress(stack_status):
                     stack_change_in_progress = False
                     break
             except botocore.exceptions.ClientError as ex:
@@ -401,20 +418,22 @@ class Deployer:
                 time.sleep(math.pow(self.backoff, retry_attempts))
 
     @staticmethod
-    def _check_stack_complete(status: str) -> bool:
-        return "COMPLETE" in status and "CLEANUP" not in status
+    def _check_stack_not_in_progress(status: str) -> bool:
+        return "IN_PROGRESS" not in status
 
-    def wait_for_execute(self, stack_name, changeset_type):
+    def wait_for_execute(self, stack_name: str, stack_operation: str, disable_rollback: bool) -> None:
         """
-        Wait for changeset to execute and return when execution completes.
+        Wait for stack operation to execute and return when execution completes.
         If the stack has "Outputs," they will be printed.
 
         Parameters
         ----------
         stack_name : str
             The name of the stack
-        changeset_type : str
-            The type of the changeset, 'CREATE' or 'UPDATE'
+        stack_operation : str
+            The type of the stack operation, 'CREATE' or 'UPDATE'
+        disable_rollback : bool
+            Preserves the state of previously provisioned resources when an operation fails
         """
         sys.stdout.write(
             "\n{} - Waiting for stack create/update "
@@ -425,12 +444,12 @@ class Deployer:
         self.describe_stack_events(stack_name, self.get_last_event_time(stack_name))
 
         # Pick the right waiter
-        if changeset_type == "CREATE":
+        if stack_operation == "CREATE":
             waiter = self._client.get_waiter("stack_create_complete")
-        elif changeset_type == "UPDATE":
+        elif stack_operation == "UPDATE":
             waiter = self._client.get_waiter("stack_update_complete")
         else:
-            raise RuntimeError("Invalid changeset type {0}".format(changeset_type))
+            raise RuntimeError("Invalid stack operation type {0}".format(stack_operation))
 
         # Poll every 30 seconds. Polling too frequently risks hitting rate limits
         # on CloudFormation's DescribeStacks API
@@ -439,7 +458,10 @@ class Deployer:
         try:
             waiter.wait(StackName=stack_name, WaiterConfig=waiter_config)
         except botocore.exceptions.WaiterError as ex:
-            LOG.debug("Execute changeset waiter exception", exc_info=ex)
+            LOG.debug("Execute stack waiter exception", exc_info=ex)
+            if disable_rollback:
+                msg = self._gen_deploy_failed_with_rollback_disabled_msg(stack_name)
+                LOG.info(self._colored.red(msg))
 
             raise deploy_exceptions.DeployFailedError(stack_name=stack_name, msg=str(ex))
 
@@ -457,6 +479,99 @@ class Deployer:
             self.wait_for_changeset(result["Id"], stack_name)
             self.describe_changeset(result["Id"], stack_name)
             return result, changeset_type
+        except botocore.exceptions.ClientError as ex:
+            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+
+    def create_stack(self, **kwargs):
+        stack_name = kwargs.get("StackName")
+        try:
+            resp = self._client.create_stack(**kwargs)
+            return resp
+        except botocore.exceptions.ClientError as ex:
+            if "The bucket you are attempting to access must be addressed using the specified endpoint" in str(ex):
+                raise DeployBucketInDifferentRegionError(f"Failed to create/update stack {stack_name}") from ex
+            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+
+        except Exception as ex:
+            LOG.debug("Unable to create stack", exc_info=ex)
+            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+
+    def update_stack(self, **kwargs):
+        stack_name = kwargs.get("StackName")
+        try:
+            resp = self._client.update_stack(**kwargs)
+            return resp
+        except botocore.exceptions.ClientError as ex:
+            if "The bucket you are attempting to access must be addressed using the specified endpoint" in str(ex):
+                raise DeployBucketInDifferentRegionError(f"Failed to create/update stack {stack_name}") from ex
+            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+
+        except Exception as ex:
+            LOG.debug("Unable to update stack", exc_info=ex)
+            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+
+    def sync(
+        self,
+        stack_name: str,
+        cfn_template: str,
+        parameter_values: List[Dict],
+        capabilities: Optional[List[str]],
+        role_arn: Optional[str],
+        notification_arns: Optional[List[str]],
+        s3_uploader: Optional[S3Uploader],
+        tags: Optional[Dict],
+    ):
+        """
+        Call the sync command to directly update stack or create stack
+
+        Parameters
+        ----------
+        :param stack_name: The name of the stack
+        :param cfn_template: CloudFormation template string
+        :param parameter_values: Template parameters object
+        :param capabilities: Array of capabilities passed to CloudFormation
+        :param role_arn: the Arn of the role to create changeset
+        :param notification_arns: Arns for sending notifications
+        :param s3_uploader: S3Uploader object to upload files to S3 buckets
+        :param tags: Array of tags passed to CloudFormation
+        :return:
+        """
+        exists = self.has_stack(stack_name)
+
+        if not exists:
+            # When creating a new stack, UsePreviousValue=True is invalid.
+            # For such parameters, users should either override with new value,
+            # or set a Default value in template to successfully create a stack.
+            parameter_values = [x for x in parameter_values if not x.get("UsePreviousValue", False)]
+        else:
+            summary = self._client.get_template_summary(StackName=stack_name)
+            existing_parameters = [parameter["ParameterKey"] for parameter in summary["Parameters"]]
+            parameter_values = [
+                x
+                for x in parameter_values
+                if not (x.get("UsePreviousValue", False) and x["ParameterKey"] not in existing_parameters)
+            ]
+
+        kwargs = {
+            "StackName": stack_name,
+            "TemplateBody": cfn_template,
+            "Parameters": parameter_values,
+            "Tags": tags,
+        }
+
+        kwargs = self._process_kwargs(kwargs, s3_uploader, capabilities, role_arn, notification_arns)
+
+        try:
+            if exists:
+                result = self.update_stack(**kwargs)
+                self.wait_for_execute(stack_name, "UPDATE", False)
+                LOG.info("\nStack update succeeded. Sync infra completed.\n")
+            else:
+                result = self.create_stack(**kwargs)
+                self.wait_for_execute(stack_name, "CREATE", False)
+                LOG.info("\nStack creation succeeded. Sync infra completed.\n")
+
+            return result
         except botocore.exceptions.ClientError as ex:
             raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
 
@@ -500,3 +615,14 @@ class Deployer:
 
         except botocore.exceptions.ClientError as ex:
             raise DeployStackOutPutFailedError(stack_name=stack_name, msg=str(ex)) from ex
+
+    @staticmethod
+    def _gen_deploy_failed_with_rollback_disabled_msg(stack_name):
+        return """\nFailed to deploy. Automatic rollback disabled for this deployment.\n
+Actions you can take next
+=========================
+[*] Fix issues and try deploying again
+[*] Roll back stack to the last known stable state: aws cloudformation rollback-stack --stack-name {stack_name}
+""".format(
+            stack_name=stack_name
+        )

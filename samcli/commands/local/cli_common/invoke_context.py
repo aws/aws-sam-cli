@@ -7,7 +7,7 @@ import logging
 import os
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, IO, cast, Tuple, Any
+from typing import Dict, List, Optional, IO, cast, Tuple, Any, Type
 
 from samcli.lib.utils import osutils
 from samcli.lib.providers.provider import Stack, Function
@@ -23,7 +23,7 @@ from samcli.local.docker.lambda_image import LambdaImage
 from samcli.local.docker.manager import ContainerManager
 from samcli.commands._utils.template import TemplateNotFoundException, TemplateFailedParsingException
 from samcli.local.layers.layer_downloader import LayerDownloader
-from samcli.lib.providers.sam_function_provider import SamFunctionProvider
+from samcli.lib.providers.sam_function_provider import SamFunctionProvider, RefreshableSamFunctionProvider
 
 LOG = logging.getLogger(__name__)
 
@@ -77,6 +77,7 @@ class InvokeContext:
         shutdown: bool = False,
         container_host: Optional[str] = None,
         container_host_interface: Optional[str] = None,
+        invoke_images: Optional[str] = None,
     ) -> None:
         """
         Initialize the context
@@ -127,6 +128,8 @@ class InvokeContext:
             Optional. Host of locally emulated Lambda container
         container_host_interface string
             Optional. Interface that Docker host binds ports to
+        invoke_images dict
+            Optional. A dictionary that defines the custom invoke image URI of each function
         """
         self._template_file = template_file
         self._function_identifier = function_identifier
@@ -154,6 +157,7 @@ class InvokeContext:
 
         self._container_host = container_host
         self._container_host_interface = container_host_interface
+        self._invoke_images = invoke_images
 
         self._containers_mode = ContainersMode.COLD
         self._containers_initializing_mode = ContainersInitializationMode.LAZY
@@ -188,7 +192,20 @@ class InvokeContext:
         """
 
         self._stacks = self._get_stacks()
-        self._function_provider = SamFunctionProvider(self._stacks)
+
+        _function_providers_class: Dict[ContainersMode, Type[SamFunctionProvider]] = {
+            ContainersMode.WARM: RefreshableSamFunctionProvider,
+            ContainersMode.COLD: SamFunctionProvider,
+        }
+
+        _function_providers_args: Dict[ContainersMode, List[Any]] = {
+            ContainersMode.WARM: [self._stacks, self._parameter_overrides, self._global_parameter_overrides],
+            ContainersMode.COLD: [self._stacks],
+        }
+
+        self._function_provider = _function_providers_class[self._containers_mode](
+            *_function_providers_args[self._containers_mode]
+        )
 
         self._env_vars_value = self._get_env_vars_value(self._env_vars_file)
         self._container_env_vars_value = self._get_env_vars_value(self._container_env_vars_file)
@@ -278,6 +295,7 @@ class InvokeContext:
         it is only used when self.lambda_runtime is a WarmLambdaRuntime
         """
         cast(WarmLambdaRuntime, self.lambda_runtime).clean_running_containers_and_related_resources()
+        cast(RefreshableSamFunctionProvider, self._function_provider).stop_observer()
 
     @property
     def function_identifier(self) -> str:
@@ -311,7 +329,9 @@ class InvokeContext:
     def lambda_runtime(self) -> LambdaRuntime:
         if not self._lambda_runtimes:
             layer_downloader = LayerDownloader(self._layer_cache_basedir, self.get_cwd(), self._stacks)
-            image_builder = LambdaImage(layer_downloader, self._skip_pull_image, self._force_image_build)
+            image_builder = LambdaImage(
+                layer_downloader, self._skip_pull_image, self._force_image_build, invoke_images=self._invoke_images
+            )
             self._lambda_runtimes = {
                 ContainersMode.WARM: WarmLambdaRuntime(self._container_manager, image_builder),
                 ContainersMode.COLD: LambdaRuntime(self._container_manager, image_builder),
@@ -354,7 +374,7 @@ class InvokeContext:
             Stream writer for stdout
         """
         stream = self._log_file_handle if self._log_file_handle else osutils.stdout()
-        return StreamWriter(stream, self._is_debugging)
+        return StreamWriter(stream, auto_flush=True)
 
     @property
     def stderr(self) -> StreamWriter:
@@ -367,7 +387,7 @@ class InvokeContext:
             Stream writer for stderr
         """
         stream = self._log_file_handle if self._log_file_handle else osutils.stderr()
-        return StreamWriter(stream, self._is_debugging)
+        return StreamWriter(stream, auto_flush=True)
 
     @property
     def stacks(self) -> List[Stack]:
@@ -376,7 +396,7 @@ class InvokeContext:
 
         :return list: list of stacks
         """
-        return self._stacks
+        return self._function_provider.stacks
 
     def get_cwd(self) -> str:
         """

@@ -2,9 +2,9 @@
 Class that provides layers from a given SAM template
 """
 import logging
-import posixpath
 from typing import List, Dict, Optional
 
+from samcli.lib.utils.resources import AWS_LAMBDA_LAYERVERSION, AWS_SERVERLESS_LAYERVERSION
 from .provider import LayerVersion, Stack
 from .sam_base_provider import SamBaseProvider
 from .sam_stack_provider import SamLocalStackProvider
@@ -60,7 +60,7 @@ class SamLayerProvider(SamBaseProvider):
             raise ValueError("Layer name is required")
 
         for layer in self._layers:
-            if posixpath.join(layer.stack_path, layer.name) == name or layer.name == name:
+            if name in (layer.full_path, layer.layer_id, layer.name):
                 return layer
         return None
 
@@ -86,7 +86,7 @@ class SamLayerProvider(SamBaseProvider):
                 resource_type = resource.get("Type")
                 resource_properties = resource.get("Properties", {})
 
-                if resource_type in [SamBaseProvider.LAMBDA_LAYER, SamBaseProvider.SERVERLESS_LAYER]:
+                if resource_type in [AWS_LAMBDA_LAYERVERSION, AWS_SERVERLESS_LAYERVERSION]:
                     code_property_key = SamBaseProvider.CODE_PROPERTY_KEYS[resource_type]
                     if SamBaseProvider._is_s3_location(resource_properties.get(code_property_key)):
                         # Content can be a dictionary of S3 Bucket/Key or a S3 URI, neither of which are supported
@@ -95,9 +95,13 @@ class SamLayerProvider(SamBaseProvider):
                     codeuri = SamBaseProvider._extract_codeuri(resource_properties, code_property_key)
 
                     compatible_runtimes = resource_properties.get("CompatibleRuntimes")
+                    compatible_architectures = resource_properties.get("CompatibleArchitectures", None)
+
                     metadata = resource.get("Metadata", None)
                     layers.append(
-                        self._convert_lambda_layer_resource(stack, name, codeuri, compatible_runtimes, metadata)
+                        self._convert_lambda_layer_resource(
+                            stack, name, codeuri, compatible_runtimes, metadata, compatible_architectures
+                        )
                     )
         return layers
 
@@ -108,6 +112,7 @@ class SamLayerProvider(SamBaseProvider):
         codeuri: str,
         compatible_runtimes: Optional[List[str]],
         metadata: Optional[Dict],
+        compatible_architectures: Optional[List[str]],
     ) -> LayerVersion:
         """
         Convert layer resource into {LayerVersion} object.
@@ -122,6 +127,8 @@ class SamLayerProvider(SamBaseProvider):
             list of compatible runtimes
         metadata
             dictionary of layer metadata
+        compatible_architectures
+            list of compatible architecture
         Returns
         -------
         LayerVersion
@@ -136,5 +143,6 @@ class SamLayerProvider(SamBaseProvider):
             codeuri,
             compatible_runtimes,
             metadata,
+            compatible_architectures=compatible_architectures,
             stack_path=stack.stack_path,
         )

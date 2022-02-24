@@ -7,9 +7,24 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       PackageType: Image
-      Code: alpine:latest
+      Code:
+        ImageUri: emulation-python3.8:latest
       Role:
         Fn::GetAtt:
-          - "LambdaExecutionRole"
+          - "HelloWorldFunctionRole"
           - "Arn"
       Timeout: 25
+  HelloWorldFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+        Version: '2012-10-17'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole

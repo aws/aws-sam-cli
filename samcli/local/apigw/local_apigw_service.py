@@ -5,6 +5,9 @@ import logging
 import base64
 from typing import List, Optional
 
+from time import time
+from datetime import datetime
+
 from flask import Flask, request
 from werkzeug.datastructures import Headers
 from werkzeug.routing import BaseConverter
@@ -33,6 +36,12 @@ class LambdaResponseParseException(Exception):
     """
 
 
+class PayloadFormatVersionValidateException(Exception):
+    """
+    An exception raised when validation of payload format version fails
+    """
+
+
 class Route:
     API = "Api"
     HTTP = "HttpApi"
@@ -46,6 +55,7 @@ class Route:
         event_type: str = API,
         payload_format_version: Optional[str] = None,
         is_default_route: bool = False,
+        operation_name=None,
         stack_path: str = "",
     ):
         """
@@ -57,6 +67,7 @@ class Route:
         :param str event_type: Type of the event. "Api" or "HttpApi"
         :param str payload_format_version: version of payload format
         :param bool is_default_route: determines if the default route or not
+        :param string operation_name: Swagger operationId for the route
         :param str stack_path: path of the stack the route is located
         """
         self.methods = self.normalize_method(methods)
@@ -65,6 +76,7 @@ class Route:
         self.event_type = event_type
         self.payload_format_version = payload_format_version
         self.is_default_route = is_default_route
+        self.operation_name = operation_name
         self.stack_path = stack_path
 
     def __eq__(self, other):
@@ -73,6 +85,7 @@ class Route:
             and sorted(self.methods) == sorted(other.methods)
             and self.function_name == other.function_name
             and self.path == other.path
+            and self.operation_name == other.operation_name
             and self.stack_path == other.stack_path
         )
 
@@ -158,6 +171,7 @@ class LocalApigwService(BaseLocalService):
         # This will normalize all endpoints and strip any trailing '/'
         self._app.url_map.strict_slashes = False
         default_route = None
+
         for api_gateway_route in self.api.routes:
             if api_gateway_route.path == "$default":
                 default_route = api_gateway_route
@@ -284,17 +298,27 @@ class LocalApigwService(BaseLocalService):
         route = self._get_current_route(request)
         cors_headers = Cors.cors_to_headers(self.api.cors)
 
+        # payloadFormatVersion can only support 2 values: "1.0" and "2.0"
+        # so we want to do strict validation to make sure it has proper value if provided
+        # https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html
+        if route.payload_format_version not in [None, "1.0", "2.0"]:
+            raise PayloadFormatVersionValidateException(
+                f'{route.payload_format_version} is not a valid value. PayloadFormatVersion must be "1.0" or "2.0"'
+            )
+
         method, endpoint = self.get_request_methods_endpoints(request)
         if method == "OPTIONS" and self.api.cors:
             headers = Headers(cors_headers)
             return self.service_response("", headers, 200)
 
         try:
+            # TODO: Rewrite the logic below to use version 2.0 when an invalid value is provided
             # the Lambda Event 2.0 is only used for the HTTP API gateway with defined payload format version equal 2.0
             # or none, as the default value to be used is 2.0
             # https://docs.aws.amazon.com/apigatewayv2/latest/api-reference/apis-apiid-integrations.html#apis-apiid-integrations-prop-createintegrationinput-payloadformatversion
             if route.event_type == Route.HTTP and route.payload_format_version in [None, "2.0"]:
-                route_key = self._v2_route_key(method, endpoint, route.is_default_route)
+                apigw_endpoint = PathConverter.convert_path_to_api_gateway(endpoint)
+                route_key = self._v2_route_key(method, apigw_endpoint, route.is_default_route)
                 event = self._construct_v_2_0_event_http(
                     request,
                     self.port,
@@ -303,15 +327,31 @@ class LocalApigwService(BaseLocalService):
                     self.api.stage_variables,
                     route_key,
                 )
-            else:
+            elif route.event_type == Route.API:
+                # The OperationName is only sent to the Lambda Function from API Gateway V1(Rest API).
                 event = self._construct_v_1_0_event(
-                    request, self.port, self.api.binary_media_types, self.api.stage_name, self.api.stage_variables
+                    request,
+                    self.port,
+                    self.api.binary_media_types,
+                    self.api.stage_name,
+                    self.api.stage_variables,
+                    route.operation_name,
+                )
+            else:
+                # For Http Apis with payload version 1.0, API Gateway never sends the OperationName.
+                event = self._construct_v_1_0_event(
+                    request,
+                    self.port,
+                    self.api.binary_media_types,
+                    self.api.stage_name,
+                    self.api.stage_variables,
+                    None,
                 )
         except UnicodeDecodeError:
             return ServiceErrorResponses.lambda_failure_response()
 
         stdout_stream = io.BytesIO()
-        stdout_stream_writer = StreamWriter(stdout_stream, self.is_debugging)
+        stdout_stream_writer = StreamWriter(stdout_stream, auto_flush=True)
 
         try:
             self.lambda_runner.invoke(route.function_name, event, stdout=stdout_stream_writer, stderr=self.stderr)
@@ -491,6 +531,7 @@ class LocalApigwService(BaseLocalService):
         :return: Tuple(int, dict, str, bool)
         """
         # pylint: disable-msg=too-many-statements
+        # pylint: disable=too-many-branches
         try:
             json_output = json.loads(lambda_output)
         except ValueError as ex:
@@ -510,6 +551,18 @@ class LocalApigwService(BaseLocalService):
 
         status_code = json_output.get("statusCode") or 200
         headers = Headers(json_output.get("headers") or {})
+
+        # cookies is a new field in payload format version 2.0 (a list)
+        # https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html
+        # we need to move cookies to Set-Cookie headers.
+        # each cookie becomes a set-cookie header
+        # MDN link: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie
+        cookies = json_output.get("cookies")
+
+        # cookies needs to be a list, otherwise the format is wrong and we can skip it
+        if isinstance(cookies, list):
+            for cookie in cookies:
+                headers.add("Set-Cookie", cookie)
 
         is_base_64_encoded = json_output.get("isBase64Encoded") or False
 
@@ -613,7 +666,9 @@ class LocalApigwService(BaseLocalService):
         return processed_headers
 
     @staticmethod
-    def _construct_v_1_0_event(flask_request, port, binary_types, stage_name=None, stage_variables=None):
+    def _construct_v_1_0_event(
+        flask_request, port, binary_types, stage_name=None, stage_variables=None, operation_name=None
+    ):
         """
         Helper method that constructs the Event to be passed to Lambda
 
@@ -659,6 +714,7 @@ class LocalApigwService(BaseLocalService):
             path=endpoint,
             protocol=protocol,
             domain_name=host,
+            operation_name=operation_name,
         )
 
         headers_dict, multi_value_headers_dict = LocalApigwService._event_headers(flask_request, port)
@@ -684,7 +740,14 @@ class LocalApigwService(BaseLocalService):
 
     @staticmethod
     def _construct_v_2_0_event_http(
-        flask_request, port, binary_types, stage_name=None, stage_variables=None, route_key=None
+        flask_request,
+        port,
+        binary_types,
+        stage_name=None,
+        stage_variables=None,
+        route_key=None,
+        request_time_epoch=int(time()),
+        request_time=datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000"),
     ):
         """
         Helper method that constructs the Event 2.0 to be passed to Lambda
@@ -721,7 +784,14 @@ class LocalApigwService(BaseLocalService):
         cookies = LocalApigwService._event_http_cookies(flask_request)
         headers = LocalApigwService._event_http_headers(flask_request, port)
         context_http = ContextHTTP(method=method, path=flask_request.path, source_ip=flask_request.remote_addr)
-        context = RequestContextV2(http=context_http, route_key=route_key, stage=stage_name)
+        context = RequestContextV2(
+            http=context_http,
+            route_key=route_key,
+            stage=stage_name,
+            request_time_epoch=request_time_epoch,
+            request_time=request_time,
+        )
+
         event = ApiGatewayV2LambdaEvent(
             route_key=route_key,
             raw_path=flask_request.path,

@@ -2,20 +2,32 @@
 Holds classes and utility methods related to build graph
 """
 
+import copy
 import logging
+import os
+import threading
 from pathlib import Path
-from typing import Tuple, List, Any, Optional, Dict, cast
+from typing import Sequence, Tuple, List, Any, Optional, Dict, cast, NamedTuple
+from copy import deepcopy
 from uuid import uuid4
 
 import tomlkit
 
 from samcli.lib.build.exceptions import InvalidBuildGraphException
 from samcli.lib.providers.provider import Function, LayerVersion
+from samcli.lib.samlib.resource_metadata_normalizer import (
+    SAM_RESOURCE_ID_KEY,
+    SAM_IS_NORMALIZED,
+)
 from samcli.lib.utils.packagetype import ZIP
+from samcli.lib.utils.architecture import X86_64
+
 
 LOG = logging.getLogger(__name__)
 
 DEFAULT_BUILD_GRAPH_FILE_NAME = "build.toml"
+
+DEFAULT_DEPENDENCIES_DIR = os.path.join(".aws-sam", "deps")
 
 # filed names for the toml table
 PACKAGETYPE_FIELD = "packagetype"
@@ -23,13 +35,15 @@ CODE_URI_FIELD = "codeuri"
 RUNTIME_FIELD = "runtime"
 METADATA_FIELD = "metadata"
 FUNCTIONS_FIELD = "functions"
-SOURCE_MD5_FIELD = "source_md5"
+SOURCE_HASH_FIELD = "source_hash"
+MANIFEST_HASH_FIELD = "manifest_hash"
 ENV_VARS_FIELD = "env_vars"
 DIR_MOUNTS_FIELD = "dir_mounts"
 LAYER_NAME_FIELD = "layer_name"
 BUILD_METHOD_FIELD = "build_method"
 COMPATIBLE_RUNTIMES_FIELD = "compatible_runtimes"
 LAYER_FIELD = "layer"
+ARCHITECTURE_FIELD = "architecture"
 
 
 def _function_build_definition_to_toml_table(
@@ -52,7 +66,10 @@ def _function_build_definition_to_toml_table(
     if function_build_definition.packagetype == ZIP:
         toml_table[CODE_URI_FIELD] = function_build_definition.codeuri
         toml_table[RUNTIME_FIELD] = function_build_definition.runtime
-        toml_table[SOURCE_MD5_FIELD] = function_build_definition.source_md5
+        toml_table[ARCHITECTURE_FIELD] = function_build_definition.architecture
+        if function_build_definition.source_hash:
+            toml_table[SOURCE_HASH_FIELD] = function_build_definition.source_hash
+        toml_table[MANIFEST_HASH_FIELD] = function_build_definition.manifest_hash
     toml_table[PACKAGETYPE_FIELD] = function_build_definition.packagetype
     toml_table[FUNCTIONS_FIELD] = [f.full_path for f in function_build_definition.functions]
 
@@ -86,8 +103,10 @@ def _toml_table_to_function_build_definition(uuid: str, toml_table: tomlkit.api.
         toml_table.get(RUNTIME_FIELD),
         toml_table.get(CODE_URI_FIELD),
         toml_table.get(PACKAGETYPE_FIELD, ZIP),
+        toml_table.get(ARCHITECTURE_FIELD, X86_64),
         dict(toml_table.get(METADATA_FIELD, {})),
-        toml_table.get(SOURCE_MD5_FIELD, ""),
+        toml_table.get(SOURCE_HASH_FIELD, ""),
+        toml_table.get(MANIFEST_HASH_FIELD, ""),
         dict(toml_table.get(DIR_MOUNTS_FIELD, {})),
         dict(toml_table.get(ENV_VARS_FIELD, {})),
     )
@@ -110,12 +129,14 @@ def _layer_build_definition_to_toml_table(layer_build_definition: "LayerBuildDef
         toml table of LayerBuildDefinition
     """
     toml_table = tomlkit.table()
-    toml_table[LAYER_NAME_FIELD] = layer_build_definition.name
+    toml_table[LAYER_NAME_FIELD] = layer_build_definition.full_path
     toml_table[CODE_URI_FIELD] = layer_build_definition.codeuri
     toml_table[BUILD_METHOD_FIELD] = layer_build_definition.build_method
     toml_table[COMPATIBLE_RUNTIMES_FIELD] = layer_build_definition.compatible_runtimes
-    toml_table[SOURCE_MD5_FIELD] = layer_build_definition.source_md5
-    toml_table[LAYER_FIELD] = layer_build_definition.layer.name
+    toml_table[ARCHITECTURE_FIELD] = layer_build_definition.architecture
+    if layer_build_definition.source_hash:
+        toml_table[SOURCE_HASH_FIELD] = layer_build_definition.source_hash
+    toml_table[MANIFEST_HASH_FIELD] = layer_build_definition.manifest_hash
     if layer_build_definition.env_vars:
         toml_table[ENV_VARS_FIELD] = layer_build_definition.env_vars
     if layer_build_definition.dir_mounts:
@@ -146,7 +167,9 @@ def _toml_table_to_layer_build_definition(uuid: str, toml_table: tomlkit.api.Tab
         toml_table.get(CODE_URI_FIELD),
         toml_table.get(BUILD_METHOD_FIELD),
         toml_table.get(COMPATIBLE_RUNTIMES_FIELD),
-        toml_table.get(SOURCE_MD5_FIELD, ""),
+        toml_table.get(ARCHITECTURE_FIELD, X86_64),
+        toml_table.get(SOURCE_HASH_FIELD, ""),
+        toml_table.get(MANIFEST_HASH_FIELD, ""),
         dict(toml_table.get(DIR_MOUNTS_FIELD, {})),
         dict(toml_table.get(ENV_VARS_FIELD, {})),
     )
@@ -154,10 +177,22 @@ def _toml_table_to_layer_build_definition(uuid: str, toml_table: tomlkit.api.Tab
     return layer_build_definition
 
 
+class BuildHashingInformation(NamedTuple):
+    """
+    Holds hashing information for the source folder and the manifest file
+    """
+
+    source_hash: str
+    manifest_hash: str
+
+
 class BuildGraph:
     """
     Contains list of build definitions, with ability to read and write them into build.toml file
     """
+
+    # private lock for build.toml reads and writes
+    __toml_lock = threading.Lock()
 
     # global table build definitions key
     FUNCTION_BUILD_DEFINITIONS = "function_build_definitions"
@@ -168,13 +203,36 @@ class BuildGraph:
         self._filepath = Path(build_dir).parent.joinpath(DEFAULT_BUILD_GRAPH_FILE_NAME)
         self._function_build_definitions: List["FunctionBuildDefinition"] = []
         self._layer_build_definitions: List["LayerBuildDefinition"] = []
-        self._read()
+        self._atomic_read()
 
     def get_function_build_definitions(self) -> Tuple["FunctionBuildDefinition", ...]:
         return tuple(self._function_build_definitions)
 
     def get_layer_build_definitions(self) -> Tuple["LayerBuildDefinition", ...]:
         return tuple(self._layer_build_definitions)
+
+    def get_function_build_definition_with_full_path(
+        self, function_full_path: str
+    ) -> Optional["FunctionBuildDefinition"]:
+        """
+        Returns FunctionBuildDefinition instance of given function logical id.
+
+        Parameters
+        ----------
+        function_full_path : str
+            Function full path that will be searched in the function build definitions
+
+        Returns
+        -------
+        Optional[FunctionBuildDefinition]
+            If a function build definition found returns it, otherwise returns None
+
+        """
+        for function_build_definition in self._function_build_definitions:
+            for build_definition_function in function_build_definition.functions:
+                if build_definition_function.full_path == function_full_path:
+                    return function_build_definition
+        return None
 
     def put_function_build_definition(
         self, function_build_definition: "FunctionBuildDefinition", function: Function
@@ -260,7 +318,82 @@ class BuildGraph:
         ]
         self._layer_build_definitions[:] = [bd for bd in self._layer_build_definitions if bd.layer]
         if persist:
-            self._write()
+            self._atomic_write()
+
+    def update_definition_hash(self) -> None:
+        """
+        Updates the build.toml file with the newest source_hash values of the partial build's definitions
+
+        This operation is atomic, that no other thread accesses build.toml
+        during the process of reading and modifying the hash value
+        """
+        with BuildGraph.__toml_lock:
+            stored_definitions = copy.deepcopy(self._function_build_definitions)
+            stored_layers = copy.deepcopy(self._layer_build_definitions)
+            self._read()
+
+            function_content = BuildGraph._compare_hash_changes(stored_definitions, self._function_build_definitions)
+            layer_content = BuildGraph._compare_hash_changes(stored_layers, self._layer_build_definitions)
+
+            if function_content or layer_content:
+                self._write_source_hash(function_content, layer_content)
+
+    @staticmethod
+    def _compare_hash_changes(
+        input_list: Sequence["AbstractBuildDefinition"], compared_list: Sequence["AbstractBuildDefinition"]
+    ) -> Dict[str, BuildHashingInformation]:
+        """
+        Helper to compare the function and layer definition changes in hash value
+
+        Returns a dictionary that has uuid as key, updated hash value as value
+        """
+        content = {}
+        for compared_def in compared_list:
+            for stored_def in input_list:
+                if stored_def == compared_def:
+                    old_hash = compared_def.source_hash
+                    updated_hash = stored_def.source_hash
+                    old_manifest_hash = compared_def.manifest_hash
+                    updated_manifest_hash = stored_def.manifest_hash
+                    uuid = stored_def.uuid
+                    if old_hash != updated_hash or old_manifest_hash != updated_manifest_hash:
+                        content[uuid] = BuildHashingInformation(updated_hash, updated_manifest_hash)
+                    compared_def.download_dependencies = old_manifest_hash != updated_manifest_hash
+        return content
+
+    def _write_source_hash(
+        self, function_content: Dict[str, BuildHashingInformation], layer_content: Dict[str, BuildHashingInformation]
+    ) -> None:
+        """
+        Helper to write source_hash values to build.toml file
+        """
+        document = {}
+        if not self._filepath.exists():
+            open(self._filepath, "a+").close()
+
+        txt = self._filepath.read_text()
+        # .loads() returns a TOMLDocument,
+        # and it behaves like a standard dictionary according to https://github.com/sdispater/tomlkit.
+        # in tomlkit 0.7.2, the types are broken (tomlkit#128, #130, #134) so here we convert it to Dict.
+        document = cast(Dict, tomlkit.loads(txt))
+
+        for function_uuid, hashing_info in function_content.items():
+            if function_uuid in document.get(BuildGraph.FUNCTION_BUILD_DEFINITIONS, {}):
+                function_build_definition = document[BuildGraph.FUNCTION_BUILD_DEFINITIONS][function_uuid]
+                function_build_definition[SOURCE_HASH_FIELD] = hashing_info.source_hash
+                function_build_definition[MANIFEST_HASH_FIELD] = hashing_info.manifest_hash
+                LOG.info(
+                    "Updated source_hash and manifest_hash field in build.toml for function with UUID %s", function_uuid
+                )
+
+        for layer_uuid, hashing_info in layer_content.items():
+            if layer_uuid in document.get(BuildGraph.LAYER_BUILD_DEFINITIONS, {}):
+                layer_build_definition = document[BuildGraph.LAYER_BUILD_DEFINITIONS][layer_uuid]
+                layer_build_definition[SOURCE_HASH_FIELD] = hashing_info.source_hash
+                layer_build_definition[MANIFEST_HASH_FIELD] = hashing_info.manifest_hash
+                LOG.info("Updated source_hash and manifest_hash field in build.toml for layer with UUID %s", layer_uuid)
+
+        self._filepath.write_text(tomlkit.dumps(document))  # type: ignore
 
     def _read(self) -> None:
         """
@@ -279,19 +412,28 @@ class BuildGraph:
             document = cast(Dict, tomlkit.loads(txt))
         except OSError:
             LOG.debug("No previous build graph found, generating new one")
-        function_build_definitions_table = document.get(BuildGraph.FUNCTION_BUILD_DEFINITIONS, [])
+        function_build_definitions_table = document.get(BuildGraph.FUNCTION_BUILD_DEFINITIONS, {})
         for function_build_definition_key in function_build_definitions_table:
             function_build_definition = _toml_table_to_function_build_definition(
                 function_build_definition_key, function_build_definitions_table[function_build_definition_key]
             )
             self._function_build_definitions.append(function_build_definition)
 
-        layer_build_definitions_table = document.get(BuildGraph.LAYER_BUILD_DEFINITIONS, [])
+        layer_build_definitions_table = document.get(BuildGraph.LAYER_BUILD_DEFINITIONS, {})
         for layer_build_definition_key in layer_build_definitions_table:
             layer_build_definition = _toml_table_to_layer_build_definition(
                 layer_build_definition_key, layer_build_definitions_table[layer_build_definition_key]
             )
             self._layer_build_definitions.append(layer_build_definition)
+
+    def _atomic_read(self) -> None:
+        """
+        Performs the _read() method with a global lock acquired
+        It makes sure no other thread accesses build.toml when a read is happening
+        """
+
+        with BuildGraph.__toml_lock:
+            self._read()
 
     def _write(self) -> None:
         """
@@ -323,6 +465,15 @@ class BuildGraph:
 
         self._filepath.write_text(tomlkit.dumps(document))
 
+    def _atomic_write(self) -> None:
+        """
+        Performs the _write() method with a global lock acquired
+        It makes sure no other thread accesses build.toml when a write is happening
+        """
+
+        with BuildGraph.__toml_lock:
+            self._write()
+
 
 class AbstractBuildDefinition:
     """
@@ -330,9 +481,30 @@ class AbstractBuildDefinition:
     Build definition holds information about each unique build
     """
 
-    def __init__(self, source_md5: str) -> None:
+    def __init__(
+        self, source_hash: str, manifest_hash: str, env_vars: Optional[Dict] = None, dir_mounts: Optional[Dict] = None,
+            architecture: str = X86_64
+    ) -> None:
         self.uuid = str(uuid4())
-        self.source_md5 = source_md5
+        self.source_hash = source_hash
+        self.manifest_hash = manifest_hash
+        self._env_vars = env_vars if env_vars else {}
+        self._dir_mounts = dir_mounts if dir_mounts else {}
+        self.architecture = architecture
+        # following properties are used during build time and they don't serialize into build.toml file
+        self.download_dependencies: bool = True
+
+    @property
+    def dependencies_dir(self) -> str:
+        return str(os.path.join(DEFAULT_DEPENDENCIES_DIR, self.uuid))
+
+    @property
+    def env_vars(self) -> Dict:
+        return deepcopy(self._env_vars)
+
+    @property
+    def dir_mounts(self) -> Dict:
+        return deepcopy(self._dir_mounts)
 
 
 class LayerBuildDefinition(AbstractBuildDefinition):
@@ -342,29 +514,29 @@ class LayerBuildDefinition(AbstractBuildDefinition):
 
     def __init__(
         self,
-        name: str,
+        full_path: str,
         codeuri: Optional[str],
         build_method: Optional[str],
         compatible_runtimes: Optional[List[str]],
-        source_md5: str = "",
+        architecture: str,
+        source_hash: str = "",
+        manifest_hash: str = "",
         dir_mounts: Optional[Dict] = None,
         env_vars: Optional[Dict] = None,
     ):
-        super().__init__(source_md5)
-        self.name = name
+        super().__init__(source_hash, manifest_hash, env_vars, dir_mounts, architecture)
+        self.full_path = full_path
         self.codeuri = codeuri
         self.build_method = build_method
         self.compatible_runtimes = compatible_runtimes
-        self.dir_mounts = dir_mounts if dir_mounts else {}
-        self.env_vars = env_vars if env_vars else {}
         # Note(xinhol): In our code, we assume "layer" is never None. We should refactor
         # this and move "layer" out of LayerBuildDefinition to take advantage of type check.
         self.layer: LayerVersion = None  # type: ignore
 
     def __str__(self) -> str:
         return (
-            f"LayerBuildDefinition({self.name}, {self.codeuri}, {self.source_md5}, {self.uuid}, "
-            f"{self.build_method}, {self.compatible_runtimes}, {self.env_vars}, {self.dir_mounts})"
+            f"LayerBuildDefinition({self.full_path}, {self.codeuri}, {self.source_hash}, {self.uuid}, "
+            f"{self.build_method}, {self.compatible_runtimes}, {self.architecture}, {self.env_vars}, {self.dir_mounts})"
         )
 
     def __eq__(self, other: Any) -> bool:
@@ -385,12 +557,13 @@ class LayerBuildDefinition(AbstractBuildDefinition):
             return False
 
         return (
-            self.name == other.name
+            self.full_path == other.full_path
             and self.codeuri == other.codeuri
             and self.build_method == other.build_method
             and self.compatible_runtimes == other.compatible_runtimes
             and self.env_vars == other.env_vars
             and self.dir_mounts == other.dir_mounts
+            and self.architecture == other.architecture
         )
 
 
@@ -404,18 +577,24 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         runtime: Optional[str],
         codeuri: Optional[str],
         packagetype: str,
+        architecture: str,
         metadata: Optional[Dict],
-        source_md5: str = "",
+        source_hash: str = "",
+        manifest_hash: str = "",
         dir_mounts: Optional[Dict] = None,
         env_vars: Optional[Dict] = None,
     ) -> None:
-        super().__init__(source_md5)
+        super().__init__(source_hash, manifest_hash, env_vars, dir_mounts, architecture)
         self.runtime = runtime
         self.codeuri = codeuri
         self.packagetype = packagetype
-        self.metadata = metadata if metadata else {}
-        self.dir_mounts = dir_mounts if dir_mounts else {}
-        self.env_vars = env_vars if env_vars else {}
+
+        # Skip SAM Added metadata properties
+        metadata_copied = deepcopy(metadata) if metadata else {}
+        metadata_copied.pop(SAM_RESOURCE_ID_KEY, "")
+        metadata_copied.pop(SAM_IS_NORMALIZED, "")
+        self.metadata = metadata_copied
+
         self.functions: List[Function] = []
 
     def add_function(self, function: Function) -> None:
@@ -450,8 +629,8 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
     def __str__(self) -> str:
         return (
             "BuildDefinition("
-            f"{self.runtime}, {self.codeuri}, {self.packagetype}, {self.source_md5}, "
-            f"{self.uuid}, {self.metadata}, {self.env_vars}, {self.dir_mounts}, "
+            f"{self.runtime}, {self.codeuri}, {self.packagetype}, {self.source_hash}, "
+            f"{self.uuid}, {self.metadata}, {self.env_vars}, {self.architecture}, {self.dir_mounts}, "
             f"{[f.functionname for f in self.functions]})"
         )
 
@@ -483,4 +662,5 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
             and self.metadata == other.metadata
             and self.env_vars == other.env_vars
             and self.dir_mounts == other.dir_mounts
+            and self.architecture == other.architecture
         )

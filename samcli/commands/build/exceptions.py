@@ -15,12 +15,6 @@ class MissingBuildMethodException(UserException):
     """
 
 
-class InvalidBuildImageException(UserException):
-    """
-    Value provided to --build-image is invalid
-    """
-
-
 class InvalidMountedPathException(UserException):
     """
     Value provided to --container-dir-mount is invalid

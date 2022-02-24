@@ -37,7 +37,7 @@ class TestSwaggerParser_get_apis(TestCase):
         swagger = {
             "paths": {
                 "/path1": {
-                    "get": {"x-amazon-apigateway-integration": {"type": "aws_proxy", "uri": "someuri"}},
+                    "get": {"x-amazon-apigateway-integration": {"type": "AWS_PROXY", "uri": "someuri"}},
                     "delete": {"x-amazon-apigateway-integration": {"type": "aws_proxy", "uri": "someuri"}},
                 },
                 "/path2": {"post": {"x-amazon-apigateway-integration": {"type": "aws_proxy", "uri": "someuri"}}},
@@ -134,6 +134,39 @@ class TestSwaggerParser_get_apis(TestCase):
                 methods=["get"],
                 function_name=function_name,
                 payload_format_version="2.0",
+                stack_path=self.stack_path,
+            ),
+        ]
+        result = parser.get_routes()
+
+        self.assertEqual(expected, result)
+
+    def test_payload_format_version_for_none(self):
+        function_name = "myfunction"
+        swagger = {
+            "paths": {
+                "/path1": {"get": {}},
+                "/path2": {"get": {}},
+            }
+        }
+
+        parser = SwaggerParser(self.stack_path, swagger)
+        parser._get_integration_function_name = Mock()
+        parser._get_integration_function_name.return_value = function_name
+
+        expected = [
+            Route(
+                path="/path1",
+                methods=["get"],
+                function_name=function_name,
+                payload_format_version="None",
+                stack_path=self.stack_path,
+            ),
+            Route(
+                path="/path2",
+                methods=["get"],
+                function_name=function_name,
+                payload_format_version="None",
                 stack_path=self.stack_path,
             ),
         ]

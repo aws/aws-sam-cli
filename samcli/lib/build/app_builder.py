@@ -6,29 +6,42 @@ import io
 import json
 import logging
 import pathlib
-from typing import List, Optional, Dict, cast, Union
+from typing import List, Optional, Dict, cast, Union, NamedTuple
 
 import docker
 import docker.errors
-from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
+from aws_lambda_builders import (
+    RPC_PROTOCOL_VERSION as lambda_builders_protocol_version,
+    __version__ as lambda_builders_version,
+)
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
+
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
 from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition, BuildGraph
 from samcli.lib.build.build_strategy import (
     DefaultBuildStrategy,
-    CachedBuildStrategy,
+    CachedOrIncrementalBuildStrategyWrapper,
     ParallelBuildStrategy,
     BuildStrategy,
 )
+from samcli.lib.utils.resources import (
+    AWS_CLOUDFORMATION_STACK,
+    AWS_LAMBDA_FUNCTION,
+    AWS_LAMBDA_LAYERVERSION,
+    AWS_SERVERLESS_APPLICATION,
+    AWS_SERVERLESS_FUNCTION,
+    AWS_SERVERLESS_LAYERVERSION,
+)
+from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
+from samcli.lib.docker.log_streamer import LogStreamer, LogStreamError
 from samcli.lib.providers.provider import ResourcesToBuildCollector, Function, get_full_path, Stack, LayerVersion
-from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils import osutils
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
-from samcli.local.docker.utils import is_docker_reachable
+from samcli.local.docker.utils import is_docker_reachable, get_docker_platform
 from samcli.local.docker.manager import ContainerManager
 from .exceptions import (
     DockerConnectionError,
@@ -39,9 +52,19 @@ from .exceptions import (
     ContainerBuildNotSupported,
     UnsupportedBuilderLibraryVersionError,
 )
+
 from .workflow_config import get_workflow_config, get_layer_subfolder, supports_build_in_container, CONFIG
 
 LOG = logging.getLogger(__name__)
+
+
+class ApplicationBuildResult(NamedTuple):
+    """
+    Result of the application build, build_graph and the built artifacts in dictionary
+    """
+
+    build_graph: BuildGraph
+    artifacts: Dict[str, str]
 
 
 class ApplicationBuilder:
@@ -69,6 +92,7 @@ class ApplicationBuilder:
         container_env_var_file: Optional[str] = None,
         container_dir_mount: Optional[Dict] = None,
         build_images: Optional[Dict] = None,
+        combine_dependencies: bool = True,
     ) -> None:
         """
         Initialize the class
@@ -109,6 +133,9 @@ class ApplicationBuilder:
             An optional dictionary of locations to be mounted into the container
         build_images : Optional[Dict]
             An optional dictionary of build images to be used for building functions
+        combine_dependencies: bool
+            An optional bool parameter to inform lambda builders whether we should separate the source code and
+            dependencies or not.
         """
         self._resources_to_build = resources_to_build
         self._build_dir = build_dir
@@ -121,7 +148,7 @@ class ApplicationBuilder:
         self._container_manager = container_manager
         self._parallel = parallel
         self._mode = mode
-        self._stream_writer = stream_writer if stream_writer else StreamWriter(osutils.stderr())
+        self._stream_writer = stream_writer if stream_writer else StreamWriter(stream=osutils.stderr(), auto_flush=True)
         self._docker_client = docker_client if docker_client else docker.from_env()
 
         self._deprecated_runtimes = {"nodejs4.3", "nodejs6.10", "nodejs8.10", "dotnetcore2.0"}
@@ -130,15 +157,17 @@ class ApplicationBuilder:
         self._container_env_var_file = container_env_var_file
         self._container_dir_mount = container_dir_mount
         self._build_images = build_images or {}
+        self._combine_dependencies = combine_dependencies
 
-    def build(self) -> Dict[str, str]:
+    def build(self) -> ApplicationBuildResult:
         """
         Build the entire application
 
         Returns
         -------
-        dict
-            Returns the path to where each resource was built as a map of resource's LogicalId to the path string
+        ApplicationBuildResult
+            Returns the build graph and the path to where each resource was built as a map of resource's LogicalId
+            to the path string
         """
         build_graph = self._get_build_graph(self._container_env_var, self._container_env_var_file)
         build_strategy: BuildStrategy = DefaultBuildStrategy(
@@ -149,28 +178,30 @@ class ApplicationBuilder:
             if self._cached:
                 build_strategy = ParallelBuildStrategy(
                     build_graph,
-                    CachedBuildStrategy(
+                    CachedOrIncrementalBuildStrategyWrapper(
                         build_graph,
                         build_strategy,
                         self._base_dir,
                         self._build_dir,
                         self._cache_dir,
+                        self._manifest_path_override,
                         self._is_building_specific_resource,
                     ),
                 )
             else:
                 build_strategy = ParallelBuildStrategy(build_graph, build_strategy)
         elif self._cached:
-            build_strategy = CachedBuildStrategy(
+            build_strategy = CachedOrIncrementalBuildStrategyWrapper(
                 build_graph,
                 build_strategy,
                 self._base_dir,
                 self._build_dir,
                 self._cache_dir,
+                self._manifest_path_override,
                 self._is_building_specific_resource,
             )
 
-        return build_strategy.build()
+        return ApplicationBuildResult(build_graph, build_strategy.build())
 
     def _get_build_graph(
         self, inline_env_vars: Optional[Dict] = None, env_vars_file: Optional[str] = None
@@ -202,6 +233,7 @@ class ApplicationBuilder:
                 function.runtime,
                 function.codeuri,
                 function.packagetype,
+                function.architecture,
                 function.metadata,
                 dir_mounts=self._container_dir_mount,
                 env_vars=container_env_vars,
@@ -210,11 +242,13 @@ class ApplicationBuilder:
 
         for layer in layers:
             container_env_vars = self._make_env_vars(layer, file_env_vars, inline_env_vars)
+
             layer_build_details = LayerBuildDefinition(
-                layer.name,
+                layer.full_path,
                 layer.codeuri,
                 layer.build_method,
                 layer.compatible_runtimes,
+                layer.build_architecture,
                 dir_mounts=self._container_dir_mount,
                 env_vars=container_env_vars,
             )
@@ -251,10 +285,10 @@ class ApplicationBuilder:
         original_dir = pathlib.Path(stack.location).parent.resolve()
 
         template_dict = stack.template_dict
-
+        normalized_resources = stack.resources
         for logical_id, resource in template_dict.get("Resources", {}).items():
-
-            full_path = get_full_path(stack.stack_path, logical_id)
+            resource_iac_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)
+            full_path = get_full_path(stack.stack_path, resource_iac_id)
             has_build_artifact = full_path in built_artifacts
             is_stack = full_path in stack_output_template_path_by_stack_path
 
@@ -262,6 +296,11 @@ class ApplicationBuilder:
                 # this resource was not built or a nested stack.
                 # So skip it because there is no path/uri to update
                 continue
+
+            # clone normalized metadata from stack.resources only to built resources
+            normalized_metadata = normalized_resources.get(logical_id, {}).get("Metadata")
+            if normalized_metadata:
+                resource["Metadata"] = normalized_metadata
 
             resource_type = resource.get("Type")
             properties = resource.setdefault("Properties", {})
@@ -282,31 +321,35 @@ class ApplicationBuilder:
                 store_path = os.path.relpath(absolute_output_path, original_dir)
 
             if has_build_artifact:
-                if resource_type == SamBaseProvider.SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == ZIP:
-                    properties["CodeUri"] = store_path
-
-                if resource_type == SamBaseProvider.LAMBDA_FUNCTION and properties.get("PackageType", ZIP) == ZIP:
-                    properties["Code"] = store_path
-
-                if resource_type in [SamBaseProvider.SERVERLESS_LAYER, SamBaseProvider.LAMBDA_LAYER]:
-                    properties["ContentUri"] = store_path
-
-                if resource_type == SamBaseProvider.LAMBDA_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
-                    properties["Code"] = built_artifacts[full_path]
-
-                if resource_type == SamBaseProvider.SERVERLESS_FUNCTION and properties.get("PackageType", ZIP) == IMAGE:
-                    properties["ImageUri"] = built_artifacts[full_path]
+                ApplicationBuilder._update_built_resource(
+                    built_artifacts[full_path], properties, resource_type, store_path
+                )
 
             if is_stack:
-                if resource_type == SamBaseProvider.SERVERLESS_APPLICATION:
+                if resource_type == AWS_SERVERLESS_APPLICATION:
                     properties["Location"] = store_path
 
-                if resource_type == SamBaseProvider.CLOUDFORMATION_STACK:
+                if resource_type == AWS_CLOUDFORMATION_STACK:
                     properties["TemplateURL"] = store_path
 
         return template_dict
 
-    def _build_lambda_image(self, function_name: str, metadata: Dict) -> str:
+    @staticmethod
+    def _update_built_resource(path: str, resource_properties: Dict, resource_type: str, absolute_path: str) -> None:
+        if resource_type == AWS_SERVERLESS_FUNCTION and resource_properties.get("PackageType", ZIP) == ZIP:
+            resource_properties["CodeUri"] = absolute_path
+        if resource_type == AWS_LAMBDA_FUNCTION and resource_properties.get("PackageType", ZIP) == ZIP:
+            resource_properties["Code"] = absolute_path
+        if resource_type == AWS_LAMBDA_LAYERVERSION:
+            resource_properties["Content"] = absolute_path
+        if resource_type == AWS_SERVERLESS_LAYERVERSION:
+            resource_properties["ContentUri"] = absolute_path
+        if resource_type == AWS_LAMBDA_FUNCTION and resource_properties.get("PackageType", ZIP) == IMAGE:
+            resource_properties["Code"] = {"ImageUri": path}
+        if resource_type == AWS_SERVERLESS_FUNCTION and resource_properties.get("PackageType", ZIP) == IMAGE:
+            resource_properties["ImageUri"] = path
+
+    def _build_lambda_image(self, function_name: str, metadata: Dict, architecture: str) -> str:
         """
         Build an Lambda image
 
@@ -316,6 +359,8 @@ class ApplicationBuilder:
             Name of the function (logical id or function name)
         metadata dict
             Dictionary representing the Metadata attached to the Resource in the template
+        architecture : str
+            The architecture type 'x86_64' and 'arm64' in AWS
 
         Returns
         -------
@@ -332,6 +377,9 @@ class ApplicationBuilder:
         docker_tag = f"{function_name.lower()}:{tag}"
         docker_build_target = metadata.get("DockerBuildTarget", None)
         docker_build_args = metadata.get("DockerBuildArgs", {})
+
+        if not dockerfile or not docker_context:
+            raise DockerBuildFailed("Docker file or Docker context metadata are missed.")
 
         if not isinstance(docker_build_args, dict):
             raise DockerBuildFailed("DockerBuildArgs needs to be a dictionary!")
@@ -353,6 +401,7 @@ class ApplicationBuilder:
             "tag": docker_tag,
             "buildargs": docker_build_args,
             "decode": True,
+            "platform": get_docker_platform(architecture),
         }
         if docker_build_target:
             build_args["target"] = cast(str, docker_build_target)
@@ -383,17 +432,11 @@ class ApplicationBuilder:
         function_name str
             Name of the function that is being built
         """
-        for log in build_logs:
-            if log:
-                log_stream = log.get("stream")
-                error_stream = log.get("error")
-
-                if error_stream:
-                    raise DockerBuildFailed(f"{function_name} failed to build: {error_stream}")
-
-                if log_stream:
-                    self._stream_writer.write(str.encode(log_stream))
-                    self._stream_writer.flush()
+        build_log_streamer = LogStreamer(self._stream_writer)
+        try:
+            build_log_streamer.stream_progress(build_logs)
+        except LogStreamError as ex:
+            raise DockerBuildFailed(msg=f"{function_name} failed to build: {str(ex)}") from ex
 
     def _build_layer(
         self,
@@ -401,9 +444,12 @@ class ApplicationBuilder:
         codeuri: str,
         specified_workflow: str,
         compatible_runtimes: List[str],
+        architecture: str,
         artifact_dir: str,
         container_env_vars: Optional[Dict] = None,
         container_dir_mounts: Optional[Dict] = None,
+        dependencies_dir: Optional[str] = None,
+        download_dependencies: bool = True,
     ) -> str:
         """
         Given the layer information, this method will build the Lambda layer. Depending on the configuration
@@ -413,22 +459,25 @@ class ApplicationBuilder:
         ----------
         layer_name : str
             Name or LogicalId of the function
-
         codeuri : str
             Path to where the code lives
-
         specified_workflow : str
             The specified workflow
-
         compatible_runtimes : List[str]
             List of runtimes the layer build is compatible with
-
+        architecture : str
+            The architecture type 'x86_64' and 'arm64' in AWS
         artifact_dir : str
             Path to where layer will be build into.
             A subfolder will be created in this directory depending on the specified workflow.
-
         container_env_vars : Optional[Dict]
             An optional dictionary of environment variables to pass to the container.
+        dependencies_dir: Optional[str]
+            An optional string parameter which will be used in lambda builders for downloading dependencies into
+            separate folder
+        download_dependencies: bool
+            An optional boolean parameter to inform lambda builders whether download dependencies or use previously
+            downloaded ones. Default value is True.
 
         container_dir_mounts : Optional[Dict]
             An optional dictionary of host paths to be mounted into the container.
@@ -455,6 +504,7 @@ class ApplicationBuilder:
             build_runtime = specified_workflow
             options = ApplicationBuilder._get_build_options(layer_name, config.language, None)
             if self._container_manager:
+                # None key represents the global build image for all functions/layers
                 if config.language == "provided":
                     LOG.warning(
                         "For container layer build, first compatible runtime is chosen as build target for container."
@@ -462,7 +512,6 @@ class ApplicationBuilder:
                     # Only set to this value if specified workflow is makefile
                     # which will result in config language as provided
                     build_runtime = compatible_runtimes[0]
-                # None key represents the global build image for all functions/layers
                 global_image = self._build_images.get(None)
                 image = self._build_images.get(layer_name, global_image)
                 self._build_function_on_container(
@@ -471,6 +520,7 @@ class ApplicationBuilder:
                     artifact_subdir,
                     manifest_path,
                     build_runtime,
+                    architecture,
                     options,
                     container_env_vars,
                     container_dir_mounts,
@@ -478,7 +528,17 @@ class ApplicationBuilder:
                 )
             else:
                 self._build_function_in_process(
-                    config, code_dir, artifact_subdir, scratch_dir, manifest_path, build_runtime, options
+                    config,
+                    code_dir,
+                    artifact_subdir,
+                    scratch_dir,
+                    manifest_path,
+                    build_runtime,
+                    architecture,
+                    options,
+                    dependencies_dir,
+                    download_dependencies,
+                    True,  # dependencies for layer should always be combined
                 )
 
             # Not including subfolder in return so that we copy subfolder, instead of copying artifacts inside it.
@@ -490,11 +550,14 @@ class ApplicationBuilder:
         codeuri: str,
         packagetype: str,
         runtime: str,
+        architecture: str,
         handler: Optional[str],
         artifact_dir: str,
         metadata: Optional[Dict] = None,
         container_env_vars: Optional[Dict] = None,
         container_dir_mounts: Optional[Dict] = None,
+        dependencies_dir: Optional[str] = None,
+        download_dependencies: bool = True,
     ) -> str:
         """
         Given the function information, this method will build the Lambda function. Depending on the configuration
@@ -510,6 +573,8 @@ class ApplicationBuilder:
             The package type, 'Zip' or 'Image', see samcli/lib/utils/packagetype.py
         runtime : str
             AWS Lambda function runtime
+        architecture : str
+            The architecture type 'x86_64' and 'arm64' in AWS
         handler : Optional[str]
             An optional string to specify which function the handler should be
         artifact_dir: str
@@ -520,6 +585,12 @@ class ApplicationBuilder:
             An optional dictionary of environment variables to pass to the container.
         container_dir_mounts : Optional[Dict]
             An optional dictionary of host paths to be mounted into the container.
+        dependencies_dir: Optional[str]
+            An optional string parameter which will be used in lambda builders for downloading dependencies into
+            separate folder
+        download_dependencies: bool
+            An optional boolean parameter to inform lambda builders whether download dependencies or use previously
+            downloaded ones. Default value is True.
 
         Returns
         -------
@@ -529,13 +600,14 @@ class ApplicationBuilder:
         if packagetype == IMAGE:
             # pylint: disable=fixme
             # FIXME: _build_lambda_image assumes metadata is not None, we need to throw an exception here
-            return self._build_lambda_image(function_name=function_name, metadata=metadata)  # type: ignore
+            return self._build_lambda_image(
+                function_name=function_name, metadata=metadata, architecture=architecture  # type: ignore
+            )
         if packagetype == ZIP:
             if runtime in self._deprecated_runtimes:
                 message = (
                     f"WARNING: {runtime} is no longer supported by AWS Lambda, "
                     "please update to a newer supported runtime. SAM CLI "
-                    f"will drop support for all deprecated runtimes {self._deprecated_runtimes} on May 1st. "
                     "See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
                 )
                 LOG.warning(self._colored.yellow(message))
@@ -565,6 +637,7 @@ class ApplicationBuilder:
                         artifact_dir,
                         manifest_path,
                         runtime,
+                        architecture,
                         options,
                         container_env_vars,
                         container_dir_mounts,
@@ -572,7 +645,17 @@ class ApplicationBuilder:
                     )
 
                 return self._build_function_in_process(
-                    config, code_dir, artifact_dir, scratch_dir, manifest_path, runtime, options
+                    config,
+                    code_dir,
+                    artifact_dir,
+                    scratch_dir,
+                    manifest_path,
+                    runtime,
+                    architecture,
+                    options,
+                    dependencies_dir,
+                    download_dependencies,
+                    self._combine_dependencies,
                 )
 
         # pylint: disable=fixme
@@ -610,7 +693,11 @@ class ApplicationBuilder:
         scratch_dir: str,
         manifest_path: str,
         runtime: str,
+        architecture: str,
         options: Optional[Dict],
+        dependencies_dir: Optional[str],
+        download_dependencies: bool,
+        combine_dependencies: bool,
     ) -> str:
 
         builder = LambdaBuilder(
@@ -631,6 +718,10 @@ class ApplicationBuilder:
                 executable_search_paths=config.executable_search_paths,
                 mode=self._mode,
                 options=options,
+                architecture=architecture,
+                dependencies_dir=dependencies_dir,
+                download_dependencies=download_dependencies,
+                combine_dependencies=combine_dependencies,
             )
         except LambdaBuilderError as ex:
             raise BuildError(wrapped_from=ex.__class__.__name__, msg=str(ex)) from ex
@@ -644,6 +735,7 @@ class ApplicationBuilder:
         artifacts_dir: str,
         manifest_path: str,
         runtime: str,
+        architecture: str,
         options: Optional[Dict],
         container_env_vars: Optional[Dict] = None,
         container_dir_mounts: Optional[Dict] = None,
@@ -676,6 +768,7 @@ class ApplicationBuilder:
             source_dir,
             manifest_path,
             runtime,
+            architecture,
             log_level=log_level,
             optimizations=None,
             options=options,

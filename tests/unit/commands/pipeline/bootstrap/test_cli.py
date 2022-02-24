@@ -15,7 +15,7 @@ from samcli.commands.pipeline.bootstrap.cli import do_cli as bootstrap_cli
 
 ANY_REGION = "ANY_REGION"
 ANY_PROFILE = "ANY_PROFILE"
-ANY_STAGE_NAME = "ANY_STAGE_NAME"
+ANY_STAGE_CONFIGURATION_NAME = "ANY_STAGE_CONFIGURATION_NAME"
 ANY_PIPELINE_USER_ARN = "ANY_PIPELINE_USER_ARN"
 ANY_PIPELINE_EXECUTION_ROLE_ARN = "ANY_PIPELINE_EXECUTION_ROLE_ARN"
 ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN = "ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN"
@@ -33,7 +33,7 @@ class TestCli(TestCase):
             "region": ANY_REGION,
             "profile": ANY_PROFILE,
             "interactive": True,
-            "stage_name": ANY_STAGE_NAME,
+            "stage_configuration_name": ANY_STAGE_CONFIGURATION_NAME,
             "pipeline_user_arn": ANY_PIPELINE_USER_ARN,
             "pipeline_execution_role_arn": ANY_PIPELINE_EXECUTION_ROLE_ARN,
             "cloudformation_execution_role_arn": ANY_CLOUDFORMATION_EXECUTION_ROLE_ARN,
@@ -53,12 +53,12 @@ class TestCli(TestCase):
         # interactive -> True
         # create_image_repository -> False
         # confirm_changeset -> True
-        # region, profile, stage_name and all ARNs are None
+        # region, profile, stage_configuration_name and all ARNs are None
         do_cli_mock.assert_called_once_with(
             region=None,
             profile=None,
             interactive=True,
-            stage_name=None,
+            stage_configuration_name=None,
             pipeline_user_arn=None,
             pipeline_execution_role_arn=None,
             cloudformation_execution_role_arn=None,
@@ -94,7 +94,7 @@ class TestCli(TestCase):
         )
         args, kwargs = do_cli_mock.call_args
         self.assertFalse(kwargs["interactive"])
-        self.assertEqual(kwargs["stage_name"], "environment1")
+        self.assertEqual(kwargs["stage_configuration_name"], "environment1")
         self.assertEqual(kwargs["artifacts_bucket_arn"], "bucketARN")
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")
@@ -153,11 +153,11 @@ class TestCli(TestCase):
     @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
     @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
     @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
-    def test_stage_name_is_required_to_be_provided_in_case_of_non_interactive_mode(
+    def test_stage_configuration_name_is_required_to_be_provided_in_case_of_non_interactive_mode(
         self, guided_context_mock, environment_mock, load_saved_pipeline_user_arn_mock, get_command_names_mock
     ):
         self.cli_context["interactive"] = False
-        self.cli_context["stage_name"] = None
+        self.cli_context["stage_configuration_name"] = None
         with self.assertRaises(click.UsageError):
             bootstrap_cli(**self.cli_context)
 
@@ -165,11 +165,11 @@ class TestCli(TestCase):
     @patch("samcli.commands.pipeline.bootstrap.cli._load_saved_pipeline_user_arn")
     @patch("samcli.commands.pipeline.bootstrap.cli.Stage")
     @patch("samcli.commands.pipeline.bootstrap.cli.GuidedContext")
-    def test_stage_name_is_not_required_to_be_provided_in_case_of_interactive_mode(
+    def test_stage_configuration_name_is_not_required_to_be_provided_in_case_of_interactive_mode(
         self, guided_context_mock, environment_mock, load_saved_pipeline_user_arn_mock, get_command_names_mock
     ):
         self.cli_context["interactive"] = True
-        self.cli_context["stage_name"] = None
+        self.cli_context["stage_configuration_name"] = None
         bootstrap_cli(**self.cli_context)  # No exception is thrown
 
     @patch("samcli.commands.pipeline.bootstrap.cli._get_bootstrap_command_names")

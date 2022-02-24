@@ -202,6 +202,25 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         self.assertEqual(process_stdout.decode("utf-8"), '"MyVar"')
 
     @pytest.mark.flaky(reruns=3)
+    def test_invoke_with_invoke_image_provided(self):
+        command_list = self.get_command_list(
+            "HelloWorldServerlessFunction",
+            template_path=self.template_path,
+            event_path=self.event_path,
+            invoke_image="amazon/aws-sam-cli-emulation-image-python3.6",
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip()
+        self.assertEqual(process_stdout.decode("utf-8"), '"Hello world"')
+
+    @pytest.mark.flaky(reruns=3)
     def test_invoke_when_function_writes_stdout(self):
         command_list = self.get_command_list(
             "WriteToStdoutFunction", template_path=self.template_path, event_path=self.event_path
@@ -664,16 +683,7 @@ class TestUsingConfigFiles(InvokeIntegBase):
         return custom_cred
 
 
-@parameterized_class(
-    ("template",),
-    [
-        (Path("layers", "layer-template.yml"),),
-        (Path("nested-templates", "layer-template-parent.yaml"),),
-        (Path("layers", "some-dir", "layer-template-parent.yaml"),),
-    ],
-)
-@skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
-class TestLayerVersion(InvokeIntegBase):
+class TestLayerVersionBase(InvokeIntegBase):
     region = "us-west-2"
     layer_utils = LayerUtils(region=region)
 
@@ -692,7 +702,7 @@ class TestLayerVersion(InvokeIntegBase):
     def setUpClass(cls):
         cls.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerOneArn", "layer1.zip")
         cls.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerTwoArn", "layer2.zip")
-        super(TestLayerVersion, cls).setUpClass()
+        super(TestLayerVersionBase, cls).setUpClass()
 
     @classmethod
     def tearDownClass(cls):
@@ -706,8 +716,19 @@ class TestLayerVersion(InvokeIntegBase):
         if integ_layer_cache_dir.exists():
             shutil.rmtree(str(integ_layer_cache_dir))
 
-        super(TestLayerVersion, cls).tearDownClass()
+        super(TestLayerVersionBase, cls).tearDownClass()
 
+
+@parameterized_class(
+    ("template",),
+    [
+        (Path("layers", "layer-template.yml"),),
+        (Path("nested-templates", "layer-template-parent.yaml"),),
+        (Path("layers", "some-dir", "layer-template-parent.yaml"),),
+    ],
+)
+@skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
+class TestLayerVersion(TestLayerVersionBase):
     @parameterized.expand(
         [
             ("ReferenceServerlessLayerVersionServerlessFunction"),

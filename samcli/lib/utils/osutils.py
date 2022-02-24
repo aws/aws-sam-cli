@@ -12,6 +12,10 @@ from typing import List, Optional
 
 LOG = logging.getLogger(__name__)
 
+# Build directories need not be world writable.
+# This is usually a optimal permission for directories
+BUILD_DIR_PERMISSIONS = 0o755
+
 
 @contextmanager
 def mkdir_temp(mode=0o755, ignore_errors=False):

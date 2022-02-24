@@ -9,6 +9,8 @@ from unittest import TestCase
 
 import boto3
 
+from samcli.yamlhelper import yaml_parse
+
 S3_SLEEP = 3
 TIMEOUT = 300
 
@@ -83,7 +85,7 @@ class PackageRegressionBase(TestCase):
 
         return command_list
 
-    def regression_check(self, args):
+    def regression_check(self, args, skip_sam_metadata=True):
         with tempfile.NamedTemporaryFile(delete=False) as output_template_file_sam:
             sam_command_list = self.get_command_list(output_template_file=output_template_file_sam.name, **args)
             process = Popen(sam_command_list, stdout=PIPE)
@@ -108,8 +110,27 @@ class PackageRegressionBase(TestCase):
             self.assertEqual(process.returncode, 0)
             output_aws = output_template_file_aws.read()
 
+        # remove the region name from the template url in cases like nested stacks
+        output_aws = output_aws.replace(b"s3.us-east-1.", b"s3.")
+
         if "use_json" in args and args.get("use_json"):
             output_sam = json.loads(output_sam)
             output_aws = json.loads(output_aws)
+        else:
+            output_sam = yaml_parse(output_sam)
+            output_aws = yaml_parse(output_aws)
+        if skip_sam_metadata:
+            self._remove_sam_related_metadata(output_sam)
 
         self.assertEqual(output_sam, output_aws)
+
+    def _remove_sam_related_metadata(self, output_sam):
+        if "Resources" not in output_sam:
+            return
+        for _, resource in output_sam.get("Resources", {}).items():
+            if "Metadata" not in resource:
+                continue
+            resource.get("Metadata", {}).pop("SamResourceId", None)
+            resource.get("Metadata", {}).pop("SamNormalize", None)
+            if not resource.get("Metadata", {}):
+                resource.pop("Metadata")

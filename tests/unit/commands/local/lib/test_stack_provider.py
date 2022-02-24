@@ -6,7 +6,7 @@ from unittest.mock import patch, Mock
 
 from parameterized import parameterized
 
-from samcli.commands._utils.resources import AWS_SERVERLESS_APPLICATION, AWS_CLOUDFORMATION_STACK
+from samcli.lib.utils.resources import AWS_SERVERLESS_APPLICATION, AWS_CLOUDFORMATION_STACK
 from samcli.lib.providers.provider import Stack
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 
@@ -33,20 +33,81 @@ class TestSamBuildableStackProvider(TestCase):
 
     @parameterized.expand(
         [
-            (AWS_SERVERLESS_APPLICATION, "Location", "./child.yaml", "child.yaml"),
-            (AWS_CLOUDFORMATION_STACK, "TemplateURL", "./child.yaml", "child.yaml"),
-            (AWS_SERVERLESS_APPLICATION, "Location", "file:///child.yaml", "/child.yaml"),
-            (AWS_CLOUDFORMATION_STACK, "TemplateURL", "file:///child.yaml", "/child.yaml"),
+            (
+                AWS_SERVERLESS_APPLICATION,
+                "Location",
+                "./child.yaml",
+                "child.yaml",
+                {},
+                "ChildStack",
+            ),
+            (
+                AWS_CLOUDFORMATION_STACK,
+                "TemplateURL",
+                "./child.yaml",
+                "child.yaml",
+                {},
+                "ChildStack",
+            ),
+            (
+                AWS_SERVERLESS_APPLICATION,
+                "Location",
+                "file:///child.yaml",
+                "/child.yaml",
+                {},
+                "ChildStack",
+            ),
+            (
+                AWS_CLOUDFORMATION_STACK,
+                "TemplateURL",
+                "file:///child.yaml",
+                "/child.yaml",
+                {},
+                "ChildStack",
+            ),
+            (
+                AWS_SERVERLESS_APPLICATION,
+                "Location",
+                "./child.yaml",
+                "child.yaml",
+                {"SamResourceId": "ChildStackId-x"},
+                "ChildStackId-x",
+            ),
+            (
+                AWS_CLOUDFORMATION_STACK,
+                "TemplateURL",
+                "./child.yaml",
+                "child.yaml",
+                {"SamResourceId": "ChildStackId-x"},
+                "ChildStackId-x",
+            ),
+            (
+                AWS_SERVERLESS_APPLICATION,
+                "Location",
+                "file:///child.yaml",
+                "/child.yaml",
+                {"SamResourceId": "ChildStackId-x"},
+                "ChildStackId-x",
+            ),
+            (
+                AWS_CLOUDFORMATION_STACK,
+                "TemplateURL",
+                "file:///child.yaml",
+                "/child.yaml",
+                {"SamResourceId": "ChildStackId-x"},
+                "ChildStackId-x",
+            ),
         ]
     )
     def test_sam_nested_stack_should_be_extracted(
-        self, resource_type, location_property_name, child_location, child_location_path
+        self, resource_type, location_property_name, child_location, child_location_path, metadata, expected_stack_id
     ):
         template = {
             "Resources": {
                 "ChildStack": {
                     "Type": resource_type,
                     "Properties": {location_property_name: child_location},
+                    "Metadata": metadata,
                 }
             }
         }
@@ -64,7 +125,7 @@ class TestSamBuildableStackProvider(TestCase):
             stacks,
             [
                 Stack("", "", self.template_file, {}, template),
-                Stack("", "ChildStack", child_location_path, {}, LEAF_TEMPLATE),
+                Stack("", "ChildStack", child_location_path, {}, LEAF_TEMPLATE, {"SamResourceId": expected_stack_id}),
             ],
         )
         self.assertFalse(remote_stack_full_paths)
@@ -103,8 +164,15 @@ class TestSamBuildableStackProvider(TestCase):
             stacks,
             [
                 Stack("", "", self.template_file, {}, template),
-                Stack("", "ChildStack", child_template_file, {}, child_template),
-                Stack("ChildStack", "GrandChildStack", grand_child_template_file, {}, LEAF_TEMPLATE),
+                Stack("", "ChildStack", child_template_file, {}, child_template, {"SamResourceId": "ChildStack"}),
+                Stack(
+                    "ChildStack",
+                    "GrandChildStack",
+                    grand_child_template_file,
+                    {},
+                    LEAF_TEMPLATE,
+                    {"SamResourceId": "GrandChildStack"},
+                ),
             ],
         )
         self.assertFalse(remote_stack_full_paths)
@@ -172,7 +240,7 @@ class TestSamBuildableStackProvider(TestCase):
             stacks,
             [
                 Stack("", "", template_file, {}, template),
-                Stack("", "ChildStack", child_location_path, {}, LEAF_TEMPLATE),
+                Stack("", "ChildStack", child_location_path, {}, LEAF_TEMPLATE, {"SamResourceId": "ChildStack"}),
             ],
         )
         self.assertFalse(remote_stack_full_paths)
@@ -213,7 +281,14 @@ class TestSamBuildableStackProvider(TestCase):
             stacks,
             [
                 Stack("", "", template_file, global_parameter_overrides, template),
-                Stack("", "ChildStack", child_location_path, global_parameter_overrides, LEAF_TEMPLATE),
+                Stack(
+                    "",
+                    "ChildStack",
+                    child_location_path,
+                    global_parameter_overrides,
+                    LEAF_TEMPLATE,
+                    {"SamResourceId": "ChildStack"},
+                ),
             ],
         )
         self.assertFalse(remote_stack_full_paths)

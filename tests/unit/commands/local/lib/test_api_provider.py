@@ -239,3 +239,24 @@ class TestApiProvider_merge_routes(TestCase):
             (logicalId, [route2]),
         ]
         self.assertEqual(SamApiProvider.merge_routes(collector), [route1])
+
+
+class TestApiProvider_check_implicit_api_resource_ids(TestCase):
+    @patch("samcli.lib.providers.sam_api_provider.LOG.warning")
+    def test_check_implicit_api_resource_ids_false(self, warning_mock):
+        SamApiProvider.check_implicit_api_resource_ids([Mock(resources={"Api1": {"Properties": Mock()}})])
+        warning_mock.assert_not_called()
+
+    @patch("samcli.lib.providers.sam_api_provider.LOG.warning")
+    def test_check_implicit_api_resource_ids_rest_api(self, warning_mock):
+        SamApiProvider.check_implicit_api_resource_ids(
+            [Mock(resources={"Api1": {"Properties": Mock()}, "ServerlessRestApi": {"Properties": Mock()}})]
+        )
+        warning_mock.assert_called_once()
+
+    @patch("samcli.lib.providers.sam_api_provider.LOG.warning")
+    def test_check_implicit_api_resource_ids_http_api(self, warning_mock):
+        SamApiProvider.check_implicit_api_resource_ids(
+            [Mock(resources={"Api1": {"Properties": Mock()}, "ServerlessHttpApi": {"Properties": Mock()}})]
+        )
+        warning_mock.assert_called_once()
