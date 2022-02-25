@@ -3,8 +3,7 @@ from unittest.mock import patch
 
 from parameterized import parameterized
 
-from samcli.commands._utils.option_value_processor import process_dir_mounts
-from samcli.commands._utils.option_value_processor import process_env_var, process_image_options
+from samcli.commands._utils.option_value_processor import process_env_var, process_image_options, process_dir_mounts
 from samcli.commands.exceptions import InvalidMountedPathException
 
 
@@ -49,29 +48,29 @@ class TestEnvVarParsing(TestCase):
 class TestDirMountsParsing(TestCase):
     @parameterized.expand(
         [
-            ("Windows", ["C://local/dir:/container/dir"], {"C://local/dir": "/container/dir"}),
-            ("Linux", ["/local/dir:/container/dir"], {"/local/dir": "/container/dir"}),
+            ("win32", ["C:/local/dir:/container/dir"], {"C:/local/dir": "/container/dir"}),
+            ("linux", ["/local/dir:/container/dir"], {"/local/dir": "/container/dir"}),
             # Multiple arguments case
             (
-                    "Linux",
-                    ["/local/dir1:/container/dir1", "/local/dir2:/container/dir2"],
-                    {"/local/dir1": "/container/dir1", "/local/dir2": "/container/dir2"},
+                "Linux",
+                ["/local/dir1:/container/dir1", "/local/dir2:/container/dir2"],
+                {"/local/dir1": "/container/dir1", "/local/dir2": "/container/dir2"},
             ),
         ]
     )
     def test_process_valid_paths(self, platform, input, expected):
-        with patch("pathvalidate._common.platform.system", return_value=platform):
+        with patch("samcli.commands._utils.option_value_processor.sys.platform", platform):
             result = process_dir_mounts(input)
         self.assertEqual(result, expected)
 
     @parameterized.expand(
         [
-            ("Windows", ["C://lo*cal/dir:/container/dir"]),
-            ("Linux", ["C://local/dir:/container/dir"]),
+            ("win32", ["C://lo*cal/dir:/container/dir"]),
+            ("linux", ["C://local/dir:/container/dir"]),
         ]
     )
     def test_process_invalid_paths(self, platform, input):
-        with patch("pathvalidate._common.platform.system", return_value=platform):
+        with patch("samcli.commands._utils.option_value_processor.sys.platform", platform):
             with self.assertRaises(InvalidMountedPathException) as e:
                 process_dir_mounts(input)
 

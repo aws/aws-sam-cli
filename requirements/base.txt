@@ -15,7 +15,6 @@ serverlessrepo==0.1.10
 aws_lambda_builders==1.13.0
 tomlkit==0.7.2
 watchdog==2.1.2
-pathvalidate==2.4.1
 
 # See https://github.com/pallets/markupsafe/issues/286 but breaking change in 
 # MarkupSafe causes jinja to break which caused flask to break (which we depend on)

@@ -2,9 +2,9 @@
 Parsing utilities commonly used to process information for commands
 """
 import logging
+import re
+import sys
 from typing import Optional, Dict, Tuple
-
-from pathvalidate import ValidationError, validate_filepath
 
 from samcli.commands.exceptions import InvalidImageException, InvalidMountedPathException
 
@@ -97,18 +97,17 @@ def process_dir_mounts(container_dir_mount: Optional[Tuple[str]]) -> Dict:
 
     if container_dir_mount:
         for dir_mount in container_dir_mount:
-            host_dir, container_dir = dir_mount.rsplit(":", 1)
-
-            try:
+            if ":" in dir_mount:
+                host_dir, container_dir = dir_mount.rsplit(":", 1)
                 # Host path is validated for current platform
-                validate_filepath(host_dir, platform="auto")
+                host_dir_valid = _validate_directory_path(host_dir, platform=sys.platform)
                 # Container path is always a Linux path
-                validate_filepath(container_dir, platform="Linux")
-            except ValidationError as e:
-                msg = f"Invalid command line --container-dir-mount input {dir_mount}."
-                raise InvalidMountedPathException(msg) from e
-
-            processed_dir_mounts[host_dir] = container_dir
+                container_dir_valid = _validate_directory_path(container_dir, platform="linux")
+                if host_dir_valid and container_dir_valid:
+                    processed_dir_mounts[host_dir] = container_dir
+                    continue
+            msg = f"Invalid command line --container-dir-mount input {dir_mount}."
+            raise InvalidMountedPathException(msg)
 
     return processed_dir_mounts
 
@@ -135,3 +134,11 @@ def _parse_key_value_pair(arg: str) -> Tuple[Optional[str], str]:
         key = None
         value = arg.strip()
     return key, value
+
+
+def _validate_directory_path(dir_path, platform) -> bool:
+    regex_linux_macos = r"^(/[^/ ]*)+/?$"
+    regex_windows = r'^[a-zA-Z]:[/\\](((?![<>:"/\\|?*]).)+((?<![ .])[/\\])?)*$'
+
+    regex = regex_windows if platform == "win32" else regex_linux_macos
+    return bool(re.match(regex, dir_path))

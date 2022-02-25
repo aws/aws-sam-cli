@@ -245,7 +245,7 @@ class ApplicationBuilder:
 
         # TODO --container-dir-mounts are passed as global. There's no way to mount different directories depending
         # on which function/layer is being built. In case of --container-env-var this is possible using
-        # Function1.VAR=VAL syntax. Perhaps such mechanism should be implemented for --container-dir-mounts too?
+        # Function1.VAR=VAL syntax. Perhaps such mechanism should be implemented for --container-dir-mounts too
         for function in functions:
             container_env_vars = self._make_env_vars(function, file_env_vars, inline_env_vars)
             function_build_details = FunctionBuildDefinition(

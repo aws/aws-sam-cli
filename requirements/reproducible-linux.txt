@@ -201,10 +201,6 @@ markupsafe==2.0.1 \
     # via
     #   aws-sam-cli (setup.py)
     #   jinja2
-pathvalidate==2.4.1 \
-    --hash=sha256:3c9bd94c7ec23e9cfb211ffbe356ae75f979d6c099a2c745ee9490f524f32468 \
-    --hash=sha256:f5dde7efeeb4262784c5e1331e02752d07c1ec3ee5ea42683fe211155652b808
-    # via aws-sam-cli (setup.py)
 poyo==0.5.0 \
     --hash=sha256:3e2ca8e33fdc3c411cd101ca395668395dd5dc7ac775b8e809e3def9f9fe041a \
     --hash=sha256:e26956aa780c45f011ca9886f044590e2d8fd8b61db7b1c1cf4e0869f48ed4dd
