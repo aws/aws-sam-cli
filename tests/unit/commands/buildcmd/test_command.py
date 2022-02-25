@@ -11,6 +11,7 @@ class TestDoCli(TestCase):
     @patch("samcli.commands.build.command.click")
     @patch("samcli.commands.build.build_context.BuildContext")
     @patch("samcli.commands.build.command.os")
+    @patch("samcli.commands._utils.option_value_processor.sys.platform", "linux")
     def test_must_succeed_build(self, os_mock, BuildContextMock, mock_build_click):
 
         ctx_mock = Mock()
