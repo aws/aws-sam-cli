@@ -48,20 +48,20 @@ class ResourceTrigger(ABC):
         raise NotImplementedError("get_path_handleres is not implemented.")
 
     @staticmethod
-    def get_single_file_path_handler(file_path_str: str) -> PathHandler:
+    def get_single_file_path_handler(file_path: Path) -> PathHandler:
         """Get PathHandler for watching a single file
 
         Parameters
         ----------
-        file_path_str : str
-            File path in string
+        file_path : Path
+            File path object
 
         Returns
         -------
         PathHandler
             The PathHandler for the file specified
         """
-        file_path = Path(file_path_str).resolve()
+        file_path = file_path.resolve()
         folder_path = file_path.parent
         case_sensitive = platform.system().lower() != "windows"
         file_handler = RegexMatchingEventHandler(
@@ -73,13 +73,13 @@ class ResourceTrigger(ABC):
         return PathHandler(path=folder_path, event_handler=file_handler, recursive=False)
 
     @staticmethod
-    def get_dir_path_handler(dir_path_str: str, ignore_regexes: Optional[List[str]] = None) -> PathHandler:
+    def get_dir_path_handler(dir_path: Path, ignore_regexes: Optional[List[str]] = None) -> PathHandler:
         """Get PathHandler for watching a single directory
 
         Parameters
         ----------
-        dir_path_str : str
-            Folder path in string
+        dir_path : Path
+            Folder path object
         ignore_regexes : List[str], Optional
             List of regexes that should be ignored
 
@@ -88,7 +88,7 @@ class ResourceTrigger(ABC):
         PathHandler
             The PathHandler for the folder specified
         """
-        dir_path = Path(dir_path_str).resolve()
+        dir_path = dir_path.resolve()
 
         case_sensitive = platform.system().lower() != "windows"
 
@@ -131,7 +131,7 @@ class TemplateTrigger(ResourceTrigger):
             self._on_template_change(event)
 
     def get_path_handlers(self) -> List[PathHandler]:
-        file_path_handler = ResourceTrigger.get_single_file_path_handler(self._template_file)
+        file_path_handler = ResourceTrigger.get_single_file_path_handler(Path(self._template_file))
         file_path_handler.event_handler.on_any_event = self._validator_wrapper
         return [file_path_handler]
 
@@ -147,8 +147,8 @@ class CodeResourceTrigger(ResourceTrigger):
         self,
         resource_identifier: ResourceIdentifier,
         stacks: List[Stack],
-        on_code_change: OnChangeCallback,
         base_dir: Path,
+        on_code_change: OnChangeCallback,
     ):
         """
         Parameters
@@ -157,6 +157,8 @@ class CodeResourceTrigger(ResourceTrigger):
             ResourceIdentifier
         stacks : List[Stack]
             List of stacks
+        base_dir: Path
+            Base directory for the resource. This should be the path to template file in most cases.
         on_code_change : OnChangeCallback
             Callback when the resource files are changed.
         base_dir: Path
@@ -185,8 +187,8 @@ class LambdaFunctionCodeTrigger(CodeResourceTrigger):
         self,
         function_identifier: ResourceIdentifier,
         stacks: List[Stack],
-        on_code_change: OnChangeCallback,
         base_dir: Path,
+        on_code_change: OnChangeCallback,
     ):
         """
         Parameters
@@ -195,6 +197,8 @@ class LambdaFunctionCodeTrigger(CodeResourceTrigger):
             ResourceIdentifier for the function
         stacks : List[Stack]
             List of stacks
+        base_dir: Path
+            Base directory for the function. This should be the path to template file in most cases.
         on_code_change : OnChangeCallback
             Callback when function code files are changed.
         base_dir: Path
@@ -207,7 +211,7 @@ class LambdaFunctionCodeTrigger(CodeResourceTrigger):
         MissingCodeUri
             raised when there is no CodeUri property in the function definition.
         """
-        super().__init__(function_identifier, stacks, on_code_change, base_dir)
+        super().__init__(function_identifier, stacks, base_dir, on_code_change)
         function = SamFunctionProvider(stacks).get(str(function_identifier))
         if not function:
             raise FunctionNotFound()
@@ -264,8 +268,8 @@ class LambdaLayerCodeTrigger(CodeResourceTrigger):
         self,
         layer_identifier: ResourceIdentifier,
         stacks: List[Stack],
-        on_code_change: OnChangeCallback,
         base_dir: Path,
+        on_code_change: OnChangeCallback,
     ):
         """
         Parameters
@@ -274,6 +278,8 @@ class LambdaLayerCodeTrigger(CodeResourceTrigger):
             ResourceIdentifier for the layer
         stacks : List[Stack]
             List of stacks
+        base_dir: Path
+            Base directory for the layer. This should be the path to template file in most cases.
         on_code_change : OnChangeCallback
             Callback when layer code files are changed.
         base_dir: Path
@@ -286,7 +292,7 @@ class LambdaLayerCodeTrigger(CodeResourceTrigger):
         MissingCodeUri
             raised when there is no CodeUri property in the function definition.
         """
-        super().__init__(layer_identifier, stacks, on_code_change, base_dir)
+        super().__init__(layer_identifier, stacks, base_dir, on_code_change)
         layer = SamLayerProvider(stacks).get(str(layer_identifier))
         if not layer:
             raise ResourceNotFound()
@@ -321,8 +327,8 @@ class DefinitionCodeTrigger(CodeResourceTrigger):
         resource_identifier: ResourceIdentifier,
         resource_type: str,
         stacks: List[Stack],
-        on_code_change: OnChangeCallback,
         base_dir: Path,
+        on_code_change: OnChangeCallback,
     ):
         """
         Parameters
@@ -333,12 +339,14 @@ class DefinitionCodeTrigger(CodeResourceTrigger):
             Resource type
         stacks : List[Stack]
             List of stacks
+        base_dir: Path
+            Base directory for the definition file. This should be the path to template file in most cases.
         on_code_change : OnChangeCallback
             Callback when definition file is changed.
         base_dir: Path
             Base directory for the definition file. This should be the path to template file in most cases.
         """
-        super().__init__(resource_identifier, stacks, on_code_change, base_dir)
+        super().__init__(resource_identifier, stacks, base_dir, on_code_change)
         self._resource_type = resource_type
         self._definition_file = self._get_definition_file()
         self._validator = DefinitionValidator(Path(self._definition_file))

@@ -48,9 +48,9 @@ class CodeTriggerFactory(ResourceTypeBasedFactory[CodeResourceTrigger]):  # pyli
     ):
         package_type = resource.get("Properties", dict()).get("PackageType", ZIP)
         if package_type == ZIP:
-            return LambdaZipCodeTrigger(resource_identifier, self._stacks, on_code_change, self.base_dir)
+            return LambdaZipCodeTrigger(resource_identifier, self._stacks, self.base_dir, on_code_change)
         if package_type == IMAGE:
-            return LambdaImageCodeTrigger(resource_identifier, self._stacks, on_code_change, self.base_dir)
+            return LambdaImageCodeTrigger(resource_identifier, self._stacks, self.base_dir, on_code_change)
         return None
 
     def _create_layer_trigger(
@@ -60,7 +60,7 @@ class CodeTriggerFactory(ResourceTypeBasedFactory[CodeResourceTrigger]):  # pyli
         resource: Dict[str, Any],
         on_code_change: Callable,
     ):
-        return LambdaLayerCodeTrigger(resource_identifier, self._stacks, on_code_change, self.base_dir)
+        return LambdaLayerCodeTrigger(resource_identifier, self._stacks, self.base_dir, on_code_change)
 
     def _create_definition_code_trigger(
         self,
@@ -69,7 +69,7 @@ class CodeTriggerFactory(ResourceTypeBasedFactory[CodeResourceTrigger]):  # pyli
         resource: Dict[str, Any],
         on_code_change: Callable,
     ):
-        return DefinitionCodeTrigger(resource_identifier, resource_type, self._stacks, on_code_change, self.base_dir)
+        return DefinitionCodeTrigger(resource_identifier, resource_type, self._stacks, self.base_dir, on_code_change)
 
     GeneratorFunction = Callable[
         ["CodeTriggerFactory", ResourceIdentifier, str, Dict[str, Any], Callable], Optional[CodeResourceTrigger]

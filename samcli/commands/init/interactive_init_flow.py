@@ -154,10 +154,11 @@ def _generate_from_use_case(
     base_image = (
         LAMBDA_IMAGES_RUNTIMES_MAP.get(str(runtime)) if not base_image and package_type == IMAGE else base_image
     )
-    location = templates.location_from_app_template(package_type, runtime, base_image, dependency_manager, app_template)
 
     if not name:
         name = click.prompt("\nProject name", type=str, default="sam-app")
+
+    location = templates.location_from_app_template(package_type, runtime, base_image, dependency_manager, app_template)
 
     final_architecture = get_architectures(architecture)
     extra_context = {
@@ -228,8 +229,8 @@ def _generate_default_hello_world_application(
     """
     is_package_type_image = bool(package_type == IMAGE)
     if use_case == "Hello World Example" and not (runtime or base_image or is_package_type_image or dependency_manager):
-        if click.confirm("\n Use the most popular runtime and package type? (Nodejs and zip)"):
-            runtime, package_type, dependency_manager, pt_explicit = "nodejs14.x", ZIP, "npm", True
+        if click.confirm("\n Use the most popular runtime and package type? (Python and zip)"):
+            runtime, package_type, dependency_manager, pt_explicit = "python3.9", ZIP, "pip", True
     return (runtime, package_type, dependency_manager, pt_explicit)
 
 
