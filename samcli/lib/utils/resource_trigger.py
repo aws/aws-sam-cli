@@ -161,8 +161,6 @@ class CodeResourceTrigger(ResourceTrigger):
             Base directory for the resource. This should be the path to template file in most cases.
         on_code_change : OnChangeCallback
             Callback when the resource files are changed.
-        base_dir: Path
-            Base directory for the resource. This should be the path to template file in most cases.
 
         Raises
         ------
@@ -201,8 +199,6 @@ class LambdaFunctionCodeTrigger(CodeResourceTrigger):
             Base directory for the function. This should be the path to template file in most cases.
         on_code_change : OnChangeCallback
             Callback when function code files are changed.
-        base_dir: Path
-            Base directory for the function. This should be the path to template file in most cases.
 
         Raises
         ------
@@ -282,8 +278,6 @@ class LambdaLayerCodeTrigger(CodeResourceTrigger):
             Base directory for the layer. This should be the path to template file in most cases.
         on_code_change : OnChangeCallback
             Callback when layer code files are changed.
-        base_dir: Path
-            Base directory for the layer. This should be the path to template file in most cases.
 
         Raises
         ------
@@ -343,8 +337,6 @@ class DefinitionCodeTrigger(CodeResourceTrigger):
             Base directory for the definition file. This should be the path to template file in most cases.
         on_code_change : OnChangeCallback
             Callback when definition file is changed.
-        base_dir: Path
-            Base directory for the definition file. This should be the path to template file in most cases.
         """
         super().__init__(resource_identifier, stacks, base_dir, on_code_change)
         self._resource_type = resource_type
