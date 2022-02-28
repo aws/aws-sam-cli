@@ -1,6 +1,6 @@
 import itertools
 from unittest import TestCase
-from unittest.mock import Mock, patch, call, ANY
+from unittest.mock import Mock, MagicMock, patch, call, ANY
 
 from parameterized import parameterized
 
@@ -12,7 +12,6 @@ from samcli.lib.observability.util import OutputOption
 @patch("samcli.commands._utils.experimental.update_experimental_context")
 class TestLogsCliCommand(TestCase):
     def setUp(self):
-
         self.function_name = "name"
         self.stack_name = "stack name"
         self.filter_pattern = "filter"
@@ -23,7 +22,7 @@ class TestLogsCliCommand(TestCase):
 
     @parameterized.expand(
         itertools.product(
-            [True, False], [True, False], [[], ["cw_log_group"], ["cw_log_group", "cw_log_group2"]], ["text", "json"]
+            [True, False], [True, False], [True, False], [[], ["cw_log_group"], ["cw_log_group", "cw_log_group2"]], ["text", "json"]
         )
     )
     @patch("samcli.commands.logs.puller_factory.generate_puller")
@@ -31,26 +30,30 @@ class TestLogsCliCommand(TestCase):
     @patch("samcli.commands.logs.logs_context.parse_time")
     @patch("samcli.lib.utils.boto_utils.get_boto_client_provider_with_config")
     @patch("samcli.lib.utils.boto_utils.get_boto_resource_provider_with_config")
+    @patch("samcli.commands._utils.datadog_utils.generate_datadog_url")
     def test_logs_command(
         self,
         tailing,
         include_tracing,
+        datadog_livetail,
         cw_log_group,
         output,
+        patched_generate_datadog_url,
         patched_boto_resource_provider,
         patched_boto_client_provider,
         patched_parse_time,
         patched_resource_physical_id_resolver,
         patched_generate_puller,
-        patched_is_experimental_enabled,
         patched_update_experimental_context,
+        patched_is_experimental_enabled,
     ):
         mocked_start_time = Mock()
         mocked_end_time = Mock()
         patched_parse_time.side_effect = [mocked_start_time, mocked_end_time]
 
         mocked_resource_physical_id_resolver = Mock()
-        mocked_resource_information = Mock()
+        mocked_resource_information = MagicMock()
+
         mocked_resource_physical_id_resolver.get_resource_information.return_value = mocked_resource_information
         patched_resource_physical_id_resolver.return_value = mocked_resource_physical_id_resolver
 
@@ -63,11 +66,14 @@ class TestLogsCliCommand(TestCase):
         mocked_resource_provider = Mock()
         patched_boto_resource_provider.return_value = mocked_resource_provider
 
+        b = patched_generate_datadog_url
+
         do_cli(
             self.function_name,
             self.stack_name,
             self.filter_pattern,
             tailing,
+            datadog_livetail, # datadog livetail
             include_tracing,
             self.start_time,
             self.end_time,
@@ -102,6 +108,8 @@ class TestLogsCliCommand(TestCase):
             OutputOption(output),
             include_tracing,
         )
+        if datadog_livetail:
+            patched_generate_datadog_url.assert_called_with(mocked_resource_information)
 
         if tailing:
             mocked_puller.assert_has_calls([call.tail(mocked_start_time, self.filter_pattern)])

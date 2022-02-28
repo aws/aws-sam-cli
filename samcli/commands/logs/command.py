@@ -36,6 +36,12 @@ $ sam logs -n HelloWorldFunction --stack-name mystack -s '10min ago' -e '2min ag
 You can also add the --tail option to wait for new logs and see them as they arrive.
 $ sam logs -n HelloWorldFunction --stack-name mystack --tail \n
 \b
+You can add the --datadog option to display links to the datadog livetail logs of 
+the functions in your stack. Note: even if your function is not instrumented with datadog, a link
+will still be displayed. Upon setting up Datadog and instrumenting your function, the link will work
+properly. \n
+$ sam logs --stack-name mystack --datadog-livetail
+\b
 Use the --filter option to quickly find logs that match terms, phrases or values in your log events.
 $ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
 """
@@ -76,6 +82,14 @@ $ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
     "When provided, it will only tail the given CloudWatch Log groups. If you want to tail log groups related "
     "to resources, please also provide their names as well",
 )
+@click.option(
+    "--datadog-livetail",
+    "-d",
+    is_flag=True,
+    help="Prints datadog livetail links for functions in your stack. "
+    'Please ensure that you have signed up for Datadog and your function is correctly configured for the link to work. '
+    "See here for information about Datadog: https://docs.datadoghq.com/serverless/"
+)
 @common_observability_options
 @experimental
 @cli_framework_options
@@ -93,6 +107,7 @@ def cli(
     stack_name,
     filter,
     tail,
+    datadog_livetail,
     include_traces,
     start_time,
     end_time,
@@ -111,6 +126,7 @@ def cli(
         stack_name,
         filter,
         tail,
+        datadog_livetail,
         include_traces,
         start_time,
         end_time,
@@ -126,6 +142,7 @@ def do_cli(
     stack_name,
     filter_pattern,
     tailing,
+    datadog_livetail,
     include_tracing,
     start_time,
     end_time,
@@ -144,6 +161,7 @@ def do_cli(
     from samcli.commands.logs.puller_factory import generate_puller
     from samcli.lib.observability.util import OutputOption
     from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config, get_boto_resource_provider_with_config
+    from samcli.commands._utils.datadog_utils import generate_datadog_url
 
     if not names or len(names) > 1:
         if not prompt_experimental(ExperimentalFlag.Accelerate):
@@ -163,14 +181,18 @@ def do_cli(
 
     # only fetch all resources when no CloudWatch log group defined
     fetch_all_when_no_resource_name_given = not cw_log_groups
+    resource_information = resource_logical_id_resolver.get_resource_information(fetch_all_when_no_resource_name_given)
+    
     puller = generate_puller(
         boto_client_provider,
-        resource_logical_id_resolver.get_resource_information(fetch_all_when_no_resource_name_given),
+        resource_information,
         filter_pattern,
         cw_log_groups,
         OutputOption(output) if output else OutputOption.text,
         include_tracing,
     )
+    if datadog_livetail:
+        generate_datadog_url(resource_information)
 
     if tailing:
         puller.tail(sanitized_start_time, filter_pattern)
