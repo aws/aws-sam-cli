@@ -25,7 +25,6 @@ from samcli.commands.init.init_templates import (
     get_template_value,
     template_does_not_meet_filter_criteria,
 )
-from samcli.commands.init.interactive_init_flow import get_sorted_runtimes
 from samcli.lib.init import GenerateProjectFailedError
 from samcli.lib.utils import osutils
 from samcli.lib.utils import packagetype

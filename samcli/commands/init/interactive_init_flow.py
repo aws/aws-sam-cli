@@ -324,7 +324,7 @@ def _get_choice_from_options(chosen, options, question, msg):
 
 def get_sorted_runtimes(runtime_option_list):
     """
-    return a list of sorted runtimes in ascending order of runtime names and
+    Return a list of sorted runtimes in ascending order of runtime names and
     descending order of runtime version.
 
     Parameters
@@ -343,21 +343,21 @@ def get_sorted_runtimes(runtime_option_list):
         extractVersionFromRuntime = re.search(r"\d.*", runtime).group()
         runtime_list.append((extractLanguageFromRuntime, extractVersionFromRuntime))
 
-    runtime_list = list(sorted(runtime_list, key=functools.cmp_to_key(compare_runtimes)))
+    runtime_list = sorted(runtime_option_list, key=functools.cmp_to_key(compare_runtimes))
     sorted_runtime = ["".join(runtime_tuple) for runtime_tuple in runtime_list]
     return sorted_runtime
 
 
 def compare_runtimes(first_runtime, second_runtime):
     """
-    Logic for comparsion supported runtime against each other
+    Logic to compare supported runtime for sorting.
 
     Parameters
     ----------
     first_runtime : str
-        runtime to be compare
+        runtime to be compared
     second_runtime : str
-        runtime to be compare
+        runtime to be compared
 
     Returns
     -------
@@ -365,41 +365,55 @@ def compare_runtimes(first_runtime, second_runtime):
         comparison result
     """
 
-    first_runtime_name, first_runtime_version = first_runtime
-    second_runtime_name, second_runtime_version = second_runtime
+    first_runtime_name, first_version_number = _split_runtime(first_runtime)
+    second_runtime_name, second_version_number = _split_runtime(second_runtime)
 
     if first_runtime_name == second_runtime_name:
-        first_version_number = get_version_number(first_runtime_version)
-        second_version_number = get_version_number(second_runtime_version)
-
         if first_version_number == second_version_number:
-            return -1 if _ends_with_al2(first_runtime_version) else 1
-
+            # If it's the same runtime and version return al2 first
+            return -1 if first_runtime.endswith(".al2") else 1
         return second_version_number - first_version_number
 
     return 1 if first_runtime_name > second_runtime_name else -1
 
 
-def _ends_with_al2(runtime):
+def _split_runtime(runtime):
     """
-    verify if the suffix of a runtime name is al2
+    Split a runtime into its name and version number.
 
     Parameters
     ----------
-    runtime : runtime
-        runtime to be verified
+    runtime : str
+        Runtime in the format supported by Lambda
 
     Returns
     -------
-    bool
-        True if it ends with al2
+    (str, float)
+        Tuple of runtime name and runtime version
     """
-    return runtime.endswith(".al2")
+    return (_get_runtime_name(runtime), _get_version_number(runtime))
 
 
-def get_version_number(runtime_version):
+def _get_runtime_name(runtime):
     """
-    returns the runtime version number
+    Return the runtime name without the version
+
+    Parameters
+    ----------
+    runtime : str
+        Runtime in the format supported by Lambda.
+
+    Returns
+    -------
+    str
+        Runtime name, which is obtained as everything before the first number
+    """
+    return re.split(r"\d", runtime)[0]
+
+
+def _get_version_number(runtime):
+    """
+    Return the runtime version number
 
     Parameters
     ----------
@@ -409,9 +423,11 @@ def get_version_number(runtime_version):
     Returns
     -------
     float
-        version number
+        Runtime version number
     """
-    return float(re.search(r"\d*(\.\d+)?", runtime_version).group())
+    if "provided" in runtime:
+        return 1.0
+    return float(re.search(r"\d+(\.\d+)?", runtime).group())
 
 
 def _get_app_template_choice(templates_options, dependency_manager):
