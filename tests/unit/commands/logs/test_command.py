@@ -12,6 +12,7 @@ from samcli.lib.observability.util import OutputOption
 @patch("samcli.commands._utils.experimental.update_experimental_context")
 class TestLogsCliCommand(TestCase):
     def setUp(self):
+
         self.function_name = "name"
         self.stack_name = "stack name"
         self.filter_pattern = "filter"
@@ -53,7 +54,6 @@ class TestLogsCliCommand(TestCase):
 
         mocked_resource_physical_id_resolver = Mock()
         mocked_resource_information = MagicMock()
-
         mocked_resource_physical_id_resolver.get_resource_information.return_value = mocked_resource_information
         patched_resource_physical_id_resolver.return_value = mocked_resource_physical_id_resolver
 
@@ -65,8 +65,6 @@ class TestLogsCliCommand(TestCase):
 
         mocked_resource_provider = Mock()
         patched_boto_resource_provider.return_value = mocked_resource_provider
-
-        b = patched_generate_datadog_url
 
         do_cli(
             self.function_name,
