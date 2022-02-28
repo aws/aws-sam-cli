@@ -21,8 +21,8 @@ from samcli.local.common.runtime_template import (
 )
 
 LOG = logging.getLogger(__name__)
-MANIFEST_URL = "https://raw.githubusercontent.com/thedavlee/aws-sam-cli-app-templates/master/manifest.json"
-APP_TEMPLATES_REPO_URL = "https://github.com/thedavlee/aws-sam-cli-app-templates"
+MANIFEST_URL = "https://raw.githubusercontent.com/aws/aws-sam-cli-app-templates/master/manifest.json"
+APP_TEMPLATES_REPO_URL = "https://github.com/aws/aws-sam-cli-app-templates"
 APP_TEMPLATES_REPO_NAME = "aws-sam-cli-app-templates"
 
 
