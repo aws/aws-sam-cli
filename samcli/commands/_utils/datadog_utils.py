@@ -1,8 +1,10 @@
+from typing import List, Any
+
 import click
 
 DATADOG_LIVE_TAIL_URL = "https://app.datadoghq.com/logs/livetail?query=functionname%3A"
 
-def generate_datadog_url(resource_information_list):
+def generate_datadog_url(resource_information_list: List[Any]) -> None:
     lambda_functions = [r for r in resource_information_list if r.resource_type == 'AWS::Lambda::Function']
     if len(lambda_functions) == 0: 
         click.echo(
