@@ -21,6 +21,7 @@ from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 # pylint: disable=E0401
 if typing.TYPE_CHECKING:  # pragma: no cover
     from mypy_boto3_cloudformation.client import CloudFormationClient
+    from mypy_boto3_cloudformation.type_defs import WaiterConfigTypeDef
     from mypy_boto3_s3.client import S3Client
 
 LOG = logging.getLogger(__name__)
@@ -35,8 +36,8 @@ class CompanionStackManager:
     _companion_stack: CompanionStack
     _builder: CompanionStackBuilder
     _boto_config: Config
-    _update_stack_waiter_config: Dict[str, int]
-    _delete_stack_waiter_config: Dict[str, int]
+    _update_stack_waiter_config: WaiterConfigTypeDef
+    _delete_stack_waiter_config: WaiterConfigTypeDef
     _s3_bucket: str
     _s3_prefix: str
     _cfn_client: "CloudFormationClient"
@@ -122,16 +123,16 @@ class CompanionStackManager:
             self._cfn_client.update_stack(
                 StackName=stack_name, TemplateURL=template_url, Capabilities=["CAPABILITY_AUTO_EXPAND"]
             )
-            waiter = self._cfn_client.get_waiter("stack_update_complete")
+            update_waiter = self._cfn_client.get_waiter("stack_update_complete")
+            update_waiter.wait(StackName=stack_name, WaiterConfig=self._update_stack_waiter_config)
         else:
             self._cfn_client.create_stack(
                 StackName=stack_name, TemplateURL=template_url, Capabilities=["CAPABILITY_AUTO_EXPAND"]
             )
-            waiter = self._cfn_client.get_waiter("stack_create_complete")
+            create_waiter = self._cfn_client.get_waiter("stack_create_complete")
+            create_waiter.wait(StackName=stack_name, WaiterConfig=self._update_stack_waiter_config)
 
-        waiter.wait(StackName=stack_name, WaiterConfig=self._update_stack_waiter_config)  # type: ignore
-
-    def _delete_companion_stack(self):
+    def _delete_companion_stack(self) -> None:
         """
         Blocking call to delete the companion stack
         """

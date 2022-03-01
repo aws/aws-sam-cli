@@ -121,6 +121,7 @@ class ResourceZip(Resource):
         temp_dir = None
         if is_local_file(property_value) and not is_zip_file(property_value) and self.FORCE_ZIP:
             temp_dir = copy_to_temp_dir(property_value)
+            assert self.PROPERTY_NAME is not None
             set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, temp_dir)
 
         try:

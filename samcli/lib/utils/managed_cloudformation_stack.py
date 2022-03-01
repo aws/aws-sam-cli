@@ -60,11 +60,13 @@ def manage_stack(
     """
     try:
         if profile:
-            session = boto3.Session(profile_name=profile, region_name=region if region else None)  # type: ignore
+            session = boto3.Session(profile_name=profile, region_name=region if region else None)
             cloudformation_client = session.client("cloudformation")
         else:
+            # botocore-stubs does not allow Optional region_name, will be fixed soon
             cloudformation_client = boto3.client(
-                "cloudformation", config=Config(region_name=region if region else None)
+                "cloudformation",
+                config=Config(region_name=region if region else None),  # type: ignore
             )
     except ProfileNotFound as ex:
         raise CredentialsError(

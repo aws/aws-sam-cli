@@ -72,7 +72,7 @@ class LocalLambdaRunner:
         self.aws_region = aws_region
         self.env_vars_values = env_vars_values or {}
         self.debug_context = debug_context
-        self._boto3_session_creds: Optional[Dict[str, str]] = None
+        self._boto3_session_creds: Optional[Credentials] = None
         self._boto3_region: Optional[str] = None
         self.container_host = container_host
         self.container_host_interface = container_host_interface
@@ -280,7 +280,7 @@ class LocalLambdaRunner:
             aws_creds=aws_creds,
         )  # EnvironmentVariables is not yet annotated with type hints, disable mypy check for now. type: ignore
 
-    def _get_session_creds(self) -> Credentials:
+    def _get_session_creds(self) -> Optional[Credentials]:
         if self._boto3_session_creds is None:
             # to pass command line arguments for region & profile to setup boto3 default session
             LOG.debug("Loading AWS credentials from session with profile '%s'", self.aws_profile)
