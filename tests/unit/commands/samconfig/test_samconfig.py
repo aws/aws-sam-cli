@@ -746,6 +746,7 @@ class TestSamConfigForAllCommands(TestCase):
             "stack_name": "mystack",
             "filter": "myfilter",
             "tail": True,
+            "datadog_livetail": True,
             "include_traces": False,
             "start_time": "starttime",
             "end_time": "endtime",
@@ -771,13 +772,14 @@ class TestSamConfigForAllCommands(TestCase):
                 "mystack",
                 "myfilter",
                 True,
+                True,
                 False,
                 "starttime",
                 "endtime",
                 (),
                 None,
                 "myregion",
-                None,
+                None
             )
 
     @patch("samcli.commands._utils.experimental.is_experimental_enabled")
@@ -788,6 +790,7 @@ class TestSamConfigForAllCommands(TestCase):
             "stack_name": "mystack",
             "filter": "myfilter",
             "tail": True,
+            "datadog_livetail": True,
             "include_traces": True,
             "start_time": "starttime",
             "end_time": "endtime",
@@ -814,12 +817,13 @@ class TestSamConfigForAllCommands(TestCase):
                 "myfilter",
                 True,
                 True,
+                True,
                 "starttime",
                 "endtime",
                 ("cw_log_group",),
                 None,
                 "myregion",
-                None,
+                None
             )
 
     @patch("samcli.commands.publish.command.do_cli")
