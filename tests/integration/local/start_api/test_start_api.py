@@ -2822,7 +2822,7 @@ class WarmContainersWithRemoteLayersBase(TestWarmContainersBaseClass):
         super().tearDownClass()
 
 
-class TestWarmContainersNonLocalLayers(WarmContainersWithRemoteLayersBase):
+class TestWarmContainersRemoteLayers(WarmContainersWithRemoteLayersBase):
     template_path = "/testdata/start_api/template-warm-containers-layers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value
     mode_env_variable = str(uuid.uuid4())
@@ -2843,7 +2843,7 @@ class TestWarmContainersNonLocalLayers(WarmContainersWithRemoteLayersBase):
         self.assertEqual(response.content.decode("utf-8"), '"Layer1"')
 
 
-class TestWarmContainersNonLocalLayersLazyInvoke(WarmContainersWithRemoteLayersBase):
+class TestWarmContainersRemoteLayersLazyInvoke(WarmContainersWithRemoteLayersBase):
     template_path = "/testdata/start_api/template-warm-containers-layers.yaml"
     container_mode = ContainersInitializationMode.LAZY.value
     mode_env_variable = str(uuid.uuid4())
