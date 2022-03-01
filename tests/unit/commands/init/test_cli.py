@@ -1921,10 +1921,10 @@ test-project
         preprocess_manifest = template.get_preprocessed_manifest()
         expected_result = {
             "Hello World Example": {
-                "dotnetcore2.1": {
+                "dotnetcore3.1": {
                     "Zip": [
                         {
-                            "directory": "dotnetcore2.1/cookiecutter-aws-sam-hello-dotnet",
+                            "directory": "dotnetcore3.1/cookiecutter-aws-sam-hello-dotnet",
                             "displayName": "Hello World Example",
                             "dependencyManager": "cli-package",
                             "appTemplate": "hello-world",

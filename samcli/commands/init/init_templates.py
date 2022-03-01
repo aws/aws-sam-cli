@@ -147,9 +147,9 @@ class InitTemplates:
         https://github.com/aws/aws-sam-cli-app-templates/blob/master/manifest.json
         The structure of the manifest is shown below:
         {
-            "dotnetcore2.1": [
+            "dotnetcore3.1": [
                 {
-                    "directory": "dotnetcore2.1/cookiecutter-aws-sam-hello-dotnet",
+                    "directory": "dotnetcore3.1/cookiecutter-aws-sam-hello-dotnet",
                     "displayName": "Hello World Example",
                     "dependencyManager": "cli-package",
                     "appTemplate": "hello-world",

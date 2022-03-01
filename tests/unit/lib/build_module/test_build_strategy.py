@@ -267,7 +267,7 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
     packagetype = "{ZIP}"
     runtime = "{RUNTIME}"
     source_hash = "{SOURCE_HASH}"
-    functions = ["HelloWorldPython", "HelloWorldPython2"]
+    functions = ["HelloWorldPython", "HelloWorld2Python"]
 
     [layer_build_definitions]
     [layer_build_definitions.{LAYER_UUID}]
@@ -347,7 +347,7 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
             cache_dir = Path(temp_base_dir, ".aws-sam", "cache")
             cache_dir.mkdir(parents=True)
 
-            build_function_mock.return_value = {"HelloWorldPython": "artifact1", "HelloWorldPython2": "artifact2"}
+            build_function_mock.return_value = {"HelloWorldPython": "artifact1", "HelloWorld2Python": "artifact2"}
             build_layer_mock.return_value = {"SumLayer": "artifact3"}
 
             build_graph_path = Path(build_dir.parent, "build.toml")
@@ -580,7 +580,7 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
 
     @parameterized.expand(
         [
-            "dotnetcore2.1",
+            "dotnetcore3.1",
             "go1.x",
             "java11",
         ]
