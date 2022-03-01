@@ -92,7 +92,7 @@ class ResourceZip(Resource):
     """
 
     RESOURCE_TYPE: Optional[str] = None
-    PROPERTY_NAME: Optional[str] = None
+    PROPERTY_NAME: str = ""
     PACKAGE_NULL_PROPERTY = True
     # Set this property to True in base class if you want the exporter to zip
     # up the file before uploading This is useful for Lambda functions.
@@ -121,7 +121,6 @@ class ResourceZip(Resource):
         temp_dir = None
         if is_local_file(property_value) and not is_zip_file(property_value) and self.FORCE_ZIP:
             temp_dir = copy_to_temp_dir(property_value)
-            assert self.PROPERTY_NAME is not None
             set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, temp_dir)
 
         try:
