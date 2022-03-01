@@ -112,8 +112,7 @@ class LambdaFunctionObserver:
             """
             code_paths = [function_config.code_abs_path]
             if function_config.layers:
-                # Non-local layers will not have a codeuri property and don't need to be observed
-                code_paths += [layer.codeuri for layer in function_config.layers if layer.codeuri]
+                code_paths += [layer.codeuri for layer in function_config.layers]
             return code_paths
 
         def _get_image_lambda_function_image_names(function_config: FunctionConfig) -> List[str]:

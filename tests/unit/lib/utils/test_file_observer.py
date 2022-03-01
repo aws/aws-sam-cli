@@ -7,7 +7,6 @@ from unittest.mock import Mock, patch, call
 
 from docker.errors import ImageNotFound
 
-from samcli.lib.providers.provider import LayerVersion
 from samcli.lib.utils.file_observer import (
     FileObserver,
     FileObserverException,
@@ -776,33 +775,6 @@ class LambdaFunctionObserver_watch(TestCase):
                 call("path1"),
                 call("layer1_path"),
                 call("layer2_path"),
-            ],
-        )
-
-    def test_watch_ZIP_lambda_function_with_non_local_layers(self):
-        lambda_function = Mock()
-        lambda_function.packagetype = ZIP
-        lambda_function.code_abs_path = "path1"
-        layer1_mock = LayerVersion(arn="arn", codeuri="layer1_path")
-        layer2_mock = LayerVersion(arn="arn2", codeuri=None)
-
-        lambda_function.layers = [layer1_mock, layer2_mock]
-        self.lambda_function_observer.watch(lambda_function)
-        self.assertEqual(
-            self.lambda_function_observer._observed_functions,
-            {
-                ZIP: {
-                    "path1": [lambda_function],
-                    "layer1_path": [lambda_function],
-                },
-                IMAGE: {},
-            },
-        )
-        self.assertEqual(
-            self.file_observer_mock.watch.call_args_list,
-            [
-                call("path1"),
-                call("layer1_path"),
             ],
         )
 
