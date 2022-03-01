@@ -64,8 +64,7 @@ def manage_stack(
             cloudformation_client = session.client("cloudformation")
         else:
             cloudformation_client = boto3.client(
-                "cloudformation",
-                config=Config(region_name=region if region else None),
+                "cloudformation", config=Config(region_name=region if region else None)
             )
     except ProfileNotFound as ex:
         raise CredentialsError(
