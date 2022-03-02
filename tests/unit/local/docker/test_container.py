@@ -4,7 +4,7 @@ Unit test for Container class
 import docker
 from docker.errors import NotFound, APIError
 from unittest import TestCase
-from unittest.mock import Mock, call, patch, ANY
+from unittest.mock import MagicMock, Mock, call, patch, ANY
 
 from requests import RequestException
 
@@ -339,7 +339,7 @@ class TestContainer_stop(TestCase):
         self.mock_docker_client.containers.get.return_value = real_container_mock
         real_container_mock.remove = Mock()
 
-        self.container.stop(time=3)
+        self.container.stop(timeout=3)
 
         self.mock_docker_client.containers.get.assert_called_with("someid")
         real_container_mock.stop.assert_called_with(timeout=3)
@@ -481,7 +481,8 @@ class TestContainer_start(TestCase):
 
         self.container.is_created = Mock()
 
-    def test_must_start_container(self):
+    @patch("socket.socket")
+    def test_must_start_container(self, patched_socket):
 
         self.container.is_created.return_value = True
 
@@ -489,10 +490,30 @@ class TestContainer_start(TestCase):
         self.mock_docker_client.containers.get.return_value = container_mock
         container_mock.start = Mock()
 
+        socket_mock = Mock()
+        socket_mock.connect_ex.return_value = 0
+        patched_socket.return_value = socket_mock
+
         self.container.start()
 
         self.mock_docker_client.containers.get.assert_called_with(self.container.id)
         container_mock.start.assert_called_with()
+
+    @patch("socket.socket")
+    def test_times_out_if_port_not_open(self, patched_socket):
+
+        self.container.is_created.return_value = True
+
+        container_mock = Mock()
+        self.mock_docker_client.containers.get.return_value = container_mock
+        container_mock.start = Mock()
+
+        socket_mock = Mock()
+        socket_mock.connect_ex.return_value = 22
+        patched_socket.return_value = socket_mock
+
+        with self.assertRaises(RuntimeError):
+            self.container.start()
 
     def test_must_not_start_if_container_is_not_created(self):
 

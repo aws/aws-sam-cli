@@ -5,6 +5,8 @@ import logging
 import tarfile
 import tempfile
 import threading
+import socket
+import time
 
 import docker
 import requests
@@ -194,13 +196,13 @@ class Container:
 
         return self.id
 
-    def stop(self, time=3):
+    def stop(self, timeout=3):
         """
         Stop a container, with a given number of seconds between sending SIGTERM and SIGKILL.
 
         Parameters
         ----------
-        time
+        timeout
             Optional. Number of seconds between SIGTERM and SIGKILL. Effectively, the amount of time
             the container has to perform shutdown steps. Default: 3
         """
@@ -209,7 +211,7 @@ class Container:
             return
 
         try:
-            self.docker_client.containers.get(self.id).stop(timeout=time)
+            self.docker_client.containers.get(self.id).stop(timeout=timeout)
         except docker.errors.NotFound:
             # Container is already removed
             LOG.debug("Container with ID %s does not exist. Cannot stop!", self.id)
@@ -271,6 +273,28 @@ class Container:
 
         # Start the container
         real_container.start()
+
+        # Wait for port to be open
+        self.wait_for_port()
+
+    def wait_for_port(self):
+        start_time = time.time()
+        sleep = 0.1
+        timeout = 10
+        while True:
+            a_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            location = (self._container_host_interface, self.rapid_port_host)
+            is_port_open = not a_socket.connect_ex(location)
+            a_socket.close()
+
+            if is_port_open:
+                break
+
+            current_time = time.time()
+            if current_time - start_time > timeout:
+                raise RuntimeError("Timed out while starting container")
+
+            time.sleep(sleep)
 
     @retry(exc=requests.exceptions.RequestException, exc_raise=ContainerResponseException)
     def wait_for_http_response(self, name, event, stdout):
