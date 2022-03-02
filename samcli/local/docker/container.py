@@ -278,6 +278,9 @@ class Container:
         self.wait_for_port()
 
     def wait_for_port(self):
+        """
+        Waits until the host machine port that Docker binds to is open.
+        """
         start_time = time.time()
         sleep = 0.1
         timeout = 10

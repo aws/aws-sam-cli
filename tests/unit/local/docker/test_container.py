@@ -4,7 +4,7 @@ Unit test for Container class
 import docker
 from docker.errors import NotFound, APIError
 from unittest import TestCase
-from unittest.mock import MagicMock, Mock, call, patch, ANY
+from unittest.mock import Mock, call, patch, ANY
 
 from requests import RequestException
 
