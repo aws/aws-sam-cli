@@ -1,7 +1,7 @@
 """
 Unit test for Lambda Build Container management
 """
-
+import itertools
 import json
 import pathlib
 
@@ -72,7 +72,10 @@ class TestLambdaBuildContainer_init(TestCase):
 
 
 class TestLambdaBuildContainer_make_request(TestCase):
-    def test_must_make_request_object_string(self):
+    @parameterized.expand(itertools.product([True, False], [[], ["exp1", "exp2"]]))
+    @patch("samcli.local.docker.lambda_build_container.get_enabled_experimental_flags")
+    def test_must_make_request_object_string(self, is_building_layer, experimental_flags, patched_experimental_flags):
+        patched_experimental_flags.return_value = experimental_flags
 
         container_dirs = {
             "source_dir": "source_dir",
@@ -94,6 +97,7 @@ class TestLambdaBuildContainer_make_request(TestCase):
             "executable_search_paths",
             "mode",
             "architecture",
+            is_building_layer,
         )
 
         self.maxDiff = None  # Print whole json diff
@@ -120,6 +124,8 @@ class TestLambdaBuildContainer_make_request(TestCase):
                     "executable_search_paths": "executable_search_paths",
                     "mode": "mode",
                     "architecture": "architecture",
+                    "is_building_layer": is_building_layer,
+                    "experimental_flags": experimental_flags,
                 },
             },
         )
@@ -164,7 +170,7 @@ class TestLambdaBuildContainer_get_image(TestCase):
     @parameterized.expand(
         [
             ("myruntime", ARM64, "public.ecr.aws/sam/build-myruntime:latest-arm64"),
-            ("nodejs10.x", X86_64, "public.ecr.aws/sam/build-nodejs10.x:latest-x86_64"),
+            ("nodejs14.x", X86_64, "public.ecr.aws/sam/build-nodejs14.x:latest-x86_64"),
         ]
     )
     def test_must_get_image_name(self, runtime, architecture, expected_image_name):

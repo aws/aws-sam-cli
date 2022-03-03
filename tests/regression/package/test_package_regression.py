@@ -22,35 +22,35 @@ class TestPackageRegression(PackageRegressionBase):
 
     @parameterized.expand(
         [
-            "aws-serverless-api.yaml",
-            "aws-appsync-graphqlschema.yaml",
-            "aws-appsync-resolver.yaml",
-            "aws-appsync-functionconfiguration.yaml",
-            "aws-apigateway-restapi.yaml",
-            "aws-elasticbeanstalk-applicationversion.yaml",
-            "aws-cloudformation-stack.yaml",
-            "aws-serverlessrepo-application.yaml",
+            ("aws-serverless-api.yaml", True),
+            ("aws-appsync-graphqlschema.yaml", True),
+            ("aws-appsync-resolver.yaml", True),
+            ("aws-appsync-functionconfiguration.yaml", True),
+            ("aws-apigateway-restapi.yaml", True),
+            ("aws-elasticbeanstalk-applicationversion.yaml", True),
+            ("aws-cloudformation-stack-regression.yaml", False),
+            ("aws-cloudformation-stack-regression.yaml", False),
         ]
     )
-    def test_package_with_output_template_file(self, template_file):
+    def test_package_with_output_template_file(self, template_file, skip_sam_metadata=False):
 
         arguments = {"s3_bucket": self.s3_bucket.name, "template_file": self.test_data_path.joinpath(template_file)}
 
-        self.regression_check(arguments)
+        self.regression_check(arguments, skip_sam_metadata)
 
     @parameterized.expand(
         [
-            "aws-serverless-api.yaml",
-            "aws-appsync-graphqlschema.yaml",
-            "aws-appsync-resolver.yaml",
-            "aws-appsync-functionconfiguration.yaml",
-            "aws-apigateway-restapi.yaml",
-            "aws-elasticbeanstalk-applicationversion.yaml",
-            "aws-cloudformation-stack.yaml",
-            "aws-serverlessrepo-application.yaml",
+            ("aws-serverless-api.yaml", True),
+            ("aws-appsync-graphqlschema.yaml", True),
+            ("aws-appsync-resolver.yaml", True),
+            ("aws-appsync-functionconfiguration.yaml", True),
+            ("aws-apigateway-restapi.yaml", True),
+            ("aws-elasticbeanstalk-applicationversion.yaml", True),
+            ("aws-cloudformation-stack-regression.yaml", False),
+            ("aws-cloudformation-stack-regression.yaml", False),
         ]
     )
-    def test_package_with_output_template_file_and_prefix(self, template_file):
+    def test_package_with_output_template_file_and_prefix(self, template_file, skip_sam_metadata=False):
 
         arguments = {
             "s3_bucket": self.s3_bucket.name,
@@ -58,21 +58,21 @@ class TestPackageRegression(PackageRegressionBase):
             "s3_prefix": "regression/tests",
         }
 
-        self.regression_check(arguments)
+        self.regression_check(arguments, skip_sam_metadata)
 
     @parameterized.expand(
         [
-            "aws-serverless-api.yaml",
-            "aws-appsync-graphqlschema.yaml",
-            "aws-appsync-resolver.yaml",
-            "aws-appsync-functionconfiguration.yaml",
-            "aws-apigateway-restapi.yaml",
-            "aws-elasticbeanstalk-applicationversion.yaml",
-            "aws-cloudformation-stack.yaml",
-            "aws-serverlessrepo-application.yaml",
+            ("aws-serverless-api.yaml", True),
+            ("aws-appsync-graphqlschema.yaml", True),
+            ("aws-appsync-resolver.yaml", True),
+            ("aws-appsync-functionconfiguration.yaml", True),
+            ("aws-apigateway-restapi.yaml", True),
+            ("aws-elasticbeanstalk-applicationversion.yaml", True),
+            ("aws-cloudformation-stack-regression.yaml", False),
+            ("aws-cloudformation-stack-regression.yaml", False),
         ]
     )
-    def test_package_with_output_template_file_json_and_prefix(self, template_file):
+    def test_package_with_output_template_file_json_and_prefix(self, template_file, skip_sam_metadata=False):
 
         arguments = {
             "s3_bucket": self.s3_bucket.name,
@@ -81,4 +81,4 @@ class TestPackageRegression(PackageRegressionBase):
             "use_json": True,
         }
 
-        self.regression_check(arguments)
+        self.regression_check(arguments, skip_sam_metadata)

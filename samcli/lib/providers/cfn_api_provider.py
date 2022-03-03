@@ -9,29 +9,32 @@ from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateE
 from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
 from samcli.lib.providers.api_collector import ApiCollector
 
+from samcli.lib.utils.resources import (
+    AWS_APIGATEWAY_METHOD,
+    AWS_APIGATEWAY_RESOURCE,
+    AWS_APIGATEWAY_RESTAPI,
+    AWS_APIGATEWAY_STAGE,
+    AWS_APIGATEWAY_V2_API,
+    AWS_APIGATEWAY_V2_INTEGRATION,
+    AWS_APIGATEWAY_V2_ROUTE,
+    AWS_APIGATEWAY_V2_STAGE,
+)
+
 LOG = logging.getLogger(__name__)
 
 
 class CfnApiProvider(CfnBaseApiProvider):
-    APIGATEWAY_RESTAPI = "AWS::ApiGateway::RestApi"
-    APIGATEWAY_STAGE = "AWS::ApiGateway::Stage"
-    APIGATEWAY_RESOURCE = "AWS::ApiGateway::Resource"
-    APIGATEWAY_METHOD = "AWS::ApiGateway::Method"
-    APIGATEWAY_V2_API = "AWS::ApiGatewayV2::Api"
-    APIGATEWAY_V2_INTEGRATION = "AWS::ApiGatewayV2::Integration"
-    APIGATEWAY_V2_ROUTE = "AWS::ApiGatewayV2::Route"
-    APIGATEWAY_V2_STAGE = "AWS::ApiGatewayV2::Stage"
     METHOD_BINARY_TYPE = "CONVERT_TO_BINARY"
     HTTP_API_PROTOCOL_TYPE = "HTTP"
     TYPES = [
-        APIGATEWAY_RESTAPI,
-        APIGATEWAY_STAGE,
-        APIGATEWAY_RESOURCE,
-        APIGATEWAY_METHOD,
-        APIGATEWAY_V2_API,
-        APIGATEWAY_V2_INTEGRATION,
-        APIGATEWAY_V2_ROUTE,
-        APIGATEWAY_V2_STAGE,
+        AWS_APIGATEWAY_RESTAPI,
+        AWS_APIGATEWAY_STAGE,
+        AWS_APIGATEWAY_RESOURCE,
+        AWS_APIGATEWAY_METHOD,
+        AWS_APIGATEWAY_V2_API,
+        AWS_APIGATEWAY_V2_INTEGRATION,
+        AWS_APIGATEWAY_V2_ROUTE,
+        AWS_APIGATEWAY_V2_STAGE,
     ]
 
     def extract_resources(self, stacks: List[Stack], collector: ApiCollector, cwd: Optional[str] = None) -> None:
@@ -54,22 +57,22 @@ class CfnApiProvider(CfnBaseApiProvider):
             resources = stack.resources
             for logical_id, resource in resources.items():
                 resource_type = resource.get(CfnBaseApiProvider.RESOURCE_TYPE)
-                if resource_type == CfnApiProvider.APIGATEWAY_RESTAPI:
+                if resource_type == AWS_APIGATEWAY_RESTAPI:
                     self._extract_cloud_formation_route(stack.stack_path, logical_id, resource, collector, cwd=cwd)
 
-                if resource_type == CfnApiProvider.APIGATEWAY_STAGE:
+                if resource_type == AWS_APIGATEWAY_STAGE:
                     self._extract_cloud_formation_stage(resources, resource, collector)
 
-                if resource_type == CfnApiProvider.APIGATEWAY_METHOD:
+                if resource_type == AWS_APIGATEWAY_METHOD:
                     self._extract_cloud_formation_method(stack.stack_path, resources, logical_id, resource, collector)
 
-                if resource_type == CfnApiProvider.APIGATEWAY_V2_API:
+                if resource_type == AWS_APIGATEWAY_V2_API:
                     self._extract_cfn_gateway_v2_api(stack.stack_path, logical_id, resource, collector, cwd=cwd)
 
-                if resource_type == CfnApiProvider.APIGATEWAY_V2_ROUTE:
+                if resource_type == AWS_APIGATEWAY_V2_ROUTE:
                     self._extract_cfn_gateway_v2_route(stack.stack_path, resources, logical_id, resource, collector)
 
-                if resource_type == CfnApiProvider.APIGATEWAY_V2_STAGE:
+                if resource_type == AWS_APIGATEWAY_V2_STAGE:
                     self._extract_cfn_gateway_v2_stage(resources, resource, collector)
 
     @staticmethod
@@ -136,7 +139,7 @@ class CfnApiProvider(CfnBaseApiProvider):
         if not logical_id:
             raise InvalidSamTemplateException("The AWS::ApiGateway::Stage must have a RestApiId property")
         rest_api_resource_type = resources.get(logical_id, {}).get("Type")
-        if rest_api_resource_type != CfnApiProvider.APIGATEWAY_RESTAPI:
+        if rest_api_resource_type != AWS_APIGATEWAY_RESTAPI:
             raise InvalidSamTemplateException(
                 "The AWS::ApiGateway::Stage must have a valid RestApiId that points to RestApi resource {}".format(
                     logical_id
@@ -387,7 +390,7 @@ class CfnApiProvider(CfnBaseApiProvider):
         if not api_id:
             raise InvalidSamTemplateException("The AWS::ApiGatewayV2::Stage must have a ApiId property")
         api_resource_type = resources.get(api_id, {}).get("Type")
-        if api_resource_type != CfnApiProvider.APIGATEWAY_V2_API:
+        if api_resource_type != AWS_APIGATEWAY_V2_API:
             raise InvalidSamTemplateException(
                 "The AWS::ApiGatewayV2::Stag must have a valid ApiId that points to Api resource {}".format(api_id)
             )
@@ -449,7 +452,7 @@ class CfnApiProvider(CfnBaseApiProvider):
         integration_resource = resources.get(integration_id, {})
         resource_type = integration_resource.get("Type")
 
-        if resource_type == CfnApiProvider.APIGATEWAY_V2_INTEGRATION:
+        if resource_type == AWS_APIGATEWAY_V2_INTEGRATION:
             properties = integration_resource.get("Properties", {})
             integration_uri = properties.get("IntegrationUri")
             payload_format_version = properties.get("PayloadFormatVersion")

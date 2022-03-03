@@ -551,7 +551,7 @@ class TestContainer_wait_for_result(TestCase):
         response = Mock()
         response.content = b'{"hello":"world"}'
         mock_requests.post.return_value = response
-        self.container.wait_for_result(event=self.event, name=self.name, stdout=stdout_mock, stderr=stderr_mock)
+        self.container.wait_for_result(event=self.event, full_path=self.name, stdout=stdout_mock, stderr=stderr_mock)
 
     @patch("samcli.local.docker.container.requests")
     def test_wait_for_result_error_retried(self, mock_requests):
@@ -569,7 +569,9 @@ class TestContainer_wait_for_result(TestCase):
         self.container.rapid_port_host = "7077"
         mock_requests.post.side_effect = [RequestException(), RequestException(), RequestException()]
         with self.assertRaises(ContainerResponseException):
-            self.container.wait_for_result(event=self.event, name=self.name, stdout=stdout_mock, stderr=stderr_mock)
+            self.container.wait_for_result(
+                event=self.event, full_path=self.name, stdout=stdout_mock, stderr=stderr_mock
+            )
 
         self.assertEqual(mock_requests.post.call_count, 3)
         calls = mock_requests.post.call_args_list
@@ -609,7 +611,9 @@ class TestContainer_wait_for_result(TestCase):
         stderr_mock = Mock()
         mock_requests.post.side_effect = ContainerResponseException()
         with self.assertRaises(ContainerResponseException):
-            self.container.wait_for_result(event=self.event, name=self.name, stdout=stdout_mock, stderr=stderr_mock)
+            self.container.wait_for_result(
+                event=self.event, full_path=self.name, stdout=stdout_mock, stderr=stderr_mock
+            )
 
 
 class TestContainer_wait_for_logs(TestCase):

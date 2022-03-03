@@ -70,7 +70,8 @@ test_script:
     # Reactivate virtualenv before running tests
     - "venv\\Scripts\\activate"
     - "docker system prune -a -f"
-    - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_NodeFunctions"
+    - ps: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_NodeFunctions"
+    - ps: "pytest -vv tests/integration/local/invoke/invoke_cdk_templates.py -k TestCDKSynthesizedTemplatesImageFunctions"
 
 # Uncomment for RDP
 # on_finish:

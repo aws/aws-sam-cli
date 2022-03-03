@@ -49,6 +49,7 @@ class TestCli(TestCase):
 
         self.container_host = "localhost"
         self.container_host_interface = "127.0.0.1"
+        self.invoke_image = ()
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.lib.local_api_service.LocalApiService")
@@ -87,6 +88,7 @@ class TestCli(TestCase):
             shutdown=self.shutdown,
             container_host=self.container_host,
             container_host_interface=self.container_host_interface,
+            invoke_images={},
         )
 
         local_api_service_mock.assert_called_with(
@@ -195,4 +197,5 @@ class TestCli(TestCase):
             shutdown=self.shutdown,
             container_host=self.container_host,
             container_host_interface=self.container_host_interface,
+            invoke_image=self.invoke_image,
         )

@@ -94,7 +94,7 @@ class BootstrapIntegBase(PipelineBase):
     def get_bootstrap_command_list(
         self,
         no_interactive: bool = False,
-        stage_name: Optional[str] = None,
+        stage_configuration_name: Optional[str] = None,
         profile_name: Optional[str] = None,
         region: Optional[str] = None,
         pipeline_user: Optional[str] = None,
@@ -109,8 +109,8 @@ class BootstrapIntegBase(PipelineBase):
 
         if no_interactive:
             command_list += ["--no-interactive"]
-        if stage_name:
-            command_list += ["--stage", stage_name]
+        if stage_configuration_name:
+            command_list += ["--stage", stage_configuration_name]
         if profile_name:
             command_list += ["--profile", profile_name]
         if region:
@@ -148,10 +148,10 @@ class BootstrapIntegBase(PipelineBase):
     def _get_stage_and_stack_name(self, suffix: str = "") -> Tuple[str, str]:
         # Method expects method name which can be a full path. Eg: test.integration.test_bootstrap_command.method_name
         method_name = self.id().split(".")[-1]
-        stage_name = method_name.replace("_", "-") + suffix + "-" + self.randomized_stage_suffix
+        stage_configuration_name = method_name.replace("_", "-") + suffix + "-" + self.randomized_stage_suffix
 
         mock_env = Mock()
-        mock_env.name = stage_name
+        mock_env.name = stage_configuration_name
         stack_name = Stage._get_stack_name(mock_env)
 
-        return stage_name, stack_name
+        return stage_configuration_name, stack_name

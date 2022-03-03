@@ -1,0 +1,398 @@
+#    Generated from:
+#    const api = new apigw.RestApi(this, 'api');
+#
+#    const newLambda = new lambda.Function(this, 'MyFunction', {
+#      runtime: lambda.Runtime.PYTHON_3_9,
+#      handler: 'app.lambda_handler',
+#      code: lambda.Code.fromAsset('./my_function'),
+#    });
+#
+#    const resource = api.root.addResource('v1');
+#    resource.addMethod('GET', new LambdaIntegration(newLambda));
+Resources:
+  apiC8550315:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: api
+    Metadata:
+      aws:cdk:path: Stack/api/Resource
+  apiCloudWatchRoleAC81D93E:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+    Metadata:
+      aws:cdk:path: Stack/api/CloudWatchRole/Resource
+  apiAccount57E28B43:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+          - apiCloudWatchRoleAC81D93E
+          - Arn
+    DependsOn:
+      - apiC8550315
+    Metadata:
+      aws:cdk:path: Stack/api/Account
+  apiDeployment149F12946764aa649ee1135f7b148d3503269d33:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId:
+        Ref: apiC8550315
+      Description: Automatically created by the RestApi construct
+    DependsOn:
+      - apianyandallANY4CB37872
+      - apianyandall7F5C94F4
+      - apiproxypathproxyGET396712ED
+      - apiproxypathproxyB8D95628
+      - apiproxypath8C95EC75
+      - apiv1GET8233FCA5
+      - apiv199A4C8EC
+    Metadata:
+      aws:cdk:path: Stack/api/Deployment/Resource
+  apiDeploymentStageprod896C8101:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId:
+        Ref: apiC8550315
+      DeploymentId:
+        Ref: apiDeployment149F12946764aa649ee1135f7b148d3503269d33
+      StageName: prod
+    Metadata:
+      aws:cdk:path: Stack/api/DeploymentStage.prod/Resource
+  apiv199A4C8EC:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - apiC8550315
+          - RootResourceId
+      PathPart: v1
+      RestApiId:
+        Ref: apiC8550315
+    Metadata:
+      aws:cdk:path: Stack/api/Default/v1/Resource
+  apiv1GETApiPermissionStackapi3ECDF4F8GETv1074C2575:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - MyFunction3BAA72D1
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: apiC8550315
+            - /
+            - Ref: apiDeploymentStageprod896C8101
+            - /GET/v1
+    Metadata:
+      aws:cdk:path: Stack/api/Default/v1/GET/ApiPermission.Stackapi3ECDF4F8.GET..v1
+  apiv1GETApiPermissionTestStackapi3ECDF4F8GETv1F6F7B222:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - MyFunction3BAA72D1
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: apiC8550315
+            - /test-invoke-stage/GET/v1
+    Metadata:
+      aws:cdk:path: Stack/api/Default/v1/GET/ApiPermission.Test.Stackapi3ECDF4F8.GET..v1
+  apiv1GET8233FCA5:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId:
+        Ref: apiv199A4C8EC
+      RestApiId:
+        Ref: apiC8550315
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - MyFunction3BAA72D1
+                  - Arn
+              - /invocations
+    Metadata:
+      aws:cdk:path: Stack/api/Default/v1/GET/Resource
+  apianyandall7F5C94F4:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - apiC8550315
+          - RootResourceId
+      PathPart: anyandall
+      RestApiId:
+        Ref: apiC8550315
+    Metadata:
+      aws:cdk:path: Stack/api/Default/anyandall/Resource
+  apianyandallANYApiPermissionStackapi3ECDF4F8ANYanyandall05190969:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - MyFunction3BAA72D1
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: apiC8550315
+            - /
+            - Ref: apiDeploymentStageprod896C8101
+            - /*/anyandall
+    Metadata:
+      aws:cdk:path: Stack/api/Default/anyandall/ANY/ApiPermission.Stackapi3ECDF4F8.ANY..anyandall
+  apianyandallANYApiPermissionTestStackapi3ECDF4F8ANYanyandall3EF0370F:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - MyFunction3BAA72D1
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: apiC8550315
+            - /test-invoke-stage/*/anyandall
+    Metadata:
+      aws:cdk:path: Stack/api/Default/anyandall/ANY/ApiPermission.Test.Stackapi3ECDF4F8.ANY..anyandall
+  apianyandallANY4CB37872:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: ANY
+      ResourceId:
+        Ref: apianyandall7F5C94F4
+      RestApiId:
+        Ref: apiC8550315
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - MyFunction3BAA72D1
+                  - Arn
+              - /invocations
+    Metadata:
+      aws:cdk:path: Stack/api/Default/anyandall/ANY/Resource
+  apiproxypath8C95EC75:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - apiC8550315
+          - RootResourceId
+      PathPart: proxypath
+      RestApiId:
+        Ref: apiC8550315
+    Metadata:
+      aws:cdk:path: Stack/api/Default/proxypath/Resource
+  apiproxypathproxyB8D95628:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Ref: apiproxypath8C95EC75
+      PathPart: "{proxy+}"
+      RestApiId:
+        Ref: apiC8550315
+    Metadata:
+      aws:cdk:path: Stack/api/Default/proxypath/{proxy+}/Resource
+  apiproxypathproxyGETApiPermissionStackapi3ECDF4F8GETproxypathproxyFFEFBE2A:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - MyFunction3BAA72D1
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: apiC8550315
+            - /
+            - Ref: apiDeploymentStageprod896C8101
+            - /GET/proxypath/*
+    Metadata:
+      aws:cdk:path: Stack/api/Default/proxypath/{proxy+}/GET/ApiPermission.Stackapi3ECDF4F8.GET..proxypath.{proxy+}
+  apiproxypathproxyGETApiPermissionTestStackapi3ECDF4F8GETproxypathproxyE8F0A0DF:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - MyFunction3BAA72D1
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:"
+            - Ref: AWS::Partition
+            - ":execute-api:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: apiC8550315
+            - /test-invoke-stage/GET/proxypath/*
+    Metadata:
+      aws:cdk:path: Stack/api/Default/proxypath/{proxy+}/GET/ApiPermission.Test.Stackapi3ECDF4F8.GET..proxypath.{proxy+}
+  apiproxypathproxyGET396712ED:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId:
+        Ref: apiproxypathproxyB8D95628
+      RestApiId:
+        Ref: apiC8550315
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - MyFunction3BAA72D1
+                  - Arn
+              - /invocations
+    Metadata:
+      aws:cdk:path: Stack/api/Default/proxypath/{proxy+}/GET/Resource
+  MyFunctionServiceRole3C357FF2:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: Stack/MyFunction/ServiceRole/Resource
+  MyFunction3BAA72D1:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: AssetParameters2f49761fb98268e4ec02561a3bc432021f9fc3c15f76e5bfe3a87eff354cfa93S3BucketF31341C6
+        S3Key:
+          Fn::Join:
+            - ""
+            - - Fn::Select:
+                  - 0
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParameters2f49761fb98268e4ec02561a3bc432021f9fc3c15f76e5bfe3a87eff354cfa93S3VersionKey289D106C
+              - Fn::Select:
+                  - 1
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParameters2f49761fb98268e4ec02561a3bc432021f9fc3c15f76e5bfe3a87eff354cfa93S3VersionKey289D106C
+      Role:
+        Fn::GetAtt:
+          - MyFunctionServiceRole3C357FF2
+          - Arn
+      Handler: main.handler
+      Runtime: python3.9
+    DependsOn:
+      - MyFunctionServiceRole3C357FF2
+    Metadata:
+      aws:cdk:path: Stack/MyFunction/Resource
+      aws:asset:path: ../
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/1VQ0U7DMAz8Ft7TbNUmnumG9oaYxheY1JSsTVLFDtNU5d+JWyrgyXfW2Xd2revdXm8fnuBGlWn7zWRCRD29MZheHT/8a+IxsWqIkEuzs75Tx+CJYzIsgjNEcMgYhVyQQooGBRdVa9kGn5Usn2C0HTDe4K6nouNmtD8jK2yMCcmzesZxCHeHfjb4wyTAvHsBq9sB6Jf8i/GC/BlaaS0oKwuu2Idh0ZWa1QDuvQU9yTEYnSUqodUpeSPpRbfirGhXgbyC9PyRwvUhmR5ZMuSsfGhRX2nzVT/qelseeyVrq1iusg71ZanfsbZxhHUBAAA=
+    Metadata:
+      aws:cdk:path: Stack/CDKMetadata/Default
+    Condition: CDKMetadataAvailable

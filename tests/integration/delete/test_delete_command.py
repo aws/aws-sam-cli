@@ -24,7 +24,6 @@ from tests.testing_utils import run_command, run_command_with_input
 # This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
 SKIP_DELETE_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 CFN_SLEEP = 3
-TIMEOUT = 300
 CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
 
 
@@ -71,6 +70,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             "aws-appsync-resolver.yaml",
             "aws-appsync-functionconfiguration.yaml",
             "aws-apigateway-restapi.yaml",
+            "aws-apigatewayv2-httpapi.yaml",
             "aws-elasticbeanstalk-applicationversion.yaml",
             "aws-cloudformation-moduleversion.yaml",
             "aws-cloudformation-resourceversion.yaml",
@@ -230,6 +230,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             stack_name=stack_name,
             capabilities="CAPABILITY_IAM",
             s3_bucket=self.bucket_name,
+            s3_prefix=self.s3_prefix,
             force_upload=True,
             notification_arns=self.sns_arn,
             parameter_overrides="Parameter=Clarity",
@@ -271,6 +272,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             capabilities="CAPABILITY_IAM",
             image_repository=self.ecr_repo_name,
             s3_bucket=self.bucket_name,
+            s3_prefix=self.s3_prefix,
             force_upload=True,
             notification_arns=self.sns_arn,
             parameter_overrides="Parameter=Clarity",
@@ -310,7 +312,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             # Note(xinhol): --capabilities does not allow passing multiple, we need to fix it
             # here we use samconfig-deep-nested.toml as a workaround
             config_file=self.test_data_path.joinpath("samconfig-deep-nested.toml"),
-            s3_prefix="integ_deploy",
+            s3_prefix=self.s3_prefix,
             s3_bucket=self.s3_bucket.name,
             force_upload=True,
             notification_arns=self.sns_arn,
@@ -404,6 +406,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             stack_name=stack_name,
             capabilities="CAPABILITY_IAM",
             s3_bucket=self.bucket_name,
+            s3_prefix=self.s3_prefix,
             force_upload=True,
             notification_arns=self.sns_arn,
             parameter_overrides="Parameter=Clarity",
@@ -440,6 +443,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             stack_name=stack_name,
             capabilities="CAPABILITY_IAM",
             s3_bucket=self.bucket_name,
+            s3_prefix=self.s3_prefix,
             force_upload=True,
             notification_arns=self.sns_arn,
             parameter_overrides="Parameter=Clarity",
@@ -479,6 +483,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             capabilities="CAPABILITY_IAM",
             image_repository=self.ecr_repo_name,
             s3_bucket=self.bucket_name,
+            s3_prefix=self.s3_prefix,
             force_upload=True,
             notification_arns=self.sns_arn,
             parameter_overrides="Parameter=Clarity",
@@ -517,6 +522,7 @@ class TestDelete(PackageIntegBase, DeployIntegBase, DeleteIntegBase):
             stack_name=stack_name,
             capabilities="CAPABILITY_IAM",
             s3_bucket=self.bucket_name,
+            s3_prefix=self.s3_prefix,
             force_upload=True,
             notification_arns=self.sns_arn,
             parameter_overrides="Parameter=Clarity",

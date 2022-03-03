@@ -1,0 +1,187 @@
+Resources:
+  PythonFunctionServiceRole4A77BE2A:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: Stack/PythonFunction/ServiceRole/Resource
+  PythonFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: AssetParameters93b9d2c968973fe6eba35b65fd456a7bdc12e483512088a38fa8e43b5b62c452S3Bucket5C0DC75B
+        S3Key:
+          Fn::Join:
+            - ""
+            - - Fn::Select:
+                  - 0
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParameters93b9d2c968973fe6eba35b65fd456a7bdc12e483512088a38fa8e43b5b62c452S3VersionKey77549FBB
+              - Fn::Select:
+                  - 1
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParameters93b9d2c968973fe6eba35b65fd456a7bdc12e483512088a38fa8e43b5b62c452S3VersionKey77549FBB
+      Role:
+        Fn::GetAtt:
+          - PythonFunctionServiceRole4A77BE2A
+          - Arn
+      Handler: app.lambda_handler
+      Runtime: python3.9
+    DependsOn:
+      - PythonFunctionServiceRole4A77BE2A
+    Metadata:
+      aws:cdk:path: Stack/PythonFunction/Resource
+      aws:asset:path: ./assets/asset.93b9d2c968973fe6eba35b65fd456a7bdc12e483512088a38fa8e43b5b62c452
+      aws:asset:is-bundled: true
+      aws:asset:property: Code
+  GoFunctionServiceRole9256C2F0:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: Stack/GoFunction/ServiceRole/Resource
+  GoFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: AssetParametersc18b3b2316fc146682477746691ed7e5cf1cde498704981d757dba5303af643cS3Bucket7D903FD3
+        S3Key:
+          Fn::Join:
+            - ""
+            - - Fn::Select:
+                  - 0
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersc18b3b2316fc146682477746691ed7e5cf1cde498704981d757dba5303af643cS3VersionKey1F9F473E
+              - Fn::Select:
+                  - 1
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersc18b3b2316fc146682477746691ed7e5cf1cde498704981d757dba5303af643cS3VersionKey1F9F473E
+      Role:
+        Fn::GetAtt:
+          - GoFunctionServiceRole9256C2F0
+          - Arn
+      Handler: bootstrap
+      Runtime: go1.x
+    DependsOn:
+      - GoFunctionServiceRole9256C2F0
+    Metadata:
+      aws:cdk:path: Stack/GoFunction/Resource
+      aws:asset:path: ./assets/asset.f71644fa5d48f594015c0cde07526cb49379ee32778dc1400f9f38b29d8a2896
+      aws:asset:is-bundled: true
+      aws:asset:property: Code
+  NodejsFunctionServiceRole92FAD13F:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: Stack/NodejsFunction/ServiceRole/Resource
+  NodeJsFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: AssetParameters7d8bea2b653bd127896e2657aa6cab2d182f0d02afa58c91af069544b65dd17aS3Bucket28C6F04D
+        S3Key:
+          Fn::Join:
+            - ""
+            - - Fn::Select:
+                  - 0
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParameters7d8bea2b653bd127896e2657aa6cab2d182f0d02afa58c91af069544b65dd17aS3VersionKey6711FAFC
+              - Fn::Select:
+                  - 1
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParameters7d8bea2b653bd127896e2657aa6cab2d182f0d02afa58c91af069544b65dd17aS3VersionKey6711FAFC
+      Role:
+        Fn::GetAtt:
+          - NodejsFunctionServiceRole92FAD13F
+          - Arn
+      Environment:
+        Variables:
+          AWS_NODEJS_CONNECTION_REUSE_ENABLED: "1"
+      Handler: index.handler
+      Runtime: nodejs14.x
+    DependsOn:
+      - NodejsFunctionServiceRole92FAD13F
+    Metadata:
+      aws:cdk:path: Stack/NodejsFunction/Resource
+      aws:asset:path: ./assets/asset.e43e258265f3f2cd03ad36a7f34aca028d78fa1ed9bfe184210872b42c8f2d9e
+      aws:asset:is-bundled: true
+      aws:asset:property: Code
+  FunctionBundledAssetsC923867E:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: AssetParametersecc03cd9bbdad1c6d9750d997706058e2e6890371efe8dfe21b7b4e9faf5a2dfS3Bucket797B8E3C
+        S3Key:
+          Fn::Join:
+            - ""
+            - - Fn::Select:
+                  - 0
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersecc03cd9bbdad1c6d9750d997706058e2e6890371efe8dfe21b7b4e9faf5a2dfS3VersionKey75976755
+              - Fn::Select:
+                  - 1
+                  - Fn::Split:
+                      - "||"
+                      - Ref: AssetParametersecc03cd9bbdad1c6d9750d997706058e2e6890371efe8dfe21b7b4e9faf5a2dfS3VersionKey75976755
+      Handler: app.lambda_handler
+      Runtime: python3.9
+    Metadata:
+      aws:cdk:path: Stack/FunctionBundledAssets/Resource
+      aws:asset:path: ./assets/asset.ecc03cd9bbdad1c6d9750d997706058e2e6890371efe8dfe21b7b4e9faf5a2df
+      aws:asset:is-bundled: true
+      aws:asset:property: Code
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/z2PzW4CMQyEn6X3rGFF1XMBqdwQ2j6Bm3W32Z+4ip0iFO27NwmC0+exRuNxC+3uFbYv73iVxvbTJlkOBOlT0U5mL0Kax8H5wRzZi4Zo1Ry//QUDLqQUiuhIOAZLZc6u3qljv5oSmWZcvnps0u9Nf9jDpeIjels8ZmA48VN57mkUOFc8tqtxuEDqeK75hauRXYOlm0CtmDUcop1IDyhk7jchu58haw2HUTZ/7Ru02/zyKM41IXp1C0F35z/30i5KDwEAAA==
+    Metadata:
+      aws:cdk:path: Stack/CDKMetadata/Default
+    Condition: CDKMetadataAvailable

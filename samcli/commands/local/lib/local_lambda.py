@@ -194,6 +194,7 @@ class LocalLambdaRunner:
 
         return FunctionConfig(
             name=function.name,
+            full_path=function.full_path,
             runtime=function.runtime,
             handler=function.handler,
             imageuri=function.imageuri,
@@ -227,7 +228,9 @@ class LocalLambdaRunner:
 
         """
 
+        function_id = function.function_id
         name = function.name
+        full_path = function.full_path
 
         variables = None
         if isinstance(function.environment, dict) and "Variables" in function.environment:
@@ -256,7 +259,12 @@ class LocalLambdaRunner:
         else:
             # Standard format
             LOG.debug("Environment variables overrides data is standard format")
-            overrides = self.env_vars_values.get(name, None)
+            # Precedence: logical_id -> function_id -> full_path, customer can use any of them
+            overrides = (
+                self.env_vars_values.get(name, None)
+                or self.env_vars_values.get(function_id, None)
+                or self.env_vars_values.get(full_path, None)
+            )
 
         shell_env = os.environ
         aws_creds = self.get_aws_creds()

@@ -30,6 +30,32 @@ class TestSamLayerProvider(TestCase):
                 },
                 "Metadata": {"BuildMethod": "python3.8"},
             },
+            "LambdaLayerWithCustomId": {
+                "Type": "AWS::Lambda::LayerVersion",
+                "Properties": {
+                    "LayerName": "Layer1",
+                    "Content": "PyLayer/",
+                    "CompatibleRuntimes": ["python3.8", "python3.6"],
+                },
+                "Metadata": {"BuildMethod": "python3.8", "SamResourceId": "LambdaLayerWithCustomId-x"},
+            },
+            "CDKLambdaLayer": {
+                "Type": "AWS::Lambda::LayerVersion",
+                "Properties": {
+                    "LayerName": "Layer1",
+                    "Content": {
+                        "S3Bucket": "bucket",
+                        "S3Key": "key",
+                    },
+                    "CompatibleRuntimes": ["python3.8", "python3.6"],
+                },
+                "Metadata": {
+                    "BuildMethod": "python3.8",
+                    "aws:cdk:path": "stack/CDKLambdaLayer-x/Resource",
+                    "aws:asset:path": "PyLayer/",
+                    "aws:asset:property": "Content",
+                },
+            },
             "ServerlessLayerNoBuild": {
                 "Type": "AWS::Serverless::LayerVersion",
                 "Properties": {
@@ -91,6 +117,23 @@ class TestSamLayerProvider(TestCase):
                 },
                 "Metadata": {"BuildMethod": "python3.8"},
             },
+            "CDKLambdaLayerInChild": {
+                "Type": "AWS::Lambda::LayerVersion",
+                "Properties": {
+                    "LayerName": "Layer1",
+                    "Content": {
+                        "S3Bucket": "bucket",
+                        "S3Key": "key",
+                    },
+                    "CompatibleRuntimes": ["python3.8", "python3.6"],
+                },
+                "Metadata": {
+                    "BuildMethod": "python3.8",
+                    "aws:cdk:path": "stack/CDKLambdaLayerInChild-x/Resource",
+                    "aws:asset:path": "PyLayer/",
+                    "aws:asset:property": "Content",
+                },
+            },
         }
     }
 
@@ -113,7 +156,7 @@ class TestSamLayerProvider(TestCase):
                     "ServerlessLayer",
                     "PyLayer",
                     ["python3.8", "python3.6"],
-                    {"BuildMethod": "python3.8"},
+                    {"BuildMethod": "python3.8", "SamResourceId": "ServerlessLayer"},
                     stack_path="",
                 ),
             ),
@@ -123,17 +166,29 @@ class TestSamLayerProvider(TestCase):
                     "LambdaLayer",
                     "PyLayer",
                     ["python3.8", "python3.6"],
-                    {"BuildMethod": "python3.8"},
+                    {"BuildMethod": "python3.8", "SamResourceId": "LambdaLayer"},
                     stack_path="",
                 ),
             ),
             (
                 "ServerlessLayerNoBuild",
-                LayerVersion("ServerlessLayerNoBuild", "PyLayer", ["python3.8", "python3.6"], None, stack_path=""),
+                LayerVersion(
+                    "ServerlessLayerNoBuild",
+                    "PyLayer",
+                    ["python3.8", "python3.6"],
+                    {"SamResourceId": "ServerlessLayerNoBuild"},
+                    stack_path="",
+                ),
             ),
             (
                 "LambdaLayerNoBuild",
-                LayerVersion("LambdaLayerNoBuild", "PyLayer", ["python3.8", "python3.6"], None, stack_path=""),
+                LayerVersion(
+                    "LambdaLayerNoBuild",
+                    "PyLayer",
+                    ["python3.8", "python3.6"],
+                    {"SamResourceId": "LambdaLayerNoBuild"},
+                    stack_path="",
+                ),
             ),
             ("ServerlessLayerS3Content", None),  # codeuri is a s3 location, ignored
             ("LambdaLayerS3Content", None),  # codeuri is a s3 location, ignored
@@ -143,9 +198,115 @@ class TestSamLayerProvider(TestCase):
                     "SamLayerInChild",
                     os.path.join("child", "PyLayer"),
                     ["python3.8", "python3.6"],
-                    {"BuildMethod": "python3.8"},
+                    {"BuildMethod": "python3.8", "SamResourceId": "SamLayerInChild"},
                     stack_path="ChildStack",
                 ),
+            ),
+            (
+                "LambdaLayerWithCustomId-x",
+                LayerVersion(
+                    "LambdaLayerWithCustomId",
+                    "PyLayer",
+                    ["python3.8", "python3.6"],
+                    {"BuildMethod": "python3.8", "SamResourceId": "LambdaLayerWithCustomId-x"},
+                    stack_path="",
+                ),
+            ),
+            (
+                "LambdaLayerWithCustomId",
+                LayerVersion(
+                    "LambdaLayerWithCustomId",
+                    "PyLayer",
+                    ["python3.8", "python3.6"],
+                    {"BuildMethod": "python3.8", "SamResourceId": "LambdaLayerWithCustomId-x"},
+                    stack_path="",
+                ),
+            ),
+            (
+                "CDKLambdaLayer-x",
+                LayerVersion(
+                    "CDKLambdaLayer",
+                    "PyLayer",
+                    ["python3.8", "python3.6"],
+                    {
+                        "BuildMethod": "python3.8",
+                        "aws:cdk:path": "stack/CDKLambdaLayer-x/Resource",
+                        "aws:asset:path": "PyLayer/",
+                        "aws:asset:property": "Content",
+                        "SamResourceId": "CDKLambdaLayer-x",
+                    },
+                    stack_path="",
+                ),
+            ),
+            (
+                "CDKLambdaLayer",
+                LayerVersion(
+                    "CDKLambdaLayer",
+                    "PyLayer",
+                    ["python3.8", "python3.6"],
+                    {
+                        "BuildMethod": "python3.8",
+                        "aws:cdk:path": "stack/CDKLambdaLayer-x/Resource",
+                        "aws:asset:path": "PyLayer/",
+                        "aws:asset:property": "Content",
+                        "SamResourceId": "CDKLambdaLayer-x",
+                    },
+                    stack_path="",
+                ),
+            ),
+            (
+                "CDKLambdaLayerInChild-x",
+                LayerVersion(
+                    "CDKLambdaLayerInChild",
+                    os.path.join("child", "PyLayer"),
+                    ["python3.8", "python3.6"],
+                    {
+                        "BuildMethod": "python3.8",
+                        "aws:cdk:path": "stack/CDKLambdaLayerInChild-x/Resource",
+                        "aws:asset:path": "PyLayer/",
+                        "aws:asset:property": "Content",
+                        "SamResourceId": "CDKLambdaLayerInChild-x",
+                    },
+                    stack_path="ChildStack",
+                ),
+            ),
+            (
+                "CDKLambdaLayerInChild",
+                LayerVersion(
+                    "CDKLambdaLayerInChild",
+                    os.path.join("child", "PyLayer"),
+                    ["python3.8", "python3.6"],
+                    {
+                        "BuildMethod": "python3.8",
+                        "aws:cdk:path": "stack/CDKLambdaLayerInChild-x/Resource",
+                        "aws:asset:path": "PyLayer/",
+                        "aws:asset:property": "Content",
+                        "SamResourceId": "CDKLambdaLayerInChild-x",
+                    },
+                    stack_path="ChildStack",
+                ),
+            ),
+            (
+                posixpath.join("ChildStack", "CDKLambdaLayerInChild-x"),
+                LayerVersion(
+                    "CDKLambdaLayerInChild",
+                    os.path.join("child", "PyLayer"),
+                    ["python3.8", "python3.6"],
+                    {
+                        "BuildMethod": "python3.8",
+                        "aws:cdk:path": "stack/CDKLambdaLayerInChild-x/Resource",
+                        "aws:asset:path": "PyLayer/",
+                        "aws:asset:property": "Content",
+                        "SamResourceId": "CDKLambdaLayerInChild-x",
+                    },
+                    stack_path="ChildStack",
+                ),
+            ),
+            (
+                # resource_Iac_id is used to build full_path, so logical id could not be used in full_path if
+                # resource_iac_id exists
+                posixpath.join("ChildStack", "CDKLambdaLayerInChild"),
+                None,
             ),
         ]
     )
@@ -154,13 +315,16 @@ class TestSamLayerProvider(TestCase):
         self.assertEqual(expected_output, actual)
 
     def test_get_all_must_return_all_layers(self):
-        result = [posixpath.join(f.stack_path, f.arn) for f in self.provider.get_all()]
+        result = [f.full_path for f in self.provider.get_all()]
         expected = [
             "ServerlessLayer",
             "LambdaLayer",
+            "LambdaLayerWithCustomId-x",
+            "CDKLambdaLayer-x",
             "ServerlessLayerNoBuild",
             "LambdaLayerNoBuild",
             posixpath.join("ChildStack", "SamLayerInChild"),
+            posixpath.join("ChildStack", "CDKLambdaLayerInChild-x"),
         ]
 
         self.assertEqual(expected, result)

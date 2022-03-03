@@ -5,6 +5,9 @@ import logging
 import base64
 from typing import List, Optional
 
+from time import time
+from datetime import datetime
+
 from flask import Flask, request
 from werkzeug.datastructures import Headers
 from werkzeug.routing import BaseConverter
@@ -314,7 +317,8 @@ class LocalApigwService(BaseLocalService):
             # or none, as the default value to be used is 2.0
             # https://docs.aws.amazon.com/apigatewayv2/latest/api-reference/apis-apiid-integrations.html#apis-apiid-integrations-prop-createintegrationinput-payloadformatversion
             if route.event_type == Route.HTTP and route.payload_format_version in [None, "2.0"]:
-                route_key = self._v2_route_key(method, endpoint, route.is_default_route)
+                apigw_endpoint = PathConverter.convert_path_to_api_gateway(endpoint)
+                route_key = self._v2_route_key(method, apigw_endpoint, route.is_default_route)
                 event = self._construct_v_2_0_event_http(
                     request,
                     self.port,
@@ -736,7 +740,14 @@ class LocalApigwService(BaseLocalService):
 
     @staticmethod
     def _construct_v_2_0_event_http(
-        flask_request, port, binary_types, stage_name=None, stage_variables=None, route_key=None
+        flask_request,
+        port,
+        binary_types,
+        stage_name=None,
+        stage_variables=None,
+        route_key=None,
+        request_time_epoch=int(time()),
+        request_time=datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000"),
     ):
         """
         Helper method that constructs the Event 2.0 to be passed to Lambda
@@ -773,7 +784,14 @@ class LocalApigwService(BaseLocalService):
         cookies = LocalApigwService._event_http_cookies(flask_request)
         headers = LocalApigwService._event_http_headers(flask_request, port)
         context_http = ContextHTTP(method=method, path=flask_request.path, source_ip=flask_request.remote_addr)
-        context = RequestContextV2(http=context_http, route_key=route_key, stage=stage_name)
+        context = RequestContextV2(
+            http=context_http,
+            route_key=route_key,
+            stage=stage_name,
+            request_time_epoch=request_time_epoch,
+            request_time=request_time,
+        )
+
         event = ApiGatewayV2LambdaEvent(
             route_key=route_key,
             raw_path=flask_request.path,

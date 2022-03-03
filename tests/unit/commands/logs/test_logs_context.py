@@ -1,11 +1,14 @@
-from unittest import TestCase
-from unittest.mock import Mock, patch, ANY
-
-import botocore.session
-from botocore.stub import Stubber
+from unittest import TestCase, mock
+from unittest.mock import Mock, patch
 
 from samcli.commands.exceptions import UserException
-from samcli.commands.logs.logs_context import LogsCommandContext
+from samcli.commands.logs.logs_context import parse_time, ResourcePhysicalIdResolver
+from samcli.lib.utils.cloudformation import CloudFormationResourceSummary
+
+AWS_SOME_RESOURCE = "AWS::Some::Resource"
+AWS_LAMBDA_FUNCTION = "AWS::Lambda::Function"
+AWS_APIGATEWAY_RESTAPI = "AWS::ApiGateway::RestApi"
+AWS_APIGATEWAY_HTTPAPI = "AWS::ApiGatewayV2::Api"
 
 
 class TestLogsCommandContext(TestCase):
@@ -17,214 +20,110 @@ class TestLogsCommandContext(TestCase):
         self.end_time = "end"
         self.output_file = "somefile"
 
-        self.context = LogsCommandContext(
-            self.function_name,
-            stack_name=self.stack_name,
-            filter_pattern=self.filter_pattern,
-            start_time=self.start_time,
-            end_time=self.end_time,
-            output_file=self.output_file,
-        )
-
-    def test_basic_properties(self):
-        self.assertEqual(self.context.filter_pattern, self.filter_pattern)
-        self.assertIsNone(self.context.output_file_handle)  # before setting context handle will be null
-
-    @patch("samcli.commands.logs.logs_context.Colored")
-    def test_colored_property(self, ColoredMock):
-        ColoredMock.return_value = Mock()
-
-        self.assertEqual(self.context.colored, ColoredMock.return_value)
-        ColoredMock.assert_called_with(colorize=False)
-
-    @patch("samcli.commands.logs.logs_context.Colored")
-    def test_colored_property_without_output_file(self, ColoredMock):
-        ColoredMock.return_value = Mock()
-
-        # No output file. It means we are printing to Terminal. Hence set the color
-        ctx = LogsCommandContext(
-            self.function_name,
-            stack_name=self.stack_name,
-            filter_pattern=self.filter_pattern,
-            start_time=self.start_time,
-            end_time=self.end_time,
-            output_file=None,
-        )
-
-        self.assertEqual(ctx.colored, ColoredMock.return_value)
-        ColoredMock.assert_called_with(colorize=True)  # Must enable colors
-
-    @patch("samcli.commands.logs.logs_context.LogGroupProvider")
-    @patch.object(LogsCommandContext, "_get_resource_id_from_stack")
-    def test_log_group_name_property_with_stack_name(self, get_resource_id_mock, LogGroupProviderMock):
-        logical_id = "someid"
-        group = "groupname"
-
-        LogGroupProviderMock.for_lambda_function.return_value = group
-        get_resource_id_mock.return_value = logical_id
-
-        self.assertEqual(self.context.log_group_name, group)
-
-        LogGroupProviderMock.for_lambda_function.assert_called_with(logical_id)
-        get_resource_id_mock.assert_called_with(ANY, self.stack_name, self.function_name)
-
-    @patch("samcli.commands.logs.logs_context.LogGroupProvider")
-    @patch.object(LogsCommandContext, "_get_resource_id_from_stack")
-    def test_log_group_name_property_without_stack_name(self, get_resource_id_mock, LogGroupProviderMock):
-        group = "groupname"
-
-        LogGroupProviderMock.for_lambda_function.return_value = group
-
-        ctx = LogsCommandContext(
-            self.function_name,
-            stack_name=None,  # No Stack Name
-            filter_pattern=self.filter_pattern,
-            start_time=self.start_time,
-            end_time=self.end_time,
-            output_file=self.output_file,
-        )
-
-        self.assertEqual(ctx.log_group_name, group)
-
-        LogGroupProviderMock.for_lambda_function.assert_called_with(self.function_name)
-        get_resource_id_mock.assert_not_called()
-
-    def test_start_time_property(self):
-        self.context._parse_time = Mock()
-        self.context._parse_time.return_value = "foo"
-
-        self.assertEqual(self.context.start_time, "foo")
-
-    def test_end_time_property(self):
-        self.context._parse_time = Mock()
-        self.context._parse_time.return_value = "foo"
-
-        self.assertEqual(self.context.end_time, "foo")
-
     @patch("samcli.commands.logs.logs_context.parse_date")
     @patch("samcli.commands.logs.logs_context.to_utc")
     def test_parse_time(self, to_utc_mock, parse_date_mock):
-        input = "some time"
+        given_input = "some time"
         parsed_result = "parsed"
         expected = "bar"
         parse_date_mock.return_value = parsed_result
         to_utc_mock.return_value = expected
 
-        actual = LogsCommandContext._parse_time(input, "some prop")
+        actual = parse_time(given_input, "some prop")
         self.assertEqual(actual, expected)
 
-        parse_date_mock.assert_called_with(input)
+        parse_date_mock.assert_called_with(given_input)
         to_utc_mock.assert_called_with(parsed_result)
 
     @patch("samcli.commands.logs.logs_context.parse_date")
     def test_parse_time_raises_exception(self, parse_date_mock):
-        input = "some time"
+        given_input = "some time"
         parsed_result = None
         parse_date_mock.return_value = parsed_result
 
         with self.assertRaises(UserException) as ctx:
-            LogsCommandContext._parse_time(input, "some prop")
+            parse_time(given_input, "some prop")
 
         self.assertEqual(str(ctx.exception), "Unable to parse the time provided by 'some prop'")
 
     def test_parse_time_empty_time(self):
-        result = LogsCommandContext._parse_time(None, "some prop")
+        result = parse_time(None, "some prop")
         self.assertIsNone(result)
 
-    @patch("samcli.commands.logs.logs_context.open")
-    def test_setup_output_file(self, open_mock):
 
-        open_mock.return_value = "handle"
-        result = LogsCommandContext._setup_output_file(self.output_file)
+class TestResourcePhysicalIdResolver(TestCase):
+    def test_get_resource_information_with_resources(self):
+        resource_physical_id_resolver = ResourcePhysicalIdResolver(Mock(), "stack_name", ["resource_name"])
+        with mock.patch(
+            "samcli.commands.logs.logs_context.ResourcePhysicalIdResolver._fetch_resources_from_stack"
+        ) as mocked_fetch:
+            expected_return = Mock()
+            mocked_fetch.return_value = expected_return
 
-        self.assertEqual(result, "handle")
-        open_mock.assert_called_with(self.output_file, "wb")
+            actual_return = resource_physical_id_resolver.get_resource_information(False)
 
-    def test_setup_output_file_without_file(self):
-        self.assertIsNone(LogsCommandContext._setup_output_file(None))
+            mocked_fetch.assert_called_once()
+            self.assertEqual(actual_return, expected_return)
 
-    @patch.object(LogsCommandContext, "_setup_output_file")
-    def test_context_manager_with_output_file(self, setup_output_file_mock):
-        handle = Mock()
-        setup_output_file_mock.return_value = handle
+    def test_get_resource_information_of_all_stack(self):
+        resource_physical_id_resolver = ResourcePhysicalIdResolver(Mock(), "stack_name", [])
+        with mock.patch(
+            "samcli.commands.logs.logs_context.ResourcePhysicalIdResolver._fetch_resources_from_stack"
+        ) as mocked_fetch:
+            expected_return = Mock()
+            mocked_fetch.return_value = expected_return
 
-        with LogsCommandContext(
-            self.function_name,
-            stack_name=self.stack_name,
-            filter_pattern=self.filter_pattern,
-            start_time=self.start_time,
-            end_time=self.end_time,
-            output_file=self.output_file,
-        ) as context:
-            self.assertEqual(context._output_file_handle, handle)
+            actual_return = resource_physical_id_resolver.get_resource_information(True)
 
-        # Context should be reset
-        self.assertIsNone(self.context._output_file_handle)
-        handle.close.assert_called_with()
-        setup_output_file_mock.assert_called_with(self.output_file)
+            mocked_fetch.assert_called_once()
+            self.assertEqual(actual_return, expected_return)
 
-    @patch.object(LogsCommandContext, "_setup_output_file")
-    def test_context_manager_no_output_file(self, setup_output_file_mock):
-        setup_output_file_mock.return_value = None
+    def test_get_no_resource_information(self):
+        resource_physical_id_resolver = ResourcePhysicalIdResolver(Mock(), "stack_name", None)
+        actual_return = resource_physical_id_resolver.get_resource_information(False)
+        self.assertEqual(actual_return, [])
 
-        with LogsCommandContext(
-            self.function_name,
-            stack_name=self.stack_name,
-            filter_pattern=self.filter_pattern,
-            start_time=self.start_time,
-            end_time=self.end_time,
-            output_file=None,
-        ) as context:
-            self.assertEqual(context._output_file_handle, None)
+    @patch("samcli.commands.logs.logs_context.get_resource_summaries")
+    def test_fetch_all_resources(self, patched_get_resources):
+        resource_physical_id_resolver = ResourcePhysicalIdResolver(Mock(), "stack_name", [])
+        mocked_return_value = [
+            CloudFormationResourceSummary(AWS_LAMBDA_FUNCTION, "logical_id_1", "physical_id_1"),
+            CloudFormationResourceSummary(AWS_LAMBDA_FUNCTION, "logical_id_2", "physical_id_2"),
+            CloudFormationResourceSummary(AWS_APIGATEWAY_RESTAPI, "logical_id_3", "physical_id_3"),
+            CloudFormationResourceSummary(AWS_APIGATEWAY_HTTPAPI, "logical_id_4", "physical_id_4"),
+        ]
+        patched_get_resources.return_value = mocked_return_value
 
-        # Context should be reset
-        setup_output_file_mock.assert_called_with(None)
+        actual_result = resource_physical_id_resolver._fetch_resources_from_stack()
+        self.assertEqual(len(actual_result), 4)
 
+        expected_results = [
+            item
+            for item in mocked_return_value
+            if item.resource_type in ResourcePhysicalIdResolver.DEFAULT_SUPPORTED_RESOURCES
+        ]
+        self.assertEqual(expected_results, actual_result)
 
-class TestLogsCommandContext_get_resource_id_from_stack(TestCase):
-    def setUp(self):
+    @patch("samcli.commands.logs.logs_context.get_resource_summaries")
+    def test_fetch_given_resources(self, patched_get_resources):
+        given_resources = ["logical_id_1", "logical_id_2", "logical_id_3", "logical_id_5", "logical_id_6"]
+        resource_physical_id_resolver = ResourcePhysicalIdResolver(Mock(), "stack_name", given_resources)
+        mocked_return_value = [
+            CloudFormationResourceSummary(AWS_LAMBDA_FUNCTION, "logical_id_1", "physical_id_1"),
+            CloudFormationResourceSummary(AWS_LAMBDA_FUNCTION, "logical_id_2", "physical_id_2"),
+            CloudFormationResourceSummary(AWS_LAMBDA_FUNCTION, "logical_id_3", "physical_id_3"),
+            CloudFormationResourceSummary(AWS_APIGATEWAY_RESTAPI, "logical_id_4", "physical_id_4"),
+            CloudFormationResourceSummary(AWS_APIGATEWAY_HTTPAPI, "logical_id_5", "physical_id_5"),
+        ]
+        patched_get_resources.return_value = mocked_return_value
 
-        self.real_client = botocore.session.get_session().create_client("cloudformation", region_name="us-east-1")
-        self.cfn_client_stubber = Stubber(self.real_client)
+        actual_result = resource_physical_id_resolver._fetch_resources_from_stack(set(given_resources))
+        self.assertEqual(len(actual_result), 4)
 
-        self.logical_id = "name"
-        self.stack_name = "stackname"
-        self.physical_id = "myid"
-
-    def test_must_get_from_cfn(self):
-
-        expected_params = {"StackName": self.stack_name, "LogicalResourceId": self.logical_id}
-
-        mock_response = {
-            "StackResourceDetail": {
-                "PhysicalResourceId": self.physical_id,
-                "LogicalResourceId": self.logical_id,
-                "ResourceType": "AWS::Lambda::Function",
-                "ResourceStatus": "UPDATE_COMPLETE",
-                "LastUpdatedTimestamp": "2017-07-28T23:34:13.435Z",
-            }
-        }
-
-        self.cfn_client_stubber.add_response("describe_stack_resource", mock_response, expected_params)
-
-        with self.cfn_client_stubber:
-            result = LogsCommandContext._get_resource_id_from_stack(self.real_client, self.stack_name, self.logical_id)
-
-        self.assertEqual(result, self.physical_id)
-
-    def test_must_handle_resource_not_found(self):
-        errmsg = "Something went wrong"
-        errcode = "SomeException"
-
-        self.cfn_client_stubber.add_client_error(
-            "describe_stack_resource", service_error_code=errcode, service_message=errmsg
-        )
-        expected_error_msg = "An error occurred ({}) when calling the DescribeStackResource operation: {}".format(
-            errcode, errmsg
-        )
-
-        with self.cfn_client_stubber:
-            with self.assertRaises(UserException) as context:
-                LogsCommandContext._get_resource_id_from_stack(self.real_client, self.stack_name, self.logical_id)
-
-            self.assertEqual(expected_error_msg, str(context.exception))
+        expected_results = [
+            item
+            for item in mocked_return_value
+            if item.resource_type in ResourcePhysicalIdResolver.DEFAULT_SUPPORTED_RESOURCES
+            and item.logical_resource_id in given_resources
+        ]
+        self.assertEqual(expected_results, actual_result)

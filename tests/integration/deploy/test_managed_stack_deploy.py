@@ -25,7 +25,6 @@ IS_TARGETTED_PYTHON_VERSION = PYTHON_VERSION.startswith("3.6")
 
 CFN_PYTHON_VERSION_SUFFIX = PYTHON_VERSION.replace(".", "-")
 CFN_SLEEP = 3
-TIMEOUT = 300
 # Set region for managed stacks to be in a different region than the ones in deploy
 DEFAULT_REGION = "us-west-2"
 
