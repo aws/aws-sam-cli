@@ -512,7 +512,7 @@ class TestContainer_start(TestCase):
         socket_mock.connect_ex.return_value = 22
         patched_socket.return_value = socket_mock
 
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(RuntimeError, msg="Timed out while starting container"):
             self.container.start()
 
     def test_must_not_start_if_container_is_not_created(self):
