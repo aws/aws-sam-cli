@@ -157,7 +157,6 @@ class TestSyncWatch(SyncIntegBase):
         template_before = f"code/before/template-python.yaml"
         template_path = self.test_dir.joinpath(template_before)
         stack_name = self._method_to_stack_name(self.id())
-        stack_name = "watch-test-2"
         self.stacks.append({"name": stack_name})
 
         # Start watch
