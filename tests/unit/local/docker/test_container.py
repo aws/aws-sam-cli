@@ -10,6 +10,7 @@ from requests import RequestException
 
 from samcli.lib.utils.packagetype import IMAGE
 from samcli.local.docker.container import Container, ContainerResponseException
+from samcli.local.docker.exceptions import ContainerNotStartableException
 
 
 class TestContainer_init(TestCase):
@@ -513,7 +514,13 @@ class TestContainer_start(TestCase):
         socket_mock.connect_ex.return_value = 22
         patched_socket.return_value = socket_mock
 
-        with self.assertRaises(RuntimeError, msg="Timed out while starting container"):
+        with self.assertRaises(
+            ContainerNotStartableException,
+            msg=(
+                "Timed out while starting container. You can increase this timeout by setting the "
+                "SAM_CLI_START_CONTAINER_TIMEOUT environment variable. The current value is 0.1 (seconds)."
+            ),
+        ):
             self.container.start()
 
     def test_must_not_start_if_container_is_not_created(self):
