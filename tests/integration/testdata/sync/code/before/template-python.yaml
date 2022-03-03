@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 
 Globals:
@@ -11,7 +11,7 @@ Resources:
     Properties:
       CodeUri: function/
       Handler: app.lambda_handler
-      Runtime: python3.7
+      Runtime: python3.8
       Layers:
         - Ref: HelloWorldLayer
       Tracing: Active
@@ -35,9 +35,9 @@ Resources:
       Description: Hello World Layer
       ContentUri: layer/
       CompatibleRuntimes:
-        - python3.7
+        - python3.8
     Metadata:
-      BuildMethod: python3.7
+      BuildMethod: python3.8
 
   HelloStepFunction:
     Type: AWS::Serverless::StateMachine

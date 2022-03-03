@@ -1,25 +1,16 @@
-from asyncio import subprocess
 import os
-import psutil
-import platform
-from queue import Queue
 import shutil
-from signal import CTRL_C_EVENT
-from socket import timeout
-from subprocess import CREATE_NEW_CONSOLE, CREATE_NEW_PROCESS_GROUP, PIPE, Popen, TimeoutExpired
-from threading import Thread
+import time
 import uuid
 
 import logging
 import json
 import tempfile
-import time
 from pathlib import Path
 from unittest import skipIf
 
 import boto3
 from botocore.config import Config
-from botocore.exceptions import ClientError
 from parameterized import parameterized
 
 from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
@@ -31,6 +22,7 @@ from samcli.lib.utils.resources import (
 from tests.integration.buildcmd.build_integ_base import BuildIntegBase
 from tests.integration.sync.sync_integ_base import SyncIntegBase
 from tests.integration.package.package_integ_base import PackageIntegBase
+from tests.integration.sync.test_sync_code import API_SLEEP, SFN_SLEEP
 
 from tests.testing_utils import (
     RUNNING_ON_CI,
@@ -60,7 +52,7 @@ LOG.addHandler(handler)
 
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
-class TestSyncWatch(BuildIntegBase, PackageIntegBase, SyncIntegBase):
+class TestSyncWatch(SyncIntegBase):
     @classmethod
     def setUpClass(cls):
         PackageIntegBase.setUpClass()
@@ -97,14 +89,14 @@ class TestSyncWatch(BuildIntegBase, PackageIntegBase, SyncIntegBase):
                 cfn_client.delete_stack(StackName=stack_name)
         super().tearDown()
 
-    def test_sync_watch_infra(self):
-        runtime = "python"
+    @parameterized.expand(["python"])
+    def test_sync_watch_infra(self, runtime):
         template_before = f"infra/template-{runtime}-before.yaml"
         template_path = self.test_dir.joinpath(template_before)
         stack_name = self._method_to_stack_name(self.id())
         self.stacks.append({"name": stack_name})
 
-        # Run infra sync
+        # Start watch
         sync_command_list = self.get_sync_command_list(
             template_file=str(template_path),
             code=False,
@@ -124,51 +116,51 @@ class TestSyncWatch(BuildIntegBase, PackageIntegBase, SyncIntegBase):
 
         read_until_string(self.watch_process, "\x1b[32mInfra sync completed.\x1b[0m\n", timeout=600)
 
-        # CFN Api call here to collect all the stack resources
+        # Initial Infra Validation
         self.stack_resources = self._get_stacks(stack_name)
-        # Lambda Api call here, which tests both the python function and the layer
         lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
         for lambda_function in lambda_functions:
             lambda_response = json.loads(self._get_lambda_response(lambda_function))
             self.assertIn("extra_message", lambda_response)
             self.assertEqual(lambda_response.get("message"), "7")
-        # ApiGateway Api call here, which tests the RestApi
         rest_api = self.stack_resources.get(AWS_APIGATEWAY_RESTAPI)[0]
         self.assertEqual(self._get_api_message(rest_api), '{"message": "hello 1"}')
-        # SFN Api call here, which tests the StateMachine
         state_machine = self.stack_resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
         self.assertEqual(self._get_sfn_response(state_machine), '"World 1"')
 
         self.update_file(
-            self.test_dir.joinpath("infra/template-python-after.yaml"),
-            self.test_dir.joinpath("infra/template-python-before.yaml"),
+            self.test_dir.joinpath(f"infra/template-{runtime}-after.yaml"),
+            self.test_dir.joinpath(f"infra/template-{runtime}-before.yaml"),
         )
 
         read_until_string(self.watch_process, "\x1b[32mInfra sync completed.\x1b[0m\n", timeout=600)
 
-        # CFN Api call here to collect all the stack resources
+        # Updated Infra Validation
         self.stack_resources = self._get_stacks(stack_name)
-        # Lambda Api call here, which tests both the python function and the layer
+
+        # Lambda
         lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
         for lambda_function in lambda_functions:
             lambda_response = json.loads(self._get_lambda_response(lambda_function))
             self.assertIn("extra_message", lambda_response)
             self.assertEqual(lambda_response.get("message"), "9")
-        # ApiGateway Api call here, which tests the RestApi
+
+        # APIGW
         rest_api = self.stack_resources.get(AWS_APIGATEWAY_RESTAPI)[0]
         self.assertEqual(self._get_api_message(rest_api), '{"message": "hello 2"}')
-        # SFN Api call here, which tests the StateMachine
+
+        # SFN
         state_machine = self.stack_resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
         self.assertEqual(self._get_sfn_response(state_machine), '"World 2"')
 
     def test_sync_watch_code(self):
-        runtime = "python"
-        template_before = f"infra/template-{runtime}-before.yaml"
+        template_before = f"code/before/template-python.yaml"
         template_path = self.test_dir.joinpath(template_before)
         stack_name = self._method_to_stack_name(self.id())
+        stack_name = "watch-test-2"
         self.stacks.append({"name": stack_name})
 
-        # Run infra sync
+        # Start watch
         sync_command_list = self.get_sync_command_list(
             template_file=str(template_path),
             code=False,
@@ -188,41 +180,70 @@ class TestSyncWatch(BuildIntegBase, PackageIntegBase, SyncIntegBase):
 
         read_until_string(self.watch_process, "\x1b[32mInfra sync completed.\x1b[0m\n", timeout=600)
 
-        # CFN Api call here to collect all the stack resources
+        # Initial Infra Validation
         self.stack_resources = self._get_stacks(stack_name)
-        # Lambda Api call here, which tests both the python function and the layer
         lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
         for lambda_function in lambda_functions:
             lambda_response = json.loads(self._get_lambda_response(lambda_function))
             self.assertIn("extra_message", lambda_response)
             self.assertEqual(lambda_response.get("message"), "7")
-        # ApiGateway Api call here, which tests the RestApi
         rest_api = self.stack_resources.get(AWS_APIGATEWAY_RESTAPI)[0]
         self.assertEqual(self._get_api_message(rest_api), '{"message": "hello 1"}')
-        # SFN Api call here, which tests the StateMachine
         state_machine = self.stack_resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
         self.assertEqual(self._get_sfn_response(state_machine), '"World 1"')
 
-        self.update_file(
-            self.test_dir.joinpath("infra/template-python-after.yaml"),
-            self.test_dir.joinpath("infra/template-python-before.yaml"),
-        )
-
-        read_until_string(self.watch_process, "\x1b[32mInfra sync completed.\x1b[0m\n", timeout=600)
-
-        # CFN Api call here to collect all the stack resources
         self.stack_resources = self._get_stacks(stack_name)
-        # Lambda Api call here, which tests both the python function and the layer
+
+        # Test Lambda Function
+        self.update_file(
+            self.test_dir.joinpath("code/after/function/app.py"),
+            self.test_dir.joinpath("code/before/function/app.py"),
+        )
+        read_until_string(
+            self.watch_process, "\x1b[32mFinished syncing Lambda Function HelloWorldFunction.\x1b[0m\n", timeout=30
+        )
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "8")
+
+        # Test Lambda Layer
+        self.update_file(
+            self.test_dir.joinpath("code/after/layer/layer_method.py"),
+            self.test_dir.joinpath("code/before/layer/layer_method.py"),
+        )
+        read_until_string(
+            self.watch_process,
+            "\x1b[32mFinished syncing Function Layer Reference Sync HelloWorldFunction.\x1b[0m\n",
+            timeout=30,
+        )
         lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
         for lambda_function in lambda_functions:
             lambda_response = json.loads(self._get_lambda_response(lambda_function))
             self.assertIn("extra_message", lambda_response)
             self.assertEqual(lambda_response.get("message"), "9")
-        # ApiGateway Api call here, which tests the RestApi
+
+        # Test APIGW
+        self.update_file(
+            self.test_dir.joinpath("code/after/apigateway/definition.json"),
+            self.test_dir.joinpath("code/before/apigateway/definition.json"),
+        )
+        read_until_string(self.watch_process, "\x1b[32mFinished syncing RestApi HelloWorldApi.\x1b[0m\n", timeout=20)
+        time.sleep(API_SLEEP)
         rest_api = self.stack_resources.get(AWS_APIGATEWAY_RESTAPI)[0]
         self.assertEqual(self._get_api_message(rest_api), '{"message": "hello 2"}')
-        # SFN Api call here, which tests the StateMachine
+
+        # Test SFN
+        self.update_file(
+            self.test_dir.joinpath("code/after/statemachine/function.asl.json"),
+            self.test_dir.joinpath("code/before/statemachine/function.asl.json"),
+        )
+        read_until_string(
+            self.watch_process, "\x1b[32mFinished syncing StepFunctions HelloStepFunction.\x1b[0m\n", timeout=20
+        )
         state_machine = self.stack_resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
+        time.sleep(SFN_SLEEP)
         self.assertEqual(self._get_sfn_response(state_machine), '"World 2"')
 
     def update_file(self, source, destination):
