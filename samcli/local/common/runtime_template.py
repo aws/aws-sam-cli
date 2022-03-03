@@ -82,33 +82,11 @@ def get_local_lambda_images_location(mapping, runtime):
     return os.path.join(_lambda_images_templates, runtime, dir_name + "-lambda-image")
 
 
-RUNTIME_TO_DEPENDENCY_MANAGERS = {
-    "python3.9": ["pip"],
-    "python3.8": ["pip"],
-    "python3.7": ["pip"],
-    "python3.6": ["pip"],
-    "ruby2.7": ["bundler"],
-    "nodejs14.x": ["npm"],
-    "nodejs12.x": ["npm"],
-    "dotnetcore3.1": ["cli-package"],
-    "dotnet6": ["cli-package"],
-    "go1.x": ["mod"],
-    "java8": ["maven", "gradle"],
-    "java11": ["maven", "gradle"],
-    "java8.al2": ["maven", "gradle"],
-}
-
 SUPPORTED_DEP_MANAGERS: Set[str] = {
     c["dependency_manager"]  # type: ignore
     for c in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values())))
     if c["dependency_manager"]
 }
-
-RUNTIMES: Set[str] = set(
-    itertools.chain(
-        *[c["runtimes"] for c in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values())))]  # type: ignore
-    )
-)
 
 # When adding new Lambda runtimes, please update SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING
 # Runtimes are ordered in alphabetical fashion with reverse version order (latest versions first)
