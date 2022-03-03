@@ -1,6 +1,7 @@
 """
 Representation of a generic Docker container
 """
+import os
 import logging
 import tarfile
 import tempfile
@@ -18,6 +19,8 @@ from .exceptions import ContainerNotStartableException
 from .utils import to_posix_path, find_free_port, NoFreePortsError
 
 LOG = logging.getLogger(__name__)
+
+START_CONTAINER_TIMEOUT = float(os.environ.get("SAM_CLI_START_CONTAINER_TIMEOUT", 5))
 
 
 class ContainerResponseException(Exception):
@@ -283,10 +286,10 @@ class Container:
         """
         start_time = time.time()
         sleep = 0.1
-        timeout = 10
         while True:
             a_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             location = (self._container_host_interface, self.rapid_port_host)
+            # connect_ex returns 0 if connection succeeded
             is_port_open = not a_socket.connect_ex(location)
             a_socket.close()
 
@@ -294,8 +297,12 @@ class Container:
                 break
 
             current_time = time.time()
-            if current_time - start_time > timeout:
-                raise RuntimeError("Timed out while starting container")
+            if current_time - start_time > START_CONTAINER_TIMEOUT:
+                raise ContainerNotStartableException(
+                    f"Timed out while starting container. You can increase this timeout by "
+                    f"setting the SAM_CLI_START_CONTAINER_TIMEOUT environment variable. "
+                    f"The current value is {START_CONTAINER_TIMEOUT} (seconds)."
+                )
 
             time.sleep(sleep)
 

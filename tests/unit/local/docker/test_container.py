@@ -499,6 +499,7 @@ class TestContainer_start(TestCase):
         self.mock_docker_client.containers.get.assert_called_with(self.container.id)
         container_mock.start.assert_called_with()
 
+    @patch("samcli.local.docker.container.START_CONTAINER_TIMEOUT", 0)
     @patch("socket.socket")
     def test_times_out_if_port_not_open(self, patched_socket):
 
